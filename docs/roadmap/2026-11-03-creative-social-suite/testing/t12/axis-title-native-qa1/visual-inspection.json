@@ -1,0 +1,24 @@
+{
+  "reviewer": "root directly viewed all six original PNGs and six browser screenshots; parsed all six SVG title groups and decoded original TTF hashes",
+  "inspected": {
+    "column.png": "c0f7d8bd06b75ca653c6dfb89a283340b6512f3e016475fb13346b52ded5f9e0",
+    "column-screenshot.png": "df655984d51627f7c5af5323251abd7abad9377f66b1fa807d4d3297bef883d3",
+    "bar.png": "061a2b1d45767146db591fdf96f8c8384864243a167c0aa09c89c80fbd1b477b",
+    "bar-screenshot.png": "8284720bb96b9301431592f203f5071486b32287397165f044752f3a53cb8ae3",
+    "proportional.png": "dab4aeeb400788c242216a4eac660d2b81460855f663d7834003f74de6373109",
+    "proportional-screenshot.png": "574a8e63640ad101ac1bda3bea2de98456b7c20a1a3b6db4f6c939337b9613ce",
+    "root-transform.png": "6edc1d649574777c72944d7404d1ae6948f82f3d7b3648c1f8c0cd96f47e376f",
+    "root-transform-screenshot.png": "dc236c2bc062474b384a79bc1cf363de7c9eac2f51b2a92b5aa87ce8cf08151e",
+    "long-private-font.png": "7f372aea9fb5f18f41d8646d6ac5db7efea0a2d80fbd8bda3c53bcd15d699e95",
+    "long-private-font-screenshot.png": "0c0ad54775757d5c67c6a1fa78fd98409e4f6c15c6074714a7eb45c7ab4a0c67",
+    "tiny160.png": "0139d644391e4c14374fe6047c1a63351ef6f893b00d66f590292834fcd054a3",
+    "tiny160-screenshot.png": "abc4559d97d69bc2484f8fc26751c8219d50aad588afb7892aa544b291d49ed1"
+  },
+  "issues": [],
+  "scope": "Target y-title font/orientation/paint containment only; not whole chart readability or export pipeline acceptance",
+  "limitations": [
+    "The tiny160 image has crowded tick labels; this probe does not accept complete tiny-chart readability.",
+    "Long title has effective2.8926px and tiny title9.855px: bounded fitting, not universal18px or12px legibility.",
+    "Neighbor overlap checks compare y-title ink against other text only; not all pairs of labels."
+  ]
+}

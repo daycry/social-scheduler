@@ -1,0 +1,182 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>T12 C3charts QA</title><style>/* to-pdf — tema moderno para PDF (impresión A4). */
+
+:root {
+  --ink: #1f2328;
+  --ink-soft: #57606a;
+  --accent: #0969da;
+  --line: #d0d7de;
+  --line-soft: #e6e9ee;
+  --code-bg: #f6f8fa;
+  --thead-bg: #f6f8fa;
+  --stripe: #fafbfc;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", "Liberation Sans", sans-serif;
+  font-size: 11pt;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+.doc { max-width: 100%; }
+
+/* Titulares */
+h1, h2, h3, h4, h5, h6 {
+  color: #0b0c0e;
+  font-weight: 650;
+  line-height: 1.25;
+  margin: 1.4em 0 0.5em;
+  break-after: avoid;
+}
+h1 { font-size: 22pt; margin-top: 0; padding-bottom: .25em; border-bottom: 2px solid var(--line); letter-spacing: -0.01em; }
+h2 { font-size: 16pt; padding-bottom: .2em; border-bottom: 1px solid var(--line-soft); }
+h3 { font-size: 13pt; }
+h4 { font-size: 11.5pt; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+
+p { margin: 0 0 .8em; }
+
+a { color: var(--accent); text-decoration: none; }
+
+strong { font-weight: 650; }
+
+/* Listas */
+ul, ol { margin: 0 0 .8em; padding-left: 1.4em; }
+li { margin: .2em 0; }
+li > p { margin: 0; }
+
+/* Cita */
+blockquote {
+  margin: 0 0 1em;
+  padding: .2em 0 .2em 1em;
+  border-left: 3px solid var(--line);
+  color: var(--ink-soft);
+}
+
+/* Código */
+code, kbd, pre, samp {
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace;
+  font-size: .88em;
+}
+code {
+  background: var(--code-bg);
+  padding: .12em .38em;
+  border-radius: 5px;
+  border: 1px solid var(--line-soft);
+}
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: .85em 1em;
+  overflow: auto;
+  line-height: 1.5;
+  break-inside: avoid;
+}
+pre code { background: none; border: 0; padding: 0; }
+
+/* Tablas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1em;
+  font-size: .95em;
+  break-inside: avoid;
+}
+th, td { border: 1px solid var(--line); padding: .5em .7em; text-align: left; vertical-align: top; }
+thead th { background: var(--thead-bg); font-weight: 650; }
+tbody tr:nth-child(even) { background: var(--stripe); }
+
+/* Multimedia y separadores */
+img { max-width: 100%; height: auto; }
+hr { border: 0; border-top: 1px solid var(--line-soft); margin: 1.6em 0; }
+
+/* Paginación */
+table, pre, blockquote, figure { break-inside: avoid; }
+h1, h2, h3 { page-break-after: avoid; }
+pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:8pt}table{font-size:8pt;table-layout:fixed;width:100%;break-inside:auto}td,th{overflow-wrap:anywhere}tr{break-inside:avoid}img{max-height:235mm;object-fit:contain}h2,h3{break-after:avoid}</style><body><main class="doc"><h1>T12: consumidor local, errores y accesibilidad</h1>
+<p><strong>NO-PASS</strong>. Casos realmente ejecutados: 1/3; registros del JSON original: 3, incluidos los no ejecutados. E2E28.03 previsto íntegro a375/768/1440px, un worker, cero reintentos y fail-fast1. T12 sigue abierta. La revisión de figuras/PDF no sustituye el resultado automático.</p>
+<h2>Contrato y comprobaciones</h2>
+<p>El consumidor cancela su espera al cerrar el modal; el transporte compartido continúa y puede llenar la caché. La prueba exige modal cerrado, foco restaurado y documento vacío antes de liberar la respuesta. Después verifica el cuerpo original del mismo GET/export?format=json&amp;revision=1, finished,200,MIME,bytes ySHA, y de nuevo cierre/foco/documento/capas vacíos. Reabre la misma tabla, comprueba preview y ocho celdas tipadas originales sin segundo GET. No hay GET auxiliar ni éxito HTTP simulado. El aborto físico por registry.dispose tiene diagnóstico independiente; no se atribuye al cierre de UI.</p>
+<p>Además exige tabla DOM original, negativos bloqueados, precisión safe/approximate, estilo e Inspector, teclado/foco y revisión histórica vacíaB4. El grupo completo requiere9recibos axe sin violations/incomplete,9capturas,3recibos de foco/hold/B4/viewports,6eventos pasivos capture/release con cancelled_delivery=false/deadline_release=false, red sin issues/expected_http/abortos y font-responses vacío. El contador independiente contrasta bytes/query/UI/caché/cleanup y rechaza faltantes, sobrantes o incoherencias. Los pasos no alcanzados permanecen pendientes.</p>
+<h2>Recursos y cierre</h2>
+<p>Runtime ficticio aislado y loopback, sin .env/DB/proveedor real. Build6 actual62inputs/77assets. Job3GiB COMMIT agregado, preflight físico6GiB, piso3GiB cada100ms, PHP256MiB/Node512MiB;900s incluyendo cierre. Núcleo 31.340s, pico COMMIT 760582144B, mínimo físico 7117832192B; fallo de recursos None. Plazo global 31.519682799989823s. Clausura registrada por separado; procesos propios cerrados y8080IPv4/IPv6libres. PDF posterior en Job separado. 567fuentes verificadas antes/después y trasPDF.</p>
+<h2>Resultado y alcance pendiente</h2>
+<pre><code class="language-text">desktop: Error: expect(received).toEqual(expected) // deep equality
+
+- Expected  -  1
++ Received  + 49
+
+- Array []
++ Array [
++   Object {
++     &quot;description&quot;: &quot;Ensure that &lt;th&gt; elements and elements with role=columnheader/rowheader have data cells they describe&quot;,
++     &quot;help&quot;: &quot;Table headers in a data table must refer to data cells&quot;,
++     &quot;helpUrl&quot;: &quot;https://dequeuniversity.com/rules/axe/4.10/th-has-data-cells?application=playwright&quot;,
++     &quot;id&quot;: &quot;th-has-data-cells&quot;,
++     &quot;impact&quot;: &quot;serious&quot;,
++     &quot;nodes&quot;: Array [
++       Object {
++         &quot;all&quot;: Array [
++           Object {
++             &quot;data&quot;: null,
++             &quot;id&quot;: &quot;th-has-data-cells&quot;,
++             &quot;impact&quot;: &quot;serious&quot;,
++             &quot;message&quot;: &quot;Table data cells are missing or empty&quot;,
++             &quot;relatedNodes&quot;: Array [
++               Object {
++                 &quot;html&quot;: &quot;&lt;th data-v-a61ea03b=\&quot;\&quot; scope=\&quot;col\&quot; class=\&quot;p-2\&quot;&gt;Serie 1&lt;/th&gt;&quot;,
++                 &quot;target&quot;: Array [
++                   &quot;th:nth-child(3)&quot;,
++                 ],
++               },
++             ],
++           },
++         ],
++         &quot;any&quot;: Array [],
++         &quot;failureSummary&quot;: &quot;Fix all of the following:
++   Table data cells are missing or empty&quot;,
++         &quot;html&quot;: &quot;&lt;table data-v-a61ea03b=\&quot;\&quot; class=\&quot;w-full text-left text-xs\&quot;&gt;&quot;,
++         &quot;impact&quot;: &quot;serious&quot;,
++         &quot;none&quot;: Array [],
++         &quot;target&quot;: Array [
++           &quot;table&quot;,
++         ],
++       },
++     ],
++     &quot;tags&quot;: Array [
++       &quot;cat.tables&quot;,
++       &quot;wcag2a&quot;,
++       &quot;wcag131&quot;,
++       &quot;section508&quot;,
++       &quot;section508.22.g&quot;,
++       &quot;TTv5&quot;,
++       &quot;TT14.b&quot;,
++       &quot;EN-301-549&quot;,
++       &quot;EN-9.1.3.1&quot;,
++     ],
++   },
++ ]
+
+   at support\studio-chart-ui.ts:32
+
+  30 | export async function apply(page:Page){await chartDialog(page).getByRole('button',{name:/^(Insertar|Aplicar) gráfico$/}).click();await expect(chartDialog(page)).not.toBeVisible();await save(page);}
+  31 | export async function capture(page:Page,info:TestInfo,name:string){await expectNoOverflow(page);await page.screenshot({path:info.outputPath(name),fullPage:true});}
+&gt; 32 | export async function audit(page:Page,info:TestInfo,name:string,selector:string){const report=await new AxeBuilder({page}).include(selector).analyze();fs.writeFileSync(info.outputPath(`axe-${name}.json`),JSON.stringify(report,null,2));expect(report.violations).toEqual([]);expect(report.incomplete).toEqual([]);}
+     |               
+</code></pre>
+<p>Los errores1/2/3, consumer1 y las matrices anteriores permanecen inmutables. Este resultado no acredita exportaciones SVG/PNG/PDF, fuente privada, densidad, otras variantes/familias, AV ni el roadmap completo. Servidor tiene informe independiente; no se mezclan JSON para inventar una matriz completa. TítuloY pequeño, otras funciones T12, resto del roadmap y auditoría final ClaudeCLI pendientes.</p>
+<h2>Evidencias visuales</h2>
+<h3>images/1440-errors-table-modal.png</h3>
+<p><img src="images/1440-errors-table-modal.png" alt="images/1440-errors-table-modal.png" /></p>
+<h3>images/1440-inspector.png</h3>
+<p><img src="images/1440-inspector.png" alt="images/1440-inspector.png" /></p>
+<h3>images/1440-test-failed-1.png</h3>
+<p><img src="images/1440-test-failed-1.png" alt="images/1440-test-failed-1.png" /></p>
+</main></body></html>

@@ -1,0 +1,28 @@
+{
+  "generated_at": "2026-11-06T00:40:45.812453+01:00",
+  "new_files": [
+    {
+      "path": "app/Services/Studio/StudioTableExport.php",
+      "sha256": "cdcfb37bcf22f2e55e3d402cc93a61ed7c416d9ca6787cab45c3d2cfec4b1049",
+      "bytes": 2546
+    },
+    {
+      "path": "tests/Feature/Studio/StudioTableExportTest.php",
+      "sha256": "4a778e19f79fb5c3ccbc52f8040df02443bc009071233a1fcb41eb47207179d0",
+      "bytes": 5961
+    }
+  ],
+  "frozen": [
+    {
+      "path": "app/Services/Studio/StudioChartData.php",
+      "sha256": "8abef7557b81ae55571e7acf4327ba1abb00b6002c1bd2778e5f8d72ddbcf91e"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioChartDataTest.php",
+      "sha256": "34cd6393af70fbc87a8de2d1df96a8e5b8224e0de3b26cfb94c625cb235f746b"
+    }
+  ],
+  "baseline": "New files absent before assignment; initial functional empty-return stub used only to obtain assertion RED. Baseline frozen hashes captured in baseline.txt.",
+  "tdd": "01-06 red/green logs are individual focal commands, prior to implementing each criterion. 07-08 are characterization; passed first attempt and are not claimed as RED.",
+  "scope": "Pure codec only. No public endpoint, no T12 closure. No git operations. Root owns ledger."
+}

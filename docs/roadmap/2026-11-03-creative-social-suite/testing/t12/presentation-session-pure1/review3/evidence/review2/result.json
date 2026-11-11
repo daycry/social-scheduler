@@ -1,0 +1,26 @@
+{
+  "lenses": [
+    "A",
+    "B"
+  ],
+  "critical": 0,
+  "important": 1,
+  "minor": 0,
+  "gaps": [
+    {
+      "id": "B1",
+      "state": "corrected"
+    },
+    {
+      "id": "B2",
+      "severity": "Important",
+      "state": "pending",
+      "file": "resources/js/Studio/presentation.js",
+      "line": 87
+    }
+  ],
+  "previous_verdict_sha256": "425c7504139db531163a4201e20813bdde39bbc7d7848a2a4ab921b0b515c575",
+  "delta_sha256": "b12f0db34fd47838d2cf7b20b6b037e3d3e7785304d185073bbdbf907ac639c4",
+  "native_cases": 0,
+  "global_acceptance": false
+}

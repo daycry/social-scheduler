@@ -1,0 +1,25 @@
+{
+  "base_commit": "94e17d7",
+  "worktree_uncommitted": true,
+  "final_qa": false,
+  "inference_with_6_gib_verified": false,
+  "php": {
+    "tests": 2655,
+    "assertions": 15800,
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0
+  },
+  "frontend": {
+    "tests": 43,
+    "failed": 0,
+    "skipped": 0
+  },
+  "evidence": {
+    "raw/frontend-reviewed.tap": "453b24af7a7c809b53e08c6baccc406a59f16be02b7f0a5b0fc311d386f0769a",
+    "raw/phpunit-reviewed.xml": "8799bfcf59d3126845ab6a84ec9a98fc9e766d76c3fe33c942c56cd32af0b5e1",
+    "raw/scope-reviewed.json": "9b9e35ca68b9fd4a9ff7ac44e5a27a8b5ede5edd75d73e15dab2f4480750d167",
+    "development/fonts-360-before-review.png": "faa2cb7e3dbe6a03986479d5c32479c697a2f17bbbdb45b94e2c8fcfc82e22cd",
+    "development/image-editor-before-review.png": "b4d412f31ad768aaf12a5c3bba2c0bb4e33c432fcd6fcbe252ba01a93c6bbd3b"
+  }
+}

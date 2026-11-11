@@ -1,0 +1,105 @@
+{
+  "schema": "dense-independent-v1",
+  "xml_module_sha256": "a0158169ccb38bd5ca25e9ee0fa81d21d79aad7d0fe1e6d87f4ceb3377231872",
+  "png_module_sha256": "b4c397537028698a8d7fcc1f303182a96a86eda08c7c6fa51c43d048255e9c56",
+  "observations": [
+    {
+      "directory": "studio-charts-E2E28-04-rea-627b0--independent-oracle-guarded-desktop",
+      "input_sha256": {
+        "dense-12000.svg": "5dd046663dffc352ee2414fd7e4af30229ebdbb8af4c1e60286336b483823b87",
+        "dense-12000.png": "06e19909138b0322d681397962098fcc44b40fbb71d5cc31dec080991b26836a",
+        "dense-12000-svg-observer.json": "532e24b54bc65d68cfcefd2cfa72a9ec04dfaf2a2f0fdd17b0c84ee6238d83a0",
+        "dense-12000-deliveries.json": "8140687afabc93a227555063319dd522ab1405c2d399f31bb57f598488528871"
+      },
+      "xml": {
+        "svg": "dense-12000.svg",
+        "semantic_shapes": 12003,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "06e19909138b0322d681397962098fcc44b40fbb71d5cc31dec080991b26836a",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [],
+        "exact_palette_pixels": 672,
+        "dense_subpixel_reference": {
+          "reference": "independent fractional rectangle coverage + source-over on configured background; axis/grid center ±2px excluded",
+          "sample_channels": 18408,
+          "predicted_colored_pixels": 4895,
+          "mean_error": 4.496686223381139,
+          "p95_error": 11,
+          "mean_allowed": 6,
+          "p95_allowed": 18
+        },
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "elapsed_seconds": 1.1541872000088915
+    },
+    {
+      "directory": "studio-charts-E2E28-04-rea-627b0--independent-oracle-guarded-mobile-360",
+      "input_sha256": {
+        "dense-12000.svg": "7687e63842531c54f9992755616fbab3f733d3a3826217aaf84010ae127b6fd2",
+        "dense-12000.png": "06e19909138b0322d681397962098fcc44b40fbb71d5cc31dec080991b26836a",
+        "dense-12000-svg-observer.json": "fd808cb5e2269a75d5b930e1264bf89876df4298b1cdc7548aae90fb5c022da2",
+        "dense-12000-deliveries.json": "088deef91f43831ac0c2527823963789a92aa7c2c2e2ba25ae3422964b45d9d0"
+      },
+      "xml": {
+        "svg": "dense-12000.svg",
+        "semantic_shapes": 12003,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "06e19909138b0322d681397962098fcc44b40fbb71d5cc31dec080991b26836a",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [],
+        "exact_palette_pixels": 672,
+        "dense_subpixel_reference": {
+          "reference": "independent fractional rectangle coverage + source-over on configured background; axis/grid center ±2px excluded",
+          "sample_channels": 18408,
+          "predicted_colored_pixels": 4895,
+          "mean_error": 4.496686223381139,
+          "p95_error": 11,
+          "mean_allowed": 6,
+          "p95_allowed": 18
+        },
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "elapsed_seconds": 1.0903898999968078
+    },
+    {
+      "directory": "studio-charts-E2E28-04-rea-627b0--independent-oracle-guarded-mobile",
+      "input_sha256": {
+        "dense-12000.svg": "02cba9d99288d68164ab2babb76279fca976b1952b4148ea5241232e754b0687",
+        "dense-12000.png": "06e19909138b0322d681397962098fcc44b40fbb71d5cc31dec080991b26836a",
+        "dense-12000-svg-observer.json": "4653c21603d00061439d67dfaf0c9fad0b5449f3390b95ba301af3eb3589af29",
+        "dense-12000-deliveries.json": "c4f3f57f58f32e16f8270c5bf1ce94fdfd907c47291bfbc8c2da2e3e0fafa9b9"
+      },
+      "xml": {
+        "svg": "dense-12000.svg",
+        "semantic_shapes": 12003,
+        "xml_transforms_match_dom": true
+      },
+      "png": {
+        "png_sha256": "06e19909138b0322d681397962098fcc44b40fbb71d5cc31dec080991b26836a",
+        "width": 1080,
+        "height": 1080,
+        "bar_center_samples": [],
+        "exact_palette_pixels": 672,
+        "dense_subpixel_reference": {
+          "reference": "independent fractional rectangle coverage + source-over on configured background; axis/grid center ±2px excluded",
+          "sample_channels": 18408,
+          "predicted_colored_pixels": 4895,
+          "mean_error": 4.496686223381139,
+          "p95_error": 11,
+          "mean_allowed": 6,
+          "p95_allowed": 18
+        },
+        "subpixel_bars_not_individually_resolvable": true
+      },
+      "elapsed_seconds": 1.0809112999995705
+    }
+  ],
+  "failed": 0,
+  "global_acceptance": false
+}

@@ -1,0 +1,406 @@
+TAP version 13
+# Subtest: options supplies closed immutable defaults detached from caller palette
+ok 1 - options supplies closed immutable defaults detached from caller palette
+  ---
+  duration_ms: 1.6473
+  type: 'test'
+  ...
+# Subtest: options rejects unknown kinds fields and ambiguous numeric or palette values
+ok 2 - options rejects unknown kinds fields and ambiguous numeric or palette values
+  ---
+  duration_ms: 2.6517
+  type: 'test'
+  ...
+# Subtest: options rejects accessors without invoking them and rejects inherited hidden or symbol fields
+ok 3 - options rejects accessors without invoking them and rejects inherited hidden or symbol fields
+  ---
+  duration_ms: 0.1682
+  type: 'test'
+  ...
+# Subtest: palette requires dense own data and never invokes array getters
+ok 4 - palette requires dense own data and never invokes array getters
+  ---
+  duration_ms: 0.1433
+  type: 'test'
+  ...
+# Subtest: columns preserve row and number identity with negatives zero and null gaps
+ok 5 - columns preserve row and number identity with negatives zero and null gaps
+  ---
+  duration_ms: 2.7053
+  type: 'test'
+  ...
+# Subtest: simple and multicolor variants use both orientations and deterministic category colors
+ok 6 - simple and multicolor variants use both orientations and deterministic category colors
+  ---
+  duration_ms: 1.5742
+  type: 'test'
+  ...
+# Subtest: simple and multicolor reject multiple series rather than ignoring selected data
+ok 7 - simple and multicolor reject multiple series rather than ignoring selected data
+  ---
+  duration_ms: 0.8947
+  type: 'test'
+  ...
+# Subtest: grouped variants reserve null slots and use series colors without shifting observations
+ok 8 - grouped variants reserve null slots and use series colors without shifting observations
+  ---
+  duration_ms: 0.7242
+  type: 'test'
+  ...
+# Subtest: stacked variants accumulate positive and negative series independently for each category
+ok 9 - stacked variants accumulate positive and negative series independently for each category
+  ---
+  duration_ms: 0.7436
+  type: 'test'
+  ...
+# Subtest: proportional variants scale huge finite totals and distinguish numeric zeros from missing categories
+ok 10 - proportional variants scale huge finite totals and distinguish numeric zeros from missing categories
+  ---
+  duration_ms: 0.8506
+  type: 'test'
+  ...
+# Subtest: proportional variants reject negative data and incompatible explicit domains
+ok 11 - proportional variants reject negative data and incompatible explicit domains
+  ---
+  duration_ms: 1.8626
+  type: 'test'
+  ...
+# Subtest: explicit domains contain zero and represented extrema while empty zero domains stay nondegenerate
+ok 12 - explicit domains contain zero and represented extrema while empty zero domains stay nondegenerate
+  ---
+  duration_ms: 1.5768
+  type: 'test'
+  ...
+# Subtest: coordinate interpolation stays finite for opposite extreme endpoints and diagnoses stacked overflow
+ok 13 - coordinate interpolation stays finite for opposite extreme endpoints and diagnoses stacked overflow
+  ---
+  duration_ms: 0.7591
+  type: 'test'
+  ...
+# Subtest: ticks are unique sorted finite and include both endpoints and zero even at subnormal precision
+ok 14 - ticks are unique sorted finite and include both endpoints and zero even at subnormal precision
+  ---
+  duration_ms: 0.7569
+  type: 'test'
+  ...
+# Subtest: geometry preserves projection warnings and identifies nonzero values disappearing at the chosen scale
+ok 15 - geometry preserves projection warnings and identifies nonzero values disappearing at the chosen scale
+  ---
+  duration_ms: 0.282
+  type: 'test'
+  ...
+# Subtest: geometry is deeply immutable and detached from mutable input while preserving Unicode labels
+ok 16 - geometry is deeply immutable and detached from mutable input while preserving Unicode labels
+  ---
+  duration_ms: 0.3453
+  type: 'test'
+  ...
+# Subtest: characterization maximum table projects twelve thousand unique bars without mutating the source
+ok 17 - characterization maximum table projects twelve thousand unique bars without mutating the source
+  ---
+  duration_ms: 68.658
+  type: 'test'
+  ...
+# Subtest: characterization binding validation still rejects stale snapshots and text series before geometry
+ok 18 - characterization binding validation still rejects stale snapshots and text series before geometry
+  ---
+  duration_ms: 0.4071
+  type: 'test'
+  ...
+# Subtest: characterization bars stay strictly inside fractional plot bounds with zero gaps in every variant
+ok 19 - characterization bars stay strictly inside fractional plot bounds with zero gaps in every variant
+  ---
+  duration_ms: 41.9199
+  type: 'test'
+  ...
+# Subtest: binding normalizes a fixed identity and explicit default precision into own immutable data
+ok 20 - binding normalizes a fixed identity and explicit default precision into own immutable data
+  ---
+  duration_ms: 0.2349
+  type: 'test'
+  ...
+# Subtest: binding rejects invalid reference identity and unknown fields
+ok 21 - binding rejects invalid reference identity and unknown fields
+  ---
+  duration_ms: 0.6453
+  type: 'test'
+  ...
+# Subtest: binding requires one to twelve distinct series IDs separate from the category
+ok 22 - binding requires one to twelve distinct series IDs separate from the category
+  ---
+  duration_ms: 0.2869
+  type: 'test'
+  ...
+# Subtest: binding rejects accessor fields without invoking getters and rejects inherited or hidden data
+ok 23 - binding rejects accessor fields without invoking getters and rejects inherited or hidden data
+  ---
+  duration_ms: 0.2649
+  type: 'test'
+  ...
+# Subtest: binding accepts only dense own series data without invoking array accessors
+ok 24 - binding accepts only dense own series data without invoking array accessors
+  ---
+  duration_ms: 0.2251
+  type: 'test'
+  ...
+# Subtest: projection preserves row identity Unicode labels raw numbers negatives zero and null gaps
+ok 25 - projection preserves row identity Unicode labels raw numbers negatives zero and null gaps
+  ---
+  duration_ms: 0.3553
+  type: 'test'
+  ...
+# Subtest: projection rejects snapshot identity mismatches and incomplete or ambiguous envelopes before reading cells
+ok 26 - projection rejects snapshot identity mismatches and incomplete or ambiguous envelopes before reading cells
+  ---
+  duration_ms: 0.3627
+  type: 'test'
+  ...
+# Subtest: projection rejects unavailable selected columns with their stable ID before rows
+ok 27 - projection rejects unavailable selected columns with their stable ID before rows
+  ---
+  duration_ms: 0.3568
+  type: 'test'
+  ...
+# Subtest: projection requires explicit conversion of text series and diagnoses row and column IDs
+ok 28 - projection requires explicit conversion of text series and diagnoses row and column IDs
+  ---
+  duration_ms: 0.6054
+  type: 'test'
+  ...
+# Subtest: projection validates complete table limits and branded cells without invoking external table getters
+ok 29 - projection validates complete table limits and branded cells without invoking external table getters
+  ---
+  duration_ms: 1.0402
+  type: 'test'
+  ...
+# Subtest: safe precision rejects exact decimal magnitudes above the safe integer boundary including rounded exponents
+ok 30 - safe precision rejects exact decimal magnitudes above the safe integer boundary including rounded exponents
+  ---
+  duration_ms: 0.5399
+  type: 'test'
+  ...
+# Subtest: approximate precision emits exact-magnitude warnings per cell and preserves original lexemes
+ok 31 - approximate precision emits exact-magnitude warnings per cell and preserves original lexemes
+  ---
+  duration_ms: 0.196
+  type: 'test'
+  ...
+# Subtest: projection returns deeply immutable own data detached from externally mutable input
+ok 32 - projection returns deeply immutable own data detached from externally mutable input
+  ---
+  duration_ms: 0.1942
+  type: 'test'
+  ...
+# Subtest: characterization safe boundary equality decimal suffixes exponents and enormous zero exponents
+ok 33 - characterization safe boundary equality decimal suffixes exponents and enormous zero exponents
+  ---
+  duration_ms: 0.5871
+  type: 'test'
+  ...
+# Subtest: characterization maximum table and twelve series project 12000 values without modifying source
+ok 34 - characterization maximum table and twelve series project 12000 values without modifying source
+  ---
+  duration_ms: 225.1397
+  type: 'test'
+  ...
+# Subtest: characterization empty tables duplicate labels and null-prototype records remain distinct
+ok 35 - characterization empty tables duplicate labels and null-prototype records remain distinct
+  ---
+  duration_ms: 0.4485
+  type: 'test'
+  ...
+# Subtest: underflow requires explicit approximation and distinct warnings while genuine zero and subnormal remain valid
+ok 36 - underflow requires explicit approximation and distinct warnings while genuine zero and subnormal remain valid
+  ---
+  duration_ms: 2.4778
+  type: 'test'
+  ...
+# Subtest: parse preserves decimal lexemes and typed cells
+ok 37 - parse preserves decimal lexemes and typed cells
+  ---
+  duration_ms: 1.6862
+  type: 'test'
+  ...
+# Subtest: schema rejects unknown fields duplicate identities invalid cells and limits
+ok 38 - schema rejects unknown fields duplicate identities invalid cells and limits
+  ---
+  duration_ms: 10.6176
+  type: 'test'
+  ...
+# Subtest: JSON parser rejects duplicate keys rather than overwriting
+ok 39 - JSON parser rejects duplicate keys rather than overwriting
+  ---
+  duration_ms: 0.228
+  type: 'test'
+  ...
+# Subtest: canonical byte budget rejects oversized shared-string tables without allocation of whole JSON
+ok 40 - canonical byte budget rejects oversized shared-string tables without allocation of whole JSON
+  ---
+  duration_ms: 116.9744
+  type: 'test'
+  ...
+# Subtest: serializer emits lossless JSON chunks and validates before returning iterator
+ok 41 - serializer emits lossless JSON chunks and validates before returning iterator
+  ---
+  duration_ms: 0.7546
+  type: 'test'
+  ...
+# Subtest: cell display and explicit conversion preserve text empty and numeric distinctions
+ok 42 - cell display and explicit conversion preserve text empty and numeric distinctions
+  ---
+  duration_ms: 0.2514
+  type: 'test'
+  ...
+# Subtest: cell and column edits are immutable by checked identity and share untouched rows
+ok 43 - cell and column edits are immutable by checked identity and share untouched rows
+  ---
+  duration_ms: 0.4795
+  type: 'test'
+  ...
+# Subtest: row and column structure operations keep identities and enforce dimension limits
+ok 44 - row and column structure operations keep identities and enforce dimension limits
+  ---
+  duration_ms: 53.9347
+  type: 'test'
+  ...
+# Subtest: copy uses new deterministic IDs and retains typed values without source mutation
+ok 45 - copy uses new deterministic IDs and retains typed values without source mutation
+  ---
+  duration_ms: 0.6769
+  type: 'test'
+  ...
+# Subtest: literal replacement and explicit blank filling leave numbers and unrelated columns intact
+ok 46 - literal replacement and explicit blank filling leave numbers and unrelated columns intact
+  ---
+  duration_ms: 0.6808
+  type: 'test'
+  ...
+# Subtest: column conversion previews row errors and applies no partial mutation
+ok 47 - column conversion previews row errors and applies no partial mutation
+  ---
+  duration_ms: 0.6087
+  type: 'test'
+  ...
+# Subtest: history uses bounded shared states and supports undo redo branch and reset
+ok 48 - history uses bounded shared states and supports undo redo branch and reset
+  ---
+  duration_ms: 0.6256
+  type: 'test'
+  ...
+# Subtest: transpose retains original headers as values and regenerates all identities
+ok 49 - transpose retains original headers as values and regenerates all identities
+  ---
+  duration_ms: 2.1881
+  type: 'test'
+  ...
+# Subtest: page decoder keeps numeric cells lossless and validates safe metadata and contiguous offsets
+ok 50 - page decoder keeps numeric cells lossless and validates safe metadata and contiguous offsets
+  ---
+  duration_ms: 1.3477
+  type: 'test'
+  ...
+# Subtest: assembler pins historical revision and hash across complete ordered pages
+ok 51 - assembler pins historical revision and hash across complete ordered pages
+  ---
+  duration_ms: 0.9312
+  type: 'test'
+  ...
+# Subtest: assembler rejects mixed brand revision hash columns total gaps cycles and duplicate row IDs atomically
+ok 52 - assembler rejects mixed brand revision hash columns total gaps cycles and duplicate row IDs atomically
+  ---
+  duration_ms: 14.2822
+  type: 'test'
+  ...
+# Subtest: identity number and hash tokens reject trailing line breaks exactly
+ok 53 - identity number and hash tokens reject trailing line breaks exactly
+  ---
+  duration_ms: 1.2153
+  type: 'test'
+  ...
+# Subtest: serializer snapshots caller-owned mutable objects without freezing caller state
+ok 54 - serializer snapshots caller-owned mutable objects without freezing caller state
+  ---
+  duration_ms: 1.2136
+  type: 'test'
+  ...
+# Subtest: JSON cell objects cannot impersonate internal number tokens
+ok 55 - JSON cell objects cannot impersonate internal number tokens
+  ---
+  duration_ms: 1.3854
+  type: 'test'
+  ...
+# Subtest: characterization exact Unicode codepoint limits and immutable caller snapshots
+ok 56 - characterization exact Unicode codepoint limits and immutable caller snapshots
+  ---
+  duration_ms: 1.7503
+  type: 'test'
+  ...
+# Subtest: characterization JSON grammar prototype isolation escaped strings and depth
+ok 57 - characterization JSON grammar prototype isolation escaped strings and depth
+  ---
+  duration_ms: 0.718
+  type: 'test'
+  ...
+# Subtest: characterization invalid bulk result and row cursors never mutate original
+ok 58 - characterization invalid bulk result and row cursors never mutate original
+  ---
+  duration_ms: 0.6722
+  type: 'test'
+  ...
+# Subtest: raw table input byte cap is enforced before parsing or whitespace scanning
+ok 59 - raw table input byte cap is enforced before parsing or whitespace scanning
+  ---
+  duration_ms: 0.1787
+  type: 'test'
+  ...
+# Subtest: raw page byte cap counts UTF8 incrementally before decoding schema
+ok 60 - raw page byte cap counts UTF8 incrementally before decoding schema
+  ---
+  duration_ms: 6.3278
+  type: 'test'
+  ...
+# Subtest: characterization UTF8 budget does not split surrogate pairs at 64KiB chunk boundary
+ok 61 - characterization UTF8 budget does not split surrogate pairs at 64KiB chunk boundary
+  ---
+  duration_ms: 132.0036
+  type: 'test'
+  ...
+# Subtest: characterization canonical byte limit accepts exact52M and rejects plus1 by streamed row accounting
+ok 62 - characterization canonical byte limit accepts exact52M and rejects plus1 by streamed row accounting
+  ---
+  duration_ms: 228.7615
+  type: 'test'
+  ...
+# Subtest: regression sparse values are rejected before validation serialization and history
+ok 63 - regression sparse values are rejected before validation serialization and history
+  ---
+  duration_ms: 0.2441
+  type: 'test'
+  ...
+# Subtest: regression inherited array indices do not substitute own dense JSON data
+ok 64 - regression inherited array indices do not substitute own dense JSON data
+  ---
+  duration_ms: 0.1609
+  type: 'test'
+  ...
+# Subtest: regression frozen external getters are rejected without evaluation or snapshot aliasing
+ok 65 - regression frozen external getters are rejected without evaluation or snapshot aliasing
+  ---
+  duration_ms: 0.1224
+  type: 'test'
+  ...
+# Subtest: regression accessors in records and list slots are rejected before invoking user code
+ok 66 - regression accessors in records and list slots are rejected before invoking user code
+  ---
+  duration_ms: 0.1295
+  type: 'test'
+  ...
+1..66
+# tests 66
+# suites 0
+# pass 66
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 986.4543

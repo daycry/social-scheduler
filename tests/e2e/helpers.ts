@@ -40,6 +40,8 @@ export const AUTH_PAGES: Array<[string, string]> = [
     ['mejores horas', '/best-times'],
     ['biblioteca', '/library'],
     ['papelera', '/trash'],
+    ['aprobaciones', '/approvals'],
+    ['series', '/series'],
     ['smartlinks', '/smartlinks'],
     ['competidores', '/competitors'],
     ['autolistas', '/autolists'],
@@ -248,13 +250,14 @@ export type VirtualAuthenticator = {
     remove: () => Promise<void>;
 };
 
-export async function virtualAuthenticator(context: BrowserContext, page: Page): Promise<VirtualAuthenticator> {
+/** Chromium admite UN solo autenticador `internal` por entorno: un segundo dispositivo se simula como llave `usb`. */
+export async function virtualAuthenticator(context: BrowserContext, page: Page, transport: 'internal' | 'usb' = 'internal'): Promise<VirtualAuthenticator> {
     const cdp = await context.newCDPSession(page);
     await cdp.send('WebAuthn.enable', { enableUI: false });
     const { authenticatorId } = await cdp.send('WebAuthn.addVirtualAuthenticator', {
         options: {
             protocol: 'ctap2',
-            transport: 'internal',
+            transport,
             hasResidentKey: true,
             hasUserVerification: true,
             isUserVerified: true,
@@ -455,10 +458,12 @@ export function seedExtraFacebook(brandId: number, name: string) {
 }
 
 /** Cuenta extra en la marca E2E (YouTube o TikTok); `directPost` activa la publicación directa de TikTok. */
-export function seedExtraAccount(brandId: number, network: 'youtube' | 'tiktok' | 'bluesky' | 'threads', name: string, directPost = false) {
+export function seedExtraAccount(brandId: number, network: 'youtube' | 'tiktok' | 'bluesky' | 'threads' | 'linkedin' | 'pinterest', name: string, directPost = false) {
     // Bluesky (C-01): cuenta sembrada con credenciales falsas y un PDS inexistente; la API real nunca se llama.
     const meta = network === 'bluesky'
         ? "['did' => 'did:plc:e2ebluesky00000000000000', 'pds' => 'https://pds.e2e.invalid', 'handle' => 'e2e.bsky.invalid', 'email_confirmed' => true]"
+        : network === 'linkedin' ? "['kind' => 'profile', 'author_urn' => 'urn:li:person:e2elinkedin']"
+        : network === 'pinterest' ? "['boards' => [['id' => '549755885175', 'name' => 'Recetas e2e'], ['id' => '549755885176', 'name' => 'Viajes e2e']]]"
         : directPost ? "['direct_post' => true]" : 'null';
     artisan(
         String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
@@ -739,6 +744,16 @@ export function seedInboxComment(brandId: number, ...texts: string[]) {
     );
 }
 
+/** Un comentario por red (Threads, Bluesky y YouTube) con cuenta sembrada con los permisos de lectura (T-20); nada toca la red. */
+export function seedInboxProviders(brandId: number) {
+    artisan(
+        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`foreach (['threads' => 'e2e hilo threads', 'bluesky' => 'e2e respuesta bluesky', 'youtube' => 'e2e comentario youtube'] as $n => $t) { ` +
+            String.raw`$a = App\Models\SocialAccount::factory()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'network' => App\Connectors\Network::from($n), 'name' => 'e2e ' . $n, 'scopes' => ['threads_basic', 'threads_read_replies', 'threads_manage_replies', 'https://www.googleapis.com/auth/youtube.force-ssl']]); ` +
+            String.raw`App\Models\InboxComment::factory()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'social_account_id' => $a->id, 'network' => $n, 'text' => $t, 'author_name' => 'e2e-' . $n, 'commented_at' => now()->subMinutes(3)]); }`,
+    );
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Vistas guardadas del calendario (C-03a): se borran las del usuario E2E (no cuelgan de la marca).
 // ---------------------------------------------------------------------------------------------------------------
@@ -758,18 +773,22 @@ export function cleanCalendarViews(email: string) {
 export type AnalyticsSeed = { from: string; to: string; days: number };
 
 /**
- * Siembra `days` snapshots diarios (los días 2..days+1 anteriores a hoy, UTC) de la cuenta de Instagram de la marca con
+ * Siembra `days` snapshots diarios (los días 3..days+2 anteriores a hoy, UTC) de la cuenta de Instagram de la marca con
  * `views` visualizaciones y `followers` seguidores por día. Facebook no recibe ninguno: sus métricas son «no disponible».
- * Devuelve el periodo (10 días cerrados) que lo contiene.
+ * Devuelve diez días terminados hace dos días UTC (cerrados también en el Pacífico), dejando un día final sin datos.
+ * El mismo ancla PHP determina snapshots y rango: cruzar medianoche entre PHP y Node no cambia el fixture.
  */
 export function seedAnalyticsSnapshots(brandId: number, views: number, followers: number, days = 3): AnalyticsSeed {
-    artisan(
+    const output = artisan(
         String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
             String.raw`$ig = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'instagram')->firstOrFail(); ` +
-            String.raw`for ($i = 2; $i < ${days} + 2; $i++) { App\Models\AccountSnapshot::withoutUserScope()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'social_account_id' => $ig->id, 'network' => 'instagram', 'date' => now('UTC')->subDays($i)->format('Y-m-d'), 'metrics' => array_merge(App\Analytics\Metric::blankAccount(), ['views' => ${views}, 'followers' => ${followers}])]); }`,
+            String.raw`$end = Carbon\CarbonImmutable::now('UTC')->startOfDay()->subDays(2); ` +
+            String.raw`for ($i = 1; $i <= ${days}; $i++) { App\Models\AccountSnapshot::withoutUserScope()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'social_account_id' => $ig->id, 'network' => 'instagram', 'date' => $end->subDays($i)->format('Y-m-d'), 'metrics' => array_merge(App\Analytics\Metric::blankAccount(), ['views' => ${views}, 'followers' => ${followers}])]); } ` +
+            String.raw`echo 'ANALYTICS_SEED:'.json_encode(['from' => $end->subDays(9)->format('Y-m-d'), 'to' => $end->format('Y-m-d'), 'days' => ${days}]);`,
     );
-    const day = (back: number) => new Date(Date.now() - back * 86_400_000).toISOString().slice(0, 10);
-    return { from: day(10), to: day(1), days };
+    const seed = output.match(/ANALYTICS_SEED:(\{[^\r\n]*\})/);
+    if (!seed) throw new Error('The disposable analytics fixture did not return its date range.');
+    return JSON.parse(seed[1]) as AnalyticsSeed;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -810,5 +829,21 @@ export function seedHashtagHistory(brandId: number) {
             String.raw`$t = App\Models\PostTarget::factory()->create(['post_id' => $p->id, 'social_account_id' => $ig->id, 'network' => App\Connectors\Network::Instagram, 'status' => App\Enums\PostStatus::Published, 'published_at' => now()->subDays(5 + $i)]); ` +
             String.raw`App\Models\PostMetricSnapshot::withoutUserScope()->create(['user_id' => $b->user_id, 'post_target_id' => $t->id, 'social_account_id' => $ig->id, 'network' => 'instagram', 'date' => now()->subDay()->toDateString(), 'metrics' => array_merge(App\Analytics\Metric::blankPost(), [App\Analytics\Metric::INTERACTIONS => $n])]); } ` +
             String.raw`Illuminate\Support\Facades\Cache::flush();`,
+    );
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Competidores (T-20): dos competidores con snapshots y publicaciones recogidas; ninguna llamada a Instagram.
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Dos competidores con snapshots de los últimos 20 días y publicaciones; uno con un usuario que parece una fórmula. */
+export function seedCompetitors(brandId: number) {
+    artisan(
+        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$rows = ['rival_grande' => [1000, 1100, [120, 10], 'e2e post grande'], 'rival_rapido' => [100, 160, [30, 5], 'e2e post rapido']]; ` +
+            String.raw`foreach ($rows as $u => [$a, $z, [$likes, $comments], $caption]) { ` +
+            String.raw`$c = new App\Models\Competitor(['username' => $u, 'name' => 'E2E ' . $u]); $c->user_id = $b->user_id; $c->brand_id = $b->id; $c->save(); ` +
+            String.raw`foreach ([[20, $a], [1, $z]] as [$ago, $f]) { App\Models\CompetitorSnapshot::withoutUserScope()->create(['user_id' => $b->user_id, 'competitor_id' => $c->id, 'date' => now('UTC')->subDays($ago)->toDateString(), 'followers_count' => $f, 'media_count' => 10]); } ` +
+            String.raw`$p = new App\Models\CompetitorPost(['competitor_id' => $c->id, 'external_id' => $u . '-1', 'caption' => $caption, 'likes_count' => $likes, 'comments_count' => $comments, 'posted_at' => now()->subDays(3), 'permalink' => 'https://www.instagram.com/p/' . $u . '/']); $p->user_id = $b->user_id; $p->save(); }`,
     );
 }

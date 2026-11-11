@@ -1,0 +1,115 @@
+--- resources/js/Studio/presentation.js
++++ resources/js/Studio/presentation.js
+@@ -45,9 +45,7 @@
+     let index = Object.hasOwn(captured, 'startPageId') ? pageIds.indexOf(captured.startPageId) : 0;
+     if (index < 0) fail('La página inicial debe pertenecer a la selección.');
+     const loop = captured.loop ?? false;
+-    const starts = [];
+-    let totalDuration = 0;
+-    for (const page of pages) { starts.push(totalDuration); totalDuration += page.durationMs; }
++    const totalDuration = pages.reduce((total, page) => total + page.durationMs, 0);
+     let elapsedMs = 0;
+     let playing = false;
+     let ended = false;
+@@ -79,18 +77,20 @@
+         advance(deltaMs) {
+             active();
+             if (typeof deltaMs !== 'number' || !Number.isFinite(deltaMs) || deltaMs < 0 || deltaMs > Number.MAX_SAFE_INTEGER) fail('El tiempo delta debe ser milisegundos finitos no negativos y seguros.');
+-            if (!playing) return snapshot();
+-            const currentPosition = starts[index] + elapsedMs;
+-            if (!loop && deltaMs >= totalDuration - currentPosition) return finish();
+-            // Reduce before adding: even a huge delta retains the existing fractional offset.
+-            let position = currentPosition + (loop ? deltaMs % totalDuration : deltaMs);
+-            if (loop && position >= totalDuration) position -= totalDuration;
+-            index = 0;
+-            // At most one walk through the selected pages, independent of elapsed cycles.
+-            while (index + 1 < pages.length && position >= pages[index].durationMs) {
+-                position -= pages[index].durationMs; index++;
++            if (!playing || deltaMs === 0) return snapshot();
++            // Whole cycles leave the current page and fractional offset unchanged.
++            // Reduce the delta before adding it to that offset, so huge deltas stay precise.
++            let remaining = loop ? deltaMs % totalDuration : deltaMs;
++            if (remaining === 0) return snapshot();
++            // Consume only forward from the current page. Reconstructing an absolute
++            // position by summing/subtracting earlier durations can round back a page.
++            while (remaining >= pages[index].durationMs - elapsedMs) {
++                remaining -= pages[index].durationMs - elapsedMs;
++                if (index + 1 === pages.length && !loop) return finish();
++                index = (index + 1) % pages.length;
++                elapsedMs = 0;
+             }
+-            elapsedMs = position;
++            elapsedMs += remaining;
+             return snapshot();
+         },
+         setBlackout(value) {
+--- tests/frontend/studio-presentation.test.mjs
++++ tests/frontend/studio-presentation.test.mjs
+@@ -126,3 +126,67 @@
+     s.next(); assert.equal(snapshot.pageId, 'p2'); assert.equal(s.snapshot().pageId, 'p0');
+     assert.equal(s.next().pageId, 'p2');
+ });
++
++test('fractional duration clocks never reconstruct an earlier page at zero or small positive delta', () => {
++    const durations = [0.1, 0.1234, 0.2345, 0.3456, 0.4567, 0.5678, 0.6789, 0.7891];
++    let triples = 0;
++    for (const a of durations) for (const b of durations) for (const c of durations) {
++        const input = document(); [a, b, c].forEach((duration, i) => { input.pages[i].duration = duration; });
++        for (let index = 0; index < 3; index++) for (const loop of [false, true]) {
++            const s = create(input, { startPageId: `p${index}`, loop }); s.play();
++            const original = s.snapshot();
++            assert.deepEqual(s.advance(0), original, `zero delta at ${a}/${b}/${c}, page ${index}, loop ${loop}`);
++            const offset = 0.125;
++            assert.equal(s.advance(offset).pageId, `p${index}`);
++            assert.equal(s.snapshot().elapsedMs, offset);
++            const atOffset = s.snapshot(); assert.deepEqual(s.advance(0), atOffset);
++            s.advance(0.25);
++            assert.equal(s.snapshot().pageId, `p${index}`); assert.equal(s.snapshot().elapsedMs, 0.375);
++            s.advance(input.pages[index].duration * 1000 - 0.375);
++            if (index < 2 || loop) {
++                assert.equal(s.snapshot().pageId, `p${(index + 1) % 3}`); assert.equal(s.snapshot().elapsedMs, 0);
++            } else { assert.equal(s.snapshot().ended, true); assert.equal(s.snapshot().elapsedMs, c * 1000); }
++        }
++        triples++;
++    }
++    assert.equal(triples, 512);
++});
++
++test('zero delta preserves the selected fractional-duration page in v1 and v2', () => {
++    for (const schemaVersion of [1, 2]) for (const loop of [false, true]) {
++        const input = document(); [0.1, 0.1234, 0.1].forEach((duration, i) => { input.pages[i].duration = duration; });
++        if (schemaVersion === 2) { input.schema_version = 2; input.timeline = { fps: 30, audio_tracks: [] }; }
++        const s = create(input, { startPageId: 'p2', loop }); s.play(); const before = s.snapshot();
++        assert.deepEqual(s.advance(0), before);
++    }
++});
++
++test('exact fractional page duration advances into the next page in v1 and v2', () => {
++    for (const schemaVersion of [1, 2]) for (const loop of [false, true]) {
++        const input = document(); [0.1, 0.1234, 0.1].forEach((duration, i) => { input.pages[i].duration = duration; });
++        if (schemaVersion === 2) { input.schema_version = 2; input.timeline = { fps: 30, audio_tracks: [] }; }
++        const s = create(input, { startPageId: 'p1', loop }); s.play();
++        assert.equal(s.advance(s.snapshot().durationMs).pageId, 'p2'); assert.equal(s.snapshot().elapsedMs, 0);
++    }
++});
++
++test('fractional loops preserve local page and offset across whole cycles and enormous deltas', () => {
++    const input = document(); input.pages[1].duration = 0.1234;
++    const cycle = input.pages.reduce((total, page) => total + page.duration * 1000, 0);
++    for (const startPageId of ['p1', 'p2']) {
++        const s = create(input, { startPageId, loop: true }); s.play(); s.advance(0.125);
++        const before = s.snapshot(); assert.deepEqual(s.advance(cycle), before);
++        const delta = Number.MAX_SAFE_INTEGER;
++        let remainder = delta % cycle; let index = before.index; let offset = before.elapsedMs;
++        while (remainder >= input.pages[index].duration * 1000 - offset) {
++            remainder -= input.pages[index].duration * 1000 - offset;
++            index = (index + 1) % 3; offset = 0;
++        }
++        const after = s.advance(delta);
++        assert.equal(after.pageId, `p${index}`); assert.equal(after.elapsedMs, offset + remainder);
++        assert.equal(after.ended, false); assert.equal(after.playing, true);
++    }
++    const temporal = structuredClone(input); temporal.schema_version = 2; temporal.timeline = { fps: 30, audio_tracks: [] };
++    const s = create(temporal, { startPageId: 'p2' }); s.play();
++    assert.equal(s.advance(0).pageId, 'p2'); assert.equal(s.advance(0.375).elapsedMs, 0.375);
++});

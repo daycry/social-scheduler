@@ -1,0 +1,44 @@
+{
+  "sources": [
+    {
+      "path": "scripts/studio/av-files.mjs",
+      "sha256": "014618e702bd653c161a146536058a4a21ede0610de86947d92e28233599af62"
+    },
+    {
+      "path": "scripts/studio/av-pcm.mjs",
+      "sha256": "f567d4665e6f503148b02d1205a1451dc9d1beff6525a68b837077b4192aaac6"
+    },
+    {
+      "path": "scripts/studio/av-audio.mjs",
+      "sha256": "2dd32312f86dae7331edc4d24ccf92d3865e2d72dd473e9de594da19685a0bbc"
+    },
+    {
+      "path": "scripts/studio/av-video.mjs",
+      "sha256": "007bfba44d8b34d61bfe10b8550b57594640101a4c63188adf060e92781f93e6"
+    },
+    {
+      "path": "scripts/studio/av-finalize.mjs",
+      "sha256": "26c6a9b23d2d76d894e80bb25ea00f5bee619b27149f92a5d3eb169ebece52ba"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-checkpoints.test.mjs",
+      "sha256": "75202cb8d0a325c567d30f7dc188829d7bea874ef8cbda92e0bdf16f990873fa"
+    },
+    {
+      "path": "scripts/studio/av-runtime.py",
+      "sha256": "44bdc6d68037c75968f1bb4f00549e036445fcf80597d23963e30804dca9ca3b"
+    },
+    {
+      "path": "scripts/studio/render-av.mjs",
+      "sha256": "25bc3f1a1ed4ad10c62299b7fb10d87be24deeab4882e0de728e866cc6bce1a3"
+    },
+    {
+      "path": "tests/studio_runtime/test_av_limits.py",
+      "sha256": "94f1cc8ecd51ce4b6dcbd6538a1ac7f3958ba2f7e78faedaecc6f2cb218cfc84"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-phase.test.mjs",
+      "sha256": "864ed84d238eb02f395e0fbc6abcf1f80dc9013e1f6e9cfe3e517227c8a95d55"
+    }
+  ]
+}

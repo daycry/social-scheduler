@@ -1,0 +1,376 @@
+{
+  "scope": "Full caption39 reviewed through A2/B2/C2/D1 plus QA2-V01 delta3; T7/T11 remain open",
+  "files": {
+    "app/Services/Studio/StudioTimeline.php": {
+      "kind": "existing",
+      "sha256_after": "90f09577d63a7dcbc18e26c446b2d623a762f23d79fb7e32c481f03a60ab1ff1",
+      "baseline_status": "reconstructed-verified-exact-sha",
+      "known_before_hashes": {
+        "1fddc65d978f14eb6941471b1e040f717be6a9b939d86457c3c3f3a98a060c4c": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa/raw/sources-before.json"
+      },
+      "sha256_before": "1fddc65d978f14eb6941471b1e040f717be6a9b939d86457c3c3f3a98a060c4c",
+      "baseline_source": "storage/framework/testing/t11-captions/review/baseline/app/Services/Studio/StudioTimeline.php",
+      "baseline_reference": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa/raw/sources-before.json",
+      "reconstruction": "Only own additions reversed in a temporary copy; exact recorded SHA matched, LF/CRLF/BOM/end-of-file variants checked."
+    },
+    "app/Services/Studio/StudioFonts.php": {
+      "kind": "existing",
+      "sha256_after": "0b1c41a08bfe4a729454eef7ca04b35d87b6342f63506455d35d98e64269c84e",
+      "baseline_status": "reconstructed-verified-exact-sha",
+      "known_before_hashes": {
+        "4c02f9b3b6c20e67d512e87cfad2d05b7a791138e825c1c046b597ca62018a76": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa/raw/sources-before.json"
+      },
+      "sha256_before": "4c02f9b3b6c20e67d512e87cfad2d05b7a791138e825c1c046b597ca62018a76",
+      "baseline_source": "storage/framework/testing/t11-captions/review/baseline/app/Services/Studio/StudioFonts.php",
+      "baseline_reference": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa/raw/sources-before.json",
+      "reconstruction": "Only own additions reversed in a temporary copy; exact recorded SHA matched, LF/CRLF/BOM/end-of-file variants checked."
+    },
+    "app/Services/Studio/StudioAvProcess.php": {
+      "kind": "existing",
+      "sha256_after": "1ca027e8e22342f20dda2fff9e4ec45348bfa92c3c8362c30a5b0a2276260e7b",
+      "baseline_status": "copied-original-verified",
+      "known_before_hashes": {
+        "c8fd1036cc7185cdc508d73f1fbba6d9c2046bf92562bee8f2e7adae5053df49": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-public/manifest.json"
+      },
+      "sha256_before": "c8fd1036cc7185cdc508d73f1fbba6d9c2046bf92562bee8f2e7adae5053df49",
+      "baseline_source": "storage/framework/testing/t11-av-queue-review/sources-attempt3/app/Services/Studio/StudioAvProcess.php",
+      "baseline_reference": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/av-public/manifest.json"
+    },
+    "app/Services/Studio/StudioRenderer.php": {
+      "kind": "existing",
+      "sha256_after": "a0107fb75ed5adbbb1e3bc4620bee420d90be71be82fa451a8919cad2c317ef7",
+      "baseline_status": "copied-original-verified",
+      "known_before_hashes": {
+        "6d0f826f5d27d5d0fdd72d1fa5bed23f7a9f5fe93a1a3d91c82cffdd876a1379": "storage/framework/testing/t11-public-av-review/attempt2/manifest.json"
+      },
+      "sha256_before": "6d0f826f5d27d5d0fdd72d1fa5bed23f7a9f5fe93a1a3d91c82cffdd876a1379",
+      "baseline_source": "storage/framework/testing/t11-public-av-review/attempt2/app/Services/Studio/StudioRenderer.php",
+      "baseline_reference": "storage/framework/testing/t11-public-av-review/attempt2/manifest.json"
+    },
+    "app/Mcp/Servers/SchedulerServer.php": {
+      "kind": "existing",
+      "sha256_after": "fa3f77667890e1c98288ce6c96e45341eee7221907b93dad399cfc774e936223",
+      "baseline_status": "copied-original-verified",
+      "known_before_hashes": {
+        "8d13f094057ffe3a2062320f42e2436fe6408403d5c508a854afaab19083770a": "storage/framework/testing/t11-public-av-review/attempt2/manifest.json"
+      },
+      "sha256_before": "8d13f094057ffe3a2062320f42e2436fe6408403d5c508a854afaab19083770a",
+      "baseline_source": "storage/framework/testing/t11-public-av-review/attempt2/app/Mcp/Servers/SchedulerServer.php",
+      "baseline_reference": "storage/framework/testing/t11-public-av-review/attempt2/manifest.json"
+    },
+    "routes/studio.php": {
+      "kind": "existing",
+      "sha256_after": "3e8a81add20a8207c0bc88ee63a8c7c8d5d7aa6746747e57363c8f8286e7c975",
+      "baseline_status": "copied-original-verified",
+      "known_before_hashes": {
+        "90df2d0aeb60ecdfdefda7974109925d7a4e3e2d9bcf15d5ab1ccaf1d0e37a5e": "storage/framework/testing/t11-public-av-review/attempt2/manifest.json"
+      },
+      "sha256_before": "90df2d0aeb60ecdfdefda7974109925d7a4e3e2d9bcf15d5ab1ccaf1d0e37a5e",
+      "baseline_source": "storage/framework/testing/t11-public-av-review/attempt2/routes/studio.php",
+      "baseline_reference": "storage/framework/testing/t11-public-av-review/attempt2/manifest.json"
+    },
+    "routes/studio-api.php": {
+      "kind": "existing",
+      "sha256_after": "21a744b6b8aa492ca3c64bed4513cba1ec7c3ada31f5e02ae0016aa347f53c81",
+      "baseline_status": "copied-original-verified",
+      "known_before_hashes": {
+        "41628a2cd54f5835422d3d6a001c34c89da881803c8cd3384e568c279e5f47ae": "storage/framework/testing/t11-public-av-review/attempt2/manifest.json"
+      },
+      "sha256_before": "41628a2cd54f5835422d3d6a001c34c89da881803c8cd3384e568c279e5f47ae",
+      "baseline_source": "storage/framework/testing/t11-public-av-review/attempt2/routes/studio-api.php",
+      "baseline_reference": "storage/framework/testing/t11-public-av-review/attempt2/manifest.json"
+    },
+    "resources/js/Studio/timeline.js": {
+      "kind": "existing",
+      "sha256_after": "dd6af5914c31c9a046017d9d397f7fe9d8e8fa68be4936761a76ebcbacecd800",
+      "baseline_status": "reconstructed-verified-exact-sha",
+      "known_before_hashes": {
+        "9b6b99ae836e5a15cc6742d514e54c645ace3911c02b173fa95ed8059af12503": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa/raw/sources-before.json"
+      },
+      "sha256_before": "9b6b99ae836e5a15cc6742d514e54c645ace3911c02b173fa95ed8059af12503",
+      "baseline_source": "storage/framework/testing/t11-captions/review/baseline/resources/js/Studio/timeline.js",
+      "baseline_reference": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa/raw/sources-before.json",
+      "reconstruction": "Only own additions reversed in a temporary copy; exact recorded SHA matched, LF/CRLF/BOM/end-of-file variants checked."
+    },
+    "resources/js/Studio/audiovisual-plan.js": {
+      "kind": "existing",
+      "sha256_after": "369383570487177f45fb8fc492ff6656ef59d18529130e4a641152992cd8e1b5",
+      "baseline_status": "reconstructed-verified-exact-sha",
+      "known_before_hashes": {
+        "a24fe74ed37ada873dcd943a19727174df52a9fa810ab629fe86ad2a29692647": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa/raw/sources-before.json"
+      },
+      "sha256_before": "a24fe74ed37ada873dcd943a19727174df52a9fa810ab629fe86ad2a29692647",
+      "baseline_source": "storage/framework/testing/t11-captions/review/baseline/resources/js/Studio/audiovisual-plan.js",
+      "baseline_reference": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa/raw/sources-before.json",
+      "reconstruction": "Only own additions reversed in a temporary copy; exact recorded SHA matched, LF/CRLF/BOM/end-of-file variants checked."
+    },
+    "resources/js/Studio/timeline-preview.js": {
+      "kind": "existing",
+      "sha256_after": "d6868f6011863306c6758f03a41cf6990009a651449a3e5f63d613f94719321a",
+      "baseline_status": "reconstructed-verified-exact-sha",
+      "known_before_hashes": {
+        "6139b6d63adc003d361fdb48b5ba1f253594dbffea88a026af9aad8d1bfe8f3f": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa/raw/sources-before.json"
+      },
+      "sha256_before": "6139b6d63adc003d361fdb48b5ba1f253594dbffea88a026af9aad8d1bfe8f3f",
+      "baseline_source": "storage/framework/testing/t11-captions/review/baseline/resources/js/Studio/timeline-preview.js",
+      "baseline_reference": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa/raw/sources-before.json",
+      "reconstruction": "Only own additions reversed in a temporary copy; exact recorded SHA matched, LF/CRLF/BOM/end-of-file variants checked."
+    },
+    "resources/js/Studio/frame-renderer.js": {
+      "kind": "existing",
+      "sha256_after": "aaeb37cabc6aa2146dc4802d2ad899faa21e5c06102f8c578397b10de14a0ff3",
+      "baseline_status": "reconstructed-verified-exact-sha",
+      "known_before_hashes": {
+        "d9229ae1eb37c421bd5620f471ca6442a0429e0be151f208c7ce0d340e4593c9": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa/raw/sources-before.json"
+      },
+      "sha256_before": "d9229ae1eb37c421bd5620f471ca6442a0429e0be151f208c7ce0d340e4593c9",
+      "baseline_source": "storage/framework/testing/t11-captions/review/baseline/resources/js/Studio/frame-renderer.js",
+      "baseline_reference": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa/raw/sources-before.json",
+      "reconstruction": "Only own additions reversed in a temporary copy; exact recorded SHA matched, LF/CRLF/BOM/end-of-file variants checked."
+    },
+    "resources/js/Pages/Studio/Editor.vue": {
+      "kind": "existing",
+      "sha256_after": "c7ef9a5cfac3562dd9910af2d8d2093d1801927b70b6558da904234014872562",
+      "baseline_status": "reconstructed-verified-exact-sha",
+      "known_before_hashes": {
+        "f40a7f8c4fb74b4d148a0e069cd15b043ff83be97c509936571dc9493582cf44": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa/raw/sources-before.json"
+      },
+      "sha256_before": "f40a7f8c4fb74b4d148a0e069cd15b043ff83be97c509936571dc9493582cf44",
+      "baseline_source": "storage/framework/testing/t11-captions/review/baseline/resources/js/Pages/Studio/Editor.vue",
+      "baseline_reference": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa/raw/sources-before.json",
+      "reconstruction": "Only own additions reversed in a temporary copy; exact recorded SHA matched, LF/CRLF/BOM/end-of-file variants checked."
+    },
+    "resources/js/Components/Studio/TimelinePanel.vue": {
+      "kind": "existing",
+      "sha256_after": "e1bd6ad8622f8423179bfa13b1779f6bb0d5240beaa855f035cef7a66a934e0e",
+      "baseline_status": "reconstructed-verified-exact-sha",
+      "known_before_hashes": {
+        "36191c0f8727fb90d598ea2efe779bf90244fb54db611385985173faa75ac438": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa/raw/sources-before.json"
+      },
+      "sha256_before": "36191c0f8727fb90d598ea2efe779bf90244fb54db611385985173faa75ac438",
+      "baseline_source": "storage/framework/testing/t11-captions/review/baseline/resources/js/Components/Studio/TimelinePanel.vue",
+      "baseline_reference": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa/raw/sources-before.json",
+      "reconstruction": "Only own additions reversed in a temporary copy; exact recorded SHA matched, LF/CRLF/BOM/end-of-file variants checked."
+    },
+    "scripts/studio/render-av.mjs": {
+      "kind": "existing",
+      "sha256_after": "a5555f4aa9b1ecdee77896a342ffba19a2d33bb43cb4a89530d4da8d775ca69c",
+      "baseline_status": "reconstructed-verified-exact-sha",
+      "known_before_hashes": {
+        "25bc3f1a1ed4ad10c62299b7fb10d87be24deeab4882e0de728e866cc6bce1a3": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa/raw/sources-before.json"
+      },
+      "sha256_before": "25bc3f1a1ed4ad10c62299b7fb10d87be24deeab4882e0de728e866cc6bce1a3",
+      "baseline_source": "storage/framework/testing/t11-captions/review/baseline/scripts/studio/render-av.mjs",
+      "baseline_reference": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa/raw/sources-before.json",
+      "reconstruction": "Only own additions reversed in a temporary copy; exact recorded SHA matched, LF/CRLF/BOM/end-of-file variants checked."
+    },
+    "tests/Feature/Studio/StudioApiMcpTest.php": {
+      "kind": "existing",
+      "sha256_after": "fbd1f4b5edaf051ee7c3c6efa1619e1bdc0c96d341a49e9c1a83437a376de047",
+      "baseline_status": "copied-original-verified",
+      "known_before_hashes": {
+        "e66f4d0013ae72b9232b85105cd3a2af6befe20368d9d298439a9c660f20a58b": "storage/framework/testing/t11-public-av-review/attempt2/manifest.json"
+      },
+      "sha256_before": "e66f4d0013ae72b9232b85105cd3a2af6befe20368d9d298439a9c660f20a58b",
+      "baseline_source": "storage/framework/testing/t11-public-av-review/attempt2/tests/Feature/Studio/StudioApiMcpTest.php",
+      "baseline_reference": "storage/framework/testing/t11-public-av-review/attempt2/manifest.json"
+    },
+    "docs/api/creative-suite.openapi.yaml": {
+      "kind": "existing",
+      "sha256_after": "b3f0db9d6486eecfaf2021825ab4944627b562bef1ef6fdd24927c38741f1478",
+      "baseline_status": "copied-original-verified",
+      "known_before_hashes": {
+        "bf53638375ceb53f14db314b4f87725aab150a92b435e865f9f76a591579b4ca": "storage/framework/testing/t11-public-av-review/attempt2/manifest.json",
+        "4366410458d220c529ea0bf09c42474e74f95fd84c0171505a95f5fd98254b09": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/export-ui/manifest.json"
+      },
+      "sha256_before": "4366410458d220c529ea0bf09c42474e74f95fd84c0171505a95f5fd98254b09",
+      "baseline_source": "storage/framework/testing/t11-captions/openapi-before.yaml",
+      "baseline_reference": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/export-ui/manifest.json"
+    },
+    "docs/guias/estudio-api-mcp.md": {
+      "kind": "existing",
+      "sha256_after": "70eef1776bdf34553ddbd65059aaece3599644e686fa80b4b8918402d1da12ed",
+      "baseline_status": "copied-original-verified",
+      "known_before_hashes": {
+        "280773b9cfa2d621e1fcd0c572624a907f50e2f555c7bdfe945d3a3f750be838": "storage/framework/testing/t11-public-av-review/attempt2/manifest.json",
+        "8c804d3d80220232e60e9243077a97a84241395605d8ffe60a60e2c9c45f8eb6": "docs/roadmap/2026-11-03-creative-social-suite/testing/t11/export-ui/manifest.json"
+      },
+      "sha256_before": "280773b9cfa2d621e1fcd0c572624a907f50e2f555c7bdfe945d3a3f750be838",
+      "baseline_source": "storage/framework/testing/t11-export-ui-baseline/docs/guias/estudio-api-mcp.md",
+      "baseline_reference": "storage/framework/testing/t11-public-av-review/attempt2/manifest.json"
+    },
+    "app/Services/Studio/StudioCaptionData.php": {
+      "kind": "new",
+      "sha256_after": "731ed5b473dde88ecadf082d8ea21f3b249a291003fca017c157242e04b6cc5c"
+    },
+    "app/Services/Studio/StudioCaptionCodec.php": {
+      "kind": "new",
+      "sha256_after": "3b7facb7362bb6fac693f4369a049a84f02558d51702c9a95721b31d241c24ff"
+    },
+    "app/Services/Studio/StudioCaptions.php": {
+      "kind": "new",
+      "sha256_after": "c98423332eef09f961ec83cc95a301d8063e0c255d8d87ac10c0563ced526a4c"
+    },
+    "app/Http/Controllers/Studio/StudioCaptionsController.php": {
+      "kind": "new",
+      "sha256_after": "ea07cf0ad2d519c3a79d22f5852a86b1ead38bf9e314178d21ea142e9701492e"
+    },
+    "app/Mcp/Tools/ManageDesignCaptions.php": {
+      "kind": "new",
+      "sha256_after": "57a8f4200fa509bcd4c07c72bfc17dd22044c63ce8e6e151ff3bb1e8ed71f871"
+    },
+    "routes/studio-captions.php": {
+      "kind": "new",
+      "sha256_after": "a0d2bb9596e8867db884482324ab5e228890df28c371c516dbd630655f058a8f"
+    },
+    "routes/studio-captions-api.php": {
+      "kind": "new",
+      "sha256_after": "9f5af9f5a02f4e690d0fa639cc5e210b33896b851f6cec07ab68a3b40ad613f9"
+    },
+    "resources/js/Studio/captions.js": {
+      "kind": "new",
+      "sha256_after": "9c8384622bf287243efe54e07244ebc7a070db64927424ceaa588c89b4878fa5"
+    },
+    "resources/js/Studio/captions-renderer.js": {
+      "kind": "new",
+      "sha256_after": "e3c3d466e2b7a7c183373e9e00cd75d1f4f324a4b08231bcdf61287bc81fb621",
+      "previous_review_sha256": "f40f30ae2c631159c67e1e332e9f7bed29bd4e796f0e2dca8691b5282e43b230",
+      "new_evidence": "QA2-V01 isolated paint order / contrast regression"
+    },
+    "resources/js/Components/Studio/CaptionsPanel.vue": {
+      "kind": "new",
+      "sha256_after": "ea2de611fe22c35879ed733caa3cc8afdbef007c5ecb30b1784424378da8f2b4"
+    },
+    "scripts/studio/archive.py": {
+      "kind": "new",
+      "sha256_after": "1e1ce5038e6d7bbd73da497047e26adbce86a3da9c4f296a71a4c70d5a9cfe66"
+    },
+    "tests/Feature/Studio/StudioCaptionsTest.php": {
+      "kind": "new",
+      "sha256_after": "8b226b17ae86624bbcad7a312abd2ec388eae8dbca8f5bb62a47cbd3c67e12c3"
+    },
+    "tests/frontend/studio-captions.test.mjs": {
+      "kind": "new",
+      "sha256_after": "aa6f72706c1cf092551ae2647a0001002c2f18474750818056bd388d2dbdff0d"
+    },
+    "tests/frontend/studio-captions-panel.test.mjs": {
+      "kind": "new",
+      "sha256_after": "8c70e2a062cf564f72b4cb818db394404cc00cf5bc87146962484b4aab8604da"
+    },
+    "tests/frontend/studio-captions-selection.test.mjs": {
+      "kind": "new",
+      "sha256_after": "208107f62748f9f2bb3d21d658d5a5aa40a86e76d95cfffefbbfb6464bb82d21"
+    },
+    "tests/frontend/studio-captions-render.browser.test.mjs": {
+      "kind": "new",
+      "sha256_after": "94caedf82383a066bb868302e88f9790bd5b3cf9d9f7ed4d0f0916f3d2682566",
+      "previous_review_sha256": "52c0d990ff1dc6ded9151e4172c1b193c575c11c666180de8127233c39fe9e46",
+      "new_evidence": "QA2-V01 isolated paint order / contrast regression"
+    },
+    "tests/frontend/studio-captions-render-entry.mjs": {
+      "kind": "new",
+      "sha256_after": "87ea89f972eadf3de95a1738af187562087affcca5a9bbabff62843844fc704b"
+    },
+    "tests/e2e/studio-captions.spec.ts": {
+      "kind": "new",
+      "sha256_after": "72161a231535b465f5adb32f0657d0b014f0bf0f115a3928aede3069b399e54c",
+      "previous_review_sha256": "adeab7b9e78f45cbeb0f9d1e4ab76aa86c551ce7fd0b782e5aafa7500930f34e",
+      "new_evidence": "QA2-V01 isolated paint order / contrast regression"
+    },
+    "tests/studio_runtime/test_caption_archive.py": {
+      "kind": "new",
+      "sha256_after": "d736f365d9512d1d758058279758311f36596c8c489ab4cea8055d7c07f48743"
+    },
+    "storage/framework/testing/t11-captions-verify.py": {
+      "kind": "verification-helper",
+      "sha256_after": "9ab1f140a0573563d10c683ab896231ff774e9eca010a83477cfc6ef1404158a"
+    },
+    "storage/framework/testing/t11-captions-freeze.py": {
+      "kind": "verification-helper",
+      "sha256_after": "175f7f5bca4e617090fd1a8c241c5785032b6e42c54889e84fd2b1efb0aeb6e7"
+    },
+    "storage/framework/testing/t11-captions-reconstruct.py": {
+      "kind": "verification-helper",
+      "sha256_after": "f17080c01ab02a68ec7dc455612dd94ca4c0233c73fb0f07fef792d8d37d5ca4"
+    }
+  },
+  "generated": {
+    "public/build/assets/_plugin-vue_export-helper-BDNMzG2s.js": "27e87fe62aa760227b7529576953d8314891fd2aec28e0a3f03aece406f2d7d7",
+    "public/build/assets/AllBrands-D7MCJO4I.js": "7b4960d6e11653475afe566be018f480d1b255475377d8fbd207701932097daa",
+    "public/build/assets/app-7PCUVGR7.js": "ff3263bef47d30d980ac2a26922d408a181fc6aeacb1bf584ba42c0b68ffbbdf",
+    "public/build/assets/app-8itPZ7_K.css": "f9c847d832a25beb587e00c0f2860ace59337d351a4d18294226d8c77eb11b56",
+    "public/build/assets/AuthenticatedLayout-CiZ7MdGX.js": "4e4c9be7f487b03c46932fc1cc92735d20bdf917fd3fdbfe18956680260508d9",
+    "public/build/assets/Authorize-Bd4ilF0E.js": "1722b9437a83061e99eebbc1cc4526dbdc3178de8d0065c340202555013b1cf4",
+    "public/build/assets/BrandLogo-Dx3d9I0O.js": "c587fa5a52cca9e8a3206ab2ec45d803f0b2cc3f41ce45a44d10251b07737a26",
+    "public/build/assets/Checkbox-DQkWfFNo.js": "b156c0052aaab239478ec349d9eae26b0064d267d871760df26074a8f30c7686",
+    "public/build/assets/Compose-CJfz176o.js": "6e785575a13a3fbe9733ba2c2555bea108a3be6c3367673cd8d4b08d0a6182e2",
+    "public/build/assets/ConfirmPassword-D0QmOMRt.js": "acb8d14d00a0e6e829e930e2919b454a045dc47e9976bbedb8eef5b407086dba",
+    "public/build/assets/Connections-cyrbPSr8.js": "013ea9f54c6f8d7e133e540cba4f166e46230e25ea8d27121ba7baecca688d55",
+    "public/build/assets/DangerButton-BUJTxzfV.js": "9e7632f26a59a63634088590b108333c58a908fdb44617aa658c2414b541b10a",
+    "public/build/assets/DeleteUserForm-CHlEZEOK.js": "9fa16b159d79e3a2ed252aba1fc53a330e8399703a0bf16b8e346698429fbf7e",
+    "public/build/assets/Edit-Blyhgz7S.js": "1c65380a1ecf1416311f8299e92083caffe7beb2f70ed6675169d171c88d57d0",
+    "public/build/assets/Editor-CHBUgamD.js": "e2777f2d7c2f801de4f48c3f690371d7ac09bb896cda8f04235c67327f20c9a7",
+    "public/build/assets/Editor-ja0s_g__.css": "68bc6bb665b76195abed45a59cbc5dd3105abb5764e64fcfc62fdacaf72a17dc",
+    "public/build/assets/EmptyState-CblU3xkL.js": "468b8043264a03da7a1a9425d62a08e09574063c17f0aa1e14dbbcc8b2d99052",
+    "public/build/assets/exports-BLQFIQmA.js": "c03d8c670ecf82b0c2e86200d752a94b286e5bcd96ae3dc5e54742be9d4b6f53",
+    "public/build/assets/FeatureEmpty-BB_nNt6E.js": "1dd2b0155d23593bb789966e3508a9d793068430e17030ac3165ecbeb7e0d7ad",
+    "public/build/assets/ForgotPassword-DAbIbwJB.js": "70a90253c1c19c922216436db1f3770ae6671c60bed80f65fbc3c94d407b1fe8",
+    "public/build/assets/Form-D-BQrx5v.js": "e3e5614fcf8cfe27d661a894aec12e4a8a1b00c9d06764379aa69b80e7681f34",
+    "public/build/assets/format-BiMMVSo3.js": "d24fee6ba21a733efe8b97d98eed1343cb0f82807f4f1e83102c1e7b98735ec3",
+    "public/build/assets/Grid-ByK_OsNI.js": "b19b6e86140a1aad2b2473edf4566b92da4c4a9a636691e9a906ce3c8900fc85",
+    "public/build/assets/GuestLayout-Jj94znb2.js": "02597cf51096e5547dea64f2f8c24dec9f557d9573b77453d5fe99d03cdcdf6b",
+    "public/build/assets/Icon-Dy5rS4T2.js": "29b5c9fff034fd7c92e8ea59e897beda1301783f0eb697fbd4d3d5942e60efb1",
+    "public/build/assets/Index-B28WiZci.js": "778711d1d9f8d8f789dab841d3b5899eff358a280ce4f1b84995e1cf580bd9e3",
+    "public/build/assets/Index-B8QJyYBL.js": "13fbd083c912fbff8bcfe307742b80c7a855b60ce5c2acc977dae2968ee6c301",
+    "public/build/assets/Index-B_gX-Z3_.js": "1a027cd1bf77976f02dea73a6f221f249ed7c95e28d4062283004b9214434a50",
+    "public/build/assets/Index-BfghgaCI.js": "45d55b95535e6ada7bb1de40ca93f51cb97ad27d892e57fa6199ee95e1ad4d3d",
+    "public/build/assets/Index-BQoeNH6J.js": "451d0a0aeabc1eae406746c8b10b02a830a29db8f9b793564e61e72e0360953a",
+    "public/build/assets/Index-BqWk_18I.js": "2838195d81e0bd90be8590cd42ecd2c90f2519fa4987599efe402ad00511693f",
+    "public/build/assets/Index-BUK9VY1n.js": "4ef34ec1ccbbd0570a22717fafd41fc1b8fdf8c60858a54a0dbe30d046750c58",
+    "public/build/assets/Index-Bv1Ni4U2.js": "8509755e428229ec5c310bef3acb2e76807524859ba3e892e5ec00016109d711",
+    "public/build/assets/Index-C2AcoHYV.js": "6a3b5f40e838b412f4b96477fe472337a1856a3fa6b0d9841cea9ea04ee85913",
+    "public/build/assets/Index-CUpt859B.js": "b519475da360f0c145675cafa1258c211f55f4911f10a131118ca9ba0c4c900a",
+    "public/build/assets/Index-D6PIB2vr.js": "1b32379fd334802ee90a998b602f65ef36e5aabccad008699e23b1bffd268a86",
+    "public/build/assets/Index-DCXGUCaC.js": "5c7b4b5e58bb29513d200da6224c467a0b2aaf44f59c0d165ab5df79c45247b6",
+    "public/build/assets/Index-DjL2jS0f.js": "1f852da44abb02074d84fc52d88e7458c086947785c39529042227ab2397ca8b",
+    "public/build/assets/Index-DK0D1KmT.js": "599cd1c5b13aa136b839de168ee0f8097bc72491ceceb1cf869be45c387faf87",
+    "public/build/assets/Index-rioqMnNN.js": "0f222ab85483b0613c2246ed2174d46f5472b323bb05af09453506eee249fa53",
+    "public/build/assets/Index-strSNsJk.js": "193ac3395f4e1991ac079a2bca92d3dfb705cb249e7c82b5829a056e095e0c80",
+    "public/build/assets/Index-UGhr94q3.js": "8c6aeadf5032163f88bbce2cc2961c184b8360533b4dc3637502395433ae6394",
+    "public/build/assets/InputError-DwsLktv-.js": "f09046d1c9e9acfa41f076ac37eb0711d5bf0097b14cc014d2f40764de1237a0",
+    "public/build/assets/InputLabel-BdnJ7qg0.js": "109b8561fbe093958945bc26ddfc598fbcec7bd76bd6ddcbbe9402d10d52e1e0",
+    "public/build/assets/KpiCard-CkCcMh1A.js": "df7007ecdfa75b33b2aa40ac40791b3c6267908391a820564232d7c31b7c0379",
+    "public/build/assets/LineChart-CtLWwgGN.js": "5843b33c92246ffff8f553e8eb317741de8bad39c6264cae998590f576daa6c2",
+    "public/build/assets/LinkedAccountsForm-B1O4ma7L.js": "f60400a586e1e66879f2e435c42423e6d67b819846a034728a011ece71eb61f4",
+    "public/build/assets/Login-C58NoHZM.js": "5a1a528d3f2331a7dde8c91f3d0380f05167e0e352ee2fbf00636d3b60f09cdd",
+    "public/build/assets/MetricQuality-vYvDRPhr.js": "55cd4602fe822381e462062421198280385397182c9964e92ab5a5847029fc1f",
+    "public/build/assets/Network-LBB4Rgqz.js": "8ceb50eb4b40fa789262117bfebe9fa2e9d95db33735aa9baad881a0aeb35143",
+    "public/build/assets/NetworkChip-B3hkWu9Z.js": "6ff3fc8d0b52ee5207c1a573aa0f2337d89b960d7fae9af4ba0d2f3fef43e74c",
+    "public/build/assets/NetworkIcon-Bhft4xoY.js": "db4a4b45dbfb79f6f38961cce7626b453c6c132844fd2d2fc01130b956ee8bf2",
+    "public/build/assets/NetworkTabs-CjSuKONH.js": "0ec5ceb4c6be8018916340850a96fef09df52d9f44a4c49c476d1add9c24fd76",
+    "public/build/assets/PasskeysForm-D52AxkB8.js": "d0899916d765f42305c523da3192d07245c55424776117e01d860663b7a4e0c6",
+    "public/build/assets/PeriodFilter-s9Pwo9rZ.js": "ada3911fd007b7f92c2298288a518f3c85460df85f31e5b9505fe5b3fcce4031",
+    "public/build/assets/PrimaryButton-DgrNK-uF.js": "ec271a1da2298fdf497671e9bb607131204b3ea19c839ca9c56bed5246d05bca",
+    "public/build/assets/Register-Bnlr9_7z.js": "3791c1d4978da4ee302d935e295450de52bb6cbb6ac44935a66dec80370878ba",
+    "public/build/assets/ResetPassword-BKgd7xWC.js": "d334a195cd5dddaf4b889ec7be8e16f35698ef635a7f3005f7d7ae209c125ddc",
+    "public/build/assets/rolldown-runtime-XKyaHtl9.js": "548d1dbf321e7d2ae804fcc158b588706a7c52f8ca175de1490c6ccb4dbe55b7",
+    "public/build/assets/SecondaryButton-Cd6bNe3D.js": "2349fc8328650dc85b1d8ea118bfa33ab9f2e0bc812502e2551897fdaee35231",
+    "public/build/assets/Show-B_205n1Q.js": "08bc293cdd58933a439038c8aab8894b385e296a9bd9812c84b8d969e838e76c",
+    "public/build/assets/Show-ydajPOwi.js": "f111a5465e0b6681f837dde59c52614378046ac6995cc71be7356481e07a36ab",
+    "public/build/assets/SocialProviderIcon-CT3e3Jj-.js": "a5eeba3c995a02ae18b017bd3db1b4634a328a3f52342248d6f1060dbda11fd6",
+    "public/build/assets/StatusBadge-BmQhQm04.js": "5d5e34e7f9277d89d155e0e1db47ac4680081f2801b64ebfe9492108dc3697da",
+    "public/build/assets/StudioFontsDialog-KjtpP_8k.js": "ea313d1cda958177015e0a8645d5d0dc16e1c9e08c91b000aaf08e0b24e77f8e",
+    "public/build/assets/TextInput-urVX197O.js": "2dd59a9646b464e7420e27bda8b1c3c056d00527672375ad7c956e31161a6133",
+    "public/build/assets/TwoFactorChallenge-lqV3ni_4.js": "85001fc9a144f0e64dbc3ed35304f0d76c4e88580da3ca9fc0ae7ee682688319",
+    "public/build/assets/TwoFactorForm-ujovCj52.js": "fe1415394a71beb74b9fc4d8b063f45a7c5480357072e8581f8d5bdc0a75ee83",
+    "public/build/assets/UpdatePasswordForm-JOvATKRy.js": "155341ce7e5ff8626e3f384532d273476e2aef8b6bd5ba8e569e6fea787c1493",
+    "public/build/assets/UpdateProfileInformationForm-CTRm2504.js": "88908179b21eb2d4bbf2505fafd202246de6ff452e0b983392b0f83afd107bc5",
+    "public/build/assets/VerifyEmail-BI-Q9mnj.js": "9f20c7ce6c19a1a7c81a8fa68b4e525049a0819cc56f6bea6684725d656f4a38",
+    "public/build/assets/vue-Bt5OoxpE.js": "1d5672b70b0876041ff116fada16d62a2ab790a8274efd2f676b7cb94b76bc6b",
+    "public/build/assets/Welcome-X0X6PSp9.js": "694b48c1e7c9b98e6b45570b0ac1fb4cff33bcf7c70889263f81f448512cbe93",
+    "public/build/manifest.json": "ddfeb03888d083c9f9600093220c9231b339e62a8b19ad2f0584e2ba7281d6ae",
+    "public/build/studio-project-renderer.js": "d3d20292390096dcd02168a4532a23d749c586536d1024271eb72d5d4e0c651b",
+    "public/build/studio-renderer.js": "39b38155ef597c13715cc7f4eed8013b0d0ddb50817093c8eac9f6eeb059a591"
+  },
+  "historical_helper_not_reexecuted": "storage/framework/testing/t11-captions-contract-prepare.py"
+}

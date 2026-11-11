@@ -1,0 +1,33 @@
+# Crear diseños por marca
+
+Abre **Estudio** y selecciona la marca en la cabecera. Cada marca conserva sus diseños, carpetas, kit y recursos registrados. Cambiar de marca desde un diseño vuelve al catálogo de la marca elegida.
+
+1. Pulsa **Nuevo diseño**, elige nombre y tamaño, o parte de una de las 14 plantillas originales. Las miniaturas muestran el documento que se creará.
+2. Añade texto, formas o archivos. **Subidos** registra la media en esta marca; un archivo pendiente o ajeno no se puede utilizar.
+3. Selecciona un objeto en el lienzo o en **Capas**. **Propiedades** permite editar texto, geometría, rellenos, sombras, recorte y filtros. Los grupos y bloqueos se conservan al guardar.
+4. Añade, duplica y ordena páginas. Deshacer/rehacer conserva el documento completo. Los atajos evitan interferir cuando estás escribiendo en un campo o editando texto.
+5. Comprueba **Guardado** antes de cerrar. Si otra sesión adelantó la revisión, se conserva tu trabajo: descarga una copia local o recupera la versión guardada; no se sobrescribe silenciosamente.
+
+En **Identidad de marca** guarda paleta, familias tipográficas, guía y voz. Las familias deben estar disponibles en el equipo o servidor que renderiza; escribir el nombre de una fuente no la instala. Las plantillas usan los estilos de la marca y crean copias independientes.
+
+## Reutilizar plantillas, identidad y tamaños
+
+Desde el editor, **Guardar como plantilla** crea una copia en la biblioteca de la marca. Puedes incluir campos de texto como `{{nombre}}` o `{{fecha}}`, también dentro de grupos. En el catálogo, filtra **Plantillas** y pulsa **Usar plantilla**: rellena los campos y el nombre del nuevo diseño. Los valores se insertan como texto literal; puedes dejarlos vacíos o conservar espacios. Cambiar la copia no cambia la plantilla.
+
+**Aplicar identidad de marca** actualiza los estilos y logos vinculados a la referencia del kit. El kit admite seleccionar logos entre las imágenes registradas en la marca; no sustituye fotos arbitrarias por logotipos. Si el diseño no tenía referencia de estilos, los colores se corresponden por orden de aparición. Revisa visualmente el resultado antes de exportar. Deshacer permite recuperar el documento anterior.
+
+En **Página**, indica el ancho y alto y elige cómo adaptar el contenido: **Ajustar sin recortar** conserva proporciones y puede dejar márgenes; **Llenar y recortar** cubre el nuevo formato dejando fuera los bordes sobrantes; **Solo cambiar lienzo** conserva las posiciones y tamaños. La operación afecta a todas las páginas y guarda una nueva revisión.
+
+**Crear variantes** permite seleccionar varios formatos y un tamaño personalizado. Cada resultado es un diseño independiente de la misma marca, listo para abrir, editar y exportar. El original se conserva. Estas operaciones guardan antes los cambios pendientes; un conflicto detiene la operación y conserva el trabajo local.
+
+## Exportar y crear una publicación
+
+**Exportar** permite seleccionar páginas, formato y opciones. PNG/JPEG/WebP generan imágenes reales; SVG incorpora los píxeles de los medios, y PDF reúne las páginas como imágenes de alta calidad. El PDF actual es rasterizado, no un documento vectorial editable.
+
+**Guardar en biblioteca** sube y valida las imágenes. **Usar en publicación** crea un borrador en la marca del diseño con los archivos adjuntos; continúa editándolo en el compositor. No publica automáticamente. La exportación queda vinculada a la revisión que se guardó, aunque el diseño cambie después.
+
+Vídeos en el lienzo pueden reproducirse y recortarse para preparar un fotograma. Además de los cinco formatos estáticos, hay timeline con mezcla de audio, subtítulos manuales y exportación **MP4 y GIF**. También están hechos la colaboración ([compartir, enlaces, comentarios y versiones](../modulos/estudio.md#colaboración-t-13)), las tipografías propias, la IA creativa ([IA del estudio](../modulos/estudio-ia.md)), los [sitios](../modulos/sitios.md) y la integración de [Canva](../modulos/canva.md). Consulta el [inventario completo](../roadmap/2026-11-03-creative-social-suite/reference-inventory.md), que no declara paridad total, y el [mapa del módulo](../modulos/estudio.md).
+
+## API y MCP
+
+Los mismos documentos, permisos, recursos y revisiones se usan desde la [API v1 y las herramientas MCP del estudio](estudio-api-mcp.md) (nueve en la primera entrega; el servidor registra hoy 57 en total, ver [MCP](../modulos/mcp.md)). Un agente puede crear y exportar sin abrir el editor. Los trabajos de render estático necesitan Node, Chromium y el worker de `media`; las exportaciones **MP4 y GIF** van por la cola `studio`, con su propio worker, FFmpeg y cgroupv2 ([despliegue](../modulos/despliegue.md#worker-de-la-cola-studio-mp4-y-gif)).

@@ -1,0 +1,193 @@
+diff --git a/storage/framework/testing/t12-dataset-api/implementation/attempt2-before/app_Mcp_Tools_SchedulerTool.php b/app/Mcp/Tools/SchedulerTool.php
+index a853680..7732934 100644
+--- a/storage/framework/testing/t12-dataset-api/implementation/attempt2-before/app_Mcp_Tools_SchedulerTool.php
++++ b/app/Mcp/Tools/SchedulerTool.php
+@@ -102,6 +102,11 @@ public function handle(Request $request): Response
+ 
+         $audit->record($user, $action, AuditLog::OK, $this->resource(), $result['id'] ?? $result['dataset']['id'] ?? $resourceId);
+ 
++        return $this->resultResponse($result);
++    }
++
++    protected function resultResponse(array $result): Response
++    {
+         return Response::json($result);
+     }
+ 
+diff --git a/storage/framework/testing/t12-dataset-api/implementation/attempt2-before/app_Http_Middleware_LimitStudioDatasetPayload.php b/app/Http/Middleware/LimitStudioDatasetPayload.php
+index 953c2f7..7d450a9 100644
+--- a/storage/framework/testing/t12-dataset-api/implementation/attempt2-before/app_Http_Middleware_LimitStudioDatasetPayload.php
++++ b/app/Http/Middleware/LimitStudioDatasetPayload.php
+@@ -14,10 +14,14 @@ final class LimitStudioDatasetPayload
+ 
+     public function handle(Request $request, Closure $next)
+     {
+-        if (! $request->isJson() || ! $request->is('api/v1/brands/*/datasets', 'api/v1/brands/*/datasets/*', 'brands/*/studio/datasets', 'brands/*/studio/datasets/*', 'mcp')) {
++        // The MCP SDK decodes every POST body regardless of Content-Type.
++        // Bound it before SDK header validation or transport can materialize it.
++        $mcpPost = $request->is('mcp') && $request->isMethod('POST');
++        $datasetJson = $request->isJson() && $request->is('api/v1/brands/*/datasets', 'api/v1/brands/*/datasets/*', 'brands/*/studio/datasets', 'brands/*/studio/datasets/*');
++        if (! $mcpPost && ! $datasetJson) {
+             return $next($request);
+         }
+-        $max = $request->is('mcp') ? self::MAX_MCP_JSON_BYTES : self::MAX_JSON_BYTES;
++        $max = $mcpPost ? self::MAX_MCP_JSON_BYTES : self::MAX_JSON_BYTES;
+         $stream = $request->getContent(true);
+         $bytes = stream_get_contents($stream, $max + 1);
+         abort_if($bytes === false, 400, 'Unreadable request body.');
+diff --git a/storage/framework/testing/t12-dataset-api/implementation/attempt2-before/app_Mcp_Tools_ManageStudioDataset.php b/app/Mcp/Tools/ManageStudioDataset.php
+index 09aff2d..3b84d92 100644
+--- a/storage/framework/testing/t12-dataset-api/implementation/attempt2-before/app_Mcp_Tools_ManageStudioDataset.php
++++ b/app/Mcp/Tools/ManageStudioDataset.php
+@@ -8,6 +8,7 @@
+ use App\Services\Studio\StudioDatasetInput;
+ use Illuminate\Contracts\JsonSchema\JsonSchema;
+ use Laravel\Mcp\Request;
++use Laravel\Mcp\Response;
+ use Laravel\Mcp\Server\Attributes\Description;
+ use Laravel\Mcp\Server\Attributes\Name;
+ 
+@@ -30,6 +31,11 @@ protected function resource(): ?string
+         return 'studio_dataset';
+     }
+ 
++    protected function resultResponse(array $result): Response
++    {
++        return Response::text(json_encode($result, StudioDatasetInput::JSON_FLAGS));
++    }
++
+     public function toArray(): array
+     {
+         $tool = parent::toArray();
+@@ -62,7 +68,7 @@ protected function run(Request $request, User $user): array
+         $input = $request->all();
+         // The MCP SDK uses associative decoding. Re-read typed table arguments as
+         // objects from the already bounded HTTP body so {} cannot become [].
+-        if (array_key_exists('table', $input) && request()->isJson() && request()->is('mcp')) {
++        if (array_key_exists('table', $input) && request()->is('mcp')) {
+             $envelope = StudioDatasetInput::objectJson(request()->getContent(), 'body');
+             $params = $envelope['params'] ?? null;
+             if ($params instanceof \stdClass && ($params->name ?? null) === 'manage_studio_dataset' && ($params->arguments ?? null) instanceof \stdClass) {
+diff --git a/storage/framework/testing/t12-dataset-api/implementation/attempt2-before/tests_Feature_Studio_StudioDatasetApiTest.php b/tests/Feature/Studio/StudioDatasetApiTest.php
+index 67d2a51..a5b7e7e 100644
+--- a/storage/framework/testing/t12-dataset-api/implementation/attempt2-before/tests_Feature_Studio_StudioDatasetApiTest.php
++++ b/tests/Feature/Studio/StudioDatasetApiTest.php
+@@ -3,6 +3,7 @@
+ namespace Tests\Feature\Studio;
+ 
+ use App\Http\Middleware\LimitStudioDatasetPayload;
++use App\Mcp\Servers\SchedulerServer;
+ use App\Mcp\Tools\ManageStudioDataset;
+ use App\Models\Brand;
+ use App\Models\User;
+@@ -12,6 +13,8 @@
+ use Illuminate\Http\Request;
+ use Illuminate\Http\UploadedFile;
+ use Illuminate\Support\Facades\Storage;
++use Laravel\Mcp\Server\Middleware\ValidateMcpHeaders;
++use Laravel\Mcp\Server\Transport\HttpTransport;
+ use Tests\Support\McpClient;
+ use Tests\TestCase;
+ 
+@@ -426,4 +429,101 @@ public function test_typed_numeric_null_unicode_roundtrip_and_private_stream_hea
+         $this->assertStringContainsString('dataset-'.$id.'-r1.json', $export->headers->get('Content-Disposition'));
+         $this->assertSame($table, json_decode($export->streamedContent(), true));
+     }
++
++    public function test_mcp_rows_preserve_float_zero_fractions_and_negative_zero_from_literal_import(): void
++    {
++        $typed = '{"columns":[{"id":"a","label":""},{"id":"b","label":""},{"id":"c","label":""},{"id":"d","label":""},{"id":"e","label":""}],"rows":[{"id":"r","values":[0.0,1.0,-0.0,null,""]}]}';
++        [$importError, $created] = $this->callTool($this->key, 'manage_studio_dataset', ['action' => 'import', 'brand_id' => $this->brand->id, 'name' => 'Float identity', 'format' => 'json', 'text' => $typed]);
++        $this->assertFalse($importError);
++        [$rowsError, $rows, $response] = $this->callTool($this->key, 'manage_studio_dataset', ['action' => 'rows', 'brand_id' => $this->brand->id, 'dataset_id' => $created['dataset']['id']]);
++        $this->assertFalse($rowsError);
++        $this->assertSame([0.0, 1.0, -0.0, null, ''], $rows['rows'][0]['values']);
++        $this->assertStringContainsString('"values":[0.0,1.0,-0.0,null,""]', $response->json('result.content.0.text'));
++    }
++
++    public function test_all_mcp_post_media_types_are_bounded_before_real_sdk_decoding(): void
++    {
++        $observed = [];
++        foreach (['text/plain', 'application/JSON', null, 'application/json'] as $mime) {
++            foreach ([null, '1'] as $length) {
++                $server = ['REQUEST_METHOD' => 'POST', 'REQUEST_URI' => '/mcp', 'HTTP_HOST' => 'localhost', 'HTTP_ACCEPT' => 'application/json, text/event-stream'];
++                if ($mime !== null) {
++                    $server['CONTENT_TYPE'] = $mime;
++                }
++                if ($length !== null) {
++                    $server['CONTENT_LENGTH'] = $length;
++                }
++                $request = new class([], [], [], [], [], $server, '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}') extends Request
++                {
++                    public int $resourceReads = 0;
++
++                    public function getContent(bool $asResource = false)
++                    {
++                        if ($asResource) {
++                            $this->resourceReads++;
++                        }
++
++                        return parent::getContent($asResource);
++                    }
++                };
++                $beforeSdk = null;
++                $response = (new LimitStudioDatasetPayload)->handle($request, function ($bounded) use (&$beforeSdk) {
++                    $beforeSdk = $bounded->resourceReads;
++
++                    return (new ValidateMcpHeaders)->handle($bounded, function ($validated) {
++                        $transport = new HttpTransport($validated);
++                        $server = new SchedulerServer($transport);
++                        $server->start();
++
++                        return $transport->run();
++                    });
++                });
++                $this->assertSame(200, $response->getStatusCode());
++                $this->assertCount(30, json_decode($response->getContent(), true)['result']['tools']);
++                $observed[($mime ?? 'absent').'/'.($length ?? 'absent')] = $beforeSdk;
++            }
++        }
++        $this->assertSame(array_fill_keys(array_keys($observed), 1), $observed);
++    }
++
++    public function test_mcp_typed_shape_rejection_does_not_depend_on_content_type(): void
++    {
++        $observed = [];
++        foreach (['text/plain', 'application/JSON', null] as $mime) {
++            foreach (['rows_object', 'columns_object_numeric_keys'] as $shape) {
++                $table = $shape === 'rows_object' ? ['columns' => $this->table()['columns'], 'rows' => (object) []]
++                    : ['columns' => (object) ['0' => (object) $this->table()['columns'][0]], 'rows' => []];
++                $body = json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/call', 'params' => ['name' => 'manage_studio_dataset', 'arguments' => ['action' => 'create', 'brand_id' => $this->brand->id, 'name' => 'Must reject shape', 'table' => $table]]], JSON_THROW_ON_ERROR);
++                $server = ['REQUEST_METHOD' => 'POST', 'REQUEST_URI' => '/mcp', 'HTTP_HOST' => 'localhost', 'HTTP_ACCEPT' => 'application/json, text/event-stream', 'HTTP_AUTHORIZATION' => 'Bearer '.$this->key];
++                if ($mime !== null) {
++                    $server['CONTENT_TYPE'] = $mime;
++                }
++                app('auth')->forgetGuards();
++                $response = app(\Illuminate\Contracts\Http\Kernel::class)->handle(new Request([], [], [], [], [], $server, $body));
++                $this->assertSame(200, $response->getStatusCode());
++                $observed[($mime ?? 'absent').'/'.$shape] = json_decode($response->getContent(), true)['result']['isError'] ?? false;
++            }
++        }
++        $this->assertSame(array_fill_keys(array_keys($observed), true), $observed);
++    }
++
++    public function test_mcp_get_stream_and_unrelated_post_do_not_read_request_body_in_dataset_guard(): void
++    {
++        foreach ([['GET', '/mcp'], ['POST', '/unrelated']] as [$method, $uri]) {
++            $request = new class([], [], [], [], [], ['REQUEST_METHOD' => $method, 'REQUEST_URI' => $uri, 'HTTP_HOST' => 'localhost', 'CONTENT_TYPE' => 'application/json'], '{}') extends Request
++            {
++                public int $reads = 0;
++
++                public function getContent(bool $asResource = false)
++                {
++                    $this->reads++;
++
++                    return parent::getContent($asResource);
++                }
++            };
++            $response = (new LimitStudioDatasetPayload)->handle($request, fn () => response('stream or unrelated caller'));
++            $this->assertSame(200, $response->getStatusCode());
++            $this->assertSame(0, $request->reads);
++        }
++    }
+ }

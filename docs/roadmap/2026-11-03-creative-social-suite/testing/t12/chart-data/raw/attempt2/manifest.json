@@ -1,0 +1,16 @@
+{
+  "baseline": "both source paths absent before first edit",
+  "files": [
+    {
+      "path": "app/Services/Studio/StudioChartData.php",
+      "sha256": "b110018f0f2d5679749869cefa3252048e07090dc0609d573c112af540f91845",
+      "bytes": 8658
+    },
+    {
+      "path": "tests/Feature/Studio/StudioChartDataTest.php",
+      "sha256": "3eeacf817fc8fdd12dccb44c5dc9e00a4bc87c127e36ebfd20c32721850a1fd0",
+      "bytes": 11279
+    }
+  ],
+  "scope": "pure data core only; not T12 closure or QA"
+}

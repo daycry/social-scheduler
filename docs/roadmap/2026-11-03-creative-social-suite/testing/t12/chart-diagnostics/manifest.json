@@ -1,0 +1,30 @@
+{
+  "scope": "Diagnostic proof only; not application acceptance",
+  "artifacts": {
+    "READY_INK.json": "3665eabd12a31780ad605a8af8732419274ad79e81411d79e1f26f0ed7f579c0",
+    "replay-bar-category-bounds.cjs.txt": "fc3204c30ea5e07e1ecee238ca5daaf8af5e3b674016a22829a7f7c2b358c1c2",
+    "report.md": "8884b7bd06c28aa6d385486e392e2c7fae5a126a9d52fdb73b9213d4c0831e9c",
+    "http-probe1/browser.mjs.txt": "3c9e70214ebff725f61ada963cfccb52eebd688a2b86ea8e49b359a7e34ebb20",
+    "http-probe1/execution.json": "22e8b12b18daf52696f162cd09e6c4667623a7460d0ff940fa13f000afa54cb7",
+    "http-probe1/preparation.json": "cca77c4cb7c362e8d3e4855cd6032349cacfef9a52146a19224e0eb232ea87d6",
+    "http-probe1/source-manifest.json": "53f2621744f7439187ed7fbe7db22eb2ccbbe9d90907c6a0c3d40ea1f3079597",
+    "http-probe2/browser.mjs.txt": "110f01c11a84f0f881908780ab03bf3cf2bf44546af76be5b76630966c34c93d",
+    "http-probe2/events.jsonl": "c8d86ed451669b3930b9c7f1b79fa4943387c62880b0af51d9a9967ee1f597d3",
+    "http-probe2/execution.json": "644ac4d292983653cab089a94b157969855df96fa04b3a96ebc41d4217ee287a",
+    "http-probe2/preparation.json": "cb64e8e74ff43bd508927840c0ec38d701e54123ce22b6c3b051b0acf932cebf",
+    "http-probe2/source-manifest.json": "88165fe38c0f51d083d60a5033e64b5df818a4cfc89a3ece7b4a5f7632e2fdd2",
+    "http-probe2/summary.json": "e32be0ec052175a8df3f2bb3d60338e71b74986ec28c05d878cfaa8bcdf6c23b",
+    "http-probe3/browser.mjs.txt": "708ad382a4b402872212f35dc216dbd58f07c7c1f20d16a0602ac02c4f5f7243",
+    "http-probe3/events.jsonl": "5261e0fac3272e9f015e6871f84cf173b4c2411580cdce0fabdd3d0784845758",
+    "http-probe3/execution.json": "ec52bebe583048f2d6549b125962210429524ac3d63c7805b495f2dceb031e8a",
+    "http-probe3/preparation.json": "41893bba107b7b5eb5898910857c34900aeb0dbc712a96a0b476bba017366b84",
+    "http-probe3/source-manifest.json": "6f0b7f5bbd2edfcd1b587c9a4f7f7df759fdb0c437223683ec30ede19c16d587",
+    "http-probe3/summary.json": "e1f64548cfccbcbf2143d207720572724e980c3b19afdf8a360e9d3d5a8b72be",
+    "json-header/green.txt": "c205b4096336e61166d9a35a05dc9988ff8f47a66a9622dbe582a9ce87dbf6ee",
+    "json-header/green.xml": "948a5e6db16b33df9fc42c354574e7b9c5f0426957fbe29da13732756acbe03c",
+    "json-header/neighbor-datasets.xml": "23703be9038415263d8d4bb33aa2591aa7e4e195a033f98e03823326b775706f",
+    "json-header/neighbor-export.xml": "462a4434d61683dff82b9963bc3e6c3dbde3e1c0fe7a1f9be91476636c3fba1b",
+    "json-header/red.txt": "a549ef27aa178262803c582f7aa19bdd52da40bacc463475b71a68d7915520eb",
+    "json-header/red.xml": "1abcf4edaf4485ae6be147751988e0008af3a821d8dd2ac3d901c80bb4a0e1bc"
+  }
+}

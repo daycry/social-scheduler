@@ -56,7 +56,7 @@
     </div>
 @endif
 
-@if (in_array('summary', $sections))
+@if (empty($data['blocks']) && in_array('summary', $sections))
     <div class="{{ in_array('cover', $sections) ? 'page' : '' }}">
         <h2>Resumen</h2>
         <table style="margin-bottom:12px;"><tr>
@@ -99,7 +99,7 @@
     </div>
 @endif
 
-@if (in_array('networks', $sections))
+@if (empty($data['blocks']) && in_array('networks', $sections))
     @foreach ($data['networks'] as $n)
         <div class="page">
             <h2>{{ $n['label'] }}</h2>
@@ -120,7 +120,7 @@
     @endforeach
 @endif
 
-@if (in_array('top_posts', $sections))
+@if (empty($data['blocks']) && in_array('top_posts', $sections))
     <div class="page">
         <h2>Publicaciones destacadas</h2>
         @php $any = false; @endphp
@@ -146,6 +146,116 @@
             <p class="muted">No hay publicaciones de la app con metricas en este periodo.</p>
         @endunless
     </div>
+@endif
+
+@if (! empty($data['blocks']))
+    @foreach ($data['blocks'] as $i => $b)
+        @php $t = $b['type']; $first = $i === 0 && in_array('cover', $sections); @endphp
+        <div class="{{ $first ? 'page' : '' }}" style="margin-bottom:18px;">
+            @if ($t === 'text')
+                @if ($b['title'])<h2>{{ $b['title'] }}</h2>@endif
+                {{-- Texto del usuario: escapado y con saltos de linea, nunca HTML --}}
+                <p>{!! nl2br(e($b['text'])) !!}</p>
+            @elseif ($t === 'kpis')
+                <h2>{{ $b['title'] ?: 'Indicadores por red' }}</h2>
+                @foreach ($data['cards'] as $c)
+                    <h3>{{ $c['label'] }} · {{ $fmt($c['total']) }}@if ($compare && $c['available']) ({{ $pct($c['delta_pct']) }})@endif</h3>
+                    <table>
+                        <tr><th>Red</th><th class="num">Valor</th>@if ($compare)<th class="num">Anterior</th><th class="num">Variacion</th>@endif</tr>
+                        @forelse ($c['by_network'] as $n)
+                            <tr>
+                                <td>{{ $n['label'] }}</td>
+                                <td class="num {{ $n['available'] ? '' : 'muted' }}">{{ $fmt($n['value']) }}</td>
+                                @if ($compare)<td class="num">{{ $fmt($n['previous']) }}</td><td class="num">{{ $pct($n['delta_pct']) }}</td>@endif
+                            </tr>
+                        @empty
+                            <tr><td colspan="4" class="muted">Sin redes conectadas.</td></tr>
+                        @endforelse
+                    </table>
+                @endforeach
+            @elseif ($t === 'evolution')
+                <h2>{{ $b['title'] ?: 'Evolucion' }}</h2>
+                @if (count($data['timeline']['points']) && $maxView > 0)
+                    <h3>{{ $data['timeline']['label'] }} por {{ ($data['timeline']['granularity'] ?? 'day') === 'week' ? 'semana' : 'dia' }}</h3>
+                    <table class="chart"><tr>
+                        @foreach ($data['timeline']['points'] as $p)
+                            <td style="height:90px;"><div style="background:{{ $color }};height:{{ $p['value'] === null ? 1 : max(1, round(($p['value'] / $maxView) * 88)) }}px;"></div></td>
+                        @endforeach
+                    </tr></table>
+                    <p class="muted">{{ $data['period']['from'] }} ... {{ $data['period']['to'] }} (maximo {{ ($data['timeline']['granularity'] ?? 'day') === 'week' ? 'semanal' : 'diario' }}: {{ $fmt($maxView) }})</p>
+                @else
+                    <p class="muted">No hay serie con datos en este periodo.</p>
+                @endif
+            @elseif ($t === 'top_posts')
+                <h2>{{ $b['title'] ?: 'Publicaciones destacadas' }}</h2>
+                @php $any = false; @endphp
+                @foreach ($data['networks'] as $n)
+                    @if (count($n['posts']))
+                        @php $any = true; @endphp
+                        <h3>{{ $n['label'] }}</h3>
+                        <table>
+                            <tr><th>Publicacion</th><th>Fecha</th><th class="num">Visualiz.</th><th class="num">Alcance</th><th class="num">Interac.</th></tr>
+                            @foreach ($n['posts'] as $p)
+                                <tr>
+                                    <td>{{ $p['text'] ?? '(sin texto)' }}</td>
+                                    <td>{{ substr((string) $p['published_at'], 0, 10) }}</td>
+                                    <td class="num">{{ $fmt($p['metrics']['views'] ?? null) }}</td>
+                                    <td class="num">{{ $fmt($p['metrics']['reach'] ?? null) }}</td>
+                                    <td class="num">{{ $fmt($p['metrics']['interactions'] ?? null) }}</td>
+                                </tr>
+                            @endforeach
+                        </table>
+                    @endif
+                @endforeach
+                @unless ($any)<p class="muted">No hay publicaciones de la app con metricas en este periodo.</p>@endunless
+            @elseif ($t === 'competitors')
+                <h2>{{ $b['title'] ?: 'Competidores' }}</h2>
+                @php $own = $b['data']['own'] ?? null; $rows = collect([$own])->filter()->merge($b['data']['competitors'] ?? []); @endphp
+                @if ($rows->isEmpty())
+                    <p class="muted">Esta marca no tiene competidores ni cuenta de Instagram con datos en este periodo.</p>
+                @else
+                    <table>
+                        <tr><th>#</th><th>Cuenta</th><th class="num">Seguidores</th><th class="num">Crecimiento</th><th class="num">Interac. medias</th></tr>
+                        @foreach ($rows as $r)
+                            <tr>
+                                <td>{{ $r['rank'] ?? '-' }}</td>
+                                <td>{{ '@'.$r['username'] }}{{ $own !== null && $r === $own ? ' (tu cuenta)' : '' }}</td>
+                                <td class="num">{{ $fmt($r['followers_end']) }}</td>
+                                <td class="num">{{ $fmt($r['growth']) }}@if ($r['growth_pct'] !== null) ({{ $pct($r['growth_pct']) }})@endif</td>
+                                <td class="num">{{ $fmt($r['avg_interactions']) }}</td>
+                            </tr>
+                        @endforeach
+                    </table>
+                @endif
+            @elseif ($t === 'ads')
+                <h2>{{ $b['title'] ?: 'Anuncios (Meta Ads)' }}</h2>
+                @if (! $b['data']['available'])
+                    <p class="muted">{{ $b['data']['message'] ?? 'Meta Ads no esta disponible para esta marca.' }}</p>
+                @else
+                    <p>Cuenta publicitaria: <strong>{{ $b['data']['account'] ?? '-' }}</strong> · del {{ $data['period']['from'] }} al {{ $data['period']['to'] }}</p>
+                    @if ($b['data']['totals'])
+                        @php $tt = $b['data']['totals']; @endphp
+                        <p>Gasto: <strong>{{ $fmt($tt['spend']) }} {{ $b['data']['currency'] }}</strong> · Impresiones: {{ $fmt($tt['impressions']) }} · Clics: {{ $fmt($tt['clicks']) }}</p>
+                    @endif
+                    @if (count($b['data']['campaigns']))
+                        <table>
+                            <tr><th>Campana</th><th>Estado</th><th class="num">Gasto</th><th class="num">Impresiones</th><th class="num">Clics</th></tr>
+                            @foreach ($b['data']['campaigns'] as $c)
+                                <tr>
+                                    <td>{{ $c['name'] }}</td><td>{{ $c['status'] ?? '-' }}</td>
+                                    <td class="num">{{ $fmt($c['insights']['spend'] ?? null) }}</td>
+                                    <td class="num">{{ $fmt($c['insights']['impressions'] ?? null) }}</td>
+                                    <td class="num">{{ $fmt($c['insights']['clicks'] ?? null) }}</td>
+                                </tr>
+                            @endforeach
+                        </table>
+                    @else
+                        <p class="muted">Sin campanas en la cuenta.</p>
+                    @endif
+                @endif
+            @endif
+        </div>
+    @endforeach
 @endif
 
 @if (in_array('notes', $sections))

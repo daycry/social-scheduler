@@ -10,8 +10,13 @@ use App\Services\Media\GiphySource;
 use App\Services\Media\UnsafeUrlException;
 use App\Services\Media\UrlGuard;
 use App\Services\Media\UrlSource;
+use App\Services\Studio\StudioAudioFiles;
+use App\Services\Studio\StudioAudioProbe;
+use App\Services\Studio\StudioAudioProbeUnavailable;
+use Aws\Exception\AwsException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use RuntimeException;
@@ -33,9 +38,9 @@ class MediaUploadService
      *
      * @return array{asset: MediaAsset, upload: array<string, mixed>}
      */
-    public function initiate(User $user, string $name, string $mime, int $size): array
+    public function initiate(User $user, string $name, string $mime, int $size, bool $allowAudio = false): array
     {
-        $kind = $this->kindFor($mime);
+        $kind = $this->kindFor($mime, $allowAudio);
 
         if ($size < 1 || $size > (int) config("media.max_bytes.$kind")) {
             throw new InvalidArgumentException('El fichero supera el tamano maximo permitido para '.($kind === 'video' ? 'videos' : 'imagenes').'.');
@@ -217,24 +222,39 @@ class MediaUploadService
      *
      * @param  list<array{number: int, etag: string}>  $parts
      */
-    public function complete(MediaAsset $asset, array $parts = []): MediaAsset
+    public function complete(MediaAsset $asset, array $parts = [], ?float $timeout = null): MediaAsset
     {
+        $this->guardStudioRender($asset);
         if ($asset->status !== MediaAsset::STATUS_PENDING) {
             return $asset;
         }
 
         if ($asset->upload_id) {
             if ($parts === []) {
+                if ($asset->kind === MediaAsset::KIND_AUDIO && app(StudioAudioFiles::class)->hasCompleteObject($asset)) {
+                    $asset->forceFill(['upload_id' => null])->save();
+
+                    return $this->finalize($asset);
+                }
                 throw new InvalidArgumentException('Faltan las partes subidas del multipart.');
             }
 
             usort($parts, fn ($a, $b) => $a['number'] <=> $b['number']);
-            $this->storage->client()->completeMultipartUpload([
-                'Bucket' => $this->storage->bucket(),
-                'Key' => $asset->path,
-                'UploadId' => $asset->upload_id,
-                'MultipartUpload' => ['Parts' => array_map(fn ($p) => ['PartNumber' => $p['number'], 'ETag' => $p['etag']], $parts)],
-            ]);
+            try {
+                $this->storage->client()->completeMultipartUpload([
+                    'Bucket' => $this->storage->bucket(), 'Key' => $asset->path, 'UploadId' => $asset->upload_id,
+                    'MultipartUpload' => ['Parts' => array_map(fn ($p) => ['PartNumber' => $p['number'], 'ETag' => $p['etag']], $parts)],
+                ] + ($timeout === null ? [] : ['@retries' => 0, '@http' => ['timeout' => $timeout, 'connect_timeout' => min(5, $timeout)]]));
+            } catch (AwsException $e) {
+                if ($asset->kind !== MediaAsset::KIND_AUDIO || $e->getAwsErrorCode() !== 'NoSuchUpload'
+                    || ! app(StudioAudioFiles::class)->hasCompleteObject($asset)) {
+                    throw $e;
+                }
+            }
+            if ($asset->kind === MediaAsset::KIND_AUDIO) {
+                // Storage completion and native validation are separate recoverable checkpoints.
+                $asset->forceFill(['upload_id' => null])->save();
+            }
         }
 
         return $this->finalize($asset);
@@ -243,6 +263,10 @@ class MediaUploadService
     /** Lee el objeto ya subido y rellena tamano y metadatos; deja `invalido` si no es lo declarado. */
     public function finalize(MediaAsset $asset): MediaAsset
     {
+        $this->guardStudioRender($asset);
+        if ($asset->kind === MediaAsset::KIND_AUDIO) {
+            return app(StudioAudioFiles::class)->finalize($asset);
+        }
         $disk = $this->storage->disk();
 
         if (! $disk->exists($asset->path)) {
@@ -267,6 +291,8 @@ class MediaUploadService
 
         try {
             $meta = $this->probe->inspect($asset);
+        } catch (StudioAudioProbeUnavailable $e) {
+            throw $e;
         } catch (RuntimeException $e) {
             $disk->delete($asset->path);
 
@@ -297,6 +323,12 @@ class MediaUploadService
      */
     public function delete(MediaAsset $asset): void
     {
+        $this->guardStudioRender($asset, pendingOnly: true);
+        if ($asset->kind === MediaAsset::KIND_AUDIO && ! $asset->isReady()) {
+            app(StudioAudioFiles::class)->deletePending($asset);
+
+            return;
+        }
         try {
             DB::transaction(function () use ($asset) {
                 $locked = MediaAsset::withoutUserScope()->lockForUpdate()->find($asset->id);
@@ -305,7 +337,7 @@ class MediaUploadService
                     return; // ya borrada por otra peticion
                 }
 
-                if ($locked->posts()->exists()) {
+                if ($locked->usedByPosts()) {
                     throw new \DomainException('El archivo se usa en una publicacion; quitalo de ella antes de borrarlo.');
                 }
 
@@ -326,6 +358,8 @@ class MediaUploadService
      */
     public function pruneAbandoned(int $hours): int
     {
+        StudioAudioProbe::pruneTemporaries();
+        app(StudioAudioFiles::class)->pruneStaging();
         $n = 0;
 
         MediaAsset::withoutUserScope()
@@ -339,11 +373,22 @@ class MediaUploadService
                         $n++;
                     } catch (\DomainException) {
                         // se adjunto a una publicacion en el ultimo instante: se conserva
+                    } catch (StudioAudioProbeUnavailable) {
+                        Log::warning('studio.audio_abandoned_cleanup_deferred', ['media_id' => $asset->id]);
                     }
                 }
             });
 
         return $n;
+    }
+
+    /** Studio owns its pending allocation through cancellation/retry; only its registrar may publish it. */
+    private function guardStudioRender(MediaAsset $asset, bool $pendingOnly = false): void
+    {
+        $current = MediaAsset::withoutUserScope()->select(['id', 'status', 'import_state'])->find($asset->id);
+        if (isset($current?->import_state['studio_av']) && (! $pendingOnly || ! $current->isReady())) {
+            throw new \DomainException('Este archivo pertenece a una exportación de Studio; gestiona el trabajo desde su diseño.');
+        }
     }
 
     /**
@@ -381,6 +426,11 @@ class MediaUploadService
     /** Aborta el multipart abierto (si lo hay) y borra el objeto; ambos pasos tolerantes a «ya no existe». */
     private function removeObject(MediaAsset $asset): void
     {
+        if ($asset->kind === MediaAsset::KIND_AUDIO) {
+            $files = app(StudioAudioFiles::class);
+            $files->discardSnapshot($asset);
+            $files->deleteStaging($asset);
+        }
         if ($asset->upload_id && $this->storage->isS3()) {
             try {
                 $this->storage->client()->abortMultipartUpload(['Bucket' => $this->storage->bucket(), 'Key' => $asset->path, 'UploadId' => $asset->upload_id]);
@@ -399,8 +449,11 @@ class MediaUploadService
         return $asset;
     }
 
-    public function kindFor(string $mime): string
+    public function kindFor(string $mime, bool $allowAudio = false): string
     {
+        if ($allowAudio && in_array($mime, (array) config('media.allowed_audio_mimes'), true)) {
+            return MediaAsset::KIND_AUDIO;
+        }
         foreach ((array) config('media.allowed_mimes') as $kind => $mimes) {
             if (in_array($mime, $mimes, true)) {
                 return $kind;
@@ -417,6 +470,11 @@ class MediaUploadService
             'image/png' => 'png',
             'image/webp' => 'webp',
             'video/quicktime' => 'mov',
+            'audio/mpeg' => 'mp3',
+            'audio/wav' => 'wav',
+            'audio/mp4' => 'm4a',
+            'audio/aac' => 'aac',
+            'audio/ogg' => 'ogg',
             default => 'mp4',
         };
     }

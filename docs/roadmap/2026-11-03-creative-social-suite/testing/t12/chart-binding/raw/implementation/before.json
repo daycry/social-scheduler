@@ -1,0 +1,10 @@
+{
+  "date": "2026-11-06",
+  "owned": {
+    "resources/js/Studio/chart-binding.js": false,
+    "tests/frontend/studio-chart-binding.test.mjs": false
+  },
+  "monitored": {
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190"
+  }
+}

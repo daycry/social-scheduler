@@ -1,0 +1,278 @@
+[
+  {
+    "project": "desktop",
+    "format": "png",
+    "page": 0,
+    "width": 160,
+    "height": 120,
+    "threshold_counts": {
+      "16": 371,
+      "64": 353,
+      "128": 255,
+      "200": 181,
+      "240": 76
+    },
+    "peak_luminance": 253.0,
+    "sum_luminance": 63774.0,
+    "bbox": [
+      56,
+      88,
+      104,
+      105
+    ],
+    "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+  },
+  {
+    "project": "desktop",
+    "format": "png",
+    "page": 1,
+    "width": 160,
+    "height": 120,
+    "threshold_counts": {
+      "16": 371,
+      "64": 353,
+      "128": 255,
+      "200": 181,
+      "240": 76
+    },
+    "peak_luminance": 253.0,
+    "sum_luminance": 63774.0,
+    "bbox": [
+      56,
+      88,
+      104,
+      105
+    ],
+    "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+  },
+  {
+    "project": "desktop",
+    "format": "pdf",
+    "page": 0,
+    "width": 160,
+    "height": 120,
+    "threshold_counts": {
+      "16": 371,
+      "64": 353,
+      "128": 255,
+      "200": 181,
+      "240": 76
+    },
+    "peak_luminance": 253.0,
+    "sum_luminance": 63774.0,
+    "bbox": [
+      56,
+      88,
+      104,
+      105
+    ],
+    "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+  },
+  {
+    "project": "desktop",
+    "format": "pdf",
+    "page": 1,
+    "width": 160,
+    "height": 120,
+    "threshold_counts": {
+      "16": 371,
+      "64": 353,
+      "128": 255,
+      "200": 181,
+      "240": 76
+    },
+    "peak_luminance": 253.0,
+    "sum_luminance": 63774.0,
+    "bbox": [
+      56,
+      88,
+      104,
+      105
+    ],
+    "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+  },
+  {
+    "project": "mobile",
+    "format": "png",
+    "page": 0,
+    "width": 160,
+    "height": 120,
+    "threshold_counts": {
+      "16": 371,
+      "64": 353,
+      "128": 255,
+      "200": 181,
+      "240": 76
+    },
+    "peak_luminance": 253.0,
+    "sum_luminance": 63774.0,
+    "bbox": [
+      56,
+      88,
+      104,
+      105
+    ],
+    "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+  },
+  {
+    "project": "mobile",
+    "format": "png",
+    "page": 1,
+    "width": 160,
+    "height": 120,
+    "threshold_counts": {
+      "16": 371,
+      "64": 353,
+      "128": 255,
+      "200": 181,
+      "240": 76
+    },
+    "peak_luminance": 253.0,
+    "sum_luminance": 63774.0,
+    "bbox": [
+      56,
+      88,
+      104,
+      105
+    ],
+    "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+  },
+  {
+    "project": "mobile",
+    "format": "pdf",
+    "page": 0,
+    "width": 160,
+    "height": 120,
+    "threshold_counts": {
+      "16": 371,
+      "64": 353,
+      "128": 255,
+      "200": 181,
+      "240": 76
+    },
+    "peak_luminance": 253.0,
+    "sum_luminance": 63774.0,
+    "bbox": [
+      56,
+      88,
+      104,
+      105
+    ],
+    "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+  },
+  {
+    "project": "mobile",
+    "format": "pdf",
+    "page": 1,
+    "width": 160,
+    "height": 120,
+    "threshold_counts": {
+      "16": 371,
+      "64": 353,
+      "128": 255,
+      "200": 181,
+      "240": 76
+    },
+    "peak_luminance": 253.0,
+    "sum_luminance": 63774.0,
+    "bbox": [
+      56,
+      88,
+      104,
+      105
+    ],
+    "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+  },
+  {
+    "project": "mobile-360",
+    "format": "png",
+    "page": 0,
+    "width": 160,
+    "height": 120,
+    "threshold_counts": {
+      "16": 371,
+      "64": 353,
+      "128": 255,
+      "200": 181,
+      "240": 76
+    },
+    "peak_luminance": 253.0,
+    "sum_luminance": 63774.0,
+    "bbox": [
+      56,
+      88,
+      104,
+      105
+    ],
+    "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+  },
+  {
+    "project": "mobile-360",
+    "format": "png",
+    "page": 1,
+    "width": 160,
+    "height": 120,
+    "threshold_counts": {
+      "16": 371,
+      "64": 353,
+      "128": 255,
+      "200": 181,
+      "240": 76
+    },
+    "peak_luminance": 253.0,
+    "sum_luminance": 63774.0,
+    "bbox": [
+      56,
+      88,
+      104,
+      105
+    ],
+    "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+  },
+  {
+    "project": "mobile-360",
+    "format": "pdf",
+    "page": 0,
+    "width": 160,
+    "height": 120,
+    "threshold_counts": {
+      "16": 371,
+      "64": 353,
+      "128": 255,
+      "200": 181,
+      "240": 76
+    },
+    "peak_luminance": 253.0,
+    "sum_luminance": 63774.0,
+    "bbox": [
+      56,
+      88,
+      104,
+      105
+    ],
+    "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+  },
+  {
+    "project": "mobile-360",
+    "format": "pdf",
+    "page": 1,
+    "width": 160,
+    "height": 120,
+    "threshold_counts": {
+      "16": 371,
+      "64": 353,
+      "128": 255,
+      "200": 181,
+      "240": 76
+    },
+    "peak_luminance": 253.0,
+    "sum_luminance": 63774.0,
+    "bbox": [
+      56,
+      88,
+      104,
+      105
+    ],
+    "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+  }
+]

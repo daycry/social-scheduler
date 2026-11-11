@@ -1,0 +1,24 @@
+{
+  "exit": 0,
+  "terminal": true,
+  "source_hashes_match": true,
+  "sources": 55,
+  "native_optin": true,
+  "tests": 369,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "assertions": 2046,
+  "native_case_names": [
+    "AV actual database worker processes native deliveries through assembly and durable media registration with data set \"('mp4')\"",
+    "AV actual database worker processes native deliveries through assembly and durable media registration with data set \"('gif')\"",
+    "AV database worker snapshots and mixes a private real tone for MP4 while GIF does not copy unused music with data set \"('mp4')\"",
+    "AV database worker snapshots and mixes a private real tone for MP4 while GIF does not copy unused music with data set \"('gif')\"",
+    "AV native Laravel bridge renders and assembles an actual MP4 under the inherited OS group limit",
+    "AV public request crosses the actual database worker to native download and draft with data set \"('mp4', 'api')\"",
+    "AV public request crosses the actual database worker to native download and draft with data set \"('gif', 'api')\"",
+    "AV public request crosses the actual database worker to native download and draft with data set \"('mp4', 'mcp')\""
+  ],
+  "native_cases": 8,
+  "native_assertions": 193
+}

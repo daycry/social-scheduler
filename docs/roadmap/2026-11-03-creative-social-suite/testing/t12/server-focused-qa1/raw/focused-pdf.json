@@ -1,0 +1,54 @@
+{
+  "checks": 3,
+  "failed": 0,
+  "results": [
+    {
+      "pdf_sha256": "eee166c40e4c96a72896c289502f111fed58cf7f403a8c14fa319a7a7b8247fd",
+      "pages": 1,
+      "width_pt": 810,
+      "height_pt": 810,
+      "image": {
+        "name": "/Image-7098480789",
+        "width": 1080,
+        "height": 1080,
+        "bytes": 3499200,
+        "sha256": "9cd91cc7648d57779fda871f310595fa112f73801783df640d60b01713cabbad",
+        "raw": "server-pdf-image.rgb"
+      },
+      "title": "Diseño",
+      "text_mode": "raster image; glyphs verified on exact PNG provenance, no extractable text claimed"
+    },
+    {
+      "pdf_sha256": "19c7dac36fcb4e9118f7ada318442d3f80dda00acf354f47465a0c5146be0189",
+      "pages": 1,
+      "width_pt": 810,
+      "height_pt": 810,
+      "image": {
+        "name": "/Image-7098480789",
+        "width": 1080,
+        "height": 1080,
+        "bytes": 3499200,
+        "sha256": "9cd91cc7648d57779fda871f310595fa112f73801783df640d60b01713cabbad",
+        "raw": "server-pdf-image.rgb"
+      },
+      "title": "Diseño",
+      "text_mode": "raster image; glyphs verified on exact PNG provenance, no extractable text claimed"
+    },
+    {
+      "pdf_sha256": "fe03921f6ed75eec8421a4ada83bad911f75070a3965691866402ad614671444",
+      "pages": 1,
+      "width_pt": 810,
+      "height_pt": 810,
+      "image": {
+        "name": "/Image-7098480789",
+        "width": 1080,
+        "height": 1080,
+        "bytes": 3499200,
+        "sha256": "9cd91cc7648d57779fda871f310595fa112f73801783df640d60b01713cabbad",
+        "raw": "server-pdf-image.rgb"
+      },
+      "title": "Diseño",
+      "text_mode": "raster image; glyphs verified on exact PNG provenance, no extractable text claimed"
+    }
+  ]
+}

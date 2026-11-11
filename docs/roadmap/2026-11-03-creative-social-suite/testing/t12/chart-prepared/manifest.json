@@ -1,0 +1,19 @@
+{
+  "bar-geometry.before.js": "00bc553f89dfa4d9712d452eccec501b74848b755a12983463c92d690157aff9",
+  "bar-geometry.ready.js": "805dbbe61f70c95a3a56a41f751e0d20315312a9ddfc4701a90df895bc596da3",
+  "green-focused.txt": "08a7d8b4dc1037387e806ec47528d45255f374b07833f35492342499cb85dada",
+  "green-regression.txt": "a9c2591ea9cbee4dfa38db26c2694ef60bde9051714cad5104bb8aace042e6a3",
+  "implementation.diff": "391dcbcd321bb92a5d69b9ab4fe192a7dda40080a30ab57de7a1dec2c3ef02be",
+  "READY.txt": "ba1d672d3765f816eab174900a8ac9b3a885e0b7edaeae01486aefc71add357b",
+  "red-1.txt": "d586d40a70cb5e59a3e503547a498850bfa3f1fecb18b82a646a50cf92f85e98",
+  "red-2.txt": "82b0f8a907dfa46ecf779e004c16f1bde26dc68fbdc0938a3030ad093adfb19f",
+  "red-3.txt": "5e55e2d761d866cce54b2f50da23b206fd20a73e034661ecb4fd721a641a7b59",
+  "red-4.txt": "31a15c2d01075752300b21bce79b6a39125db8158f239b159dc4cc96ed92fc98",
+  "red-5.txt": "45c74eb99de0353b554ef3c6028ac56de20558c00ac5d8e5f58f6df934cccbba",
+  "red-6.txt": "d5cb54d3bee6031600da9f8f49b389396055c2425bf14472d15830eb92a62b85",
+  "red-7.txt": "a4d893a3dcdec8f365a4eecb501a700ad467b2a907a1c7695ec930bf6ee86ac1",
+  "red-8.txt": "b4ff99b95970e0e3bed9a5f424292789bf6ad5782d02ca1c0f65a70ee4084176",
+  "review.md": "796e2c5b475aecf384b7a49fa2fe6830c7bf75a1c32ffb9d4d5a2cbf65f9b7b5",
+  "sha256-ready.txt": "77ac0dbf7312b17381573aafd62d7d28bb92c2c6b62df07f8c903dfef6bed67b",
+  "studio-bar-prepared.ready.test.mjs": "2a801546d20445c0c00f459af1252d81f489f4aa8b5ba3a5cf03a55d2c89ccfc"
+}

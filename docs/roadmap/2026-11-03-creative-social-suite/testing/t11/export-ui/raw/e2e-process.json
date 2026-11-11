@@ -1,0 +1,15 @@
+{
+  "pid": 25700,
+  "command": [
+    "node",
+    "node_modules/@playwright/test/cli.js",
+    "test",
+    "tests/e2e/studio.spec.ts",
+    "tests/e2e/studio-automation.spec.ts",
+    "tests/e2e/studio-timeline.spec.ts",
+    "tests/e2e/studio-audio-editor.spec.ts",
+    "tests/e2e/studio-frame-export.spec.ts",
+    "tests/e2e/studio-native-export.spec.ts"
+  ],
+  "run_root": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-56c4cbb4-0445-43e2-9de8-434cb3999b68"
+}

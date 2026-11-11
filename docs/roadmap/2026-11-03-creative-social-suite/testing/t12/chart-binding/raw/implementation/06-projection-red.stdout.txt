@@ -1,0 +1,27 @@
+TAP version 13
+# Subtest: projection preserves row identity Unicode labels raw numbers negatives zero and null gaps
+not ok 1 - projection preserves row identity Unicode labels raw numbers negatives zero and null gaps
+  ---
+  duration_ms: 0.6955
+  type: 'test'
+  location: 'C:\\laragon\\www\\metricool\\tests\\frontend\\studio-chart-binding.test.mjs:74:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of null (reading 'categories')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/laragon/www/metricool/tests/frontend/studio-chart-binding.test.mjs:85:29)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 16.1877

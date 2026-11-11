@@ -1,0 +1,1036 @@
+npm notice run npx
+npm notice run playwright test
+
+Running 774 tests using 1 worker
+
+  ✓    1 [desktop] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › portada (1.7s)
+  ✓    2 [desktop] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › login (1.7s)
+  ✓    3 [desktop] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › registro (1.5s)
+  ✓    4 [desktop] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › recuperar contraseña (1.5s)
+  ✓    5 [desktop] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › privacidad (1.1s)
+  ✓    6 [desktop] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › términos (1.1s)
+  ✓    7 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard (1.9s)
+  ✓    8 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard instagram (1.7s)
+  ✓    9 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard facebook (1.6s)
+  ✓   10 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard youtube (1.7s)
+  ✓   11 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard tiktok (1.7s)
+  ✓   12 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › calendario (1.7s)
+  ✓   13 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › calendario lista (1.8s)
+  ✓   14 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › calendario mes (1.7s)
+  ✓   15 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › marcas (1.5s)
+  ✓   16 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › nueva marca (1.6s)
+  ✓   17 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › informes (1.9s)
+  ✓   18 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › api-keys (1.7s)
+  ✓   19 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › avisos (1.5s)
+  ✓   20 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › perfil (1.7s)
+  ✓   21 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › confirmar contraseña (1.5s)
+  ✓   22 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › mejores horas (1.7s)
+  ✓   23 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › biblioteca (1.6s)
+  ✓   24 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › papelera (1.6s)
+  ✓   25 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › aprobaciones (1.6s)
+  ✓   26 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › series (1.7s)
+  ✓   27 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › smartlinks (1.7s)
+  ✓   28 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › competidores (1.7s)
+  ✓   29 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › autolistas (1.7s)
+  ✓   30 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › inbox (1.7s)
+  ✓   31 [desktop] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › meta ads (1.8s)
+  ✓   32 [desktop] › tests\e2e\a11y.spec.ts:78:5 › axe · seguridad de cuenta › login con el botón de passkey (3.1s)
+  ✓   33 [desktop] › tests\e2e\a11y.spec.ts:84:5 › axe · seguridad de cuenta › reto 2FA: código y código de recuperación (8.8s)
+  ✓   34 [desktop] › tests\e2e\a11y.spec.ts:98:5 › axe · seguridad de cuenta › Perfil → Seguridad: sin 2FA, QR, códigos, 2FA activo, diálogo y passkeys (16.8s)
+  ✓   35 [desktop] › tests\e2e\a11y.spec.ts:168:5 › axe · login social, cuentas vinculadas y consentimiento › login con «Continuar con Google» y «Continuar con Facebook», y con un rechazo en pantalla (7.2s)
+  ✓   36 [desktop] › tests\e2e\a11y.spec.ts:181:5 › axe · login social, cuentas vinculadas y consentimiento › Perfil → Cuentas vinculadas: sin vincular, vinculada y diálogo de desvincular (10.7s)
+  ✓   37 [desktop] › tests\e2e\a11y.spec.ts:200:5 › axe · login social, cuentas vinculadas y consentimiento › consentimiento OAuth: pantalla de autorización y pantalla de error (8.7s)
+  ✓   38 [desktop] › tests\e2e\all-brands.spec.ts:27:1 › E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de periodo (8.8s)
+  ✓   39 [desktop] › tests\e2e\bluesky.spec.ts:26:1 › E2E-03 · conectar Bluesky: formulario de credenciales accesible y sin desborde (5.9s)
+  ✓   40 [desktop] › tests\e2e\bluesky.spec.ts:62:1 › E2E-03 · una cuenta de Bluesky conectada aparece con su estado y sin credenciales en la página (6.0s)
+  ✓   41 [desktop] › tests\e2e\bluesky.spec.ts:80:1 › E2E-03 · Bluesky en el calendario y en el dashboard (icono, filtro y página de red) (10.8s)
+  ✓   42 [desktop] › tests\e2e\bluesky.spec.ts:113:1 › E2E-03 · compositor: Bluesky cuenta grafemas (un emoji compuesto es 1) con tope de 300 (6.7s)
+  ✓   43 [desktop] › tests\e2e\brand-reporting.spec.ts:4:1 › Ads and reports retain the selected brand across navigation and report creation (6.3s)
+  ✓   44 [desktop] › tests\e2e\calendar-views.spec.ts:46:1 › E2E-02 · vistas del calendario: guardar, aplicar desde otro filtro, renombrar y borrar (15.0s)
+  ✓   45 [desktop] › tests\e2e\calendar-views.spec.ts:106:1 › E2E-02 · la vista por defecto se aplica al abrir el calendario (8.8s)
+  ✓   46 [desktop] › tests\e2e\calendar-views.spec.ts:130:1 › E2E-02 · la vista por defecto también se aplica al entrar por el menú (brand_id y view en el enlace) (9.4s)
+  ✓   47 [desktop] › tests\e2e\campaigns.spec.ts:37:1 › E2E-06 · gestión de campañas: alta con color y fechas, selector del compositor solo con las de la marca, alta en línea y archivo (14.6s)
+  ✓   48 [desktop] › tests\e2e\campaigns.spec.ts:101:1 › E2E-07 · panel de campaña: KPIs de los últimos snapshots, «No disponible» distinto de 0, alcance acumulado y aviso de 30 días (5.9s)
+  ✓   49 [desktop] › tests\e2e\canva.spec.ts:55:1 › Canva: sin credenciales la funcion aparece como no configurada y no ofrece conectar (5.2s)
+  ✓   50 [desktop] › tests\e2e\canva.spec.ts:72:1 › Canva: conectar (OAuth simulado), plan, listar y buscar, crear, retorno firmado, exportar a la biblioteca con origen y desconectar (19.4s)
+  ✓   51 [desktop] › tests\e2e\canva.spec.ts:159:1 › Canva: con un plan de pago el PNG transparente se activa y la exportación lo pide (8.1s)
+  ✓   52 [desktop] › tests\e2e\competitors.spec.ts:27:1 › E2E-20d · competidores: rango, ranking por métrica, publicaciones destacadas y CSV (11.9s)
+  ✓   53 [desktop] › tests\e2e\composer-presets.spec.ts:5:1 › Presets: global and network panels keep values and reveal collapsed validation fields (8.9s)
+  ✓   54 [desktop] › tests\e2e\composer-presets.spec.ts:80:1 › Presets: validation opens a collapsed global panel and focuses its date field (5.1s)
+  ✓   55 [desktop] › tests\e2e\composer-presets.spec.ts:104:1 › Presets: errors panel can collapse and retains correction links (5.4s)
+  ✓   56 [desktop] › tests\e2e\composer-refresh.spec.ts:5:5 › Composer refresh: create retains rejected work and starts another publication cleanly (11.2s)
+  ✓   57 [desktop] › tests\e2e\composer-refresh.spec.ts:5:5 › Composer refresh: edit retains rejected work and starts another publication cleanly (11.5s)
+  ✓   58 [desktop] › tests\e2e\composer.spec.ts:59:1 › E2E-01 · compositor a pantalla completa con pastillas de red (6.5s)
+  ✓   59 [desktop] › tests\e2e\composer.spec.ts:102:1 › E2E-02 · contadores por red y tope de hashtags (7.6s)
+  ✓   60 [desktop] › tests\e2e\composer.spec.ts:138:1 › E2E-03 · barra del editor: emoji en el cursor, IA y media con teclado (6.5s)
+  ✓   61 [desktop] › tests\e2e\composer.spec.ts:196:1 › E2E-03 · confirmación al salir con cambios sin guardar (11.4s)
+  ✓   62 [desktop] › tests\e2e\composer.spec.ts:238:1 › E2E-02 · el contador cuenta sobre el texto recortado y avisa al superar el máximo de caracteres (6.1s)
+  ✓   63 [desktop] › tests\e2e\composer.spec.ts:261:1 › E2E-03 · el emoji se inserta en el cursor de un texto con varias líneas (4.9s)
+  ✓   64 [desktop] › tests\e2e\composer.spec.ts:274:1 › E2E-03 · el botón Atrás del navegador pide confirmación con cambios sin guardar (6.0s)
+  ✓   65 [desktop] › tests\e2e\composer.spec.ts:328:5 › E2E-04 · ayer es inaccesible en Auckland: mismo mes (5.9s)
+  ✓   66 [desktop] › tests\e2e\composer.spec.ts:328:5 › E2E-04 · ayer es inaccesible en Auckland: cambio de mes (6.3s)
+  ✓   67 [desktop] › tests\e2e\composer.spec.ts:350:1 › E2E-04 · panel único de errores, botón dividido con teclado y selector de fecha con la zona de la marca (14.6s)
+  ✓   68 [desktop] › tests\e2e\composer.spec.ts:462:1 › E2E-05 · Publicar ahora desde el compositor: «Enviando…», una sola petición y sin duplicar (8.3s)
+  ✓   69 [desktop] › tests\e2e\composer.spec.ts:498:1 › E2E-06 · Publicar ahora desde el calendario y la lista: confirmación accesible y solo en lo que se puede publicar (11.7s)
+  ✓   70 [desktop] › tests\e2e\composer.spec.ts:571:1 › E2E-07 · Guardar en biblioteca sin guardar el post: crea la plantilla y no crea ninguna publicación (9.2s)
+  ✓   71 [desktop] › tests\e2e\composer.spec.ts:610:1 › E2E-04 · respaldo nativo del selector de fecha (datetime-local con min en la zona de la marca) y fecha pasada (7.0s)
+  ✓   72 [desktop] › tests\e2e\composer.spec.ts:641:1 › E2E-04 · si en la zona de la marca no queda ninguna franja hoy, el día de hoy no se puede elegir (6.4s)
+  ✓   73 [desktop] › tests\e2e\composer.spec.ts:661:1 › E2E-05 · con una subida de media en curso se deshabilitan Programar, Guardar borrador, Publicar ahora y Guardar en biblioteca (7.9s)
+  ✓   74 [desktop] › tests\e2e\composer.spec.ts:691:1 › E2E-05 · al subir un vídeo la previsualización lo muestra con un reproductor (5.1s)
+  ✓   75 [desktop] › tests\e2e\composer.spec.ts:711:1 › E2E-12 · barrido de accesibilidad y desbordamiento del compositor (crear y editar) (10.1s)
+  ✓   76 [desktop] › tests\e2e\composer.spec.ts:735:1 › A11Y-01 · compositor con el selector de emoji, la IA y el diálogo de salida abiertos (8.7s)
+  ✓   77 [desktop] › tests\e2e\composer.spec.ts:770:1 › E2E-08 · texto común por defecto y mezcla de redes: una personalizada y otra vinculada, contadores y teclado (8.1s)
+  ✓   78 [desktop] › tests\e2e\composer.spec.ts:857:1 › E2E-08 · guardar, reabrir conserva el texto propio y volver a vincular (con confirmación) lo borra (13.2s)
+  ✓   79 [desktop] › tests\e2e\composer.spec.ts:915:1 › E2E-09 · interruptores por red: se recuerdan por marca, no se recuerdan los textos y la etiqueta de IA solo sale donde la API la admite (16.9s)
+  ✓   80 [desktop] › tests\e2e\composer.spec.ts:1002:1 › E2E-10 · notas internas: se guardan en un post ya publicado, el calendario las marca y no se renderizan como HTML (13.1s)
+  ✓   81 [desktop] › tests\e2e\composer.spec.ts:1040:1 › E2E-11 · generador de UTM: inserta en el cursor, codifica, rechaza URLs peligrosas y Limpiar vacía (7.1s)
+  ✓   82 [desktop] › tests\e2e\composer.spec.ts:1118:1 › E2E-09 · los interruptores recordados también se aplican al cambiar de tipo, sin pisar lo que ya se tocó en el post (6.6s)
+  ✓   83 [desktop] › tests\e2e\composer.spec.ts:1144:1 › E2E-13 · selector de tipo junto a cada red: icono, nombre y subtítulo, teclado, Escape y Enter sin enviar el formulario (7.9s)
+  ✓   84 [desktop] › tests\e2e\composer.spec.ts:1225:1 › E2E-13 · un tipo guardado que ya no se ofrece se muestra como «no disponible», deja elegir uno válido y no pierde el foco (6.9s)
+  ✓   85 [desktop] › tests\e2e\csv-export.spec.ts:44:1 › E2E-05 · exportar CSV de la lista: BOM, ; y las publicaciones del filtro con la fórmula neutralizada (9.1s)
+  ✓   86 [desktop] › tests\e2e\first-comment.spec.ts:38:1 › E2E-03 · el campo aparece en Instagram, no en TikTok ni en una Historia, y el contador avisa del máximo (9.3s)
+  ✓   87 [desktop] › tests\e2e\first-comment.spec.ts:75:1 › E2E-03 · YouTube sin el permiso de comentarios avisa de reconectar y deshabilita el campo (7.0s)
+  ✓   88 [desktop] › tests\e2e\first-comment.spec.ts:88:1 › E2E-04 · un comentario fallido se edita y se reintenta sin tocar el estado del destino (11.6s)
+  ✓   89 [desktop] › tests\e2e\first-comment.spec.ts:123:1 › E2E-04 · un comentario publicado no se edita ni se reintenta (5.7s)
+  ✓   90 [desktop] › tests\e2e\first-comment.spec.ts:135:1 › E2E-04 · con envío previo posible: «Ya está publicado» no llama a la red y «Publicar igualmente» pide confirmación (8.9s)
+  ✓   91 [desktop] › tests\e2e\first-comment.spec.ts:165:1 › E2E-04 · sin envío previo no se ofrecen las salidas de duplicado (6.2s)
+  ✓   92 [desktop] › tests\e2e\flows.spec.ts:12:1 › registro: crea la cuenta y pide verificar el correo (5.3s)
+  ✓   93 [desktop] › tests\e2e\flows.spec.ts:47:5 › con sesión de un usuario e2e-sec-* › marca → borrador → calendario/lista → papelera → restaurar → biblioteca (17.5s)
+  ✓   94 [desktop] › tests\e2e\flows.spec.ts:111:5 › con sesión de un usuario e2e-sec-* › SmartLink: crear con un bloque, abrir sin sesión y el clic redirige (8.6s)
+  ✓   95 [desktop] › tests\e2e\flows.spec.ts:163:5 › con sesión de un usuario e2e-sec-* › API keys: crear y revocar (7.3s)
+  ✓   96 [desktop] › tests\e2e\gif-picker.spec.ts:90:1 › E2E-09 · GIF: sin GIPHY_API_KEY no hay botón «GIF» ni se pide nada a Giphy (6.6s)
+  ✘   97 [desktop] › tests\e2e\gif-picker.spec.ts:108:1 › E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e importar el MP4 (axe y sin desborde) (9.8s)
+  -   98 [desktop] › tests\e2e\gif-picker.spec.ts:154:1 › E2E-09 · GIF: Esc cierra el modal y devuelve el foco; sin resultados y errores se explican
+  ✓   99 [desktop] › tests\e2e\hashtags.spec.ts:25:1 › E2E-06 · hashtags desde el histórico: ≥ 2 usos, por rendimiento, se insertan en el cursor y el contador los cuenta (8.1s)
+  ✓  100 [desktop] › tests\e2e\hashtags.spec.ts:76:1 › E2E-06 · sin histórico se explica y el menú sigue siendo utilizable (7.1s)
+  ✓  101 [desktop] › tests\e2e\hashtags.spec.ts:89:1 › E2E-06 · se avisa al superar el máximo de hashtags de Instagram (6.4s)
+  ✓  102 [desktop] › tests\e2e\inbox-notes.spec.ts:26:1 › E2E-01 · notas del inbox: alta, insignia, filtro y borrado (11.8s)
+  ✓  103 [desktop] › tests\e2e\inbox-triage.spec.ts:28:1 › E2E-20a · cobertura por red, filtro por red y por estado (12.2s)
+  ✓  104 [desktop] › tests\e2e\inbox-triage.spec.ts:63:1 › E2E-20b · etiquetas, asignación y filtros (12.3s)
+  ✓  105 [desktop] › tests\e2e\inbox-triage.spec.ts:101:1 › E2E-20c · lote (leer y cerrar) y respuestas guardadas (13.1s)
+  ✓  106 [desktop] › tests\e2e\instagram-audio.spec.ts:30:1 › Audio Reel: search select volumes save reopen and remove (12.4s)
+  ✓  107 [desktop] › tests\e2e\instagram-audio.spec.ts:65:1 › Audio Reel: empty errors and closing preserve the existing choice (7.4s)
+  ✓  108 [desktop] › tests\e2e\instagram-audio.spec.ts:82:1 › Audio Reel: typing searches and loading more preserves results with retry and filter reset (8.9s)
+  ✓  109 [desktop] › tests\e2e\instagram-audio.spec.ts:128:1 › Audio Reel: changing a query invalidates slow responses and closing cancels pending typing (9.0s)
+  ✓  110 [desktop] › tests\e2e\instagram-audio.spec.ts:157:1 › Audio Reel: preview never autoplays defaults are visible and format change clears the track (7.7s)
+  ✓  111 [desktop] › tests\e2e\instagram-grid.spec.ts:40:1 › E2E-05 · programadas arriba (la más tardía primero), publicadas debajo, sin la Story, sin desbordar y con axe limpio (7.9s)
+  ✓  112 [desktop] › tests\e2e\linkedin-pinterest.spec.ts:51:1 › T-18 · Conexiones: LinkedIn y Pinterest se conectan con el proveedor simulado y quedan como cuentas conectadas (8.8s)
+  ✓  113 [desktop] › tests\e2e\linkedin-pinterest.spec.ts:74:1 › T-18 · compositor: opciones de LinkedIn y Pinterest, errores del tablero y publicar en simulado (13.6s)
+  ✓  114 [desktop] › tests\e2e\linkedin-pinterest.spec.ts:116:1 › T-18 · compositor: LinkedIn y Pinterest se ofrecen con su contador de caracteres propio y sin desbordar (9.5s)
+  ✓  115 [desktop] › tests\e2e\media-import.spec.ts:36:1 › E2E-08 · una URL a una IP interna se rechaza con un error en español y sin crear ningún asset (7.8s)
+  ✓  116 [desktop] › tests\e2e\media-import.spec.ts:78:1 › E2E-08 · el botón no envía con el campo vacío y un esquema distinto de http se rechaza (6.4s)
+  ✓  117 [desktop] › tests\e2e\media-import.spec.ts:126:1 › E2E-08 · el progreso avanza, un fallo suelto del sondeo se tolera y al terminar la media pasa a la publicación (19.1s)
+  ✓  118 [desktop] › tests\e2e\media-import.spec.ts:151:1 › E2E-08 · una importación que acaba «invalida» muestra el motivo y se puede descartar (10.2s)
+  ✓  119 [desktop] › tests\e2e\media-import.spec.ts:168:1 › E2E-08 · una importación que lleva minutos «pendiente» sin un byte avisa de que la cola no procesa, sigue comprobando despacio y se completa si el worker vuelve (30.8s)
+  ✓  120 [desktop] › tests\e2e\media-import.spec.ts:198:1 › E2E-08 · un aviso de atasco se descarta con «Descartar» (10.5s)
+  ✓  121 [desktop] › tests\e2e\media-import.spec.ts:216:1 › E2E-08 · se puede cancelar una importación en curso (5.9s)
+  ✓  122 [desktop] › tests\e2e\media-import.spec.ts:234:1 › E2E-09 · Drive: sin GOOGLE_PICKER_API_KEY no hay botón «Google Drive» ni se cargan scripts de Google (7.2s)
+  ✓  123 [desktop] › tests\e2e\media-import.spec.ts:298:1 › E2E-09 · Drive: con la clave configurada el botón aparece, se usa con teclado e importa el fichero elegido sin tocar Google (9.8s)
+  ✓  124 [desktop] › tests\e2e\media-import.spec.ts:325:1 › E2E-09 · Drive: cancelar el Picker no importa nada ni muestra error (5.9s)
+  ✓  125 [desktop] › tests\e2e\media-import.spec.ts:338:1 › E2E-09 · Drive (B-2): si falla gapi.load el botón vuelve a su estado y aparece un mensaje (5.9s)
+  ✓  126 [desktop] › tests\e2e\media-import.spec.ts:353:1 › E2E-09 · Drive (B-3): el popup bloqueado se explica y los scripts de Google se precargan al acercarse al botón, sin clic (6.0s)
+  ✓  127 [desktop] › tests\e2e\media-import.spec.ts:364:1 › E2E-09 · Drive (B-3): pasar el ratón por el botón precarga los scripts de Google (sin clic ni red real) (5.7s)
+  ✓  128 [desktop] › tests\e2e\metrics-quality.spec.ts:4:1 › Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison (6.3s)
+  ✓  129 [desktop] › tests\e2e\natural-schedule.spec.ts:69:1 › E2E-07 · la propuesta se ve antes de aplicarse y al confirmar se rellenan fecha y redes (8.4s)
+  ✓  130 [desktop] › tests\e2e\natural-schedule.spec.ts:112:1 › E2E-07 · descartar la propuesta no cambia nada (6.0s)
+  ✓  131 [desktop] › tests\e2e\natural-schedule.spec.ts:129:1 › E2E-07 · una red sin conectar se avisa y no se aplica; sin redes válidas solo cambia la fecha (6.2s)
+  ✓  132 [desktop] › tests\e2e\natural-schedule.spec.ts:145:1 › E2E-07 · un error de la IA (fecha pasada, límite diario) se explica y no deja ninguna propuesta (7.4s)
+  ✓  133 [desktop] › tests\e2e\natural-schedule.spec.ts:160:1 › E2E-07 · con la IA desactivada el campo no aparece (6.1s)
+  ✓  134 [desktop] › tests\e2e\oauth.spec.ts:111:5 › MCP OAuth · API (sin interfaz) › API-01 · metadatos y 401 con WWW-Authenticate (CA-12, CA-13, CA-14) (4.6s)
+  ✓  135 [desktop] › tests\e2e\oauth.spec.ts:127:5 › MCP OAuth · API (sin interfaz) › API-02 · DCR: 201 con loopback y 400 con una redirect_uri pública (CA-15) (4.6s)
+  ✓  136 [desktop] › tests\e2e\oauth.spec.ts:141:5 › MCP OAuth · navegador › E2E-05 · registro, consentimiento con preset publish, token en /mcp y Origin ajeno (CA-16, CA-18, CA-19, CA-20, CA-28) (8.5s)
+  ✓  137 [desktop] › tests\e2e\oauth.spec.ts:199:5 › MCP OAuth · navegador › E2E-06 · 2FA en mitad del flujo y «Denegar» (CA-16, CA-19) (15.5s)
+  ✓  138 [desktop] › tests\e2e\oauth.spec.ts:244:5 › MCP OAuth · navegador › E2E-07 · origen, reautorización, revocación y coexistencia con las API keys (CA-24, CA-25, CA-26) (13.2s)
+  ✓  139 [desktop] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › portada (1.2s)
+  ✓  140 [desktop] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › login (1.6s)
+  ✓  141 [desktop] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › registro (1.4s)
+  ✓  142 [desktop] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › recuperar contraseña (1.3s)
+  ✓  143 [desktop] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › privacidad (900ms)
+  ✓  144 [desktop] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › términos (977ms)
+  ✓  145 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard (1.5s)
+  ✓  146 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard instagram (1.4s)
+  ✓  147 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard facebook (1.4s)
+  ✓  148 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard youtube (1.5s)
+  ✓  149 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard tiktok (1.5s)
+  ✓  150 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › calendario (1.4s)
+  ✓  151 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › calendario lista (1.5s)
+  ✓  152 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › calendario mes (1.3s)
+  ✓  153 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › marcas (1.3s)
+  ✓  154 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › nueva marca (1.3s)
+  ✓  155 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › informes (1.4s)
+  ✓  156 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › api-keys (1.4s)
+  ✓  157 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › avisos (1.3s)
+  ✓  158 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › perfil (1.3s)
+  ✓  159 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › confirmar contraseña (1.3s)
+  ✓  160 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › mejores horas (1.4s)
+  ✓  161 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › biblioteca (1.3s)
+  ✓  162 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › papelera (1.3s)
+  ✓  163 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › aprobaciones (1.4s)
+  ✓  164 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › series (1.5s)
+  ✓  165 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › smartlinks (1.3s)
+  ✓  166 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › competidores (1.3s)
+  ✓  167 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › autolistas (1.4s)
+  ✓  168 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › inbox (1.5s)
+  ✓  169 [desktop] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › meta ads (1.5s)
+  ✓  170 [desktop] › tests\e2e\pages.spec.ts:28:5 › páginas autenticadas › conexiones de la marca, crear publicación y editar marca (6.5s)
+  ✓  171 [desktop] › tests\e2e\pages.spec.ts:43:5 › páginas autenticadas › axe en el calendario (solo lectura) (7.0s)
+  ✓  172 [desktop] › tests\e2e\pages.spec.ts:50:5 › páginas autenticadas › el shell enlaza los módulos nuevos (1.5s)
+  ✓  173 [desktop] › tests\e2e\report-builder.spec.ts:17:1 › Report builder: blocks, template, PDF download, schedule and brand isolation (19.0s)
+  ✓  174 [desktop] › tests\e2e\saved-texts.spec.ts:51:1 › E2E-01 · página «Textos guardados»: alta, edición, filtro por marca y borrado (11.2s)
+  ✓  175 [desktop] › tests\e2e\saved-texts.spec.ts:91:1 › E2E-02 · menú del compositor: solo los de la marca y los globales; inserta en el cursor (8.8s)
+  ✓  176 [desktop] › tests\e2e\security.spec.ts:55:5 › 2FA · doble factor (TOTP) › 2FA · activar con un TOTP real y recibir 8 códigos (E2E-01) (10.9s)
+  ✓  177 [desktop] › tests\e2e\security.spec.ts:106:5 › 2FA · doble factor (TOTP) › 2FA · el login pide el reto, lo supera con el TOTP y rechaza su reutilización (E2E-02) (11.0s)
+  ✘  178 [desktop] › tests\e2e\security.spec.ts:139:5 › 2FA · doble factor (TOTP) › 2FA · un código de recuperación sirve una vez y regenerar invalida los viejos (E2E-03) (32.2s)
+  ✓  179 [desktop] › tests\e2e\security.spec.ts:182:5 › 2FA · doble factor (TOTP) › 2FA · bloqueo tras 5 fallos y desactivación con contraseña + código (E2E-04) (20.9s)
+  ✓  180 [desktop] › tests\e2e\security.spec.ts:271:5 › passkey · alta, login y avisos › passkey · alta, segunda passkey, duplicada y renombrado (E2E-05) (13.7s)
+  ✓  181 [desktop] › tests\e2e\security.spec.ts:334:5 › passkey · alta, login y avisos › passkey · entra sin contraseña ni reto y una passkey borrada falla con mensaje neutro (E2E-06) (15.5s)
+  ✓  182 [desktop] › tests\e2e\security.spec.ts:376:5 › passkey · alta, login y avisos › passkey · el autocompletado de /login entra solo o, si no, con el botón (E2E-05/E2E-06) (7.5s)
+  ✓  183 [desktop] › tests\e2e\security.spec.ts:396:5 › passkey · alta, login y avisos › passkey · sin WebAuthn no hay controles, sale el aviso y la contraseña funciona (E2E-07) (2.9s)
+  ✓  184 [desktop] › tests\e2e\sites.spec.ts:61:1 › E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo publicado, proteger y revocar (37.6s)
+  ✓  185 [desktop] › tests\e2e\sites.spec.ts:302:1 › E2E-15b · Sitios: la lista y el editor son responsive y accesibles sin sitios ni bloques (7.1s)
+  ✓  186 [desktop] › tests\e2e\smartlinks-blocks.spec.ts:26:1 › E2E-20e · SmartLinks: bloques enriquecidos, reordenar, programar, formulario público y clics por bloque (14.1s)
+  ✓  187 [desktop] › tests\e2e\social.spec.ts:57:5 › Login social · entrar › E2E-01 · Google sin 2FA: entra sin contraseña y deja la vinculación (CA-01, CA-02) (4.7s)
+  ✓  188 [desktop] › tests\e2e\social.spec.ts:80:5 › Login social · entrar › E2E-01 · una segunda entrada con la identidad ya vinculada vuelve a entrar (5.0s)
+  ✓  189 [desktop] › tests\e2e\social.spec.ts:91:5 › Login social · entrar › E2E-02 · Google con 2FA: pide el reto, no hay sesión antes y el TOTP lleva al destino (CA-06) (8.4s)
+  ✓  190 [desktop] › tests\e2e\social.spec.ts:113:5 › Login social · entrar › E2E-03 · rechazos: email no verificado, sin cuenta, Facebook sin vincular y cancelar (CA-03, CA-04, CA-05, CA-09) (14.0s)
+  ✓  191 [desktop] › tests\e2e\social.spec.ts:153:5 › Cuentas vinculadas · perfil › E2E-04 · vincular Facebook pide la contraseña, vincula y lo muestra (CA-07) (8.2s)
+  ✓  192 [desktop] › tests\e2e\social.spec.ts:184:5 › Cuentas vinculadas · perfil › E2E-04 · una identidad ya vinculada a otro usuario da error y no cambia nada (CA-07) (8.8s)
+  ✓  193 [desktop] › tests\e2e\social.spec.ts:203:5 › Cuentas vinculadas · perfil › E2E-04 · desvincular bloquea la identidad: ni el login con ella ni Google por email la recuperan (CA-08) (10.8s)
+  ✓  194 [desktop] › tests\e2e\studio-ai.spec.ts:37:1 › Studio IA: sin clave la funcion aparece como no configurada y no hay botones de generacion (6.2s)
+  ✓  195 [desktop] › tests\e2e\studio-ai.spec.ts:59:1 › Studio IA: generar, ver estados, insertar en el diseño, guardar y reabrir; errores de cuota y alt text (18.3s)
+  ✓  196 [desktop] › tests\e2e\studio-ai.spec.ts:141:1 › Studio IA: titulares y copies, y relleno de plantilla desde una lista con Claude (9.8s)
+  ✓  197 [desktop] › tests\e2e\studio-audio-editor.spec.ts:13:1 › Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track (11.1s)
+  ✓  198 [desktop] › tests\e2e\studio-audio-editor.spec.ts:78:1 › Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds (7.9s)
+  ✓  199 [desktop] › tests\e2e\studio-audio-resources.spec.ts:14:1 › Studio audio resources API: private binary upload, byte ranges and native browser playback (6.9s)
+  ✓  200 [desktop] › tests\e2e\studio-automation.spec.ts:35:1 › Studio automation: own template substitutes literal fields in an independent branded design and exports (12.0s)
+  ✓  201 [desktop] › tests\e2e\studio-automation.spec.ts:96:1 › Studio automation: brand styles, proportional resize and independent variants persist and export (17.7s)
+
+  ✓  202 [desktop] › tests\e2e\studio-av-composite.spec.ts:16:1 › Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft (33.1s)
+  ✓  203 [desktop] › tests\e2e\studio-boards.spec.ts:36:1 › Studio: whiteboard with a table, glued connectors and free drawing persists and exports PNG, SVG and PDF (11.7s)
+  ✓  204 [desktop] › tests\e2e\studio-boards.spec.ts:160:1 › Studio: A4 document with reflowing text and a table reopens, exports PDF and PNG and can be presented (8.4s)
+  ✓  205 [desktop] › tests\e2e\studio-boards.spec.ts:220:1 › Studio: a chart bound to a saved table is inserted, saved, reopened and exported (9.7s)
+  ✓  206 [desktop] › tests\e2e\studio-boards.spec.ts:263:1 › Studio: a chart bound to a saved table is exported on the server as SVG, PNG and PDF (21.1s)
+  ✓  207 [desktop] › tests\e2e\studio-captions.spec.ts:29:1 › Studio captions UI: import edit style offset delete undo reopen and download SRT VTT with clear file errors (12.6s)
+C:\laragon/www/metricool/storage/framework/testing/t43-pdf-tools\fitz\__init__.py:17: FutureWarning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+  warnings.warn(
+
+  ✓  208 [desktop] › tests\e2e\studio-captions.spec.ts:86:1 › Studio captions render: private font pinned MP4 GIF and SVG retain opaque cues across page fade (1.5m)
+  ✓  209 [desktop] › tests\e2e\studio-captions.spec.ts:252:1 › Studio captions access: revision pinned API MCP abilities ownership and optimistic conflicts (9.2s)
+  ✓  210 [desktop] › tests\e2e\studio-charts.spec.ts:44:1 › E2E28.01 ten real variants pinned saved dataset controls shared preview save reopen undo SVG PNG private font (1.9m)
+  ✓  211 [desktop] › tests\e2e\studio-charts.spec.ts:57:1 › E2E28.03 invalid precision negative proportions cancel original typed table keyboard Inspector focus accessibility (30.6s)
+  ✓  212 [desktop] › tests\e2e\studio-charts.spec.ts:89:1 › E2E28.04 real 1000 rows twelve series twelve thousand bars shared SVG PNG semantic independent oracle guarded (30.7s)
+  ✓  213 [desktop] › tests\e2e\studio-collab.spec.ts:42:1 › Studio: dos usuarios comparten, comentan, editan a la vez, ven el 409 y se revoca el acceso (41.5s)
+  ✓  214 [desktop] › tests\e2e\studio-datasets.spec.ts:136:1 › E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes (11.4s)
+  ✓  215 [desktop] › tests\e2e\studio-datasets.spec.ts:145:1 › E2E27.02 real CSV TSV JSON imports safe faithful downloads windowed cells and invalid file (11.5s)
+  ✓  216 [desktop] › tests\e2e\studio-datasets.spec.ts:153:1 › E2E27.03 structural edits literal replace fill conversion atomic preview transpose IDs undo (15.3s)
+  ✓  217 [desktop] › tests\e2e\studio-datasets.spec.ts:167:1 › E2E27.04 second writer409 preserves draft history pagination archive restore and brand isolation (23.2s)
+  ✓  218 [desktop] › tests\e2e\studio-datasets.spec.ts:179:1 › E2E27.05 delayed real reads writes close selection brand discard keyboard and focus (11.3s)
+  ✓  219 [desktop] › tests\e2e\studio-frame-export.spec.ts:4:1 › Studio frame export: choose a local page time, export real pixels and retain it with the private brand output (6.8s)
+  ✓  220 [desktop] › tests\e2e\studio-imaging.spec.ts:112:1 › Studio imaging: real private font upload, preview, search, kit, archive and protected deletion (14.6s)
+  ✓  221 [desktop] › tests\e2e\studio-imaging.spec.ts:186:1 › Studio imaging: real background inference preserves original and a masked filtered result persists and exports (22.0s)
+
+  ✓  222 [desktop] › tests\e2e\studio-native-export.spec.ts:6:1 › Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft (18.0s)
+  ✓  223 [desktop] › tests\e2e\studio-native-export.spec.ts:86:1 › Studio native history: paginate real exports in one request per page and reopen without creating work (5.7s)
+
+  ✓  224 [desktop] › tests\e2e\studio-presentation-media.spec.ts:70:1 › E2E-29 real own video and audio emit native frames and playback; pause navigation and close release every media (10.5s)
+  ✓  225 [desktop] › tests\e2e\studio-presentation-media.spec.ts:102:1 › E2E-29 private FontFace and live versioned chart render in audience and next preview; popup has pixels only (12.5s)
+  ✓  226 [desktop] › tests\e2e\studio-presentation-media.spec.ts:136:1 › E2E-29 real fullscreen entry exit focus restoration and owned popup closure (4.7s)
+
+  ✓  227 [desktop] › tests\e2e\studio-presentation-media.spec.ts:149:60 › E2E-29 pending real media preparation cancelled by close never publishes or plays late (12.1s)
+
+  ✓  228 [desktop] › tests\e2e\studio-presentation-media.spec.ts:149:60 › E2E-29 pending real media preparation cancelled by design-unmount never publishes or plays late (12.2s)
+  ✓  229 [desktop] › tests\e2e\studio-presentation-tools.spec.ts:83:1 › E2E-29 P3 paused laser pen erase TTL page and blackout compose actual pixels; audience and fullscreen include tools (10.7s)
+  ✓  230 [desktop] › tests\e2e\studio-presentation-tools.spec.ts:143:1 › E2E-29 P3 timer uses a real own WAV with native start pause resume reset visibility volume mute loop and finish (10.7s)
+  ✓  231 [desktop] › tests\e2e\studio-presentation-tools.spec.ts:186:1 › E2E-29 P3 pending own timer audio is cancelled by a real close and cannot publish or play after release (8.1s)
+  ✓  232 [desktop] › tests\e2e\studio-presentations.spec.ts:41:1 › E2E-29 notes preserve immediate save, page ownership, Unicode, history and reopen (7.4s)
+  ✓  233 [desktop] › tests\e2e\studio-presentations.spec.ts:70:1 › E2E-29 presenter uses real pixels, manual fade destination, keys, autoplay, loop, blackout and popup cleanup (10.8s)
+  ✓  234 [desktop] › tests\e2e\studio-presentations.spec.ts:103:1 › E2E-29 popup blocking and fullscreen failures are visible; audience mode and terminal frame remain usable (6.8s)
+  ✓  235 [desktop] › tests\e2e\studio-timeline.spec.ts:16:1 › Studio timeline: edit windows, split, persist and run a common playhead without changing the document (7.1s)
+
+  ✓  236 [desktop] › tests\e2e\studio-timeline.spec.ts:63:1 › Studio timeline: an uploaded real video with an open source end can be split and previewed (8.1s)
+  ✓  237 [desktop] › tests\e2e\studio-timeline.spec.ts:101:1 › Studio timeline: splitting the second page uses local clip time and survives undo and redo (7.0s)
+
+  ✓  238 [desktop] › tests\e2e\studio-timeline.spec.ts:133:1 › Studio timeline: buffering never consumes a short clip before playback starts (9.7s)
+
+  ✓  239 [desktop] › tests\e2e\studio-timeline.spec.ts:165:1 › Studio timeline: closing while media buffers cancels the pending playback (9.6s)
+  ✓  240 [desktop] › tests\e2e\studio.spec.ts:25:1 › Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library (8.6s)
+  ✓  241 [desktop] › tests\e2e\studio.spec.ts:55:1 › Studio: design persists, exports real PNG and starts a publication in its brand (9.5s)
+  ✓  242 [desktop] › tests\e2e\studio.spec.ts:103:1 › Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design (7.8s)
+  ✓  243 [desktop] › tests\e2e\studio.spec.ts:162:1 › Studio: a stale revision preserves local edits and can recover the server version (8.0s)
+  ✓  244 [desktop] › tests\e2e\target-media.spec.ts:69:1 › T-17 · media común más una red con media y alt propios: guardar, reabrir, previsualizar por red y publicar en simulado (17.3s)
+  ✓  245 [desktop] › tests\e2e\target-media.spec.ts:149:1 › T-17 · el error de la media propia nombra la red y bloquea Programar (9.5s)
+  ✓  246 [desktop] › tests\e2e\target-media.spec.ts:167:1 › T-17 · al cambiar el tipo se limpian el alt y la portada que el nuevo tipo no admite y no se envian (7.9s)
+  ✓  247 [desktop] › tests\e2e\threads.spec.ts:29:1 › E2E-08 · Conexiones: la tarjeta de Threads y su cuenta conectada, sin desborde (7.8s)
+  ✓  248 [desktop] › tests\e2e\threads.spec.ts:48:1 › E2E-08 · calendario: iconos de Threads y Bluesky y filtro por red (9.8s)
+  ✓  249 [desktop] › tests\e2e\threads.spec.ts:77:1 › E2E-08 · dashboard de Threads: visitas al perfil (no visualizaciones), clics y la publicación con sus cifras (10.1s)
+  ✓  250 [desktop] › tests\e2e\threads.spec.ts:105:1 › E2E-08 · compositor: Threads cuenta 500 caracteres con cada emoji por sus bytes UTF-8 (8.6s)
+  ✓  251 [desktop] › tests\e2e\threads.spec.ts:133:1 › E2E-08 · compositor: con 2 etiquetas en Threads aparece el aviso de que solo se usa la primera (CA-14) (8.3s)
+  ✓  252 [desktop] › tests\e2e\tiktok-audio.spec.ts:26:1 › TikTok photo music: explicit choice persists and switching to video removes it (8.8s)
+  ✓  253 [desktop] › tests\e2e\tiktok-audio.spec.ts:48:1 › TikTok creator failure stops automatic retries and the retry button can recover (6.9s)
+  ✓  254 [desktop] › tests\e2e\workflow.spec.ts:48:1 › aprobar y rechazar con dos usuarios: invitación uniforme, decisión del aprobador y estado en el calendario (17.9s)
+  ✓  255 [desktop] › tests\e2e\workflow.spec.ts:115:1 › destino manual: el aviso trae el contenido y se marca como publicado con una URL https (8.7s)
+  ✓  256 [desktop] › tests\e2e\workflow.spec.ts:151:1 › serie semanal: se crea desde la pantalla y las ocurrencias aparecen en el calendario sin duplicarse (11.2s)
+  ✓  257 [desktop] › tests\e2e\workflow.spec.ts:194:1 › lote: reprogramar y cancelar con un resultado parcial por elemento (7.9s)
+  ✓  258 [desktop] › tests\e2e\workflow.spec.ts:229:1 › reintento: un destino con error vuelve a programarse una sola vez (6.7s)
+  ✓  259 [mobile] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › portada (1.8s)
+  ✓  260 [mobile] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › login (1.9s)
+  ✓  261 [mobile] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › registro (1.6s)
+  ✓  262 [mobile] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › recuperar contraseña (1.6s)
+  ✓  263 [mobile] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › privacidad (1.3s)
+  ✓  264 [mobile] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › términos (1.2s)
+  ✓  265 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard (2.0s)
+  ✓  266 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard instagram (1.9s)
+  ✓  267 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard facebook (1.9s)
+  ✓  268 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard youtube (1.9s)
+  ✓  269 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard tiktok (1.8s)
+  ✓  270 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › calendario (1.8s)
+  ✓  271 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › calendario lista (1.8s)
+  ✓  272 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › calendario mes (1.9s)
+  ✓  273 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › marcas (1.7s)
+  ✓  274 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › nueva marca (1.7s)
+  ✓  275 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › informes (1.8s)
+  ✓  276 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › api-keys (1.8s)
+  ✓  277 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › avisos (1.6s)
+  ✓  278 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › perfil (1.8s)
+  ✓  279 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › confirmar contraseña (1.6s)
+  ✓  280 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › mejores horas (1.7s)
+  ✓  281 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › biblioteca (1.8s)
+  ✓  282 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › papelera (1.8s)
+  ✓  283 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › aprobaciones (1.7s)
+  ✓  284 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › series (1.9s)
+  ✓  285 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › smartlinks (1.8s)
+  ✓  286 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › competidores (1.9s)
+  ✓  287 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › autolistas (1.8s)
+  ✓  288 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › inbox (1.7s)
+  ✓  289 [mobile] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › meta ads (1.7s)
+  ✓  290 [mobile] › tests\e2e\a11y.spec.ts:78:5 › axe · seguridad de cuenta › login con el botón de passkey (3.2s)
+  ✓  291 [mobile] › tests\e2e\a11y.spec.ts:84:5 › axe · seguridad de cuenta › reto 2FA: código y código de recuperación (8.6s)
+  ✓  292 [mobile] › tests\e2e\a11y.spec.ts:98:5 › axe · seguridad de cuenta › Perfil → Seguridad: sin 2FA, QR, códigos, 2FA activo, diálogo y passkeys (17.1s)
+  ✓  293 [mobile] › tests\e2e\a11y.spec.ts:168:5 › axe · login social, cuentas vinculadas y consentimiento › login con «Continuar con Google» y «Continuar con Facebook», y con un rechazo en pantalla (7.6s)
+  ✓  294 [mobile] › tests\e2e\a11y.spec.ts:181:5 › axe · login social, cuentas vinculadas y consentimiento › Perfil → Cuentas vinculadas: sin vincular, vinculada y diálogo de desvincular (10.4s)
+  ✓  295 [mobile] › tests\e2e\a11y.spec.ts:200:5 › axe · login social, cuentas vinculadas y consentimiento › consentimiento OAuth: pantalla de autorización y pantalla de error (8.0s)
+  ✓  296 [mobile] › tests\e2e\all-brands.spec.ts:27:1 › E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de periodo (8.5s)
+  ✓  297 [mobile] › tests\e2e\bluesky.spec.ts:26:1 › E2E-03 · conectar Bluesky: formulario de credenciales accesible y sin desborde (5.4s)
+  ✓  298 [mobile] › tests\e2e\bluesky.spec.ts:62:1 › E2E-03 · una cuenta de Bluesky conectada aparece con su estado y sin credenciales en la página (5.5s)
+  ✓  299 [mobile] › tests\e2e\bluesky.spec.ts:80:1 › E2E-03 · Bluesky en el calendario y en el dashboard (icono, filtro y página de red) (10.3s)
+  ✓  300 [mobile] › tests\e2e\bluesky.spec.ts:113:1 › E2E-03 · compositor: Bluesky cuenta grafemas (un emoji compuesto es 1) con tope de 300 (6.0s)
+  ✓  301 [mobile] › tests\e2e\brand-reporting.spec.ts:4:1 › Ads and reports retain the selected brand across navigation and report creation (6.1s)
+  ✓  302 [mobile] › tests\e2e\calendar-views.spec.ts:46:1 › E2E-02 · vistas del calendario: guardar, aplicar desde otro filtro, renombrar y borrar (12.4s)
+  ✓  303 [mobile] › tests\e2e\calendar-views.spec.ts:106:1 › E2E-02 · la vista por defecto se aplica al abrir el calendario (8.0s)
+  ✓  304 [mobile] › tests\e2e\calendar-views.spec.ts:130:1 › E2E-02 · la vista por defecto también se aplica al entrar por el menú (brand_id y view en el enlace) (8.6s)
+  ✓  305 [mobile] › tests\e2e\campaigns.spec.ts:37:1 › E2E-06 · gestión de campañas: alta con color y fechas, selector del compositor solo con las de la marca, alta en línea y archivo (12.4s)
+  ✓  306 [mobile] › tests\e2e\campaigns.spec.ts:101:1 › E2E-07 · panel de campaña: KPIs de los últimos snapshots, «No disponible» distinto de 0, alcance acumulado y aviso de 30 días (5.3s)
+  ✓  307 [mobile] › tests\e2e\canva.spec.ts:55:1 › Canva: sin credenciales la funcion aparece como no configurada y no ofrece conectar (4.3s)
+  ✓  308 [mobile] › tests\e2e\canva.spec.ts:72:1 › Canva: conectar (OAuth simulado), plan, listar y buscar, crear, retorno firmado, exportar a la biblioteca con origen y desconectar (15.9s)
+  ✓  309 [mobile] › tests\e2e\canva.spec.ts:159:1 › Canva: con un plan de pago el PNG transparente se activa y la exportación lo pide (6.4s)
+  ✓  310 [mobile] › tests\e2e\competitors.spec.ts:27:1 › E2E-20d · competidores: rango, ranking por métrica, publicaciones destacadas y CSV (8.7s)
+  ✓  311 [mobile] › tests\e2e\composer-presets.spec.ts:5:1 › Presets: global and network panels keep values and reveal collapsed validation fields (7.3s)
+  ✓  312 [mobile] › tests\e2e\composer-presets.spec.ts:80:1 › Presets: validation opens a collapsed global panel and focuses its date field (4.6s)
+  ✓  313 [mobile] › tests\e2e\composer-presets.spec.ts:104:1 › Presets: errors panel can collapse and retains correction links (4.0s)
+  ✓  314 [mobile] › tests\e2e\composer-refresh.spec.ts:5:5 › Composer refresh: create retains rejected work and starts another publication cleanly (8.7s)
+  ✓  315 [mobile] › tests\e2e\composer-refresh.spec.ts:5:5 › Composer refresh: edit retains rejected work and starts another publication cleanly (8.6s)
+  ✓  316 [mobile] › tests\e2e\composer.spec.ts:59:1 › E2E-01 · compositor a pantalla completa con pastillas de red (5.4s)
+  ✓  317 [mobile] › tests\e2e\composer.spec.ts:102:1 › E2E-02 · contadores por red y tope de hashtags (6.5s)
+  ✓  318 [mobile] › tests\e2e\composer.spec.ts:138:1 › E2E-03 · barra del editor: emoji en el cursor, IA y media con teclado (5.3s)
+  ✓  319 [mobile] › tests\e2e\composer.spec.ts:196:1 › E2E-03 · confirmación al salir con cambios sin guardar (8.3s)
+  ✓  320 [mobile] › tests\e2e\composer.spec.ts:238:1 › E2E-02 · el contador cuenta sobre el texto recortado y avisa al superar el máximo de caracteres (4.9s)
+  ✓  321 [mobile] › tests\e2e\composer.spec.ts:261:1 › E2E-03 · el emoji se inserta en el cursor de un texto con varias líneas (4.4s)
+  ✓  322 [mobile] › tests\e2e\composer.spec.ts:274:1 › E2E-03 · el botón Atrás del navegador pide confirmación con cambios sin guardar (4.6s)
+  ✓  323 [mobile] › tests\e2e\composer.spec.ts:328:5 › E2E-04 · ayer es inaccesible en Auckland: mismo mes (4.6s)
+  ✓  324 [mobile] › tests\e2e\composer.spec.ts:328:5 › E2E-04 · ayer es inaccesible en Auckland: cambio de mes (4.6s)
+  ✓  325 [mobile] › tests\e2e\composer.spec.ts:350:1 › E2E-04 · panel único de errores, botón dividido con teclado y selector de fecha con la zona de la marca (12.1s)
+  ✓  326 [mobile] › tests\e2e\composer.spec.ts:462:1 › E2E-05 · Publicar ahora desde el compositor: «Enviando…», una sola petición y sin duplicar (8.4s)
+  ✓  327 [mobile] › tests\e2e\composer.spec.ts:498:1 › E2E-06 · Publicar ahora desde el calendario y la lista: confirmación accesible y solo en lo que se puede publicar (11.6s)
+  ✓  328 [mobile] › tests\e2e\composer.spec.ts:571:1 › E2E-07 · Guardar en biblioteca sin guardar el post: crea la plantilla y no crea ninguna publicación (6.7s)
+  ✓  329 [mobile] › tests\e2e\composer.spec.ts:610:1 › E2E-04 · respaldo nativo del selector de fecha (datetime-local con min en la zona de la marca) y fecha pasada (5.6s)
+  ✓  330 [mobile] › tests\e2e\composer.spec.ts:641:1 › E2E-04 · si en la zona de la marca no queda ninguna franja hoy, el día de hoy no se puede elegir (4.4s)
+  ✓  331 [mobile] › tests\e2e\composer.spec.ts:661:1 › E2E-05 · con una subida de media en curso se deshabilitan Programar, Guardar borrador, Publicar ahora y Guardar en biblioteca (7.0s)
+  ✓  332 [mobile] › tests\e2e\composer.spec.ts:691:1 › E2E-05 · al subir un vídeo la previsualización lo muestra con un reproductor (3.8s)
+  ✓  333 [mobile] › tests\e2e\composer.spec.ts:711:1 › E2E-12 · barrido de accesibilidad y desbordamiento del compositor (crear y editar) (7.6s)
+  ✓  334 [mobile] › tests\e2e\composer.spec.ts:735:1 › A11Y-01 · compositor con el selector de emoji, la IA y el diálogo de salida abiertos (7.2s)
+  ✓  335 [mobile] › tests\e2e\composer.spec.ts:770:1 › E2E-08 · texto común por defecto y mezcla de redes: una personalizada y otra vinculada, contadores y teclado (6.5s)
+  ✓  336 [mobile] › tests\e2e\composer.spec.ts:857:1 › E2E-08 · guardar, reabrir conserva el texto propio y volver a vincular (con confirmación) lo borra (9.6s)
+  ✓  337 [mobile] › tests\e2e\composer.spec.ts:915:1 › E2E-09 · interruptores por red: se recuerdan por marca, no se recuerdan los textos y la etiqueta de IA solo sale donde la API la admite (12.3s)
+  ✓  338 [mobile] › tests\e2e\composer.spec.ts:1002:1 › E2E-10 · notas internas: se guardan en un post ya publicado, el calendario las marca y no se renderizan como HTML (10.3s)
+  ✓  339 [mobile] › tests\e2e\composer.spec.ts:1040:1 › E2E-11 · generador de UTM: inserta en el cursor, codifica, rechaza URLs peligrosas y Limpiar vacía (5.5s)
+  ✓  340 [mobile] › tests\e2e\composer.spec.ts:1118:1 › E2E-09 · los interruptores recordados también se aplican al cambiar de tipo, sin pisar lo que ya se tocó en el post (4.7s)
+  ✓  341 [mobile] › tests\e2e\composer.spec.ts:1144:1 › E2E-13 · selector de tipo junto a cada red: icono, nombre y subtítulo, teclado, Escape y Enter sin enviar el formulario (6.0s)
+  ✓  342 [mobile] › tests\e2e\composer.spec.ts:1225:1 › E2E-13 · un tipo guardado que ya no se ofrece se muestra como «no disponible», deja elegir uno válido y no pierde el foco (7.4s)
+  ✓  343 [mobile] › tests\e2e\csv-export.spec.ts:44:1 › E2E-05 · exportar CSV de la lista: BOM, ; y las publicaciones del filtro con la fórmula neutralizada (17.3s)
+  ✓  344 [mobile] › tests\e2e\first-comment.spec.ts:38:1 › E2E-03 · el campo aparece en Instagram, no en TikTok ni en una Historia, y el contador avisa del máximo (7.4s)
+  ✓  345 [mobile] › tests\e2e\first-comment.spec.ts:75:1 › E2E-03 · YouTube sin el permiso de comentarios avisa de reconectar y deshabilita el campo (5.1s)
+  ✓  346 [mobile] › tests\e2e\first-comment.spec.ts:88:1 › E2E-04 · un comentario fallido se edita y se reintenta sin tocar el estado del destino (9.3s)
+  ✓  347 [mobile] › tests\e2e\first-comment.spec.ts:123:1 › E2E-04 · un comentario publicado no se edita ni se reintenta (4.2s)
+  ✓  348 [mobile] › tests\e2e\first-comment.spec.ts:135:1 › E2E-04 · con envío previo posible: «Ya está publicado» no llama a la red y «Publicar igualmente» pide confirmación (6.9s)
+  ✓  349 [mobile] › tests\e2e\first-comment.spec.ts:165:1 › E2E-04 · sin envío previo no se ofrecen las salidas de duplicado (4.1s)
+  ✓  350 [mobile] › tests\e2e\flows.spec.ts:12:1 › registro: crea la cuenta y pide verificar el correo (3.0s)
+  ✓  351 [mobile] › tests\e2e\flows.spec.ts:47:5 › con sesión de un usuario e2e-sec-* › marca → borrador → calendario/lista → papelera → restaurar → biblioteca (13.0s)
+  ✓  352 [mobile] › tests\e2e\flows.spec.ts:111:5 › con sesión de un usuario e2e-sec-* › SmartLink: crear con un bloque, abrir sin sesión y el clic redirige (6.1s)
+  ✓  353 [mobile] › tests\e2e\flows.spec.ts:163:5 › con sesión de un usuario e2e-sec-* › API keys: crear y revocar (5.2s)
+  ✓  354 [mobile] › tests\e2e\gif-picker.spec.ts:90:1 › E2E-09 · GIF: sin GIPHY_API_KEY no hay botón «GIF» ni se pide nada a Giphy (5.0s)
+  ✘  355 [mobile] › tests\e2e\gif-picker.spec.ts:108:1 › E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e importar el MP4 (axe y sin desborde) (8.0s)
+  -  356 [mobile] › tests\e2e\gif-picker.spec.ts:154:1 › E2E-09 · GIF: Esc cierra el modal y devuelve el foco; sin resultados y errores se explican
+  ✓  357 [mobile] › tests\e2e\hashtags.spec.ts:25:1 › E2E-06 · hashtags desde el histórico: ≥ 2 usos, por rendimiento, se insertan en el cursor y el contador los cuenta (6.8s)
+  ✓  358 [mobile] › tests\e2e\hashtags.spec.ts:76:1 › E2E-06 · sin histórico se explica y el menú sigue siendo utilizable (5.5s)
+  ✓  359 [mobile] › tests\e2e\hashtags.spec.ts:89:1 › E2E-06 · se avisa al superar el máximo de hashtags de Instagram (4.5s)
+  ✓  360 [mobile] › tests\e2e\inbox-notes.spec.ts:26:1 › E2E-01 · notas del inbox: alta, insignia, filtro y borrado (10.1s)
+  ✓  361 [mobile] › tests\e2e\inbox-triage.spec.ts:28:1 › E2E-20a · cobertura por red, filtro por red y por estado (8.9s)
+  ✓  362 [mobile] › tests\e2e\inbox-triage.spec.ts:63:1 › E2E-20b · etiquetas, asignación y filtros (9.3s)
+  ✓  363 [mobile] › tests\e2e\inbox-triage.spec.ts:101:1 › E2E-20c · lote (leer y cerrar) y respuestas guardadas (9.4s)
+  ✓  364 [mobile] › tests\e2e\instagram-audio.spec.ts:30:1 › Audio Reel: search select volumes save reopen and remove (8.9s)
+  ✓  365 [mobile] › tests\e2e\instagram-audio.spec.ts:65:1 › Audio Reel: empty errors and closing preserve the existing choice (5.3s)
+  ✓  366 [mobile] › tests\e2e\instagram-audio.spec.ts:82:1 › Audio Reel: typing searches and loading more preserves results with retry and filter reset (7.2s)
+  ✓  367 [mobile] › tests\e2e\instagram-audio.spec.ts:128:1 › Audio Reel: changing a query invalidates slow responses and closing cancels pending typing (7.6s)
+  ✓  368 [mobile] › tests\e2e\instagram-audio.spec.ts:157:1 › Audio Reel: preview never autoplays defaults are visible and format change clears the track (5.3s)
+  ✓  369 [mobile] › tests\e2e\instagram-grid.spec.ts:40:1 › E2E-05 · programadas arriba (la más tardía primero), publicadas debajo, sin la Story, sin desbordar y con axe limpio (5.9s)
+  ✓  370 [mobile] › tests\e2e\linkedin-pinterest.spec.ts:51:1 › T-18 · Conexiones: LinkedIn y Pinterest se conectan con el proveedor simulado y quedan como cuentas conectadas (6.6s)
+  ✓  371 [mobile] › tests\e2e\linkedin-pinterest.spec.ts:74:1 › T-18 · compositor: opciones de LinkedIn y Pinterest, errores del tablero y publicar en simulado (9.5s)
+  ✓  372 [mobile] › tests\e2e\linkedin-pinterest.spec.ts:116:1 › T-18 · compositor: LinkedIn y Pinterest se ofrecen con su contador de caracteres propio y sin desbordar (6.1s)
+  ✓  373 [mobile] › tests\e2e\media-import.spec.ts:36:1 › E2E-08 · una URL a una IP interna se rechaza con un error en español y sin crear ningún asset (5.9s)
+  ✓  374 [mobile] › tests\e2e\media-import.spec.ts:78:1 › E2E-08 · el botón no envía con el campo vacío y un esquema distinto de http se rechaza (4.1s)
+  ✓  375 [mobile] › tests\e2e\media-import.spec.ts:126:1 › E2E-08 · el progreso avanza, un fallo suelto del sondeo se tolera y al terminar la media pasa a la publicación (17.7s)
+  ✓  376 [mobile] › tests\e2e\media-import.spec.ts:151:1 › E2E-08 · una importación que acaba «invalida» muestra el motivo y se puede descartar (8.2s)
+  ✓  377 [mobile] › tests\e2e\media-import.spec.ts:168:1 › E2E-08 · una importación que lleva minutos «pendiente» sin un byte avisa de que la cola no procesa, sigue comprobando despacio y se completa si el worker vuelve (29.5s)
+  ✓  378 [mobile] › tests\e2e\media-import.spec.ts:198:1 › E2E-08 · un aviso de atasco se descarta con «Descartar» (9.7s)
+  ✓  379 [mobile] › tests\e2e\media-import.spec.ts:216:1 › E2E-08 · se puede cancelar una importación en curso (4.4s)
+  ✓  380 [mobile] › tests\e2e\media-import.spec.ts:234:1 › E2E-09 · Drive: sin GOOGLE_PICKER_API_KEY no hay botón «Google Drive» ni se cargan scripts de Google (5.4s)
+  ✓  381 [mobile] › tests\e2e\media-import.spec.ts:298:1 › E2E-09 · Drive: con la clave configurada el botón aparece, se usa con teclado e importa el fichero elegido sin tocar Google (7.8s)
+  ✓  382 [mobile] › tests\e2e\media-import.spec.ts:325:1 › E2E-09 · Drive: cancelar el Picker no importa nada ni muestra error (4.6s)
+  ✓  383 [mobile] › tests\e2e\media-import.spec.ts:338:1 › E2E-09 · Drive (B-2): si falla gapi.load el botón vuelve a su estado y aparece un mensaje (4.7s)
+  ✓  384 [mobile] › tests\e2e\media-import.spec.ts:353:1 › E2E-09 · Drive (B-3): el popup bloqueado se explica y los scripts de Google se precargan al acercarse al botón, sin clic (4.6s)
+  ✓  385 [mobile] › tests\e2e\media-import.spec.ts:364:1 › E2E-09 · Drive (B-3): pasar el ratón por el botón precarga los scripts de Google (sin clic ni red real) (4.5s)
+  ✓  386 [mobile] › tests\e2e\metrics-quality.spec.ts:4:1 › Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison (4.5s)
+  ✓  387 [mobile] › tests\e2e\natural-schedule.spec.ts:69:1 › E2E-07 · la propuesta se ve antes de aplicarse y al confirmar se rellenan fecha y redes (6.9s)
+  ✓  388 [mobile] › tests\e2e\natural-schedule.spec.ts:112:1 › E2E-07 · descartar la propuesta no cambia nada (4.8s)
+  ✓  389 [mobile] › tests\e2e\natural-schedule.spec.ts:129:1 › E2E-07 · una red sin conectar se avisa y no se aplica; sin redes válidas solo cambia la fecha (4.4s)
+  ✓  390 [mobile] › tests\e2e\natural-schedule.spec.ts:145:1 › E2E-07 · un error de la IA (fecha pasada, límite diario) se explica y no deja ninguna propuesta (5.2s)
+  ✓  391 [mobile] › tests\e2e\natural-schedule.spec.ts:160:1 › E2E-07 · con la IA desactivada el campo no aparece (5.5s)
+  ✓  392 [mobile] › tests\e2e\oauth.spec.ts:111:5 › MCP OAuth · API (sin interfaz) › API-01 · metadatos y 401 con WWW-Authenticate (CA-12, CA-13, CA-14) (4.2s)
+  ✓  393 [mobile] › tests\e2e\oauth.spec.ts:127:5 › MCP OAuth · API (sin interfaz) › API-02 · DCR: 201 con loopback y 400 con una redirect_uri pública (CA-15) (3.4s)
+  ✓  394 [mobile] › tests\e2e\oauth.spec.ts:141:5 › MCP OAuth · navegador › E2E-05 · registro, consentimiento con preset publish, token en /mcp y Origin ajeno (CA-16, CA-18, CA-19, CA-20, CA-28) (6.9s)
+  ✓  395 [mobile] › tests\e2e\oauth.spec.ts:199:5 › MCP OAuth · navegador › E2E-06 · 2FA en mitad del flujo y «Denegar» (CA-16, CA-19) (12.1s)
+  ✓  396 [mobile] › tests\e2e\oauth.spec.ts:244:5 › MCP OAuth · navegador › E2E-07 · origen, reautorización, revocación y coexistencia con las API keys (CA-24, CA-25, CA-26) (12.0s)
+  ✓  397 [mobile] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › portada (1.2s)
+  ✓  398 [mobile] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › login (1.5s)
+  ✓  399 [mobile] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › registro (1.2s)
+  ✓  400 [mobile] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › recuperar contraseña (1.2s)
+  ✓  401 [mobile] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › privacidad (857ms)
+  ✓  402 [mobile] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › términos (881ms)
+  ✓  403 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard (1.3s)
+  ✓  404 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard instagram (1.3s)
+  ✓  405 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard facebook (1.3s)
+  ✓  406 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard youtube (1.3s)
+  ✓  407 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard tiktok (1.2s)
+  ✓  408 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › calendario (1.3s)
+  ✓  409 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › calendario lista (1.3s)
+  ✓  410 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › calendario mes (1.3s)
+  ✓  411 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › marcas (1.2s)
+  ✓  412 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › nueva marca (1.2s)
+  ✓  413 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › informes (1.2s)
+  ✓  414 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › api-keys (1.3s)
+  ✓  415 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › avisos (1.2s)
+  ✓  416 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › perfil (1.3s)
+  ✓  417 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › confirmar contraseña (1.1s)
+  ✓  418 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › mejores horas (1.3s)
+  ✓  419 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › biblioteca (1.2s)
+  ✓  420 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › papelera (1.2s)
+  ✓  421 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › aprobaciones (1.2s)
+  ✓  422 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › series (1.3s)
+  ✓  423 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › smartlinks (1.2s)
+  ✓  424 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › competidores (1.3s)
+  ✓  425 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › autolistas (1.2s)
+  ✓  426 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › inbox (1.3s)
+  ✓  427 [mobile] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › meta ads (1.3s)
+  ✓  428 [mobile] › tests\e2e\pages.spec.ts:28:5 › páginas autenticadas › conexiones de la marca, crear publicación y editar marca (5.7s)
+  ✓  429 [mobile] › tests\e2e\pages.spec.ts:43:5 › páginas autenticadas › axe en el calendario (solo lectura) (5.9s)
+  -  430 [mobile] › tests\e2e\pages.spec.ts:50:5 › páginas autenticadas › el shell enlaza los módulos nuevos
+  ✓  431 [mobile] › tests\e2e\report-builder.spec.ts:17:1 › Report builder: blocks, template, PDF download, schedule and brand isolation (15.0s)
+  ✓  432 [mobile] › tests\e2e\saved-texts.spec.ts:51:1 › E2E-01 · página «Textos guardados»: alta, edición, filtro por marca y borrado (9.9s)
+  ✓  433 [mobile] › tests\e2e\saved-texts.spec.ts:91:1 › E2E-02 · menú del compositor: solo los de la marca y los globales; inserta en el cursor (7.5s)
+  ✓  434 [mobile] › tests\e2e\security.spec.ts:55:5 › 2FA · doble factor (TOTP) › 2FA · activar con un TOTP real y recibir 8 códigos (E2E-01) (9.8s)
+  ✓  435 [mobile] › tests\e2e\security.spec.ts:106:5 › 2FA · doble factor (TOTP) › 2FA · el login pide el reto, lo supera con el TOTP y rechaza su reutilización (E2E-02) (9.9s)
+  ✘  436 [mobile] › tests\e2e\security.spec.ts:139:5 › 2FA · doble factor (TOTP) › 2FA · un código de recuperación sirve una vez y regenerar invalida los viejos (E2E-03) (30.1s)
+  ✓  437 [mobile] › tests\e2e\security.spec.ts:182:5 › 2FA · doble factor (TOTP) › 2FA · bloqueo tras 5 fallos y desactivación con contraseña + código (E2E-04) (19.7s)
+  ✓  438 [mobile] › tests\e2e\security.spec.ts:271:5 › passkey · alta, login y avisos › passkey · alta, segunda passkey, duplicada y renombrado (E2E-05) (12.6s)
+  ✓  439 [mobile] › tests\e2e\security.spec.ts:334:5 › passkey · alta, login y avisos › passkey · entra sin contraseña ni reto y una passkey borrada falla con mensaje neutro (E2E-06) (13.6s)
+  ✓  440 [mobile] › tests\e2e\security.spec.ts:376:5 › passkey · alta, login y avisos › passkey · el autocompletado de /login entra solo o, si no, con el botón (E2E-05/E2E-06) (6.6s)
+  ✓  441 [mobile] › tests\e2e\security.spec.ts:396:5 › passkey · alta, login y avisos › passkey · sin WebAuthn no hay controles, sale el aviso y la contraseña funciona (E2E-07) (2.7s)
+  ✓  442 [mobile] › tests\e2e\sites.spec.ts:61:1 › E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo publicado, proteger y revocar (40.3s)
+  ✓  443 [mobile] › tests\e2e\sites.spec.ts:302:1 › E2E-15b · Sitios: la lista y el editor son responsive y accesibles sin sitios ni bloques (8.0s)
+  ✓  444 [mobile] › tests\e2e\smartlinks-blocks.spec.ts:26:1 › E2E-20e · SmartLinks: bloques enriquecidos, reordenar, programar, formulario público y clics por bloque (14.8s)
+  ✓  445 [mobile] › tests\e2e\social.spec.ts:57:5 › Login social · entrar › E2E-01 · Google sin 2FA: entra sin contraseña y deja la vinculación (CA-01, CA-02) (4.9s)
+  ✓  446 [mobile] › tests\e2e\social.spec.ts:80:5 › Login social · entrar › E2E-01 · una segunda entrada con la identidad ya vinculada vuelve a entrar (4.7s)
+  ✓  447 [mobile] › tests\e2e\social.spec.ts:91:5 › Login social · entrar › E2E-02 · Google con 2FA: pide el reto, no hay sesión antes y el TOTP lleva al destino (CA-06) (8.1s)
+  ✓  448 [mobile] › tests\e2e\social.spec.ts:113:5 › Login social · entrar › E2E-03 · rechazos: email no verificado, sin cuenta, Facebook sin vincular y cancelar (CA-03, CA-04, CA-05, CA-09) (14.3s)
+  ✓  449 [mobile] › tests\e2e\social.spec.ts:153:5 › Cuentas vinculadas · perfil › E2E-04 · vincular Facebook pide la contraseña, vincula y lo muestra (CA-07) (8.0s)
+  ✓  450 [mobile] › tests\e2e\social.spec.ts:184:5 › Cuentas vinculadas · perfil › E2E-04 · una identidad ya vinculada a otro usuario da error y no cambia nada (CA-07) (8.8s)
+  ✓  451 [mobile] › tests\e2e\social.spec.ts:203:5 › Cuentas vinculadas · perfil › E2E-04 · desvincular bloquea la identidad: ni el login con ella ni Google por email la recuperan (CA-08) (11.0s)
+  ✓  452 [mobile] › tests\e2e\studio-ai.spec.ts:37:1 › Studio IA: sin clave la funcion aparece como no configurada y no hay botones de generacion (6.1s)
+  ✓  453 [mobile] › tests\e2e\studio-ai.spec.ts:59:1 › Studio IA: generar, ver estados, insertar en el diseño, guardar y reabrir; errores de cuota y alt text (18.5s)
+  ✓  454 [mobile] › tests\e2e\studio-ai.spec.ts:141:1 › Studio IA: titulares y copies, y relleno de plantilla desde una lista con Claude (11.3s)
+  ✓  455 [mobile] › tests\e2e\studio-audio-editor.spec.ts:13:1 › Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track (11.3s)
+  ✓  456 [mobile] › tests\e2e\studio-audio-editor.spec.ts:78:1 › Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds (8.0s)
+  ✓  457 [mobile] › tests\e2e\studio-audio-resources.spec.ts:14:1 › Studio audio resources API: private binary upload, byte ranges and native browser playback (7.2s)
+  ✓  458 [mobile] › tests\e2e\studio-automation.spec.ts:35:1 › Studio automation: own template substitutes literal fields in an independent branded design and exports (11.6s)
+  ✓  459 [mobile] › tests\e2e\studio-automation.spec.ts:96:1 › Studio automation: brand styles, proportional resize and independent variants persist and export (18.3s)
+
+  ✓  460 [mobile] › tests\e2e\studio-av-composite.spec.ts:16:1 › Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft (34.5s)
+  ✓  461 [mobile] › tests\e2e\studio-boards.spec.ts:36:1 › Studio: whiteboard with a table, glued connectors and free drawing persists and exports PNG, SVG and PDF (10.9s)
+  ✓  462 [mobile] › tests\e2e\studio-boards.spec.ts:160:1 › Studio: A4 document with reflowing text and a table reopens, exports PDF and PNG and can be presented (8.6s)
+  ✓  463 [mobile] › tests\e2e\studio-boards.spec.ts:220:1 › Studio: a chart bound to a saved table is inserted, saved, reopened and exported (10.1s)
+  ✓  464 [mobile] › tests\e2e\studio-boards.spec.ts:263:1 › Studio: a chart bound to a saved table is exported on the server as SVG, PNG and PDF (19.8s)
+  ✓  465 [mobile] › tests\e2e\studio-captions.spec.ts:29:1 › Studio captions UI: import edit style offset delete undo reopen and download SRT VTT with clear file errors (12.6s)
+C:\laragon/www/metricool/storage/framework/testing/t43-pdf-tools\fitz\__init__.py:17: FutureWarning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+  warnings.warn(
+
+  ✓  466 [mobile] › tests\e2e\studio-captions.spec.ts:86:1 › Studio captions render: private font pinned MP4 GIF and SVG retain opaque cues across page fade (1.5m)
+  ✓  467 [mobile] › tests\e2e\studio-captions.spec.ts:252:1 › Studio captions access: revision pinned API MCP abilities ownership and optimistic conflicts (8.0s)
+  ✓  468 [mobile] › tests\e2e\studio-charts.spec.ts:44:1 › E2E28.01 ten real variants pinned saved dataset controls shared preview save reopen undo SVG PNG private font (1.7m)
+  ✓  469 [mobile] › tests\e2e\studio-charts.spec.ts:57:1 › E2E28.03 invalid precision negative proportions cancel original typed table keyboard Inspector focus accessibility (24.7s)
+  ✓  470 [mobile] › tests\e2e\studio-charts.spec.ts:89:1 › E2E28.04 real 1000 rows twelve series twelve thousand bars shared SVG PNG semantic independent oracle guarded (26.4s)
+  ✓  471 [mobile] › tests\e2e\studio-collab.spec.ts:42:1 › Studio: dos usuarios comparten, comentan, editan a la vez, ven el 409 y se revoca el acceso (36.9s)
+  ✓  472 [mobile] › tests\e2e\studio-datasets.spec.ts:136:1 › E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes (9.9s)
+  ✓  473 [mobile] › tests\e2e\studio-datasets.spec.ts:145:1 › E2E27.02 real CSV TSV JSON imports safe faithful downloads windowed cells and invalid file (11.2s)
+  ✓  474 [mobile] › tests\e2e\studio-datasets.spec.ts:153:1 › E2E27.03 structural edits literal replace fill conversion atomic preview transpose IDs undo (14.7s)
+  ✓  475 [mobile] › tests\e2e\studio-datasets.spec.ts:167:1 › E2E27.04 second writer409 preserves draft history pagination archive restore and brand isolation (28.3s)
+  ✓  476 [mobile] › tests\e2e\studio-datasets.spec.ts:179:1 › E2E27.05 delayed real reads writes close selection brand discard keyboard and focus (12.8s)
+  ✓  477 [mobile] › tests\e2e\studio-frame-export.spec.ts:4:1 › Studio frame export: choose a local page time, export real pixels and retain it with the private brand output (8.1s)
+  ✓  478 [mobile] › tests\e2e\studio-imaging.spec.ts:112:1 › Studio imaging: real private font upload, preview, search, kit, archive and protected deletion (16.3s)
+  ✓  479 [mobile] › tests\e2e\studio-imaging.spec.ts:186:1 › Studio imaging: real background inference preserves original and a masked filtered result persists and exports (25.7s)
+
+  ✓  480 [mobile] › tests\e2e\studio-native-export.spec.ts:6:1 › Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft (20.0s)
+  ✓  481 [mobile] › tests\e2e\studio-native-export.spec.ts:86:1 › Studio native history: paginate real exports in one request per page and reopen without creating work (6.4s)
+
+  ✓  482 [mobile] › tests\e2e\studio-presentation-media.spec.ts:70:1 › E2E-29 real own video and audio emit native frames and playback; pause navigation and close release every media (12.1s)
+  ✓  483 [mobile] › tests\e2e\studio-presentation-media.spec.ts:102:1 › E2E-29 private FontFace and live versioned chart render in audience and next preview; popup has pixels only (13.8s)
+  ✓  484 [mobile] › tests\e2e\studio-presentation-media.spec.ts:136:1 › E2E-29 real fullscreen entry exit focus restoration and owned popup closure (5.1s)
+
+  ✓  485 [mobile] › tests\e2e\studio-presentation-media.spec.ts:149:60 › E2E-29 pending real media preparation cancelled by close never publishes or plays late (11.6s)
+
+  ✓  486 [mobile] › tests\e2e\studio-presentation-media.spec.ts:149:60 › E2E-29 pending real media preparation cancelled by design-unmount never publishes or plays late (12.2s)
+  ✓  487 [mobile] › tests\e2e\studio-presentation-tools.spec.ts:83:1 › E2E-29 P3 paused laser pen erase TTL page and blackout compose actual pixels; audience and fullscreen include tools (10.7s)
+  ✓  488 [mobile] › tests\e2e\studio-presentation-tools.spec.ts:143:1 › E2E-29 P3 timer uses a real own WAV with native start pause resume reset visibility volume mute loop and finish (10.3s)
+  ✓  489 [mobile] › tests\e2e\studio-presentation-tools.spec.ts:186:1 › E2E-29 P3 pending own timer audio is cancelled by a real close and cannot publish or play after release (7.5s)
+  ✓  490 [mobile] › tests\e2e\studio-presentations.spec.ts:41:1 › E2E-29 notes preserve immediate save, page ownership, Unicode, history and reopen (6.8s)
+  ✓  491 [mobile] › tests\e2e\studio-presentations.spec.ts:70:1 › E2E-29 presenter uses real pixels, manual fade destination, keys, autoplay, loop, blackout and popup cleanup (10.6s)
+  ✓  492 [mobile] › tests\e2e\studio-presentations.spec.ts:103:1 › E2E-29 popup blocking and fullscreen failures are visible; audience mode and terminal frame remain usable (7.0s)
+  ✓  493 [mobile] › tests\e2e\studio-timeline.spec.ts:16:1 › Studio timeline: edit windows, split, persist and run a common playhead without changing the document (7.3s)
+
+  ✓  494 [mobile] › tests\e2e\studio-timeline.spec.ts:63:1 › Studio timeline: an uploaded real video with an open source end can be split and previewed (8.1s)
+  ✓  495 [mobile] › tests\e2e\studio-timeline.spec.ts:101:1 › Studio timeline: splitting the second page uses local clip time and survives undo and redo (6.2s)
+
+  ✓  496 [mobile] › tests\e2e\studio-timeline.spec.ts:133:1 › Studio timeline: buffering never consumes a short clip before playback starts (9.8s)
+
+  ✓  497 [mobile] › tests\e2e\studio-timeline.spec.ts:165:1 › Studio timeline: closing while media buffers cancels the pending playback (9.0s)
+  ✓  498 [mobile] › tests\e2e\studio.spec.ts:25:1 › Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library (8.2s)
+  ✓  499 [mobile] › tests\e2e\studio.spec.ts:55:1 › Studio: design persists, exports real PNG and starts a publication in its brand (8.4s)
+  ✓  500 [mobile] › tests\e2e\studio.spec.ts:103:1 › Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design (6.7s)
+  ✓  501 [mobile] › tests\e2e\studio.spec.ts:162:1 › Studio: a stale revision preserves local edits and can recover the server version (7.3s)
+  ✓  502 [mobile] › tests\e2e\target-media.spec.ts:69:1 › T-17 · media común más una red con media y alt propios: guardar, reabrir, previsualizar por red y publicar en simulado (15.5s)
+  ✓  503 [mobile] › tests\e2e\target-media.spec.ts:149:1 › T-17 · el error de la media propia nombra la red y bloquea Programar (9.1s)
+  ✓  504 [mobile] › tests\e2e\target-media.spec.ts:167:1 › T-17 · al cambiar el tipo se limpian el alt y la portada que el nuevo tipo no admite y no se envian (7.1s)
+  ✓  505 [mobile] › tests\e2e\threads.spec.ts:29:1 › E2E-08 · Conexiones: la tarjeta de Threads y su cuenta conectada, sin desborde (6.7s)
+  ✓  506 [mobile] › tests\e2e\threads.spec.ts:48:1 › E2E-08 · calendario: iconos de Threads y Bluesky y filtro por red (8.7s)
+  ✓  507 [mobile] › tests\e2e\threads.spec.ts:77:1 › E2E-08 · dashboard de Threads: visitas al perfil (no visualizaciones), clics y la publicación con sus cifras (7.6s)
+  ✓  508 [mobile] › tests\e2e\threads.spec.ts:105:1 › E2E-08 · compositor: Threads cuenta 500 caracteres con cada emoji por sus bytes UTF-8 (6.2s)
+  ✓  509 [mobile] › tests\e2e\threads.spec.ts:133:1 › E2E-08 · compositor: con 2 etiquetas en Threads aparece el aviso de que solo se usa la primera (CA-14) (6.2s)
+  ✓  510 [mobile] › tests\e2e\tiktok-audio.spec.ts:26:1 › TikTok photo music: explicit choice persists and switching to video removes it (6.2s)
+  ✓  511 [mobile] › tests\e2e\tiktok-audio.spec.ts:48:1 › TikTok creator failure stops automatic retries and the retry button can recover (5.7s)
+  ✓  512 [mobile] › tests\e2e\workflow.spec.ts:48:1 › aprobar y rechazar con dos usuarios: invitación uniforme, decisión del aprobador y estado en el calendario (14.9s)
+  ✓  513 [mobile] › tests\e2e\workflow.spec.ts:115:1 › destino manual: el aviso trae el contenido y se marca como publicado con una URL https (7.9s)
+  ✓  514 [mobile] › tests\e2e\workflow.spec.ts:151:1 › serie semanal: se crea desde la pantalla y las ocurrencias aparecen en el calendario sin duplicarse (10.3s)
+  ✓  515 [mobile] › tests\e2e\workflow.spec.ts:194:1 › lote: reprogramar y cancelar con un resultado parcial por elemento (7.3s)
+  ✓  516 [mobile] › tests\e2e\workflow.spec.ts:229:1 › reintento: un destino con error vuelve a programarse una sola vez (6.6s)
+  ✓  517 [mobile-360] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › portada (1.8s)
+  ✓  518 [mobile-360] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › login (1.9s)
+  ✓  519 [mobile-360] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › registro (1.7s)
+  ✓  520 [mobile-360] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › recuperar contraseña (1.6s)
+  ✓  521 [mobile-360] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › privacidad (1.2s)
+  ✓  522 [mobile-360] › tests\e2e\a11y.spec.ts:57:46 › axe · públicas › términos (1.1s)
+  ✓  523 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard (2.0s)
+  ✓  524 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard instagram (1.9s)
+  ✓  525 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard facebook (1.8s)
+  ✓  526 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard youtube (1.8s)
+  ✓  527 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › dashboard tiktok (1.7s)
+  ✓  528 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › calendario (1.8s)
+  ✓  529 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › calendario lista (1.7s)
+  ✓  530 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › calendario mes (1.8s)
+  ✓  531 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › marcas (1.6s)
+  ✓  532 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › nueva marca (1.6s)
+  ✓  533 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › informes (1.8s)
+  ✓  534 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › api-keys (1.8s)
+  ✓  535 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › avisos (1.7s)
+  ✓  536 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › perfil (1.8s)
+  ✓  537 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › confirmar contraseña (1.6s)
+  ✓  538 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › mejores horas (1.7s)
+  ✓  539 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › biblioteca (1.6s)
+  ✓  540 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › papelera (1.6s)
+  ✓  541 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › aprobaciones (1.6s)
+  ✓  542 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › series (1.7s)
+  ✓  543 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › smartlinks (1.6s)
+  ✓  544 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › competidores (1.6s)
+  ✓  545 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › autolistas (1.6s)
+  ✓  546 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › inbox (1.6s)
+  ✓  547 [mobile-360] › tests\e2e\a11y.spec.ts:62:44 › axe · autenticadas › meta ads (1.6s)
+  ✓  548 [mobile-360] › tests\e2e\a11y.spec.ts:78:5 › axe · seguridad de cuenta › login con el botón de passkey (2.9s)
+  ✓  549 [mobile-360] › tests\e2e\a11y.spec.ts:84:5 › axe · seguridad de cuenta › reto 2FA: código y código de recuperación (8.4s)
+  ✓  550 [mobile-360] › tests\e2e\a11y.spec.ts:98:5 › axe · seguridad de cuenta › Perfil → Seguridad: sin 2FA, QR, códigos, 2FA activo, diálogo y passkeys (15.5s)
+  ✓  551 [mobile-360] › tests\e2e\a11y.spec.ts:168:5 › axe · login social, cuentas vinculadas y consentimiento › login con «Continuar con Google» y «Continuar con Facebook», y con un rechazo en pantalla (6.5s)
+  ✓  552 [mobile-360] › tests\e2e\a11y.spec.ts:181:5 › axe · login social, cuentas vinculadas y consentimiento › Perfil → Cuentas vinculadas: sin vincular, vinculada y diálogo de desvincular (9.7s)
+  ✓  553 [mobile-360] › tests\e2e\a11y.spec.ts:200:5 › axe · login social, cuentas vinculadas y consentimiento › consentimiento OAuth: pantalla de autorización y pantalla de error (8.1s)
+  ✓  554 [mobile-360] › tests\e2e\all-brands.spec.ts:27:1 › E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de periodo (7.7s)
+  ✓  555 [mobile-360] › tests\e2e\bluesky.spec.ts:26:1 › E2E-03 · conectar Bluesky: formulario de credenciales accesible y sin desborde (5.5s)
+  ✓  556 [mobile-360] › tests\e2e\bluesky.spec.ts:62:1 › E2E-03 · una cuenta de Bluesky conectada aparece con su estado y sin credenciales en la página (5.5s)
+  ✓  557 [mobile-360] › tests\e2e\bluesky.spec.ts:80:1 › E2E-03 · Bluesky en el calendario y en el dashboard (icono, filtro y página de red) (10.3s)
+  ✓  558 [mobile-360] › tests\e2e\bluesky.spec.ts:113:1 › E2E-03 · compositor: Bluesky cuenta grafemas (un emoji compuesto es 1) con tope de 300 (6.6s)
+  ✓  559 [mobile-360] › tests\e2e\brand-reporting.spec.ts:4:1 › Ads and reports retain the selected brand across navigation and report creation (6.8s)
+  ✓  560 [mobile-360] › tests\e2e\calendar-views.spec.ts:46:1 › E2E-02 · vistas del calendario: guardar, aplicar desde otro filtro, renombrar y borrar (15.4s)
+  ✓  561 [mobile-360] › tests\e2e\calendar-views.spec.ts:106:1 › E2E-02 · la vista por defecto se aplica al abrir el calendario (9.2s)
+  ✓  562 [mobile-360] › tests\e2e\calendar-views.spec.ts:130:1 › E2E-02 · la vista por defecto también se aplica al entrar por el menú (brand_id y view en el enlace) (10.2s)
+  ✓  563 [mobile-360] › tests\e2e\campaigns.spec.ts:37:1 › E2E-06 · gestión de campañas: alta con color y fechas, selector del compositor solo con las de la marca, alta en línea y archivo (14.4s)
+  ✓  564 [mobile-360] › tests\e2e\campaigns.spec.ts:101:1 › E2E-07 · panel de campaña: KPIs de los últimos snapshots, «No disponible» distinto de 0, alcance acumulado y aviso de 30 días (6.3s)
+  ✓  565 [mobile-360] › tests\e2e\canva.spec.ts:55:1 › Canva: sin credenciales la funcion aparece como no configurada y no ofrece conectar (5.3s)
+  ✓  566 [mobile-360] › tests\e2e\canva.spec.ts:72:1 › Canva: conectar (OAuth simulado), plan, listar y buscar, crear, retorno firmado, exportar a la biblioteca con origen y desconectar (20.4s)
+  ✓  567 [mobile-360] › tests\e2e\canva.spec.ts:159:1 › Canva: con un plan de pago el PNG transparente se activa y la exportación lo pide (8.0s)
+  ✓  568 [mobile-360] › tests\e2e\competitors.spec.ts:27:1 › E2E-20d · competidores: rango, ranking por métrica, publicaciones destacadas y CSV (10.9s)
+  ✓  569 [mobile-360] › tests\e2e\composer-presets.spec.ts:5:1 › Presets: global and network panels keep values and reveal collapsed validation fields (8.4s)
+  ✓  570 [mobile-360] › tests\e2e\composer-presets.spec.ts:80:1 › Presets: validation opens a collapsed global panel and focuses its date field (5.0s)
+  ✓  571 [mobile-360] › tests\e2e\composer-presets.spec.ts:104:1 › Presets: errors panel can collapse and retains correction links (5.2s)
+  ✓  572 [mobile-360] › tests\e2e\composer-refresh.spec.ts:5:5 › Composer refresh: create retains rejected work and starts another publication cleanly (11.3s)
+  ✓  573 [mobile-360] › tests\e2e\composer-refresh.spec.ts:5:5 › Composer refresh: edit retains rejected work and starts another publication cleanly (10.5s)
+  ✓  574 [mobile-360] › tests\e2e\composer.spec.ts:59:1 › E2E-01 · compositor a pantalla completa con pastillas de red (6.5s)
+  ✓  575 [mobile-360] › tests\e2e\composer.spec.ts:102:1 › E2E-02 · contadores por red y tope de hashtags (7.4s)
+  ✓  576 [mobile-360] › tests\e2e\composer.spec.ts:138:1 › E2E-03 · barra del editor: emoji en el cursor, IA y media con teclado (6.0s)
+  ✓  577 [mobile-360] › tests\e2e\composer.spec.ts:196:1 › E2E-03 · confirmación al salir con cambios sin guardar (9.9s)
+  ✓  578 [mobile-360] › tests\e2e\composer.spec.ts:238:1 › E2E-02 · el contador cuenta sobre el texto recortado y avisa al superar el máximo de caracteres (5.8s)
+  ✓  579 [mobile-360] › tests\e2e\composer.spec.ts:261:1 › E2E-03 · el emoji se inserta en el cursor de un texto con varias líneas (5.1s)
+  ✓  580 [mobile-360] › tests\e2e\composer.spec.ts:274:1 › E2E-03 · el botón Atrás del navegador pide confirmación con cambios sin guardar (6.0s)
+  ✓  581 [mobile-360] › tests\e2e\composer.spec.ts:328:5 › E2E-04 · ayer es inaccesible en Auckland: mismo mes (5.8s)
+  ✓  582 [mobile-360] › tests\e2e\composer.spec.ts:328:5 › E2E-04 · ayer es inaccesible en Auckland: cambio de mes (5.6s)
+  ✓  583 [mobile-360] › tests\e2e\composer.spec.ts:350:1 › E2E-04 · panel único de errores, botón dividido con teclado y selector de fecha con la zona de la marca (13.6s)
+  ✓  584 [mobile-360] › tests\e2e\composer.spec.ts:462:1 › E2E-05 · Publicar ahora desde el compositor: «Enviando…», una sola petición y sin duplicar (8.3s)
+  ✓  585 [mobile-360] › tests\e2e\composer.spec.ts:498:1 › E2E-06 · Publicar ahora desde el calendario y la lista: confirmación accesible y solo en lo que se puede publicar (11.1s)
+  ✓  586 [mobile-360] › tests\e2e\composer.spec.ts:571:1 › E2E-07 · Guardar en biblioteca sin guardar el post: crea la plantilla y no crea ninguna publicación (8.5s)
+  ✓  587 [mobile-360] › tests\e2e\composer.spec.ts:610:1 › E2E-04 · respaldo nativo del selector de fecha (datetime-local con min en la zona de la marca) y fecha pasada (6.4s)
+  ✓  588 [mobile-360] › tests\e2e\composer.spec.ts:641:1 › E2E-04 · si en la zona de la marca no queda ninguna franja hoy, el día de hoy no se puede elegir (5.6s)
+  ✓  589 [mobile-360] › tests\e2e\composer.spec.ts:661:1 › E2E-05 · con una subida de media en curso se deshabilitan Programar, Guardar borrador, Publicar ahora y Guardar en biblioteca (8.3s)
+  ✓  590 [mobile-360] › tests\e2e\composer.spec.ts:691:1 › E2E-05 · al subir un vídeo la previsualización lo muestra con un reproductor (5.1s)
+  ✓  591 [mobile-360] › tests\e2e\composer.spec.ts:711:1 › E2E-12 · barrido de accesibilidad y desbordamiento del compositor (crear y editar) (9.3s)
+  ✓  592 [mobile-360] › tests\e2e\composer.spec.ts:735:1 › A11Y-01 · compositor con el selector de emoji, la IA y el diálogo de salida abiertos (7.8s)
+  ✓  593 [mobile-360] › tests\e2e\composer.spec.ts:770:1 › E2E-08 · texto común por defecto y mezcla de redes: una personalizada y otra vinculada, contadores y teclado (7.5s)
+  ✓  594 [mobile-360] › tests\e2e\composer.spec.ts:857:1 › E2E-08 · guardar, reabrir conserva el texto propio y volver a vincular (con confirmación) lo borra (12.5s)
+  ✓  595 [mobile-360] › tests\e2e\composer.spec.ts:915:1 › E2E-09 · interruptores por red: se recuerdan por marca, no se recuerdan los textos y la etiqueta de IA solo sale donde la API la admite (16.3s)
+  ✓  596 [mobile-360] › tests\e2e\composer.spec.ts:1002:1 › E2E-10 · notas internas: se guardan en un post ya publicado, el calendario las marca y no se renderizan como HTML (12.2s)
+  ✓  597 [mobile-360] › tests\e2e\composer.spec.ts:1040:1 › E2E-11 · generador de UTM: inserta en el cursor, codifica, rechaza URLs peligrosas y Limpiar vacía (7.0s)
+  ✓  598 [mobile-360] › tests\e2e\composer.spec.ts:1118:1 › E2E-09 · los interruptores recordados también se aplican al cambiar de tipo, sin pisar lo que ya se tocó en el post (6.1s)
+  ✓  599 [mobile-360] › tests\e2e\composer.spec.ts:1144:1 › E2E-13 · selector de tipo junto a cada red: icono, nombre y subtítulo, teclado, Escape y Enter sin enviar el formulario (7.4s)
+  ✓  600 [mobile-360] › tests\e2e\composer.spec.ts:1225:1 › E2E-13 · un tipo guardado que ya no se ofrece se muestra como «no disponible», deja elegir uno válido y no pierde el foco (6.8s)
+  ✓  601 [mobile-360] › tests\e2e\csv-export.spec.ts:44:1 › E2E-05 · exportar CSV de la lista: BOM, ; y las publicaciones del filtro con la fórmula neutralizada (8.0s)
+  ✓  602 [mobile-360] › tests\e2e\first-comment.spec.ts:38:1 › E2E-03 · el campo aparece en Instagram, no en TikTok ni en una Historia, y el contador avisa del máximo (8.6s)
+  ✓  603 [mobile-360] › tests\e2e\first-comment.spec.ts:75:1 › E2E-03 · YouTube sin el permiso de comentarios avisa de reconectar y deshabilita el campo (6.5s)
+  ✓  604 [mobile-360] › tests\e2e\first-comment.spec.ts:88:1 › E2E-04 · un comentario fallido se edita y se reintenta sin tocar el estado del destino (10.7s)
+  ✓  605 [mobile-360] › tests\e2e\first-comment.spec.ts:123:1 › E2E-04 · un comentario publicado no se edita ni se reintenta (5.3s)
+  ✓  606 [mobile-360] › tests\e2e\first-comment.spec.ts:135:1 › E2E-04 · con envío previo posible: «Ya está publicado» no llama a la red y «Publicar igualmente» pide confirmación (8.3s)
+  ✓  607 [mobile-360] › tests\e2e\first-comment.spec.ts:165:1 › E2E-04 · sin envío previo no se ofrecen las salidas de duplicado (5.2s)
+  ✓  608 [mobile-360] › tests\e2e\flows.spec.ts:12:1 › registro: crea la cuenta y pide verificar el correo (4.1s)
+  ✓  609 [mobile-360] › tests\e2e\flows.spec.ts:47:5 › con sesión de un usuario e2e-sec-* › marca → borrador → calendario/lista → papelera → restaurar → biblioteca (16.4s)
+  ✓  610 [mobile-360] › tests\e2e\flows.spec.ts:111:5 › con sesión de un usuario e2e-sec-* › SmartLink: crear con un bloque, abrir sin sesión y el clic redirige (7.5s)
+  ✓  611 [mobile-360] › tests\e2e\flows.spec.ts:163:5 › con sesión de un usuario e2e-sec-* › API keys: crear y revocar (6.4s)
+  ✓  612 [mobile-360] › tests\e2e\gif-picker.spec.ts:90:1 › E2E-09 · GIF: sin GIPHY_API_KEY no hay botón «GIF» ni se pide nada a Giphy (5.6s)
+  ✘  613 [mobile-360] › tests\e2e\gif-picker.spec.ts:108:1 › E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e importar el MP4 (axe y sin desborde) (8.8s)
+  -  614 [mobile-360] › tests\e2e\gif-picker.spec.ts:154:1 › E2E-09 · GIF: Esc cierra el modal y devuelve el foco; sin resultados y errores se explican
+  ✓  615 [mobile-360] › tests\e2e\hashtags.spec.ts:25:1 › E2E-06 · hashtags desde el histórico: ≥ 2 usos, por rendimiento, se insertan en el cursor y el contador los cuenta (7.6s)
+  ✓  616 [mobile-360] › tests\e2e\hashtags.spec.ts:76:1 › E2E-06 · sin histórico se explica y el menú sigue siendo utilizable (6.1s)
+  ✓  617 [mobile-360] › tests\e2e\hashtags.spec.ts:89:1 › E2E-06 · se avisa al superar el máximo de hashtags de Instagram (5.3s)
+  ✓  618 [mobile-360] › tests\e2e\inbox-notes.spec.ts:26:1 › E2E-01 · notas del inbox: alta, insignia, filtro y borrado (11.3s)
+  ✓  619 [mobile-360] › tests\e2e\inbox-triage.spec.ts:28:1 › E2E-20a · cobertura por red, filtro por red y por estado (9.4s)
+  ✓  620 [mobile-360] › tests\e2e\inbox-triage.spec.ts:63:1 › E2E-20b · etiquetas, asignación y filtros (10.2s)
+  ✓  621 [mobile-360] › tests\e2e\inbox-triage.spec.ts:101:1 › E2E-20c · lote (leer y cerrar) y respuestas guardadas (11.4s)
+  ✓  622 [mobile-360] › tests\e2e\instagram-audio.spec.ts:30:1 › Audio Reel: search select volumes save reopen and remove (11.3s)
+  ✓  623 [mobile-360] › tests\e2e\instagram-audio.spec.ts:65:1 › Audio Reel: empty errors and closing preserve the existing choice (6.7s)
+  ✓  624 [mobile-360] › tests\e2e\instagram-audio.spec.ts:82:1 › Audio Reel: typing searches and loading more preserves results with retry and filter reset (8.9s)
+  ✓  625 [mobile-360] › tests\e2e\instagram-audio.spec.ts:128:1 › Audio Reel: changing a query invalidates slow responses and closing cancels pending typing (8.6s)
+  ✓  626 [mobile-360] › tests\e2e\instagram-audio.spec.ts:157:1 › Audio Reel: preview never autoplays defaults are visible and format change clears the track (7.5s)
+  ✓  627 [mobile-360] › tests\e2e\instagram-grid.spec.ts:40:1 › E2E-05 · programadas arriba (la más tardía primero), publicadas debajo, sin la Story, sin desbordar y con axe limpio (7.6s)
+  ✓  628 [mobile-360] › tests\e2e\linkedin-pinterest.spec.ts:51:1 › T-18 · Conexiones: LinkedIn y Pinterest se conectan con el proveedor simulado y quedan como cuentas conectadas (8.0s)
+  ✓  629 [mobile-360] › tests\e2e\linkedin-pinterest.spec.ts:74:1 › T-18 · compositor: opciones de LinkedIn y Pinterest, errores del tablero y publicar en simulado (12.0s)
+  ✓  630 [mobile-360] › tests\e2e\linkedin-pinterest.spec.ts:116:1 › T-18 · compositor: LinkedIn y Pinterest se ofrecen con su contador de caracteres propio y sin desbordar (8.3s)
+  ✓  631 [mobile-360] › tests\e2e\media-import.spec.ts:36:1 › E2E-08 · una URL a una IP interna se rechaza con un error en español y sin crear ningún asset (8.0s)
+  ✓  632 [mobile-360] › tests\e2e\media-import.spec.ts:78:1 › E2E-08 · el botón no envía con el campo vacío y un esquema distinto de http se rechaza (5.3s)
+  ✓  633 [mobile-360] › tests\e2e\media-import.spec.ts:126:1 › E2E-08 · el progreso avanza, un fallo suelto del sondeo se tolera y al terminar la media pasa a la publicación (18.0s)
+  ✓  634 [mobile-360] › tests\e2e\media-import.spec.ts:151:1 › E2E-08 · una importación que acaba «invalida» muestra el motivo y se puede descartar (9.4s)
+  ✓  635 [mobile-360] › tests\e2e\media-import.spec.ts:168:1 › E2E-08 · una importación que lleva minutos «pendiente» sin un byte avisa de que la cola no procesa, sigue comprobando despacio y se completa si el worker vuelve (30.3s)
+  ✓  636 [mobile-360] › tests\e2e\media-import.spec.ts:198:1 › E2E-08 · un aviso de atasco se descarta con «Descartar» (10.3s)
+  ✓  637 [mobile-360] › tests\e2e\media-import.spec.ts:216:1 › E2E-08 · se puede cancelar una importación en curso (5.0s)
+  ✓  638 [mobile-360] › tests\e2e\media-import.spec.ts:234:1 › E2E-09 · Drive: sin GOOGLE_PICKER_API_KEY no hay botón «Google Drive» ni se cargan scripts de Google (5.9s)
+  ✓  639 [mobile-360] › tests\e2e\media-import.spec.ts:298:1 › E2E-09 · Drive: con la clave configurada el botón aparece, se usa con teclado e importa el fichero elegido sin tocar Google (8.5s)
+  ✓  640 [mobile-360] › tests\e2e\media-import.spec.ts:325:1 › E2E-09 · Drive: cancelar el Picker no importa nada ni muestra error (5.4s)
+  ✓  641 [mobile-360] › tests\e2e\media-import.spec.ts:338:1 › E2E-09 · Drive (B-2): si falla gapi.load el botón vuelve a su estado y aparece un mensaje (5.2s)
+  ✓  642 [mobile-360] › tests\e2e\media-import.spec.ts:353:1 › E2E-09 · Drive (B-3): el popup bloqueado se explica y los scripts de Google se precargan al acercarse al botón, sin clic (5.5s)
+  ✓  643 [mobile-360] › tests\e2e\media-import.spec.ts:364:1 › E2E-09 · Drive (B-3): pasar el ratón por el botón precarga los scripts de Google (sin clic ni red real) (4.8s)
+  ✓  644 [mobile-360] › tests\e2e\metrics-quality.spec.ts:4:1 › Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison (5.1s)
+  ✓  645 [mobile-360] › tests\e2e\natural-schedule.spec.ts:69:1 › E2E-07 · la propuesta se ve antes de aplicarse y al confirmar se rellenan fecha y redes (7.3s)
+  ✓  646 [mobile-360] › tests\e2e\natural-schedule.spec.ts:112:1 › E2E-07 · descartar la propuesta no cambia nada (5.3s)
+  ✓  647 [mobile-360] › tests\e2e\natural-schedule.spec.ts:129:1 › E2E-07 · una red sin conectar se avisa y no se aplica; sin redes válidas solo cambia la fecha (5.4s)
+  ✓  648 [mobile-360] › tests\e2e\natural-schedule.spec.ts:145:1 › E2E-07 · un error de la IA (fecha pasada, límite diario) se explica y no deja ninguna propuesta (6.1s)
+  ✓  649 [mobile-360] › tests\e2e\natural-schedule.spec.ts:160:1 › E2E-07 · con la IA desactivada el campo no aparece (5.0s)
+  ✓  650 [mobile-360] › tests\e2e\oauth.spec.ts:111:5 › MCP OAuth · API (sin interfaz) › API-01 · metadatos y 401 con WWW-Authenticate (CA-12, CA-13, CA-14) (4.1s)
+  ✓  651 [mobile-360] › tests\e2e\oauth.spec.ts:127:5 › MCP OAuth · API (sin interfaz) › API-02 · DCR: 201 con loopback y 400 con una redirect_uri pública (CA-15) (4.0s)
+  ✓  652 [mobile-360] › tests\e2e\oauth.spec.ts:141:5 › MCP OAuth · navegador › E2E-05 · registro, consentimiento con preset publish, token en /mcp y Origin ajeno (CA-16, CA-18, CA-19, CA-20, CA-28) (7.2s)
+  ✓  653 [mobile-360] › tests\e2e\oauth.spec.ts:199:5 › MCP OAuth · navegador › E2E-06 · 2FA en mitad del flujo y «Denegar» (CA-16, CA-19) (12.4s)
+  ✓  654 [mobile-360] › tests\e2e\oauth.spec.ts:244:5 › MCP OAuth · navegador › E2E-07 · origen, reautorización, revocación y coexistencia con las API keys (CA-24, CA-25, CA-26) (11.5s)
+  ✓  655 [mobile-360] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › portada (1.3s)
+  ✓  656 [mobile-360] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › login (1.4s)
+  ✓  657 [mobile-360] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › registro (1.3s)
+  ✓  658 [mobile-360] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › recuperar contraseña (1.1s)
+  ✓  659 [mobile-360] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › privacidad (861ms)
+  ✓  660 [mobile-360] › tests\e2e\pages.spec.ts:17:9 › páginas públicas › términos (862ms)
+  ✓  661 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard (1.4s)
+  ✓  662 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard instagram (1.3s)
+  ✓  663 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard facebook (1.2s)
+  ✓  664 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard youtube (1.3s)
+  ✓  665 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › dashboard tiktok (1.2s)
+  ✓  666 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › calendario (1.3s)
+  ✓  667 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › calendario lista (1.3s)
+  ✓  668 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › calendario mes (1.3s)
+  ✓  669 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › marcas (1.2s)
+  ✓  670 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › nueva marca (1.2s)
+  ✓  671 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › informes (1.3s)
+  ✓  672 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › api-keys (1.3s)
+  ✓  673 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › avisos (1.2s)
+  ✓  674 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › perfil (1.3s)
+  ✓  675 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › confirmar contraseña (1.2s)
+  ✓  676 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › mejores horas (1.2s)
+  ✓  677 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › biblioteca (1.3s)
+  ✓  678 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › papelera (1.3s)
+  ✓  679 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › aprobaciones (1.2s)
+  ✓  680 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › series (1.2s)
+  ✓  681 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › smartlinks (1.2s)
+  ✓  682 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › competidores (1.3s)
+  ✓  683 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › autolistas (1.1s)
+  ✓  684 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › inbox (1.3s)
+  ✓  685 [mobile-360] › tests\e2e\pages.spec.ts:25:9 › páginas autenticadas › meta ads (1.3s)
+  ✓  686 [mobile-360] › tests\e2e\pages.spec.ts:28:5 › páginas autenticadas › conexiones de la marca, crear publicación y editar marca (5.9s)
+  ✓  687 [mobile-360] › tests\e2e\pages.spec.ts:43:5 › páginas autenticadas › axe en el calendario (solo lectura) (6.2s)
+  -  688 [mobile-360] › tests\e2e\pages.spec.ts:50:5 › páginas autenticadas › el shell enlaza los módulos nuevos
+  ✓  689 [mobile-360] › tests\e2e\report-builder.spec.ts:17:1 › Report builder: blocks, template, PDF download, schedule and brand isolation (15.9s)
+  ✓  690 [mobile-360] › tests\e2e\saved-texts.spec.ts:51:1 › E2E-01 · página «Textos guardados»: alta, edición, filtro por marca y borrado (10.3s)
+  ✓  691 [mobile-360] › tests\e2e\saved-texts.spec.ts:91:1 › E2E-02 · menú del compositor: solo los de la marca y los globales; inserta en el cursor (8.2s)
+  ✓  692 [mobile-360] › tests\e2e\security.spec.ts:55:5 › 2FA · doble factor (TOTP) › 2FA · activar con un TOTP real y recibir 8 códigos (E2E-01) (9.9s)
+  ✓  693 [mobile-360] › tests\e2e\security.spec.ts:106:5 › 2FA · doble factor (TOTP) › 2FA · el login pide el reto, lo supera con el TOTP y rechaza su reutilización (E2E-02) (9.9s)
+  ✓  694 [mobile-360] › tests\e2e\security.spec.ts:139:5 › 2FA · doble factor (TOTP) › 2FA · un código de recuperación sirve una vez y regenerar invalida los viejos (E2E-03) (20.1s)
+  ✓  695 [mobile-360] › tests\e2e\security.spec.ts:182:5 › 2FA · doble factor (TOTP) › 2FA · bloqueo tras 5 fallos y desactivación con contraseña + código (E2E-04) (18.6s)
+  ✓  696 [mobile-360] › tests\e2e\security.spec.ts:271:5 › passkey · alta, login y avisos › passkey · alta, segunda passkey, duplicada y renombrado (E2E-05) (13.2s)
+  ✓  697 [mobile-360] › tests\e2e\security.spec.ts:334:5 › passkey · alta, login y avisos › passkey · entra sin contraseña ni reto y una passkey borrada falla con mensaje neutro (E2E-06) (15.1s)
+  ✓  698 [mobile-360] › tests\e2e\security.spec.ts:376:5 › passkey · alta, login y avisos › passkey · el autocompletado de /login entra solo o, si no, con el botón (E2E-05/E2E-06) (7.8s)
+  ✓  699 [mobile-360] › tests\e2e\security.spec.ts:396:5 › passkey · alta, login y avisos › passkey · sin WebAuthn no hay controles, sale el aviso y la contraseña funciona (E2E-07) (3.2s)
+  ✓  700 [mobile-360] › tests\e2e\sites.spec.ts:61:1 › E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo publicado, proteger y revocar (41.5s)
+  ✓  701 [mobile-360] › tests\e2e\sites.spec.ts:302:1 › E2E-15b · Sitios: la lista y el editor son responsive y accesibles sin sitios ni bloques (8.3s)
+  ✓  702 [mobile-360] › tests\e2e\smartlinks-blocks.spec.ts:26:1 › E2E-20e · SmartLinks: bloques enriquecidos, reordenar, programar, formulario público y clics por bloque (14.6s)
+  ✓  703 [mobile-360] › tests\e2e\social.spec.ts:57:5 › Login social · entrar › E2E-01 · Google sin 2FA: entra sin contraseña y deja la vinculación (CA-01, CA-02) (4.5s)
+  ✓  704 [mobile-360] › tests\e2e\social.spec.ts:80:5 › Login social · entrar › E2E-01 · una segunda entrada con la identidad ya vinculada vuelve a entrar (4.6s)
+  ✓  705 [mobile-360] › tests\e2e\social.spec.ts:91:5 › Login social · entrar › E2E-02 · Google con 2FA: pide el reto, no hay sesión antes y el TOTP lleva al destino (CA-06) (8.2s)
+  ✓  706 [mobile-360] › tests\e2e\social.spec.ts:113:5 › Login social · entrar › E2E-03 · rechazos: email no verificado, sin cuenta, Facebook sin vincular y cancelar (CA-03, CA-04, CA-05, CA-09) (13.9s)
+  ✓  707 [mobile-360] › tests\e2e\social.spec.ts:153:5 › Cuentas vinculadas · perfil › E2E-04 · vincular Facebook pide la contraseña, vincula y lo muestra (CA-07) (8.1s)
+  ✓  708 [mobile-360] › tests\e2e\social.spec.ts:184:5 › Cuentas vinculadas · perfil › E2E-04 · una identidad ya vinculada a otro usuario da error y no cambia nada (CA-07) (8.6s)
+  ✓  709 [mobile-360] › tests\e2e\social.spec.ts:203:5 › Cuentas vinculadas · perfil › E2E-04 · desvincular bloquea la identidad: ni el login con ella ni Google por email la recuperan (CA-08) (9.9s)
+  ✓  710 [mobile-360] › tests\e2e\studio-ai.spec.ts:37:1 › Studio IA: sin clave la funcion aparece como no configurada y no hay botones de generacion (5.3s)
+  ✓  711 [mobile-360] › tests\e2e\studio-ai.spec.ts:59:1 › Studio IA: generar, ver estados, insertar en el diseño, guardar y reabrir; errores de cuota y alt text (17.3s)
+  ✓  712 [mobile-360] › tests\e2e\studio-ai.spec.ts:141:1 › Studio IA: titulares y copies, y relleno de plantilla desde una lista con Claude (8.4s)
+  ✓  713 [mobile-360] › tests\e2e\studio-audio-editor.spec.ts:13:1 › Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track (9.6s)
+  ✓  714 [mobile-360] › tests\e2e\studio-audio-editor.spec.ts:78:1 › Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds (6.1s)
+  ✓  715 [mobile-360] › tests\e2e\studio-audio-resources.spec.ts:14:1 › Studio audio resources API: private binary upload, byte ranges and native browser playback (5.7s)
+  ✓  716 [mobile-360] › tests\e2e\studio-automation.spec.ts:35:1 › Studio automation: own template substitutes literal fields in an independent branded design and exports (9.2s)
+  ✓  717 [mobile-360] › tests\e2e\studio-automation.spec.ts:96:1 › Studio automation: brand styles, proportional resize and independent variants persist and export (12.3s)
+
+  ✓  718 [mobile-360] › tests\e2e\studio-av-composite.spec.ts:16:1 › Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft (26.9s)
+  ✓  719 [mobile-360] › tests\e2e\studio-boards.spec.ts:36:1 › Studio: whiteboard with a table, glued connectors and free drawing persists and exports PNG, SVG and PDF (8.3s)
+  ✓  720 [mobile-360] › tests\e2e\studio-boards.spec.ts:160:1 › Studio: A4 document with reflowing text and a table reopens, exports PDF and PNG and can be presented (6.0s)
+  ✓  721 [mobile-360] › tests\e2e\studio-boards.spec.ts:220:1 › Studio: a chart bound to a saved table is inserted, saved, reopened and exported (6.9s)
+  ✓  722 [mobile-360] › tests\e2e\studio-boards.spec.ts:263:1 › Studio: a chart bound to a saved table is exported on the server as SVG, PNG and PDF (14.5s)
+  ✓  723 [mobile-360] › tests\e2e\studio-captions.spec.ts:29:1 › Studio captions UI: import edit style offset delete undo reopen and download SRT VTT with clear file errors (9.4s)
+C:\laragon/www/metricool/storage/framework/testing/t43-pdf-tools\fitz\__init__.py:17: FutureWarning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+  warnings.warn(
+
+  ✘  724 [mobile-360] › tests\e2e\studio-captions.spec.ts:86:1 › Studio captions render: private font pinned MP4 GIF and SVG retain opaque cues across page fade (31.3s)
+  ✓  725 [mobile-360] › tests\e2e\studio-captions.spec.ts:252:1 › Studio captions access: revision pinned API MCP abilities ownership and optimistic conflicts (6.1s)
+  ✓  726 [mobile-360] › tests\e2e\studio-charts.spec.ts:44:1 › E2E28.01 ten real variants pinned saved dataset controls shared preview save reopen undo SVG PNG private font (1.7m)
+  ✓  727 [mobile-360] › tests\e2e\studio-charts.spec.ts:57:1 › E2E28.03 invalid precision negative proportions cancel original typed table keyboard Inspector focus accessibility (19.5s)
+  ✓  728 [mobile-360] › tests\e2e\studio-charts.spec.ts:89:1 › E2E28.04 real 1000 rows twelve series twelve thousand bars shared SVG PNG semantic independent oracle guarded (19.3s)
+  ✓  729 [mobile-360] › tests\e2e\studio-collab.spec.ts:42:1 › Studio: dos usuarios comparten, comentan, editan a la vez, ven el 409 y se revoca el acceso (31.0s)
+  ✓  730 [mobile-360] › tests\e2e\studio-datasets.spec.ts:136:1 › E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes (7.6s)
+  ✓  731 [mobile-360] › tests\e2e\studio-datasets.spec.ts:145:1 › E2E27.02 real CSV TSV JSON imports safe faithful downloads windowed cells and invalid file (9.0s)
+  ✓  732 [mobile-360] › tests\e2e\studio-datasets.spec.ts:153:1 › E2E27.03 structural edits literal replace fill conversion atomic preview transpose IDs undo (10.9s)
+  ✓  733 [mobile-360] › tests\e2e\studio-datasets.spec.ts:167:1 › E2E27.04 second writer409 preserves draft history pagination archive restore and brand isolation (20.4s)
+  ✓  734 [mobile-360] › tests\e2e\studio-datasets.spec.ts:179:1 › E2E27.05 delayed real reads writes close selection brand discard keyboard and focus (10.2s)
+  ✓  735 [mobile-360] › tests\e2e\studio-frame-export.spec.ts:4:1 › Studio frame export: choose a local page time, export real pixels and retain it with the private brand output (6.2s)
+  ✓  736 [mobile-360] › tests\e2e\studio-imaging.spec.ts:112:1 › Studio imaging: real private font upload, preview, search, kit, archive and protected deletion (13.3s)
+  ✓  737 [mobile-360] › tests\e2e\studio-imaging.spec.ts:186:1 › Studio imaging: real background inference preserves original and a masked filtered result persists and exports (20.3s)
+
+  ✓  738 [mobile-360] › tests\e2e\studio-native-export.spec.ts:6:1 › Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft (17.4s)
+  ✓  739 [mobile-360] › tests\e2e\studio-native-export.spec.ts:86:1 › Studio native history: paginate real exports in one request per page and reopen without creating work (5.4s)
+
+  ✓  740 [mobile-360] › tests\e2e\studio-presentation-media.spec.ts:70:1 › E2E-29 real own video and audio emit native frames and playback; pause navigation and close release every media (9.7s)
+  ✓  741 [mobile-360] › tests\e2e\studio-presentation-media.spec.ts:102:1 › E2E-29 private FontFace and live versioned chart render in audience and next preview; popup has pixels only (10.5s)
+  ✓  742 [mobile-360] › tests\e2e\studio-presentation-media.spec.ts:136:1 › E2E-29 real fullscreen entry exit focus restoration and owned popup closure (4.1s)
+
+  ✓  743 [mobile-360] › tests\e2e\studio-presentation-media.spec.ts:149:60 › E2E-29 pending real media preparation cancelled by close never publishes or plays late (9.1s)
+
+  ✓  744 [mobile-360] › tests\e2e\studio-presentation-media.spec.ts:149:60 › E2E-29 pending real media preparation cancelled by design-unmount never publishes or plays late (8.7s)
+  ✓  745 [mobile-360] › tests\e2e\studio-presentation-tools.spec.ts:83:1 › E2E-29 P3 paused laser pen erase TTL page and blackout compose actual pixels; audience and fullscreen include tools (9.3s)
+  ✓  746 [mobile-360] › tests\e2e\studio-presentation-tools.spec.ts:143:1 › E2E-29 P3 timer uses a real own WAV with native start pause resume reset visibility volume mute loop and finish (9.3s)
+  ✓  747 [mobile-360] › tests\e2e\studio-presentation-tools.spec.ts:186:1 › E2E-29 P3 pending own timer audio is cancelled by a real close and cannot publish or play after release (6.4s)
+  ✓  748 [mobile-360] › tests\e2e\studio-presentations.spec.ts:41:1 › E2E-29 notes preserve immediate save, page ownership, Unicode, history and reopen (6.1s)
+  ✓  749 [mobile-360] › tests\e2e\studio-presentations.spec.ts:70:1 › E2E-29 presenter uses real pixels, manual fade destination, keys, autoplay, loop, blackout and popup cleanup (9.6s)
+  ✓  750 [mobile-360] › tests\e2e\studio-presentations.spec.ts:103:1 › E2E-29 popup blocking and fullscreen failures are visible; audience mode and terminal frame remain usable (5.8s)
+  ✓  751 [mobile-360] › tests\e2e\studio-timeline.spec.ts:16:1 › Studio timeline: edit windows, split, persist and run a common playhead without changing the document (6.0s)
+
+  ✓  752 [mobile-360] › tests\e2e\studio-timeline.spec.ts:63:1 › Studio timeline: an uploaded real video with an open source end can be split and previewed (7.5s)
+  ✓  753 [mobile-360] › tests\e2e\studio-timeline.spec.ts:101:1 › Studio timeline: splitting the second page uses local clip time and survives undo and redo (5.0s)
+
+  ✓  754 [mobile-360] › tests\e2e\studio-timeline.spec.ts:133:1 › Studio timeline: buffering never consumes a short clip before playback starts (7.4s)
+
+  ✓  755 [mobile-360] › tests\e2e\studio-timeline.spec.ts:165:1 › Studio timeline: closing while media buffers cancels the pending playback (8.2s)
+  ✓  756 [mobile-360] › tests\e2e\studio.spec.ts:25:1 › Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library (6.5s)
+  ✓  757 [mobile-360] › tests\e2e\studio.spec.ts:55:1 › Studio: design persists, exports real PNG and starts a publication in its brand (7.9s)
+  ✓  758 [mobile-360] › tests\e2e\studio.spec.ts:103:1 › Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design (6.4s)
+  ✓  759 [mobile-360] › tests\e2e\studio.spec.ts:162:1 › Studio: a stale revision preserves local edits and can recover the server version (6.3s)
+  ✓  760 [mobile-360] › tests\e2e\target-media.spec.ts:69:1 › T-17 · media común más una red con media y alt propios: guardar, reabrir, previsualizar por red y publicar en simulado (17.7s)
+  ✓  761 [mobile-360] › tests\e2e\target-media.spec.ts:149:1 › T-17 · el error de la media propia nombra la red y bloquea Programar (17.1s)
+  ✓  762 [mobile-360] › tests\e2e\target-media.spec.ts:167:1 › T-17 · al cambiar el tipo se limpian el alt y la portada que el nuevo tipo no admite y no se envian (6.3s)
+  ✓  763 [mobile-360] › tests\e2e\threads.spec.ts:29:1 › E2E-08 · Conexiones: la tarjeta de Threads y su cuenta conectada, sin desborde (8.1s)
+  ✓  764 [mobile-360] › tests\e2e\threads.spec.ts:48:1 › E2E-08 · calendario: iconos de Threads y Bluesky y filtro por red (8.4s)
+  ✓  765 [mobile-360] › tests\e2e\threads.spec.ts:77:1 › E2E-08 · dashboard de Threads: visitas al perfil (no visualizaciones), clics y la publicación con sus cifras (8.1s)
+  ✓  766 [mobile-360] › tests\e2e\threads.spec.ts:105:1 › E2E-08 · compositor: Threads cuenta 500 caracteres con cada emoji por sus bytes UTF-8 (6.5s)
+  ✓  767 [mobile-360] › tests\e2e\threads.spec.ts:133:1 › E2E-08 · compositor: con 2 etiquetas en Threads aparece el aviso de que solo se usa la primera (CA-14) (6.7s)
+  ✓  768 [mobile-360] › tests\e2e\tiktok-audio.spec.ts:26:1 › TikTok photo music: explicit choice persists and switching to video removes it (6.6s)
+  ✓  769 [mobile-360] › tests\e2e\tiktok-audio.spec.ts:48:1 › TikTok creator failure stops automatic retries and the retry button can recover (5.1s)
+  ✓  770 [mobile-360] › tests\e2e\workflow.spec.ts:48:1 › aprobar y rechazar con dos usuarios: invitación uniforme, decisión del aprobador y estado en el calendario (13.1s)
+  ✓  771 [mobile-360] › tests\e2e\workflow.spec.ts:115:1 › destino manual: el aviso trae el contenido y se marca como publicado con una URL https (6.6s)
+  ✓  772 [mobile-360] › tests\e2e\workflow.spec.ts:151:1 › serie semanal: se crea desde la pantalla y las ocurrencias aparecen en el calendario sin duplicarse (8.3s)
+  ✓  773 [mobile-360] › tests\e2e\workflow.spec.ts:194:1 › lote: reprogramar y cancelar con un resultado parcial por elemento (6.0s)
+  ✓  774 [mobile-360] › tests\e2e\workflow.spec.ts:229:1 › reintento: un destino con error vuelve a programarse una sola vez (5.0s)
+
+
+  1) [desktop] › tests\e2e\gif-picker.spec.ts:108:1 › E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e importar el MP4 (axe y sin desborde) 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('1. giphy-gato1.mp4')
+    Expected: visible
+    Error: strict mode violation: getByText('1. giphy-gato1.mp4') resolved to 2 elements:
+        1) <span>…</span> aka getByText('1. giphy-gato1.mp4 (vídeo 2 s')
+        2) <li data-media-id="990002" data-testid="preview-media-item" class="[overflow-wrap:anywhere]">…</li> aka getByTestId('preview-media-item')
+
+    Call log:
+      - Expect "toBeVisible" getByText('1. giphy-gato1.mp4') with timeout 20000ms
+      - waiting for getByText('1. giphy-gato1.mp4')
+
+
+      143 |
+      144 |     // Se importa el MP4 por el servidor, el modal se cierra y la media entra en el post.
+    > 145 |     await expect(page.getByText('1. giphy-gato1.mp4')).toBeVisible({ timeout: 20_000 });
+          |                                                        ^
+      146 |     expect(seen.imported).toBe(MP4);
+      147 |     await expect(dialog).toBeHidden();
+      148 |     await expect(button).toBeFocused();
+        at C:\laragon\www\metricool\tests\e2e\gif-picker.spec.ts:145:56
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\gif-picker-E2E-09-·-GIF-bu-e40d5--el-MP4-axe-y-sin-desborde--desktop\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\gif-picker-E2E-09-·-GIF-bu-e40d5--el-MP4-axe-y-sin-desborde--desktop\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\gif-picker-E2E-09-·-GIF-bu-e40d5--el-MP4-axe-y-sin-desborde--desktop\trace.zip
+    Usage:
+
+        npx playwright show-trace storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\gif-picker-E2E-09-·-GIF-bu-e40d5--el-MP4-axe-y-sin-desborde--desktop\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [desktop] › tests\e2e\security.spec.ts:139:5 › 2FA · doble factor (TOTP) › 2FA · un código de recuperación sirve una vez y regenerar invalida los viejos (E2E-03) 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      40 |     // Si sigue en el reto, la app vacía el campo al terminar (form.reset): hay que esperarlo antes de escribir el siguiente.
+      41 |     const input = page.locator(field === 'code' ? '#code' : '#recovery_code');
+    > 42 |     await expect.poll(async () => (await input.count()) === 0 || (await input.inputValue()) === '').toBe(true);
+         |                                                                                                     ^
+      43 |     return response;
+      44 | }
+      45 |
+        at submitChallenge (C:\laragon\www\metricool\tests\e2e\security.spec.ts:42:101)
+        at C:\laragon\www\metricool\tests\e2e\security.spec.ts:178:9
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\security-2FA-·-doble-facto-9ccfb-invalida-los-viejos-E2E-03--desktop\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\security-2FA-·-doble-facto-9ccfb-invalida-los-viejos-E2E-03--desktop\error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\security-2FA-·-doble-facto-9ccfb-invalida-los-viejos-E2E-03--desktop\trace.zip
+    Usage:
+
+        npx playwright show-trace storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\security-2FA-·-doble-facto-9ccfb-invalida-los-viejos-E2E-03--desktop\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [mobile] › tests\e2e\gif-picker.spec.ts:108:1 › E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e importar el MP4 (axe y sin desborde) 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('1. giphy-gato1.mp4')
+    Expected: visible
+    Error: strict mode violation: getByText('1. giphy-gato1.mp4') resolved to 2 elements:
+        1) <span>…</span> aka getByText('1. giphy-gato1.mp4 (vídeo 2 s')
+        2) <li data-media-id="990002" data-testid="preview-media-item" class="[overflow-wrap:anywhere]">…</li> aka getByTestId('preview-media-item')
+
+    Call log:
+      - Expect "toBeVisible" getByText('1. giphy-gato1.mp4') with timeout 20000ms
+      - waiting for getByText('1. giphy-gato1.mp4')
+
+
+      143 |
+      144 |     // Se importa el MP4 por el servidor, el modal se cierra y la media entra en el post.
+    > 145 |     await expect(page.getByText('1. giphy-gato1.mp4')).toBeVisible({ timeout: 20_000 });
+          |                                                        ^
+      146 |     expect(seen.imported).toBe(MP4);
+      147 |     await expect(dialog).toBeHidden();
+      148 |     await expect(button).toBeFocused();
+        at C:\laragon\www\metricool\tests\e2e\gif-picker.spec.ts:145:56
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\gif-picker-E2E-09-·-GIF-bu-e40d5--el-MP4-axe-y-sin-desborde--mobile\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\gif-picker-E2E-09-·-GIF-bu-e40d5--el-MP4-axe-y-sin-desborde--mobile\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\gif-picker-E2E-09-·-GIF-bu-e40d5--el-MP4-axe-y-sin-desborde--mobile\trace.zip
+    Usage:
+
+        npx playwright show-trace storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\gif-picker-E2E-09-·-GIF-bu-e40d5--el-MP4-axe-y-sin-desborde--mobile\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [mobile] › tests\e2e\security.spec.ts:139:5 › 2FA · doble factor (TOTP) › 2FA · un código de recuperación sirve una vez y regenerar invalida los viejos (E2E-03) 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      40 |     // Si sigue en el reto, la app vacía el campo al terminar (form.reset): hay que esperarlo antes de escribir el siguiente.
+      41 |     const input = page.locator(field === 'code' ? '#code' : '#recovery_code');
+    > 42 |     await expect.poll(async () => (await input.count()) === 0 || (await input.inputValue()) === '').toBe(true);
+         |                                                                                                     ^
+      43 |     return response;
+      44 | }
+      45 |
+        at submitChallenge (C:\laragon\www\metricool\tests\e2e\security.spec.ts:42:101)
+        at C:\laragon\www\metricool\tests\e2e\security.spec.ts:178:9
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\security-2FA-·-doble-facto-9ccfb-invalida-los-viejos-E2E-03--mobile\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\security-2FA-·-doble-facto-9ccfb-invalida-los-viejos-E2E-03--mobile\error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\security-2FA-·-doble-facto-9ccfb-invalida-los-viejos-E2E-03--mobile\trace.zip
+    Usage:
+
+        npx playwright show-trace storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\security-2FA-·-doble-facto-9ccfb-invalida-los-viejos-E2E-03--mobile\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [mobile-360] › tests\e2e\gif-picker.spec.ts:108:1 › E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e importar el MP4 (axe y sin desborde) 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('1. giphy-gato1.mp4')
+    Expected: visible
+    Error: strict mode violation: getByText('1. giphy-gato1.mp4') resolved to 2 elements:
+        1) <span>…</span> aka getByText('1. giphy-gato1.mp4 (vídeo 2 s')
+        2) <li data-media-id="990002" data-testid="preview-media-item" class="[overflow-wrap:anywhere]">…</li> aka getByTestId('preview-media-item')
+
+    Call log:
+      - Expect "toBeVisible" getByText('1. giphy-gato1.mp4') with timeout 20000ms
+      - waiting for getByText('1. giphy-gato1.mp4')
+
+
+      143 |
+      144 |     // Se importa el MP4 por el servidor, el modal se cierra y la media entra en el post.
+    > 145 |     await expect(page.getByText('1. giphy-gato1.mp4')).toBeVisible({ timeout: 20_000 });
+          |                                                        ^
+      146 |     expect(seen.imported).toBe(MP4);
+      147 |     await expect(dialog).toBeHidden();
+      148 |     await expect(button).toBeFocused();
+        at C:\laragon\www\metricool\tests\e2e\gif-picker.spec.ts:145:56
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\gif-picker-E2E-09-·-GIF-bu-e40d5--el-MP4-axe-y-sin-desborde--mobile-360\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\gif-picker-E2E-09-·-GIF-bu-e40d5--el-MP4-axe-y-sin-desborde--mobile-360\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\gif-picker-E2E-09-·-GIF-bu-e40d5--el-MP4-axe-y-sin-desborde--mobile-360\trace.zip
+    Usage:
+
+        npx playwright show-trace storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\gif-picker-E2E-09-·-GIF-bu-e40d5--el-MP4-axe-y-sin-desborde--mobile-360\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [mobile-360] › tests\e2e\studio-captions.spec.ts:86:1 › Studio captions render: private font pinned MP4 GIF and SVG retain opaque cues across page fade 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "ready"
+    Received: "failed"
+
+      184 |             for (const exported of exports) {
+      185 |                 const current = (await call(page, 'GET', `/studio/exports/${exported.id}`)).export;
+    > 186 |                 expect(current.status).toBe('ready'); expect(current.revision).toBe(original.revision);
+          |                                        ^
+      187 |                 const response = await page.request.get(current.download_url); expect(response.ok()).toBe(true);
+      188 |                 const filename = info.outputPath(`contrast-${outlined ? 'outline' : 'control'}.${exported.format}`);
+      189 |                 fs.writeFileSync(filename, await response.body());
+        at C:\laragon\www\metricool\tests\e2e\studio-captions.spec.ts:186:40
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-mobile-360\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-mobile-360\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-mobile-360\trace.zip
+    Usage:
+
+        npx playwright show-trace storage\framework\testing\t43\run-general-391edc0d-3752-4207-ba5e-a9682c2d1113\artifacts\studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-mobile-360\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6 failed
+    [desktop] › tests\e2e\gif-picker.spec.ts:108:1 › E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e importar el MP4 (axe y sin desborde) 
+    [desktop] › tests\e2e\security.spec.ts:139:5 › 2FA · doble factor (TOTP) › 2FA · un código de recuperación sirve una vez y regenerar invalida los viejos (E2E-03) 
+    [mobile] › tests\e2e\gif-picker.spec.ts:108:1 › E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e importar el MP4 (axe y sin desborde) 
+    [mobile] › tests\e2e\security.spec.ts:139:5 › 2FA · doble factor (TOTP) › 2FA · un código de recuperación sirve una vez y regenerar invalida los viejos (E2E-03) 
+    [mobile-360] › tests\e2e\gif-picker.spec.ts:108:1 › E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e importar el MP4 (axe y sin desborde) 
+    [mobile-360] › tests\e2e\studio-captions.spec.ts:86:1 › Studio captions render: private font pinned MP4 GIF and SVG retain opaque cues across page fade 
+  2 skipped
+  3 did not run
+  763 passed (1.8h)

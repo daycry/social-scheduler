@@ -1,0 +1,1 @@
+﻿Guardrail oficial lib-guardrail.sh: http://localhost:8080; exit 0; GUARDRAIL_LOCAL_OK. Bash sandbox previo: CreateFileMapping Win32 error5; ejecución específica require_escalated autorizada.

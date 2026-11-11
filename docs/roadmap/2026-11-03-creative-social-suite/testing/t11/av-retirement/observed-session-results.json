@@ -1,0 +1,61 @@
+{
+  "provenance": "Extracted from tool results already observed in this session; not original stdout. Actual final stdout/stderr/JUnit retained separately.",
+  "results": [
+    {
+      "id": "9632a5",
+      "tests": 2,
+      "passed": 0,
+      "scenario": "workspace receipt absent and cleanup returns false"
+    },
+    {
+      "id": "033748",
+      "scenario": "untested remote implementation discarded before writing rewritten implementation after red"
+    },
+    {
+      "id": "485bf7",
+      "tests": 3,
+      "passed": 0,
+      "scenario": "known/lost upload ID and lost deletion acknowledgement not handled"
+    },
+    {
+      "id": "767be6",
+      "tests": 2,
+      "passed": 0,
+      "scenario": "orphan loses journal and recovery skips terminal without leases"
+    },
+    {
+      "id": "30003e",
+      "tests": 1,
+      "passed": 0,
+      "scenario": "retiring copy not recovered while retry has a new active lease"
+    },
+    {
+      "id": "31a76d",
+      "tests": 1,
+      "passed": 0,
+      "scenario": "exhausted budget still claims retirement token"
+    },
+    {
+      "id": "b503ac",
+      "tests": 2,
+      "passed": 0,
+      "scenario": "scheduled terminal/orphan makes two storage attempts rather than one"
+    },
+    {
+      "id": "3883cc",
+      "tests": 93,
+      "passed": 89,
+      "skipped": 4,
+      "assertions": 469,
+      "scenario": "pre-review2 regression, native opt-in disabled"
+    },
+    {
+      "id": "133f91",
+      "tests": 349,
+      "passed": 349,
+      "skipped": 0,
+      "assertions": 1841,
+      "scenario": "final actual regression with native opt-in"
+    }
+  ]
+}

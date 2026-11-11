@@ -1,0 +1,65 @@
+{
+  "state": "NATIVE_NO_PASS_DIAGNOSED_SOURCE_FIX_PENDING_ACCEPTANCE",
+  "files": {
+    "execution.json": {
+      "sha256": "90aeb679fbe2eacf56cbbea2cff67d00c8340eca9a0d43e6d12c18ffbd86d607",
+      "bytes": 917,
+      "original": "storage/framework/testing/t12-presentation-tools-native-qa2/runs/run-1794027861823829800/execution.json"
+    },
+    "runner-results.json": {
+      "sha256": "b1f3de0d2c5bb93209fc8b90da95c3cc14420324cb1daae844ae6fb3de28f038",
+      "bytes": 55592,
+      "original": "storage/framework/testing/t12-presentation-tools-native-qa2/runs/run-1794027861823829800/raw/results.json"
+    },
+    "process-cleanliness.json": {
+      "sha256": "6d9993194ed910cd2c81881bacbf6ad793ddd7fa0c1b1dceeefffdfd3bd939e5",
+      "bytes": 167,
+      "original": "storage/framework/testing/t12-presentation-tools-native-qa2/runs/run-1794027861823829800/raw/process-cleanliness.json"
+    },
+    "source-drift.json": {
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "bytes": 2,
+      "original": "storage/framework/testing/t12-presentation-tools-native-qa2/runs/run-1794027861823829800/raw/source-drift.json"
+    },
+    "playwright.log": {
+      "sha256": "50ac9bc09aa442df50415557ed6577303a888facf9669239ddd6bf9569eb0376",
+      "bytes": 6586,
+      "original": "storage/framework/testing/t12-presentation-tools-native-qa2/runs/run-1794027861823829800/raw/playwright.log"
+    },
+    "mobile-failure.png": {
+      "sha256": "0ea154fc7c5b7c07dac978e5a963b2c76b1163bc7ee8eb30f9b5f282e48f84a2",
+      "bytes": 43721,
+      "original": "storage/framework/testing/t12-presentation-tools-native-qa2/runs/run-1794027861823829800/raw/artifacts/studio-presentation-tools--a4b4a-nd-fullscreen-include-tools-mobile/test-failed-1.png"
+    },
+    "trace.zip": {
+      "sha256": "4caca7c880eb9f23316451672b43511e196190d47e5add05f2a40e1d4c66dcbf",
+      "bytes": 3955668,
+      "original": "storage/framework/testing/t12-presentation-tools-native-qa2/runs/run-1794027861823829800/raw/artifacts/studio-presentation-tools--a4b4a-nd-fullscreen-include-tools-mobile/trace.zip"
+    },
+    "error-context.md": {
+      "sha256": "1b1d48d40774c365902372107963f65d60d6fd00cb544005399edf24f17717de",
+      "bytes": 35984,
+      "original": "storage/framework/testing/t12-presentation-tools-native-qa2/runs/run-1794027861823829800/raw/artifacts/studio-presentation-tools--a4b4a-nd-fullscreen-include-tools-mobile/error-context.md"
+    },
+    "geometry-diagnostic.json": {
+      "sha256": "de6b54334b305dff46d40a41d642b1ab036c0ed8aa9f12bed3137d8e6c130c1b",
+      "bytes": 4251,
+      "original": "storage/framework/testing/t12-presentation-mobile-layout1/probe-result.json"
+    },
+    "diagnostic-guard.json": {
+      "sha256": "b7f6ef21fc699922049df5f1cf46cdae28c38bb269661f17dc19cfe45ca29860",
+      "bytes": 438,
+      "original": "storage/framework/testing/t12-presentation-mobile-layout1/probe-guard.json"
+    },
+    "source-done.json": {
+      "sha256": "3a5096af673113d901dbf89a9b0865d8a7d0a4ba081ad086ce969549c343b361",
+      "bytes": 666,
+      "original": "storage/framework/testing/t12-presentation-mobile-layout1/source-done.json"
+    },
+    "implementation.diff": {
+      "sha256": "c5c39f91a6085955e9870abe6008253f318ccf86490f5d705aa2d4ecc0534196",
+      "bytes": 1798,
+      "original": "storage/framework/testing/t12-presentation-mobile-layout1/implementation.diff"
+    }
+  }
+}

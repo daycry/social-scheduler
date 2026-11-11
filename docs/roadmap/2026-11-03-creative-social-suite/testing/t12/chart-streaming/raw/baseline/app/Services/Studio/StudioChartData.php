@@ -1,0 +1,231 @@
+<?php
+
+namespace App\Services\Studio;
+
+final class StudioChartData
+{
+    private const MAX_BYTES = 2097152;
+
+    public function normalize(array $table): array
+    {
+        return $this->normalizeTable($table);
+    }
+
+    private function normalizeTable(array $table, int $csvHeaderRows = 0): array
+    {
+        $this->fields($table, ['columns', 'rows'], 'table');
+        foreach (['columns', 'rows'] as $key) {
+            if (! is_array($table[$key]) || ! array_is_list($table[$key])) {
+                $this->fail($key.' must be a list');
+            }
+        }
+        $width = count($table['columns']);
+        if ($width < 1 || $width > 100 || count($table['rows']) > 1000) {
+            $this->fail('Table requires 1–100 columns and at most 1000 rows');
+        }
+        $ids = [];
+        foreach ($table['columns'] as $index => $column) {
+            $path = 'column '.($index + 1);
+            $this->fields($column, ['id', 'label'], $path);
+            $this->id($column['id'], $ids, $path);
+            $labelPath = $csvHeaderRows === 1 ? 'row 1, column '.($index + 1) : $path.' label';
+            $this->text($column['label'], 500, $labelPath);
+        }
+        $ids = [];
+        foreach ($table['rows'] as $index => $row) {
+            $path = 'row '.($index + 1 + $csvHeaderRows);
+            $this->fields($row, ['id', 'values'], $path);
+            $this->id($row['id'], $ids, $path);
+            if (! is_array($row['values']) || ! array_is_list($row['values']) || count($row['values']) !== $width) {
+                $this->fail($path.' has invalid width or values list');
+            }
+            foreach ($row['values'] as $col => $value) {
+                $cell = $path.', column '.($col + 1);
+                if (is_string($value)) {
+                    $this->text($value, 10000, $cell);
+                } elseif ($value !== null && ! is_int($value) && ! (is_float($value) && is_finite($value))) {
+                    $this->fail($cell.' must be a string, finite number or null');
+                }
+            }
+        }
+        $json = json_encode($table, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+        if (strlen($json) > self::MAX_BYTES) {
+            $this->fail('Canonical table exceeds 2 MiB');
+        }
+
+        return $table;
+    }
+
+    private function fields(mixed $value, array $keys, string $path): void
+    {
+        if (! is_array($value) || count($value) !== count($keys) || array_diff($keys, array_keys($value)) !== []) {
+            $this->fail($path.' has missing or unknown fields');
+        }
+    }
+
+    private function id(mixed $id, array &$seen, string $path): void
+    {
+        if (! is_string($id) || ! preg_match('/\A[A-Za-z0-9_-]{1,64}\z/D', $id) || isset($seen[$id])) {
+            $this->fail($path.' has invalid or duplicate id');
+        }
+        $seen[$id] = true;
+    }
+
+    private function text(mixed $value, int $limit, string $path): void
+    {
+        if (! is_string($value) || ! mb_check_encoding($value, 'UTF-8') || mb_strlen($value, 'UTF-8') > $limit
+            || preg_match('/[^\P{Cc}\n\t]/u', $value)) {
+            $this->fail($path.' has invalid UTF-8, length or control characters');
+        }
+    }
+
+    private function fail(string $message): never
+    {
+        throw new \InvalidArgumentException($message);
+    }
+
+    public function import(string $text, string $format = 'csv', bool $header = true): array
+    {
+        $delimiter = $this->delimiter($format);
+        if (strlen($text) > self::MAX_BYTES || ! mb_check_encoding($text, 'UTF-8')) {
+            $this->fail('Input must be valid UTF-8 and at most 2 MiB');
+        }
+        if (str_starts_with($text, "\xEF\xBB\xBF")) {
+            $text = substr($text, 3);
+        }
+        if ($text === '') {
+            $this->fail('Input is empty');
+        }
+
+        $records = [];
+        $record = [];
+        $value = '';
+        $state = 'start';
+        $length = strlen($text);
+        $endedRecord = false;
+        for ($i = 0; $i < $length; $i++) {
+            $char = $text[$i];
+            $path = 'row '.(count($records) + 1).', column '.(count($record) + 1);
+            $endedRecord = false;
+            if ($char === "\r") {
+                if (($text[$i + 1] ?? '') !== "\n") {
+                    $this->fail($path.': bare CR is not allowed');
+                }
+                $char = "\n";
+                $i++;
+            }
+            if ($state === 'quoted') {
+                if ($char === '"') {
+                    if (($text[$i + 1] ?? '') === '"') {
+                        $value .= '"';
+                        $i++;
+                    } else {
+                        $state = 'closed';
+                    }
+                } else {
+                    $value .= $char;
+                }
+
+                continue;
+            }
+            if ($char === $delimiter || $char === "\n") {
+                $record[] = $value;
+                $value = '';
+                $state = 'start';
+                if (count($record) > 100) {
+                    $this->fail($path.': exceeds 100 columns');
+                }
+                if ($char === "\n") {
+                    $this->record($records, $record, $header);
+                    $record = [];
+                    $endedRecord = true;
+                }
+
+                continue;
+            }
+            if ($state === 'closed') {
+                $this->fail($path.': unexpected character after closing quote');
+            }
+            if ($char === '"') {
+                if ($state !== 'start') {
+                    $this->fail($path.': unexpected quote in unquoted field');
+                }
+                $state = 'quoted';
+            } else {
+                $value .= $char;
+                $state = 'unquoted';
+            }
+        }
+        if ($state === 'quoted') {
+            $this->fail('row '.(count($records) + 1).', column '.(count($record) + 1).': unclosed quote');
+        }
+        if (! $endedRecord) {
+            $record[] = $value;
+            $this->record($records, $record, $header);
+        }
+        $labels = $header ? array_shift($records) : array_fill(0, count($records[0]), '');
+        $table = ['columns' => [], 'rows' => []];
+        foreach ($labels as $index => $label) {
+            $table['columns'][] = ['id' => 'column_'.($index + 1), 'label' => $label];
+        }
+        foreach ($records as $index => $values) {
+            $table['rows'][] = ['id' => 'row_'.($index + 1), 'values' => $values];
+        }
+
+        return $this->normalizeTable($table, (int) $header);
+    }
+
+    private function record(array &$records, array $record, bool $header): void
+    {
+        $index = count($records) + 1;
+        if (count($record) > 100 || (isset($records[0]) && count($record) !== count($records[0]))) {
+            $this->fail('row '.$index.': irregular width or too many columns');
+        }
+        if ($index > 1000 + (int) $header) {
+            $this->fail('row '.$index.': exceeds 1000 data rows');
+        }
+        $records[] = $record;
+    }
+
+    private function delimiter(string $format): string
+    {
+        return match ($format) {
+            'csv' => ',',
+            'tsv' => "\t",
+            default => $this->fail('Unsupported format: expected csv or tsv'),
+        };
+    }
+
+    /**
+     * Lexical interchange only: external spreadsheets may evaluate formula text.
+     * CSV/TSV cannot preserve cell types or ids; null is encoded as an empty field.
+     */
+    public function export(array $table, string $format = 'csv', bool $header = true): string
+    {
+        $table = $this->normalize($table);
+        $delimiter = $this->delimiter($format);
+        $output = '';
+        if ($header) {
+            $output .= $this->encodeRecord(array_column($table['columns'], 'label'), $delimiter);
+        }
+        foreach ($table['rows'] as $row) {
+            $output .= $this->encodeRecord($row['values'], $delimiter);
+        }
+
+        return $output;
+    }
+
+    private function encodeRecord(array $values, string $delimiter): string
+    {
+        $cells = array_map(function ($value) use ($delimiter): string {
+            $text = is_string($value) ? $value : ($value === null ? '' : json_encode($value, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR));
+            if (str_contains($text, $delimiter) || str_contains($text, '"') || str_contains($text, "\n") || str_starts_with($text, "\xEF\xBB\xBF")) {
+                return '"'.str_replace('"', '""', $text).'"';
+            }
+
+            return $text;
+        }, $values);
+
+        return implode($delimiter, $cells)."\r\n";
+    }
+}

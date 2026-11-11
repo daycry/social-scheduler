@@ -1,0 +1,149 @@
+{
+  "scope": "QA26attempt1 NO-VERDE6PASS7harnessFAIL,notaccepted",
+  "artifacts": [
+    {
+      "path": "build-report.py",
+      "sha256": "d36e205da807f96bfbe51939843908ef11821addd9dd266915dc35b28e3453ea",
+      "bytes": 8081
+    },
+    {
+      "path": "final-evidence.json",
+      "sha256": "8b21aec61a41e9c47a46411d491527c5814422271f45a03fd26309b66c35a65a",
+      "bytes": 2681
+    },
+    {
+      "path": "pdf-validation.json",
+      "sha256": "6791efe2b4837a0ef67c6fb7eb218e75227d91e36fd8ac7a531eea48e0af2104",
+      "bytes": 862
+    },
+    {
+      "path": "render-pdf.py",
+      "sha256": "e5365867b79f8dc5b9074e15a4cd40f50c0481da4a72d7625991f84fdaf0a35c",
+      "bytes": 1602
+    },
+    {
+      "path": "render-report.mjs",
+      "sha256": "424e938d8da15eb20f1be18e806102995461d25b1ca432847525d70c6addf24d",
+      "bytes": 601
+    },
+    {
+      "path": "render-report.php",
+      "sha256": "276b8bd285a2a6bc530d70b4d84039942510573d95861053afd40baab0bf2a99",
+      "bytes": 1107
+    },
+    {
+      "path": "report.html",
+      "sha256": "ee25606b0412037e4811f5d5a9a7ed33fb02da58f14d5e2538d0d9561b0ca4a3",
+      "bytes": 9881
+    },
+    {
+      "path": "report.md",
+      "sha256": "fd9c4e6eaf2dda1020e266c4af392412135a2381bf65f1b39c2c31b0b032573a",
+      "bytes": 5926
+    },
+    {
+      "path": "report.pdf",
+      "sha256": "22455a8a8e76ac2eface3294dc7c4f482f7c58e3e3749dd05e3cdffdafc19445",
+      "bytes": 82241
+    },
+    {
+      "path": "pdf-pages/page-01.png",
+      "sha256": "d7d1edebf45f21693ca0dca144a000391d3d48ab2f25bd29d1e354da46da854c",
+      "bytes": 107841
+    },
+    {
+      "path": "pdf-pages/page-02.png",
+      "sha256": "da5770156ca1372df51b0e90ef7bcbb1c996b3924a2b1689b64b3aa61f3d1ad8",
+      "bytes": 135935
+    },
+    {
+      "path": "pdf-pages/page-03.png",
+      "sha256": "f46014e5d0a3f76f6b7e70d1a1025f244d68fabf42bfb2271f2526c2354adddd",
+      "bytes": 78693
+    },
+    {
+      "path": "raw/case-results-sanitized.json",
+      "sha256": "e41a55239a04b8dcddcd8da4048019225484da6b2d634fd3aca0ba8b8c54ab3a",
+      "bytes": 4218
+    },
+    {
+      "path": "raw/catalog-observer.json",
+      "sha256": "5c3f71412e40f61a460b065301fbbb09325f8318899f59954570de7591365cd4",
+      "bytes": 1014
+    },
+    {
+      "path": "raw/coverage-check.json",
+      "sha256": "46e60fef682642d311095fd2f6150396f7bb0c6ad968ef951be0802a3ad4180d",
+      "bytes": 1876
+    },
+    {
+      "path": "raw/fixture-manifest.json",
+      "sha256": "08027a4fb10b133ba0d370a727cfd6ac7e42518eab808902e675322d806326d7",
+      "bytes": 537
+    },
+    {
+      "path": "raw/large-observer.json",
+      "sha256": "206b94d60261ada957b83db7533bf290d122e5c411e79f03de8c79452b713059",
+      "bytes": 265
+    },
+    {
+      "path": "raw/ledger-lint.json",
+      "sha256": "66a6ae7089c408adabd3977d81da66204e50c67d6ceefcece2f92949e9978400",
+      "bytes": 1794
+    },
+    {
+      "path": "raw/mcp-raw-cap-observer.json",
+      "sha256": "f061d07b304d8b590928d2be41ea992dbdd9b6e0f5cd683760925450ec6013d9",
+      "bytes": 121
+    },
+    {
+      "path": "raw/qa-gate.json",
+      "sha256": "4de2dd2e50c6c5d9988e546106b46a4d8108997e54390c47ce09bd8fd30af79f",
+      "bytes": 307
+    },
+    {
+      "path": "raw/recount.json",
+      "sha256": "4574071ab2be83364e7acdeda55329716e13b8eefe0d0c47490c6280b323f070",
+      "bytes": 4386
+    },
+    {
+      "path": "raw/root-fixture-reproduction.txt",
+      "sha256": "50f9d6f35631f1aa996ccb2b21472ec5121b4efa4dc4d452559b87809e4c89c1",
+      "bytes": 137
+    },
+    {
+      "path": "raw/sources-after.json",
+      "sha256": "df3c06cbf2c8c841b08620e63d5cf9766bab1b1879288b9e17456461c39b1a74",
+      "bytes": 6039
+    },
+    {
+      "path": "raw/sources-before.json",
+      "sha256": "df3c06cbf2c8c841b08620e63d5cf9766bab1b1879288b9e17456461c39b1a74",
+      "bytes": 6039
+    },
+    {
+      "path": "raw/sources-final-post-pdf.json",
+      "sha256": "df3c06cbf2c8c841b08620e63d5cf9766bab1b1879288b9e17456461c39b1a74",
+      "bytes": 6039
+    },
+    {
+      "path": "raw/summary-sanitized.json",
+      "sha256": "4b1d219c1118b6c5035fbdf031fadf6944f39d1e573cb88d50add9b99b219530",
+      "bytes": 744
+    }
+  ],
+  "root_fixture_probe": [
+    {
+      "case": "CRLF",
+      "accepted": false,
+      "error": "row 2, column 1 has invalid UTF-8, length or control characters"
+    },
+    {
+      "case": "LF",
+      "accepted": true
+    }
+  ],
+  "runtime": "storage/framework/testing/t43/run-general-d4f307e6-622c-4262-ad47-17a0bbf04e72",
+  "supervisor_terminal": 34608,
+  "session_terminal": 41360
+}

@@ -1,0 +1,37 @@
+{
+  "state": "core_finished",
+  "pid": 38580,
+  "deadline_seconds": 120,
+  "inner_deadline_seconds": 90,
+  "native_cases_planned": 6,
+  "app_pass_claim": false,
+  "node_pid": 27580,
+  "node_terminal": true,
+  "exit_code": 0,
+  "node_exit_code": 0,
+  "passed": 6,
+  "total": 6,
+  "source_count": 159,
+  "source_drift": [],
+  "job_pids_before_exit": [
+    38580
+  ],
+  "ports": {
+    "ipv4_8080_free": true,
+    "ipv6_8080_free": true
+  },
+  "resource": {
+    "physical_minimum_observed_bytes": 8528797696,
+    "sample_interval_seconds": 0.1,
+    "elapsed": 1.6619493000034709,
+    "job": {
+      "scope": "job",
+      "limit": 3221225472,
+      "peak_commit": 704012288,
+      "kill_on_close": true,
+      "breakaway": false
+    },
+    "failure": null
+  },
+  "visual_review_pending": true
+}

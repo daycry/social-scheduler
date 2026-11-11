@@ -1,0 +1,224 @@
+{
+  "sources": [
+    {
+      "path": "app/Services/Studio/StudioAvState.php",
+      "sha256": "4aa9aac214818cea35ed3b1324e011089ec642fd77b3dfd115edb0237599eb87"
+    },
+    {
+      "path": "app/Models/Studio/StudioAvWorkspace.php",
+      "sha256": "9185f5673a8df29fdf1d4dc223f6a2ac4e431b7bfbf62c65715b7dc32f13857a"
+    },
+    {
+      "path": "app/Models/Studio/StudioAvLease.php",
+      "sha256": "dd6d1710d7814fbc7acf04528a31c8c461b2331c69625c496dd72a282cb7e22c"
+    },
+    {
+      "path": "app/Models/Studio/DesignExport.php",
+      "sha256": "6744f8fa9865ba76bef06cbf0f5fd48b85cf3cc9aa88c40b1168316856d23b88"
+    },
+    {
+      "path": "app/Services/Studio/StudioExports.php",
+      "sha256": "70796393f8849cf8059c5a5a2bb736a6ffd013a9df7178150df6d52364ecfc98"
+    },
+    {
+      "path": "config/studio.php",
+      "sha256": "a9a706a5b6f79b8d0e3bc63d04c46cfb5178263d61b41bbdcf47ad571bfc21b5"
+    },
+    {
+      "path": "database/migrations/2026_11_05_150000_add_studio_render_state.php",
+      "sha256": "1644979a609d453bb69abd6c6f5f30b9220904301c4aa092aae4eb2fe0928ac4"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvStateTest.php",
+      "sha256": "82897a70374fefdcdc41a1f480981452a58f89e7613afe2eece71e2b8fdf2d9a"
+    },
+    {
+      "path": "docs/api/creative-suite.openapi.yaml",
+      "sha256": "bf53638375ceb53f14db314b4f87725aab150a92b435e865f9f76a591579b4ca"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md",
+      "sha256": "e12c8e45fd1e37a41e7dd2fdfea38059972db8b75f0b4f7b57c644803fe5d8d2"
+    },
+    {
+      "path": "app/Models/Studio/StudioAvStep.php",
+      "sha256": "90879ea2e8adc37703b830056f9e448ed8d479259101933a43bb6d8bf9753144"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvFiles.php",
+      "sha256": "5b626c347eb4239d1ffdc71afbdfaaaea59b3cd42fb90424ac9da6c4065e6178"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvFilesTest.php",
+      "sha256": "0fc645688ec252b950710aff27bff67fba41f137a680437f813c25db58a422b8"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvStorage.php",
+      "sha256": "603c3406052a6ed6e06efccfb02b0d8f56acabf6b81a78b3a1048ce7e067f0c9"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvCleanup.php",
+      "sha256": "f07130a04cd1cda110e34ee0ededa4c7616247ebb2489f7947a1b053606b4bb8"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvWorkspaceBusy.php",
+      "sha256": "dce0a4298334c773ac5b677260f4efa198561dcc801a928b100c4eff06422b44"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvCheckpointCorrupt.php",
+      "sha256": "cd78e47fcf6daa7539085021c4ec5f70017e13202fdde1deea73869dac39d59e"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvCleanupTest.php",
+      "sha256": "a692664f188a9858d89489dac4bfb58b33d8889601b583343eee10bcfc2587e6"
+    },
+    {
+      "path": "scripts/studio/av-finalize.mjs",
+      "sha256": "edd145e7d76d801d77149cbf769fe112fa912b3e2e1cab46f8c6a0a839c7fe21"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-checkpoints.test.mjs",
+      "sha256": "b78b8c6638b66c2329c4a27e64d476abcf2e15a178f93425bb29c0b8594d71f3"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvQueue.php",
+      "sha256": "16ade00a742caba21b6e81ed03e85254cd188a68f128c6346e480cb6156b6df6"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvProcess.php",
+      "sha256": "c8fd1036cc7185cdc508d73f1fbba6d9c2046bf92562bee8f2e7adae5053df49"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvProcessFailed.php",
+      "sha256": "b1be6af28f4b51e9e4bd4d9c60a31e7a2b009b45953dca6a9ec06d68365ab036"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvRunner.php",
+      "sha256": "8c852a64d015deb2fd8576b0293a8444f5ca08d7a5bb85ac73c82c50d55bd274"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvRecovery.php",
+      "sha256": "9174e8dc392250770db5849e69a5b3212f390679142d7991f3c58f1cccfaecec"
+    },
+    {
+      "path": "app/Jobs/Studio/ProcessStudioAvPhase.php",
+      "sha256": "36b31a6ad7e6022d42b8447bd2adb01b617940f8cc92df4f3ff17c3925733fa5"
+    },
+    {
+      "path": "app/Console/Commands/RecoverStudioExports.php",
+      "sha256": "77bdccd35ece2473460ebd9b7fc3bb760c34f7e2d8672618977eacd026235a74"
+    },
+    {
+      "path": "routes/console.php",
+      "sha256": "6efdb0513b41aaf836ff376da1a89bab6c9ce9b2ce5ccdcfe5b6733992536a96"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvQueueTest.php",
+      "sha256": "a55fcfaef2468ffbd756608f6e656c51ac56ab7bc4d0f4b7deb5ca234de7c777"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvProcessTest.php",
+      "sha256": "4c49ee6837628b85bff1ae3df5390ce22c41c839e8b7308dfc2ebe3c63589431"
+    },
+    {
+      "path": "app/Services/MediaUploadService.php",
+      "sha256": "b6188b620e36ff57816d7daa7fe5521f772fabefb53469b5f0786948b780241f"
+    },
+    {
+      "path": "app/Http/Controllers/MediaController.php",
+      "sha256": "1a72eb53bd13a824c82cc437aa478b8d78b70d7b4258f3b8f52ab7c88dd12181"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvRegistrationTest.php",
+      "sha256": "bd8fab55ed4ef3672c38f38a6b70886ac4e01c841666e89419167fe20f3f3a88"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvTransfer.php",
+      "sha256": "0365ca0b6cf75109a2bfb2e7955b351dd1898bc817af7c793afb735ab857995f"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvTransferTest.php",
+      "sha256": "f544df3644000e3acbc5aa65614893420aed4153b9783e716dbd673c6cdd18ab"
+    },
+    {
+      "path": "tests/Support/StudioAvR2.php",
+      "sha256": "53b4e50bc40a134ce629d9b54865919e1806898f711eb54da5b20efc4d62e484"
+    },
+    {
+      "path": "tests/frontend/studio-output-integrity.test.mjs",
+      "sha256": "63fa60c01aeb1978ace9862ca62fe5be1d2aa0ff98d028cfe1bae9979f459ba2"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvRegistrationCleanup.php",
+      "sha256": "dbce40c2d84a372ae44e53de86f48b501d6b543fc8e92f863d3f6e7a3c2773bb"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvRetirementTest.php",
+      "sha256": "33e85be4917565be6786aee81d717a9846766602f703cbd7bac92f2c9191f2ba"
+    },
+    {
+      "path": "app/Services/Studio/StudioRenderer.php",
+      "sha256": "6d0f826f5d27d5d0fdd72d1fa5bed23f7a9f5fe93a1a3d91c82cffdd876a1379"
+    },
+    {
+      "path": "app/Http/Controllers/Studio/StudioController.php",
+      "sha256": "88d141445ac0ad365257ac2f56c6d2dfef1de7216f3037b375469b56c22f1e46"
+    },
+    {
+      "path": "app/Http/Controllers/Studio/StudioApiController.php",
+      "sha256": "b06103c8a646bf3c46f7a9120e27f4c81253d3e647edaec0c2790c4c5f8f3fee"
+    },
+    {
+      "path": "app/Mcp/Tools/ExportDesign.php",
+      "sha256": "dfbb0cb5a93164ccdb75c7591888856905b2e7433b99eb290abeafc6186da191"
+    },
+    {
+      "path": "app/Mcp/Servers/SchedulerServer.php",
+      "sha256": "8d13f094057ffe3a2062320f42e2436fe6408403d5c508a854afaab19083770a"
+    },
+    {
+      "path": "routes/studio.php",
+      "sha256": "90df2d0aeb60ecdfdefda7974109925d7a4e3e2d9bcf15d5ab1ccaf1d0e37a5e"
+    },
+    {
+      "path": "routes/studio-api.php",
+      "sha256": "41628a2cd54f5835422d3d6a001c34c89da881803c8cd3384e568c279e5f47ae"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioApiMcpTest.php",
+      "sha256": "e66f4d0013ae72b9232b85105cd3a2af6befe20368d9d298439a9c660f20a58b"
+    },
+    {
+      "path": "docs/guias/estudio-api-mcp.md",
+      "sha256": "280773b9cfa2d621e1fcd0c572624a907f50e2f555c7bdfe945d3a3f750be838"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvControl.php",
+      "sha256": "d74769a691267ad461f867d8f3c7d1e13111b3826bae4b9c98015480d05cb7e6"
+    },
+    {
+      "path": "app/Mcp/Tools/ManageDesignExport.php",
+      "sha256": "6bc648922de0cbd5482717f5e021fbc8a55817a5572fbdb48a116ed91bea1582"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvDeliveryTest.php",
+      "sha256": "cd8ac2ef69a3b0a6ce79582fd052e84a289de3aa67b79159d61260add3409f98"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvPublicTest.php",
+      "sha256": "0e15ca2a762ed90991f158df876977778d8e455ec639e6d85f3751e87359c2c0"
+    },
+    {
+      "path": "README.md",
+      "sha256": "d10b9291775d617a1eb7f2ced9ed001c5271aa5b48741ed2810571e7e01ae8fc"
+    },
+    {
+      "path": "deploy/systemd/README.md",
+      "sha256": "b123d9d57fc355d5dcacd75e0e598ed350d2c91af154eac8c034f7969d318f46"
+    },
+    {
+      "path": "docs/modulos/mcp.md",
+      "sha256": "38416375fffb9ce375d145b4e4dff6b5cec0ce584da3de6a28f9e0a5e6fd2cd6"
+    }
+  ]
+}

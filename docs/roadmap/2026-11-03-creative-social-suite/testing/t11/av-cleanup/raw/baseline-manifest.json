@@ -1,0 +1,28 @@
+{
+  "sources": [
+    {
+      "path": "app/Services/Studio/StudioAvState.php",
+      "sha256": "b5e2a46de1f2fa5b54e7630b388744dca878ac8b3436c4ee0942c34f4bf613be"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvFiles.php",
+      "sha256": "2492a1f8d9cc58740080dc323c6d11e5d6b2c16578a2d2e89357c9c76710b6fe"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md",
+      "sha256": "54c2541a7a6c89b0c473d273070daaf14f0e3c17edf7276b9ea0aab56387f3a6"
+    },
+    {
+      "path": "scripts/studio/av-finalize.mjs",
+      "sha256": "26c6a9b23d2d76d894e80bb25ea00f5bee619b27149f92a5d3eb169ebece52ba"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-checkpoints.test.mjs",
+      "sha256": "75202cb8d0a325c567d30f7dc188829d7bea874ef8cbda92e0bdf16f990873fa"
+    },
+    {
+      "path": "database/migrations/2026_11_05_150000_add_studio_render_state.php",
+      "sha256": "9ea23b1d0368668d2ba6a4bbfd3576e3d57034076f7ebef43b66774dfee1f820"
+    }
+  ]
+}

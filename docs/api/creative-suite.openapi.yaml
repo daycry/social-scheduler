@@ -1,0 +1,1908 @@
+openapi: 3.0.3
+info:
+  title: Creative Social Suite API
+  version: 1.0.0
+  description: Contrato de diseños nativos por marca, IA, Canva, publicaciones y flujo de trabajo (aprobaciones, series, lotes, colaboradores, publicación manual y reintento). UI y MCP usan los mismos servicios. Las exportaciones identifican una revisión concreta.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+paths:
+  /brands/{brand}/datasets:
+    parameters:
+      - {"$ref": "#/components/parameters/Brand"}
+    get:
+      operationId: "listStudioDatasets"
+      description: "designs:read. Metadata only, literal search, owner and brand scoped."
+      parameters:
+        - {"name": "page", "in": "query", "schema": {"type": "integer", "minimum": 1, "default": 1}}
+        - {"name": "per_page", "in": "query", "schema": {"type": "integer", "minimum": 1, "maximum": 100, "default": 25}}
+        - {"name": "query", "in": "query", "schema": {"type": "string", "maxLength": 120}}
+      responses:
+        200:
+          description: "Private dataset result"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudioDatasetList"
+        401:
+          description: "Authentication required"
+        403:
+          description: "Missing designs ability"
+        404:
+          $ref: "#/components/responses/NotFound"
+        422:
+          $ref: "#/components/responses/ValidationError"
+    post:
+      operationId: "createStudioDataset"
+      description: "designs:write. Fixed server dataset profile; private immutable revision1. Unknown keys rejected."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudioDatasetCreate"
+      responses:
+        201:
+          description: "Private dataset result"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudioDatasetEnvelope"
+        401:
+          description: "Authentication required"
+        403:
+          description: "Missing designs ability"
+        404:
+          $ref: "#/components/responses/NotFound"
+        422:
+          $ref: "#/components/responses/ValidationError"
+  /brands/{brand}/datasets/{dataset}:
+    parameters:
+      - {"$ref": "#/components/parameters/Brand"}
+      - {"name": "dataset", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}}
+    get:
+      operationId: "getStudioDataset"
+      description: "designs:read. Safe metadata; archived resources retain historical reads."
+      responses:
+        200:
+          description: "Private dataset result"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudioDatasetEnvelope"
+        401:
+          description: "Authentication required"
+        403:
+          description: "Missing designs ability"
+        404:
+          $ref: "#/components/responses/NotFound"
+        422:
+          $ref: "#/components/responses/ValidationError"
+    put:
+      operationId: "replaceStudioDataset"
+      description: "designs:write. Atomic expected revision; archived resource cannot be edited."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudioDatasetReplace"
+      responses:
+        200:
+          description: "Private dataset result"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudioDatasetEnvelope"
+        401:
+          description: "Authentication required"
+        403:
+          description: "Missing designs ability"
+        404:
+          $ref: "#/components/responses/NotFound"
+        422:
+          $ref: "#/components/responses/ValidationError"
+        409:
+          description: "Revision changed; no mutation or orphan"
+    delete:
+      operationId: "archiveStudioDataset"
+      description: "designs:write. Reversible archive, no table revision or file deletion."
+      responses:
+        200:
+          description: "Private dataset result"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudioDatasetEnvelope"
+        401:
+          description: "Authentication required"
+        403:
+          description: "Missing designs ability"
+        404:
+          $ref: "#/components/responses/NotFound"
+        422:
+          $ref: "#/components/responses/ValidationError"
+  /brands/{brand}/datasets/{dataset}/restore:
+    parameters:
+      - {"$ref": "#/components/parameters/Brand"}
+      - {"name": "dataset", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}}
+    post:
+      operationId: "restoreStudioDataset"
+      description: "designs:write. Restore same resource, preserving all immutable revisions."
+      responses:
+        200:
+          description: "Private dataset result"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudioDatasetEnvelope"
+        401:
+          description: "Authentication required"
+        403:
+          description: "Missing designs ability"
+        404:
+          $ref: "#/components/responses/NotFound"
+        422:
+          $ref: "#/components/responses/ValidationError"
+  /brands/{brand}/datasets/{dataset}/revisions:
+    parameters:
+      - {"$ref": "#/components/parameters/Brand"}
+      - {"name": "dataset", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}}
+    get:
+      operationId: "listStudioDatasetRevisions"
+      description: "designs:read. Metadata history only, no private storage paths or table payload."
+      parameters:
+        - {"name": "page", "in": "query", "schema": {"type": "integer", "minimum": 1, "default": 1}}
+        - {"name": "per_page", "in": "query", "schema": {"type": "integer", "minimum": 1, "maximum": 100, "default": 25}}
+      responses:
+        200:
+          description: "Private dataset result"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudioDatasetRevisionList"
+        401:
+          description: "Authentication required"
+        403:
+          description: "Missing designs ability"
+        404:
+          $ref: "#/components/responses/NotFound"
+        422:
+          $ref: "#/components/responses/ValidationError"
+  /brands/{brand}/datasets/{dataset}/table:
+    parameters:
+      - {"$ref": "#/components/parameters/Brand"}
+      - {"name": "dataset", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}}
+    get:
+      operationId: "getStudioDatasetRows"
+      description: "designs:read. Capture immutable revision before I/O. At most6MiB UTF8 row payload; next_offset is exact when fewer than limit fit. No cell truncation or skipped rows."
+      parameters:
+        - {"name": "revision", "in": "query", "schema": {"type": "integer", "minimum": 1}}
+        - {"name": "offset", "in": "query", "schema": {"type": "integer", "minimum": 0, "maximum": 1000, "default": 0}}
+        - {"name": "limit", "in": "query", "schema": {"type": "integer", "minimum": 1, "maximum": 100, "default": 50}}
+      responses:
+        200:
+          description: "Private dataset result"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudioDatasetRows"
+        401:
+          description: "Authentication required"
+        403:
+          description: "Missing designs ability"
+        404:
+          $ref: "#/components/responses/NotFound"
+        422:
+          $ref: "#/components/responses/ValidationError"
+        503:
+          description: "Private snapshot missing or corrupt; no fallback"
+  /brands/{brand}/datasets/import:
+    parameters:
+      - {"$ref": "#/components/parameters/Brand"}
+    post:
+      operationId: "createStudioDatasetFromFile"
+      description: "designs:write. MultipartCSV/TSV25,000,000B or typedJSON52,000,000B. Fixed format budgets; no URLs/paths. JSON rejects header option. XLSX not implemented by this operation."
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/StudioDatasetFileCreate"
+      responses:
+        201:
+          description: "Private dataset result"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudioDatasetEnvelope"
+        401:
+          description: "Authentication required"
+        403:
+          description: "Missing designs ability"
+        404:
+          $ref: "#/components/responses/NotFound"
+        422:
+          $ref: "#/components/responses/ValidationError"
+  /brands/{brand}/datasets/{dataset}/import:
+    parameters:
+      - {"$ref": "#/components/parameters/Brand"}
+      - {"name": "dataset", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}}
+    post:
+      operationId: "replaceStudioDatasetFromFile"
+      description: "designs:write. MultipartCSV/TSV25,000,000B or typedJSON52,000,000B. Fixed format budgets; no URLs/paths. JSON rejects header option. XLSX not implemented by this operation."
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/StudioDatasetFileReplace"
+      responses:
+        200:
+          description: "Private dataset result"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudioDatasetEnvelope"
+        401:
+          description: "Authentication required"
+        403:
+          description: "Missing designs ability"
+        404:
+          $ref: "#/components/responses/NotFound"
+        422:
+          $ref: "#/components/responses/ValidationError"
+        409:
+          description: "Revision changed; no mutation"
+  /brands/{brand}/datasets/{dataset}/export:
+    parameters:
+      - {"$ref": "#/components/parameters/Brand"}
+      - {"name": "dataset", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}}
+    get:
+      operationId: "exportStudioDataset"
+      description: "designs:read. Private streamed attachment. CSV/TSV default spreadsheet prefixes every string including labels; text mode preserves lexical content and may be interpreted by external spreadsheets. JSON preserves types and identities; mode/header options incompatible withJSON are rejected."
+      parameters:
+        - {"name": "revision", "in": "query", "schema": {"type": "integer", "minimum": 1}}
+        - {"name": "format", "in": "query", "schema": {"type": "string", "enum": ["csv", "tsv", "json"], "default": "csv"}}
+        - {"name": "mode", "in": "query", "schema": {"type": "string", "enum": ["spreadsheet", "text"]}}
+        - {"name": "header", "in": "query", "schema": {"type": "boolean", "default": true}}
+      responses:
+        200:
+          description: "PrivateUTF8 attachment with generated filename, no-store and nosniff"
+          content:
+            text/csv:
+              schema:
+                type: "string"
+            text/tab-separated-values:
+              schema:
+                type: "string"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudioDatasetTable"
+        401:
+          description: "Authentication required"
+        403:
+          description: "Missing designs:read"
+        404:
+          $ref: "#/components/responses/NotFound"
+        422:
+          $ref: "#/components/responses/ValidationError"
+        503:
+          description: "Snapshot unavailable or corrupt; no fallback"
+  /designs/{design}/captions:
+    parameters:
+      - $ref: '#/components/parameters/Design'
+    get:
+      operationId: getStudioCaptions
+      description: designs:read. Snapshot revision, paginated cues, maximum100 per page. No implicit conversion.
+      parameters:
+        - { name: revision, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 5001, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+        - { name: query, in: query, schema: { type: string, maxLength: 120 } }
+      responses:
+        '200': { description: Revision, optional caption style, cues and pagination, content: { application/json: { schema: { type: object } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    patch:
+      operationId: mutateStudioCaptions
+      description: designs:write. Atomic optimistic revision. Import, replace, upsert, delete, offset, style or clear. v1 requires explicit temporal activation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CaptionMutation' }
+      responses:
+        '200': { description: Saved revision and paginated caption state, content: { application/json: { schema: { type: object } } } }
+        '409': { description: Revision conflict; no change }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /designs/{design}/captions/export:
+    parameters:
+      - $ref: '#/components/parameters/Design'
+    get:
+      operationId: exportStudioCaptions
+      description: designs:read. Private plain SRT or WebVTT snapshot; no media export job, ASR or translation.
+      parameters:
+        - { name: revision, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: format, in: query, required: true, schema: { type: string, enum: [srt, vtt] } }
+      responses:
+        '200': { description: UTF-8 caption attachment, content: { text/plain: { schema: { type: string } }, text/vtt: { schema: { type: string } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /brands/{brand}/designs:
+    parameters:
+      - $ref: '#/components/parameters/Brand'
+    get:
+      operationId: listStudioDesigns
+      parameters:
+        - name: query
+          in: query
+          schema: { type: string, maxLength: 120 }
+        - name: folder_id
+          in: query
+          schema: { type: integer, minimum: 1 }
+        - name: templates
+          in: query
+          schema: { type: boolean }
+        - name: archived
+          in: query
+          schema: { type: boolean }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+      responses:
+        '200': { description: Diseños de la marca y paginación, content: { application/json: { schema: { type: object } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: createStudioDesign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateDesign' }
+      responses:
+        '201': { description: Diseño creado con revisión inicial, content: { application/json: { schema: { $ref: '#/components/schemas/Design' } } } }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /designs/{design}:
+    parameters:
+      - $ref: '#/components/parameters/Design'
+    get:
+      operationId: getStudioDesign
+      parameters:
+        - name: exports_page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+      responses:
+        '200': { description: Documento, revisión, recursos privados y exportaciones, content: { application/json: { schema: { $ref: '#/components/schemas/Design' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      operationId: updateStudioDesign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateDesign' }
+      responses:
+        '200': { description: Nueva revisión guardada, content: { application/json: { schema: { $ref: '#/components/schemas/Design' } } } }
+        '409': { description: La revisión esperada ya no es actual, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      operationId: archiveStudioDesign
+      responses:
+        '200': { description: Diseño archivado sin borrar versiones ni exportaciones }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /designs/{design}/template:
+    parameters:
+      - $ref: '#/components/parameters/Design'
+    post:
+      operationId: saveStudioTemplate
+      description: Requiere designs:write y revisión actual; no modifica el origen salvo resize/apply-kit. Todas las copias quedan en la misma marca.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TemplateCopy' }
+      responses:
+        '201': { description: Operación completada con documento válido y revisión trazable, content: { application/json: { schema: { $ref: '#/components/schemas/DesignResult' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: Revisión desactualizada }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /designs/{design}/instantiate:
+    parameters:
+      - $ref: '#/components/parameters/Design'
+    post:
+      operationId: instantiateStudioTemplate
+      description: Requiere designs:write y revisión actual; no modifica el origen salvo resize/apply-kit. Todas las copias quedan en la misma marca.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InstantiateTemplate' }
+      responses:
+        '201': { description: Operación completada con documento válido y revisión trazable, content: { application/json: { schema: { $ref: '#/components/schemas/DesignResult' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: Revisión desactualizada }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /designs/{design}/resize:
+    parameters:
+      - $ref: '#/components/parameters/Design'
+    post:
+      operationId: resizeStudioDesign
+      description: Requiere designs:write y revisión actual; no modifica el origen salvo resize/apply-kit. Todas las copias quedan en la misma marca.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ResizeDesign' }
+      responses:
+        '200': { description: Operación completada con documento válido y revisión trazable, content: { application/json: { schema: { $ref: '#/components/schemas/DesignResult' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: Revisión desactualizada }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /designs/{design}/apply-kit:
+    parameters:
+      - $ref: '#/components/parameters/Design'
+    post:
+      operationId: applyStudioBrandKit
+      description: Requiere designs:write y revisión actual; no modifica el origen salvo resize/apply-kit. Todas las copias quedan en la misma marca.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ExpectedRevision' }
+      responses:
+        '200': { description: Operación completada con documento válido y revisión trazable, content: { application/json: { schema: { $ref: '#/components/schemas/DesignResult' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: Revisión desactualizada }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /designs/{design}/variants:
+    parameters:
+      - $ref: '#/components/parameters/Design'
+    post:
+      operationId: createStudioVariants
+      description: Requiere designs:write y revisión actual; no modifica el origen salvo resize/apply-kit. Todas las copias quedan en la misma marca.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DesignVariants' }
+      responses:
+        '201': { description: Operación completada con documento válido y revisión trazable, content: { application/json: { schema: { $ref: '#/components/schemas/DesignResults' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: Revisión desactualizada }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /designs/{design}/duplicate:
+    parameters:
+      - $ref: '#/components/parameters/Design'
+    post:
+      operationId: duplicateStudioDesign
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, maxLength: 255 }
+      responses:
+        '201': { description: Copia independiente, content: { application/json: { schema: { $ref: '#/components/schemas/Design' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /designs/{design}/restore:
+    parameters:
+      - $ref: '#/components/parameters/Design'
+    post:
+      operationId: restoreStudioDesign
+      responses:
+        '200': { description: Diseño restaurado, content: { application/json: { schema: { $ref: '#/components/schemas/Design' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /brands/{brand}/design-folders:
+    parameters:
+      - $ref: '#/components/parameters/Brand'
+    get:
+      operationId: listStudioFolders
+      responses:
+        '200':
+          description: Carpetas de la marca; requiere designs:read
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [folders]
+                properties:
+                  folders: { type: array, items: { $ref: '#/components/schemas/DesignFolder' } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: createStudioFolder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 255 }
+      responses:
+        '201':
+          description: Carpeta creada; requiere designs:write
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [folder]
+                properties:
+                  folder: { $ref: '#/components/schemas/DesignFolder' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /design-folders/{folder}:
+    parameters:
+      - name: folder
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+    delete:
+      operationId: deleteStudioFolder
+      responses:
+        '200':
+          description: Carpeta eliminada; conserva diseños activos y archivados sin asociación; requiere designs:write
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deleted]
+                properties:
+                  deleted: { type: boolean }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /brands/{brand}/brand-kit:
+    parameters:
+      - $ref: '#/components/parameters/Brand'
+    get:
+      operationId: getStudioBrandKit
+      responses:
+        '200': { description: Kit de la marca, content: { application/json: { schema: { $ref: '#/components/schemas/BrandKit' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      operationId: updateStudioBrandKit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BrandKit' }
+      responses:
+        '200': { description: Kit guardado, content: { application/json: { schema: { $ref: '#/components/schemas/BrandKit' } } } }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /brands/{brand}/design-assets:
+    parameters:
+      - $ref: '#/components/parameters/Brand'
+    get:
+      operationId: listStudioAssets
+      responses:
+        '200': { description: Recursos registrados en la marca; las URLs privadas se regeneran al consultar }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: attachStudioAsset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [media_id]
+              properties:
+                media_id: { type: integer, minimum: 1 }
+      responses:
+        '201': { description: Recurso propio listo registrado en la marca }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /designs/{design}/exports:
+    parameters:
+      - $ref: '#/components/parameters/Design'
+    get:
+      operationId: listStudioExports
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        '200':
+          description: Historial paginado de trabajos y resultados de exportación
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [exports, pagination]
+                properties:
+                  exports: { type: array, items: { $ref: '#/components/schemas/Export' } }
+                  pagination: { $ref: '#/components/schemas/PaginationMeta' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: exportStudioDesign
+      description: Exporta una revisión inmutable. MP4/GIF generan un archivo del proyecto con páginas en el orden indicado; frame_times no vacío y transparencia no se admiten para esos formatos. Los handlers audiovisuales del árbol de trabajo usan la cola studio; el diálogo del editor utiliza esos mismos trabajos y ofrece seguimiento y controles. La QA integral del padre T-11 sigue pendiente.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [revision, format, pages]
+              properties:
+                revision: { type: integer, minimum: 1 }
+                format: { type: string, enum: [png, jpeg, webp, svg, pdf, mp4, gif] }
+                pages:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items: { type: string, maxLength: 64 }
+                frame_times:
+                  $ref: '#/components/schemas/FrameTimes'
+                scale: { type: number, minimum: 0.1, maximum: 4, default: 1 }
+                quality: { type: number, minimum: 0.1, maximum: 1, default: 0.94 }
+                transparent: { type: boolean, default: false, description: Transparencia de formatos estáticos compatibles; MP4/GIF requieren false }
+      responses:
+        '202': { description: Trabajo de render aceptado, content: { application/json: { schema: { $ref: '#/components/schemas/Export' } } } }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /design-exports/{export}:
+    parameters:
+      - name: export
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+    get:
+      operationId: getStudioExport
+      responses:
+        '200': { description: Estado y archivos realmente producidos, content: { application/json: { schema: { $ref: '#/components/schemas/Export' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /design-exports/{export}/cancel:
+    parameters:
+      - { name: export, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    post:
+      operationId: cancelStudioExport
+      description: Requiere designs:write y propiedad de exportación/marca. Cancela pending/processing audiovisual y señala su proceso; repetir cancelled es idempotente. Ready devuelve409 y conserva sus medios. Formatos estáticos devuelven422.
+      responses:
+        '200': { description: Estado cancelado sin aceptar respuestas tardías, content: { application/json: { schema: { $ref: '#/components/schemas/Export' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: El resultado listo se conserva; no admite cancelación }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '503': { description: Cancelación registrada pero no se pudo señalizar el proceso; consultar estado y reintentar la señalización }
+  /design-exports/{export}/retry:
+    parameters:
+      - { name: export, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    post:
+      operationId: retryStudioExport
+      description: Requiere designs:write y propiedad de exportación/marca. Solo failed/cancelled audiovisual; conserva revisión/opciones, crea generación nueva y valida los checkpoints antes de reutilizarlos. El ID público no cambia. Pending/processing/ready devuelve409; estáticos422.
+      responses:
+        '202': { description: Nueva generación aceptada, content: { application/json: { schema: { $ref: '#/components/schemas/Export' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: El estado actual no admite reintento }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /design-exports/{export}/post:
+    parameters:
+      - { name: export, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    post:
+      operationId: createPostFromStudioExport
+      description: Requiere designs:write y posts:write. Crea solo un borrador en la marca de la exportación propia ready, usando todos sus medios realmente listos. Nunca programa ni publica. SVG/PDF no son medios publicables.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                text: { type: string, nullable: true, maxLength: 100000 }
+                targets: { type: array, items: { type: object } }
+      responses:
+        '201':
+          description: Borrador propio creado sin publicar
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [post]
+                properties:
+                  post:
+                    type: object
+                    required: [id, status, edit_url]
+                    properties:
+                      id: { type: integer }
+                      status: { type: string, enum: [borrador] }
+                      edit_url: { type: string }
+        '403': { description: Falta alguno de los permisos requeridos }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /brands/{brand}/analytics:
+    parameters:
+      - $ref: '#/components/parameters/Brand'
+    get:
+      operationId: getBrandAnalytics
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: network
+          in: query
+          schema: { type: string }
+      responses:
+        '200': { description: Métricas, comparación y cobertura compatibles con dashboard; nulos preservados }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /brands/{brand}/design-fonts:
+    parameters:
+      - $ref: '#/components/parameters/Brand'
+    get:
+      operationId: listStudioFonts
+      parameters:
+        - { name: query, in: query, schema: { type: string, maxLength: 120 } }
+        - { name: archived, in: query, schema: { type: boolean, default: false } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200': { description: Fuentes privadas de la marca y paginación, content: { application/json: { schema: { $ref: '#/components/schemas/StudioFontPage' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: uploadStudioFont
+      description: Requiere designs:write. Parsea bytes TTF/OTF/WOFF/WOFF2 y normaliza WOFF2 privado; máximo 8 MiB de entrada y 32 MiB sfnt declarado. No acepta URL.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                name: { type: string, minLength: 1, maxLength: 255 }
+      responses:
+        '201': { description: Fuente validada y almacenada, content: { application/json: { schema: { $ref: '#/components/schemas/StudioFontResult' } } } }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '503': { description: Ejecutor tipográfico no disponible }
+  /brands/{brand}/design-fonts/{font}:
+    parameters:
+      - $ref: '#/components/parameters/Brand'
+      - { name: font, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      operationId: getStudioFont
+      responses:
+        '200': { description: Metadata privada sin rutas de disco, content: { application/json: { schema: { $ref: '#/components/schemas/StudioFontResult' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: deleteStudioFont
+      description: Requiere designs:write. Una fuente referenciada por diseños, revisiones o kit no se elimina.
+      responses:
+        '204': { description: Fuente eliminada }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: Fuente usada en un diseño, revisión o kit }
+  /brands/{brand}/design-fonts/{font}/file:
+    parameters:
+      - $ref: '#/components/parameters/Brand'
+      - { name: font, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      operationId: downloadStudioFont
+      responses:
+        '200': { description: Bytes WOFF2 privados, content: { font/woff2: { schema: { type: string, format: binary } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /brands/{brand}/design-fonts/{font}/archive:
+    parameters:
+      - $ref: '#/components/parameters/Brand'
+      - { name: font, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    post:
+      operationId: archiveStudioFont
+      responses:
+        '200': { description: Oculta en catálogo activo conservando bytes y referencias históricas, content: { application/json: { schema: { $ref: '#/components/schemas/StudioFontResult' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /brands/{brand}/design-fonts/{font}/restore:
+    parameters:
+      - $ref: '#/components/parameters/Brand'
+      - { name: font, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    post:
+      operationId: restoreStudioFont
+      responses:
+        '200': { description: Restaura visibilidad de una fuente archivada, content: { application/json: { schema: { $ref: '#/components/schemas/StudioFontResult' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /brands/{brand}/image-jobs:
+    parameters:
+      - $ref: '#/components/parameters/Brand'
+    post:
+      operationId: createStudioImageJob
+      description: Requiere designs:write. Procesa una imagen propia registrada en la marca sin modificar el original. Modelo local verificado; no descarga ni ejecuta código remoto durante el job.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [media_id, operation]
+              properties:
+                media_id: { type: integer, minimum: 1 }
+                operation: { type: string, enum: [remove_background] }
+      responses:
+        '202': { description: Trabajo creado o trabajo activo equivalente recuperado, content: { application/json: { schema: { $ref: '#/components/schemas/StudioImageJobResult' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /brands/{brand}/image-jobs/{job}:
+    parameters:
+      - $ref: '#/components/parameters/Brand'
+      - name: job
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+    get:
+      operationId: getStudioImageJob
+      description: Requiere designs:read y propiedad del trabajo dentro de la marca.
+      responses:
+        '200': { description: Estado y recurso de salida privado cuando está listo, content: { application/json: { schema: { $ref: '#/components/schemas/StudioImageJobResult' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /brands/{brand}/design-audio:
+    parameters:
+      - $ref: '#/components/parameters/Brand'
+    get:
+      operationId: listStudioAudio
+      description: Audio de la marca, diseños read; búsqueda por nombre y paginación.
+      parameters:
+        - { name: query, in: query, schema: { type: string, maxLength: 120 } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+      responses:
+        '200': { description: Recursos de audio y paginación, content: { application/json: { schema: { type: object, properties: { assets: { type: array, items: { $ref: '#/components/schemas/StudioAudioAsset' } }, pagination: { type: object } } } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: startStudioAudioUpload
+      description: designs:write. Inicia una subida binaria privada local o prefirmada single/multipart; no recibe base64 ni URLs de origen.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StartStudioAudioUpload' }
+      responses:
+        '201': { description: Recurso pendiente y ticket de subida, content: { application/json: { schema: { $ref: '#/components/schemas/StudioAudioUpload' } } } }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /brands/{brand}/design-audio/{media}:
+    parameters:
+      - $ref: '#/components/parameters/Brand'
+      - $ref: '#/components/parameters/Media'
+    get:
+      operationId: getStudioAudio
+      description: designs:read; recurso de audio de la misma marca, incluido el estado pendiente o inválido.
+      responses:
+        '200': { description: Estado del audio, content: { application/json: { schema: { $ref: '#/components/schemas/StudioAudioResult' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /brands/{brand}/design-audio/{media}/upload:
+    parameters:
+      - $ref: '#/components/parameters/Brand'
+      - $ref: '#/components/parameters/Media'
+    put:
+      operationId: uploadStudioAudioLocal
+      description: designs:write. Solo modo local, cuerpo binario acotado; sondeo real antes de ready. Una subida terminada no se sobrescribe.
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        '200': { description: Audio sondeado y listo, content: { application/json: { schema: { $ref: '#/components/schemas/StudioAudioResult' } } } }
+        '409': { description: Subida ya terminada o concurrente }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '503': { description: Motor o preparación temporal no disponible; el archivo válido sigue pendiente para reintentar }
+  /brands/{brand}/design-audio/{media}/complete:
+    parameters:
+      - $ref: '#/components/parameters/Brand'
+      - $ref: '#/components/parameters/Media'
+    post:
+      operationId: completeStudioAudioUpload
+      description: designs:write. Finaliza single/multipart, valida bytes/contenido/sondeo y devuelve el estado. Idempotente si ya está listo.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                parts:
+                  type: array
+                  maxItems: 10000
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required: [number, etag]
+                    properties:
+                      number: { type: integer, minimum: 1, maximum: 10000 }
+                      etag: { type: string, maxLength: 200 }
+      responses:
+        '200': { description: Audio validado, content: { application/json: { schema: { $ref: '#/components/schemas/StudioAudioResult' } } } }
+        '409': { description: Finalización concurrente }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '503': { description: Motor o copia privada no disponibles; la subida sigue pendiente }
+  /posts:
+    post: {"operationId": "createPost", "tags": ["Workflow"], "description": "posts:write. Mismo contrato que el compositor web y el MCP (PostRequest). `media` es la media común y `targets[].media` la propia de cada destino (ausente o null = hereda la común).", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PostInput"}}}}, "responses": {"201": {"description": "Publicación creada", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Post"}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:write"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}}}
+  /posts/{post}:
+    parameters: [{"$ref": "#/components/parameters/Post"}]
+    get: {"operationId": "getPost", "tags": ["Workflow"], "description": "posts:read. Una publicación ajena responde 404.", "responses": {"200": {"description": "Publicación", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Post"}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:read"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+    put: {"operationId": "replacePost", "tags": ["Workflow"], "description": "posts:write. Reemplaza la publicación entera con el mismo cuerpo que POST /posts (sin brand_id). Una publicación en vuelo o publicada responde 409.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PostInput"}}}}, "responses": {"200": {"description": "Publicación actualizada", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Post"}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:write"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}, "409": {"description": "Conflicto o transición no permitida", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}}}
+    patch: {"operationId": "updatePost", "tags": ["Workflow"], "description": "posts:write. Fusiona lo enviado sobre el estado actual (destinos y media se envían enteros si se envían) y valida el resultado. Solo `notes` y `campaign_id` también se aceptan en una publicación ya publicada.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PostInput"}}}}, "responses": {"200": {"description": "Publicación actualizada", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Post"}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:write"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}, "409": {"description": "Conflicto o transición no permitida", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}}}
+  /posts/batch:
+    post: {"operationId": "batchPosts", "tags": ["Workflow"], "description": "posts:write (approve y reject exigen posts:approve). Hasta 100 publicaciones; cada elemento se autoriza y ejecuta aparte y devuelve ok o error sin parar el lote. Con `Idempotency-Key` (o `idempotency_key` en el cuerpo) repetir la petición devuelve la misma respuesta sin volver a ejecutar; la cabecera de respuesta `Idempotency-Replayed` indica si fue una repetición. approve y reject exigen `signatures` (id => content_signature) y reject un `comment`.", "parameters": [{"name": "Idempotency-Key", "in": "header", "required": false, "schema": {"type": "string"}}], "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PostBatchInput"}}}}, "responses": {"200": {"description": "Resultado por elemento", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PostBatchResult"}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:write"}, "422": {"$ref": "#/components/responses/ValidationError"}, "429": {"description": "Demasiados lotes"}}}
+  /approvals:
+    get: {"operationId": "listPendingApprovals", "tags": ["Workflow"], "description": "posts:read. Publicaciones pendientes de aprobación que el usuario puede decidir: las suyas y las de marcas donde es aprobador invitado (hasta 200).", "responses": {"200": {"description": "Pendientes", "content": {"application/json": {"schema": {"type": "object", "properties": {"pending": {"type": "array", "items": {"$ref": "#/components/schemas/PostApproval"}}}, "required": ["pending"]}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:read"}}}
+  /posts/{post}/approval/request:
+    parameters: [{"$ref": "#/components/parameters/Post"}]
+    post: {"operationId": "requestPostApproval", "tags": ["Workflow"], "description": "posts:write. Pasa la publicación propia a pendiente (una programada vuelve a borrador); no se programa ni publica hasta que se apruebe. Idempotente.", "responses": {"200": {"description": "Estado de aprobación", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PostApprovalResult"}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:write"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}, "409": {"description": "Conflicto o transición no permitida", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}}}
+  /posts/{post}/approval/approve:
+    parameters: [{"$ref": "#/components/parameters/Post"}]
+    post: {"operationId": "approvePost", "tags": ["Workflow"], "description": "posts:approve (no basta posts:write). Solo el propietario o un aprobador invitado de la marca; otra persona recibe 404. `signature` es la content_signature revisada; si el contenido cambió responde 409. Idempotente.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "properties": {"signature": {"type": "string"}}, "required": ["signature"], "additionalProperties": false}}}}, "responses": {"200": {"description": "Aprobada", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PostApprovalResult"}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:approve"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}, "409": {"description": "Conflicto o transición no permitida", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}}}
+  /posts/{post}/approval/reject:
+    parameters: [{"$ref": "#/components/parameters/Post"}]
+    post: {"operationId": "rejectPost", "tags": ["Workflow"], "description": "posts:approve. Rechaza con un comentario obligatorio (hasta 2000 caracteres): sigue en borrador y el propietario la edita y vuelve a pedir la aprobación.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "properties": {"comment": {"type": "string", "maxLength": 2000}, "signature": {"type": "string"}}, "required": ["comment", "signature"], "additionalProperties": false}}}}, "responses": {"200": {"description": "Rechazada", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PostApprovalResult"}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:approve"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}, "409": {"description": "Conflicto o transición no permitida", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}}}
+  /posts/{post}/manual:
+    parameters: [{"$ref": "#/components/parameters/Post"}]
+    get: {"operationId": "getManualPostContent", "tags": ["Workflow"], "description": "posts:read. Contenido listo para copiar de los destinos manuales (`targets[].manual=true`): texto, media con su enlace de descarga y la red.", "responses": {"200": {"description": "Contenido manual", "content": {"application/json": {"schema": {"type": "object", "properties": {"post_id": {"type": "integer"}, "targets": {"type": "array", "items": {"type": "object", "additionalProperties": true}}}, "required": ["post_id", "targets"]}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:read"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+  /posts/{post}/targets/{target}/manual-published:
+    parameters: [{"$ref": "#/components/parameters/Post"}, {"name": "target", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}}]
+    post: {"operationId": "markManualTargetPublished", "tags": ["Workflow"], "description": "posts:write. Marca como publicado un destino manual que ya publicaste a mano. `url` es opcional y debe empezar por https://. Idempotente.", "requestBody": {"required": false, "content": {"application/json": {"schema": {"type": "object", "properties": {"url": {"type": "string", "format": "uri", "pattern": "^https://"}}, "additionalProperties": false}}}}, "responses": {"200": {"description": "Destino marcado", "content": {"application/json": {"schema": {"type": "object", "properties": {"post": {"$ref": "#/components/schemas/Post"}, "target": {"type": "object", "properties": {"id": {"type": "integer"}, "status": {"type": "string"}, "external_url": {"type": "string", "nullable": true}}}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:write"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}, "409": {"description": "Conflicto o transición no permitida", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}}}
+  /posts/{post}/retry:
+    parameters: [{"$ref": "#/components/parameters/Post"}]
+    post: {"operationId": "retryPost", "tags": ["Workflow"], "description": "posts:write. Reintenta los destinos con error de una publicación propia. Idempotente: lo que ya está en curso, programado o publicado no se toca, así que nunca publica dos veces.", "responses": {"200": {"description": "Reintento", "content": {"application/json": {"schema": {"type": "object", "properties": {"post": {"$ref": "#/components/schemas/Post"}, "retried": {"type": "array", "items": {"type": "integer"}}, "skipped": {"type": "array", "items": {"type": "integer"}}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:write"}, "404": {"$ref": "#/components/responses/NotFound"}, "409": {"description": "Conflicto o transición no permitida", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}}}
+  /series:
+    get: {"operationId": "listPostSeries", "tags": ["Workflow"], "description": "posts:read. Series recurrentes del usuario (hasta 100).", "responses": {"200": {"description": "Series", "content": {"application/json": {"schema": {"type": "object", "properties": {"series": {"type": "array", "items": {"$ref": "#/components/schemas/PostSeries"}}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:read"}}}
+    post: {"operationId": "createPostSeries", "tags": ["Workflow"], "description": "posts:write. Crea una serie recurrente en la zona horaria de la marca y materializa las ocurrencias dentro del horizonte. Las ocurrencias son publicaciones normales.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PostSeriesInput"}}}}, "responses": {"201": {"description": "Serie creada", "content": {"application/json": {"schema": {"type": "object", "properties": {"series": {"$ref": "#/components/schemas/PostSeries"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:write"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}}}
+  /series/{series}:
+    parameters: [{"name": "series", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}}]
+    get: {"operationId": "getPostSeries", "tags": ["Workflow"], "description": "posts:read. Serie con hasta 60 ocurrencias.", "responses": {"200": {"description": "Serie", "content": {"application/json": {"schema": {"type": "object", "properties": {"series": {"$ref": "#/components/schemas/PostSeries"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:read"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+    patch: {"operationId": "updatePostSeries", "tags": ["Workflow"], "description": "posts:write. Cambia las ocurrencias futuras sin editar; una serie cancelada responde 422.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PostSeriesInput"}}}}, "responses": {"200": {"description": "Serie actualizada", "content": {"application/json": {"schema": {"type": "object", "properties": {"series": {"$ref": "#/components/schemas/PostSeries"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:write"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}}}
+    delete: {"operationId": "cancelPostSeries", "tags": ["Workflow"], "description": "posts:write. Cancela la serie y borra las ocurrencias futuras pendientes.", "responses": {"200": {"description": "Serie cancelada", "content": {"application/json": {"schema": {"type": "object", "properties": {"series": {"$ref": "#/components/schemas/PostSeries"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:write"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+  /brands/{brand}/collaborators:
+    parameters: [{"$ref": "#/components/parameters/Brand"}]
+    get: {"operationId": "listBrandCollaborators", "tags": ["Workflow"], "description": "posts:read. Aprobadores invitados de la marca; solo el propietario.", "responses": {"200": {"description": "Colaboradores", "content": {"application/json": {"schema": {"type": "object", "properties": {"collaborators": {"type": "array", "items": {"type": "object", "additionalProperties": true}}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:read"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+    post: {"operationId": "inviteBrandCollaborator", "tags": ["Workflow"], "description": "posts:approve (no basta posts:write). Invita a un aprobador por email. La respuesta es siempre la misma, exista o no una cuenta con ese email.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "properties": {"email": {"type": "string", "format": "email", "maxLength": 255}, "role": {"type": "string", "enum": ["aprobador"], "default": "aprobador"}}, "required": ["email"], "additionalProperties": false}}}}, "responses": {"202": {"description": "Invitación procesada", "content": {"application/json": {"schema": {"type": "object", "properties": {"message": {"type": "string"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:write"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}}}
+  /brands/{brand}/collaborators/{collaborator}:
+    parameters: [{"$ref": "#/components/parameters/Brand"}, {"name": "collaborator", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}}]
+    delete: {"operationId": "revokeBrandCollaborator", "tags": ["Workflow"], "description": "posts:approve (no basta posts:write). Revoca a un aprobador invitado.", "responses": {"200": {"description": "Revocado", "content": {"application/json": {"schema": {"type": "object", "properties": {"revoked": {"type": "boolean"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:write"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+  /brands/{brand}/canva:
+    parameters: [{"$ref": "#/components/parameters/Brand"}]
+    get: {"operationId": "getCanvaStatus", "tags": ["Canva"], "description": "canva:read. Estado de Canva de la marca: `not_configured`, `disconnected`, `expired` o `active`; funciones disponibles según el plan (`features`, cada desactivada con su motivo) y trabajos recientes. La conexión OAuth se hace solo en la web; la API nunca devuelve tokens.", "responses": {"200": {"description": "Estado", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/CanvaState"}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability canva:read"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+  /brands/{brand}/canva/designs:
+    parameters: [{"$ref": "#/components/parameters/Brand"}]
+    get: {"operationId": "listCanvaDesigns", "tags": ["Canva"], "description": "canva:read. Lista o busca los diseños de Canva de la marca conectada, con enlace explícito al editor de Canva. Paginación por `continuation`.", "parameters": [{"name": "query", "in": "query", "schema": {"type": "string", "maxLength": 255}}, {"name": "continuation", "in": "query", "schema": {"type": "string", "maxLength": 500}}], "responses": {"200": {"description": "Diseños de Canva", "content": {"application/json": {"schema": {"type": "object", "additionalProperties": true}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability canva:read"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}, "409": {"description": "La marca no está conectada a Canva o la conexión caducó", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}, "429": {"description": "Límite de Canva"}}}
+  /brands/{brand}/canva/exports:
+    parameters: [{"$ref": "#/components/parameters/Brand"}]
+    post: {"operationId": "startCanvaExport", "tags": ["Canva"], "description": "canva:write. Exporta un diseño de Canva a la biblioteca como recurso con origen Canva (cola `media`). El PDF no entra en la biblioteca: se devuelve solo como enlace temporal de 24 h. Trabajo asíncrono; consúltalo con GET .../canva/jobs/{job}. Nada se compra ni se publica.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "properties": {"design_id": {"type": "string", "pattern": "^[A-Za-z0-9_-]{4,40}$"}, "format": {"type": "string", "enum": ["png", "jpg", "pdf", "mp4"]}, "title": {"type": "string", "maxLength": 255}, "transparent": {"type": "boolean"}}, "required": ["design_id", "format"], "additionalProperties": false}}}}, "responses": {"202": {"description": "Trabajo encolado", "content": {"application/json": {"schema": {"type": "object", "properties": {"job": {"$ref": "#/components/schemas/CanvaJob"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability canva:write"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}, "409": {"description": "La marca no está conectada a Canva o la conexión caducó", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}, "429": {"description": "Límite de trabajos de Canva"}}}
+  /brands/{brand}/canva/uploads:
+    parameters: [{"$ref": "#/components/parameters/Brand"}]
+    post: {"operationId": "startCanvaUpload", "tags": ["Canva"], "description": "canva:write. Envía un recurso de la biblioteca a Canva (cola `media`). Trabajo asíncrono.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "properties": {"media_id": {"type": "integer", "minimum": 1}}, "required": ["media_id"], "additionalProperties": false}}}}, "responses": {"202": {"description": "Trabajo encolado", "content": {"application/json": {"schema": {"type": "object", "properties": {"job": {"$ref": "#/components/schemas/CanvaJob"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability canva:write"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}, "409": {"description": "La marca no está conectada a Canva o la conexión caducó", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}, "429": {"description": "Límite de trabajos de Canva"}}}
+  /brands/{brand}/canva/jobs/{job}:
+    parameters: [{"$ref": "#/components/parameters/Brand"}, {"name": "job", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}}]
+    get: {"operationId": "getCanvaJob", "tags": ["Canva"], "description": "canva:read. Estado de un trabajo de Canva de la marca.", "responses": {"200": {"description": "Trabajo", "content": {"application/json": {"schema": {"type": "object", "properties": {"job": {"$ref": "#/components/schemas/CanvaJob"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability canva:read"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+  /brands/{brand}/ai:
+    parameters: [{"$ref": "#/components/parameters/Brand"}]
+    get: {"operationId": "getStudioAiStatus", "tags": ["Studio AI"], "description": "studio:ai. Proveedores configurados (OpenAI Images, Google), sus operaciones, cuota diaria restante y estado de la IA de texto (`text`). Sin ningún proveedor, `configured` es false.", "responses": {"200": {"description": "Estado", "content": {"application/json": {"schema": {"type": "object", "properties": {"configured": {"type": "boolean"}, "providers": {"type": "array", "items": {"type": "object", "additionalProperties": true}}, "aspects": {"type": "array", "items": {"type": "string"}}, "styles": {"type": "array", "items": {"type": "string"}}, "text": {"type": "object", "properties": {"enabled": {"type": "boolean"}, "remaining": {"type": "integer"}, "vision": {"type": "boolean"}}}}, "additionalProperties": true}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability studio:ai"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+  /brands/{brand}/ai-image-jobs:
+    parameters: [{"$ref": "#/components/parameters/Brand"}]
+    post: {"operationId": "createStudioAiImageJob", "tags": ["Studio AI"], "description": "studio:ai. Encola un trabajo asíncrono de IA (cola `media`) que consume la cuota diaria del proveedor. `idempotency_key` evita duplicar el trabajo. `edit` exige `media_id` propio, `prompt` y `mask` (fracciones 0-1, al menos 2 % de ancho y alto); `outpaint` exige `aspect`. Una petición con propiedades desconocidas se rechaza.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/StudioAiJobInput"}}}}, "responses": {"202": {"description": "Trabajo encolado", "content": {"application/json": {"schema": {"type": "object", "properties": {"job": {"type": "object", "additionalProperties": true}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability studio:ai"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}, "429": {"description": "Cuota diaria agotada o demasiados trabajos activos"}}}
+  /brands/{brand}/ai-image-jobs/{job}:
+    parameters: [{"$ref": "#/components/parameters/Brand"}, {"name": "job", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}}]
+    get: {"operationId": "getStudioAiImageJob", "tags": ["Studio AI"], "description": "studio:ai. Estado del trabajo; con `status: ready` incluye las imágenes generadas como recursos de la biblioteca.", "responses": {"200": {"description": "Trabajo", "content": {"application/json": {"schema": {"type": "object", "properties": {"job": {"type": "object", "additionalProperties": true}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability studio:ai"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+  /brands/{brand}/ai-text:
+    parameters: [{"$ref": "#/components/parameters/Brand"}]
+    post: {"operationId": "studioAiText", "tags": ["Studio AI"], "description": "studio:ai. IA de texto del estudio (asistente de la aplicación, no los proveedores de imagen). `copy` (brief, count) devuelve titulares y textos; `fill_template` (design_id, items) rellena una plantilla; `alt_text` (media_id) describe una imagen propia. Propiedades desconocidas se rechazan.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "properties": {"action": {"type": "string", "enum": ["copy", "fill_template", "alt_text"]}, "brief": {"type": "string"}, "count": {"type": "integer", "minimum": 1}, "design_id": {"type": "integer", "minimum": 1}, "items": {"type": "array", "items": {"type": "object", "additionalProperties": true}}, "media_id": {"type": "integer", "minimum": 1}}, "required": ["action"], "additionalProperties": false}}}}, "responses": {"200": {"description": "Resultado según la acción", "content": {"application/json": {"schema": {"type": "object", "properties": {"result": {"type": "object", "additionalProperties": true}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability studio:ai"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}, "429": {"description": "Cuota agotada"}}}
+  /brands/{brand}/design-assets/{media}/file:
+    parameters: [{"$ref": "#/components/parameters/Brand"}, {"$ref": "#/components/parameters/Media"}]
+    get: {"operationId": "getDesignAssetFile", "tags": ["Studio"], "description": "designs:read. Bytes de un recurso privado de la marca; admite `Range`.", "responses": {"200": {"description": "Fichero", "content": {"*/*": {"schema": {"type": "string", "format": "binary"}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability designs:read"}, "404": {"$ref": "#/components/responses/NotFound"}, "206": {"description": "Rango parcial"}}}
+  /designs/{design}/shared/assets/{media}:
+    parameters: [{"$ref": "#/components/parameters/Design"}, {"$ref": "#/components/parameters/Media"}]
+    get: {"operationId": "getSharedDesignAsset", "tags": ["Studio collaboration"], "description": "designs:read. Recurso de un diseño compartido con el usuario; solo si el diseño lo usa. Admite `Range`.", "responses": {"200": {"description": "Fichero", "content": {"*/*": {"schema": {"type": "string", "format": "binary"}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability designs:read"}, "404": {"$ref": "#/components/responses/NotFound"}, "206": {"description": "Rango parcial"}}}
+  /designs/{design}/shared/fonts/{font}:
+    parameters: [{"$ref": "#/components/parameters/Design"}, {"name": "font", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}}]
+    get: {"operationId": "getSharedDesignFont", "tags": ["Studio collaboration"], "description": "designs:read. Tipografía privada usada por un diseño compartido con el usuario.", "responses": {"200": {"description": "Fichero de fuente", "content": {"*/*": {"schema": {"type": "string", "format": "binary"}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability designs:read"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+  /designs/{design}/collab:
+    parameters: [{"$ref": "#/components/parameters/Design"}]
+    get: {"operationId": "getDesignCollaboration", "tags": ["Studio collaboration"], "description": "designs:read. Estado de colaboración: acceso del usuario, revisión y, solo para el propietario, comparticiones y enlaces; comentarios y versiones.", "responses": {"200": {"description": "Estado", "content": {"application/json": {"schema": {"type": "object", "properties": {"access": {"type": "object", "additionalProperties": true}, "revision": {"type": "integer"}, "shares": {"type": "array", "items": {"$ref": "#/components/schemas/DesignShare"}}, "links": {"type": "array", "items": {"$ref": "#/components/schemas/DesignLink"}}, "comments": {"type": "array", "items": {"$ref": "#/components/schemas/DesignComment"}}, "versions": {"type": "array", "items": {"type": "object", "additionalProperties": true}}}, "additionalProperties": true}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability designs:read"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+  /designs/{design}/shares:
+    parameters: [{"$ref": "#/components/parameters/Design"}]
+    get: {"operationId": "listDesignShares", "tags": ["Studio collaboration"], "description": "designs:read. Comparticiones del diseño; solo el propietario.", "responses": {"200": {"description": "Comparticiones", "content": {"application/json": {"schema": {"type": "object", "properties": {"shares": {"type": "array", "items": {"$ref": "#/components/schemas/DesignShare"}}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability designs:read"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+    post: {"operationId": "shareDesign", "tags": ["Studio collaboration"], "description": "designs:write. Comparte con un usuario registrado por email; la respuesta es siempre la misma, exista o no la cuenta. Solo el propietario.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "properties": {"email": {"type": "string", "format": "email", "maxLength": 255}, "role": {"type": "string", "enum": ["reader", "commenter", "editor"]}}, "required": ["email", "role"], "additionalProperties": false}}}}, "responses": {"202": {"description": "Compartición procesada", "content": {"application/json": {"schema": {"type": "object", "properties": {"message": {"type": "string"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability designs:write"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}}}
+  /designs/{design}/shares/{share}:
+    parameters: [{"$ref": "#/components/parameters/Design"}, {"name": "share", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}}]
+    patch: {"operationId": "updateDesignShare", "tags": ["Studio collaboration"], "description": "designs:write. Cambia el rol de una compartición.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "properties": {"role": {"type": "string", "enum": ["reader", "commenter", "editor"]}}, "required": ["role"], "additionalProperties": false}}}}, "responses": {"200": {"description": "Compartición", "content": {"application/json": {"schema": {"type": "object", "properties": {"share": {"$ref": "#/components/schemas/DesignShare"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability designs:write"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}}}
+    delete: {"operationId": "revokeDesignShare", "tags": ["Studio collaboration"], "description": "designs:write. Revoca una compartición.", "responses": {"200": {"description": "Revocada", "content": {"application/json": {"schema": {"type": "object", "properties": {"revoked": {"type": "boolean"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability designs:write"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+  /designs/{design}/links:
+    parameters: [{"$ref": "#/components/parameters/Design"}]
+    get: {"operationId": "listDesignLinks", "tags": ["Studio collaboration"], "description": "designs:read. Enlaces públicos del diseño; no devuelven el token.", "responses": {"200": {"description": "Enlaces", "content": {"application/json": {"schema": {"type": "object", "properties": {"links": {"type": "array", "items": {"$ref": "#/components/schemas/DesignLink"}}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability designs:read"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+    post: {"operationId": "createDesignLink", "tags": ["Studio collaboration"], "description": "designs:write. Crea un enlace de lectura o comentario; el token se devuelve una sola vez. La caducidad debe ser futura y no superar un año. Hay un máximo de enlaces activos por diseño.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "properties": {"role": {"type": "string", "enum": ["reader", "commenter"]}, "expires_at": {"type": "string", "format": "date-time", "nullable": true}}, "required": ["role"], "additionalProperties": false}}}}, "responses": {"201": {"description": "Enlace creado", "content": {"application/json": {"schema": {"type": "object", "properties": {"link": {"$ref": "#/components/schemas/DesignLink"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability designs:write"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}}}
+  /designs/{design}/links/{link}:
+    parameters: [{"$ref": "#/components/parameters/Design"}, {"name": "link", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}}]
+    delete: {"operationId": "revokeDesignLink", "tags": ["Studio collaboration"], "description": "designs:write. Revoca un enlace público.", "responses": {"200": {"description": "Enlace revocado", "content": {"application/json": {"schema": {"type": "object", "properties": {"link": {"$ref": "#/components/schemas/DesignLink"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability designs:write"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+  /designs/{design}/comments:
+    parameters: [{"$ref": "#/components/parameters/Design"}]
+    get: {"operationId": "listDesignComments", "tags": ["Studio collaboration"], "description": "designs:read. Comentarios del diseño, con lo que el usuario puede hacer con cada uno (`can_resolve`, `can_delete`).", "responses": {"200": {"description": "Comentarios", "content": {"application/json": {"schema": {"type": "object", "properties": {"comments": {"type": "array", "items": {"$ref": "#/components/schemas/DesignComment"}}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability designs:read"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+    post: {"operationId": "addDesignComment", "tags": ["Studio collaboration"], "description": "designs:write. Comenta (rol comentarista, editor o propietario). Hay un máximo de comentarios abiertos por diseño.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "properties": {"body": {"type": "string", "maxLength": 2000}, "page_id": {"type": "string", "maxLength": 64, "nullable": true}, "element_id": {"type": "string", "maxLength": 64, "nullable": true}, "parent_id": {"type": "integer", "minimum": 1, "nullable": true}}, "required": ["body"], "additionalProperties": false}}}}, "responses": {"201": {"description": "Comentario creado", "content": {"application/json": {"schema": {"type": "object", "properties": {"comment": {"$ref": "#/components/schemas/DesignComment"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability designs:write"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}}}
+  /designs/{design}/comments/{comment}:
+    parameters: [{"$ref": "#/components/parameters/Design"}, {"name": "comment", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}}]
+    delete: {"operationId": "deleteDesignComment", "tags": ["Studio collaboration"], "description": "designs:write. El propietario borra cualquiera; editor y comentarista, los suyos.", "responses": {"200": {"description": "Borrado", "content": {"application/json": {"schema": {"type": "object", "properties": {"deleted": {"type": "boolean"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability designs:write"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+  /designs/{design}/comments/{comment}/resolve:
+    parameters: [{"$ref": "#/components/parameters/Design"}, {"name": "comment", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}}]
+    post: {"operationId": "resolveDesignComment", "tags": ["Studio collaboration"], "description": "designs:write. Resuelve un hilo.", "responses": {"200": {"description": "Resuelto", "content": {"application/json": {"schema": {"type": "object", "properties": {"resolved": {"type": "boolean"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability designs:write"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+  /designs/{design}/comments/{comment}/reopen:
+    parameters: [{"$ref": "#/components/parameters/Design"}, {"name": "comment", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}}]
+    post: {"operationId": "reopenDesignComment", "tags": ["Studio collaboration"], "description": "designs:write. Reabre un hilo resuelto.", "responses": {"200": {"description": "Reabierto", "content": {"application/json": {"schema": {"type": "object", "properties": {"resolved": {"type": "boolean"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability designs:write"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+  /designs/{design}/copies:
+    parameters: [{"$ref": "#/components/parameters/Design"}]
+    post: {"operationId": "saveDesignCopy", "tags": ["Studio collaboration"], "description": "designs:write. Guarda una copia propia de un diseño al que se tiene acceso (p. ej. compartido como lector).", "requestBody": {"required": false, "content": {"application/json": {"schema": {"type": "object", "properties": {"name": {"type": "string"}, "document": {"type": "object", "additionalProperties": true}}}}}}, "responses": {"201": {"description": "Copia creada", "content": {"application/json": {"schema": {"type": "object", "properties": {"design": {"type": "object", "additionalProperties": true}, "edit_url": {"type": "string"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability designs:write"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}}}
+  /designs/{design}/versions:
+    parameters: [{"$ref": "#/components/parameters/Design"}]
+    get: {"operationId": "listDesignVersions", "tags": ["Studio collaboration"], "description": "designs:read. Versiones del diseño y revisión actual.", "responses": {"200": {"description": "Versiones", "content": {"application/json": {"schema": {"type": "object", "properties": {"versions": {"type": "array", "items": {"type": "object", "additionalProperties": true}}, "revision": {"type": "integer"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability designs:read"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+  /designs/{design}/versions/{version}/restore:
+    parameters: [{"$ref": "#/components/parameters/Design"}, {"name": "version", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}}]
+    post: {"operationId": "restoreDesignVersion", "tags": ["Studio collaboration"], "description": "designs:write. Restaura una versión; `revision` es la revisión esperada y un conflicto responde 409.", "requestBody": {"required": false, "content": {"application/json": {"schema": {"type": "object", "properties": {"revision": {"type": "integer", "minimum": 1}}}}}}, "responses": {"200": {"description": "Diseño restaurado", "content": {"application/json": {"schema": {"type": "object", "properties": {"design": {"type": "object", "additionalProperties": true}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability designs:write"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}, "409": {"description": "Conflicto o transición no permitida", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}}}
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer }
+  parameters:
+    Brand: { name: brand, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    Design: { name: design, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    Media: { name: media, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    Post: { name: post, in: path, required: true, schema: { type: integer, minimum: 1 } }
+  responses:
+    NotFound:
+      description: Recurso inexistente o ajeno
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    ValidationError:
+      description: Documento, permiso de recurso o parámetros incompatibles
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    StudioDatasetColumn:
+      type: "object"
+      additionalProperties: false
+      properties:
+        id:
+          type: "string"
+          pattern: "^[A-Za-z0-9_-]{1,64}$"
+        label:
+          type: "string"
+          maxLength: 500
+      required:
+        - "id"
+        - "label"
+    StudioDatasetRow:
+      type: "object"
+      additionalProperties: false
+      properties:
+        id:
+          type: "string"
+          pattern: "^[A-Za-z0-9_-]{1,64}$"
+        values:
+          type: "array"
+          minItems: 1
+          maxItems: 100
+          items:
+            oneOf:
+              - {"type": "string", "maxLength": 10000}
+              - {"type": "number"}
+              - {"type": "string", "nullable": true, "enum": [null]}
+      required:
+        - "id"
+        - "values"
+    StudioDatasetTable:
+      type: "object"
+      additionalProperties: false
+      properties:
+        columns:
+          type: "array"
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/StudioDatasetColumn"
+        rows:
+          type: "array"
+          maxItems: 1000
+          items:
+            $ref: "#/components/schemas/StudioDatasetRow"
+      required:
+        - "columns"
+        - "rows"
+    StudioDataset:
+      type: "object"
+      additionalProperties: false
+      properties:
+        id:
+          type: "integer"
+          minimum: 1
+        brand_id:
+          type: "integer"
+          minimum: 1
+        name:
+          type: "string"
+          minLength: 1
+          maxLength: 255
+        revision:
+          type: "integer"
+          minimum: 1
+        row_count:
+          type: "integer"
+          minimum: 0
+          maximum: 1000
+        column_count:
+          type: "integer"
+          minimum: 1
+          maximum: 100
+        archived_at:
+          type: "string"
+          format: "date-time"
+          nullable: true
+        created_at:
+          type: "string"
+          format: "date-time"
+        updated_at:
+          type: "string"
+          format: "date-time"
+      required:
+        - "id"
+        - "brand_id"
+        - "name"
+        - "revision"
+        - "row_count"
+        - "column_count"
+        - "archived_at"
+        - "created_at"
+        - "updated_at"
+    StudioDatasetRevision:
+      type: "object"
+      additionalProperties: false
+      properties:
+        id:
+          type: "integer"
+          minimum: 1
+        dataset_id:
+          type: "integer"
+          minimum: 1
+        brand_id:
+          type: "integer"
+          minimum: 1
+        revision:
+          type: "integer"
+          minimum: 1
+        name:
+          type: "string"
+          maxLength: 255
+        row_count:
+          type: "integer"
+          minimum: 0
+          maximum: 1000
+        column_count:
+          type: "integer"
+          minimum: 1
+          maximum: 100
+        sha256:
+          type: "string"
+          pattern: "^[a-f0-9]{64}$"
+        json_bytes:
+          type: "integer"
+          minimum: 1
+          maximum: 52000000
+        created_at:
+          type: "string"
+          format: "date-time"
+      required:
+        - "id"
+        - "dataset_id"
+        - "brand_id"
+        - "revision"
+        - "name"
+        - "row_count"
+        - "column_count"
+        - "sha256"
+        - "json_bytes"
+        - "created_at"
+    StudioDatasetPagination:
+      type: "object"
+      additionalProperties: false
+      properties:
+        current_page:
+          type: "integer"
+          minimum: 1
+        per_page:
+          type: "integer"
+          minimum: 1
+          maximum: 100
+        total:
+          type: "integer"
+          minimum: 0
+        last_page:
+          type: "integer"
+          minimum: 1
+        next_page:
+          type: "integer"
+          minimum: 1
+          nullable: true
+      required:
+        - "current_page"
+        - "per_page"
+        - "total"
+        - "last_page"
+        - "next_page"
+    StudioDatasetEnvelope:
+      type: "object"
+      additionalProperties: false
+      properties:
+        dataset:
+          $ref: "#/components/schemas/StudioDataset"
+      required:
+        - "dataset"
+    StudioDatasetList:
+      type: "object"
+      additionalProperties: false
+      properties:
+        datasets:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/StudioDataset"
+        pagination:
+          $ref: "#/components/schemas/StudioDatasetPagination"
+      required:
+        - "datasets"
+        - "pagination"
+    StudioDatasetRevisionList:
+      type: "object"
+      additionalProperties: false
+      properties:
+        revisions:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/StudioDatasetRevision"
+        pagination:
+          $ref: "#/components/schemas/StudioDatasetPagination"
+      required:
+        - "revisions"
+        - "pagination"
+    StudioDatasetCreate:
+      type: "object"
+      additionalProperties: false
+      properties:
+        name:
+          type: "string"
+          minLength: 1
+          maxLength: 255
+        table:
+          $ref: "#/components/schemas/StudioDatasetTable"
+      required:
+        - "name"
+        - "table"
+    StudioDatasetReplace:
+      type: "object"
+      additionalProperties: false
+      properties:
+        name:
+          type: "string"
+          minLength: 1
+          maxLength: 255
+        table:
+          $ref: "#/components/schemas/StudioDatasetTable"
+        revision:
+          type: "integer"
+          minimum: 1
+      required:
+        - "name"
+        - "table"
+        - "revision"
+    StudioDatasetFileCreate:
+      type: "object"
+      additionalProperties: false
+      properties:
+        name:
+          type: "string"
+          minLength: 1
+          maxLength: 255
+        format:
+          type: "string"
+          enum:
+            - "csv"
+            - "tsv"
+            - "json"
+        header:
+          type: "boolean"
+          default: true
+        file:
+          type: "string"
+          format: "binary"
+      required:
+        - "name"
+        - "format"
+        - "file"
+    StudioDatasetFileReplace:
+      type: "object"
+      additionalProperties: false
+      properties:
+        name:
+          type: "string"
+          minLength: 1
+          maxLength: 255
+        format:
+          type: "string"
+          enum:
+            - "csv"
+            - "tsv"
+            - "json"
+        header:
+          type: "boolean"
+          default: true
+        file:
+          type: "string"
+          format: "binary"
+        revision:
+          type: "integer"
+          minimum: 1
+      required:
+        - "name"
+        - "format"
+        - "file"
+        - "revision"
+    StudioDatasetRows:
+      type: "object"
+      additionalProperties: false
+      properties:
+        dataset:
+          $ref: "#/components/schemas/StudioDataset"
+        revision:
+          type: "integer"
+          minimum: 1
+        sha256:
+          type: "string"
+          pattern: "^[a-f0-9]{64}$"
+        columns:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/StudioDatasetColumn"
+        rows:
+          type: "array"
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/StudioDatasetRow"
+        pagination:
+          type: "object"
+          additionalProperties: false
+          properties:
+            offset:
+              type: "integer"
+              minimum: 0
+              maximum: 1000
+            limit:
+              type: "integer"
+              minimum: 1
+              maximum: 100
+            total:
+              type: "integer"
+              minimum: 0
+              maximum: 1000
+            next_offset:
+              type: "integer"
+              minimum: 0
+              maximum: 1000
+              nullable: true
+          required:
+            - "offset"
+            - "limit"
+            - "total"
+            - "next_offset"
+      required:
+        - "dataset"
+        - "revision"
+        - "sha256"
+        - "columns"
+        - "rows"
+        - "pagination"
+    StartStudioAudioUpload:
+      type: object
+      additionalProperties: false
+      required: [name, mime, size]
+      properties:
+        name: { type: string, maxLength: 255 }
+        mime: { type: string, enum: [audio/mpeg, audio/wav, audio/x-wav, audio/mp4, audio/x-m4a, audio/aac, audio/ogg] }
+        size: { type: integer, minimum: 1, maximum: 104857600 }
+    StudioAudioAsset:
+      type: object
+      required: [id, name, kind, mime, size, status, duration, audio_codec, preview_url]
+      properties:
+        id: { type: integer, minimum: 1 }
+        name: { type: string }
+        kind: { type: string, enum: [audio] }
+        mime: { type: string }
+        size: { type: integer }
+        status: { type: string, enum: [pendiente, listo, invalido] }
+        duration: { type: number, nullable: true, minimum: 0, maximum: 3600 }
+        audio_codec: { type: string, nullable: true }
+        preview_url: { type: string, nullable: true, description: Proxy privado de recursos de la misma marca; requiere designs:read en API }
+    StudioAudioResult:
+      type: object
+      required: [asset]
+      properties:
+        asset: { $ref: '#/components/schemas/StudioAudioAsset' }
+    StudioAudioUpload:
+      type: object
+      required: [asset, upload, complete_url]
+      properties:
+        asset: { $ref: '#/components/schemas/StudioAudioAsset' }
+        upload:
+          type: object
+          required: [mode]
+          properties:
+            mode: { type: string, enum: [local, single, multipart] }
+            url: { type: string }
+            headers: { type: object, additionalProperties: { type: string } }
+            part_size: { type: integer }
+            parts: { type: array, items: { type: object } }
+        complete_url: { type: string }
+    StudioImageJobResult:
+      type: object
+      required: [job]
+      properties:
+        job: { $ref: '#/components/schemas/StudioImageJob' }
+    StudioImageJob:
+      type: object
+      required: [id, brand_id, source_media_id, operation, status, model, model_sha256, output_asset, error, error_code]
+      properties:
+        id: { type: integer }
+        brand_id: { type: integer }
+        source_media_id: { type: integer }
+        operation: { type: string, enum: [remove_background] }
+        status: { type: string, enum: [queued, processing, ready, failed] }
+        model: { type: string }
+        model_sha256: { type: string, pattern: '^[a-f0-9]{64}$' }
+        output_asset: { type: object, nullable: true, description: Media privada lista de la misma marca con id y preview_url; dimensiones y PNG verificados por el servidor }
+        error: { type: string, nullable: true }
+        error_code: { type: string, nullable: true }
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+        errors: { type: object, additionalProperties: true }
+    ElementTiming:
+      type: object
+      additionalProperties: false
+      required: [start, duration]
+      properties:
+        start: { type: number, minimum: 0, maximum: 3600 }
+        duration: { type: number, exclusiveMinimum: 0, maximum: 3600 }
+    GainPoint:
+      type: object
+      additionalProperties: false
+      required: [time, value]
+      properties:
+        time: { type: number, minimum: 0, maximum: 360000 }
+        value: { type: number, minimum: 0, maximum: 1 }
+    PageTransition:
+      type: object
+      additionalProperties: false
+      required: [type, duration]
+      properties:
+        type: { type: string, enum: [cut, fade, slide_left, slide_right] }
+        duration: { type: number, minimum: 0, maximum: 1800 }
+    AudioTrack:
+      type: object
+      additionalProperties: false
+      required: [id, asset_id, start, duration]
+      properties:
+        id: { type: string, minLength: 1, maxLength: 64 }
+        asset_id: { type: integer, minimum: 1 }
+        start: { type: number, minimum: 0, maximum: 360000 }
+        duration: { type: number, exclusiveMinimum: 0, maximum: 360000 }
+        trimStart: { type: number, minimum: 0, maximum: 86400 }
+        trimEnd: { type: [number, 'null'], exclusiveMinimum: 0, maximum: 86400 }
+        sourceOffset: { type: number, minimum: 0, maximum: 86400 }
+        playbackRate: { type: number, minimum: 0.25, maximum: 4 }
+        loop: { type: boolean }
+        volume: { type: number, minimum: 0, maximum: 1 }
+        muted: { type: boolean }
+        gainPoints:
+          type: array
+          minItems: 2
+          maxItems: 64
+          items: { $ref: '#/components/schemas/GainPoint' }
+    CaptionCue:
+      type: object
+      additionalProperties: false
+      required: [id, start, end, text]
+      properties:
+        id: { type: string, pattern: '^[A-Za-z0-9_-]{1,64}$' }
+        start: { type: number, minimum: 0 }
+        end: { type: number, minimum: 0 }
+        text: { type: string, minLength: 1, maxLength: 500 }
+    CaptionStyle:
+      type: object
+      additionalProperties: false
+      properties:
+        fontFamily: { type: string, maxLength: 100 }
+        font_id: { type: integer, minimum: 1 }
+        fontSize: { type: number, minimum: 1, maximum: 1000 }
+        fontWeight: { type: string, enum: [normal, bold] }
+        fontStyle: { type: string, enum: [normal, italic] }
+        fill: { type: string, pattern: '^#[a-fA-F0-9]{6}$' }
+        background: { type: string, pattern: '^#[a-fA-F0-9]{6}$' }
+        stroke: { type: string, pattern: '^#[a-fA-F0-9]{6}$' }
+        strokeWidth: { type: number, minimum: 0, maximum: 20 }
+        textAlign: { type: string, enum: [left, center, right] }
+        lineHeight: { type: number, minimum: 0.5, maximum: 5 }
+        position: { type: string, enum: [top, center, bottom] }
+        margin: { type: number, minimum: 0, maximum: 0.25 }
+    Captions:
+      type: object
+      additionalProperties: false
+      required: [style, cues]
+      properties:
+        style: { $ref: '#/components/schemas/CaptionStyle' }
+        cues: { type: array, maxItems: 5000, items: { $ref: '#/components/schemas/CaptionCue' } }
+    CaptionMutation:
+      type: object
+      additionalProperties: false
+      required: [revision, action]
+      properties:
+        revision: { type: integer, minimum: 1 }
+        action: { type: string, enum: [import, replace, upsert, delete, offset, style, clear] }
+        activate_temporal: { type: boolean }
+        format: { type: string, enum: [srt, vtt] }
+        text: { type: string, description: UTF-8 input at most512KiB; plain text only }
+        mode: { type: string, enum: [replace, append], default: append, description: Import adds cues by default; replace discards the previous track only when explicitly selected }
+        captions: { $ref: '#/components/schemas/Captions' }
+        cue: { $ref: '#/components/schemas/CaptionCue' }
+        ids: { type: array, maxItems: 5000, items: { type: string } }
+        seconds: { type: number }
+        style: { $ref: '#/components/schemas/CaptionStyle' }
+    Timeline:
+      type: object
+      additionalProperties: false
+      required: [fps, audio_tracks]
+      properties:
+        captions: { $ref: '#/components/schemas/Captions' }
+        fps: { type: integer, enum: [12, 15, 24, 25, 30, 50, 60] }
+        audio_tracks:
+          type: array
+          maxItems: 64
+          items: { $ref: '#/components/schemas/AudioTrack' }
+    Document:
+      type: object
+      required: [schema_version, width, height, pages]
+      properties:
+        schema_version: { type: integer, enum: [1, 2] }
+        timeline: { $ref: '#/components/schemas/Timeline' }
+        width: { type: integer, minimum: 40, maximum: 8000 }
+        height: { type: integer, minimum: 40, maximum: 8000 }
+        pages:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            type: object
+            required: [id, background, elements]
+            properties:
+              id: { type: string, maxLength: 64 }
+              name: { type: string, maxLength: 255 }
+              notes: { type: string, maxLength: 20000, description: 'Optional plain presenter notes; Unicode codepoints; whitespace and line endings preserved exactly.' }
+              background: { oneOf: [{ type: string }, { type: object }] }
+              duration: { type: number, minimum: 0.1, maximum: 3600 }
+              transition: { $ref: '#/components/schemas/PageTransition' }
+              elements:
+                type: array
+                maxItems: 500
+                items:
+                  type: object
+                  required: [id, type, x, y, width, height]
+                  properties:
+                    id: { type: string, maxLength: 64 }
+                    type: { type: string, enum: [text, rect, ellipse, triangle, line, path, image, video, group, chart] }
+                    x: { type: number }
+                    y: { type: number }
+                    timing: { $ref: '#/components/schemas/ElementTiming' }
+                    playbackRate: { type: number, minimum: 0.25, maximum: 4 }
+                    sourceOffset: { type: number, minimum: 0, maximum: 86400 }
+                    loop: { type: boolean }
+                    gainPoints:
+                      type: array
+                      minItems: 2
+                      maxItems: 64
+                      items: { $ref: '#/components/schemas/GainPoint' }
+                    width: { type: number, minimum: 0 }
+                    height: { type: number, minimum: 0 }
+                    asset_id: { type: integer, minimum: 1 }
+                    chart: { $ref: '#/components/schemas/ChartSpec' }
+                    elements: { type: array, items: { type: object } }
+    CreateDesign:
+      type: object
+      required: [name, document]
+      properties:
+        name: { type: string, maxLength: 255 }
+        document: { $ref: '#/components/schemas/Document' }
+        folder_id: { type: integer, nullable: true, minimum: 1 }
+        is_template: { type: boolean }
+    UpdateDesign:
+      allOf:
+        - $ref: '#/components/schemas/CreateDesign'
+        - type: object
+          required: [revision]
+          properties:
+            revision: { type: integer, minimum: 1 }
+            kit_revision: { type: integer, minimum: 1, description: Referencia opcional a una revisión existente del mismo diseño para restaurar la identidad junto al documento al deshacer; no acepta estilos arbitrarios }
+    PaginationMeta:
+      type: object
+      required: [current_page, last_page, per_page, total, has_more]
+      properties:
+        current_page: { type: integer, minimum: 1 }
+        last_page: { type: integer, minimum: 1 }
+        per_page: { type: integer, minimum: 1, maximum: 100 }
+        total: { type: integer, minimum: 0 }
+        has_more: { type: boolean }
+    Design:
+      allOf:
+        - $ref: '#/components/schemas/CreateDesign'
+        - type: object
+          required: [id, brand_id, revision]
+          properties:
+            id: { type: integer }
+            brand_id: { type: integer }
+            revision: { type: integer, minimum: 1 }
+            template_fields: { type: array, items: { type: string, pattern: '^[A-Za-z_][A-Za-z0-9_]{0,63}$' }, description: Campos ASCII únicos ordenados encontrados en textos anidados; no se incluyen en el listado ligero }
+            kit_reference: { type: object, nullable: true, description: Referencia de paleta/fuentes/logos al crear o aplicar el kit; no admite entradas del cliente }
+            fonts: { type: array, items: { $ref: '#/components/schemas/StudioFont' }, description: Tipografías privadas usadas por el documento, incluidas las archivadas; URLs Bearer en API y MCP }
+            exports: { type: array, items: { $ref: '#/components/schemas/Export' } }
+            exports_pagination: { $ref: '#/components/schemas/PaginationMeta' }
+    DesignFolder:
+      type: object
+      required: [id, brand_id, name]
+      properties:
+        id: { type: integer }
+        brand_id: { type: integer }
+        name: { type: string, maxLength: 255 }
+    BrandKit:
+      type: object
+      properties:
+        palette: { type: array, maxItems: 50, items: { type: string } }
+        fonts: { type: array, maxItems: 50, items: { type: string, maxLength: 100 } }
+        font_ids: { type: array, maxItems: 50, description: IDs opcionales alineados con fonts; null indica familia local, items: { type: integer, nullable: true, minimum: 1 } }
+        logos: { type: array, maxItems: 30, items: { type: integer, minimum: 1 } }
+        guidelines: { type: string, nullable: true, maxLength: 10000 }
+        voice: { type: string, nullable: true, maxLength: 5000 }
+    Export:
+      type: object
+      required: [id, design_id, revision, status, format]
+      properties:
+        id: { type: integer }
+        design_id: { type: integer }
+        revision: { type: integer }
+        status: { type: string, enum: [pending, processing, ready, failed, cancelled] }
+        format: { type: string, enum: [png, jpeg, webp, svg, pdf, mp4, gif] }
+        pages: { type: array, items: { type: string } }
+        media_ids: { type: array, nullable: true, items: { type: integer } }
+        options: { type: object, nullable: true }
+        error: { type: string, nullable: true }
+        download_url: { type: string, nullable: true, description: URL firmada de descarga válida durante 10 minutos; null hasta disponer de artefacto listo }
+        progress: { $ref: '#/components/schemas/ExportProgress' }
+        can_cancel: { type: boolean, description: Solo audiovisual pending/processing }
+        can_retry: { type: boolean, description: Solo audiovisual failed/cancelled }
+    ExportProgress:
+      type: object
+      nullable: true
+      description: Progreso por checkpoints aceptados de la generación actual; null en exportaciones estáticas. No contiene rutas, IDs privados de generación/lease, manifiestos ni perfiles PCM.
+      required: [phase, completed, total, percent]
+      properties:
+        phase: { type: string, enum: [plan, verify, snapshot, normalize, render, mix, assemble, register, done, failed, cancelled] }
+        completed: { type: integer, minimum: 0 }
+        total: { type: integer, minimum: 1 }
+        percent: { type: number, minimum: 0, maximum: 100 }
+    FrameTimes:
+      type: array
+      maxItems: 100
+      description: Instantes locales por página para exportaciones estáticas de documento v2. Cada page_id debe estar seleccionado y aparecer una sola vez; time es finito, mayor o igual a cero y menor que la duración de esa página. Las páginas omitidas usan cero. No aplica transiciones entre páginas ni audio a formatos estáticos. Un documento v1 admite solamente una lista vacía o ausencia, conservando su póster anterior.
+      items:
+        type: object
+        additionalProperties: false
+        required: [page_id, time]
+        properties:
+          page_id: { type: string, minLength: 1, maxLength: 64 }
+          time: { type: number, minimum: 0, maximum: 3600, exclusiveMaximum: true }
+    ExpectedRevision:
+      type: object
+      additionalProperties: false
+      required: [revision]
+      properties:
+        revision: { type: integer, minimum: 1 }
+    TemplateCopy:
+      type: object
+      additionalProperties: false
+      required: [revision]
+      properties:
+        revision: { type: integer, minimum: 1 }
+        name: { type: string, minLength: 1, maxLength: 255 }
+    ResizeMode:
+      type: string
+      enum: [canvas, contain, cover]
+      default: contain
+      description: canvas cambia solo el lienzo; contain/cover escalan uniformemente los objetos raíz y centran, preservando grupos, tipografía, trayectorias y recortes.
+    TemplateFields:
+      type: object
+      maxProperties: 100
+      additionalProperties: { type: string, maxLength: 10000 }
+      description: Todas y solo las claves ASCII de tokens {{key}} presentes en texto; sustitución literal simultánea, sin HTML ni evaluación recursiva. El texto final y el documento conservan sus límites.
+    InstantiateTemplate:
+      type: object
+      additionalProperties: false
+      required: [revision]
+      properties:
+        revision: { type: integer, minimum: 1 }
+        name: { type: string, minLength: 1, maxLength: 255 }
+        fields: { $ref: '#/components/schemas/TemplateFields' }
+        apply_brand_kit: { type: boolean, default: false }
+        width: { type: integer, minimum: 40, maximum: 8000 }
+        height: { type: integer, minimum: 40, maximum: 8000 }
+        mode: { $ref: '#/components/schemas/ResizeMode' }
+      description: Solo plantillas. width y height se proporcionan juntas o se omiten. Copia independiente sin modificar plantilla; IDs nuevos, revisión inicial 1. Kit aplica slots de referencia al actual; si no hay referencias usa primera aparición de colores/fuentes. Logos solo reemplazan IDs que eran logos. Kit vacío solicitado devuelve 422.
+    ResizeDesign:
+      type: object
+      additionalProperties: false
+      required: [revision, width, height]
+      properties:
+        revision: { type: integer, minimum: 1 }
+        width: { type: integer, minimum: 40, maximum: 8000 }
+        height: { type: integer, minimum: 40, maximum: 8000 }
+        mode: { $ref: '#/components/schemas/ResizeMode' }
+    DesignVariant:
+      type: object
+      additionalProperties: false
+      required: [width, height]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 255 }
+        width: { type: integer, minimum: 40, maximum: 8000 }
+        height: { type: integer, minimum: 40, maximum: 8000 }
+        mode: { $ref: '#/components/schemas/ResizeMode' }
+    DesignVariants:
+      type: object
+      additionalProperties: false
+      required: [revision, variants]
+      properties:
+        revision: { type: integer, minimum: 1 }
+        fields: { $ref: '#/components/schemas/TemplateFields' }
+        apply_brand_kit: { type: boolean, default: false }
+        variants: { type: array, minItems: 1, maxItems: 12, items: { $ref: '#/components/schemas/DesignVariant' } }
+      description: Variantes de diseño o plantilla; se exigen los campos presentes. Transacción total, máximo 12 documentos, 8 MiB UTF-8 acumulados y 20000 elementos acumulados. Fuente intacta, IDs independientes, revisión inicial 1, is_template false.
+    DesignResult:
+      type: object
+      required: [design]
+      properties:
+        design: { $ref: '#/components/schemas/Design' }
+    DesignResults:
+      type: object
+      required: [designs]
+      properties:
+        designs: { type: array, minItems: 1, maxItems: 12, items: { $ref: '#/components/schemas/Design' } }
+    StudioFont:
+      type: object
+      required: [id, brand_id, name, family, style, weight, format, mime, size, sha256, status, archived_at, file_url, css_family]
+      properties:
+        id: { type: integer, minimum: 1 }
+        brand_id: { type: integer, minimum: 1 }
+        name: { type: string, maxLength: 255 }
+        family: { type: string, maxLength: 100 }
+        style: { type: string, enum: [normal, italic] }
+        weight: { type: integer, minimum: 100, maximum: 900 }
+        format: { type: string, enum: [woff2] }
+        mime: { type: string, enum: [font/woff2] }
+        size: { type: integer, minimum: 1, maximum: 8388608 }
+        sha256: { type: string, pattern: '^[a-f0-9]{64}$' }
+        status: { type: string, enum: [ready] }
+        archived_at: { type: string, format: date-time, nullable: true }
+        file_url: { type: string, description: Ruta privada de esta superficie; API requiere bearer designs:read }
+        css_family: { type: string, description: Familia interna StudioFont_ID_HASH16 independiente de nombres de otras marcas }
+    StudioFontResult:
+      type: object
+      required: [font]
+      properties:
+        font: { $ref: '#/components/schemas/StudioFont' }
+    StudioFontPage:
+      type: object
+      required: [fonts, pagination]
+      properties:
+        fonts: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/StudioFont' } }
+        pagination:
+          type: object
+          required: [current_page, last_page, per_page, total, next_page]
+          properties:
+            current_page: { type: integer, minimum: 1 }
+            last_page: { type: integer, minimum: 1 }
+            per_page: { type: integer, minimum: 1, maximum: 100 }
+            total: { type: integer, minimum: 0 }
+            next_page: { type: integer, minimum: 1, nullable: true }
+
+    ChartSpec:
+      type: object
+      additionalProperties: false
+      required: [binding]
+      description: Semantic chart configuration. Only references and typed options are persisted; no table or renderer JSON. Integration and AV acceptance are tracked in T12.
+      properties:
+        binding: { $ref: '#/components/schemas/ChartBinding' }
+        options: { $ref: '#/components/schemas/ChartOptions' }
+        style: { $ref: '#/components/schemas/ChartStyle' }
+    ChartBinding:
+      type: object
+      additionalProperties: false
+      required: [dataset, category_column, series_columns]
+      properties:
+        dataset:
+          type: object
+          additionalProperties: false
+          required: [id, revision, sha256]
+          properties:
+            id: { type: integer, minimum: 1, maximum: 9007199254740991 }
+            revision: { type: integer, minimum: 1, maximum: 9007199254740991 }
+            sha256: { type: string, minLength: 64, maxLength: 64, pattern: '^[a-f0-9]{64}$' }
+        category_column: { type: string, minLength: 1, maxLength: 64, pattern: '^[A-Za-z0-9_-]+(?![\s\S])' }
+        series_columns:
+          type: array
+          minItems: 1
+          maxItems: 12
+          uniqueItems: true
+          items: { type: string, minLength: 1, maxLength: 64, pattern: '^[A-Za-z0-9_-]+(?![\s\S])' }
+        precision: { type: string, enum: [safe, approximate], default: safe }
+    ChartOptions:
+      type: object
+      additionalProperties: false
+      required: [kind]
+      properties:
+        kind: { type: string, enum: [bar, column, bar-grouped, column-grouped, bar-stacked, column-stacked, bar-proportional, column-proportional, bar-multicolor, column-multicolor] }
+        band_gap: { type: number, minimum: 0, maximum: 0.9, default: 0.2 }
+        series_gap: { type: number, minimum: 0, maximum: 0.9, default: 0.1 }
+        palette: { type: array, minItems: 1, maxItems: 24, items: { type: string, pattern: '^#(?:[a-fA-F0-9]{3}|[a-fA-F0-9]{4}|[a-fA-F0-9]{6}|[a-fA-F0-9]{8})(?![\s\S])' } }
+        domain_min: { type: number, nullable: true, default: null }
+        domain_max: { type: number, nullable: true, default: null }
+        tick_count: { type: integer, minimum: 2, maximum: 21, default: 5 }
+    ChartStyle:
+      type: object
+      additionalProperties: false
+      properties:
+        title: { type: string, maxLength: 256, default: '' }
+        subtitle: { type: string, maxLength: 256, default: '' }
+        source: { type: string, maxLength: 256, default: '' }
+        x_title: { type: string, maxLength: 256, default: '' }
+        y_title: { type: string, maxLength: 256, default: '' }
+        fontFamily: { type: string, minLength: 1, maxLength: 100, default: Arial }
+        font_id: { type: integer, minimum: 1, maximum: 9007199254740991 }
+        fontSize: { type: number, minimum: 8, maximum: 72, default: 16 }
+        fontWeight: { type: string, enum: [normal, bold], default: normal }
+        fontStyle: { type: string, enum: [normal, italic], default: normal }
+        text_color: { type: string, pattern: '^#(?:[a-fA-F0-9]{3}|[a-fA-F0-9]{4}|[a-fA-F0-9]{6}|[a-fA-F0-9]{8})(?![\s\S])', default: '#111827' }
+        axis_color: { type: string, pattern: '^#(?:[a-fA-F0-9]{3}|[a-fA-F0-9]{4}|[a-fA-F0-9]{6}|[a-fA-F0-9]{8})(?![\s\S])', default: '#64748b' }
+        grid_color: { type: string, pattern: '^#(?:[a-fA-F0-9]{3}|[a-fA-F0-9]{4}|[a-fA-F0-9]{6}|[a-fA-F0-9]{8})(?![\s\S])', default: '#e2e8f0' }
+        background: { type: string, pattern: '^#(?:[a-fA-F0-9]{3}|[a-fA-F0-9]{4}|[a-fA-F0-9]{6}|[a-fA-F0-9]{8})(?![\s\S])', default: '#ffffff' }
+        legend: { type: boolean, default: true }
+        show_grid: { type: boolean, default: true }
+        show_axis: { type: boolean, default: true }
+        category_labels: { type: boolean, default: true }
+        legend_position: { type: string, enum: [bottom, right], default: bottom }
+        value_labels: { type: string, enum: [none, raw, percentage], default: none }
+        label_position: { type: string, enum: [inside, outside], default: outside }
+        category_label_limit: { type: integer, minimum: 1, maximum: 80, default: 24 }
+    PostTargetInput: {"type": "object", "properties": {"account_id": {"type": "integer"}, "content_type": {"type": "string", "maxLength": 40}, "text": {"type": "string", "nullable": true, "maxLength": 70000, "description": "null u omitido = vinculado al texto común"}, "first_comment": {"type": "string", "nullable": true, "maxLength": 10000}, "manual": {"type": "boolean", "nullable": true, "description": "Destino que se publica a mano; el sistema avisa al vencer"}, "media": {"type": "array", "nullable": true, "maxItems": 35, "description": "Media propia del destino (targets[].media). null u omitido = hereda la común", "items": {"type": "object", "properties": {"id": {"type": "integer"}, "alt": {"type": "string", "nullable": true, "maxLength": 5000}, "cover_id": {"type": "integer", "nullable": true}}, "required": ["id"], "additionalProperties": false}}, "options": {"type": "object", "additionalProperties": true, "description": "Opciones por red (YouTube, TikTok, Instagram, Facebook, LinkedIn, Pinterest...), validadas por PostRequest"}}, "required": ["account_id", "content_type"]}
+    PostInput: {"type": "object", "properties": {"brand_id": {"type": "integer", "description": "Obligatorio solo en POST /posts"}, "text": {"type": "string", "nullable": true, "maxLength": 70000}, "notes": {"type": "string", "nullable": true, "description": "Notas internas, nunca se publican"}, "scheduled_at": {"type": "string", "nullable": true, "maxLength": 40, "description": "Sin zona se interpreta en la zona de la marca"}, "campaign_id": {"type": "integer", "nullable": true}, "schedule": {"type": "boolean"}, "requires_approval": {"type": "boolean", "nullable": true}, "publish_now": {"type": "boolean", "nullable": true}, "media": {"type": "array", "nullable": true, "maxItems": 35, "items": {"type": "integer"}}, "targets": {"type": "array", "nullable": true, "maxItems": 40, "items": {"$ref": "#/components/schemas/PostTargetInput"}}}, "required": ["schedule"]}
+    Post: {"type": "object", "properties": {"id": {"type": "integer"}, "brand_id": {"type": "integer"}, "brand_name": {"type": "string", "nullable": true}, "text": {"type": "string", "nullable": true}, "notes": {"type": "string", "nullable": true}, "campaign_id": {"type": "integer", "nullable": true}, "status": {"type": "string"}, "scheduled_at_utc": {"type": "string", "format": "date-time", "nullable": true}, "scheduled_at_local": {"type": "string", "nullable": true}, "timezone": {"type": "string"}, "approval_status": {"type": "string", "nullable": true}, "approval_comment": {"type": "string", "nullable": true}, "series_id": {"type": "integer", "nullable": true}, "editable": {"type": "boolean"}, "media_ids": {"type": "array", "items": {"type": "integer"}}, "targets": {"type": "array", "items": {"type": "object", "properties": {"account_id": {"type": "integer"}, "target_id": {"type": "integer"}, "network": {"type": "string"}, "content_type": {"type": "string"}, "text": {"type": "string", "nullable": true}, "effective_text": {"type": "string", "nullable": true}, "media": {"type": "array", "nullable": true, "items": {"type": "object", "additionalProperties": true}}, "effective_media": {"type": "array", "items": {"type": "object", "additionalProperties": true}}, "options": {"type": "object", "additionalProperties": true}, "status": {"type": "string"}, "error_message": {"type": "string", "nullable": true}, "external_url": {"type": "string", "nullable": true}, "manual": {"type": "boolean"}, "manual_pending": {"type": "boolean"}}, "additionalProperties": true}}}, "additionalProperties": true}
+    PostApproval: {"type": "object", "properties": {"id": {"type": "integer"}, "brand_id": {"type": "integer"}, "brand_name": {"type": "string", "nullable": true}, "text": {"type": "string", "nullable": true}, "approval_status": {"type": "string", "nullable": true}, "approval_comment": {"type": "string", "nullable": true}, "content_signature": {"type": "string", "nullable": true, "description": "Versión del contenido; approve y reject deben enviarla"}, "requested_by": {"type": "string"}, "scheduled_at_local": {"type": "string", "nullable": true}, "networks": {"type": "array", "items": {"type": "string"}}}, "additionalProperties": true}
+    PostApprovalResult: {"type": "object", "properties": {"post": {"$ref": "#/components/schemas/PostApproval"}}}
+    PostBatchInput: {"type": "object", "properties": {"action": {"type": "string", "enum": ["schedule", "reschedule", "cancel", "delete", "approve", "reject"]}, "post_ids": {"type": "array", "minItems": 1, "maxItems": 100, "items": {"type": "integer", "minimum": 1}}, "shift_days": {"type": "integer", "minimum": -365, "maximum": 365, "description": "reschedule"}, "shift_hours": {"type": "integer", "minimum": -8760, "maximum": 8760, "description": "reschedule"}, "comment": {"type": "string", "nullable": true, "maxLength": 2000, "description": "reject: obligatorio"}, "signatures": {"type": "object", "additionalProperties": {"type": "string"}, "description": "approve y reject: id de publicación => content_signature revisada"}, "idempotency_key": {"type": "string", "description": "Alternativa a la cabecera Idempotency-Key"}}, "required": ["action", "post_ids"], "additionalProperties": false}
+    PostBatchResult: {"type": "object", "properties": {"action": {"type": "string"}, "total": {"type": "integer"}, "ok": {"type": "integer"}, "failed": {"type": "integer"}, "replayed": {"type": "boolean"}, "results": {"type": "array", "items": {"type": "object", "properties": {"post_id": {"type": "integer"}, "ok": {"type": "boolean"}, "error": {"type": "string"}}, "additionalProperties": true}}}}
+    PostSeriesInput: {"type": "object", "properties": {"brand_id": {"type": "integer", "description": "Solo al crear"}, "frequency": {"type": "string", "enum": ["diaria", "semanal", "mensual"]}, "weekdays": {"type": "array", "maxItems": 7, "items": {"type": "integer", "minimum": 1, "maximum": 7}, "description": "Solo semanal; ISO 1-7. Si falta, el día de starts_on"}, "time_local": {"type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$", "description": "HH:MM en la zona de la marca"}, "starts_on": {"type": "string", "format": "date"}, "ends_on": {"type": "string", "format": "date", "nullable": true}, "max_occurrences": {"type": "integer", "minimum": 1, "nullable": true}, "text": {"type": "string", "nullable": true}, "media": {"type": "array", "items": {"type": "integer"}}, "targets": {"type": "array", "minItems": 1, "maxItems": 40, "items": {"$ref": "#/components/schemas/PostTargetInput"}}}, "required": ["frequency", "time_local", "starts_on", "targets"]}
+    PostSeries: {"type": "object", "properties": {"id": {"type": "integer"}, "last_error": {"type": "string", "nullable": true, "description": "Motivo del último fallo de generación; null si la última generación fue correcta"}, "last_error_at": {"type": "string", "format": "date-time", "nullable": true}, "brand_id": {"type": "integer"}, "frequency": {"type": "string", "enum": ["diaria", "semanal", "mensual"]}, "weekdays": {"type": "array", "nullable": true, "items": {"type": "integer"}}, "time_local": {"type": "string"}, "starts_on": {"type": "string", "format": "date"}, "ends_on": {"type": "string", "format": "date", "nullable": true}, "max_occurrences": {"type": "integer", "nullable": true}, "status": {"type": "string"}, "text": {"type": "string", "nullable": true}, "targets": {"type": "array", "items": {"type": "object", "additionalProperties": true}}, "generated": {"type": "integer"}, "occurrences": {"type": "array", "items": {"type": "object", "properties": {"date": {"type": "string", "format": "date"}, "post_id": {"type": "integer", "nullable": true}, "status": {"type": "string", "nullable": true}, "edited": {"type": "boolean"}}, "additionalProperties": true}}}, "additionalProperties": true}
+    CanvaState: {"type": "object", "properties": {"configured": {"type": "boolean"}, "connected": {"type": "boolean"}, "status": {"type": "string", "enum": ["not_configured", "disconnected", "expired", "active"]}, "name": {"type": "string", "nullable": true}, "capabilities_known": {"type": "boolean"}, "features": {"type": "object", "additionalProperties": true, "description": "Funciones según el plan; cada desactivada lleva su motivo"}, "formats": {"type": "array", "items": {"type": "object", "additionalProperties": true}}, "jobs": {"type": "array", "items": {"$ref": "#/components/schemas/CanvaJob"}}}, "additionalProperties": true}
+    CanvaJob: {"type": "object", "properties": {"id": {"type": "integer"}, "kind": {"type": "string"}, "status": {"type": "string"}, "design_id": {"type": "string", "nullable": true}, "title": {"type": "string", "nullable": true}, "format": {"type": "string", "nullable": true}, "media_id": {"type": "integer", "nullable": true}, "media": {"type": "array", "items": {"type": "object", "additionalProperties": true}, "description": "Recursos importados a la biblioteca con origen Canva"}}, "additionalProperties": true}
+    StudioAiJobInput: {"type": "object", "properties": {"kind": {"type": "string", "enum": ["generate", "edit", "outpaint", "variation"]}, "provider": {"type": "string", "enum": ["openai", "google"], "description": "Debe estar configurado"}, "prompt": {"type": "string", "nullable": true, "maxLength": 1000}, "aspect": {"type": "string", "nullable": true, "enum": ["1:1", "3:2", "2:3", "16:9", "9:16"]}, "style": {"type": "string", "nullable": true}, "count": {"type": "integer", "minimum": 1, "maximum": 3}, "media_id": {"type": "integer", "minimum": 1, "description": "edit, outpaint y variation: imagen de esta marca"}, "mask": {"type": "object", "properties": {"x": {"type": "number", "minimum": 0, "maximum": 1}, "y": {"type": "number", "minimum": 0, "maximum": 1}, "width": {"type": "number", "minimum": 0, "maximum": 1}, "height": {"type": "number", "minimum": 0, "maximum": 1}}, "additionalProperties": false}, "idempotency_key": {"type": "string", "pattern": "^[A-Za-z0-9_-]{8,64}$"}}, "required": ["kind", "provider"], "additionalProperties": false}
+    DesignShare: {"type": "object", "properties": {"id": {"type": "integer"}, "role": {"type": "string", "enum": ["reader", "commenter", "editor"]}, "email": {"type": "string"}}, "additionalProperties": true}
+    DesignLink: {"type": "object", "properties": {"id": {"type": "integer"}, "role": {"type": "string", "enum": ["reader", "commenter"]}, "expires_at": {"type": "string", "format": "date-time", "nullable": true}, "status": {"type": "string", "enum": ["active", "revoked", "expired"]}, "token": {"type": "string", "description": "Solo en la respuesta de creación, una vez"}}, "additionalProperties": true}
+    DesignComment: {"type": "object", "properties": {"id": {"type": "integer"}, "parent_id": {"type": "integer", "nullable": true}, "author_id": {"type": "integer", "nullable": true}, "is_guest": {"type": "boolean"}, "page_id": {"type": "string", "nullable": true}, "element_id": {"type": "string", "nullable": true}, "revision": {"type": "integer"}, "body": {"type": "string"}, "can_resolve": {"type": "boolean"}, "can_delete": {"type": "boolean"}}, "additionalProperties": true}

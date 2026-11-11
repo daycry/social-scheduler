@@ -192,3 +192,14 @@ test('el compositor de un post publicado recibe las campañas y el post no edita
     $this->actingAs($this->user)->get(route('posts.edit', $post))->assertOk()
         ->assertInertia(fn (Assert $p) => $p->where('post.editable', false)->where('post.campaign_id', $this->mine->id)->has('campaigns', 1));
 });
+
+test('la validación en vivo no gasta el aviso flash pendiente de la siguiente página', function () {
+    // Estado tras la redirección que guardó en la biblioteca: el aviso espera a la página siguiente («old»).
+    $this->actingAs($this->user)->withSession(['success' => 'Guardado en la biblioteca.', '_flash' => ['old' => ['success'], 'new' => []]])
+        ->postJson(route('brands.posts.validate', $this->brand), campaignBody())
+        ->assertOk();
+
+    // Sin reflash, el guardado de sesión de esta petición lo descartaría antes de que la página lo lea.
+    expect(session('success'))->toBe('Guardado en la biblioteca.')
+        ->and(session('_flash.old'))->toContain('success');
+});

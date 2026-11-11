@@ -2,6 +2,8 @@
 
 Informes por marca y rango de fechas, con comparación opcional. Se generan en la cola `reports`.
 
+La selección inicial respeta la marca del contexto o `brand_id` y calcula el periodo en su zona horaria. Al generar conserva esa marca. El historial reciente sigue siendo del usuario completo; no se presenta como una lista exclusiva de la marca seleccionada.
+
 ## Piezas
 
 | Pieza | Ruta |
@@ -38,6 +40,20 @@ CSV en formato largo con cabecera `seccion,red,elemento,metrica,fecha,valor,ante
 ## Descarga
 
 La interfaz pide un enlace nuevo con `GET reports/{report}/link`. La descarga `reports/{report}/download/{owner}` va solo con firma, sin sesión, para que la use también un agente MCP. La firma cubre informe y dueño; el controlador comprueba que coinciden y que el informe está `ready`, y audita el acceso.
+
+## Constructor de informes y envío programado (T-21)
+
+Además del informe clásico, la pantalla **Informes** permite componer un informe con bloques, guardarlo como plantilla y programar su envío por email.
+
+| Qué | Dónde |
+|---|---|
+| Bloques | `app/Services/Reports/ReportBlocks.php`: `kpis`, `evolution`, `top_posts`, `competitors`, `ads` y `text`. Hasta 20 por informe; el orden del array es el orden del PDF. El texto libre (hasta 2.000 caracteres) nunca se interpreta como HTML. Por defecto: `kpis`, `evolution`, `top_posts` |
+| Plantillas | `report-templates` (`ReportTemplateController`, rutas `report-templates.store/update/destroy`): hasta 50 por usuario, nombre único por marca, con `range_days` y `compare`. Limitador `report-builder` (30/min) |
+| Programaciones | `report-schedules` (`ReportScheduleController`, rutas `report-schedules.store/update/destroy`): `weekly` o `monthly`, hasta 10 por usuario y hasta 5 destinatarios (`reports.max_recipients`). La plantilla debe ser de la misma marca (si no, 404). Limitador `report-schedules` (10/min) |
+| Envío | `php artisan reports:send-scheduled` (`SendScheduledReports`), programado **cada hora** (`routes/console.php`, `withoutOverlapping`). Encola `SendScheduledReport` en la cola `reports` para cada programación cuya fecha `next_run_at` ya pasó; el correo lleva el enlace de descarga firmado |
+| Desuscripción | Cada correo incluye una URL firmada `report-schedules/{schedule}/unsubscribe`. El GET firmado muestra una página de confirmación (`resources/views/reports/unsubscribe.blade.php`) sin efectos; solo el POST firmado da de baja al destinatario. El POST admite one-click (RFC 8058) y está excluido de CSRF (`bootstrap/app.php`). 30 peticiones/min |
+
+Al reactivar una programación no se envía lo atrasado: `next_run_at` se recalcula desde ahora. Pruebas en `tests/Feature/Reports/`.
 
 ## Exportaciones CSV síncronas (C-03c)
 

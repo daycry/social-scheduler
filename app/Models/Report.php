@@ -26,11 +26,11 @@ class Report extends Model
 
     public const STATUS_FAILED = 'failed';
 
-    protected $fillable = ['user_id', 'brand_id', 'format', 'from', 'to', 'compare', 'status', 'path', 'size', 'error', 'generated_at'];
+    protected $fillable = ['user_id', 'brand_id', 'format', 'from', 'to', 'compare', 'status', 'path', 'size', 'error', 'generated_at', 'blocks', 'schedule_id'];
 
     protected function casts(): array
     {
-        return ['from' => 'date:Y-m-d', 'to' => 'date:Y-m-d', 'generated_at' => 'datetime', 'size' => 'integer'];
+        return ['from' => 'date:Y-m-d', 'to' => 'date:Y-m-d', 'generated_at' => 'datetime', 'size' => 'integer', 'blocks' => 'array'];
     }
 
     protected static function booted(): void
@@ -76,11 +76,11 @@ class Report extends Model
     }
 
     /** Enlace de descarga firmado SIN sesion: valido unos minutos y atado al informe y a su dueno (`owner` va en la firma). */
-    public function signedDownloadUrl(): string
+    public function signedDownloadUrl(?int $minutes = null, ?int $scheduleId = null): string
     {
-        return URL::temporarySignedRoute('reports.download', now()->addMinutes((int) config('reports.download_minutes', 5)), [
+        return URL::temporarySignedRoute('reports.download', now()->addMinutes($minutes ?? (int) config('reports.download_minutes', 5)), [
             'report' => $this->id, 'owner' => $this->user_id,
-        ]);
+        ] + ($scheduleId !== null ? ['schedule' => $scheduleId] : []));
     }
 
     public function deleteFile(): void

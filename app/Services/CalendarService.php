@@ -228,7 +228,14 @@ class CalendarService
             'local_datetime' => $local?->format('Y-m-d\TH:i'),
             'editable' => $editable,
             // «Publicar ahora» (borradores y programadas con destinos que aun se pueden editar); la accion la valida PostService.
-            'can_publish_now' => $editable && $post->targets->isNotEmpty() && in_array($post->status, [PostStatus::Draft, PostStatus::Scheduled], true),
+            'can_publish_now' => $editable && $post->isPublishable() && $post->targets->isNotEmpty() && in_array($post->status, [PostStatus::Draft, PostStatus::Scheduled], true),
+            // T-19: aprobacion, serie, reintento y publicacion manual.
+            'approval_status' => $post->approval_status,
+            'approval_signature' => $post->approval_signature,
+            'series_id' => $post->series_id,
+            'can_retry' => $post->isPublishable() && $post->targets->contains(fn (PostTarget $t) => $t->status === PostStatus::Failed),
+            'has_manual' => $post->targets->contains(fn (PostTarget $t) => $t->manual),
+            'manual_pending' => $post->targets->contains(fn (PostTarget $t) => $t->manual && $t->manual_notified_at !== null && $t->status === PostStatus::Scheduled),
             'targets' => $targets->map(fn (PostTarget $t) => [
                 'network' => $t->network->value,
                 'network_label' => $t->network->label(),
@@ -240,6 +247,8 @@ class CalendarService
                 'error_message' => $t->error_message,
                 'status_note' => $t->status_note,
                 'external_url' => $t->external_url,
+                'manual' => (bool) $t->manual,
+                'manual_pending' => $t->manual && $t->manual_notified_at !== null && $t->status === PostStatus::Scheduled,
             ])->values()->all(),
         ];
     }

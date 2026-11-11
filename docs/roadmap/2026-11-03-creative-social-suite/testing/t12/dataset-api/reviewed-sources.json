@@ -1,0 +1,43 @@
+{
+  "scope": "ApprovedAPI A2/B2/D2+proseaddendum;T12open;QA26notexecuted",
+  "files": {
+    "routes/studio.php": "522908cb45d1ad2bcb52ba54e61d28fbabbe185da27905a2bcb53322f9fb28da",
+    "routes/studio-api.php": "92bb223fa5164673663064445663c50c2a47dfb5b763dc75037926d1cbc97a6c",
+    "bootstrap/app.php": "d57d4ab0e0f0e18454866917c5db162703c00ca728d209ed5d45462bb79caca9",
+    "app/Mcp/Servers/SchedulerServer.php": "11f14fa2b30ac3f82a00937c8521b304535637cb92d7929b8d698537b337c6ca",
+    "app/Mcp/Tools/SchedulerTool.php": "3e20a66af791477f0c430b28f235957b1fdce98d0d69ad563188852aa87ffd77",
+    "tests/Feature/Studio/StudioApiMcpTest.php": "04edaebd7026b630219a76efc81944415bc51ab4f4e06ab47b6aaef4cb213e62",
+    "app/Services/Studio/StudioDatasetActions.php": "0fa0ba8ff2c79e988d14bfdcf1ba59d8ab4385531c632af22588c12b476d0841",
+    "app/Services/Studio/StudioDatasetInput.php": "b6d866bb36ff16d41045edb9ddbee6486e371f4f1a7b712a2a085bd52de92e6e",
+    "app/Http/Controllers/Studio/StudioDatasetController.php": "954da8b6e8d5759637584825cfc6a34f3158898ac8c2ba3a9a82764a3761ee15",
+    "app/Http/Middleware/LimitStudioDatasetPayload.php": "e4f1d64a9328c96aaaa2de51bd387f2c1607ad300c7d3a17d0f6e090056f082f",
+    "app/Mcp/Tools/ManageStudioDataset.php": "47b8026d807d6eb238f225130e577b670104e16977fa9e3a27e36c8fdf3dcb90",
+    "routes/studio-datasets.php": "6d3ce41cd0393e2f91842b58839d33afaf2072d68d0f324ddcc6ef15c45aee6c",
+    "routes/studio-datasets-api.php": "ab6eabdabc40def69203645e22a85d4921543ab4aaeb8b0308ee5c3d4197abe7",
+    "tests/Feature/Studio/StudioDatasetApiTest.php": "64cf9737cdb542e6931a2586b3870c8f6d03b30c76012915bc941cec1e216259",
+    "docs/api/creative-suite.openapi.yaml": "e6e9b161d28b8f5993aadee9488ab295eea2825dd9e106092c8c6832e2dc5b12",
+    "docs/guias/estudio-api-mcp.md": "4346e4d5a99bf0bedfb05d90fed7f4f94fb062626292651e67ab0f866cbb1ac7",
+    "docs/modulos/mcp.md": "86da037eaa057f1e6a1424651fd7fa0950a0677d287b06ea99b4e3b7cd9fd4f4",
+    "README.md": "03dc14126978831f9d551ee0ce9c8715e03e1c0d2f80183b92927f10c6810488",
+    "docs/roadmap/2026-11-03-creative-social-suite/test-plan.md": "96998de5b0ac2d669afafff175373cefe82317a67ff82cd27ae3495d795959a3",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-dataset-api-contract.md": "b1a983fbdd1446f1ac653ae5fa58e5b06210a39e20d0cffee8dd29a0c6c5b034",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-datasets-contract.md": "d3991af471dffec2a7d1358f118fbf86a29f60e691efb42f167067f252d90d75",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-chart-data-contract.md": "bbcfe8bd17af049d62512f1e23960774886973d66394e7db1f4f87b965619ce0",
+    "app/Services/Studio/StudioChartData.php": "8abef7557b81ae55571e7acf4327ba1abb00b6002c1bd2778e5f8d72ddbcf91e",
+    "tests/Feature/Studio/StudioChartDataTest.php": "34cd6393af70fbc87a8de2d1df96a8e5b8224e0de3b26cfb94c625cb235f746b",
+    "app/Services/Studio/StudioDatasets.php": "52df3c869b3993c2cb27f3bf245062d8b2872356cd62adcc1f65b1ca091e6411",
+    "app/Models/Studio/StudioDataset.php": "b2e7eb6d865df56db94fac4b051e4b2c7a0b273bfddd6a9c5d639cf4462033dc",
+    "app/Models/Studio/StudioDatasetRevision.php": "49d41e524b4c90205ae1f566422aca64bfd07745b5f068cfd4500c5ac61a4890",
+    "database/migrations/2026_11_06_010000_create_studio_datasets.php": "90a7b7ed206946a13c41d0ce56b0d18a9ffb78b4c3d5c3df9cc259c5472b2efd",
+    "tests/Feature/Studio/StudioDatasetsTest.php": "c33ef6edaf092d45d96df7e94d8cb6f54f8f30ac52d3e70e224b94be626cf770",
+    "app/Services/Studio/StudioTableExport.php": "cdcfb37bcf22f2e55e3d402cc93a61ed7c416d9ca6787cab45c3d2cfec4b1049",
+    "tests/Feature/Studio/StudioTableExportTest.php": "4a778e19f79fb5c3ccbc52f8040df02443bc009071233a1fcb41eb47207179d0"
+  },
+  "prose_addendum": {
+    "docs/guias/estudio-api-mcp.md": "4346e4d5a99bf0bedfb05d90fed7f4f94fb062626292651e67ab0f866cbb1ac7",
+    "docs/modulos/mcp.md": "86da037eaa057f1e6a1424651fd7fa0950a0677d287b06ea99b4e3b7cd9fd4f4",
+    "docs/roadmap/2026-11-03-creative-social-suite/test-plan.md": "96998de5b0ac2d669afafff175373cefe82317a67ff82cd27ae3495d795959a3",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-dataset-api-contract.md": "b1a983fbdd1446f1ac653ae5fa58e5b06210a39e20d0cffee8dd29a0c6c5b034"
+  },
+  "runtime_unchanged_since_review2": true
+}

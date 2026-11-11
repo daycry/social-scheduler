@@ -4,10 +4,12 @@ namespace App\Services;
 
 use App\Connectors\Data\PublishMedia;
 use App\Connectors\Data\PublishRequest;
+use App\Connectors\Exceptions\PermanentPublishException;
 use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\PublishAttempt;
+use App\Support\TargetMedia;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 
@@ -20,20 +22,7 @@ class PublishRequestFactory
         $ttl = (int) config('publishing.media_url_ttl_minutes', 720);
         $target->setRelation('post', $post); // el texto efectivo usa este post (tambien si esta en la papelera)
 
-        $media = $post->media()->get()->map(fn (MediaAsset $m) => new PublishMedia(
-            id: $m->id,
-            kind: $m->kind,
-            mime: $m->mime,
-            url: $m->publicUrl($ttl),
-            width: $m->width,
-            height: $m->height,
-            duration: $m->duration,
-            fps: $m->fps,
-            size: $m->size,
-            disk: $m->disk,
-            path: $m->path,
-            source: $m->source,
-        ))->all();
+        $media = $this->effectiveMedia($target, $post, $ttl);
 
         return new PublishRequest(
             targetId: $target->id,
@@ -57,6 +46,56 @@ class PublishRequestFactory
                     PostTarget::withoutUserScope()->whereKey($target->id)->update($json + $changes + ['updated_at' => now()]);
                 }
             },
+        );
+    }
+
+    /**
+     * Media EFECTIVA del destino (T-17): la propia (mismos ids, orden, alt y portada guardados) o la comun del post. Es la unica
+     * forma de resolver la media que se publica; la validacion usa la misma fuente (`TargetMedia::effective`).
+     *
+     * @return list<PublishMedia>
+     */
+    private function effectiveMedia(PostTarget $target, Post $post, int $ttl): array
+    {
+        $commonIds = $target->media === null ? $post->media()->pluck('media_assets.id')->map(fn ($id) => (int) $id)->all() : [];
+        $items = TargetMedia::effective($target, $commonIds);
+        $ids = array_values(array_unique(array_filter(array_merge(array_column($items, 'id'), array_column($items, 'cover_id')))));
+        $assets = MediaAsset::withoutUserScope()->whereIn('id', $ids)->get()->keyBy('id');
+
+        $out = [];
+        foreach ($items as $item) {
+            $asset = $assets->get($item['id']);
+            // Una media efectiva que falta (borrada tras guardar) no se omite en silencio: se publicaria otra cosa.
+            if ($asset === null) {
+                throw new PermanentPublishException("El archivo {$item['id']} de la media de este destino ya no existe: editalo y vuelve a elegir la media.", 'media_inexistente');
+            }
+            $cover = $item['cover_id'] !== null ? $assets->get($item['cover_id']) : null;
+            if ($item['cover_id'] !== null && $cover === null) {
+                throw new PermanentPublishException("La portada {$item['cover_id']} de este destino ya no existe: editalo y vuelve a elegir la portada.", 'media_inexistente');
+            }
+            $out[] = $this->publishMedia($asset, $ttl, $item['alt'], $cover !== null ? $this->publishMedia($cover, $ttl) : null);
+        }
+
+        return $out;
+    }
+
+    private function publishMedia(MediaAsset $m, int $ttl, ?string $alt = null, ?PublishMedia $cover = null): PublishMedia
+    {
+        return new PublishMedia(
+            id: $m->id,
+            kind: $m->kind,
+            mime: $m->mime,
+            url: $m->publicUrl($ttl),
+            width: $m->width,
+            height: $m->height,
+            duration: $m->duration,
+            fps: $m->fps,
+            size: $m->size,
+            disk: $m->disk,
+            path: $m->path,
+            source: $m->source,
+            alt: $alt,
+            cover: $cover,
         );
     }
 

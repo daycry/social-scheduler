@@ -23,20 +23,37 @@ use Psr\Http\Message\StreamInterface;
  */
 class MediaChunkReader
 {
-    private function __construct(private readonly string $disk, private readonly string $path, public readonly int $size) {}
+    private function __construct(private readonly string $disk, private readonly string $path, public readonly int $size, private readonly bool $strictTimeouts = false) {}
 
-    public static function for(PublishMedia $media): self
+    public static function for(PublishMedia $media, ?float $timeout = null): self
     {
         if ($media->disk === null || $media->path === null) {
             throw new PermanentPublishException('No se encuentra el archivo de video en el almacenamiento.', 'media_invalida');
         }
 
         $disk = Storage::disk($media->disk);
+        if ($timeout !== null && (! is_finite($timeout) || $timeout <= 0)) {
+            throw new TransientPublishException('Se agotó el tiempo para consultar el almacenamiento.', 'lectura_media');
+        }
 
         // Tamano real del fichero (no el declarado): el protocolo de subida lo exige exacto. UNA sola consulta (HeadObject en
         // S3/R2): `size()` ya falla si el fichero no existe, no hace falta un `exists()` previo (revision F4-5 i2 N4).
         try {
-            $size = (int) $disk->size($media->path);
+            if ($timeout !== null && $disk instanceof AwsS3V3Adapter) {
+                $config = $disk->getConfig();
+                $root = trim((string) ($config['root'] ?? ''), '/');
+                $key = ($root === '' ? '' : $root.'/').ltrim($media->path, '/');
+                $meta = $disk->getClient()->headObject(['Bucket' => $config['bucket'], 'Key' => $key, '@retries' => 0,
+                    '@http' => ['timeout' => $timeout, 'connect_timeout' => min($timeout, 5.0)]]);
+                $size = (int) $meta['ContentLength'];
+            } else {
+                $size = (int) $disk->size($media->path);
+            }
+        } catch (AwsException $e) {
+            if ($e->getStatusCode() === 404) {
+                throw new PermanentPublishException('El archivo ya no existe en el almacenamiento.', 'media_invalida');
+            }
+            throw new TransientPublishException('No se pudo consultar el archivo en el almacenamiento.', 'lectura_media');
         } catch (FilesystemException $e) {
             $previous = $e->getPrevious();
 
@@ -48,7 +65,7 @@ class MediaChunkReader
             throw new PermanentPublishException('El archivo de video ya no existe en el almacenamiento.', 'media_invalida');
         }
 
-        return new self($media->disk, $media->path, $size);
+        return new self($media->disk, $media->path, $size, $timeout !== null);
     }
 
     /** Lee `$length` bytes (o los que queden) a partir de `$offset`; cadena vacia si no hay nada que leer. */
@@ -126,6 +143,9 @@ class MediaChunkReader
         // Opciones HTTP POR PETICION: el timeout del disco (r2 `timeout` 600 s) no sirve dentro de una pasada de ~100 s.
         if ($timeout !== null) {
             $args['@http'] = ['timeout' => $timeout, 'connect_timeout' => min($timeout, 5.0)];
+            if ($this->strictTimeouts) {
+                $args['@retries'] = 0;
+            }
         }
 
         try {

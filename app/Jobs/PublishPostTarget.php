@@ -202,6 +202,12 @@ class PublishPostTarget implements ShouldBeUnique, ShouldQueue
                 return null;
             }
 
+            // Defensas de T-19 (valen para cualquier entrada: cola, API, MCP, reintento): un destino manual nunca se envia a la red y un
+            // post que requiere aprobacion no se publica hasta estar aprobado.
+            if ($target->manual || ! $post->isPublishable()) {
+                return null;
+            }
+
             if ($target->status === PostStatus::Scheduled) {
                 if ($post->scheduled_at === null || $post->scheduled_at->isFuture() || ($target->next_attempt_at && $target->next_attempt_at->isFuture())) {
                     return null;

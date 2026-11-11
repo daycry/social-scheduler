@@ -1,0 +1,36 @@
+{
+  "html": "<table data-v-a61ea03b=\"\" class=\"w-full text-left text-xs\"><caption data-v-a61ea03b=\"\" class=\"sr-only\">Categorías y series seleccionadas, tipos y valores originales</caption><thead data-v-a61ea03b=\"\"><tr data-v-a61ea03b=\"\"><th data-v-a61ea03b=\"\" scope=\"col\" class=\"p-2\">Fila</th><th data-v-a61ea03b=\"\" scope=\"col\" class=\"p-2\">Año</th><th data-v-a61ea03b=\"\" scope=\"col\" class=\"p-2\">Serie 1</th></tr></thead><tbody data-v-a61ea03b=\"\"><tr data-v-a61ea03b=\"\"><th data-v-a61ea03b=\"\" scope=\"row\" class=\"p-2\">new_row</th><td data-v-a61ea03b=\"\" class=\"p-2 whitespace-pre-wrap\">Texto: Current only</td><td data-v-a61ea03b=\"\" class=\"p-2 whitespace-pre-wrap\">Número: 25</td></tr></tbody></table>",
+  "headers": [
+    {
+      "text": "Fila",
+      "scope": "col"
+    },
+    {
+      "text": "Año",
+      "scope": "col"
+    },
+    {
+      "text": "Serie 1",
+      "scope": "col"
+    }
+  ],
+  "tbodyRows": 1,
+  "footerRows": 0,
+  "footerText": "",
+  "footerSpan": 0,
+  "role": null,
+  "hidden": false,
+  "allRows": 2,
+  "cells": [
+    {
+      "text": "Texto: Current only",
+      "colSpan": 1,
+      "section": "TBODY"
+    },
+    {
+      "text": "Número: 25",
+      "colSpan": 1,
+      "section": "TBODY"
+    }
+  ]
+}

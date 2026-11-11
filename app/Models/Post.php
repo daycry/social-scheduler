@@ -31,6 +31,19 @@ class Post extends Model
 
     protected $fillable = ['text', 'notes', 'scheduled_at', 'status'];
 
+    /** Aprobacion (T-19): `approval_status` nulo = el post no requiere aprobacion. */
+    public const APPROVAL_PENDING = 'pendiente';
+
+    public const APPROVAL_APPROVED = 'aprobado';
+
+    public const APPROVAL_REJECTED = 'rechazado';
+
+    /** ¿Puede publicarse? Sin aprobacion requerida o aprobado. */
+    public function isPublishable(): bool
+    {
+        return $this->approval_status === null || $this->approval_status === self::APPROVAL_APPROVED;
+    }
+
     /** Regla de C-03 (CA-12): un post solo admite una campaña de su propia marca. */
     protected static function booted(): void
     {
@@ -52,6 +65,9 @@ class Post extends Model
         return [
             'scheduled_at' => 'datetime',
             'status' => PostStatus::class,
+            'approval_requested_at' => 'datetime',
+            'approval_decided_at' => 'datetime',
+            'series_exception' => 'boolean',
         ];
     }
 

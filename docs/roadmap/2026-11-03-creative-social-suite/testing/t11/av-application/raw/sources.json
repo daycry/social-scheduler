@@ -1,0 +1,56 @@
+{
+  "sources": [
+    {
+      "path": "app/Services/Studio/StudioAvState.php",
+      "sha256": "b5e2a46de1f2fa5b54e7630b388744dca878ac8b3436c4ee0942c34f4bf613be"
+    },
+    {
+      "path": "app/Models/Studio/StudioAvWorkspace.php",
+      "sha256": "4fabc1abe01308d230596013f3339ee735bae2927b2dfe955571ad6137aa3383"
+    },
+    {
+      "path": "app/Models/Studio/StudioAvLease.php",
+      "sha256": "85a1c5223c9f79a89f91a1d4117e03daa0b10e4e657e19d849013333a31b8bc6"
+    },
+    {
+      "path": "app/Models/Studio/DesignExport.php",
+      "sha256": "6744f8fa9865ba76bef06cbf0f5fd48b85cf3cc9aa88c40b1168316856d23b88"
+    },
+    {
+      "path": "app/Services/Studio/StudioExports.php",
+      "sha256": "70796393f8849cf8059c5a5a2bb736a6ffd013a9df7178150df6d52364ecfc98"
+    },
+    {
+      "path": "config/studio.php",
+      "sha256": "a9a706a5b6f79b8d0e3bc63d04c46cfb5178263d61b41bbdcf47ad571bfc21b5"
+    },
+    {
+      "path": "database/migrations/2026_11_05_150000_add_studio_render_state.php",
+      "sha256": "9ea23b1d0368668d2ba6a4bbfd3576e3d57034076f7ebef43b66774dfee1f820"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvStateTest.php",
+      "sha256": "82897a70374fefdcdc41a1f480981452a58f89e7613afe2eece71e2b8fdf2d9a"
+    },
+    {
+      "path": "docs/api/creative-suite.openapi.yaml",
+      "sha256": "e3908cba5406d36d7e6f87b57c93f5378325b9e81612463ae50eafbcea92acc4"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md",
+      "sha256": "54c2541a7a6c89b0c473d273070daaf14f0e3c17edf7276b9ea0aab56387f3a6"
+    },
+    {
+      "path": "app/Models/Studio/StudioAvStep.php",
+      "sha256": "90879ea2e8adc37703b830056f9e448ed8d479259101933a43bb6d8bf9753144"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvFiles.php",
+      "sha256": "2492a1f8d9cc58740080dc323c6d11e5d6b2c16578a2d2e89357c9c76710b6fe"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvFilesTest.php",
+      "sha256": "0fc645688ec252b950710aff27bff67fba41f137a680437f813c25db58a422b8"
+    }
+  ]
+}

@@ -1,0 +1,4479 @@
+{
+  "observer": "stdlib + ffprobe/FFmpeg + ZIP/XML/SHA; no product helper imports",
+  "profile": {
+    "media": [
+      {
+        "path": "samples/captions/desktop/captions-mp4.mp4",
+        "frames": [
+          0,
+          2,
+          3,
+          4,
+          6,
+          9,
+          14,
+          15,
+          17
+        ],
+        "compare_frames": [
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            14
+          ]
+        ],
+        "expected_window": {
+          "fps": 12,
+          "start": 0.25,
+          "end": 1.25,
+          "text": "Hola",
+          "background": "black"
+        }
+      },
+      {
+        "path": "samples/captions/desktop/captions-gif.gif",
+        "frames": [
+          0,
+          2,
+          3,
+          4,
+          6,
+          9,
+          14,
+          15,
+          17
+        ],
+        "compare_frames": [
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            14
+          ]
+        ],
+        "expected_window": {
+          "fps": 12,
+          "start": 0.25,
+          "end": 1.25,
+          "text": "Hola",
+          "background": "black"
+        }
+      },
+      {
+        "path": "samples/captions/desktop/captions-selection-a.mp4",
+        "frames": [
+          0,
+          53,
+          54,
+          55,
+          58,
+          59
+        ],
+        "expected_selection": "a",
+        "expected_source_cues": [
+          {
+            "text": "AA",
+            "start": 1.8,
+            "end": 1.95
+          },
+          {
+            "text": "CCCCCCCC",
+            "start": 3.8,
+            "end": 4
+          }
+        ]
+      },
+      {
+        "path": "samples/captions/desktop/captions-selection-c-a.mp4",
+        "frames": [
+          0,
+          8,
+          9,
+          10,
+          14,
+          15,
+          113,
+          114,
+          115,
+          117,
+          118,
+          119
+        ],
+        "expected_selection": "c-a",
+        "expected_source_cues": [
+          {
+            "text": "AA",
+            "start": 1.8,
+            "end": 1.95
+          },
+          {
+            "text": "CCCCCCCC",
+            "start": 3.8,
+            "end": 4
+          }
+        ]
+      },
+      {
+        "path": "samples/captions/desktop/captions-selection-a-c.mp4",
+        "frames": [
+          0,
+          50,
+          52,
+          53,
+          54,
+          55,
+          56,
+          59,
+          60,
+          104
+        ],
+        "expected_selection": "a-c",
+        "expected_source_cues": [
+          {
+            "text": "AA",
+            "start": 1.8,
+            "end": 1.95
+          },
+          {
+            "text": "CCCCCCCC",
+            "start": 3.8,
+            "end": 4
+          }
+        ]
+      },
+      {
+        "path": "samples/captions/mobile/captions-mp4.mp4",
+        "frames": [
+          0,
+          2,
+          3,
+          4,
+          6,
+          9,
+          14,
+          15,
+          17
+        ],
+        "compare_frames": [
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            14
+          ]
+        ],
+        "expected_window": {
+          "fps": 12,
+          "start": 0.25,
+          "end": 1.25,
+          "text": "Hola",
+          "background": "black"
+        }
+      },
+      {
+        "path": "samples/captions/mobile/captions-gif.gif",
+        "frames": [
+          0,
+          2,
+          3,
+          4,
+          6,
+          9,
+          14,
+          15,
+          17
+        ],
+        "compare_frames": [
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            14
+          ]
+        ],
+        "expected_window": {
+          "fps": 12,
+          "start": 0.25,
+          "end": 1.25,
+          "text": "Hola",
+          "background": "black"
+        }
+      },
+      {
+        "path": "samples/captions/mobile/captions-selection-a.mp4",
+        "frames": [
+          0,
+          53,
+          54,
+          55,
+          58,
+          59
+        ],
+        "expected_selection": "a",
+        "expected_source_cues": [
+          {
+            "text": "AA",
+            "start": 1.8,
+            "end": 1.95
+          },
+          {
+            "text": "CCCCCCCC",
+            "start": 3.8,
+            "end": 4
+          }
+        ]
+      },
+      {
+        "path": "samples/captions/mobile/captions-selection-c-a.mp4",
+        "frames": [
+          0,
+          8,
+          9,
+          10,
+          14,
+          15,
+          113,
+          114,
+          115,
+          117,
+          118,
+          119
+        ],
+        "expected_selection": "c-a",
+        "expected_source_cues": [
+          {
+            "text": "AA",
+            "start": 1.8,
+            "end": 1.95
+          },
+          {
+            "text": "CCCCCCCC",
+            "start": 3.8,
+            "end": 4
+          }
+        ]
+      },
+      {
+        "path": "samples/captions/mobile/captions-selection-a-c.mp4",
+        "frames": [
+          0,
+          50,
+          52,
+          53,
+          54,
+          55,
+          56,
+          59,
+          60,
+          104
+        ],
+        "expected_selection": "a-c",
+        "expected_source_cues": [
+          {
+            "text": "AA",
+            "start": 1.8,
+            "end": 1.95
+          },
+          {
+            "text": "CCCCCCCC",
+            "start": 3.8,
+            "end": 4
+          }
+        ]
+      },
+      {
+        "path": "samples/captions/mobile-360/captions-mp4.mp4",
+        "frames": [
+          0,
+          2,
+          3,
+          4,
+          6,
+          9,
+          14,
+          15,
+          17
+        ],
+        "compare_frames": [
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            14
+          ]
+        ],
+        "expected_window": {
+          "fps": 12,
+          "start": 0.25,
+          "end": 1.25,
+          "text": "Hola",
+          "background": "black"
+        }
+      },
+      {
+        "path": "samples/captions/mobile-360/captions-gif.gif",
+        "frames": [
+          0,
+          2,
+          3,
+          4,
+          6,
+          9,
+          14,
+          15,
+          17
+        ],
+        "compare_frames": [
+          [
+            4,
+            9
+          ],
+          [
+            4,
+            14
+          ]
+        ],
+        "expected_window": {
+          "fps": 12,
+          "start": 0.25,
+          "end": 1.25,
+          "text": "Hola",
+          "background": "black"
+        }
+      },
+      {
+        "path": "samples/captions/mobile-360/captions-selection-a.mp4",
+        "frames": [
+          0,
+          53,
+          54,
+          55,
+          58,
+          59
+        ],
+        "expected_selection": "a",
+        "expected_source_cues": [
+          {
+            "text": "AA",
+            "start": 1.8,
+            "end": 1.95
+          },
+          {
+            "text": "CCCCCCCC",
+            "start": 3.8,
+            "end": 4
+          }
+        ]
+      },
+      {
+        "path": "samples/captions/mobile-360/captions-selection-c-a.mp4",
+        "frames": [
+          0,
+          8,
+          9,
+          10,
+          14,
+          15,
+          113,
+          114,
+          115,
+          117,
+          118,
+          119
+        ],
+        "expected_selection": "c-a",
+        "expected_source_cues": [
+          {
+            "text": "AA",
+            "start": 1.8,
+            "end": 1.95
+          },
+          {
+            "text": "CCCCCCCC",
+            "start": 3.8,
+            "end": 4
+          }
+        ]
+      },
+      {
+        "path": "samples/captions/mobile-360/captions-selection-a-c.mp4",
+        "frames": [
+          0,
+          50,
+          52,
+          53,
+          54,
+          55,
+          56,
+          59,
+          60,
+          104
+        ],
+        "expected_selection": "a-c",
+        "expected_source_cues": [
+          {
+            "text": "AA",
+            "start": 1.8,
+            "end": 1.95
+          },
+          {
+            "text": "CCCCCCCC",
+            "start": 3.8,
+            "end": 4
+          }
+        ]
+      }
+    ],
+    "svg_archives": [
+      "samples/captions/desktop/captions-svg.zip",
+      "samples/captions/mobile/captions-svg.zip",
+      "samples/captions/mobile-360/captions-svg.zip"
+    ],
+    "expected_font_sha256": [
+      "2243f6c6fdd446824bf5fad41825d5fa8f49596185757bc654f757ee601dc66b",
+      "7b1431f0b4369904db5ab319b0c925b8b306d443f03a5e9fc996ed76e843f544",
+      "d691633f54e9a5ca332fdce266afbac7cfcef07b08cbe2d05620386246bab0cb"
+    ]
+  },
+  "media": [
+    {
+      "path": "samples/captions/desktop/captions-mp4.mp4",
+      "sha256": "da2f9cdf446ad54bfb7a20abd4e44d6c2213dab2bb895dc473d7f29851613ea5",
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "mime_codec_string": "avc1.64000a",
+            "width": 160,
+            "height": 120,
+            "coded_width": 160,
+            "coded_height": 128,
+            "has_b_frames": 2,
+            "pix_fmt": "yuv420p",
+            "level": 10,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "refs": 4,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "12/1",
+            "avg_frame_rate": "12/1",
+            "time_base": "1/12288",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 18432,
+            "duration": "1.500000",
+            "bit_rate": "8506",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "18",
+            "nb_read_frames": "18",
+            "extradata_size": 45,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "encoder": "Lavc63.1.102 libx264"
+            }
+          }
+        ],
+        "format": {
+          "filename": "C:\\laragon\\www\\metricool\\docs\\roadmap\\2026-11-03-creative-social-suite\\testing\\t11\\final-qa2\\samples\\captions\\desktop\\captions-mp4.mp4",
+          "nb_streams": 1,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "format_long_name": "QuickTime / MOV",
+          "start_time": "0.000000",
+          "duration": "1.500000",
+          "size": "2668",
+          "bit_rate": "14229",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf63.1.102"
+          }
+        }
+      },
+      "decoded_frame_count": 18,
+      "frames": [
+        {
+          "frame": 0,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        },
+        {
+          "frame": 2,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        },
+        {
+          "frame": 3,
+          "threshold_counts": {
+            "16": 372,
+            "64": 352,
+            "128": 254,
+            "200": 181,
+            "240": 63
+          },
+          "peak_luminance": 255.0,
+          "sum_luminance": 63709.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "d1accda38ef1b787e712af8474526785d246af7f72cd87c8123b9dfd474ac336"
+        },
+        {
+          "frame": 4,
+          "threshold_counts": {
+            "16": 372,
+            "64": 352,
+            "128": 254,
+            "200": 181,
+            "240": 63
+          },
+          "peak_luminance": 255.0,
+          "sum_luminance": 63709.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "d1accda38ef1b787e712af8474526785d246af7f72cd87c8123b9dfd474ac336"
+        },
+        {
+          "frame": 6,
+          "threshold_counts": {
+            "16": 372,
+            "64": 352,
+            "128": 254,
+            "200": 181,
+            "240": 63
+          },
+          "peak_luminance": 255.0,
+          "sum_luminance": 63709.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "d1accda38ef1b787e712af8474526785d246af7f72cd87c8123b9dfd474ac336"
+        },
+        {
+          "frame": 9,
+          "threshold_counts": {
+            "16": 372,
+            "64": 352,
+            "128": 254,
+            "200": 181,
+            "240": 63
+          },
+          "peak_luminance": 255.0,
+          "sum_luminance": 63709.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "d1accda38ef1b787e712af8474526785d246af7f72cd87c8123b9dfd474ac336"
+        },
+        {
+          "frame": 14,
+          "threshold_counts": {
+            "16": 372,
+            "64": 352,
+            "128": 254,
+            "200": 181,
+            "240": 63
+          },
+          "peak_luminance": 255.0,
+          "sum_luminance": 63709.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "d1accda38ef1b787e712af8474526785d246af7f72cd87c8123b9dfd474ac336"
+        },
+        {
+          "frame": 15,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        },
+        {
+          "frame": 17,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        }
+      ],
+      "comparisons": [
+        {
+          "frames": [
+            4,
+            9
+          ],
+          "baseline_peak_pixels": 63,
+          "peak_mask_luminance_ratio": 1.0,
+          "rgb_rmse": 0.0,
+          "rgb_max_difference": 0
+        },
+        {
+          "frames": [
+            4,
+            14
+          ],
+          "baseline_peak_pixels": 63,
+          "peak_mask_luminance_ratio": 1.0,
+          "rgb_rmse": 0.0,
+          "rgb_max_difference": 0
+        }
+      ]
+    },
+    {
+      "path": "samples/captions/desktop/captions-gif.gif",
+      "sha256": "cbc5c6f32df552caa0445297835e6bfaa5aaa60fea9c6abde96de23b90079f80",
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "gif",
+            "codec_long_name": "CompuServe GIF (Graphics Interchange Format)",
+            "codec_type": "video",
+            "codec_tag_string": "[0][0][0][0]",
+            "codec_tag": "0x0000",
+            "width": 160,
+            "height": 120,
+            "coded_width": 160,
+            "coded_height": 120,
+            "has_b_frames": 0,
+            "pix_fmt": "bgra",
+            "level": -99,
+            "refs": 1,
+            "r_frame_rate": "12000/1001",
+            "avg_frame_rate": "25/2",
+            "time_base": "1/100",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 150,
+            "duration": "1.500000",
+            "nb_frames": "18",
+            "nb_read_frames": "18",
+            "disposition": {
+              "default": 0,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            }
+          }
+        ],
+        "format": {
+          "filename": "C:\\laragon\\www\\metricool\\docs\\roadmap\\2026-11-03-creative-social-suite\\testing\\t11\\final-qa2\\samples\\captions\\desktop\\captions-gif.gif",
+          "nb_streams": 1,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "gif",
+          "format_long_name": "CompuServe Graphics Interchange Format (GIF)",
+          "start_time": "0.000000",
+          "duration": "1.500000",
+          "size": "24045",
+          "bit_rate": "128240",
+          "probe_score": 100
+        }
+      },
+      "decoded_frame_count": 18,
+      "frames": [
+        {
+          "frame": 0,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        },
+        {
+          "frame": 2,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        },
+        {
+          "frame": 3,
+          "threshold_counts": {
+            "16": 371,
+            "64": 353,
+            "128": 255,
+            "200": 181,
+            "240": 76
+          },
+          "peak_luminance": 253.0,
+          "sum_luminance": 63774.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+        },
+        {
+          "frame": 4,
+          "threshold_counts": {
+            "16": 371,
+            "64": 353,
+            "128": 255,
+            "200": 181,
+            "240": 76
+          },
+          "peak_luminance": 253.0,
+          "sum_luminance": 63774.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+        },
+        {
+          "frame": 6,
+          "threshold_counts": {
+            "16": 371,
+            "64": 353,
+            "128": 255,
+            "200": 181,
+            "240": 76
+          },
+          "peak_luminance": 253.0,
+          "sum_luminance": 63774.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+        },
+        {
+          "frame": 9,
+          "threshold_counts": {
+            "16": 371,
+            "64": 353,
+            "128": 255,
+            "200": 181,
+            "240": 76
+          },
+          "peak_luminance": 253.0,
+          "sum_luminance": 63774.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+        },
+        {
+          "frame": 14,
+          "threshold_counts": {
+            "16": 371,
+            "64": 353,
+            "128": 255,
+            "200": 181,
+            "240": 76
+          },
+          "peak_luminance": 253.0,
+          "sum_luminance": 63774.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+        },
+        {
+          "frame": 15,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        },
+        {
+          "frame": 17,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        }
+      ],
+      "comparisons": [
+        {
+          "frames": [
+            4,
+            9
+          ],
+          "baseline_peak_pixels": 76,
+          "peak_mask_luminance_ratio": 1.0,
+          "rgb_rmse": 0.0,
+          "rgb_max_difference": 0
+        },
+        {
+          "frames": [
+            4,
+            14
+          ],
+          "baseline_peak_pixels": 76,
+          "peak_mask_luminance_ratio": 1.0,
+          "rgb_rmse": 0.0,
+          "rgb_max_difference": 0
+        }
+      ]
+    },
+    {
+      "path": "samples/captions/desktop/captions-selection-a.mp4",
+      "sha256": "5b07a8f1094045c85bcc4e2419fe35dae528ff0f806864286449c969d7559bcb",
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "mime_codec_string": "avc1.64000b",
+            "width": 160,
+            "height": 120,
+            "coded_width": 160,
+            "coded_height": 128,
+            "has_b_frames": 2,
+            "pix_fmt": "yuv420p",
+            "level": 11,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "refs": 4,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "30/1",
+            "avg_frame_rate": "30/1",
+            "time_base": "1/15360",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 30720,
+            "duration": "2.000000",
+            "bit_rate": "8676",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "60",
+            "nb_read_frames": "60",
+            "extradata_size": 45,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "encoder": "Lavc63.1.102 libx264"
+            }
+          }
+        ],
+        "format": {
+          "filename": "C:\\laragon\\www\\metricool\\docs\\roadmap\\2026-11-03-creative-social-suite\\testing\\t11\\final-qa2\\samples\\captions\\desktop\\captions-selection-a.mp4",
+          "nb_streams": 1,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "format_long_name": "QuickTime / MOV",
+          "start_time": "0.000000",
+          "duration": "2.000000",
+          "size": "3742",
+          "bit_rate": "14968",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf63.1.102"
+          }
+        }
+      },
+      "decoded_frame_count": 60,
+      "frames": [
+        {
+          "frame": 0,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.0,
+          "sum_luminance": 858026.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "4a720ce9a8fd3ad81c3ee99ca33fc92e35b0a1a4939987d147cf32a77e7b09ac"
+        },
+        {
+          "frame": 53,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.0,
+          "sum_luminance": 858026.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "4a720ce9a8fd3ad81c3ee99ca33fc92e35b0a1a4939987d147cf32a77e7b09ac"
+        },
+        {
+          "frame": 54,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 224,
+            "128": 188,
+            "200": 139,
+            "240": 34
+          },
+          "peak_luminance": 252.0,
+          "sum_luminance": 892064.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c12d7379b9b9c2b09f48db1259ffef4b0375ea939290b783a499b27623634d90"
+        },
+        {
+          "frame": 55,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 224,
+            "128": 188,
+            "200": 139,
+            "240": 34
+          },
+          "peak_luminance": 252.0,
+          "sum_luminance": 892064.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c12d7379b9b9c2b09f48db1259ffef4b0375ea939290b783a499b27623634d90"
+        },
+        {
+          "frame": 58,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 224,
+            "128": 188,
+            "200": 139,
+            "240": 34
+          },
+          "peak_luminance": 252.0,
+          "sum_luminance": 892064.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c12d7379b9b9c2b09f48db1259ffef4b0375ea939290b783a499b27623634d90"
+        },
+        {
+          "frame": 59,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.0,
+          "sum_luminance": 858026.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "4a720ce9a8fd3ad81c3ee99ca33fc92e35b0a1a4939987d147cf32a77e7b09ac"
+        }
+      ],
+      "comparisons": []
+    },
+    {
+      "path": "samples/captions/desktop/captions-selection-c-a.mp4",
+      "sha256": "8b90fbd8c970b3b0c2c5796dc48cd2332ef5acee4efd7c5137aeb7502a296f0f",
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "mime_codec_string": "avc1.64000b",
+            "width": 160,
+            "height": 120,
+            "coded_width": 160,
+            "coded_height": 128,
+            "has_b_frames": 2,
+            "pix_fmt": "yuv420p",
+            "level": 11,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "refs": 4,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "30/1",
+            "avg_frame_rate": "30/1",
+            "time_base": "1/15360",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 61440,
+            "duration": "4.000000",
+            "bit_rate": "11320",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "120",
+            "nb_read_frames": "120",
+            "extradata_size": 45,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "encoder": "Lavc63.1.102 libx264"
+            }
+          }
+        ],
+        "format": {
+          "filename": "C:\\laragon\\www\\metricool\\docs\\roadmap\\2026-11-03-creative-social-suite\\testing\\t11\\final-qa2\\samples\\captions\\desktop\\captions-selection-c-a.mp4",
+          "nb_streams": 1,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "format_long_name": "QuickTime / MOV",
+          "start_time": "0.000000",
+          "duration": "4.000000",
+          "size": "7957",
+          "bit_rate": "15914",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf63.1.102"
+          }
+        }
+      },
+      "decoded_frame_count": 120,
+      "frames": [
+        {
+          "frame": 0,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.333333333333336,
+          "sum_luminance": 858453.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "7c48a24cf3ce590572dbf2206c74a786130091587bede3c881e6238d1cdd3e91"
+        },
+        {
+          "frame": 8,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.333333333333336,
+          "sum_luminance": 858453.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "7c48a24cf3ce590572dbf2206c74a786130091587bede3c881e6238d1cdd3e91"
+        },
+        {
+          "frame": 9,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 949,
+            "128": 722,
+            "200": 466,
+            "240": 225
+          },
+          "peak_luminance": 253.33333333333334,
+          "sum_luminance": 989158.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "8c323426566fdf8d25d8de0fc5312f3fb026c4998d15da13fbcfceb53bb52cba"
+        },
+        {
+          "frame": 10,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 949,
+            "128": 722,
+            "200": 466,
+            "240": 225
+          },
+          "peak_luminance": 253.33333333333334,
+          "sum_luminance": 989158.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "8c323426566fdf8d25d8de0fc5312f3fb026c4998d15da13fbcfceb53bb52cba"
+        },
+        {
+          "frame": 14,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 949,
+            "128": 722,
+            "200": 466,
+            "240": 225
+          },
+          "peak_luminance": 253.33333333333334,
+          "sum_luminance": 989158.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "8c323426566fdf8d25d8de0fc5312f3fb026c4998d15da13fbcfceb53bb52cba"
+        },
+        {
+          "frame": 15,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.333333333333336,
+          "sum_luminance": 858453.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "7c48a24cf3ce590572dbf2206c74a786130091587bede3c881e6238d1cdd3e91"
+        },
+        {
+          "frame": 113,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.0,
+          "sum_luminance": 858026.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "4a720ce9a8fd3ad81c3ee99ca33fc92e35b0a1a4939987d147cf32a77e7b09ac"
+        },
+        {
+          "frame": 114,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 224,
+            "128": 188,
+            "200": 139,
+            "240": 34
+          },
+          "peak_luminance": 252.0,
+          "sum_luminance": 892064.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c12d7379b9b9c2b09f48db1259ffef4b0375ea939290b783a499b27623634d90"
+        },
+        {
+          "frame": 115,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 224,
+            "128": 188,
+            "200": 139,
+            "240": 34
+          },
+          "peak_luminance": 252.0,
+          "sum_luminance": 892064.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c12d7379b9b9c2b09f48db1259ffef4b0375ea939290b783a499b27623634d90"
+        },
+        {
+          "frame": 117,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 224,
+            "128": 188,
+            "200": 139,
+            "240": 34
+          },
+          "peak_luminance": 252.0,
+          "sum_luminance": 892064.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c12d7379b9b9c2b09f48db1259ffef4b0375ea939290b783a499b27623634d90"
+        },
+        {
+          "frame": 118,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 224,
+            "128": 188,
+            "200": 139,
+            "240": 34
+          },
+          "peak_luminance": 252.0,
+          "sum_luminance": 892064.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c12d7379b9b9c2b09f48db1259ffef4b0375ea939290b783a499b27623634d90"
+        },
+        {
+          "frame": 119,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.0,
+          "sum_luminance": 858026.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "4a720ce9a8fd3ad81c3ee99ca33fc92e35b0a1a4939987d147cf32a77e7b09ac"
+        }
+      ],
+      "comparisons": []
+    },
+    {
+      "path": "samples/captions/desktop/captions-selection-a-c.mp4",
+      "sha256": "05843e36cb3145457634dd9436369d45749676c8dcd4c62345d3f841ba562453",
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "mime_codec_string": "avc1.64000b",
+            "width": 160,
+            "height": 120,
+            "coded_width": 160,
+            "coded_height": 128,
+            "has_b_frames": 2,
+            "pix_fmt": "yuv420p",
+            "level": 11,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "refs": 4,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "30/1",
+            "avg_frame_rate": "30/1",
+            "time_base": "1/15360",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 53760,
+            "duration": "3.500000",
+            "bit_rate": "12084",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "105",
+            "nb_read_frames": "105",
+            "extradata_size": 45,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "encoder": "Lavc63.1.102 libx264"
+            }
+          }
+        ],
+        "format": {
+          "filename": "C:\\laragon\\www\\metricool\\docs\\roadmap\\2026-11-03-creative-social-suite\\testing\\t11\\final-qa2\\samples\\captions\\desktop\\captions-selection-a-c.mp4",
+          "nb_streams": 1,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "format_long_name": "QuickTime / MOV",
+          "start_time": "0.000000",
+          "duration": "3.500000",
+          "size": "7332",
+          "bit_rate": "16758",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf63.1.102"
+          }
+        }
+      },
+      "decoded_frame_count": 105,
+      "frames": [
+        {
+          "frame": 0,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.0,
+          "sum_luminance": 858026.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "4a720ce9a8fd3ad81c3ee99ca33fc92e35b0a1a4939987d147cf32a77e7b09ac"
+        },
+        {
+          "frame": 50,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.666666666666664,
+          "sum_luminance": 865706.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "2476e3cb696bee34d427d2590abe6b6c7b3f45c52ba1077867f23411530ba4bf"
+        },
+        {
+          "frame": 52,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.333333333333336,
+          "sum_luminance": 864448.0,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "a5fdee6a3d7e4e06d3af06996a768cc422dd477ea1de076073e903d14c645dd3"
+        },
+        {
+          "frame": 53,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.333333333333336,
+          "sum_luminance": 858496.0,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "20e8775a3883e420d6bc8345e7889b028821c8f7af53e17312bcaeec17756bdc"
+        },
+        {
+          "frame": 54,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 952,
+            "128": 730,
+            "200": 464,
+            "240": 265
+          },
+          "peak_luminance": 253.66666666666666,
+          "sum_luminance": 990192.0,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "0f9e7eb7f9bfd99647348a3c09d58cab34198f394fe72c8f795017f7846ced4c"
+        },
+        {
+          "frame": 55,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 954,
+            "128": 728,
+            "200": 469,
+            "240": 265
+          },
+          "peak_luminance": 253.66666666666666,
+          "sum_luminance": 1001929.0,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c2222170ff33ca5b3460a6009a66e5f648836fe2148eb672f5df67c8ef52a0b9"
+        },
+        {
+          "frame": 56,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 948,
+            "128": 727,
+            "200": 468,
+            "240": 251
+          },
+          "peak_luminance": 254.0,
+          "sum_luminance": 987946.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "904d432d02e7c53724036085eba3bc82a6e99051e76ea62af1458c9b420eb282"
+        },
+        {
+          "frame": 59,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 951,
+            "128": 727,
+            "200": 465,
+            "240": 206
+          },
+          "peak_luminance": 252.33333333333334,
+          "sum_luminance": 990677.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "62b2d473ac992094f157fd940d3ec1bc337b75fba28816b7c372e22339c87378"
+        },
+        {
+          "frame": 60,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.333333333333336,
+          "sum_luminance": 858453.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "7c48a24cf3ce590572dbf2206c74a786130091587bede3c881e6238d1cdd3e91"
+        },
+        {
+          "frame": 104,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.333333333333336,
+          "sum_luminance": 858453.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "7c48a24cf3ce590572dbf2206c74a786130091587bede3c881e6238d1cdd3e91"
+        }
+      ],
+      "comparisons": []
+    },
+    {
+      "path": "samples/captions/mobile/captions-mp4.mp4",
+      "sha256": "da2f9cdf446ad54bfb7a20abd4e44d6c2213dab2bb895dc473d7f29851613ea5",
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "mime_codec_string": "avc1.64000a",
+            "width": 160,
+            "height": 120,
+            "coded_width": 160,
+            "coded_height": 128,
+            "has_b_frames": 2,
+            "pix_fmt": "yuv420p",
+            "level": 10,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "refs": 4,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "12/1",
+            "avg_frame_rate": "12/1",
+            "time_base": "1/12288",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 18432,
+            "duration": "1.500000",
+            "bit_rate": "8506",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "18",
+            "nb_read_frames": "18",
+            "extradata_size": 45,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "encoder": "Lavc63.1.102 libx264"
+            }
+          }
+        ],
+        "format": {
+          "filename": "C:\\laragon\\www\\metricool\\docs\\roadmap\\2026-11-03-creative-social-suite\\testing\\t11\\final-qa2\\samples\\captions\\mobile\\captions-mp4.mp4",
+          "nb_streams": 1,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "format_long_name": "QuickTime / MOV",
+          "start_time": "0.000000",
+          "duration": "1.500000",
+          "size": "2668",
+          "bit_rate": "14229",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf63.1.102"
+          }
+        }
+      },
+      "decoded_frame_count": 18,
+      "frames": [
+        {
+          "frame": 0,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        },
+        {
+          "frame": 2,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        },
+        {
+          "frame": 3,
+          "threshold_counts": {
+            "16": 372,
+            "64": 352,
+            "128": 254,
+            "200": 181,
+            "240": 63
+          },
+          "peak_luminance": 255.0,
+          "sum_luminance": 63709.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "d1accda38ef1b787e712af8474526785d246af7f72cd87c8123b9dfd474ac336"
+        },
+        {
+          "frame": 4,
+          "threshold_counts": {
+            "16": 372,
+            "64": 352,
+            "128": 254,
+            "200": 181,
+            "240": 63
+          },
+          "peak_luminance": 255.0,
+          "sum_luminance": 63709.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "d1accda38ef1b787e712af8474526785d246af7f72cd87c8123b9dfd474ac336"
+        },
+        {
+          "frame": 6,
+          "threshold_counts": {
+            "16": 372,
+            "64": 352,
+            "128": 254,
+            "200": 181,
+            "240": 63
+          },
+          "peak_luminance": 255.0,
+          "sum_luminance": 63709.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "d1accda38ef1b787e712af8474526785d246af7f72cd87c8123b9dfd474ac336"
+        },
+        {
+          "frame": 9,
+          "threshold_counts": {
+            "16": 372,
+            "64": 352,
+            "128": 254,
+            "200": 181,
+            "240": 63
+          },
+          "peak_luminance": 255.0,
+          "sum_luminance": 63709.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "d1accda38ef1b787e712af8474526785d246af7f72cd87c8123b9dfd474ac336"
+        },
+        {
+          "frame": 14,
+          "threshold_counts": {
+            "16": 372,
+            "64": 352,
+            "128": 254,
+            "200": 181,
+            "240": 63
+          },
+          "peak_luminance": 255.0,
+          "sum_luminance": 63709.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "d1accda38ef1b787e712af8474526785d246af7f72cd87c8123b9dfd474ac336"
+        },
+        {
+          "frame": 15,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        },
+        {
+          "frame": 17,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        }
+      ],
+      "comparisons": [
+        {
+          "frames": [
+            4,
+            9
+          ],
+          "baseline_peak_pixels": 63,
+          "peak_mask_luminance_ratio": 1.0,
+          "rgb_rmse": 0.0,
+          "rgb_max_difference": 0
+        },
+        {
+          "frames": [
+            4,
+            14
+          ],
+          "baseline_peak_pixels": 63,
+          "peak_mask_luminance_ratio": 1.0,
+          "rgb_rmse": 0.0,
+          "rgb_max_difference": 0
+        }
+      ]
+    },
+    {
+      "path": "samples/captions/mobile/captions-gif.gif",
+      "sha256": "cbc5c6f32df552caa0445297835e6bfaa5aaa60fea9c6abde96de23b90079f80",
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "gif",
+            "codec_long_name": "CompuServe GIF (Graphics Interchange Format)",
+            "codec_type": "video",
+            "codec_tag_string": "[0][0][0][0]",
+            "codec_tag": "0x0000",
+            "width": 160,
+            "height": 120,
+            "coded_width": 160,
+            "coded_height": 120,
+            "has_b_frames": 0,
+            "pix_fmt": "bgra",
+            "level": -99,
+            "refs": 1,
+            "r_frame_rate": "12000/1001",
+            "avg_frame_rate": "25/2",
+            "time_base": "1/100",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 150,
+            "duration": "1.500000",
+            "nb_frames": "18",
+            "nb_read_frames": "18",
+            "disposition": {
+              "default": 0,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            }
+          }
+        ],
+        "format": {
+          "filename": "C:\\laragon\\www\\metricool\\docs\\roadmap\\2026-11-03-creative-social-suite\\testing\\t11\\final-qa2\\samples\\captions\\mobile\\captions-gif.gif",
+          "nb_streams": 1,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "gif",
+          "format_long_name": "CompuServe Graphics Interchange Format (GIF)",
+          "start_time": "0.000000",
+          "duration": "1.500000",
+          "size": "24045",
+          "bit_rate": "128240",
+          "probe_score": 100
+        }
+      },
+      "decoded_frame_count": 18,
+      "frames": [
+        {
+          "frame": 0,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        },
+        {
+          "frame": 2,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        },
+        {
+          "frame": 3,
+          "threshold_counts": {
+            "16": 371,
+            "64": 353,
+            "128": 255,
+            "200": 181,
+            "240": 76
+          },
+          "peak_luminance": 253.0,
+          "sum_luminance": 63774.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+        },
+        {
+          "frame": 4,
+          "threshold_counts": {
+            "16": 371,
+            "64": 353,
+            "128": 255,
+            "200": 181,
+            "240": 76
+          },
+          "peak_luminance": 253.0,
+          "sum_luminance": 63774.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+        },
+        {
+          "frame": 6,
+          "threshold_counts": {
+            "16": 371,
+            "64": 353,
+            "128": 255,
+            "200": 181,
+            "240": 76
+          },
+          "peak_luminance": 253.0,
+          "sum_luminance": 63774.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+        },
+        {
+          "frame": 9,
+          "threshold_counts": {
+            "16": 371,
+            "64": 353,
+            "128": 255,
+            "200": 181,
+            "240": 76
+          },
+          "peak_luminance": 253.0,
+          "sum_luminance": 63774.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+        },
+        {
+          "frame": 14,
+          "threshold_counts": {
+            "16": 371,
+            "64": 353,
+            "128": 255,
+            "200": 181,
+            "240": 76
+          },
+          "peak_luminance": 253.0,
+          "sum_luminance": 63774.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+        },
+        {
+          "frame": 15,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        },
+        {
+          "frame": 17,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        }
+      ],
+      "comparisons": [
+        {
+          "frames": [
+            4,
+            9
+          ],
+          "baseline_peak_pixels": 76,
+          "peak_mask_luminance_ratio": 1.0,
+          "rgb_rmse": 0.0,
+          "rgb_max_difference": 0
+        },
+        {
+          "frames": [
+            4,
+            14
+          ],
+          "baseline_peak_pixels": 76,
+          "peak_mask_luminance_ratio": 1.0,
+          "rgb_rmse": 0.0,
+          "rgb_max_difference": 0
+        }
+      ]
+    },
+    {
+      "path": "samples/captions/mobile/captions-selection-a.mp4",
+      "sha256": "5b07a8f1094045c85bcc4e2419fe35dae528ff0f806864286449c969d7559bcb",
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "mime_codec_string": "avc1.64000b",
+            "width": 160,
+            "height": 120,
+            "coded_width": 160,
+            "coded_height": 128,
+            "has_b_frames": 2,
+            "pix_fmt": "yuv420p",
+            "level": 11,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "refs": 4,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "30/1",
+            "avg_frame_rate": "30/1",
+            "time_base": "1/15360",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 30720,
+            "duration": "2.000000",
+            "bit_rate": "8676",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "60",
+            "nb_read_frames": "60",
+            "extradata_size": 45,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "encoder": "Lavc63.1.102 libx264"
+            }
+          }
+        ],
+        "format": {
+          "filename": "C:\\laragon\\www\\metricool\\docs\\roadmap\\2026-11-03-creative-social-suite\\testing\\t11\\final-qa2\\samples\\captions\\mobile\\captions-selection-a.mp4",
+          "nb_streams": 1,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "format_long_name": "QuickTime / MOV",
+          "start_time": "0.000000",
+          "duration": "2.000000",
+          "size": "3742",
+          "bit_rate": "14968",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf63.1.102"
+          }
+        }
+      },
+      "decoded_frame_count": 60,
+      "frames": [
+        {
+          "frame": 0,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.0,
+          "sum_luminance": 858026.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "4a720ce9a8fd3ad81c3ee99ca33fc92e35b0a1a4939987d147cf32a77e7b09ac"
+        },
+        {
+          "frame": 53,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.0,
+          "sum_luminance": 858026.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "4a720ce9a8fd3ad81c3ee99ca33fc92e35b0a1a4939987d147cf32a77e7b09ac"
+        },
+        {
+          "frame": 54,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 224,
+            "128": 188,
+            "200": 139,
+            "240": 34
+          },
+          "peak_luminance": 252.0,
+          "sum_luminance": 892064.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c12d7379b9b9c2b09f48db1259ffef4b0375ea939290b783a499b27623634d90"
+        },
+        {
+          "frame": 55,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 224,
+            "128": 188,
+            "200": 139,
+            "240": 34
+          },
+          "peak_luminance": 252.0,
+          "sum_luminance": 892064.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c12d7379b9b9c2b09f48db1259ffef4b0375ea939290b783a499b27623634d90"
+        },
+        {
+          "frame": 58,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 224,
+            "128": 188,
+            "200": 139,
+            "240": 34
+          },
+          "peak_luminance": 252.0,
+          "sum_luminance": 892064.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c12d7379b9b9c2b09f48db1259ffef4b0375ea939290b783a499b27623634d90"
+        },
+        {
+          "frame": 59,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.0,
+          "sum_luminance": 858026.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "4a720ce9a8fd3ad81c3ee99ca33fc92e35b0a1a4939987d147cf32a77e7b09ac"
+        }
+      ],
+      "comparisons": []
+    },
+    {
+      "path": "samples/captions/mobile/captions-selection-c-a.mp4",
+      "sha256": "8b90fbd8c970b3b0c2c5796dc48cd2332ef5acee4efd7c5137aeb7502a296f0f",
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "mime_codec_string": "avc1.64000b",
+            "width": 160,
+            "height": 120,
+            "coded_width": 160,
+            "coded_height": 128,
+            "has_b_frames": 2,
+            "pix_fmt": "yuv420p",
+            "level": 11,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "refs": 4,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "30/1",
+            "avg_frame_rate": "30/1",
+            "time_base": "1/15360",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 61440,
+            "duration": "4.000000",
+            "bit_rate": "11320",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "120",
+            "nb_read_frames": "120",
+            "extradata_size": 45,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "encoder": "Lavc63.1.102 libx264"
+            }
+          }
+        ],
+        "format": {
+          "filename": "C:\\laragon\\www\\metricool\\docs\\roadmap\\2026-11-03-creative-social-suite\\testing\\t11\\final-qa2\\samples\\captions\\mobile\\captions-selection-c-a.mp4",
+          "nb_streams": 1,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "format_long_name": "QuickTime / MOV",
+          "start_time": "0.000000",
+          "duration": "4.000000",
+          "size": "7957",
+          "bit_rate": "15914",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf63.1.102"
+          }
+        }
+      },
+      "decoded_frame_count": 120,
+      "frames": [
+        {
+          "frame": 0,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.333333333333336,
+          "sum_luminance": 858453.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "7c48a24cf3ce590572dbf2206c74a786130091587bede3c881e6238d1cdd3e91"
+        },
+        {
+          "frame": 8,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.333333333333336,
+          "sum_luminance": 858453.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "7c48a24cf3ce590572dbf2206c74a786130091587bede3c881e6238d1cdd3e91"
+        },
+        {
+          "frame": 9,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 949,
+            "128": 722,
+            "200": 466,
+            "240": 225
+          },
+          "peak_luminance": 253.33333333333334,
+          "sum_luminance": 989158.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "8c323426566fdf8d25d8de0fc5312f3fb026c4998d15da13fbcfceb53bb52cba"
+        },
+        {
+          "frame": 10,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 949,
+            "128": 722,
+            "200": 466,
+            "240": 225
+          },
+          "peak_luminance": 253.33333333333334,
+          "sum_luminance": 989158.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "8c323426566fdf8d25d8de0fc5312f3fb026c4998d15da13fbcfceb53bb52cba"
+        },
+        {
+          "frame": 14,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 949,
+            "128": 722,
+            "200": 466,
+            "240": 225
+          },
+          "peak_luminance": 253.33333333333334,
+          "sum_luminance": 989158.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "8c323426566fdf8d25d8de0fc5312f3fb026c4998d15da13fbcfceb53bb52cba"
+        },
+        {
+          "frame": 15,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.333333333333336,
+          "sum_luminance": 858453.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "7c48a24cf3ce590572dbf2206c74a786130091587bede3c881e6238d1cdd3e91"
+        },
+        {
+          "frame": 113,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.0,
+          "sum_luminance": 858026.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "4a720ce9a8fd3ad81c3ee99ca33fc92e35b0a1a4939987d147cf32a77e7b09ac"
+        },
+        {
+          "frame": 114,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 224,
+            "128": 188,
+            "200": 139,
+            "240": 34
+          },
+          "peak_luminance": 252.0,
+          "sum_luminance": 892064.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c12d7379b9b9c2b09f48db1259ffef4b0375ea939290b783a499b27623634d90"
+        },
+        {
+          "frame": 115,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 224,
+            "128": 188,
+            "200": 139,
+            "240": 34
+          },
+          "peak_luminance": 252.0,
+          "sum_luminance": 892064.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c12d7379b9b9c2b09f48db1259ffef4b0375ea939290b783a499b27623634d90"
+        },
+        {
+          "frame": 117,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 224,
+            "128": 188,
+            "200": 139,
+            "240": 34
+          },
+          "peak_luminance": 252.0,
+          "sum_luminance": 892064.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c12d7379b9b9c2b09f48db1259ffef4b0375ea939290b783a499b27623634d90"
+        },
+        {
+          "frame": 118,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 224,
+            "128": 188,
+            "200": 139,
+            "240": 34
+          },
+          "peak_luminance": 252.0,
+          "sum_luminance": 892064.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c12d7379b9b9c2b09f48db1259ffef4b0375ea939290b783a499b27623634d90"
+        },
+        {
+          "frame": 119,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.0,
+          "sum_luminance": 858026.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "4a720ce9a8fd3ad81c3ee99ca33fc92e35b0a1a4939987d147cf32a77e7b09ac"
+        }
+      ],
+      "comparisons": []
+    },
+    {
+      "path": "samples/captions/mobile/captions-selection-a-c.mp4",
+      "sha256": "05843e36cb3145457634dd9436369d45749676c8dcd4c62345d3f841ba562453",
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "mime_codec_string": "avc1.64000b",
+            "width": 160,
+            "height": 120,
+            "coded_width": 160,
+            "coded_height": 128,
+            "has_b_frames": 2,
+            "pix_fmt": "yuv420p",
+            "level": 11,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "refs": 4,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "30/1",
+            "avg_frame_rate": "30/1",
+            "time_base": "1/15360",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 53760,
+            "duration": "3.500000",
+            "bit_rate": "12084",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "105",
+            "nb_read_frames": "105",
+            "extradata_size": 45,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "encoder": "Lavc63.1.102 libx264"
+            }
+          }
+        ],
+        "format": {
+          "filename": "C:\\laragon\\www\\metricool\\docs\\roadmap\\2026-11-03-creative-social-suite\\testing\\t11\\final-qa2\\samples\\captions\\mobile\\captions-selection-a-c.mp4",
+          "nb_streams": 1,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "format_long_name": "QuickTime / MOV",
+          "start_time": "0.000000",
+          "duration": "3.500000",
+          "size": "7332",
+          "bit_rate": "16758",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf63.1.102"
+          }
+        }
+      },
+      "decoded_frame_count": 105,
+      "frames": [
+        {
+          "frame": 0,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.0,
+          "sum_luminance": 858026.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "4a720ce9a8fd3ad81c3ee99ca33fc92e35b0a1a4939987d147cf32a77e7b09ac"
+        },
+        {
+          "frame": 50,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.666666666666664,
+          "sum_luminance": 865706.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "2476e3cb696bee34d427d2590abe6b6c7b3f45c52ba1077867f23411530ba4bf"
+        },
+        {
+          "frame": 52,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.333333333333336,
+          "sum_luminance": 864448.0,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "a5fdee6a3d7e4e06d3af06996a768cc422dd477ea1de076073e903d14c645dd3"
+        },
+        {
+          "frame": 53,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.333333333333336,
+          "sum_luminance": 858496.0,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "20e8775a3883e420d6bc8345e7889b028821c8f7af53e17312bcaeec17756bdc"
+        },
+        {
+          "frame": 54,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 952,
+            "128": 730,
+            "200": 464,
+            "240": 265
+          },
+          "peak_luminance": 253.66666666666666,
+          "sum_luminance": 990192.0,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "0f9e7eb7f9bfd99647348a3c09d58cab34198f394fe72c8f795017f7846ced4c"
+        },
+        {
+          "frame": 55,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 954,
+            "128": 728,
+            "200": 469,
+            "240": 265
+          },
+          "peak_luminance": 253.66666666666666,
+          "sum_luminance": 1001929.0,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c2222170ff33ca5b3460a6009a66e5f648836fe2148eb672f5df67c8ef52a0b9"
+        },
+        {
+          "frame": 56,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 948,
+            "128": 727,
+            "200": 468,
+            "240": 251
+          },
+          "peak_luminance": 254.0,
+          "sum_luminance": 987946.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "904d432d02e7c53724036085eba3bc82a6e99051e76ea62af1458c9b420eb282"
+        },
+        {
+          "frame": 59,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 951,
+            "128": 727,
+            "200": 465,
+            "240": 206
+          },
+          "peak_luminance": 252.33333333333334,
+          "sum_luminance": 990677.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "62b2d473ac992094f157fd940d3ec1bc337b75fba28816b7c372e22339c87378"
+        },
+        {
+          "frame": 60,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.333333333333336,
+          "sum_luminance": 858453.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "7c48a24cf3ce590572dbf2206c74a786130091587bede3c881e6238d1cdd3e91"
+        },
+        {
+          "frame": 104,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.333333333333336,
+          "sum_luminance": 858453.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "7c48a24cf3ce590572dbf2206c74a786130091587bede3c881e6238d1cdd3e91"
+        }
+      ],
+      "comparisons": []
+    },
+    {
+      "path": "samples/captions/mobile-360/captions-mp4.mp4",
+      "sha256": "da2f9cdf446ad54bfb7a20abd4e44d6c2213dab2bb895dc473d7f29851613ea5",
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "mime_codec_string": "avc1.64000a",
+            "width": 160,
+            "height": 120,
+            "coded_width": 160,
+            "coded_height": 128,
+            "has_b_frames": 2,
+            "pix_fmt": "yuv420p",
+            "level": 10,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "refs": 4,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "12/1",
+            "avg_frame_rate": "12/1",
+            "time_base": "1/12288",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 18432,
+            "duration": "1.500000",
+            "bit_rate": "8506",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "18",
+            "nb_read_frames": "18",
+            "extradata_size": 45,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "encoder": "Lavc63.1.102 libx264"
+            }
+          }
+        ],
+        "format": {
+          "filename": "C:\\laragon\\www\\metricool\\docs\\roadmap\\2026-11-03-creative-social-suite\\testing\\t11\\final-qa2\\samples\\captions\\mobile-360\\captions-mp4.mp4",
+          "nb_streams": 1,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "format_long_name": "QuickTime / MOV",
+          "start_time": "0.000000",
+          "duration": "1.500000",
+          "size": "2668",
+          "bit_rate": "14229",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf63.1.102"
+          }
+        }
+      },
+      "decoded_frame_count": 18,
+      "frames": [
+        {
+          "frame": 0,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        },
+        {
+          "frame": 2,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        },
+        {
+          "frame": 3,
+          "threshold_counts": {
+            "16": 372,
+            "64": 352,
+            "128": 254,
+            "200": 181,
+            "240": 63
+          },
+          "peak_luminance": 255.0,
+          "sum_luminance": 63709.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "d1accda38ef1b787e712af8474526785d246af7f72cd87c8123b9dfd474ac336"
+        },
+        {
+          "frame": 4,
+          "threshold_counts": {
+            "16": 372,
+            "64": 352,
+            "128": 254,
+            "200": 181,
+            "240": 63
+          },
+          "peak_luminance": 255.0,
+          "sum_luminance": 63709.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "d1accda38ef1b787e712af8474526785d246af7f72cd87c8123b9dfd474ac336"
+        },
+        {
+          "frame": 6,
+          "threshold_counts": {
+            "16": 372,
+            "64": 352,
+            "128": 254,
+            "200": 181,
+            "240": 63
+          },
+          "peak_luminance": 255.0,
+          "sum_luminance": 63709.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "d1accda38ef1b787e712af8474526785d246af7f72cd87c8123b9dfd474ac336"
+        },
+        {
+          "frame": 9,
+          "threshold_counts": {
+            "16": 372,
+            "64": 352,
+            "128": 254,
+            "200": 181,
+            "240": 63
+          },
+          "peak_luminance": 255.0,
+          "sum_luminance": 63709.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "d1accda38ef1b787e712af8474526785d246af7f72cd87c8123b9dfd474ac336"
+        },
+        {
+          "frame": 14,
+          "threshold_counts": {
+            "16": 372,
+            "64": 352,
+            "128": 254,
+            "200": 181,
+            "240": 63
+          },
+          "peak_luminance": 255.0,
+          "sum_luminance": 63709.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "d1accda38ef1b787e712af8474526785d246af7f72cd87c8123b9dfd474ac336"
+        },
+        {
+          "frame": 15,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        },
+        {
+          "frame": 17,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        }
+      ],
+      "comparisons": [
+        {
+          "frames": [
+            4,
+            9
+          ],
+          "baseline_peak_pixels": 63,
+          "peak_mask_luminance_ratio": 1.0,
+          "rgb_rmse": 0.0,
+          "rgb_max_difference": 0
+        },
+        {
+          "frames": [
+            4,
+            14
+          ],
+          "baseline_peak_pixels": 63,
+          "peak_mask_luminance_ratio": 1.0,
+          "rgb_rmse": 0.0,
+          "rgb_max_difference": 0
+        }
+      ]
+    },
+    {
+      "path": "samples/captions/mobile-360/captions-gif.gif",
+      "sha256": "cbc5c6f32df552caa0445297835e6bfaa5aaa60fea9c6abde96de23b90079f80",
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "gif",
+            "codec_long_name": "CompuServe GIF (Graphics Interchange Format)",
+            "codec_type": "video",
+            "codec_tag_string": "[0][0][0][0]",
+            "codec_tag": "0x0000",
+            "width": 160,
+            "height": 120,
+            "coded_width": 160,
+            "coded_height": 120,
+            "has_b_frames": 0,
+            "pix_fmt": "bgra",
+            "level": -99,
+            "refs": 1,
+            "r_frame_rate": "12000/1001",
+            "avg_frame_rate": "25/2",
+            "time_base": "1/100",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 150,
+            "duration": "1.500000",
+            "nb_frames": "18",
+            "nb_read_frames": "18",
+            "disposition": {
+              "default": 0,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            }
+          }
+        ],
+        "format": {
+          "filename": "C:\\laragon\\www\\metricool\\docs\\roadmap\\2026-11-03-creative-social-suite\\testing\\t11\\final-qa2\\samples\\captions\\mobile-360\\captions-gif.gif",
+          "nb_streams": 1,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "gif",
+          "format_long_name": "CompuServe Graphics Interchange Format (GIF)",
+          "start_time": "0.000000",
+          "duration": "1.500000",
+          "size": "24045",
+          "bit_rate": "128240",
+          "probe_score": 100
+        }
+      },
+      "decoded_frame_count": 18,
+      "frames": [
+        {
+          "frame": 0,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        },
+        {
+          "frame": 2,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        },
+        {
+          "frame": 3,
+          "threshold_counts": {
+            "16": 371,
+            "64": 353,
+            "128": 255,
+            "200": 181,
+            "240": 76
+          },
+          "peak_luminance": 253.0,
+          "sum_luminance": 63774.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+        },
+        {
+          "frame": 4,
+          "threshold_counts": {
+            "16": 371,
+            "64": 353,
+            "128": 255,
+            "200": 181,
+            "240": 76
+          },
+          "peak_luminance": 253.0,
+          "sum_luminance": 63774.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+        },
+        {
+          "frame": 6,
+          "threshold_counts": {
+            "16": 371,
+            "64": 353,
+            "128": 255,
+            "200": 181,
+            "240": 76
+          },
+          "peak_luminance": 253.0,
+          "sum_luminance": 63774.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+        },
+        {
+          "frame": 9,
+          "threshold_counts": {
+            "16": 371,
+            "64": 353,
+            "128": 255,
+            "200": 181,
+            "240": 76
+          },
+          "peak_luminance": 253.0,
+          "sum_luminance": 63774.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+        },
+        {
+          "frame": 14,
+          "threshold_counts": {
+            "16": 371,
+            "64": 353,
+            "128": 255,
+            "200": 181,
+            "240": 76
+          },
+          "peak_luminance": 253.0,
+          "sum_luminance": 63774.0,
+          "bbox": [
+            56,
+            88,
+            104,
+            105
+          ],
+          "rgb_sha256": "6a943925414f39d353b78354eecd018fa8e9cd64181f2d543fa40250f6268e4a"
+        },
+        {
+          "frame": 15,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        },
+        {
+          "frame": 17,
+          "threshold_counts": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 0.0,
+          "sum_luminance": 0.0,
+          "bbox": null,
+          "rgb_sha256": "c72274a22cba2dcef62e0f62834446ee39b0cd95ad0faa27a89b3b49f48aa390"
+        }
+      ],
+      "comparisons": [
+        {
+          "frames": [
+            4,
+            9
+          ],
+          "baseline_peak_pixels": 76,
+          "peak_mask_luminance_ratio": 1.0,
+          "rgb_rmse": 0.0,
+          "rgb_max_difference": 0
+        },
+        {
+          "frames": [
+            4,
+            14
+          ],
+          "baseline_peak_pixels": 76,
+          "peak_mask_luminance_ratio": 1.0,
+          "rgb_rmse": 0.0,
+          "rgb_max_difference": 0
+        }
+      ]
+    },
+    {
+      "path": "samples/captions/mobile-360/captions-selection-a.mp4",
+      "sha256": "5b07a8f1094045c85bcc4e2419fe35dae528ff0f806864286449c969d7559bcb",
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "mime_codec_string": "avc1.64000b",
+            "width": 160,
+            "height": 120,
+            "coded_width": 160,
+            "coded_height": 128,
+            "has_b_frames": 2,
+            "pix_fmt": "yuv420p",
+            "level": 11,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "refs": 4,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "30/1",
+            "avg_frame_rate": "30/1",
+            "time_base": "1/15360",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 30720,
+            "duration": "2.000000",
+            "bit_rate": "8676",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "60",
+            "nb_read_frames": "60",
+            "extradata_size": 45,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "encoder": "Lavc63.1.102 libx264"
+            }
+          }
+        ],
+        "format": {
+          "filename": "C:\\laragon\\www\\metricool\\docs\\roadmap\\2026-11-03-creative-social-suite\\testing\\t11\\final-qa2\\samples\\captions\\mobile-360\\captions-selection-a.mp4",
+          "nb_streams": 1,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "format_long_name": "QuickTime / MOV",
+          "start_time": "0.000000",
+          "duration": "2.000000",
+          "size": "3742",
+          "bit_rate": "14968",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf63.1.102"
+          }
+        }
+      },
+      "decoded_frame_count": 60,
+      "frames": [
+        {
+          "frame": 0,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.0,
+          "sum_luminance": 858026.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "4a720ce9a8fd3ad81c3ee99ca33fc92e35b0a1a4939987d147cf32a77e7b09ac"
+        },
+        {
+          "frame": 53,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.0,
+          "sum_luminance": 858026.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "4a720ce9a8fd3ad81c3ee99ca33fc92e35b0a1a4939987d147cf32a77e7b09ac"
+        },
+        {
+          "frame": 54,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 224,
+            "128": 188,
+            "200": 139,
+            "240": 34
+          },
+          "peak_luminance": 252.0,
+          "sum_luminance": 892064.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c12d7379b9b9c2b09f48db1259ffef4b0375ea939290b783a499b27623634d90"
+        },
+        {
+          "frame": 55,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 224,
+            "128": 188,
+            "200": 139,
+            "240": 34
+          },
+          "peak_luminance": 252.0,
+          "sum_luminance": 892064.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c12d7379b9b9c2b09f48db1259ffef4b0375ea939290b783a499b27623634d90"
+        },
+        {
+          "frame": 58,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 224,
+            "128": 188,
+            "200": 139,
+            "240": 34
+          },
+          "peak_luminance": 252.0,
+          "sum_luminance": 892064.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c12d7379b9b9c2b09f48db1259ffef4b0375ea939290b783a499b27623634d90"
+        },
+        {
+          "frame": 59,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.0,
+          "sum_luminance": 858026.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "4a720ce9a8fd3ad81c3ee99ca33fc92e35b0a1a4939987d147cf32a77e7b09ac"
+        }
+      ],
+      "comparisons": []
+    },
+    {
+      "path": "samples/captions/mobile-360/captions-selection-c-a.mp4",
+      "sha256": "8b90fbd8c970b3b0c2c5796dc48cd2332ef5acee4efd7c5137aeb7502a296f0f",
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "mime_codec_string": "avc1.64000b",
+            "width": 160,
+            "height": 120,
+            "coded_width": 160,
+            "coded_height": 128,
+            "has_b_frames": 2,
+            "pix_fmt": "yuv420p",
+            "level": 11,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "refs": 4,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "30/1",
+            "avg_frame_rate": "30/1",
+            "time_base": "1/15360",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 61440,
+            "duration": "4.000000",
+            "bit_rate": "11320",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "120",
+            "nb_read_frames": "120",
+            "extradata_size": 45,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "encoder": "Lavc63.1.102 libx264"
+            }
+          }
+        ],
+        "format": {
+          "filename": "C:\\laragon\\www\\metricool\\docs\\roadmap\\2026-11-03-creative-social-suite\\testing\\t11\\final-qa2\\samples\\captions\\mobile-360\\captions-selection-c-a.mp4",
+          "nb_streams": 1,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "format_long_name": "QuickTime / MOV",
+          "start_time": "0.000000",
+          "duration": "4.000000",
+          "size": "7957",
+          "bit_rate": "15914",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf63.1.102"
+          }
+        }
+      },
+      "decoded_frame_count": 120,
+      "frames": [
+        {
+          "frame": 0,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.333333333333336,
+          "sum_luminance": 858453.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "7c48a24cf3ce590572dbf2206c74a786130091587bede3c881e6238d1cdd3e91"
+        },
+        {
+          "frame": 8,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.333333333333336,
+          "sum_luminance": 858453.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "7c48a24cf3ce590572dbf2206c74a786130091587bede3c881e6238d1cdd3e91"
+        },
+        {
+          "frame": 9,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 949,
+            "128": 722,
+            "200": 466,
+            "240": 225
+          },
+          "peak_luminance": 253.33333333333334,
+          "sum_luminance": 989158.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "8c323426566fdf8d25d8de0fc5312f3fb026c4998d15da13fbcfceb53bb52cba"
+        },
+        {
+          "frame": 10,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 949,
+            "128": 722,
+            "200": 466,
+            "240": 225
+          },
+          "peak_luminance": 253.33333333333334,
+          "sum_luminance": 989158.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "8c323426566fdf8d25d8de0fc5312f3fb026c4998d15da13fbcfceb53bb52cba"
+        },
+        {
+          "frame": 14,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 949,
+            "128": 722,
+            "200": 466,
+            "240": 225
+          },
+          "peak_luminance": 253.33333333333334,
+          "sum_luminance": 989158.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "8c323426566fdf8d25d8de0fc5312f3fb026c4998d15da13fbcfceb53bb52cba"
+        },
+        {
+          "frame": 15,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.333333333333336,
+          "sum_luminance": 858453.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "7c48a24cf3ce590572dbf2206c74a786130091587bede3c881e6238d1cdd3e91"
+        },
+        {
+          "frame": 113,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.0,
+          "sum_luminance": 858026.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "4a720ce9a8fd3ad81c3ee99ca33fc92e35b0a1a4939987d147cf32a77e7b09ac"
+        },
+        {
+          "frame": 114,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 224,
+            "128": 188,
+            "200": 139,
+            "240": 34
+          },
+          "peak_luminance": 252.0,
+          "sum_luminance": 892064.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c12d7379b9b9c2b09f48db1259ffef4b0375ea939290b783a499b27623634d90"
+        },
+        {
+          "frame": 115,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 224,
+            "128": 188,
+            "200": 139,
+            "240": 34
+          },
+          "peak_luminance": 252.0,
+          "sum_luminance": 892064.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c12d7379b9b9c2b09f48db1259ffef4b0375ea939290b783a499b27623634d90"
+        },
+        {
+          "frame": 117,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 224,
+            "128": 188,
+            "200": 139,
+            "240": 34
+          },
+          "peak_luminance": 252.0,
+          "sum_luminance": 892064.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c12d7379b9b9c2b09f48db1259ffef4b0375ea939290b783a499b27623634d90"
+        },
+        {
+          "frame": 118,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 224,
+            "128": 188,
+            "200": 139,
+            "240": 34
+          },
+          "peak_luminance": 252.0,
+          "sum_luminance": 892064.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c12d7379b9b9c2b09f48db1259ffef4b0375ea939290b783a499b27623634d90"
+        },
+        {
+          "frame": 119,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.0,
+          "sum_luminance": 858026.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "4a720ce9a8fd3ad81c3ee99ca33fc92e35b0a1a4939987d147cf32a77e7b09ac"
+        }
+      ],
+      "comparisons": []
+    },
+    {
+      "path": "samples/captions/mobile-360/captions-selection-a-c.mp4",
+      "sha256": "05843e36cb3145457634dd9436369d45749676c8dcd4c62345d3f841ba562453",
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "mime_codec_string": "avc1.64000b",
+            "width": 160,
+            "height": 120,
+            "coded_width": 160,
+            "coded_height": 128,
+            "has_b_frames": 2,
+            "pix_fmt": "yuv420p",
+            "level": 11,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "refs": 4,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "30/1",
+            "avg_frame_rate": "30/1",
+            "time_base": "1/15360",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 53760,
+            "duration": "3.500000",
+            "bit_rate": "12084",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "105",
+            "nb_read_frames": "105",
+            "extradata_size": 45,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "encoder": "Lavc63.1.102 libx264"
+            }
+          }
+        ],
+        "format": {
+          "filename": "C:\\laragon\\www\\metricool\\docs\\roadmap\\2026-11-03-creative-social-suite\\testing\\t11\\final-qa2\\samples\\captions\\mobile-360\\captions-selection-a-c.mp4",
+          "nb_streams": 1,
+          "nb_programs": 0,
+          "nb_stream_groups": 0,
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "format_long_name": "QuickTime / MOV",
+          "start_time": "0.000000",
+          "duration": "3.500000",
+          "size": "7332",
+          "bit_rate": "16758",
+          "probe_score": 100,
+          "tags": {
+            "major_brand": "isom",
+            "minor_version": "512",
+            "compatible_brands": "isomiso2avc1mp41",
+            "encoder": "Lavf63.1.102"
+          }
+        }
+      },
+      "decoded_frame_count": 105,
+      "frames": [
+        {
+          "frame": 0,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.0,
+          "sum_luminance": 858026.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "4a720ce9a8fd3ad81c3ee99ca33fc92e35b0a1a4939987d147cf32a77e7b09ac"
+        },
+        {
+          "frame": 50,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.666666666666664,
+          "sum_luminance": 865706.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "2476e3cb696bee34d427d2590abe6b6c7b3f45c52ba1077867f23411530ba4bf"
+        },
+        {
+          "frame": 52,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.333333333333336,
+          "sum_luminance": 864448.0,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "a5fdee6a3d7e4e06d3af06996a768cc422dd477ea1de076073e903d14c645dd3"
+        },
+        {
+          "frame": 53,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.333333333333336,
+          "sum_luminance": 858496.0,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "20e8775a3883e420d6bc8345e7889b028821c8f7af53e17312bcaeec17756bdc"
+        },
+        {
+          "frame": 54,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 952,
+            "128": 730,
+            "200": 464,
+            "240": 265
+          },
+          "peak_luminance": 253.66666666666666,
+          "sum_luminance": 990192.0,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "0f9e7eb7f9bfd99647348a3c09d58cab34198f394fe72c8f795017f7846ced4c"
+        },
+        {
+          "frame": 55,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 954,
+            "128": 728,
+            "200": 469,
+            "240": 265
+          },
+          "peak_luminance": 253.66666666666666,
+          "sum_luminance": 1001929.0,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "c2222170ff33ca5b3460a6009a66e5f648836fe2148eb672f5df67c8ef52a0b9"
+        },
+        {
+          "frame": 56,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 948,
+            "128": 727,
+            "200": 468,
+            "240": 251
+          },
+          "peak_luminance": 254.0,
+          "sum_luminance": 987946.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "904d432d02e7c53724036085eba3bc82a6e99051e76ea62af1458c9b420eb282"
+        },
+        {
+          "frame": 59,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 951,
+            "128": 727,
+            "200": 465,
+            "240": 206
+          },
+          "peak_luminance": 252.33333333333334,
+          "sum_luminance": 990677.6666666666,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "62b2d473ac992094f157fd940d3ec1bc337b75fba28816b7c372e22339c87378"
+        },
+        {
+          "frame": 60,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.333333333333336,
+          "sum_luminance": 858453.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "7c48a24cf3ce590572dbf2206c74a786130091587bede3c881e6238d1cdd3e91"
+        },
+        {
+          "frame": 104,
+          "threshold_counts": {
+            "16": 19200,
+            "64": 0,
+            "128": 0,
+            "200": 0,
+            "240": 0
+          },
+          "peak_luminance": 45.333333333333336,
+          "sum_luminance": 858453.3333333333,
+          "bbox": [
+            0,
+            0,
+            159,
+            119
+          ],
+          "rgb_sha256": "7c48a24cf3ce590572dbf2206c74a786130091587bede3c881e6238d1cdd3e91"
+        }
+      ],
+      "comparisons": []
+    }
+  ],
+  "svg_archives": [
+    {
+      "path": "samples/captions/desktop/captions-svg.zip",
+      "entries": [
+        {
+          "name": "page-001.svg",
+          "text_nodes": [
+            "Hola"
+          ],
+          "embedded_font_sha256": [
+            "7b1431f0b4369904db5ab319b0c925b8b306d443f03a5e9fc996ed76e843f544"
+          ],
+          "expected_private_font_present": true,
+          "external_references": []
+        },
+        {
+          "name": "page-002.svg",
+          "text_nodes": [
+            "Hola"
+          ],
+          "embedded_font_sha256": [
+            "7b1431f0b4369904db5ab319b0c925b8b306d443f03a5e9fc996ed76e843f544"
+          ],
+          "expected_private_font_present": true,
+          "external_references": []
+        }
+      ]
+    },
+    {
+      "path": "samples/captions/mobile/captions-svg.zip",
+      "entries": [
+        {
+          "name": "page-001.svg",
+          "text_nodes": [
+            "Hola"
+          ],
+          "embedded_font_sha256": [
+            "2243f6c6fdd446824bf5fad41825d5fa8f49596185757bc654f757ee601dc66b"
+          ],
+          "expected_private_font_present": true,
+          "external_references": []
+        },
+        {
+          "name": "page-002.svg",
+          "text_nodes": [
+            "Hola"
+          ],
+          "embedded_font_sha256": [
+            "2243f6c6fdd446824bf5fad41825d5fa8f49596185757bc654f757ee601dc66b"
+          ],
+          "expected_private_font_present": true,
+          "external_references": []
+        }
+      ]
+    },
+    {
+      "path": "samples/captions/mobile-360/captions-svg.zip",
+      "entries": [
+        {
+          "name": "page-001.svg",
+          "text_nodes": [
+            "Hola"
+          ],
+          "embedded_font_sha256": [
+            "d691633f54e9a5ca332fdce266afbac7cfcef07b08cbe2d05620386246bab0cb"
+          ],
+          "expected_private_font_present": true,
+          "external_references": []
+        },
+        {
+          "name": "page-002.svg",
+          "text_nodes": [
+            "Hola"
+          ],
+          "embedded_font_sha256": [
+            "d691633f54e9a5ca332fdce266afbac7cfcef07b08cbe2d05620386246bab0cb"
+          ],
+          "expected_private_font_present": true,
+          "external_references": []
+        }
+      ]
+    }
+  ]
+}

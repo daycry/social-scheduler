@@ -1,0 +1,489 @@
+--- baseline/app/Services/Studio/StudioAvState.php
++++ app/Services/Studio/StudioAvState.php
+@@ -24,6 +24,7 @@
+     public function failPosition(int $id, string $generation, int $position, string $code): bool
+     {
+         return DB::transaction(function () use ($id, $generation, $position, $code) {
++            $this->reserveSqliteWriter('studio_design_exports', $id);
+             $export = DesignExport::withoutUserScope()->whereKey($id)->lockForUpdate()->first();
+             if (! $export || ! in_array($export->status, ['pending', 'processing'], true) || ($export->render_state['generation'] ?? null) !== $generation
+                 || ($export->render_state['position'] ?? null) !== $position) {
+@@ -43,6 +44,7 @@
+     public function defer(object $lease): bool
+     {
+         return DB::transaction(function () use ($lease) {
++            $this->reserveSqliteWriter('studio_av_leases', $lease->id);
+             [$export, $workspace, $current] = $this->activeLease($lease);
+             if (! $current) {
+                 return false;
+@@ -73,6 +75,7 @@
+     public function allocateRegistration(StudioAvLease $lease): MediaAsset
+     {
+         return DB::transaction(function () use ($lease) {
++            $this->reserveSqliteWriter('studio_av_leases', $lease->id);
+             [$export, $workspace, $current] = $this->activeLease($lease);
+             if (! $current || $current->phase !== 'register') {
+                 throw (new ModelNotFoundException)->setModel(StudioAvLease::class, [$lease->id]);
+@@ -119,6 +122,7 @@
+     public function bindRegistrationLocation(StudioAvLease $lease, array $location): void
+     {
+         DB::transaction(function () use ($lease, $location) {
++            $this->reserveSqliteWriter('studio_av_leases', $lease->id);
+             [$export, $workspace, $current] = $this->activeLease($lease);
+             if (! $current || $current->phase !== 'register') {
+                 throw (new ModelNotFoundException)->setModel(StudioAvLease::class, [$lease->id]);
+@@ -138,9 +142,13 @@
+     }
+ 
+     /** Persist transfer receipts only; no I/O and no visibility change. */
+-    public function checkpointRegistration(StudioAvLease $lease, array $progress, ?string $uploadId = null): bool
+-    {
+-        return DB::transaction(function () use ($lease, $progress, $uploadId) {
++    public function checkpointRegistration(StudioAvLease $lease, array $progress, ?string $uploadId = null, ?float $deadline = null): bool
++    {
++        $checkpoint = function () use ($lease, $progress, $uploadId, $deadline) {
++            $this->reserveSqliteWriter('studio_av_leases', $lease->id);
++            if ($deadline !== null && (! is_finite($deadline) || microtime(true) >= $deadline)) {
++                throw new StudioAvProcessFailed('phase_timeout');
++            }
+             [$export, $workspace, $current] = $this->activeLease($lease);
+             if (! $current || $current->phase !== 'register') {
+                 return false;
+@@ -165,9 +173,60 @@
+             $receipt = $workspace->media_receipt;
+             $receipt['upload_id'] = $uploadId;
+             $workspace->update(['media_receipt' => $receipt]);
++            if ($deadline !== null && microtime(true) >= $deadline) {
++                throw new StudioAvProcessFailed('phase_timeout');
++            }
+ 
+             return true;
+-        });
++        };
++        $connection = DB::connection();
++        $busyTimeout = null;
++        try {
++            if ($connection->getDriverName() === 'sqlite' && $deadline !== null) {
++                if (! is_finite($deadline) || microtime(true) >= $deadline) {
++                    throw new StudioAvProcessFailed('phase_timeout');
++                }
++                $busyTimeout = (int) $connection->scalar('PRAGMA busy_timeout');
++                $milliseconds = min($busyTimeout, max(1, (int) ceil(($deadline - microtime(true)) * 1000)));
++                $connection->statement('PRAGMA busy_timeout = '.$milliseconds);
++            }
++
++            if ($connection->getDriverName() !== 'sqlite') {
++                return $connection->transaction($checkpoint);
++            }
++            $level = $connection->transactionLevel();
++            $connection->beginTransaction();
++            try {
++                $result = $checkpoint();
++                if ($deadline !== null) {
++                    if (microtime(true) >= $deadline) {
++                        throw new StudioAvProcessFailed('phase_timeout');
++                    }
++                    // COMMIT can also wait for a reader. Budget it from the time left
++                    // after acquiring the writer and validating the fenced checkpoint.
++                    $milliseconds = min($busyTimeout, max(1, (int) ceil(($deadline - microtime(true)) * 1000)));
++                    $connection->statement('PRAGMA busy_timeout = '.$milliseconds);
++                }
++                $connection->commit();
++
++                return $result;
++            } catch (\Throwable $error) {
++                // The public Laravel API keeps its level until COMMIT succeeds,
++                // allowing rollback of SQLITE_BUSY without leaving PDO open at level 0.
++                $connection->rollBack($level);
++                throw $error;
++            }
++        } catch (\PDOException $error) {
++            if ($connection->getDriverName() === 'sqlite' && $deadline !== null && microtime(true) >= $deadline
++                && in_array((int) ($error->errorInfo[1] ?? 0), [5, 6], true)) {
++                throw new StudioAvProcessFailed('phase_timeout');
++            }
++            throw $error;
++        } finally {
++            if ($busyTimeout !== null) {
++                $connection->statement('PRAGMA busy_timeout = '.$busyTimeout);
++            }
++        }
+     }
+ 
+     private function registrationSource(DesignExport $export): StudioAvLease
+@@ -218,6 +277,7 @@
+     public function begin(string $id): ?StudioAvLease
+     {
+         return DB::transaction(function () use ($id) {
++            $this->reserveSqliteWriter('studio_av_leases', $id);
+             $candidate = StudioAvLease::find($id);
+             $allocation = $candidate ? StudioAvWorkspace::withoutUserScope()->select(self::WORKSPACE_COLUMNS)->find($candidate->workspace_id) : null;
+             $export = $allocation ? DesignExport::withoutUserScope()->whereKey($allocation->export_id)->lockForUpdate()->first() : null;
+@@ -243,6 +303,7 @@
+     public function rejectCheckpoint(object $lease): bool
+     {
+         return DB::transaction(function () use ($lease) {
++            $this->reserveSqliteWriter('studio_av_leases', $lease->id);
+             [$export, $workspace, $current] = $this->activeLease($lease);
+             if (! $current || $current->phase !== 'verify') {
+                 return false;
+@@ -270,6 +331,7 @@
+     public function initialize(User $user, DesignExport $export): DesignExport
+     {
+         return DB::transaction(function () use ($user, $export) {
++            $this->reserveSqliteWriter('studio_design_exports', $export->id);
+             $current = DesignExport::withoutUserScope()->where('user_id', $user->id)->whereKey($export->id)->lockForUpdate()->firstOrFail();
+             $document = $this->pinnedDocument($current);
+             if (! in_array($current->format, ['mp4', 'gif'], true)) {
+@@ -307,6 +369,7 @@
+     public function claim(int $exportId, string $generation, int $bytes = 0, ?int $position = null): ?StudioAvLease
+     {
+         return DB::transaction(function () use ($exportId, $generation, $bytes, $position) {
++            $this->reserveSqliteWriter('studio_design_exports', $exportId);
+             $export = DesignExport::withoutUserScope()->whereKey($exportId)->lockForUpdate()->first();
+             if (! $export || ! in_array($export->status, ['pending', 'processing'], true) || ($export->render_state['generation'] ?? null) !== $generation
+                 || ($position !== null && ($export->render_state['position'] ?? null) !== $position)) {
+@@ -361,6 +424,7 @@
+     public function accept(object $lease, array $result, int $bytes = 0): bool
+     {
+         return DB::transaction(function () use ($lease, $result, $bytes) {
++            $this->reserveSqliteWriter('studio_av_leases', $lease->id);
+             [$export, $workspace, $current] = $this->activeLease($lease);
+             if (! $current) {
+                 return false;
+@@ -436,6 +500,7 @@
+     public function cancel(User $user, DesignExport $export): DesignExport
+     {
+         return DB::transaction(function () use ($user, $export) {
++            $this->reserveSqliteWriter('studio_design_exports', $export->id);
+             $current = $this->ownedLocked($user, $export);
+             if ($current->status === 'ready' || $current->status === 'failed') {
+                 abort(409, 'El estado actual no admite cancelaciÃ³n.');
+@@ -458,6 +523,7 @@
+     public function retry(User $user, DesignExport $export): DesignExport
+     {
+         return DB::transaction(function () use ($user, $export) {
++            $this->reserveSqliteWriter('studio_design_exports', $export->id);
+             $current = $this->ownedLocked($user, $export);
+             if (! in_array($current->status, ['failed', 'cancelled'], true)) {
+                 abort(409, 'El trabajo todavÃ­a estÃ¡ activo o ya tiene un resultado listo.');
+@@ -486,6 +552,7 @@
+     public function fail(object $lease, string $code): bool
+     {
+         return DB::transaction(function () use ($lease, $code) {
++            $this->reserveSqliteWriter('studio_av_leases', $lease->id);
+             [$export, , $current] = $this->activeLease($lease, false);
+             if (! $current) {
+                 return false;
+@@ -624,6 +691,15 @@
+         }
+ 
+         return $current;
++    }
++
++    private function reserveSqliteWriter(string $table, int|string $id): void
++    {
++        if (DB::connection()->getDriverName() === 'sqlite') {
++            // Reserve the writer before reading fenced state; SQLite cannot wait
++            // safely when upgrading a shared reader against another session writer.
++            DB::table($table)->where('id', $id)->update(['id' => DB::raw('id')]);
++        }
+     }
+ 
+     private function activeLease(object $lease, bool $requireOwner = true): array
+--- baseline/app/Services/Studio/StudioAvTransfer.php
++++ app/Services/Studio/StudioAvTransfer.php
+@@ -288,7 +288,7 @@
+     private function save(StudioAvLease $lease, MediaAsset $media, array $progress, ?string $uploadId = null, float $deadline = 0): void
+     {
+         $this->remaining($deadline);
+-        if (! $this->state->checkpointRegistration($lease, $progress, $uploadId)) {
++        if (! $this->state->checkpointRegistration($lease, $progress, $uploadId, $deadline)) {
+             throw (new ModelNotFoundException)->setModel(StudioAvLease::class, [$lease->id]);
+         }
+         $media->refresh();
+--- baseline/tests/Feature/Studio/StudioAvTransferTest.php
++++ tests/Feature/Studio/StudioAvTransferTest.php
+@@ -12,6 +12,8 @@
+ use App\Services\Studio\StudioService;
+ use Illuminate\Database\Eloquent\ModelNotFoundException;
+ use Illuminate\Support\Facades\Storage;
++use Illuminate\Support\Facades\DB;
++use Symfony\Component\Process\Process;
+ use Tests\Support\StudioAvR2;
+ 
+ beforeEach(function () {
+@@ -212,3 +214,150 @@
+     expect(fn () => ($this->finish)())->toThrow(StudioAvCheckpointCorrupt::class);
+     expect($media->refresh()->import_state['verified_bytes'])->toBe(0)->and($media->isReady())->toBeFalse();
+ });
++
++test('AV local registration checkpoints serialize SQLite writers and respect the caller deadline', function (bool $shortDeadline, bool $commitReader, string $mutation = 'checkpoint') {
++    ($this->prepare)('rendered bytes');
++    $media = $mutation === 'allocate' ? null : $this->state->allocateRegistration($this->lease);
++    $originalConnection = config('database.default');
++    $directory = storage_path('framework/testing/t11-register-debug-'.\Illuminate\Support\Str::uuid());
++    mkdir($directory, 0700, true);
++    $database = $directory.'/db.sqlite';
++    $marker = $directory.'/writer-started';
++    $target = new PDO('sqlite:'.$database);
++    $target->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
++    // Clone only this test's disposable database, including its uncommitted fixture rows.
++    $schema = DB::select("select name, sql from sqlite_master where type = 'table' and name not like 'sqlite_%'");
++    foreach ($schema as $table) {
++        $target->exec($table->sql);
++        foreach (DB::select('select * from "'.$table->name.'"') as $row) {
++            $values = (array) $row;
++            $statement = $target->prepare('insert into "'.$table->name.'" values ('.implode(',', array_fill(0, count($values), '?')).')');
++            $statement->execute(array_values($values));
++        }
++    }
++    $target->exec('create table registration_contention (value integer)');
++    $target->exec('insert into registration_contention values (0)');
++    $target = null;
++    config(['database.connections.registration_contention' => array_replace(config('database.connections.sqlite'),
++        ['database' => $database, 'busy_timeout' => 5000, 'journal_mode' => 'DELETE']), 'database.default' => 'registration_contention']);
++    $connection = DB::connection();
++    $media = $media ? MediaAsset::withoutUserScope()->findOrFail($media->id) : null;
++    $leaseBefore = DB::table('studio_av_leases')->where('id', $this->lease->id)->first();
++    $busyBefore = (int) $connection->scalar('PRAGMA busy_timeout');
++    $writer = null;
++    $armed = true;
++    $startWriter = function () use (&$writer, $database, $marker, $shortDeadline, $commitReader) {
++        $writer = new Process([PHP_BINARY, '-r', <<<'PHP'
++$db = new PDO('sqlite:'.$argv[1]);
++$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
++$db->exec('PRAGMA busy_timeout=5000');
++if ($argv[3] === '0') file_put_contents($argv[2], 'started');
++$db->beginTransaction();
++if ($argv[3] === '2') {
++    $db->query('select * from registration_contention')->fetchAll();
++    file_put_contents($argv[2], 'locked'); usleep(400000); $db->rollBack(); exit(0);
++}
++$db->exec('update registration_contention set value = value + 1');
++if ($argv[3] === '1') { file_put_contents($argv[2], 'locked'); usleep(400000); }
++$db->commit();
++PHP, $database, $marker, $commitReader ? '2' : ($shortDeadline ? '1' : '0')]);
++        $writer->start();
++        $limit = microtime(true) + 3;
++        while (! is_file($marker) && microtime(true) < $limit) {
++            usleep(1000);
++            clearstatcache(true, $marker);
++        }
++        expect(is_file($marker))->toBeTrue();
++        if (! $shortDeadline && ! $commitReader) {
++            usleep(100000);
++        }
++    };
++    $connection->beforeExecuting(function ($sql) use (&$armed, $startWriter, $shortDeadline, $commitReader, $mutation) {
++        if ($mutation === 'checkpoint' && ! $shortDeadline && ! $commitReader && $armed && str_starts_with($sql, 'update "media_assets"')) {
++            $armed = false;
++            $startWriter();
++        }
++    });
++    DB::listen(function ($query) use (&$armed, $startWriter, $mutation) {
++        if ($mutation !== 'checkpoint' && $armed && $query->connectionName === 'registration_contention'
++            && $query->connection->transactionLevel() > 0 && str_starts_with($query->sql, 'select ')) {
++            $armed = false;
++            $startWriter();
++        }
++    });
++    try {
++        if ($mutation === 'allocate') {
++            $media = $this->state->allocateRegistration($this->lease);
++        } elseif ($mutation === 'bind') {
++            $location = ['driver' => 'local', 'root' => rtrim(Storage::disk('local')->path(''), '/\\')];
++            $this->state->bindRegistrationLocation($this->lease, $location);
++            expect(StudioAvWorkspace::withoutUserScope()->findOrFail($this->lease->workspace_id)->media_receipt['location'])->toBe($location);
++        } elseif ($shortDeadline || $commitReader) {
++            // Test the DB wait budget directly; the competing lock is already held.
++            Storage::disk('local')->put($media->path.'.part', 'rendered bytes');
++            $startWriter();
++            $started = microtime(true);
++            expect(fn () => $this->state->checkpointRegistration($this->lease, ['bytes' => 14, 'stage' => 'copying'], deadline: $started + 0.15))
++                ->toThrow(StudioAvProcessFailed::class);
++            expect(microtime(true) - $started)->toBeLessThan(0.3);
++        } else {
++            expect(app(StudioAvTransfer::class)->run($this->lease))->toBeNull();
++        }
++        expect($media->fresh()->import_state['bytes'])->toBe($mutation !== 'checkpoint' || $shortDeadline || $commitReader ? 0 : 14);
++        expect($connection->transactionLevel())->toBe(0)->and($connection->getPdo()->inTransaction())->toBeFalse();
++        expect((int) $connection->scalar('PRAGMA busy_timeout'))->toBe($busyBefore);
++        if ($mutation === 'checkpoint') {
++            expect(file_get_contents(Storage::disk('local')->path($media->path.'.part')))->toBe('rendered bytes');
++        }
++        expect($writer)->toBeInstanceOf(Process::class);
++        expect($writer->wait())->toBe(0);
++        expect((int) $connection->scalar('select value from registration_contention'))->toBe($commitReader ? 0 : 1);
++        expect(DB::table('studio_av_leases')->where('id', $this->lease->id)->first())->toEqual($leaseBefore);
++        expect(MediaAsset::withoutUserScope()->count())->toBe(1)->and($media->fresh()->isReady())->toBeFalse();
++    } finally {
++        if ($writer instanceof Process) {
++            $writer->wait();
++        }
++        config(['database.default' => $originalConnection]);
++        DB::purge('registration_contention');
++    }
++})->with(['concurrent session write' => [false, false], 'deadline expires waiting for writer' => [true, false],
++    'deadline expires committing against reader' => [false, true], 'allocate registration' => [false, false, 'allocate'],
++    'bind registration' => [false, false, 'bind']]);
++
++test('AV registration preserves caller transaction nesting rollback and after commit callbacks', function () {
++    ($this->prepare)('rendered bytes');
++    $media = $this->state->allocateRegistration($this->lease);
++    $connection = DB::connection();
++    $level = $connection->transactionLevel();
++    $callbacks = 0;
++    $connection->beginTransaction();
++    try {
++        $connection->afterCommit(function () use (&$callbacks) { $callbacks++; });
++        expect(app(StudioAvTransfer::class)->run($this->lease))->toBeNull();
++        expect($connection->transactionLevel())->toBe($level + 1)->and($callbacks)->toBe(0);
++        expect($media->fresh()->import_state['bytes'])->toBe(14);
++    } finally {
++        $connection->rollBack($level);
++    }
++    expect($media->fresh()->import_state['bytes'])->toBe(0)->and($callbacks)->toBe(0);
++    expect(file_get_contents(Storage::disk('local')->path($media->path.'.part')))->toBe('rendered bytes');
++    $connection->beginTransaction();
++    try {
++        $connection->afterCommit(function () use (&$callbacks) { $callbacks++; });
++        expect(app(StudioAvTransfer::class)->run($this->lease))->toBeNull();
++        expect($connection->transactionLevel())->toBe($level + 1)->and($callbacks)->toBe(0);
++        $connection->commit();
++    } finally {
++        if ($connection->transactionLevel() > $level) {
++            $connection->rollBack($level);
++        }
++    }
++    // Laravel's test manager executes callbacks when the caller commits back to the test transaction.
++    expect($callbacks)->toBe(1)->and($connection->transactionLevel())->toBe($level);
++    expect($media->fresh()->import_state['bytes'])->toBe(14);
++    $queries = [];
++    $connection->beforeExecuting(function ($sql) use (&$queries) { $queries[] = $sql; });
++    expect($this->state->workingExport($this->lease)->id)->toBe($this->export->id);
++    expect(array_values(array_filter($queries, fn ($sql) => str_starts_with($sql, 'update '))))->toBe([]);
++});
+--- baseline/tests/Feature/Studio/StudioAvQueueTest.php
++++ tests/Feature/Studio/StudioAvQueueTest.php
+@@ -71,6 +71,120 @@
+         && ! $job instanceof ShouldBeUnique);
+ });
+ 
++test('AV state mutations serialize an independent SQLite session writer', function (string $mutation) {
++    $plan = $mutation === 'initialize' ? null : $this->state->claim($this->export->id, $this->export->render_state['generation']);
++    $planData = ['frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 24, 'segmentCount' => 1,
++        'selection' => ['one'], 'assetIds' => [], 'fontIds' => [], 'audioAssetIds' => [],
++        'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]];
++    if ($mutation === 'initialize') {
++        $this->export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $this->export->design_id,
++            'revision' => 1, 'format' => 'mp4', 'pages' => ['one'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
++    } elseif ($mutation === 'claim') {
++        $this->state->accept($plan, $planData);
++    } elseif ($mutation === 'retry') {
++        $this->state->cancel($this->user, $this->export);
++    } elseif ($mutation === 'rejectCheckpoint') {
++        $this->state->accept($plan, $planData);
++        $segment = $this->state->claim($this->export->id, $plan->generation, 1);
++        $this->state->accept($segment, ['file' => 'segments/'.$segment->id.'/video-000000.mp4', 'namespace' => $segment->id,
++            'size' => 1, 'sha256' => str_repeat('a', 64)], 1);
++        $this->state->cancel($this->user, $this->export);
++        $retry = $this->state->retry($this->user, $this->export);
++        $this->state->accept($this->state->claim($retry->id, $retry->render_state['generation']), $planData);
++        $plan = $this->state->claim($retry->id, $retry->render_state['generation']);
++        expect($plan->phase)->toBe('verify');
++    }
++    $originalConnection = config('database.default');
++    $directory = storage_path('framework/testing/t11-register-debug-claim-'.\Illuminate\Support\Str::uuid());
++    mkdir($directory, 0700, true);
++    $database = $directory.'/db.sqlite';
++    $marker = $directory.'/writer-started';
++    $target = new PDO('sqlite:'.$database);
++    $target->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
++    foreach (DB::select("select name, sql from sqlite_master where type = 'table' and name not like 'sqlite_%'") as $table) {
++        $target->exec($table->sql);
++        foreach (DB::select('select * from "'.$table->name.'"') as $row) {
++            $values = (array) $row;
++            $statement = $target->prepare('insert into "'.$table->name.'" values ('.implode(',', array_fill(0, count($values), '?')).')');
++            $statement->execute(array_values($values));
++        }
++    }
++    $target->exec('create table claim_contention (value integer)');
++    $target->exec('insert into claim_contention values (0)');
++    $target = null;
++    config(['database.connections.claim_contention' => array_replace(config('database.connections.sqlite'),
++        ['database' => $database, 'busy_timeout' => 5000, 'journal_mode' => 'DELETE']), 'database.default' => 'claim_contention']);
++    $writer = null;
++    $armed = true;
++    DB::listen(function ($query) use (&$armed, &$writer, $database, $marker) {
++        if (! $armed || $query->connectionName !== 'claim_contention' || $query->connection->transactionLevel() === 0
++            || ! str_starts_with($query->sql, 'select ')) {
++            return;
++        }
++        $armed = false;
++        $writer = new \Symfony\Component\Process\Process([PHP_BINARY, '-r', <<<'PHP'
++$db = new PDO('sqlite:'.$argv[1]);
++$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
++$db->exec('PRAGMA busy_timeout=5000');
++file_put_contents($argv[2], 'started');
++$db->beginTransaction();
++$db->exec('update claim_contention set value = value + 1');
++$db->commit();
++PHP, $database, $marker]);
++        $writer->start();
++        $limit = microtime(true) + 3;
++        while (! is_file($marker) && microtime(true) < $limit) {
++            usleep(1000);
++            clearstatcache(true, $marker);
++        }
++        expect(is_file($marker))->toBeTrue();
++        usleep(100000);
++    });
++    try {
++        $result = match ($mutation) {
++            'initialize' => $this->state->initialize($this->user, $this->export),
++            'claim' => app(StudioAvQueue::class)->enqueue($this->export->id),
++            'begin' => $this->state->begin($plan->id),
++            'defer' => $this->state->defer($plan),
++            'accept' => $this->state->accept($plan, $planData),
++            'cancel' => $this->state->cancel($this->user, $this->export),
++            'retry' => $this->state->retry($this->user, $this->export),
++            'fail' => $this->state->fail($plan, 'phase_failed'),
++            'failPosition' => $this->state->failPosition($this->export->id, $plan->generation, 0, 'phase_failed'),
++            'rejectCheckpoint' => $this->state->rejectCheckpoint($plan),
++        };
++        expect((bool) $result)->toBeTrue();
++        expect($writer)->toBeInstanceOf(\Symfony\Component\Process\Process::class);
++        expect($writer->wait())->toBe(0);
++        $export = DesignExport::withoutUserScope()->findOrFail($this->export->id);
++        $expectedStatus = match ($mutation) {
++            'cancel' => 'cancelled', 'initialize', 'retry' => 'pending', 'fail', 'failPosition' => 'failed', default => 'processing',
++        };
++        expect($export->status)->toBe($expectedStatus);
++        if ($mutation === 'claim') {
++            $lease = StudioAvLease::findOrFail($export->render_state['lease']);
++            expect($lease->phase)->toBe('render')->and($lease->status)->toBe('running');
++            expect(StudioAvLease::where('status', 'accepted')->count())->toBe(1);
++        } elseif ($mutation === 'begin') {
++            expect(StudioAvLease::findOrFail($plan->id)->started_at)->not->toBeNull();
++        } else {
++            expect($export->render_state['lease'])->toBeNull();
++        }
++        expect((int) DB::scalar('select value from claim_contention'))->toBe(1);
++        if ($mutation === 'claim') {
++            Queue::assertPushed(ProcessStudioAvPhase::class, 1);
++        } else {
++            Queue::assertNothingPushed();
++        }
++    } finally {
++        if ($writer instanceof \Symfony\Component\Process\Process) {
++            $writer->wait();
++        }
++        config(['database.default' => $originalConnection]);
++        DB::purge('claim_contention');
++    }
++})->with(['initialize', 'claim', 'begin', 'defer', 'accept', 'cancel', 'retry', 'fail', 'failPosition', 'rejectCheckpoint']);
++
+ test('AV recovery recognizes a database message still waiting for a worker and cannot prune its lease', function () {
+     Queue::swap($this->realQueue);
+     $queue = app(StudioAvQueue::class);

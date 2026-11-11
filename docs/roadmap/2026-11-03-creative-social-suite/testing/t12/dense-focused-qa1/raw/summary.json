@@ -1,0 +1,40 @@
+{
+  "automatic_verdict": "FOCAL-PASS",
+  "mode": "dense",
+  "planned_cases": 3,
+  "actual_cases": 3,
+  "recorded_cases": 3,
+  "bars_per_case": 12000,
+  "semantic_bars_total": 36000,
+  "svg_deliveries": 3,
+  "png_deliveries": 3,
+  "independent_xml_checks": 3,
+  "independent_png_checks": 3,
+  "budget_negatives": 6,
+  "preview_pixel_checks": 0,
+  "private_font_checks": 0,
+  "axe_checks": 0,
+  "design_pdf_checks": 0,
+  "global_acceptance": false,
+  "source_count": 837,
+  "figure_count": 4,
+  "visual_review_pending": false,
+  "pdf_generated": true,
+  "resource": {
+    "physical_minimum_observed_bytes": 6874886144,
+    "sample_interval_seconds": 0.1,
+    "elapsed": 67.17579089998617,
+    "job": {
+      "scope": "job",
+      "limit": 3221225472,
+      "peak_commit": 2380132352,
+      "kill_on_close": true,
+      "breakaway": false
+    },
+    "failure": null
+  },
+  "ports": {
+    "ipv4_8080_free": true,
+    "ipv6_8080_free": true
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "state": "core_finished",
+  "pid": 30088,
+  "started_epoch": 1794021974.2418666,
+  "runtime": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-2d3e5ae5-5845-4689-bf65-54d639780ab0",
+  "native_cases": null,
+  "build10_sha256": "b793c048f6d9e5c2bde0ec03564ac7bd7d7f502c7a8c3d06f3ed78efd6a141f8",
+  "exit_code": 1,
+  "core_exit_code": 1,
+  "gate_exit_code": 1,
+  "errors": [],
+  "resource": {
+    "physical_minimum_observed_bytes": 9779249152,
+    "sample_interval_seconds": 0.1,
+    "elapsed": 536.134644617734,
+    "job": {
+      "scope": "job",
+      "limit": 3221225472,
+      "peak_commit": 701423616,
+      "kill_on_close": true,
+      "breakaway": false
+    },
+    "failure": null
+  },
+  "job_pids_before_exit": [
+    30088
+  ],
+  "ports": {
+    "ipv4_8080_free": true,
+    "ipv6_8080_free": true
+  },
+  "elapsed_total_seconds": 536.1349684177549
+}

@@ -1,0 +1,68 @@
+{
+  "scope": "T12 pure dataset editor core corrections attempt2; no UI acceptance",
+  "before": {
+    "resources/js/Studio/dataset-table.js": "5be12258d40bebb13b087fd955dd22ae6356f4c66f045b2c7c58c88933aff66f",
+    "tests/frontend/studio-dataset-table.test.mjs": "ed52613de4f6db785e1a92b9674bad94848177f23b383e760352d4fa834c4af1"
+  },
+  "sources": {
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+    "tests/frontend/studio-dataset-table.test.mjs": "b328009c188b652e35fc4cd8f3a18e41035b3d6e0792f50246edc770fa5742d5"
+  },
+  "attempt1_artifacts_verified_unchanged": 185,
+  "original26tests_byte_identical_prefix": true,
+  "final_test_run": "neighbors30",
+  "tests": {
+    "passed": 30,
+    "failed": 0,
+    "skipped": 0,
+    "cancelled": 0
+  },
+  "red_runs": [
+    "red01",
+    "red02",
+    "red03",
+    "red04"
+  ],
+  "source_changes_after_packaging": [],
+  "artifacts": {
+    "before/resources/js/Studio/dataset-table.js": "5be12258d40bebb13b087fd955dd22ae6356f4c66f045b2c7c58c88933aff66f",
+    "before/tests/frontend/studio-dataset-table.test.mjs": "ed52613de4f6db785e1a92b9674bad94848177f23b383e760352d4fa834c4af1",
+    "before-manifest.json": "d1ccf53a3ace0ce84464564263b64df070cc896df0238a587dfd0e2d4c36dd65",
+    "delta.diff": "a68f1d7557288626626f4020e7fb82d608acd3955b120f3499690237f9f08f8c",
+    "evidence.md": "cefca301cdf34bd4d5eb5b483fe859541c0dbd7fea3d777bbcdd4729ae4f0c9c",
+    "full.diff": "80a2e07bae032384243a80906d383de238d897b3de8cc95a7cf7e6c3191c2821",
+    "green01.json": "73124ebc547a896d825a83ceeca02d57543622736fc4c33a527ec64b42701c10",
+    "green01.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "green01.stdout.txt": "0cd89fcb7cccb6c13fb881a72cd10a414656f813e0a02146bab4df10f64782b5",
+    "green02.json": "84c39cb673463b3d236789cb354367dec53afc86715f386c0006fce4607acc5b",
+    "green02.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "green02.stdout.txt": "60e09ad904dbb42144ecc838edce77df1db9b18a43924766c742b08330e5078e",
+    "green03.json": "38051749035646739ff60b7198fb14cddcdc5e8245f04f4b3401dcdcc71ee371",
+    "green03.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "green03.stdout.txt": "38fe52d54f14f874d597ae76c8eb451033d997131242060516c52ab0fa40036c",
+    "green04.json": "a4ed7972ecd4cd00d0816dd9cee3d423dce12abc4a41182f6334f9178ba987ed",
+    "green04.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "green04.stdout.txt": "6c14e393d3b099c3594340c1ffba633ca92c297f0ff273ab5d93b7ab6d138ab4",
+    "neighbors30.json": "efed4b6a886075e795948fc5e510db08a258a7bba19079c6559e59fa9b309bd2",
+    "neighbors30.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "neighbors30.stdout.txt": "43399c5514547e816d6d8a1b307335bca9a9be2cf091c35a775de0592c2b44ea",
+    "performance.json": "f5dc32ca7516c1ca5bfecaeed56cde1acff5660e8b793e030962832316e152dd",
+    "performance.mjs": "155596a54c6678a730945f18680ca1f4d77e88cce36e0ba8259fb5c410aacb27",
+    "performance.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "red01.json": "67642deff9e2f4d0588d9bea48e69f79a372640d4dd2950a28545aed946412c8",
+    "red01.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "red01.stdout.txt": "0839b3ab15cd63c1ccf6182802109c707c19efec9ef72f9db411eaf3f62fdc17",
+    "red02.json": "09e5235015ac0fcfc018a319ba5e184b0f497aca21521c448c8f3a683e00b448",
+    "red02.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "red02.stdout.txt": "bc3f94104c1ddf2e72d833d2a4971a0723d9220a3be5b99ad5ba5eb7ea607283",
+    "red03.json": "a84d652c7ae2417dfc6f3f31abeb747703666bcb17441f86e4cfeaa180dc515c",
+    "red03.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "red03.stdout.txt": "dc5df1006f710422faf0152a2e2187076da0220f082117edc1bd3573eb6ee925",
+    "red04.json": "f995d7e4300c575fd1b8cd7f90d4df05bf261835bc36fe39112f6f63f3840192",
+    "red04.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "red04.stdout.txt": "9f1b547dbc24127212e46a4e5ef89baf67187d5da29ba71e0c7ef0c3361fc29d",
+    "run.py": "26e342933922bb2e9fb888a4cf6e656aefd6f19a0c876d62a7401be10bbe1296",
+    "source/resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+    "source/tests/frontend/studio-dataset-table.test.mjs": "b328009c188b652e35fc4cd8f3a18e41035b3d6e0792f50246edc770fa5742d5"
+  }
+}

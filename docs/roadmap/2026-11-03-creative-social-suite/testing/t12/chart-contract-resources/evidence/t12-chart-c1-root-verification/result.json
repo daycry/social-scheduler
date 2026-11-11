@@ -1,0 +1,17 @@
+{
+  "actual_command_exit_code": 0,
+  "reported_tests": 35,
+  "reported_passed": 35,
+  "reported_assertions": 250,
+  "reported_duration_ms": 1018,
+  "php_memory_limit": "256M",
+  "scope": "Isolated SQLite/memory and private fixture storage; no HTTP/browser/native/production environment",
+  "junit_exists": true,
+  "junit_cases": 35,
+  "junit_failures": 0,
+  "junit_errors": 0,
+  "junit_skips": 0,
+  "junit_sha256": "e6321bf424c90f5ce9cc5b94c90e321295855a67d0fb4d9edb097c33b64b532f",
+  "source_fingerprints": 16,
+  "changed_sources": []
+}

@@ -1,0 +1,53 @@
+{
+  "date": "2026-11-05",
+  "scope": "Private Laravel database queue/native bridge through assembly, not registration or public export",
+  "php": {
+    "tests": 195,
+    "assertions": 1024,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "native_cases": [
+    {
+      "name": "AV actual database worker processes native deliveries through assembly and stops before pending media registration with data set \"('mp4')\"",
+      "assertions": 26,
+      "time": 2.421953
+    },
+    {
+      "name": "AV actual database worker processes native deliveries through assembly and stops before pending media registration with data set \"('gif')\"",
+      "assertions": 26,
+      "time": 2.376184
+    },
+    {
+      "name": "AV database worker snapshots and mixes a private real tone for MP4 while GIF does not copy unused music with data set \"('mp4')\"",
+      "assertions": 16,
+      "time": 3.759619
+    },
+    {
+      "name": "AV database worker snapshots and mixes a private real tone for MP4 while GIF does not copy unused music with data set \"('gif')\"",
+      "assertions": 10,
+      "time": 2.407343
+    },
+    {
+      "name": "AV native Laravel bridge renders and assembles an actual MP4 under the inherited OS group limit",
+      "assertions": 14,
+      "time": 2.376329
+    }
+  ],
+  "review": {
+    "attempt1": "B1/B2 Important reproduced",
+    "attempt2": "B1/B2 corrected; D2-1 Important",
+    "attempt3": "A3+B3+D3 no gaps"
+  },
+  "qa": "root integration, not final independent QA",
+  "parent_task": "T-11 in progress, roadmap7/23",
+  "pending": [
+    "media registration and durable copy",
+    "download/draft",
+    "native cancellation signal",
+    "web/API/MCP controls and UI",
+    "full native export final independent QA",
+    "whole roadmap then Claude CLI full application/document audit"
+  ]
+}

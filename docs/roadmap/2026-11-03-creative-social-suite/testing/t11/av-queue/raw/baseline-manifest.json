@@ -1,0 +1,40 @@
+{
+  "sources": [
+    {
+      "path": "app/Services/Studio/StudioAvState.php",
+      "sha256": "8e5ceceab6c4a45591247b5f11b6e3068524383d691fad7af9b1164c13498347"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvStorage.php",
+      "sha256": "f86271172824b20b7364098bfb4769c3c800f0f4cf27448aa50e88fcd753ef10"
+    },
+    {
+      "path": "app/Models/Studio/StudioAvLease.php",
+      "sha256": "85a1c5223c9f79a89f91a1d4117e03daa0b10e4e657e19d849013333a31b8bc6"
+    },
+    {
+      "path": "app/Models/Studio/StudioAvWorkspace.php",
+      "sha256": "4fabc1abe01308d230596013f3339ee735bae2927b2dfe955571ad6137aa3383"
+    },
+    {
+      "path": "database/migrations/2026_11_05_150000_add_studio_render_state.php",
+      "sha256": "e3e101efacc46227b8e894d01ac8a1b1a65e25f42bdc93ef41d8050259584a2e"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md",
+      "sha256": "75b06d2092ce955683be82123c70cb215dda18c0a2f7fae29129e42f0b4cf554"
+    },
+    {
+      "path": "routes/console.php",
+      "sha256": "7bc95dd3565a2c1e5b01f820a33fd3459838112abed2dbcd76597fd48696cc38"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvCleanup.php",
+      "sha256": "5783d44d59e3814355ef7d4bb8db1952bfb72a614bd24849221b9b42c8f2e68b"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvFiles.php",
+      "sha256": "ee4d198d70021ca1ae9df13a3a52981ce18b990f3ff6355f8128bb1804ff9e0a"
+    }
+  ]
+}

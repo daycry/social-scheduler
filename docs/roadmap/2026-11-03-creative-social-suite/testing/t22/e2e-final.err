@@ -1,0 +1,35 @@
+npm notice run npx
+npm notice run playwright test --reporter=line,json
+[desktop] › tests\e2e\studio-av-composite.spec.ts:16:1 › Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft
+[desktop] › tests\e2e\studio-captions.spec.ts:86:1 › Studio captions render: private font pinned MP4 GIF and SVG retain opaque cues across page fade
+C:\laragon/www/metricool/storage/framework/testing/t43-pdf-tools\fitz\__init__.py:17: FutureWarning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+  warnings.warn(
+[desktop] › tests\e2e\studio-native-export.spec.ts:6:1 › Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft
+[desktop] › tests\e2e\studio-presentation-media.spec.ts:70:1 › E2E-29 real own video and audio emit native frames and playback; pause navigation and close release every media
+[desktop] › tests\e2e\studio-presentation-media.spec.ts:149:60 › E2E-29 pending real media preparation cancelled by close never publishes or plays late
+[desktop] › tests\e2e\studio-presentation-media.spec.ts:149:60 › E2E-29 pending real media preparation cancelled by design-unmount never publishes or plays late
+[desktop] › tests\e2e\studio-timeline.spec.ts:63:1 › Studio timeline: an uploaded real video with an open source end can be split and previewed
+[desktop] › tests\e2e\studio-timeline.spec.ts:133:1 › Studio timeline: buffering never consumes a short clip before playback starts
+[desktop] › tests\e2e\studio-timeline.spec.ts:165:1 › Studio timeline: closing while media buffers cancels the pending playback
+[mobile] › tests\e2e\studio-av-composite.spec.ts:16:1 › Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft
+[mobile] › tests\e2e\studio-captions.spec.ts:86:1 › Studio captions render: private font pinned MP4 GIF and SVG retain opaque cues across page fade
+C:\laragon/www/metricool/storage/framework/testing/t43-pdf-tools\fitz\__init__.py:17: FutureWarning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+  warnings.warn(
+[mobile] › tests\e2e\studio-native-export.spec.ts:6:1 › Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft
+[mobile] › tests\e2e\studio-presentation-media.spec.ts:70:1 › E2E-29 real own video and audio emit native frames and playback; pause navigation and close release every media
+[mobile] › tests\e2e\studio-presentation-media.spec.ts:149:60 › E2E-29 pending real media preparation cancelled by close never publishes or plays late
+[mobile] › tests\e2e\studio-presentation-media.spec.ts:149:60 › E2E-29 pending real media preparation cancelled by design-unmount never publishes or plays late
+[mobile] › tests\e2e\studio-timeline.spec.ts:63:1 › Studio timeline: an uploaded real video with an open source end can be split and previewed
+[mobile] › tests\e2e\studio-timeline.spec.ts:133:1 › Studio timeline: buffering never consumes a short clip before playback starts
+[mobile] › tests\e2e\studio-timeline.spec.ts:165:1 › Studio timeline: closing while media buffers cancels the pending playback
+[mobile-360] › tests\e2e\studio-av-composite.spec.ts:16:1 › Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft
+[mobile-360] › tests\e2e\studio-captions.spec.ts:86:1 › Studio captions render: private font pinned MP4 GIF and SVG retain opaque cues across page fade
+C:\laragon/www/metricool/storage/framework/testing/t43-pdf-tools\fitz\__init__.py:17: FutureWarning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+  warnings.warn(
+[mobile-360] › tests\e2e\studio-native-export.spec.ts:6:1 › Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft
+[mobile-360] › tests\e2e\studio-presentation-media.spec.ts:70:1 › E2E-29 real own video and audio emit native frames and playback; pause navigation and close release every media
+[mobile-360] › tests\e2e\studio-presentation-media.spec.ts:149:60 › E2E-29 pending real media preparation cancelled by close never publishes or plays late
+[mobile-360] › tests\e2e\studio-presentation-media.spec.ts:149:60 › E2E-29 pending real media preparation cancelled by design-unmount never publishes or plays late
+[mobile-360] › tests\e2e\studio-timeline.spec.ts:63:1 › Studio timeline: an uploaded real video with an open source end can be split and previewed
+[mobile-360] › tests\e2e\studio-timeline.spec.ts:133:1 › Studio timeline: buffering never consumes a short clip before playback starts
+[mobile-360] › tests\e2e\studio-timeline.spec.ts:165:1 › Studio timeline: closing while media buffers cancels the pending playback

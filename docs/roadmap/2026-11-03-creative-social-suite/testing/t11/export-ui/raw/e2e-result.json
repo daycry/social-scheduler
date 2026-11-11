@@ -1,0 +1,17 @@
+{
+  "exit": 0,
+  "terminal": true,
+  "source_hashes_match": true,
+  "sources": 10,
+  "generated": 76,
+  "stats": {
+    "startTime": "2026-11-05T18:56:39.431Z",
+    "duration": 387527.775,
+    "expected": 48,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "runner_errors": [],
+  "results_path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-56c4cbb4-0445-43e2-9de8-434cb3999b68\\results.json"
+}

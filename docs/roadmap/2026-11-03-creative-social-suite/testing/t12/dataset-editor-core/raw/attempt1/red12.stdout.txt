@@ -1,0 +1,41 @@
+TAP version 13
+# Subtest: history uses bounded shared states and supports undo redo branch and reset
+not ok 1 - history uses bounded shared states and supports undo redo branch and reset
+  ---
+  duration_ms: 1.977
+  type: 'test'
+  location: 'C:\\laragon\\www\\metricool\\tests\\frontend\\studio-dataset-table.test.mjs:118:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + {
+    +   raw: '0.0',
+    +   type: 'number'
+    + }
+    - 'one'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'one'
+  actual:
+    type: 'number'
+    raw: '0.0'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/laragon/www/metricool/tests/frontend/studio-dataset-table.test.mjs:121:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 16.3797

@@ -141,7 +141,7 @@ test('E2E-08 · el progreso avanza, un fallo suelto del sondeo se tolera y al te
 
     // Termina: el elemento de progreso desaparece y la media queda UNA sola vez en la lista de la publicación.
     await expect(item).toHaveCount(0, { timeout: 20_000 });
-    await expect(page.getByText('1. foto.jpg')).toBeVisible();
+    await expect(page.getByText('1. foto.jpg').first()).toBeVisible(); // la previsualizacion por red (T-17) repite el nombre
     await expect(page.getByText('2. foto.jpg')).toHaveCount(0);
     const getsAtEnd = seen.gets;
     await page.waitForTimeout(4000);
@@ -312,7 +312,7 @@ test('E2E-09 · Drive: con la clave configurada el botón aparece, se usa con te
     await expect(button).toBeFocused();
     await page.keyboard.press('Enter');
 
-    await expect(page.getByText('1. clip.mp4')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText('1. clip.mp4').first()).toBeVisible({ timeout: 20_000 }); // la previsualizacion por red (T-17) repite el nombre
     expect(seen.body).toEqual({ file_id: 'FILE_id-1', access_token: 'ya29.stub-token' });
     // El token no queda en la URL, el almacenamiento ni el DOM.
     expect(page.url()).not.toContain('ya29');

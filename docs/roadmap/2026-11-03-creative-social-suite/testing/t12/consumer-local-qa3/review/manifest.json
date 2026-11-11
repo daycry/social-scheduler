@@ -1,0 +1,134 @@
+{
+  "scope": "Adopted footer accessibility and vertical y-title fixes with public RED before code, same complete public03 and counter, guarded new build7 and consumer3; no automatic retry/full matrix or native acceptance.",
+  "files": {
+    "resources/js/Components/Studio/StudioChartsDialog.vue": "3438abae1e2d84fe4711f5dee567658a62052ad20088cdedc7dd1b88eb13721b",
+    "tests/frontend/studio-charts-dialog.test.mjs": "bc2708f9b1bc57a7e493721f978a9264a8b973e72f7ad0f3666e7136de761738",
+    "resources/js/Studio/chart-scene.js": "14f83ca8bca340f2dc6791b87342582fd182ce712d69fef2908a55fbb4096511",
+    "resources/js/Studio/chart-renderer.js": "6b3c63d433d3201e40b58c3de7370152aeea14118a20c14613a9c6b1b5517e24",
+    "tests/frontend/studio-chart-scene.test.mjs": "88dfcd91d6460b2226a447f3fcba3063d3600a059b7d17f9ebf4899e2a18d963",
+    "tests/frontend/studio-chart-canvas.test.mjs": "e068ae4937c6a6da5a6d51fca5445581a64b92415f8c097c94c64f69faf18fd7",
+    "storage/framework/testing/t12-chart-consumer-errors-qa3/playwright.config.ts": "5631ee0ca710c0a677232eb72270fd02a407f47001af3384005ffb9fdf5f320a",
+    "storage/framework/testing/t12-chart-consumer-errors-qa3/probe-ast.cjs": "1cf702dfd5943440d7fd3a17ef4042717af656b29c5f2055be2fb69ea5ad0ed5",
+    "storage/framework/testing/t12-chart-consumer-errors-qa3/probe-pure.py": "a1ebd64015f58c8e5b550d9a806ee74a4590f9a2d54add4e173c2413d8dc8d9b",
+    "storage/framework/testing/t12-chart-consumer-errors-qa3/recount.py": "12178139199f8f1157bd2e499b6c60edf81502950498b2a67089ccaacea5d0da",
+    "storage/framework/testing/t12-chart-consumer-errors-qa3/run.py": "e2d7b58ea2f0345b5c9498879d8c77affbb3e87ebd596330bb078069d0f06222",
+    "storage/framework/testing/t12-chart-build7/build.mjs": "41bd1c8c4e1ae60ee6f32c4656c6b6eb8d6107ccb855b1ec5b41c82bf00ea168",
+    "storage/framework/testing/t12-chart-build7/run.py": "45f3b8306a825c9e97e89378a1203d588cfbd948f5a33fc5d4d3ca6998e68084",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-chart-empty-table-contract.md": "415d30210fca4fb2afbf470e81ed445ab4c6792451d6527906da680e69b10822",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-chart-axis-title-contract.md": "8dfe67c714ce8a7a325d84f51b27e7d9ed477c78d971b428e9529c43c3fb5e90",
+    "docs/knowledge/candidates/pending/2026-11-06-empty-chart-table-footer-header-associations.md": "9dbd257dcc633ce0fd13a78bb2134e5f020e6e49e6c0a835bded0d597f18fee3",
+    "docs/knowledge/candidates/pending/2026-11-06-chart-vertical-title-fit-capacity.md": "4c3b25df170e17bedfd807626427250b1e74c2e41481b0a0e6ac29302bb03951",
+    "CONTINUE-HERE.md": "cecbb5e7b139c75aadbfeddd3da185a574b0ee7877e11511492da317487f6afd",
+    "docs/roadmap/2026-11-03-creative-social-suite/tasks.md": "d7e9eca2fd056fee561085a30bc516e171979ee5f451d17bd30f69d508372dc8",
+    "docs/knowledge/README.md": "027313865d2f40cae0007bd56c51856f2d0ecb0075891b309648019709a47c9e"
+  },
+  "context_only": [
+    "CONTINUE-HERE.md",
+    "docs/roadmap/2026-11-03-creative-social-suite/tasks.md",
+    "docs/knowledge/README.md"
+  ],
+  "changed_files": [
+    "resources/js/Components/Studio/StudioChartsDialog.vue",
+    "tests/frontend/studio-charts-dialog.test.mjs",
+    "resources/js/Studio/chart-scene.js",
+    "resources/js/Studio/chart-renderer.js",
+    "tests/frontend/studio-chart-scene.test.mjs",
+    "tests/frontend/studio-chart-canvas.test.mjs",
+    "storage/framework/testing/t12-chart-consumer-errors-qa3/run.py",
+    "storage/framework/testing/t12-chart-build7/run.py",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-chart-empty-table-contract.md",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-chart-axis-title-contract.md",
+    "docs/knowledge/candidates/pending/2026-11-06-empty-chart-table-footer-header-associations.md",
+    "docs/knowledge/candidates/pending/2026-11-06-chart-vertical-title-fit-capacity.md"
+  ],
+  "previous_verdict": "../../t12-chart-selection-readiness1/review1/verdict.md",
+  "previous_flat": "../../t12-chart-selection-readiness1/review1/authorization-flat.json",
+  "empty_done": {
+    "state": "DONE_FROZEN",
+    "time_utc": "2026-11-06T22:11:39.558621+00:00",
+    "command": "node --max-old-space-size=512 --test --experimental-test-isolation=none tests/frontend/studio-charts-dialog.test.mjs",
+    "exit_code": 0,
+    "tests": 23,
+    "pass": 23,
+    "fail": 0,
+    "execution_count_green": 1,
+    "focal_tests": 2,
+    "neighbor_tests": 21,
+    "guards": {
+      "sole_product_footer_insertion": true,
+      "script_unchanged": true,
+      "style_unchanged": true,
+      "binding_unchanged": true,
+      "e2e_unchanged": true,
+      "tests_unchanged_after_red": true
+    },
+    "sources_sha256": {
+      "resources/js/Components/Studio/StudioChartsDialog.vue": "3438abae1e2d84fe4711f5dee567658a62052ad20088cdedc7dd1b88eb13721b",
+      "tests/frontend/studio-charts-dialog.test.mjs": "bc2708f9b1bc57a7e493721f978a9264a8b973e72f7ad0f3666e7136de761738",
+      "tests/e2e/studio-charts.spec.ts": "36930a2b889d9e2e0b37bb7e0017466c248cba5b6ad0b63a61754d5690b44b39"
+    },
+    "artifacts_sha256": {
+      "baseline.json": "b619c92c31a0eec8e270ae3c50401a0d3467e9be6d65a80661f90c11e07f373a",
+      "exact-change.diff": "a48fdbe7b170874c1b4ff00c41ebedf3f9a63c95fdc06d2128c957d4ddaec45d",
+      "green-module.log": "0438e7405228f428a790d99d0f9a141ddcf417ec0ead1b54d6ef45f2ee2c7de7",
+      "red-public.log": "ae046264aa239a3766c948b931aa6557df171e4493a5125d015c646e1d909b31",
+      "red-receipt.json": "05d5e174574738706217e1d52ccca45f827e74dce0d4f940343dc5ef0065eba7",
+      "red.log": "70eb6df292034cb34aa9882e1e31dd339ac55160a6a040bf3cacea65b2c5b3ef",
+      "studio-charts-dialog.after.test.mjs": "bc2708f9b1bc57a7e493721f978a9264a8b973e72f7ad0f3666e7136de761738",
+      "studio-charts-dialog.before.test.mjs": "435cb5fda7ce828af9a302d6d72f2029b90a31e88bbeda11dcbbd6a1d1c611c4",
+      "StudioChartsDialog.after.vue": "3438abae1e2d84fe4711f5dee567658a62052ad20088cdedc7dd1b88eb13721b",
+      "StudioChartsDialog.before.vue": "9dd461b862e47ccbdcfd472767ea56da84d5511da97464bc78ef338bd32dd737"
+    },
+    "limitations": [
+      "No browser/build/PHP/DB/network/native acceptance executed",
+      "Existing Vue withDirectives warnings emitted by compiled VNode test harness; 23 tests pass",
+      "T12 remains open; root review/build/independent QA still required"
+    ]
+  },
+  "axis_done_sha256": "d5758543b98c71e7e2113f4ab5421584e8319a6e00874928ed57ad6dee95eb54",
+  "evidence_count": 35,
+  "build_candidate_sha256": "d47941a4e08c5b24de72efe8c138d0a95d8985d98237c0068d7c0e2668d7f35d",
+  "source_only": {
+    "state": "SOURCE_ONLY_WAIT_PUBLIC_RED_PRODUCT_DONE_AND_FRESH_REVIEW",
+    "native_cases": 0,
+    "collections": 0,
+    "preparation_calls": 0,
+    "reason": "Explicit new product fixes after consumer2 incomplete; no retry existing output. Same complete public03/counter/limits.",
+    "build_source": "Copy build6 guarded wrapper; only phrase and candidate path changed; build.mjs identical.",
+    "consumer_source": "Copy consumer2 reviewed sources; only run build7/phrase/output3/new empty+axis contract dependencies; pure proofs remain original consumer1 paths.",
+    "files": {
+      "storage/framework/testing/t12-chart-build7/build.mjs": "41bd1c8c4e1ae60ee6f32c4656c6b6eb8d6107ccb855b1ec5b41c82bf00ea168",
+      "storage/framework/testing/t12-chart-build7/run.py": "45f3b8306a825c9e97e89378a1203d588cfbd948f5a33fc5d4d3ca6998e68084",
+      "storage/framework/testing/t12-chart-consumer-errors-qa3/playwright.config.ts": "5631ee0ca710c0a677232eb72270fd02a407f47001af3384005ffb9fdf5f320a",
+      "storage/framework/testing/t12-chart-consumer-errors-qa3/probe-ast.cjs": "1cf702dfd5943440d7fd3a17ef4042717af656b29c5f2055be2fb69ea5ad0ed5",
+      "storage/framework/testing/t12-chart-consumer-errors-qa3/probe-pure.py": "a1ebd64015f58c8e5b550d9a806ee74a4590f9a2d54add4e173c2413d8dc8d9b",
+      "storage/framework/testing/t12-chart-consumer-errors-qa3/recount.py": "12178139199f8f1157bd2e499b6c60edf81502950498b2a67089ccaacea5d0da",
+      "storage/framework/testing/t12-chart-consumer-errors-qa3/run.py": "e2d7b58ea2f0345b5c9498879d8c77affbb3e87ebd596330bb078069d0f06222"
+    },
+    "no_new_pure_test_credit": true,
+    "counter_previous_proofs": {
+      "GREEN-recount.json": {
+        "path": "storage/framework/testing/t12-chart-consumer-errors-qa1/GREEN-recount.json",
+        "sha256": "d930e2b8a2ed92b9dd87b83f6c1ba0130c75fff469d03f8409e3d54a5fc7c66f",
+        "rerun": false
+      },
+      "RED-recount.json": {
+        "path": "storage/framework/testing/t12-chart-consumer-errors-qa1/RED-recount.json",
+        "sha256": "5f2e858949e556839be3e0f9c83195bacf974bd0369eb357b1178949495a25b2",
+        "rerun": false
+      },
+      "control-proofs.json": {
+        "path": "storage/framework/testing/t12-chart-consumer-errors-qa1/control-proofs.json",
+        "sha256": "61cb0e4e9812230a078723d970091614dd55cf4a7608ea13cbd10ea2a32d8da0",
+        "rerun": false
+      },
+      "ast-proofs.json": {
+        "path": "storage/framework/testing/t12-chart-consumer-errors-qa1/ast-proofs.json",
+        "sha256": "dbbbcf5ef34d2c66d15e9ffd1bb4fb78528a00de9c5b95679a122d3a3b94319d",
+        "rerun": false
+      }
+    }
+  },
+  "native_after_fixes": 0,
+  "build7_and_preparation_pending": true
+}

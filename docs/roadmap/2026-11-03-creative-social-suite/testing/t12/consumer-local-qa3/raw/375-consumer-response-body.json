@@ -1,0 +1,1 @@
+{"columns":[{"id":"category","label":"Categoría"},{"id":"s0","label":"Serie 1"},{"id":"s1","label":"Serie 2"}],"rows":[{"id":"r0","values":["Año 2020 é",10,20]},{"id":"r1","values":["Año 2020 é",20,40]},{"id":"r2","values":["Año 2022 é",null,null]},{"id":"r3","values":[2026,0,0]}]}

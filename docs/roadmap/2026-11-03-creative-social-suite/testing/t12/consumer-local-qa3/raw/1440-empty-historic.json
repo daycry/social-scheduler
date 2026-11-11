@@ -1,0 +1,64 @@
+{
+  "current_revision": 2,
+  "historical_rows": 0,
+  "reference_before": {
+    "id": 4,
+    "revision": 1,
+    "sha256": "d344eb6c7656f68c3d2858192a8c0c959b4347e9d406c95d38e216cb55d9fc32"
+  },
+  "reference_after": {
+    "id": 4,
+    "revision": 1,
+    "sha256": "d344eb6c7656f68c3d2858192a8c0c959b4347e9d406c95d38e216cb55d9fc32"
+  },
+  "style_before": {
+    "title": "QA 2026 é Ω",
+    "subtitle": "Datos originales",
+    "source": "Fixture propia",
+    "x_title": "Categorías",
+    "y_title": "Valores",
+    "fontFamily": "Arial",
+    "fontSize": 18,
+    "fontWeight": "normal",
+    "fontStyle": "normal",
+    "text_color": "#172133",
+    "axis_color": "#506070",
+    "grid_color": "#dce4ec",
+    "background": "#f4f7fa",
+    "legend": true,
+    "show_grid": true,
+    "show_axis": true,
+    "category_labels": true,
+    "legend_position": "right",
+    "value_labels": "raw",
+    "label_position": "outside",
+    "category_label_limit": 12
+  },
+  "style_after": {
+    "title": "QA 2026 é Ω",
+    "subtitle": "Datos originales",
+    "source": "Fixture propia",
+    "x_title": "Categorías",
+    "y_title": "Valores",
+    "fontFamily": "Arial",
+    "fontSize": 18,
+    "fontWeight": "normal",
+    "fontStyle": "normal",
+    "text_color": "#172133",
+    "axis_color": "#506070",
+    "grid_color": "#dce4ec",
+    "background": "#f4f7fa",
+    "legend": true,
+    "show_grid": true,
+    "show_axis": true,
+    "category_labels": true,
+    "legend_position": "right",
+    "value_labels": "raw",
+    "label_position": "outside",
+    "category_label_limit": 12
+  },
+  "category": "category",
+  "series": [
+    "s0"
+  ]
+}

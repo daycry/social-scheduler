@@ -1,0 +1,44 @@
+{
+  "sources": [
+    {
+      "path": "app/Services/Studio/StudioAvState.php",
+      "sha256": "29bb460d45f34d7127f04ae5194dbd9c3d24a7ceebb8c87119db275aa0d1570d"
+    },
+    {
+      "path": "app/Models/Studio/StudioAvWorkspace.php",
+      "sha256": "7bf72bee6fb7336a26efb211735448d71d7c35c6c789feb36c9b957af341085f"
+    },
+    {
+      "path": "app/Models/Studio/StudioAvLease.php",
+      "sha256": "85a1c5223c9f79a89f91a1d4117e03daa0b10e4e657e19d849013333a31b8bc6"
+    },
+    {
+      "path": "app/Models/Studio/DesignExport.php",
+      "sha256": "6744f8fa9865ba76bef06cbf0f5fd48b85cf3cc9aa88c40b1168316856d23b88"
+    },
+    {
+      "path": "app/Services/Studio/StudioExports.php",
+      "sha256": "70796393f8849cf8059c5a5a2bb736a6ffd013a9df7178150df6d52364ecfc98"
+    },
+    {
+      "path": "config/studio.php",
+      "sha256": "a9a706a5b6f79b8d0e3bc63d04c46cfb5178263d61b41bbdcf47ad571bfc21b5"
+    },
+    {
+      "path": "database/migrations/2026_11_05_150000_add_studio_render_state.php",
+      "sha256": "bbaaf9feee61f0552c4549107084ed23ba0eeaf9364468f9cf167046898108a5"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvStateTest.php",
+      "sha256": "3fe955a899a122de4285db4ab473b04b2eed9e19bf5a6c4b755596eb5aa516d3"
+    },
+    {
+      "path": "docs/api/creative-suite.openapi.yaml",
+      "sha256": "e3908cba5406d36d7e6f87b57c93f5378325b9e81612463ae50eafbcea92acc4"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md",
+      "sha256": "540a7f483898ad662b6bfa07af993da1084532ae85ddd1fd9ba5cd05adfa7260"
+    }
+  ]
+}

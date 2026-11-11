@@ -1,0 +1,47 @@
+{
+  "scope": "E2E27 attempt3 only, captured states; no global T12 acceptance",
+  "all_pdf_pages_inspected": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20
+  ],
+  "all_original_screenshots_inspected": true,
+  "screenshot_count": 18,
+  "widths": [
+    375,
+    768,
+    1440
+  ],
+  "root_independent_review": {
+    "pdf_pages": [
+      1,
+      2,
+      20
+    ],
+    "screenshots": "typed-editor at1440/375/768",
+    "observations": "Gate15/0 and PHP unavailable clear,87=48HTTP+39Blob; no image clipping observed. Selected metadata darker, native select arrow, numeric lexemes visible.375 controls/SHA wrap and table horizontal scrolling;768 four columns fit."
+  },
+  "agent_observations": [
+    "Inspected18 original captures across all5 scenarios and3 widths. Controls and text visible in the captured scroll states; horizontal table scroll is intentional at375.",
+    "Fullpage captures include backdrop/editor outside the modal viewport; not classified as a UI failure.",
+    "PDF mobile fullpage previews are narrow; original PNGs remain the direct source for detail."
+  ],
+  "portability": "Imports/canonical collection and public server used by this QA only; CI/global/Linux/VPS not verified."
+}

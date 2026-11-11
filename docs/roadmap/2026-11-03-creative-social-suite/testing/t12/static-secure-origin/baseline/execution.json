@@ -1,0 +1,39 @@
+{
+  "state": "finished",
+  "phase": "baseline",
+  "supervisor_pid": 33512,
+  "app_pass_claim": false,
+  "cases": [
+    {
+      "format": "svg",
+      "node_pid": 16232,
+      "node_terminal": true,
+      "exit_code": 1,
+      "stdin_bytes": 68956,
+      "stdin_sha256": "06b69cc542e786a79d0406da3d8c3fc22565cb3da41643ecad4bc93d7f03e670",
+      "dataset_sha256": "f04dd6def88a6ed6d1cf05f171c3a887a2919e797a9b4218f88a56559c8d93eb",
+      "directory": "storage/framework/testing/t12-chart-static-render-regression1/baseline-execution1/studio-exports/1/1/5ed6d065-0073-4175-8a0c-fc05e7c75ac7",
+      "expected_digest_failure": true
+    }
+  ],
+  "passed": true,
+  "unchanged_sources": true,
+  "children_closed": true,
+  "job_members_before_final_sample": [
+    33512
+  ],
+  "resource": {
+    "physical_minimum_observed_bytes": 11105132544,
+    "sample_interval_seconds": 0.1,
+    "elapsed": 0.5698303000244778,
+    "job": {
+      "scope": "job",
+      "limit": 3221225472,
+      "peak_commit": 248918016,
+      "kill_on_close": true,
+      "breakaway": false
+    },
+    "failure": null
+  },
+  "no_listening_server_created": true
+}

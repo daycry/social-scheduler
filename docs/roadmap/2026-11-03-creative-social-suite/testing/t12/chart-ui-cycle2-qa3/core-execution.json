@@ -1,0 +1,49 @@
+{
+  "state": "finalization_failed",
+  "pid": 10416,
+  "started": 1793991826.8830347,
+  "physical_before": 11549630464,
+  "resource": {
+    "physical_minimum_observed_bytes": 10819108864,
+    "sample_interval_seconds": 0.1,
+    "elapsed": 329.0647583999962,
+    "job": {
+      "scope": "job",
+      "limit": 3221225472,
+      "peak_commit": 958894080,
+      "kill_on_close": true,
+      "breakaway": false
+    },
+    "failure": null
+  },
+  "approval": "revisi\u00f3n C3charts T12 aprobada; ejecuta ciclo2 intento3",
+  "build": "storage/framework/testing/t12-chart-build3/result.json",
+  "json_fabricated": false,
+  "core_exit_code": 1,
+  "observer_codes": {
+    "svg-xml": 1,
+    "png-observer": 1,
+    "pdf-observer": 1,
+    "pdf-provenance": 1
+  },
+  "controller_error": null,
+  "finished": 1793992155.8576384,
+  "job_pids_before_exit": [
+    10416
+  ],
+  "exit_code": 1,
+  "cleanup_proved": true,
+  "finalization_resource": {
+    "physical_minimum_observed_bytes": 11642720256,
+    "sample_interval_seconds": 0.1,
+    "elapsed": 0.11781189998146147,
+    "job": {
+      "scope": "job",
+      "limit": 3221225472,
+      "peak_commit": 32067584,
+      "kill_on_close": true,
+      "breakaway": false
+    },
+    "failure": null
+  }
+}

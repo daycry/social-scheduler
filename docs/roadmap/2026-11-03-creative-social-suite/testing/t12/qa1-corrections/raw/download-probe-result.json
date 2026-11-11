@@ -1,0 +1,39 @@
+{
+  "scope": "One own loopback HTTP attachment diagnostic; no application/env/DB/provider; not a UI acceptance run",
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/"
+    },
+    {
+      "method": "GET",
+      "path": "/fixture"
+    }
+  ],
+  "events": [
+    {
+      "kind": "response",
+      "url": "http://127.0.0.1:53354/",
+      "status": 200
+    }
+  ],
+  "download": {
+    "url": "http://127.0.0.1:53354/fixture",
+    "filename": "fixture.json",
+    "failure": null,
+    "bytes": 23,
+    "sha256": "84a4ed86b2b67b45e3b999481872b77d2bc2f586c7522c6277aa9de878518491",
+    "matches": true
+  },
+  "isolation": {
+    "issues": [],
+    "expected_http": [],
+    "intentional_aborts": [],
+    "browser_diagnostics": [],
+    "isolated_font_fixtures": []
+  },
+  "closed": {
+    "browser": true,
+    "server": true
+  }
+}

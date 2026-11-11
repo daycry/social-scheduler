@@ -1,4 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
+import fs from 'node:fs';
+import path from 'node:path';
+import { runRoot } from './isolated/runtime';
 import { artisan, chooseContentType, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedExtraAccount, settle, stamp } from './helpers';
 
 async function openPhoto(page: Page, project: string) {
@@ -14,7 +17,11 @@ async function openPhoto(page: Page, project: string) {
     await page.goto(`/posts/${out.match(/POST:(\d+)/)![1]}/edit`);
 }
 
-test.afterEach(async ({}, info) => cleanComposerBrands(e2eUser(info.project.name).email));
+// Photos/carousels exist only with a verified TikTok domain. The disposable server reads this flag file on every request
+// (tests/e2e/isolated/bootstrap.php); it is removed afterwards so the other specs keep seeing "Video only".
+const domainFlag = path.join(runRoot, 'tiktok-domain-on');
+test.beforeEach(() => fs.writeFileSync(domainFlag, 'fictitious verified domain'));
+test.afterEach(async ({}, info) => { fs.rmSync(domainFlag, { force: true }); cleanComposerBrands(e2eUser(info.project.name).email); });
 
 test('TikTok photo music: explicit choice persists and switching to video removes it', async ({ page }, info) => {
         await page.route('**/tiktok-creator', route => route.fulfill({ json: { nickname: 'Fixture TikTok', privacy_level_options: ['SELF_ONLY'], comment_disabled: false, duet_disabled: false, stitch_disabled: false } }));

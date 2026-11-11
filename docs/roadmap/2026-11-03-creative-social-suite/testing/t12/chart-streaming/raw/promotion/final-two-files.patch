@@ -1,0 +1,425 @@
+--- a/app/Services/Studio/StudioChartData.php
++++ b/app/Services/Studio/StudioChartData.php
+@@ -5,6 +5,30 @@
+ final class StudioChartData
+ {
+     private const MAX_BYTES = 2097152;
++
++    private int $inputBytes;
++
++    private int $jsonBytes;
++
++    private string $budgetLabel;
++
++    private const JSON_FLAGS = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR;
++
++    public function __construct(string $profile = 'inline')
++    {
++        [$this->inputBytes, $this->jsonBytes, $this->budgetLabel] = match ($profile) {
++            'inline' => [self::MAX_BYTES, self::MAX_BYTES, '2 MiB'],
++            'dataset' => [25000000, 52000000, '52000000 bytes'],
++            default => $this->fail('Unknown chart data profile'),
++        };
++    }
++
++    private function budget(int $bytes): void
++    {
++        if ($bytes > $this->jsonBytes) {
++            $this->fail('Canonical table exceeds '.$this->budgetLabel);
++        }
++    }
+ 
+     public function normalize(array $table): array
+     {
+@@ -23,6 +47,7 @@
+         if ($width < 1 || $width > 100 || count($table['rows']) > 1000) {
+             $this->fail('Table requires 1–100 columns and at most 1000 rows');
+         }
++        $bytes = strlen('{"columns":[],"rows":[]}');
+         $ids = [];
+         foreach ($table['columns'] as $index => $column) {
+             $path = 'column '.($index + 1);
+@@ -30,6 +55,8 @@
+             $this->id($column['id'], $ids, $path);
+             $labelPath = $csvHeaderRows === 1 ? 'row 1, column '.($index + 1) : $path.' label';
+             $this->text($column['label'], 500, $labelPath);
++            $bytes += (int) ($index > 0) + strlen(json_encode($column, self::JSON_FLAGS));
++            $this->budget($bytes);
+         }
+         $ids = [];
+         foreach ($table['rows'] as $index => $row) {
+@@ -39,6 +66,8 @@
+             if (! is_array($row['values']) || ! array_is_list($row['values']) || count($row['values']) !== $width) {
+                 $this->fail($path.' has invalid width or values list');
+             }
++            $bytes += (int) ($index > 0) + strlen(json_encode(['id' => $row['id'], 'values' => []], self::JSON_FLAGS));
++            $this->budget($bytes);
+             foreach ($row['values'] as $col => $value) {
+                 $cell = $path.', column '.($col + 1);
+                 if (is_string($value)) {
+@@ -46,11 +75,9 @@
+                 } elseif ($value !== null && ! is_int($value) && ! (is_float($value) && is_finite($value))) {
+                     $this->fail($cell.' must be a string, finite number or null');
+                 }
+-            }
+-        }
+-        $json = json_encode($table, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+-        if (strlen($json) > self::MAX_BYTES) {
+-            $this->fail('Canonical table exceeds 2 MiB');
++                $bytes += (int) ($col > 0) + strlen(json_encode($value, self::JSON_FLAGS));
++                $this->budget($bytes);
++            }
+         }
+ 
+         return $table;
+@@ -86,49 +113,45 @@
+ 
+     public function import(string $text, string $format = 'csv', bool $header = true): array
+     {
++        return $this->importChunks([$text], $format, $header);
++    }
++
++    /** The caller owns I/O; this codec never opens files or URLs. */
++    public function importChunks(iterable $chunks, string $format = 'csv', bool $header = true): array
++    {
+         $delimiter = $this->delimiter($format);
+-        if (strlen($text) > self::MAX_BYTES || ! mb_check_encoding($text, 'UTF-8')) {
+-            $this->fail('Input must be valid UTF-8 and at most 2 MiB');
+-        }
+-        if (str_starts_with($text, "\xEF\xBB\xBF")) {
+-            $text = substr($text, 3);
+-        }
+-        if ($text === '') {
+-            $this->fail('Input is empty');
+-        }
+-
+         $records = [];
+         $record = [];
+         $value = '';
+         $state = 'start';
+-        $length = strlen($text);
+         $endedRecord = false;
+-        for ($i = 0; $i < $length; $i++) {
+-            $char = $text[$i];
++        $seen = false;
++        $pendingCR = false;
++        foreach ($this->characters($chunks) as $char) {
++            $seen = true;
+             $path = 'row '.(count($records) + 1).', column '.(count($record) + 1);
++            if ($pendingCR) {
++                if ($char !== "\n") {
++                    $this->fail($path.': bare CR is not allowed');
++                }
++                $pendingCR = false;
++            } elseif ($char === "\r") {
++                $pendingCR = true;
++
++                continue;
++            }
+             $endedRecord = false;
+-            if ($char === "\r") {
+-                if (($text[$i + 1] ?? '') !== "\n") {
+-                    $this->fail($path.': bare CR is not allowed');
+-                }
+-                $char = "\n";
+-                $i++;
+-            }
+             if ($state === 'quoted') {
+                 if ($char === '"') {
+-                    if (($text[$i + 1] ?? '') === '"') {
+-                        $value .= '"';
+-                        $i++;
+-                    } else {
+-                        $state = 'closed';
+-                    }
++                    $state = 'closed';
+                 } else {
+                     $value .= $char;
+                 }
+-
+-                continue;
+-            }
+-            if ($char === $delimiter || $char === "\n") {
++            } elseif ($state === 'closed' && $char === '"') {
++                $value .= '"';
++                $state = 'quoted';
++            } elseif ($char === $delimiter || $char === "\n") {
++                $this->text($value, $header && $records === [] ? 500 : 10000, $path);
+                 $record[] = $value;
+                 $value = '';
+                 $state = 'start';
+@@ -140,13 +163,9 @@
+                     $record = [];
+                     $endedRecord = true;
+                 }
+-
+-                continue;
+-            }
+-            if ($state === 'closed') {
++            } elseif ($state === 'closed') {
+                 $this->fail($path.': unexpected character after closing quote');
+-            }
+-            if ($char === '"') {
++            } elseif ($char === '"') {
+                 if ($state !== 'start') {
+                     $this->fail($path.': unexpected quote in unquoted field');
+                 }
+@@ -155,11 +174,22 @@
+                 $value .= $char;
+                 $state = 'unquoted';
+             }
++            // No valid UTF-8 field can exceed four bytes per allowed codepoint.
++            if (strlen($value) > 4 * ($header && $records === [] ? 500 : 10000)) {
++                $this->fail($path.' has invalid UTF-8, length or control characters');
++            }
++        }
++        if ($pendingCR) {
++            $this->fail('row '.(count($records) + 1).', column '.(count($record) + 1).': bare CR is not allowed');
++        }
++        if (! $seen) {
++            $this->fail('Input is empty');
+         }
+         if ($state === 'quoted') {
+             $this->fail('row '.(count($records) + 1).', column '.(count($record) + 1).': unclosed quote');
+         }
+         if (! $endedRecord) {
++            $this->text($value, $header && $records === [] ? 500 : 10000, 'row '.(count($records) + 1).', column '.(count($record) + 1));
+             $record[] = $value;
+             $this->record($records, $record, $header);
+         }
+@@ -173,6 +203,43 @@
+         }
+ 
+         return $this->normalizeTable($table, (int) $header);
++    }
++
++    private function characters(iterable $chunks): \Generator
++    {
++        $bytes = 0;
++        $prefix = '';
++        $started = false;
++        foreach ($chunks as $chunk) {
++            if (! is_string($chunk)) {
++                $this->fail('Input chunks must be strings');
++            }
++            $bytes += strlen($chunk);
++            if ($bytes > $this->inputBytes) {
++                $this->fail('Input must be valid UTF-8 and at most '.($this->inputBytes === self::MAX_BYTES ? '2 MiB' : '25000000 bytes'));
++            }
++            $length = strlen($chunk);
++            for ($i = 0; $i < $length; $i++) {
++                if (! $started) {
++                    $prefix .= $chunk[$i];
++                    if (strlen($prefix) < 3) {
++                        continue;
++                    }
++                    $started = true;
++                    if ($prefix !== "\xEF\xBB\xBF") {
++                        for ($j = 0; $j < 3; $j++) {
++                            yield $prefix[$j];
++                        }
++                    }
++                    $prefix = '';
++                } else {
++                    yield $chunk[$i];
++                }
++            }
++        }
++        for ($i = 0; $i < strlen($prefix); $i++) {
++            yield $prefix[$i];
++        }
+     }
+ 
+     private function record(array &$records, array $record, bool $header): void
+@@ -200,16 +267,23 @@
+      * Lexical interchange only: external spreadsheets may evaluate formula text.
+      * CSV/TSV cannot preserve cell types or ids; null is encoded as an empty field.
+      */
+-    public function export(array $table, string $format = 'csv', bool $header = true): string
++    public function exportChunks(array $table, string $format = 'csv', bool $header = true): iterable
+     {
+         $table = $this->normalize($table);
+         $delimiter = $this->delimiter($format);
++        if ($header) {
++            yield $this->encodeRecord(array_column($table['columns'], 'label'), $delimiter);
++        }
++        foreach ($table['rows'] as $row) {
++            yield $this->encodeRecord($row['values'], $delimiter);
++        }
++    }
++
++    public function export(array $table, string $format = 'csv', bool $header = true): string
++    {
+         $output = '';
+-        if ($header) {
+-            $output .= $this->encodeRecord(array_column($table['columns'], 'label'), $delimiter);
+-        }
+-        foreach ($table['rows'] as $row) {
+-            $output .= $this->encodeRecord($row['values'], $delimiter);
++        foreach ($this->exportChunks($table, $format, $header) as $chunk) {
++            $output .= $chunk;
+         }
+ 
+         return $output;
+--- a/tests/Feature/Studio/StudioChartDataTest.php
++++ b/tests/Feature/Studio/StudioChartDataTest.php
+@@ -208,3 +208,159 @@
+     expect(fn () => (new StudioChartData)->normalize($table))
+         ->toThrow(InvalidArgumentException::class, 'row 2, column 1');
+ });
++
++test('stream boundaries preserve BOM Unicode quotes CRLF and literal BOM', function () {
++    $codec = new StudioChartData;
++    foreach (['csv' => ',', 'tsv' => "\t"] as $format => $d) {
++        $input = "\xEF\xBB\xBFh{$d}h\r\n\" a\r\n?? \"\"x\"\"\"{$d}\"\u{FEFF}text\"\r\n";
++        foreach ([1, 2, 3] as $n) {
++            expect($codec->importChunks(str_split($input, $n), $format))->toBe($codec->import($input, $format));
++        }
++    }
++});
++
++test('server dataset profile accepts over inline budget without changing default', function () {
++    $input = "h\n".str_repeat(str_repeat('x', 5000)."\n", 420);
++    $table = (new StudioChartData('dataset'))->import($input);
++    expect(count($table['rows']))->toBe(420)->and($table['rows'][419]['values'][0])->toBe(str_repeat('x', 5000));
++    expect(fn () => (new StudioChartData)->import($input))->toThrow(InvalidArgumentException::class, '2 MiB');
++});
++
++test('unknown server profile fails closed', function () {
++    expect(fn () => new StudioChartData('arbitrary'))->toThrow(InvalidArgumentException::class, 'profile');
++});
++
++test('JSON budget stops before traversing a virtual huge tail', function () {
++    $table = ['columns' => array_map(fn ($i) => ['id' => 'c'.$i, 'label' => ''], range(0, 99)), 'rows' => []];
++    $shared = array_fill(0, 100, str_repeat('x', 10000));
++    for ($i = 0; $i < 1000; $i++) {
++        $table['rows'][] = ['id' => 'r'.$i, 'values' => $shared];
++    }
++    $table['rows'][999]['values'][0] = false;
++    expect(fn () => (new StudioChartData)->normalize($table))->toThrow(InvalidArgumentException::class, 'Canonical table exceeds 2 MiB');
++});
++
++test('chunks validate full fields and retain record diagnostics at every split', function () {
++    $codec = new StudioChartData;
++    foreach ([1, 2, 3] as $n) {
++        foreach (["h\r\nx\r", "h\n\"x\"z", "h\n\"x", "h\n\xF0\x9F", "h\n\"x\0\""] as $input) {
++            expect(fn () => $codec->importChunks(str_split($input, $n)))->toThrow(InvalidArgumentException::class, 'row 2, column 1');
++        }
++        $input = "h\r\n\"\u{1F3B5}\r\n \"\"x\"\"\"\r\n";
++        expect($codec->importChunks(str_split($input, $n))['rows'][0]['values'][0])->toBe("\u{1F3B5}\n \"x\"");
++    }
++    foreach ([[], ['', ''], ["\xEF", '', "\xBB", "\xBF"]] as $chunks) {
++        expect(fn () => $codec->importChunks($chunks))->toThrow(InvalidArgumentException::class, 'Input is empty');
++    }
++    expect(fn () => $codec->importChunks(['h', null]))->toThrow(InvalidArgumentException::class, 'chunks must be strings');
++});
++
++test('input chunk budget rejects before reading chunk contents or resuming producer', function () {
++    $resumed = false;
++    $chunks = (function () use (&$resumed) {
++        yield str_repeat('x', 2097153);
++        $resumed = true;
++        throw new RuntimeException('producer resumed');
++    })();
++    expect(fn () => (new StudioChartData)->importChunks($chunks))->toThrow(InvalidArgumentException::class, '2 MiB');
++    expect($resumed)->toBeFalse();
++});
++
++test('incremental JSON accounting equals native flags for escaped text numbers and key order', function () {
++    $table = ['rows' => [], 'columns' => [['label' => "\u{1F3B5} / \\ \" \t\n\u{2028}", 'id' => 'c']]];
++    $values = [null, 0, 1.0, -1.2e30, "\u{1F3B5}/\\\t\n\u{2028}"];
++    for ($i = 0; $i < 212; $i++) {
++        $table['rows'][] = ['values' => [$i < 209 ? str_repeat('a', 10000) : ''], 'id' => 'r'.$i];
++    }
++    foreach ($values as $value) {
++        $table['rows'][0]['values'][0] = $value;
++        $table['rows'][209]['values'][0] = '';
++        $length = strlen(json_encode($table, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR));
++        // Fill the gap using multiple already bounded cells.
++        $remaining = 2097152 - $length;
++        foreach ([209, 210, 211] as $index) {
++            $add = min(10000 - strlen($table['rows'][$index]['values'][0]), $remaining);
++            $table['rows'][$index]['values'][0] .= str_repeat('x', $add);
++            $remaining -= $add;
++        }
++        expect($remaining)->toBe(0)->and((new StudioChartData)->normalize($table))->toBe($table);
++        $table['rows'][211]['values'][0] .= 'x';
++        expect(fn () => (new StudioChartData)->normalize($table))->toThrow(InvalidArgumentException::class, '2 MiB');
++        $table['rows'][211]['values'][0] = substr($table['rows'][211]['values'][0], 0, -1);
++        foreach ([209, 210, 211] as $index) {
++            $table['rows'][$index]['values'][0] = '';
++        }
++    }
++});
++
++test('export chunks yields complete lexical records matching string wrapper', function () {
++    $codec = new StudioChartData;
++    $table = $codec->import("h\r\n\"\u{FEFF}x\"\r\n\"a\"\"b\"\r\n");
++    foreach (['csv', 'tsv'] as $format) {
++        foreach ([true, false] as $header) {
++            $chunks = iterator_to_array($codec->exportChunks($table, $format, $header));
++            expect(count($chunks))->toBe(2 + (int) $header)->and(implode('', $chunks))->toBe($codec->export($table, $format, $header));
++        }
++    }
++});
++
++function dataset25MB(): Generator
++{
++    for ($r = 0; $r < 1000; $r++) {
++        yield implode(',', array_fill(0, 100, str_repeat('\\', $r < 990 ? 249 : 248)))."\r\n";
++    }
++}
++
++test('dataset exact 25 MB worst escaping roundtrips without truncation within 256M', function () {
++    $inputHash = hash_init('sha256');
++    $bytes = 0;
++    $source = (function () use ($inputHash, &$bytes) {
++        foreach (dataset25MB() as $chunk) {
++            $bytes += strlen($chunk);
++            hash_update($inputHash, $chunk);
++            yield $chunk;
++        }
++    })();
++    $codec = new StudioChartData('dataset');
++    $table = $codec->importChunks($source, 'csv', false);
++    expect($bytes)->toBe(25000000)->and(count($table['columns']))->toBe(100)->and(count($table['rows']))->toBe(1000)
++        ->and($table['rows'][0]['values'][0])->toBe(str_repeat('\\', 249))
++        ->and($table['rows'][999]['values'][99])->toBe(str_repeat('\\', 248));
++    $outputHash = hash_init('sha256');
++    $outputBytes = 0;
++    foreach ($codec->exportChunks($table, 'csv', false) as $chunk) {
++        $outputBytes += strlen($chunk);
++        hash_update($outputHash, $chunk);
++    }
++    expect($outputBytes)->toBe(25000000)->and(hash_final($outputHash))->toBe(hash_final($inputHash));
++    unset($table);
++    $over = (function () {
++        yield from dataset25MB();
++        yield 'x';
++    })();
++    expect(fn () => $codec->importChunks($over, 'csv', false))->toThrow(InvalidArgumentException::class, '25000000 bytes');
++    fwrite(STDOUT, json_encode(['peak_php_bytes' => memory_get_peak_usage(true), 'memory_limit' => ini_get('memory_limit')]).PHP_EOL);
++});
++
++test('dataset canonical JSON exact 52 million bytes accepts and plus one rejects', function () {
++    $flags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR;
++    $table = ['columns' => array_map(fn ($i) => ['id' => 'c'.$i, 'label' => ''], range(0, 99)), 'rows' => []];
++    $shared = array_fill(0, 100, str_repeat('\\', 258));
++    $bytes = strlen(json_encode(['columns' => $table['columns'], 'rows' => []], $flags));
++    for ($r = 0; $r < 1000; $r++) {
++        $row = ['id' => 'r'.$r, 'values' => $shared];
++        $bytes += (int) ($r > 0) + strlen(json_encode($row, $flags));
++        $table['rows'][] = $row;
++    }
++    $gap = 52000000 - $bytes;
++    for ($r = 0; $r < 1000 && $gap > 0; $r++) {
++        for ($c = 0; $c < 100 && $gap > 0; $c++) {
++            $add = min(2, $gap);
++            $table['rows'][$r]['values'][$c] .= $add === 2 ? '\\' : 'x';
++            $gap -= $add;
++        }
++    }
++    expect($gap)->toBe(0)->and((new StudioChartData('dataset'))->normalize($table))->toBe($table);
++    $table['rows'][999]['values'][99] .= 'x';
++    expect(fn () => (new StudioChartData('dataset'))->normalize($table))->toThrow(InvalidArgumentException::class, '52000000 bytes');
++});

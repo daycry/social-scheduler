@@ -1,0 +1,104 @@
+[
+  {
+    "project": "desktop",
+    "format": "srt",
+    "sha256": "2b202af688ae90cbd87e67d99f762fb05abf30aaebf5a9be37529bec5bb78809",
+    "cues": [
+      {
+        "start": "00:00:00.350",
+        "end": "00:00:00.850",
+        "text": "Modificado 🎵\nsegunda línea"
+      },
+      {
+        "start": "00:00:00.850",
+        "end": "00:00:01.350",
+        "text": "Adiós"
+      }
+    ]
+  },
+  {
+    "project": "desktop",
+    "format": "vtt",
+    "sha256": "003b035eb5e3421a2e7545800498a7a0494be81ce6826345c74b466ce853b4b8",
+    "cues": [
+      {
+        "start": "00:00:00.350",
+        "end": "00:00:00.850",
+        "text": "Modificado 🎵\nsegunda línea"
+      },
+      {
+        "start": "00:00:00.850",
+        "end": "00:00:01.350",
+        "text": "Adiós"
+      }
+    ]
+  },
+  {
+    "project": "mobile",
+    "format": "srt",
+    "sha256": "2b202af688ae90cbd87e67d99f762fb05abf30aaebf5a9be37529bec5bb78809",
+    "cues": [
+      {
+        "start": "00:00:00.350",
+        "end": "00:00:00.850",
+        "text": "Modificado 🎵\nsegunda línea"
+      },
+      {
+        "start": "00:00:00.850",
+        "end": "00:00:01.350",
+        "text": "Adiós"
+      }
+    ]
+  },
+  {
+    "project": "mobile",
+    "format": "vtt",
+    "sha256": "003b035eb5e3421a2e7545800498a7a0494be81ce6826345c74b466ce853b4b8",
+    "cues": [
+      {
+        "start": "00:00:00.350",
+        "end": "00:00:00.850",
+        "text": "Modificado 🎵\nsegunda línea"
+      },
+      {
+        "start": "00:00:00.850",
+        "end": "00:00:01.350",
+        "text": "Adiós"
+      }
+    ]
+  },
+  {
+    "project": "mobile-360",
+    "format": "srt",
+    "sha256": "2b202af688ae90cbd87e67d99f762fb05abf30aaebf5a9be37529bec5bb78809",
+    "cues": [
+      {
+        "start": "00:00:00.350",
+        "end": "00:00:00.850",
+        "text": "Modificado 🎵\nsegunda línea"
+      },
+      {
+        "start": "00:00:00.850",
+        "end": "00:00:01.350",
+        "text": "Adiós"
+      }
+    ]
+  },
+  {
+    "project": "mobile-360",
+    "format": "vtt",
+    "sha256": "003b035eb5e3421a2e7545800498a7a0494be81ce6826345c74b466ce853b4b8",
+    "cues": [
+      {
+        "start": "00:00:00.350",
+        "end": "00:00:00.850",
+        "text": "Modificado 🎵\nsegunda línea"
+      },
+      {
+        "start": "00:00:00.850",
+        "end": "00:00:01.350",
+        "text": "Adiós"
+      }
+    ]
+  }
+]

@@ -1,0 +1,51 @@
+{
+  "automated_gate": {
+    "verdict": "VERDE",
+    "counts": {
+      "passed": 72,
+      "failed": 0,
+      "flaky": 0,
+      "skipped": 0,
+      "interrupted": 0
+    },
+    "flaky_sin_justificar": [],
+    "flaky_justificados": {},
+    "threshold": "verde ⟺ 0 failed, 0 flaky sin justificar, 0 interrumpidos y ≥1 test ejecutado"
+  },
+  "private_checks": 42,
+  "private_failed": [],
+  "contrast_checks": 24,
+  "contrast_failed": [],
+  "visual": {
+    "accepted": true,
+    "prior_gap": "QA2-V01",
+    "status_in_QA3": "resolved for the tested local profile",
+    "historical_QA2_not_modified": true,
+    "viewports": [
+      "desktop1440x900",
+      "mobile375x812",
+      "mobile360x740"
+    ],
+    "observed": "Both white text lines readable over black with Arial22/default black stroke2 in actual screenshot ROI; no emoji used to satisfy controlled comparison. PNG/MP4/GIF active frames readable; inactive cue frame black. Private font/fade/selection/SVG/PDF representative frames visually consistent.",
+    "images_inspected": [
+      "raw/default-contrast/desktop-outline-preview-crop.png",
+      "raw/default-contrast/mobile-outline-preview-crop.png",
+      "raw/default-contrast/mobile-360-outline-preview-crop.png",
+      "raw/default-contrast/mobile-control-preview-crop.png",
+      "raw/default-contrast/mobile-outline-png-active.png",
+      "raw/default-contrast/mobile-outline-mp4-active.png",
+      "raw/default-contrast/mobile-outline-gif-active.png",
+      "raw/caption-independent/media-0-frame-00009.png",
+      "raw/caption-independent/media-0-frame-00015.png",
+      "raw/caption-independent/media-2-frame-00055.png",
+      "raw/caption-independent/media-4-frame-00056.png",
+      "samples/captions/desktop/independent-vector-0.png",
+      "samples/captions/desktop/independent-pdf-0.png"
+    ],
+    "new_gaps": [],
+    "limits": "Local acceptance only; no WCAG contrast-ratio claim or production/VPS/R2/social acceptance."
+  },
+  "stable_sources": true,
+  "locally_acceptable": true,
+  "verdict": "ACEPTABLES LOCALMENTE T07/T11; cierre a decisión del orquestador"
+}

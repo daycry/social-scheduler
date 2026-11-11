@@ -1,0 +1,48 @@
+{
+  "finding": "VL1",
+  "severity": "Important",
+  "state": "pending",
+  "scope": "Manual visual finding after automatic client3/3; no product/source change or native rerun",
+  "kind": "column-stacked",
+  "row": "r0",
+  "series": "s0",
+  "hidden_value": "10",
+  "occluding_later_series": "s1",
+  "label_id": "chart_ea2bbb1b-275d-4cc6-8efd-6a95d9960b35:value:r0:s0",
+  "bar_id": "chart_ea2bbb1b-275d-4cc6-8efd-6a95d9960b35:bar:r0:s1",
+  "native_canvas_text_ink": {
+    "x": 191.2183686490059,
+    "y": 229.9592316545248,
+    "width": 16.170709130554314,
+    "height": 12.389999866485596,
+    "empty": false,
+    "fonts": [
+      "normal 300 18px StudioFont_1_85e184adef31c8e8"
+    ]
+  },
+  "later_bar": {
+    "x": 191.21875,
+    "y": 214.58000087738037,
+    "width": 88.3125,
+    "height": 30.8799991607666,
+    "fill": "rgb(22, 128, 71)"
+  },
+  "ink_overlap_ratio": 0.9999764171755843,
+  "original_png_inner_ink_pixel_colors": [
+    {
+      "rgb": [
+        22,
+        128,
+        71
+      ],
+      "pixels": 180
+    }
+  ],
+  "text_color_visible_pixels": 0,
+  "original_inputs": {
+    "column-stacked-svg-observer.json": "87ec973f279468a5d857f8beb8cc021c92feb1d35721e885b24fa78588664f4c",
+    "column-stacked.png": "f6dd8a26e344d7bd4d1f4744cf9255cd6abcb1bf390d28d498d5c86233598ef8"
+  },
+  "root_cause": "chart-scene.js:156-167 appends value text inside the bar loop; the following opaque stacked segment is painted after and over the prior label. Outside placement can also put the label inside another segment.",
+  "limits": "One original column-stacked exported PNG/DOM inspected analytically; other types require inspection/regression. Automatic original counts remain unchanged."
+}

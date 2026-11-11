@@ -4,10 +4,13 @@ namespace App\Services;
 
 use App\Connectors\Data\PublishResult;
 use App\Connectors\Google\YouTubePublisher;
+use App\Connectors\LinkedIn\LinkedInPostOptions;
+use App\Connectors\LinkedIn\LinkedInPublisher;
 use App\Connectors\Meta\Facebook\FacebookPostOptions;
 use App\Connectors\Meta\Instagram\InstagramAudio;
 use App\Connectors\Meta\Instagram\InstagramPostOptions;
 use App\Connectors\Network;
+use App\Connectors\Pinterest\PinterestPostOptions;
 use App\Connectors\TikTok\TikTokPublisher;
 use App\Enums\ContentType;
 use App\Enums\PostStatus;
@@ -23,6 +26,8 @@ use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Notifications\PostWorkflowActivity;
+use App\Support\TargetMedia;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
@@ -41,6 +46,7 @@ use Throwable;
  *  - publish_now: bool (true = programada AHORA y se encola tras el commit: no exige fecha futura, la fecha la pone el servidor)
  *  - media: list<int> ids de MediaAsset (en orden de publicacion)
  *  - targets: list<array{account_id: int, content_type: string, options?: array, text?: ?string}> (`text` null/ausente = vinculado a la plantilla; texto propio = se publica ese)
+ *    y por destino `media`: null/ausente = hereda la media comun; lista de {id, alt?, cover_id?} = media propia en ese orden (T-17)
  */
 class PostService
 {
@@ -93,9 +99,15 @@ class PostService
             throw new PostValidationException(['brand' => ['La marca no pertenece al usuario.']]);
         }
 
+        // Con aprobacion requerida (T-19) el post nace como borrador pendiente: nunca se programa antes de aprobarse.
+        $requiresApproval = (bool) ($data['requires_approval'] ?? false);
+        if ($requiresApproval) {
+            $data['schedule'] = false;
+            $data['publish_now'] = false;
+        }
         $plan = $this->plan($user, $brand, $data);
 
-        return DB::transaction(function () use ($user, $brand, $plan) {
+        return DB::transaction(function () use ($user, $brand, $plan, $requiresApproval) {
             $post = new Post(['text' => $plan['text'], 'scheduled_at' => $plan['scheduled_at']]);
             if ($plan['notes'] !== false) {
                 $post->notes = $plan['notes'];
@@ -108,6 +120,9 @@ class PostService
             $this->saveOrFailCampaign($post);
 
             $this->fill($post, $plan);
+            if ($requiresApproval) {
+                $this->markApprovalPending($post);
+            }
             $this->dispatchAfterCommit($post, $plan);
 
             return $post->fresh(['targets', 'media']);
@@ -127,6 +142,7 @@ class PostService
 
         $brand = Brand::withoutUserScope()->findOrFail($post->brand_id);
         $plan = $this->plan($user, $brand, $data, $post->campaign_id);
+        $plan = $this->applyApprovalRules($post, $plan);
 
         return DB::transaction(function () use ($post, $plan) {
             // Bloquea los destinos ANTES de decidir: el claim de `PublishPostTarget` toma el mismo lock, asi que o
@@ -146,6 +162,12 @@ class PostService
             }
             $this->saveOrFailCampaign($post);
             $this->fill($post, $plan, $existing, $before);
+            if ($plan['reset_approval'] ?? false) {
+                $this->markApprovalPending($post, true);
+            }
+            if ($post->series_id !== null) {
+                $post->forceFill(['series_exception' => true])->save(); // editada a mano: la serie ya no la pisa
+            }
             $this->dispatchAfterCommit($post, $plan);
 
             return $post->fresh(['targets', 'media']);
@@ -270,7 +292,7 @@ class PostService
             'text' => $post->text,
             'media' => $post->media()->pluck('media_assets.id')->all(),
             'targets' => $post->targets()->get()->map(fn (PostTarget $t) => [
-                'account_id' => $t->social_account_id, 'content_type' => $t->content_type->value, 'options' => $t->options ?? [], 'text' => $t->text, 'first_comment' => $t->first_comment,
+                'account_id' => $t->social_account_id, 'content_type' => $t->content_type->value, 'options' => $t->options ?? [], 'text' => $t->text, 'first_comment' => $t->first_comment, 'media' => $t->media, 'manual' => $t->manual,
             ])->all(),
         ];
     }
@@ -336,7 +358,9 @@ class PostService
                 throw new PostValidationException(['post' => [$off->content_type->network()->label().' no esta disponible en esta instalacion: quita ese destino antes de reprogramar.']]);
             }
 
-            $post->forceFill(['scheduled_at' => $at])->save();
+            // Mover una ocurrencia a mano la saca de la serie: `reconcile()` no la devuelve a su fecha.
+            $post->forceFill(['scheduled_at' => $at] + ($post->series_id !== null ? ['series_exception' => true] : []))->save();
+            PostTarget::withoutUserScope()->where('post_id', $post->id)->where('manual', true)->update(['manual_notified_at' => null]);
             $targets->filter(fn (PostTarget $t) => $t->status === PostStatus::Failed)
                 ->each(function (PostTarget $t) use ($post, $oldScheduledAt) {
                     $this->transition($t, PostStatus::Scheduled, $this->freshAttempt($t, $this->effectiveTextOf($t, $post->text), $oldScheduledAt));
@@ -385,6 +409,152 @@ class PostService
 
             return $fresh;
         });
+    }
+
+    /**
+     * «Reintentar» manual (T-19): los destinos `fallida` vuelven a `programada` como un intento NUEVO y se encolan. Idempotente: lo que ya
+     * esta en vuelo, programado o publicado no se toca, asi que repetir la accion (o pulsarla con el job en curso) nunca publica dos veces;
+     * el `claim()` de `PublishPostTarget` y su `ShouldBeUnique` son la segunda defensa. Exige que el post pueda publicarse (aprobado).
+     *
+     * @return array{post: Post, retried: int, skipped: int}
+     */
+    public function retryFailed(User $user, Post $post): array
+    {
+        $this->assertOwns($user, $post);
+        if (! $post->isPublishable()) {
+            throw new PostValidationException(['approval' => ['La publicacion requiere aprobacion antes de publicarse.']]);
+        }
+
+        $retried = [];
+        $skipped = 0;
+        DB::transaction(function () use ($post, &$retried, &$skipped) {
+            $targets = PostTarget::withoutUserScope()->where('post_id', $post->id)->orderBy('id')->lockForUpdate()->get();
+            $locked = Post::withoutUserScope()->lockForUpdate()->findOrFail($post->id);
+            foreach ($targets as $target) {
+                if ($target->status !== PostStatus::Failed || ! $target->content_type->network()->isAvailable()) {
+                    $skipped++;
+
+                    continue;
+                }
+                $this->applyTransition($target, PostStatus::Scheduled, $this->freshAttempt($target, $this->effectiveTextOf($target, $locked->text), $locked->scheduled_at) + ['manual_notified_at' => null]);
+                YouTubePublisher::forgetUploadSession($target->id);
+                $retried[] = $target->id;
+            }
+            if ($retried !== []) {
+                if ($locked->scheduled_at === null || $locked->scheduled_at->isPast()) {
+                    $locked->forceFill(['scheduled_at' => now()])->save();
+                }
+                $locked->syncStatus();
+                DB::afterCommit(function () use ($post) {
+                    DispatchDuePosts::dueTargets($post)->each(fn (int $id) => PublishPostTarget::dispatch($id));
+                });
+            }
+        });
+
+        return ['post' => $post->fresh(['targets', 'media']), 'retried' => count($retried), 'skipped' => $skipped];
+    }
+
+    // ------------------------------------------------------------------ aprobacion (T-19)
+
+    /**
+     * Reglas de aprobacion sobre el plan: un post sin aprobar no se programa; editar el contenido de uno aprobado lo devuelve a pendiente.
+     *
+     * @param  array<string, mixed>  $plan
+     * @return array<string, mixed>
+     */
+    private function applyApprovalRules(Post $post, array $plan): array
+    {
+        if ($post->approval_status === null) {
+            return $plan;
+        }
+
+        // Cambiar el contenido invalida la version que se pidio aprobar (CWE-367), este aprobada o aun pendiente.
+        if (in_array($post->approval_status, [Post::APPROVAL_APPROVED, Post::APPROVAL_PENDING], true) && $this->postSignature($post) !== $this->planSignature($plan)) {
+            $plan['status'] = PostStatus::Draft;
+            $plan['publish_now'] = false;
+            $plan['reset_approval'] = true;
+
+            return $plan;
+        }
+
+        if ($plan['status'] === PostStatus::Scheduled && ! $post->isPublishable()) {
+            throw new PostValidationException(['approval' => ['La publicacion requiere aprobacion antes de programarse.']]);
+        }
+
+        return $plan;
+    }
+
+    private function markApprovalPending(Post $post, bool $edited = false): void
+    {
+        $post->forceFill([
+            'approval_status' => Post::APPROVAL_PENDING, 'approval_comment' => null, 'approval_requested_at' => now(),
+            'approval_decided_at' => null, 'approval_decided_by' => null, 'approval_signature' => $this->postSignature($post),
+        ])->save();
+
+        $brandName = (string) Brand::withoutUserScope()->whereKey($post->brand_id)->value('name');
+        $message = $edited ? 'Una publicacion aprobada de «'.$brandName.'» se ha editado y vuelve a necesitar tu aprobacion.' : 'Hay una publicacion de «'.$brandName.'» que pide tu aprobacion.';
+        foreach (app(BrandCollaboration::class)->approvers((int) $post->brand_id) as $approver) {
+            $approver->notify(new PostWorkflowActivity('approval_requested', $post->id, $post->brand_id, $brandName, $message, (string) $post->text));
+        }
+    }
+
+    /** Huella publica del contenido actual del post (la que el aprobador debe haber visto). */
+    public function contentSignature(Post $post): string
+    {
+        return $this->postSignature($post);
+    }
+
+    /** Contenido que fija una aprobacion: texto, media comun y destinos (no la fecha). */
+    private function postSignature(Post $post): string
+    {
+        return self::signature(
+            $post->text,
+            $post->media()->pluck('media_assets.id')->map(fn ($id) => (int) $id)->all(),
+            $post->targets()->get()->map(fn (PostTarget $t) => [
+                'a' => (int) $t->social_account_id, 't' => $t->content_type->value, 'o' => $t->options ?? [], 'x' => $t->text, 'm' => TargetMedia::normalize($t->media),
+                'f' => $t->first_comment, 'u' => (bool) $t->manual,
+            ])->all(),
+        );
+    }
+
+    /** @param array<string, mixed> $plan */
+    private function planSignature(array $plan): string
+    {
+        return self::signature(
+            $plan['text'],
+            array_map(fn (MediaAsset $m) => (int) $m->id, $plan['media']),
+            array_map(fn (array $t) => [
+                'a' => (int) $t['account']->id, 't' => $t['type']->value, 'o' => $t['options'] ?? [], 'x' => $t['text'], 'm' => $t['media'],
+                'f' => $t['first_comment'] ?? null, 'u' => (bool) ($t['manual'] ?? false),
+            ], $plan['targets']),
+        );
+    }
+
+    /**
+     * @param  list<int>  $media
+     * @param  list<array<string, mixed>>  $targets
+     */
+    private static function signature(?string $text, array $media, array $targets): string
+    {
+        $norm = function (mixed $v) use (&$norm) {
+            if (is_array($v)) {
+                $v = array_map($norm, $v);
+                if (! array_is_list($v)) {
+                    ksort($v);
+                }
+            }
+
+            return $v;
+        };
+        $targets = array_map($norm, $targets);
+        usort($targets, fn ($a, $b) => [$a['a'], $a['t']] <=> [$b['a'], $b['t']]);
+
+        return hash('sha256', json_encode([(string) $text, $media, $targets], JSON_UNESCAPED_UNICODE));
+    }
+
+    private function sameInstant(?CarbonInterface $a, ?CarbonInterface $b): bool
+    {
+        return ($a === null && $b === null) || ($a !== null && $b !== null && $a->getTimestamp() === $b->getTimestamp());
     }
 
     // ------------------------------------------------------------------ internals
@@ -453,6 +623,7 @@ class PostService
     private const BOOLEAN_OPTIONS = [
         'share_to_feed', 'shorts_hashtag', 'made_for_kids', 'notify_subscribers', 'contains_synthetic_media',
         'disable_comment', 'disable_duet', 'disable_stitch', 'brand_organic_toggle', 'brand_content_toggle', 'is_aigc', 'auto_add_music',
+        'linkedin_disable_reshare',
     ];
 
     /**
@@ -465,7 +636,7 @@ class PostService
      */
     public static function normalizeOptions(array $options): array
     {
-        $options = InstagramPostOptions::normalize($options);
+        $options = LinkedInPostOptions::normalize(InstagramPostOptions::normalize($options));
         foreach (self::BOOLEAN_OPTIONS as $key) {
             if (array_key_exists($key, $options) && $options[$key] !== null) {
                 $options[$key] = filter_var($options[$key], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $options[$key];
@@ -485,7 +656,7 @@ class PostService
     private function optionErrors(ContentType $type, SocialAccount $account, array $options): array
     {
         $asked = fn (string $k) => array_key_exists($k, $options) && ! in_array($options[$k], [null, false, [], ''], true);
-        $errors = array_merge(InstagramAudio::selectionErrors($options['instagram_audio'] ?? null, $type, $account), InstagramPostOptions::errors($options, $type), FacebookPostOptions::errors($options, $type));
+        $errors = array_merge(InstagramAudio::selectionErrors($options['instagram_audio'] ?? null, $type, $account), InstagramPostOptions::errors($options, $type), FacebookPostOptions::errors($options, $type), LinkedInPostOptions::errors($options, $type, $account), PinterestPostOptions::errors($options, $type));
 
         if ($type->network() !== Network::YouTube) {
             foreach (self::YOUTUBE_OPTIONS as $k) {
@@ -529,6 +700,77 @@ class PostService
         }
 
         return $errors;
+    }
+
+    private function targetLabel(SocialAccount $account): string
+    {
+        return "Media propia de {$account->name} ({$account->network->label()})";
+    }
+
+    /**
+     * Media efectiva de un destino (T-17) y los errores de sus metadatos. `$own` null = hereda `$common`; con lista, se resuelven sus
+     * ids entre la media del usuario (en ese orden) y se validan alt y portada contra lo que admite el tipo de contenido.
+     *
+     * @param  ?list<array{id: int, alt: ?string, cover_id: ?int}>  $own
+     * @param  list<MediaAsset>  $common
+     * @return array{0: list<MediaAsset>, 1: list<string>}
+     */
+    private function effectiveTargetMedia(User $user, SocialAccount $account, ContentType $type, ?array $own, array $common): array
+    {
+        if ($own === null) {
+            return [$common, []];
+        }
+
+        $label = $this->targetLabel($account);
+        $errors = [];
+        $ids = array_values(array_unique(array_filter(array_merge(array_column($own, 'id'), array_column($own, 'cover_id')))));
+        $found = MediaAsset::withoutUserScope()->where('user_id', $user->id)->whereIn('id', $ids)->get()->keyBy('id');
+
+        $assets = [];
+        $seen = [];
+        foreach ($own as $i => $item) {
+            $n = $i + 1;
+            $asset = $found->get($item['id']);
+            if ($asset === null) {
+                $errors[] = "$label: el archivo {$item['id']} no existe.";
+
+                continue;
+            }
+            if (isset($seen[$asset->id])) {
+                $errors[] = "$label: el archivo {$asset->id} esta repetido.";
+
+                continue;
+            }
+            $seen[$asset->id] = true;
+            $assets[] = $asset;
+
+            if ($item['alt'] !== null) {
+                if (! TargetMedia::supportsAlt($type)) {
+                    $errors[] = "$label: {$account->network->label()} no admite texto alternativo en {$type->label()}.";
+                } elseif ($asset->isVideo()) {
+                    $errors[] = "$label: el texto alternativo solo se aplica a imagenes (archivo $n).";
+                } elseif (mb_strlen($item['alt']) > TargetMedia::ALT_MAX) {
+                    $errors[] = "$label: el texto alternativo del archivo $n admite como maximo ".TargetMedia::ALT_MAX.' caracteres (tiene '.mb_strlen($item['alt']).').';
+                }
+            }
+
+            if ($item['cover_id'] !== null) {
+                $cover = $found->get($item['cover_id']);
+                if (! TargetMedia::supportsCover($type)) {
+                    $errors[] = "$label: {$account->network->label()} no admite portada en {$type->label()}.";
+                } elseif (! $asset->isVideo()) {
+                    $errors[] = "$label: la portada solo se aplica a videos (archivo $n).";
+                } elseif ($cover === null) {
+                    $errors[] = "$label: la portada {$item['cover_id']} no existe.";
+                } elseif ($cover->kind !== MediaAsset::KIND_IMAGE || ! $cover->isReady()) {
+                    $errors[] = "$label: la portada del archivo $n debe ser una imagen lista.";
+                } elseif ($account->network === Network::YouTube && (int) ($cover->size ?? $cover->declared_size) > TargetMedia::YOUTUBE_COVER_MAX_BYTES) {
+                    $errors[] = "$label: la portada del archivo $n pesa mas de 2 MB, el maximo de las miniaturas de YouTube.";
+                }
+            }
+        }
+
+        return [$assets, $errors];
     }
 
     /**
@@ -621,8 +863,14 @@ class PostService
             // Un texto propio vacio o solo con espacios es `null` (vinculado): publicaria vacio y `findPublished` no podria reconocerlo.
             // Igual que la web (`TrimStrings` + `ConvertEmptyStringsToNull`), y vale tambien para el MCP.
             $ownText = isset($raw['text']) && trim((string) $raw['text']) !== '' ? (string) $raw['text'] : null;
-            foreach ($this->validator->validate($type, $media, $ownText ?? $text) as $message) {
+            // Media del destino (T-17): la propia o, si hereda, la comun. Es la que se valida y la que se publicara.
+            $ownMedia = TargetMedia::normalize($raw['media'] ?? null);
+            [$effectiveMedia, $mediaErrors] = $this->effectiveTargetMedia($user, $account, $type, $ownMedia, $media);
+            foreach ($mediaErrors as $message) {
                 $errors[$key][] = $message;
+            }
+            foreach ($this->validator->validate($type, $effectiveMedia, $ownText ?? $text) as $message) {
+                $errors[$key][] = $ownMedia !== null ? $this->targetLabel($account).': '.$message : $message;
             }
 
             $options = self::normalizeOptions((array) ($raw['options'] ?? []));
@@ -641,12 +889,14 @@ class PostService
                 $max = config("media_specs.types.{$type->value}.first_comment.max");
                 if ($max === null) {
                     $errors[$key][] = "{$account->network->label()} no admite primer comentario en este tipo de contenido.";
+                } elseif ($account->network === Network::LinkedIn && ! LinkedInPublisher::canComment($account)) {
+                    $errors[$key][] = (string) LinkedInPublisher::commentNote($account);
                 } elseif (mb_strlen($firstComment) > (int) $max) {
                     $errors[$key][] = "El primer comentario admite como maximo $max caracteres en {$account->network->label()} (tiene ".mb_strlen($firstComment).').';
                 }
             }
 
-            $targets[] = ['account' => $account, 'type' => $type, 'options' => $options, 'text' => $ownText, 'first_comment' => $firstComment];
+            $targets[] = ['account' => $account, 'type' => $type, 'options' => $options, 'text' => $ownText, 'first_comment' => $firstComment, 'media' => $ownMedia, 'manual' => filter_var($raw['manual'] ?? false, FILTER_VALIDATE_BOOLEAN)];
         }
 
         // Campaña (C-03, CA-12): null = quitarla; solo de esta marca y de este usuario. Omitida = no se toca (`false`).
@@ -677,15 +927,15 @@ class PostService
      * Sincroniza media y destinos con el plan. Los destinos existentes (ya bloqueados y editables) se actualizan;
      * los que sobran se borran; los nuevos se crean.
      *
-     * @param  array{status: PostStatus, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array, text: ?string, first_comment: ?string}>}  $plan
+     * @param  array{status: PostStatus, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array, text: ?string, first_comment: ?string, media: ?list<array{id: int, alt: ?string, cover_id: ?int}>}>}  $plan
      * @param  Collection<string, PostTarget>|null  $existing
      * @param  array{text: ?string, media: list<int>}|null  $before  contenido previo del post (solo en edicion)
      */
     private function fill(Post $post, array $plan, ?Collection $existing = null, ?array $before = null): void
     {
         $existing ??= new Collection;
-        // La media es comun a todos los destinos; el TEXTO se compara por destino (texto efectivo viejo frente al nuevo, ADR-005).
-        $mediaChanged = $before !== null && $before['media'] !== array_map(fn (MediaAsset $m) => (int) $m->id, $plan['media']);
+        // La media comun es la base de los destinos que heredan; texto y media EFECTIVOS se comparan por destino (ADR-005, T-17).
+        $commonIds = array_map(fn (MediaAsset $m) => (int) $m->id, $plan['media']);
         $post->media()->sync(collect($plan['media'])->mapWithKeys(fn (MediaAsset $m, int $i) => [$m->id => ['position' => $i]])->all());
 
         $kept = [];
@@ -701,6 +951,8 @@ class PostService
                     'status' => $plan['status'],
                     'options' => $t['options'] ?: null,
                     'text' => $t['text'],
+                    'media' => $t['media'],
+                    'manual' => $t['manual'] ?? false,
                     'first_comment' => $t['first_comment'] ?? null,
                 ]);
                 $target->user_id = $post->user_id;
@@ -720,9 +972,14 @@ class PostService
             $newText = $t['text'] ?? ($plan['text'] ?? null);
             $textChanged = $before !== null && $oldText !== $newText;
             $optionsChanged = $before !== null && ($current->options ?? []) != ($t['options'] ?? []);
+            $mediaChanged = $before !== null && TargetMedia::effective($current, $before['media']) != TargetMedia::effective($t['media'], $commonIds);
             $fresh = $current->status === PostStatus::Failed || $mediaChanged || $textChanged || $optionsChanged;
             // El primer comentario NO cuenta para `$fresh`: se publica despues del destino y no cambia lo que sale en la red.
-            $attributes = ['options' => $t['options'] ?: null, 'text' => $t['text'], 'first_comment' => $t['first_comment'] ?? null] + ($fresh ? $this->freshAttempt($current, $oldText, $before['scheduled_at'] ?? null) : []);
+            $manual = (bool) ($t['manual'] ?? false);
+            $rescheduled = $before !== null && ! $this->sameInstant($before['scheduled_at'] ?? null, $plan['scheduled_at'] ?? null);
+            // El aviso manual se rearma si cambia la hora, el modo manual o el contenido: el usuario volvera a recibirlo.
+            $rearm = ($manual !== (bool) $current->manual || $rescheduled || $fresh) ? ['manual_notified_at' => null] : [];
+            $attributes = ['options' => $t['options'] ?: null, 'text' => $t['text'], 'media' => $t['media'], 'manual' => $manual, 'first_comment' => $t['first_comment'] ?? null] + $rearm + ($fresh ? $this->freshAttempt($current, $oldText, $before['scheduled_at'] ?? null) : []);
             if (! $fresh) {
                 $attributes += $this->releaseBackoff($current, (bool) ($plan['publish_now'] ?? false));
             }

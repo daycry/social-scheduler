@@ -1,0 +1,53 @@
+{
+  "issues": [],
+  "expected_http": [
+    {
+      "method": "POST",
+      "path": "/brands/11/studio/datasets/41/import",
+      "status": 409
+    },
+    {
+      "method": "GET",
+      "path": "/brands/12/studio/datasets/41",
+      "status": 404
+    }
+  ],
+  "intentional_aborts": [],
+  "browser_diagnostics": [
+    {
+      "text": "Failed to load resource: the server responded with a status of 409 (Conflict)",
+      "path": "/brands/11/studio/datasets/41/import",
+      "status": 409,
+      "abort": false
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "path": "/brands/12/studio/datasets/41",
+      "status": 404,
+      "abort": false
+    }
+  ],
+  "isolated_font_fixtures": [
+    {
+      "kind": "empty-css-system-fallback",
+      "url": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+      "bytes": 154,
+      "sha256": "e81a09edaf280195cd682b0dba66f8a907deec1416903b4eb6aa21773850eeb0",
+      "external_Inter_loaded": false
+    },
+    {
+      "kind": "empty-css-system-fallback",
+      "url": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+      "bytes": 154,
+      "sha256": "e81a09edaf280195cd682b0dba66f8a907deec1416903b4eb6aa21773850eeb0",
+      "external_Inter_loaded": false
+    },
+    {
+      "kind": "empty-css-system-fallback",
+      "url": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+      "bytes": 154,
+      "sha256": "e81a09edaf280195cd682b0dba66f8a907deec1416903b4eb6aa21773850eeb0",
+      "external_Inter_loaded": false
+    }
+  ]
+}

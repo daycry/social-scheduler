@@ -27,7 +27,7 @@ test('Bluesky se conecta con credenciales y las demas por OAuth', function () {
 });
 
 test('providers() se deriva de los casos, sin repetidos', function () {
-    expect(Network::providers())->toBe(['meta', 'google', 'tiktok', 'bluesky', 'threads']);
+    expect(Network::providers())->toBe(['meta', 'google', 'tiktok', 'bluesky', 'threads', 'linkedin', 'pinterest']);
 });
 
 test('offered() solo incluye las redes con conector registrado', function () {

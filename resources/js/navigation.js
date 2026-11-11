@@ -12,6 +12,17 @@
  */
 export const MODULES = [
     {
+        key: 'studio', label: 'Estudio', icon: 'palette', match: ['studio.*'],
+        when: (c) => c.has('studio.index'),
+        href: (c) => c.route('studio.index', c.q),
+        side: [
+            { key: 'designs', label: 'Mis diseños', icon: 'grid', match: ['studio.index', 'studio.designs.*'], href: (c) => c.route('studio.index', c.q) },
+            { key: 'templates', label: 'Plantillas', icon: 'bookmark', match: [], href: (c) => c.route('studio.index', { ...c.q, templates: 1 }) },
+            { key: 'brand-kit', label: 'Identidad de marca', icon: 'palette', match: [], href: (c) => c.route('studio.index', { ...c.q, tab: 'brand' }) },
+            { key: 'archived-designs', label: 'Papelera de diseños', icon: 'trash', match: [], href: (c) => c.route('studio.index', { ...c.q, archived: 1 }) },
+        ],
+    },
+    {
         key: 'analytics',
         label: 'Analítica',
         icon: 'chart',
@@ -28,7 +39,7 @@ export const MODULES = [
         key: 'planning',
         label: 'Planificación',
         icon: 'calendar',
-        match: ['calendar.*', 'instagram.grid', 'campaigns.*', 'posts.*', 'brands.posts.*', 'best-times.*', 'library.*', 'trash.*', 'autolists.*'],
+        match: ['calendar.*', 'instagram.grid', 'campaigns.*', 'posts.*', 'brands.posts.*', 'best-times.*', 'library.*', 'trash.*', 'autolists.*', 'approvals.*', 'series.*'],
         href: (c) => c.route('calendar.index', c.q),
         side: [
             { key: 'calendar', label: 'Calendario', icon: 'calendar', match: ['calendar.*'], isActive: (c) => c.page.props.view !== 'list', href: (c) => c.route('calendar.index', { ...c.q, view: 'week' }) },
@@ -39,6 +50,8 @@ export const MODULES = [
             { key: 'best-times', label: 'Mejores horas', icon: 'clock', match: ['best-times.*'], when: (c) => c.has('best-times.index'), href: (c) => c.route('best-times.index', c.q) },
             { key: 'library', label: 'Biblioteca', icon: 'folder', match: ['library.*'], when: (c) => c.has('library.index'), href: (c) => c.route('library.index', c.q) },
             { key: 'autolists', label: 'Autolistas', icon: 'repeat', match: ['autolists.*'], when: (c) => c.has('autolists.index'), href: (c) => c.route('autolists.index', c.q) },
+            { key: 'approvals', label: 'Aprobaciones', icon: 'users', match: ['approvals.*'], when: (c) => c.has('approvals.index'), href: (c) => c.route('approvals.index') },
+            { key: 'series', label: 'Series', icon: 'repeat', match: ['series.*'], when: (c) => c.has('series.index'), href: (c) => c.route('series.index') },
             { key: 'trash', label: 'Papelera', icon: 'trash', match: ['trash.*'], when: (c) => c.has('trash.index'), href: (c) => c.route('trash.index') },
         ],
     },
@@ -50,6 +63,15 @@ export const MODULES = [
         when: (c) => c.has('smartlinks.index'),
         href: (c) => c.route('smartlinks.index', c.q),
         side: [{ key: 'smartlinks', label: 'Mi página de enlaces', icon: 'link', match: ['smartlinks.*'], href: (c) => c.route('smartlinks.index', c.q) }],
+    },
+    {
+        key: 'sites',
+        label: 'Sitios',
+        icon: 'folder',
+        match: ['sites.*'],
+        when: (c) => c.has('sites.index'),
+        href: (c) => c.route('sites.index', c.q),
+        side: [{ key: 'sites', label: 'Mis sitios', icon: 'folder', match: ['sites.*'], href: (c) => c.route('sites.index', c.q) }],
     },
     {
         key: 'inbox',

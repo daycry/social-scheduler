@@ -1,0 +1,123 @@
+{
+  "scope": "Adopted minimal readiness fix after real consumer1 failure; same public E2E, strict consumer counter and resource budgets; new build6/operator2 namespace, no automatic retry.",
+  "files": {
+    "resources/js/Pages/Studio/Editor.vue": "afa8a087050e62c5582991aa89abe5592006dcccaafe0b7b81270624f7d6f19e",
+    "tests/frontend/studio-editor-readiness.test.mjs": "36db695a481dc5ac588d3bd10638b0fed03ccbd0279a2af0f85df8aca296249d",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-editor-readiness-contract.md": "c21fdd15e1828f94d756fe51211c013899a63e4f43c537fcc8d638a5688b807a",
+    "docs/knowledge/candidates/pending/2026-11-06-editor-layer-selection-before-canvas-ready.md": "fff422741918db79b12d8bd84e1912593500efdddc7ba6c2189651feb1dd5737",
+    "storage/framework/testing/t12-chart-consumer-errors-qa2/playwright.config.ts": "5631ee0ca710c0a677232eb72270fd02a407f47001af3384005ffb9fdf5f320a",
+    "storage/framework/testing/t12-chart-consumer-errors-qa2/probe-ast.cjs": "1cf702dfd5943440d7fd3a17ef4042717af656b29c5f2055be2fb69ea5ad0ed5",
+    "storage/framework/testing/t12-chart-consumer-errors-qa2/probe-pure.py": "a1ebd64015f58c8e5b550d9a806ee74a4590f9a2d54add4e173c2413d8dc8d9b",
+    "storage/framework/testing/t12-chart-consumer-errors-qa2/recount.py": "12178139199f8f1157bd2e499b6c60edf81502950498b2a67089ccaacea5d0da",
+    "storage/framework/testing/t12-chart-consumer-errors-qa2/run.py": "09764fa8d61cff7c75275b09b397d65e7f74023cf35ee195a35102a8c13ae819",
+    "storage/framework/testing/t12-chart-build6/build.mjs": "41bd1c8c4e1ae60ee6f32c4656c6b6eb8d6107ccb855b1ec5b41c82bf00ea168",
+    "storage/framework/testing/t12-chart-build6/run.py": "d80e6e1a12ef62909201cbff136b76a9923adc7f71fd5b1ae9a218db1beaedba",
+    "CONTINUE-HERE.md": "3b8749b96ab4ab32b10d5bb90205116aa945fcb4fb5ad93e97525e025b03433b",
+    "docs/roadmap/2026-11-03-creative-social-suite/tasks.md": "a20f5eca255f7063732e51d350fc111c23950225655991f09779108deee0256a",
+    "docs/knowledge/README.md": "659f927e8149187eef3a7633c4f15a8c1ade4d1e70f4e3efb1571dfb7cab060b"
+  },
+  "context_only": [
+    "CONTINUE-HERE.md",
+    "docs/roadmap/2026-11-03-creative-social-suite/tasks.md",
+    "docs/knowledge/README.md"
+  ],
+  "changed_files": [
+    "resources/js/Pages/Studio/Editor.vue",
+    "tests/frontend/studio-editor-readiness.test.mjs",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-editor-readiness-contract.md",
+    "docs/knowledge/candidates/pending/2026-11-06-editor-layer-selection-before-canvas-ready.md",
+    "storage/framework/testing/t12-chart-consumer-errors-qa2/run.py",
+    "storage/framework/testing/t12-chart-build6/run.py"
+  ],
+  "previous_verdict": "../../t12-chart-consumer-review1/attempt1/verdict.md",
+  "previous_flat": "../../t12-chart-consumer-review1/attempt1/authorization-flat.json",
+  "consumer1_seal": {
+    "public": "docs/roadmap/2026-11-03-creative-social-suite/testing/t12/consumer-local-qa1",
+    "artifacts": 42,
+    "source_count": 494,
+    "verdict": "NO-PASS",
+    "pdf_sha256": "de68e095eaaa03319cbebd85fa41b44d0f934385e22ed5b658cb0e67ca3049ce",
+    "post_inspection_drift": {
+      "changed": [],
+      "missing": [],
+      "extra_build_assets": []
+    }
+  },
+  "diagnostic_done": {
+    "state": "F1_F3_DONE_WAITING_ROOT_PHASE4_ACK",
+    "hypothesis": "Layer selection is enabled before await createStudioCanvas assigns adapter.",
+    "source_sha256": {
+      "resources/js/Pages/Studio/Editor.vue": "b87d88c278afdaf902cc5b8ff24227ada32439af777b93b93bc17efbcdc5772f",
+      "resources/js/Components/Studio/LayerPanel.vue": "c299180e04cd402ef7109ddff2576086e67811e0ec62f33a71f5d5a16433b7ea",
+      "resources/js/Studio/canvas.js": "f8cecebe626b6a71a7a1e136d0dc4fda7ea6ec0d55c26a04262cc2e09752e7d5",
+      "resources/js/Studio/document.js": "0392aa4b75cf824b5bda0c204a2f46cc1706502a7d43216dece57f4ab271b772",
+      "resources/js/Studio/history.js": "2386e89854cb2d1fb03ff1387881330b3772093f336492c694b4418d28b895d8"
+    },
+    "evidence_sha256": {
+      "before-Editor.vue": "b87d88c278afdaf902cc5b8ff24227ada32439af777b93b93bc17efbcdc5772f",
+      "diagnosis.md": "9f9e448829a8fed94095aaf434711f99d6a59fc532ba84ecae94258be1a90ab7",
+      "diagnostic.txt": "aa35520e4ba2ce6650f51136b0e8b7cb38e58176b0368e50bf5601ea247e8fca",
+      "probe.mjs": "41c096f7a1f65964a9e3165e96a42d6f86b5ef6f042291cc2b05292ecf51f57b",
+      "red.txt": "2fab97b551e697bac68facbdbaf7595ff3b65b69493a891c04637f76374e61bd"
+    },
+    "commands": [
+      {
+        "command": "node --max-old-space-size=512 storage/framework/testing/t12-chart-selection-readiness1/probe.mjs",
+        "exit_code": 0,
+        "scope": "Real compiled Editor SFC script/template, deferred factory boundary; pure Node only"
+      },
+      {
+        "command": "node --max-old-space-size=512 storage/framework/testing/t12-chart-selection-readiness1/probe.mjs --red",
+        "exit_code": 1,
+        "error": "Editor grid must block pointer/keyboard selection while adapter pending: null !== true"
+      }
+    ],
+    "product_modified": false,
+    "public_tests_modified": false,
+    "native_executions": 0,
+    "global_acceptance": false,
+    "proposed_product_change": "Grid inert: !ready || automationBusy || fontBusy || undefined",
+    "proposed_test": "tests/frontend/studio-editor-readiness.test.mjs"
+  },
+  "source_only": {
+    "state": "SOURCE_ONLY_WAIT_PRODUCT_REVIEW_BUILD6",
+    "native_cases": 0,
+    "collections": 0,
+    "build_source": "Copy build5 guarded wrapper; only phrase/candidate path changed. Same build.mjs bytes.",
+    "consumer_source": "Copy consumer1 five reviewed sources; only run.py build6, phrase, unique output2, readiness contract dependency. Counter/config/probes byte-identical. No pure test credit rerun. Snapshot references original consumer1 pure proof paths explicitly; no copied/relabelled proofs.",
+    "files": {
+      "storage/framework/testing/t12-chart-build6/build.mjs": "41bd1c8c4e1ae60ee6f32c4656c6b6eb8d6107ccb855b1ec5b41c82bf00ea168",
+      "storage/framework/testing/t12-chart-build6/run.py": "d80e6e1a12ef62909201cbff136b76a9923adc7f71fd5b1ae9a218db1beaedba",
+      "storage/framework/testing/t12-chart-consumer-errors-qa2/playwright.config.ts": "5631ee0ca710c0a677232eb72270fd02a407f47001af3384005ffb9fdf5f320a",
+      "storage/framework/testing/t12-chart-consumer-errors-qa2/probe-ast.cjs": "1cf702dfd5943440d7fd3a17ef4042717af656b29c5f2055be2fb69ea5ad0ed5",
+      "storage/framework/testing/t12-chart-consumer-errors-qa2/probe-pure.py": "a1ebd64015f58c8e5b550d9a806ee74a4590f9a2d54add4e173c2413d8dc8d9b",
+      "storage/framework/testing/t12-chart-consumer-errors-qa2/recount.py": "12178139199f8f1157bd2e499b6c60edf81502950498b2a67089ccaacea5d0da",
+      "storage/framework/testing/t12-chart-consumer-errors-qa2/run.py": "09764fa8d61cff7c75275b09b397d65e7f74023cf35ee195a35102a8c13ae819"
+    },
+    "counter_previous_proofs": {
+      "GREEN-recount.json": {
+        "path": "storage/framework/testing/t12-chart-consumer-errors-qa1/GREEN-recount.json",
+        "sha256": "d930e2b8a2ed92b9dd87b83f6c1ba0130c75fff469d03f8409e3d54a5fc7c66f",
+        "rerun": false
+      },
+      "RED-recount.json": {
+        "path": "storage/framework/testing/t12-chart-consumer-errors-qa1/RED-recount.json",
+        "sha256": "5f2e858949e556839be3e0f9c83195bacf974bd0369eb357b1178949495a25b2",
+        "rerun": false
+      },
+      "control-proofs.json": {
+        "path": "storage/framework/testing/t12-chart-consumer-errors-qa1/control-proofs.json",
+        "sha256": "61cb0e4e9812230a078723d970091614dd55cf4a7608ea13cbd10ea2a32d8da0",
+        "rerun": false
+      },
+      "ast-proofs.json": {
+        "path": "storage/framework/testing/t12-chart-consumer-errors-qa1/ast-proofs.json",
+        "sha256": "dbbbcf5ef34d2c66d15e9ffd1bb4fb78528a00de9c5b95679a122d3a3b94319d",
+        "rerun": false
+      }
+    }
+  },
+  "build_candidate_sha256": "1b17bbddf681c0ad4d2c69e6f07119f401dd9fb02f945cc09c91fe1d75c4c5b1",
+  "native_cases_after_fix": 0,
+  "preparation_collection_pending_build6": true
+}

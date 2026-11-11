@@ -1,0 +1,78 @@
+{
+  "sources": [
+    {
+      "path": "resources/js/Studio/audiovisual-plan.js",
+      "sha256": "39e442126f918dd13173d2ead0c81d80153b09661e1c41304fb485c92382e11d"
+    },
+    {
+      "path": "resources/js/Studio/timeline-preview.js",
+      "sha256": "725d104628f1c6687401295b995223c5abe67b4af28814e078ca488955843423"
+    },
+    {
+      "path": "resources/js/Studio/project-render-entry.js",
+      "sha256": "7f4771babae800309282ad3873e9f2adbd6f47a3fcf8a35d4d07d3cb919048d7"
+    },
+    {
+      "path": "scripts/studio/build.mjs",
+      "sha256": "6ffa4b142943b77f55a68d569f2bb28331ad231ace8d36b982b32eaf8ddbc441"
+    },
+    {
+      "path": "scripts/studio/av-files.mjs",
+      "sha256": "26040ab98ff4904525f71e7004649fec9777db83a759f962fb5a9c4eba47b901"
+    },
+    {
+      "path": "scripts/studio/av-server.mjs",
+      "sha256": "b4aaedb2bb25dc997aa33443aca08e22ab0aabb20937067986ca780f1b2ee297"
+    },
+    {
+      "path": "scripts/studio/av-audio.mjs",
+      "sha256": "c536e91cbcf3347db31a34b09d5a9e4d3acc2702ec20f662e40d252bc31e2290"
+    },
+    {
+      "path": "scripts/studio/av-video.mjs",
+      "sha256": "c0f3438f75740dcc292d537d2c65cb7b580caec578bffe27e35540450643ae6b"
+    },
+    {
+      "path": "scripts/studio/av-gif.mjs",
+      "sha256": "a67fb1a665a22bcff42fb7b27b06cd70c6081c9d3f98106255b7de7a5f3b3f23"
+    },
+    {
+      "path": "scripts/studio/av-finalize.mjs",
+      "sha256": "f70b0a9ab23131229dbdae61ddea2895356bb7e8367c56555a30fce16306431d"
+    },
+    {
+      "path": "scripts/studio/av-pcm.mjs",
+      "sha256": "fd1d0394eea7e23a7f91eaeca8a7067071f898a1af27ae4d2a8ce778df6c4215"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-plan.test.mjs",
+      "sha256": "d0269d69ea8f017ecdcbe018b887b8d76b28ee1ea134ac3447e0cd3fd662fa8b"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual.browser.test.mjs",
+      "sha256": "f26be66a08115c5c008bf5beaef89ed9ff2c87b94f719207911b04d57bb63cb7"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-audio.test.mjs",
+      "sha256": "43a82f4b19891398c706860ee9d68c9c0c5395e41850a45873c6138a715f6405"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-render.test.mjs",
+      "sha256": "f1c153980950242a2b60a8291ce78a27417239ed9058474ff414ab19363c40ef"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-safety.test.mjs",
+      "sha256": "bef96abbef201614ccddd1c1ee84ed46a8be333eb432228b7b50074d7d6619c9"
+    }
+  ],
+  "bundles": [
+    {
+      "path": "public/build/studio-renderer.js",
+      "sha256": "dc8e686e844140ed0381e61f675aec896b6324a5e748c78e6eef29c84c883863"
+    },
+    {
+      "path": "public/build/studio-project-renderer.js",
+      "sha256": "1616626dd8fca634bc334f59f1c83cf5580c4314a85058ec6a7c9747b8a492bc"
+    }
+  ]
+}

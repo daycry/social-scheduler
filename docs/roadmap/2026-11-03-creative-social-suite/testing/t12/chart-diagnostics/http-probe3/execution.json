@@ -1,0 +1,24 @@
+{
+  "state": "diagnostic_finished",
+  "app_pass_claim": false,
+  "supervisor_pid": 15916,
+  "node_exit_code": 0,
+  "unchanged_sources": true,
+  "job_members_before_final_sample": [
+    15916
+  ],
+  "ephemeral_port_free": true,
+  "resource": {
+    "physical_minimum_observed_bytes": 10181754880,
+    "sample_interval_seconds": 0.1,
+    "elapsed": 10.572562799992738,
+    "job": {
+      "scope": "job",
+      "limit": 3221225472,
+      "peak_commit": 231890944,
+      "kill_on_close": true,
+      "breakaway": false
+    },
+    "failure": null
+  }
+}

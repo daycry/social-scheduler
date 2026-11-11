@@ -1,0 +1,7 @@
+{
+  "verdict": "NO-VERDE",
+  "reason": "el runner reportó errores de ejecución",
+  "errors": [
+    "\u001b[31mTesting stopped early after 1 maximum allowed failures.\u001b[39m"
+  ]
+}

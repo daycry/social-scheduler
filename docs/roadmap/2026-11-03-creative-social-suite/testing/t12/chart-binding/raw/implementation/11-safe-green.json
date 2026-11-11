@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-06T12:01:53.309678",
+  "command": [
+    "node",
+    "--max-old-space-size=512",
+    "--experimental-test-isolation=none",
+    "--test",
+    "--test-name-pattern=^safe precision rejects exact",
+    "tests/frontend/studio-chart-binding.test.mjs"
+  ],
+  "exit_code": 0,
+  "sha256_before": {
+    "resources/js/Studio/chart-binding.js": "fab2b01295dec0d4f35b513600cf044ecd1a62a5c04144d32514422ae446432a",
+    "tests/frontend/studio-chart-binding.test.mjs": "01ef9adde14c6cf55fb70ba82df136f840383b13e3bfeb79410b944b9625bc3f",
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190"
+  },
+  "sha256_after": {
+    "resources/js/Studio/chart-binding.js": "fab2b01295dec0d4f35b513600cf044ecd1a62a5c04144d32514422ae446432a",
+    "tests/frontend/studio-chart-binding.test.mjs": "01ef9adde14c6cf55fb70ba82df136f840383b13e3bfeb79410b944b9625bc3f",
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190"
+  }
+}

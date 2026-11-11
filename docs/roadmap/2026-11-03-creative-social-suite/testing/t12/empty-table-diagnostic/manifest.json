@@ -1,0 +1,30 @@
+{
+  "diagnostic_confirmed": 3,
+  "app_pass_claim": false,
+  "full_axe_pass_claim": false,
+  "source_count": 24,
+  "artifacts": {
+    "baseline-axe.json": "6c3bb52fb934a3ddd14cfedac9cc76b461d96f2b2ea034327e7e66787110408f",
+    "baseline-observed.json": "68731dc44c20c78fd079cd418e51743ae8110eb754cf4afb5ee336cbfd7c7e4c",
+    "baseline-table.html": "24571e81907b8e3a9bbe9396cd280a45c0ee2cca21dbeba7b7a552d0236a1af3",
+    "baseline.png": "60c98c6dca7db125e45f6e362cbb73aaf362e9fe2f0ed06c1d13819841e867d2",
+    "DIAGNOSIS.md": "2dac2c5c827be28a50446f7584d790ff458bf9dfe39d3ab517897f58fc233d6c",
+    "empty-footer-axe.json": "4701700749e6f7dc4e258cd861a466537523926517f0a7cd0f7ff0bc601f78cb",
+    "empty-footer-observed.json": "d20896f45ce9684bff63aa40f780afad6debfc240f8fe4ac38492527fae65d42",
+    "empty-footer-table.html": "801167d9371aa034a0d7b2310febb21bfe3915c68a5866988af2ebfac9326f4b",
+    "empty-footer.png": "a10c8fc58fab226c9681d169c2d7fd70b90bad57e1c78e7b7599c5353181e562",
+    "execution.json": "385922897929d898f8165851e4f5c4260d27a62e4a8175000a81fea2028f0b5c",
+    "one-row-control-axe.json": "63db7d22ea69d1bab1a08e29a11ae7982cba75ade91f0be58a7de84c91f62dfb",
+    "one-row-control-observed.json": "861708340c94621e893b5bdcd6da3d162707ca84a4d14386e344505507bd0b67",
+    "one-row-control-table.html": "89d821389ca993005d806be29195bfbfcbc0b3c0eb2b7648511b8a341e07c57b",
+    "one-row-control.png": "35c978e2809f0f0609dd839d4ec45bdf1ae33f308a14f1f654de76df016854a1",
+    "provenance.json": "f59863f548218e03b08747d6ad8f27e0c57c31d3839e0c59e53239c4c8398f77",
+    "READY.json": "c3dffe8afcac55d7f732081d8df1ec87d3dd71ccfbacc44f4ab8995bbfb21845",
+    "report.md": "17dbd84ed2829679354e9601cfc8c6a95ef99a4fd466a838867c7af88d9c26d3",
+    "results.json": "3890076505721be21328199652814b235ed20b9eb28b2c6df1a804539feb1fe6",
+    "source-manifest.json": "50afa123ddd36971eb0fa20a097ee7f7efe9a724d5979c78eb085e9c086a268d",
+    "sources-after.json": "50afa123ddd36971eb0fa20a097ee7f7efe9a724d5979c78eb085e9c086a268d",
+    "sources-before.json": "50afa123ddd36971eb0fa20a097ee7f7efe9a724d5979c78eb085e9c086a268d",
+    "visual-inspection.json": "005a34af62c9d113c023fbf031836323f9b5de1997ed33be0862b1dc57ab069b"
+  }
+}

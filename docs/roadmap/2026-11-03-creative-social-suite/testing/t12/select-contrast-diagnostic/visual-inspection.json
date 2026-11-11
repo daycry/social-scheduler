@@ -1,0 +1,15 @@
+{
+  "reviewer": "root",
+  "scope": "All eight reconstructed diagnostic screenshots, not application visual acceptance",
+  "issues": [],
+  "inspected": {
+    "images/baseline-keyboard.png": "a107665422ee90189d103400251189934bccbd2fdbb856b42f0bfb703e960521",
+    "images/baseline.png": "1c53a95d935e0c66ad9b3080f2a8293ac7fd3ed865f9410db554a0d2022dfb1d",
+    "images/both-keyboard.png": "096c8bcd8bfc889853911c35cb51dea71fc8c50e12d462bf804810af9545537d",
+    "images/both.png": "224abab2da04d9823960538784866d62353898b85bba974f3dfb69a3670cd93b",
+    "images/native-select-keyboard.png": "096c8bcd8bfc889853911c35cb51dea71fc8c50e12d462bf804810af9545537d",
+    "images/native-select.png": "224abab2da04d9823960538784866d62353898b85bba974f3dfb69a3670cd93b",
+    "images/section-white-keyboard.png": "a107665422ee90189d103400251189934bccbd2fdbb856b42f0bfb703e960521",
+    "images/section-white.png": "1c53a95d935e0c66ad9b3080f2a8293ac7fd3ed865f9410db554a0d2022dfb1d"
+  }
+}

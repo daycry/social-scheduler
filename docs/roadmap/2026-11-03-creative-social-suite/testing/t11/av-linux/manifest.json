@@ -1,0 +1,248 @@
+{
+  "date": "2026-11-05",
+  "scope": "T11 Linux delegated process supervision and Windows regression",
+  "parent_complete": false,
+  "public_mp4_gif_ready": false,
+  "laravel_jobs_verified": false,
+  "linux_native_media_verified": false,
+  "vps_verified": false,
+  "t10_onnx_verified": false,
+  "review": "A2/B2/D2 no pending gaps; C false by selector",
+  "qa_execution": "root after independent review, not independent QA",
+  "sources": [
+    {
+      "path": "scripts/studio/av-runtime.py",
+      "sha256": "2be81a22850c9336ba59dc4013810933825b9e1ec4da38db6c9c6ad048d0652b"
+    },
+    {
+      "path": "scripts/studio/av-linux.py",
+      "sha256": "d966c5c48ea396204e5a642f76a2ab7aa54ba6fa1fe2adc300d011c1ff65e9dc"
+    },
+    {
+      "path": "tests/studio_runtime/test_av_limits.py",
+      "sha256": "48457c2c5d8aedd0d579d9016b5fd111d7edfe2cb5ffa900c1fce996d67e7d29"
+    },
+    {
+      "path": "tests/studio_runtime/test_av_linux.py",
+      "sha256": "ed2cd1bb3235bdc2f5728205d741f738a421bcd5a7f33f92b7f100474cdba693"
+    },
+    {
+      "path": "deploy/systemd/scheduler-studio.service",
+      "sha256": "3bba210397eb2df7aa202b55687af4f720ee7d4366162c35dcf34b0b83b87005"
+    },
+    {
+      "path": "deploy/systemd/README.md",
+      "sha256": "ccee10a6d0df41cf4576a955dd752715dee2a8d490781de02eae5cf1a7a2b698"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md",
+      "sha256": "327ef8e5c7c9c3ed5eade52ab53221b52aeaf915bae1eef8bc97b2101a5e608a"
+    }
+  ],
+  "results": {
+    "frontend": {
+      "mode": "frontend",
+      "exit": 0,
+      "terminal": true,
+      "sources_match": true,
+      "files": 30,
+      "summary": [
+        "# tests 149",
+        "# pass 149",
+        "# fail 0",
+        "# cancelled 0",
+        "# skipped 0",
+        "# duration_ms 40907.1041"
+      ]
+    },
+    "windows": {
+      "mode": "windows",
+      "exit": 0,
+      "terminal": true,
+      "sources_match": true,
+      "passed": 4,
+      "skipped": 0,
+      "summary": [
+        "----------------------------------------------------------------------",
+        "Ran 4 tests in 0.263s",
+        "",
+        "OK"
+      ]
+    },
+    "linux": {
+      "mode": "linux",
+      "exit": 0,
+      "terminal": true,
+      "sources_match": true,
+      "passed": 10,
+      "skipped": 2,
+      "summary": [
+        "----------------------------------------------------------------------",
+        "Ran 12 tests in 4.843s",
+        "",
+        "OK (skipped=2)"
+      ]
+    },
+    "unit": {
+      "mode": "unit",
+      "exit": 0,
+      "terminal": true,
+      "sources_match": true,
+      "verification": {
+        "exit": 0,
+        "sha256": "3bba210397eb2df7aa202b55687af4f720ee7d4366162c35dcf34b0b83b87005",
+        "mode": "0644 validation-only copy",
+        "stdout": "",
+        "stderr": ""
+      }
+    }
+  },
+  "native_encoder_sources_unchanged_from_managed_windows": [
+    {
+      "path": "scripts/studio/av-files.mjs",
+      "sha256": "014618e702bd653c161a146536058a4a21ede0610de86947d92e28233599af62"
+    },
+    {
+      "path": "scripts/studio/av-pcm.mjs",
+      "sha256": "f567d4665e6f503148b02d1205a1451dc9d1beff6525a68b837077b4192aaac6"
+    },
+    {
+      "path": "scripts/studio/av-audio.mjs",
+      "sha256": "2dd32312f86dae7331edc4d24ccf92d3865e2d72dd473e9de594da19685a0bbc"
+    },
+    {
+      "path": "scripts/studio/av-video.mjs",
+      "sha256": "007bfba44d8b34d61bfe10b8550b57594640101a4c63188adf060e92781f93e6"
+    },
+    {
+      "path": "scripts/studio/av-finalize.mjs",
+      "sha256": "26c6a9b23d2d76d894e80bb25ea00f5bee619b27149f92a5d3eb169ebece52ba"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-checkpoints.test.mjs",
+      "sha256": "75202cb8d0a325c567d30f7dc188829d7bea874ef8cbda92e0bdf16f990873fa"
+    },
+    {
+      "path": "scripts/studio/render-av.mjs",
+      "sha256": "25bc3f1a1ed4ad10c62299b7fb10d87be24deeab4882e0de728e866cc6bce1a3"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-phase.test.mjs",
+      "sha256": "864ed84d238eb02f395e0fbc6abcf1f80dc9013e1f6e9cfe3e517227c8a95d55"
+    }
+  ],
+  "unchanged_ui_sources_and_bundles": [
+    {
+      "path": "resources/js/Studio/audiovisual-plan.js",
+      "sha256": "a24fe74ed37ada873dcd943a19727174df52a9fa810ab629fe86ad2a29692647"
+    },
+    {
+      "path": "resources/js/Studio/project-render-entry.js",
+      "sha256": "6d8b1291a2d523074ccd2dd1259f529ca74aa36a89b54726a8a41c43a3b9dba8"
+    },
+    {
+      "path": "resources/js/Studio/timeline-preview.js",
+      "sha256": "6139b6d63adc003d361fdb48b5ba1f253594dbffea88a026af9aad8d1bfe8f3f"
+    },
+    {
+      "path": "resources/js/Studio/canvas.js",
+      "sha256": "5d665005fbeb2e18f2c30b0c4b0f6681863160ad0a6452f4e2a96392e8f21eb6"
+    },
+    {
+      "path": "public/build/studio-renderer.js",
+      "sha256": "bddd05d9853c0ead0ffde4a6f77810b85c4edbad06773dcc0ebec7db12a2675c"
+    },
+    {
+      "path": "public/build/studio-project-renderer.js",
+      "sha256": "2e9ec537bf14c6326a9de7e9297e5ef2659dc2d8c12ce92f489c631f80ccf220"
+    }
+  ],
+  "ui_regression_reference": "../av-options/raw/playwright.json",
+  "ui_regression_count": 42,
+  "ui_regression_repeated": false,
+  "new_media_samples_generated": false,
+  "openapi_unchanged": true,
+  "linux_tests": "10 executed, 2 Windows-only skips; real cgroups with Python process-contract executables, no native Linux encoder acceptance",
+  "artifacts": [
+    {
+      "path": "raw/attempt1-manifest.json",
+      "size": 1109,
+      "sha256": "86c40b0fae56e817290309e5905fccf0fab2bf98eb82cfde1fce21c5387a304a"
+    },
+    {
+      "path": "raw/attempt1-reviewed.diff",
+      "size": 27863,
+      "sha256": "7f827ef08a8ff9781fc4a70704c232d3b2bf28d15c7a702fc92ea0fad53858a2"
+    },
+    {
+      "path": "raw/delta2.diff",
+      "size": 4941,
+      "sha256": "7a7b36eea066b963c0d9772d9d5574ce72177f49c6363234921f0d727e941eff"
+    },
+    {
+      "path": "raw/frontend-result.json",
+      "size": 257,
+      "sha256": "c460a4c79a7f2d5ec3d1f175e4f59e9f70bed67b0613627a941d8bbb0cc00fe1"
+    },
+    {
+      "path": "raw/frontend.tap",
+      "size": 35312,
+      "sha256": "a2e99b67c4757f6062d52f98e73dfde089398664f46b9bd69d7abacd0c9760db"
+    },
+    {
+      "path": "raw/ledger.txt",
+      "size": 1910,
+      "sha256": "a28bed6cacfb2c0db88ff13eb8a6aafc48d542f2327ee19937f24247f4a8f94f"
+    },
+    {
+      "path": "raw/lenses.json",
+      "size": 610,
+      "sha256": "2e12334a40f32058df4dff9b0769639054ab2fdf7a4906d75b187a4d6a7ad4c7"
+    },
+    {
+      "path": "raw/linux-result.json",
+      "size": 283,
+      "sha256": "382a3a1be07345e20b2d526644a6b7670cea44acd117ca474d5a3f624237ea59"
+    },
+    {
+      "path": "raw/linux.txt",
+      "size": 2709,
+      "sha256": "2a3949b8caeb184ae5249acb69777ec349f72c13363da9aaa864541275f1b297"
+    },
+    {
+      "path": "raw/reviewed-sources.json",
+      "size": 1109,
+      "sha256": "f884dd8d3847a82641ab8a3231916cc2bb0016c6ae9eb58d1798f8b2ff8aa3ec"
+    },
+    {
+      "path": "raw/reviewed.diff",
+      "size": 31449,
+      "sha256": "4bac81318ab86caea96b0bfd1c8a477048083cb0b43e5d911ddff513bd800907"
+    },
+    {
+      "path": "raw/scope.json",
+      "size": 30463,
+      "sha256": "b62a0bdd3e84e7d445d8e13f93f2f7084a51f615d16c58cbf0d6534aa4d8880b"
+    },
+    {
+      "path": "raw/systemd-verify.json",
+      "size": 155,
+      "sha256": "83f2cec7d1545bc2c348cc8ebc0f21773307147021c4fc7a6754ff03c9297a28"
+    },
+    {
+      "path": "raw/unit-result.json",
+      "size": 290,
+      "sha256": "ac2bff4a6d1e2e7e794a26b9c6749cfc7c296ebca5dee0d8e82ac61a9620d632"
+    },
+    {
+      "path": "raw/windows-result.json",
+      "size": 271,
+      "sha256": "5412000955bf06ab93424d42c4640c51ae645e43174f760f0ad625971321b71f"
+    },
+    {
+      "path": "raw/windows.txt",
+      "size": 949,
+      "sha256": "73734be4fe45a5751b0ab7037c879a52d4632e9787ad83e69ddb32c80a7841ac"
+    }
+  ]
+}

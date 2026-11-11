@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="Tests\Feature\Studio\StudioFrameTimesTest" file="tests\Feature\Studio\StudioFrameTimesTest.php" tests="16" assertions="16" errors="0" failures="16" skipped="0" time="0.987954">
+    <testcase name="server rendering preserves selected frame times in the export options" file="tests\Feature\Studio\StudioFrameTimesTest.php::server rendering preserves selected frame times in the export options" class="Tests\Feature\Studio\StudioFrameTimesTest" classname="Tests.Feature.Studio.StudioFrameTimesTest" assertions="1" time="0.437478">
+      <failure type="PHPUnit\Framework\ExpectationFailedException">server rendering preserves selected frame times in the export optionsFailed asserting that null is identical to Array &amp;0 [
+    0 =&gt; Array &amp;1 [
+        'page_id' =&gt; 'one',
+        'time' =&gt; 0.75,
+    ],
+].&#13;
+at tests\Feature\Studio\StudioFrameTimesTest.php:31</failure>
+    </testcase>
+    <testcase name="browser registration preserves selected frame times in the export options" file="tests\Feature\Studio\StudioFrameTimesTest.php::browser registration preserves selected frame times in the export options" class="Tests\Feature\Studio\StudioFrameTimesTest" classname="Tests.Feature.Studio.StudioFrameTimesTest" assertions="1" time="0.021156">
+      <failure type="PHPUnit\Framework\ExpectationFailedException">browser registration preserves selected frame times in the export optionsFailed asserting that null is identical to Array &amp;0 [
+    0 =&gt; Array &amp;1 [
+        'page_id' =&gt; 'one',
+        'time' =&gt; 0.75,
+    ],
+].&#13;
+at tests\Feature\Studio\StudioFrameTimesTest.php:37</failure>
+    </testcase>
+    <testsuite name="frame times reject malformed or out-of-page values in both entry points" tests="12" assertions="12" errors="0" failures="12" skipped="0" time="0.358968">
+      <testcase name="frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;null&quot;&quot;" file="tests\Feature\Studio\StudioFrameTimesTest.php::frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;null&quot;&quot;" class="Tests\Feature\Studio\StudioFrameTimesTest" classname="Tests.Feature.Studio.StudioFrameTimesTest" assertions="1" time="0.156007">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">frame times reject malformed or out-of-page values in both entry points with data set "dataset "null""Exception "Illuminate\Validation\ValidationException" not thrown.&#13;
+at tests\Feature\Studio\StudioFrameTimesTest.php:41</failure>
+      </testcase>
+      <testcase name="frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;scalar&quot;&quot;" file="tests\Feature\Studio\StudioFrameTimesTest.php::frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;scalar&quot;&quot;" class="Tests\Feature\Studio\StudioFrameTimesTest" classname="Tests.Feature.Studio.StudioFrameTimesTest" assertions="1" time="0.018751">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">frame times reject malformed or out-of-page values in both entry points with data set "dataset "scalar""Exception "Illuminate\Validation\ValidationException" not thrown.&#13;
+at tests\Feature\Studio\StudioFrameTimesTest.php:41</failure>
+      </testcase>
+      <testcase name="frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;object&quot;&quot;" file="tests\Feature\Studio\StudioFrameTimesTest.php::frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;object&quot;&quot;" class="Tests\Feature\Studio\StudioFrameTimesTest" classname="Tests.Feature.Studio.StudioFrameTimesTest" assertions="1" time="0.018083">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">frame times reject malformed or out-of-page values in both entry points with data set "dataset "object""Exception "Illuminate\Validation\ValidationException" not thrown.&#13;
+at tests\Feature\Studio\StudioFrameTimesTest.php:41</failure>
+      </testcase>
+      <testcase name="frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;time string&quot;&quot;" file="tests\Feature\Studio\StudioFrameTimesTest.php::frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;time string&quot;&quot;" class="Tests\Feature\Studio\StudioFrameTimesTest" classname="Tests.Feature.Studio.StudioFrameTimesTest" assertions="1" time="0.018125">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">frame times reject malformed or out-of-page values in both entry points with data set "dataset "time string""Exception "Illuminate\Validation\ValidationException" not thrown.&#13;
+at tests\Feature\Studio\StudioFrameTimesTest.php:41</failure>
+      </testcase>
+      <testcase name="frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;time null&quot;&quot;" file="tests\Feature\Studio\StudioFrameTimesTest.php::frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;time null&quot;&quot;" class="Tests\Feature\Studio\StudioFrameTimesTest" classname="Tests.Feature.Studio.StudioFrameTimesTest" assertions="1" time="0.018425">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">frame times reject malformed or out-of-page values in both entry points with data set "dataset "time null""Exception "Illuminate\Validation\ValidationException" not thrown.&#13;
+at tests\Feature\Studio\StudioFrameTimesTest.php:41</failure>
+      </testcase>
+      <testcase name="frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;raw end&quot;&quot;" file="tests\Feature\Studio\StudioFrameTimesTest.php::frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;raw end&quot;&quot;" class="Tests\Feature\Studio\StudioFrameTimesTest" classname="Tests.Feature.Studio.StudioFrameTimesTest" assertions="1" time="0.017864">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">frame times reject malformed or out-of-page values in both entry points with data set "dataset "raw end""Exception "Illuminate\Validation\ValidationException" not thrown.&#13;
+at tests\Feature\Studio\StudioFrameTimesTest.php:41</failure>
+      </testcase>
+      <testcase name="frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;frame end&quot;&quot;" file="tests\Feature\Studio\StudioFrameTimesTest.php::frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;frame end&quot;&quot;" class="Tests\Feature\Studio\StudioFrameTimesTest" classname="Tests.Feature.Studio.StudioFrameTimesTest" assertions="1" time="0.018018">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">frame times reject malformed or out-of-page values in both entry points with data set "dataset "frame end""Exception "Illuminate\Validation\ValidationException" not thrown.&#13;
+at tests\Feature\Studio\StudioFrameTimesTest.php:41</failure>
+      </testcase>
+      <testcase name="frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;negative&quot;&quot;" file="tests\Feature\Studio\StudioFrameTimesTest.php::frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;negative&quot;&quot;" class="Tests\Feature\Studio\StudioFrameTimesTest" classname="Tests.Feature.Studio.StudioFrameTimesTest" assertions="1" time="0.018097">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">frame times reject malformed or out-of-page values in both entry points with data set "dataset "negative""Exception "Illuminate\Validation\ValidationException" not thrown.&#13;
+at tests\Feature\Studio\StudioFrameTimesTest.php:41</failure>
+      </testcase>
+      <testcase name="frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;nan&quot;&quot;" file="tests\Feature\Studio\StudioFrameTimesTest.php::frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;nan&quot;&quot;" class="Tests\Feature\Studio\StudioFrameTimesTest" classname="Tests.Feature.Studio.StudioFrameTimesTest" assertions="1" time="0.017851">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">frame times reject malformed or out-of-page values in both entry points with data set "dataset "nan""Exception "Illuminate\Validation\ValidationException" not thrown.&#13;
+at tests\Feature\Studio\StudioFrameTimesTest.php:41</failure>
+      </testcase>
+      <testcase name="frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;other page&quot;&quot;" file="tests\Feature\Studio\StudioFrameTimesTest.php::frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;other page&quot;&quot;" class="Tests\Feature\Studio\StudioFrameTimesTest" classname="Tests.Feature.Studio.StudioFrameTimesTest" assertions="1" time="0.021722">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">frame times reject malformed or out-of-page values in both entry points with data set "dataset "other page""Exception "Illuminate\Validation\ValidationException" not thrown.&#13;
+at tests\Feature\Studio\StudioFrameTimesTest.php:41</failure>
+      </testcase>
+      <testcase name="frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;unknown key&quot;&quot;" file="tests\Feature\Studio\StudioFrameTimesTest.php::frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;unknown key&quot;&quot;" class="Tests\Feature\Studio\StudioFrameTimesTest" classname="Tests.Feature.Studio.StudioFrameTimesTest" assertions="1" time="0.017977">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">frame times reject malformed or out-of-page values in both entry points with data set "dataset "unknown key""Exception "Illuminate\Validation\ValidationException" not thrown.&#13;
+at tests\Feature\Studio\StudioFrameTimesTest.php:41</failure>
+      </testcase>
+      <testcase name="frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;duplicate&quot;&quot;" file="tests\Feature\Studio\StudioFrameTimesTest.php::frame times reject malformed or out-of-page values in both entry points with data set &quot;dataset &quot;duplicate&quot;&quot;" class="Tests\Feature\Studio\StudioFrameTimesTest" classname="Tests.Feature.Studio.StudioFrameTimesTest" assertions="1" time="0.018047">
+        <failure type="PHPUnit\Framework\ExpectationFailedException">frame times reject malformed or out-of-page values in both entry points with data set "dataset "duplicate""Exception "Illuminate\Validation\ValidationException" not thrown.&#13;
+at tests\Feature\Studio\StudioFrameTimesTest.php:41</failure>
+      </testcase>
+    </testsuite>
+    <testcase name="legacy designs reject explicit frame times instead of silently changing their poster" file="tests\Feature\Studio\StudioFrameTimesTest.php::legacy designs reject explicit frame times instead of silently changing their poster" class="Tests\Feature\Studio\StudioFrameTimesTest" classname="Tests.Feature.Studio.StudioFrameTimesTest" assertions="1" time="0.018520">
+      <failure type="PHPUnit\Framework\ExpectationFailedException">legacy designs reject explicit frame times instead of silently changing their posterException "Illuminate\Validation\ValidationException" not thrown.&#13;
+at tests\Feature\Studio\StudioFrameTimesTest.php:59</failure>
+    </testcase>
+    <testcase name="server frame preparation does not read resources outside the selected temporal window" file="tests\Feature\Studio\StudioFrameTimesTest.php::server frame preparation does not read resources outside the selected temporal window" class="Tests\Feature\Studio\StudioFrameTimesTest" classname="Tests.Feature.Studio.StudioFrameTimesTest" assertions="1" time="0.151831">
+      <failure type="PHPUnit\Framework\ExpectationFailedException">server frame preparation does not read resources outside the selected temporal windowNo se pudo renderizar esta revisión. Revisa sus recursos y la configuración del renderizador.
+Failed asserting that two strings are identical.&#13;
+at tests\Feature\Studio\StudioFrameTimesTest.php:77</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

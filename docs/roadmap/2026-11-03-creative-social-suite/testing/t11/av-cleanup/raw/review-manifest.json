@@ -1,0 +1,48 @@
+{
+  "sources": [
+    {
+      "path": "app/Services/Studio/StudioAvState.php",
+      "sha256": "8e5ceceab6c4a45591247b5f11b6e3068524383d691fad7af9b1164c13498347"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvFiles.php",
+      "sha256": "ee4d198d70021ca1ae9df13a3a52981ce18b990f3ff6355f8128bb1804ff9e0a"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvStorage.php",
+      "sha256": "f86271172824b20b7364098bfb4769c3c800f0f4cf27448aa50e88fcd753ef10"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvCleanup.php",
+      "sha256": "5783d44d59e3814355ef7d4bb8db1952bfb72a614bd24849221b9b42c8f2e68b"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvWorkspaceBusy.php",
+      "sha256": "dce0a4298334c773ac5b677260f4efa198561dcc801a928b100c4eff06422b44"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvCheckpointCorrupt.php",
+      "sha256": "cd78e47fcf6daa7539085021c4ec5f70017e13202fdde1deea73869dac39d59e"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvCleanupTest.php",
+      "sha256": "a692664f188a9858d89489dac4bfb58b33d8889601b583343eee10bcfc2587e6"
+    },
+    {
+      "path": "scripts/studio/av-finalize.mjs",
+      "sha256": "4e1b758b4bda5741983cc02afbeee14cad9290c9ca632dbf73b29d673691fd69"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-checkpoints.test.mjs",
+      "sha256": "b78b8c6638b66c2329c4a27e64d476abcf2e15a178f93425bb29c0b8594d71f3"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md",
+      "sha256": "75b06d2092ce955683be82123c70cb215dda18c0a2f7fae29129e42f0b4cf554"
+    },
+    {
+      "path": "database/migrations/2026_11_05_150000_add_studio_render_state.php",
+      "sha256": "e3e101efacc46227b8e894d01ac8a1b1a65e25f42bdc93ef41d8050259584a2e"
+    }
+  ]
+}

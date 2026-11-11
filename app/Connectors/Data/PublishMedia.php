@@ -20,6 +20,9 @@ final class PublishMedia
         public readonly ?string $path = null,
         /** Origen del asset (`upload`, `giphy`...): un MP4 de Giphy es un GIF y Bluesky lo publica con `presentation: gif`. */
         public readonly ?string $source = null,
+        /** Metadatos propios de ESTE destino (T-17): texto alternativo de la imagen y portada (imagen) del video. */
+        public readonly ?string $alt = null,
+        public readonly ?PublishMedia $cover = null,
     ) {}
 
     public function isVideo(): bool

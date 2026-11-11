@@ -1,0 +1,34 @@
+﻿[
+    {
+        "Path":  "C:\\laragon\\www\\metricool\\tests\\e2e\\studio.spec.ts",
+        "Hash":  "8478D9A1804C261F3D5BF14DB5368EE48E3F4EB1E159B4A2B8DBC33CF0A06B83"
+    },
+    {
+        "Path":  "C:\\laragon\\www\\metricool\\tests\\e2e\\metrics-quality.spec.ts",
+        "Hash":  "22F56D084DE2951B384855B9F2C462277F3E5313E006485A1D9039DBFAED250D"
+    },
+    {
+        "Path":  "C:\\laragon\\www\\metricool\\tests\\e2e\\brand-reporting.spec.ts",
+        "Hash":  "E1788139B9AFDF90DF821B64A8BFAC81DB2F9C75FD3F2E7A5462CACD2921F974"
+    },
+    {
+        "Path":  "C:\\laragon\\www\\metricool\\tests\\e2e\\isolated\\serve.cjs",
+        "Hash":  "39C2B72EA2181FB03F8DACCAC5F399ADEECB8E1F8921A83AA98DD6A960C53B90"
+    },
+    {
+        "Path":  "C:\\laragon\\www\\metricool\\tests\\e2e\\isolated\\http-server.cjs",
+        "Hash":  "506993741DF299D92057E8124D9D937F65F6F617BC286B4091F01EA92759900F"
+    },
+    {
+        "Path":  "C:\\laragon\\www\\metricool\\playwright.config.ts",
+        "Hash":  "8F61CB011C23361E695E0246286DB1B81D0C1847C8971FBF78520F2BC798C0FE"
+    },
+    {
+        "Path":  "C:\\laragon\\www\\metricool\\public\\build\\manifest.json",
+        "Hash":  "B9A918D7A30E446E0913613CEB2B7136433130C2413C7552DC7AAEB0259364A1"
+    },
+    {
+        "Path":  "C:\\laragon\\www\\metricool\\public\\build\\studio-renderer.js",
+        "Hash":  "906113480E5454B208A7308CCF95B8F5664A9F4BF8B263B91A84185F6633E411"
+    }
+]

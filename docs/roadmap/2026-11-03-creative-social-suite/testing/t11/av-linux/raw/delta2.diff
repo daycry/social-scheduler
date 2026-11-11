@@ -1,0 +1,55 @@
+--- a/scripts/studio/av-linux.py
++++ b/scripts/studio/av-linux.py
+@@ -70,6 +70,15 @@
+                     raise RuntimeError('runtime_unavailable')
+             self.reader, self.writer = os.pipe()
+             try:
++                # A daemon may start with fd0/1/2 closed. Keep both private endpoints away
++                # from the guardian's standard-stream redirection before forking it.
++                import fcntl
++                for name in ('reader', 'writer'):
++                    fd = getattr(self, name)
++                    if fd < 3:
++                        replacement = fcntl.fcntl(fd, fcntl.F_DUPFD_CLOEXEC, 3)
++                        os.close(fd)
++                        setattr(self, name, replacement)
+                 self.guardian_pid = os.fork()
+             except BaseException:
+                 os.close(self.reader)
+--- a/tests/studio_runtime/test_av_linux.py
++++ b/tests/studio_runtime/test_av_linux.py
+@@ -113,6 +113,23 @@
+                 phase._clean_group()
+             child.wait(timeout=2)
+ 
++    def test_closed_stdin_does_not_replace_the_private_guardian_pipe(self):
++        script = '''
++import os,runpy,time,uuid,json
++scope=runpy.run_path('scripts/studio/av-linux.py')
++os.close(0)
++phase=scope['create_phase'](str(uuid.uuid4()),seconds=5)
++time.sleep(0.2)
++print(json.dumps({'reader':phase.reader,'writer':phase.writer,'alive':phase.directory.exists()}),flush=True)
++phase.close()
++'''
++        result = subprocess.run([sys.executable, '-B', '-c', script], capture_output=True, text=True, timeout=4)
++        self.assertEqual(result.returncode, 0, result.stderr)
++        data = json.loads(result.stdout)
++        self.assertTrue(data['alive'], data)
++        self.assertGreaterEqual(data['reader'], 3)
++        self.assertGreaterEqual(data['writer'], 3)
++
+     def assert_stopped(self, pid):
+         stat = pathlib.Path(f'/proc/{pid}/stat')
+         if stat.exists():
+--- a/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
++++ b/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
+@@ -36,7 +36,7 @@
+ 
+ Implementación interna local inicial: `av-runtime.py` aplica en Windows un Job Object de3GiB de **commit agregado**, con kill-on-close y sin breakaway; no es una medición RSS ni reserva previa de3GiB. `render-av.mjs` admite plan/normalize/render/mix/assemble y un índice controlado, con manifiesto inmutable generado `work/{lease}.json` de hasta8MiB. Cada fase recompila el plan y admite hasta4096tramos; superar ese presupuesto falla explícitamente, sin recortar. La música de GIF no necesita snapshots/normalización/mezcla; las referencias temporales siguen validadas con metadata, igual que en el motor.
+ 
+-El presupuesto blando predeterminado es85s, incluye inicio deNode, compilación y trabajo nativo. El abort dispone de3s de gracia y el kill deNode hasta2s; al salir el supervisor se cierra el único handle delJob y mueren los descendientes restantes, incluidos los separados en otro grupo. Los futuros jobs tendrán timeout superior a90s. El archivo privado `work/{lease}.cancel` señala cancelación; no es un endpoint ni sustituye el cambio atómico de estado/aceptación enLaravel. El supervisor sanea los errores y acota stdout/stderr. EnLinux la sonda solo comprueba el mínimo efectivo de memory.max entre el cgroup real y sus ancestros; **la ejecución nativa permanece no disponible hasta implementar supervisión/limpieza equivalente del grupo**. Ningún valor de entorno activa por sí solo esa disponibilidad.
++El presupuesto blando predeterminado es85s, incluye inicio deNode, compilación y trabajo nativo. El abort dispone de3s de gracia y el kill deNode hasta2s; al salir el supervisor Windows se cierra el único handle delJob y mueren los descendientes restantes, incluidos los separados en otro grupo. Los futuros jobs tendrán timeout superior a90s. El archivo privado `work/{lease}.cancel` señala cancelación; no es un endpoint ni sustituye el cambio atómico de estado/aceptación enLaravel. El supervisor sanea los errores y acota stdout/stderr. La primera tanda Windows solo consultaba límites enLinux; el nuevo bloque inferior ya conecta el guardiánLinux al CLI cuando hay delegación, límite efectivo y runtimes instalados. Sin esos requisitos devuelve no disponible antes de abrir trabajo nativo. Ningún valor de entorno activa por sí solo esa disponibilidad.
+ 
+ Fuentes primarias para la implementación: [Job Objects](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects), [límites extendidos](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_extended_limit_information) y [cgroupv2](https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html). Las pruebas deWindows consultan el kernel y ejecutan fases reales; las de lectura cgroup con fixtures son unitarias y no acreditan runtimeLinux/VPS.
+ 

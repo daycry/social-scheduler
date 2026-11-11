@@ -75,6 +75,9 @@ final class Metric
         'bluesky' => [],
         // Threads: visitas al perfil y los totales del dia (sin `clicks`, que no existe si no hubo enlaces). Seguidores es un stock.
         'threads' => [self::PROFILE_VIEWS, self::LIKES, self::COMMENTS, self::SHARES, self::INTERACTIONS],
+        // LinkedIn y Pinterest (T-18) publican, pero sus metricas exigen aprobaciones aparte: sin lector, ningun flujo esperado.
+        'linkedin' => [],
+        'pinterest' => [],
     ];
 
     /**

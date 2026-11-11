@@ -1,0 +1,13 @@
+{
+  "app/Services/Studio/StudioAvState.php": "c26a2fedaaa5da3d01e5d22f06fc42ff7e9dfeba30614e0a965745a3aed70b63",
+  "app/Services/Studio/StudioAvTransfer.php": "fbd7374577c22e24a41431ca44d58b6ebf9260fb5da06de09140a5ad23a2bfaf",
+  "app/Models/Studio/StudioAvWorkspace.php": "f3d01b3db10d9b4a9eaefe26def53596ce32641a528ab22643ca4e38d934d0db",
+  "database/migrations/2026_11_05_150000_add_studio_render_state.php": "2a67eebff42b2f534baf4702e7610902e4b6252b6e8a0aa641d9546f54f557e2",
+  "scripts/studio/av-finalize.mjs": "cca0bc77e76ba05df07266207a856522bcda202adaf9f199b6383fde072f1f9a",
+  "tests/Feature/Studio/StudioAvTransferTest.php": "f544df3644000e3acbc5aa65614893420aed4153b9783e716dbd673c6cdd18ab",
+  "tests/Feature/Studio/StudioAvRegistrationTest.php": "40ab2ed6deca75b582b624b9078b1ee38f475d0708132e83c5b0527c3325c03c",
+  "tests/Feature/Studio/StudioAvProcessTest.php": "4c49ee6837628b85bff1ae3df5390ce22c41c839e8b7308dfc2ebe3c63589431",
+  "tests/Support/StudioAvR2.php": "cb3c6b3ab6ac158252beb45999f0d174a50b294e9e2984b5818af3d11bb2a341",
+  "tests/frontend/studio-output-integrity.test.mjs": "0b5761d9eae5254ffb19a4f9069793a2f672dc70373bd2d1b979897fad10bada",
+  "docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md": "a51c229a97743b33e15b92da2fac48b2da3974ca6d5f1a0233f6171b08c9e6da"
+}

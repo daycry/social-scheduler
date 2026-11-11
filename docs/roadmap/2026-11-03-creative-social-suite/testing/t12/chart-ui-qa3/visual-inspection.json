@@ -1,0 +1,17 @@
+{
+  "reviewer": "root",
+  "pdf_sha256": "2363910ac77cfbbb77df5ae2868d616fbbade713a48d693f5d502a9bf7bebda9",
+  "inspected": {
+    "images/studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop-column-preview.png": "2bc26c39312b9cb1c2ef4c8360a9d9eee0423cf43222b5c73290fa9996a057fd",
+    "images/failed-first-variant.png": "b9866affeaa189409ac7f1eb55a6868924c0dc5bcb85081956bad761622a4523",
+    "images/column-preview-render.png": "d275246e3dd649c9cd87cee0713fd85514c263c4009614bb49ee3df215da6383",
+    "pdf-pages/page-001.png": "22606cbc94bbe82dd3e20c7ee193f880cdb76c5700fb107fa5f80c21a7db15e4",
+    "pdf-pages/page-002.png": "96a9871f93f98e56564e1f8b729eb77a184bfbe1f6b19dd92db549697f283897",
+    "pdf-pages/page-003.png": "2c726ec445cb2d2e882f96602fe5881bc868088959ab7ff27c3a549aec3fdfef",
+    "pdf-pages/page-004.png": "594054cfbc2969831a0d7abe995506cc730d18944caa9c2171ce8a530d8ed605",
+    "pdf-pages/page-005.png": "7d27ffd03e13532ff8cdfd344f415ca0bd79d755c846d0d9249168f5f29a706f",
+    "pdf-pages/page-006.png": "5b4ee8ad086f2e6fc1c19f1c1466615346d9ea203016f562865a551f02975b87"
+  },
+  "issues": [],
+  "scope": "Report rendering and all three evidence figures viewed; failed app verdict preserved. Chart tick readability remains a product follow-up, not accepted."
+}

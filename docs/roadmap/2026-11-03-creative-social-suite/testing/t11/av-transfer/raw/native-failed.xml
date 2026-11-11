@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="Tests\Feature\Studio\StudioAvProcessTest" file="tests\Feature\Studio\StudioAvProcessTest.php" tests="1" assertions="5" errors="1" failures="0" skipped="0" time="3.027932">
+    <testcase name="AV native Laravel bridge renders and assembles an actual MP4 under the inherited OS group limit" file="tests\Feature\Studio\StudioAvProcessTest.php::AV native Laravel bridge renders and assembles an actual MP4 under the inherited OS group limit" class="Tests\Feature\Studio\StudioAvProcessTest" classname="Tests.Feature.Studio.StudioAvProcessTest" assertions="5" time="3.027932">
+      <error type="App\Services\Studio\StudioAvProcessFailed">AV native Laravel bridge renders and assembles an actual MP4 under the inherited OS group limitApp\Services\Studio\StudioAvProcessFailed: No se pudo completar la fase audiovisual.&#13;
+at app\Services\Studio\StudioAvProcess.php:60
+at app\Services\Studio\StudioAvStorage.php:68
+at app\Services\Studio\StudioAvProcess.php:22
+at tests\Feature\Studio\StudioAvProcessTest.php:102</error>
+    </testcase>
+  </testsuite>
+</testsuites>

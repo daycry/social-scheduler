@@ -1,0 +1,48 @@
+{
+  "scope": "T-11 core and UI/preview subblock only",
+  "parent_task_complete": false,
+  "t10_memory_inference_verified": false,
+  "audio_upload_mix_verified": false,
+  "mp4_gif_export_verified": false,
+  "php": {
+    "passed": 2675,
+    "assertions": 15833
+  },
+  "frontend": {
+    "passed": 77
+  },
+  "e2e": {
+    "passed": 39,
+    "failed": 0,
+    "flaky": 0,
+    "skipped": 0,
+    "interrupted": 0
+  },
+  "e2e_runner_errors": 0,
+  "qa_gate": "VERDE",
+  "review": {
+    "A": 3,
+    "B": 3,
+    "D": 2,
+    "pending_correction_gaps": 0
+  },
+  "source_hashes": {
+    "resources/js/Pages/Studio/Editor.vue": "25cb7a2c0708d27a087abefaec76a74693cdb189231afec38c2e0d3bc41deb98",
+    "resources/js/Components/Studio/TimelinePanel.vue": "fe08b0ba0bd15f9db4e61d8669a44fa9899854d7e698103b45628f7bfb912dda",
+    "resources/js/Studio/timeline-preview.js": "8d10ec2558af0fc8edb9cfb4dc0ec308a345b7fac7f4026981d064489a4eef09",
+    "tests/frontend/studio-timeline.browser.test.mjs": "e705b411009488e5faa7125b26c69cba7f428e097bd1175b213fee620b27b14b",
+    "tests/e2e/studio-timeline.spec.ts": "af0ef3199bc62a94ab58489391c7f33f178523f88fa7b3280237a8a5e3609b3a"
+  },
+  "artifact_hashes": {
+    "raw/frontend-ui-development.tap": "e44015aba7863cb03c20c96700d9273cf31d4b830dcd5c8abc1fe156dd61cede",
+    "raw/frontend-ui-fixed.tap": "88562eb12ec0bedcfba2d570adc3fde984cd70e81f4721b1ced06a0bdca7c431",
+    "raw/phpunit-core-reviewed.xml": "f486ca087af8a0d53607a2da4112959eed77636c89e6ec96da2777e5378273d7",
+    "raw/phpunit-full-core-ui.xml": "be7987ec48e244d8b7fef36d3ebe0569f81807f74111a53b14f45e72cc873938",
+    "raw/playwright-ui-integrated.json": "f6394aa8b118527bfd3cf8f2c367998b7dae4184eaa850add0873fe6b2ddd9fb",
+    "raw/qa-gate.json": "226cb1b195312b3fdebeee384439168bf1e04559ab3aca0afa359e02bd255ed0",
+    "raw/ui-reviewed-sources.json": "6b5cafec13e4874023f4d51aed52b00ca3c48af7a519d96a9a70c92119d55d09",
+    "screenshots/timeline-video-desktop.png": "5ecf3c03a011d57904910e309ca44aa03b6f69f828d82b04fc2f18eb7f16456e",
+    "screenshots/timeline-video-mobile-360.png": "e5f958dacb927022bdc36d2cff23866e7b1b1ddb11f8177173131c25f7e0896f",
+    "screenshots/timeline-video-mobile.png": "b7deb46246070fe6946ce20fedb1fca091549ce42c02d7b2c4dca6e1fc80dcef"
+  }
+}

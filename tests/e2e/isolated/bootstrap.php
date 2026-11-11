@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Analytics\Metric;
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Network;
+use App\Services\Media\UrlGuard;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiter;
 use Illuminate\Contracts\Console\Kernel;
@@ -69,6 +70,19 @@ function generalBootstrap(): Application
             'mail.default' => 'array', 'reports.branding.logo' => null,
             'dompdf.options.font_cache' => $root.'/font-cache', 'dompdf.options.temp_dir' => $root.'/pdf-temp',
             'social.backfill_on_connect' => false,
+            // Off by default (TikTok then offers Video only). A test that needs photos creates `<run root>/tiktok-domain-on`
+            // for its duration; the domain is fictitious and never contacted.
+            ...(is_file($root.'/tiktok-domain-on') ? ['social.tiktok.verified_domain' => 'https://media.example.test'] : []),
+            // T-14: proveedor de imagen falso. Con `<run root>/studio-ai-on` los dos proveedores quedan «configurados» con claves ficticias y
+            // sus peticiones las atiende generalFakeAi() (PNG real pequeño); sin la bandera no hay claves y la UI muestra «no configurado».
+            // `studio-ai-text-off` apaga el asistente de texto para comprobar su vista «no configurado».
+            ...(is_file($root.'/studio-ai-on') ? ['studio.ai.providers.openai.key' => 'e2e-fake-openai-key', 'studio.ai.providers.google.key' => 'e2e-fake-google-key', 'studio.ai.backoff' => [0, 0]] : []),
+            // T-16: Canva falso. Con `<run root>/canva-on` hay credenciales ficticias y api.canva.com / export-download.canva.com los atiende
+            // generalFakeCanva() (sin red); `canva-pro` anade la capacidad de PNG transparente. Sin la bandera la UI dice «no configurada».
+            ...(is_file($root.'/canva-on') ? ['services.canva.client_id' => 'e2e-canva-client', 'services.canva.client_secret' => 'e2e-canva-secret', 'services.canva.poll_delay' => 0] : []),
+            ...(is_file($root.'/studio-ai-text-off') ? ['social.ai.enabled' => false] : []),
+            // Read-only, pinned weights; all image input/output stays in this run's storage.
+            'studio.images.model_path' => dirname(__DIR__, 3).'/storage/app/private/studio-models/birefnet-general-lite.onnx',
         ]);
     });
     $app->make(Kernel::class)->bootstrap();
@@ -76,8 +90,16 @@ function generalBootstrap(): Application
         throw new RuntimeException('T43 resolved an unexpected database.');
     }
     Http::preventStrayRequests();
+    if (is_file($root.'/studio-ai-on')) {
+        generalFakeAi();
+    }
+    if (is_file($root.'/canva-on')) {
+        // El host de descargas de Canva resuelve a una IP publica ficticia: UrlGuard lo valida y la peticion la atiende el fake.
+        $app->instance(UrlGuard::class, new UrlGuard(fn (string $host) => ['151.101.2.2']));
+        generalFakeCanva($root);
+    }
     $registry = new ConnectorRegistry;
-    foreach (['meta' => [Network::Instagram, Network::Facebook], 'google' => [Network::YouTube], 'tiktok' => [Network::TikTok], 'bluesky' => [Network::Bluesky], 'threads' => [Network::Threads]] as $provider => $networks) {
+    foreach (['meta' => [Network::Instagram, Network::Facebook], 'google' => [Network::YouTube], 'tiktok' => [Network::TikTok], 'bluesky' => [Network::Bluesky], 'threads' => [Network::Threads], 'linkedin' => [Network::LinkedIn], 'pinterest' => [Network::Pinterest]] as $provider => $networks) {
         $registry->register($provider === 'bluesky' ? $app->make(GeneralBlueskyConnector::class) : new T43Connector($provider, $networks));
         foreach ($networks as $network) {
             $registry->registerPublisher($network, new T43Publisher($root));

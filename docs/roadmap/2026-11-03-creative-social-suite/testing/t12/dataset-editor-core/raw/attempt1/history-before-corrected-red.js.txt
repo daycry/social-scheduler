@@ -1,0 +1,13 @@
+export function createDatasetHistory(initial, { limit = 30 } = {}) {
+    if (!Number.isInteger(limit) || limit < 1 || limit > 30) fail('El historial admite de 1 a 30 operaciones.');
+    let table = prepared(initial); const past = []; const future = [];
+    return {
+        get table() { return table; }, get canUndo() { return past.length > 0; }, get canRedo() { return future.length > 0; },
+        get undoDepth() { return past.length; }, get redoDepth() { return future.length; }, get limit() { return limit; },
+        commit(next) { next = prepared(next); if (next !== table) { past.push(table); if (past.length > limit) past.shift(); table = next; future.length = 0; } return table; },
+        undo() { if (past.length) { future.push(table); table = past.pop(); } return table; },
+        redo() { if (future.length) { past.push(table); table = future.pop(); } return table; },
+        reset(next) { table = prepared(next); past.length = 0; future.length = 0; return table; },
+    };
+}
+

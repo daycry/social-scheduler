@@ -1,0 +1,24 @@
+{
+  "lenses": [
+    "A",
+    "B"
+  ],
+  "critical": 0,
+  "important": 0,
+  "minor": 0,
+  "gaps": [
+    {
+      "id": "B1",
+      "state": "corrected"
+    },
+    {
+      "id": "B2",
+      "state": "corrected"
+    }
+  ],
+  "previous_verdict_sha256": "0198a61ffb5a17ef1245f88593dbe007a91932665c7c53e0d94073e4eeb5bd19",
+  "current_manifest_sha256": "b52d52cc00706574ddb4c42f4f0ab00bfee067c0a78bba3a9c4f92d343de45d0",
+  "delta_sha256": "4baeb58b1e9bd47c2954257e62aa8b95fee44cbaa3ab3e2adbbcde0691b5bf17",
+  "native_cases": 0,
+  "global_acceptance": false
+}

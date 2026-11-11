@@ -1,0 +1,22 @@
+{
+  "script": "C:\\laragon\\www\\metricool\\docs\\roadmap\\2026-11-03-creative-social-suite\\testing\\t11\\final-qa2\\make-report.py",
+  "arguments": [],
+  "pid": 6300,
+  "started": "2026-11-05T22:10:29.643255+00:00",
+  "memory_before": {
+    "scope": "job",
+    "limit": 3221225472,
+    "peak_commit": 12275712,
+    "kill_on_close": true,
+    "breakaway": false
+  },
+  "exit_code": 1,
+  "finished": "2026-11-05T22:10:29.996845+00:00",
+  "memory_after": {
+    "scope": "job",
+    "limit": 3221225472,
+    "peak_commit": 34316288,
+    "kill_on_close": true,
+    "breakaway": false
+  }
+}

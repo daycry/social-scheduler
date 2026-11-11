@@ -6,6 +6,7 @@ use App\Enums\PostStatus;
 use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
+use App\Services\ManualPublishService;
 use App\Services\PublishRecovery;
 use Illuminate\Support\Collection;
 
@@ -22,6 +23,9 @@ class DispatchDuePosts
     public function __invoke(): int
     {
         $this->recovery->run();
+
+        // Publicacion manual (T-19): avisa de los destinos manuales cuya hora ha llegado (idempotente).
+        app(ManualPublishService::class)->notifyDue();
 
         $dispatched = 0;
 
@@ -45,7 +49,9 @@ class DispatchDuePosts
         return PostTarget::withoutUserScope()
             ->where('status', PostStatus::Scheduled->value)
             ->when($post !== null, fn ($q) => $q->where('post_id', $post->id))
-            ->whereIn('post_id', Post::withoutUserScope()->where('scheduled_at', '<=', now())->select('id'))
+            ->where('manual', false) // un destino manual nunca va a la red (T-19): lo avisa `ManualPublishService`
+            // Un post que requiere aprobacion solo sale aprobado (T-19): defensa del despachador, ademas de la del claim.
+            ->whereIn('post_id', Post::withoutUserScope()->where('scheduled_at', '<=', now())->where(fn ($q) => $q->whereNull('approval_status')->orWhere('approval_status', Post::APPROVAL_APPROVED))->select('id'))
             ->where(fn ($q) => $q->whereNull('next_attempt_at')->orWhere('next_attempt_at', '<=', now()))
             ->whereIn('social_account_id', SocialAccount::withoutUserScope()->where('status', SocialAccount::STATUS_ACTIVE)->select('id'))
             ->orderBy('id')

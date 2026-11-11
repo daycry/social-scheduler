@@ -628,3 +628,33 @@ test('TikTok N1: editar el contenido de un destino programado descarta publish_i
     $t = $target->fresh();
     expect($t->external_reference)->toBeNull()->and($t->progress['phase'] ?? null)->toBeNull()->and($t->progress['upload_url'] ?? null)->toBeNull()->and($t->attempts)->toBe(0);
 });
+
+test('YouTubePublish: la portada propia del destino se fija con thumbnails.set al terminar la subida y un fallo no repite el video (T-17)', function () {
+    ytHappyUpload($this->http);
+    $cover = MediaAsset::factory()->for($this->user)->create(['mime' => 'image/png', 'size' => 1234]);
+    Storage::disk('local')->put($cover->path, 'PNG-BYTES');
+    $this->http->on('POST', '#thumbnails/set\?videoId=VID1&uploadType=media$#', ['status' => 200, 'json' => ['items' => []]]);
+    $media = ytMedia();
+    $withCover = new PublishMedia($media->id, 'video', 'video/mp4', $media->url, 1080, 1920, 45.0, 30.0, YT_SIZE, $media->disk, $media->path, cover: new PublishMedia($cover->id, 'image', 'image/png', 'https://cdn.test/c.png', 1080, 1080, size: 1234, disk: $cover->disk, path: $cover->path));
+    $request = new PublishRequest(77, ContentType::YouTubeVideo, 'Titulo
+Descripcion', [$withCover], [], null, now()->subMinutes(5));
+
+    $result = $this->yt->publish($this->account, $request);
+
+    $thumb = $this->http->callsTo('POST', '#thumbnails/set#');
+    expect($result->isProcessing())->toBeTrue()->and($result->reference)->toBe('VID1')
+        ->and($thumb)->toHaveCount(1)->and($thumb[0]['body'])->toBe('PNG-BYTES')->and($thumb[0]['headers']['content-type'])->toBe('image/png');
+});
+
+test('YouTubePublish: si thumbnails.set falla el video queda publicado igualmente (T-17)', function () {
+    ytHappyUpload($this->http);
+    $cover = MediaAsset::factory()->for($this->user)->create();
+    Storage::disk('local')->put($cover->path, 'JPG');
+    $this->http->on('POST', '#thumbnails/set#', ['status' => 403, 'json' => ['error' => ['message' => 'forbidden']]]);
+    $media = ytMedia();
+    $withCover = new PublishMedia($media->id, 'video', 'video/mp4', $media->url, 1080, 1920, 45.0, 30.0, YT_SIZE, $media->disk, $media->path, cover: new PublishMedia($cover->id, 'image', 'image/jpeg', 'https://cdn.test/c.jpg', disk: $cover->disk, path: $cover->path));
+
+    $result = $this->yt->publish($this->account, new PublishRequest(77, ContentType::YouTubeVideo, 'Titulo', [$withCover], [], null, now()->subMinutes(5)));
+
+    expect($result->isProcessing())->toBeTrue()->and($result->reference)->toBe('VID1');
+});

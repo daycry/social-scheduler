@@ -1,0 +1,23 @@
+{
+  "lente_c": false,
+  "modo": "auto",
+  "motivos": [],
+  "lente_d": true,
+  "modo_d": "auto",
+  "motivos_d": [
+    {
+      "tipo": "contenido",
+      "fichero": "app/Services/Studio/StudioAvProcess.php",
+      "patron": "n-plus-one",
+      "linea": 97
+    },
+    {
+      "tipo": "ruta",
+      "fichero": "database/migrations/2026_11_05_150000_add_studio_render_state.php",
+      "patron": "migrations"
+    }
+  ],
+  "base": "--files",
+  "ficheros": 18,
+  "avisos": []
+}

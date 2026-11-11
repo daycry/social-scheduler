@@ -1,0 +1,59 @@
+{
+  "date": "2026-11-05",
+  "scope": "T-11 audio editor and streaming preview; integrated QA including prior Studio/metrics flows",
+  "parent_task_complete": false,
+  "audio_editor_preview_verified": true,
+  "mp4_gif_export_verified": false,
+  "t10_onnx_verified": false,
+  "real_r2_smoke_verified": false,
+  "qa_execution": "root after independent A/B/C/D review",
+  "review": "A2/B2/D2 plus A3/B3 fixture supplement; C1 preserved for unchanged transport and authorization",
+  "e2e": {
+    "startTime": "2026-11-05T07:40:56.094Z",
+    "duration": 313666.861,
+    "expected": 51,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "frontend": {
+    "tests": 71,
+    "passed": 71,
+    "files": 17
+  },
+  "screenshots_reviewed_by": "root; desktop, mobile375 and mobile360; layout and labels, not human audiovisual acceptance",
+  "backend_previous_php": {
+    "tests": 2714,
+    "assertions": 16100,
+    "rerun_this_subblock": false,
+    "source_hashes_unchanged": true,
+    "manifest": "../audio/manifest.json"
+  },
+  "source_hashes": {
+    "resources/js/Pages/Studio/Editor.vue": "66b029e2e07c42864446d0a351ffe0c1961c234be672c32dc19daf801b0c8631",
+    "resources/js/Components/Studio/TimelinePanel.vue": "36191c0f8727fb90d598ea2efe779bf90244fb54db611385985173faa75ac438",
+    "resources/js/Studio/timeline-preview.js": "0e5c51629a110d8db84e18e41f742af8fb941fbcf68cb8bdc51135c9f0c262f0",
+    "resources/js/Studio/timeline-audio.js": "4aca2c96037799cdee170acabc1b264281f2605ed67e4156c9efee9cc93e6382",
+    "resources/js/Studio/audio-api.js": "4a2d363635e48739495b9736fee697a305164c18dd1d111be4add29fa6129098",
+    "resources/js/Components/Studio/AudioTrackPanel.vue": "b96f0329b55baeb9fcef5ced8f820a70d61e7d1da78d9ba1217bb2d809f8c7fb",
+    "tests/frontend/studio-audio-preview.browser.test.mjs": "9955eb7bef25128dc47912fa6e7ec00e001cc39c4991bb9300ef335ad26b4706",
+    "tests/frontend/studio-audio-upload.test.mjs": "c17a66a6d2adf26e511369c30d2937bfa3a406175b510ed7bd73af8bbdb27b44",
+    "tests/e2e/studio-audio-editor.spec.ts": "566ed0b24e76be8c3f691071dec317bdecd5b928ba3df03701f5f4cfda774e23",
+    "tests/e2e/helpers.ts": "957e9ea73b3a5e1b736056b1079c0c19d5965b80feac03ab37309fdd7d2e504d"
+  },
+  "artifact_hashes": {
+    "raw/frontend.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "raw/frontend.tap": "ec41cc9f3f36a0d9c764378b5b207b042db68bcb45a8a7c7bfe62e373163d1d4",
+    "raw/playwright-before-fixture.json": "99f916df07def350e27979359f7f89133ee145faf4183b682a5ff88c55cd61b4",
+    "raw/playwright-fixture-focal.json": "4b997d0569827a8507cc0a0967cd9fd424fe0695b89012c72df073c9b63a2256",
+    "raw/playwright-integrated.json": "b33a68d7d69eeb614d9b7a1692895bd107d49bca4b46826ccbbaebc7cf37667c",
+    "raw/qa-gate.json": "38a058e53cbd70a4d114df9bdf87f9c4de8c3b3cceee8d188e88a9a3150cc00d",
+    "raw/review-supplement.diff": "6c45b12605720d77c9eb42429f7e8504bbadbf44126070a30a1ef94c60ba0ac8",
+    "raw/reviewed-sources.json": "8b3493403fe32631c8c22e0da04b97e54a6d57b953c778ecaa7783f9b4fd5a18",
+    "raw/reviewed.diff": "4564906e9fcca2ad818888b9a177899012db69071be06472d7998b55be576ac5",
+    "raw/scope.json": "15629ce0def4c6cdbe5b25d2f59d4bd904054b251aed3bc10ef0881ab82c987b",
+    "screenshots/audio-desktop.png": "544446e76305fcdbaa242f477e72974a1bf13486b62eb7db619315a586304ab0",
+    "screenshots/audio-mobile-360.png": "de53107e1c3398c3b374f0b4b5658326725c6aa904ec297f337c816114867fcd",
+    "screenshots/audio-mobile.png": "d4c45cc92e30b56d083c1fc3eeadb6f2d27378d9f527229db55004fdfe0960df"
+  }
+}

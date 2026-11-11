@@ -1,0 +1,46 @@
+{
+  "status": "READY",
+  "task": "T12 C1 JS typed contract only",
+  "files": [
+    {
+      "path": "resources/js/Studio/chart-spec.js",
+      "bytes": 6900,
+      "sha256": "fa49f02545e072ea42ece2a4369634697d878e4b0fda2ce0dcd489a1e2398ec5"
+    },
+    {
+      "path": "resources/js/Studio/document.js",
+      "bytes": 15825,
+      "sha256": "0392aa4b75cf824b5bda0c204a2f46cc1706502a7d43216dece57f4ab271b772"
+    },
+    {
+      "path": "resources/js/Studio/fonts.js",
+      "bytes": 10432,
+      "sha256": "0633cd444b867b41918be6ec349ba47966c8f8f50ec119adad4ebd23cf671787"
+    },
+    {
+      "path": "tests/frontend/studio-chart-spec.test.mjs",
+      "bytes": 6118,
+      "sha256": "b8258402890d058e98ca0af890388f6e69b9ede9184b286b6dc15307a3e98c0f"
+    },
+    {
+      "path": "tests/frontend/studio-chart-document.test.mjs",
+      "bytes": 5497,
+      "sha256": "5699553c2698de11d18e35c75c0097a5f2e392daa657f95cd0130d82c7d3d96f"
+    },
+    {
+      "path": "resources/js/Studio/chart-binding.js",
+      "bytes": 8248,
+      "sha256": "31e4576a81ea58b1b56bd532f0dc01ec0e781635497ab74ac9bc79a6503daca4"
+    },
+    {
+      "path": "resources/js/Studio/bar-geometry.js",
+      "bytes": 11731,
+      "sha256": "805dbbe61f70c95a3a56a41f751e0d20315312a9ddfc4701a90df895bc596da3"
+    },
+    {
+      "path": "tests/Fixtures/studio/chart-spec.json",
+      "bytes": 6105,
+      "sha256": "176994f306112d53f5a4847702fd98af01b5735284527c73dc03d8608e5c7631"
+    }
+  ]
+}

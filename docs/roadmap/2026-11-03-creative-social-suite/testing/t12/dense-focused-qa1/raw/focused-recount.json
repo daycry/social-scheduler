@@ -1,0 +1,214 @@
+{
+  "counter_schema": "dense-v1",
+  "planned": 3,
+  "recorded": 3,
+  "all_three_passed": true,
+  "receipts": [
+    {
+      "project": "desktop",
+      "width": 1440,
+      "bars": 12000,
+      "deliveries": [
+        {
+          "format": "svg",
+          "url": "blob:http://localhost:8080/9ee5d03d-e896-47c7-a709-f6200ce4c632",
+          "filename": "Diseño sin título.svg",
+          "bytes": 12134058,
+          "sha256": "5dd046663dffc352ee2414fd7e4af30229ebdbb8af4c1e60286336b483823b87",
+          "headers": "Not observable for browser Blob delivery; no synthetic GET performed",
+          "native_response": null
+        },
+        {
+          "format": "png",
+          "url": "blob:http://localhost:8080/419c91fb-2d9d-4c1c-b8fc-02525bb7ee0b",
+          "filename": "Diseño sin título.png",
+          "bytes": 75550,
+          "sha256": "06e19909138b0322d681397962098fcc44b40fbb71d5cc31dec080991b26836a",
+          "headers": "Not observable for browser Blob delivery; no synthetic GET performed",
+          "native_response": null
+        }
+      ],
+      "screenshot": {
+        "sha256": "aaa9379a0c8ff07c2648d81df51885ccbcd888f13655f815771a33abe52fdd1a",
+        "bytes": 124896,
+        "width": 1440,
+        "height": 1211
+      },
+      "budget_negatives": 2,
+      "http_path": "/brands/1/studio/designs",
+      "oracle": {
+        "xml": {
+          "svg": "dense-12000.svg",
+          "semantic_shapes": 12003,
+          "xml_transforms_match_dom": true
+        },
+        "png": {
+          "png_sha256": "06e19909138b0322d681397962098fcc44b40fbb71d5cc31dec080991b26836a",
+          "width": 1080,
+          "height": 1080,
+          "bar_center_samples": [],
+          "exact_palette_pixels": 672,
+          "dense_subpixel_reference": {
+            "reference": "independent fractional rectangle coverage + source-over on configured background; axis/grid center ±2px excluded",
+            "sample_channels": 18408,
+            "predicted_colored_pixels": 4895,
+            "mean_error": 4.496686223381139,
+            "p95_error": 11,
+            "mean_allowed": 6,
+            "p95_allowed": 18
+          },
+          "subpixel_bars_not_individually_resolvable": true
+        },
+        "input_sha256": {
+          "dense-12000.svg": "5dd046663dffc352ee2414fd7e4af30229ebdbb8af4c1e60286336b483823b87",
+          "dense-12000.png": "06e19909138b0322d681397962098fcc44b40fbb71d5cc31dec080991b26836a",
+          "dense-12000-svg-observer.json": "532e24b54bc65d68cfcefd2cfa72a9ec04dfaf2a2f0fdd17b0c84ee6238d83a0",
+          "dense-12000-deliveries.json": "8140687afabc93a227555063319dd522ab1405c2d399f31bb57f598488528871"
+        },
+        "elapsed_seconds": 1.1541872000088915
+      },
+      "preview_pixel_checks": 0,
+      "private_font_checks": 0,
+      "axe_checks": 0,
+      "design_pdf_checks": 0
+    },
+    {
+      "project": "mobile",
+      "width": 375,
+      "bars": 12000,
+      "deliveries": [
+        {
+          "format": "svg",
+          "url": "blob:http://localhost:8080/a166efc8-d0c4-4b46-8a71-0c34a841f438",
+          "filename": "Diseño sin título.svg",
+          "bytes": 12134058,
+          "sha256": "02cba9d99288d68164ab2babb76279fca976b1952b4148ea5241232e754b0687",
+          "headers": "Not observable for browser Blob delivery; no synthetic GET performed",
+          "native_response": null
+        },
+        {
+          "format": "png",
+          "url": "blob:http://localhost:8080/26b90012-ab15-412e-93b0-bc3ab7b11328",
+          "filename": "Diseño sin título.png",
+          "bytes": 75550,
+          "sha256": "06e19909138b0322d681397962098fcc44b40fbb71d5cc31dec080991b26836a",
+          "headers": "Not observable for browser Blob delivery; no synthetic GET performed",
+          "native_response": null
+        }
+      ],
+      "screenshot": {
+        "sha256": "198d5c251fd98df9fdf9e92a4f92a3fe50d2be4fa86235d75ff2c58e6c29c6dd",
+        "bytes": 88389,
+        "width": 375,
+        "height": 2147
+      },
+      "budget_negatives": 2,
+      "http_path": "/brands/2/studio/designs",
+      "oracle": {
+        "xml": {
+          "svg": "dense-12000.svg",
+          "semantic_shapes": 12003,
+          "xml_transforms_match_dom": true
+        },
+        "png": {
+          "png_sha256": "06e19909138b0322d681397962098fcc44b40fbb71d5cc31dec080991b26836a",
+          "width": 1080,
+          "height": 1080,
+          "bar_center_samples": [],
+          "exact_palette_pixels": 672,
+          "dense_subpixel_reference": {
+            "reference": "independent fractional rectangle coverage + source-over on configured background; axis/grid center ±2px excluded",
+            "sample_channels": 18408,
+            "predicted_colored_pixels": 4895,
+            "mean_error": 4.496686223381139,
+            "p95_error": 11,
+            "mean_allowed": 6,
+            "p95_allowed": 18
+          },
+          "subpixel_bars_not_individually_resolvable": true
+        },
+        "input_sha256": {
+          "dense-12000.svg": "02cba9d99288d68164ab2babb76279fca976b1952b4148ea5241232e754b0687",
+          "dense-12000.png": "06e19909138b0322d681397962098fcc44b40fbb71d5cc31dec080991b26836a",
+          "dense-12000-svg-observer.json": "4653c21603d00061439d67dfaf0c9fad0b5449f3390b95ba301af3eb3589af29",
+          "dense-12000-deliveries.json": "c4f3f57f58f32e16f8270c5bf1ce94fdfd907c47291bfbc8c2da2e3e0fafa9b9"
+        },
+        "elapsed_seconds": 1.0809112999995705
+      },
+      "preview_pixel_checks": 0,
+      "private_font_checks": 0,
+      "axe_checks": 0,
+      "design_pdf_checks": 0
+    },
+    {
+      "project": "mobile-360",
+      "width": 768,
+      "bars": 12000,
+      "deliveries": [
+        {
+          "format": "svg",
+          "url": "blob:http://localhost:8080/4721c7a6-d82a-45a3-b031-6b460ba06f88",
+          "filename": "Diseño sin título.svg",
+          "bytes": 12134058,
+          "sha256": "7687e63842531c54f9992755616fbab3f733d3a3826217aaf84010ae127b6fd2",
+          "headers": "Not observable for browser Blob delivery; no synthetic GET performed",
+          "native_response": null
+        },
+        {
+          "format": "png",
+          "url": "blob:http://localhost:8080/cdeaa76e-217b-41ac-8940-6d5bc4fbb695",
+          "filename": "Diseño sin título.png",
+          "bytes": 75550,
+          "sha256": "06e19909138b0322d681397962098fcc44b40fbb71d5cc31dec080991b26836a",
+          "headers": "Not observable for browser Blob delivery; no synthetic GET performed",
+          "native_response": null
+        }
+      ],
+      "screenshot": {
+        "sha256": "58b44ef324dc547f55c371f0b83625ac3bfc16fe56916bd3411f67cced0d5d22",
+        "bytes": 99836,
+        "width": 768,
+        "height": 2139
+      },
+      "budget_negatives": 2,
+      "http_path": "/brands/3/studio/designs",
+      "oracle": {
+        "xml": {
+          "svg": "dense-12000.svg",
+          "semantic_shapes": 12003,
+          "xml_transforms_match_dom": true
+        },
+        "png": {
+          "png_sha256": "06e19909138b0322d681397962098fcc44b40fbb71d5cc31dec080991b26836a",
+          "width": 1080,
+          "height": 1080,
+          "bar_center_samples": [],
+          "exact_palette_pixels": 672,
+          "dense_subpixel_reference": {
+            "reference": "independent fractional rectangle coverage + source-over on configured background; axis/grid center ±2px excluded",
+            "sample_channels": 18408,
+            "predicted_colored_pixels": 4895,
+            "mean_error": 4.496686223381139,
+            "p95_error": 11,
+            "mean_allowed": 6,
+            "p95_allowed": 18
+          },
+          "subpixel_bars_not_individually_resolvable": true
+        },
+        "input_sha256": {
+          "dense-12000.svg": "7687e63842531c54f9992755616fbab3f733d3a3826217aaf84010ae127b6fd2",
+          "dense-12000.png": "06e19909138b0322d681397962098fcc44b40fbb71d5cc31dec080991b26836a",
+          "dense-12000-svg-observer.json": "fd808cb5e2269a75d5b930e1264bf89876df4298b1cdc7548aae90fb5c022da2",
+          "dense-12000-deliveries.json": "088deef91f43831ac0c2527823963789a92aa7c2c2e2ba25ae3422964b45d9d0"
+        },
+        "elapsed_seconds": 1.0903898999968078
+      },
+      "preview_pixel_checks": 0,
+      "private_font_checks": 0,
+      "axe_checks": 0,
+      "design_pdf_checks": 0
+    }
+  ],
+  "blob_files": 1,
+  "global_acceptance_claim": false
+}

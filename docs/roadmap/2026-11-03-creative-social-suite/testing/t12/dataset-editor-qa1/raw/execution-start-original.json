@@ -1,0 +1,16 @@
+{
+  "state": "started",
+  "pid": 8756,
+  "runtime": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-f1e17ba4-5e86-473d-92a8-cb63a5072422",
+  "output": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t12-dataset-editor-qa\\runs\\attempt1",
+  "started": 1793958156.162046,
+  "job_before": {
+    "scope": "job",
+    "limit": 3221225472,
+    "peak_commit": 12713984,
+    "kill_on_close": true,
+    "breakaway": false
+  },
+  "php_profile": "512M/post192M/upload64M",
+  "approval": "revisión UI aprobada; ejecuta intento1"
+}

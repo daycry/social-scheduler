@@ -1,0 +1,334 @@
+{
+  "diagnostic_cases": 16,
+  "app_pass_claim": false,
+  "rows": [
+    {
+      "transport": "length",
+      "variant": "original",
+      "kind": "alive",
+      "completed": 1,
+      "failed": [],
+      "finished": 1,
+      "response_finished": [
+        "settled"
+      ],
+      "cancel": [],
+      "data_validated": 1,
+      "server_completed": 1
+    },
+    {
+      "transport": "length",
+      "variant": "original",
+      "kind": "dispose",
+      "completed": 1,
+      "failed": [],
+      "finished": 1,
+      "response_finished": [
+        "settled"
+      ],
+      "cancel": [],
+      "data_validated": 1,
+      "server_completed": 1
+    },
+    {
+      "transport": "length",
+      "variant": "observed",
+      "kind": "alive",
+      "completed": 1,
+      "failed": [],
+      "finished": 1,
+      "response_finished": [
+        "settled"
+      ],
+      "cancel": [
+        {
+          "readDone": true,
+          "suppressed": false,
+          "phase": "request"
+        }
+      ],
+      "data_validated": 1,
+      "server_completed": 1
+    },
+    {
+      "transport": "length",
+      "variant": "observed",
+      "kind": "dispose",
+      "completed": 1,
+      "failed": [],
+      "finished": 1,
+      "response_finished": [
+        "settled"
+      ],
+      "cancel": [
+        {
+          "readDone": true,
+          "suppressed": false,
+          "phase": "request"
+        }
+      ],
+      "data_validated": 1,
+      "server_completed": 1
+    },
+    {
+      "transport": "length",
+      "variant": "suppress-completed-cancel",
+      "kind": "alive",
+      "completed": 1,
+      "failed": [],
+      "finished": 1,
+      "response_finished": [
+        "settled"
+      ],
+      "cancel": [
+        {
+          "readDone": true,
+          "suppressed": true,
+          "phase": "request"
+        }
+      ],
+      "data_validated": 1,
+      "server_completed": 1
+    },
+    {
+      "transport": "length",
+      "variant": "suppress-completed-cancel",
+      "kind": "dispose",
+      "completed": 1,
+      "failed": [],
+      "finished": 1,
+      "response_finished": [
+        "settled"
+      ],
+      "cancel": [
+        {
+          "readDone": true,
+          "suppressed": true,
+          "phase": "request"
+        }
+      ],
+      "data_validated": 1,
+      "server_completed": 1
+    },
+    {
+      "transport": "length",
+      "variant": "original",
+      "kind": "replacement",
+      "completed": 1,
+      "failed": [],
+      "finished": 1,
+      "response_finished": [
+        "settled"
+      ],
+      "cancel": [],
+      "data_validated": 1,
+      "server_completed": 1
+    },
+    {
+      "transport": "length",
+      "variant": "original",
+      "kind": "native",
+      "completed": 1,
+      "failed": [],
+      "finished": 1,
+      "response_finished": [
+        "settled"
+      ],
+      "cancel": [],
+      "data_validated": 1,
+      "server_completed": 1
+    },
+    {
+      "transport": "chunked",
+      "variant": "original",
+      "kind": "alive",
+      "completed": 1,
+      "failed": [
+        {
+          "id": 7,
+          "phase": "request",
+          "error": {
+            "errorText": "net::ERR_ABORTED"
+          }
+        }
+      ],
+      "finished": 0,
+      "response_finished": [
+        "pending_after_500ms"
+      ],
+      "cancel": [],
+      "data_validated": 1,
+      "server_completed": 1
+    },
+    {
+      "transport": "chunked",
+      "variant": "original",
+      "kind": "dispose",
+      "completed": 1,
+      "failed": [
+        {
+          "id": 7,
+          "phase": "request",
+          "error": {
+            "errorText": "net::ERR_ABORTED"
+          }
+        }
+      ],
+      "finished": 0,
+      "response_finished": [
+        "pending_after_500ms"
+      ],
+      "cancel": [],
+      "data_validated": 1,
+      "server_completed": 1
+    },
+    {
+      "transport": "chunked",
+      "variant": "observed",
+      "kind": "alive",
+      "completed": 1,
+      "failed": [
+        {
+          "id": 7,
+          "phase": "request",
+          "error": {
+            "errorText": "net::ERR_ABORTED"
+          }
+        }
+      ],
+      "finished": 0,
+      "response_finished": [
+        "pending_after_500ms"
+      ],
+      "cancel": [
+        {
+          "readDone": true,
+          "suppressed": false,
+          "phase": "request"
+        }
+      ],
+      "data_validated": 1,
+      "server_completed": 1
+    },
+    {
+      "transport": "chunked",
+      "variant": "observed",
+      "kind": "dispose",
+      "completed": 1,
+      "failed": [
+        {
+          "id": 7,
+          "phase": "request",
+          "error": {
+            "errorText": "net::ERR_ABORTED"
+          }
+        }
+      ],
+      "finished": 0,
+      "response_finished": [
+        "pending_after_500ms"
+      ],
+      "cancel": [
+        {
+          "readDone": true,
+          "suppressed": false,
+          "phase": "request"
+        }
+      ],
+      "data_validated": 1,
+      "server_completed": 1
+    },
+    {
+      "transport": "chunked",
+      "variant": "suppress-completed-cancel",
+      "kind": "alive",
+      "completed": 1,
+      "failed": [
+        {
+          "id": 7,
+          "phase": "request",
+          "error": {
+            "errorText": "net::ERR_ABORTED"
+          }
+        }
+      ],
+      "finished": 0,
+      "response_finished": [
+        "pending_after_500ms"
+      ],
+      "cancel": [
+        {
+          "readDone": true,
+          "suppressed": true,
+          "phase": "request"
+        }
+      ],
+      "data_validated": 1,
+      "server_completed": 1
+    },
+    {
+      "transport": "chunked",
+      "variant": "suppress-completed-cancel",
+      "kind": "dispose",
+      "completed": 1,
+      "failed": [
+        {
+          "id": 7,
+          "phase": "request",
+          "error": {
+            "errorText": "net::ERR_ABORTED"
+          }
+        }
+      ],
+      "finished": 0,
+      "response_finished": [
+        "pending_after_500ms"
+      ],
+      "cancel": [
+        {
+          "readDone": true,
+          "suppressed": true,
+          "phase": "request"
+        }
+      ],
+      "data_validated": 1,
+      "server_completed": 1
+    },
+    {
+      "transport": "chunked",
+      "variant": "original",
+      "kind": "replacement",
+      "completed": 1,
+      "failed": [
+        {
+          "id": 7,
+          "phase": "request",
+          "error": {
+            "errorText": "net::ERR_ABORTED"
+          }
+        }
+      ],
+      "finished": 0,
+      "response_finished": [
+        "pending_after_500ms"
+      ],
+      "cancel": [],
+      "data_validated": 1,
+      "server_completed": 1
+    },
+    {
+      "transport": "chunked",
+      "variant": "original",
+      "kind": "native",
+      "completed": 1,
+      "failed": [],
+      "finished": 1,
+      "response_finished": [
+        "settled"
+      ],
+      "cancel": [],
+      "data_validated": 1,
+      "server_completed": 1
+    }
+  ]
+}

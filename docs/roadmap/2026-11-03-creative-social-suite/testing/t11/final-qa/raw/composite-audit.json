@@ -1,0 +1,694 @@
+[
+  {
+    "project": "desktop",
+    "directory": "samples/desktop",
+    "measurements": {
+      "revision": 1,
+      "current_revision": 2,
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "mime_codec_string": "avc1.64000a",
+            "width": 100,
+            "height": 80,
+            "coded_width": 112,
+            "coded_height": 80,
+            "has_b_frames": 2,
+            "pix_fmt": "yuv420p",
+            "level": 10,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "refs": 4,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "12/1",
+            "avg_frame_rate": "12/1",
+            "time_base": "1/12288",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 43008,
+            "duration": "3.500000",
+            "bit_rate": "14918",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "42",
+            "nb_read_frames": "42",
+            "extradata_size": 45,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "encoder": "Lavc63.1.102 libx264"
+            }
+          },
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_long_name": "AAC (Advanced Audio Coding)",
+            "profile": "LC",
+            "codec_type": "audio",
+            "codec_tag_string": "mp4a",
+            "codec_tag": "0x6134706d",
+            "mime_codec_string": "mp4a.40.2",
+            "sample_fmt": "fltp",
+            "sample_rate": "48000",
+            "channels": 2,
+            "channel_layout": "stereo",
+            "bits_per_sample": 0,
+            "initial_padding": 1024,
+            "id": "0x2",
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "time_base": "1/48000",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 168000,
+            "duration": "3.500000",
+            "bit_rate": "153196",
+            "nb_frames": "166",
+            "nb_read_frames": "165",
+            "extradata_size": 5,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "SoundHandler"
+            }
+          }
+        ]
+      },
+      "gifProbe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "gif",
+            "codec_long_name": "CompuServe GIF (Graphics Interchange Format)",
+            "codec_type": "video",
+            "codec_tag_string": "[0][0][0][0]",
+            "codec_tag": "0x0000",
+            "width": 50,
+            "height": 40,
+            "coded_width": 50,
+            "coded_height": 40,
+            "has_b_frames": 0,
+            "pix_fmt": "bgra",
+            "level": -99,
+            "refs": 1,
+            "r_frame_rate": "12/1",
+            "avg_frame_rate": "25/2",
+            "time_base": "1/100",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 350,
+            "duration": "3.500000",
+            "nb_frames": "42",
+            "nb_read_frames": "42",
+            "disposition": {
+              "default": 0,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            }
+          }
+        ]
+      },
+      "motionRms": 28.45710221836838,
+      "tones": {
+        "left": {
+          "video": {
+            "amplitude": 0.04984714554997771,
+            "rms": 0.04992456488210003
+          },
+          "music": {
+            "amplitude": 0.04999401256064147,
+            "rms": 0.04992456488210003
+          },
+          "attack": {
+            "amplitude": 0.019968365830362187,
+            "rms": 0.03829193343589758
+          },
+          "release": {
+            "amplitude": 0.019963358344751526,
+            "rms": 0.0142626634271943
+          },
+          "afterVideo": {
+            "amplitude": 1.0406650074620606e-07,
+            "rms": 0.03533961531589776
+          },
+          "musicAlone": {
+            "amplitude": 0.04997762793524787,
+            "rms": 0.03533961531589776
+          },
+          "tail": {
+            "amplitude": 0,
+            "rms": 0
+          },
+          "trimMarker": {
+            "amplitude": 2.4801766649018227e-05,
+            "rms": 0.03829193343589758
+          }
+        },
+        "right": {
+          "video": {
+            "amplitude": 0.049847145699239585,
+            "rms": 0.04992456495489972
+          },
+          "music": {
+            "amplitude": 0.049994012556109434,
+            "rms": 0.04992456495489972
+          },
+          "attack": {
+            "amplitude": 0.01996836570338822,
+            "rms": 0.03829193340159682
+          },
+          "release": {
+            "amplitude": 0.019963358344751526,
+            "rms": 0.0142626634271943
+          },
+          "afterVideo": {
+            "amplitude": 1.0406650074620606e-07,
+            "rms": 0.03533961531589776
+          },
+          "musicAlone": {
+            "amplitude": 0.04997762793524787,
+            "rms": 0.03533961531589776
+          },
+          "tail": {
+            "amplitude": 0,
+            "rms": 0
+          },
+          "trimMarker": {
+            "amplitude": 2.4802158308922738e-05,
+            "rms": 0.03829193340159682
+          }
+        },
+        "channelDifferenceRms": 1.6403275378684392e-06
+      },
+      "pixels": {
+        "before": [
+          253,
+          0,
+          0
+        ],
+        "overlay": [
+          0,
+          255,
+          0
+        ],
+        "fade": [
+          127,
+          0,
+          126
+        ],
+        "yellow": [
+          253,
+          253,
+          0
+        ],
+        "final": [
+          0,
+          0,
+          254
+        ]
+      }
+    },
+    "independent_audio": {
+      "left": {
+        "video": {
+          "amplitude": 0.04984714554997787,
+          "rms": 0.04992456488209928
+        },
+        "music": {
+          "amplitude": 0.049994012560641524,
+          "rms": 0.04992456488209928
+        },
+        "attack": {
+          "amplitude": 0.019968365830362208,
+          "rms": 0.03829193343589748
+        },
+        "release": {
+          "amplitude": 0.019963358344751533,
+          "rms": 0.014262663427194285
+        },
+        "afterVideo": {
+          "amplitude": 1.0406650074656936e-07,
+          "rms": 0.03533961531589721
+        },
+        "musicAlone": {
+          "amplitude": 0.04997762793524787,
+          "rms": 0.03533961531589721
+        },
+        "tail": {
+          "amplitude": 0.0,
+          "rms": 0.0
+        },
+        "trimMarker": {
+          "amplitude": 2.4801766649018153e-05,
+          "rms": 0.03829193343589748
+        }
+      },
+      "right": {
+        "video": {
+          "amplitude": 0.049847145699239565,
+          "rms": 0.04992456495489903
+        },
+        "music": {
+          "amplitude": 0.04999401255610941,
+          "rms": 0.04992456495489903
+        },
+        "attack": {
+          "amplitude": 0.019968365703388224,
+          "rms": 0.03829193340159675
+        },
+        "release": {
+          "amplitude": 0.019963358344751533,
+          "rms": 0.014262663427194285
+        },
+        "afterVideo": {
+          "amplitude": 1.0406650074656936e-07,
+          "rms": 0.03533961531589721
+        },
+        "musicAlone": {
+          "amplitude": 0.04997762793524787,
+          "rms": 0.03533961531589721
+        },
+        "tail": {
+          "amplitude": 0.0,
+          "rms": 0.0
+        },
+        "trimMarker": {
+          "amplitude": 2.480215830892267e-05,
+          "rms": 0.03829193340159675
+        }
+      },
+      "channelDifferenceRms": 1.6403275378684394e-06
+    }
+  },
+  {
+    "project": "mobile",
+    "directory": "samples/mobile",
+    "measurements": {
+      "revision": 1,
+      "current_revision": 2,
+      "probe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+            "profile": "High",
+            "codec_type": "video",
+            "codec_tag_string": "avc1",
+            "codec_tag": "0x31637661",
+            "mime_codec_string": "avc1.64000a",
+            "width": 100,
+            "height": 80,
+            "coded_width": 112,
+            "coded_height": 80,
+            "has_b_frames": 2,
+            "pix_fmt": "yuv420p",
+            "level": 10,
+            "chroma_location": "left",
+            "field_order": "progressive",
+            "refs": 4,
+            "is_avc": "true",
+            "nal_length_size": "4",
+            "id": "0x1",
+            "r_frame_rate": "12/1",
+            "avg_frame_rate": "12/1",
+            "time_base": "1/12288",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 43008,
+            "duration": "3.500000",
+            "bit_rate": "14918",
+            "bits_per_raw_sample": "8",
+            "nb_frames": "42",
+            "nb_read_frames": "42",
+            "extradata_size": 45,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "VideoHandler",
+              "encoder": "Lavc63.1.102 libx264"
+            }
+          },
+          {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_long_name": "AAC (Advanced Audio Coding)",
+            "profile": "LC",
+            "codec_type": "audio",
+            "codec_tag_string": "mp4a",
+            "codec_tag": "0x6134706d",
+            "mime_codec_string": "mp4a.40.2",
+            "sample_fmt": "fltp",
+            "sample_rate": "48000",
+            "channels": 2,
+            "channel_layout": "stereo",
+            "bits_per_sample": 0,
+            "initial_padding": 1024,
+            "id": "0x2",
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "time_base": "1/48000",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 168000,
+            "duration": "3.500000",
+            "bit_rate": "153196",
+            "nb_frames": "166",
+            "nb_read_frames": "165",
+            "extradata_size": 5,
+            "disposition": {
+              "default": 1,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            },
+            "tags": {
+              "language": "und",
+              "handler_name": "SoundHandler"
+            }
+          }
+        ]
+      },
+      "gifProbe": {
+        "streams": [
+          {
+            "index": 0,
+            "codec_name": "gif",
+            "codec_long_name": "CompuServe GIF (Graphics Interchange Format)",
+            "codec_type": "video",
+            "codec_tag_string": "[0][0][0][0]",
+            "codec_tag": "0x0000",
+            "width": 50,
+            "height": 40,
+            "coded_width": 50,
+            "coded_height": 40,
+            "has_b_frames": 0,
+            "pix_fmt": "bgra",
+            "level": -99,
+            "refs": 1,
+            "r_frame_rate": "12/1",
+            "avg_frame_rate": "25/2",
+            "time_base": "1/100",
+            "start_pts": 0,
+            "start_time": "0.000000",
+            "duration_ts": 350,
+            "duration": "3.500000",
+            "nb_frames": "42",
+            "nb_read_frames": "42",
+            "disposition": {
+              "default": 0,
+              "dub": 0,
+              "original": 0,
+              "comment": 0,
+              "lyrics": 0,
+              "karaoke": 0,
+              "forced": 0,
+              "hearing_impaired": 0,
+              "visual_impaired": 0,
+              "clean_effects": 0,
+              "attached_pic": 0,
+              "timed_thumbnails": 0,
+              "non_diegetic": 0,
+              "captions": 0,
+              "descriptions": 0,
+              "metadata": 0,
+              "dependent": 0,
+              "still_image": 0,
+              "multilayer": 0
+            }
+          }
+        ]
+      },
+      "motionRms": 28.45710221836838,
+      "tones": {
+        "left": {
+          "video": {
+            "amplitude": 0.04984714554997771,
+            "rms": 0.04992456488210003
+          },
+          "music": {
+            "amplitude": 0.04999401256064147,
+            "rms": 0.04992456488210003
+          },
+          "attack": {
+            "amplitude": 0.019968365830362187,
+            "rms": 0.03829193343589758
+          },
+          "release": {
+            "amplitude": 0.019963358344751526,
+            "rms": 0.0142626634271943
+          },
+          "afterVideo": {
+            "amplitude": 1.0406650074620606e-07,
+            "rms": 0.03533961531589776
+          },
+          "musicAlone": {
+            "amplitude": 0.04997762793524787,
+            "rms": 0.03533961531589776
+          },
+          "tail": {
+            "amplitude": 0,
+            "rms": 0
+          },
+          "trimMarker": {
+            "amplitude": 2.4801766649018227e-05,
+            "rms": 0.03829193343589758
+          }
+        },
+        "right": {
+          "video": {
+            "amplitude": 0.049847145699239585,
+            "rms": 0.04992456495489972
+          },
+          "music": {
+            "amplitude": 0.049994012556109434,
+            "rms": 0.04992456495489972
+          },
+          "attack": {
+            "amplitude": 0.01996836570338822,
+            "rms": 0.03829193340159682
+          },
+          "release": {
+            "amplitude": 0.019963358344751526,
+            "rms": 0.0142626634271943
+          },
+          "afterVideo": {
+            "amplitude": 1.0406650074620606e-07,
+            "rms": 0.03533961531589776
+          },
+          "musicAlone": {
+            "amplitude": 0.04997762793524787,
+            "rms": 0.03533961531589776
+          },
+          "tail": {
+            "amplitude": 0,
+            "rms": 0
+          },
+          "trimMarker": {
+            "amplitude": 2.4802158308922738e-05,
+            "rms": 0.03829193340159682
+          }
+        },
+        "channelDifferenceRms": 1.6403275378684392e-06
+      },
+      "pixels": {
+        "before": [
+          253,
+          0,
+          0
+        ],
+        "overlay": [
+          0,
+          255,
+          0
+        ],
+        "fade": [
+          127,
+          0,
+          126
+        ],
+        "yellow": [
+          253,
+          253,
+          0
+        ],
+        "final": [
+          0,
+          0,
+          254
+        ]
+      }
+    },
+    "independent_audio": {
+      "left": {
+        "video": {
+          "amplitude": 0.04984714554997787,
+          "rms": 0.04992456488209928
+        },
+        "music": {
+          "amplitude": 0.049994012560641524,
+          "rms": 0.04992456488209928
+        },
+        "attack": {
+          "amplitude": 0.019968365830362208,
+          "rms": 0.03829193343589748
+        },
+        "release": {
+          "amplitude": 0.019963358344751533,
+          "rms": 0.014262663427194285
+        },
+        "afterVideo": {
+          "amplitude": 1.0406650074656936e-07,
+          "rms": 0.03533961531589721
+        },
+        "musicAlone": {
+          "amplitude": 0.04997762793524787,
+          "rms": 0.03533961531589721
+        },
+        "tail": {
+          "amplitude": 0.0,
+          "rms": 0.0
+        },
+        "trimMarker": {
+          "amplitude": 2.4801766649018153e-05,
+          "rms": 0.03829193343589748
+        }
+      },
+      "right": {
+        "video": {
+          "amplitude": 0.049847145699239565,
+          "rms": 0.04992456495489903
+        },
+        "music": {
+          "amplitude": 0.04999401255610941,
+          "rms": 0.04992456495489903
+        },
+        "attack": {
+          "amplitude": 0.019968365703388224,
+          "rms": 0.03829193340159675
+        },
+        "release": {
+          "amplitude": 0.019963358344751533,
+          "rms": 0.014262663427194285
+        },
+        "afterVideo": {
+          "amplitude": 1.0406650074656936e-07,
+          "rms": 0.03533961531589721
+        },
+        "musicAlone": {
+          "amplitude": 0.04997762793524787,
+          "rms": 0.03533961531589721
+        },
+        "tail": {
+          "amplitude": 0.0,
+          "rms": 0.0
+        },
+        "trimMarker": {
+          "amplitude": 2.480215830892267e-05,
+          "rms": 0.03829193340159675
+        }
+      },
+      "channelDifferenceRms": 1.6403275378684394e-06
+    }
+  }
+]

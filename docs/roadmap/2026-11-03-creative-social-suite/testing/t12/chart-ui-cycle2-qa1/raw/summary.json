@@ -1,0 +1,28 @@
+{
+  "automatic_verdict": "NO-PASS",
+  "planned_cases": 12,
+  "actual_cases": 2,
+  "resource_abort": null,
+  "resource": {
+    "physical_minimum_observed_bytes": 10860388352,
+    "sample_interval_seconds": 0.1,
+    "elapsed": 97.27942010000697,
+    "job": {
+      "scope": "job",
+      "limit": 3221225472,
+      "peak_commit": 720531456,
+      "kill_on_close": true,
+      "breakaway": false
+    },
+    "failure": null
+  },
+  "ports": {
+    "ipv4_8080_free": true,
+    "ipv6_8080_free": true
+  },
+  "figure_count": 3,
+  "visual_review_pending": false,
+  "pdf_generated": true,
+  "scope": "Only this attempt; no AV/ONNX/other chart families/52 MB stress credit",
+  "figure_scope": "Three representative diagnostic figures; not visual acceptance of all variants or viewports"
+}

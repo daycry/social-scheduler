@@ -44,11 +44,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // SmartLinks (PA-07): el microsite de la marca.
     Route::get('smartlinks', [SmartLinkController::class, 'index'])->name('smartlinks.index');
     Route::post('smartlinks', [SmartLinkController::class, 'save'])->name('smartlinks.save');
+    Route::get('smartlinks/{smartLink}/subscribers.csv', [SmartLinkController::class, 'subscribers'])->middleware('throttle:20,1')->whereNumber('smartLink')->name('smartlinks.subscribers');
+    Route::delete('smartlinks/{smartLink}/subscribers/{subscriber}', [SmartLinkController::class, 'destroySubscriber'])->middleware('throttle:60,1')->whereNumber(['smartLink', 'subscriber'])->name('smartlinks.subscribers.destroy');
+    Route::delete('smartlinks/{smartLink}/subscribers', [SmartLinkController::class, 'clearSubscribers'])->middleware('throttle:20,1')->whereNumber('smartLink')->name('smartlinks.subscribers.clear');
     Route::delete('smartlinks/{smartLink}', [SmartLinkController::class, 'destroy'])->whereNumber('smartLink')->name('smartlinks.destroy');
 
     // Analytics · Competidores de Instagram (PA-08).
     Route::get('competitors', [CompetitorController::class, 'index'])->name('competitors.index');
     Route::post('competitors', [CompetitorController::class, 'store'])->middleware('throttle:20,1')->name('competitors.store');
+    // T-20: comparativa por rango, publicaciones del competidor y CSV.
+    Route::get('competitors/export.csv', [CompetitorController::class, 'export'])->middleware('throttle:30,1')->name('competitors.export');
+    Route::post('competitors/{competitor}/posts', [CompetitorController::class, 'refreshPosts'])->middleware('throttle:6,1')->whereNumber('competitor')->name('competitors.posts.refresh');
     Route::delete('competitors/{competitor}', [CompetitorController::class, 'destroy'])->whereNumber('competitor')->name('competitors.destroy');
 
     // Planificacion · Autolistas (PA-09).
@@ -67,6 +73,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('inbox/{comment}/read', [InboxController::class, 'read'])->whereNumber('comment')->name('inbox.read');
     Route::post('inbox/{comment}/reply', [InboxController::class, 'reply'])->middleware('throttle:30,1')->whereNumber('comment')->name('inbox.reply');
     Route::post('inbox/{comment}/hide', [InboxController::class, 'hide'])->middleware('throttle:30,1')->whereNumber('comment')->name('inbox.hide');
+    // T-20: triaje (cerrar, etiquetas, asignar, lotes) y respuestas guardadas.
+    Route::post('inbox/batch', [InboxController::class, 'batch'])->middleware('throttle:30,1')->name('inbox.batch');
+    Route::post('inbox/{comment}/close', [InboxController::class, 'close'])->middleware('throttle:60,1')->whereNumber('comment')->name('inbox.close');
+    Route::post('inbox/{comment}/label', [InboxController::class, 'label'])->middleware('throttle:60,1')->whereNumber('comment')->name('inbox.label');
+    Route::post('inbox/{comment}/assign', [InboxController::class, 'assign'])->middleware('throttle:60,1')->whereNumber('comment')->name('inbox.assign');
+    Route::post('inbox/saved-replies', [InboxController::class, 'storeSavedReply'])->middleware('throttle:30,1')->name('inbox.saved-replies.store');
+    Route::delete('inbox/saved-replies/{reply}', [InboxController::class, 'destroySavedReply'])->middleware('throttle:30,1')->whereNumber('reply')->name('inbox.saved-replies.destroy');
     // Notas internas de los comentarios (C-04d).
     Route::post('inbox/{comment}/notes', [InboxNoteController::class, 'store'])->middleware('throttle:60,1')->whereNumber('comment')->name('inbox.notes.store');
     Route::delete('inbox/notes/{note}', [InboxNoteController::class, 'destroy'])->middleware('throttle:60,1')->whereNumber('note')->name('inbox.notes.destroy');
@@ -93,5 +106,6 @@ Route::withoutMiddleware([
 ])->middleware('throttle:120,1')->group(function () {
     $slug = '[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])';
     Route::get('l/{slug}', [PublicSmartLinkController::class, 'show'])->where('slug', $slug)->name('smartlinks.public');
+    Route::post('l/{slug}/subscribe/{block}', [PublicSmartLinkController::class, 'subscribe'])->middleware('throttle:5,1,smartlink-subscribe')->where(['slug' => $slug, 'block' => '[0-9]+'])->name('smartlinks.subscribe');
     Route::get('l/{slug}/go/{block}', [PublicSmartLinkController::class, 'go'])->where(['slug' => $slug, 'block' => '[0-9]+'])->name('smartlinks.go');
 });

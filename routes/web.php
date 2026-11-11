@@ -23,7 +23,10 @@ use App\Http\Controllers\OAuth\OAuthController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ReportScheduleController;
+use App\Http\Controllers\ReportTemplateController;
 use App\Http\Controllers\SavedTextController;
+use App\Http\Controllers\Studio\StudioExportDownloadController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -111,6 +114,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('export/posts.csv', [ExportController::class, 'posts'])->middleware('throttle:30,1')->name('exports.posts');
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::post('reports', [ReportController::class, 'store'])->middleware('throttle:10,1')->name('reports.store');
+    Route::post('reports/preview', [ReportController::class, 'preview'])->middleware('throttle:report-builder')->name('reports.preview');
+    // Constructor (T-21): plantillas por marca y envios programados por email. `throttle` acota altas/cambios de destinatarios.
+    Route::post('report-templates', [ReportTemplateController::class, 'store'])->middleware('throttle:report-builder')->name('report-templates.store');
+    Route::put('report-templates/{template}', [ReportTemplateController::class, 'update'])->middleware('throttle:report-builder')->whereNumber('template')->name('report-templates.update');
+    Route::delete('report-templates/{template}', [ReportTemplateController::class, 'destroy'])->whereNumber('template')->name('report-templates.destroy');
+    Route::post('report-schedules', [ReportScheduleController::class, 'store'])->middleware('throttle:report-schedules')->name('report-schedules.store');
+    Route::put('report-schedules/{schedule}', [ReportScheduleController::class, 'update'])->middleware('throttle:report-schedules')->whereNumber('schedule')->name('report-schedules.update');
+    Route::delete('report-schedules/{schedule}', [ReportScheduleController::class, 'destroy'])->whereNumber('schedule')->name('report-schedules.destroy');
     Route::get('reports/{report}/link', [ReportController::class, 'link'])->whereNumber('report')->name('reports.link');
     Route::delete('reports/{report}', [ReportController::class, 'destroy'])->whereNumber('report')->name('reports.destroy');
 
@@ -162,7 +173,20 @@ require __DIR__.'/auth.php';
 
 // Descarga de informes SOLO con firma (T-42 / Fase 9): sin sesion, para que la use tambien un agente MCP. La firma
 // (5 min) cubre el id del informe y su dueno; el controlador comprueba que coinciden, que el informe esta `ready` y audita.
+// Baja de informes programados: el GET solo confirma (sin efectos); el POST firmado (RFC 8058 one-click) da de baja y
+// esta fuera de CSRF en bootstrap/app.php. Misma URL firmada para ambos.
+Route::get('report-schedules/{schedule}/unsubscribe', [ReportScheduleController::class, 'confirmUnsubscribe'])
+    ->middleware(['signed', 'throttle:30,1'])->whereNumber('schedule')->name('report-schedules.unsubscribe.confirm');
+Route::post('report-schedules/{schedule}/unsubscribe', [ReportScheduleController::class, 'unsubscribe'])
+    ->middleware(['signed', 'throttle:30,1'])->whereNumber('schedule')->name('report-schedules.unsubscribe');
 Route::get('reports/{report}/download/{owner}', [ReportController::class, 'download'])
     ->middleware(['signed', 'throttle:30,1'])->whereNumber(['report', 'owner'])->name('reports.download');
 
 require __DIR__.'/parity.php';
+require __DIR__.'/sites.php';
+require __DIR__.'/canva.php';
+require __DIR__.'/studio.php';
+require __DIR__.'/post-workflow.php';
+
+Route::get('studio/downloads/{export}/{owner}', StudioExportDownloadController::class)
+    ->whereNumber(['export', 'owner'])->middleware(['signed', 'throttle:60,1'])->name('studio.exports.download');

@@ -1,0 +1,10 @@
+{
+  "app/Services/Studio/StudioCharts.php": {
+    "before_sha256": "b99245fa6da0b3da7f025b9e9f54d1242025f1d7c190738dfd704acb8c698b27",
+    "after_sha256": "ee01564415eae7f0f8f29688c564d220fd3f86138ae60373c20d2945e164ac63"
+  },
+  "tests/Feature/Studio/StudioChartsTest.php": {
+    "before_sha256": "72cb6ecfedc4af0e04d0dd359513763269029439c83d5aa9936eabff82816b33",
+    "after_sha256": "294dfdf5cfe62618f045efb5a4ff3bf3a96893f207725bad4dd3e6fc9d20e137"
+  }
+}

@@ -1,0 +1,16 @@
+# Stable core API
+
+All exports in resources/js/Studio/dataset-table.js; pure and no IO. Validation failures throw TypeError (JSONsyntaxmaythrowSyntaxError); columnconversionfailureadds .errors=[{rowId,message}].
+
+- datasetNumber(raw) -> internallybranded,frozen {type:'number',raw}; alwayscreatenumberswiththisfactory/cellFromInput/parser, neverobjectliteral/structuredClone/JSON.stringifytable. Tokens retainlexemes; PHPmaycanonicalizeexplicitnewvalueswhenpersisted. cellType(value)->text|number|empty; cellText(value)->string(null=>emptystring); cellFromInput(text,type)->typedvalue. NumberinputJSONstrict,noTrim,01/plus/Infinity/NaN/blankinvalid; null/emptystringnot0.
+- parseDatasetTable(rawJSON)->frozenvalidatedtable; raw52.000.000Bmax, canonical52M. validateDatasetTable(table)->sameinputaftervalidation,no mutation/freezingcaller. datasetTableChunks(table)->iterablestrings, validation/snapshotimmediatebeforeiteratorreturned. Blob([...datasetTableChunks(table)],{type:'application/json'}) forFormData; noentireJSON.stringify.
+- blankDatasetTable({rows=3,columns=3,idFactory}={}); editDatasetCell(table,rowId,columnId,value); renameDatasetColumn(table,columnId,label).
+- addDatasetRow(table,{afterId=null,idFactory}={}); removeDatasetRow(table,rowId); addDatasetColumn(table,{afterId=null,label='Columna',idFactory}={}); removeDatasetColumn(table,columnId). afterIdnull meansappend; min1column,rowsmay0. IDschecked,allunchangedIDskept.
+- copyDatasetTable(table,{idFactory}={}) newIDsall; replaceDatasetText(table,search,replacement,{columnId=null}={}) literalstringsonly,nonemptysearch; fillDatasetBlanks(table,value,{includeEmptyStrings=false,columnId=null}={}) nullonlydefault.
+- transposeDatasetTable(table,{idFactory}={}) firstcolumnlabelColumna/valuesoldcolumnlabels, followingcolumnsFila1…N; oldrows<=99; newIDsallentities. idFactory(kind,index,existingSet)->validuniqueID; kindc/r,index1based,defaultdeterministicnewcN/rN neveroldID; duplicatesretrybounded10000.
+- previewDatasetConversion(table,columnId,type)->{changes:[{rowId,value}],errors:[{rowId,message}]}; applyDatasetConversion(table,columnId,type) throws .errors ifany invalidrow, no partialreturn/mutation. text:numbertorawliteral; empty:nullall; number:null/empty/invalidlexicalerrors. Userchoosesexplicitly.
+- createDatasetHistory(initial,{limit=30}={}) getters table,canUndo,canRedo,undoDepth,redoDepth,limit; commit(next),undo(),redo(),reset(next) returncurrenttable. Maxlimit30,min1. Immutabletypedtable snapshots; keepstatewithshallowRef ratherthancloning/reactiveobjectconversion. Undo/redo structuralsharing andnewbranchdropsfuture.
+- parseDatasetPage(rawJSON)->{dataset,revision,sha256,columns,rows,pagination}; dataset/paginationintegersJSsafeandmetadataunwrapped, typedcellnumbersremainbranded; raw8MiB cap,6MiB rowbudget. revisiontop-levelpin; dataset.revisionmaybegreaterascurrentmetadata.
+- createDatasetAssembler({datasetId,revision,sha256=null})->gettersnextOffset(initial0/finalnull),complete,table(nulluntilcomplete),revision,sha256; append(rawJSON)->nulluntilcompleteorfinaltable. OnlyacceptsrawJSONtext, validatessamecolumns/brand/total/pin+SHA/offsetanduniqueIDs cumulativelybeforestatechange. Requestnextoffsetsequentially, abortgenerationintheclientonchange.
+
+Do not announce XLSX/connections/chartlayer/UIaccepted basedonthismodule. Rootreview/QA required.

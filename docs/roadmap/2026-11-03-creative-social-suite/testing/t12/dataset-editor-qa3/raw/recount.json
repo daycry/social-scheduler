@@ -1,0 +1,454 @@
+{
+  "verdict": "PASS",
+  "declared_case_count": 15,
+  "executed_case_count": 15,
+  "actual_case_count": 15,
+  "counts": {
+    "expected": 15
+  },
+  "issues": [],
+  "qa_gate_exit": 0,
+  "viewports": [
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "project": "desktop",
+      "case": "E2E27.01",
+      "title": "E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes"
+    },
+    {
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "project": "mobile",
+      "case": "E2E27.01",
+      "title": "E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes"
+    },
+    {
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "project": "mobile-360",
+      "case": "E2E27.01",
+      "title": "E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes"
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "project": "desktop",
+      "case": "E2E27.02",
+      "title": "E2E27.02 real CSV TSV JSON imports safe faithful downloads windowed cells and invalid file"
+    },
+    {
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "project": "mobile",
+      "case": "E2E27.02",
+      "title": "E2E27.02 real CSV TSV JSON imports safe faithful downloads windowed cells and invalid file"
+    },
+    {
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "project": "mobile-360",
+      "case": "E2E27.02",
+      "title": "E2E27.02 real CSV TSV JSON imports safe faithful downloads windowed cells and invalid file"
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "project": "desktop",
+      "case": "E2E27.03",
+      "title": "E2E27.03 structural edits literal replace fill conversion atomic preview transpose IDs undo"
+    },
+    {
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "project": "mobile",
+      "case": "E2E27.03",
+      "title": "E2E27.03 structural edits literal replace fill conversion atomic preview transpose IDs undo"
+    },
+    {
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "project": "mobile-360",
+      "case": "E2E27.03",
+      "title": "E2E27.03 structural edits literal replace fill conversion atomic preview transpose IDs undo"
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "project": "desktop",
+      "case": "E2E27.04",
+      "title": "E2E27.04 second writer409 preserves draft history pagination archive restore and brand isolation"
+    },
+    {
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "project": "mobile",
+      "case": "E2E27.04",
+      "title": "E2E27.04 second writer409 preserves draft history pagination archive restore and brand isolation"
+    },
+    {
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "project": "mobile-360",
+      "case": "E2E27.04",
+      "title": "E2E27.04 second writer409 preserves draft history pagination archive restore and brand isolation"
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "project": "desktop",
+      "case": "E2E27.05",
+      "title": "E2E27.05 delayed real reads writes close selection brand discard keyboard and focus"
+    },
+    {
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "project": "mobile",
+      "case": "E2E27.05",
+      "title": "E2E27.05 delayed real reads writes close selection brand discard keyboard and focus"
+    },
+    {
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "project": "mobile-360",
+      "case": "E2E27.05",
+      "title": "E2E27.05 delayed real reads writes close selection brand discard keyboard and focus"
+    }
+  ],
+  "axe": [
+    {
+      "file": "raw\\artifacts\\studio-datasets-E2E27-01-I-e19a9--reopen-and-numeric-lexemes-desktop\\axe-dialog.json",
+      "violations": 0,
+      "incomplete": 0
+    },
+    {
+      "file": "raw\\artifacts\\studio-datasets-E2E27-01-I-e19a9--reopen-and-numeric-lexemes-mobile\\axe-dialog.json",
+      "violations": 0,
+      "incomplete": 0
+    },
+    {
+      "file": "raw\\artifacts\\studio-datasets-E2E27-01-I-e19a9--reopen-and-numeric-lexemes-mobile-360\\axe-dialog.json",
+      "violations": 0,
+      "incomplete": 0
+    }
+  ],
+  "network": [
+    {
+      "file": "raw\\artifacts\\studio-datasets-E2E27-01-I-e19a9--reopen-and-numeric-lexemes-desktop\\network-observer.json",
+      "issues": [],
+      "font_fixture_uses": 4
+    },
+    {
+      "file": "raw\\artifacts\\studio-datasets-E2E27-01-I-e19a9--reopen-and-numeric-lexemes-mobile\\network-observer.json",
+      "issues": [],
+      "font_fixture_uses": 4
+    },
+    {
+      "file": "raw\\artifacts\\studio-datasets-E2E27-01-I-e19a9--reopen-and-numeric-lexemes-mobile-360\\network-observer.json",
+      "issues": [],
+      "font_fixture_uses": 4
+    },
+    {
+      "file": "raw\\artifacts\\studio-datasets-E2E27-02-r-61d36-owed-cells-and-invalid-file-desktop\\network-observer.json",
+      "issues": [],
+      "font_fixture_uses": 2
+    },
+    {
+      "file": "raw\\artifacts\\studio-datasets-E2E27-02-r-61d36-owed-cells-and-invalid-file-mobile\\network-observer.json",
+      "issues": [],
+      "font_fixture_uses": 2
+    },
+    {
+      "file": "raw\\artifacts\\studio-datasets-E2E27-02-r-61d36-owed-cells-and-invalid-file-mobile-360\\network-observer.json",
+      "issues": [],
+      "font_fixture_uses": 2
+    },
+    {
+      "file": "raw\\artifacts\\studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-desktop\\network-observer.json",
+      "issues": [],
+      "font_fixture_uses": 2
+    },
+    {
+      "file": "raw\\artifacts\\studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile\\network-observer.json",
+      "issues": [],
+      "font_fixture_uses": 2
+    },
+    {
+      "file": "raw\\artifacts\\studio-datasets-E2E27-03-s-63138--preview-transpose-IDs-undo-mobile-360\\network-observer.json",
+      "issues": [],
+      "font_fixture_uses": 2
+    },
+    {
+      "file": "raw\\artifacts\\studio-datasets-E2E27-04-s-5bc22-restore-and-brand-isolation-desktop\\network-observer.json",
+      "issues": [],
+      "font_fixture_uses": 3
+    },
+    {
+      "file": "raw\\artifacts\\studio-datasets-E2E27-04-s-5bc22-restore-and-brand-isolation-mobile\\network-observer.json",
+      "issues": [],
+      "font_fixture_uses": 3
+    },
+    {
+      "file": "raw\\artifacts\\studio-datasets-E2E27-04-s-5bc22-restore-and-brand-isolation-mobile-360\\network-observer.json",
+      "issues": [],
+      "font_fixture_uses": 3
+    },
+    {
+      "file": "raw\\artifacts\\studio-datasets-E2E27-05-d-7ef79--discard-keyboard-and-focus-desktop\\network-observer.json",
+      "issues": [],
+      "font_fixture_uses": 3
+    },
+    {
+      "file": "raw\\artifacts\\studio-datasets-E2E27-05-d-7ef79--discard-keyboard-and-focus-mobile\\network-observer.json",
+      "issues": [],
+      "font_fixture_uses": 3
+    },
+    {
+      "file": "raw\\artifacts\\studio-datasets-E2E27-05-d-7ef79--discard-keyboard-and-focus-mobile-360\\network-observer.json",
+      "issues": [],
+      "font_fixture_uses": 3
+    }
+  ],
+  "cases": [
+    {
+      "id": "E2E27.01",
+      "title": "E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes",
+      "project": "desktop",
+      "outcome": "expected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": 0
+        }
+      ]
+    },
+    {
+      "id": "E2E27.02",
+      "title": "E2E27.02 real CSV TSV JSON imports safe faithful downloads windowed cells and invalid file",
+      "project": "desktop",
+      "outcome": "expected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": 0
+        }
+      ]
+    },
+    {
+      "id": "E2E27.03",
+      "title": "E2E27.03 structural edits literal replace fill conversion atomic preview transpose IDs undo",
+      "project": "desktop",
+      "outcome": "expected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": 0
+        }
+      ]
+    },
+    {
+      "id": "E2E27.04",
+      "title": "E2E27.04 second writer409 preserves draft history pagination archive restore and brand isolation",
+      "project": "desktop",
+      "outcome": "expected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": 0
+        }
+      ]
+    },
+    {
+      "id": "E2E27.05",
+      "title": "E2E27.05 delayed real reads writes close selection brand discard keyboard and focus",
+      "project": "desktop",
+      "outcome": "expected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": 0
+        }
+      ]
+    },
+    {
+      "id": "E2E27.01",
+      "title": "E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes",
+      "project": "mobile",
+      "outcome": "expected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": 0
+        }
+      ]
+    },
+    {
+      "id": "E2E27.02",
+      "title": "E2E27.02 real CSV TSV JSON imports safe faithful downloads windowed cells and invalid file",
+      "project": "mobile",
+      "outcome": "expected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": 0
+        }
+      ]
+    },
+    {
+      "id": "E2E27.03",
+      "title": "E2E27.03 structural edits literal replace fill conversion atomic preview transpose IDs undo",
+      "project": "mobile",
+      "outcome": "expected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": 0
+        }
+      ]
+    },
+    {
+      "id": "E2E27.04",
+      "title": "E2E27.04 second writer409 preserves draft history pagination archive restore and brand isolation",
+      "project": "mobile",
+      "outcome": "expected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": 0
+        }
+      ]
+    },
+    {
+      "id": "E2E27.05",
+      "title": "E2E27.05 delayed real reads writes close selection brand discard keyboard and focus",
+      "project": "mobile",
+      "outcome": "expected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": 0
+        }
+      ]
+    },
+    {
+      "id": "E2E27.01",
+      "title": "E2E27.01 Index and Editor create typed table undo save reopen and numeric lexemes",
+      "project": "mobile-360",
+      "outcome": "expected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": 0
+        }
+      ]
+    },
+    {
+      "id": "E2E27.02",
+      "title": "E2E27.02 real CSV TSV JSON imports safe faithful downloads windowed cells and invalid file",
+      "project": "mobile-360",
+      "outcome": "expected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": 0
+        }
+      ]
+    },
+    {
+      "id": "E2E27.03",
+      "title": "E2E27.03 structural edits literal replace fill conversion atomic preview transpose IDs undo",
+      "project": "mobile-360",
+      "outcome": "expected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": 0
+        }
+      ]
+    },
+    {
+      "id": "E2E27.04",
+      "title": "E2E27.04 second writer409 preserves draft history pagination archive restore and brand isolation",
+      "project": "mobile-360",
+      "outcome": "expected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": 0
+        }
+      ]
+    },
+    {
+      "id": "E2E27.05",
+      "title": "E2E27.05 delayed real reads writes close selection brand discard keyboard and focus",
+      "project": "mobile-360",
+      "outcome": "expected",
+      "expected": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": 0
+        }
+      ]
+    }
+  ]
+}

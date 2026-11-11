@@ -1,0 +1,46 @@
+{
+  "method": "Canonical selector on exact added lines; private active harness included, diagnostic-only probes excluded",
+  "lente_c": false,
+  "motivos": [],
+  "lente_d": true,
+  "motivos_d": [
+    {
+      "tipo": "contenido",
+      "fichero": "storage/framework/testing/t12-dataset-editor-qa2/isolation.cjs",
+      "patron": "read-file-sync",
+      "linea": 31
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "storage/framework/testing/t12-dataset-editor-qa2/playwright.config.ts",
+      "patron": "read-file-sync",
+      "linea": 6
+    },
+    {
+      "tipo": "ruta",
+      "fichero": "storage/framework/testing/t12-dataset-editor-qa2/templates/render-report.mjs",
+      "patron": "repo"
+    },
+    {
+      "tipo": "ruta",
+      "fichero": "storage/framework/testing/t12-dataset-editor-qa2/templates/render-report.php",
+      "patron": "repo"
+    }
+  ],
+  "files": [
+    "resources/js/Studio/dataset-client.js",
+    "tests/frontend/studio-dataset-client.test.mjs",
+    "tests/e2e/studio-datasets.spec.ts",
+    "storage/framework/testing/t12-dataset-editor-qa2/isolation.cjs",
+    "storage/framework/testing/t12-dataset-editor-qa2/global-setup.ts",
+    "storage/framework/testing/t12-dataset-editor-qa2/playwright.config.ts",
+    "storage/framework/testing/t12-dataset-editor-qa2/run.py",
+    "storage/framework/testing/t12-dataset-editor-qa2/recount.py",
+    "storage/framework/testing/t12-dataset-editor-qa2/postprocess.py",
+    "storage/framework/testing/t12-dataset-editor-qa2/serve.cjs",
+    "storage/framework/testing/t12-dataset-editor-qa2/router.php",
+    "storage/framework/testing/t12-dataset-editor-qa2/fixtures/google-inter-empty.css",
+    "storage/framework/testing/t12-dataset-editor-qa2/templates/render-report.mjs",
+    "storage/framework/testing/t12-dataset-editor-qa2/templates/render-report.php"
+  ]
+}

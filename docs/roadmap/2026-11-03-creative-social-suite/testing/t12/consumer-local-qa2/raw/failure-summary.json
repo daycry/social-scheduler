@@ -1,0 +1,23 @@
+{
+  "actual_executed_cases": 1,
+  "recorded_cases": 3,
+  "original_stats": {
+    "startTime": "2026-11-06T21:58:01.445Z",
+    "duration": 30242.485,
+    "expected": 0,
+    "skipped": 2,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "failures": [
+    {
+      "project": "desktop",
+      "message": "Error: expect(received).toEqual(expected) // deep equality\n\n- Expected  -  1\n+ Received  + 49\n\n- Array []\n+ Array [\n+   Object {\n+     \"description\": \"Ensure that <th> elements and elements with role=columnheader/rowheader have data cells they describe\",\n+     \"help\": \"Table headers in a data table must refer to data cells\",\n+     \"helpUrl\": \"https://dequeuniversity.com/rules/axe/4.10/th-has-data-cells?application=playwright\",\n+     \"id\": \"th-has-data-cells\",\n+     \"impact\": \"serious\",\n+     \"nodes\": Array [\n+       Object {\n+         \"all\": Array [\n+           Object {\n+             \"data\": null,\n+             \"id\": \"th-has-data-cells\",\n+             \"impact\": \"serious\",\n+             \"message\": \"Table data cells are missing or empty\",\n+             \"relatedNodes\": Array [\n+               Object {\n+                 \"html\": \"<th data-v-a61ea03b=\\\"\\\" scope=\\\"col\\\" class=\\\"p-2\\\">Serie 1</th>\",\n+                 \"target\": Array [\n+                   \"th:nth-child(3)\",\n+                 ],\n+               },\n+             ],\n+           },\n+         ],\n+         \"any\": Array [],\n+         \"failureSummary\": \"Fix all of the following:\n+   Table data cells are missing or empty\",\n+         \"html\": \"<table data-v-a61ea03b=\\\"\\\" class=\\\"w-full text-left text-xs\\\">\",\n+         \"impact\": \"serious\",\n+         \"none\": Array [],\n+         \"target\": Array [\n+           \"table\",\n+         ],\n+       },\n+     ],\n+     \"tags\": Array [\n+       \"cat.tables\",\n+       \"wcag2a\",\n+       \"wcag131\",\n+       \"section508\",\n+       \"section508.22.g\",\n+       \"TTv5\",\n+       \"TT14.b\",\n+       \"EN-301-549\",\n+       \"EN-9.1.3.1\",\n+     ],\n+   },\n+ ]\n\n   at support\\studio-chart-ui.ts:32\n\n  30 | export async function apply(page:Page){await chartDialog(page).getByRole('button',{name:/^(Insertar|Aplicar) gráfico$/}).click();await expect(chartDialog(page)).not.toBeVisible();await save(page);}\n  31 | export async function capture(page:Page,info:TestInfo,name:string){await expectNoOverflow(page);await page.screenshot({path:info.outputPath(name),fullPage:true});}\n> 32 | export async function audit(page:Page,info:TestInfo,name:string,selector:string){const report=await new AxeBuilder({page}).include(selector).analyze();fs.writeFileSync(info.outputPath(`axe-${name}.json`),JSON.stringify(report,null,2));expect(report.violations).toEqual([]);expect(report.incomplete).toEqual([]);}\n     |               "
+    }
+  ],
+  "global_errors": [
+    {
+      "message": "\u001b[31mTesting stopped early after 1 maximum allowed failures.\u001b[39m"
+    }
+  ]
+}

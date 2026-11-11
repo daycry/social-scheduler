@@ -1,0 +1,18 @@
+{
+  "storage/framework/testing/t12-chart-hold-runtime-probe1/launch.py": "5cd82b599631da8577cac71ebdbedbbcf3e3ff08a14232c682d1586703891710",
+  "storage/framework/testing/t12-chart-hold-runtime-probe1/probe.mjs": "10861bc96adc7f39173eac5d29cc3097b22ddae69a1840d61cf8c9e1ad9e71e3",
+  "storage/framework/testing/t12-chart-hold-runtime-probe1/extract.mjs": "2a737d7938b0c96ac63e6dca764aada8f8e7e325dfc691cdeb06d98e040ba977",
+  "storage/framework/testing/t12-chart-hold-runtime-probe1/registry-inline.js": "947f08636d4aacb3bc3ae808a7000a4513f0de3e050f8a88f4da62de47922f20",
+  "storage/framework/testing/t12-chart-hold-runtime-probe1/dataset.json": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054",
+  "storage/framework/testing/t12-chart-hold-runtime-probe1/provenance.json": "ea8cb70bf6ade0b0f38a9edc89f2a52b0b9fc2d9223d2e4e12a77eba2986ddf7",
+  "storage/framework/testing/t12-chart-final-qa1/resource-guard.py": "8482f686f854ceff4c661e24ab837d3e3b4dff132b489d4548a31bb2ab9612c0",
+  "storage/framework/testing/t12-chart-final-qa1/process-proof.py": "4a935e88a74305d08895e19f5eccba3e3c323129e8ff74190dd99b4078f78885",
+  "scripts/studio/av-runtime.py": "2be81a22850c9336ba59dc4013810933825b9e1ec4da38db6c9c6ad048d0652b",
+  "tests/e2e/isolated/http-server.cjs": "506993741df299d92057e8124d9d937f65f6f617bc286b4091f01ea92759900f",
+  "tests/e2e/isolated/charts/frontend-hooks.cjs": "14e3572c7bbf0bb450d6330344bf120415ad0e6c672f2552a91f0884dacaefb0",
+  "resources/js/Studio/chart-resources.js": "2cf35da3a99b5383d28531dc5868cc9b0877edfdf27658635743a294780c3526",
+  "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+  "package.json": "9038fdb5bac0171aafa0945c84f83e206acda8b5167dc5d1727c60a6e08073c3",
+  "package-lock.json": "d679c1ba4d6dd50dc2c438152be2d481a34d1724b471117de5bc09a6e67db0cf",
+  "storage/framework/testing/t43/run-general-9581e3a0-cc9c-4b99-b9a2-df8bdfa9c2ab/media/studio-datasets/1/1/a63b7b19-3da8-4b8f-8045-9791c2bfea3d.json": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054"
+}

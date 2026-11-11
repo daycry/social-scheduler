@@ -1,0 +1,9 @@
+{
+  "dataset_id": 13,
+  "raw_mcp_content": [
+    "{\"dataset\":{\"id\":13,\"brand_id\":1,\"name\":\"Literal float oracle\",\"revision\":1,\"row_count\":1,\"column_count\":5,\"archived_at\":null,\"created_at\":\"2026-11-06T08:00:29.000000Z\",\"updated_at\":\"2026-11-06T08:00:29.000000Z\"},\"revision\":1,\"sha256\":\"08812cf58042d694503aad0a2e94331a0014c0fa7c1d08875ba517c289a3ad92\",\"columns\":[{\"id\":\"f0\",\"label\":\"zero\"},{\"id\":\"f1\",\"label\":\"one\"},{\"id\":\"f2\",\"label\":\"negative zero\"},{\"id\":\"f3\",\"label\":\"null\"},{\"id\":\"f4\",\"label\":\"empty\"}],\"rows\":[{\"id\":\"float-row\",\"values\":[0.0,1.0,-0.0,null,\"\"]}],\"pagination\":{\"offset\":0,\"limit\":50,\"total\":1,\"next_offset\":null}}"
+  ],
+  "download_sha256": "08812cf58042d694503aad0a2e94331a0014c0fa7c1d08875ba517c289a3ad92",
+  "download_bytes": 217,
+  "negative_zero_preserved": true
+}

@@ -1,0 +1,127 @@
+
+Running 63 tests using 1 worker
+
+  ✓   1 [desktop] › tests\e2e\all-brands.spec.ts:27:1 › E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de periodo (7.6s)
+  ✓   2 [desktop] › tests\e2e\brand-reporting.spec.ts:4:1 › Ads and reports retain the selected brand across navigation and report creation (6.5s)
+  ✓   3 [desktop] › tests\e2e\metrics-quality.spec.ts:4:1 › Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison (5.1s)
+  ✓   4 [desktop] › tests\e2e\studio-audio-editor.spec.ts:13:1 › Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track (10.8s)
+  ✓   5 [desktop] › tests\e2e\studio-audio-editor.spec.ts:78:1 › Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds (5.4s)
+  ✓   6 [desktop] › tests\e2e\studio-audio-resources.spec.ts:14:1 › Studio audio resources API: private binary upload, byte ranges and native browser playback (5.1s)
+  ✓   7 [desktop] › tests\e2e\studio-automation.spec.ts:35:1 › Studio automation: own template substitutes literal fields in an independent branded design and exports (8.6s)
+  ✓   8 [desktop] › tests\e2e\studio-automation.spec.ts:96:1 › Studio automation: brand styles, proportional resize and independent variants persist and export (13.2s)
+
+  ✓   9 [desktop] › tests\e2e\studio-av-composite.spec.ts:16:1 › Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft (30.7s)
+  ✓  10 [desktop] › tests\e2e\studio-frame-export.spec.ts:4:1 › Studio frame export: choose a local page time, export real pixels and retain it with the private brand output (7.1s)
+
+  ✓  11 [desktop] › tests\e2e\studio-native-export.spec.ts:6:1 › Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft (19.4s)
+  ✓  12 [desktop] › tests\e2e\studio-native-export.spec.ts:86:1 › Studio native history: paginate real exports in one request per page and reopen without creating work (6.9s)
+  ✓  13 [desktop] › tests\e2e\studio-timeline.spec.ts:16:1 › Studio timeline: edit windows, split, persist and run a common playhead without changing the document (6.7s)
+
+  ✓  14 [desktop] › tests\e2e\studio-timeline.spec.ts:63:1 › Studio timeline: an uploaded real video with an open source end can be split and previewed (7.7s)
+  ✓  15 [desktop] › tests\e2e\studio-timeline.spec.ts:101:1 › Studio timeline: splitting the second page uses local clip time and survives undo and redo (5.5s)
+
+  ✓  16 [desktop] › tests\e2e\studio-timeline.spec.ts:133:1 › Studio timeline: buffering never consumes a short clip before playback starts (8.7s)
+
+  ✓  17 [desktop] › tests\e2e\studio-timeline.spec.ts:165:1 › Studio timeline: closing while media buffers cancels the pending playback (9.1s)
+  ✓  18 [desktop] › tests\e2e\studio.spec.ts:25:1 › Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library (7.4s)
+  ✓  19 [desktop] › tests\e2e\studio.spec.ts:55:1 › Studio: design persists, exports real PNG and starts a publication in its brand (8.0s)
+  ✓  20 [desktop] › tests\e2e\studio.spec.ts:103:1 › Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design (7.8s)
+  ✓  21 [desktop] › tests\e2e\studio.spec.ts:162:1 › Studio: a stale revision preserves local edits and can recover the server version (8.4s)
+  ✓  22 [mobile] › tests\e2e\all-brands.spec.ts:27:1 › E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de periodo (9.2s)
+  ✓  23 [mobile] › tests\e2e\brand-reporting.spec.ts:4:1 › Ads and reports retain the selected brand across navigation and report creation (6.0s)
+  ✓  24 [mobile] › tests\e2e\metrics-quality.spec.ts:4:1 › Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison (4.8s)
+  ✓  25 [mobile] › tests\e2e\studio-audio-editor.spec.ts:13:1 › Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track (9.7s)
+  ✓  26 [mobile] › tests\e2e\studio-audio-editor.spec.ts:78:1 › Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds (6.0s)
+  ✓  27 [mobile] › tests\e2e\studio-audio-resources.spec.ts:14:1 › Studio audio resources API: private binary upload, byte ranges and native browser playback (5.6s)
+  ✓  28 [mobile] › tests\e2e\studio-automation.spec.ts:35:1 › Studio automation: own template substitutes literal fields in an independent branded design and exports (9.4s)
+  ✓  29 [mobile] › tests\e2e\studio-automation.spec.ts:96:1 › Studio automation: brand styles, proportional resize and independent variants persist and export (15.2s)
+
+  ✓  30 [mobile] › tests\e2e\studio-av-composite.spec.ts:16:1 › Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft (31.1s)
+  ✓  31 [mobile] › tests\e2e\studio-frame-export.spec.ts:4:1 › Studio frame export: choose a local page time, export real pixels and retain it with the private brand output (9.5s)
+
+  ✓  32 [mobile] › tests\e2e\studio-native-export.spec.ts:6:1 › Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft (19.8s)
+  ✓  33 [mobile] › tests\e2e\studio-native-export.spec.ts:86:1 › Studio native history: paginate real exports in one request per page and reopen without creating work (5.8s)
+  ✓  34 [mobile] › tests\e2e\studio-timeline.spec.ts:16:1 › Studio timeline: edit windows, split, persist and run a common playhead without changing the document (7.1s)
+
+  ✓  35 [mobile] › tests\e2e\studio-timeline.spec.ts:63:1 › Studio timeline: an uploaded real video with an open source end can be split and previewed (8.2s)
+  ✓  36 [mobile] › tests\e2e\studio-timeline.spec.ts:101:1 › Studio timeline: splitting the second page uses local clip time and survives undo and redo (5.4s)
+
+  ✓  37 [mobile] › tests\e2e\studio-timeline.spec.ts:133:1 › Studio timeline: buffering never consumes a short clip before playback starts (8.7s)
+
+  ✓  38 [mobile] › tests\e2e\studio-timeline.spec.ts:165:1 › Studio timeline: closing while media buffers cancels the pending playback (8.3s)
+  ✓  39 [mobile] › tests\e2e\studio.spec.ts:25:1 › Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library (6.8s)
+  ✓  40 [mobile] › tests\e2e\studio.spec.ts:55:1 › Studio: design persists, exports real PNG and starts a publication in its brand (7.7s)
+  ✓  41 [mobile] › tests\e2e\studio.spec.ts:103:1 › Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design (6.2s)
+  ✓  42 [mobile] › tests\e2e\studio.spec.ts:162:1 › Studio: a stale revision preserves local edits and can recover the server version (6.5s)
+  ✓  43 [mobile-360] › tests\e2e\all-brands.spec.ts:27:1 › E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de periodo (8.4s)
+  ✓  44 [mobile-360] › tests\e2e\brand-reporting.spec.ts:4:1 › Ads and reports retain the selected brand across navigation and report creation (7.5s)
+  ✓  45 [mobile-360] › tests\e2e\metrics-quality.spec.ts:4:1 › Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison (5.7s)
+  ✓  46 [mobile-360] › tests\e2e\studio-audio-editor.spec.ts:13:1 › Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track (13.7s)
+  ✓  47 [mobile-360] › tests\e2e\studio-audio-editor.spec.ts:78:1 › Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds (7.9s)
+  ✓  48 [mobile-360] › tests\e2e\studio-audio-resources.spec.ts:14:1 › Studio audio resources API: private binary upload, byte ranges and native browser playback (6.2s)
+  ✓  49 [mobile-360] › tests\e2e\studio-automation.spec.ts:35:1 › Studio automation: own template substitutes literal fields in an independent branded design and exports (9.8s)
+  ✓  50 [mobile-360] › tests\e2e\studio-automation.spec.ts:96:1 › Studio automation: brand styles, proportional resize and independent variants persist and export (15.5s)
+
+  ✘  51 [mobile-360] › tests\e2e\studio-av-composite.spec.ts:16:1 › Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft (32.8s)
+  ✓  52 [mobile-360] › tests\e2e\studio-frame-export.spec.ts:4:1 › Studio frame export: choose a local page time, export real pixels and retain it with the private brand output (7.0s)
+
+  ✓  53 [mobile-360] › tests\e2e\studio-native-export.spec.ts:6:1 › Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft (22.1s)
+  ✓  54 [mobile-360] › tests\e2e\studio-native-export.spec.ts:86:1 › Studio native history: paginate real exports in one request per page and reopen without creating work (10.3s)
+  ✓  55 [mobile-360] › tests\e2e\studio-timeline.spec.ts:16:1 › Studio timeline: edit windows, split, persist and run a common playhead without changing the document (6.0s)
+
+  ✓  56 [mobile-360] › tests\e2e\studio-timeline.spec.ts:63:1 › Studio timeline: an uploaded real video with an open source end can be split and previewed (7.4s)
+  ✓  57 [mobile-360] › tests\e2e\studio-timeline.spec.ts:101:1 › Studio timeline: splitting the second page uses local clip time and survives undo and redo (5.1s)
+
+  ✓  58 [mobile-360] › tests\e2e\studio-timeline.spec.ts:133:1 › Studio timeline: buffering never consumes a short clip before playback starts (8.0s)
+
+  ✓  59 [mobile-360] › tests\e2e\studio-timeline.spec.ts:165:1 › Studio timeline: closing while media buffers cancels the pending playback (8.2s)
+  ✓  60 [mobile-360] › tests\e2e\studio.spec.ts:25:1 › Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library (6.2s)
+  ✓  61 [mobile-360] › tests\e2e\studio.spec.ts:55:1 › Studio: design persists, exports real PNG and starts a publication in its brand (7.0s)
+  ✓  62 [mobile-360] › tests\e2e\studio.spec.ts:103:1 › Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design (5.6s)
+  ✓  63 [mobile-360] › tests\e2e\studio.spec.ts:162:1 › Studio: a stale revision preserves local edits and can recover the server version (6.0s)
+
+
+  1) [mobile-360] › tests\e2e\studio-av-composite.spec.ts:16:1 › Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('dialog', { name: 'Exportar diseño', exact: true }).getByRole('region', { name: 'Exportación 131', exact: true })
+    Expected substring: "Lista"
+    Received string:    "MP4 · Revisión 1ErrorNo se pudo completar la fase audiovisual. Reintenta o revisa los recursos del diseño.Reintentar"
+    Timeout: 10000ms
+
+    Call log:
+      - Expect "toContainText" getByRole('dialog', { name: 'Exportar diseño', exact: true }).getByRole('region', { name: 'Exportación 131', exact: true }) with timeout 10000ms
+      - waiting for getByRole('dialog', { name: 'Exportar diseño', exact: true }).getByRole('region', { name: 'Exportación 131', exact: true })
+        4 × locator resolved to <section aria-label="Exportación 131" class="min-w-0 space-y-3 rounded-xl border border-slate-200 p-4">…</section>
+          - unexpected value "MP4 · Revisión 1ProcesandoProgreso: 90.91 %Cancelar"
+        19 × locator resolved to <section aria-label="Exportación 131" class="min-w-0 space-y-3 rounded-xl border border-slate-200 p-4">…</section>
+           - unexpected value "MP4 · Revisión 1ErrorNo se pudo completar la fase audiovisual. Reintenta o revisa los recursos del diseño.Reintentar"
+
+
+      75 |         await dialog.getByRole('button', { name: 'Actualizar exportaciones', exact: true }).click();
+      76 |         const row = dialog.getByRole('region', { name: `Exportación ${exported.id}`, exact: true });
+    > 77 |         await expect(row).toContainText('Lista');
+         |                           ^
+      78 |         const ready = await page.evaluate(async id => (await (await fetch(`/studio/exports/${id}`, { headers: { Accept: 'application/json' } })).json()).export, exported.id);
+      79 |         expect(ready).toMatchObject({ status: 'ready', revision: design.revision, brand_id: brand.id }); expect(ready.media_ids).toHaveLength(1);
+      80 |         const [download] = await Promise.all([page.waitForEvent('download'), row.getByRole('link', { name: 'Descargar MP4', exact: true }).click()]);
+        at C:\laragon\www\metricool\tests\e2e\studio-av-composite.spec.ts:77:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    storage\framework\testing\t43\run-general-2d90a00c-beeb-4866-833d-5c94848817ec\artifacts\studio-av-composite-Studio-368ce--through-download-and-draft-mobile-360\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: storage\framework\testing\t43\run-general-2d90a00c-beeb-4866-833d-5c94848817ec\artifacts\studio-av-composite-Studio-368ce--through-download-and-draft-mobile-360\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    storage\framework\testing\t43\run-general-2d90a00c-beeb-4866-833d-5c94848817ec\artifacts\studio-av-composite-Studio-368ce--through-download-and-draft-mobile-360\trace.zip
+    Usage:
+
+        npx playwright show-trace storage\framework\testing\t43\run-general-2d90a00c-beeb-4866-833d-5c94848817ec\artifacts\studio-av-composite-Studio-368ce--through-download-and-draft-mobile-360\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [mobile-360] › tests\e2e\studio-av-composite.spec.ts:16:1 › Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft 
+  62 passed (10.3m)

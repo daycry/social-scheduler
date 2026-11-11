@@ -1,0 +1,43 @@
+{
+  "child_process_limit": 6442450944,
+  "aggregate_job_limit": 6710886400,
+  "floor_bytes": 4294967296,
+  "required_before_bytes": 11005853696,
+  "free_before_bytes": 11885514752,
+  "deadline_seconds": 30,
+  "scope": "Existing offline native fixture tests only; no product changes, application, env, DB or network",
+  "sources_before": {
+    "scripts/studio/process-image.py": "8030b17bffd354f846ceaa5fe7dab1f1b461b9b1bfa106075f0c82e8bfde8445",
+    "scripts/studio/font_probe.py": "a4da2e2729ce300e22c8b1b5bbb281dfefa62b98a1ec26624eaf085105347053",
+    "scripts/studio/av-runtime.py": "2be81a22850c9336ba59dc4013810933825b9e1ec4da38db6c9c6ad048d0652b",
+    "tests/studio_runtime/test_background.py": "504cbe27a78ce05a46ef079f8586284093a30fa4fc70d6475bfdf14bfbc11b60",
+    "tests/studio_runtime/test_memory.py": "4a262977764f4a814394227c7954819623c6c2e03ff5e8b6de073b189ddfa1ab",
+    "tests/Fixtures/images/astronaut.png": "88431cd9653ccd539741b555fb0a46b61558b301d4110412b5bc28b5e3ea6cb5",
+    "storage/app/private/studio-models/birefnet-general-lite.onnx": "5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333"
+  },
+  "state": "finished",
+  "exit_code": 0,
+  "seconds": 10.775550899998052,
+  "free_minimum_observed": 5705973760,
+  "job_after": {
+    "scope": "job",
+    "limit": 6710886400,
+    "peak_commit": 6333394944,
+    "kill_on_close": true,
+    "breakaway": false
+  },
+  "sources_after": {
+    "scripts/studio/process-image.py": "8030b17bffd354f846ceaa5fe7dab1f1b461b9b1bfa106075f0c82e8bfde8445",
+    "scripts/studio/font_probe.py": "a4da2e2729ce300e22c8b1b5bbb281dfefa62b98a1ec26624eaf085105347053",
+    "scripts/studio/av-runtime.py": "2be81a22850c9336ba59dc4013810933825b9e1ec4da38db6c9c6ad048d0652b",
+    "tests/studio_runtime/test_background.py": "504cbe27a78ce05a46ef079f8586284093a30fa4fc70d6475bfdf14bfbc11b60",
+    "tests/studio_runtime/test_memory.py": "4a262977764f4a814394227c7954819623c6c2e03ff5e8b6de073b189ddfa1ab",
+    "tests/Fixtures/images/astronaut.png": "88431cd9653ccd539741b555fb0a46b61558b301d4110412b5bc28b5e3ea6cb5",
+    "storage/app/private/studio-models/birefnet-general-lite.onnx": "5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333"
+  },
+  "source_drift": false,
+  "tests": [
+    "test_background",
+    "test_memory"
+  ]
+}

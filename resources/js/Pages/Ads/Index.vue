@@ -8,6 +8,7 @@ import { computed } from 'vue';
 
 /** Meta Ads, solo lectura (PA-11): cuentas publicitarias, campañas y métricas básicas (gasto, impresiones, clics, CTR, CPC). */
 const props = defineProps({
+    brand: Object,
     overview: Object,
     periods: Array,
 });
@@ -19,7 +20,7 @@ const num = (v, d = 0) => (v === null || v === undefined ? '—' : new Intl.Numb
 const pct = (v) => (v === null || v === undefined ? '—' : `${num(v, 2)} %`);
 
 const go = (patch) => {
-    const q = { ad_account: o.value.selected?.id, days: o.value.period, ...patch };
+    const q = { brand_id: props.brand?.id, ad_account: o.value.selected?.id, days: o.value.period, ...patch };
     router.get(route('ads.index'), q, { preserveScroll: true, preserveState: true });
 };
 </script>
@@ -29,7 +30,7 @@ const go = (patch) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="text-xl font-bold text-slate-900">Meta Ads (solo lectura)</h1>
+            <h1 class="text-xl font-bold text-slate-900">Meta Ads{{ brand ? ` · ${brand.name}` : '' }} (solo lectura)</h1>
         </template>
 
         <div class="space-y-5">
@@ -48,6 +49,7 @@ const go = (patch) => {
 
             <template v-else>
                 <p v-if="o.message" class="card p-5 text-sm text-slate-700">{{ o.message }}</p>
+                <p v-if="brand" class="text-xs text-slate-500">Cuentas publicitarias accesibles mediante la conexión Meta de {{ brand.name }}.</p>
 
                 <div v-if="o.selected" class="card flex flex-wrap items-center gap-4 p-4 text-sm">
                     <label class="flex items-center gap-2">

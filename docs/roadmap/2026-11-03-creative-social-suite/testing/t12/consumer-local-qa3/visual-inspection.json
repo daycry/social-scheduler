@@ -1,0 +1,35 @@
+{
+  "reviewer": "root: directly viewed all nine original screenshots and all ten rendered PDF pages",
+  "issues": [],
+  "scope": "Fidelity of complete E2E28.03 evidence and report layout; no whole-product visual or T12 acceptance",
+  "inspection_limits": [
+    "Long full-page mobile images are reduced in PDF; original PNGs inspected separately at native image detail.",
+    "Data regions below the modal scroll are not fully shown in default-state captures; no manual visual approval of every table cell inferred."
+  ],
+  "known_product_followups": [
+    "Axis title changed in code; actual ink/native CTM probe still pending.",
+    "Dense/export/other families/AV/rest of roadmap remain pending."
+  ],
+  "pdf_sha256": "26a346f31d9dfb8969f0b03fc8fb59b053289e6fc6797a54d7430aa235706e75",
+  "inspected": {
+    "images/1440-errors-table-modal.png": "3e804dde28442578c488ce1b6ea354f7d7a66b3021009e01cdc20b08e8ef9fea",
+    "images/1440-inspector.png": "ac2e5bd81092f481b0804df03c2c848d136ba4537a90213e0cacdd3b0db6279f",
+    "images/1440-empty-historic.png": "8ab48df741fd6685bcea79ed6b1cf7270ad0f6bae36c9c756377b9e70b7d3d45",
+    "images/375-errors-table-modal.png": "2b349e02b30b51f37eb64884807ed9405c77c66c735e3009f201ad6aba58b7a9",
+    "images/375-inspector.png": "2eb930f9985c827359fe1aabebb8ffe3a0bf8ce968bf3250b1206390e47c4c7d",
+    "images/375-empty-historic.png": "80e030313e96ee67910dc7f340a939f34f1040f0c24444e99962a8698086f3d2",
+    "images/768-errors-table-modal.png": "ca647103c18ead682a1a0926e191ece787750d3a97c9ca15db57dba9203f28d9",
+    "images/768-inspector.png": "3795cee81750a1abdd7ff5fee5107b5e248546945b4f92bebbcfb96ec53573d7",
+    "images/768-empty-historic.png": "34f2701213b62cebb8229e04c8085e8f4722d9686dd2d0bd2b607b38818b34a1",
+    "pdf-pages/page-001.png": "4cc1b6bdff8322c23ba4f5c59665e74297aa2461d068facdcd87341cad632a66",
+    "pdf-pages/page-002.png": "dd67f1b323229a74e6ec364df3e4b92d30983fe0aa882258c8bcd8b33869b8fe",
+    "pdf-pages/page-003.png": "7366e271b27866575e7ba5c3524f5537d26020e1ff7ab8d303f91a88e084840d",
+    "pdf-pages/page-004.png": "1567f3716fcae9eef219bb72a5827b0fbd525ca97b2dc81c7ecb6bebedd1b9eb",
+    "pdf-pages/page-005.png": "b30b1ca4498ef80e49d385e0e56610146dbcf30a8e4a72aca18754dc5e7eb1a9",
+    "pdf-pages/page-006.png": "c849c3ea6366a9e02d709b98ce2e2f4e4e348a1c694f0879accd3bef8e9da3ae",
+    "pdf-pages/page-007.png": "04998543db721c714fc43bdd6e9acf8cf110bcc9cf2a90cd53f85f3171c7786a",
+    "pdf-pages/page-008.png": "1dd5f3a98c93022e4229cef212200b8de8d1a5bb9b902962e980eb2e9c7d5d47",
+    "pdf-pages/page-009.png": "3ca60939e579590af3966c98f44081fba6fdfd6f0299982c0512fcad32826b49",
+    "pdf-pages/page-010.png": "60d517c3e9b68151a0cc94353f1ba431283cb101fda259a27c7e4fa77594bd18"
+  }
+}

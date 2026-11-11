@@ -1,0 +1,47 @@
+TAP version 13
+# Subtest: raw page byte cap counts UTF8 incrementally before decoding schema
+not ok 1 - raw page byte cap counts UTF8 incrementally before decoding schema
+  ---
+  duration_ms: 18.097
+  type: 'test'
+  location: 'C:\\laragon\\www\\metricool\\tests\\frontend\\studio-dataset-table.test.mjs:223:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input did not match the regular expression /8 MiB de entrada/. Input:
+    
+    'TypeError: Página: campos inválidos.'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual:
+  error: 'Página: campos inválidos.'
+  name: 'TypeError'
+  stack: |-
+    fail (file:///C:/laragon/www/metricool/resources/js/Studio/dataset-table.js:4:33)
+    keys (file:///C:/laragon/www/metricool/resources/js/Studio/dataset-table.js:52:113)
+    Module.parseDatasetPage (file:///C:/laragon/www/metricool/resources/js/Studio/dataset-table.js:256:40)
+    file:///C:/laragon/www/metricool/tests/frontend/studio-dataset-table.test.mjs:225:30
+    getActual (node:assert:609:5)
+    Function.throws (node:assert:757:24)
+    TestContext.<anonymous> (file:///C:/laragon/www/metricool/tests/frontend/studio-dataset-table.test.mjs:225:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+  operator: 'throws'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/laragon/www/metricool/tests/frontend/studio-dataset-table.test.mjs:225:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 33.4535

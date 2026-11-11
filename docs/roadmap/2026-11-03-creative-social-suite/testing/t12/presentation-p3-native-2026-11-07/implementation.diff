@@ -1,0 +1,13 @@
+diff --git "a/storage\\framework\\testing\\t12-presentation-mobile-layout1\\PresentationDialog.before.vue" b/resources/js/Components/Studio/PresentationDialog.vue
+index f58b8f7..84dc111 100644
+--- "a/storage\\framework\\testing\\t12-presentation-mobile-layout1\\PresentationDialog.before.vue"
++++ b/resources/js/Components/Studio/PresentationDialog.vue
+@@ -231,7 +231,7 @@ onBeforeUnmount(cleanup);
+                         </fieldset>
+                     </div>
+                 </details>
+-                <div class="grid min-h-0 gap-4" :class="mode === 'presenter' ? 'lg:grid-cols-[minmax(0,2fr)_minmax(200px,1fr)]' : ''">
++                <div class="grid shrink-0 gap-4" :class="mode === 'presenter' ? 'lg:grid-cols-[minmax(0,2fr)_minmax(200px,1fr)]' : ''">
+                     <section class="min-w-0" aria-label="Diapositiva actual"><div class="flex aspect-video max-h-[60dvh] items-center justify-center overflow-hidden rounded-xl bg-black"><canvas ref="currentCanvas" class="h-full w-full touch-none object-contain" :style="{ cursor: state.blackout ? 'none' : presentationCursorStyle(toolState) }" role="img" aria-label="Diapositiva de audiencia" @pointerdown="pointer" @pointermove="pointer" @pointerup="pointer" @pointercancel="pointer" @pointerleave="pointer" @lostpointercapture="pointer" /></div></section>
+                     <aside v-show="mode === 'presenter'" class="min-w-0 space-y-3">
+                         <section aria-label="Diapositiva siguiente"><h3 class="mb-1 text-xs font-medium text-slate-300">{{ state.nextPageId ? `Siguiente · ${state.nextPageName}` : 'Fin de la presentación' }}</h3><canvas v-show="state.nextPageId" ref="nextCanvas" class="aspect-video w-full rounded-lg bg-black object-contain" role="img" aria-label="Vista previa siguiente" /></section>

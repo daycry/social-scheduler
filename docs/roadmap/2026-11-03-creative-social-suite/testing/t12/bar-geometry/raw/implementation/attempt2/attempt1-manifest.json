@@ -1,0 +1,330 @@
+{
+  "scope": "Pure G1-G4 bar/column geometry, ten variants; no public document/UI/render/export integration or task closure",
+  "files": {
+    "resources/js/Studio/bar-geometry.js": "d9b2955a231e3b7b54843d50a1a7949f987f469366c32d5c4487c51db0d1ffc4",
+    "tests/frontend/studio-bar-geometry.test.mjs": "4c3e51a0c2982ab57cce42011943de4fd4358ea0946a71c781f06dee4ddf3ed2"
+  },
+  "monitored": {
+    "resources/js/Studio/chart-binding.js": "31e4576a81ea58b1b56bd532f0dc01ec0e781635497ab74ac9bc79a6503daca4",
+    "tests/frontend/studio-chart-binding.test.mjs": "a9779052666bfb6f1ff315bfaf00aaf6318503d85e7b596907ade9d06fbfb39d",
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+    "tests/frontend/studio-dataset-table.test.mjs": "b328009c188b652e35fc4cd8f3a18e41035b3d6e0792f50246edc770fa5742d5"
+  },
+  "contract": "docs/roadmap/2026-11-03-creative-social-suite/t12-bar-geometry-contract.md",
+  "contract_sha256": "042ce4ef2fadd0c151233d1302e68cb418f87e21d22e10f35e7801fdd7b94b3c",
+  "verification": {
+    "tests": 69,
+    "pass": 69,
+    "fail": 0,
+    "skip": 0,
+    "cancelled": 0,
+    "own_tests": 22,
+    "binding_tests": 17,
+    "core_tests": 30,
+    "suite": "26-suite-final.json",
+    "red_criteria": 19,
+    "characterizations": 3
+  },
+  "tdd": [
+    {
+      "test": "options supplies closed immutable defaults detached from caller palette",
+      "evidence": "01-defaults-red.json",
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^options supplies",
+        "tests/frontend/studio-bar-geometry.test.mjs"
+      ],
+      "exit_code": 1,
+      "error": "Expected values to be strictly equal:",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "options rejects unknown kinds fields and ambiguous numeric or palette values",
+      "evidence": "02-schema-red.json",
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^options rejects unknown",
+        "tests/frontend/studio-bar-geometry.test.mjs"
+      ],
+      "exit_code": 1,
+      "error": "'Missing expected exception (TypeError): []'",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "options rejects accessors without invoking them and rejects inherited hidden or symbol fields",
+      "evidence": "03-descriptors-red.json",
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^options rejects accessors",
+        "tests/frontend/studio-bar-geometry.test.mjs"
+      ],
+      "exit_code": 1,
+      "error": "Expected values to be strictly equal:",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "palette requires dense own data and never invokes array getters",
+      "evidence": "04-dense-red.json",
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^palette requires",
+        "tests/frontend/studio-bar-geometry.test.mjs"
+      ],
+      "exit_code": 1,
+      "error": "Expected values to be strictly equal:",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "columns preserve row and number identity with negatives zero and null gaps",
+      "evidence": "05-column-red.json",
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^columns preserve",
+        "tests/frontend/studio-bar-geometry.test.mjs"
+      ],
+      "exit_code": 1,
+      "error": "\"Cannot read properties of null (reading 'kind')\"",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "simple and multicolor variants use both orientations and deterministic category colors",
+      "evidence": "06-orientation-red.json",
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^simple and multicolor",
+        "tests/frontend/studio-bar-geometry.test.mjs"
+      ],
+      "exit_code": 1,
+      "error": "Expected values to be strictly equal:",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "simple and multicolor reject multiple series rather than ignoring selected data",
+      "evidence": "07-series-red.json",
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^simple and multicolor reject",
+        "tests/frontend/studio-bar-geometry.test.mjs"
+      ],
+      "exit_code": 1,
+      "error": "'Missing expected exception.'",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "grouped variants reserve null slots and use series colors without shifting observations",
+      "evidence": "08-grouped-red.json",
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^grouped variants",
+        "tests/frontend/studio-bar-geometry.test.mjs"
+      ],
+      "exit_code": 1,
+      "error": "Expected values to be strictly deep-equal:",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "stacked variants accumulate positive and negative series independently for each category",
+      "evidence": "09-stack-red.json",
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^stacked variants",
+        "tests/frontend/studio-bar-geometry.test.mjs"
+      ],
+      "exit_code": 1,
+      "error": "Expected values to be strictly deep-equal:",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "proportional variants scale huge finite totals and distinguish numeric zeros from missing categories",
+      "evidence": "10-proportion-red.json",
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^proportional variants scale",
+        "tests/frontend/studio-bar-geometry.test.mjs"
+      ],
+      "exit_code": 1,
+      "error": "Expected values to be strictly deep-equal:",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "proportional variants reject negative data and incompatible explicit domains",
+      "evidence": "11-proportion-invalid-red.json",
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^proportional variants reject",
+        "tests/frontend/studio-bar-geometry.test.mjs"
+      ],
+      "exit_code": 1,
+      "error": "'Missing expected exception.'",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "explicit domains contain zero and represented extrema while empty zero domains stay nondegenerate",
+      "evidence": "12-domain-red.json",
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^explicit domains",
+        "tests/frontend/studio-bar-geometry.test.mjs"
+      ],
+      "exit_code": 1,
+      "error": "Expected values to be strictly deep-equal:",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "coordinate interpolation stays finite for opposite extreme endpoints and diagnoses stacked overflow",
+      "evidence": "13-extremes-red.json",
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^coordinate interpolation",
+        "tests/frontend/studio-bar-geometry.test.mjs"
+      ],
+      "exit_code": 1,
+      "error": "'0 != 100'",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "ticks are unique sorted finite and include both endpoints and zero even at subnormal precision",
+      "evidence": "14-ticks-red.json",
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^ticks are",
+        "tests/frontend/studio-bar-geometry.test.mjs"
+      ],
+      "exit_code": 1,
+      "error": "The expression evaluated to a falsy value:",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "geometry preserves projection warnings and identifies nonzero values disappearing at the chosen scale",
+      "evidence": "15-warnings-red.json",
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^geometry preserves projection",
+        "tests/frontend/studio-bar-geometry.test.mjs"
+      ],
+      "exit_code": 1,
+      "error": "The expression evaluated to a falsy value:",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "geometry is deeply immutable and detached from mutable input while preserving Unicode labels",
+      "evidence": "16-immutable-red.json",
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^geometry is deeply",
+        "tests/frontend/studio-bar-geometry.test.mjs"
+      ],
+      "exit_code": 1,
+      "error": "The expression evaluated to a falsy value:",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "proportional underflow never invents a zero total or percentage from a lost nonzero value",
+      "evidence": "21-proportion-underflow-red.json",
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^proportional underflow",
+        "tests/frontend/studio-bar-geometry.test.mjs"
+      ],
+      "exit_code": 1,
+      "error": "'Missing expected exception.'",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "proportional negative eligibility uses the original sign while genuine negative zero remains zero",
+      "evidence": "22-proportion-sign-red.json",
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^proportional negative eligibility",
+        "tests/frontend/studio-bar-geometry.test.mjs"
+      ],
+      "exit_code": 1,
+      "error": "'Missing expected exception.'",
+      "date": "2026-11-06"
+    },
+    {
+      "test": "fractional grouped edges do not escape the plot by floating point roundoff",
+      "evidence": "25-roundoff-red.json",
+      "command": [
+        "node",
+        "--max-old-space-size=512",
+        "--experimental-test-isolation=none",
+        "--test",
+        "--test-name-pattern=^fractional grouped edges",
+        "tests/frontend/studio-bar-geometry.test.mjs"
+      ],
+      "exit_code": 1,
+      "error": "The expression evaluated to a falsy value:",
+      "date": "2026-11-06"
+    }
+  ],
+  "node_version": "v22.23.2",
+  "line_counts": {
+    "resources/js/Studio/bar-geometry.js": 132,
+    "tests/frontend/studio-bar-geometry.test.mjs": 256
+  },
+  "encoding": {
+    "resources/js/Studio/bar-geometry.js": {
+      "replacement_characters": 0,
+      "crlf": 0
+    },
+    "tests/frontend/studio-bar-geometry.test.mjs": {
+      "replacement_characters": 0,
+      "crlf": 0
+    }
+  }
+}

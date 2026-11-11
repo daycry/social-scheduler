@@ -83,6 +83,11 @@ final class SafeUrl
     /** Host ASCII (o punycode que se decodifica a una sola escritura). Rechaza la mezcla de escrituras en una misma etiqueta. */
     private static function hostIsSane(string $host): bool
     {
+        // Espacios Unicode (NBSP, U+2000..U+200A, U+3000...) en el host: navegador y servidor podrian entenderlo distinto.
+        if (preg_match('/\p{Z}/u', $host) === 1) {
+            return false;
+        }
+
         // Hosts literales IPv6 y direcciones IP: nada que normalizar.
         if (str_starts_with($host, '[') || filter_var($host, FILTER_VALIDATE_IP) !== false) {
             return true;

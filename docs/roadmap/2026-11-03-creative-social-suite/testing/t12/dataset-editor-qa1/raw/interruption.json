@@ -1,0 +1,21 @@
+{
+  "state": "interrupted_by_root_fail_fast",
+  "observed_utc": "2026-11-06T09:53:32.215838+00:00",
+  "method": "write_stdin Ctrl-C on existing session23601; tool returned exit1 immediately",
+  "supervisor_pid": 8756,
+  "session": 23601,
+  "finally_completed": false,
+  "results_json_exists": false,
+  "start_record_preserved_sha256": "71a05cfffae6e624b56c7703a51b7a30b547e6dc0c3805130f9ef3bf1c0e6bd4",
+  "qa_gate_exit": 1,
+  "qa_gate_meaning": "NO-VERDE because real results are absent; no valid execution counts",
+  "completed_failures_visible_in_log": 1,
+  "passes_accredited": 0,
+  "axe_files_observed": 0,
+  "review_context_fingerprints": 515,
+  "freeze_snapshot_files": 613,
+  "php_allocator_peak_bytes_observed": 39845888,
+  "final_job_commit_peak_available": false,
+  "native_processes_terminal_observed": true,
+  "no_automatic_restart_or_retry": true
+}

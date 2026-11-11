@@ -1,0 +1,19 @@
+{
+  "scope": "document/screenshot inspection, not UI acceptance",
+  "pdf_pages_inspected": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "screenshot_count": 1,
+  "all_available_screenshots_inspected": true,
+  "desktop_width": 1440,
+  "mobile_tablet_evidence": false,
+  "observations": [
+    "Desktop modal fully visible; table3x4 shows numeric lexemes0.0/-0.0/9007199254740993/1.0, selected revision, download selector and SHA footer.",
+    "Root independently inspected the unique desktop screenshot and observed no visible clipping. Failed state remains failed.",
+    "Contrast violation and both axe incomplete results remain unresolved; no exclusion or conversion to PASS."
+  ],
+  "ci_portability": "NOT VERIFIED; private storage helper imports remain a T22 prerequisite before commits/PR."
+}

@@ -1,0 +1,37 @@
+{
+    "date":  "2026-11-04",
+    "code_head":  "e3f1cef09b9fd900872f3177e7a1785075952bb9",
+    "scope":  "T-09 completed; T-03 backfill and T-18 reconnection corrections; global roadmap remains active at 7/23",
+    "verification":  {
+                         "php":  {
+                                     "passed":  2618,
+                                     "assertions":  15568,
+                                     "failed":  0,
+                                     "skipped":  0
+                                 },
+                         "studio_frontend":  {
+                                                 "passed":  26,
+                                                 "failed":  0,
+                                                 "skipped":  0
+                                             },
+                         "e2e":  {
+                                     "passed":  24,
+                                     "failed":  0,
+                                     "flaky":  0,
+                                     "skipped":  0,
+                                     "interrupted":  0
+                                 },
+                         "independent_review":  "A/B/C/D approved after corrections",
+                         "deployment":  "No VPS action; new kit_reference migration pending in local MySQL; disposable tests migrated"
+                     },
+    "sha256":  {
+                   "raw/phpunit-final.xml":  "6475eb40aba719e57fba2c811f37862ca575419c9707cdfeda0abdc5da4e76ab",
+                   "raw/phpunit-studio-mcp-fixed.xml":  "c2a859dff512053262276eaeeb8a885855f3ae4691e765052bd585df0ae6673b",
+                   "raw/frontend-final.tap":  "30f9d8508c7278e860689b0c34d1ca60af9a3f49f504deeacd845f61825123b7",
+                   "qa/raw/results.json":  "e6fe346b69f56c32b98f330fcc7585077b880e1f864236446ea195c7269c1e0b",
+                   "qa/raw/qa-gate.json":  "f2345d87ef8ab26a8aecc344c8ee30a46b7059720435a24c805a70c4b6432705",
+                   "qa/raw/input-hashes-check.json":  "d139e8a829283e51e2acb7ab3824196bb657a6bc0e1c4547f74f26799bc36993",
+                   "qa/report.md":  "e1c2b31196f3be9b85b2402ac7c0d47d41de2d06ae7ffef69a3bc61cdd5f85b5",
+                   "qa/report.pdf":  "0b493f0cc622f5f2623d2299802fdfbdeff43d5ac6004d311eb3efeaa89740ec"
+               }
+}

@@ -208,6 +208,7 @@ onBeforeUnmount(() => {
             <li v-for="(id, i) in form.media" :key="id" class="flex items-center justify-between rounded border border-slate-200 px-2 py-1 text-sm">
                 <span>{{ i + 1 }}. {{ mediaById(id)?.name ?? `Archivo ${id}` }}
                     <span class="text-slate-500">({{ mediaById(id)?.kind === 'video' ? `vídeo ${mediaById(id)?.duration ?? '?'} s` : 'imagen' }}<template v-if="mediaById(id)?.width"> · {{ mediaById(id).width }}×{{ mediaById(id).height }}</template>)</span>
+                    <a v-if="mediaById(id)?.origin?.url" :href="mediaById(id).origin.url" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs text-violet-700 underline" data-testid="media-origin">Origen: {{ mediaById(id).origin.label }}</a>
                 </span>
                 <span v-if="editable" class="space-x-2">
                     <button type="button" class="text-slate-600" :aria-label="`Subir el archivo ${i + 1}`" @click="move(i, -1)">↑</button>

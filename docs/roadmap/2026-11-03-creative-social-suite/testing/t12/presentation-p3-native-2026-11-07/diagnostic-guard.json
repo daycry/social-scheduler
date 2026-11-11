@@ -1,0 +1,18 @@
+{
+  "exit_code": 0,
+  "resource": {
+    "physical_minimum_observed_bytes": 10114924544,
+    "sample_interval_seconds": 0.1,
+    "elapsed": 579.6298707967217,
+    "job": {
+      "scope": "job",
+      "limit": 3221225472,
+      "peak_commit": 229421056,
+      "kill_on_close": true,
+      "breakaway": false
+    },
+    "failure": null
+  },
+  "original_epoch": 1794027586.7066417,
+  "absolute_deadline": 1794028486.7066417
+}

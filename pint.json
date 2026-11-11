@@ -1,4 +1,7 @@
 {
     "preset": "laravel",
-    "exclude": ["spike"]
+    "exclude": [
+        "spike",
+        "docs/roadmap"
+    ]
 }

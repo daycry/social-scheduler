@@ -1,0 +1,18 @@
+[
+  "php",
+  "-d",
+  "memory_limit=256M",
+  "vendor/pestphp/pest/bin/pest",
+  "--no-configuration",
+  "--bootstrap",
+  "storage/framework/testing/t12-datasets/bootstrap.php",
+  "--test-directory",
+  "tests/Feature/Studio",
+  "tests/Feature/Studio/StudioChartDataTest.php",
+  "tests/Feature/Studio/StudioDatasetsTest.php",
+  "tests/Feature/Studio/StudioTableExportTest.php",
+  "--do-not-cache-result",
+  "--log-junit",
+  "storage\\framework\\testing\\t12-root-regression\\junit.xml",
+  "--colors=never"
+]

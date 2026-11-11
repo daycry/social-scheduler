@@ -1,0 +1,212 @@
+[
+  {
+    "path": "samples/captions/desktop/captions-mp4.mp4",
+    "criterion": "caption window and luminance through fade",
+    "passed": true
+  },
+  {
+    "path": "samples/captions/desktop/captions-gif.gif",
+    "criterion": "caption window and luminance through fade",
+    "passed": true
+  },
+  {
+    "path": "samples/captions/desktop/captions-selection-a.mp4",
+    "criterion": "A alone source1.8-1.95",
+    "passed": true
+  },
+  {
+    "path": "samples/captions/desktop/captions-selection-c-a.mp4",
+    "criterion": "C then A source windows",
+    "passed": true
+  },
+  {
+    "path": "samples/captions/desktop/captions-selection-a-c.mp4",
+    "criterion": "A then C transition source window",
+    "passed": true
+  },
+  {
+    "path": "samples/captions/mobile/captions-mp4.mp4",
+    "criterion": "caption window and luminance through fade",
+    "passed": true
+  },
+  {
+    "path": "samples/captions/mobile/captions-gif.gif",
+    "criterion": "caption window and luminance through fade",
+    "passed": true
+  },
+  {
+    "path": "samples/captions/mobile/captions-selection-a.mp4",
+    "criterion": "A alone source1.8-1.95",
+    "passed": true
+  },
+  {
+    "path": "samples/captions/mobile/captions-selection-c-a.mp4",
+    "criterion": "C then A source windows",
+    "passed": true
+  },
+  {
+    "path": "samples/captions/mobile/captions-selection-a-c.mp4",
+    "criterion": "A then C transition source window",
+    "passed": true
+  },
+  {
+    "path": "samples/captions/mobile-360/captions-mp4.mp4",
+    "criterion": "caption window and luminance through fade",
+    "passed": true
+  },
+  {
+    "path": "samples/captions/mobile-360/captions-gif.gif",
+    "criterion": "caption window and luminance through fade",
+    "passed": true
+  },
+  {
+    "path": "samples/captions/mobile-360/captions-selection-a.mp4",
+    "criterion": "A alone source1.8-1.95",
+    "passed": true
+  },
+  {
+    "path": "samples/captions/mobile-360/captions-selection-c-a.mp4",
+    "criterion": "C then A source windows",
+    "passed": true
+  },
+  {
+    "path": "samples/captions/mobile-360/captions-selection-a-c.mp4",
+    "criterion": "A then C transition source window",
+    "passed": true
+  },
+  {
+    "path": "samples/captions/desktop/captions-svg.zip",
+    "criterion": "portable vector text and private font bytes",
+    "passed": true
+  },
+  {
+    "path": "samples/captions/mobile/captions-svg.zip",
+    "criterion": "portable vector text and private font bytes",
+    "passed": true
+  },
+  {
+    "path": "samples/captions/mobile-360/captions-svg.zip",
+    "criterion": "portable vector text and private font bytes",
+    "passed": true
+  },
+  {
+    "path": "desktop/png/page0",
+    "criterion": "static raster caption pixels",
+    "passed": true
+  },
+  {
+    "path": "desktop/png/page1",
+    "criterion": "static raster caption pixels",
+    "passed": true
+  },
+  {
+    "path": "desktop/pdf/page0",
+    "criterion": "static raster caption pixels",
+    "passed": true
+  },
+  {
+    "path": "desktop/pdf/page1",
+    "criterion": "static raster caption pixels",
+    "passed": true
+  },
+  {
+    "path": "mobile/png/page0",
+    "criterion": "static raster caption pixels",
+    "passed": true
+  },
+  {
+    "path": "mobile/png/page1",
+    "criterion": "static raster caption pixels",
+    "passed": true
+  },
+  {
+    "path": "mobile/pdf/page0",
+    "criterion": "static raster caption pixels",
+    "passed": true
+  },
+  {
+    "path": "mobile/pdf/page1",
+    "criterion": "static raster caption pixels",
+    "passed": true
+  },
+  {
+    "path": "mobile-360/png/page0",
+    "criterion": "static raster caption pixels",
+    "passed": true
+  },
+  {
+    "path": "mobile-360/png/page1",
+    "criterion": "static raster caption pixels",
+    "passed": true
+  },
+  {
+    "path": "mobile-360/pdf/page0",
+    "criterion": "static raster caption pixels",
+    "passed": true
+  },
+  {
+    "path": "mobile-360/pdf/page1",
+    "criterion": "static raster caption pixels",
+    "passed": true
+  },
+  {
+    "path": "raw/artifacts/studio-captions-Studio-cap-5e6f4--VTT-with-clear-file-errors-desktop/captions.srt",
+    "criterion": "SRT/VTT Unicode and shifted cue times",
+    "passed": true
+  },
+  {
+    "path": "raw/artifacts/studio-captions-Studio-cap-5e6f4--VTT-with-clear-file-errors-desktop/captions.vtt",
+    "criterion": "SRT/VTT Unicode and shifted cue times",
+    "passed": true
+  },
+  {
+    "path": "raw/artifacts/studio-captions-Studio-cap-5e6f4--VTT-with-clear-file-errors-mobile/captions.srt",
+    "criterion": "SRT/VTT Unicode and shifted cue times",
+    "passed": true
+  },
+  {
+    "path": "raw/artifacts/studio-captions-Studio-cap-5e6f4--VTT-with-clear-file-errors-mobile/captions.vtt",
+    "criterion": "SRT/VTT Unicode and shifted cue times",
+    "passed": true
+  },
+  {
+    "path": "raw/artifacts/studio-captions-Studio-cap-5e6f4--VTT-with-clear-file-errors-mobile-360/captions.srt",
+    "criterion": "SRT/VTT Unicode and shifted cue times",
+    "passed": true
+  },
+  {
+    "path": "raw/artifacts/studio-captions-Studio-cap-5e6f4--VTT-with-clear-file-errors-mobile-360/captions.vtt",
+    "criterion": "SRT/VTT Unicode and shifted cue times",
+    "passed": true
+  },
+  {
+    "path": "samples\\captions\\desktop\\independent-vector-0.png",
+    "criterion": "independent portable SVG raster caption and loaded private font",
+    "passed": true
+  },
+  {
+    "path": "samples\\captions\\desktop\\independent-vector-1.png",
+    "criterion": "independent portable SVG raster caption and loaded private font",
+    "passed": true
+  },
+  {
+    "path": "samples\\captions\\mobile\\independent-vector-0.png",
+    "criterion": "independent portable SVG raster caption and loaded private font",
+    "passed": true
+  },
+  {
+    "path": "samples\\captions\\mobile\\independent-vector-1.png",
+    "criterion": "independent portable SVG raster caption and loaded private font",
+    "passed": true
+  },
+  {
+    "path": "samples\\captions\\mobile-360\\independent-vector-0.png",
+    "criterion": "independent portable SVG raster caption and loaded private font",
+    "passed": true
+  },
+  {
+    "path": "samples\\captions\\mobile-360\\independent-vector-1.png",
+    "criterion": "independent portable SVG raster caption and loaded private font",
+    "passed": true
+  }
+]

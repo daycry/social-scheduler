@@ -28,6 +28,8 @@ export function useComposer(props) {
         campaign_id: props.post?.campaign_id ?? null,
         scheduled_at: props.post?.scheduled_at ?? '',
         schedule: true,
+        // Aprobación (T-19): solo al crear. En un post guardado se pide con su botón (ApprovalPanel).
+        requires_approval: false,
         media: (props.post?.media ?? []).map((m) => m.id),
         targets: (props.post?.targets ?? []).map((t) => ({
             account_id: t.account_id,
@@ -35,6 +37,10 @@ export function useComposer(props) {
             // `null` = vinculado al texto común (plantilla); una cadena = texto propio de esta red (C-03).
             text: t.text ?? null,
             first_comment: t.first_comment ?? '',
+            // Publicación manual (T-19): el destino no se envía a la red; a la hora se avisa y se marca como publicado.
+            manual: !!t.manual,
+            // Media propia del destino (T-17): `null` = hereda la común; una lista [{ id, alt, cover_id }] = su selección, orden, alt y portada.
+            media: t.media ? t.media.map((m) => ({ id: m.id, alt: m.alt ?? '', cover_id: m.cover_id ?? null })) : null,
             options: { ...(t.options ?? {}) },
         })),
     });
@@ -56,7 +62,11 @@ export function useComposer(props) {
             previews.value[asset.id] = url;
         }
     };
+    // Archivos que solo usa la media propia de algún destino (o que se quitaron de la común después): se resuelven por id.
+    const extraAssets = ref([...(props.post?.target_media_assets ?? [])]);
     const removeMedia = (id) => {
+        const gone = mediaItems.value.find((m) => m.id === id);
+        if (gone && !extraAssets.value.some((m) => m.id === id)) extraAssets.value.push(gone);
         mediaItems.value = mediaItems.value.filter((m) => m.id !== id);
         form.media = form.media.filter((m) => m !== id);
     };
@@ -65,7 +75,46 @@ export function useComposer(props) {
         if (to < 0 || to >= form.media.length) return;
         [form.media[index], form.media[to]] = [form.media[to], form.media[index]];
     };
-    const mediaById = (id) => mediaItems.value.find((m) => m.id === id);
+    const mediaById = (id) => mediaItems.value.find((m) => m.id === id) ?? extraAssets.value.find((m) => m.id === id);
+
+    // Media por destino (T-17). Un destino sin `media` hereda la común; «Personalizar» la copia para editarla sola; «Volver a la común»
+    // la descarta. La media EFECTIVA de un destino es lo que se valida, se previsualiza y se publica.
+    const mediaMeta = computed(() => props.mediaMeta ?? {});
+    const altMax = computed(() => props.altMax ?? 1000);
+    const hasOwnMedia = (target) => Array.isArray(target?.media);
+    const effectiveMedia = (target) => (hasOwnMedia(target) ? target.media : form.media.map((id) => ({ id, alt: '', cover_id: null })));
+    const customizeMedia = (target) => { target.media = form.media.map((id) => ({ id, alt: '', cover_id: null })); };
+    const resetMedia = (target) => { target.media = null; };
+    const moveTargetMedia = (target, index, delta) => {
+        const to = index + delta;
+        if (!hasOwnMedia(target) || to < 0 || to >= target.media.length) return;
+        [target.media[index], target.media[to]] = [target.media[to], target.media[index]];
+    };
+    const removeTargetMedia = (target, index) => { target.media.splice(index, 1); };
+    // Biblioteca de media del usuario (la misma lista `media.index` del selector): se carga una vez, al abrir el selector de una red.
+    const libraryItems = ref([]);
+    const libraryState = ref('idle'); // idle | loading | ready | error
+    const loadLibrary = async () => {
+        if (libraryState.value === 'loading' || libraryState.value === 'ready') return;
+        libraryState.value = 'loading';
+        try {
+            const response = await fetch(route('media.index'), { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+            if (!response.ok) throw new Error(String(response.status));
+            libraryItems.value = (await response.json()).media ?? [];
+            libraryState.value = 'ready';
+        } catch {
+            libraryState.value = 'error';
+        }
+    };
+    const addTargetMedia = (target, id) => {
+        if (!id || target.media.some((m) => m.id === id)) return;
+        const asset = mediaById(id) ?? libraryItems.value.find((m) => m.id === id);
+        if (asset && !mediaById(id)) extraAssets.value.push(asset);
+        target.media.push({ id, alt: '', cover_id: null });
+    };
+    // Archivos que se pueden añadir a la media propia de un destino: los de la común y los de la biblioteca que aún no están en su lista.
+    const addableMedia = (target) => [...mediaItems.value, ...libraryItems.value.filter((m) => !mediaItems.value.some((x) => x.id === m.id))]
+        .filter((m) => !target.media?.some((x) => x.id === m.id));
 
     // Cuentas -> destinos
     const targetFor = (accountId) => form.targets.find((t) => t.account_id === accountId);
@@ -95,6 +144,10 @@ export function useComposer(props) {
             if (account?.network === 'instagram' && ['instagram_image', 'instagram_reel', 'instagram_carousel'].includes(t.content_type)) keep.add('collaborators');
             if (account?.network === 'facebook' && ['facebook_reel', 'facebook_video'].includes(t.content_type)) keep.add('facebook_title');
             if (account?.network === 'youtube') ['category_id', 'tags'].forEach((k) => keep.add(k));
+            if (account?.network === 'instagram' && ['instagram_image', 'instagram_reel', 'instagram_carousel'].includes(t.content_type)) keep.add('location_id');
+            if (account?.network === 'instagram' && t.content_type === 'instagram_image') keep.add('user_tags');
+            if (account?.network === 'linkedin') ['linkedin_visibility', 'linkedin_disable_reshare'].forEach((k) => keep.add(k));
+            if (account?.network === 'pinterest') ['pinterest_board_id', 'pinterest_title', 'pinterest_link'].forEach((k) => keep.add(k));
             for (const key of MANAGED_KEYS) {
                 if (key in t.options && !keep.has(key)) delete t.options[key];
             }
@@ -112,6 +165,19 @@ export function useComposer(props) {
             }
         }
     };
+    // Media propia (T-17): alt y portada que el tipo (o el archivo) no admite se limpian del estado, no solo se ocultan: lo oculto no se envia.
+    const pruneTargetMedia = (targets) => {
+        for (const t of targets) {
+            if (!Array.isArray(t.media)) continue;
+            const meta = props.mediaMeta?.[t.content_type] ?? { alt: false, cover: false };
+            for (const m of t.media) {
+                const kind = mediaById(m.id)?.kind;
+                if (!meta.alt || kind === 'video') m.alt = '';
+                if (!meta.cover || kind === 'image') m.cover_id = null;
+            }
+        }
+    };
+    pruneTargetMedia(form.targets);
     pruneOptions();
     // Los presets solo se aplican al destino que se activa o cuyo tipo cambia: los demás no se tocan.
     let seen = new Map(form.targets.map((t) => [t.account_id, t.content_type]));
@@ -119,6 +185,7 @@ export function useComposer(props) {
         const changed = form.targets.filter((t) => seen.get(t.account_id) !== t.content_type);
         seen = new Map(form.targets.map((t) => [t.account_id, t.content_type]));
         pruneOptions();
+        pruneTargetMedia(changed);
         applyPresets(changed);
         // Un tipo que no admite primer comentario (Story, TikTok) no arrastra el texto del tipo anterior.
         for (const t of changed) if (firstCommentMax.value[t.content_type] == null) t.first_comment = '';
@@ -127,7 +194,7 @@ export function useComposer(props) {
     const toggleAccount = (account, on) => {
         if (on && !targetFor(account.id)) {
             const type = typesOf(account.network)[0]?.value;
-            form.targets.push({ account_id: account.id, content_type: type, text: null, first_comment: '', options: presetOptions(account, type) });
+            form.targets.push({ account_id: account.id, content_type: type, text: null, first_comment: '', manual: false, media: null, options: presetOptions(account, type) });
         } else if (!on) {
             form.targets = form.targets.filter((t) => t.account_id !== account.id);
         }
@@ -273,9 +340,12 @@ export function useComposer(props) {
     // Primera media con vista previa local (imagen o vídeo recién subidos): { url, kind }.
     // Si no hay vista previa local (post reabierto, creado por MCP o elegido de la biblioteca), se usa el fichero guardado.
     const previewOf = (id) => previews.value[id] ?? mediaById(id)?.preview_url ?? null;
+    // La vista previa de una red muestra la media EFECTIVA de su pestaña (la propia o la común) y el alt que se publicará.
+    const previewTarget = computed(() => form.targets.find((t) => t.account_id === currentTab.value) ?? null);
+    const previewItems = computed(() => effectiveMedia(previewTarget.value).map((m) => ({ ...m, asset: mediaById(m.id), url: previewOf(m.id) })));
     const firstPreview = computed(() => {
-        const id = form.media.find((m) => previewOf(m));
-        return id === undefined ? null : { url: previewOf(id), kind: mediaById(id)?.kind ?? 'image' };
+        const item = previewItems.value.find((m) => m.url);
+        return item ? { url: item.url, kind: item.asset?.kind ?? 'image', alt: item.alt || '' } : null;
     });
     const charCount = computed(() => countChars(form.text));
 
@@ -354,6 +424,7 @@ export function useComposer(props) {
         campaigns, creatingCampaign, campaignError, createCampaign, savingCampaign, saveCampaign,
         post, brand, accounts, contentTypes, limits, drivePicker, giphyEnabled, firstCommentMax, editable, form,
         mediaItems, previews, onUploaded, removeMedia, move, mediaById,
+        mediaMeta, altMax, hasOwnMedia, effectiveMedia, customizeMedia, resetMedia, moveTargetMedia, removeTargetMedia, addTargetMedia, addableMedia, loadLibrary, libraryState, previewItems, previewTarget,
         targetFor, targetIndex, typesOf, typeLabel, typeInfo, toggleAccount,
         liveErrors, errorsFor, errorList, hasBlockingErrors, scheduleBlocked, dateErrorList, uploadingMedia, submit, publishNow, sendingNow, remove,
         NOTES_MAX, savingNotes, notesError, notesSaved, saveNotes,

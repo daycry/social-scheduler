@@ -1,0 +1,54 @@
+{
+  "status": "review_A2_B2_no_gaps_root57_pass_T12_integration_pending",
+  "sources": [
+    {
+      "path": "app/Services/Studio/StudioChartData.php",
+      "sha256": "b110018f0f2d5679749869cefa3252048e07090dc0609d573c112af540f91845",
+      "bytes": 8658
+    },
+    {
+      "path": "tests/Feature/Studio/StudioChartDataTest.php",
+      "sha256": "3eeacf817fc8fdd12dccb44c5dc9e00a4bc87c127e36ebfd20c32721850a1fd0",
+      "bytes": 11279
+    }
+  ],
+  "baseline": "both paths absent before initial implementation",
+  "artifacts": {
+    "raw/attempt1/manifest.json": "07026e1323d87cef9405b0d9d2cee82145a2cafe8757d2dac7b481d9b6ed7907",
+    "raw/attempt1/StudioChartData.php.patch": "4286459ea22b242b568d14193782693798dfe460b1972d9581b8a535334ddeef",
+    "raw/attempt1/StudioChartDataTest.php.patch": "5596c5a98aeed25662e1924e209c6790f5278819d5f3cd4d95975dd962f524cb",
+    "raw/attempt2/manifest.json": "f9d219373a8036dbb45fb631cb112af5ad4a12cc56d136293145e41719c984b4",
+    "raw/attempt2/StudioChartData.php.delta.patch": "b9259826f93500c63941df07ad04b2056615678b642aef4218a54e2cc00c4976",
+    "raw/attempt2/StudioChartData.php.patch": "afc2e6a0b6904ed2803631b67a35fda4e1ce828ca5504dc2d8f2d1ab4aea45ad",
+    "raw/attempt2/StudioChartDataTest.php.delta.patch": "9d4808e62d7459a9bcdff1113cb2633175340420cce9291ded9e6012e2d9f4c8",
+    "raw/attempt2/StudioChartDataTest.php.patch": "8c175d7662128bda9076b23512c3bb2e921598171d1dbe31efa5bbee5660d953",
+    "raw/neighbors_f138ce7e4b2d48a6aa929a82619ac952/output.txt": "57c20dac6e1416ab718c330a4928b3a8eeca6cc68dfbeb269e60de35cf2ad468",
+    "raw/root.stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "raw/root.stdout.txt": "687072d386d362dfdcfa4cbfdc6e624e36a83262b61144b224c24e48a33419b3",
+    "raw/run_2f8ad3c47a2040e8a946d05591a1252f/output.txt": "728153f53d7ba064b4cde67ae1d95e6cb362a0ddd6ec96b9f51018231d55e558",
+    "raw/run_39acb36e25a34ec59e643f6bbdb68c25/output.txt": "e1885cae5eaa2fd290b869715e39b09614d50a641f19b8b84c716d9da2877f76",
+    "raw/run_44d5c6c36ad04f379c75172c23599e00/output.txt": "3b17cb62aa3be3f0f15a71302d7cae23900ec2eb3b5ba88a1215cd8ba0258b87",
+    "raw/run_52356869ace94a36a9ad228f0d684f3f/output.txt": "aaa6fa98b5f8fbb36a30343cf17e4de35a7a78a0d60b2f894566e0f978774249",
+    "raw/run_62344585af6b489d898a5ee893b40a38/output.txt": "10e39b1e7d18366b86599d4237657d214751e08e0172c7ba08bc3d04f5d5f0a7",
+    "raw/run_6a282d10156d4b67b9afbe6fc49a879f/output.txt": "3016f356b3168303633d9da238fcfaeece6bf54978e34a26d31824520bbc6a60",
+    "raw/run_7e2ffc8df0bd4e60b83d220fd46e1231/output.txt": "b3bf81711ae632b758d371a6ffc880bf52831969f679830dafdfd092c9745173",
+    "raw/run_837556837c1d41fca9ae323a2f34da44/output.txt": "a6f45d866e63ff3291ec6a9a99d449c5ba209712bbb0a0cc6ff196120c9d9b32",
+    "raw/run_882dc4209b1442d8bd3b937048412745/output.txt": "ef1a3e27532f48e3300eb0a2d0f009ea8bd2f0ca3fbebfaa38912ecb4db574fa",
+    "raw/run_9614d9389f18496685be9917e280c8c3/output.txt": "96940d2e5e067d341b71a768baf6a514a7f1fd202c17e2ac45a3d8d5a56c46ed",
+    "raw/run_9781174ea5774cff92e5998dcb9ddc15/output.txt": "95c817a133258e5439ca05a3fcfd89f44a2b8d0df86761b0653fe5916e1b8c80",
+    "raw/run_9bf722018c854178a0f8cb18266d2e5b/output.txt": "a0c37999d38843af1a95f97389c1b9b08ee447b273284b45d6a2b3537b7039b9",
+    "raw/run_bb09cefb6afb409981fc569d0219bea5/output.txt": "18288707150e09eafc5a183ce1b3fe75f50e8f0b84cbabb9b6b500f627089415",
+    "raw/run_bf46518498a04ed99f406066cc621e08/output.txt": "c77a41f613fefce72d0c53100adfe0641390bb853b47f041925b64e787583aa0",
+    "raw/run_d02baf37eeca464aafb7ce04b8690fc9/output.txt": "f5b46f194dfa4070f973a3fdcf990d679c88c06e709203a91991bd8223fe2370",
+    "raw/run_e5b10899a93b43848e5e526d02a7285b/output.txt": "274901803521432fd8440a513ad2f70536dc9a9a5e9f78991763b47d6dda9c26",
+    "raw/run_fc4440664acc4cda9a5da6f0504a3515/output.txt": "a87e1d551ce10bab116261d33520b5925ff014a5ffc720dfda9b84afddd3fbd2",
+    "raw/tdd-evidence.md": "a7681f1b1e81f12b479bda008791944122c2648fe5eb749b4718f569b4db1994",
+    "review.md": "8b878877dab2ed900f16035a81431440d3f6f090887eb1ff5aafaf06ae840b1f",
+    "root-verification.json": "48a6fd8dffcba2159315903fafc83b08083597e5c9e8fa04959cc7ffef7127fe"
+  },
+  "limits": [
+    "Pure data core, not editor/charts/XLSX/Office or T12 acceptance",
+    "CSV textual only; no typed/ID roundtrip",
+    "No spreadsheet-safe download exposed"
+  ]
+}

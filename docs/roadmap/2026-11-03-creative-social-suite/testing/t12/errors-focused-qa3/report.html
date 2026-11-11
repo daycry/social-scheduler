@@ -1,0 +1,156 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>T12 C3charts QA</title><style>/* to-pdf — tema moderno para PDF (impresión A4). */
+
+:root {
+  --ink: #1f2328;
+  --ink-soft: #57606a;
+  --accent: #0969da;
+  --line: #d0d7de;
+  --line-soft: #e6e9ee;
+  --code-bg: #f6f8fa;
+  --thead-bg: #f6f8fa;
+  --stripe: #fafbfc;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", "Liberation Sans", sans-serif;
+  font-size: 11pt;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+.doc { max-width: 100%; }
+
+/* Titulares */
+h1, h2, h3, h4, h5, h6 {
+  color: #0b0c0e;
+  font-weight: 650;
+  line-height: 1.25;
+  margin: 1.4em 0 0.5em;
+  break-after: avoid;
+}
+h1 { font-size: 22pt; margin-top: 0; padding-bottom: .25em; border-bottom: 2px solid var(--line); letter-spacing: -0.01em; }
+h2 { font-size: 16pt; padding-bottom: .2em; border-bottom: 1px solid var(--line-soft); }
+h3 { font-size: 13pt; }
+h4 { font-size: 11.5pt; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+
+p { margin: 0 0 .8em; }
+
+a { color: var(--accent); text-decoration: none; }
+
+strong { font-weight: 650; }
+
+/* Listas */
+ul, ol { margin: 0 0 .8em; padding-left: 1.4em; }
+li { margin: .2em 0; }
+li > p { margin: 0; }
+
+/* Cita */
+blockquote {
+  margin: 0 0 1em;
+  padding: .2em 0 .2em 1em;
+  border-left: 3px solid var(--line);
+  color: var(--ink-soft);
+}
+
+/* Código */
+code, kbd, pre, samp {
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace;
+  font-size: .88em;
+}
+code {
+  background: var(--code-bg);
+  padding: .12em .38em;
+  border-radius: 5px;
+  border: 1px solid var(--line-soft);
+}
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: .85em 1em;
+  overflow: auto;
+  line-height: 1.5;
+  break-inside: avoid;
+}
+pre code { background: none; border: 0; padding: 0; }
+
+/* Tablas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1em;
+  font-size: .95em;
+  break-inside: avoid;
+}
+th, td { border: 1px solid var(--line); padding: .5em .7em; text-align: left; vertical-align: top; }
+thead th { background: var(--thead-bg); font-weight: 650; }
+tbody tr:nth-child(even) { background: var(--stripe); }
+
+/* Multimedia y separadores */
+img { max-width: 100%; height: auto; }
+hr { border: 0; border-top: 1px solid var(--line-soft); margin: 1.6em 0; }
+
+/* Paginación */
+table, pre, blockquote, figure { break-inside: avoid; }
+h1, h2, h3 { page-break-after: avoid; }
+pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:8pt}table{font-size:8pt;table-layout:fixed;width:100%;break-inside:auto}td,th{overflow-wrap:anywhere}tr{break-inside:avoid}img{max-height:235mm;object-fit:contain}h2,h3{break-after:avoid}</style><body><main class="doc"><h1>T12: errores y accesibilidad, validación focal</h1>
+<p><strong>NO-PASS</strong>. Casos realmente ejecutados: 1/3; registros del JSON: 3, incluidos los no ejecutados. E2E28.03 previsto íntegro a375/768/1440px, un worker, cero reintentos y fail-fast1. T12 sigue abierta. La inspección de estas figuras/PDF se registra por SHA; no sustituye el resultado automático.</p>
+<h2>Comprobaciones del escenario</h2>
+<p>Tabla DOM con tipos y lexemas originales; proporciones negativas bloqueadas; safe/approximate para9007199254740993; estilo guardado/editado e Inspector; teclado, foco visible y restaurado; revisión histórica vacíaB4 fijada a1 mientras la actual2 tiene filas. El test exige ausencia de aplicación tardía tras cancelar una respuesta HTTP real retenida; captura200, bytes/SHA, cancelación y liberación se contrastan con el journal pasivo. No se simula éxito HTTP ni se amplían abortos permitidos.</p>
+<p>En un grupo completo se exigen9recibos axe sin violations/incomplete,9capturas,3pruebas de foco/holds/B4/red/viewports y font-responses vacío. El recuento independiente rechaza evidencia faltante, adicional o incoherente. Los campos originales y el gate están junto al informe. Si este intento falla, los pasos no alcanzados continúan pendientes; no se completan con registros ficticios.</p>
+<h2>Recursos y cierre</h2>
+<p>Runtime ficticio aislado y sólo loopback, sin .env/DB/proveedor real. Build5 actual antes de ejecutar. Job3GiB COMMIT agregado, preflight físico6GiB, piso3GiB cada100ms, PHP256MiB/Node512MiB; plazo único900s incluyendo clausura. Pico del núcleo 711835648B, duración 25.646s, mínimo físico 8134578176B. Fallo de recursos: None. Clausura registrada por separado; plazo global 25.84030260000145s. Procesos propios cerrados y8080IPv4/IPv6libres. PDF posterior en Job separado. 462fuentes comprobadas antes/después y trasPDF.</p>
+<h2>Alcance pendiente</h2>
+<p>Este resultado no acredita SVG/PNG/PDF exportados, fuente privada, densidad, otras variantes o familias, AV o el roadmap completo. Servidor tiene su informe independiente; no se agregan JSON con huellas distintas para inventar12casos. El títuloY pequeño sigue como corrección visual pendiente. La aceptación funcional de este escenario no equivale a aprobación visual de toda la interfaz.</p>
+<h2>Resultado y antecedentes</h2>
+<pre><code class="language-text">desktop: Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: 1
+Received: 0
+
+Call Log:
+- Timeout 5000ms exceeded while waiting on the predicate
+
+   at support\studio-chart-delay.ts:10
+
+   8 |  const offset=fs.existsSync(log)?fs.statSync(log).size:0;fs.writeFileSync(file,JSON.stringify({method,path:route,token}));
+   9 |  const rows=()=&gt;fs.existsSync(log)?fs.readFileSync(log).subarray(offset).toString('utf8').split('\n').filter(Boolean).map(line=&gt;JSON.parse(line)).filter(row=&gt;row.token===token):[];
+&gt; 10 |  return {async captured(){await expect.poll(()=&gt;rows().filter(r=&gt;r.kind==='hold-captured-real-response').length).toBe(1);const row=rows().find(r=&gt;r.kind==='hold-captured-real-response');expect(row.status).toBe(200);expect(row.upstream_status).toBe(200);expect(row.bytes).toBeGreaterThan(0);expect(row.sha256).toMatch(/^[a-f0-9]{64}$/);return row;},async cancelled(){await expect.poll(()=&gt;rows().filter(r=&gt;r.kind==='hold-client-cancelled').length).toBe(1);},async release(){fs.writeFileSync(path.join(runRoot,`hold-${token}.release`),'release');await expect.poll(()=&gt;rows().filter(r=&gt;r.kind==='hold-released').length).toBe(1);const released=rows().find(r=&gt;r.kind==='hold-released');expect(released.deadline_release).toBe(false);return rows();}};
+     |                                                                                                                  ^
+  11 | }
+  12 |
+    at Object.captured (C:\laragon\www\metricool\tests\e2e\support\studio-chart-delay.ts:10:114)
+    at C:\laragon\www\metricool\tests\e2e\studio-charts.spec.ts:41:672
+</code></pre>
+<pre><code class="language-text">desktop: Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: 1
+Received: 0
+
+Call Log:
+- Timeout 5000ms exceeded while waiting on the predicate
+
+   at support\studio-chart-delay.ts:10
+
+   8 |  const offset=fs.existsSync(log)?fs.statSync(log).size:0;fs.writeFileSync(file,JSON.stringify({method,path:route,token}));
+   9 |  const rows=()=&gt;fs.existsSync(log)?fs.readFileSync(log).subarray(offset).toString('utf8').split('\n').filter(Boolean).map(line=&gt;JSON.parse(line)).filter(row=&gt;row.token===token):[];
+&gt; 10 |  return {async captured(){await expect.poll(()=&gt;rows().filter(r=&gt;r.kind==='hold-captured-real-response').length).toBe(1);const row=rows().find(r=&gt;r.kind==='hold-captured-real-response');expect(row.status).toBe(200);expect(row.upstream_status).toBe(200);expect(row.bytes).toBeGreaterThan(0);expect(row.sha256).toMatch(/^[a-f0-9]{64}$/);return row;},async cancelled(){await expect.poll(()=&gt;rows().filter(r=&gt;r.kind==='hold-client-cancelled').length).toBe(1);},async release(){fs.writeFileSync(path.join(runRoot,`hold-${token}.release`),'release');await expect.poll(()=&gt;rows().filter(r=&gt;r.kind==='hold-released').length).toBe(1);const released=rows().find(r=&gt;r.kind==='hold-released');expect(released.deadline_release).toBe(false);return rows();}};
+     |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          ^
+  11 | }
+  12 |
+    at Object.release (C:\laragon\www\metricool\tests\e2e\support\studio-chart-delay.ts:10:61
+</code></pre>
+<p>El intento conserva sus fallos originales y los pasos no alcanzados; no se relajan las aserciones.</p>
+<h2>Evidencias visuales</h2>
+<h3>images/desktop-no-viewport-receipt-errors-table-modal.png</h3>
+<p><img src="images/desktop-no-viewport-receipt-errors-table-modal.png" alt="images/desktop-no-viewport-receipt-errors-table-modal.png" /></p>
+<h3>images/desktop-no-viewport-receipt-test-failed-1.png</h3>
+<p><img src="images/desktop-no-viewport-receipt-test-failed-1.png" alt="images/desktop-no-viewport-receipt-test-failed-1.png" /></p>
+</main></body></html>

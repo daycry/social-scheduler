@@ -1,0 +1,10 @@
+﻿{
+    "tests/e2e/metrics-quality.spec.ts":  "22f56d084de2951b384855b9f2c462277f3e5313e006485a1d9039dbfaed250d",
+    "tests/e2e/brand-reporting.spec.ts":  "e1788139b9afdf90df821b64a8bfac81db2f9c75fd3f2e7a5462cacd2921f974",
+    "tests/e2e/studio-automation.spec.ts":  "58e042bc1509e1684934bd84057a8f9c6fbd9c1e992a704e4293d3e52a70ad95",
+    "playwright.config.ts":  "8f61cb011c23361e695e0246286db1b81d0c1847c8971fbf78520f2bc798c0fe",
+    "resources/js/Pages/Studio/Editor.vue":  "272e4e7c057e8286a688c6912f7414f36942fdeb33cbfe48d02499fbad7084f5",
+    "tests/e2e/studio.spec.ts":  "8478d9a1804c261f3d5bf14db5368ee48e3f4eb1e159b4a2b8dbc33cf0a06b83",
+    "public/build/manifest.json":  "b77e916b610f67b4d940cb7117f2a868e6b408d02912bb67993ce0ccb308b2b9",
+    "resources/js/Pages/Studio/Index.vue":  "6f269a2869b1ae5144c8fe1149a27ad147684ff5ab2d7baba86a600bb1f27475"
+}

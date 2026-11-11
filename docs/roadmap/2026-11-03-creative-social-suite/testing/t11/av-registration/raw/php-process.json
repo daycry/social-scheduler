@@ -1,0 +1,26 @@
+{
+  "pid": 240,
+  "command": [
+    "php",
+    "vendor/bin/pest",
+    "tests/Feature/Studio/StudioAvStateTest.php",
+    "tests/Feature/Studio/StudioAvRegistrationTest.php",
+    "tests/Feature/Studio/StudioAvFilesTest.php",
+    "tests/Feature/Studio/StudioAvCleanupTest.php",
+    "tests/Feature/Studio/StudioAvQueueTest.php",
+    "tests/Feature/Studio/StudioAvProcessTest.php",
+    "tests/Feature/Studio/StudioRendererTest.php",
+    "tests/Feature/Studio/StudioApiMcpTest.php",
+    "tests/Feature/Studio/StudioBackendTest.php",
+    "tests/Feature/Studio/StudioAutomationTest.php",
+    "tests/Feature/Studio/StudioFrameTimesTest.php",
+    "tests/Feature/Studio/StudioTimelineDocumentTest.php",
+    "tests/Feature/Studio/StudioAudioTest.php",
+    "tests/Feature/Studio/StudioAudioAbortTest.php",
+    "tests/Feature/Media/MediaUploadTest.php",
+    "tests/Feature/Media/ImportRemoteMediaTest.php",
+    "--log-junit",
+    "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t11-registration-final\\phpunit.xml"
+  ],
+  "native_optin": true
+}

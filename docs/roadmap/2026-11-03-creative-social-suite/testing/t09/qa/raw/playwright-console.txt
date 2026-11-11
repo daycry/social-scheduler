@@ -1,0 +1,44 @@
+node.exe : npm notice run npx
+At C:\laragon\bin\nodejs\node-v22\npx.ps1:16 char:5
++     & "$basedir/node$exe"  "$basedir/node_modules/npm/bin/npx-cli.js" ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm notice run npx:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm notice run playwright test tests/e2e/studio.spec.ts tests/e2e/studio-automation.spec.ts 
+tests/e2e/metrics-quality.spec.ts tests/e2e/brand-reporting.spec.ts
+
+Running 24 tests using 1 worker
+
+(node:18468) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [desktop] › tests\e2e\brand-reporting.spec.ts:4:1 › Ads and reports retain the selected brand across navigation and report creation (5.2s)
+  ✓   2 [desktop] › tests\e2e\metrics-quality.spec.ts:4:1 › Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison (4.0s)
+  ✓   3 [desktop] › tests\e2e\studio-automation.spec.ts:35:1 › Studio automation: own template substitutes literal fields in an independent branded design and exports (7.5s)
+  ✓   4 [desktop] › tests\e2e\studio-automation.spec.ts:96:1 › Studio automation: brand styles, proportional resize and independent variants persist and export (11.4s)
+  ✓   5 [desktop] › tests\e2e\studio.spec.ts:25:1 › Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library (6.4s)
+  ✓   6 [desktop] › tests\e2e\studio.spec.ts:55:1 › Studio: design persists, exports real PNG and starts a publication in its brand (6.3s)
+  ✓   7 [desktop] › tests\e2e\studio.spec.ts:103:1 › Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design (5.3s)
+  ✓   8 [desktop] › tests\e2e\studio.spec.ts:162:1 › Studio: a stale revision preserves local edits and can recover the server version (5.1s)
+(node:22184) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   9 [mobile] › tests\e2e\brand-reporting.spec.ts:4:1 › Ads and reports retain the selected brand across navigation and report creation (4.7s)
+  ✓  10 [mobile] › tests\e2e\metrics-quality.spec.ts:4:1 › Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison (3.6s)
+  ✓  11 [mobile] › tests\e2e\studio-automation.spec.ts:35:1 › Studio automation: own template substitutes literal fields in an independent branded design and exports (8.2s)
+  ✓  12 [mobile] › tests\e2e\studio-automation.spec.ts:96:1 › Studio automation: brand styles, proportional resize and independent variants persist and export (10.9s)
+  ✓  13 [mobile] › tests\e2e\studio.spec.ts:25:1 › Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library (5.7s)
+  ✓  14 [mobile] › tests\e2e\studio.spec.ts:55:1 › Studio: design persists, exports real PNG and starts a publication in its brand (6.4s)
+  ✓  15 [mobile] › tests\e2e\studio.spec.ts:103:1 › Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design (5.6s)
+  ✓  16 [mobile] › tests\e2e\studio.spec.ts:162:1 › Studio: a stale revision preserves local edits and can recover the server version (5.2s)
+(node:21556) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  17 [mobile-360] › tests\e2e\brand-reporting.spec.ts:4:1 › Ads and reports retain the selected brand across navigation and report creation (4.6s)
+  ✓  18 [mobile-360] › tests\e2e\metrics-quality.spec.ts:4:1 › Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison (3.5s)
+  ✓  19 [mobile-360] › tests\e2e\studio-automation.spec.ts:35:1 › Studio automation: own template substitutes literal fields in an independent branded design and exports (7.6s)
+  ✓  20 [mobile-360] › tests\e2e\studio-automation.spec.ts:96:1 › Studio automation: brand styles, proportional resize and independent variants persist and export (11.1s)
+  ✓  21 [mobile-360] › tests\e2e\studio.spec.ts:25:1 › Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library (5.6s)
+  ✓  22 [mobile-360] › tests\e2e\studio.spec.ts:55:1 › Studio: design persists, exports real PNG and starts a publication in its brand (6.2s)
+  ✓  23 [mobile-360] › tests\e2e\studio.spec.ts:103:1 › Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design (5.2s)
+  ✓  24 [mobile-360] › tests\e2e\studio.spec.ts:162:1 › Studio: a stale revision preserves local edits and can recover the server version (5.1s)
+
+  24 passed (2.7m)

@@ -1,0 +1,26 @@
+--- a/tests/Feature/Studio/StudioChartDataTest.php
++++ b/tests/Feature/Studio/StudioChartDataTest.php
+@@ -188,3 +188,23 @@
+     $table['rows'][209]['values'][0] .= 'a';
+     expect(fn () => (new StudioChartData)->normalize($table))->toThrow(InvalidArgumentException::class, '2 MiB');
+ });
++
++test('import validation identifies the CSV record including headers and multiline fields', function (bool $header, string $invalid) {
++    $prefix = $header ? "h\n" : '';
++    $input = $prefix."\"valid\nmultiline\"\n\"".$invalid.'"';
++    $record = $header ? 3 : 2;
++    expect(fn () => (new StudioChartData)->import($input, 'csv', $header))
++        ->toThrow(InvalidArgumentException::class, 'row '.$record.', column 1');
++})->with([true, false])->with(["bad\0value", str_repeat('x', 10001)]);
++
++test('import validation identifies invalid header cells as CSV record one', function (string $label) {
++    expect(fn () => (new StudioChartData)->import('valid,"'.$label."\"\nvalue,other"))
++        ->toThrow(InvalidArgumentException::class, 'row 1, column 2');
++})->with(["bad\0label", str_repeat('x', 501)]);
++
++test('normalization errors continue to identify data rows independently of CSV headers', function () {
++    $table = chartTable(['valid']);
++    $table['rows'][] = ['id' => 'r_2', 'values' => ["bad\0value"]];
++    expect(fn () => (new StudioChartData)->normalize($table))
++        ->toThrow(InvalidArgumentException::class, 'row 2, column 1');
++});

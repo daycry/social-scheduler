@@ -1,0 +1,11 @@
+{
+  "json_fabricated": false,
+  "results_sha256": "51e003f7aabd7935f1f25f7511b28f18a031deaa2c11d756d9b6845adf231010",
+  "blobs": [
+    {
+      "sha256": "60bf3d17f5a325124ca5479e185922b4106c813f38b2dd87002fe12ff2bdbffd",
+      "bytes": 135884
+    }
+  ],
+  "originals": "Retained privately in immutable errors-execution2/raw; no merged/reconstructed JSON"
+}

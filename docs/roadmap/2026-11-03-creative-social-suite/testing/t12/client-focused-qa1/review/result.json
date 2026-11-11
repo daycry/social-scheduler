@@ -1,0 +1,22 @@
+{
+  "lenses": [
+    "A",
+    "B"
+  ],
+  "preserved_lenses": [
+    "D"
+  ],
+  "critical": 0,
+  "important": 0,
+  "minor": 0,
+  "gaps": [
+    {
+      "id": "A1/B1",
+      "state": "corrected"
+    }
+  ],
+  "previous_verdict_sha256": "b60935114c85c197720fa077bea647a546402e43de353012434ef9b948b37da6",
+  "delta_sha256": "76f32d814b1808237f1d7e39cdf136a7d98c8cca2fd4f46c947cd61420a9515f",
+  "native_client_cases": 0,
+  "global_acceptance": false
+}

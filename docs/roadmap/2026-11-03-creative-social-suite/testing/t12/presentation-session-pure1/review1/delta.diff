@@ -1,0 +1,236 @@
+--- /dev/null
++++ resources/js/Studio/presentation.js
+@@ -0,0 +1,102 @@
++import { validateDocument } from './document.js';
++
++const OPTION_FIELDS = ['pageIds', 'startPageId', 'loop'];
++const fail = message => { throw new TypeError(message); };
++
++function captureOptions(value) {
++    if (!value || typeof value !== 'object' || Array.isArray(value)
++        || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) fail('Opciones de presentación propias requeridas.');
++    const result = {};
++    for (const key of Reflect.ownKeys(value)) {
++        const descriptor = Object.getOwnPropertyDescriptor(value, key);
++        if (!OPTION_FIELDS.includes(key) || !descriptor.enumerable || !Object.hasOwn(descriptor, 'value')) fail('Opciones de presentación de datos propios requeridas.');
++        result[key] = descriptor.value;
++    }
++    if (Object.hasOwn(result, 'loop') && typeof result.loop !== 'boolean') fail('loop debe ser booleano.');
++    return result;
++}
++
++function capturePageIds(value) {
++    if (!Array.isArray(value) || ![Array.prototype, null].includes(Object.getPrototypeOf(value))) fail('La selección de páginas debe ser una lista propia.');
++    const descriptors = Object.getOwnPropertyDescriptors(value);
++    const length = descriptors.length.value;
++    if (length < 1 || length > 100 || Reflect.ownKeys(descriptors).length !== length + 1) fail('Selecciona entre 1 y 100 páginas distintas.');
++    const result = [];
++    for (let index = 0; index < length; index++) {
++        const descriptor = descriptors[index];
++        if (!descriptor?.enumerable || !Object.hasOwn(descriptor, 'value') || typeof descriptor.value !== 'string') fail('La selección de páginas debe contener IDs propios sin huecos.');
++        result.push(descriptor.value);
++    }
++    if (new Set(result).size !== result.length) fail('Selecciona páginas distintas.');
++    return result;
++}
++
++/** A presentation clock driven explicitly by its UI, with no timers or browser ownership. */
++export function createPresentationSession(document, options = {}) {
++    const captured = captureOptions(options);
++    const valid = validateDocument(document);
++    const byId = new Map(valid.pages.map(page => [page.id, page]));
++    const pageIds = Object.freeze(Object.hasOwn(captured, 'pageIds') ? capturePageIds(captured.pageIds) : valid.pages.map(page => page.id));
++    const pages = pageIds.map(id => {
++        const page = byId.get(id);
++        if (!page) fail('La página seleccionada no existe en el documento.');
++        return { id, name: page.name, durationMs: page.duration * 1000 };
++    });
++    let index = Object.hasOwn(captured, 'startPageId') ? pageIds.indexOf(captured.startPageId) : 0;
++    if (index < 0) fail('La página inicial debe pertenecer a la selección.');
++    const loop = captured.loop ?? false;
++    const starts = [];
++    let totalDuration = 0;
++    for (const page of pages) { starts.push(totalDuration); totalDuration += page.durationMs; }
++    let elapsedMs = 0;
++    let playing = false;
++    let ended = false;
++    let blackout = false;
++    let disposed = false;
++
++    function snapshot() {
++        return Object.freeze({ pageIds, index, pageId: pages[index].id, pageName: pages[index].name,
++            nextPageId: pages[index + 1]?.id ?? (loop ? pages[0].id : null), elapsedMs,
++            durationMs: pages[index].durationMs, playing, ended, blackout, disposed });
++    }
++    function active() { if (disposed) fail('La sesión cerrada no admite más comandos.'); }
++    function move(nextIndex) { index = nextIndex; elapsedMs = 0; ended = false; return snapshot(); }
++    function finish() { index = pages.length - 1; elapsedMs = pages[index].durationMs; playing = false; ended = true; return snapshot(); }
++
++    return Object.freeze({
++        snapshot,
++        play() { active(); if (ended) move(0); playing = true; return snapshot(); },
++        pause() { active(); playing = false; return snapshot(); },
++        next() { active(); return index + 1 < pages.length ? move(index + 1) : loop ? move(0) : finish(); },
++        previous() { active(); return move(index > 0 ? index - 1 : loop ? pages.length - 1 : 0); },
++        first() { active(); return move(0); },
++        last() { active(); return move(pages.length - 1); },
++        select(pageId) {
++            active(); const selected = pageIds.indexOf(pageId);
++            if (selected < 0) fail('La página seleccionada no pertenece a esta presentación.');
++            return move(selected);
++        },
++        advance(deltaMs) {
++            active();
++            if (typeof deltaMs !== 'number' || !Number.isFinite(deltaMs) || deltaMs < 0 || deltaMs > Number.MAX_SAFE_INTEGER) fail('El tiempo delta debe ser milisegundos finitos no negativos y seguros.');
++            if (!playing) return snapshot();
++            const currentPosition = starts[index] + elapsedMs;
++            if (!loop && deltaMs >= totalDuration - currentPosition) return finish();
++            // Reduce before adding: even a huge delta retains the existing fractional offset.
++            let position = currentPosition + (loop ? deltaMs % totalDuration : deltaMs);
++            if (loop && position >= totalDuration) position -= totalDuration;
++            index = 0;
++            // At most one walk through the selected pages, independent of elapsed cycles.
++            while (index + 1 < pages.length && position >= pages[index].durationMs) {
++                position -= pages[index].durationMs; index++;
++            }
++            elapsedMs = position;
++            return snapshot();
++        },
++        setBlackout(value) {
++            active(); if (typeof value !== 'boolean') fail('Blackout debe ser booleano.');
++            blackout = value; return snapshot();
++        },
++        dispose() { playing = false; disposed = true; return snapshot(); },
++    });
++}
+--- /dev/null
++++ tests/frontend/studio-presentation.test.mjs
+@@ -0,0 +1,128 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { validateDocument } from '../../resources/js/Studio/document.js';
++
++const target = new URL('../../resources/js/Studio/presentation.js', import.meta.url);
++const subject = await import(target).catch(error => {
++    if (error.code === 'ERR_MODULE_NOT_FOUND' && error.url === target.href) return {};
++    throw error;
++});
++const create = (...args) => {
++    assert.equal(typeof subject.createPresentationSession, 'function', 'presentation session export is absent');
++    return subject.createPresentationSession(...args);
++};
++const document = () => ({ schema_version: 1, width: 800, height: 500,
++    pages: [100, 250, 600].map((ms, i) => ({ id: `p${i}`, name: `Página ${i} é`, duration: ms / 1000, background: '#ffffff', elements: [] })) });
++
++test('initial session exposes selected order, duration and immutable presentation state', () => {
++    const input = document(); const session = create(input, { pageIds: ['p2', 'p0'], startPageId: 'p0' });
++    assert.deepEqual(session.snapshot(), { pageIds: ['p2', 'p0'], index: 1, pageId: 'p0', pageName: 'Página 0 é', nextPageId: null,
++        elapsedMs: 0, durationMs: 100, playing: false, ended: false, blackout: false, disposed: false });
++    assert.ok(Object.isFrozen(session.snapshot())); assert.ok(Object.isFrozen(session.snapshot().pageIds));
++    assert.throws(() => session.snapshot().pageIds.push('evil'), TypeError);
++    input.pages[0].name = 'changed'; input.pages[0].duration = 90; input.pages.reverse();
++    assert.equal(session.snapshot().pageName, 'Página 0 é'); assert.equal(session.snapshot().durationMs, 100);
++    assert.deepEqual(session.first().pageIds, ['p2', 'p0']); assert.equal(session.snapshot().pageId, 'p2');
++});
++
++test('autoplay crosses exact boundaries and preserves fractional milliseconds', () => {
++    const s = create(document()); s.play();
++    assert.equal(s.advance(99.5).elapsedMs, 99.5);
++    assert.equal(s.advance(0.5).pageId, 'p1'); assert.equal(s.snapshot().elapsedMs, 0);
++    assert.equal(s.advance(300.125).pageId, 'p2'); assert.equal(s.snapshot().elapsedMs, 50.125);
++    assert.equal(s.snapshot().playing, true); assert.equal(s.snapshot().nextPageId, null);
++});
++
++test('paused time is ignored and resuming preserves the current fraction', () => {
++    const s = create(document()); assert.equal(s.advance(300).elapsedMs, 0);
++    s.play(); s.advance(33.75); s.pause();
++    assert.equal(s.advance(900000).elapsedMs, 33.75); assert.equal(s.snapshot().playing, false);
++    s.play(); assert.equal(s.advance(66.25).pageId, 'p1'); assert.equal(s.snapshot().elapsedMs, 0);
++});
++
++test('nonloop completion stops on the final page and play restarts the selected order', () => {
++    const s = create(document(), { pageIds: ['p1', 'p0'] }); s.play();
++    assert.equal(s.advance(350).pageId, 'p0');
++    assert.equal(s.snapshot().elapsedMs, 100); assert.equal(s.snapshot().ended, true); assert.equal(s.snapshot().playing, false);
++    s.advance(1); assert.equal(s.snapshot().elapsedMs, 100);
++    assert.equal(s.play().pageId, 'p1'); assert.equal(s.snapshot().elapsedMs, 0); assert.equal(s.snapshot().ended, false);
++    s.advance(Number.MAX_SAFE_INTEGER); assert.equal(s.snapshot().pageId, 'p0'); assert.equal(s.snapshot().elapsedMs, 100);
++});
++
++test('loop handles enormous deltas in bounded work and retains an existing fractional offset', () => {
++    const s = create(document(), { loop: true }); s.play(); s.advance(0.125);
++    const remainder = Number.MAX_SAFE_INTEGER % 950;
++    let index = 0; let offset = remainder + 0.125;
++    for (const ms of [100, 250, 600]) { if (offset < ms) break; offset -= ms; index++; }
++    s.advance(Number.MAX_SAFE_INTEGER);
++    assert.equal(s.snapshot().index, index); assert.equal(s.snapshot().elapsedMs, offset); assert.equal(s.snapshot().ended, false);
++    const single = create(document(), { pageIds: ['p1'], loop: true }); single.play();
++    assert.equal(single.advance(250 * 1000000000).elapsedMs, 0); assert.equal(single.snapshot().pageId, 'p1');
++    assert.equal(single.snapshot().nextPageId, 'p1');
++});
++
++test('manual navigation resets timing while preserving play and handles both endpoints', () => {
++    const s = create(document()); s.play(); s.advance(10); s.next();
++    assert.equal(s.snapshot().pageId, 'p1'); assert.equal(s.snapshot().elapsedMs, 0); assert.equal(s.snapshot().playing, true);
++    assert.equal(s.previous().pageId, 'p0'); assert.equal(s.previous().pageId, 'p0');
++    assert.equal(s.last().pageId, 'p2'); assert.equal(s.next().ended, true); assert.equal(s.snapshot().elapsedMs, 600);
++    assert.equal(s.first().pageId, 'p0'); assert.equal(s.snapshot().ended, false); assert.equal(s.snapshot().playing, false);
++    assert.equal(s.select('p1').pageId, 'p1'); assert.equal(s.snapshot().elapsedMs, 0);
++    const looping = create(document(), { loop: true });
++    assert.equal(looping.previous().pageId, 'p2'); assert.equal(looping.next().pageId, 'p0');
++});
++
++test('selection and advance failures are atomic even while paused', () => {
++    const s = create(document()); s.play(); s.advance(12.5); s.pause(); const before = s.snapshot();
++    for (const id of ['missing', 0, undefined, {}, null]) { assert.throws(() => s.select(id), /página|page/i); assert.deepEqual(s.snapshot(), before); }
++    for (const delta of [-1, Infinity, NaN, -Infinity, Number.MAX_SAFE_INTEGER + 1, '5', null, undefined, {}]) {
++        assert.throws(() => s.advance(delta), /tiempo|milisegundos|delta/i); assert.deepEqual(s.snapshot(), before);
++    }
++});
++
++test('blackout changes only visibility state and rejects nonbooleans atomically', () => {
++    const s = create(document()); s.play(); s.advance(50); const before = s.snapshot();
++    assert.deepEqual(s.setBlackout(true), { ...before, blackout: true });
++    s.advance(100); assert.equal(s.snapshot().pageId, 'p1'); assert.equal(s.snapshot().elapsedMs, 50); assert.equal(s.snapshot().playing, true);
++    const black = s.snapshot(); assert.throws(() => s.setBlackout('yes'), /boolean/i); assert.deepEqual(s.snapshot(), black);
++    assert.equal(s.setBlackout(false).blackout, false);
++});
++
++test('dispose is idempotent and rejects every later command without mutation', () => {
++    const s = create(document()); s.play(); s.advance(25); s.setBlackout(true);
++    const closed = s.dispose(); assert.equal(closed.disposed, true); assert.equal(closed.playing, false); assert.equal(closed.elapsedMs, 25);
++    assert.deepEqual(s.dispose(), closed);
++    for (const invoke of [() => s.play(), () => s.pause(), () => s.next(), () => s.previous(), () => s.first(), () => s.last(), () => s.select('p0'), () => s.advance(1), () => s.setBlackout(false)]) {
++        assert.throws(invoke, /sesión cerrada/i); assert.deepEqual(s.snapshot(), closed);
++    }
++});
++
++test('session validates the real document and preserves temporal document inputs', () => {
++    const input = document(); input.schema_version = 2;
++    input.timeline = { fps: 30, audio_tracks: [] };
++    input.pages[0].transition = { type: 'fade', duration: 0.05 };
++    const valid = validateDocument(input); const original = JSON.stringify(valid);
++    const s = create(valid); s.play(); s.advance(200); s.dispose();
++    assert.equal(JSON.stringify(valid), original); assert.equal(s.snapshot().pageId, 'p1'); assert.equal(s.snapshot().durationMs, 250);
++    for (const bad of [null, {}, { ...document(), schema_version: 17 }, { ...document(), pages: [] }]) assert.throws(() => create(bad));
++});
++
++test('options reject unknown fields, foreign prototypes, accessors and malformed page selections without invoking getters', () => {
++    let calls = 0; const accessor = {}; Object.defineProperty(accessor, 'loop', { enumerable: true, get() { calls++; return true; } });
++    const pages = ['p0']; Object.defineProperty(pages, '0', { enumerable: true, get() { calls++; return 'p0'; } });
++    const hidden = {}; Object.defineProperty(hidden, 'loop', { value: true });
++    const foreignArray = ['p0']; Object.setPrototypeOf(foreignArray, Object.create(Array.prototype));
++    const invalid = [null, [], true, Object.create({}), accessor, hidden, { unknown: 1 }, { [Symbol('x')]: true }, { loop: 1 }, { loop: undefined },
++        { startPageId: 'missing' }, { startPageId: 'p1', pageIds: ['p0'] }, { pageIds: [] }, { pageIds: ['p0', 'p0'] }, { pageIds: ['missing'] },
++        { pageIds: Array(2) }, { pageIds: ['p0', 1] }, { pageIds: ['p0', ...Array(100).fill('p1')] }, { pageIds: pages }, { pageIds: foreignArray }];
++    for (const options of invalid) assert.throws(() => create(document(), options));
++    assert.equal(calls, 0); assert.equal(create(document(), Object.assign(Object.create(null), { loop: true })).snapshot().nextPageId, 'p1');
++});
++
++test('selection and snapshots never retain caller-owned option arrays', () => {
++    const options = { pageIds: ['p2', 'p0'], loop: true }; const s = create(document(), options);
++    options.pageIds.reverse(); options.pageIds.push('p1'); options.loop = false;
++    const snapshot = s.snapshot(); assert.deepEqual(snapshot.pageIds, ['p2', 'p0']);
++    s.next(); assert.equal(snapshot.pageId, 'p2'); assert.equal(s.snapshot().pageId, 'p0');
++    assert.equal(s.next().pageId, 'p2');
++});

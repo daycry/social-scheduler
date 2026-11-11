@@ -1,0 +1,26 @@
+{
+  "dataset": {
+    "source": "storage/framework/testing/t12-chart-static-font-csp-probe1/dataset.json",
+    "sha256": "f04dd6def88a6ed6d1cf05f171c3a887a2919e797a9b4218f88a56559c8d93eb",
+    "bytes": 291
+  },
+  "font": {
+    "source": "storage/framework/testing/t12-chart-final-qa1/runs/cycle2-attempt2/raw/artifacts/studio-charts-E2E28-02-ser-e09d4--pages-actor-brand-boundary-desktop/private-font-response-0.woff2",
+    "id": 2,
+    "sha256": "5d805d7be940ede9ccbb17e273ebc486827eede774ca21fca1a60624464f5529",
+    "bytes": 49256,
+    "family": "Space Grotesk"
+  },
+  "payload_sha256": "06b69cc542e786a79d0406da3d8c3fc22565cb3da41643ecad4bc93d7f03e670",
+  "pageIds": [
+    "qa-selected"
+  ],
+  "unselected_dataset": 3,
+  "constructor_functions": [
+    "blankDocument",
+    "newElement",
+    "normalizeChartSpec",
+    "validateDocument"
+  ],
+  "scope": "Product functions used only for fixture construction. No geometry/imports used as expected output oracle; no native app run."
+}

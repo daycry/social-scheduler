@@ -1,0 +1,179 @@
+[
+  {
+    "project": "desktop",
+    "variant": "control",
+    "format": "mp4",
+    "criterion": "before cue has no neutral white pixels",
+    "passed": true
+  },
+  {
+    "project": "desktop",
+    "variant": "control",
+    "format": "gif",
+    "criterion": "before cue has no neutral white pixels",
+    "passed": true
+  },
+  {
+    "project": "desktop",
+    "variant": "outline",
+    "format": "mp4",
+    "criterion": "before cue has no neutral white pixels",
+    "passed": true
+  },
+  {
+    "project": "desktop",
+    "variant": "outline",
+    "format": "gif",
+    "criterion": "before cue has no neutral white pixels",
+    "passed": true
+  },
+  {
+    "project": "desktop",
+    "format": "png",
+    "criterion": "positive control and default/control coverage and energy",
+    "white_ratio": 1.0,
+    "energy_ratio": 1.0,
+    "passed": true
+  },
+  {
+    "project": "desktop",
+    "format": "mp4",
+    "criterion": "positive control and default/control coverage and energy",
+    "white_ratio": 0.999003984063745,
+    "energy_ratio": 0.9999111431559919,
+    "passed": true
+  },
+  {
+    "project": "desktop",
+    "format": "gif",
+    "criterion": "positive control and default/control coverage and energy",
+    "white_ratio": 1.0,
+    "energy_ratio": 1.0,
+    "passed": true
+  },
+  {
+    "project": "desktop",
+    "criterion": "real screenshot preview neutral letters against positive control",
+    "white_ratio": 1.0,
+    "energy_ratio": 1.0,
+    "passed": true
+  },
+  {
+    "project": "mobile",
+    "variant": "control",
+    "format": "mp4",
+    "criterion": "before cue has no neutral white pixels",
+    "passed": true
+  },
+  {
+    "project": "mobile",
+    "variant": "control",
+    "format": "gif",
+    "criterion": "before cue has no neutral white pixels",
+    "passed": true
+  },
+  {
+    "project": "mobile",
+    "variant": "outline",
+    "format": "mp4",
+    "criterion": "before cue has no neutral white pixels",
+    "passed": true
+  },
+  {
+    "project": "mobile",
+    "variant": "outline",
+    "format": "gif",
+    "criterion": "before cue has no neutral white pixels",
+    "passed": true
+  },
+  {
+    "project": "mobile",
+    "format": "png",
+    "criterion": "positive control and default/control coverage and energy",
+    "white_ratio": 1.0,
+    "energy_ratio": 1.0,
+    "passed": true
+  },
+  {
+    "project": "mobile",
+    "format": "mp4",
+    "criterion": "positive control and default/control coverage and energy",
+    "white_ratio": 0.999003984063745,
+    "energy_ratio": 0.9999111431559919,
+    "passed": true
+  },
+  {
+    "project": "mobile",
+    "format": "gif",
+    "criterion": "positive control and default/control coverage and energy",
+    "white_ratio": 1.0,
+    "energy_ratio": 1.0,
+    "passed": true
+  },
+  {
+    "project": "mobile",
+    "criterion": "real screenshot preview neutral letters against positive control",
+    "white_ratio": 0.9864029666254636,
+    "energy_ratio": 0.9986759618135942,
+    "passed": true
+  },
+  {
+    "project": "mobile-360",
+    "variant": "control",
+    "format": "mp4",
+    "criterion": "before cue has no neutral white pixels",
+    "passed": true
+  },
+  {
+    "project": "mobile-360",
+    "variant": "control",
+    "format": "gif",
+    "criterion": "before cue has no neutral white pixels",
+    "passed": true
+  },
+  {
+    "project": "mobile-360",
+    "variant": "outline",
+    "format": "mp4",
+    "criterion": "before cue has no neutral white pixels",
+    "passed": true
+  },
+  {
+    "project": "mobile-360",
+    "variant": "outline",
+    "format": "gif",
+    "criterion": "before cue has no neutral white pixels",
+    "passed": true
+  },
+  {
+    "project": "mobile-360",
+    "format": "png",
+    "criterion": "positive control and default/control coverage and energy",
+    "white_ratio": 1.0,
+    "energy_ratio": 1.0,
+    "passed": true
+  },
+  {
+    "project": "mobile-360",
+    "format": "mp4",
+    "criterion": "positive control and default/control coverage and energy",
+    "white_ratio": 0.999003984063745,
+    "energy_ratio": 0.9999111431559919,
+    "passed": true
+  },
+  {
+    "project": "mobile-360",
+    "format": "gif",
+    "criterion": "positive control and default/control coverage and energy",
+    "white_ratio": 1.0,
+    "energy_ratio": 1.0,
+    "passed": true
+  },
+  {
+    "project": "mobile-360",
+    "criterion": "real screenshot preview neutral letters against positive control",
+    "white_ratio": 0.9903047091412742,
+    "energy_ratio": 1.0016551979582033,
+    "passed": true
+  }
+]

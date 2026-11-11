@@ -1,0 +1,26 @@
+[
+  {
+    "file": "pdf-pages/page-001.png",
+    "sha256": "22606cbc94bbe82dd3e20c7ee193f880cdb76c5700fb107fa5f80c21a7db15e4"
+  },
+  {
+    "file": "pdf-pages/page-002.png",
+    "sha256": "96a9871f93f98e56564e1f8b729eb77a184bfbe1f6b19dd92db549697f283897"
+  },
+  {
+    "file": "pdf-pages/page-003.png",
+    "sha256": "2c726ec445cb2d2e882f96602fe5881bc868088959ab7ff27c3a549aec3fdfef"
+  },
+  {
+    "file": "pdf-pages/page-004.png",
+    "sha256": "594054cfbc2969831a0d7abe995506cc730d18944caa9c2171ce8a530d8ed605"
+  },
+  {
+    "file": "pdf-pages/page-005.png",
+    "sha256": "7d27ffd03e13532ff8cdfd344f415ca0bd79d755c846d0d9249168f5f29a706f"
+  },
+  {
+    "file": "pdf-pages/page-006.png",
+    "sha256": "5b4ee8ad086f2e6fc1c19f1c1466615346d9ea203016f562865a551f02975b87"
+  }
+]

@@ -1,0 +1,53 @@
+--- a/resources/js/Studio/bar-geometry.js
++++ b/resources/js/Studio/bar-geometry.js
+@@ -14,6 +14,18 @@
+         Object.freeze(value);
+     }
+     return value;
++}
++function containedSize(start, requested, limit) {
++    const size = Math.max(0, Math.min(requested, limit - start));
++    if (start + size <= limit) return size;
++    // Rounded subtraction may still add back above limit. Lower one positive float,
++    // rather than repeating the same subtraction or changing the data/domain.
++    const bits = new DataView(new ArrayBuffer(8));
++    bits.setFloat64(0, size);
++    const low = bits.getUint32(4);
++    if (low === 0) { bits.setUint32(0, bits.getUint32(0) - 1); bits.setUint32(4, 0xffffffff); }
++    else bits.setUint32(4, low - 1);
++    return bits.getFloat64(0);
+ }
+ export function normalizeBarChartOptions(value = {}) {
+     if (!value || typeof value !== 'object' || Array.isArray(value) || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) fail('Gráfico: opciones inválidas.');
+@@ -111,8 +123,8 @@
+         // The validated domain contains every endpoint; only remove border roundoff, never clip data.
+         const x = Math.max(0, Math.min(config.width, horizontal ? Math.min(first, last) : categoryStart));
+         const y = Math.max(0, Math.min(config.height, horizontal ? categoryStart : Math.min(first, last)));
+-        const width = Math.max(0, Math.min(horizontal ? Math.abs(first - last) : thickness, config.width - x));
+-        const height = Math.max(0, Math.min(horizontal ? thickness : Math.abs(first - last), config.height - y));
++        const width = containedSize(x, horizontal ? Math.abs(first - last) : thickness, config.width);
++        const height = containedSize(y, horizontal ? thickness : Math.abs(first - last), config.height);
+         if (segment.value !== 0 && (horizontal ? width : height) === 0) warnings.push({ code: 'ZERO_SIZE_BAR', row_id: category.row_id, column_id: column.column_id, raw: segment.raw });
+         return { key: `${category.row_id}:${column.column_id}`, row_id: category.row_id, column_id: column.column_id,
+             x, y, width, height,
+--- a/tests/frontend/studio-bar-geometry.test.mjs
++++ b/tests/frontend/studio-bar-geometry.test.mjs
+@@ -254,3 +254,18 @@
+         const last = result.bars.at(-1); assert.equal(kind === 'bar-grouped' ? last.y + last.height : last.x + last.width, 40.01);
+     }
+ });
++
++test('proportional endpoint addition remains contained when the remaining span rounds upward', () => {
++    const size = 3728.5800000000004;
++    for (const kind of ['bar-proportional', 'column-proportional']) {
++        const source = data([[129, null, 533]]);
++        const result = geometry(source, { kind, width: size, height: size });
++        assert.ok(result.bars.every(b => b.x + b.width <= size && b.y + b.height <= size));
++        assert.deepEqual(result.domain, { min: 0, max: 100 });
++        assert.deepEqual(result.bars.map(b => [b.raw, b.value]), [['129', 129], ['533', 533]]);
++        assert.equal(result.bars[0].start, 0); assert.equal(result.bars[1].end, 100);
++        near(result.bars[0].end, 129 / 662 * 100); near(result.bars[1].start, 129 / 662 * 100);
++        near(result.bars[0].percentage, 129 / 662 * 100); near(result.bars[1].percentage, 533 / 662 * 100);
++        assert.equal(source.snapshot.table.rows[0].values[3].raw, '533');
++    }
++});

@@ -1,0 +1,71 @@
+{
+  "state": "READY_INK_FOCAL",
+  "new_real_cases": 0,
+  "suite_matrix": 12,
+  "global_preparation_refreshed": false,
+  "wait_for_root_HTTP_sources_and_prose_stable": true,
+  "subject_sha256": {
+    "tests/e2e/support/studio-chart-observer.ts": "e657433972b560ee0966041f1bc4b96f39d7143b42147fc2b7e921706b512466",
+    "tests/e2e/isolated/charts/svg-oracle.cjs": "10a2900c363a4d1f65b736d0b07d33e087fb941ad11c24552a50a351979ec4e6"
+  },
+  "subject_diff_sha256": "abb3e7546857d73b194011ea785acca52979f9f962054b2a5fe554b12d29b974",
+  "red": {
+    "oracle_initial": {
+      "failed": 4,
+      "checks": 6
+    },
+    "frozen_old_replay": {
+      "failed": 7,
+      "checks": 9
+    },
+    "measure_initial": {
+      "failed": 7,
+      "checks": 7
+    }
+  },
+  "green": {
+    "oracle": 9,
+    "CanvasTextMetrics_mock": 8,
+    "selectors": 12,
+    "analytical_oracle_with_explicit_synthetic_ink": 86,
+    "previous_pure": 41,
+    "hooks": 25,
+    "python": 22,
+    "font_wait": 9,
+    "report_terminal": 12
+  },
+  "guard_attempt15": "prior accepted GREEN subject and AST hashes matched; no rerun",
+  "limits": [
+    "No new browser/native/font/render/export/PDF/HTTP observation or UI PASS",
+    "Original getBBox x/y/width/height/matrix and glyph-reference body preserved",
+    "Only category ink-band metric changed; .75/gaps/IDs/text/order unchanged",
+    "Frozen run artifacts and product registry untouched; final global refresh deferred"
+  ],
+  "files": {
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/analytic-ink-fixture.cjs": "c49c2b5b131b085d74380d082a86f1ea4ef55f904cb84a14eda4655739d93877",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/before-manifest.json": "edd3b2bbe494bc64f0fc229e99a728ba7f46918e99c6301688c91d471367bd62",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/measure-green.json": "3562020c59672dcb1611c3c488eeaaa373fd586fe5af4cc53178afc3e5c683ec",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/measure-red.json": "d34f89cd6b6cfc0f1a3e10a263ce869dd4bd576f3b855ad35d9c2334f3d9a40c",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/notes.md": "e651082323905fdc2a5f1d63bf0bd9f635815b0451038823077bb9bc9cf9156b",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/oracle-frozen-red.json": "7fd5883e0401db71f034d0c83837f797f7e591b3f5763eeb076bf72e96001979",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/oracle-green.json": "16169d5c99432144265cd8b530262f5c7f1c58d67b25a2fae393ff25e290ef01",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/oracle-red.json": "e29b8960decfe07ff23f253db333183448d141f43d6dd59ad7af32a6cebd8b82",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/probe-measure.cjs": "b1ca539a44564d6bc501994b757107b259890212dd1e4438fda8a93618e6db22",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/probe-neighbors.cjs": "74553b769c4f06605deda5b8714ec9053f2ce01cdfb4595fcde6154df424cd54",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/probe-oracle-ink.cjs": "7bd9785f2556e441ea710d76400673699d95db9d43df6d10ea20a34496363c12",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/subjects.diff": "abb3e7546857d73b194011ea785acca52979f9f962054b2a5fe554b12d29b974",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/syntax.json": "f987aff5008e3e3299c7e62c41f309e134b3858573fe8ac055646fb83241364c",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/neighbors/category-oracle.json": "c90cd45eccfabbc4fe0f0185d75103c2b9cc5b1c4e75a0b10ff58fa21eee0845",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/neighbors/font-wait.json": "b867dab278575acb4df87c35f9b9ceb9f90667aa29b38ecd91f741a74df8ae45",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/neighbors/guard15-preserved.json": "fd705eb904250d57c1db8918b7176c51d549b1817826af63fba2942905598e9d",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/neighbors/hooks.json": "6c290a60ce0e88a99dd8e44b63ad628e2c79b514692984ca0150a4aa8462ddf4",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/neighbors/pure.json": "522a036b8e51d396eebaba03592ae44137074583b0769a80546013ec452d7944",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/neighbors/python-probes.json": "600a6e55f7a04153ec8632429cb4823a91d90104f3c623c0c21a5bb8b03d3992",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/neighbors/QA5-neighbors.json": "32360dfea65f4796bbd38fc93e1c036756d4cc416ac05b01852794b93fc42144",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/neighbors/selectors.json": "68f223fb713042b36d7dfab79639729bec1b3a8732a86a9b3ad37c418ae9c92a",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/neighbors/summary.json": "49e579e3ca42b6f23b5a833dfc6f15f9615cc8d41f1da0f3bf4eab921becac2a",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/before/tests/e2e/support/studio-chart-observer.ts": "33b76c4e00421b1ae879be293d79131aca27d14607082dee113fbe01616bfc8e",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/before/tests/e2e/isolated/charts/svg-oracle.cjs": "4ef0f0ac09addd25d931528a4458248e266cd120b81047271773e8fb68f888da",
+    "storage/framework/testing/t12-chart-final-qa1/correction4/ink/before/storage/framework/testing/t12-chart-bar-label-diagnosis/replay-bar-category-bounds.cjs": "fc3204c30ea5e07e1ecee238ca5daaf8af5e3b674016a22829a7f7c2b358c1c2"
+  }
+}

@@ -1,4 +1,4 @@
-# Decisiones por red (Meta, YouTube, TikTok, Bluesky)
+# Decisiones por red (Meta, YouTube, TikTok, Bluesky, Threads, LinkedIn, Pinterest)
 
 Resumen del spike de plataformas (2026-10-19) y de la decisión G1. Fuente completa y evidencia: [spike-report.md](../roadmap/2026-10-19-social-scheduler/spike-report.md).
 
@@ -114,3 +114,20 @@ Decisiones de la tercera ola (opción T1 del diseño: conector `threads` propio,
 - **Hosts configurables:** `THREADS_AUTH_HOST` (`https://threads.com`), `THREADS_GRAPH_HOST` (`https://graph.threads.com`) y `THREADS_API_VERSION` (`v1.0`).
 - **Límites en la configuración:** `config/media_specs.php` (`threads_text`, `threads_image`, `threads_video`, `threads_carousel`, versión 2026-10-27) y `config/social.php` (`threads`: `publish_quota` 250, margen de renovación 168 h, histórico de 30 días).
 - **Pendiente del smoke (T-64, M-02):** modo desarrollo con *testers*, regla de emojis en secuencias, códigos de error propios, `shares`/`views` de post, zona del día de las métricas y si Threads acepta `Authorization: Bearer`.
+
+## LinkedIn y Pinterest
+
+Añadidas en T-18 (creative-social-suite). Guía de alta, scopes e interruptores: [LinkedIn y Pinterest](../guias/linkedin-pinterest.md). Probadas solo con simulaciones (CS-M-02 y CS-M-03 en [pendientes manuales](pendientes-manuales.md)).
+
+| Decisión | LinkedIn | Pinterest |
+|---|---|---|
+| Autenticación | OAuth 2.0 de tres patas; token de ~60 días; `refresh_token` solo en apps con programa de partner | OAuth con Basic en `/v5/oauth/token`; acceso de 30 días y refresh de 60 con rotación |
+| Destinos | Perfil personal siempre; páginas solo con `LINKEDIN_COMMUNITY_MANAGEMENT` (Community Management API aprobada aparte) | Cuenta con sus tableros (hasta 25 leídos al conectar) |
+| Condición de publicar | `w_member_social`; leer lo publicado exige `r_member_social` (`LINKEDIN_R_MEMBER_SOCIAL`) | **Tablero obligatorio** (`pinterest_board_id`) |
+| Tipos | texto, imagen, varias imágenes (2 a 20), vídeo | pin de imagen, carrusel (2 a 5), vídeo con portada opcional |
+| Texto | 3000 caracteres | descripción 800, título 100, alt 500, enlace https |
+| Primer comentario | Sí (1250 caracteres) | No (la API v5 no comenta pines) |
+| Métricas | Sin lector: «no disponible» | Sin lector: «no disponible» |
+| Fuera | Portada de vídeo (`uploadThumbnail`) | — |
+
+X (Twitter, API de pago), Google Business Profile (aprobación de acceso) y Twitch (analítica de streams) quedan como deuda pendiente de decisión del usuario.

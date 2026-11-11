@@ -1,0 +1,61 @@
+{
+  "date": "2026-11-05",
+  "scope": "Internal AV cleanup and corrupt-checkpoint recovery; not public native export",
+  "php": {
+    "tests": 164,
+    "assertions": 823,
+    "exit": 0
+  },
+  "frontend": {
+    "mode": "frontend-attempt2",
+    "exit": 0,
+    "terminal": true,
+    "source_hashes_match": true,
+    "sources": 20,
+    "files": 30,
+    "summary": [
+      "# tests 150",
+      "# pass 150",
+      "# fail 0",
+      "# cancelled 0",
+      "# skipped 0",
+      "# duration_ms 38087.0049"
+    ]
+  },
+  "frontend_first_attempt": {
+    "mode": "frontend",
+    "exit": 1,
+    "terminal": true,
+    "source_hashes_match": true,
+    "sources": 20,
+    "files": 30,
+    "summary": [
+      "# tests 150",
+      "# pass 149",
+      "# fail 1",
+      "# cancelled 0",
+      "# skipped 0",
+      "# duration_ms 46865.6707"
+    ]
+  },
+  "diagnosis": {
+    "symptom": "Chromium page.goto ERR_NO_BUFFER_SPACE before encoding in unchanged legacy test",
+    "isolated_case": "1/1 passed without source changes",
+    "root_cause": "not established; no application patch based on speculation",
+    "helper_correction": "legacy-probe-summary.json corrects accidental parsing of frontend.stdout in original legacy-probe-result.json"
+  },
+  "review": {
+    "lenses": "A1+B1+D1",
+    "gaps": 0,
+    "security_selector": false
+  },
+  "qa": "root integration, not final independent QA",
+  "parent_task": "T-11 in progress; roadmap7/23",
+  "pending": [
+    "queue recovery scheduler",
+    "native phase orchestration in Laravel",
+    "web/API/MCP controls and UI",
+    "media registration and draft",
+    "full native export final QA"
+  ]
+}

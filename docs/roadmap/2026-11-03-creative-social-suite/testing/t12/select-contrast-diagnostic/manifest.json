@@ -1,0 +1,27 @@
+{
+  "diagnostic_cases": 4,
+  "global_acceptance": false,
+  "sources_checked": 23,
+  "artifacts": {
+    "report.md": "483798f578d4d3855fa3618051ee2eb0a07b5a5651571bfd451490578d3cc66e",
+    "visual-inspection.json": "937df8657e96dddf2ca4b1e7cabcdf041e90fc7e6e195673c059242ce4c5a76f",
+    "images/baseline-keyboard.png": "a107665422ee90189d103400251189934bccbd2fdbb856b42f0bfb703e960521",
+    "images/baseline.png": "1c53a95d935e0c66ad9b3080f2a8293ac7fd3ed865f9410db554a0d2022dfb1d",
+    "images/both-keyboard.png": "096c8bcd8bfc889853911c35cb51dea71fc8c50e12d462bf804810af9545537d",
+    "images/both.png": "224abab2da04d9823960538784866d62353898b85bba974f3dfb69a3670cd93b",
+    "images/native-select-keyboard.png": "096c8bcd8bfc889853911c35cb51dea71fc8c50e12d462bf804810af9545537d",
+    "images/native-select.png": "224abab2da04d9823960538784866d62353898b85bba974f3dfb69a3670cd93b",
+    "images/section-white-keyboard.png": "a107665422ee90189d103400251189934bccbd2fdbb856b42f0bfb703e960521",
+    "images/section-white.png": "1c53a95d935e0c66ad9b3080f2a8293ac7fd3ed865f9410db554a0d2022dfb1d",
+    "raw/baseline-axe.json": "bc22a72e21c4d3e11aac27ccf7c1de733fb7732c13da446a2f87858d920223af",
+    "raw/both-axe.json": "5203186c3720d2f8eceba2e8c77de5ef29a1f0f596b37132ba01c08bacff083a",
+    "raw/execution.json": "2eba99a90f6f7c75f700bb5fcdcc83e2c3a9b05f542ca5491b48a31c299e6a3b",
+    "raw/native-select-axe.json": "934ac99a28163c12c295c8eb30e157d22ca54dc2fabe599c016a3410d9f7ed5a",
+    "raw/pixel-observer.json": "3eb809efb771509d1efe704182dc80db9abd87b3d1c2c3e31719a2f0af1c7a3a",
+    "raw/provenance.json": "73e3b601b88752a48816e3bffc6119ffdc7ceebaa4ca7df253108a7a68f4f27d",
+    "raw/results.json": "9ed3f9ef84e8f0261ff15f9c9f2aaa63c507db532e143acf17a4fa1d18925183",
+    "raw/root-terminal.json": "0bafc8fecab19a36dc822783219e9e18dad3788878af8948cd8265fc5394320a",
+    "raw/section-white-axe.json": "03226f93c13430a5ef30bbe6f236bccf2ba14cae2a9762bce4e0bcf277b13093",
+    "raw/source-manifest.json": "8432f6b5290c5daeec21a83f5a1b17f8b18f34211de2a16858a52b16f4c95c8c"
+  }
+}

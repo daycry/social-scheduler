@@ -1,0 +1,68 @@
+{
+  "state": "FAILED_ATTEMPT_EVIDENCE_ONLY",
+  "files": {
+    "qa3-execution.json": {
+      "source": "storage/framework/testing/t12-presentation-native-qa3/runs/run-1794022491144506800/execution.json",
+      "sha256": "9bec0a00abb3a3d0bf0aa051d784deb83f5e0bf34675346839d6a00180c194cb",
+      "bytes": 915
+    },
+    "qa3-process-cleanliness.json": {
+      "source": "storage/framework/testing/t12-presentation-native-qa3/runs/run-1794022491144506800/raw/process-cleanliness.json",
+      "sha256": "0098f5ba24317d72f936c9abf05b21d16514051d035d3e633fb79feab09e62dd",
+      "bytes": 166
+    },
+    "qa3-source-drift.json": {
+      "source": "storage/framework/testing/t12-presentation-native-qa3/runs/run-1794022491144506800/raw/source-drift.json",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "bytes": 2
+    },
+    "qa3-results-original.json": {
+      "source": "storage/framework/testing/t12-presentation-native-qa3/runs/run-1794022491144506800/raw/results.json",
+      "sha256": "93acd9a8913678b1fe1ba26cdd414c6ec40595eacdeae4e5760a8e54fb8e97c0",
+      "bytes": 47078
+    },
+    "qa3-qa-gate.json": {
+      "source": "storage/framework/testing/t12-presentation-native-qa3/runs/run-1794022491144506800/raw/qa-gate.json",
+      "sha256": "28efa5f255d9ec2b132171383c55195c2d8d0c5e7983032b837cbf54b805614a",
+      "bytes": 192
+    },
+    "close-boundary-proof.json": {
+      "source": "storage/framework/testing/t12-presentation-close-diagnosis1/hypothesis.json",
+      "sha256": "afcd72d9963dc42f1f40560bdc220b306e43ec8ca1af8fad732359f587765845",
+      "bytes": 919
+    },
+    "native-av-closed.json": {
+      "source": "storage/framework/testing/t12-presentation-native-qa3/runs/run-1794022491144506800/raw/artifacts/studio-presentation-media--ab662-d-close-release-every-media-desktop/native-av-closed.json",
+      "sha256": "591f60cf8ed49603e900298e2b7952b100ebbe5319a42740ee18ae32aa771239",
+      "bytes": 26126
+    },
+    "native-av-paused.json": {
+      "source": "storage/framework/testing/t12-presentation-native-qa3/runs/run-1794022491144506800/raw/artifacts/studio-presentation-media--ab662-d-close-release-every-media-desktop/native-av-paused.json",
+      "sha256": "aa2ed1edebb5dfc5dee6d8019a67c07061bb77d29c0cfed4f1d5f77a2f3ca9ab",
+      "bytes": 13496
+    },
+    "native-av-playing.png": {
+      "source": "storage/framework/testing/t12-presentation-native-qa3/runs/run-1794022491144506800/raw/artifacts/studio-presentation-media--ab662-d-close-release-every-media-desktop/native-av-playing.png",
+      "sha256": "6605f080b6a83b0c50c4668bcbf7dbbe5a95fa75606daae8a76a6ee7a51ad2a4",
+      "bytes": 149493
+    },
+    "native-av-navigation.png": {
+      "source": "storage/framework/testing/t12-presentation-native-qa3/runs/run-1794022491144506800/raw/artifacts/studio-presentation-media--ab662-d-close-release-every-media-desktop/native-av-navigation.png",
+      "sha256": "d93a784670b2dece3d7c492f0bb43b3caacb203001dad783a302d5aa6839572e",
+      "bytes": 121082
+    },
+    "saved-av-document.json": {
+      "source": "storage/framework/testing/t12-presentation-native-qa3/runs/run-1794022491144506800/raw/artifacts/studio-presentation-media--ab662-d-close-release-every-media-desktop/saved-av-document.json",
+      "sha256": "07723723b231aba888bcb0912a12013c7cd052d13c1da540760c06bb5d6657e9",
+      "bytes": 2292
+    },
+    "fixture-metadata.json": {
+      "source": "storage/framework/testing/t12-presentation-native-qa3/runs/run-1794022491144506800/raw/artifacts/studio-presentation-media--ab662-d-close-release-every-media-desktop/fixture-metadata.json",
+      "sha256": "282c9d9c2d89622bf2c40dc4d9e1e80313823bcaccbf0735a6a970ee9783948e",
+      "bytes": 263
+    }
+  },
+  "original_trace_sha256": "3eafb1e3c88194b3754cfaa7fb25a2fe91a2b8399b120e3daf2f3cd8167d7534",
+  "native_accepted": false,
+  "goal_complete": false
+}

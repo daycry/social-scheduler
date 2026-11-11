@@ -1,0 +1,17 @@
+{
+  "exit": 0,
+  "terminal": true,
+  "command": [
+    "powershell",
+    "-NoProfile",
+    "-File",
+    "storage/framework/testing/t12-chart-data/run.ps1"
+  ],
+  "source_hashes_match": true,
+  "sources": {
+    "app/Services/Studio/StudioChartData.php": "b110018f0f2d5679749869cefa3252048e07090dc0609d573c112af540f91845",
+    "tests/Feature/Studio/StudioChartDataTest.php": "3eeacf817fc8fdd12dccb44c5dc9e00a4bc87c127e36ebfd20c32721850a1fd0"
+  },
+  "stdout": "{\"tool\":\"pest\",\"result\":\"passed\",\"tests\":57,\"passed\":57,\"assertions\":88,\"duration_ms\":115}",
+  "scope": "Pure Pest without Laravel bootstrap, DB, .env or native graphics; not T12 integration acceptance"
+}

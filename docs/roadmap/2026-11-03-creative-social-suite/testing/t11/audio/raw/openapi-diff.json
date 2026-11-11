@@ -1,0 +1,27 @@
+{
+  "modo": "diff",
+  "exit": 0,
+  "cambios": [
+    {
+      "ruta": "/paths//brands/{brand}/design-audio",
+      "mensaje": "path nuevo: /brands/{brand}/design-audio",
+      "rompedor": false
+    },
+    {
+      "ruta": "/paths//brands/{brand}/design-audio/{media}",
+      "mensaje": "path nuevo: /brands/{brand}/design-audio/{media}",
+      "rompedor": false
+    },
+    {
+      "ruta": "/paths//brands/{brand}/design-audio/{media}/upload",
+      "mensaje": "path nuevo: /brands/{brand}/design-audio/{media}/upload",
+      "rompedor": false
+    },
+    {
+      "ruta": "/paths//brands/{brand}/design-audio/{media}/complete",
+      "mensaje": "path nuevo: /brands/{brand}/design-audio/{media}/complete",
+      "rompedor": false
+    }
+  ],
+  "rompedores": 0
+}

@@ -1,0 +1,16 @@
+{
+  "baseline": "storage\\framework\\testing\\t11-audio-ui-review\\baseline",
+  "files": {
+    "resources/js/Pages/Studio/Editor.vue": "66b029e2e07c42864446d0a351ffe0c1961c234be672c32dc19daf801b0c8631",
+    "resources/js/Components/Studio/TimelinePanel.vue": "36191c0f8727fb90d598ea2efe779bf90244fb54db611385985173faa75ac438",
+    "resources/js/Studio/timeline-preview.js": "0e5c51629a110d8db84e18e41f742af8fb941fbcf68cb8bdc51135c9f0c262f0",
+    "resources/js/Studio/timeline-audio.js": "4aca2c96037799cdee170acabc1b264281f2605ed67e4156c9efee9cc93e6382",
+    "resources/js/Studio/audio-api.js": "4a2d363635e48739495b9736fee697a305164c18dd1d111be4add29fa6129098",
+    "resources/js/Components/Studio/AudioTrackPanel.vue": "b96f0329b55baeb9fcef5ced8f820a70d61e7d1da78d9ba1217bb2d809f8c7fb",
+    "tests/frontend/studio-audio-preview.browser.test.mjs": "9955eb7bef25128dc47912fa6e7ec00e001cc39c4991bb9300ef335ad26b4706",
+    "tests/frontend/studio-audio-upload.test.mjs": "c17a66a6d2adf26e511369c30d2937bfa3a406175b510ed7bd73af8bbdb27b44",
+    "tests/e2e/studio-audio-editor.spec.ts": "566ed0b24e76be8c3f691071dec317bdecd5b928ba3df03701f5f4cfda774e23",
+    "tests/e2e/helpers.ts": "957e9ea73b3a5e1b736056b1079c0c19d5965b80feac03ab37309fdd7d2e504d"
+  },
+  "parent_complete": false
+}

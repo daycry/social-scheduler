@@ -1,0 +1,60 @@
+{
+  "prepared_utc": "2026-11-05T22:46:02.836545+00:00",
+  "execution_authorized": false,
+  "required_specs": [
+    "tests/e2e/studio.spec.ts",
+    "tests/e2e/studio-automation.spec.ts",
+    "tests/e2e/studio-timeline.spec.ts",
+    "tests/e2e/studio-audio-editor.spec.ts",
+    "tests/e2e/studio-audio-resources.spec.ts",
+    "tests/e2e/studio-frame-export.spec.ts",
+    "tests/e2e/studio-native-export.spec.ts",
+    "tests/e2e/studio-av-composite.spec.ts",
+    "tests/e2e/metrics-quality.spec.ts",
+    "tests/e2e/brand-reporting.spec.ts",
+    "tests/e2e/all-brands.spec.ts",
+    "tests/e2e/studio-captions.spec.ts"
+  ],
+  "missing_specs": [],
+  "source_roots": [
+    "app",
+    "resources/js",
+    "scripts/studio",
+    "routes",
+    "config",
+    "database/migrations",
+    "tests/frontend",
+    "tests/Feature/Studio",
+    "tests/e2e/isolated",
+    "tests/e2e/support",
+    "tests/Fixtures/fonts",
+    "public/build"
+  ],
+  "source_extensions": [
+    ".cjs",
+    ".css",
+    ".js",
+    ".json",
+    ".mjs",
+    ".mts",
+    ".otf",
+    ".php",
+    ".png",
+    ".py",
+    ".svg",
+    ".ts",
+    ".ttf",
+    ".txt",
+    ".vue",
+    ".woff",
+    ".woff2"
+  ],
+  "source_path_count_now": 842,
+  "expected_test_count": null,
+  "note": "Inventory only; not an execution baseline. Final A3/B3 and root descriptors/ledger pending.",
+  "prior_attempts_immutable": [
+    "testing/t11/final-qa",
+    "testing/t11/final-qa2"
+  ],
+  "review_union": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t11-caption-contrast-root-review\\reviewed-union-manifest.json"
+}

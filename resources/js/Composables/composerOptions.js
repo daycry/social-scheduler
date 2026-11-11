@@ -31,7 +31,8 @@ const TIKTOK_DIRECT = [
 
 /** Claves de C-04 que pueden vivir en `options` de un destino (las que hay que podar si dejan de aplicar). */
 export const MANAGED_KEYS = ['instagram_audio', 'collaborators', 'is_ai_generated', 'facebook_title', 'auto_add_music', 'category_id', 'tags', 'made_for_kids', 'notify_subscribers', 'contains_synthetic_media', 'shorts_hashtag',
-    'disable_comment', 'disable_duet', 'disable_stitch', 'brand_organic_toggle', 'brand_content_toggle', 'is_aigc'];
+    'disable_comment', 'disable_duet', 'disable_stitch', 'brand_organic_toggle', 'brand_content_toggle', 'is_aigc',
+    'location_id', 'user_tags', 'linkedin_visibility', 'linkedin_disable_reshare', 'pinterest_board_id', 'pinterest_title', 'pinterest_link'];
 
 /** Categorías de vídeo de YouTube más habituales (ID de la Data API). */
 export const YOUTUBE_CATEGORIES = [

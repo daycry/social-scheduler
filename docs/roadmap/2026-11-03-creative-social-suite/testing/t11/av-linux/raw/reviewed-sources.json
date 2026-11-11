@@ -1,0 +1,32 @@
+{
+  "sources": [
+    {
+      "path": "scripts/studio/av-runtime.py",
+      "sha256": "2be81a22850c9336ba59dc4013810933825b9e1ec4da38db6c9c6ad048d0652b"
+    },
+    {
+      "path": "scripts/studio/av-linux.py",
+      "sha256": "d966c5c48ea396204e5a642f76a2ab7aa54ba6fa1fe2adc300d011c1ff65e9dc"
+    },
+    {
+      "path": "tests/studio_runtime/test_av_limits.py",
+      "sha256": "48457c2c5d8aedd0d579d9016b5fd111d7edfe2cb5ffa900c1fce996d67e7d29"
+    },
+    {
+      "path": "tests/studio_runtime/test_av_linux.py",
+      "sha256": "ed2cd1bb3235bdc2f5728205d741f738a421bcd5a7f33f92b7f100474cdba693"
+    },
+    {
+      "path": "deploy/systemd/scheduler-studio.service",
+      "sha256": "3bba210397eb2df7aa202b55687af4f720ee7d4366162c35dcf34b0b83b87005"
+    },
+    {
+      "path": "deploy/systemd/README.md",
+      "sha256": "ccee10a6d0df41cf4576a955dd752715dee2a8d490781de02eae5cf1a7a2b698"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md",
+      "sha256": "327ef8e5c7c9c3ed5eade52ab53221b52aeaf915bae1eef8bc97b2101a5e608a"
+    }
+  ]
+}

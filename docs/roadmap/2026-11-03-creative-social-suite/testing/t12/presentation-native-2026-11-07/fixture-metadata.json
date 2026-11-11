@@ -1,0 +1,13 @@
+{
+  "duration": 3,
+  "video_size": [
+    64,
+    64
+  ],
+  "sample_rate": 16000,
+  "frequency": 440,
+  "hashes": [
+    "22156d9294fb6197e1e17ad7af7d40f04b1f0c4f26f324d38845c8ac1704700c",
+    "38701020858bddf60c5847dee039c6bbdca0997805b4b580e5c66dbd5b044b46"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "lente_c": false,
+  "modo": "auto",
+  "motivos": [],
+  "lente_d": true,
+  "modo_d": "auto",
+  "motivos_d": [
+    {
+      "tipo": "ruta",
+      "fichero": "database/migrations/2026_11_05_150000_add_studio_render_state.php",
+      "patron": "migrations"
+    },
+    {
+      "tipo": "contenido",
+      "fichero": "scripts/studio/av-finalize.mjs",
+      "patron": "await-en-bucle",
+      "linea": 31
+    }
+  ],
+  "base": "--files",
+  "ficheros": 11,
+  "avisos": []
+}

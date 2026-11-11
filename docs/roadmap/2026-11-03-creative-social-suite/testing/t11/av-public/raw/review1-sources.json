@@ -1,0 +1,22 @@
+{
+  "app/Services/Studio/StudioAvQueue.php": "16ade00a742caba21b6e81ed03e85254cd188a68f128c6346e480cb6156b6df6",
+  "app/Services/Studio/StudioAvRunner.php": "8c852a64d015deb2fd8576b0293a8444f5ca08d7a5bb85ac73c82c50d55bd274",
+  "app/Services/Studio/StudioRenderer.php": "6d0f826f5d27d5d0fdd72d1fa5bed23f7a9f5fe93a1a3d91c82cffdd876a1379",
+  "app/Services/Studio/StudioAvStorage.php": "603c3406052a6ed6e06efccfb02b0d8f56acabf6b81a78b3a1048ce7e067f0c9",
+  "app/Http/Controllers/Studio/StudioController.php": "88d141445ac0ad365257ac2f56c6d2dfef1de7216f3037b375469b56c22f1e46",
+  "app/Http/Controllers/Studio/StudioApiController.php": "b06103c8a646bf3c46f7a9120e27f4c81253d3e647edaec0c2790c4c5f8f3fee",
+  "app/Mcp/Tools/ExportDesign.php": "dfbb0cb5a93164ccdb75c7591888856905b2e7433b99eb290abeafc6186da191",
+  "app/Mcp/Servers/SchedulerServer.php": "8d13f094057ffe3a2062320f42e2436fe6408403d5c508a854afaab19083770a",
+  "routes/studio.php": "90df2d0aeb60ecdfdefda7974109925d7a4e3e2d9bcf15d5ab1ccaf1d0e37a5e",
+  "routes/studio-api.php": "41628a2cd54f5835422d3d6a001c34c89da881803c8cd3384e568c279e5f47ae",
+  "database/migrations/2026_11_05_150000_add_studio_render_state.php": "1644979a609d453bb69abd6c6f5f30b9220904301c4aa092aae4eb2fe0928ac4",
+  "tests/Feature/Studio/StudioAvQueueTest.php": "a55fcfaef2468ffbd756608f6e656c51ac56ab7bc4d0f4b7deb5ca234de7c777",
+  "tests/Feature/Studio/StudioApiMcpTest.php": "e66f4d0013ae72b9232b85105cd3a2af6befe20368d9d298439a9c660f20a58b",
+  "docs/api/creative-suite.openapi.yaml": "bf53638375ceb53f14db314b4f87725aab150a92b435e865f9f76a591579b4ca",
+  "docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md": "60f65b1deae536c76b58692333a24739594f48fd96c84b333e43ebb9da8649a5",
+  "docs/guias/estudio-api-mcp.md": "e2df54e761237ffceec3321d120fc1755a33fb71bd386939cf575bf168719263",
+  "app/Services/Studio/StudioAvControl.php": "d74769a691267ad461f867d8f3c7d1e13111b3826bae4b9c98015480d05cb7e6",
+  "app/Mcp/Tools/ManageDesignExport.php": "6bc648922de0cbd5482717f5e021fbc8a55817a5572fbdb48a116ed91bea1582",
+  "tests/Feature/Studio/StudioAvDeliveryTest.php": "cd8ac2ef69a3b0a6ce79582fd052e84a289de3aa67b79159d61260add3409f98",
+  "tests/Feature/Studio/StudioAvPublicTest.php": "0e15ca2a762ed90991f158df876977778d8e455ec639e6d85f3751e87359c2c0"
+}

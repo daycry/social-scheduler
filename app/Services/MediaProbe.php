@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Connectors\Data\PublishMedia;
 use App\Connectors\Support\MediaChunkReader;
 use App\Models\MediaAsset;
+use App\Services\Studio\StudioAudioProbe;
 use RuntimeException;
 use Symfony\Component\Process\Process;
 
@@ -25,6 +26,10 @@ class MediaProbe
      */
     public function inspect(MediaAsset $asset): array
     {
+        if ($asset->kind === MediaAsset::KIND_AUDIO) {
+            return app(StudioAudioProbe::class)->inspect($asset);
+        }
+
         return $asset->isVideo() ? $this->video($asset) : $this->image($asset);
     }
 

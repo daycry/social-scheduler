@@ -1,0 +1,136 @@
+{
+  "sources": [
+    {
+      "path": "app/Services/Studio/StudioAvState.php",
+      "sha256": "87b7f8203e1e48c0576edfff2ce9eca1f72bd11a3b732a72145d51f8cff88e76"
+    },
+    {
+      "path": "app/Models/Studio/StudioAvWorkspace.php",
+      "sha256": "797bd11487877d9faede82d9d981f178f07d5076b7ec1fc6cf75ef9a19408905"
+    },
+    {
+      "path": "app/Models/Studio/StudioAvLease.php",
+      "sha256": "dd6d1710d7814fbc7acf04528a31c8c461b2331c69625c496dd72a282cb7e22c"
+    },
+    {
+      "path": "app/Models/Studio/DesignExport.php",
+      "sha256": "6744f8fa9865ba76bef06cbf0f5fd48b85cf3cc9aa88c40b1168316856d23b88"
+    },
+    {
+      "path": "app/Services/Studio/StudioExports.php",
+      "sha256": "70796393f8849cf8059c5a5a2bb736a6ffd013a9df7178150df6d52364ecfc98"
+    },
+    {
+      "path": "config/studio.php",
+      "sha256": "a9a706a5b6f79b8d0e3bc63d04c46cfb5178263d61b41bbdcf47ad571bfc21b5"
+    },
+    {
+      "path": "database/migrations/2026_11_05_150000_add_studio_render_state.php",
+      "sha256": "cd225102cc7015d65b75203c7c6b06320cc45b88550c93eb9cdfa0b7aa0aa804"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvStateTest.php",
+      "sha256": "82897a70374fefdcdc41a1f480981452a58f89e7613afe2eece71e2b8fdf2d9a"
+    },
+    {
+      "path": "docs/api/creative-suite.openapi.yaml",
+      "sha256": "e3908cba5406d36d7e6f87b57c93f5378325b9e81612463ae50eafbcea92acc4"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md",
+      "sha256": "e47491166da76c45b0d68b9744d01e20364272939cb25410ef089704788b67a9"
+    },
+    {
+      "path": "app/Models/Studio/StudioAvStep.php",
+      "sha256": "90879ea2e8adc37703b830056f9e448ed8d479259101933a43bb6d8bf9753144"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvFiles.php",
+      "sha256": "5b626c347eb4239d1ffdc71afbdfaaaea59b3cd42fb90424ac9da6c4065e6178"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvFilesTest.php",
+      "sha256": "0fc645688ec252b950710aff27bff67fba41f137a680437f813c25db58a422b8"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvStorage.php",
+      "sha256": "324bf5835268b5b75d7b1b6006def17246b3fa53de288f2a62a399c0e71504fd"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvCleanup.php",
+      "sha256": "1720f92196dc74537f519714da38ca227776b5fb97f5f963f2c595b99cf6c697"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvWorkspaceBusy.php",
+      "sha256": "dce0a4298334c773ac5b677260f4efa198561dcc801a928b100c4eff06422b44"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvCheckpointCorrupt.php",
+      "sha256": "cd78e47fcf6daa7539085021c4ec5f70017e13202fdde1deea73869dac39d59e"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvCleanupTest.php",
+      "sha256": "a692664f188a9858d89489dac4bfb58b33d8889601b583343eee10bcfc2587e6"
+    },
+    {
+      "path": "scripts/studio/av-finalize.mjs",
+      "sha256": "4e1b758b4bda5741983cc02afbeee14cad9290c9ca632dbf73b29d673691fd69"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-checkpoints.test.mjs",
+      "sha256": "b78b8c6638b66c2329c4a27e64d476abcf2e15a178f93425bb29c0b8594d71f3"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvQueue.php",
+      "sha256": "a11a73bad8e3640554b58f1018a62511ca7a613dfc4e94bcf6aee1c9e230d0d9"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvProcess.php",
+      "sha256": "c8fd1036cc7185cdc508d73f1fbba6d9c2046bf92562bee8f2e7adae5053df49"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvProcessFailed.php",
+      "sha256": "b1be6af28f4b51e9e4bd4d9c60a31e7a2b009b45953dca6a9ec06d68365ab036"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvRunner.php",
+      "sha256": "36dba5094e914b4cb35221c066ef5024a7c199696daea76f8e1efd12e053821a"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvRecovery.php",
+      "sha256": "1aa8d4c80399493d6ed041880488c5ed9185d2a13a46fcf2ac895b1db3766d5d"
+    },
+    {
+      "path": "app/Jobs/Studio/ProcessStudioAvPhase.php",
+      "sha256": "36b31a6ad7e6022d42b8447bd2adb01b617940f8cc92df4f3ff17c3925733fa5"
+    },
+    {
+      "path": "app/Console/Commands/RecoverStudioExports.php",
+      "sha256": "77bdccd35ece2473460ebd9b7fc3bb760c34f7e2d8672618977eacd026235a74"
+    },
+    {
+      "path": "routes/console.php",
+      "sha256": "6efdb0513b41aaf836ff376da1a89bab6c9ce9b2ce5ccdcfe5b6733992536a96"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvQueueTest.php",
+      "sha256": "5bfcaed21fa122cd520acf7854d69bee276c7322cd1a1a8a1f41e77d2f8e66a9"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvProcessTest.php",
+      "sha256": "1fa7277a32d3da084d5b2b49ee82f98141d59cfa961864094f1effc0420e72a5"
+    },
+    {
+      "path": "app/Services/MediaUploadService.php",
+      "sha256": "b6188b620e36ff57816d7daa7fe5521f772fabefb53469b5f0786948b780241f"
+    },
+    {
+      "path": "app/Http/Controllers/MediaController.php",
+      "sha256": "1a72eb53bd13a824c82cc437aa478b8d78b70d7b4258f3b8f52ab7c88dd12181"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvRegistrationTest.php",
+      "sha256": "c27e1f199a1f4c1c76a5496edafe54a13534e616c83f5d2df6f491c3bba74978"
+    }
+  ]
+}

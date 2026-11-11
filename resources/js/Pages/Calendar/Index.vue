@@ -4,6 +4,8 @@ import EmptyState from '@/Components/EmptyState.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import PublishNowConfirm from '@/Components/Calendar/PublishNowConfirm.vue';
 import ViewsMenu from '@/Components/Calendar/ViewsMenu.vue';
+import BatchBar from '@/Components/Calendar/BatchBar.vue';
+import { workflowError, workflowRequest } from '@/Composables/useWorkflow';
 import { useNetworks } from '@/Composables/useNetworks';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -167,6 +169,33 @@ onMounted(() => {
 });
 onBeforeUnmount(stopPolling);
 const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_time}` : 'Sin fecha');
+
+// ---------------------------------------------------------------- aprobación, manual, reintento y lotes (T-19)
+const APPROVAL = { pendiente: 'Pendiente de aprobación', aprobado: 'Aprobado', rechazado: 'Rechazado' };
+const APPROVAL_STYLE = { pendiente: 'bg-amber-50 text-amber-900', aprobado: 'bg-emerald-50 text-emerald-900', rechazado: 'bg-red-50 text-red-900' };
+const selected = ref([]);
+const allRows = computed(() => [...props.items, ...props.undated]);
+const allSelected = computed(() => allRows.value.length > 0 && selected.value.length === allRows.value.length);
+const toggleAll = (on) => {
+    selected.value = on ? allRows.value.map((i) => i.id) : [];
+};
+// Si el calendario se recarga, solo se conservan las filas que siguen visibles.
+watch(allRows, (rows) => {
+    const ids = new Set(rows.map((i) => i.id));
+    selected.value = selected.value.filter((id) => ids.has(id));
+});
+const retrying = ref(new Set());
+const retryNotice = ref('');
+const retry = async (item) => {
+    if (retrying.value.has(item.id)) return;
+    retrying.value = new Set(retrying.value).add(item.id);
+    const result = await workflowRequest('POST', route('workflow.retry', item.id));
+    const next = new Set(retrying.value);
+    next.delete(item.id);
+    retrying.value = next;
+    retryNotice.value = result.ok ? (result.data.retried ? 'Reintento enviado.' : 'No había nada que reintentar: ya está en curso o publicada.') : workflowError(result);
+    router.reload({ only: ['items', 'undated', 'flash'], preserveScroll: true });
+};
 </script>
 
 <template>
@@ -231,6 +260,9 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                     Hay {{ csvInfo.total }} filas que exportar y el CSV incluye las primeras {{ csvInfo.max }}. Filtra por marca, red o estado para exportar el resto.
                 </p>
 
+                <p v-if="retryNotice" class="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900" role="status" data-testid="retry-notice">{{ retryNotice }}</p>
+                <BatchBar v-if="view === 'list'" :selected="selected" :items="allRows" @clear="selected = []" />
+
                 <p v-if="truncated" class="text-sm text-amber-700">Hay muchas publicaciones: se muestran las primeras 500. Filtra por marca o red.</p>
 
                 <!-- SEMANA: franjas horarias -->
@@ -247,6 +279,9 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                             <span class="text-slate-600">{{ item.local_time }}</span>
                                             <span v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="rounded border px-1" :style="networkOf(t.network).style" :title="`${t.network_label} · ${t.status_label}`">{{ networkOf(t.network).short }}</span>
                                             <StatusBadge :status="item.status" :label="item.status_label" />
+                                            <span v-if="item.approval_status" class="rounded px-1 text-[11px] font-medium" :class="APPROVAL_STYLE[item.approval_status]" data-testid="approval-badge">{{ APPROVAL[item.approval_status] }}</span>
+                                            <span v-if="item.series_id" class="rounded bg-indigo-50 px-1 text-[11px] font-medium text-indigo-900" data-testid="series-badge">Serie</span>
+                                            <span v-if="item.manual_pending" class="rounded bg-slate-100 px-1 text-[11px] text-slate-800" data-testid="manual-badge">Manual: toca publicar</span>
                                             <span v-if="item.has_notes" class="rounded bg-amber-100 px-1 text-[11px] text-amber-900" data-testid="notes-indicator" title="Esta publicación tiene notas internas"><span aria-hidden="true">📝 </span>Nota</span>
                                         </span>
                                         <span class="line-clamp-2 text-slate-800">{{ item.text || 'Sin texto' }}</span>
@@ -271,6 +306,9 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                 <Link :href="route('posts.edit', item.id)" class="block">
                                     <span class="flex flex-wrap items-center gap-1">
                                         <span class="text-slate-500">{{ item.local_time }}</span>
+                                        <span v-if="item.series_id" class="rounded bg-indigo-50 px-1 text-[11px] font-medium text-indigo-900" data-testid="series-badge">Serie</span>
+                                        <span v-if="item.approval_status" class="rounded px-1 text-[11px] font-medium" :class="APPROVAL_STYLE[item.approval_status]" data-testid="approval-badge">{{ APPROVAL[item.approval_status] }}</span>
+                                        <span v-if="item.manual_pending" class="rounded bg-slate-100 px-1 text-[11px] text-slate-800" data-testid="manual-badge">Manual</span>
                                         <span v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="rounded border px-1" :style="networkOf(t.network).style" :title="`${t.network_label} · ${t.status_label}`">{{ networkOf(t.network).short }}</span>
                                         <span v-if="item.has_notes" class="rounded bg-amber-100 px-1 text-[11px] text-amber-900" data-testid="notes-indicator" title="Esta publicación tiene notas internas"><span aria-hidden="true">📝 </span>Nota</span>
                                     </span>
@@ -288,6 +326,9 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                     <table class="min-w-full divide-y divide-slate-200 text-sm">
                         <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500">
                             <tr>
+                                <th class="px-3 py-2">
+                                    <input type="checkbox" class="h-4 w-4 rounded border-slate-400 text-indigo-600" aria-label="Seleccionar todas las publicaciones" :checked="allSelected" data-testid="select-all" @change="toggleAll($event.target.checked)" />
+                                </th>
                                 <th class="px-3 py-2">Fecha</th>
                                 <th class="px-3 py-2">Contenido</th>
                                 <th class="px-3 py-2">Redes</th>
@@ -297,9 +338,12 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             <tr v-if="items.length === 0 && undated.length === 0">
-                                <td colspan="5" class="px-3 py-6 text-center text-slate-500">No hay publicaciones en este periodo.</td>
+                                <td colspan="6" class="px-3 py-6 text-center text-slate-500">No hay publicaciones en este periodo.</td>
                             </tr>
-                            <tr v-for="item in [...items, ...undated]" :key="item.id" class="align-top">
+                            <tr v-for="item in [...items, ...undated]" :key="item.id" class="align-top" :data-testid="`row-${item.id}`">
+                                <td class="px-3 py-2">
+                                    <input v-model="selected" type="checkbox" :value="item.id" class="h-4 w-4 rounded border-slate-400 text-indigo-600" :aria-label="`Seleccionar la publicación ${item.id}`" :data-testid="`select-${item.id}`" />
+                                </td>
                                 <td class="whitespace-nowrap px-3 py-2">
                                     <template v-if="item.editable && item.local_datetime">
                                         <input type="datetime-local" :value="item.local_datetime" class="field w-auto py-1 text-xs" :aria-label="`Fecha de la publicación ${item.id}`" @change="reschedule(item, $event.target.value)" />
@@ -314,10 +358,15 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                     </div>
                                 </td>
                                 <td class="px-3 py-2">
+                                    <div v-if="item.approval_status || item.series_id" class="mb-1 flex flex-wrap gap-1">
+                                        <span v-if="item.approval_status" class="rounded px-1.5 py-0.5 text-[11px] font-medium" :class="APPROVAL_STYLE[item.approval_status]" data-testid="approval-badge">{{ APPROVAL[item.approval_status] }}</span>
+                                        <span v-if="item.series_id" class="rounded bg-indigo-50 px-1.5 py-0.5 text-[11px] font-medium text-indigo-900" data-testid="series-badge">Serie</span>
+                                    </div>
                                     <ul class="space-y-1">
                                         <li v-for="t in item.targets" :key="t.network + t.content_type + t.account_name" class="text-xs">
                                             <span class="font-medium">{{ networkOf(t.network).short }}</span>
                                             <StatusBadge class="ml-1" :status="t.status" :label="t.status_label" />
+                                            <span v-if="t.manual" class="ml-1 rounded bg-slate-100 px-1 text-[11px] text-slate-800" data-testid="manual-badge">{{ t.manual_pending ? 'Manual: toca publicar' : 'Manual' }}</span>
                                             <a v-if="t.external_url" :href="t.external_url" target="_blank" rel="noopener" class="link ml-1">Ver</a>
                                             <span v-if="t.status_note" class="block text-amber-700">{{ t.status_note }}</span>
                                             <span v-if="t.error_message" class="block text-red-600">{{ t.error_message }}</span>
@@ -329,6 +378,8 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
                                     <Link :href="route('posts.edit', item.id)" class="link">{{ item.editable ? 'Editar' : 'Ver' }}</Link>
                                     <span v-if="sending.has(item.id)" role="status" class="ms-3 text-xs font-medium text-indigo-700">Enviando…</span>
                                     <button v-else-if="item.can_publish_now" type="button" class="link ms-3" :aria-label="`Publicar ahora la publicación ${item.id}`" @click="askPublishNow(item, $event)">Publicar ahora</button>
+                                    <button v-if="item.can_retry" type="button" class="link ms-3" :disabled="retrying.has(item.id)" :aria-label="`Reintentar la publicación ${item.id}`" data-testid="retry" @click="retry(item)">Reintentar</button>
+                                    <Link v-if="item.has_manual" :href="route('posts.manual.show', item.id)" class="link ms-3" :aria-label="`Abrir el aviso manual de la publicación ${item.id}`" data-testid="manual-link">Aviso manual</Link>
                                     <button type="button" class="link ms-3" :aria-label="`Guardar la publicación ${item.id} en la biblioteca`" @click="saveToLibrary(item)">Guardar en biblioteca</button>
                                 </td>
                             </tr>

@@ -1,0 +1,41 @@
+{
+  "counter_schema": "client-v1",
+  "planned": 3,
+  "recorded": 3,
+  "all_three_passed": true,
+  "variants": 30,
+  "bars": 144,
+  "svg_files": 30,
+  "png_files": 150,
+  "glyph_checks": 30,
+  "preview_checks": 30,
+  "preview_pixels": 12000000,
+  "tick_checks": 6,
+  "xml_shapes": 234,
+  "design_pdf_checks": 0,
+  "materialization_checks": 0,
+  "table_files": 0,
+  "dedicated_native_readiness_receipts": 0,
+  "receipts": [
+    {
+      "project": "desktop",
+      "variants": 10,
+      "bars": 48,
+      "private_font_responses": 40
+    },
+    {
+      "project": "mobile",
+      "variants": 10,
+      "bars": 48,
+      "private_font_responses": 40
+    },
+    {
+      "project": "mobile-360",
+      "variants": 10,
+      "bars": 48,
+      "private_font_responses": 40
+    }
+  ],
+  "blob_files": 1,
+  "global_acceptance_claim": false
+}

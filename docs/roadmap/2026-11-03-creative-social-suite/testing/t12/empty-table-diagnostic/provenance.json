@@ -1,0 +1,13 @@
+{
+  "artifact": "docs/roadmap/2026-11-03-creative-social-suite/testing/t12/consumer-local-qa2/raw/1440-axe-empty-historic.json",
+  "artifact_sha256": "a7bc3fe028d222fdb715f1b7f061d4608813d23739bbd6aaccfb63e53e0100fb",
+  "baseline_exact_outerHTML_available": false,
+  "reconstruction": "Table opening and scope from latest real axe artifact; remaining structure from real Vue template, labels Año/Serie 1 and control datum from tests/e2e/studio-charts.spec.ts B4. Not a captured complete live DOM. No app or full accessibility acceptance.",
+  "table_template": "<table class=\"w-full text-left text-xs\"><caption class=\"sr-only\">Categorías y series seleccionadas, tipos y valores originales</caption><thead><tr><th scope=\"col\" class=\"p-2\">Fila</th><th v-for=\"c in displayedColumns\" :key=\"c.id\" scope=\"col\" class=\"p-2\">{{c.label}}</th></tr></thead><tbody><tr v-for=\"row in displayedRows\" :key=\"row.id\"><th scope=\"row\" class=\"p-2\">{{row.id}}</th><td v-for=\"c in displayedColumns\" :key=\"c.id\" class=\"p-2 whitespace-pre-wrap\">{{c.index < 0 ? 'Columna no disponible en esta revisión' : cellLabel(row.values[c.index])}}</td></tr></tbody></table>",
+  "scope": "data-v-a61ea03b",
+  "css": [
+    "public/build/assets/app-CDz-3XT3.css",
+    "public/build/assets/Editor-BsaKWlAr.css",
+    "public/build/assets/StudioDatasetsDialog-l32uGF7U.css"
+  ]
+}

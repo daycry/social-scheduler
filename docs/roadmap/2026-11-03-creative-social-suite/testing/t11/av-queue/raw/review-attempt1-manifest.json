@@ -1,0 +1,76 @@
+{
+  "sources": [
+    {
+      "path": "app/Services/Studio/StudioAvState.php",
+      "sha256": "4b5e824f2e9cc240b6124d8e17a3172d08008a4d49705a50b27b32c3f951f9ee"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvFiles.php",
+      "sha256": "dbbdb556a1a99c345aa7c8fbfdd9db2bf41a84443ea4b09a9324fbdd476a5d48"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvStorage.php",
+      "sha256": "324bf5835268b5b75d7b1b6006def17246b3fa53de288f2a62a399c0e71504fd"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvCleanup.php",
+      "sha256": "1720f92196dc74537f519714da38ca227776b5fb97f5f963f2c595b99cf6c697"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvQueue.php",
+      "sha256": "a11a73bad8e3640554b58f1018a62511ca7a613dfc4e94bcf6aee1c9e230d0d9"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvProcess.php",
+      "sha256": "c8fd1036cc7185cdc508d73f1fbba6d9c2046bf92562bee8f2e7adae5053df49"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvProcessFailed.php",
+      "sha256": "b1be6af28f4b51e9e4bd4d9c60a31e7a2b009b45953dca6a9ec06d68365ab036"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvRunner.php",
+      "sha256": "74dccb50cb3e90b437666c4291cc1f534fe604c50e75f04af0f25e2d328e6c5e"
+    },
+    {
+      "path": "app/Services/Studio/StudioAvRecovery.php",
+      "sha256": "fdfe08b81d0f9b2c5a4292f3f065c5c087068f35a8648af7e2e4154dea775991"
+    },
+    {
+      "path": "app/Jobs/Studio/ProcessStudioAvPhase.php",
+      "sha256": "36b31a6ad7e6022d42b8447bd2adb01b617940f8cc92df4f3ff17c3925733fa5"
+    },
+    {
+      "path": "app/Console/Commands/RecoverStudioExports.php",
+      "sha256": "77bdccd35ece2473460ebd9b7fc3bb760c34f7e2d8672618977eacd026235a74"
+    },
+    {
+      "path": "app/Models/Studio/StudioAvLease.php",
+      "sha256": "ac38958e5bd7e7e6fa18443c4a676bdc04c719a6f9949a5b677d1eba3b91e2a7"
+    },
+    {
+      "path": "app/Models/Studio/StudioAvWorkspace.php",
+      "sha256": "797bd11487877d9faede82d9d981f178f07d5076b7ec1fc6cf75ef9a19408905"
+    },
+    {
+      "path": "database/migrations/2026_11_05_150000_add_studio_render_state.php",
+      "sha256": "d06fa6189ec9ec224e255aafae57e9f338bebc6b5d588b3f508f6304eeffb5e4"
+    },
+    {
+      "path": "routes/console.php",
+      "sha256": "6efdb0513b41aaf836ff376da1a89bab6c9ce9b2ce5ccdcfe5b6733992536a96"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvQueueTest.php",
+      "sha256": "bf6a5b60ccd710cbf49d1a6f2049c943311add04e0d2f9906ffa5fef97ddf54d"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioAvProcessTest.php",
+      "sha256": "1fa7277a32d3da084d5b2b49ee82f98141d59cfa961864094f1effc0420e72a5"
+    },
+    {
+      "path": "docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md",
+      "sha256": "b5bf836d4b278ca1fa262941299439d65536b17075ac3d1d0bf53c83732f8086"
+    }
+  ]
+}

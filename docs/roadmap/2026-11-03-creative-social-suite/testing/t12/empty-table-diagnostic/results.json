@@ -1,0 +1,35 @@
+{
+  "results": [
+    {
+      "name": "baseline",
+      "diagnostic_confirmed": true,
+      "violations": 0,
+      "incomplete": 1,
+      "passes": []
+    },
+    {
+      "name": "empty-footer",
+      "diagnostic_confirmed": true,
+      "violations": 0,
+      "incomplete": 0,
+      "passes": [
+        "th-has-data-cells"
+      ]
+    },
+    {
+      "name": "one-row-control",
+      "diagnostic_confirmed": true,
+      "violations": 0,
+      "incomplete": 0,
+      "passes": [
+        "th-has-data-cells"
+      ]
+    }
+  ],
+  "requests": [],
+  "timedOut": false,
+  "browserConnected": false,
+  "scope": "Single th-has-data-cells diagnostic on reconstructed tables only",
+  "app_pass_claim": false,
+  "full_axe_pass_claim": false
+}

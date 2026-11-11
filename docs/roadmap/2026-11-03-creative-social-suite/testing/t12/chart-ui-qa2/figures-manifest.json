@@ -1,0 +1,26 @@
+[
+  {
+    "file": "images/studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop-bar-preview.png",
+    "sha256": "2bc26c39312b9cb1c2ef4c8360a9d9eee0423cf43222b5c73290fa9996a057fd"
+  },
+  {
+    "file": "images/studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop-column-preview.png",
+    "sha256": "2bc26c39312b9cb1c2ef4c8360a9d9eee0423cf43222b5c73290fa9996a057fd"
+  },
+  {
+    "file": "images/studio-charts-E2E28-01-ten-293e6-n-undo-SVG-PNG-private-font-desktop-column.png",
+    "sha256": "cac2d56d44433cb16f1a68531f776252b2e1f5662c882872cab0e06532fb344f"
+  },
+  {
+    "file": "images/failed-second-variant.png",
+    "sha256": "f79b2625b15a325ea972bb3bef09e2ca3692a531efa08b82708936924f01d1eb"
+  },
+  {
+    "file": "images/column-preview-render.png",
+    "sha256": "d275246e3dd649c9cd87cee0713fd85514c263c4009614bb49ee3df215da6383"
+  },
+  {
+    "file": "images/bar-preview-render.png",
+    "sha256": "8e9700e5d68d5df3e46dc43234c22b6fed74852b4a975f9c691e69962f09d467"
+  }
+]

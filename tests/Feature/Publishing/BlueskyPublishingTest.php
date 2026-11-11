@@ -106,8 +106,8 @@ test('regresion: el registro mantiene los publicadores y lectores de las otras r
     $registry = app(ConnectorRegistry::class);
 
     foreach (Network::cases() as $network) {
-        if ($network === Network::Threads) {
-            continue; // Threads solo se registra con su app configurada (ThreadsConnectorTest)
+        if (in_array($network, [Network::Threads, Network::LinkedIn, Network::Pinterest], true)) {
+            continue; // Threads, LinkedIn y Pinterest solo se registran con su app configurada (ThreadsConnectorTest, LinkedInConnectorTest, PinterestConnectorTest)
         }
         expect($registry->publisherFor($network))->not->toBeNull($network->value)
             ->and($registry->insightsFor($network))->not->toBeNull($network->value)

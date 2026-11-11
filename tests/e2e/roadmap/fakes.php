@@ -9,6 +9,7 @@ use App\Connectors\Data\RefreshResult;
 use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Connectors\Exceptions\TransientPublishException;
 use App\Models\SocialAccount;
+use Illuminate\Support\Facades\Storage;
 use Tests\Support\FakeConnector;
 
 class T43Connector extends FakeConnector
@@ -70,6 +71,15 @@ class T43Publisher implements Publisher
                 return 'transient';
             }
             $state['records'][$id] ??= ['id' => 't43-external-'.$id, 'created_at' => now()->toIso8601String()];
+            // T-17: lo que la red recibe de media (ids, orden, alt, portada y huella de los bytes) para comprobar la media efectiva del destino.
+            $state['records'][$id]['media'] = array_map(fn ($m) => [
+                'id' => $m->id, 'alt' => $m->alt, 'cover_id' => $m->cover?->id,
+                'sha1' => $m->disk !== null && $m->path !== null ? sha1((string) Storage::disk($m->disk)->get($m->path)) : null,
+            ], $request->media);
+            // T-18: opciones y texto que recibe la red simulada, para comprobar el contrato por destino.
+            $state['records'][$id]['options'] = $request->options;
+            $state['records'][$id]['type'] = $request->type->value;
+            $state['records'][$id]['text'] = $request->text;
             if (str_contains((string) $request->text, 't43-timeout') && $state['calls'][$id] === 1) {
                 return 'timeout';
             }

@@ -1,0 +1,32 @@
+{
+  "automatic_verdict": "NO-PASS",
+  "planned_cases": 3,
+  "actual_cases": 1,
+  "recorded_cases": 3,
+  "global_acceptance": false,
+  "figure_count": 2,
+  "source_count": 462,
+  "visual_review_pending": false,
+  "pdf_generated": true,
+  "scope": "E2E28.03 only; no exports, dense, AV, other families or whole roadmap acceptance",
+  "resource": {
+    "physical_minimum_observed_bytes": 8134578176,
+    "sample_interval_seconds": 0.1,
+    "elapsed": 25.646004699985497,
+    "job": {
+      "scope": "job",
+      "limit": 3221225472,
+      "peak_commit": 711835648,
+      "kill_on_close": true,
+      "breakaway": false
+    },
+    "failure": null
+  },
+  "ports": {
+    "ipv4_8080_free": true,
+    "ipv6_8080_free": true
+  },
+  "missing_viewport_receipts": [
+    "studio-charts-E2E28-03-inv-8b087-spector-focus-accessibility-desktop"
+  ]
+}

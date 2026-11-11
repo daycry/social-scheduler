@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Connectors\ConnectorRegistry;
+use App\Connectors\Contracts\PerAccountRefreshMargin;
 use App\Connectors\Exceptions\ConnectorException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Models\SocialAccount;
@@ -66,8 +67,10 @@ class RefreshSocialAccount implements ShouldBeUnique, ShouldQueue
         }
 
         // Sin caducidad conocida (p. ej. token de Pagina de Meta) no hay nada que renovar.
-        return $account->token_expires_at !== null
-            && $account->token_expires_at->lte(now()->addHours($connectors->forNetwork($account->network)->refreshMarginHours()));
+        $connector = $connectors->forNetwork($account->network);
+        $margin = $connector instanceof PerAccountRefreshMargin ? $connector->refreshMarginHoursFor($account) : $connector->refreshMarginHours();
+
+        return $account->token_expires_at !== null && $account->token_expires_at->lte(now()->addHours($margin));
     }
 
     /** Motivo permanente conocido sin llamar a la red (acceso a datos / refresh token vencidos). */
@@ -105,7 +108,7 @@ class RefreshSocialAccount implements ShouldBeUnique, ShouldQueue
         }
 
         if (($reason = self::permanentReason($account)) !== null) {
-            $this->requireReconnection($accounts, $reason, $account->last_refreshed_at?->getTimestamp());
+            $this->requireReconnection($accounts, $reason, $account->credentialVersion());
 
             return;
         }
@@ -114,7 +117,7 @@ class RefreshSocialAccount implements ShouldBeUnique, ShouldQueue
             return; // ya renovada por otro camino
         }
 
-        $before = $account->last_refreshed_at?->getTimestamp();
+        $before = $account->credentialVersion();
 
         try {
             $result = $connectors->forNetwork($account->network)->refresh($account);
@@ -130,7 +133,7 @@ class RefreshSocialAccount implements ShouldBeUnique, ShouldQueue
 
         $this->locked(function (SocialAccount $fresh) use ($accounts, $result, $before): void {
             // Si mientras tanto se desconecto o ya se renovo, el resultado se descarta.
-            if ($fresh->isActive() && $fresh->last_refreshed_at?->getTimestamp() === $before) {
+            if (self::sameChain($fresh, $before)) {
                 $accounts->applyRefresh($fresh, $result);
             }
         });
@@ -138,14 +141,14 @@ class RefreshSocialAccount implements ShouldBeUnique, ShouldQueue
 
     /**
      * El fallo pertenece a la cadena de tokens leida al empezar ($before): si mientras tanto la
-     * cuenta se renovo o se reconecto (last_refreshed_at cambia), el error ya no aplica.
+     * cuenta se renovo o se reconecto, el error ya no aplica, incluso dentro del mismo segundo.
      */
-    private static function sameChain(SocialAccount $fresh, ?int $before): bool
+    private static function sameChain(SocialAccount $fresh, string $before): bool
     {
-        return $fresh->isActive() && $fresh->last_refreshed_at?->getTimestamp() === $before;
+        return $fresh->isActive() && hash_equals($before, $fresh->credentialVersion());
     }
 
-    private function transientFailure(SocialAccountService $accounts, string $message, SocialAccount $account, ?int $before): void
+    private function transientFailure(SocialAccountService $accounts, string $message, SocialAccount $account, string $before): void
     {
         Log::warning('social.refresh_transient_error', ['account_id' => $account->id, 'network' => $account->network->value]);
 
@@ -164,7 +167,7 @@ class RefreshSocialAccount implements ShouldBeUnique, ShouldQueue
         }
     }
 
-    private function requireReconnection(SocialAccountService $accounts, string $reason, ?int $before): void
+    private function requireReconnection(SocialAccountService $accounts, string $reason, string $before): void
     {
         // El estado se cambia releyendo con lock: solo UNA transicion notifica (sin avisos duplicados).
         $account = null;

@@ -1,0 +1,12 @@
+[
+  {
+    "kind": "column",
+    "domain_min": -1.7976931348623157e+308,
+    "domain_max": 1.7976931348623157e+308
+  },
+  {
+    "kind": "column",
+    "domain_min": -1e+308,
+    "domain_max": 1e+308
+  }
+]

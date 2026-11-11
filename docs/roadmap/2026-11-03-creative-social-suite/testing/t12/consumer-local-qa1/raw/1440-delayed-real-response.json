@@ -1,0 +1,26 @@
+[
+  {
+    "kind": "hold-captured-real-response",
+    "token": "9cce582d-6b9e-480e-8013-809d67677470",
+    "method": "GET",
+    "path": "/brands/1/studio/datasets/2/export",
+    "status": 200,
+    "upstream_status": 200,
+    "bytes": 289,
+    "sha256": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054",
+    "headers": {
+      "content-type": "application/json; charset=UTF-8",
+      "content-disposition": "attachment; filename=dataset-2-r1.json",
+      "cache-control": "no-store, private",
+      "x-content-type-options": "nosniff"
+    }
+  },
+  {
+    "kind": "hold-released",
+    "token": "9cce582d-6b9e-480e-8013-809d67677470",
+    "cancelled_delivery": false,
+    "unchanged_bytes": 289,
+    "sha256": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054",
+    "deadline_release": false
+  }
+]

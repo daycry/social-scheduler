@@ -1,0 +1,117 @@
+{
+  "scope": "T12API review2:4source+2prose corrected;core9preserved",
+  "files": {
+    "routes/studio.php": "522908cb45d1ad2bcb52ba54e61d28fbabbe185da27905a2bcb53322f9fb28da",
+    "routes/studio-api.php": "92bb223fa5164673663064445663c50c2a47dfb5b763dc75037926d1cbc97a6c",
+    "bootstrap/app.php": "d57d4ab0e0f0e18454866917c5db162703c00ca728d209ed5d45462bb79caca9",
+    "app/Mcp/Servers/SchedulerServer.php": "11f14fa2b30ac3f82a00937c8521b304535637cb92d7929b8d698537b337c6ca",
+    "app/Mcp/Tools/SchedulerTool.php": "3e20a66af791477f0c430b28f235957b1fdce98d0d69ad563188852aa87ffd77",
+    "tests/Feature/Studio/StudioApiMcpTest.php": "04edaebd7026b630219a76efc81944415bc51ab4f4e06ab47b6aaef4cb213e62",
+    "app/Services/Studio/StudioDatasetActions.php": "0fa0ba8ff2c79e988d14bfdcf1ba59d8ab4385531c632af22588c12b476d0841",
+    "app/Services/Studio/StudioDatasetInput.php": "b6d866bb36ff16d41045edb9ddbee6486e371f4f1a7b712a2a085bd52de92e6e",
+    "app/Http/Controllers/Studio/StudioDatasetController.php": "954da8b6e8d5759637584825cfc6a34f3158898ac8c2ba3a9a82764a3761ee15",
+    "app/Http/Middleware/LimitStudioDatasetPayload.php": "e4f1d64a9328c96aaaa2de51bd387f2c1607ad300c7d3a17d0f6e090056f082f",
+    "app/Mcp/Tools/ManageStudioDataset.php": "47b8026d807d6eb238f225130e577b670104e16977fa9e3a27e36c8fdf3dcb90",
+    "routes/studio-datasets.php": "6d3ce41cd0393e2f91842b58839d33afaf2072d68d0f324ddcc6ef15c45aee6c",
+    "routes/studio-datasets-api.php": "ab6eabdabc40def69203645e22a85d4921543ab4aaeb8b0308ee5c3d4197abe7",
+    "tests/Feature/Studio/StudioDatasetApiTest.php": "64cf9737cdb542e6931a2586b3870c8f6d03b30c76012915bc941cec1e216259",
+    "docs/api/creative-suite.openapi.yaml": "e6e9b161d28b8f5993aadee9488ab295eea2825dd9e106092c8c6832e2dc5b12",
+    "docs/guias/estudio-api-mcp.md": "1e8d76cf71a41aaf1f8177f60a5107a0140dbf914847fb1a5bed39f620023ffc",
+    "docs/modulos/mcp.md": "836d8585dbb638832a9769b3426c9c35cc9d6f7b9501a1e440c5203f8c1ee62f",
+    "README.md": "03dc14126978831f9d551ee0ce9c8715e03e1c0d2f80183b92927f10c6810488",
+    "docs/roadmap/2026-11-03-creative-social-suite/test-plan.md": "89c043a2a7de8b0168779db6b2182d5c10cb883b8570965a9e87e16ac5ca86a8",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-dataset-api-contract.md": "9eb250eeedabd4b4c48d5c91259e6cdf683c82d1a0b9df96b4df3e393782277b",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-datasets-contract.md": "d3991af471dffec2a7d1358f118fbf86a29f60e691efb42f167067f252d90d75",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-chart-data-contract.md": "bbcfe8bd17af049d62512f1e23960774886973d66394e7db1f4f87b965619ce0",
+    "app/Services/Studio/StudioChartData.php": "8abef7557b81ae55571e7acf4327ba1abb00b6002c1bd2778e5f8d72ddbcf91e",
+    "tests/Feature/Studio/StudioChartDataTest.php": "34cd6393af70fbc87a8de2d1df96a8e5b8224e0de3b26cfb94c625cb235f746b",
+    "app/Services/Studio/StudioDatasets.php": "52df3c869b3993c2cb27f3bf245062d8b2872356cd62adcc1f65b1ca091e6411",
+    "app/Models/Studio/StudioDataset.php": "b2e7eb6d865df56db94fac4b051e4b2c7a0b273bfddd6a9c5d639cf4462033dc",
+    "app/Models/Studio/StudioDatasetRevision.php": "49d41e524b4c90205ae1f566422aca64bfd07745b5f068cfd4500c5ac61a4890",
+    "database/migrations/2026_11_06_010000_create_studio_datasets.php": "90a7b7ed206946a13c41d0ce56b0d18a9ffb78b4c3d5c3df9cc259c5472b2efd",
+    "tests/Feature/Studio/StudioDatasetsTest.php": "c33ef6edaf092d45d96df7e94d8cb6f54f8f30ac52d3e70e224b94be626cf770",
+    "app/Services/Studio/StudioTableExport.php": "cdcfb37bcf22f2e55e3d402cc93a61ed7c416d9ca6787cab45c3d2cfec4b1049",
+    "tests/Feature/Studio/StudioTableExportTest.php": "4a778e19f79fb5c3ccbc52f8040df02443bc009071233a1fcb41eb47207179d0"
+  },
+  "changed_vs_review1": [
+    "app/Mcp/Tools/SchedulerTool.php",
+    "app/Http/Middleware/LimitStudioDatasetPayload.php",
+    "app/Mcp/Tools/ManageStudioDataset.php",
+    "tests/Feature/Studio/StudioDatasetApiTest.php",
+    "docs/guias/estudio-api-mcp.md",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-dataset-api-contract.md"
+  ],
+  "previous_manifest": "storage\\framework\\testing\\t12-dataset-api\\root-review-attempt1\\reviewed-manifest.json",
+  "source_metadata": [
+    {
+      "path": "routes/studio.php",
+      "before_sha256": "3E8A81ADD20A8207C0BC88EE63A8C7C8D5D7AA6746747E57363C8F8286E7C975",
+      "after_sha256": "522908CB45D1AD2BCB52BA54E61D28FBABBE185DA27905A2BCB53322F9FB28DA"
+    },
+    {
+      "path": "routes/studio-api.php",
+      "before_sha256": "21A744B6B8AA492CA3C64BED4513CBA1EC7C3ADA31F5E02AE0016AA347F53C81",
+      "after_sha256": "92BB223FA5164673663064445663C50C2A47DFB5B763DC75037926D1CBC97A6C"
+    },
+    {
+      "path": "bootstrap/app.php",
+      "before_sha256": "8B2959B3439E390C812739CC9D06FA41F2739A23E3F26748D728EEE9AC954F0A",
+      "after_sha256": "D57D4AB0E0F0E18454866917C5DB162703C00CA728D209ED5D45462BB79CACA9"
+    },
+    {
+      "path": "app/Mcp/Servers/SchedulerServer.php",
+      "before_sha256": "FA3F77667890E1C98288CE6C96E45341EEE7221907B93DAD399CFC774E936223",
+      "after_sha256": "11F14FA2B30AC3F82A00937C8521B304535637CB92D7929B8D698537B337C6CA"
+    },
+    {
+      "path": "app/Mcp/Tools/SchedulerTool.php",
+      "before_sha256": "2CAF1F6B4C4E15BB4E4A585EC6AB43052F707E9F25E7DC6AD4B74A8CA70621FF",
+      "after_sha256": "3E20A66AF791477F0C430B28F235957B1FDCE98D0D69AD563188852AA87FFD77"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioApiMcpTest.php",
+      "before_sha256": "FBD1F4B5EDAF051EE7C3C6EFA1619E1BDC0C96D341A49E9C1A83437A376DE047",
+      "after_sha256": "04EDAEBD7026B630219A76EFC81944415BC51AB4F4E06AB47B6AAEF4CB213E62"
+    },
+    {
+      "path": "app/Services/Studio/StudioDatasetActions.php",
+      "before_sha256": null,
+      "after_sha256": "0FA0BA8FF2C79E988D14BFDCF1BA59D8AB4385531C632AF22588C12B476D0841"
+    },
+    {
+      "path": "app/Services/Studio/StudioDatasetInput.php",
+      "before_sha256": null,
+      "after_sha256": "B6D866BB36FF16D41045EDB9DDBEE6486E371F4F1A7B712A2A085BD52DE92E6E"
+    },
+    {
+      "path": "app/Http/Controllers/Studio/StudioDatasetController.php",
+      "before_sha256": null,
+      "after_sha256": "954DA8B6E8D5759637584825CFC6A34F3158898AC8C2BA3A9A82764A3761EE15"
+    },
+    {
+      "path": "app/Http/Middleware/LimitStudioDatasetPayload.php",
+      "before_sha256": null,
+      "after_sha256": "E4F1D64A9328C96AAAA2DE51BD387F2C1607AD300C7D3A17D0F6E090056F082F"
+    },
+    {
+      "path": "app/Mcp/Tools/ManageStudioDataset.php",
+      "before_sha256": null,
+      "after_sha256": "47B8026D807D6EB238F225130E577B670104E16977FA9E3A27E36C8FDF3DCB90"
+    },
+    {
+      "path": "routes/studio-datasets.php",
+      "before_sha256": null,
+      "after_sha256": "6D3CE41CD0393E2F91842B58839D33AFAF2072D68D0F324DDCC6EF15C45AEE6C"
+    },
+    {
+      "path": "routes/studio-datasets-api.php",
+      "before_sha256": null,
+      "after_sha256": "AB6EABDABC40DEF69203645E22A85D4921543AB4AAEB8B0308EE5C3D4197ABE7"
+    },
+    {
+      "path": "tests/Feature/Studio/StudioDatasetApiTest.php",
+      "before_sha256": null,
+      "after_sha256": "64CF9737CDB542E6931A2586B3870C8F6D03B30C76012915BC941CEC1E216259"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+TAP version 13
+# Subtest: characterization safe boundary equality decimal suffixes exponents and enormous zero exponents
+ok 1 - characterization safe boundary equality decimal suffixes exponents and enormous zero exponents
+  ---
+  duration_ms: 3.8831
+  type: 'test'
+  ...
+# Subtest: characterization maximum table and twelve series project 12000 values without modifying source
+ok 2 - characterization maximum table and twelve series project 12000 values without modifying source
+  ---
+  duration_ms: 162.6047
+  type: 'test'
+  ...
+# Subtest: characterization empty tables duplicate labels and null-prototype records remain distinct
+ok 3 - characterization empty tables duplicate labels and null-prototype records remain distinct
+  ---
+  duration_ms: 0.3618
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 188.5736

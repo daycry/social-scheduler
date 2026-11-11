@@ -1,0 +1,261 @@
+--- attempt1/resources/js/Studio/export-jobs.js
++++ resources/js/Studio/export-jobs.js
+@@ -8,7 +8,9 @@
+             const result = await request('POST', url('studio.exports.render', designId), { revision, format, pages, scale, quality, transparent: false });
+             return result.export;
+         },
+-        list: (designId, page = 1) => request('GET', `${url('studio.exports.index', designId)}?page=${page}`),
++        list: (designId, page = 1, signal) => signal
++            ? request('GET', `${url('studio.exports.index', designId)}?page=${page}`, undefined, { signal })
++            : request('GET', `${url('studio.exports.index', designId)}?page=${page}`),
+         async cancel(id) { return (await request('POST', url('studio.exports.cancel', id), {})).export; },
+         async retry(id) { return (await request('POST', url('studio.exports.retry', id), {})).export; },
+         post: id => request('POST', url('studio.exports.post', id), {}),
+@@ -17,16 +19,23 @@
+ 
+ /** Poll a whole history page, stop on terminal results, and fence every view against late responses. */
+ export function createExportMonitor({ load, onUpdate, onState = () => {}, schedule = setTimeout, cancel = clearTimeout, now = Date.now, interval = 2000, timeout = 300000 }) {
+-    let generation = 0, active = false, loading = false, timer, startedAt;
++    let generation = 0, active = false, timer, startedAt, inFlight, controller;
+     let state = { loading: false, paused: false, error: '' };
+     const notify = patch => { state = { ...state, ...patch }; onState(state); };
+     const clear = () => { cancel(timer); timer = undefined; };
+     async function tick(token) {
+-        if (!active || token !== generation || loading) return false;
++        if (!active || token !== generation) return false;
++        if (inFlight) {
++            await inFlight;
++            return tick(token);
++        }
+         if (now() - startedAt > timeout) { notify({ loading: false, paused: true }); return false; }
+-        loading = true; notify({ loading: true });
++        let finish;
++        inFlight = new Promise(resolve => { finish = resolve; });
++        controller = new AbortController();
++        notify({ loading: true });
+         try {
+-            const data = await load();
++            const data = await load({ signal: controller.signal });
+             if (!active || token !== generation) return false;
+             onUpdate(data);
+             if (data.exports.some(job => ['pending', 'processing'].includes(job.status))) timer = schedule(() => tick(token), interval);
+@@ -35,17 +44,19 @@
+             if (active && token === generation) notify({ paused: true, error: error.message || 'No se pudo consultar el historial.' });
+             return false;
+         } finally {
+-            if (active && token === generation) { loading = false; notify({ loading: false }); }
++            inFlight = null; controller = null;
++            if (active && token === generation) notify({ loading: false });
++            finish();
+         }
+     }
+-    function stop() { generation++; active = false; loading = false; clear(); notify({ loading: false }); }
++    function stop() { generation++; active = false; clear(); controller?.abort(); notify({ loading: false }); }
+     return {
+         start() {
+-            stop(); active = true; startedAt = now(); notify({ paused: false, error: '' });
++            stop(); active = true; startedAt = now(); notify({ loading: true, paused: false, error: '' });
+             return tick(generation);
+         },
+         refresh() {
+-            if (!active || loading) return Promise.resolve(false);
++            if (!active || inFlight) return Promise.resolve(false);
+             clear(); startedAt = now(); notify({ paused: false, error: '' });
+             return tick(generation);
+         },
+--- attempt1/resources/js/Components/Studio/NativeExportJobs.vue
++++ resources/js/Components/Studio/NativeExportJobs.vue
+@@ -14,9 +14,11 @@
+ const action = ref(null);
+ const error = ref('');
+ let disposed = false;
++let view = 0;
++const current = token => !disposed && props.active && token === view;
+ const labels = { pending: 'En cola', processing: 'Procesando', ready: 'Lista', failed: 'Error', cancelled: 'Cancelada' };
+ const monitor = createExportMonitor({
+-    load: () => client.list(props.designId, page.value),
++    load: ({ signal }) => client.list(props.designId, page.value, signal),
+     onUpdate: data => { jobs.value = data.exports; pagination.value = data.pagination; },
+     onState: state => { tracking.value = state; },
+ });
+@@ -24,12 +26,14 @@
+ 
+ async function begin() {
+     if (submitting.value || action.value) return;
++    const token = view;
+     submitting.value = true; error.value = ''; monitor.stop(); emit('busy', true);
+     try {
+         const options = await props.prepare();
++        if (!current(token)) return;
+         const job = await client.start(props.designId, options);
+-        if (!disposed) { page.value = 1; update(job); }
+-    } catch (e) { if (!disposed) error.value = e.message; }
++        if (current(token)) { page.value = 1; update(job); }
++    } catch (e) { if (current(token)) error.value = e.message; }
+     finally {
+         submitting.value = false;
+         if (!disposed) { emit('busy', false); if (props.active) monitor.start(); }
+@@ -37,16 +41,17 @@
+ }
+ async function control(job, operation) {
+     if (submitting.value || action.value) return;
++    const token = view;
+     action.value = job.id; error.value = ''; monitor.stop();
+     try {
+         if (operation === 'post') {
+             const result = await client.post(job.id);
+-            if (!disposed) router.visit(result.post.edit_url);
++            if (current(token)) router.visit(result.post.edit_url);
+         } else {
+             const current = await client[operation](job.id);
+-            if (!disposed) update(current);
++            if (token === view && !disposed && props.active) update(current);
+         }
+-    } catch (e) { if (!disposed) error.value = e.message; }
++    } catch (e) { if (current(token)) error.value = e.message; }
+     finally {
+         action.value = null;
+         if (!disposed && props.active) monitor.start();
+@@ -56,8 +61,12 @@
+     if (submitting.value || action.value || value < 1 || value > pagination.value.last_page) return;
+     page.value = value; monitor.start();
+ }
+-watch(() => props.active, active => { if (active) monitor.start(); else monitor.stop(); }, { immediate: true });
+-onBeforeUnmount(() => { disposed = true; monitor.stop(); });
++watch(() => [props.active, props.format, props.designId], ([active], previous) => {
++    view++; monitor.stop();
++    if (previous && previous[2] !== props.designId) { jobs.value = []; page.value = 1; }
++    if (active && !submitting.value && action.value === null) monitor.start();
++}, { immediate: true });
++onBeforeUnmount(() => { disposed = true; view++; monitor.stop(); emit('busy', false); });
+ </script>
+ 
+ <template>
+--- attempt1/tests/frontend/studio-export-jobs.test.mjs
++++ tests/frontend/studio-export-jobs.test.mjs
+@@ -59,8 +59,11 @@
+         schedule: callback => { timers.push(callback); return callback; }, cancel: () => {}, now: () => time,
+     });
+     const first = monitor.start(); monitor.stop(); const second = monitor.start();
++    assert.equal(releases.length, 1);
++    releases[0]({ exports: [{ id: 19, status: 'ready' }] }); await first;
++    await new Promise(resolve => setImmediate(resolve));
++    assert.equal(updates.length, 0);
+     releases[1]({ exports: [{ id: 20, status: 'pending' }] }); await second;
+-    releases[0]({ exports: [{ id: 19, status: 'ready' }] }); await first;
+     assert.deepEqual(updates.map(update => update.exports[0].id), [20]);
+     time = 300001; await timers.shift()();
+     assert.equal(releases.length, 2); assert.equal(states.at(-1).paused, true);
+@@ -88,3 +91,41 @@
+     assert.equal(states.at(-1).paused, false); assert.equal(states.at(-1).error, '');
+     monitor.stop();
+ });
++
++test('rapid view changes abort old reads and serialize even a transport that has not settled cancellation', async () => {
++    const { createExportMonitor } = await moduleUnderTest();
++    const releases = [], signals = [], updates = [];
++    let active = 0, maximum = 0;
++    const monitor = createExportMonitor({
++        load: ({ signal } = {}) => new Promise(resolve => {
++            signals.push(signal); active++; maximum = Math.max(maximum, active);
++            releases.push(() => { active--; resolve({ exports: [{ id: signals.length, status: 'ready' }] }); });
++        }),
++        onUpdate: result => updates.push(result), onState: () => {},
++    });
++    const pending = [monitor.start(), monitor.start(), monitor.start()];
++    try {
++        assert.equal(maximum, 1, 'view changes must not multiply pending history requests');
++        assert.equal(signals[0].aborted, true, 'previous transport must be aborted');
++        releases.shift()(); await new Promise(resolve => setImmediate(resolve));
++        assert.equal(signals.length, 2); assert.equal(maximum, 1); assert.equal(updates.length, 0);
++        releases.shift()(); await Promise.all(pending);
++        assert.equal(updates.length, 1); assert.equal(active, 0);
++    } finally { monitor.stop(); for (const release of releases) release(); await Promise.all(pending); }
++});
++
++test('history cancellation reaches the actual same-origin fetch transport', async () => {
++    const { createStudioExportClient } = await moduleUnderTest();
++    const previous = { fetch: globalThis.fetch, document: globalThis.document, route: globalThis.route };
++    const calls = [], controller = new AbortController();
++    globalThis.document = { cookie: 'XSRF-TOKEN=own-csrf' };
++    globalThis.route = () => '/studio/designs/7/exports';
++    globalThis.fetch = async (url, options) => { calls.push({ url, ...options }); return Response.json({ exports: [], pagination: { current_page: 2, last_page: 2 } }); };
++    try {
++        await createStudioExportClient().list(7, 2, controller.signal);
++        assert.equal(calls[0].signal, controller.signal);
++        assert.equal(calls[0].credentials, 'same-origin');
++        assert.equal(calls[0].url, '/studio/designs/7/exports?page=2');
++        assert.equal(calls[0].headers.Authorization, undefined);
++    } finally { Object.assign(globalThis, previous); }
++});
+--- attempt1/docs/roadmap/2026-11-03-creative-social-suite/test-plan.md
++++ docs/roadmap/2026-11-03-creative-social-suite/test-plan.md
+@@ -74,3 +74,5 @@
+ ### Flujo público audiovisual — interfaz en desarrollo
+ 
+ E2E-13: `studio-native-export.spec.ts` recorrerá MP4/GIF desde el diálogo, orden explícito y omisión de opciones estáticas, cancel/retry y persistencia de historial al recargar, worker database real y descarga con codec/dimensiones/frames/píxel inicial, borrador de la marca sin publicación. Se ejecutará en desktop/mobile/mobile-360. Hasta disponer de sus salidas reales no se considera aprobado. `studio-export-jobs.test.mjs` cubre contrato del cliente, consultas sin solapamiento, respuestas tardías, presupuesto5min y reanudación sin duplicar trabajos.
++
++Regresiones de revisiónUI: `studio-export-jobs.test.mjs` exige cancelación real de fetch y serialización hasta settle aun con transporte no cancelable; `studio-export-job-panel.test.mjs` compila el SFC real con Vue para comprobar respuesta de borrador tras cerrar y lectura tras cambiar MP4/GIF. Son casos aislados sin Chromium, red ni ONNX.
+--- attempt1/resources/js/Studio/api.js
++++ resources/js/Studio/api.js
+@@ -5,9 +5,9 @@
+ }
+ 
+ /** Same-origin JSON transport; bearer URLs from storage never receive the application's CSRF token. */
+-export async function studioRequest(method, url, body) {
++export async function studioRequest(method, url, body, { signal } = {}) {
+     const response = await fetch(url, {
+-        method, credentials: 'same-origin',
++        method, credentials: 'same-origin', signal,
+         headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-XSRF-TOKEN': csrf(), ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
+         body: body === undefined ? undefined : JSON.stringify(body),
+     });
+--- attempt1/tests/frontend/studio-export-job-panel.test.mjs
++++ tests/frontend/studio-export-job-panel.test.mjs
+@@ -0,0 +1,46 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
++import { parse, compileScript } from '@vue/compiler-sfc';
++import { ref, watch, reactive, nextTick, effectScope } from 'vue';
++import { createExportMonitor } from '../../resources/js/Studio/export-jobs.js';
++
++function mountPanel(client) {
++    const source = readFileSync(new URL('../../resources/js/Components/Studio/NativeExportJobs.vue', import.meta.url), 'utf8');
++    const { descriptor } = parse(source);
++    const compiled = compileScript(descriptor, { id: 'export-panel-regression' }).content
++        .replace(/^import .*?;\r?$/gm, '').replace('export default', 'return');
++    const visits = [], hooks = [], props = reactive({ active: true, format: 'mp4', designId: 7, prepare: async () => ({}) });
++    const factory = new Function('ref', 'watch', 'onBeforeUnmount', 'router', 'createStudioExportClient', 'createExportMonitor', compiled);
++    const component = factory(ref, watch, fn => hooks.push(fn), { visit: url => visits.push(url) }, () => client, createExportMonitor);
++    const scope = effectScope();
++    const state = scope.run(() => component.setup(props, { expose: () => {}, emit: () => {} }));
++    return { props, state, visits, close() { for (const hook of hooks) hook(); scope.stop(); } };
++}
++
++test('closing the panel while a draft is pending preserves the draft without navigating away later', async () => {
++    let finish;
++    const panel = mountPanel({ list: async () => ({ exports: [], pagination: { current_page: 1, last_page: 1 } }), post: () => new Promise(resolve => { finish = resolve; }) });
++    try {
++        const action = panel.state.control({ id: 19 }, 'post');
++        panel.props.active = false; await nextTick();
++        finish({ post: { id: 88, edit_url: '/posts/88/edit' } }); await action;
++        assert.deepEqual(panel.visits, [], 'a response from a closed view must not navigate');
++    } finally { panel.close(); }
++});
++
++test('changing MP4 to GIF fences the previous read before restarting the same design history', async () => {
++    const requests = [];
++    const panel = mountPanel({ list: (_designId, _page, signal) => new Promise(resolve => requests.push({ signal, resolve })) });
++    try {
++        assert.equal(requests.length, 1);
++        panel.props.format = 'gif'; await nextTick();
++        requests[0].resolve({ exports: [{ id: 19, status: 'ready' }], pagination: { current_page: 1, last_page: 1 } });
++        await new Promise(resolve => setImmediate(resolve));
++        assert.equal(panel.state.jobs.value.some(job => job.id === 19), false, 'old format response must be ignored');
++        assert.equal(requests[0].signal?.aborted, true);
++        assert.equal(requests.length, 2);
++        requests[1].resolve({ exports: [], pagination: { current_page: 1, last_page: 1 } });
++        await new Promise(resolve => setImmediate(resolve));
++    } finally { panel.close(); for (const request of requests) request.resolve({ exports: [], pagination: { current_page: 1, last_page: 1 } }); }
++});

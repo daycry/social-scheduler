@@ -1,0 +1,268 @@
+TAP version 13
+# Subtest: explicit private font references survive validation and can be removed without changing text
+ok 1 - explicit private font references survive validation and can be removed without changing text
+  ---
+  duration_ms: 5.285
+  type: 'test'
+  ...
+# Subtest: image masks use known shapes only, roundtrip radius and support explicit removal
+ok 2 - image masks use known shapes only, roundtrip radius and support explicit removal
+  ---
+  duration_ms: 1.1127
+  type: 'test'
+  ...
+# Subtest: canvas serialization preserves the private font identity and mask descriptor instead of engine internals
+ok 3 - canvas serialization preserves the private font identity and mask descriptor instead of engine internals
+  ---
+  duration_ms: 0.5549
+  type: 'test'
+  ...
+# Subtest: documents cannot impersonate a previously loaded private face through a local family name
+ok 4 - documents cannot impersonate a previously loaded private face through a local family name
+  ---
+  duration_ms: 0.2769
+  type: 'test'
+  ...
+# Subtest: font family syntax rejects quoted names and reserved private fallback families
+ok 5 - font family syntax rejects quoted names and reserved private fallback families
+  ---
+  duration_ms: 0.5329
+  type: 'test'
+  ...
+# Subtest: an explicit private font never silently falls back when its registered resource is absent
+ok 6 - an explicit private font never silently falls back when its registered resource is absent
+  ---
+  duration_ms: 1.3434
+  type: 'test'
+  ...
+# Subtest: private font loading rejects a resource URL outside the application before fetching
+ok 7 - private font loading rejects a resource URL outside the application before fetching
+  ---
+  duration_ms: 0.4004
+  type: 'test'
+  ...
+# Subtest: private font decoding has a deadline even after the HTTP body finished downloading
+ok 8 - private font decoding has a deadline even after the HTTP body finished downloading
+  ---
+  duration_ms: 24.0014
+  type: 'test'
+  ...
+# Subtest: real private WOFF2 changes raster glyphs and portable SVG embeds the exact font bytes
+ok 9 - real private WOFF2 changes raster glyphs and portable SVG embeds the exact font bytes
+  ---
+  duration_ms: 1730.6
+  type: 'test'
+  ...
+# Subtest: ellipse and rounded rectangle masks remove corner pixels while retaining central subject pixels
+ok 10 - ellipse and rounded rectangle masks remove corner pixels while retaining central subject pixels
+  ---
+  duration_ms: 137.6762
+  type: 'test'
+  ...
+# Subtest: crop origins outside the actual raster reject while legacy oversized frames still render
+ok 11 - crop origins outside the actual raster reject while legacy oversized frames still render
+  ---
+  duration_ms: 46.5072
+  type: 'test'
+  ...
+# Subtest: editor awaits real fonts, preserves masked transforms through copy and releases its private faces
+ok 12 - editor awaits real fonts, preserves masked transforms through copy and releases its private faces
+  ---
+  duration_ms: 40.9874
+  type: 'test'
+  ...
+# Subtest: crop and every supported filter change decoded output pixels rather than only document metadata
+ok 13 - crop and every supported filter change decoded output pixels rather than only document metadata
+  ---
+  duration_ms: 958.8491
+  type: 'test'
+  ...
+# Subtest: line and path defaults are visible strokes while explicit styles remain unchanged
+ok 14 - line and path defaults are visible strokes while explicit styles remain unchanged
+  ---
+  duration_ms: 5.2555
+  type: 'test'
+  ...
+# Subtest: blank document uses requested dimensions and independent page identities
+ok 15 - blank document uses requested dimensions and independent page identities
+  ---
+  duration_ms: 0.8671
+  type: 'test'
+  ...
+# Subtest: clone and duplicate page replace every nested id without sharing mutable state
+ok 16 - clone and duplicate page replace every nested id without sharing mutable state
+  ---
+  duration_ms: 0.4598
+  type: 'test'
+  ...
+# Subtest: page selection preserves explicit order and rejects absent or repeated ids
+ok 17 - page selection preserves explicit order and rejects absent or repeated ids
+  ---
+  duration_ms: 0.6481
+  type: 'test'
+  ...
+# Subtest: validator rejects nonfinite geometry, duplicate ids, external image URLs and excessive nesting
+ok 18 - validator rejects nonfinite geometry, duplicate ids, external image URLs and excessive nesting
+  ---
+  duration_ms: 0.8336
+  type: 'test'
+  ...
+# Subtest: validation preserves gradients, filters, affine transforms and vector paths
+ok 19 - validation preserves gradients, filters, affine transforms and vector paths
+  ---
+  duration_ms: 0.6131
+  type: 'test'
+  ...
+# Subtest: server-valid shadow offsets and ten thousand vector commands can reopen in the editor
+ok 20 - server-valid shadow offsets and ten thousand vector commands can reopen in the editor
+  ---
+  duration_ms: 15.1005
+  type: 'test'
+  ...
+# Subtest: a minimally trimmed short video shares the server end validation
+ok 21 - a minimally trimmed short video shares the server end validation
+  ---
+  duration_ms: 0.3055
+  type: 'test'
+  ...
+# Subtest: text limits count Unicode code points like the server rather than UTF-16 code units
+ok 22 - text limits count Unicode code points like the server rather than UTF-16 code units
+  ---
+  duration_ms: 2.609
+  type: 'test'
+  ...
+# Subtest: multipage png downloads one font once and releases its faces
+ok 23 - multipage png downloads one font once and releases its faces
+  ---
+  duration_ms: 628.6983
+  type: 'test'
+  ...
+# Subtest: multipage pdf downloads one font once and releases its faces
+ok 24 - multipage pdf downloads one font once and releases its faces
+  ---
+  duration_ms: 104.6905
+  type: 'test'
+  ...
+# Subtest: bitmap exports reject oversized sides before rendering or uploading
+ok 25 - bitmap exports reject oversized sides before rendering or uploading
+  ---
+  duration_ms: 2.1655
+  type: 'test'
+  ...
+# Subtest: actual Fabric transform survives own document roundtrip
+ok 26 - actual Fabric transform survives own document roundtrip
+  ---
+  duration_ms: 4.2352
+  type: 'test'
+  ...
+# Subtest: multiple selection serializes absolute transforms without altering the selection
+ok 27 - multiple selection serializes absolute transforms without altering the selection
+  ---
+  duration_ms: 2.1327
+  type: 'test'
+  ...
+# Subtest: nested group preserves local children geometry on save and reopen
+ok 28 - nested group preserves local children geometry on save and reopen
+  ---
+  duration_ms: 2.0774
+  type: 'test'
+  ...
+# Subtest: a gradient angle stays stable on nonsquare shapes through repeated saves
+ok 29 - a gradient angle stays stable on nonsquare shapes through repeated saves
+  ---
+  duration_ms: 1.0688
+  type: 'test'
+  ...
+# Subtest: history restores full states, does not share snapshots and clears redo after branching
+ok 30 - history restores full states, does not share snapshots and clears redo after branching
+  ---
+  duration_ms: 1.1591
+  type: 'test'
+  ...
+# Subtest: history bounds retained states and reset starts a new clean timeline
+ok 31 - history bounds retained states and reset starts a new clean timeline
+  ---
+  duration_ms: 0.7406
+  type: 'test'
+  ...
+# Subtest: video seek resolves a decoded frame, clamps duration and supports cancellation
+ok 32 - video seek resolves a decoded frame, clamps duration and supports cancellation
+  ---
+  duration_ms: 1.7569
+  type: 'test'
+  ...
+# Subtest: video seek reports a stalled decoder and releases its listeners
+ok 33 - video seek reports a stalled decoder and releases its listeners
+  ---
+  duration_ms: 18.518
+  type: 'test'
+  ...
+# Subtest: font loading fails explicitly if the font service never settles
+ok 34 - font loading fails explicitly if the font service never settles
+  ---
+  duration_ms: 15.3969
+  type: 'test'
+  ...
+# Subtest: video playback honors trimmed endpoints and the actual media duration
+ok 35 - video playback honors trimmed endpoints and the actual media duration
+  ---
+  duration_ms: 0.5999
+  type: 'test'
+  ...
+# Subtest: isolated server browser creates real PNG pages, SVG text and ordered multipage PDF
+ok 36 - isolated server browser creates real PNG pages, SVG text and ordered multipage PDF
+  ---
+  duration_ms: 1705.5264
+  type: 'test'
+  ...
+# Subtest: server render can load a registered private image without a cookie or external network
+ok 37 - server render can load a registered private image without a cookie or external network
+  ---
+  duration_ms: 702.1805
+  type: 'test'
+  ...
+# Subtest: isolated server browser renders packaged private WOFF2 and embeds its exact bytes in portable SVG
+ok 38 - isolated server browser renders packaged private WOFF2 and embeds its exact bytes in portable SVG
+  ---
+  duration_ms: 1690.231
+  type: 'test'
+  ...
+# Subtest: fractional PNG JPEG and WebP exports round dimensions and preserve exact object scale
+ok 39 - fractional PNG JPEG and WebP exports round dimensions and preserve exact object scale
+  ---
+  duration_ms: 229.4993
+  type: 'test'
+  ...
+# Subtest: default line and path exports have actual pixels different from the empty page
+ok 40 - default line and path exports have actual pixels different from the empty page
+  ---
+  duration_ms: 55.3354
+  type: 'test'
+  ...
+# Subtest: at least twelve original templates create valid nonempty independent documents
+ok 41 - at least twelve original templates create valid nonempty independent documents
+  ---
+  duration_ms: 12.1629
+  type: 'test'
+  ...
+# Subtest: templates use supplied brand colors/fonts without mutating the kit
+ok 42 - templates use supplied brand colors/fonts without mutating the kit
+  ---
+  duration_ms: 1.0966
+  type: 'test'
+  ...
+# Subtest: brand templates preserve the first uploaded font identity on every generated page
+ok 43 - brand templates preserve the first uploaded font identity on every generated page
+  ---
+  duration_ms: 0.9757
+  type: 'test'
+  ...
+1..43
+# tests 43
+# suites 0
+# pass 43
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6008.1082

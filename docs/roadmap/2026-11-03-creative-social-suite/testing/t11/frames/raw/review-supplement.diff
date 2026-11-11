@@ -1,0 +1,17 @@
+--- a/tests\e2e\studio-frame-export.spec.ts
++++ b/tests\e2e\studio-frame-export.spec.ts
+@@ -43,7 +43,14 @@
+             expect(pixel).toEqual(expected);
+             await expect(dialog.getByRole('status')).toContainText('biblioteca');
+         }
++        const heading = dialog.getByRole('heading', { name: 'Exportar diseño', exact: true });
++        await heading.scrollIntoViewIfNeeded();
++        await expect(heading).toBeInViewport({ ratio: 0.99 });
+         await page.screenshot({ path: info.outputPath('frame-export.png'), fullPage: true });
++        const download = dialog.getByRole('button', { name: 'Descargar', exact: true });
++        await download.scrollIntoViewIfNeeded();
++        await expect(download).toBeInViewport({ ratio: 0.99 });
++        await page.screenshot({ path: info.outputPath('frame-export-actions.png'), fullPage: true });
+         await dialog.getByRole('button', { name: 'Cerrar exportación', exact: true }).click();
+         const stored = await page.evaluate(async id => (await (await fetch(`/studio/designs/${id}`, { headers: { Accept: 'application/json' } })).json()).design, design.id);
+         expect(stored.document).toEqual(design.document);

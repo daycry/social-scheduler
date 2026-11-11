@@ -1,0 +1,1922 @@
+[
+  {
+    "project": "desktop",
+    "variant": "control",
+    "formats": {
+      "png": {
+        "width": 320,
+        "height": 180,
+        "white": 1007,
+        "energy": 1545.5333333333333,
+        "thresholds_inclusive": {
+          "16": 2407,
+          "64": 2143,
+          "128": 1599,
+          "199": 1009,
+          "200": 1007,
+          "201": 1000,
+          "240": 558
+        },
+        "exact_200": 7,
+        "background": [
+          0,
+          0,
+          0
+        ],
+        "rgb_sha256": "dbab49742cc4ee978db55d5fa58ef3c6c02efbfa820a4f7c006e16fd2ae138c0",
+        "frame": 0,
+        "decoded_frame_count": 1,
+        "path": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-desktop/contrast-control.png",
+        "file_sha256": "f4166753bf1f5bb3ab982ebaa7e525c8de006e1356ad3843c54a69b88b1712ed",
+        "probe": {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "png",
+              "codec_long_name": "PNG (Portable Network Graphics) image",
+              "codec_type": "video",
+              "codec_tag_string": "[0][0][0][0]",
+              "codec_tag": "0x0000",
+              "width": 320,
+              "height": 180,
+              "coded_width": 320,
+              "coded_height": 180,
+              "has_b_frames": 0,
+              "pix_fmt": "rgba",
+              "level": -99,
+              "color_range": "pc",
+              "color_space": "gbr",
+              "refs": 1,
+              "r_frame_rate": "25/1",
+              "avg_frame_rate": "25/1",
+              "time_base": "1/25",
+              "nb_read_frames": "1",
+              "disposition": {
+                "default": 0,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+              }
+            }
+          ]
+        }
+      },
+      "mp4": {
+        "width": 320,
+        "height": 180,
+        "white": 1004,
+        "energy": 1544.6745098039216,
+        "thresholds_inclusive": {
+          "16": 2405,
+          "64": 2143,
+          "128": 1601,
+          "199": 1009,
+          "200": 1004,
+          "201": 998,
+          "240": 514
+        },
+        "exact_200": 6,
+        "background": [
+          0,
+          0,
+          0
+        ],
+        "rgb_sha256": "40655ed01a92cb629cd20a582f15353d891c195aad50c0ccee9676184ffe7f67",
+        "frame": 6,
+        "decoded_frame_count": 18,
+        "path": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-desktop/contrast-control.mp4",
+        "file_sha256": "54a78b5165ef11bcb423664ecefe11f936b55f4aa9797ef9921da4a215530d4d",
+        "probe": {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "h264",
+              "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+              "profile": "High",
+              "codec_type": "video",
+              "codec_tag_string": "avc1",
+              "codec_tag": "0x31637661",
+              "mime_codec_string": "avc1.64000c",
+              "width": 320,
+              "height": 180,
+              "coded_width": 320,
+              "coded_height": 192,
+              "has_b_frames": 2,
+              "pix_fmt": "yuv420p",
+              "level": 12,
+              "chroma_location": "left",
+              "field_order": "progressive",
+              "refs": 4,
+              "is_avc": "true",
+              "nal_length_size": "4",
+              "id": "0x1",
+              "r_frame_rate": "12/1",
+              "avg_frame_rate": "12/1",
+              "time_base": "1/12288",
+              "start_pts": 0,
+              "start_time": "0.000000",
+              "duration_ts": 18432,
+              "duration": "1.500000",
+              "bit_rate": "19978",
+              "bits_per_raw_sample": "8",
+              "nb_frames": "18",
+              "nb_read_frames": "18",
+              "extradata_size": 46,
+              "disposition": {
+                "default": 1,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+              },
+              "tags": {
+                "language": "und",
+                "handler_name": "VideoHandler",
+                "encoder": "Lavc63.1.102 libx264"
+              }
+            }
+          ]
+        },
+        "before_cue": {
+          "width": 320,
+          "height": 180,
+          "white": 0,
+          "energy": 0.0,
+          "thresholds_inclusive": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "199": 0,
+            "200": 0,
+            "201": 0,
+            "240": 0
+          },
+          "exact_200": 0,
+          "background": [
+            0,
+            0,
+            0
+          ],
+          "rgb_sha256": "53853188f83a941e2f45ec1383293ae935106c5721918079000dcb2254fc550b"
+        }
+      },
+      "gif": {
+        "width": 320,
+        "height": 180,
+        "white": 1007,
+        "energy": 1545.5333333333333,
+        "thresholds_inclusive": {
+          "16": 2407,
+          "64": 2143,
+          "128": 1599,
+          "199": 1009,
+          "200": 1007,
+          "201": 1000,
+          "240": 558
+        },
+        "exact_200": 7,
+        "background": [
+          0,
+          0,
+          0
+        ],
+        "rgb_sha256": "dbab49742cc4ee978db55d5fa58ef3c6c02efbfa820a4f7c006e16fd2ae138c0",
+        "frame": 6,
+        "decoded_frame_count": 18,
+        "path": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-desktop/contrast-control.gif",
+        "file_sha256": "6bb0ee5b036ee914fe3bbf337a6d51003c75f936f3ce560c399748f281b379c8",
+        "probe": {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "gif",
+              "codec_long_name": "CompuServe GIF (Graphics Interchange Format)",
+              "codec_type": "video",
+              "codec_tag_string": "[0][0][0][0]",
+              "codec_tag": "0x0000",
+              "width": 320,
+              "height": 180,
+              "coded_width": 320,
+              "coded_height": 180,
+              "has_b_frames": 0,
+              "pix_fmt": "bgra",
+              "level": -99,
+              "refs": 1,
+              "r_frame_rate": "12000/1001",
+              "avg_frame_rate": "25/2",
+              "time_base": "1/100",
+              "start_pts": 0,
+              "start_time": "0.000000",
+              "duration_ts": 150,
+              "duration": "1.500000",
+              "nb_frames": "18",
+              "nb_read_frames": "18",
+              "disposition": {
+                "default": 0,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+              }
+            }
+          ]
+        },
+        "before_cue": {
+          "width": 320,
+          "height": 180,
+          "white": 0,
+          "energy": 0.0,
+          "thresholds_inclusive": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "199": 0,
+            "200": 0,
+            "201": 0,
+            "240": 0
+          },
+          "exact_200": 0,
+          "background": [
+            0,
+            0,
+            0
+          ],
+          "rgb_sha256": "53853188f83a941e2f45ec1383293ae935106c5721918079000dcb2254fc550b"
+        }
+      }
+    },
+    "preview": {
+      "width": 320,
+      "height": 180,
+      "white": 1007,
+      "energy": 1545.5333333333333,
+      "thresholds_inclusive": {
+        "16": 2407,
+        "64": 2143,
+        "128": 1599,
+        "199": 1009,
+        "200": 1007,
+        "201": 1000,
+        "240": 558
+      },
+      "exact_200": 7,
+      "background": [
+        0,
+        0,
+        0
+      ],
+      "rgb_sha256": "dbab49742cc4ee978db55d5fa58ef3c6c02efbfa820a4f7c006e16fd2ae138c0",
+      "source": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-desktop/captions-contrast-control.png",
+      "crop_box": [
+        645,
+        469,
+        965,
+        649
+      ],
+      "source_sha256": "85db4aced82ce771fdb01d4024228f2cdc3e028850fbc816f10e64036c3e2957"
+    }
+  },
+  {
+    "project": "desktop",
+    "variant": "outline",
+    "formats": {
+      "png": {
+        "width": 320,
+        "height": 180,
+        "white": 1007,
+        "energy": 1545.5333333333333,
+        "thresholds_inclusive": {
+          "16": 2407,
+          "64": 2143,
+          "128": 1599,
+          "199": 1009,
+          "200": 1007,
+          "201": 1000,
+          "240": 558
+        },
+        "exact_200": 7,
+        "background": [
+          0,
+          0,
+          0
+        ],
+        "rgb_sha256": "6984cd3f7d50b5e9d0649a64074782589f09f5ff3434db9e0e134b69c808b504",
+        "frame": 0,
+        "decoded_frame_count": 1,
+        "path": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-desktop/contrast-outline.png",
+        "file_sha256": "11f737d906d1218bd359d0882c29d31705f81b8754dca2779e0c8fe7ce0f093f",
+        "probe": {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "png",
+              "codec_long_name": "PNG (Portable Network Graphics) image",
+              "codec_type": "video",
+              "codec_tag_string": "[0][0][0][0]",
+              "codec_tag": "0x0000",
+              "width": 320,
+              "height": 180,
+              "coded_width": 320,
+              "coded_height": 180,
+              "has_b_frames": 0,
+              "pix_fmt": "rgba",
+              "level": -99,
+              "color_range": "pc",
+              "color_space": "gbr",
+              "refs": 1,
+              "r_frame_rate": "25/1",
+              "avg_frame_rate": "25/1",
+              "time_base": "1/25",
+              "nb_read_frames": "1",
+              "disposition": {
+                "default": 0,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+              }
+            }
+          ]
+        }
+      },
+      "mp4": {
+        "width": 320,
+        "height": 180,
+        "white": 1003,
+        "energy": 1544.5372549019608,
+        "thresholds_inclusive": {
+          "16": 2408,
+          "64": 2144,
+          "128": 1598,
+          "199": 1011,
+          "200": 1003,
+          "201": 999,
+          "240": 514
+        },
+        "exact_200": 4,
+        "background": [
+          0,
+          0,
+          0
+        ],
+        "rgb_sha256": "59e0e13ec1224fbd2a227feaaf42df0b0604d2c03c40144885e15a2241f5dc68",
+        "frame": 6,
+        "decoded_frame_count": 18,
+        "path": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-desktop/contrast-outline.mp4",
+        "file_sha256": "011b14eab6c025ef33b791da1140720a18d0f1a90a5335e4e2140d36b25ec62f",
+        "probe": {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "h264",
+              "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+              "profile": "High",
+              "codec_type": "video",
+              "codec_tag_string": "avc1",
+              "codec_tag": "0x31637661",
+              "mime_codec_string": "avc1.64000c",
+              "width": 320,
+              "height": 180,
+              "coded_width": 320,
+              "coded_height": 192,
+              "has_b_frames": 2,
+              "pix_fmt": "yuv420p",
+              "level": 12,
+              "chroma_location": "left",
+              "field_order": "progressive",
+              "refs": 4,
+              "is_avc": "true",
+              "nal_length_size": "4",
+              "id": "0x1",
+              "r_frame_rate": "12/1",
+              "avg_frame_rate": "12/1",
+              "time_base": "1/12288",
+              "start_pts": 0,
+              "start_time": "0.000000",
+              "duration_ts": 18432,
+              "duration": "1.500000",
+              "bit_rate": "20592",
+              "bits_per_raw_sample": "8",
+              "nb_frames": "18",
+              "nb_read_frames": "18",
+              "extradata_size": 46,
+              "disposition": {
+                "default": 1,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+              },
+              "tags": {
+                "language": "und",
+                "handler_name": "VideoHandler",
+                "encoder": "Lavc63.1.102 libx264"
+              }
+            }
+          ]
+        },
+        "before_cue": {
+          "width": 320,
+          "height": 180,
+          "white": 0,
+          "energy": 0.0,
+          "thresholds_inclusive": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "199": 0,
+            "200": 0,
+            "201": 0,
+            "240": 0
+          },
+          "exact_200": 0,
+          "background": [
+            0,
+            0,
+            0
+          ],
+          "rgb_sha256": "53853188f83a941e2f45ec1383293ae935106c5721918079000dcb2254fc550b"
+        }
+      },
+      "gif": {
+        "width": 320,
+        "height": 180,
+        "white": 1007,
+        "energy": 1545.5333333333333,
+        "thresholds_inclusive": {
+          "16": 2407,
+          "64": 2143,
+          "128": 1599,
+          "199": 1009,
+          "200": 1007,
+          "201": 1000,
+          "240": 558
+        },
+        "exact_200": 7,
+        "background": [
+          0,
+          0,
+          0
+        ],
+        "rgb_sha256": "6984cd3f7d50b5e9d0649a64074782589f09f5ff3434db9e0e134b69c808b504",
+        "frame": 6,
+        "decoded_frame_count": 18,
+        "path": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-desktop/contrast-outline.gif",
+        "file_sha256": "30a93537ba06a9166014679a53d22f5135c34df67a4d4e8224a6a9e271ad074e",
+        "probe": {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "gif",
+              "codec_long_name": "CompuServe GIF (Graphics Interchange Format)",
+              "codec_type": "video",
+              "codec_tag_string": "[0][0][0][0]",
+              "codec_tag": "0x0000",
+              "width": 320,
+              "height": 180,
+              "coded_width": 320,
+              "coded_height": 180,
+              "has_b_frames": 0,
+              "pix_fmt": "bgra",
+              "level": -99,
+              "refs": 1,
+              "r_frame_rate": "12000/1001",
+              "avg_frame_rate": "25/2",
+              "time_base": "1/100",
+              "start_pts": 0,
+              "start_time": "0.000000",
+              "duration_ts": 150,
+              "duration": "1.500000",
+              "nb_frames": "18",
+              "nb_read_frames": "18",
+              "disposition": {
+                "default": 0,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+              }
+            }
+          ]
+        },
+        "before_cue": {
+          "width": 320,
+          "height": 180,
+          "white": 0,
+          "energy": 0.0,
+          "thresholds_inclusive": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "199": 0,
+            "200": 0,
+            "201": 0,
+            "240": 0
+          },
+          "exact_200": 0,
+          "background": [
+            0,
+            0,
+            0
+          ],
+          "rgb_sha256": "53853188f83a941e2f45ec1383293ae935106c5721918079000dcb2254fc550b"
+        }
+      }
+    },
+    "preview": {
+      "width": 320,
+      "height": 180,
+      "white": 1007,
+      "energy": 1545.5333333333333,
+      "thresholds_inclusive": {
+        "16": 2407,
+        "64": 2143,
+        "128": 1599,
+        "199": 1009,
+        "200": 1007,
+        "201": 1000,
+        "240": 558
+      },
+      "exact_200": 7,
+      "background": [
+        0,
+        0,
+        0
+      ],
+      "rgb_sha256": "6984cd3f7d50b5e9d0649a64074782589f09f5ff3434db9e0e134b69c808b504",
+      "source": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-desktop/captions-contrast-outline.png",
+      "crop_box": [
+        645,
+        469,
+        965,
+        649
+      ],
+      "source_sha256": "3c5334d177b5372c35c683dc5087cda019b1f498de1ef847adf95df681a981c2"
+    }
+  },
+  {
+    "project": "mobile",
+    "variant": "control",
+    "formats": {
+      "png": {
+        "width": 320,
+        "height": 180,
+        "white": 1007,
+        "energy": 1545.5333333333333,
+        "thresholds_inclusive": {
+          "16": 2407,
+          "64": 2143,
+          "128": 1599,
+          "199": 1009,
+          "200": 1007,
+          "201": 1000,
+          "240": 558
+        },
+        "exact_200": 7,
+        "background": [
+          0,
+          0,
+          0
+        ],
+        "rgb_sha256": "dbab49742cc4ee978db55d5fa58ef3c6c02efbfa820a4f7c006e16fd2ae138c0",
+        "frame": 0,
+        "decoded_frame_count": 1,
+        "path": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-mobile/contrast-control.png",
+        "file_sha256": "f4166753bf1f5bb3ab982ebaa7e525c8de006e1356ad3843c54a69b88b1712ed",
+        "probe": {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "png",
+              "codec_long_name": "PNG (Portable Network Graphics) image",
+              "codec_type": "video",
+              "codec_tag_string": "[0][0][0][0]",
+              "codec_tag": "0x0000",
+              "width": 320,
+              "height": 180,
+              "coded_width": 320,
+              "coded_height": 180,
+              "has_b_frames": 0,
+              "pix_fmt": "rgba",
+              "level": -99,
+              "color_range": "pc",
+              "color_space": "gbr",
+              "refs": 1,
+              "r_frame_rate": "25/1",
+              "avg_frame_rate": "25/1",
+              "time_base": "1/25",
+              "nb_read_frames": "1",
+              "disposition": {
+                "default": 0,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+              }
+            }
+          ]
+        }
+      },
+      "mp4": {
+        "width": 320,
+        "height": 180,
+        "white": 1004,
+        "energy": 1544.6745098039216,
+        "thresholds_inclusive": {
+          "16": 2405,
+          "64": 2143,
+          "128": 1601,
+          "199": 1009,
+          "200": 1004,
+          "201": 998,
+          "240": 514
+        },
+        "exact_200": 6,
+        "background": [
+          0,
+          0,
+          0
+        ],
+        "rgb_sha256": "40655ed01a92cb629cd20a582f15353d891c195aad50c0ccee9676184ffe7f67",
+        "frame": 6,
+        "decoded_frame_count": 18,
+        "path": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-mobile/contrast-control.mp4",
+        "file_sha256": "54a78b5165ef11bcb423664ecefe11f936b55f4aa9797ef9921da4a215530d4d",
+        "probe": {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "h264",
+              "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+              "profile": "High",
+              "codec_type": "video",
+              "codec_tag_string": "avc1",
+              "codec_tag": "0x31637661",
+              "mime_codec_string": "avc1.64000c",
+              "width": 320,
+              "height": 180,
+              "coded_width": 320,
+              "coded_height": 192,
+              "has_b_frames": 2,
+              "pix_fmt": "yuv420p",
+              "level": 12,
+              "chroma_location": "left",
+              "field_order": "progressive",
+              "refs": 4,
+              "is_avc": "true",
+              "nal_length_size": "4",
+              "id": "0x1",
+              "r_frame_rate": "12/1",
+              "avg_frame_rate": "12/1",
+              "time_base": "1/12288",
+              "start_pts": 0,
+              "start_time": "0.000000",
+              "duration_ts": 18432,
+              "duration": "1.500000",
+              "bit_rate": "19978",
+              "bits_per_raw_sample": "8",
+              "nb_frames": "18",
+              "nb_read_frames": "18",
+              "extradata_size": 46,
+              "disposition": {
+                "default": 1,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+              },
+              "tags": {
+                "language": "und",
+                "handler_name": "VideoHandler",
+                "encoder": "Lavc63.1.102 libx264"
+              }
+            }
+          ]
+        },
+        "before_cue": {
+          "width": 320,
+          "height": 180,
+          "white": 0,
+          "energy": 0.0,
+          "thresholds_inclusive": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "199": 0,
+            "200": 0,
+            "201": 0,
+            "240": 0
+          },
+          "exact_200": 0,
+          "background": [
+            0,
+            0,
+            0
+          ],
+          "rgb_sha256": "53853188f83a941e2f45ec1383293ae935106c5721918079000dcb2254fc550b"
+        }
+      },
+      "gif": {
+        "width": 320,
+        "height": 180,
+        "white": 1007,
+        "energy": 1545.5333333333333,
+        "thresholds_inclusive": {
+          "16": 2407,
+          "64": 2143,
+          "128": 1599,
+          "199": 1009,
+          "200": 1007,
+          "201": 1000,
+          "240": 558
+        },
+        "exact_200": 7,
+        "background": [
+          0,
+          0,
+          0
+        ],
+        "rgb_sha256": "dbab49742cc4ee978db55d5fa58ef3c6c02efbfa820a4f7c006e16fd2ae138c0",
+        "frame": 6,
+        "decoded_frame_count": 18,
+        "path": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-mobile/contrast-control.gif",
+        "file_sha256": "6bb0ee5b036ee914fe3bbf337a6d51003c75f936f3ce560c399748f281b379c8",
+        "probe": {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "gif",
+              "codec_long_name": "CompuServe GIF (Graphics Interchange Format)",
+              "codec_type": "video",
+              "codec_tag_string": "[0][0][0][0]",
+              "codec_tag": "0x0000",
+              "width": 320,
+              "height": 180,
+              "coded_width": 320,
+              "coded_height": 180,
+              "has_b_frames": 0,
+              "pix_fmt": "bgra",
+              "level": -99,
+              "refs": 1,
+              "r_frame_rate": "12000/1001",
+              "avg_frame_rate": "25/2",
+              "time_base": "1/100",
+              "start_pts": 0,
+              "start_time": "0.000000",
+              "duration_ts": 150,
+              "duration": "1.500000",
+              "nb_frames": "18",
+              "nb_read_frames": "18",
+              "disposition": {
+                "default": 0,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+              }
+            }
+          ]
+        },
+        "before_cue": {
+          "width": 320,
+          "height": 180,
+          "white": 0,
+          "energy": 0.0,
+          "thresholds_inclusive": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "199": 0,
+            "200": 0,
+            "201": 0,
+            "240": 0
+          },
+          "exact_200": 0,
+          "background": [
+            0,
+            0,
+            0
+          ],
+          "rgb_sha256": "53853188f83a941e2f45ec1383293ae935106c5721918079000dcb2254fc550b"
+        }
+      }
+    },
+    "preview": {
+      "width": 317,
+      "height": 178,
+      "white": 809,
+      "energy": 1507.5686274509803,
+      "thresholds_inclusive": {
+        "16": 2757,
+        "64": 2123,
+        "128": 1498,
+        "199": 817,
+        "200": 809,
+        "201": 783,
+        "240": 192
+      },
+      "exact_200": 26,
+      "background": [
+        0,
+        0,
+        0
+      ],
+      "rgb_sha256": "2fa361fb20b75811684bb957fa023e7cf62f9fd1ab9a13104c4a16a7b72ced67",
+      "source": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-mobile/captions-contrast-control.png",
+      "crop_box": [
+        29,
+        1118,
+        346,
+        1296
+      ],
+      "source_sha256": "315a71de50ccdad65b39527b7d89a0f8a9ef219d8b8969140d9fbf0be4157d43"
+    }
+  },
+  {
+    "project": "mobile",
+    "variant": "outline",
+    "formats": {
+      "png": {
+        "width": 320,
+        "height": 180,
+        "white": 1007,
+        "energy": 1545.5333333333333,
+        "thresholds_inclusive": {
+          "16": 2407,
+          "64": 2143,
+          "128": 1599,
+          "199": 1009,
+          "200": 1007,
+          "201": 1000,
+          "240": 558
+        },
+        "exact_200": 7,
+        "background": [
+          0,
+          0,
+          0
+        ],
+        "rgb_sha256": "6984cd3f7d50b5e9d0649a64074782589f09f5ff3434db9e0e134b69c808b504",
+        "frame": 0,
+        "decoded_frame_count": 1,
+        "path": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-mobile/contrast-outline.png",
+        "file_sha256": "11f737d906d1218bd359d0882c29d31705f81b8754dca2779e0c8fe7ce0f093f",
+        "probe": {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "png",
+              "codec_long_name": "PNG (Portable Network Graphics) image",
+              "codec_type": "video",
+              "codec_tag_string": "[0][0][0][0]",
+              "codec_tag": "0x0000",
+              "width": 320,
+              "height": 180,
+              "coded_width": 320,
+              "coded_height": 180,
+              "has_b_frames": 0,
+              "pix_fmt": "rgba",
+              "level": -99,
+              "color_range": "pc",
+              "color_space": "gbr",
+              "refs": 1,
+              "r_frame_rate": "25/1",
+              "avg_frame_rate": "25/1",
+              "time_base": "1/25",
+              "nb_read_frames": "1",
+              "disposition": {
+                "default": 0,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+              }
+            }
+          ]
+        }
+      },
+      "mp4": {
+        "width": 320,
+        "height": 180,
+        "white": 1003,
+        "energy": 1544.5372549019608,
+        "thresholds_inclusive": {
+          "16": 2408,
+          "64": 2144,
+          "128": 1598,
+          "199": 1011,
+          "200": 1003,
+          "201": 999,
+          "240": 514
+        },
+        "exact_200": 4,
+        "background": [
+          0,
+          0,
+          0
+        ],
+        "rgb_sha256": "59e0e13ec1224fbd2a227feaaf42df0b0604d2c03c40144885e15a2241f5dc68",
+        "frame": 6,
+        "decoded_frame_count": 18,
+        "path": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-mobile/contrast-outline.mp4",
+        "file_sha256": "011b14eab6c025ef33b791da1140720a18d0f1a90a5335e4e2140d36b25ec62f",
+        "probe": {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "h264",
+              "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+              "profile": "High",
+              "codec_type": "video",
+              "codec_tag_string": "avc1",
+              "codec_tag": "0x31637661",
+              "mime_codec_string": "avc1.64000c",
+              "width": 320,
+              "height": 180,
+              "coded_width": 320,
+              "coded_height": 192,
+              "has_b_frames": 2,
+              "pix_fmt": "yuv420p",
+              "level": 12,
+              "chroma_location": "left",
+              "field_order": "progressive",
+              "refs": 4,
+              "is_avc": "true",
+              "nal_length_size": "4",
+              "id": "0x1",
+              "r_frame_rate": "12/1",
+              "avg_frame_rate": "12/1",
+              "time_base": "1/12288",
+              "start_pts": 0,
+              "start_time": "0.000000",
+              "duration_ts": 18432,
+              "duration": "1.500000",
+              "bit_rate": "20592",
+              "bits_per_raw_sample": "8",
+              "nb_frames": "18",
+              "nb_read_frames": "18",
+              "extradata_size": 46,
+              "disposition": {
+                "default": 1,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+              },
+              "tags": {
+                "language": "und",
+                "handler_name": "VideoHandler",
+                "encoder": "Lavc63.1.102 libx264"
+              }
+            }
+          ]
+        },
+        "before_cue": {
+          "width": 320,
+          "height": 180,
+          "white": 0,
+          "energy": 0.0,
+          "thresholds_inclusive": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "199": 0,
+            "200": 0,
+            "201": 0,
+            "240": 0
+          },
+          "exact_200": 0,
+          "background": [
+            0,
+            0,
+            0
+          ],
+          "rgb_sha256": "53853188f83a941e2f45ec1383293ae935106c5721918079000dcb2254fc550b"
+        }
+      },
+      "gif": {
+        "width": 320,
+        "height": 180,
+        "white": 1007,
+        "energy": 1545.5333333333333,
+        "thresholds_inclusive": {
+          "16": 2407,
+          "64": 2143,
+          "128": 1599,
+          "199": 1009,
+          "200": 1007,
+          "201": 1000,
+          "240": 558
+        },
+        "exact_200": 7,
+        "background": [
+          0,
+          0,
+          0
+        ],
+        "rgb_sha256": "6984cd3f7d50b5e9d0649a64074782589f09f5ff3434db9e0e134b69c808b504",
+        "frame": 6,
+        "decoded_frame_count": 18,
+        "path": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-mobile/contrast-outline.gif",
+        "file_sha256": "30a93537ba06a9166014679a53d22f5135c34df67a4d4e8224a6a9e271ad074e",
+        "probe": {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "gif",
+              "codec_long_name": "CompuServe GIF (Graphics Interchange Format)",
+              "codec_type": "video",
+              "codec_tag_string": "[0][0][0][0]",
+              "codec_tag": "0x0000",
+              "width": 320,
+              "height": 180,
+              "coded_width": 320,
+              "coded_height": 180,
+              "has_b_frames": 0,
+              "pix_fmt": "bgra",
+              "level": -99,
+              "refs": 1,
+              "r_frame_rate": "12000/1001",
+              "avg_frame_rate": "25/2",
+              "time_base": "1/100",
+              "start_pts": 0,
+              "start_time": "0.000000",
+              "duration_ts": 150,
+              "duration": "1.500000",
+              "nb_frames": "18",
+              "nb_read_frames": "18",
+              "disposition": {
+                "default": 0,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+              }
+            }
+          ]
+        },
+        "before_cue": {
+          "width": 320,
+          "height": 180,
+          "white": 0,
+          "energy": 0.0,
+          "thresholds_inclusive": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "199": 0,
+            "200": 0,
+            "201": 0,
+            "240": 0
+          },
+          "exact_200": 0,
+          "background": [
+            0,
+            0,
+            0
+          ],
+          "rgb_sha256": "53853188f83a941e2f45ec1383293ae935106c5721918079000dcb2254fc550b"
+        }
+      }
+    },
+    "preview": {
+      "width": 317,
+      "height": 178,
+      "white": 798,
+      "energy": 1505.5725490196078,
+      "thresholds_inclusive": {
+        "16": 2761,
+        "64": 2117,
+        "128": 1487,
+        "199": 806,
+        "200": 798,
+        "201": 791,
+        "240": 192
+      },
+      "exact_200": 7,
+      "background": [
+        0,
+        0,
+        0
+      ],
+      "rgb_sha256": "e19429b07bd244623ec0796ad4868bfaccebcbbb0fd72485a0240033422f6a9e",
+      "source": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-mobile/captions-contrast-outline.png",
+      "crop_box": [
+        29,
+        1118,
+        346,
+        1296
+      ],
+      "source_sha256": "bd28d64c53d54259d106b2ed843c03006194c363e2e2097d0d980b8fe0f65dff"
+    }
+  },
+  {
+    "project": "mobile-360",
+    "variant": "control",
+    "formats": {
+      "png": {
+        "width": 320,
+        "height": 180,
+        "white": 1007,
+        "energy": 1545.5333333333333,
+        "thresholds_inclusive": {
+          "16": 2407,
+          "64": 2143,
+          "128": 1599,
+          "199": 1009,
+          "200": 1007,
+          "201": 1000,
+          "240": 558
+        },
+        "exact_200": 7,
+        "background": [
+          0,
+          0,
+          0
+        ],
+        "rgb_sha256": "dbab49742cc4ee978db55d5fa58ef3c6c02efbfa820a4f7c006e16fd2ae138c0",
+        "frame": 0,
+        "decoded_frame_count": 1,
+        "path": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-mobile-360/contrast-control.png",
+        "file_sha256": "f4166753bf1f5bb3ab982ebaa7e525c8de006e1356ad3843c54a69b88b1712ed",
+        "probe": {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "png",
+              "codec_long_name": "PNG (Portable Network Graphics) image",
+              "codec_type": "video",
+              "codec_tag_string": "[0][0][0][0]",
+              "codec_tag": "0x0000",
+              "width": 320,
+              "height": 180,
+              "coded_width": 320,
+              "coded_height": 180,
+              "has_b_frames": 0,
+              "pix_fmt": "rgba",
+              "level": -99,
+              "color_range": "pc",
+              "color_space": "gbr",
+              "refs": 1,
+              "r_frame_rate": "25/1",
+              "avg_frame_rate": "25/1",
+              "time_base": "1/25",
+              "nb_read_frames": "1",
+              "disposition": {
+                "default": 0,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+              }
+            }
+          ]
+        }
+      },
+      "mp4": {
+        "width": 320,
+        "height": 180,
+        "white": 1004,
+        "energy": 1544.6745098039216,
+        "thresholds_inclusive": {
+          "16": 2405,
+          "64": 2143,
+          "128": 1601,
+          "199": 1009,
+          "200": 1004,
+          "201": 998,
+          "240": 514
+        },
+        "exact_200": 6,
+        "background": [
+          0,
+          0,
+          0
+        ],
+        "rgb_sha256": "40655ed01a92cb629cd20a582f15353d891c195aad50c0ccee9676184ffe7f67",
+        "frame": 6,
+        "decoded_frame_count": 18,
+        "path": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-mobile-360/contrast-control.mp4",
+        "file_sha256": "54a78b5165ef11bcb423664ecefe11f936b55f4aa9797ef9921da4a215530d4d",
+        "probe": {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "h264",
+              "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+              "profile": "High",
+              "codec_type": "video",
+              "codec_tag_string": "avc1",
+              "codec_tag": "0x31637661",
+              "mime_codec_string": "avc1.64000c",
+              "width": 320,
+              "height": 180,
+              "coded_width": 320,
+              "coded_height": 192,
+              "has_b_frames": 2,
+              "pix_fmt": "yuv420p",
+              "level": 12,
+              "chroma_location": "left",
+              "field_order": "progressive",
+              "refs": 4,
+              "is_avc": "true",
+              "nal_length_size": "4",
+              "id": "0x1",
+              "r_frame_rate": "12/1",
+              "avg_frame_rate": "12/1",
+              "time_base": "1/12288",
+              "start_pts": 0,
+              "start_time": "0.000000",
+              "duration_ts": 18432,
+              "duration": "1.500000",
+              "bit_rate": "19978",
+              "bits_per_raw_sample": "8",
+              "nb_frames": "18",
+              "nb_read_frames": "18",
+              "extradata_size": 46,
+              "disposition": {
+                "default": 1,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+              },
+              "tags": {
+                "language": "und",
+                "handler_name": "VideoHandler",
+                "encoder": "Lavc63.1.102 libx264"
+              }
+            }
+          ]
+        },
+        "before_cue": {
+          "width": 320,
+          "height": 180,
+          "white": 0,
+          "energy": 0.0,
+          "thresholds_inclusive": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "199": 0,
+            "200": 0,
+            "201": 0,
+            "240": 0
+          },
+          "exact_200": 0,
+          "background": [
+            0,
+            0,
+            0
+          ],
+          "rgb_sha256": "53853188f83a941e2f45ec1383293ae935106c5721918079000dcb2254fc550b"
+        }
+      },
+      "gif": {
+        "width": 320,
+        "height": 180,
+        "white": 1007,
+        "energy": 1545.5333333333333,
+        "thresholds_inclusive": {
+          "16": 2407,
+          "64": 2143,
+          "128": 1599,
+          "199": 1009,
+          "200": 1007,
+          "201": 1000,
+          "240": 558
+        },
+        "exact_200": 7,
+        "background": [
+          0,
+          0,
+          0
+        ],
+        "rgb_sha256": "dbab49742cc4ee978db55d5fa58ef3c6c02efbfa820a4f7c006e16fd2ae138c0",
+        "frame": 6,
+        "decoded_frame_count": 18,
+        "path": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-mobile-360/contrast-control.gif",
+        "file_sha256": "6bb0ee5b036ee914fe3bbf337a6d51003c75f936f3ce560c399748f281b379c8",
+        "probe": {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "gif",
+              "codec_long_name": "CompuServe GIF (Graphics Interchange Format)",
+              "codec_type": "video",
+              "codec_tag_string": "[0][0][0][0]",
+              "codec_tag": "0x0000",
+              "width": 320,
+              "height": 180,
+              "coded_width": 320,
+              "coded_height": 180,
+              "has_b_frames": 0,
+              "pix_fmt": "bgra",
+              "level": -99,
+              "refs": 1,
+              "r_frame_rate": "12000/1001",
+              "avg_frame_rate": "25/2",
+              "time_base": "1/100",
+              "start_pts": 0,
+              "start_time": "0.000000",
+              "duration_ts": 150,
+              "duration": "1.500000",
+              "nb_frames": "18",
+              "nb_read_frames": "18",
+              "disposition": {
+                "default": 0,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+              }
+            }
+          ]
+        },
+        "before_cue": {
+          "width": 320,
+          "height": 180,
+          "white": 0,
+          "energy": 0.0,
+          "thresholds_inclusive": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "199": 0,
+            "200": 0,
+            "201": 0,
+            "240": 0
+          },
+          "exact_200": 0,
+          "background": [
+            0,
+            0,
+            0
+          ],
+          "rgb_sha256": "53853188f83a941e2f45ec1383293ae935106c5721918079000dcb2254fc550b"
+        }
+      }
+    },
+    "preview": {
+      "width": 300,
+      "height": 169,
+      "white": 722,
+      "energy": 1355.207843137255,
+      "thresholds_inclusive": {
+        "16": 2457,
+        "64": 1864,
+        "128": 1398,
+        "199": 731,
+        "200": 722,
+        "201": 714,
+        "240": 198
+      },
+      "exact_200": 8,
+      "background": [
+        0,
+        0,
+        0
+      ],
+      "rgb_sha256": "82c8bf1fbf93d253dfd223228dd15ce63aeb5007760a6ec10a9a59b352fe3558",
+      "source": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-mobile-360/captions-contrast-control.png",
+      "crop_box": [
+        30,
+        1123,
+        330,
+        1292
+      ],
+      "source_sha256": "8ac5a7d40a99bb549bb8be013f2a5184813fd974fd4fdba63324fac2655afdba"
+    }
+  },
+  {
+    "project": "mobile-360",
+    "variant": "outline",
+    "formats": {
+      "png": {
+        "width": 320,
+        "height": 180,
+        "white": 1007,
+        "energy": 1545.5333333333333,
+        "thresholds_inclusive": {
+          "16": 2407,
+          "64": 2143,
+          "128": 1599,
+          "199": 1009,
+          "200": 1007,
+          "201": 1000,
+          "240": 558
+        },
+        "exact_200": 7,
+        "background": [
+          0,
+          0,
+          0
+        ],
+        "rgb_sha256": "6984cd3f7d50b5e9d0649a64074782589f09f5ff3434db9e0e134b69c808b504",
+        "frame": 0,
+        "decoded_frame_count": 1,
+        "path": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-mobile-360/contrast-outline.png",
+        "file_sha256": "11f737d906d1218bd359d0882c29d31705f81b8754dca2779e0c8fe7ce0f093f",
+        "probe": {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "png",
+              "codec_long_name": "PNG (Portable Network Graphics) image",
+              "codec_type": "video",
+              "codec_tag_string": "[0][0][0][0]",
+              "codec_tag": "0x0000",
+              "width": 320,
+              "height": 180,
+              "coded_width": 320,
+              "coded_height": 180,
+              "has_b_frames": 0,
+              "pix_fmt": "rgba",
+              "level": -99,
+              "color_range": "pc",
+              "color_space": "gbr",
+              "refs": 1,
+              "r_frame_rate": "25/1",
+              "avg_frame_rate": "25/1",
+              "time_base": "1/25",
+              "nb_read_frames": "1",
+              "disposition": {
+                "default": 0,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+              }
+            }
+          ]
+        }
+      },
+      "mp4": {
+        "width": 320,
+        "height": 180,
+        "white": 1003,
+        "energy": 1544.5372549019608,
+        "thresholds_inclusive": {
+          "16": 2408,
+          "64": 2144,
+          "128": 1598,
+          "199": 1011,
+          "200": 1003,
+          "201": 999,
+          "240": 514
+        },
+        "exact_200": 4,
+        "background": [
+          0,
+          0,
+          0
+        ],
+        "rgb_sha256": "59e0e13ec1224fbd2a227feaaf42df0b0604d2c03c40144885e15a2241f5dc68",
+        "frame": 6,
+        "decoded_frame_count": 18,
+        "path": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-mobile-360/contrast-outline.mp4",
+        "file_sha256": "011b14eab6c025ef33b791da1140720a18d0f1a90a5335e4e2140d36b25ec62f",
+        "probe": {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "h264",
+              "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+              "profile": "High",
+              "codec_type": "video",
+              "codec_tag_string": "avc1",
+              "codec_tag": "0x31637661",
+              "mime_codec_string": "avc1.64000c",
+              "width": 320,
+              "height": 180,
+              "coded_width": 320,
+              "coded_height": 192,
+              "has_b_frames": 2,
+              "pix_fmt": "yuv420p",
+              "level": 12,
+              "chroma_location": "left",
+              "field_order": "progressive",
+              "refs": 4,
+              "is_avc": "true",
+              "nal_length_size": "4",
+              "id": "0x1",
+              "r_frame_rate": "12/1",
+              "avg_frame_rate": "12/1",
+              "time_base": "1/12288",
+              "start_pts": 0,
+              "start_time": "0.000000",
+              "duration_ts": 18432,
+              "duration": "1.500000",
+              "bit_rate": "20592",
+              "bits_per_raw_sample": "8",
+              "nb_frames": "18",
+              "nb_read_frames": "18",
+              "extradata_size": 46,
+              "disposition": {
+                "default": 1,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+              },
+              "tags": {
+                "language": "und",
+                "handler_name": "VideoHandler",
+                "encoder": "Lavc63.1.102 libx264"
+              }
+            }
+          ]
+        },
+        "before_cue": {
+          "width": 320,
+          "height": 180,
+          "white": 0,
+          "energy": 0.0,
+          "thresholds_inclusive": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "199": 0,
+            "200": 0,
+            "201": 0,
+            "240": 0
+          },
+          "exact_200": 0,
+          "background": [
+            0,
+            0,
+            0
+          ],
+          "rgb_sha256": "53853188f83a941e2f45ec1383293ae935106c5721918079000dcb2254fc550b"
+        }
+      },
+      "gif": {
+        "width": 320,
+        "height": 180,
+        "white": 1007,
+        "energy": 1545.5333333333333,
+        "thresholds_inclusive": {
+          "16": 2407,
+          "64": 2143,
+          "128": 1599,
+          "199": 1009,
+          "200": 1007,
+          "201": 1000,
+          "240": 558
+        },
+        "exact_200": 7,
+        "background": [
+          0,
+          0,
+          0
+        ],
+        "rgb_sha256": "6984cd3f7d50b5e9d0649a64074782589f09f5ff3434db9e0e134b69c808b504",
+        "frame": 6,
+        "decoded_frame_count": 18,
+        "path": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-mobile-360/contrast-outline.gif",
+        "file_sha256": "30a93537ba06a9166014679a53d22f5135c34df67a4d4e8224a6a9e271ad074e",
+        "probe": {
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "gif",
+              "codec_long_name": "CompuServe GIF (Graphics Interchange Format)",
+              "codec_type": "video",
+              "codec_tag_string": "[0][0][0][0]",
+              "codec_tag": "0x0000",
+              "width": 320,
+              "height": 180,
+              "coded_width": 320,
+              "coded_height": 180,
+              "has_b_frames": 0,
+              "pix_fmt": "bgra",
+              "level": -99,
+              "refs": 1,
+              "r_frame_rate": "12000/1001",
+              "avg_frame_rate": "25/2",
+              "time_base": "1/100",
+              "start_pts": 0,
+              "start_time": "0.000000",
+              "duration_ts": 150,
+              "duration": "1.500000",
+              "nb_frames": "18",
+              "nb_read_frames": "18",
+              "disposition": {
+                "default": 0,
+                "dub": 0,
+                "original": 0,
+                "comment": 0,
+                "lyrics": 0,
+                "karaoke": 0,
+                "forced": 0,
+                "hearing_impaired": 0,
+                "visual_impaired": 0,
+                "clean_effects": 0,
+                "attached_pic": 0,
+                "timed_thumbnails": 0,
+                "non_diegetic": 0,
+                "captions": 0,
+                "descriptions": 0,
+                "metadata": 0,
+                "dependent": 0,
+                "still_image": 0,
+                "multilayer": 0
+              }
+            }
+          ]
+        },
+        "before_cue": {
+          "width": 320,
+          "height": 180,
+          "white": 0,
+          "energy": 0.0,
+          "thresholds_inclusive": {
+            "16": 0,
+            "64": 0,
+            "128": 0,
+            "199": 0,
+            "200": 0,
+            "201": 0,
+            "240": 0
+          },
+          "exact_200": 0,
+          "background": [
+            0,
+            0,
+            0
+          ],
+          "rgb_sha256": "53853188f83a941e2f45ec1383293ae935106c5721918079000dcb2254fc550b"
+        }
+      }
+    },
+    "preview": {
+      "width": 300,
+      "height": 169,
+      "white": 715,
+      "energy": 1357.450980392157,
+      "thresholds_inclusive": {
+        "16": 2479,
+        "64": 1868,
+        "128": 1402,
+        "199": 720,
+        "200": 715,
+        "201": 703,
+        "240": 184
+      },
+      "exact_200": 12,
+      "background": [
+        0,
+        0,
+        0
+      ],
+      "rgb_sha256": "3b9bf9993891687d355f6c3b55eac3aa0c4186ba42bc8c6c2c8872cdeebf1b76",
+      "source": "raw/artifacts/studio-captions-Studio-cap-6c8ba-paque-cues-across-page-fade-mobile-360/captions-contrast-outline.png",
+      "crop_box": [
+        30,
+        1123,
+        330,
+        1292
+      ],
+      "source_sha256": "cd7fd950fb242d03e2d528a324d6c02658b8eef15c4160dd6b77e47c47c1cfab"
+    }
+  }
+]

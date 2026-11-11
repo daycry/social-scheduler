@@ -1,0 +1,64 @@
+{
+  "provenance": "Manual extraction of already observed tool results and IDs, not original stdout. Do not describe as raw process evidence.",
+  "results": [
+    {
+      "id": "e9648e",
+      "tests": 2,
+      "passed": 0,
+      "scenario": "outputIntegrity absent"
+    },
+    {
+      "id": "fb883a",
+      "tests": 1,
+      "passed": 0,
+      "scenario": "output reservation ignored pending copy"
+    },
+    {
+      "id": "e33721",
+      "tests": 1,
+      "passed": 0,
+      "scenario": "checkpointRegistration absent"
+    },
+    {
+      "id": "1ae1c0",
+      "tests": 1,
+      "passed": 0,
+      "scenario": "local transfer receipt lacks media_id"
+    },
+    {
+      "id": "0363d6",
+      "tests": 1,
+      "passed": 0,
+      "scenario": "R2 branch runtime_unavailable"
+    },
+    {
+      "id": "158014",
+      "tests": 1,
+      "passed": 0,
+      "scenario": "missing verified remote object not rejected"
+    },
+    {
+      "id": "ad0f89",
+      "tests": 1,
+      "passed": 0,
+      "scenario": "late storage acknowledgement not rejected"
+    },
+    {
+      "id": "4ca6f5",
+      "tests": 1,
+      "passed": 0,
+      "scenario": "missing completed local file not rejected"
+    },
+    {
+      "id": "2c453d",
+      "scenario": "Node segment regression ReferenceError hashFile not defined; PHP EXPLAIN starts checkpoint_steps instead of phase lease"
+    },
+    {
+      "id": "52c955",
+      "tests": 1,
+      "passed": 0,
+      "assertions": 5,
+      "scenario": "actual native MP4 fails at assemble; corresponding genuine JUnit retained"
+    }
+  ]
+}

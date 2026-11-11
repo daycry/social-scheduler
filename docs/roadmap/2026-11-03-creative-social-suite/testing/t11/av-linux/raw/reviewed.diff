@@ -1,0 +1,507 @@
+--- a/scripts/studio/av-runtime.py
++++ b/scripts/studio/av-runtime.py
+@@ -1,5 +1,6 @@
+ """Private audiovisual process supervisor; no model imports or remote access."""
+ import json
++import importlib.util
+ import os
+ import pathlib
+ import re
+@@ -68,8 +69,7 @@
+                         raise RuntimeError('runtime_unavailable')
+                     limits.append(value)
+             except FileNotFoundError:
+-                if current != mount:
+-                    raise RuntimeError('runtime_unavailable') from None
++                pass  # A valid v2 child can inherit its ancestor's controller without a local memory.max.
+             if current == mount:
+                 break
+             current = current.parent
+@@ -123,8 +123,7 @@
+ 
+ 
+ def run_phase(arguments):
+-    # Linux process supervision/cgroup cleanup must be completed before enabling native phases there.
+-    if os.name != 'nt':
++    if os.name != 'nt' and sys.platform != 'linux':
+         raise RuntimeError('runtime_unavailable')
+     if not pathlib.Path(arguments[0]).is_absolute() or re.fullmatch(r'[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}', arguments[1]) is None or arguments[2] not in ('plan', 'normalize', 'render', 'mix', 'assemble') or re.fullmatch(r'[0-9]{1,16}', arguments[3]) is None or int(arguments[3]) > 9007199254740991:
+         return {'ok': False, 'error_code': 'invalid_request'}
+@@ -135,9 +134,24 @@
+     env = os.environ.copy()
+     env['STUDIO_AV_MANAGED'] = '1'
+     env['STUDIO_AV_DEADLINE_MS'] = str(time.time_ns() // 1000000 + budget)
++    guard = None
++    if sys.platform == 'linux':
++        spec = importlib.util.spec_from_file_location('_studio_av_linux', pathlib.Path(__file__).with_name('av-linux.py'))
++        linux = importlib.util.module_from_spec(spec)
++        spec.loader.exec_module(linux)
++        guard = linux.create_phase(arguments[1], seconds=(budget + 3000) / 1000)
++    try:
++        return supervise_native(arguments, env, budget, start, guard)
++    finally:
++        if guard:
++            guard.close()  # Reap the guardian and remove only the owned empty group before accepting output.
++
++
++def supervise_native(arguments, env, budget, start, guard):
+     with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
+         child = subprocess.Popen([os.environ.get('STUDIO_NODE_BINARY', 'node'), str(pathlib.Path(__file__).with_name('render-av.mjs')), *arguments],
+-                                 stdout=stdout, stderr=stderr, env=env, creationflags=subprocess.CREATE_NO_WINDOW)
++                                 stdout=stdout, stderr=stderr, env=env, close_fds=True,
++                                 **({'creationflags': subprocess.CREATE_NO_WINDOW} if os.name == 'nt' else {'preexec_fn': guard.join_child}))
+         failure = None
+         try:
+             while child.poll() is None:
+@@ -154,13 +168,13 @@
+                 return {'ok': False, 'error_code': failure}
+             stdout.seek(0)
+             raw = stdout.read(8 * 1024**2 + 1)
+-            if len(raw) > 8 * 1024**2:
++            if len(raw) > 8 * 1024**2 or os.fstat(stderr.fileno()).st_size > 65536:
+                 return {'ok': False, 'error_code': 'output_budget'}
++            if time.monotonic() - start > budget / 1000:
++                return {'ok': False, 'error_code': 'phase_timeout', 'memory': observed_memory()}
+             response = json.loads(raw)
+             if not isinstance(response, dict) or not isinstance(response.get('ok'), bool) or (response['ok'] and child.returncode):
+                 raise RuntimeError('runtime_unavailable')
+-            if time.monotonic() - start > budget / 1000:
+-                response = {'ok': False, 'error_code': 'phase_timeout'}
+             response['memory'] = observed_memory()
+             return response
+         finally:
+--- a/scripts/studio/av-linux.py
++++ b/scripts/studio/av-linux.py
+@@ -0,0 +1,146 @@
++"""Delegated, owned cgroup lifecycle for a private audiovisual phase."""
++import math
++import os
++import pathlib
++import re
++import select
++import sys
++import time
++
++
++def current_group():
++    membership = pathlib.Path('/proc/self/cgroup').read_text(encoding='utf-8')
++    group = next((line[3:] for line in membership.splitlines() if line.startswith('0::')), None)
++    if group is None:
++        raise RuntimeError('runtime_unavailable')
++    decode = lambda text: re.sub(r'\\([0-7]{3})', lambda match: chr(int(match[1], 8)), text)
++    for line in pathlib.Path('/proc/self/mountinfo').read_text(encoding='utf-8').splitlines():
++        before, separator, after = line.partition(' - ')
++        fields = before.split()
++        if not separator or after.split()[0] != 'cgroup2' or len(fields) < 5:
++            continue
++        mount_root, mount = pathlib.Path(decode(fields[3])), pathlib.Path(decode(fields[4]))
++        try:
++            relative = pathlib.Path(group).relative_to(mount_root)
++        except ValueError:
++            continue
++        if '..' not in relative.parts:
++            return mount / relative, mount
++    raise RuntimeError('runtime_unavailable')
++
++
++class Phase:
++    def __init__(self, namespace, seconds):
++        if sys.platform != 'linux' or os.getuid() == 0 or not isinstance(namespace, str) or re.fullmatch(r'[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}', namespace) is None:
++            raise RuntimeError('runtime_unavailable')
++        if type(seconds) not in (int, float) or not math.isfinite(seconds) or not 0.05 <= seconds <= 95:
++            raise RuntimeError('runtime_unavailable')
++        self.root, mount = current_group()
++        if self.root.resolve() != self.root or self.root.stat().st_uid != os.getuid() or not os.access(self.root, os.W_OK):
++            raise RuntimeError('runtime_unavailable')
++        limits = []
++        cursor = self.root
++        while True:
++            try:
++                value = (cursor / 'memory.max').read_text(encoding='ascii').strip()
++                if value != 'max':
++                    value = int(value)
++                    if value < 1:
++                        raise RuntimeError('runtime_unavailable')
++                    limits.append(value)
++            except FileNotFoundError:
++                pass  # Child groups may inherit accounting while their controller is inactive.
++            if cursor == mount:
++                break
++            cursor = cursor.parent
++        if not limits or min(limits) > 3 * 1024**3:
++            raise RuntimeError('runtime_unavailable')
++        self.limit = min(limits)
++        self.directory = self.root / ('studio-av-' + namespace)
++        self.supervisor_pid = os.getpid()
++        self.closed = False
++        self.directory.mkdir()  # Exclusive: never join or clean a previous phase's group.
++        try:
++            if not (self.directory / 'cgroup.kill').is_file() or not os.access(self.directory / 'cgroup.kill', os.W_OK):
++                raise RuntimeError('runtime_unavailable')
++            # An active delegated memory controller can impose a still tighter per-phase limit.
++            if (self.directory / 'memory.max').exists():
++                (self.directory / 'memory.max').write_text(str(self.limit), encoding='ascii')
++                if int((self.directory / 'memory.max').read_text()) != self.limit:
++                    raise RuntimeError('runtime_unavailable')
++            self.reader, self.writer = os.pipe()
++            try:
++                # A daemon may start with fd0/1/2 closed. Keep both private endpoints away
++                # from the guardian's standard-stream redirection before forking it.
++                import fcntl
++                for name in ('reader', 'writer'):
++                    fd = getattr(self, name)
++                    if fd < 3:
++                        replacement = fcntl.fcntl(fd, fcntl.F_DUPFD_CLOEXEC, 3)
++                        os.close(fd)
++                        setattr(self, name, replacement)
++                self.guardian_pid = os.fork()
++            except BaseException:
++                os.close(self.reader)
++                os.close(self.writer)
++                raise
++        except BaseException:
++            self.directory.rmdir()
++            raise
++        if self.guardian_pid == 0:
++            os.close(self.writer)
++            try:
++                null = os.open(os.devnull, os.O_RDWR)
++                for fd in (0, 1, 2):
++                    os.dup2(null, fd)
++                if null > 2:
++                    os.close(null)
++                select.select([self.reader], [], [], seconds)
++                self._clean_group()
++            except BaseException:
++                os._exit(1)
++            os._exit(0)
++        os.close(self.reader)
++
++    def join_child(self):
++        # Runs in the newly forked process before exec, while no native code has started.
++        (self.directory / 'cgroup.procs').write_text(str(os.getpid()), encoding='ascii')
++        # If the parent died before migration, the guardian may already have killed an empty group.
++        # Never exec after that race: a living parent implies guardian EOF has not happened yet.
++        if os.getppid() != self.supervisor_pid:
++            os._exit(125)
++        os.close(self.writer)
++
++    def _clean_group(self):
++        if self.directory.parent != self.root or self.root.resolve() != self.root or self.directory.is_symlink():
++            raise RuntimeError('runtime_unavailable')
++        (self.directory / 'cgroup.kill').write_text('1', encoding='ascii')
++        end = time.monotonic() + 2
++        while True:
++            events = dict(line.split() for line in (self.directory / 'cgroup.events').read_text(encoding='ascii').splitlines())
++            if events.get('populated') == '0':
++                self.directory.rmdir()
++                return
++            if time.monotonic() >= end:
++                raise RuntimeError('runtime_unavailable')
++            time.sleep(0.025)
++
++    def close(self):
++        if self.closed or os.getpid() != self.supervisor_pid:
++            return
++        self.closed = True
++        try:
++            os.write(self.writer, b'x')
++        except BrokenPipeError:
++            pass
++        finally:
++            os.close(self.writer)
++        _, status = os.waitpid(self.guardian_pid, 0)
++        if not os.WIFEXITED(status) or os.WEXITSTATUS(status) != 0 or self.directory.exists():
++            if self.directory.exists():
++                self._clean_group()  # A dead guardian cannot perform its normal cleanup; the owner still can.
++            raise RuntimeError('runtime_unavailable')
++
++
++def create_phase(namespace, seconds=90):
++    return Phase(namespace, seconds)
+--- a/tests/studio_runtime/test_av_limits.py
++++ b/tests/studio_runtime/test_av_limits.py
+@@ -49,6 +49,16 @@
+ 
+ 
+ class CgroupBoundsTest(unittest.TestCase):
++    def test_child_without_local_memory_controller_uses_its_bounded_ancestor(self):
++        import runpy
++        bounds = runpy.run_path('scripts/studio/av-runtime.py')['cgroup_bounds']
++        files = {'/sys/fs/cgroup/service/memory.max': str(3 * 1024**3), '/sys/fs/cgroup/memory.max': 'max'}
++        def read(name):
++            if name not in files:
++                raise FileNotFoundError(name)
++            return files[name]
++        self.assertEqual(bounds('0::/service/phase\n', '20 19 0:29 / /sys/fs/cgroup rw - cgroup2 cgroup rw\n', read), {'scope': 'cgroup-v2', 'limit': 3 * 1024**3})
++
+     def test_effective_ancestor_limit_is_used_and_unbounded_or_unmounted_groups_fail_closed(self):
+         import runpy
+         bounds = runpy.run_path('scripts/studio/av-runtime.py')['cgroup_bounds']
+--- a/tests/studio_runtime/test_av_linux.py
++++ b/tests/studio_runtime/test_av_linux.py
+@@ -0,0 +1,175 @@
++import importlib.util
++import json
++import os
++import pathlib
++import subprocess
++import sys
++import tempfile
++import time
++import unittest
++import uuid
++
++
++def module():
++    spec = importlib.util.spec_from_file_location('studio_av_linux', 'scripts/studio/av-linux.py')
++    result = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(result)
++    return result
++
++
++@unittest.skipUnless(sys.platform == 'linux' and os.environ.get('STUDIO_AV_CGROUP_TEST') == '1', 'requires explicit STUDIO_AV_CGROUP_TEST=1 in a real delegated bounded Linux cgroup')
++class LinuxPhaseTest(unittest.TestCase):
++    def test_child_enters_owned_subgroup_before_exec_and_cleanup_removes_only_that_subgroup(self):
++        try:
++            phase = module().create_phase(str(uuid.uuid4()), seconds=5)
++        except RuntimeError as error:
++            self.fail(f'phase unavailable: {error}')
++        try:
++            child = subprocess.run([sys.executable, '-c', "import pathlib,json,os;print(json.dumps({'pid':os.getpid(),'group':pathlib.Path('/proc/self/cgroup').read_text()}))"],
++                                   capture_output=True, text=True, timeout=3, preexec_fn=phase.join_child)
++            self.assertEqual(child.returncode, 0, child.stderr)
++            data = json.loads(child.stdout)
++            self.assertIn(phase.directory.name, data['group'])
++            self.assertEqual(phase.directory.parent, phase.root)
++            self.assertTrue(phase.directory.is_dir())
++            self.assertGreater(phase.limit, 0)
++            self.assertLessEqual(phase.limit, 3 * 1024**3)
++        finally:
++            phase.close()
++        self.assertFalse(phase.directory.exists())
++        self.assertTrue(phase.root.exists())
++
++    def test_guardian_deadline_kills_detached_descendants(self):
++        phase = module().create_phase(str(uuid.uuid4()), seconds=0.4)
++        runner = "import os,subprocess,sys,time,json;os.setsid();child=subprocess.Popen([sys.executable,'-c','import os,time;os.setsid();time.sleep(30)']);print(json.dumps({'parent':os.getpid(),'child':child.pid}),flush=True);time.sleep(30)"
++        child = subprocess.Popen([sys.executable, '-c', runner], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, preexec_fn=phase.join_child)
++        try:
++            data = json.loads(child.stdout.readline())
++            self.assertNotEqual(os.getsid(data['parent']), os.getsid(os.getpid()))
++            self.assertEqual(child.wait(timeout=4), -9)
++            phase.close()
++            self.assertFalse(phase.directory.exists())
++            self.assert_stopped(data['child'])
++        finally:
++            phase.close()
++            child.stdout.close()
++            child.stderr.close()
++
++    def test_guardian_pipe_eof_cleans_group_when_supervisor_is_killed(self):
++        runner = "import os,subprocess,sys,time,json;os.setsid();child=subprocess.Popen([sys.executable,'-c','import os,time;os.setsid();time.sleep(30)']);print(json.dumps({'parent':os.getpid(),'child':child.pid}),flush=True);time.sleep(30)"
++        script = f'''
++import json,pathlib,runpy,subprocess,sys,time,uuid
++scope=runpy.run_path('scripts/studio/av-linux.py')
++phase=scope['create_phase'](str(uuid.uuid4()),seconds=5)
++child=subprocess.Popen([sys.executable,'-c',{runner!r}],stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True,preexec_fn=phase.join_child)
++data=json.loads(child.stdout.readline())
++data['directory']=str(phase.directory)
++print(json.dumps(data),flush=True)
++time.sleep(30)
++'''
++        supervisor = subprocess.Popen([sys.executable, '-B', '-c', script], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
++        try:
++            data = json.loads(supervisor.stdout.readline())
++            directory = pathlib.Path(data['directory'])
++            self.assertTrue(directory.is_dir())
++            supervisor.kill()
++            supervisor.wait(timeout=2)
++            until = time.monotonic() + 4
++            while directory.exists() and time.monotonic() < until:
++                time.sleep(0.025)
++            self.assertFalse(directory.exists(), 'guardian did not remove its own subgroup after EOF')
++            self.assert_stopped(data['parent'])
++            self.assert_stopped(data['child'])
++        finally:
++            if supervisor.poll() is None:
++                supervisor.kill()
++                supervisor.wait(timeout=2)
++            supervisor.stdout.close()
++            supervisor.stderr.close()
++
++    def test_invalid_namespace_or_deadline_fails_before_creating_a_group(self):
++        create = module().create_phase
++        for namespace in ['', '../escape', 'x' * 36, 5, True, None]:
++            with self.subTest(namespace=namespace):
++                with self.assertRaisesRegex(RuntimeError, 'runtime_unavailable'):
++                    create(namespace)
++        for seconds in [0, -1, 96, float('nan'), float('inf'), True, '5']:
++            with self.subTest(seconds=seconds):
++                with self.assertRaisesRegex(RuntimeError, 'runtime_unavailable'):
++                    create(str(uuid.uuid4()), seconds=seconds)
++
++    def test_supervisor_fallback_cleans_its_group_if_the_guardian_crashes(self):
++        import signal
++        phase = module().create_phase(str(uuid.uuid4()), seconds=5)
++        child = subprocess.Popen([sys.executable, '-c', 'import time;time.sleep(30)'], preexec_fn=phase.join_child)
++        try:
++            os.kill(phase.guardian_pid, signal.SIGKILL)
++            with self.assertRaisesRegex(RuntimeError, 'runtime_unavailable'):
++                phase.close()
++            self.assertFalse(phase.directory.exists())
++            self.assertEqual(child.wait(timeout=2), -9)
++        finally:
++            if phase.directory.exists():
++                phase._clean_group()
++            child.wait(timeout=2)
++
++    def test_closed_stdin_does_not_replace_the_private_guardian_pipe(self):
++        script = '''
++import os,runpy,time,uuid,json
++scope=runpy.run_path('scripts/studio/av-linux.py')
++os.close(0)
++phase=scope['create_phase'](str(uuid.uuid4()),seconds=5)
++time.sleep(0.2)
++print(json.dumps({'reader':phase.reader,'writer':phase.writer,'alive':phase.directory.exists()}),flush=True)
++phase.close()
++'''
++        result = subprocess.run([sys.executable, '-B', '-c', script], capture_output=True, text=True, timeout=4)
++        self.assertEqual(result.returncode, 0, result.stderr)
++        data = json.loads(result.stdout)
++        self.assertTrue(data['alive'], data)
++        self.assertGreaterEqual(data['reader'], 3)
++        self.assertGreaterEqual(data['writer'], 3)
++
++    def assert_stopped(self, pid):
++        stat = pathlib.Path(f'/proc/{pid}/stat')
++        if stat.exists():
++            self.assertEqual(stat.read_text().split(') ', 1)[1].split()[0], 'Z', f'PID {pid} is still running')
++
++
++@unittest.skipUnless(sys.platform == 'linux' and os.environ.get('STUDIO_AV_CGROUP_TEST') == '1', 'requires explicit delegated bounded Linux cgroup integration run')
++class LinuxRuntimeDispatchTest(unittest.TestCase):
++    def request(self, program, budget='85000'):
++        # Process-contract fixture only: it does not encode media or claim native Linux MP4 acceptance.
++        base = pathlib.Path('storage/framework/testing').resolve()
++        with tempfile.TemporaryDirectory(prefix='av-linux-dispatch-', dir=base) as directory:
++            binary = pathlib.Path(directory) / 'process-contract.py'
++            binary.write_text('#!/usr/bin/python3\n'+program, encoding='utf-8')
++            binary.chmod(0o700)
++            namespace = str(uuid.uuid4())
++            result = subprocess.run([sys.executable, '-B', 'scripts/studio/av-runtime.py', directory, namespace, 'plan', '0'],
++                                    capture_output=True, text=True, timeout=8,
++                                    env={**os.environ, 'STUDIO_NODE_BINARY': str(binary), 'STUDIO_AV_BUDGET_MS': budget})
++            return namespace, result, json.loads(result.stdout)
++
++    def test_dispatch_executes_only_inside_its_owned_cgroup_and_removes_it_before_return(self):
++        namespace, result, data = self.request("import json,pathlib,runpy\nscope=runpy.run_path('scripts/studio/av-runtime.py')\nprint(json.dumps({'ok':True,'result':{'group':pathlib.Path('/proc/self/cgroup').read_text(),'memory':scope['observed_memory']()}}))\n")
++        self.assertEqual(result.returncode, 0, result.stderr)
++        self.assertTrue(data['ok'], data)
++        self.assertIn('studio-av-'+namespace, data['result']['group'])
++        self.assertGreater(data['result']['memory']['limit'], 0)
++        self.assertLessEqual(data['result']['memory']['limit'], 3 * 1024**3)
++        root, _ = module().current_group()
++        self.assertFalse((root/('studio-av-'+namespace)).exists())
++
++    def test_dispatch_hard_timeout_kills_the_contract_process_and_returns_no_ready_result(self):
++        start = time.monotonic()
++        namespace, result, data = self.request('import time\ntime.sleep(30)\n', budget='100')
++        self.assertNotEqual(result.returncode, 0)
++        self.assertEqual(data.get('error_code'), 'phase_timeout', data)
++        self.assertLess(time.monotonic()-start, 6)
++        root, _ = module().current_group()
++        self.assertFalse((root/('studio-av-'+namespace)).exists())
++
++
++if __name__ == '__main__':
++    unittest.main()
+--- a/deploy/systemd/scheduler-studio.service
++++ b/deploy/systemd/scheduler-studio.service
+@@ -0,0 +1,42 @@
++# Dedicated audiovisual queue. Install only after configuring the application and native runtime.
++# The existing scheduler-worker@ instances keep their own sandbox and queues.
++[Unit]
++Description=Social Scheduler audiovisual Studio worker
++After=network.target mysql.service mariadb.service
++StartLimitIntervalSec=0
++
++[Service]
++Type=simple
++User=USUARIO
++Group=USUARIO
++WorkingDirectory=/home/USUARIO/web/DOMINIO/app
++Environment=PHP_BIN=php
++ExecStart=/usr/bin/env ${PHP_BIN} artisan queue:work database --queue=studio --sleep=1 --tries=1 --timeout=120 --max-time=3600 --max-jobs=500
++Restart=always
++RestartSec=5
++TimeoutStopSec=130
++KillMode=control-group
++KillSignal=SIGTERM
++# Limit the whole worker tree, including the lightweight guardian and per-phase children.
++MemoryMax=3G
++MemorySwapMax=0
++OOMPolicy=kill
++TasksMax=512
++# Studio manages only UUID child groups inside this delegated unit. cgroup.kill is required.
++Delegate=yes
++ProtectControlGroups=no
++NoNewPrivileges=true
++PrivateTmp=true
++ProtectSystem=strict
++ProtectHome=read-only
++ReadWritePaths=/home/USUARIO/web/DOMINIO/app/storage /home/USUARIO/web/DOMINIO/app/bootstrap/cache
++ProtectKernelTunables=true
++ProtectKernelModules=true
++RestrictSUIDSGID=true
++LockPersonality=true
++StandardOutput=journal
++StandardError=journal
++SyslogIdentifier=scheduler-studio
++
++[Install]
++WantedBy=multi-user.target
+--- a/deploy/systemd/README.md
++++ b/deploy/systemd/README.md
+@@ -33,6 +33,18 @@
+ | Prueba de extremo a extremo | `php artisan app:queue-probe --wait=60` (encola un job por cola y espera a que lo procesen) |
+ | Jobs fallidos | `php artisan queue:failed` / `queue:retry all` |
+ 
++## Worker audiovisual de Studio (preparado, sin instalar)
++
++`scheduler-studio.service` es una unidad dedicada a la futura cola `studio`, separada de las colas actuales y del modelo de quitar fondos. Requiere cgroupv2 con `cgroup.kill` (Linux≥5.14), usuario sin privilegios y delegación de su propio subárbol. `MemoryMax=3G` limita todo el worker/guardián/procesos de fase; `MemorySwapMax=0`, `OOMPolicy=kill` y `KillMode=control-group` cierran el árbol completo ante OOM o parada de la unidad. No reserva3GiB al arrancar.
++
++`Delegate=yes` permite crear únicamente subgrupos UUID en la raíz de esa unidad. Por ello su `ProtectControlGroups=no` difiere del worker genérico; los permisos kernel de usuario siguen impidiendo tocar los cgroups de otras unidades. El supervisor verifica propietario, límite heredado y disponibilidad de kill antes de abrir Node. La limpieza usa `cgroup.kill` del subgrupo propio, nunca nombres de procesos ni un kill global. Los workers existentes no cambian.
++
++Antes de instalar, ajustar User/Group/rutas/PHP_BIN, disponer de Node nativo, FFmpeg/ffprobe, Chromium de Playwright y los bundles construidos. El timeout del futuro job será100s, inferior al worker120s y al retry_after180s. Esta plantilla aún no conecta los jobsLaravel pendientes ni habilita formatos en web/API/MCP. El usuario ejecutará las comprobaciones del VPS; las pruebas WSL del supervisor no las sustituyen. No instalar ni iniciar esta unidad por copiar la documentación de desarrollo.
++
++Para validar la plantilla preparada, `systemd-analyze verify deploy/systemd/scheduler-studio.service` comprueba su sintaxis. No ejecuta el worker ni acredita permisos de la instalación real.
++
++Las pruebas de cgroup son de integración y requieren `STUDIO_AV_CGROUP_TEST=1` dentro de una unidad temporal delegada y limitada. Sin esa opción se omiten explícitamente; no cuentan como aceptación Linux. Un ejecutable Python mínimo verifica el contrato del supervisor/exec; no sustituye una exportación real mediante Node/FFmpeg/Chromium. Las pruebas del VPS siguen a cargo del usuario.
++
+ ## Healthcheck
+ 
+ 1. **Interno / deploy**: `php artisan app:health` (exit 0 = BD, cola, almacenamiento y latido del scheduler correctos, con avisos si hay jobs fallidos recientes; `--json` para scripts;
+--- a/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
++++ b/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
+@@ -36,9 +36,19 @@
+ 
+ Implementación interna local inicial: `av-runtime.py` aplica en Windows un Job Object de3GiB de **commit agregado**, con kill-on-close y sin breakaway; no es una medición RSS ni reserva previa de3GiB. `render-av.mjs` admite plan/normalize/render/mix/assemble y un índice controlado, con manifiesto inmutable generado `work/{lease}.json` de hasta8MiB. Cada fase recompila el plan y admite hasta4096tramos; superar ese presupuesto falla explícitamente, sin recortar. La música de GIF no necesita snapshots/normalización/mezcla; las referencias temporales siguen validadas con metadata, igual que en el motor.
+ 
+-El presupuesto blando predeterminado es85s, incluye inicio deNode, compilación y trabajo nativo. El abort dispone de3s de gracia y el kill deNode hasta2s; al salir el supervisor se cierra el único handle delJob y mueren los descendientes restantes, incluidos los separados en otro grupo. Los futuros jobs tendrán timeout superior a90s. El archivo privado `work/{lease}.cancel` señala cancelación; no es un endpoint ni sustituye el cambio atómico de estado/aceptación enLaravel. El supervisor sanea los errores y acota stdout/stderr. EnLinux la sonda solo comprueba el mínimo efectivo de memory.max entre el cgroup real y sus ancestros; **la ejecución nativa permanece no disponible hasta implementar supervisión/limpieza equivalente del grupo**. Ningún valor de entorno activa por sí solo esa disponibilidad.
++El presupuesto blando predeterminado es85s, incluye inicio deNode, compilación y trabajo nativo. El abort dispone de3s de gracia y el kill deNode hasta2s; al salir el supervisor Windows se cierra el único handle delJob y mueren los descendientes restantes, incluidos los separados en otro grupo. Los futuros jobs tendrán timeout superior a90s. El archivo privado `work/{lease}.cancel` señala cancelación; no es un endpoint ni sustituye el cambio atómico de estado/aceptación enLaravel. El supervisor sanea los errores y acota stdout/stderr. La primera tanda Windows solo consultaba límites enLinux; el nuevo bloque inferior ya conecta el guardiánLinux al CLI cuando hay delegación, límite efectivo y runtimes instalados. Sin esos requisitos devuelve no disponible antes de abrir trabajo nativo. Ningún valor de entorno activa por sí solo esa disponibilidad.
+ 
+ Fuentes primarias para la implementación: [Job Objects](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects), [límites extendidos](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_extended_limit_information) y [cgroupv2](https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html). Las pruebas deWindows consultan el kernel y ejecutan fases reales; las de lectura cgroup con fixtures son unitarias y no acreditan runtimeLinux/VPS.
++
++### Supervisión Linux: siguiente bloque en desarrollo
++
++El worker dedicado debe tener MemoryMax≤3GiB y delegación de su propio subárbol cgroupv2. El supervisor valida el límite efectivo y la propiedad del grupo actual, crea únicamente un hijo UUID dentro de esa raíz y mueve el nuevo proceso allí antes de exec. El hijo comprueba después de migrar que su supervisor siga vivo; no puede ejecutar trabajo fuera del grupo si el padre murió durante el arranque. No modifica cgroups ajenos ni necesita root en el proceso de aplicación.
++
++Un guardián ligero, fuera del subgrupo de fase pero dentro del mismo límite del worker, conserva el extremo lector de un pipe privado. EOF al morir el supervisor, una señal de cierre o su deadline fijo provocan cgroup.kill, espera de vacío y rmdir del grupo propio. Así se cierran también descendientes que cambien sesión o grupo POSIX. Los descriptores del guardián no se heredan al proceso nativo. Sin delegación, límite efectivo o cgroup.kill se falla antes de Node/Chromium/FFmpeg. No se usa un kill por nombre de proceso o PID global.
++
++La unidad Studio se prepara separada de los workers actuales: Delegate=yes, MemoryMax=3G, MemorySwapMax=0, OOMPolicy=kill, KillMode=control-group y permisos de escritura solo para su cgroup delegado/storage/cache. Ante OOM la unidad completa termina, incluyendo guardián y subgrupos; no se mantiene una fase huérfana porque el kernel eligió al supervisor como víctima. No se relaja ProtectControlGroups de las colas existentes. La [interfaz de delegación systemd](https://systemd.io/CONTROL_GROUP_INTERFACE/) delimita la raíz administrable; [systemd.exec](https://freedesktop.org/software/systemd/man/latest/systemd.exec.html) documenta ProtectControlGroups. La prueba local usa una unidad transitoria de usuario con nombre propio y cgroups pequeños, no instala servicios en el VPS ni reserva3GiB. No se induce OOM ni se acredita esa política con una reserva masiva.
++
++El guardián y su dispatch ya tienen pruebas focales locales con procesos Python ligeros. Linux no dispone todavía aquí de Node/FFmpeg nativos: esas pruebas no acreditan multimediaLinux. El nuevo bloque está pendiente de revisión y regresión; los informes anteriores de Windows conservan sus snapshots históricos. Las pruebas cgroup se activan explícitamente con STUDIO_AV_CGROUP_TEST=1 y registran los skips de plataforma, sin presentarlos como casos ejecutados.
+ 
+ La cola de estudio y su configuración de despliegue se documentarán al implementarse. Las pruebas locales usan su entorno desechable y no modifican cron, workers ni servicios del VPS. Los límites de almacenamiento son los del contrato T-11 y se contabilizan antes de asignar derivados grandes. Nunca se recorta el documento silenciosamente para completar una fase.
+ 

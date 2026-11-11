@@ -1,0 +1,13 @@
+{
+  "planned": 3,
+  "recorded": 3,
+  "passed": 3,
+  "all_three_passed": true,
+  "widths": [
+    375,
+    768,
+    1440
+  ],
+  "blob_files": 1,
+  "app_global_pass_claim": false
+}

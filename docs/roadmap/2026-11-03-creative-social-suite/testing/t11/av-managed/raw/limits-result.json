@@ -1,0 +1,12 @@
+{
+  "phase": "limits",
+  "exit": 0,
+  "terminal": true,
+  "sources_match": true,
+  "summary": [
+    "----------------------------------------------------------------------",
+    "Ran 3 tests in 0.272s",
+    "",
+    "OK"
+  ]
+}

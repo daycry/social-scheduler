@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "sampleRate": 48000,
+  "downmix": "arithmetic channel mean",
+  "calibration": {
+    "expectedPerChannel": 0.08,
+    "explicitMean": 0.08000000018002032,
+    "implicitDownmix": 0.11313708301023948
+  },
+  "windows": [
+    {
+      "from": 0.75,
+      "to": 1,
+      "amplitude440": 0.052741874195661516,
+      "amplitude880": 0.023970341123110722
+    },
+    {
+      "from": 1.75,
+      "to": 2.25,
+      "amplitude440": 8.458889230425996e-8,
+      "amplitude880": 0.023958147052176904
+    }
+  ]
+}

@@ -36,6 +36,8 @@ Object.assign(environment, {
     GOOGLE_LOGIN_CLIENT_ID: 'e2e-fake-google-login', GOOGLE_LOGIN_CLIENT_SECRET: 'e2e-fake-secret',
     META_LOGIN_APP_ID: 'e2e-fake-meta-login', META_LOGIN_APP_SECRET: 'e2e-fake-secret',
     THREADS_APP_ID: 'e2e-fake-threads', THREADS_APP_SECRET: 'e2e-fake-secret',
+    LINKEDIN_CLIENT_ID: 'e2e-fake-linkedin', LINKEDIN_CLIENT_SECRET: 'e2e-fake-secret',
+    PINTEREST_APP_ID: 'e2e-fake-pinterest', PINTEREST_APP_SECRET: 'e2e-fake-secret',
     // The GIF negative case requires no key; its positive cases enable props and intercept every request.
     GIPHY_API_KEY: '', AI_ASSISTANT_ENABLED: 'true', ANTHROPIC_API_KEY: 'e2e-fake-anthropic',
     MCP_OAUTH_REGISTER_GLOBAL_PER_HOUR: '100000',

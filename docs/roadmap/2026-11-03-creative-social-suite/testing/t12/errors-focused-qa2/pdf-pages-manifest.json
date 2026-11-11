@@ -1,0 +1,14 @@
+[
+  {
+    "file": "pdf-pages/page-001.png",
+    "sha256": "785264c5d20c20538bffec96cbf7a1152d7e2a011b83cf9e0f6339305904d354"
+  },
+  {
+    "file": "pdf-pages/page-002.png",
+    "sha256": "cec62c8989577263c8a9176ad0c98d4491658c2f919e57187c287def38fbb19b"
+  },
+  {
+    "file": "pdf-pages/page-003.png",
+    "sha256": "0472938d616261a686e5eebdc42ea8dd744e25b0b3a71ddcf52fb2f1c31b982c"
+  }
+]

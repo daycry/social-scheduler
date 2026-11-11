@@ -1,0 +1,72 @@
+--- resources/js/Studio/presentation.js
++++ resources/js/Studio/presentation.js
+@@ -80,17 +80,23 @@
+             if (!playing || deltaMs === 0) return snapshot();
+             // Whole cycles leave the current page and fractional offset unchanged.
+             // Reduce the delta before adding it to that offset, so huge deltas stay precise.
+-            let remaining = loop ? deltaMs % totalDuration : deltaMs;
+-            if (remaining === 0) return snapshot();
+-            // Consume only forward from the current page. Reconstructing an absolute
+-            // position by summing/subtracting earlier durations can round back a page.
+-            while (remaining >= pages[index].durationMs - elapsedMs) {
+-                remaining -= pages[index].durationMs - elapsedMs;
++            const delta = loop ? deltaMs % totalDuration : deltaMs;
++            if (delta === 0) return snapshot();
++            // Compare the original delta to forward cumulative boundaries. Subtracting
++            // each duration from delta can leave the terminal boundary one ULP short;
++            // rebuilding from preceding pages can instead move the index backwards.
++            const originElapsed = elapsedMs;
++            let cumulative = pages[index].durationMs;
++            let previousBoundary = -originElapsed;
++            let boundary = cumulative - originElapsed;
++            while (delta >= boundary) {
+                 if (index + 1 === pages.length && !loop) return finish();
++                previousBoundary = boundary;
+                 index = (index + 1) % pages.length;
+-                elapsedMs = 0;
++                cumulative += pages[index].durationMs;
++                boundary = cumulative - originElapsed;
+             }
+-            elapsedMs += remaining;
++            elapsedMs = delta - previousBoundary;
+             return snapshot();
+         },
+         setBlackout(value) {
+--- tests/frontend/studio-presentation.test.mjs
++++ tests/frontend/studio-presentation.test.mjs
+@@ -190,3 +190,35 @@
+     const s = create(temporal, { startPageId: 'p2' }); s.play();
+     assert.equal(s.advance(0).pageId, 'p2'); assert.equal(s.advance(0.375).elapsedMs, 0.375);
+ });
++
++test('fractional total duration reaches the terminal boundary in v1 and v2', () => {
++    for (const schemaVersion of [1, 2]) {
++        const input = document(); [0.1, 0.1234, 0.1].forEach((duration, i) => { input.pages[i].duration = duration; });
++        if (schemaVersion === 2) { input.schema_version = 2; input.timeline = { fps: 30, audio_tracks: [] }; }
++        const s = create(input); s.play(); const after = s.advance(323.4);
++        assert.equal(after.pageId, 'p2'); assert.equal(after.elapsedMs, 100);
++        assert.equal(after.ended, true); assert.equal(after.playing, false);
++    }
++});
++
++test('forward cumulative boundaries handle remaining totals from noninitial pages and local offsets', () => {
++    const cases = [[0.1, 0.1234, 0.1], [0.1234, 0.2345, 0.3456], [0.2345, 0.1, 0.6789], [0.1234, 0.1234, 0.1234]];
++    for (const durations of cases) for (const schemaVersion of [1, 2]) for (let start = 0; start < 3; start++) for (const offset of [0, 0.125, 1.25]) {
++        const input = document(); durations.forEach((duration, i) => { input.pages[i].duration = duration; });
++        if (schemaVersion === 2) { input.schema_version = 2; input.timeline = { fps: 30, audio_tracks: [] }; }
++        const s = create(input, { startPageId: `p${start}` }); s.play(); s.advance(offset);
++        const remaining = input.pages.slice(start).reduce((sum, page) => sum + page.duration * 1000, 0) - offset;
++        const after = s.advance(remaining);
++        assert.equal(after.pageId, 'p2'); assert.equal(after.elapsedMs, input.pages[2].duration * 1000);
++        assert.equal(after.ended, true); assert.equal(after.playing, false);
++    }
++});
++
++test('fractional cumulative crossing enters a later page with its own residual instead of subtracting every duration', () => {
++    const input = document(); [0.1, 0.1234, 0.1].forEach((duration, i) => { input.pages[i].duration = duration; });
++    const s = create(input); s.play();
++    const boundary = input.pages[0].duration * 1000 + input.pages[1].duration * 1000;
++    const after = s.advance(boundary);
++    assert.equal(after.pageId, 'p2'); assert.equal(after.elapsedMs, 0);
++    assert.equal(after.ended, false); assert.equal(after.playing, true);
++});

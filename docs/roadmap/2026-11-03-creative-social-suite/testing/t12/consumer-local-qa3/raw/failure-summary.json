@@ -1,0 +1,14 @@
+{
+  "actual_executed_cases": 3,
+  "recorded_cases": 3,
+  "original_stats": {
+    "startTime": "2026-11-06T22:21:59.152Z",
+    "duration": 61931.738,
+    "expected": 3,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "failures": [],
+  "global_errors": []
+}

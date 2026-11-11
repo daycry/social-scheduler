@@ -1,0 +1,16 @@
+{
+  "reviewer": "root",
+  "pdf_sha256": "07bbfe558831971df67d11df9edba3c4ce3b2bbe92bbd1b982c07aca70f6d0f7",
+  "inspected": {
+    "images/column-preview-render.png": "3b1e939bbd1668fe031caca450fdec123e540654cbb294019a3fdbdc077f97f1",
+    "images/bar-preview-render.png": "3fa2d2435ed466305a9108056b072bd2529065224b49853c6c747d73d0d479c4",
+    "images/failed-server-case.png": "fe2421430241e74d6d77f5d72ff0d3e68b4e7a7ab925ec785dbd5eeafbe1d960",
+    "pdf-pages/page-001.png": "e6753761310ed890dbb57c75148d6c33cc71a90debea3fb639c82768db799a9f",
+    "pdf-pages/page-002.png": "ed9e3e4167882498685678a11dcf09719dae966fc5bab794e2e90ed7913ce1b2",
+    "pdf-pages/page-003.png": "1108a76fb9d95ba7e872860bbe80b51cc93bbba9a27612100e6a54f69ed7efd0",
+    "pdf-pages/page-004.png": "a8d610f23a4c3b006d96e362690b6c267518b9bf973ff6f10e5aaf7b93b631ef",
+    "pdf-pages/page-005.png": "3bd5358d1c25d18929dff99d56b0881d593da3bab6c0155d259d664d07b2649a"
+  },
+  "issues": [],
+  "scope": "All five report pages and three representative figures inspected; failed app verdict retained. Not visual acceptance of other variants or viewports."
+}

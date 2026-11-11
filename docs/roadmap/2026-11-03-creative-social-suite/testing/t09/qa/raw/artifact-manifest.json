@@ -1,0 +1,251 @@
+[
+  {
+    "path": "raw/artifacts/metrics-quality-Metrics-ze-40fd3-ppressed-unequal-comparison-desktop/metrics-quality.png",
+    "bytes": 237021,
+    "sha256": "cc081286e6d8629d2979dd8ca8b678915f5232dc504dc56d34e01d0afc457551",
+    "dimensions": [
+      1440,
+      2324
+    ]
+  },
+  {
+    "path": "raw/artifacts/metrics-quality-Metrics-ze-40fd3-ppressed-unequal-comparison-mobile/metrics-quality.png",
+    "bytes": 239484,
+    "sha256": "718bb7b8778d30da361a87d3083311546be017280956109c09cbd66ec95fe2da",
+    "dimensions": [
+      375,
+      3706
+    ]
+  },
+  {
+    "path": "raw/artifacts/metrics-quality-Metrics-ze-40fd3-ppressed-unequal-comparison-mobile-360/metrics-quality.png",
+    "bytes": 239518,
+    "sha256": "78adfa4e9a2d858f235c5bea6c7833e767f81706ead308aa8f2aa6849a79b52c",
+    "dimensions": [
+      360,
+      3726
+    ]
+  },
+  {
+    "path": "raw/artifacts/studio-automation-Studio-a-b48de-variants-persist-and-export-desktop/portrait-variant-editor.png",
+    "bytes": 119971,
+    "sha256": "c801cd8cd31d779d339a21d23ae295239817df1b176628f66a851c54c361916c",
+    "dimensions": [
+      1440,
+      1111
+    ]
+  },
+  {
+    "path": "raw/artifacts/studio-automation-Studio-a-b48de-variants-persist-and-export-desktop/portrait-variant.png",
+    "bytes": 64026,
+    "sha256": "3004bf2f14a15e4e3594435bf3d30639a7982233f658424ba3b7a17889aeab12",
+    "dimensions": [
+      1080,
+      1920
+    ]
+  },
+  {
+    "path": "raw/artifacts/studio-automation-Studio-a-b48de-variants-persist-and-export-mobile/portrait-variant-editor.png",
+    "bytes": 89842,
+    "sha256": "796a00f370e6294c0ea700ca4646a6d4772f0bc0ba6c9cd3c83ab67209690fb8",
+    "dimensions": [
+      375,
+      1927
+    ]
+  },
+  {
+    "path": "raw/artifacts/studio-automation-Studio-a-b48de-variants-persist-and-export-mobile/portrait-variant.png",
+    "bytes": 64026,
+    "sha256": "3004bf2f14a15e4e3594435bf3d30639a7982233f658424ba3b7a17889aeab12",
+    "dimensions": [
+      1080,
+      1920
+    ]
+  },
+  {
+    "path": "raw/artifacts/studio-automation-Studio-a-b48de-variants-persist-and-export-mobile-360/portrait-variant-editor.png",
+    "bytes": 90389,
+    "sha256": "3ae3093f809fb402685bc5371230e47bd5f7965058538ba125410aa20ffb48ec",
+    "dimensions": [
+      360,
+      1927
+    ]
+  },
+  {
+    "path": "raw/artifacts/studio-automation-Studio-a-b48de-variants-persist-and-export-mobile-360/portrait-variant.png",
+    "bytes": 64026,
+    "sha256": "3004bf2f14a15e4e3594435bf3d30639a7982233f658424ba3b7a17889aeab12",
+    "dimensions": [
+      1080,
+      1920
+    ]
+  },
+  {
+    "path": "raw/artifacts/studio-automation-Studio-a-c040d--branded-design-and-exports-desktop/template-instance-editor.png",
+    "bytes": 121728,
+    "sha256": "9d72e471079c648b9e164c6942ff4f1ac61107c4d5d2519094c1665928f43c45",
+    "dimensions": [
+      1440,
+      1111
+    ]
+  },
+  {
+    "path": "raw/artifacts/studio-automation-Studio-a-c040d--branded-design-and-exports-desktop/template-instance.png",
+    "bytes": 44630,
+    "sha256": "9706bfb7bdb98c484c67af6d60e1efb3d6f1555d92fdd173c8a9c4c488d889e1",
+    "dimensions": [
+      1080,
+      1080
+    ]
+  },
+  {
+    "path": "raw/artifacts/studio-automation-Studio-a-c040d--branded-design-and-exports-mobile/template-instance-editor.png",
+    "bytes": 90854,
+    "sha256": "3f7c459e95f4f3ba0f6abaf7b3a70d366d995fee301d01c7d2a213533e6037ca",
+    "dimensions": [
+      375,
+      1927
+    ]
+  },
+  {
+    "path": "raw/artifacts/studio-automation-Studio-a-c040d--branded-design-and-exports-mobile/template-instance.png",
+    "bytes": 44630,
+    "sha256": "9706bfb7bdb98c484c67af6d60e1efb3d6f1555d92fdd173c8a9c4c488d889e1",
+    "dimensions": [
+      1080,
+      1080
+    ]
+  },
+  {
+    "path": "raw/artifacts/studio-automation-Studio-a-c040d--branded-design-and-exports-mobile-360/template-instance-editor.png",
+    "bytes": 90204,
+    "sha256": "2f5f2c67426b200105d992e371962093cfb176ea2e0c20e59ea1066394a436c4",
+    "dimensions": [
+      360,
+      1927
+    ]
+  },
+  {
+    "path": "raw/artifacts/studio-automation-Studio-a-c040d--branded-design-and-exports-mobile-360/template-instance.png",
+    "bytes": 44630,
+    "sha256": "9706bfb7bdb98c484c67af6d60e1efb3d6f1555d92fdd173c8a9c4c488d889e1",
+    "dimensions": [
+      1080,
+      1080
+    ]
+  },
+  {
+    "path": "raw/artifacts/studio-Studio-design-persi-4a226--a-publication-in-its-brand-desktop/studio-editor.png",
+    "bytes": 119972,
+    "sha256": "9552a737ff7a1094e58e29f63114d7c57e145dcdbbc47064eca757d68b23eff0",
+    "dimensions": [
+      1440,
+      1111
+    ]
+  },
+  {
+    "path": "raw/artifacts/studio-Studio-design-persi-4a226--a-publication-in-its-brand-desktop/studio-export.png",
+    "bytes": 40477,
+    "sha256": "8761518f47d149174f042aa3031222b7f10f345f9b0887e6c7c5fefe23174abe",
+    "dimensions": [
+      1080,
+      1080
+    ]
+  },
+  {
+    "path": "raw/artifacts/studio-Studio-design-persi-4a226--a-publication-in-its-brand-mobile/studio-editor.png",
+    "bytes": 89710,
+    "sha256": "b6f3c48084c43d28c3777f4046792d727ce968133d068fefef807a84231513eb",
+    "dimensions": [
+      375,
+      1911
+    ]
+  },
+  {
+    "path": "raw/artifacts/studio-Studio-design-persi-4a226--a-publication-in-its-brand-mobile/studio-export.png",
+    "bytes": 40477,
+    "sha256": "8761518f47d149174f042aa3031222b7f10f345f9b0887e6c7c5fefe23174abe",
+    "dimensions": [
+      1080,
+      1080
+    ]
+  },
+  {
+    "path": "raw/artifacts/studio-Studio-design-persi-4a226--a-publication-in-its-brand-mobile-360/studio-editor.png",
+    "bytes": 89509,
+    "sha256": "a03ac2734298048873c068dd3291846db741fdae49e46b0ca2f1cf55a8af8efd",
+    "dimensions": [
+      360,
+      1927
+    ]
+  },
+  {
+    "path": "raw/artifacts/studio-Studio-design-persi-4a226--a-publication-in-its-brand-mobile-360/studio-export.png",
+    "bytes": 40477,
+    "sha256": "8761518f47d149174f042aa3031222b7f10f345f9b0887e6c7c5fefe23174abe",
+    "dimensions": [
+      1080,
+      1080
+    ]
+  },
+  {
+    "path": "raw/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-desktop/studio-export.jpeg",
+    "bytes": 16186,
+    "sha256": "87a45fc3bb7bb12e0f29640073f69d78d67da6eb9fb8655d22bcbc3541112399"
+  },
+  {
+    "path": "raw/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-desktop/studio-export.svg",
+    "bytes": 1269,
+    "sha256": "2be44333cd14368949102aab96686fded72d89f5d2924f84cb24a0f5b17aa1bf"
+  },
+  {
+    "path": "raw/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-desktop/studio-export.webp",
+    "bytes": 8146,
+    "sha256": "2560bb8f224874736a1886c7ed18ecaf575d139c8c1c6e5990831f64470251bb"
+  },
+  {
+    "path": "raw/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-desktop/studio-pages.pdf",
+    "bytes": 21376,
+    "sha256": "936a5cb1df737b61d5ac926b26fa9faef4f250adb773f7c013147bf3af29a664"
+  },
+  {
+    "path": "raw/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile/studio-export.jpeg",
+    "bytes": 16186,
+    "sha256": "87a45fc3bb7bb12e0f29640073f69d78d67da6eb9fb8655d22bcbc3541112399"
+  },
+  {
+    "path": "raw/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile/studio-export.svg",
+    "bytes": 1269,
+    "sha256": "2be44333cd14368949102aab96686fded72d89f5d2924f84cb24a0f5b17aa1bf"
+  },
+  {
+    "path": "raw/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile/studio-export.webp",
+    "bytes": 8146,
+    "sha256": "2560bb8f224874736a1886c7ed18ecaf575d139c8c1c6e5990831f64470251bb"
+  },
+  {
+    "path": "raw/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile/studio-pages.pdf",
+    "bytes": 21376,
+    "sha256": "2a760354357222c579f4f56da671eacc46a826ff69bcaadf52c910de55f1b6fa"
+  },
+  {
+    "path": "raw/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile-360/studio-export.jpeg",
+    "bytes": 16186,
+    "sha256": "87a45fc3bb7bb12e0f29640073f69d78d67da6eb9fb8655d22bcbc3541112399"
+  },
+  {
+    "path": "raw/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile-360/studio-export.svg",
+    "bytes": 1269,
+    "sha256": "2be44333cd14368949102aab96686fded72d89f5d2924f84cb24a0f5b17aa1bf"
+  },
+  {
+    "path": "raw/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile-360/studio-export.webp",
+    "bytes": 8146,
+    "sha256": "2560bb8f224874736a1886c7ed18ecaf575d139c8c1c6e5990831f64470251bb"
+  },
+  {
+    "path": "raw/artifacts/studio-Studio-undo-page-or-9842d-F-exports-retain-the-design-mobile-360/studio-pages.pdf",
+    "bytes": 21376,
+    "sha256": "5a31276bd8df356835a5ae1be2ee18beb08b63d9c4d2d8de9ae0c24828dc439e"
+  }
+]

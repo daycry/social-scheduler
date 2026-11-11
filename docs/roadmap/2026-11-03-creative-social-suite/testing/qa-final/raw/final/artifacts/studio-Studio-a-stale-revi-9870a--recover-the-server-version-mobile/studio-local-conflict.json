@@ -1,0 +1,50 @@
+{
+  "document": {
+    "schema_version": 1,
+    "width": 1080,
+    "height": 1080,
+    "pages": [
+      {
+        "id": "page_b476d422-8753-474f-b419-548bea610d5c",
+        "name": "Página 1",
+        "background": "#ffffff",
+        "duration": 5,
+        "elements": [
+          {
+            "id": "text_030364eb-04af-4f33-b62c-75bd8fffc6a5",
+            "type": "text",
+            "name": "Texto",
+            "x": 80,
+            "y": 80,
+            "width": 920,
+            "height": 72.32,
+            "scaleX": 1,
+            "scaleY": 1,
+            "rotation": 0,
+            "skewX": 0,
+            "skewY": 0,
+            "opacity": 1,
+            "locked": false,
+            "visible": true,
+            "fill": "#7c3aed",
+            "stroke": "",
+            "strokeWidth": 0,
+            "flipX": false,
+            "flipY": false,
+            "text": "Mi cambio local conservado",
+            "fontFamily": "Arial",
+            "fontSize": 64,
+            "fontWeight": "normal",
+            "fontStyle": "normal",
+            "textAlign": "left",
+            "underline": false,
+            "lineHeight": 1.2,
+            "charSpacing": 0
+          }
+        ]
+      }
+    ]
+  },
+  "name": "Diseño sin título",
+  "is_template": false
+}

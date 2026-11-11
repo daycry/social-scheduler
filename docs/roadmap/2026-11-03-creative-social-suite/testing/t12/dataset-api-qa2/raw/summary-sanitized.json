@@ -1,0 +1,30 @@
+{
+  "attempt": 2,
+  "actual_cases": 13,
+  "passed": 13,
+  "failed": 0,
+  "flaky": 0,
+  "skipped": 0,
+  "interrupted": 0,
+  "retries": 0,
+  "runner_errors": 0,
+  "changed_sources": [],
+  "source_count": 51,
+  "approved_manifest_files": 31,
+  "job_peak_commit_bytes": 1393283072,
+  "php_peak_allocator_bytes": 465567744,
+  "catalog_pages": 2,
+  "catalog_tools": 42,
+  "large": {
+    "dataset_id": 14,
+    "semantic_bytes": 52000000,
+    "envelope_bytes": 155970107,
+    "sha256": "5916851043bee9de3bc8e9c159d915eb9dd423b5dc013cbd98b91b8b5b39c1a5",
+    "rows": 52,
+    "columns": 100,
+    "profile": "PHP512MiB; TCP native HTTP client, vendor MCP JSON-RPC"
+  },
+  "attempt_state": "terminal; no restart",
+  "server_closed": true,
+  "not_ui_acceptance": true
+}

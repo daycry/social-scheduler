@@ -1,0 +1,30 @@
+{
+  "baseline": "storage\\framework\\testing\\t11-audio-review-baseline",
+  "files": {
+    "app/Models/MediaAsset.php": "4dd4daac208cc737bd9903506b8e125e72183eae7548e70fa0be6efa8f1a3c1e",
+    "app/Services/MediaUploadService.php": "66fbf817a9c79c349045f7cb59337920f0766685452be532b6bb79619dad90d7",
+    "app/Services/MediaProbe.php": "ab715d5a66b38bcd0d70cd6d5bb478cfded2814aef32a7940a8159a193c95899",
+    "app/Services/Studio/StudioAssets.php": "b56975c3149d38673aeb26ce7db33c0d76125ba25f53a8644a05d3cef17d1528",
+    "app/Services/Studio/StudioAudio.php": "d86df63f1f84e41477b84896d27653ced2168a8d3eea7acff806f90ae77ba56d",
+    "app/Services/Studio/StudioAudioFiles.php": "e344d8c6f90838b50554d92125bbba9c4770a5b9778b739cc374edddc20b1046",
+    "app/Services/Studio/StudioAudioProbe.php": "f04afc7d880b9ca1057179caf352b33951498be6ff2c78eb5a9853cb66103695",
+    "app/Services/Studio/StudioAudioProbeUnavailable.php": "fe54b3e7dee13b5a9f66064d924a0e070780625d02019aa35ce0e2a9c3bba9f1",
+    "app/Http/Controllers/MediaController.php": "ff5eacd42aeee667f31285f78e221824f726db925445ba84db148343c1802e36",
+    "app/Http/Controllers/Studio/StudioAudioController.php": "9426b0992046789d1d0b538235aebb218bd5327703f32d1a8541e29b8052fcb7",
+    "app/Mcp/Tools/ManageStudioAudio.php": "afc5996d5e1b2a82f5be28ff45cd1378b7f243f5fffde3b5edceef0e29fd551c",
+    "app/Mcp/Tools/ListMedia.php": "4e233aea3571cd07b00eb6cec332edf1c10447fe747a862a084ebaa9c2ba228d",
+    "app/Mcp/Tools/AttachDesignAsset.php": "ca0afc3a7b024ba264f600c0e281900a321d4fcc21aa4c7ef58693888032a788",
+    "app/Mcp/Servers/SchedulerServer.php": "ad181f53c86ef79f8a5c7e6c8a13fabfef140be07c990993b2e642ba9c447df7",
+    "config/media.php": "1d18dc5343733b35480fc6dc6e728ad90542431b791199265fd51350f7cc6c62",
+    "routes/studio.php": "482b0c1fcda17e6c660380134461583683ae0511a925ad71c3219e290ab25565",
+    "routes/studio-api.php": "a8e772da28d8e4a82ec5d24112b56a7dc0e4f2a9fe448706e598df27f970b5af",
+    "routes/studio-audio.php": "2904ab6107c0296414e5eb8ab6f01c87b15ca04207eb275a57823d26ef89d838",
+    "routes/studio-audio-api.php": "badab14d48455333290b64f021bb52a530c100512b78d99e6e5d20f79b0ba8fb",
+    "docs/api/creative-suite.openapi.yaml": "3a788f74362dc03c2fa76df73f10c44b6f7562531a3a3c5e9746632f75ecec4a",
+    "tests/Feature/Studio/StudioAudioTest.php": "610834e96b417fa26f9d7752806311e842c667596b277b11f282308c2771a9b9",
+    "tests/Feature/Studio/StudioApiMcpTest.php": "78b94dcf86d147cab7e47ef44ad2e6ac66058b2bd88f9a85eb834d61f5abfd06",
+    "tests/Support/StudioAudioR2.php": "2f6ce6de3bc6790cc687dd00d0f8ceef96d45f7ac49c2d9c43594cdffd9fa869",
+    "app/Connectors/Support/MediaChunkReader.php": "64a153d4f7dc33752dbd48a545db540d2711f124b27a6975f0abb5c12496dd59",
+    "tests/Feature/Studio/StudioAudioAbortTest.php": "6cc1355c0f7ff2047d940ef64871974894d20bffd096ddba41cf7229fa8edb97"
+  }
+}

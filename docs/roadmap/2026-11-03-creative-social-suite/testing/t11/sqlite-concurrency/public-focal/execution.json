@@ -1,0 +1,32 @@
+{
+  "helper_pid": 21328,
+  "started": "2026-11-05T20:29:10.551640+00:00",
+  "command": [
+    "node",
+    "node_modules/@playwright/test/cli.js",
+    "test",
+    "studio-av-composite.spec.ts",
+    "--project=mobile-360",
+    "--workers=1",
+    "--retries=0"
+  ],
+  "runroot": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-61afa3ff-4fd2-49bf-87b6-538f68a5ace2",
+  "port_free_before": true,
+  "scope": "Public composite mobile-360 regression; not independent QA2 or captions acceptance",
+  "source_scope": "Runtime PHP/renderer modules/build/test; unbuilt caption UI SFC excluded",
+  "native_budget": "Existing native phase supervisor JobObject 3GiB COMMIT; not browser RSS",
+  "playwright_pid": 17700,
+  "exit_code": 0,
+  "changed_sources": [],
+  "source_count": 608,
+  "finished": "2026-11-05T20:29:56.858694+00:00",
+  "stats": {
+    "startTime": "2026-11-05T20:29:11.838Z",
+    "duration": 44926.179000000004,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "runner_errors": 0
+}

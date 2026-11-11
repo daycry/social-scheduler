@@ -14,6 +14,9 @@ return [
         'bluesky' => (int) env('SOCIAL_REFRESH_MARGIN_BLUESKY_HOURS', 1),
         // El token largo de Threads dura 60 dias y solo se renueva con >= 24 h de antiguedad: 7 dias de margen, como Meta.
         'threads' => (int) env('SOCIAL_REFRESH_MARGIN_THREADS_HOURS', 168),
+        // LinkedIn: el token dura 60 dias (7 dias de margen). Pinterest: 30 dias el acceso y 60 el refresh (3 dias de margen).
+        'linkedin' => (int) env('SOCIAL_REFRESH_MARGIN_LINKEDIN_HOURS', 168),
+        'pinterest' => (int) env('SOCIAL_REFRESH_MARGIN_PINTEREST_HOURS', 72),
     ],
 
     /* Cola donde corre el refresco de tokens (ver config/queue.php names). */
@@ -133,6 +136,47 @@ return [
     | Threads (C-02, T1: conector propio). Hosts verificados en la documentacion de Meta el 2026-10-27 y configurables por si vuelven a
     | cambiar (la doc admite tambien graph.threads.net). Valores de T-54 en docs/referencia/decisiones-por-red.md. El plazo de procesado es el de `config/publishing.php` (`poll_max_minutes`).
     */
+    /*
+    | LinkedIn (T-18). Versionado mensual de la API REST (`LinkedIn-Version: AAAAMM`, hay que subirlo cuando LinkedIn retire la vigente).
+    | `scopes` del perfil personal: openid/profile (nombre) y w_member_social (publicar). Las paginas piden ademas los de Community
+    | Management (`page_scopes`), que LinkedIn aprueba aparte: sin ellos solo se conecta el perfil personal.
+    */
+    'linkedin' => [
+        'enabled' => (bool) env('LINKEDIN_ENABLED', true),
+        'auth_host' => env('LINKEDIN_AUTH_HOST', 'https://www.linkedin.com'),
+        'api_host' => env('LINKEDIN_API_HOST', 'https://api.linkedin.com'),
+        'api_version' => env('LINKEDIN_API_VERSION', '202511'),
+        'scopes' => ['openid', 'profile', 'w_member_social'],
+        'page_scopes' => ['w_organization_social', 'r_organization_social', 'rw_organization_admin'],
+        // Community Management API (paginas): LinkedIn la aprueba aparte. Sin ella (por defecto) solo se pide el perfil y no se listan paginas.
+        'community_management' => (bool) env('LINKEDIN_COMMUNITY_MANAGEMENT', false),
+        // `r_member_social` (leer publicaciones/comentarios del perfil): LinkedIn solo lo da a apps aprobadas. Sin el no hay busqueda de
+        // idempotencia ni primer comentario en perfiles personales.
+        'member_read' => (bool) env('LINKEDIN_R_MEMBER_SOCIAL', false),
+        // Dias de antelacion con que la UI avisa «reconecta antes de» en cuentas cuyo token no se puede renovar.
+        'reconnect_notice_days' => (int) env('LINKEDIN_RECONNECT_NOTICE_DAYS', 7),
+        'text_max' => 3000,
+        'image_max_bytes' => 36152320,
+        'video_max_bytes' => 500 * 1024 * 1024,
+        // Tamano de cada parte de una subida de video (LinkedIn la fija en 4 MB; se respeta firstByte/lastByte de la respuesta).
+        'upload_timeout' => (int) env('LINKEDIN_UPLOAD_TIMEOUT', 60),
+    ],
+
+    /*
+    | Pinterest (T-18): API v5. Los pines exigen un tablero (`board_id`). El token de acceso dura 30 dias y el de refresco 60.
+    */
+    'pinterest' => [
+        'enabled' => (bool) env('PINTEREST_ENABLED', true),
+        'auth_host' => env('PINTEREST_AUTH_HOST', 'https://www.pinterest.com'),
+        'api_host' => env('PINTEREST_API_HOST', 'https://api.pinterest.com'),
+        'scopes' => ['boards:read', 'pins:read', 'pins:write', 'user_accounts:read'],
+        'title_max' => 100,
+        'description_max' => 800,
+        'alt_max' => 500,
+        'link_max' => 2048,
+        'upload_timeout' => (int) env('PINTEREST_UPLOAD_TIMEOUT', 60),
+    ],
+
     'threads' => [
         /* Apagar Threads sin tocar codigo: la red desaparece de Conexiones, el compositor, los filtros, el MCP y la reprogramacion. */
         'enabled' => (bool) env('THREADS_ENABLED', true),
@@ -140,7 +184,7 @@ return [
         'graph_host' => env('THREADS_GRAPH_HOST', 'https://graph.threads.com'),
         /* Version de la API en las rutas (`/v1.0/...`); el canje de tokens va sin version. */
         'api_version' => env('THREADS_API_VERSION', 'v1.0'),
-        'scopes' => ['threads_basic', 'threads_content_publish', 'threads_manage_insights'],
+        'scopes' => ['threads_basic', 'threads_content_publish', 'threads_manage_insights', 'threads_read_replies', 'threads_manage_replies'],
         /* El token de las llamadas a la API va como documenta Meta (cuerpo en los POST, query en los GET). `true` lo manda en `Authorization: Bearer`
            (no documentado para Threads: probarlo en el smoke, T-64, y activarlo si funciona para sacar el token de la URL). */
         'token_in_header' => (bool) env('THREADS_TOKEN_HEADER', false),
@@ -217,6 +261,9 @@ return [
             'bluesky' => 'UTC',
             // Los valores de la serie diaria de Threads acaban a las 08:00 UTC (medianoche del Pacifico) ⚠️ a confirmar en el smoke.
             'threads' => 'America/Los_Angeles',
+            // Sin lector de metricas todavia (T-18): la zona es la de referencia.
+            'linkedin' => 'UTC',
+            'pinterest' => 'UTC',
         ],
         /*
         | Dias anteriores al ultimo cerrado que se reintentan mientras su snapshot no este completo (faltan flujos
@@ -249,6 +296,8 @@ return [
             'bluesky' => 0,
             // La serie de cuenta de Threads admite rango (desde 2024-04-13); se pide por tramos.
             'threads' => (int) env('SOCIAL_BACKFILL_DAYS_THREADS', 30),
+            'linkedin' => 0,
+            'pinterest' => 0,
         ],
         /* Presupuesto (s) de una pasada de backfill; si no acaba, el job se reencola y continua. */
         'backfill_budget_seconds' => (int) env('SOCIAL_BACKFILL_BUDGET', 80),
@@ -299,6 +348,11 @@ return [
     */
     'competitors' => [
         'daily_at' => env('SOCIAL_COMPETITORS_DAILY_AT', '13:00'),
+        /* Actualizaciones manuales de publicaciones: 1 cada N minutos por competidor y un tope por hora y usuario (< 200/h de Graph). */
+        'refresh_cooldown_minutes' => 10,
+        'refresh_per_hour' => (int) env('SOCIAL_COMPETITORS_REFRESH_PER_HOUR', 60),
+        'posts_limit' => (int) env('SOCIAL_COMPETITORS_POSTS_LIMIT', 25),
+        'posts_at' => env('SOCIAL_COMPETITORS_POSTS_AT', '13:30'),
         'max_per_brand' => (int) env('SOCIAL_COMPETITORS_MAX', 10),
     ],
 
@@ -317,6 +371,8 @@ return [
     */
     /* SmartLinks: contacto al que enviar denuncias de una pagina publica (por defecto, el remitente del correo). */
     'smartlinks' => [
+        /* Tope de suscriptores por formulario de email (el formulario es publico: acota el abuso). */
+        'max_subscribers' => (int) env('SMARTLINKS_MAX_SUBSCRIBERS', 5000),
         'report_email' => env('SMARTLINKS_REPORT_EMAIL'),
     ],
 
@@ -332,6 +388,16 @@ return [
         'budget_seconds' => (float) env('SOCIAL_INBOX_BUDGET_SECONDS', 60),
         'sync_minutes' => (int) env('SOCIAL_INBOX_SYNC_MINUTES', 15),
         'reply_max_chars' => 2200,
+        /* YouTube: unidades de cupo al dia (dia del Pacifico) que puede gastar el inbox; el resto queda para subir. Videos y frecuencia acotados. */
+        'youtube_daily_units' => (int) env('SOCIAL_INBOX_YOUTUBE_UNITS', 2000),
+        'youtube_max_posts' => (int) env('SOCIAL_INBOX_YOUTUBE_MAX_POSTS', 10),
+        'youtube_sync_minutes' => (int) env('SOCIAL_INBOX_YOUTUBE_SYNC_MINUTES', 60),
+        /* Profundidad de respuestas que se lee de un hilo de Bluesky. */
+        'bluesky_depth' => (int) env('SOCIAL_INBOX_BLUESKY_DEPTH', 6),
+        /* Tope de acciones en lote (marcar leido / cerrar) por peticion. */
+        'batch_max' => 100,
+        'labels_max' => 10,
+        'saved_replies_max' => 30,
     ],
 
     /*

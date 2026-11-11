@@ -1,0 +1,9 @@
+test_original_cannot_be_overwritten (test_background.BackgroundRuntimeTest.test_original_cannot_be_overwritten) ... ok
+test_real_model_removes_background_and_preserves_subject_pixels (test_background.BackgroundRuntimeTest.test_real_model_removes_background_and_preserves_subject_pixels) ... ok
+test_unverified_model_is_rejected_before_output_is_created (test_background.BackgroundRuntimeTest.test_unverified_model_is_rejected_before_output_is_created) ... ok
+test_worker_main_applies_a_real_six_gib_os_memory_limit (test_memory.WorkerMemoryTest.test_worker_main_applies_a_real_six_gib_os_memory_limit) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 10.475s
+
+OK

@@ -1,0 +1,249 @@
+{
+  "failed": 0,
+  "svg": [
+    {
+      "svg": "server.svg",
+      "semantic_shapes": 9,
+      "xml_transforms_match_dom": true
+    },
+    {
+      "svg": "server.svg",
+      "semantic_shapes": 9,
+      "xml_transforms_match_dom": true
+    },
+    {
+      "svg": "server.svg",
+      "semantic_shapes": 9,
+      "xml_transforms_match_dom": true
+    }
+  ],
+  "png": [
+    {
+      "png_sha256": "20312eff12e4f3902970cba52209fd5635bf24794ff766f7be54dd473f4e3c6e",
+      "width": 1080,
+      "height": 1080,
+      "bar_center_samples": [
+        {
+          "id": "bar:r0:s0",
+          "x": 235,
+          "y": 253,
+          "rgb": [
+            208,
+            32,
+            48
+          ],
+          "axis_first": 246,
+          "axis_last": 260
+        },
+        {
+          "id": "bar:r0:s1",
+          "x": 235,
+          "y": 230,
+          "rgb": [
+            22,
+            128,
+            71
+          ],
+          "axis_first": 215,
+          "axis_last": 244
+        },
+        {
+          "id": "bar:r1:s0",
+          "x": 353,
+          "y": 276,
+          "rgb": [
+            208,
+            32,
+            48
+          ],
+          "axis_first": 261,
+          "axis_last": 290
+        },
+        {
+          "id": "bar:r1:s1",
+          "x": 353,
+          "y": 322,
+          "rgb": [
+            22,
+            128,
+            71
+          ],
+          "axis_first": 292,
+          "axis_last": 352
+        }
+      ],
+      "exact_palette_pixels": 12035,
+      "dense_subpixel_reference": null,
+      "subpixel_bars_not_individually_resolvable": true
+    },
+    {
+      "png_sha256": "20312eff12e4f3902970cba52209fd5635bf24794ff766f7be54dd473f4e3c6e",
+      "width": 1080,
+      "height": 1080,
+      "bar_center_samples": [
+        {
+          "id": "bar:r0:s0",
+          "x": 235,
+          "y": 253,
+          "rgb": [
+            208,
+            32,
+            48
+          ],
+          "axis_first": 246,
+          "axis_last": 260
+        },
+        {
+          "id": "bar:r0:s1",
+          "x": 235,
+          "y": 230,
+          "rgb": [
+            22,
+            128,
+            71
+          ],
+          "axis_first": 215,
+          "axis_last": 244
+        },
+        {
+          "id": "bar:r1:s0",
+          "x": 353,
+          "y": 276,
+          "rgb": [
+            208,
+            32,
+            48
+          ],
+          "axis_first": 261,
+          "axis_last": 290
+        },
+        {
+          "id": "bar:r1:s1",
+          "x": 353,
+          "y": 322,
+          "rgb": [
+            22,
+            128,
+            71
+          ],
+          "axis_first": 292,
+          "axis_last": 352
+        }
+      ],
+      "exact_palette_pixels": 12035,
+      "dense_subpixel_reference": null,
+      "subpixel_bars_not_individually_resolvable": true
+    },
+    {
+      "png_sha256": "20312eff12e4f3902970cba52209fd5635bf24794ff766f7be54dd473f4e3c6e",
+      "width": 1080,
+      "height": 1080,
+      "bar_center_samples": [
+        {
+          "id": "bar:r0:s0",
+          "x": 235,
+          "y": 253,
+          "rgb": [
+            208,
+            32,
+            48
+          ],
+          "axis_first": 246,
+          "axis_last": 260
+        },
+        {
+          "id": "bar:r0:s1",
+          "x": 235,
+          "y": 230,
+          "rgb": [
+            22,
+            128,
+            71
+          ],
+          "axis_first": 215,
+          "axis_last": 244
+        },
+        {
+          "id": "bar:r1:s0",
+          "x": 353,
+          "y": 276,
+          "rgb": [
+            208,
+            32,
+            48
+          ],
+          "axis_first": 261,
+          "axis_last": 290
+        },
+        {
+          "id": "bar:r1:s1",
+          "x": 353,
+          "y": 322,
+          "rgb": [
+            22,
+            128,
+            71
+          ],
+          "axis_first": 292,
+          "axis_last": 352
+        }
+      ],
+      "exact_palette_pixels": 12035,
+      "dense_subpixel_reference": null,
+      "subpixel_bars_not_individually_resolvable": true
+    }
+  ],
+  "glyphs": [
+    {
+      "file": "server-glyph-oracle.json",
+      "original_iou": 1.0,
+      "fallback_iou": 0.2825040128410915,
+      "box": {
+        "x": 52.4999885559082,
+        "y": 50.32449817657471,
+        "width": 102.984375,
+        "height": 23
+      },
+      "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+      "exported_woff2_sha256": "81e28a73f622757d72630699a8dbb643e35e2ad6950c4d0ee6f958c311cb7de9",
+      "svg_embedded_match": true,
+      "min_iou": 0.8,
+      "min_fallback_margin": 0.03,
+      "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+    },
+    {
+      "file": "server-glyph-oracle.json",
+      "original_iou": 1.0,
+      "fallback_iou": 0.2825040128410915,
+      "box": {
+        "x": 52.4999885559082,
+        "y": 50.32449817657471,
+        "width": 102.984375,
+        "height": 23
+      },
+      "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+      "exported_woff2_sha256": "f544cb4428bae3ae352787f54a392d20b15fe01500ac345452669e5c93c685ce",
+      "svg_embedded_match": true,
+      "min_iou": 0.8,
+      "min_fallback_margin": 0.03,
+      "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+    },
+    {
+      "file": "server-glyph-oracle.json",
+      "original_iou": 1.0,
+      "fallback_iou": 0.2825040128410915,
+      "box": {
+        "x": 52.4999885559082,
+        "y": 50.32449817657471,
+        "width": 102.984375,
+        "height": 23
+      },
+      "original_ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+      "exported_woff2_sha256": "35682e17834a217becc4c331f62daa12926aaa51d33ed771f28df30075b68050",
+      "svg_embedded_match": true,
+      "min_iou": 0.8,
+      "min_fallback_margin": 0.03,
+      "scope": "Original TTF Canvas2D after delivery; independent distinct family removed, Arial discriminated"
+    }
+  ]
+}

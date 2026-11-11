@@ -1,0 +1,182 @@
+[
+  {
+    "file": "baseline.png",
+    "sha256": "1c53a95d935e0c66ad9b3080f2a8293ac7fd3ed865f9410db554a0d2022dfb1d",
+    "width": 1440,
+    "height": 1000,
+    "samples": [
+      {
+        "x": 365,
+        "y": 67,
+        "rgb": [
+          255,
+          255,
+          255
+        ]
+      },
+      {
+        "x": 1070,
+        "y": 67,
+        "rgb": [
+          255,
+          255,
+          255
+        ]
+      },
+      {
+        "x": 365,
+        "y": 146,
+        "rgb": [
+          255,
+          255,
+          255
+        ]
+      },
+      {
+        "x": 1070,
+        "y": 146,
+        "rgb": [
+          255,
+          255,
+          255
+        ]
+      }
+    ],
+    "scope": "Actual screenshot center/arrow-area samples; no assertion that OS native popup is captured."
+  },
+  {
+    "file": "native-select.png",
+    "sha256": "224abab2da04d9823960538784866d62353898b85bba974f3dfb69a3670cd93b",
+    "width": 1440,
+    "height": 1000,
+    "samples": [
+      {
+        "x": 365,
+        "y": 68,
+        "rgb": [
+          255,
+          255,
+          255
+        ]
+      },
+      {
+        "x": 1070,
+        "y": 68,
+        "rgb": [
+          46,
+          53,
+          69
+        ]
+      },
+      {
+        "x": 365,
+        "y": 148,
+        "rgb": [
+          255,
+          255,
+          255
+        ]
+      },
+      {
+        "x": 1070,
+        "y": 148,
+        "rgb": [
+          46,
+          53,
+          69
+        ]
+      }
+    ],
+    "scope": "Actual screenshot center/arrow-area samples; no assertion that OS native popup is captured."
+  },
+  {
+    "file": "section-white.png",
+    "sha256": "1c53a95d935e0c66ad9b3080f2a8293ac7fd3ed865f9410db554a0d2022dfb1d",
+    "width": 1440,
+    "height": 1000,
+    "samples": [
+      {
+        "x": 365,
+        "y": 67,
+        "rgb": [
+          255,
+          255,
+          255
+        ]
+      },
+      {
+        "x": 1070,
+        "y": 67,
+        "rgb": [
+          255,
+          255,
+          255
+        ]
+      },
+      {
+        "x": 365,
+        "y": 146,
+        "rgb": [
+          255,
+          255,
+          255
+        ]
+      },
+      {
+        "x": 1070,
+        "y": 146,
+        "rgb": [
+          255,
+          255,
+          255
+        ]
+      }
+    ],
+    "scope": "Actual screenshot center/arrow-area samples; no assertion that OS native popup is captured."
+  },
+  {
+    "file": "both.png",
+    "sha256": "224abab2da04d9823960538784866d62353898b85bba974f3dfb69a3670cd93b",
+    "width": 1440,
+    "height": 1000,
+    "samples": [
+      {
+        "x": 365,
+        "y": 68,
+        "rgb": [
+          255,
+          255,
+          255
+        ]
+      },
+      {
+        "x": 1070,
+        "y": 68,
+        "rgb": [
+          46,
+          53,
+          69
+        ]
+      },
+      {
+        "x": 365,
+        "y": 148,
+        "rgb": [
+          255,
+          255,
+          255
+        ]
+      },
+      {
+        "x": 1070,
+        "y": 148,
+        "rgb": [
+          46,
+          53,
+          69
+        ]
+      }
+    ],
+    "scope": "Actual screenshot center/arrow-area samples; no assertion that OS native popup is captured."
+  }
+]

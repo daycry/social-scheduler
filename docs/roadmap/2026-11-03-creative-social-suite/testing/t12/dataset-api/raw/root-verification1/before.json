@@ -1,0 +1,16 @@
+{
+  "routes/studio.php": "522908cb45d1ad2bcb52ba54e61d28fbabbe185da27905a2bcb53322f9fb28da",
+  "routes/studio-api.php": "92bb223fa5164673663064445663c50c2a47dfb5b763dc75037926d1cbc97a6c",
+  "bootstrap/app.php": "d57d4ab0e0f0e18454866917c5db162703c00ca728d209ed5d45462bb79caca9",
+  "app/Mcp/Servers/SchedulerServer.php": "11f14fa2b30ac3f82a00937c8521b304535637cb92d7929b8d698537b337c6ca",
+  "app/Mcp/Tools/SchedulerTool.php": "a3e518ddd017db1c416508336f2c715d20423b6ff3b1aaa37dc12ff1fd6c167b",
+  "tests/Feature/Studio/StudioApiMcpTest.php": "04edaebd7026b630219a76efc81944415bc51ab4f4e06ab47b6aaef4cb213e62",
+  "app/Services/Studio/StudioDatasetActions.php": "0fa0ba8ff2c79e988d14bfdcf1ba59d8ab4385531c632af22588c12b476d0841",
+  "app/Services/Studio/StudioDatasetInput.php": "b6d866bb36ff16d41045edb9ddbee6486e371f4f1a7b712a2a085bd52de92e6e",
+  "app/Http/Controllers/Studio/StudioDatasetController.php": "954da8b6e8d5759637584825cfc6a34f3158898ac8c2ba3a9a82764a3761ee15",
+  "app/Http/Middleware/LimitStudioDatasetPayload.php": "fb3c8d99bd75fc398d35231806dc0de9d72d0a6e2c086de44efc660ad66e004a",
+  "app/Mcp/Tools/ManageStudioDataset.php": "e8a2f12dc90be05d30b1f84c6749f245a54f6145c96231e8445e93b274340f81",
+  "routes/studio-datasets.php": "6d3ce41cd0393e2f91842b58839d33afaf2072d68d0f324ddcc6ef15c45aee6c",
+  "routes/studio-datasets-api.php": "ab6eabdabc40def69203645e22a85d4921543ab4aaeb8b0308ee5c3d4197abe7",
+  "tests/Feature/Studio/StudioDatasetApiTest.php": "1a4d005a28f382d174928b37a94495a5289faa676b06879b9eb20abbb60c329c"
+}

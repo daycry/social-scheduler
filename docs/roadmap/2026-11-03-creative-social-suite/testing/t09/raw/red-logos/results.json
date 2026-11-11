@@ -1,0 +1,255 @@
+{
+  "config": {
+    "argv": [
+      "C:\\laragon\\bin\\nodejs\\node-v22\\node.exe",
+      "C:\\laragon\\www\\metricool\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "tests/e2e/studio-automation.spec.ts",
+      "--project=desktop",
+      "--grep=brand styles"
+    ],
+    "configFile": "C:\\laragon\\www\\metricool\\playwright.config.ts",
+    "rootDir": "C:/laragon/www/metricool/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": "C:\\laragon\\www\\metricool\\tests\\e2e\\global-setup.ts",
+    "globalTeardown": "C:\\laragon\\www\\metricool\\tests\\e2e\\global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/laragon/www/metricool/storage/framework/testing/t43/run-general-c95e3eea-8df2-4455-83ad-639fe37c9d00/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "desktop",
+        "name": "desktop",
+        "testDir": "C:/laragon/www/metricool/tests/e2e",
+        "testIgnore": [
+          "**/roadmap/**",
+          "**/isolated/**"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/laragon/www/metricool/storage/framework/testing/t43/run-general-c95e3eea-8df2-4455-83ad-639fe37c9d00/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile",
+        "name": "mobile",
+        "testDir": "C:/laragon/www/metricool/tests/e2e",
+        "testIgnore": [
+          "**/roadmap/**",
+          "**/isolated/**"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "C:/laragon/www/metricool/storage/framework/testing/t43/run-general-c95e3eea-8df2-4455-83ad-639fe37c9d00/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile-360",
+        "name": "mobile-360",
+        "testDir": "C:/laragon/www/metricool/tests/e2e",
+        "testIgnore": [
+          "**/roadmap/**",
+          "**/isolated/**"
+        ],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-c95e3eea-8df2-4455-83ad-639fe37c9d00\\artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "desktop",
+        "testDir": "C:\\laragon\\www\\metricool\\tests\\e2e",
+        "snapshotDir": "C:\\laragon\\www\\metricool\\tests\\e2e",
+        "testIgnore": [
+          "**/roadmap/**",
+          "**/isolated/**"
+        ],
+        "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
+        "timeout": 60000,
+        "use": {
+          "baseURL": "http://localhost:8080",
+          "launchOptions": {
+            "args": [
+              "--host-resolver-rules=MAP localhost 127.0.0.1"
+            ]
+          },
+          "locale": "es-ES",
+          "timezoneId": "Europe/Madrid",
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure",
+          "browserName": "chromium",
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          }
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "desktop"
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-c95e3eea-8df2-4455-83ad-639fe37c9d00\\results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": {
+      "cwd": "C:\\laragon\\www\\metricool",
+      "command": "node tests/e2e/isolated/serve.cjs",
+      "url": "http://localhost:8080/up",
+      "reuseExistingServer": false,
+      "timeout": 90000,
+      "stdout": "ignore",
+      "stderr": "ignore",
+      "env": {
+        "E2E_GENERAL_ENV": "eyJQQVRIIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxub2RlX21vZHVsZXNcXC5iaW47QzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxub2RlX21vZHVsZXNcXC5iaW47QzpcXGxhcmFnb25cXHd3d1xcbm9kZV9tb2R1bGVzXFwuYmluO0M6XFxsYXJhZ29uXFxub2RlX21vZHVsZXNcXC5iaW47QzpcXG5vZGVfbW9kdWxlc1xcLmJpbjtDOlxcbGFyYWdvblxcYmluXFxub2RlanNcXG5vZGUtdjIyXFxub2RlX21vZHVsZXNcXG5wbVxcbm9kZV9tb2R1bGVzXFxAbnBtY2xpXFxydW4tc2NyaXB0XFxsaWJcXG5vZGUtZ3lwLWJpbjtDOlxcVXNlcnNcXGRheWNyXFwuY29kZXhcXHRtcFxcYXJnMC13aW5kb3dzXFxjb2RleC1hcmcwcFQ3MzVoO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxccGFja2FnZXNcXGFwcC1zZXJ2ZXItZGFlbW9uXFxyZWxlYXNlc1xcMC4xNjYuMC14ODZfNjQtcGMtd2luZG93cy1tc3ZjXFxjb2RleC1wYXRoO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxcdG1wXFxhcmcwLXdpbmRvd3NcXGNvZGV4LWFyZzBuWEY3NmY7QzpcXFVzZXJzXFxkYXljclxcLmNvZGV4XFxwYWNrYWdlc1xcc3RhbmRhbG9uZVxccmVsZWFzZXNcXDAuMTY2LjAteDg2XzY0LXBjLXdpbmRvd3MtbXN2Y1xcY29kZXgtcGF0aDtDOlxcV2luZG93c1xcc3lzdGVtMzI7QzpcXFdpbmRvd3M7QzpcXFdpbmRvd3NcXFN5c3RlbTMyXFxXYmVtO0M6XFxXaW5kb3dzXFxTeXN0ZW0zMlxcV2luZG93c1Bvd2VyU2hlbGxcXHYxLjBcXDtDOlxcV2luZG93c1xcU3lzdGVtMzJcXE9wZW5TU0hcXDtDOlxcUHJvZ3JhbSBGaWxlc1xcTlZJRElBIENvcnBvcmF0aW9uXFxOVklESUEgQXBwXFxOdkRMSVNSO0M6XFxQcm9ncmFtIEZpbGVzICh4ODYpXFxOVklESUEgQ29ycG9yYXRpb25cXFBoeXNYXFxDb21tb247QzpcXFByb2dyYW0gRmlsZXNcXEdpdEh1YiBDTElcXDtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxccG5wbVxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXC5sb2NhbFxcYmluO0M6XFxsYXJhZ29uXFxiaW5cXGNvbXBvc2VyO0M6XFxsYXJhZ29uXFxiaW5cXGdpdFxcYmluO0M6XFxsYXJhZ29uXFxiaW5cXGdpdFxcY21kO0M6XFxsYXJhZ29uXFxiaW5cXGdpdFxcbWluZ3c2NFxcYmluO0M6XFxsYXJhZ29uXFxiaW5cXGdpdFxcdXNyXFxiaW47QzpcXGxhcmFnb25cXGJpblxcbXlzcWxcXG15c3FsLTguNC4zLXdpbng2NFxcYmluO0M6XFxsYXJhZ29uXFxiaW5cXG5ncm9rO0M6XFxsYXJhZ29uXFxiaW5cXG5vZGVqc1xcbm9kZS12MjI7QzpcXGxhcmFnb25cXGJpblxccGhwXFxwaHAtOC4zLjMzLVdpbjMyLXZzMTYteDY0O0M6XFxsYXJhZ29uXFxiaW5cXHB5dGhvblxccHl0aG9uLTMuMTM7QzpcXGxhcmFnb25cXGJpblxccHl0aG9uXFxweXRob24tMy4xM1xcU2NyaXB0cztDOlxcbGFyYWdvblxcdXNyXFxiaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFlhcm5cXGNvbmZpZ1xcZ2xvYmFsXFxub2RlX21vZHVsZXNcXC5iaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcUm9hbWluZ1xcQ29tcG9zZXJcXHZlbmRvclxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXFJvYW1pbmdcXG5wbTtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxcUHJvZ3JhbXNcXE9wZW5BSVxcQ29kZXhcXGJpbjtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxcTWljcm9zb2Z0XFxXaW5kb3dzQXBwcztDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxcUHJvZ3JhbXNcXE1pY3Jvc29mdCBWUyBDb2RlXFxiaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXEdpdEh1YkRlc2t0b3BcXGJpbjtDOlxcUHJvZ3JhbURhdGFcXGRheWNyXFxHaXRIdWJEZXNrdG9wXFxiaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXE1pY3Jvc29mdFxcV2luR2V0XFxQYWNrYWdlc1xcR3lhbi5GRm1wZWdfTWljcm9zb2Z0LldpbmdldC5Tb3VyY2VfOHdla3liM2Q4YmJ3ZVxcZmZtcGVnLTkuMC4yLWZ1bGxfYnVpbGRcXGJpbjs7QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFByb2dyYW1zXFxEb2NrZXJEZXNrdG9wXFxyZXNvdXJjZXNcXGJpbjtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxcUHJvZ3JhbXNcXE1pY3Jvc29mdCBWUyBDb2RlXFxiaW5cXGNvcGlsb3Qtc2hpbSIsIlBhdGgiOiJDOlxcbGFyYWdvblxcd3d3XFxtZXRyaWNvb2xcXG5vZGVfbW9kdWxlc1xcLmJpbjtDOlxcbGFyYWdvblxcd3d3XFxtZXRyaWNvb2xcXG5vZGVfbW9kdWxlc1xcLmJpbjtDOlxcbGFyYWdvblxcd3d3XFxub2RlX21vZHVsZXNcXC5iaW47QzpcXGxhcmFnb25cXG5vZGVfbW9kdWxlc1xcLmJpbjtDOlxcbm9kZV9tb2R1bGVzXFwuYmluO0M6XFxsYXJhZ29uXFxiaW5cXG5vZGVqc1xcbm9kZS12MjJcXG5vZGVfbW9kdWxlc1xcbnBtXFxub2RlX21vZHVsZXNcXEBucG1jbGlcXHJ1bi1zY3JpcHRcXGxpYlxcbm9kZS1neXAtYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXC5jb2RleFxcdG1wXFxhcmcwLXdpbmRvd3NcXGNvZGV4LWFyZzBwVDczNWg7QzpcXFVzZXJzXFxkYXljclxcLmNvZGV4XFxwYWNrYWdlc1xcYXBwLXNlcnZlci1kYWVtb25cXHJlbGVhc2VzXFwwLjE2Ni4wLXg4Nl82NC1wYy13aW5kb3dzLW1zdmNcXGNvZGV4LXBhdGg7QzpcXFVzZXJzXFxkYXljclxcLmNvZGV4XFx0bXBcXGFyZzAtd2luZG93c1xcY29kZXgtYXJnMG5YRjc2ZjtDOlxcVXNlcnNcXGRheWNyXFwuY29kZXhcXHBhY2thZ2VzXFxzdGFuZGFsb25lXFxyZWxlYXNlc1xcMC4xNjYuMC14ODZfNjQtcGMtd2luZG93cy1tc3ZjXFxjb2RleC1wYXRoO0M6XFxXaW5kb3dzXFxzeXN0ZW0zMjtDOlxcV2luZG93cztDOlxcV2luZG93c1xcU3lzdGVtMzJcXFdiZW07QzpcXFdpbmRvd3NcXFN5c3RlbTMyXFxXaW5kb3dzUG93ZXJTaGVsbFxcdjEuMFxcO0M6XFxXaW5kb3dzXFxTeXN0ZW0zMlxcT3BlblNTSFxcO0M6XFxQcm9ncmFtIEZpbGVzXFxOVklESUEgQ29ycG9yYXRpb25cXE5WSURJQSBBcHBcXE52RExJU1I7QzpcXFByb2dyYW0gRmlsZXMgKHg4NilcXE5WSURJQSBDb3Jwb3JhdGlvblxcUGh5c1hcXENvbW1vbjtDOlxcUHJvZ3JhbSBGaWxlc1xcR2l0SHViIENMSVxcO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxwbnBtXFxiaW47QzpcXFVzZXJzXFxkYXljclxcLmxvY2FsXFxiaW47QzpcXGxhcmFnb25cXGJpblxcY29tcG9zZXI7QzpcXGxhcmFnb25cXGJpblxcZ2l0XFxiaW47QzpcXGxhcmFnb25cXGJpblxcZ2l0XFxjbWQ7QzpcXGxhcmFnb25cXGJpblxcZ2l0XFxtaW5ndzY0XFxiaW47QzpcXGxhcmFnb25cXGJpblxcZ2l0XFx1c3JcXGJpbjtDOlxcbGFyYWdvblxcYmluXFxteXNxbFxcbXlzcWwtOC40LjMtd2lueDY0XFxiaW47QzpcXGxhcmFnb25cXGJpblxcbmdyb2s7QzpcXGxhcmFnb25cXGJpblxcbm9kZWpzXFxub2RlLXYyMjtDOlxcbGFyYWdvblxcYmluXFxwaHBcXHBocC04LjMuMzMtV2luMzItdnMxNi14NjQ7QzpcXGxhcmFnb25cXGJpblxccHl0aG9uXFxweXRob24tMy4xMztDOlxcbGFyYWdvblxcYmluXFxweXRob25cXHB5dGhvbi0zLjEzXFxTY3JpcHRzO0M6XFxsYXJhZ29uXFx1c3JcXGJpbjtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxcWWFyblxcY29uZmlnXFxnbG9iYWxcXG5vZGVfbW9kdWxlc1xcLmJpbjtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxSb2FtaW5nXFxDb21wb3NlclxcdmVuZG9yXFxiaW47QzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcUm9hbWluZ1xcbnBtO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxQcm9ncmFtc1xcT3BlbkFJXFxDb2RleFxcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxNaWNyb3NvZnRcXFdpbmRvd3NBcHBzO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxQcm9ncmFtc1xcTWljcm9zb2Z0IFZTIENvZGVcXGJpbjtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxcR2l0SHViRGVza3RvcFxcYmluO0M6XFxQcm9ncmFtRGF0YVxcZGF5Y3JcXEdpdEh1YkRlc2t0b3BcXGJpbjtDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxcTWljcm9zb2Z0XFxXaW5HZXRcXFBhY2thZ2VzXFxHeWFuLkZGbXBlZ19NaWNyb3NvZnQuV2luZ2V0LlNvdXJjZV84d2VreWIzZDhiYndlXFxmZm1wZWctOS4wLjItZnVsbF9idWlsZFxcYmluOztDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxcUHJvZ3JhbXNcXERvY2tlckRlc2t0b3BcXHJlc291cmNlc1xcYmluO0M6XFxVc2Vyc1xcZGF5Y3JcXEFwcERhdGFcXExvY2FsXFxQcm9ncmFtc1xcTWljcm9zb2Z0IFZTIENvZGVcXGJpblxcY29waWxvdC1zaGltIiwiU3lzdGVtUm9vdCI6IkM6XFxXaW5kb3dzIiwiU1lTVEVNUk9PVCI6IkM6XFxXaW5kb3dzIiwiV0lORElSIjoiQzpcXFdpbmRvd3MiLCJURU1QIjoiQzpcXFVzZXJzXFxkYXljclxcQXBwRGF0YVxcTG9jYWxcXFRlbXAiLCJUTVAiOiJDOlxcVXNlcnNcXGRheWNyXFxBcHBEYXRhXFxMb2NhbFxcVGVtcCIsIkNPTVNQRUMiOiJDOlxcV2luZG93c1xcc3lzdGVtMzJcXGNtZC5leGUiLCJQQVRIRVhUIjoiLkNPTTsuRVhFOy5CQVQ7LkNNRDsuVkJTOy5WQkU7LkpTRTsuV1NGOy5XU0g7Lk1TQzsuQ1BMICIsIkUyRV9HRU5FUkFMX1JVTl9ST09UIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxzdG9yYWdlXFxmcmFtZXdvcmtcXHRlc3RpbmdcXHQ0M1xccnVuLWdlbmVyYWwtYzk1ZTNlZWEtOGRmMi00NDU1LTgzYWQtNjM5ZmUzN2M5ZDAwIiwiVDQzX1JVTl9ST09UIjoiQzpcXGxhcmFnb25cXHd3d1xcbWV0cmljb29sXFxzdG9yYWdlXFxmcmFtZXdvcmtcXHRlc3RpbmdcXHQ0M1xccnVuLWdlbmVyYWwtYzk1ZTNlZWEtOGRmMi00NDU1LTgzYWQtNjM5ZmUzN2M5ZDAwIiwiQVBQX0VOViI6ImUyZSIsIkFQUF9ERUJVRyI6InRydWUiLCJBUFBfTE9DQUxFIjoiZXMiLCJBUFBfRkFMTEJBQ0tfTE9DQUxFIjoiZXMiLCJBUFBfVVJMIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwIiwiQVBQX0tFWSI6ImJhc2U2NDpUVTFOVFUxTlRVMU5UVTFOVFUxTlRVMU5UVTFOVFUxTlRVMU5UVTFOVFUwPSIsIkFQUF9DT05GSUdfQ0FDSEUiOiJDOlxcbGFyYWdvblxcd3d3XFxtZXRyaWNvb2xcXHN0b3JhZ2VcXGZyYW1ld29ya1xcdGVzdGluZ1xcdDQzXFxydW4tZ2VuZXJhbC1jOTVlM2VlYS04ZGYyLTQ0NTUtODNhZC02MzlmZTM3YzlkMDBcXGNvbmZpZy5waHAiLCJBUFBfU0VSVklDRVNfQ0FDSEUiOiJDOlxcbGFyYWdvblxcd3d3XFxtZXRyaWNvb2xcXHN0b3JhZ2VcXGZyYW1ld29ya1xcdGVzdGluZ1xcdDQzXFxydW4tZ2VuZXJhbC1jOTVlM2VlYS04ZGYyLTQ0NTUtODNhZC02MzlmZTM3YzlkMDBcXHNlcnZpY2VzLnBocCIsIkFQUF9QQUNLQUdFU19DQUNIRSI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLWM5NWUzZWVhLThkZjItNDQ1NS04M2FkLTYzOWZlMzdjOWQwMFxccGFja2FnZXMucGhwIiwiQVBQX0VWRU5UU19DQUNIRSI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLWM5NWUzZWVhLThkZjItNDQ1NS04M2FkLTYzOWZlMzdjOWQwMFxcZXZlbnRzLnBocCIsIkFQUF9ST1VURVNfQ0FDSEUiOiJDOlxcbGFyYWdvblxcd3d3XFxtZXRyaWNvb2xcXHN0b3JhZ2VcXGZyYW1ld29ya1xcdGVzdGluZ1xcdDQzXFxydW4tZ2VuZXJhbC1jOTVlM2VlYS04ZGYyLTQ0NTUtODNhZC02MzlmZTM3YzlkMDBcXHJvdXRlcy5waHAiLCJMQVJBVkVMX1NUT1JBR0VfUEFUSCI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLWM5NWUzZWVhLThkZjItNDQ1NS04M2FkLTYzOWZlMzdjOWQwMCIsIkRCX0NPTk5FQ1RJT04iOiJzcWxpdGUiLCJEQl9EQVRBQkFTRSI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLWM5NWUzZWVhLThkZjItNDQ1NS04M2FkLTYzOWZlMzdjOWQwMFxcZGIuc3FsaXRlIiwiREJfVVJMIjoiIiwiQ0FDSEVfU1RPUkUiOiJmaWxlIiwiQ0FDSEVfTElNSVRFUl9TVE9SRSI6ImZpbGUiLCJTRVNTSU9OX0RSSVZFUiI6ImRhdGFiYXNlIiwiU0VTU0lPTl9DT05ORUNUSU9OIjoic3FsaXRlIiwiUVVFVUVfQ09OTkVDVElPTiI6ImRhdGFiYXNlIiwiREJfUVVFVUVfQ09OTkVDVElPTiI6InNxbGl0ZSIsIlNFU1NJT05fU0VDVVJFX0NPT0tJRSI6ImZhbHNlIiwiTUFJTF9NQUlMRVIiOiJhcnJheSIsIk1FRElBX0RJU0siOiJsb2NhbCIsIlNPQ0lBTF9CQUNLRklMTF9PTl9DT05ORUNUIjoiZmFsc2UiLCJUUlVTVEVEX1BST1hJRVMiOiIiLCJHT09HTEVfQ0xJRU5UX0lEIjoiZTJlLWZha2UtZ29vZ2xlIiwiR09PR0xFX0NMSUVOVF9TRUNSRVQiOiJlMmUtZmFrZS1zZWNyZXQiLCJNRVRBX0FQUF9JRCI6ImUyZS1mYWtlLW1ldGEiLCJNRVRBX0FQUF9TRUNSRVQiOiJlMmUtZmFrZS1zZWNyZXQiLCJUSUtUT0tfQ0xJRU5UX0tFWSI6ImUyZS1mYWtlLXRpa3RvayIsIlRJS1RPS19DTElFTlRfU0VDUkVUIjoiZTJlLWZha2Utc2VjcmV0IiwiR09PR0xFX0xPR0lOX0NMSUVOVF9JRCI6ImUyZS1mYWtlLWdvb2dsZS1sb2dpbiIsIkdPT0dMRV9MT0dJTl9DTElFTlRfU0VDUkVUIjoiZTJlLWZha2Utc2VjcmV0IiwiTUVUQV9MT0dJTl9BUFBfSUQiOiJlMmUtZmFrZS1tZXRhLWxvZ2luIiwiTUVUQV9MT0dJTl9BUFBfU0VDUkVUIjoiZTJlLWZha2Utc2VjcmV0IiwiVEhSRUFEU19BUFBfSUQiOiJlMmUtZmFrZS10aHJlYWRzIiwiVEhSRUFEU19BUFBfU0VDUkVUIjoiZTJlLWZha2Utc2VjcmV0IiwiR0lQSFlfQVBJX0tFWSI6IiIsIkFJX0FTU0lTVEFOVF9FTkFCTEVEIjoidHJ1ZSIsIkFOVEhST1BJQ19BUElfS0VZIjoiZTJlLWZha2UtYW50aHJvcGljIiwiTUNQX09BVVRIX1JFR0lTVEVSX0dMT0JBTF9QRVJfSE9VUiI6IjEwMDAwMCIsIldFQkFVVEhOX1JQX0lEIjoibG9jYWxob3N0IiwiV0VCQVVUSE5fT1JJR0lOUyI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MCIsIlZJRVdfQ09NUElMRURfUEFUSCI6IkM6XFxsYXJhZ29uXFx3d3dcXG1ldHJpY29vbFxcc3RvcmFnZVxcZnJhbWV3b3JrXFx0ZXN0aW5nXFx0NDNcXHJ1bi1nZW5lcmFsLWM5NWUzZWVhLThkZjItNDQ1NS04M2FkLTYzOWZlMzdjOWQwMFxcdmlld3MiLCJQU1lTSF9DT05GSUciOiJDOlxcbGFyYWdvblxcd3d3XFxtZXRyaWNvb2xcXHN0b3JhZ2VcXGZyYW1ld29ya1xcdGVzdGluZ1xcdDQzXFxydW4tZ2VuZXJhbC1jOTVlM2VlYS04ZGYyLTQ0NTUtODNhZC02MzlmZTM3YzlkMDBcXHBzeXNoLnBocCJ9"
+      }
+    }
+  },
+  "suites": [
+    {
+      "title": "studio-automation.spec.ts",
+      "file": "studio-automation.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Studio automation: brand styles, proportional resize and independent variants persist and export",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 13194,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('dialog', { name: 'Identidad de marca', exact: true }).getByRole('group', { name: 'Logotipos de marca', exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('dialog', { name: 'Identidad de marca', exact: true }).getByRole('group', { name: 'Logotipos de marca', exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('dialog', { name: 'Identidad de marca', exact: true }).getByRole('group', { name: 'Logotipos de marca', exact: true })\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('dialog', { name: 'Identidad de marca', exact: true }).getByRole('group', { name: 'Logotipos de marca', exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('dialog', { name: 'Identidad de marca', exact: true }).getByRole('group', { name: 'Logotipos de marca', exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('dialog', { name: 'Identidad de marca', exact: true }).getByRole('group', { name: 'Logotipos de marca', exact: true })\u001b[22m\n\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\studio-automation.spec.ts:105:91",
+                    "location": {
+                      "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio-automation.spec.ts",
+                      "column": 91,
+                      "line": 105
+                    },
+                    "snippet": "  103 |         await page.getByRole('button', { name: 'Identidad de marca' }).click();\n  104 |         const kit = page.getByRole('dialog', { name: 'Identidad de marca', exact: true });\n> 105 |         await expect(kit.getByRole('group', { name: 'Logotipos de marca', exact: true })).toBeVisible();\n      |                                                                                           ^\n  106 |         await kit.getByLabel('Paleta de colores').fill('#224466, #cc5500, #fff8ed');\n  107 |         await kit.getByLabel('Tipografías').fill('Georgia');\n  108 |         await kit.getByRole('button', { name: 'Guardar identidad', exact: true }).click();"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio-automation.spec.ts",
+                        "column": 91,
+                        "line": 105
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('dialog', { name: 'Identidad de marca', exact: true }).getByRole('group', { name: 'Logotipos de marca', exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('dialog', { name: 'Identidad de marca', exact: true }).getByRole('group', { name: 'Logotipos de marca', exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('dialog', { name: 'Identidad de marca', exact: true }).getByRole('group', { name: 'Logotipos de marca', exact: true })\u001b[22m\n\n\n  103 |         await page.getByRole('button', { name: 'Identidad de marca' }).click();\n  104 |         const kit = page.getByRole('dialog', { name: 'Identidad de marca', exact: true });\n> 105 |         await expect(kit.getByRole('group', { name: 'Logotipos de marca', exact: true })).toBeVisible();\n      |                                                                                           ^\n  106 |         await kit.getByLabel('Paleta de colores').fill('#224466, #cc5500, #fff8ed');\n  107 |         await kit.getByLabel('Tipografías').fill('Georgia');\n  108 |         await kit.getByRole('button', { name: 'Guardar identidad', exact: true }).click();\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\studio-automation.spec.ts:105:91"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-04T19:29:09.699Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-c95e3eea-8df2-4455-83ad-639fe37c9d00\\artifacts\\studio-automation-Studio-a-b48de-variants-persist-and-export-desktop\\test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-c95e3eea-8df2-4455-83ad-639fe37c9d00\\artifacts\\studio-automation-Studio-a-b48de-variants-persist-and-export-desktop\\error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-c95e3eea-8df2-4455-83ad-639fe37c9d00\\artifacts\\studio-automation-Studio-a-b48de-variants-persist-and-export-desktop\\trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio-automation.spec.ts",
+                    "column": 91,
+                    "line": 105
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "23b494b44da20c6ec080-d1863ad3a18e29a2b788",
+          "file": "studio-automation.spec.ts",
+          "line": 96,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-04T19:29:02.776Z",
+    "duration": 21639.033,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

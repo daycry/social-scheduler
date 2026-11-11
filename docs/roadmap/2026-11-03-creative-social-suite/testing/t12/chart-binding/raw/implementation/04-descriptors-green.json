@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-06T11:59:15.681977",
+  "command": [
+    "node",
+    "--max-old-space-size=512",
+    "--experimental-test-isolation=none",
+    "--test",
+    "--test-name-pattern=^binding rejects accessor fields",
+    "tests/frontend/studio-chart-binding.test.mjs"
+  ],
+  "exit_code": 0,
+  "sha256_before": {
+    "resources/js/Studio/chart-binding.js": "aaa8bcac92d1088baf4068d11e4d696c4ed35aa4c83adab79f149e13914139b3",
+    "tests/frontend/studio-chart-binding.test.mjs": "ea96207a6b531cb061f0202b8e719a70c0e552d461f3d8850e77eef765727c95",
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190"
+  },
+  "sha256_after": {
+    "resources/js/Studio/chart-binding.js": "aaa8bcac92d1088baf4068d11e4d696c4ed35aa4c83adab79f149e13914139b3",
+    "tests/frontend/studio-chart-binding.test.mjs": "ea96207a6b531cb061f0202b8e719a70c0e552d461f3d8850e77eef765727c95",
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190"
+  }
+}

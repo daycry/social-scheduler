@@ -1,0 +1,149 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>T12 C3charts QA</title><style>/* to-pdf — tema moderno para PDF (impresión A4). */
+
+:root {
+  --ink: #1f2328;
+  --ink-soft: #57606a;
+  --accent: #0969da;
+  --line: #d0d7de;
+  --line-soft: #e6e9ee;
+  --code-bg: #f6f8fa;
+  --thead-bg: #f6f8fa;
+  --stripe: #fafbfc;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", "Liberation Sans", sans-serif;
+  font-size: 11pt;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+.doc { max-width: 100%; }
+
+/* Titulares */
+h1, h2, h3, h4, h5, h6 {
+  color: #0b0c0e;
+  font-weight: 650;
+  line-height: 1.25;
+  margin: 1.4em 0 0.5em;
+  break-after: avoid;
+}
+h1 { font-size: 22pt; margin-top: 0; padding-bottom: .25em; border-bottom: 2px solid var(--line); letter-spacing: -0.01em; }
+h2 { font-size: 16pt; padding-bottom: .2em; border-bottom: 1px solid var(--line-soft); }
+h3 { font-size: 13pt; }
+h4 { font-size: 11.5pt; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; }
+
+p { margin: 0 0 .8em; }
+
+a { color: var(--accent); text-decoration: none; }
+
+strong { font-weight: 650; }
+
+/* Listas */
+ul, ol { margin: 0 0 .8em; padding-left: 1.4em; }
+li { margin: .2em 0; }
+li > p { margin: 0; }
+
+/* Cita */
+blockquote {
+  margin: 0 0 1em;
+  padding: .2em 0 .2em 1em;
+  border-left: 3px solid var(--line);
+  color: var(--ink-soft);
+}
+
+/* Código */
+code, kbd, pre, samp {
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace;
+  font-size: .88em;
+}
+code {
+  background: var(--code-bg);
+  padding: .12em .38em;
+  border-radius: 5px;
+  border: 1px solid var(--line-soft);
+}
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: .85em 1em;
+  overflow: auto;
+  line-height: 1.5;
+  break-inside: avoid;
+}
+pre code { background: none; border: 0; padding: 0; }
+
+/* Tablas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1em;
+  font-size: .95em;
+  break-inside: avoid;
+}
+th, td { border: 1px solid var(--line); padding: .5em .7em; text-align: left; vertical-align: top; }
+thead th { background: var(--thead-bg); font-weight: 650; }
+tbody tr:nth-child(even) { background: var(--stripe); }
+
+/* Multimedia y separadores */
+img { max-width: 100%; height: auto; }
+hr { border: 0; border-top: 1px solid var(--line-soft); margin: 1.6em 0; }
+
+/* Paginación */
+table, pre, blockquote, figure { break-inside: avoid; }
+h1, h2, h3 { page-break-after: avoid; }
+pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:8pt}table{font-size:8pt;table-layout:fixed;width:100%;break-inside:auto}td,th{overflow-wrap:anywhere}tr{break-inside:avoid}img{max-height:235mm;object-fit:contain}h2,h3{break-after:avoid}</style><body><main class="doc"><h1>T12: exportación en servidor, validación focal</h1>
+<p><strong>FOCAL-PASS: 3/3 casos reales, nueve descargas SVG/PNG/PDF.</strong> Se ejecutó E2E28.02 íntegro a375,768 y1440px. Cero fallos, skips, flaky, interrupciones o reintentos. No se cierra T12 ni se acepta una matriz global. Inspección de las cuatro figuras y las páginas de este PDF registrada por separado con sus SHA.</p>
+<h2>Resultado y alcance</h2>
+<table>
+<thead>
+<tr>
+<th>Proyecto</th>
+<th>Ancho real</th>
+<th>Resultado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>desktop</td>
+<td>1440 px</td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>mobile</td>
+<td>375 px</td>
+<td>PASS</td>
+</tr>
+<tr>
+<td>mobile-360</td>
+<td>768 px</td>
+<td>PASS</td>
+</tr>
+</tbody>
+</table>
+<p>El nombre histórico mobile-360 corresponde realmente a768px; viewport.json conserva las dimensiones observadas. Se verificaron revisión archivada fijada, página seleccionada y otra excluida, fuente privada, materialización del renderer real y permisos entre actores/marcas. Son los resultados de este único grupo; no se suman a JSON de intentos anteriores.</p>
+<p>Los observadores independientes pasaron3SVG/XML,3PNG,3comparaciones de glifos,3PDF y3procedencias raster. Cada SVG contiene la fuente WOFF2 realmente servida. IoU del glifo original=1,0 frente a Arial=0,2825. Cada PDF tiene una página de810×810pt y un raster1080×1080, cuyos RGB coinciden exactamente con el PNG entregado. No se declara texto vectorial o extraíble. Los tres PNG descargados tienen los mismos55608bytes y SHA; una figura representa esos bytes idénticos. Los PDF conservan sus propios SHA.</p>
+<p>El helper espera tanto el evento nativo como saveAs/failure=null. Las nueve descargas completas se publican con tamaño/SHA; el evento inicial por sí solo no acredita una descarga. No se fabricaron eventos response ni resultados. JSON original y blob oficial quedan privados e inmutables; sus SHA están en original-results-provenance.json.</p>
+<h2>Aislamiento y recursos</h2>
+<p>Runtime ficticio SQLite/almacenamiento/cachés propios, rutas comprobadas antes de seed, sólo loopback, sin .env ni proveedores reales. Un worker, cero reintentos y fail-fast1. Job COMMIT agregado3GiB, killOnClose, sin breakaway; PHP256MiB/Node512MiB. Preflight físico6GiB, piso3GiB cada100ms y plazo900s incluyendo cierre.</p>
+<p>Core92,049s, pico COMMIT934830080B, mínimo físico7373107200B. Cierre0,051s/14544896B; plazo global174,923s. Sin fallo de recursos. Supervisor24172 y procesos propios muertos,8080IPv4/IPv6libres. PDF del informe en Job separado tras ese cierre. 370fuentes verificadas antes/después y tras PDF; la publicación administrativa se hace después del sellado.</p>
+<h2>Límites y continuación</h2>
+<p>Los escenarios E2E28.03 de errores/accesibilidad y E2E28.04 de densidad todavía necesitan su propia ejecución. No se aceptan otras variantes, AV, datos52MB, Linux/VPS/R2 ni el resto del roadmap. La legibilidad adicional del títuloY se mantiene como seguimiento conocido, independiente de esta comprobación de exportación. Los seis intentos completos anteriores conservan sus fallos e informes originales.</p>
+<h2>Figuras observadas</h2>
+<h3>images/1440-server-static.png</h3>
+<p><img src="images/1440-server-static.png" alt="images/1440-server-static.png" /></p>
+<h3>images/375-server-static.png</h3>
+<p><img src="images/375-server-static.png" alt="images/375-server-static.png" /></p>
+<h3>images/768-server-static.png</h3>
+<p><img src="images/768-server-static.png" alt="images/768-server-static.png" /></p>
+<h3>images/exported-server.png</h3>
+<p><img src="images/exported-server.png" alt="images/exported-server.png" /></p>
+</main></body></html>

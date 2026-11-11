@@ -1,0 +1,92 @@
+[
+  {
+    "format": "svg",
+    "url": "/studio/downloads/1/1",
+    "filename": "design-1-r3.svg",
+    "bytes": 87396,
+    "sha256": "d52d5112044e16cfae4b1845a0be86859d52c2edb3266766645fe33bd1ce6f10",
+    "headers": {
+      "content-type": "image/svg+xml",
+      "content-disposition": "attachment; filename=design-1-r3.svg",
+      "cache-control": "no-store, private",
+      "x-content-type-options": "nosniff"
+    },
+    "native_response": {
+      "kind": "download",
+      "method": "GET",
+      "path": "/studio/downloads/1/1",
+      "status": 200,
+      "upstream_status": 200,
+      "headers": {
+        "content-type": "image/svg+xml",
+        "content-disposition": "attachment; filename=design-1-r3.svg",
+        "cache-control": "no-store, private",
+        "x-content-type-options": "nosniff"
+      },
+      "bytes": 87396,
+      "sha256": "d52d5112044e16cfae4b1845a0be86859d52c2edb3266766645fe33bd1ce6f10",
+      "upstream_ended": true,
+      "response_finished": true
+    }
+  },
+  {
+    "format": "png",
+    "url": "/studio/downloads/2/1",
+    "filename": "design-1-r3.png",
+    "bytes": 55608,
+    "sha256": "20312eff12e4f3902970cba52209fd5635bf24794ff766f7be54dd473f4e3c6e",
+    "headers": {
+      "content-type": "image/png",
+      "content-disposition": "attachment; filename=design-1-r3.png",
+      "cache-control": "no-store, private",
+      "x-content-type-options": "nosniff"
+    },
+    "native_response": {
+      "kind": "download",
+      "method": "GET",
+      "path": "/studio/downloads/2/1",
+      "status": 200,
+      "upstream_status": 200,
+      "headers": {
+        "content-type": "image/png",
+        "content-disposition": "attachment; filename=design-1-r3.png",
+        "cache-control": "no-store, private",
+        "x-content-type-options": "nosniff"
+      },
+      "bytes": 55608,
+      "sha256": "20312eff12e4f3902970cba52209fd5635bf24794ff766f7be54dd473f4e3c6e",
+      "upstream_ended": true,
+      "response_finished": true
+    }
+  },
+  {
+    "format": "pdf",
+    "url": "/studio/downloads/3/1",
+    "filename": "design-1-r3.pdf",
+    "bytes": 27523,
+    "sha256": "eee166c40e4c96a72896c289502f111fed58cf7f403a8c14fa319a7a7b8247fd",
+    "headers": {
+      "content-type": "application/pdf",
+      "content-disposition": "attachment; filename=design-1-r3.pdf",
+      "cache-control": "no-store, private",
+      "x-content-type-options": "nosniff"
+    },
+    "native_response": {
+      "kind": "download",
+      "method": "GET",
+      "path": "/studio/downloads/3/1",
+      "status": 200,
+      "upstream_status": 200,
+      "headers": {
+        "content-type": "application/pdf",
+        "content-disposition": "attachment; filename=design-1-r3.pdf",
+        "cache-control": "no-store, private",
+        "x-content-type-options": "nosniff"
+      },
+      "bytes": 27523,
+      "sha256": "eee166c40e4c96a72896c289502f111fed58cf7f403a8c14fa319a7a7b8247fd",
+      "upstream_ended": true,
+      "response_finished": true
+    }
+  }
+]

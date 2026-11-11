@@ -1,0 +1,51 @@
+{
+  "brand_id": 55,
+  "brand_name": "Marble party race",
+  "network": {
+    "value": "instagram",
+    "label": "Instagram"
+  },
+  "period": {
+    "from": "2026-10-28",
+    "to": "2026-11-02",
+    "days": 6
+  },
+  "metric": {
+    "key": "views",
+    "label": "Visualizaciones",
+    "kind": "flow",
+    "total": null,
+    "previous": null,
+    "delta_pct": null,
+    "available": false,
+    "comparison_quality": {
+      "status": "not_requested",
+      "comparable": false,
+      "sample_basis": "same_accounts_and_observation_counts",
+      "previous_coverage": null,
+      "previous_freshness": null
+    },
+    "coverage": {
+      "unit": "account_days",
+      "status": "no_data",
+      "accounts": 1,
+      "accounts_with_data": 0,
+      "unsupported_accounts": 0,
+      "expected_account_days": 6,
+      "snapshot_account_days": 0,
+      "observed_account_days": 0,
+      "missing_account_days": 6
+    },
+    "freshness": {
+      "basis": "snapshot_attempts",
+      "latest_attempt_at": null,
+      "latest_data_date": null,
+      "oldest_latest_data_date": null,
+      "latest_expected_date": "2026-11-02",
+      "lagging_accounts": 1,
+      "is_stale": true,
+      "data_updated_at": null
+    }
+  },
+  "note": "Lectura MCP real tras el cambio. Sin snapshots en este rango; no equivale a cero actividad y no escribe datos del proveedor."
+}

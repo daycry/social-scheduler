@@ -1,0 +1,16 @@
+{
+  "scope": "attempt2 delta vs exact attempt1 sources",
+  "method": "Canonical review-lens-select.py functions on added lines from difflib, no modified heuristics; no user config/exclusions",
+  "lente_c": false,
+  "motivos": [],
+  "lente_d": false,
+  "motivos_d": [],
+  "files": [
+    "resources/js/Studio/dataset-table.js",
+    "tests/frontend/studio-dataset-table.test.mjs"
+  ],
+  "added_lines": {
+    "resources/js/Studio/dataset-table.js": 45,
+    "tests/frontend/studio-dataset-table.test.mjs": 40
+  }
+}

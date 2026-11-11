@@ -1,0 +1,24 @@
+{
+  "baseline": "storage\\framework\\testing\\t11-frames-baseline",
+  "files": {
+    "resources/js/Studio/exports.js": "4ea678605a4670c20bbedd9a4054caba95a88ec1afffbe274e975b25204c84cd",
+    "resources/js/Studio/canvas.js": "13cfff37af16a8f572c6cd1963f64aad2b87ee398065819398d41fc82ab3921f",
+    "resources/js/Pages/Studio/Editor.vue": "f40a7f8c4fb74b4d148a0e069cd15b043ff83be97c509936571dc9493582cf44",
+    "resources/js/Components/Studio/ExportDialog.vue": "395f4e52678d88003fda5af7cea02972121b8838364d5db378ead499740eb49e",
+    "app/Services/Studio/StudioRenderer.php": "376c52c06ae783a01bb37d2525c221887fed5f1315e4808d03d12d6b498b6170",
+    "app/Services/Studio/StudioExports.php": "25a06723c438c6d0fe7368795bb93010c6d0edbc040c3debd4883a0ceb8c96d5",
+    "app/Mcp/Tools/ExportDesign.php": "43a318604c947f5798a22054927f0715808f04c5e9e0343f7c5156f7ba1398e9",
+    "docs/api/creative-suite.openapi.yaml": "f7a33c3043909853559f291fbcfda3d5ca1cc84d969d7bfc0801fa6e3bf5cb1d",
+    "tests/frontend/studio-geometry.test.mjs": "383831d957199e2de736cade8d67f09e5e18e6bbbe58282517276b8ec7c44ced",
+    "tests/frontend/studio-renderer.browser.test.mjs": "b33293d24b9f525c1605134c5218878b1af5de58b117d5e5d7e3ad84e2dab415",
+    "app/Http/Controllers/Studio/StudioController.php": "905460c7e33c54a4b41acd8857fb394d32361f90ed9aba74ff550b425506805b",
+    "app/Http/Controllers/Studio/StudioApiController.php": "d8adad7650bea141e472cdfb33192cd160d56ffbe98b0e4e9925161d2c5c171c",
+    "resources/js/Studio/frames.js": "e1d35ddbbed58dc4f5c15381f13453de442b08dce3ffd84295052701c9b43cc7",
+    "resources/js/Studio/frame-renderer.js": "d9229ae1eb37c421bd5620f471ca6442a0429e0be151f208c7ce0d340e4593c9",
+    "app/Services/Studio/StudioFrames.php": "29a435c9f89a5fc44ffe044aabd54c435b445858f8897b4edbf8c75c6f97e1f2",
+    "tests/Feature/Studio/StudioFrameTimesTest.php": "31f88b03851bd7e39150afe51e9a62342c79338fb4851fb76d07c26c7c237f5f",
+    "tests/frontend/studio-frame-export.browser.test.mjs": "7dc771a5dfa2b332534563f36383c2f5156a7dd19e5591763bbed91f2ffb5bbb",
+    "tests/e2e/studio-frame-export.spec.ts": "5a7d4b097716f623b4e88fe916530b30461782f98e6b520a01101e2895666bd2"
+  },
+  "parent_complete": false
+}

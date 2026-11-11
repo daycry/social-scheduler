@@ -49,6 +49,8 @@ class ConnectionController extends Controller
                 'last_error' => $a->last_error,
                 'direct_post' => $a->network === Network::TikTok && ($a->meta['direct_post'] ?? false) === true,
                 'token_expires_at' => $a->token_expires_at?->toIso8601String(),
+                // Aviso «reconecta antes de»: cuentas que no se pueden renovar (sin refresh_token) cuyo token caduca en pocos dias. No bloquea nada.
+                'reconnect_before' => $this->reconnectBefore($a),
                 'data_access_expires_at' => $a->data_access_expires_at?->toIso8601String(),
                 'connected_at' => $a->connected_at?->toIso8601String(),
             ])->values(),
@@ -75,6 +77,17 @@ class ConnectionController extends Controller
                 'error' => $request->session()->get('error'),
             ],
         ]);
+    }
+
+    private function reconnectBefore(SocialAccount $a): ?string
+    {
+        if ($a->network !== Network::LinkedIn || $a->status !== 'activa' || $a->token_expires_at === null || (string) $a->refresh_token !== '') {
+            return null;
+        }
+
+        return $a->token_expires_at->isFuture() && $a->token_expires_at->lte(now()->addDays((int) config('social.linkedin.reconnect_notice_days', 7)))
+            ? $a->token_expires_at->toIso8601String()
+            : null;
     }
 
     /** @return list<array{name: string, label: string, type: string, help?: string}> */

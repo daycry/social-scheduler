@@ -1,0 +1,194 @@
+{
+  "scope": "Static exact SFC markup + actual build11 CSS, no app/DB; geometry diagnostic only, not native E2E acceptance",
+  "results": [
+    {
+      "width": 375,
+      "before": {
+        "canvas": {
+          "x": 20,
+          "y": 322.296875,
+          "width": 335,
+          "height": 188.4375,
+          "bottom": 510.734375
+        },
+        "grid": {
+          "x": 20,
+          "y": 322.296875,
+          "width": 335,
+          "height": 70.390625,
+          "bottom": 392.6875
+        },
+        "footer": {
+          "x": 20,
+          "y": 408.6875,
+          "width": 335,
+          "height": 123,
+          "bottom": 531.6875
+        },
+        "hit": {
+          "tag": "FOOTER",
+          "aria": null,
+          "text": "InicioAnteriorSiguienteFinal\n                    Diapositiva · Bucle\n                    Flechas / R"
+        },
+        "canvasReceivesCenter": false,
+        "shrink": "1"
+      },
+      "after": {
+        "canvas": {
+          "x": 20,
+          "y": 311.296875,
+          "width": 335,
+          "height": 188.4375,
+          "bottom": 499.734375
+        },
+        "grid": {
+          "x": 20,
+          "y": 311.296875,
+          "width": 335,
+          "height": 468.875,
+          "bottom": 780.171875
+        },
+        "footer": {
+          "x": 20,
+          "y": 796.171875,
+          "width": 335,
+          "height": 123,
+          "bottom": 919.171875
+        },
+        "hit": {
+          "tag": "CANVAS",
+          "aria": "Diapositiva de audiencia",
+          "text": ""
+        },
+        "canvasReceivesCenter": true,
+        "shrink": "0"
+      }
+    },
+    {
+      "width": 768,
+      "before": {
+        "canvas": {
+          "x": 28,
+          "y": 300,
+          "width": 712,
+          "height": 400.5,
+          "bottom": 700.5
+        },
+        "grid": {
+          "x": 28,
+          "y": 300,
+          "width": 712,
+          "height": 505,
+          "bottom": 805
+        },
+        "footer": {
+          "x": 28,
+          "y": 821,
+          "width": 712,
+          "height": 79,
+          "bottom": 900
+        },
+        "hit": {
+          "tag": "CANVAS",
+          "aria": "Diapositiva de audiencia",
+          "text": ""
+        },
+        "canvasReceivesCenter": true,
+        "shrink": "1"
+      },
+      "after": {
+        "canvas": {
+          "x": 28,
+          "y": 300,
+          "width": 712,
+          "height": 400.5,
+          "bottom": 700.5
+        },
+        "grid": {
+          "x": 28,
+          "y": 300,
+          "width": 712,
+          "height": 893,
+          "bottom": 1193
+        },
+        "footer": {
+          "x": 28,
+          "y": 1209,
+          "width": 712,
+          "height": 79,
+          "bottom": 1288
+        },
+        "hit": {
+          "tag": "CANVAS",
+          "aria": "Diapositiva de audiencia",
+          "text": ""
+        },
+        "canvasReceivesCenter": true,
+        "shrink": "0"
+      }
+    },
+    {
+      "width": 1440,
+      "before": {
+        "canvas": {
+          "x": 100,
+          "y": 350,
+          "width": 816,
+          "height": 459,
+          "bottom": 809
+        },
+        "grid": {
+          "x": 100,
+          "y": 350,
+          "width": 1240,
+          "height": 459,
+          "bottom": 809
+        },
+        "footer": {
+          "x": 100,
+          "y": 825,
+          "width": 1240,
+          "height": 79,
+          "bottom": 904
+        },
+        "hit": {
+          "tag": "CANVAS",
+          "aria": "Diapositiva de audiencia",
+          "text": ""
+        },
+        "canvasReceivesCenter": true,
+        "shrink": "1"
+      },
+      "after": {
+        "canvas": {
+          "x": 100,
+          "y": 350,
+          "width": 816,
+          "height": 459,
+          "bottom": 809
+        },
+        "grid": {
+          "x": 100,
+          "y": 350,
+          "width": 1240,
+          "height": 459,
+          "bottom": 809
+        },
+        "footer": {
+          "x": 100,
+          "y": 825,
+          "width": 1240,
+          "height": 79,
+          "bottom": 904
+        },
+        "hit": {
+          "tag": "CANVAS",
+          "aria": "Diapositiva de audiencia",
+          "text": ""
+        },
+        "canvasReceivesCenter": true,
+        "shrink": "0"
+      }
+    }
+  ]
+}

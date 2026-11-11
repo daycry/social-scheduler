@@ -1,0 +1,11 @@
+{
+  "phase": "baseline",
+  "alive_owned_pids": [],
+  "ports": {
+    "ipv4_8080_free": true,
+    "ipv6_8080_free": true
+  },
+  "sources": 122,
+  "source_comparison": "before/after equal within phase; renderer only intentional difference between phases",
+  "scope": "Baseline pass means expected RED reproduced; fixed pass means three real files generated, not full application acceptance"
+}

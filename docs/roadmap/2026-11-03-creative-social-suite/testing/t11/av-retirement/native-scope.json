@@ -1,0 +1,30 @@
+{
+  "cases": [
+    {
+      "name": "AV actual database worker processes native deliveries through assembly and stops before pending media registration with data set \"('mp4')\"",
+      "assertions": 26,
+      "seconds": 2.374646
+    },
+    {
+      "name": "AV actual database worker processes native deliveries through assembly and stops before pending media registration with data set \"('gif')\"",
+      "assertions": 26,
+      "seconds": 2.15771
+    },
+    {
+      "name": "AV database worker snapshots and mixes a private real tone for MP4 while GIF does not copy unused music with data set \"('mp4')\"",
+      "assertions": 16,
+      "seconds": 3.712134
+    },
+    {
+      "name": "AV database worker snapshots and mixes a private real tone for MP4 while GIF does not copy unused music with data set \"('gif')\"",
+      "assertions": 10,
+      "seconds": 2.179116
+    },
+    {
+      "name": "AV native Laravel bridge renders and assembles an actual MP4 under the inherited OS group limit",
+      "assertions": 21,
+      "seconds": 2.366519
+    }
+  ],
+  "scope": "Prior native coverage retained: four queue cases through assemble, one MP4 bridge plus manual local transfer/acceptance. Retirement uses disposable local files/SDK simulator, not live R2."
+}

@@ -1,0 +1,12 @@
+{
+  "exit": 0,
+  "terminal": true,
+  "source_hashes_match": true,
+  "sources": 37,
+  "mode": "php",
+  "tests": 333,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "assertions": 1741
+}

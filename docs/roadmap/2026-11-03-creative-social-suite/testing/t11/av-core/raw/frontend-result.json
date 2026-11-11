@@ -1,0 +1,15 @@
+{
+  "phase": "frontend",
+  "exit": 0,
+  "terminal": true,
+  "sources_and_bundles_match": true,
+  "files": 25,
+  "summary": [
+    "# tests 122",
+    "# pass 122",
+    "# fail 0",
+    "# cancelled 0",
+    "# skipped 0",
+    "# duration_ms 23954.3428"
+  ]
+}

@@ -8,10 +8,14 @@ return [
         'video' => ['video/mp4', 'video/quicktime'],
     ],
 
+    // Audio is admitted only through the brand-scoped Studio upload service.
+    'allowed_audio_mimes' => ['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/aac', 'audio/ogg'],
+
     /* Tamano maximo de subida (bytes). Los limites por red/tipo viven en config/media_specs.php. */
     'max_bytes' => [
         'image' => (int) env('MEDIA_MAX_IMAGE_BYTES', 30 * 1024 * 1024),
         'video' => (int) env('MEDIA_MAX_VIDEO_BYTES', 4 * 1024 * 1024 * 1024),
+        'audio' => (int) env('MEDIA_MAX_AUDIO_BYTES', 100 * 1024 * 1024),
     ],
 
     /* A partir de este tamano se sube por multipart (partes de `part_size`; S3/R2 exige >= 5 MiB). */
@@ -36,6 +40,9 @@ return [
     /* Binario de ffprobe (requisito de despliegue para leer duracion/fps/codec de los videos). */
     'ffprobe' => env('FFPROBE_BINARY', 'ffprobe'),
     'ffprobe_timeout' => (int) env('FFPROBE_TIMEOUT', 60),
+    'audio_probe_timeout' => (int) env('AUDIO_PROBE_TIMEOUT', 15),
+    'audio_download_timeout' => (int) env('AUDIO_DOWNLOAD_TIMEOUT', 25),
+    'audio_max_duration' => (float) env('AUDIO_MAX_DURATION', 3600),
 
     /* Binario de ffmpeg (recomendado): reduce las fotos grandes para Bluesky con poca memoria. Sin el se usa GD, que carga la imagen entera. */
     'ffmpeg' => env('FFMPEG_BINARY', 'ffmpeg'),

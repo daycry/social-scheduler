@@ -1,0 +1,30 @@
+{
+  "modules": {
+    "resources/js/Studio/dataset-table.js": {
+      "sha256": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+      "imports_omitted": [],
+      "scope": "All top-level declarations copied by AST; function bodies unchanged. Only exports/imports removed."
+    },
+    "resources/js/Studio/chart-resources.js": {
+      "sha256": "2cf35da3a99b5383d28531dc5868cc9b0877edfdf27658635743a294780c3526",
+      "imports_omitted": [
+        "import { parseDatasetTable } from './dataset-table.js';",
+        "import { normalizeChartBinding } from './chart-binding.js';",
+        "import { prepareBarChart } from './bar-geometry.js';"
+      ],
+      "scope": "All top-level declarations copied by AST; function bodies unchanged. Only exports/imports removed."
+    }
+  },
+  "dataset": {
+    "source": "storage/framework/testing/t43/run-general-9581e3a0-cc9c-4b99-b9a2-df8bdfa9c2ab/media/studio-datasets/1/1/a63b7b19-3da8-4b8f-8045-9791c2bfea3d.json",
+    "bytes": 289,
+    "sha256": "5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054"
+  },
+  "script_sha256": "947f08636d4aacb3bc3ae808a7000a4513f0de3e050f8a88f4da62de47922f20",
+  "actual_paths": {
+    "wrong": "/brands/1/studio/datasets/2/table",
+    "right_pathname": "/brands/1/studio/datasets/2/export",
+    "right_request_target": "/brands/1/studio/datasets/2/export?format=json&revision=1"
+  },
+  "scope": "Actual resolve/parse only; imported normalizeChartBinding/prepareBarChart are unused because prepare not invoked. No replacements/polyfills. Actual frontend and hook required unchanged by native script. No browser executed during preparation."
+}

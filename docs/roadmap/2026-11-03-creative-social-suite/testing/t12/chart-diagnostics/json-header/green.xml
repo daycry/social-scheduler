@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="Tests\Feature\Studio\StudioDatasetContentLengthTest" file="C:\laragon\www\metricool\tests\Feature\Studio\StudioDatasetContentLengthTest.php" tests="3" assertions="25" errors="0" failures="0" skipped="0" time="0.320167">
+    <testcase name="test_json_content_length_matches_delivered_pinned_canonical_bytes" file="C:\laragon\www\metricool\tests\Feature\Studio\StudioDatasetContentLengthTest.php" line="70" class="Tests\Feature\Studio\StudioDatasetContentLengthTest" classname="Tests.Feature.Studio.StudioDatasetContentLengthTest" assertions="10" time="0.256210"/>
+    <testcase name="test_delimited_exports_keep_their_body_without_json_length" file="C:\laragon\www\metricool\tests\Feature\Studio\StudioDatasetContentLengthTest.php" line="91" class="Tests\Feature\Studio\StudioDatasetContentLengthTest" classname="Tests.Feature.Studio.StudioDatasetContentLengthTest" assertions="6" time="0.028372"/>
+    <testcase name="test_export_authorization_revision_and_corruption_errors_are_preserved" file="C:\laragon\www\metricool\tests\Feature\Studio\StudioDatasetContentLengthTest.php" line="101" class="Tests\Feature\Studio\StudioDatasetContentLengthTest" classname="Tests.Feature.Studio.StudioDatasetContentLengthTest" assertions="9" time="0.035585"/>
+  </testsuite>
+</testsuites>

@@ -1,0 +1,28 @@
+{
+  "helper_pid": 31664,
+  "started": "2026-11-05T19:35:50.167006+00:00",
+  "command": [
+    "node",
+    "node_modules/@playwright/test/cli.js",
+    "test",
+    "studio.spec.ts",
+    "studio-automation.spec.ts",
+    "studio-timeline.spec.ts",
+    "studio-audio-editor.spec.ts",
+    "studio-audio-resources.spec.ts",
+    "studio-frame-export.spec.ts",
+    "studio-native-export.spec.ts",
+    "studio-av-composite.spec.ts",
+    "metrics-quality.spec.ts",
+    "brand-reporting.spec.ts",
+    "all-brands.spec.ts"
+  ],
+  "runroot": "C:\\laragon\\www\\metricool\\storage\\framework\\testing\\t43\\run-general-2d90a00c-beeb-4866-833d-5c94848817ec",
+  "base_url": "http://localhost:8080",
+  "port_free_before": true,
+  "playwright_pid": 25744,
+  "exit_code": 1,
+  "finished": "2026-11-05T19:46:08.975870+00:00",
+  "changed_sources": [],
+  "source_count": 806
+}

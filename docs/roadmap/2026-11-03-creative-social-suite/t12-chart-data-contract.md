@@ -1,0 +1,44 @@
+# T-12: datos editables de tablas y gráficos
+
+2026-11-05. Contrato previo del núcleo de datos, sin endpoints nuevos ni aceptación de T-12. El alcance completo conserva presentaciones, documentos refluibles, pizarras, tablas/gráficos y exportaciones Office reales. Implementar este núcleo no cierra ninguno de esos flujos.
+
+## Referencia y alcance preservado
+
+La documentación oficial describe más de treinta opciones de gráficos y personalización por tipo, incluidos barras/columnas, líneas/áreas, circular/anillo, dispersión/burbujas, jerárquicos, estadísticos y animados. Se debe inventariar y verificar su cobertura; no reducir el requisito a seis tipos porque sean fáciles de dibujar. [Canva Charts](https://www.canva.com/en_gb/help/charts/).
+
+La entrada documentada admite CSV/TSV/XLSX, fuentes conectadas y hasta1000 filas por100 columnas. La conexión con datos editables puede sincronizar cambios. Estos requisitos siguen abiertos para la integración completa; no se acredita XLSX ni conexiones por implementar CSV. [Importación de datos](https://www.canva.com/en_gb/help/import-to-charts/).
+
+## Núcleo propio: contrato interno inicial
+
+`StudioChartData` será un servicio puro de normalización y codec de tabla. No conoce usuario, red, DB, recursos ni filesystem; los futuros handlers aplicarán propiedad de marca, revisión optimista y abilities comunes antes de utilizarlo. No descarga URLs ni ejecuta expresiones de celdas.
+
+Tabla canónica: `{columns:[{id,label}],rows:[{id,values}]}`. Uno a100 columnas, cero a1000 filas de datos. IDs ASCII alfanuméricos/guion/guion bajo de1–64, únicos por su colección. Etiquetas Unicode de0–500 puntos de código; celdas `string|number|null`, con números finitos, strings de hasta10000 puntos Unicode y sin controles salvo LF/TAB. Cada fila tiene exactamente un valor por columna. Campos desconocidos y tipos ambiguos se rechazan. El JSON UTF-8 canónico completo no supera2MiB. No hay truncamiento ni normalización destructiva de espacios o fórmulas.
+
+API interna inicial: `normalize(array $table): array`, `import(string $text, string $format='csv', bool $header=true): array`, `export(array $table, string $format='csv', bool $header=true): string`. Formatos cerrados `csv|tsv`; las entradas tienen límite2MiB y UTF-8 válido. Importar crea IDs deterministas `column_1` y `row_1` sin exigir etiquetas únicas. Encabezados repetidos o vacíos se conservan; las identidades son independientes. Si no hay encabezado, etiquetas vacías. Importar entrada vacía falla con error concreto. Una tabla válida sin filas puede exportar encabezado y reimportar sin inventar datos.
+
+El parser maneja BOM UTF-8, CRLF/LF, delimitadores entre comillas, comillas duplicadas y saltos de línea dentro de una celda. Los saltos CRLF dentro de comillas se canonicalizan explícitamente a LF; un CSV Windows multilínea válido no se rechaza por contenerlos. CR suelto no emparejado se rechaza con error concreto. `normalize` recibe ya el texto canónico y sigue rechazando CR. Rechaza comillas sin cerrar, caracteres después de cerrar comillas antes del delimitador, filas de ancho irregular y límites excedidos; informa fila/columna cuando corresponde. Conserva el resto del texto y todos los espacios significativos; no evalúa HTML ni fórmulas. Importar no convierte números automáticamente: el texto original de las celdas se conserva, incluidos ceros iniciales. La conversión numérica para una serie será una operación explícita posterior con validación, sin sobrescribir la tabla original.
+
+En errores de importación, fila significa registro CSV/TSV desde1, incluyendo el encabezado cuando exista; una celda multilínea pertenece a un solo registro. Columna significa campo desde1. Un error de contenido y un error de sintaxis en el mismo registro no deben señalar filas distintas. En `normalize` directo, los índices corresponden a la tabla de datos recibida, sin un encabezado de archivo implícito.
+
+Exportar valida primero y produce UTF-8 con CRLF, escape correcto y sin rutas privadas. **El formato es intercambio de texto sin evaluación ni protección automática para hojas externas.** Debe ofrecerse una exportación segura para abrir en una hoja de cálculo antes de exponer descargas a usuarios: las fórmulas de texto pueden interpretarse al abrir CSV. El roundtrip fiel de datos y la exportación segura serán opciones explícitas distintas; nunca se afirma que mantener una fórmula como texto impida que una aplicación externa la ejecute. Esta puerta queda pendiente antes de cualquier endpoint de descarga.
+
+La tabla JSON conserva IDs y tipos; CSV/TSV conserva el intercambio textual y no tiene un esquema de tipos o identidades. En exportación, `null` produce campo vacío y un número finito se representa sin depender del locale. Reimportar genera IDs deterministas y celdas de texto: no distingue un null previo de un string vacío ni restaura IDs personalizados o tipos numéricos. Las pruebas de roundtrip comparan tablas textuales canónicas; los casos number/null prueban por separado la representación lexical. No se anuncia roundtrip de tipos o identidad mediante CSV.
+
+Una tabla sin filas puede intercambiarse conservando encabezado; sin encabezado ni datos el CSV queda vacío y no contiene información para reconstruir las columnas. El documento JSON sigue conservando la tabla. Un U+FEFF literal al principio de la primera etiqueta o celda se conserva al exportar/importar: no se confunde con el BOM de codificación del archivo. El exportador puede entrecomillar ese campo aunque no contenga delimitador.
+
+## Puertas de integración pendientes
+
+Edición accesible de tabla, importación XLSX con límites de ZIP/hojas, conversión y limpieza explícitas con preview/undo, selección de campos, series/tipos/estilos y kits de marca; gráficos editables en el documento y exportación real en imagen/SVG/PDF/PPTX. Fuentes conectadas requieren configuración, permisos y pruebas reales. Antes de handlers o nuevos campos del documento se fijarán sus contratos públicos y OpenAPI, sin mezclar tablas con JSON arbitrario.
+
+El núcleo requiere RED/GREEN por criterio y caracterizaciones de roundtrip Unicode, límites y datos hostiles. Después: revisión adversarial fresca y pruebas del editor/exportación; los tests del parser por sí solos no prueban un gráfico usable. No se introducen dependencias ni procesos nativos en este subbloque.
+
+
+## Ampliación previa a integración: codec streaming — 2026-11-06
+
+El constructor admite únicamente perfiles internos cerrados: `inline` por defecto conserva **2.097.152 bytes** de entrada y JSON canónico; `dataset` permite **25.000.000 bytes** de entrada y **52.000.000 bytes** de JSON canónico. Perfiles desconocidos fallan. No se admiten presupuestos numéricos arbitrarios. El futuro servicio de datasets seleccionará el perfil fijo tras autorización; clientes HTTP/MCP no podrán elegir presupuestos. El documento Canvas sigue limitado a2MiB: los datasets grandes requerirán referencia privada versionada, sin incrustar su tabla en el documento. El codec por sí solo no implementa ese recurso.
+
+Se añaden `importChunks(iterable $chunks, string $format='csv', bool $header=true): array` y `exportChunks(array $table, string $format='csv', bool $header=true): iterable`. Los wrappers `import`/`export` mantienen su firma y comportamiento textual. Sólo chunks string; se permiten vacíos y se carga el tamaño completo de cada chunk antes de procesarlo. Ningún método abre archivos, recursos de red ni URLs. BOM/UTF-8/comillas/CRLF pueden cruzar límites de chunk; la validación Unicode ocurre con los campos completos. CRLF entrecomillado pasa a LF y CR suelto falla. Se mantienen todos los límites tipados, diagnóstico por registro incluyendo encabezado, IDs y fidelidad lexical anteriores.
+
+El tamaño JSON se contabiliza incrementalmente con los mismos flags de codificación anteriores (Unicode y barras sin escapar, preserve-zero-fraction, excepción ante error). Estructura, IDs, etiquetas y valores se computan sin materializar un JSON completo; se rechaza antes de recorrer una cola virtual que exceda el presupuesto. Las pruebas contrastarán los límites exactos y +1 con un cálculo independiente por registros, no con el contador del servicio. No se trunca ni infiere números o fórmulas.
+
+La aceptación de este subbloque exige roundtrip SHA de CSV real de25.000.000B (1000×100), rechazo de entrada+1, forma y celdas extremas, límites JSON52.000.000/+1 y conservación de los57 tests inline. Se ejecuta con `php -d memory_limit=256M`; el pico del asignador PHP no se llamará RSS del SO ni validación de memoria HTTP/editor. Exportar texto con fórmulas sigue requiriendo opción segura antes de ofrecer descargas públicas. T-12 permanece abierta hasta recursos por marca, editor/gráficos, XLSX/conexiones, documentos/presentaciones/pizarras y exportaciones Office.

@@ -1,0 +1,53 @@
+{
+  "source_sha256": "6234394341d54bfc71ddee91685eaedb4246b95d3072754f3f30ebd995bbcb02",
+  "size": [
+    512,
+    512
+  ],
+  "alpha_points": [
+    {
+      "x": 15,
+      "y": 15,
+      "alpha": 0
+    },
+    {
+      "x": 420,
+      "y": 200,
+      "alpha": 0
+    },
+    {
+      "x": 80,
+      "y": 100,
+      "alpha": 0
+    },
+    {
+      "x": 450,
+      "y": 50,
+      "alpha": 0
+    },
+    {
+      "x": 350,
+      "y": 160,
+      "alpha": 0
+    },
+    {
+      "x": 220,
+      "y": 130,
+      "alpha": 255
+    },
+    {
+      "x": 200,
+      "y": 350,
+      "alpha": 255
+    },
+    {
+      "x": 50,
+      "y": 500,
+      "alpha": 255
+    }
+  ],
+  "transparent_pixels_alpha0": 149423,
+  "opaque_pixels_alpha255": 107110,
+  "distinct_alpha": 256,
+  "scope": "Read-only derived alpha/checkerboard analysis of model diagnostic output, not another inference"
+}

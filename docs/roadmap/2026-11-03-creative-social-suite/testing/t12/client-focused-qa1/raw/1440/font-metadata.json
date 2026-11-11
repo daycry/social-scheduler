@@ -1,0 +1,16 @@
+{
+  "id": 1,
+  "brand_id": 1,
+  "name": "QA C3 Space Grotesk",
+  "family": "Space Grotesk",
+  "style": "normal",
+  "weight": 300,
+  "format": "woff2",
+  "mime": "font/woff2",
+  "size": 49272,
+  "sha256": "85e184adef31c8e80e73742a3d451859f0429970feab478faec22ded908fe518",
+  "status": "ready",
+  "archived_at": null,
+  "css_family": "StudioFont_1_85e184adef31c8e8",
+  "file_url": "/brands/1/studio/fonts/1/file"
+}

@@ -1,0 +1,184 @@
+TAP version 13
+# Subtest: partial coverage exposes missing account days even when the reported total is zero
+ok 1 - partial coverage exposes missing account days even when the reported total is zero
+  ---
+  duration_ms: 402.4835
+  type: 'test'
+  ...
+# Subtest: missing, unsupported and still open periods have distinct meanings
+ok 2 - missing, unsupported and still open periods have distinct meanings
+  ---
+  duration_ms: 0.1548
+  type: 'test'
+  ...
+# Subtest: complete zero observations are not described as absent or as a guaranteed refresh
+ok 3 - complete zero observations are not described as absent or as a guaranteed refresh
+  ---
+  duration_ms: 0.1374
+  type: 'test'
+  ...
+# Subtest: line and path defaults are visible strokes while explicit styles remain unchanged
+ok 4 - line and path defaults are visible strokes while explicit styles remain unchanged
+  ---
+  duration_ms: 1.4307
+  type: 'test'
+  ...
+# Subtest: blank document uses requested dimensions and independent page identities
+ok 5 - blank document uses requested dimensions and independent page identities
+  ---
+  duration_ms: 0.6445
+  type: 'test'
+  ...
+# Subtest: clone and duplicate page replace every nested id without sharing mutable state
+ok 6 - clone and duplicate page replace every nested id without sharing mutable state
+  ---
+  duration_ms: 0.2509
+  type: 'test'
+  ...
+# Subtest: page selection preserves explicit order and rejects absent or repeated ids
+ok 7 - page selection preserves explicit order and rejects absent or repeated ids
+  ---
+  duration_ms: 0.4315
+  type: 'test'
+  ...
+# Subtest: validator rejects nonfinite geometry, duplicate ids, external image URLs and excessive nesting
+ok 8 - validator rejects nonfinite geometry, duplicate ids, external image URLs and excessive nesting
+  ---
+  duration_ms: 0.5637
+  type: 'test'
+  ...
+# Subtest: validation preserves gradients, filters, affine transforms and vector paths
+ok 9 - validation preserves gradients, filters, affine transforms and vector paths
+  ---
+  duration_ms: 0.5914
+  type: 'test'
+  ...
+# Subtest: server-valid shadow offsets and ten thousand vector commands can reopen in the editor
+ok 10 - server-valid shadow offsets and ten thousand vector commands can reopen in the editor
+  ---
+  duration_ms: 7.6283
+  type: 'test'
+  ...
+# Subtest: a minimally trimmed short video shares the server end validation
+ok 11 - a minimally trimmed short video shares the server end validation
+  ---
+  duration_ms: 0.1714
+  type: 'test'
+  ...
+# Subtest: text limits count Unicode code points like the server rather than UTF-16 code units
+ok 12 - text limits count Unicode code points like the server rather than UTF-16 code units
+  ---
+  duration_ms: 0.5132
+  type: 'test'
+  ...
+# Subtest: bitmap exports reject oversized sides before rendering or uploading
+ok 13 - bitmap exports reject oversized sides before rendering or uploading
+  ---
+  duration_ms: 0.347
+  type: 'test'
+  ...
+# Subtest: actual Fabric transform survives own document roundtrip
+ok 14 - actual Fabric transform survives own document roundtrip
+  ---
+  duration_ms: 1.8181
+  type: 'test'
+  ...
+# Subtest: multiple selection serializes absolute transforms without altering the selection
+ok 15 - multiple selection serializes absolute transforms without altering the selection
+  ---
+  duration_ms: 1.4243
+  type: 'test'
+  ...
+# Subtest: nested group preserves local children geometry on save and reopen
+ok 16 - nested group preserves local children geometry on save and reopen
+  ---
+  duration_ms: 0.9568
+  type: 'test'
+  ...
+# Subtest: a gradient angle stays stable on nonsquare shapes through repeated saves
+ok 17 - a gradient angle stays stable on nonsquare shapes through repeated saves
+  ---
+  duration_ms: 0.4655
+  type: 'test'
+  ...
+# Subtest: history restores full states, does not share snapshots and clears redo after branching
+ok 18 - history restores full states, does not share snapshots and clears redo after branching
+  ---
+  duration_ms: 0.2059
+  type: 'test'
+  ...
+# Subtest: history bounds retained states and reset starts a new clean timeline
+ok 19 - history bounds retained states and reset starts a new clean timeline
+  ---
+  duration_ms: 0.1331
+  type: 'test'
+  ...
+# Subtest: video seek resolves a decoded frame, clamps duration and supports cancellation
+ok 20 - video seek resolves a decoded frame, clamps duration and supports cancellation
+  ---
+  duration_ms: 0.3847
+  type: 'test'
+  ...
+# Subtest: video seek reports a stalled decoder and releases its listeners
+ok 21 - video seek reports a stalled decoder and releases its listeners
+  ---
+  duration_ms: 9.2363
+  type: 'test'
+  ...
+# Subtest: font loading fails explicitly if the font service never settles
+ok 22 - font loading fails explicitly if the font service never settles
+  ---
+  duration_ms: 24.7354
+  type: 'test'
+  ...
+# Subtest: video playback honors trimmed endpoints and the actual media duration
+ok 23 - video playback honors trimmed endpoints and the actual media duration
+  ---
+  duration_ms: 0.206
+  type: 'test'
+  ...
+# Subtest: isolated server browser creates real PNG pages, SVG text and ordered multipage PDF
+ok 24 - isolated server browser creates real PNG pages, SVG text and ordered multipage PDF
+  ---
+  duration_ms: 1565.0387
+  type: 'test'
+  ...
+# Subtest: server render can load a registered private image without a cookie or external network
+ok 25 - server render can load a registered private image without a cookie or external network
+  ---
+  duration_ms: 476.0641
+  type: 'test'
+  ...
+# Subtest: fractional PNG JPEG and WebP exports round dimensions and preserve exact object scale
+ok 26 - fractional PNG JPEG and WebP exports round dimensions and preserve exact object scale
+  ---
+  duration_ms: 40.1069
+  type: 'test'
+  ...
+# Subtest: default line and path exports have actual pixels different from the empty page
+ok 27 - default line and path exports have actual pixels different from the empty page
+  ---
+  duration_ms: 49.5789
+  type: 'test'
+  ...
+# Subtest: at least twelve original templates create valid nonempty independent documents
+ok 28 - at least twelve original templates create valid nonempty independent documents
+  ---
+  duration_ms: 3.6288
+  type: 'test'
+  ...
+# Subtest: templates use supplied brand colors/fonts without mutating the kit
+ok 29 - templates use supplied brand colors/fonts without mutating the kit
+  ---
+  duration_ms: 0.4562
+  type: 'test'
+  ...
+1..29
+# tests 29
+# suites 0
+# pass 29
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3126.6757

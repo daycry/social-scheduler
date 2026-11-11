@@ -1,0 +1,104 @@
+{
+  "pages": 14,
+  "page_info": [
+    {
+      "page": 1,
+      "chars": 1680,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 2,
+      "chars": 1073,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 3,
+      "chars": 2850,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 4,
+      "chars": 2376,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 5,
+      "chars": 2308,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 6,
+      "chars": 1570,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 7,
+      "chars": 1412,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 8,
+      "chars": 1235,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 9,
+      "chars": 1309,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 10,
+      "chars": 476,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 11,
+      "chars": 19,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 12,
+      "chars": 22,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 13,
+      "chars": 21,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    },
+    {
+      "page": 14,
+      "chars": 1178,
+      "width": 595.9199829101562,
+      "height": 842.8800048828125
+    }
+  ],
+  "rendered_from_pdf": true,
+  "visually_inspected": true,
+  "contact_sheet": "raw/pdf-contact.png",
+  "detail_pages_inspected": [
+    1,
+    2,
+    5,
+    12
+  ],
+  "screenshots_inspected": [
+    "desktop",
+    "mobile",
+    "mobile-360"
+  ],
+  "findings": "All14 rendered PDF pages inspected via contact sheet; selected full pages legible without text/table clipping. Caption panel figures are explicitly labelled derived crops; original screenshots retained. QA2-V01 Important shown on page2. One sparse transition page retained; no further native/PDF rerender after slot release."
+}

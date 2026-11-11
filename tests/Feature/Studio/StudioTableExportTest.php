@@ -1,0 +1,120 @@
+<?php
+
+use App\Services\Studio\StudioChartData;
+use App\Services\Studio\StudioTableExport;
+
+function downloadTable(array $values = ['plain']): array
+{
+    return ['columns' => array_map(fn ($i) => ['id' => 'c_'.$i, 'label' => 'label_'.$i], range(1, count($values))),
+        'rows' => [['id' => 'row_custom', 'values' => $values]]];
+}
+
+function downloadBytes(iterable $chunks): string
+{
+    return implode('', iterator_to_array((function () use ($chunks) {
+        yield from $chunks;
+    })(), false));
+}
+
+test('download defaults to spreadsheet prefix for every string', function () {
+    $table = downloadTable(['plain', "'already", ' =SUM(A1)', "\t+2\n雪", "\u{FEFF}=2", '', 0, 0.0, -2.5, null]);
+    expect(downloadBytes((new StudioTableExport)->chunks($table)))->toBe(
+        "'label_1,'label_2,'label_3,'label_4,'label_5,'label_6,'label_7,'label_8,'label_9,'label_10\r\n".
+        "'plain,''already,' =SUM(A1),\"'\t+2\n雪\",'\u{FEFF}=2,',0,0.0,-2.5,\r\n"
+    );
+});
+
+test('download rejects unknown format immediately before iteration', function () {
+    expect(fn () => (new StudioTableExport)->chunks(downloadTable(), 'xlsx'))->toThrow(InvalidArgumentException::class);
+});
+
+test('download rejects incompatible mode and header immediately', function () {
+    foreach ([['csv', 'other', true], ['tsv', '', true], ['json', 'text', true], ['json', 'spreadsheet', true], ['json', null, false]] as [$format, $mode, $header]) {
+        expect(fn () => (new StudioTableExport)->chunks(downloadTable(), $format, $mode, $header))->toThrow(InvalidArgumentException::class);
+    }
+});
+
+test('download rejects malformed table types and nonfinite values immediately', function () {
+    foreach ([true, [], new stdClass, INF, NAN, "bad\rtext", "\xFF"] as $value) {
+        expect(fn () => (new StudioTableExport)->chunks(downloadTable([$value])))->toThrow(InvalidArgumentException::class);
+    }
+    expect(fn () => (new StudioTableExport)->chunks(['columns' => [], 'rows' => []]))->toThrow(InvalidArgumentException::class);
+});
+
+test('download text matches approved codec byte exactly for csv and tsv', function () {
+    $table = downloadTable(["\u{FEFF}literal", '=SUM(A1)', '001', "a,\"b\t雪\nnext", null, 0.0]);
+    $table['columns'][0]['label'] = "\u{FEFF}label";
+    foreach (['csv', 'tsv'] as $format) {
+        foreach ([true, false] as $header) {
+            expect(downloadBytes((new StudioTableExport)->chunks($table, $format, 'text', $header)))
+                ->toBe((new StudioChartData('dataset'))->export($table, $format, $header));
+        }
+    }
+});
+
+test('download json streams canonical records and preserves typed identity', function () {
+    $table = downloadTable(['001', '=2', "雪/\t\n", 0.0, 42, null]);
+    $table['rows'][] = ['id' => 'other_row', 'values' => ['x', '', 'a/b', -0.0, -1, null]];
+    $chunks = iterator_to_array((new StudioTableExport)->chunks($table, 'json'), false);
+    $expected = json_encode($table, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+    expect(implode('', $chunks))->toBe($expected)->and(count($chunks))->toBeGreaterThan(count($table['columns']) + count($table['rows']))
+        ->and(max(array_map('strlen', $chunks)))->toBeLessThan(strlen($expected))
+        ->and(json_decode(implode('', $chunks), true, flags: JSON_THROW_ON_ERROR))->toBe($table);
+});
+
+test('download characterization preserves input and supports explicit safe tsv without header', function () {
+    $table = downloadTable(['001', "=2\t\"雪\"\nend", "'", null, 2]);
+    $before = serialize($table);
+    expect(downloadBytes((new StudioTableExport)->chunks($table, 'tsv', 'spreadsheet', false)))
+        ->toBe("'001\t\"'=2\t\"\"雪\"\"\nend\"\t''\t\t2\r\n");
+    foreach ([['csv', null], ['csv', 'text'], ['json', null]] as [$format, $mode]) {
+        downloadBytes((new StudioTableExport)->chunks($table, $format, $mode));
+        expect(serialize($table))->toBe($before);
+    }
+});
+
+test('download characterization validates original exact dataset budget before adding prefixes', function () {
+    $flags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR;
+    $table = downloadTable(array_fill(0, 100, str_repeat('x', 500)));
+    $table['rows'] = [];
+    for ($i = 0; $i < 1000; $i++) {
+        $table['rows'][] = ['id' => 'r_'.$i, 'values' => array_fill(0, 100, str_repeat('x', 500))];
+    }
+    $bytes = strlen('{"columns":[],"rows":[]}');
+    foreach ($table['columns'] as $i => $column) {
+        $bytes += (int) ($i > 0) + strlen(json_encode($column, $flags));
+    }
+    foreach ($table['rows'] as $i => $row) {
+        $bytes += (int) ($i > 0) + strlen(json_encode($row, $flags));
+    }
+    $remaining = 52000000 - $bytes;
+    foreach ($table['rows'] as &$row) {
+        foreach ($row['values'] as &$value) {
+            $extra = min(9500, $remaining);
+            $value .= str_repeat('x', $extra);
+            $remaining -= $extra;
+            if ($remaining === 0) {
+                break 2;
+            }
+        }
+    }
+    unset($value, $row);
+    expect($remaining)->toBe(0);
+    // Independent record-wise measurement, never allocate a second complete JSON.
+    $measured = strlen('{"columns":[],"rows":[]}');
+    foreach (['columns', 'rows'] as $collection) {
+        foreach ($table[$collection] as $i => $record) {
+            $measured += (int) ($i > 0) + strlen(json_encode($record, $flags));
+        }
+    }
+    expect($measured)->toBe(52000000);
+    expect(fn () => (new StudioChartData)->normalize($table))->toThrow(InvalidArgumentException::class);
+    $records = 0;
+    foreach ((new StudioTableExport)->chunks($table) as $record) {
+        $records++;
+        expect($record[0])->toBe("'");
+    }
+    expect($records)->toBe(1001);
+    $table['rows'][999]['values'][99] .= 'x';
+    expect(fn () => (new StudioTableExport)->chunks($table))->toThrow(InvalidArgumentException::class, '52000000');
+});

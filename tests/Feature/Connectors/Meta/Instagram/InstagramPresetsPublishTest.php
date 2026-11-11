@@ -53,3 +53,37 @@ test('InstagramPresetsPublish: Facebook Reel title reaches finish rather than up
     expect($calls[0]['params'])->not->toHaveKey('title');
     expect($calls[1]['params']['title'] ?? null)->toBe('Title');
 });
+
+test('T-18 Instagram: location_id llega al contenedor final y user_tags solo al de una imagen, con sus coordenadas', function (ContentType $type) {
+    $image = new PublishMedia(1, 'image', 'image/jpeg', 'https://cdn.test/image.jpg', 1080, 1080);
+    $video = new PublishMedia(2, 'video', 'video/mp4', 'https://cdn.test/video.mp4', 1080, 1920, 30);
+    $media = $type === ContentType::InstagramReel ? [$video] : ($type === ContentType::InstagramCarousel ? [$image, $image] : [$image]);
+    $options = ['location_id' => '213385402'] + ($type === ContentType::InstagramImage ? ['user_tags' => [['username' => 'amigo', 'x' => 0.25, 'y' => 0.75]]] : []);
+
+    (new InstagramPublisher)->publish($this->account, new PublishRequest(1, $type, 'Post', $media, $options));
+
+    $calls = $this->graph->callsTo('POST', '#/media$#');
+    $final = $calls[array_key_last($calls)]['params'];
+    expect($final['location_id'] ?? null)->toBe('213385402');
+    if ($type === ContentType::InstagramImage) {
+        expect(json_decode($final['user_tags'], true))->toBe([['username' => 'amigo', 'x' => 0.25, 'y' => 0.75]]);
+    } else {
+        expect($final)->not->toHaveKey('user_tags');
+    }
+    if ($type === ContentType::InstagramCarousel) {
+        foreach (array_slice($calls, 0, 2) as $child) {
+            expect($child['params'])->not->toHaveKey('location_id');
+        }
+    }
+})->with([ContentType::InstagramImage, ContentType::InstagramReel, ContentType::InstagramCarousel]);
+
+test('T-18 Instagram: etiquetas fuera de una imagen o ubicacion no numerica paran el worker antes de llamar al proveedor', function (array $options, ContentType $type) {
+    $media = $type === ContentType::InstagramReel ? [new PublishMedia(2, 'video', 'video/mp4', 'https://cdn.test/video.mp4')] : [new PublishMedia(1, 'image', 'image/jpeg', 'https://cdn.test/i.jpg')];
+
+    expect(fn () => (new InstagramPublisher)->publish($this->account, new PublishRequest(1, $type, 'Post', $media, $options)))->toThrow(PermanentPublishException::class);
+    expect($this->graph->calls)->toBeEmpty();
+})->with([
+    'etiquetas en reel' => [['user_tags' => [['username' => 'amigo', 'x' => 0.1, 'y' => 0.1]]], ContentType::InstagramReel],
+    'coordenadas fuera de rango' => [['user_tags' => [['username' => 'amigo', 'x' => 2, 'y' => 0.1]]], ContentType::InstagramImage],
+    'ubicacion no numerica' => [['location_id' => 'Madrid'], ContentType::InstagramImage],
+]);

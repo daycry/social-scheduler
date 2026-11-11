@@ -1,0 +1,193 @@
+--- /dev/null
++++ tests/Feature/Studio/StudioChartDataTest.php
+@@ -0,0 +1,190 @@
++<?php
++
++use App\Services\Studio\StudioChartData;
++
++function chartTable(array $values = [' 001 ', '=SUM(A1)', null, 2.5]): array
++{
++    return ['columns' => array_map(fn ($i) => ['id' => 'c_'.$i, 'label' => 'ðŸŽµ '.$i], range(1, count($values))),
++        'rows' => [['id' => 'r_1', 'values' => $values]]];
++}
++
++test('normalization preserves typed Unicode data and does not mutate input', function () {
++    $table = chartTable();
++    $before = serialize($table);
++    expect((new StudioChartData)->normalize($table))->toBe($table)
++        ->and(serialize($table))->toBe($before);
++});
++
++test('normalization rejects malformed schema and bounded hostile values', function (string $case) {
++    $table = chartTable(['ok']);
++    switch ($case) {
++        case 'unknown table': $table['extra'] = true;
++            break;
++        case 'unknown column': $table['columns'][0]['extra'] = true;
++            break;
++        case 'unknown row': $table['rows'][0]['extra'] = true;
++            break;
++        case 'missing rows': unset($table['rows']);
++            break;
++        case 'not list': $table['columns'] = ['x' => $table['columns'][0]];
++            break;
++        case 'empty columns': $table['columns'] = [];
++            break;
++        case 'too many columns': $table['columns'] = array_fill(0, 101, $table['columns'][0]);
++            break;
++        case 'too many rows': $table['rows'] = array_fill(0, 1001, $table['rows'][0]);
++            break;
++        case 'duplicate column': $table['columns'][] = $table['columns'][0];
++            break;
++        case 'duplicate row': $table['rows'][] = $table['rows'][0];
++            break;
++        case 'bad id': $table['columns'][0]['id'] = 'Ã©';
++            break;
++        case 'long id': $table['rows'][0]['id'] = str_repeat('a', 65);
++            break;
++        case 'long label': $table['columns'][0]['label'] = str_repeat('ðŸŽµ', 501);
++            break;
++        case 'bad label type': $table['columns'][0]['label'] = 1;
++            break;
++        case 'long cell': $table['rows'][0]['values'][0] = str_repeat('ðŸŽµ', 10001);
++            break;
++        case 'invalid utf8': $table['rows'][0]['values'][0] = "\xFF";
++            break;
++        case 'control': $table['rows'][0]['values'][0] = "bad\rvalue";
++            break;
++        case 'unicode control': $table['rows'][0]['values'][0] = "bad\u{0085}value";
++            break;
++        case 'bool': $table['rows'][0]['values'][0] = true;
++            break;
++        case 'array': $table['rows'][0]['values'][0] = [];
++            break;
++        case 'infinity': $table['rows'][0]['values'][0] = INF;
++            break;
++        case 'nan': $table['rows'][0]['values'][0] = NAN;
++            break;
++        case 'width': $table['rows'][0]['values'] = [];
++            break;
++        case 'values not list': $table['rows'][0]['values'] = ['x' => 'ok'];
++            break;
++        case 'json bytes': $table['rows'] = array_map(fn ($i) => ['id' => 'r_'.$i, 'values' => [str_repeat('ðŸŽµ', 10000)]], range(1, 53));
++            break;
++    }
++    expect(fn () => (new StudioChartData)->normalize($table))->toThrow(InvalidArgumentException::class);
++})->with(['unknown table', 'unknown column', 'unknown row', 'missing rows', 'not list', 'empty columns', 'too many columns', 'too many rows', 'duplicate column', 'duplicate row', 'bad id', 'long id', 'long label', 'bad label type', 'long cell', 'invalid utf8', 'control', 'unicode control', 'bool', 'array', 'infinity', 'nan', 'width', 'values not list', 'json bytes']);
++
++test('normalization accepts exact Unicode and collection boundaries', function () {
++    $table = ['columns' => array_map(fn ($i) => ['id' => 'c_'.$i, 'label' => str_repeat('ðŸŽµ', 500)], range(1, 100)), 'rows' => []];
++    expect((new StudioChartData)->normalize($table))->toBe($table);
++    $table = chartTable([str_repeat('ðŸŽµ', 10000), "\n\t", -1, 0, null]);
++    expect((new StudioChartData)->normalize($table))->toBe($table);
++    $table = chartTable(['']);
++    $table['rows'] = array_map(fn ($i) => ['id' => 'r_'.$i, 'values' => ['']], range(1, 1000));
++    expect((new StudioChartData)->normalize($table))->toBe($table);
++});
++
++test('import preserves quoted Unicode text and deterministic independent identities', function () {
++    $codec = new StudioChartData;
++    $table = $codec->import("\xEF\xBB\xBF,name,name\r\n\"001\",\"a,b\",\"say \"\"hi\"\"\nðŸŽµ\"\r\n 2 ,=SUM(A1),<b>x</b>\r\n");
++    expect($table)->toBe([
++        'columns' => [['id' => 'column_1', 'label' => ''], ['id' => 'column_2', 'label' => 'name'], ['id' => 'column_3', 'label' => 'name']],
++        'rows' => [['id' => 'row_1', 'values' => ['001', 'a,b', "say \"hi\"\nðŸŽµ"]], ['id' => 'row_2', 'values' => [' 2 ', '=SUM(A1)', '<b>x</b>']]],
++    ]);
++    expect($codec->import("\"a\tb\"\t\"\"\n", 'tsv', false))->toBe([
++        'columns' => [['id' => 'column_1', 'label' => ''], ['id' => 'column_2', 'label' => '']],
++        'rows' => [['id' => 'row_1', 'values' => ["a\tb", '']]],
++    ]);
++    expect($codec->import('header'))->toBe(['columns' => [['id' => 'column_1', 'label' => 'header']], 'rows' => []]);
++    expect($codec->import("\n"))->toBe(['columns' => [['id' => 'column_1', 'label' => '']], 'rows' => []]);
++});
++
++test('import canonicalizes Windows multiline CRLF while preserving surrounding text', function () {
++    expect((new StudioChartData)->import("h\r\n\" a\r\nb \"\r\n"))->toBe([
++        'columns' => [['id' => 'column_1', 'label' => 'h']],
++        'rows' => [['id' => 'row_1', 'values' => [" a\nb "]]],
++    ]);
++});
++
++test('import rejects malformed delimiters with exact record and field location', function (string $text, string $message) {
++    expect(fn () => (new StudioChartData)->import($text))->toThrow(InvalidArgumentException::class, $message);
++})->with([
++    ["h\n\"unclosed", 'row 2, column 1'],
++    ["h\n\"a\"x", 'row 2, column 1'],
++    ["h\na\"b", 'row 2, column 1'],
++    ["a,b\nx", 'row 2'],
++    ["a\rvalue", 'row 1, column 1'],
++]);
++
++test('import rejects empty unsupported invalid and oversized input', function (string $case) {
++    $codec = new StudioChartData;
++    expect(fn () => match ($case) {
++        'empty' => $codec->import(''),
++        'bom only' => $codec->import("\xEF\xBB\xBF"),
++        'format' => $codec->import('a', 'xlsx'),
++        'utf8' => $codec->import("\xFF"),
++        'bytes' => $codec->import(str_repeat('a', 2097153)),
++        'columns' => $codec->import(implode(',', array_fill(0, 101, 'a'))),
++        'rows' => $codec->import("h\n".str_repeat("x\n", 1001)),
++        'cell' => $codec->import("h\n".str_repeat('a', 10001)),
++        'label' => $codec->import(str_repeat('a', 501)),
++        'control' => $codec->import("h\n\"x\ry\""),
++    })->toThrow(InvalidArgumentException::class);
++})->with(['empty', 'bom only', 'format', 'utf8', 'bytes', 'columns', 'rows', 'cell', 'label', 'control']);
++
++test('export writes faithful escaped CRLF text without evaluating spreadsheet expressions', function () {
++    $table = chartTable(['001', '=SUM(A1)', '+cmd', '-1', '@x', "a,b\"\nðŸŽµ", null, 1.5, 1.0]);
++    $table['columns'] = array_map(fn ($i) => ['id' => 'c_'.$i, 'label' => ''], range(1, 9));
++    $before = serialize($table);
++    expect((new StudioChartData)->export($table))->toBe(",,,,,,,,\r\n001,=SUM(A1),+cmd,-1,@x,\"a,b\"\"\nðŸŽµ\",,1.5,1.0\r\n")
++        ->and(serialize($table))->toBe($before);
++    expect((new StudioChartData)->export(chartTable(["a\tb", ' x ']), 'tsv', false))->toBe("\"a\tb\"\t x \r\n");
++});
++
++test('export validates table and format before encoding', function () {
++    $codec = new StudioChartData;
++    expect(fn () => $codec->export(['columns' => [], 'rows' => []]))->toThrow(InvalidArgumentException::class)
++        ->and(fn () => $codec->export(chartTable(), 'CSV'))->toThrow(InvalidArgumentException::class);
++});
++
++test('text tables roundtrip both formats headers and empty records without inventing rows', function () {
++    $codec = new StudioChartData;
++    foreach (['csv', 'tsv'] as $format) {
++        foreach ([true, false] as $header) {
++            $table = $codec->import("\"\"\n\"\"\n", $format, $header);
++            expect($codec->import($codec->export($table, $format, $header), $format, $header))->toBe($table);
++        }
++        $table = $codec->import("\"ðŸŽµ\"\r\n\" 001\r\n=SUM(A1) \"\r\n", $format);
++        expect($codec->import($codec->export($table, $format), $format))->toBe($table);
++        $table = ['columns' => [['id' => 'column_1', 'label' => '']], 'rows' => []];
++        expect($codec->import($codec->export($table, $format), $format))->toBe($table);
++    }
++});
++
++test('export lexical interchange explicitly loses numeric null types and identities on reimport', function () {
++    $codec = new StudioChartData;
++    $table = chartTable([null, 1, 1.0, '001']);
++    $imported = $codec->import($codec->export($table));
++    expect($imported['rows'][0])->toBe(['id' => 'row_1', 'values' => ['', '1', '1.0', '001']]);
++});
++
++test('export protects a literal leading BOM from being mistaken for an input signature', function () {
++    $codec = new StudioChartData;
++    foreach ([true, false] as $header) {
++        $table = ['columns' => [['id' => 'column_1', 'label' => "\u{FEFF}title"]],
++            'rows' => [['id' => 'row_1', 'values' => ["\u{FEFF}text"]]]];
++        $expected = $table;
++        if (! $header) {
++            $expected['columns'][0]['label'] = '';
++        }
++        expect($codec->import($codec->export($table, 'csv', $header), 'csv', $header))->toBe($expected);
++    }
++});
++
++test('normalization checks the exact encoded byte boundary independently of codepoint limits', function () {
++    $table = chartTable(['']);
++    $table['rows'] = array_map(fn ($i) => ['id' => 'r_'.$i, 'values' => [$i < 210 ? str_repeat('a', 10000) : '']], range(1, 210));
++    $bytes = strlen(json_encode($table, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION));
++    $table['rows'][209]['values'][0] = str_repeat('a', 2097152 - $bytes);
++    expect((new StudioChartData)->normalize($table))->toBe($table);
++    $table['rows'][209]['values'][0] .= 'a';
++    expect(fn () => (new StudioChartData)->normalize($table))->toThrow(InvalidArgumentException::class, '2 MiB');
++});

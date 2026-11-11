@@ -25,6 +25,8 @@ class PostRequest extends FormRequest
             // Campaña del post (C-03): omitida = no se toca; nula = quitarla. Que sea de la marca y del usuario lo valida PostService::plan().
             'campaign_id' => ['nullable', 'integer'],
             'schedule' => ['required', 'boolean'],
+            // Aprobacion (T-19): el post nace como borrador pendiente de aprobar y no se programa hasta estar aprobado.
+            'requires_approval' => ['nullable', 'boolean'],
             // «Publicar ahora»: programa con la fecha del servidor y encola tras el commit (PostService::publishNow, ADR-005).
             'publish_now' => ['nullable', 'boolean'],
             'media' => ['nullable', 'array', 'max:35'],
@@ -34,8 +36,17 @@ class PostRequest extends FormRequest
             'targets.*.content_type' => ['required', 'string', 'max:40'],
             // Texto propio del destino (C-03): `null` = vinculado a la plantilla. El maximo real por red lo pone MediaValidator.
             'targets.*.text' => ['nullable', 'string', 'max:70000'],
+            // Publicacion manual (T-19): el destino no se envia a la red; a la hora se avisa y el usuario lo marca como publicado.
+            'targets.*.manual' => ['nullable', 'boolean'],
             // Primer comentario del destino (C-01b): el maximo real por red lo pone PostService::plan() con `media_specs`.
             'targets.*.first_comment' => ['nullable', 'string', 'max:10000'],
+            // Media propia del destino (T-17): ausente o null = hereda la comun; lista = esos archivos en ese orden, con alt y portada propios.
+            // Los limites por red y tipo los pone PostService (los mismos validadores que la media comun).
+            'targets.*.media' => ['nullable', 'array', 'max:35'],
+            'targets.*.media.*' => ['array:id,alt,cover_id'],
+            'targets.*.media.*.id' => ['required', 'integer'],
+            'targets.*.media.*.alt' => ['nullable', 'string', 'max:5000'],
+            'targets.*.media.*.cover_id' => ['nullable', 'integer'],
             'targets.*.options' => ['nullable', 'array'],
             'targets.*.options.share_to_feed' => ['nullable', 'boolean'],
             'targets.*.options.collaborators' => ['nullable', 'array', 'max:3'],
@@ -67,6 +78,19 @@ class PostRequest extends FormRequest
             'targets.*.options.brand_organic_toggle' => ['nullable', 'boolean'],
             'targets.*.options.brand_content_toggle' => ['nullable', 'boolean'],
             'targets.*.options.is_aigc' => ['nullable', 'boolean'],
+            // T-18: ubicacion y etiquetas de Instagram, LinkedIn (visibilidad, comparticion) y Pinterest (tablero, titulo, enlace). El detalle por red
+            // (formas, coordenadas, paginas sin CONNECTIONS, tablero obligatorio) lo valida PostService::optionErrors con el mismo texto en web, API y MCP.
+            'targets.*.options.location_id' => ['nullable'],
+            'targets.*.options.user_tags' => ['nullable', 'array', 'max:20'],
+            'targets.*.options.user_tags.*' => ['nullable', 'array:username,x,y'],
+            'targets.*.options.user_tags.*.username' => ['nullable', 'string', 'max:64'],
+            'targets.*.options.user_tags.*.x' => ['nullable', 'numeric'],
+            'targets.*.options.user_tags.*.y' => ['nullable', 'numeric'],
+            'targets.*.options.linkedin_visibility' => ['nullable', 'string', 'max:20'],
+            'targets.*.options.linkedin_disable_reshare' => ['nullable', 'boolean'],
+            'targets.*.options.pinterest_board_id' => ['nullable'],
+            'targets.*.options.pinterest_title' => ['nullable', 'string', 'max:1000'],
+            'targets.*.options.pinterest_link' => ['nullable', 'string', 'max:5000'],
         ];
     }
 }

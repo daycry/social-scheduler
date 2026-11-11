@@ -3,14 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Connectors\Google\YouTubePublisher;
+use App\Connectors\LinkedIn\LinkedInPostOptions;
+use App\Connectors\LinkedIn\LinkedInPublisher;
 use App\Connectors\Meta\Instagram\InstagramAudio;
 use App\Connectors\Meta\Instagram\InstagramPostOptions;
 use App\Connectors\Network;
+use App\Connectors\Pinterest\PinterestPostOptions;
 use App\Enums\ContentType;
 use App\Exceptions\PostValidationException;
 use App\Http\Requests\PostRequest;
 use App\Models\Brand;
 use App\Models\Campaign;
+use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
@@ -23,6 +27,7 @@ use App\Services\MediaValidator;
 use App\Services\PostService;
 use App\Services\SavedTextService;
 use App\Services\SocialAccountService;
+use App\Support\TargetMedia;
 use App\Support\TextLength;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
@@ -167,6 +172,9 @@ class PostController extends Controller
     public function validatePost(PostRequest $request, Brand $brand): JsonResponse
     {
         $this->authorize('update', $brand);
+        // Es una consulta en segundo plano: no debe gastar el aviso flash (p. ej. «Guardado en la biblioteca.») que una
+        // redirección acaba de dejar para la siguiente página, o el aviso se pierde si esta petición se cuela entre ambas.
+        $request->session()->reflash();
 
         return response()->json(['errors' => $this->posts->validate($request->user(), $brand, $request->validated())]);
     }
@@ -202,13 +210,21 @@ class PostController extends Controller
                 'status' => $a->status,
                 'audio' => AudioCapabilities::forAccount($a),
                 'instagram_presets' => $a->network === Network::Instagram ? InstagramPostOptions::capabilities() : null,
+                'linkedin' => $a->network === Network::LinkedIn ? LinkedInPostOptions::capabilities($a) : null,
+                'pinterest' => $a->network === Network::Pinterest ? PinterestPostOptions::capabilities($a) : null,
                 'instagram_audio' => $a->network === Network::Instagram ? [
                     'available' => InstagramAudio::unavailableReason($a) === null,
                     'reason' => InstagramAudio::unavailableReason($a),
                 ] : null,
                 'direct_post' => $a->network === Network::TikTok && ($a->meta['direct_post'] ?? false) === true,
                 // Primer comentario (C-01b): YouTube lo necesita el permiso `youtube.force-ssl`; sin el, el canal debe reconectarse.
-                'can_comment' => $a->network !== Network::YouTube || YouTubePublisher::canComment($a),
+                'can_comment' => match ($a->network) {
+                    Network::YouTube => YouTubePublisher::canComment($a),
+                    Network::LinkedIn => LinkedInPublisher::canComment($a),
+                    default => true,
+                },
+                // Motivo visible cuando el primer comentario esta desactivado en esta cuenta (LinkedIn perfil sin r_member_social).
+                'comment_note' => $a->network === Network::LinkedIn ? LinkedInPublisher::commentNote($a) : null,
                 // Red apagada en esta instalacion (p. ej. BLUESKY_ENABLED=false): la cuenta sigue conectada pero no se puede elegir.
                 'available' => $a->network->isAvailable(),
             ])->values(),
@@ -234,6 +250,9 @@ class PostController extends Controller
                     + ($mode !== TextLength::CHARS ? ['count' => $mode] : [])
                     + (isset($text['advise_hashtags']) ? ['advise_hashtags' => $text['advise_hashtags']] : [])];
             }),
+            // Que metadatos de media admite cada tipo (T-17): el panel «Personalizar media» solo ofrece alt y portada donde la red los publica.
+            'mediaMeta' => collect(ContentType::cases())->filter->isOffered()->mapWithKeys(fn (ContentType $t) => [$t->value => ['alt' => TargetMedia::supportsAlt($t), 'cover' => TargetMedia::supportsCover($t)]]),
+            'altMax' => TargetMedia::ALT_MAX,
             // Maximo del primer comentario por tipo (`media_specs`); los tipos que no lo admiten (TikTok, Stories) no aparecen (C-01b).
             'firstCommentMax' => collect(ContentType::cases())->filter->isOffered()
                 ->mapWithKeys(fn (ContentType $t) => [$t->value => config("media_specs.types.{$t->value}.first_comment.max")])->filter(),
@@ -269,17 +288,26 @@ class PostController extends Controller
             'text' => $post->text,
             'notes' => $post->notes,
             'campaign_id' => $post->campaign_id,
+            'approval_status' => $post->approval_status,
+            'approval_comment' => $post->approval_comment,
+            'series_id' => $post->series_id,
             'status' => $post->status->value,
             'status_label' => $post->status->label(),
             // Valor de <input type="datetime-local"> en la zona de la marca.
             'scheduled_at' => $post->scheduled_at?->copy()->setTimezone($brand->timezone ?: 'UTC')->format('Y-m-d\TH:i'),
             'editable' => ! $targets->contains(fn (PostTarget $t) => $t->status->isInFlight() || $t->status->isFinal()),
             'media' => $post->media()->get()->map->toPublicArray()->values(),
+            // Archivos que usa la media propia de algun destino (y sus portadas): el cliente los resuelve por id para mostrarlos (T-17).
+            'target_media_assets' => MediaAsset::withoutUserScope()->where('user_id', $post->user_id)
+                ->whereIn('id', $targets->flatMap(fn (PostTarget $t) => collect($t->media ?? [])->flatMap(fn ($m) => [$m['id'] ?? null, $m['cover_id'] ?? null]))->filter()->unique()->all())
+                ->get()->map->toPublicArray()->values(),
             'targets' => $targets->map(fn (PostTarget $t) => [
                 'id' => $t->id,
                 'account_id' => $t->social_account_id,
                 'content_type' => $t->content_type->value,
                 'text' => $t->text, // texto propio del destino (null = vinculado a la plantilla)
+                'manual' => (bool) $t->manual, // publicacion manual (T-19): no se envia a la red
+                'media' => $t->media, // media propia del destino: null = hereda la comun; lista {id, alt, cover_id} (T-17)
                 'options' => $t->options ?? new \stdClass,
                 'status' => $t->status->value,
                 'status_label' => $t->status->label(),

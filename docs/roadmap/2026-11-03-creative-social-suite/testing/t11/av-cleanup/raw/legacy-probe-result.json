@@ -1,0 +1,16 @@
+{
+  "mode": "legacy-probe",
+  "exit": 0,
+  "terminal": true,
+  "source_hashes_match": true,
+  "sources": 20,
+  "files": 1,
+  "summary": [
+    "# tests 150",
+    "# pass 149",
+    "# fail 1",
+    "# cancelled 0",
+    "# skipped 0",
+    "# duration_ms 46865.6707"
+  ]
+}

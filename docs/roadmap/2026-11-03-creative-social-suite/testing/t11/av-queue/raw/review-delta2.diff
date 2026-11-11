@@ -1,0 +1,353 @@
+--- a/app/Services/Studio/StudioAvState.php
++++ b/app/Services/Studio/StudioAvState.php
+@@ -360,7 +360,7 @@
+     }
+ 
+     /** Accepted native result references of this generation; optionally bounded to needed phases. */
+-    public function checkpoints(DesignExport $export, array $phases = []): Collection
++    public function checkpoints(DesignExport $export, array $phases = [], bool $unpublished = false): Collection
+     {
+         $state = $export->render_state;
+         if (! $state) {
+@@ -371,6 +371,9 @@
+             ->where('studio_av_leases.workspace_id', $state['allocation_id'])->where('studio_av_leases.status', 'accepted');
+         if ($phases !== []) {
+             $query->whereIn('studio_av_leases.phase', $phases);
++        }
++        if ($unpublished) {
++            $query->where('studio_av_leases.category', 'snapshot')->where('studio_av_leases.input_published', false)->limit(16);
+         }
+ 
+         return $query->select('studio_av_leases.*')->get()->keyBy(fn (StudioAvLease $lease) => $lease->phase.':'.$lease->item);
+--- a/app/Services/Studio/StudioAvFiles.php
++++ b/app/Services/Studio/StudioAvFiles.php
+@@ -31,14 +31,13 @@
+         return $result;
+     }
+ 
+-    public function publishSource(StudioAvLease $lease): string
+-    {
+-        return $this->locked($lease, fn () => $this->promoteSource($lease));
+-    }
+-
+-    private function promoteSource(StudioAvLease $lease): string
+-    {
+-        $deadline = microtime(true) + 85;
++    public function publishSource(StudioAvLease $lease, ?float $deadline = null): string
++    {
++        return $this->locked($lease, fn () => $this->promoteSource($lease, min($deadline ?? microtime(true) + 85, microtime(true) + 85)));
++    }
++
++    private function promoteSource(StudioAvLease $lease, float $deadline): string
++    {
+         [$current, $workspace] = $this->context($lease, true);
+         if (! in_array($current->phase, ['asset', 'font'], true)) {
+             throw new RuntimeException('El checkpoint no es un origen del diseño.');
+@@ -54,13 +53,14 @@
+             }
+         }
+         $this->verifyPath($workspace, $relative, $result, $deadline);
++        StudioAvLease::whereKey($current->id)->where('status', 'accepted')->update(['input_published' => true]);
+ 
+         return $relative;
+     }
+ 
+-    public function verify(StudioAvLease $lease): array
+-    {
+-        return $this->locked($lease, fn () => $this->verifyCheckpoint($lease, microtime(true) + 85));
++    public function verify(StudioAvLease $lease, ?float $deadline = null): array
++    {
++        return $this->locked($lease, fn () => $this->verifyCheckpoint($lease, min($deadline ?? microtime(true) + 85, microtime(true) + 85)));
+     }
+ 
+     private function verifyCheckpoint(StudioAvLease $lease, float $deadline): array
+@@ -94,6 +94,9 @@
+ 
+     private function verifyPath(StudioAvWorkspace $workspace, string $relative, array $result, float $deadline): void
+     {
++        if (microtime(true) >= $deadline) {
++            throw new StudioAvProcessFailed('phase_timeout');
++        }
+         $path = app(StudioAvStorage::class)->checkedPath($workspace, $relative);
+         $stream = @fopen($path, 'rb');
+         if ($stream === false) {
+@@ -110,7 +113,7 @@
+             }
+             while (! feof($stream)) {
+                 if (microtime(true) >= $deadline) {
+-                    throw new RuntimeException('La verificación superó su tiempo permitido.');
++                    throw new StudioAvProcessFailed('phase_timeout');
+                 }
+                 $chunk = fread($stream, 1024 * 1024);
+                 if ($chunk === false || ($chunk === '' && ! feof($stream))) {
+@@ -122,6 +125,9 @@
+                 }
+                 hash_update($hash, $chunk);
+             }
++            if (microtime(true) >= $deadline) {
++                throw new StudioAvProcessFailed('phase_timeout');
++            }
+             if ($size !== $result['size'] || ! hash_equals($result['sha256'], hash_final($hash))) {
+                 throw new StudioAvCheckpointCorrupt('El contenido del checkpoint privado fue alterado.');
+             }
+@@ -130,14 +136,13 @@
+         }
+     }
+ 
+-    public function snapshot(StudioAvLease $lease): array
+-    {
+-        return $this->locked($lease, fn () => $this->copySnapshot($lease));
+-    }
+-
+-    private function copySnapshot(StudioAvLease $lease): array
+-    {
+-        $deadline = microtime(true) + 85;
++    public function snapshot(StudioAvLease $lease, ?float $deadline = null): array
++    {
++        return $this->locked($lease, fn () => $this->copySnapshot($lease, min($deadline ?? microtime(true) + 85, microtime(true) + 85)));
++    }
++
++    private function copySnapshot(StudioAvLease $lease, float $deadline): array
++    {
+         [$current, $workspace] = $this->context($lease);
+         if (! in_array($current->phase, ['asset', 'font'], true)) {
+             throw new RuntimeException('La fase no admite una copia de origen.');
+@@ -150,8 +155,12 @@
+         $pinned = StudioAvLease::where('workspace_id', $workspace->id)->where('category', 'snapshot')
+             ->where('phase', $current->phase)->where('item', $current->item)->whereIn('status', ['accepted', 'invalid', 'released'])
+             ->whereNotNull('result')->orderBy('created_at')->orderBy('id')->first(['result'])?->result;
++        $remaining = $deadline - microtime(true);
++        if ($remaining <= 0) {
++            throw new StudioAvProcessFailed('phase_timeout');
++        }
+         $reader = MediaChunkReader::for(new PublishMedia(id: $source->id, kind: 'file', mime: $source->mime ?? 'font/woff2',
+-            url: '', disk: $source->disk, path: $source->path), timeout: 5);
++            url: '', disk: $source->disk, path: $source->path), timeout: min(5, $remaining));
+         if ($reader->size < 1 || $reader->size !== $source->size || $reader->size > min($current->reserved_bytes, 2 * 1024 ** 3)) {
+             throw new RuntimeException('El origen no coincide con su tamaño o reserva.');
+         }
+@@ -168,7 +177,7 @@
+             for ($offset = 0; $offset < $reader->size;) {
+                 $remaining = $deadline - microtime(true);
+                 if ($remaining <= 0) {
+-                    throw new RuntimeException('La copia superó su tiempo permitido.');
++                    throw new StudioAvProcessFailed('phase_timeout');
+                 }
+                 $length = min(1024 * 1024, $reader->size - $offset);
+                 $chunk = $reader->chunk($offset, $length, min(5, $remaining));
+--- a/app/Services/Studio/StudioAvRunner.php
++++ b/app/Services/Studio/StudioAvRunner.php
+@@ -13,24 +13,27 @@
+     public function __construct(private readonly StudioAvState $state, private readonly StudioAvQueue $queue,
+         private readonly StudioAvFiles $files, private readonly StudioAvProcess $process) {}
+ 
+-    public function run(string $id): bool
++    public function run(string $id, ?float $deadline = null): bool
+     {
+         $lease = $this->state->begin($id);
+         if (! $lease) {
+             return false;
+         }
+         $export = $this->state->workingExport($lease);
+-        $deadline = microtime(true) + 85;
++        $deadline = min($deadline ?? microtime(true) + 85, microtime(true) + 85);
+         $advanced = false;
+         $source = null;
+         try {
++            if (microtime(true) >= $deadline) {
++                throw new StudioAvProcessFailed('phase_timeout');
++            }
+             if (in_array($lease->phase, ['asset', 'font'], true)) {
+-                $result = $this->files->snapshot($lease);
++                $result = $this->files->snapshot($lease, $deadline);
+             } elseif ($lease->phase === 'verify') {
+                 $task = $this->state->task($export);
+                 $source = StudioAvLease::where('workspace_id', $lease->workspace_id)->findOrFail($task['source']);
+                 try {
+-                    $result = $this->files->verify($source);
++                    $result = $this->files->verify($source, $deadline);
+                 } catch (StudioAvCheckpointCorrupt) {
+                     $this->state->rejectCheckpoint($lease);
+ 
+@@ -48,7 +51,7 @@
+             $advanced = true;
+             $input = $source ?? $lease;
+             if (in_array($input->phase, ['asset', 'font'], true)) {
+-                $this->files->publishSource($input);
++                $this->files->publishSource($input, $deadline);
+             }
+             $this->queue->enqueue($export->id);
+ 
+--- a/app/Services/Studio/StudioAvRecovery.php
++++ b/app/Services/Studio/StudioAvRecovery.php
+@@ -31,6 +31,30 @@
+                 $result['deferred']++;
+             }
+         }
++        $terminal = StudioAvWorkspace::withoutUserScope()->where('active_until', '<=', now())
++            ->whereExists(fn ($q) => $q->selectRaw('1')->from('studio_design_exports')->whereColumn('studio_design_exports.id', 'studio_av_workspaces.export_id')
++                ->whereIn('studio_design_exports.status', ['failed', 'cancelled']))
++            ->whereExists(fn ($q) => $q->selectRaw('1')->from('studio_av_leases')->whereColumn('studio_av_leases.workspace_id', 'studio_av_workspaces.id')
++                ->whereIn('status', ['running', 'failed', 'abandoned', 'invalid'])->where('expires_at', '<=', now()))
++            ->orderBy('active_until')->limit($limit)->get(['id']);
++        foreach ($terminal as $workspace) {
++            if (microtime(true) >= $deadline) {
++                break;
++            }
++            $leases = StudioAvLease::where('workspace_id', $workspace->id)->whereIn('status', ['running', 'failed', 'abandoned', 'invalid'])
++                ->where('expires_at', '<=', now())->orderBy('expires_at')->limit(32)->get(['id']);
++            foreach ($leases as $lease) {
++                if (microtime(true) >= $deadline) {
++                    break;
++                }
++                try {
++                    $this->cleanup->lease($lease->id) ? $result['leases_released']++ : $result['deferred']++;
++                } catch (Throwable) {
++                    $result['deferred']++;
++                }
++            }
++            StudioAvWorkspace::withoutUserScope()->whereKey($workspace->id)->where('active_until', '<=', now())->update(['active_until' => now()->addSeconds(180)]);
++        }
+         $workspaces = StudioAvWorkspace::withoutUserScope()->where('active_until', '<=', now())
+             ->whereExists(fn ($q) => $q->selectRaw('1')->from('studio_design_exports')->whereColumn('studio_design_exports.id', 'studio_av_workspaces.export_id')
+                 ->whereIn('studio_design_exports.status', ['pending', 'processing'])->whereNotNull('render_state'))
+@@ -58,11 +82,24 @@
+                     $ready = ! StudioAvLease::where('workspace_id', $workspace->id)->whereIn('status', ['running', 'failed', 'abandoned', 'invalid'])
+                         ->where('expires_at', '<=', now())->exists();
+                 }
++                if ($ready) {
++                    foreach ($this->state->checkpoints($export, ['asset', 'font'], true) as $source) {
++                        if (microtime(true) >= $deadline) {
++                            $ready = false;
++                            break;
++                        }
++                        app(StudioAvFiles::class)->publishSource($source);
++                    }
++                    $ready = $ready && $this->state->checkpoints($export, ['asset', 'font'], true)->isEmpty();
++                }
+                 if ($ready && $this->queue->enqueue($export->id)) {
+                     $result['enqueued']++;
+                 } else {
+                     $result['deferred']++;
+                 }
++            } catch (StudioAvCheckpointCorrupt) {
++                $this->state->failPosition($export->id, $export->render_state['generation'], $export->render_state['position'], 'phase_failed');
++                $result['deferred']++;
+             } catch (ModelNotFoundException) {
+                 $this->state->failPosition($export->id, $export->render_state['generation'], $export->render_state['position'], 'missing_resource');
+                 $result['deferred']++;
+--- a/app/Models/Studio/StudioAvLease.php
++++ b/app/Models/Studio/StudioAvLease.php
+@@ -15,10 +15,10 @@
+ 
+     protected $guarded = [];
+ 
+-    protected $hidden = ['workspace_id', 'generation', 'phase', 'item', 'category', 'reserved_bytes', 'actual_bytes', 'status', 'result', 'expires_at', 'started_at', 'queue_job_id', 'created_at', 'updated_at'];
++    protected $hidden = ['workspace_id', 'generation', 'phase', 'item', 'category', 'reserved_bytes', 'actual_bytes', 'status', 'result', 'expires_at', 'started_at', 'queue_job_id', 'input_published', 'created_at', 'updated_at'];
+ 
+     protected function casts(): array
+     {
+-        return ['workspace_id' => 'integer', 'item' => 'integer', 'reserved_bytes' => 'integer', 'actual_bytes' => 'integer', 'queue_job_id' => 'integer', 'result' => 'array', 'expires_at' => 'immutable_datetime', 'started_at' => 'immutable_datetime'];
++        return ['workspace_id' => 'integer', 'item' => 'integer', 'reserved_bytes' => 'integer', 'actual_bytes' => 'integer', 'queue_job_id' => 'integer', 'input_published' => 'boolean', 'result' => 'array', 'expires_at' => 'immutable_datetime', 'started_at' => 'immutable_datetime'];
+     }
+ }
+--- a/database/migrations/2026_11_05_150000_add_studio_render_state.php
++++ b/database/migrations/2026_11_05_150000_add_studio_render_state.php
+@@ -40,8 +40,10 @@
+             $table->timestamp('expires_at')->index();
+             $table->timestamp('started_at')->nullable();
+             $table->unsignedBigInteger('queue_job_id')->nullable();
++            $table->boolean('input_published')->default(false);
+             $table->timestamps();
+             $table->index(['workspace_id', 'category', 'status']);
++            $table->index(['workspace_id', 'category', 'status', 'input_published'], 'studio_av_input_promotion');
+             $table->index(['workspace_id', 'phase', 'item', 'created_at', 'id'], 'studio_av_lease_source_pin');
+         });
+         Schema::create('studio_av_steps', function (Blueprint $table) {
+--- a/tests/Feature/Studio/StudioAvQueueTest.php
++++ b/tests/Feature/Studio/StudioAvQueueTest.php
+@@ -153,6 +153,23 @@
+     expect($this->export->refresh()->status)->toBe('failed')->and($this->export->error)->toContain('nueva exportación')->not->toContain('secret', 'filesystem');
+ });
+ 
++test('AV snapshot worker respects the caller deadline rather than opening a new phase budget', function () {
++    Storage::disk('local')->put('source.bin', 'bytes');
++    $media = MediaAsset::factory()->for($this->user)->create(['kind' => 'image', 'mime' => 'image/png', 'disk' => 'local', 'path' => 'source.bin',
++        'size' => 5, 'declared_size' => 5, 'status' => MediaAsset::STATUS_READY]);
++    app(StudioAssets::class)->attach($this->user, $this->brand, $media->id);
++    $planLease = $this->state->claim($this->export->id, $this->export->render_state['generation']);
++    $plan = ['frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 24, 'segmentCount' => 1,
++        'selection' => ['one'], 'assetIds' => [$media->id], 'fontIds' => [], 'audioAssetIds' => [],
++        'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]];
++    $this->state->accept($planLease, $plan);
++    app(StudioAvQueue::class)->enqueue($this->export->id);
++    expect(app(StudioAvRunner::class)->run($this->export->refresh()->render_state['lease'], microtime(true) - 1))->toBeFalse();
++    expect($this->export->refresh()->status)->toBe('failed');
++    $root = 'studio-exports/'.$this->user->id.'/'.$this->export->id.'/'.$this->export->render_state['workspace'];
++    expect(Storage::disk('local')->allFiles($root.'/imports'))->toBe([]);
++});
++
+ test('AV recovery releases an interrupted delivery and schedules a fresh lease without reviving the old one', function () {
+     app(StudioAvQueue::class)->enqueue($this->export->id);
+     $old = StudioAvLease::findOrFail($this->export->refresh()->render_state['lease']);
+@@ -165,6 +182,47 @@
+     expect($this->state->begin($old->id))->toBeNull();
+     Queue::assertPushed(ProcessStudioAvPhase::class, 2);
+ });
++
++test('AV recovery publishes an accepted snapshot left by a crash before enqueueing its next phase', function () {
++    Storage::disk('local')->put('source.bin', 'snapshot bytes');
++    $media = MediaAsset::factory()->for($this->user)->create(['kind' => 'image', 'mime' => 'image/png', 'disk' => 'local', 'path' => 'source.bin',
++        'size' => 14, 'declared_size' => 14, 'status' => MediaAsset::STATUS_READY]);
++    app(StudioAssets::class)->attach($this->user, $this->brand, $media->id);
++    $generation = $this->export->render_state['generation'];
++    $planLease = $this->state->claim($this->export->id, $generation);
++    $plan = ['frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 24, 'segmentCount' => 1,
++        'selection' => ['one'], 'assetIds' => [$media->id], 'fontIds' => [], 'audioAssetIds' => [],
++        'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]];
++    $this->state->accept($planLease, $plan);
++    $source = $this->state->claim($this->export->id, $generation, 14);
++    $files = app(StudioAvFiles::class);
++    $snapshot = $files->snapshot($source);
++    $this->state->accept($source, $snapshot, $snapshot['size']);
++    // Crash boundary: no publishSource call happened after the accepted checkpoint.
++    $root = 'studio-exports/'.$this->user->id.'/'.$this->export->id.'/'.$this->export->render_state['workspace'];
++    Storage::disk('local')->assertMissing($root.'/assets/'.$media->id.'.bin');
++    $this->travel(181)->seconds();
++    expect(app(StudioAvRecovery::class)->run()['enqueued'])->toBe(1);
++    expect(Storage::disk('local')->get($root.'/assets/'.$media->id.'.bin'))->toBe('snapshot bytes');
++});
++
++test('AV recovery cleans expired partials from failed or cancelled exports while preserving their status', function (string $status) {
++    app(StudioAvQueue::class)->enqueue($this->export->id);
++    $lease = StudioAvLease::findOrFail($this->export->refresh()->render_state['lease']);
++    $root = 'studio-exports/'.$this->user->id.'/'.$this->export->id.'/'.$this->export->render_state['workspace'];
++    $partial = $root.'/audio-sources/'.$lease->id.'/partial.pcm';
++    Storage::disk('local')->put($partial, 'unaccepted partial');
++    if ($status === 'failed') {
++        $this->state->fail($lease, 'phase_failed');
++    } else {
++        $this->state->cancel($this->user, $this->export);
++    }
++    $this->travel(181)->seconds();
++    $result = app(StudioAvRecovery::class)->run();
++    expect($result['leases_released'])->toBe(1)->and($result['enqueued'])->toBe(0);
++    expect($lease->refresh()->status)->toBe('released')->and($this->export->refresh()->status)->toBe($status);
++    Storage::disk('local')->assertMissing($partial);
++})->with(['failed', 'cancelled']);
+ 
+ test('AV recovery does not duplicate a database message while its worker is stopped', function () {
+     Queue::swap($this->realQueue);
+--- a/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
++++ b/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
+@@ -72,6 +72,10 @@
+ 
+ La integración actual se detiene explícitamente ante register: no encola esa fase todavía ni marca ready. Registro de medio/descarga/borrador, señal de cancelación del proceso ycontroles web/API/MCP siguen pendientes. Las muestras con queue:work real prueban hastaassemble, no el flujo público completo. No se publican redes sociales al ejecutar estos jobs.
+ 
++El journal de cada snapshot distingue aceptación de publicación del input fijo mediante input_published. Si el proceso muere entre esos dos pasos, recovery repara la promoción antes de encolar el trabajo siguiente. Solo consulta promociones pendientes de la generación actual, con índice ybatch de16; no vuelve a verificar todos los recursos ya publicados en cada pasada. Los parciales vencidos de exports failed/cancelled también se limpian periódicamente, conservando su estado terminal ylos checkpoints aceptados. En mantenimiento se comprueba un plazo de15s entre operaciones; una promoción individual puede consumir hasta85s yuna limpieza hasta30s, de modo que no se afirma un límite duro de15s para la pasada completa. El mutex del scheduler dura2min yno reservaRAM.
++
++El runner transmite el mismo deadline a snapshot, verificación, promoción ypuente nativo; ninguna de esas operaciones abre otro plazo85s dentro del mismo job. Una prueba con presupuesto ya agotado comprueba rechazo antes decopiar. No se presenta como una medición de una transferencia lenta de85s.
++
+ ## Cancelación, errores y recuperación
+ 
+ Cancelar pending/processing cambia el estado de forma atómica y señala al proceso del intento. El proceso aborta sus hijos y elimina parciales; una respuesta tardía no puede marcar ready ni registrar medios. Cancelar un resultado ya ready no borra el recurso: devuelve conflicto o conserva el resultado existente.

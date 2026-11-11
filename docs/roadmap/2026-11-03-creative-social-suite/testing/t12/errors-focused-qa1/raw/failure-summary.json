@@ -1,0 +1,27 @@
+{
+  "actual_executed_cases": 1,
+  "recorded_cases": 3,
+  "original_stats": {
+    "startTime": "2026-11-06T20:05:11.868Z",
+    "duration": 16631.685999999998,
+    "expected": 0,
+    "skipped": 2,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "failures": [
+    {
+      "project": "desktop",
+      "message": "Error: expect(locator).toContainText(expected) failed\n\nLocator: getByRole('dialog', { name: 'Diseñar gráfico', exact: true }).getByRole('table', { name: 'Categorías y series seleccionadas, tipos y valores originales', exact: true })\nExpected substring: \"Texto: Año 2020 é\"\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toContainText\" getByRole('dialog', { name: 'Diseñar gráfico', exact: true }).getByRole('table', { name: 'Categorías y series seleccionadas, tipos y valores originales', exact: true }) with timeout 5000ms\n  - waiting for getByRole('dialog', { name: 'Diseñar gráfico', exact: true }).getByRole('table', { name: 'Categorías y series seleccionadas, tipos y valores originales', exact: true })"
+    },
+    {
+      "project": "desktop",
+      "message": "Error: expect(received).toHaveLength(expected)\n\nExpected length: 1\nReceived length: 0\nReceived array:  []"
+    }
+  ],
+  "global_errors": [
+    {
+      "message": "\u001b[31mTesting stopped early after 1 maximum allowed failures.\u001b[39m"
+    }
+  ]
+}

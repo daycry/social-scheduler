@@ -1,0 +1,204 @@
+{
+  "cases": 6,
+  "passed": 6,
+  "failed": 0,
+  "results": [
+    {
+      "name": "original-url",
+      "patched": false,
+      "mode": "url",
+      "passed": true,
+      "observation": {
+        "isSecureContext": false,
+        "cryptoSubtleType": "undefined",
+        "faceStatus": "error",
+        "loadResolved": false,
+        "error": "NetworkError: A network error occurred.",
+        "violations": [
+          {
+            "effectiveDirective": "font-src",
+            "violatedDirective": "font-src",
+            "blockedURI": "http://studio-renderer.invalid/fonts/2",
+            "disposition": "enforce"
+          }
+        ],
+        "fontSetContains": false
+      },
+      "requests": [
+        {
+          "url": "http://studio-renderer.invalid/",
+          "method": "GET",
+          "type": "document",
+          "fulfilled": "html"
+        }
+      ]
+    },
+    {
+      "name": "self-url",
+      "patched": true,
+      "mode": "url",
+      "passed": true,
+      "observation": {
+        "isSecureContext": false,
+        "cryptoSubtleType": "undefined",
+        "faceStatus": "loaded",
+        "loadResolved": true,
+        "error": null,
+        "violations": [],
+        "fontSetContains": true
+      },
+      "requests": [
+        {
+          "url": "http://studio-renderer.invalid/",
+          "method": "GET",
+          "type": "document",
+          "fulfilled": "html"
+        },
+        {
+          "url": "http://studio-renderer.invalid/fonts/2",
+          "method": "GET",
+          "type": "font",
+          "fulfilled": "font",
+          "bytes": 49256,
+          "sha256": "5d805d7be940ede9ccbb17e273ebc486827eede774ca21fca1a60624464f5529"
+        }
+      ]
+    },
+    {
+      "name": "original-data",
+      "patched": false,
+      "mode": "data",
+      "passed": true,
+      "observation": {
+        "isSecureContext": false,
+        "cryptoSubtleType": "undefined",
+        "faceStatus": "loaded",
+        "loadResolved": true,
+        "error": null,
+        "violations": [],
+        "fontSetContains": true
+      },
+      "requests": [
+        {
+          "url": "http://studio-renderer.invalid/",
+          "method": "GET",
+          "type": "document",
+          "fulfilled": "html"
+        }
+      ]
+    },
+    {
+      "name": "original-fetch-buffer",
+      "patched": false,
+      "mode": "buffer",
+      "passed": true,
+      "observation": {
+        "isSecureContext": false,
+        "cryptoSubtleType": "undefined",
+        "faceStatus": "loaded",
+        "loadResolved": true,
+        "error": null,
+        "violations": [],
+        "fontSetContains": true
+      },
+      "requests": [
+        {
+          "url": "http://studio-renderer.invalid/",
+          "method": "GET",
+          "type": "document",
+          "fulfilled": "html"
+        },
+        {
+          "url": "http://studio-renderer.invalid/fonts/2",
+          "method": "GET",
+          "type": "fetch",
+          "fulfilled": "font",
+          "bytes": 49256,
+          "sha256": "5d805d7be940ede9ccbb17e273ebc486827eede774ca21fca1a60624464f5529"
+        }
+      ]
+    },
+    {
+      "name": "registry-http",
+      "mode": "real-registry-resolve",
+      "passed": true,
+      "observation": {
+        "isSecureContext": false,
+        "cryptoType": "object",
+        "cryptoSubtleType": "undefined",
+        "resolved": false,
+        "error": {
+          "name": "TypeError",
+          "message": "Cannot read properties of undefined (reading 'digest')",
+          "stack": "TypeError: Cannot read properties of undefined (reading 'digest')\n    at load (<anonymous>:486:67)\n    at async eval (eval at evaluate (:370:30), <anonymous>:1:208)\n    at async <anonymous>:396:30"
+        },
+        "stats": {
+          "brandId": 2,
+          "disposed": true,
+          "offline": true,
+          "descriptors": 1,
+          "resources": 0,
+          "projections": 0,
+          "metadata": 0,
+          "bytes": 0
+        }
+      },
+      "requests": [
+        {
+          "url": "http://studio-renderer.invalid/",
+          "method": "GET",
+          "fulfilled": "html"
+        },
+        {
+          "url": "http://studio-renderer.invalid/datasets/pinned.json",
+          "method": "GET",
+          "fulfilled": "dataset",
+          "bytes": 291,
+          "sha256": "f04dd6def88a6ed6d1cf05f171c3a887a2919e797a9b4218f88a56559c8d93eb"
+        }
+      ]
+    },
+    {
+      "name": "registry-https",
+      "mode": "real-registry-resolve",
+      "passed": true,
+      "observation": {
+        "isSecureContext": true,
+        "cryptoType": "object",
+        "cryptoSubtleType": "object",
+        "resolved": true,
+        "error": null,
+        "row_count": 4,
+        "column_count": 3,
+        "sha256": "f04dd6def88a6ed6d1cf05f171c3a887a2919e797a9b4218f88a56559c8d93eb",
+        "stats": {
+          "brandId": 2,
+          "disposed": true,
+          "offline": true,
+          "descriptors": 1,
+          "resources": 0,
+          "projections": 0,
+          "metadata": 0,
+          "bytes": 0
+        }
+      },
+      "requests": [
+        {
+          "url": "https://studio-renderer.invalid/",
+          "method": "GET",
+          "fulfilled": "html"
+        },
+        {
+          "url": "https://studio-renderer.invalid/datasets/pinned.json",
+          "method": "GET",
+          "fulfilled": "dataset",
+          "bytes": 291,
+          "sha256": "f04dd6def88a6ed6d1cf05f171c3a887a2919e797a9b4218f88a56559c8d93eb"
+        }
+      ]
+    }
+  ],
+  "timedOut": false,
+  "app_pass_claim": false,
+  "scope": "F1-F3 only: FontFace URL vs real fetch-buffer path; real registry SHA/parse under HTTP vs HTTPS. Expected outcomes are falsifiable; no app acceptance or automatic product fix."
+}

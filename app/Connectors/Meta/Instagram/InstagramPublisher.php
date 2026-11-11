@@ -338,12 +338,12 @@ class InstagramPublisher implements FirstCommenter, Publisher, StatusPoller
         $caption = (string) $request->text;
 
         return (match ($request->type) {
-            ContentType::InstagramImage => ['image_url' => $media->url] + ($caption !== '' ? ['caption' => $caption] : []),
+            ContentType::InstagramImage => ['image_url' => $media->url] + ($caption !== '' ? ['caption' => $caption] : []) + $this->altParams($media),
             ContentType::InstagramReel => [
                 'media_type' => 'REELS',
                 'video_url' => $media->url,
                 'share_to_feed' => ($request->options['share_to_feed'] ?? true) ? 'true' : 'false',
-            ] + ($caption !== '' ? ['caption' => $caption] : []) + (isset($request->options['instagram_audio']) ? [
+            ] + ($caption !== '' ? ['caption' => $caption] : []) + ($media->cover !== null ? ['cover_url' => $media->cover->url] : []) + (isset($request->options['instagram_audio']) ? [
                 'audio_configuration' => json_encode([
                     'audio_id' => $request->options['instagram_audio']['audio_id'],
                     'audio_volume' => (int) ($request->options['instagram_audio']['audio_volume'] ?? 100),
@@ -368,7 +368,13 @@ class InstagramPublisher implements FirstCommenter, Publisher, StatusPoller
     {
         return $media->isVideo()
             ? ['media_type' => 'VIDEO', 'video_url' => $media->url]
-            : ['image_url' => $media->url];
+            : ['image_url' => $media->url] + $this->altParams($media);
+    }
+
+    /** Texto alternativo propio de este destino (T-17); solo imagenes. @return array<string, string> */
+    private function altParams(PublishMedia $media): array
+    {
+        return ! $media->isVideo() && $media->alt !== null && $media->alt !== '' ? ['alt_text' => $media->alt] : [];
     }
 
     /** @param array<string, string> $params */

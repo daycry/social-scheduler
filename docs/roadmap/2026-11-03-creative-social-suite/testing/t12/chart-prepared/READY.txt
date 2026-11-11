@@ -1,0 +1,23 @@
+﻿G5 READY - 2026-11-06. Branch feature/creative-social-suite. No git mutations.
+Owned modifications: resources/js/Studio/bar-geometry.js; new tests/frontend/studio-bar-prepared.test.mjs.
+Pure shared geometry algorithm extracted without changes; original API keeps options normalization before projection.
+WeakMap stores only own immutable projection under an own empty frozen opaque handle; no external table reference.
+RED evidence: red-1..red-8.txt, each dated and individually run with --test-name-pattern.
+Temporary API stubs returned empty objects for functional RED; no import/syntax errors.
+RED 1: full ten-variant geometry absent (deepStrictEqual).
+RED 2: own frozen opaque capture absent (assertion).
+RED 3: forged/cloned handle rejection absent (Missing expected exception TypeError).
+RED 4: preparation validation absent (Missing expected exception).
+RED 5: warnings/precision/domain/ticks result absent (deepStrictEqual).
+RED 6: closed options validation absent (Missing expected exception).
+RED 7: prepared 12000-bar layout absent (prepared layout must produce bars).
+RED 8: geometry after source collection absent (deepStrictEqual).
+GREEN focused: 8 tests, 8 pass, 0 fail/skipped, exit 0.
+GREEN regression: 78 tests (70 previous + 8 new), 78 pass, 0 fail/skipped, exit 0.
+Command: node --max-old-space-size=512 --expose-gc --experimental-test-isolation=none --test tests/frontend/studio-bar-prepared.test.mjs tests/frontend/studio-bar-geometry.test.mjs tests/frontend/studio-chart-binding.test.mjs tests/frontend/studio-dataset-table.test.mjs
+GC test requires --expose-gc and demonstrates external-table collection while handle lives and handle collection once released.
+Limited regression metrics: 1000 categories, 12 series, 12000 bars, 4 style layouts; prepare 26.907 ms; layouts 53.052 ms; heapUsed 36839536 bytes; external reads 0.
+Metrics are local observations, not timing thresholds, peak memory evidence or 52MB acceptance. No 52MB fixture used.
+Sources frozen at READY in bar-geometry.ready.js and studio-bar-prepared.ready.test.mjs, with sha256-ready.txt and implementation.diff.
+No docs/ledger, old tests, binding/core, UI, browser, PHP, network, environment, database or export acceptance modified/performed.
+T12 stays open; root owns ledger update and fresh review A/B.

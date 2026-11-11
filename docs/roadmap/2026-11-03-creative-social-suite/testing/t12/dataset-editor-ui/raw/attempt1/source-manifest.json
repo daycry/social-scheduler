@@ -1,0 +1,26 @@
+{
+  "resources/js/Components/Studio/StudioDatasetsDialog.vue": {
+    "before": null,
+    "after": "20afbcb0fcc9c150b05b887fc0818f35e02e28257a66b046ac76affb7a77df0f"
+  },
+  "resources/js/Studio/dataset-client.js": {
+    "before": null,
+    "after": "de61d8c872ec8d74cff7e16d1c01436815fdb889dcb3d5e6907399b90c420213"
+  },
+  "tests/frontend/studio-dataset-client.test.mjs": {
+    "before": null,
+    "after": "6edc27b4b68eebdb9ea2ea16cc66c03b3a09c587db775b4998bc1adee6d216cc"
+  },
+  "tests/frontend/studio-datasets-dialog.test.mjs": {
+    "before": null,
+    "after": "83ae0374af8e13e8976b4102674358d7a4cf8770cb7659c7ded7a060ef29c3b4"
+  },
+  "resources/js/Pages/Studio/Index.vue": {
+    "before": "230ca6d2e2c1a12d291e00f3dcae2d8fca14c494b690539e3873b370c7ee1194",
+    "after": "a65b48594216121a7abfd6a83cb296895a4cb2b50fee7598733c5bdc1bd172f6"
+  },
+  "resources/js/Pages/Studio/Editor.vue": {
+    "before": "c7ef9a5cfac3562dd9910af2d8d2093d1801927b70b6558da904234014872562",
+    "after": "3e0d33b9b0a82410f068b42b4245f04bb5974022edf0ee92dcc32c56fee94f3f"
+  }
+}

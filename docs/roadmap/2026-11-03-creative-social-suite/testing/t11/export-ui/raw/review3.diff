@@ -1,0 +1,48 @@
+--- attempt2/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
++++ docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
+@@ -1,6 +1,6 @@
+ # Contrato de integración de los jobs audiovisuales
+ 
+-2026-11-05. Contrato de T-11 y estado del árbol de trabajo: jobs, transferencia por partes y handlers web/API/MCP implementados, con evidencia de revisión/regresión del bloque público en testing/t11/av-public/review.md. El diálogo del editor todavía ofrece solo los cinco formatos estáticos; la integración audiovisual UI y QA integral siguen pendientes. No cambia la autorización pendiente de la prueba ONNX de T-10 ni las pruebas del VPS a cargo del usuario.
++2026-11-05. Contrato de T-11 y estado del árbol de trabajo: jobs, transferencia por partes y handlers web/API/MCP implementados, con evidencia de revisión/regresión del bloque público en testing/t11/av-public/review.md. El diálogo del editor ofrece los cinco formatos estáticos y MP4/GIF, con historial y controles; su evidencia UI se registra en testing/t11/export-ui/review.md y la QA integral del padre sigue pendiente. No cambia la autorización pendiente de la prueba ONNX de T-10 ni las pruebas del VPS a cargo del usuario.
+ 
+ ## Identidad y recursos
+ 
+@@ -98,13 +98,13 @@
+ 
+ Cada entrega privada transporta solamente el ID de un lease ya reservado; no acepta documento, paths ni opciones del consumidor. Un arranque atómico fija started_at una sola vez. Duplicados y leases cancelados/reemplazados no ejecutan fases ni crean medios. Una entrega todavía pendiente en la cola de BD no se confunde con un encoder vencido: al arrancar puede renovar su TTL si sigue siendo la asignación vigente. El recibo queue_job_id permite al recuperador comprobar que el mensaje existe sin duplicarlo periódicamente cuando no hay worker.
+ 
+-No se usa ShouldBeUnique para el export completo: el resultado aceptado permite reservar y despachar el paso siguiente sin perderlo por un lock anterior. El job audiovisual tiene un intento ytimeout100s, menor que worker120/retry_after180. Su callback de fallo solo afecta a su propio lease vigente. Si el despacho se interrumpe, el journal conserva la asignación y su TTL para recuperarla; una respuesta tardía nunca revive otra generación. El runner invoca las fases nativas bajo el mutex, con manifiestos generados y retirados al terminar; no mantiene transacciones BD durante procesos. Los handlers públicos reutilizan esos jobs y la recuperación; el diálogo audiovisual y la QA integral del padre siguen pendientes.
++No se usa ShouldBeUnique para el export completo: el resultado aceptado permite reservar y despachar el paso siguiente sin perderlo por un lock anterior. El job audiovisual tiene un intento ytimeout100s, menor que worker120/retry_after180. Su callback de fallo solo afecta a su propio lease vigente. Si el despacho se interrumpe, el journal conserva la asignación y su TTL para recuperarla; una respuesta tardía nunca revive otra generación. El runner invoca las fases nativas bajo el mutex, con manifiestos generados y retirados al terminar; no mantiene transacciones BD durante procesos. Los handlers públicos reutilizan esos jobs y la recuperación; la QA integral del padre sigue pendiente.
+ 
+ El puente `StudioAvProcess` ya invoca av-runtime desde Laravel con manifiesto privado generado yprueba de límite OS validada. Fija metadata de recursos propios en el workspace tras el primer proceso válido; las fases siguientes usan esa metadata yla revisión original. El presupuesto de85s se comparte entre invocación nativa einspección posterior de bytes; la salida debe coincidir con namespace/fase/índice. Los workmanifests se retiran al finalizar para no acumular una copia completa del proyecto por cada tramo.
+ 
+ El handler ya encadena plan/snapshot/normalize/render/mix/assemble yverificación de checkpoints. Contención del mutex difiere el lease sin liberar su reserva anticipadamente; los errores posteriores al avance se cercan también por posición. `studio:recover --limit=1..100` hace una pasada local acotada, limpia asignaciones vencidas antes dereencolar yse registra cada minuto sin solapamiento. Reprogramar la fecha del workspace diferido evita que un export sinworker monopolice todos los lotes delante de otras marcas. Esto prepara el scheduler de aplicación, no instala cron ni servicios en el VPS.
+ 
+-La integración incluye register hasta ready. StudioAvDeliveryTest comprueba defer, duplicados y recuperación entre checkpoint/reencolado. StudioAvPublicTest cruza API MP4/GIF y MCP MP4 por queue:work real hasta descarga firmada con SHA coincidente y borrador de la marca (3 casos/82 aserciones). No publica en redes sociales ni acredita el VPS. La revisión/regresión del bloque se registra en testing/t11/av-public/review.md; la interfaz audiovisual sigue pendiente.
++La integración incluye register hasta ready. StudioAvDeliveryTest comprueba defer, duplicados y recuperación entre checkpoint/reencolado. StudioAvPublicTest cruza API MP4/GIF y MCP MP4 por queue:work real hasta descarga firmada con SHA coincidente y borrador de la marca (3 casos/82 aserciones). No publica en redes sociales ni acredita el VPS. La revisión/regresión del bloque se registra en testing/t11/av-public/review.md; la interfaz audiovisual utiliza esas mismas operaciones y su evidencia se registra en testing/t11/export-ui/review.md.
+ 
+ El journal de cada snapshot distingue aceptación de publicación del input fijo mediante input_published. Si el proceso muere entre esos dos pasos, recovery repara la promoción antes de encolar el trabajo siguiente. Solo consulta promociones pendientes de la generación actual, con índice ybatch de16; no vuelve a verificar todos los recursos ya publicados en cada pasada. Los parciales vencidos de exports failed/cancelled también se limpian periódicamente, conservando su estado terminal ylos checkpoints aceptados. En mantenimiento se comprueba un plazo de15s entre operaciones; una promoción individual puede consumir hasta85s yuna limpieza hasta30s, de modo que no se afirma un límite duro de15s para la pasada completa. El mutex del scheduler dura2min yno reservaRAM.
+ 
+--- attempt2/docs/api/creative-suite.openapi.yaml
++++ docs/api/creative-suite.openapi.yaml
+@@ -298,7 +298,7 @@
+         '404': { $ref: '#/components/responses/NotFound' }
+     post:
+       operationId: exportStudioDesign
+-      description: Exporta una revisión inmutable. MP4/GIF generan un archivo del proyecto con páginas en el orden indicado; frame_times no vacío y transparencia no se admiten para esos formatos. Los handlers audiovisuales del árbol de trabajo usan la cola studio; el diálogo del editor y la QA integral de T-11 siguen pendientes.
++      description: Exporta una revisión inmutable. MP4/GIF generan un archivo del proyecto con páginas en el orden indicado; frame_times no vacío y transparencia no se admiten para esos formatos. Los handlers audiovisuales del árbol de trabajo usan la cola studio; el diálogo del editor utiliza esos mismos trabajos y ofrece seguimiento y controles. La QA integral del padre T-11 sigue pendiente.
+       requestBody:
+         required: true
+         content:
+--- attempt2/deploy/systemd/README.md
++++ deploy/systemd/README.md
+@@ -39,7 +39,7 @@
+ 
+ `Delegate=yes` permite crear únicamente subgrupos UUID en la raíz de esa unidad. Por ello su `ProtectControlGroups=no` difiere del worker genérico; los permisos kernel de usuario siguen impidiendo tocar los cgroups de otras unidades. El supervisor verifica propietario, límite heredado y disponibilidad de kill antes de abrir Node. La limpieza usa `cgroup.kill` del subgrupo propio, nunca nombres de procesos ni un kill global. Los workers existentes no cambian.
+ 
+-Antes de instalar, ajustar User/Group/rutas/PHP_BIN, disponer de Node nativo, FFmpeg/ffprobe, Chromium de Playwright y los bundles construidos. El timeout del job es100s, inferior al worker120s y al retry_after180s. El árbol de trabajo ya conecta jobsLaravel y handlers web/API/MCP de MP4/GIF; la plantilla sigue sin instalar y no acredita despliegue. La interfaz audiovisual del editor y QA integral siguen pendientes. El usuario ejecutará las comprobaciones del VPS; las pruebas WSL del supervisor no las sustituyen. No instalar ni iniciar esta unidad por copiar la documentación de desarrollo.
++Antes de instalar, ajustar User/Group/rutas/PHP_BIN, disponer de Node nativo, FFmpeg/ffprobe, Chromium de Playwright y los bundles construidos. El timeout del job es100s, inferior al worker120s y al retry_after180s. El árbol de trabajo ya conecta jobsLaravel y handlers web/API/MCP de MP4/GIF; la plantilla sigue sin instalar y no acredita despliegue. El árbol de trabajo incluye también el diálogo audiovisual; la QA integral del padre sigue pendiente. El usuario ejecutará las comprobaciones del VPS; las pruebas WSL del supervisor no las sustituyen. No instalar ni iniciar esta unidad por copiar la documentación de desarrollo.
+ 
+ Para validar la plantilla preparada, `systemd-analyze verify deploy/systemd/scheduler-studio.service` comprueba su sintaxis. No ejecuta el worker ni acredita permisos de la instalación real.
+ 

@@ -1,0 +1,962 @@
+--- /dev/null
++++ b/resources/js/Components/Studio/StudioDatasetsDialog.vue
+@@ -0,0 +1,435 @@
++<script setup>
++import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
++import { downloadStudioBlob } from '@/Studio/api';
++import { createDatasetClient } from '@/Studio/dataset-client';
++import * as tableCore from '@/Studio/dataset-table';
++
++const props = defineProps({ modelValue: Boolean, brandId: Number, brandName: { type: String, default: '' } });
++const emit = defineEmits(['update:modelValue', 'changed']);
++const client = createDatasetClient({ createAssembler: tableCore.createDatasetAssembler, tableChunks: tableCore.datasetTableChunks });
++const dialog = ref(null);
++const pendingDiscard = shallowRef(null);
++const discardButton = ref(null);
++let lastActionFocus = null;
++function askDiscard(run) {
++    if (!dirty.value) return run();
++    lastActionFocus = typeof document === 'undefined' ? null : document.activeElement;
++    pendingDiscard.value = { run, context };
++    nextTick(() => discardButton.value?.focus());
++}
++function requestClose() { askDiscard(() => { invalidateReads(); emit('update:modelValue', false); }); }
++function confirmDiscard() {
++    const action = pendingDiscard.value; pendingDiscard.value = null;
++    if (!action || action.context !== context) return;
++    cellEditor.value = null; columnDrafts.value = Object.create(null);
++    if (savedTable) { history.reset(savedTable); table.value = history.table; name.value = savedName.value; historyVersion.value++; }
++    return action.run();
++}
++function cancelDiscard() { pendingDiscard.value = null; nextTick(() => lastActionFocus?.focus()); }
++const datasets = ref([]);
++const pagination = ref({ current_page: 1, last_page: 1, total: 0 });
++const query = ref('');
++const error = ref('');
++const status = ref('');
++const listBusy = ref(false);
++const readBusy = ref(false);
++const writeBusy = ref(false);
++let context = 0;
++let disposed = false;
++const requests = new Map();
++function invalidateReads() {
++    context++; requests.forEach(ticket => ticket.abort.abort()); requests.clear();
++    listBusy.value = readBusy.value = historyBusy.value = false;
++}
++function ticketFor(channel) {
++    requests.get(channel)?.abort.abort();
++    const ticket = { context, brandId: props.brandId, abort: new AbortController() };
++    requests.set(channel, ticket); return ticket;
++}
++function current(channel, ticket) {
++    return !disposed && props.modelValue && ticket.context === context && ticket.brandId === props.brandId && requests.get(channel) === ticket;
++}
++async function loadList(page = 1) {
++    if (!props.modelValue || !props.brandId) return;
++    const ticket = ticketFor('list'); listBusy.value = true; error.value = '';
++    try {
++        const result = await client.list(ticket.brandId, { query: query.value.trim(), page, signal: ticket.abort.signal });
++        if (!current('list', ticket)) return;
++        datasets.value = result.datasets ?? []; pagination.value = result.pagination ?? { current_page: 1, last_page: 1, total: datasets.value.length };
++    } catch (e) { if (current('list', ticket) && e.name !== 'AbortError') error.value = e.message; }
++    finally { if (current('list', ticket)) { requests.delete('list'); listBusy.value = false; } }
++}
++const table = shallowRef(null);
++const selected = ref(null);
++const revisionView = ref(null);
++const sha256 = ref('');
++const conflict = ref(false);
++const revisions = ref([]);
++const historyPagination = ref({ current_page: 1, last_page: 1, total: 0 });
++const historyOpen = ref(false);
++const downloadFormat = ref('csv');
++const downloadMode = ref('spreadsheet');
++const downloadUrl = computed(() => selected.value && revisionView.value ? client.exportUrl(props.brandId, selected.value.id, { revision: revisionView.value, format: downloadFormat.value, mode: downloadMode.value }) : '');
++const historyBusy = ref(false);
++const importFile = shallowRef(null);
++const importName = ref('');
++const importFormat = ref('csv');
++const importHeader = ref(true);
++const fileInput = ref(null);
++function pickFile(event) {
++    importFile.value = event.target.files?.[0] ?? null;
++    const filename = importFile.value?.name ?? '';
++    if (!importName.value && filename) importName.value = filename.replace(/\.[^.]+$/, '');
++    const extension = filename.split('.').at(-1)?.toLowerCase();
++    if (['csv', 'tsv', 'json'].includes(extension)) importFormat.value = extension;
++}
++function importData() {
++    if (writeBusy.value || !importFile.value) return;
++    return askDiscard(async () => {
++        const uploadName = importName.value.trim();
++        if (!uploadName || [...uploadName].length > 255) { error.value = 'Escribe un nombre de hasta 255 caracteres para la importación.'; return; }
++        const ticket = writeTicket(), payload = { file: importFile.value, name: uploadName, format: importFormat.value, header: importHeader.value };
++        writeBusy.value = true; error.value = ''; status.value = 'Importando archivo…';
++        try {
++            const result = await client.upload(ticket.brandId, payload);
++            if (!currentWrite(ticket)) return;
++            importFile.value = null; importName.value = ''; if (fileInput.value) fileInput.value.value = '';
++            emit('changed', result.dataset); loadList(); await loadDataset(result.dataset, result.dataset.revision);
++        } catch (e) { if (currentWrite(ticket)) { error.value = e.message; status.value = ''; } }
++        finally { writeBusy.value = false; }
++    });
++}
++function mutateDataset(action) {
++    if (writeBusy.value || !selected.value) return;
++    return askDiscard(async () => {
++        const ticket = writeTicket(), id = selected.value.id;
++        writeBusy.value = true; error.value = ''; status.value = action === 'archive' ? 'Archivando tabla…' : 'Restaurando tabla…';
++        try {
++            const result = await client.control(ticket.brandId, id, action);
++            if (!currentWrite(ticket)) return;
++            selected.value = result.dataset; emit('changed', result.dataset); loadList(pagination.value.current_page);
++            status.value = action === 'archive' ? 'Tabla archivada. Sus revisiones se conservan.' : 'Tabla restaurada.';
++        } catch (e) { if (currentWrite(ticket)) { error.value = e.message; status.value = ''; } }
++        finally { writeBusy.value = false; }
++    });
++}
++function copyTable() {
++    if (!table.value || readBusy.value || writeBusy.value) return;
++    try {
++        const copied = tableCore.copyDatasetTable(table.value), copiedName = `${name.value} — copia`;
++        return askDiscard(() => {
++            stopSelectionReads(); selected.value = null; revisionView.value = null; sha256.value = ''; conflict.value = false;
++            history = tableCore.createDatasetHistory(copied); table.value = history.table; savedTable = null;
++            name.value = copiedName; savedName.value = ''; historyVersion.value++; cellEditor.value = null; syncSelection();
++        });
++    } catch (e) { error.value = e.message; }
++}
++function downloadDraft() {
++    if (!table.value) return;
++    if (cellPending.value || headerPending.value) { error.value = 'Aplica o cancela la edición de la celda o encabezado antes de descargar el borrador.'; return; }
++    try {
++        downloadStudioBlob(new Blob([...tableCore.datasetTableChunks(table.value)], { type: 'application/json' }), `tabla-${selected.value?.id ?? 'nueva'}-borrador.json`);
++    } catch (e) { error.value = e.message; }
++}
++
++async function showHistory(page = 1) {
++    if (!selected.value || !props.modelValue) return;
++    const ticket = ticketFor('history'), id = selected.value.id;
++    historyOpen.value = true; historyBusy.value = true; error.value = '';
++    try {
++        const result = await client.history(ticket.brandId, id, { page, signal: ticket.abort.signal });
++        if (!current('history', ticket)) return;
++        revisions.value = result.revisions ?? []; historyPagination.value = result.pagination;
++    } catch (e) { if (current('history', ticket) && e.name !== 'AbortError') error.value = e.message; }
++    finally { if (current('history', ticket)) { requests.delete('history'); historyBusy.value = false; } }
++}
++function reloadSaved() {
++    if (!selected.value || writeBusy.value) return;
++    return askDiscard(async () => {
++        stopSelectionReads(); const ticket = ticketFor('table'), id = selected.value.id; readBusy.value = true; error.value = '';
++        try {
++            const result = await client.get(ticket.brandId, id, { signal: ticket.abort.signal });
++            if (current('table', ticket)) await loadDataset(result.dataset, result.dataset.revision);
++        } catch (e) { if (current('table', ticket) && e.name !== 'AbortError') error.value = e.message; }
++        finally { if (current('table', ticket)) { requests.delete('table'); readBusy.value = false; } }
++    });
++}
++
++let editorEpoch = 0;
++function writeTicket() { return { context, brandId: props.brandId, editorEpoch }; }
++function currentWrite(ticket) { return !disposed && props.modelValue && ticket.context === context && ticket.brandId === props.brandId && ticket.editorEpoch === editorEpoch; }
++async function saveTable() {
++    if (!canEdit.value || writeBusy.value || !dirty.value) return;
++    if (cellPending.value || headerPending.value) { error.value = 'Aplica o cancela la edición de la celda o encabezado antes de guardar.'; return; }
++    const saveName = name.value.trim();
++    if (!saveName || [...saveName].length > 255) { error.value = 'Escribe un nombre de hasta 255 caracteres.'; return; }
++    const ticket = writeTicket(), snapshot = table.value;
++    const id = selected.value?.id ?? null, revision = selected.value?.revision ?? null;
++    writeBusy.value = true; error.value = ''; status.value = 'Guardando tabla…';
++    try {
++        const result = await client.save(ticket.brandId, id, { name: saveName, revision, table: snapshot });
++        if (!currentWrite(ticket)) return;
++        selected.value = result.dataset; revisionView.value = result.dataset.revision; sha256.value = '';
++        savedTable = snapshot; savedName.value = name.value = saveName; conflict.value = false;
++        status.value = `Revisión ${result.dataset.revision} guardada.`; emit('changed', result.dataset); loadList(pagination.value.current_page);
++    } catch (e) {
++        if (currentWrite(ticket)) {
++            conflict.value = e.status === 409;
++            error.value = conflict.value ? 'La tabla tiene una revisión más reciente. Tu borrador se conserva. Puedes descargarlo o recargar la versión guardada.' : e.message;
++            status.value = '';
++        }
++    } finally { writeBusy.value = false; }
++}
++const rowPage = ref(0);
++const visibleRows = computed(() => table.value?.rows.slice(rowPage.value * 20, rowPage.value * 20 + 20) ?? []);
++const visibleColumns = computed(() => table.value?.columns.map((column, index) => ({ ...column, index })).slice(columnPage.value * 8, columnPage.value * 8 + 8) ?? []);
++const columnPage = ref(0);
++const selectedRowId = ref('');
++const selectedColumnId = ref('');
++function stopSelectionReads() {
++    editorEpoch++; columnDrafts.value = Object.create(null);
++    for (const channel of ['table', 'history']) { requests.get(channel)?.abort.abort(); requests.delete(channel); }
++    readBusy.value = historyBusy.value = false; historyOpen.value = false; revisions.value = [];
++}
++function selectDataset(dataset, revision = dataset.revision, snapshotName = dataset.name) {
++    return askDiscard(() => loadDataset(dataset, revision, snapshotName));
++}
++async function loadDataset(dataset, revision, snapshotName = dataset.name) {
++    stopSelectionReads(); conflict.value = false; cellEditor.value = null;
++    const ticket = ticketFor('table');
++    selected.value = dataset; revisionView.value = revision; table.value = null; history = null; savedTable = null;
++    name.value = savedName.value = snapshotName; sha256.value = ''; readBusy.value = true; error.value = ''; status.value = 'Cargando tabla…';
++    try {
++        const result = await client.load(ticket.brandId, dataset.id, revision, { signal: ticket.abort.signal, onProgress: count => {
++            if (current('table', ticket)) status.value = `Cargando tabla… ${count} filas leídas`;
++        } });
++        if (!current('table', ticket)) return;
++        history = tableCore.createDatasetHistory(result.table); table.value = savedTable = history.table; historyVersion.value++;
++        revisionView.value = result.revision; sha256.value = result.sha256;
++        rowPage.value = columnPage.value = 0; selectedRowId.value = table.value.rows[0]?.id ?? ''; selectedColumnId.value = table.value.columns[0]?.id ?? '';
++        status.value = 'Tabla cargada.';
++    } catch (e) { if (current('table', ticket) && e.name !== 'AbortError') { error.value = e.message; status.value = ''; } }
++    finally { if (current('table', ticket)) { requests.delete('table'); readBusy.value = false; } }
++}
++
++const name = ref('');
++const cellEditor = shallowRef(null);
++const cellDraft = ref('');
++const cellTypeDraft = ref('text');
++const cellInput = ref(null);
++const cellTypeInput = ref(null);
++const columnDrafts = ref(Object.create(null));
++const headerPending = computed(() => Object.keys(columnDrafts.value).length > 0);
++function stageColumnLabel(id, label) {
++    if (!canEdit.value) return;
++    const next = Object.assign(Object.create(null), columnDrafts.value);
++    if (table.value.columns.find(column => column.id === id)?.label === label) delete next[id]; else next[id] = label;
++    columnDrafts.value = next;
++}
++const cellOriginalText = ref('');
++const cellOriginalType = ref('text');
++const cellPending = computed(() => !!cellEditor.value && (cellDraft.value !== cellOriginalText.value || cellTypeDraft.value !== cellOriginalType.value));
++const conversionType = ref('number');
++const conversionPreview = shallowRef(null);
++const searchText = ref('');
++const replacementText = ref('');
++const onlySelectedColumn = ref(false);
++const fillText = ref('');
++const fillType = ref('text');
++const includeEmptyStrings = ref(false);
++const transposePreview = ref(false);
++function structure(action) {
++    const transforms = {
++        'add-row': table => tableCore.addDatasetRow(table),
++        'remove-row': table => tableCore.removeDatasetRow(table, selectedRowId.value),
++        'add-column': table => tableCore.addDatasetColumn(table),
++        'remove-column': table => tableCore.removeDatasetColumn(table, selectedColumnId.value),
++    };
++    if (!transforms[action] || !applyEdit(transforms[action])) return;
++    if (action === 'add-row') { selectedRowId.value = table.value.rows.at(-1).id; rowPage.value = Math.floor((table.value.rows.length - 1) / 20); }
++    if (action === 'add-column') { selectedColumnId.value = table.value.columns.at(-1).id; columnPage.value = Math.floor((table.value.columns.length - 1) / 8); }
++}
++function renameColumn(id, label, event) {
++    if (applyEdit(table => tableCore.renameDatasetColumn(table, id, label), { allowHeader: true })) {
++        const next = Object.assign(Object.create(null), columnDrafts.value); delete next[id]; columnDrafts.value = next;
++    }
++}
++function previewConversion() {
++    if (!canEdit.value) return;
++    error.value = '';
++    try {
++        conversionPreview.value = { ...tableCore.previewDatasetConversion(table.value, selectedColumnId.value, conversionType.value),
++            source: table.value, columnId: selectedColumnId.value, type: conversionType.value };
++    } catch (e) { error.value = e.message; conversionPreview.value = null; }
++}
++function applyConversion() {
++    const preview = conversionPreview.value;
++    if (!preview || preview.source !== table.value || preview.columnId !== selectedColumnId.value || preview.type !== conversionType.value) { error.value = 'Previsualiza la conversión antes de aplicarla.'; return; }
++    if (preview.errors.length) { error.value = 'Corrige las filas indicadas antes de convertir la columna.'; return; }
++    applyEdit(table => tableCore.applyDatasetConversion(table, selectedColumnId.value, conversionType.value));
++}
++function replaceText() { applyEdit(table => tableCore.replaceDatasetText(table, searchText.value, replacementText.value, { columnId: onlySelectedColumn.value ? selectedColumnId.value : null })); }
++function fillBlanks() { applyEdit(table => tableCore.fillDatasetBlanks(table, tableCore.cellFromInput(fillText.value, fillType.value), { includeEmptyStrings: includeEmptyStrings.value, columnId: onlySelectedColumn.value ? selectedColumnId.value : null })); }
++function transposeTable() {
++    if (!canEdit.value) return;
++    if (table.value.rows.length > 99) { error.value = 'Para conservar los encabezados, se pueden transponer como máximo 99 filas.'; return; }
++    transposePreview.value = true; error.value = '';
++}
++function confirmTranspose() { if (transposePreview.value) applyEdit(table => tableCore.transposeDatasetTable(table)); }
++
++const viewingHistory = computed(() => selected.value && revisionView.value !== selected.value.revision);
++const canEdit = computed(() => !!table.value && !readBusy.value && !writeBusy.value && !viewingHistory.value && !selected.value?.archived_at);
++const canUndo = computed(() => { historyVersion.value; return !!history?.canUndo && canEdit.value && !cellPending.value && !headerPending.value; });
++const canRedo = computed(() => { historyVersion.value; return !!history?.canRedo && canEdit.value && !cellPending.value && !headerPending.value; });
++function syncSelection() {
++    if (!table.value.rows.some(row => row.id === selectedRowId.value)) selectedRowId.value = table.value.rows[0]?.id ?? '';
++    if (!table.value.columns.some(column => column.id === selectedColumnId.value)) selectedColumnId.value = table.value.columns[0]?.id ?? '';
++    rowPage.value = Math.max(0, Math.min(rowPage.value, Math.ceil(table.value.rows.length / 20) - 1));
++    columnPage.value = Math.max(0, Math.min(columnPage.value, Math.ceil(table.value.columns.length / 8) - 1));
++}
++function applyEdit(transform, { allowCell = false, allowHeader = false } = {}) {
++    if (!canEdit.value) return false;
++    if ((cellPending.value && !allowCell) || (headerPending.value && !allowHeader)) { error.value = 'Aplica o cancela la edición de la celda o encabezado antes de continuar.'; return false; }
++    error.value = '';
++    try {
++        history.commit(transform(table.value)); table.value = history.table; historyVersion.value++; syncSelection();
++        conversionPreview.value = null; transposePreview.value = false; cellEditor.value = null;
++        status.value = 'Cambios sin guardar.'; return true;
++    } catch (e) { error.value = e.message; return false; }
++}
++function openCell(rowId, columnId) {
++    if (!canEdit.value) return;
++    if (cellPending.value || headerPending.value) { error.value = 'Aplica o cancela la edición actual antes de abrir otra celda.'; return; }
++    const row = table.value.rows.find(row => row.id === rowId), index = table.value.columns.findIndex(column => column.id === columnId);
++    if (!row || index < 0) return;
++    selectedRowId.value = rowId; selectedColumnId.value = columnId; cellEditor.value = { rowId, columnId };
++    cellDraft.value = cellOriginalText.value = tableCore.cellText(row.values[index]); cellTypeDraft.value = cellOriginalType.value = tableCore.cellType(row.values[index]);
++    nextTick(() => { if (cellTypeDraft.value === 'empty') cellTypeInput.value?.focus(); else cellInput.value?.focus(); });
++}
++function commitCell() {
++    if (!cellEditor.value) return;
++    const { rowId, columnId } = cellEditor.value;
++    if (applyEdit(table => tableCore.editDatasetCell(table, rowId, columnId, tableCore.cellFromInput(cellDraft.value, cellTypeDraft.value)), { allowCell: true })) cellEditor.value = null;
++}
++function undoTable(direction) {
++    if (!canEdit.value) return;
++    if (cellPending.value || headerPending.value) { error.value = 'Aplica o cancela la edición actual antes de deshacer.'; return; }
++    table.value = direction === 'undo' ? history.undo() : history.redo(); historyVersion.value++; cellEditor.value = null; conversionPreview.value = null; transposePreview.value = false; syncSelection(); error.value = '';
++}
++
++const historyVersion = ref(0);
++let history = null;
++let savedTable = null;
++const savedName = ref('');
++const dirty = computed(() => { historyVersion.value; return table.value !== null && (table.value !== savedTable || name.value !== savedName.value || cellPending.value || headerPending.value); });
++function newTable() { return askDiscard(createLocalTable); }
++function createLocalTable() {
++    stopSelectionReads(); conflict.value = false; cellEditor.value = null; revisionView.value = null; sha256.value = ''; error.value = ''; status.value = '';
++    rowPage.value = columnPage.value = 0;
++    selected.value = null; name.value = 'Tabla sin título'; savedName.value = ''; savedTable = null;
++    history = tableCore.createDatasetHistory(tableCore.blankDatasetTable()); table.value = history.table; historyVersion.value++;
++    selectedRowId.value = table.value.rows[0]?.id ?? ''; selectedColumnId.value = table.value.columns[0]?.id ?? '';
++}
++watch(() => [selectedColumnId.value, conversionType.value], () => { conversionPreview.value = null; });
++watch(() => [props.modelValue, props.brandId], async ([open]) => {
++    invalidateReads(); table.value = null; selected.value = null; history = null; historyVersion.value++;
++    pendingDiscard.value = null; cellEditor.value = null; columnDrafts.value = Object.create(null); conversionPreview.value = null; transposePreview.value = false; historyOpen.value = false; revisions.value = []; conflict.value = false; importFile.value = null; importName.value = ''; if (fileInput.value) fileInput.value.value = ''; savedTable = null; name.value = savedName.value = ''; datasets.value = []; query.value = ''; error.value = ''; status.value = '';
++    const version = context;
++    if (open && props.brandId) loadList();
++    await nextTick();
++    if (version !== context || disposed) return;
++    if (open && !dialog.value?.open) dialog.value?.showModal();
++    else if (!open && dialog.value?.open) dialog.value.close();
++}, { immediate: true });
++function beforeUnload(event) {
++    if (!props.modelValue || !dirty.value) return;
++    event.preventDefault(); event.returnValue = '';
++}
++if (typeof window !== 'undefined') window.addEventListener('beforeunload', beforeUnload);
++onBeforeUnmount(() => { disposed = true; invalidateReads(); dialog.value?.close(); if (typeof window !== 'undefined') window.removeEventListener('beforeunload', beforeUnload); });
++</script>
++<template>
++    <Teleport to="body">
++        <dialog ref="dialog" aria-label="Tablas de datos de marca" class="datasets-dialog relative m-auto max-h-[94vh] w-[calc(100vw_-_1rem)] max-w-7xl overflow-hidden rounded-2xl border-0 bg-slate-50 p-0 text-slate-800 shadow-2xl backdrop:bg-slate-950/50" @cancel.prevent="pendingDiscard ? cancelDiscard() : requestClose()">
++            <div class="max-h-[92vh] overflow-y-auto" :inert="!!pendingDiscard || undefined">
++                <header class="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
++                    <div class="min-w-0"><p class="truncate text-xs font-semibold uppercase tracking-wider text-violet-700">{{ brandName || `Marca ${brandId}` }}</p><h2 class="mt-1 text-xl font-semibold tracking-tight text-slate-950">Tablas de datos</h2></div>
++                    <button type="button" class="close-tool shrink-0" aria-label="Cerrar tablas de datos" @click="requestClose">×</button>
++                </header>
++                <div class="space-y-4 p-3 sm:p-6">
++                    <p class="max-w-3xl text-sm leading-relaxed text-slate-600">Organiza los datos de esta marca y conserva sus revisiones. Los textos, números y valores vacíos mantienen su tipo; una importación no convierte los textos en fórmulas.</p>
++                    <p v-if="error" role="alert" class="rounded-xl border border-red-200 bg-red-50 p-3 text-sm leading-relaxed text-red-800">{{ error }}</p>
++                    <div v-if="conflict" class="flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950"><span>Tu borrador permanece en el editor.</span><button type="button" class="data-button" :disabled="writeBusy" @click="reloadSaved">Recargar versión guardada</button></div>
++                    <p v-if="status" role="status" class="text-sm text-violet-800">{{ status }}</p>
++                    <p v-if="writeBusy" role="status" class="rounded-xl bg-violet-100 p-3 text-sm font-medium text-violet-950">Hay una escritura en curso. Puedes cerrar esta ventana; su resultado se conservará en la marca de origen.</p>
++                    <div class="grid min-w-0 gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
++                        <aside class="min-w-0 space-y-4" aria-label="Biblioteca de tablas">
++                            <div class="rounded-2xl border border-slate-200 bg-white p-4">
++                                <button type="button" class="data-primary w-full" :disabled="writeBusy" @click="newTable">Nueva tabla</button>
++                                <form class="mt-4 flex gap-2" role="search" @submit.prevent="loadList()"><label class="sr-only" for="dataset-search">Buscar tablas</label><input id="dataset-search" v-model="query" type="search" maxlength="120" class="data-input min-w-0 flex-1" placeholder="Buscar tablas…" /><button type="submit" class="data-button px-3" :disabled="listBusy">Buscar</button></form>
++                                <p v-if="listBusy" role="status" class="mt-3 text-xs text-slate-500">Buscando tablas…</p>
++                                <p v-else-if="!datasets.length" class="mt-4 text-sm text-slate-500">No hay tablas para esta búsqueda. Crea una o importa tus datos.</p>
++                                <ul class="mt-3 space-y-2">
++                                    <li v-for="dataset in datasets" :key="dataset.id"><button type="button" :data-testid="`dataset-open-${dataset.id}`" :aria-label="dataset.name" :aria-pressed="selected?.id === dataset.id" :disabled="writeBusy" class="w-full rounded-xl border p-3 text-left transition hover:border-violet-400" :class="selected?.id === dataset.id ? 'border-violet-400 bg-violet-50' : 'border-slate-200 bg-white'" @click="selectDataset(dataset)"><span class="block break-words text-sm font-semibold text-slate-900">{{ dataset.name }}</span><span class="mt-1 block text-xs text-slate-500">Revisión {{ dataset.revision }} · {{ dataset.row_count }} filas × {{ dataset.column_count }} columnas</span><span v-if="dataset.archived_at" class="mt-2 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">Archivada</span></button></li>
++                                </ul>
++                                <nav v-if="pagination.last_page > 1" aria-label="Páginas de tablas" class="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs"><button type="button" class="data-button" :disabled="listBusy || pagination.current_page <= 1" @click="loadList(pagination.current_page - 1)">Tablas anteriores</button><span>{{ pagination.current_page }} / {{ pagination.last_page }}</span><button type="button" class="data-button" :disabled="listBusy || pagination.current_page >= pagination.last_page" @click="loadList(pagination.current_page + 1)">Tablas siguientes</button></nav>
++                                <p class="mt-3 text-[11px] leading-relaxed text-slate-500">La biblioteca incluye las tablas activas y archivadas de esta marca.</p>
++                            </div>
++                            <details class="rounded-2xl border border-slate-200 bg-white p-4"><summary class="cursor-pointer text-sm font-semibold text-slate-900">Importar un archivo</summary>
++                                <form class="mt-4 space-y-3" @submit.prevent="importData"><fieldset class="space-y-3" :disabled="writeBusy">
++                                    <label class="block text-xs font-medium text-slate-700">Nombre de la importación<input v-model="importName" class="data-input mt-1 w-full" required placeholder="Datos de la campaña" /></label>
++                                    <label class="block text-xs font-medium text-slate-700">Formato de importación<select v-model="importFormat" class="data-input mt-1 w-full"><option value="csv">CSV</option><option value="tsv">TSV</option><option value="json">JSON tipado</option></select></label>
++                                    <label v-if="importFormat !== 'json'" class="flex items-start gap-2 text-xs leading-relaxed"><input v-model="importHeader" type="checkbox" class="mt-0.5 rounded border-slate-300 text-violet-700" />La primera fila contiene encabezados</label>
++                                    <label class="block text-xs font-medium text-slate-700">Archivo de datos<input ref="fileInput" type="file" accept=".csv,.tsv,.json" class="mt-2 block w-full min-w-0 text-xs file:mr-2 file:rounded-lg file:border-0 file:bg-violet-100 file:px-2 file:py-2 file:text-violet-900" @change="pickFile" /></label>
++                                    <p class="text-[11px] leading-relaxed text-slate-500">CSV y TSV: hasta 25 MB. JSON tipado: hasta 52 MB. Máximo 1.000 filas y 100 columnas. CSV y TSV se importan como texto.</p>
++                                    <button type="submit" class="data-button w-full" :disabled="!importFile">Importar archivo</button>
++                                </fieldset></form>
++                            </details>
++                        </aside>
++                        <section class="min-w-0 space-y-4" aria-label="Editor de tablas">
++                            <div v-if="readBusy" role="status" class="rounded-2xl border border-violet-200 bg-violet-50 p-8 text-center text-sm text-violet-900">Cargando tabla…</div>
++                            <section v-else-if="table" data-testid="dataset-editor" class="min-w-0 space-y-4 rounded-2xl border border-slate-200 bg-white p-3 sm:p-5">
++                                <div class="flex flex-wrap items-end justify-between gap-3">
++                                    <label class="block min-w-0 flex-1 text-xs font-medium text-slate-600">Nombre de la tabla<input v-model="name" class="data-input mt-1 w-full text-base font-semibold text-slate-950" :disabled="!canEdit" /></label>
++                                    <button type="button" class="data-primary" :disabled="!canEdit || !dirty" @click="saveTable">Guardar tabla</button>
++                                </div>
++                                <div class="flex flex-wrap items-center gap-2 text-xs"><span v-if="selected" class="rounded-full bg-slate-100 px-2.5 py-1">Revisión {{ revisionView }}</span><span class="text-slate-500">{{ table.rows.length }} filas × {{ table.columns.length }} columnas</span><span role="status" :class="dirty ? 'text-amber-800' : 'text-emerald-700'">{{ dirty ? 'Cambios sin guardar' : 'Sin cambios pendientes' }}</span><span v-if="viewingHistory" class="rounded-full bg-amber-100 px-2.5 py-1 text-amber-900">Vista de revisión histórica</span><span v-if="selected?.archived_at" class="rounded-full bg-slate-200 px-2.5 py-1 text-slate-700">Tabla archivada · sólo lectura</span></div>
++                                <div class="flex flex-wrap gap-2"><button type="button" class="data-button" :disabled="!canUndo" @click="undoTable('undo')">Deshacer tabla</button><button type="button" class="data-button" :disabled="!canRedo" @click="undoTable('redo')">Rehacer tabla</button><button type="button" class="data-button" :disabled="writeBusy" @click="copyTable">Duplicar tabla</button><button v-if="selected" type="button" class="data-button" :disabled="writeBusy" @click="showHistory()">Historial de revisiones</button><button v-if="viewingHistory" type="button" class="data-button" :disabled="writeBusy" @click="reloadSaved">Volver a la revisión actual</button></div>
++                                <p class="text-[11px] leading-relaxed text-slate-500">Se conservan hasta 30 pasos para deshacer. Pulsa una celda para editar su contenido completo y elegir su tipo.</p>
++                                <div class="min-w-0 overflow-x-auto rounded-xl border border-slate-200" tabindex="0" aria-label="Desplazamiento horizontal de la tabla">
++                                    <table class="w-full min-w-[640px] table-fixed border-collapse text-left text-xs" aria-label="Datos de la tabla">
++                                        <caption class="sr-only">Filas {{ table.rows.length ? rowPage * 20 + 1 : 0 }} a {{ Math.min((rowPage + 1) * 20, table.rows.length) }}. Columnas {{ columnPage * 8 + 1 }} a {{ Math.min((columnPage + 1) * 8, table.columns.length) }}.</caption>
++                                        <thead class="bg-slate-50"><tr><th scope="col" class="w-12 border-b border-r border-slate-200 p-2"><span class="sr-only">Fila</span>#</th><th v-for="column in visibleColumns" :key="column.id" scope="col" class="min-w-24 border-b border-r border-slate-200 p-2 last:border-r-0"><label class="sr-only" :for="`dataset-header-${column.id}`">Nombre de columna {{ column.index + 1 }}</label><input :id="`dataset-header-${column.id}`" :value="columnDrafts[column.id] ?? column.label" :disabled="!canEdit" class="w-full min-w-0 rounded-md border border-transparent bg-transparent px-1 py-1 font-semibold text-slate-800 hover:border-slate-300 focus:border-violet-500 focus:bg-white disabled:opacity-100" @input="stageColumnLabel(column.id, $event.target.value)" @change="renameColumn(column.id, $event.target.value, $event)" /></th></tr></thead>
++                                        <tbody><tr v-for="(row, rowIndex) in visibleRows" :key="row.id" class="border-b border-slate-100 last:border-b-0"><th scope="row" class="border-r border-slate-200 bg-slate-50 p-2 font-normal text-slate-500">{{ rowPage * 20 + rowIndex + 1 }}</th><td v-for="column in visibleColumns" :key="column.id" class="border-r border-slate-100 p-0 align-top last:border-r-0"><button type="button" :data-testid="`dataset-cell-${row.id}-${column.id}`" :aria-label="`Editar fila ${rowPage * 20 + rowIndex + 1}, columna ${column.index + 1}: ${column.label}`" :disabled="!canEdit" class="block min-h-12 w-full px-3 py-2 text-left hover:bg-violet-50 disabled:opacity-100" :class="selectedRowId === row.id && selectedColumnId === column.id ? 'bg-violet-50 ring-1 ring-inset ring-violet-300' : ''" @click="openCell(row.id, column.id)"><span class="mb-1 block text-[9px] font-semibold uppercase tracking-wide text-slate-400">{{ { text: 'Texto', number: 'Número', empty: 'Vacío' }[tableCore.cellType(row.values[column.index])] }}</span><span class="block max-h-16 overflow-hidden whitespace-pre-wrap break-words text-slate-800">{{ row.values[column.index] === null ? '—' : tableCore.cellText(row.values[column.index]) || 'Texto vacío' }}</span></button></td></tr><tr v-if="!visibleRows.length"><td :colspan="visibleColumns.length + 1" class="p-6 text-center text-slate-500">Esta tabla todavía no tiene filas. Añade la primera fila para empezar.</td></tr></tbody>
++                                    </table>
++                                </div>
++                                <div class="flex flex-wrap items-center justify-between gap-3 text-xs"><div class="flex items-center gap-2"><button type="button" class="data-button" :disabled="rowPage === 0" @click="rowPage--">Filas anteriores</button><span>{{ table.rows.length ? rowPage * 20 + 1 : 0 }}–{{ Math.min((rowPage + 1) * 20, table.rows.length) }} / {{ table.rows.length }}</span><button type="button" class="data-button" :disabled="(rowPage + 1) * 20 >= table.rows.length" @click="rowPage++">Filas siguientes</button></div><div class="flex items-center gap-2"><button type="button" class="data-button" :disabled="columnPage === 0" @click="columnPage--">Columnas anteriores</button><span>{{ columnPage * 8 + 1 }}–{{ Math.min((columnPage + 1) * 8, table.columns.length) }}</span><button type="button" class="data-button" :disabled="(columnPage + 1) * 8 >= table.columns.length" @click="columnPage++">Columnas siguientes</button></div></div>
++                                <div v-if="headerPending" class="rounded-xl bg-amber-50 p-3 text-xs text-amber-950">Hay un encabezado pendiente. Sal del campo para aplicarlo o <button type="button" class="font-semibold underline" @click="columnDrafts = Object.create(null)">cancelar cambios de encabezados</button>.</div>
++                                <fieldset v-if="cellEditor" class="space-y-3 rounded-xl border border-violet-200 bg-violet-50/60 p-4" :disabled="!canEdit"><legend class="px-1 text-sm font-semibold text-violet-950">Editar celda</legend><label class="block text-xs font-medium">Tipo de la celda<select ref="cellTypeInput" v-model="cellTypeDraft" class="data-input mt-1 w-full sm:max-w-xs"><option value="text">Texto</option><option value="number">Número</option><option value="empty">Vacío</option></select></label><label class="block text-xs font-medium">Valor de la celda<textarea ref="cellInput" v-model="cellDraft" rows="4" class="data-input mt-1 w-full font-mono text-sm" :disabled="cellTypeDraft === 'empty'" spellcheck="false" /></label><p class="text-xs leading-relaxed text-slate-600">Texto conserva ceros iniciales y fórmulas literalmente. Número usa punto decimal, sin separador de miles; Vacío guarda un valor null.</p><div class="flex flex-wrap gap-2"><button type="button" class="data-primary" @click="commitCell">Aplicar celda</button><button type="button" class="data-button" @click="cellEditor = null">Cancelar edición de celda</button></div></fieldset>
++                                <details class="rounded-xl border border-slate-200 p-4"><summary class="cursor-pointer text-sm font-semibold text-slate-900">Herramientas de tabla</summary><fieldset class="mt-4 space-y-5" :disabled="!canEdit">
++                                    <div class="grid gap-3 sm:grid-cols-2"><label class="block text-xs font-medium">Fila seleccionada<select v-model="selectedRowId" class="data-input mt-1 w-full"><option v-if="!table.rows.length" value="">No hay filas</option><option v-for="(row, index) in table.rows" :key="row.id" :value="row.id">Fila {{ index + 1 }}</option></select></label><label class="block text-xs font-medium">Columna seleccionada<select v-model="selectedColumnId" class="data-input mt-1 w-full"><option v-for="(column, index) in table.columns" :key="column.id" :value="column.id">Columna {{ index + 1 }}: {{ column.label }}</option></select></label></div>
++                                    <div class="flex flex-wrap gap-2"><button type="button" class="data-button" @click="structure('add-row')">Añadir fila</button><button type="button" class="data-button" @click="structure('add-column')">Añadir columna</button><button type="button" class="data-button" :disabled="!selectedRowId" @click="structure('remove-row')">Eliminar fila seleccionada</button><button type="button" class="data-button" :disabled="table.columns.length <= 1" @click="structure('remove-column')">Eliminar columna seleccionada</button></div>
++                                    <section class="space-y-3 border-t border-slate-100 pt-4" aria-label="Conversión explícita de columna"><h3 class="text-sm font-semibold">Convertir la columna seleccionada</h3><label class="block text-xs font-medium">Tipo de conversión<select v-model="conversionType" class="data-input mt-1 w-full sm:max-w-xs"><option value="number">Número</option><option value="text">Texto</option><option value="empty">Vacío</option></select></label><button type="button" class="data-button" @click="previewConversion">Previsualizar conversión</button><div v-if="conversionPreview" class="space-y-2 rounded-lg bg-slate-50 p-3 text-xs"><p>{{ conversionPreview.changes.length }} filas convertibles. {{ conversionPreview.errors.length }} errores.</p><ul v-if="conversionPreview.errors.length" role="alert" class="space-y-1 text-red-800"><li v-for="failure in conversionPreview.errors.slice(0, 20)" :key="failure.rowId">Fila {{ table.rows.findIndex(row => row.id === failure.rowId) + 1 }}: {{ failure.message }}</li><li v-if="conversionPreview.errors.length > 20">Se muestran los primeros 20 errores.</li></ul><ul v-else class="space-y-1 text-slate-600"><li v-for="change in conversionPreview.changes.slice(0, 5)" :key="change.rowId">Fila {{ table.rows.findIndex(row => row.id === change.rowId) + 1 }} → {{ tableCore.cellText(change.value) || 'Vacío' }}</li></ul><button type="button" class="data-primary" :disabled="conversionPreview.errors.length > 0" @click="applyConversion">Aplicar conversión</button></div></section>
++                                    <section class="space-y-3 border-t border-slate-100 pt-4" aria-label="Buscar y rellenar"><label class="flex items-start gap-2 text-xs"><input v-model="onlySelectedColumn" type="checkbox" class="rounded border-slate-300 text-violet-700" />Sólo columna seleccionada</label><div class="grid gap-3 sm:grid-cols-2"><label class="block text-xs font-medium">Texto a buscar<input v-model="searchText" class="data-input mt-1 w-full" /></label><label class="block text-xs font-medium">Texto de reemplazo<input v-model="replacementText" class="data-input mt-1 w-full" /></label></div><p class="text-xs text-slate-500">Reemplazo literal dentro de celdas de texto, sin expresiones ni cambios a números.</p><button type="button" class="data-button" :disabled="!searchText" @click="replaceText">Reemplazar texto</button><div class="grid gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2"><label class="block text-xs font-medium">Tipo del relleno<select v-model="fillType" class="data-input mt-1 w-full"><option value="text">Texto</option><option value="number">Número</option><option value="empty">Vacío</option></select></label><label class="block text-xs font-medium">Valor para vacíos<input v-model="fillText" class="data-input mt-1 w-full" :disabled="fillType === 'empty'" /></label></div><label class="flex items-start gap-2 text-xs"><input v-model="includeEmptyStrings" type="checkbox" class="rounded border-slate-300 text-violet-700" />Incluir textos vacíos</label><button type="button" class="data-button" @click="fillBlanks">Rellenar vacíos</button></section>
++                                    <section class="space-y-3 border-t border-slate-100 pt-4" aria-label="Transponer"><button type="button" class="data-button" @click="transposeTable">Transponer tabla</button><div v-if="transposePreview" class="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-950"><p>Las columnas pasarán a ser filas. Se conservarán sus encabezados como valores de la primera columna «Columna»; las demás columnas se llamarán «Fila 1», «Fila 2»… Se crearán identificadores nuevos. Esta operación admite hasta 99 filas y se puede deshacer.</p><button type="button" class="data-primary" @click="confirmTranspose">Confirmar transposición</button><button type="button" class="data-button ml-2" @click="transposePreview = false">Cancelar transposición</button></div></section>
++                                </fieldset></details>
++                                <section v-if="historyOpen" class="space-y-3 rounded-xl border border-slate-200 p-4" aria-label="Historial de revisiones"><div class="flex items-center justify-between gap-3"><h3 class="text-sm font-semibold">Historial de revisiones</h3><button type="button" class="data-button" @click="historyOpen = false">Ocultar historial</button></div><p v-if="historyBusy" role="status" class="text-xs text-slate-500">Cargando revisiones…</p><ul class="space-y-2"><li v-for="revision in revisions" :key="revision.revision"><button type="button" class="flex w-full flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3 text-left hover:border-violet-400" :aria-label="`Ver revisión ${revision.revision}`" :disabled="writeBusy" @click="selectDataset(selected, revision.revision, revision.name)"><span class="min-w-0"><span class="block text-xs font-semibold">Revisión {{ revision.revision }} · {{ revision.name }}</span><span class="mt-1 block text-[11px] text-slate-500">{{ revision.row_count }} filas × {{ revision.column_count }} columnas · {{ revision.json_bytes }} bytes</span></span><span class="text-xs text-violet-700">Ver revisión {{ revision.revision }}</span></button></li></ul><nav v-if="historyPagination.last_page > 1" class="flex flex-wrap items-center justify-between gap-2 text-xs" aria-label="Páginas de revisiones"><button type="button" class="data-button" :disabled="historyBusy || historyPagination.current_page <= 1" @click="showHistory(historyPagination.current_page - 1)">Revisiones anteriores</button><span>{{ historyPagination.current_page }} / {{ historyPagination.last_page }}</span><button type="button" class="data-button" :disabled="historyBusy || historyPagination.current_page >= historyPagination.last_page" @click="showHistory(historyPagination.current_page + 1)">Revisiones siguientes</button></nav></section>
++                                <section class="space-y-3 border-t border-slate-200 pt-4" aria-label="Descargas de datos"><div v-if="selected" class="grid gap-3 sm:grid-cols-2"><label class="block text-xs font-medium">Formato de descarga<select v-model="downloadFormat" class="data-input mt-1 w-full"><option value="csv">CSV</option><option value="tsv">TSV</option><option value="json">JSON tipado</option></select></label><label v-if="downloadFormat !== 'json'" class="block text-xs font-medium">Modo de descarga<select v-model="downloadMode" class="data-input mt-1 w-full"><option value="spreadsheet">Segura para hojas de cálculo</option><option value="text">Fiel al original</option></select></label></div><p v-if="selected" class="text-xs leading-relaxed text-slate-500">La descarga corresponde a la revisión {{ revisionView }} guardada. El modo seguro antepone un apóstrofo a todos los textos para evitar que una hoja de cálculo ejecute fórmulas. El modo fiel conserva los textos originales.</p><div class="flex flex-wrap gap-2"><a v-if="selected" :href="downloadUrl" download class="data-button">Descargar tabla</a><button type="button" class="data-button" @click="downloadDraft">Descargar borrador JSON</button><button v-if="selected" type="button" class="data-button ml-auto text-slate-600" :disabled="writeBusy" @click="mutateDataset(selected.archived_at ? 'restore' : 'archive')">{{ selected.archived_at ? 'Restaurar tabla' : 'Archivar tabla' }}</button></div><p v-if="sha256" class="break-all font-mono text-[10px] text-slate-400">SHA-256: {{ sha256 }}</p></section>
++                            </section>
++                            <div v-else class="rounded-2xl border border-dashed border-violet-200 bg-white p-8 text-center"><div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-2xl text-violet-700" aria-hidden="true">▦</div><h3 class="text-base font-semibold text-slate-900">Un lugar para los datos de tu marca</h3><p class="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-slate-500">Elige una tabla de la biblioteca, crea una nueva o importa un archivo para empezar a trabajar.</p><button v-if="selected" type="button" class="data-button mt-4" :disabled="writeBusy" @click="reloadSaved">Reintentar carga de tabla</button></div>
++                        </section>
++                    </div>
++                </div>
++            </div>
++            <div v-if="pendingDiscard" class="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"><section role="alertdialog" aria-modal="true" aria-labelledby="dataset-discard-title" aria-describedby="dataset-discard-description" class="w-full max-w-md space-y-4 rounded-2xl bg-white p-6 shadow-2xl"><h3 id="dataset-discard-title" class="text-lg font-semibold text-slate-950">Hay cambios sin guardar</h3><p id="dataset-discard-description" class="text-sm leading-relaxed text-slate-600">Si continúas, se descartarán los cambios de esta tabla que aún no has guardado, incluidos los que estás escribiendo.</p><div class="flex flex-wrap gap-3"><button ref="discardButton" type="button" class="data-primary" @click="cancelDiscard">Seguir editando</button><button type="button" class="data-button" @click="confirmDiscard">Descartar cambios</button></div></section></div>
++        </dialog>
++    </Teleport>
++</template>
++
++<style scoped>
++.data-input { @apply rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm disabled:bg-slate-50 disabled:text-slate-500; }
++.data-button { @apply inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-violet-400 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50; }
++.data-primary { @apply inline-flex items-center justify-center rounded-lg bg-violet-700 px-4 py-2.5 text-xs font-semibold text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-50; }
++.close-tool { @apply flex h-9 w-9 items-center justify-center rounded-lg text-2xl text-slate-500 hover:bg-slate-100; }
++.datasets-dialog :is(button, a, input, select, textarea, summary, [tabindex]):focus-visible { outline: 3px solid #7c3aed; outline-offset: 2px; }
++</style>
+--- /dev/null
++++ b/resources/js/Studio/dataset-client.js
+@@ -0,0 +1,81 @@
++import { StudioApiError } from './api.js';
++
++const cookieToken = () => decodeURIComponent((document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '');
++const integer = (value, label, min = 1, max = Number.MAX_SAFE_INTEGER) => {
++    if (!Number.isSafeInteger(value) || value < min || value > max) throw new Error(`${label} no es válido.`);
++    return value;
++};
++const base = brandId => `/brands/${integer(brandId, 'La marca')}/studio/datasets`;
++const item = (brandId, datasetId) => `${base(brandId)}/${integer(datasetId, 'La tabla')}`;
++
++/** Web endpoints only: no caller supplied URL, bearer token or provider request. */
++export function createDatasetClient({ fetchImpl = globalThis.fetch, csrf = cookieToken, createAssembler, tableChunks } = {}) {
++    async function request(method, url, { signal, body, raw = false } = {}) {
++        const response = await fetchImpl(url, { method, credentials: 'same-origin', signal,
++            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-XSRF-TOKEN': csrf() },
++            ...(body === undefined ? {} : { body }),
++        });
++        if (!response.ok) {
++            const data = await response.json().catch(() => ({}));
++            const detail = Object.values(data.errors ?? {}).flat().filter(value => typeof value === 'string').join(' ');
++            throw new StudioApiError(detail || data.message || 'No se pudo completar la operación con la tabla.', response.status, data.errors);
++        }
++        return raw ? response.text() : response.json();
++    }
++    return {
++        get(brandId, datasetId, { signal } = {}) { return request('GET', item(brandId, datasetId), { signal }); },
++        history(brandId, datasetId, { page = 1, signal } = {}) {
++            const params = new URLSearchParams({ page: String(integer(page, 'La página')), per_page: '20' });
++            return request('GET', `${item(brandId, datasetId)}/revisions?${params}`, { signal });
++        },
++        control(brandId, datasetId, action) {
++            if (!['archive', 'restore'].includes(action)) throw new Error('La acción no está disponible.');
++            return request(action === 'archive' ? 'DELETE' : 'POST', `${item(brandId, datasetId)}${action === 'restore' ? '/restore' : ''}`);
++        },
++        exportUrl(brandId, datasetId, { revision, format = 'csv', mode = 'spreadsheet' }) {
++            const url = item(brandId, datasetId); integer(revision, 'La revisión');
++            if (!['csv', 'tsv', 'json'].includes(format)) throw new Error('El formato de descarga no está disponible.');
++            if (!['spreadsheet', 'text'].includes(mode)) throw new Error('El modo de descarga no está disponible.');
++            const params = new URLSearchParams({ revision: String(revision), format, ...(format === 'json' ? {} : { mode }) });
++            return `${url}/export?${params}`;
++        },
++        async upload(brandId, { file, name, format, header = true }, { signal } = {}) {
++            if (!['csv', 'tsv', 'json'].includes(format)) throw new Error('El formato de importación no está disponible.');
++            const max = format === 'json' ? 52000000 : 25000000;
++            if (!(file instanceof Blob) || file.size > max) throw new Error(`El archivo supera el límite de ${format === 'json' ? '52' : '25'} MB.`);
++            const body = new FormData(); body.append('name', name); body.append('format', format); body.append('file', file, `datos.${format}`);
++            if (format !== 'json') body.append('header', header ? '1' : '0');
++            return request('POST', `${base(brandId)}/import`, { signal, body });
++        },
++        async save(brandId, datasetId, { name, revision, table }, { signal } = {}) {
++            if (typeof tableChunks !== 'function') throw new Error('No está disponible el guardado de tablas.');
++            const blob = new Blob([...tableChunks(table)], { type: 'application/json' });
++            if (blob.size > 52000000) throw new Error('La tabla supera el límite de 52 MB.');
++            const body = new FormData(); body.append('name', name); body.append('format', 'json'); body.append('file', blob, 'tabla.json');
++            const url = datasetId === null ? base(brandId) : item(brandId, datasetId);
++            if (datasetId !== null) body.append('revision', String(integer(revision, 'La revisión')));
++            return request('POST', `${url}/import`, { signal, body });
++        },
++        async load(brandId, datasetId, revision, { signal, onProgress = () => {} } = {}) {
++            const url = item(brandId, datasetId); integer(revision, 'La revisión');
++            if (typeof createAssembler !== 'function') throw new Error('No está disponible el lector de tablas.');
++            const assembler = createAssembler({ datasetId, revision });
++            let previous = -1;
++            while (!assembler.complete) {
++                signal?.throwIfAborted();
++                const offset = integer(assembler.nextOffset, 'La posición', 0, 1000);
++                if (offset <= previous) throw new Error('La tabla devolvió una paginación inconsistente.');
++                previous = offset;
++                const params = new URLSearchParams({ revision: String(revision), offset: String(offset), limit: '100' });
++                const raw = await request('GET', `${url}/table?${params}`, { signal, raw: true });
++                signal?.throwIfAborted(); assembler.append(raw);
++                onProgress(assembler.complete ? assembler.table.rows.length : assembler.nextOffset);
++            }
++            return { table: assembler.table, revision: assembler.revision, sha256: assembler.sha256 };
++        },
++        list(brandId, { query = '', page = 1, signal } = {}) {
++            const params = new URLSearchParams({ query, page: String(integer(page, 'La página')), per_page: '20' });
++            return request('GET', `${base(brandId)}?${params}`, { signal });
++        },
++    };
++}
+--- /dev/null
++++ b/tests/frontend/studio-dataset-client.test.mjs
+@@ -0,0 +1,86 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { createDatasetAssembler, datasetTableChunks, cellText } from '../../resources/js/Studio/dataset-table.js';
++import { createDatasetClient } from '../../resources/js/Studio/dataset-client.js';
++
++const metadata = { id: 7, brand_id: 3, name: 'Datos', revision: 2, row_count: 1, column_count: 1, archived_at: null };
++const jsonResponse = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
++function harness(extra = {}) {
++    const calls = [];
++    const client = createDatasetClient({ csrf: () => 'own-token', fetchImpl: async (url, options) => { calls.push({ url, options }); return jsonResponse({ datasets: [metadata], dataset: metadata, pagination: { current_page: 2, last_page: 3, total: 41 } }); }, ...extra });
++    return { client, calls };
++}
++test('client lists the exact brand with literal query pagination and same origin credentials', async () => {
++    const { client, calls } = harness(); const abort = new AbortController();
++    const result = await client.list(3, { query: 'A&B + =', page: 2, signal: abort.signal });
++    assert.equal(result.datasets[0].id, 7);
++    assert.equal(calls[0].url, '/brands/3/studio/datasets?query=A%26B+%2B+%3D&page=2&per_page=20');
++    assert.equal(calls[0].options.credentials, 'same-origin'); assert.equal(calls[0].options.signal, abort.signal);
++    assert.equal(calls[0].options.headers['X-XSRF-TOKEN'], 'own-token');
++});
++
++test('client loads raw pages sequentially pinned to revision and passes AbortSignal', async () => {
++    const raw = ['{"revision":2,"rows":[{"values":[0.0,9007199254740993]}]}', '{"revision":2,"rows":[{"values":[-0.0]}]}'];
++    const calls = [], seen = [], table = { columns: [], rows: ['exact'] }; let nextOffset = 0;
++    const client = createDatasetClient({ csrf: () => '', createAssembler: options => {
++        assert.deepEqual(options, { datasetId: 7, revision: 2 });
++        return { get complete() { return nextOffset === null; }, get nextOffset() { return nextOffset; }, get table() { return table; }, revision: 2, sha256: 'a'.repeat(64),
++            append(text) { seen.push(text); nextOffset = seen.length === 1 ? 1 : null; } };
++    }, fetchImpl: async (url, options) => { calls.push({ url, options }); return new Response(raw[calls.length - 1]); } });
++    const abort = new AbortController(); const result = await client.load(3, 7, 2, { signal: abort.signal });
++    assert.deepEqual(seen, raw); assert.equal(result.table, table); assert.equal(result.sha256, 'a'.repeat(64));
++    assert.deepEqual(calls.map(call => call.url), ['/brands/3/studio/datasets/7/table?revision=2&offset=0&limit=100', '/brands/3/studio/datasets/7/table?revision=2&offset=1&limit=100']);
++    assert.ok(calls.every(call => call.options.signal === abort.signal));
++});
++
++test('client saves exact typed chunks as multipart JSON with optimistic revision and no MIME override', async () => {
++    const text = '{"columns":[{"id":"c","label":"N"}],"rows":[{"id":"r","values":[-0.0]}]}';
++    const { client, calls } = harness({ tableChunks: table => { assert.equal(table, 'own-table'); return [text.slice(0, 30), text.slice(30)]; } });
++    const result = await client.save(3, 7, { name: 'Datos 🎵', revision: 2, table: 'own-table' });
++    assert.equal(result.dataset.id, 7); assert.equal(calls[0].url, '/brands/3/studio/datasets/7/import');
++    const { body, headers, method } = calls[0].options;
++    assert.equal(method, 'POST'); assert.equal(body.get('name'), 'Datos 🎵'); assert.equal(body.get('revision'), '2');
++    assert.equal(body.get('format'), 'json'); assert.equal(body.has('header'), false); assert.equal(await body.get('file').text(), text);
++    assert.equal(headers['Content-Type'], undefined); assert.equal(headers['X-XSRF-TOKEN'], 'own-token');
++});
++
++test('client imports original file without reading it and enforces independent format byte limits', async () => {
++    const { client, calls } = harness(); const file = new Blob(['A,B\r\n=SUM(A1),001\r\n'], { type: 'text/csv' });
++    const result = await client.upload(3, { file, name: 'Importación', format: 'csv', header: false });
++    assert.equal(result.dataset.id, 7); assert.equal(calls[0].url, '/brands/3/studio/datasets/import');
++    assert.equal(await calls[0].options.body.get('file').text(), await file.text());
++    assert.equal(calls[0].options.body.get('header'), '0');
++    await assert.rejects(client.upload(3, { file: new Blob([' '.repeat(25000001)]), name: 'Grande', format: 'csv' }), /25 MB/);
++    await assert.rejects(client.upload(3, { file, name: 'XLSX', format: 'xlsx' }), /formato/i);
++    assert.equal(calls.length, 1);
++});
++
++test('client metadata history archive restore and download URLs remain in the selected brand revision', async () => {
++    const { client, calls } = harness();
++    await client.get(3, 7); await client.history(3, 7, { page: 2 }); await client.control(3, 7, 'archive'); await client.control(3, 7, 'restore');
++    assert.deepEqual(calls.map(call => [call.options.method, call.url]), [['GET', '/brands/3/studio/datasets/7'], ['GET', '/brands/3/studio/datasets/7/revisions?page=2&per_page=20'], ['DELETE', '/brands/3/studio/datasets/7'], ['POST', '/brands/3/studio/datasets/7/restore']]);
++    assert.equal(client.exportUrl(3, 7, { revision: 2, format: 'csv' }), '/brands/3/studio/datasets/7/export?revision=2&format=csv&mode=spreadsheet');
++    assert.equal(client.exportUrl(3, 7, { revision: 1, format: 'json', mode: 'text' }), '/brands/3/studio/datasets/7/export?revision=1&format=json');
++    assert.equal(client.exportUrl(3, 7, { revision: 1, format: 'tsv', mode: 'text' }), '/brands/3/studio/datasets/7/export?revision=1&format=tsv&mode=text');
++    assert.throws(() => client.exportUrl(3, 7, { revision: 1, format: 'xlsx' }), /formato/i);
++    assert.throws(() => client.exportUrl(3, '../other', { revision: 1 }), /tabla/i);
++});
++
++test('client real codec integration preserves zero fractions and a large integer across pages and save Blob', async () => {
++    const columns = '[{"id":"a","label":"A"},{"id":"b","label":"B"}]';
++    const page = (offset, values, next) => `{"dataset":{"id":7,"brand_id":3,"revision":2},"revision":1,"sha256":"${'a'.repeat(64)}","columns":${columns},"rows":[{"id":"r${offset}","values":${values}}],"pagination":{"offset":${offset},"limit":100,"total":2,"next_offset":${next}}}`;
++    const reads = [page(0, '[0.0,9007199254740993]', 1), page(1, '[-0.0,1.0]', null)], writes = [];
++    const client = createDatasetClient({ csrf: () => '', createAssembler: createDatasetAssembler, tableChunks: datasetTableChunks,
++        fetchImpl: async (url, options) => options.method === 'GET' ? new Response(reads.shift()) : (writes.push(options.body), jsonResponse({ dataset: metadata })) });
++    const loaded = await client.load(3, 7, 1); assert.equal(cellText(loaded.table.rows[0].values[1]), '9007199254740993');
++    await client.save(3, 7, { revision: 2, name: 'Datos', table: loaded.table });
++    const raw = await writes[0].get('file').text(); assert.ok(raw.includes('[0.0,9007199254740993]')); assert.ok(raw.includes('[-0.0,1.0]')); assert.equal(reads.length, 0);
++});
++test('client exposes server validation details and aborts an ignored in flight page before reading another', async () => {
++    const denied = createDatasetClient({ csrf: () => '', fetchImpl: async () => jsonResponse({ message: 'Invalid', errors: { name: ['Nombre no válido.'] } }, 422) });
++    await assert.rejects(denied.list(3), error => error.status === 422 && error.message === 'Nombre no válido.');
++    const abort = new AbortController(); let calls = 0;
++    const client = createDatasetClient({ csrf: () => '', createAssembler: () => ({ complete: false, nextOffset: 0, append() { throw new Error('must not append aborted page'); } }),
++        fetchImpl: async () => { calls++; abort.abort(); return new Response('{}'); } });
++    await assert.rejects(client.load(3, 7, 2, { signal: abort.signal }), error => error.name === 'AbortError'); assert.equal(calls, 1);
++});
+--- /dev/null
++++ b/tests/frontend/studio-datasets-dialog.test.mjs
+@@ -0,0 +1,279 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
++import { parse, compileScript, compileTemplate } from '@vue/compiler-sfc';
++import * as realCore from '../../resources/js/Studio/dataset-table.js';
++import { computed, ref, shallowRef, watch, reactive, nextTick, effectScope } from 'vue';
++
++const blank = () => ({ columns: [{ id: 'c1', label: 'Columna 1' }], rows: [{ id: 'r1', values: [''] }] });
++const fakeCore = {
++    blankDatasetTable: blank,
++    createDatasetHistory(initial) {
++        let table = initial; const undo = [], redo = [];
++        return { get table() { return table; }, get canUndo() { return undo.length > 0; }, get canRedo() { return redo.length > 0; }, limit: 30,
++            commit(next) { undo.push(table); table = next; redo.length = 0; }, reset(next) { table = next; undo.length = redo.length = 0; },
++            undo() { if (undo.length) { redo.push(table); table = undo.pop(); } return table; }, redo() { if (redo.length) { undo.push(table); table = redo.pop(); } return table; },
++        };
++    },
++};
++function mount(client = {}, initial = {}, core = fakeCore) {
++    const source = readFileSync(new URL('../../resources/js/Components/Studio/StudioDatasetsDialog.vue', import.meta.url), 'utf8');
++    const { descriptor } = parse(source);
++    const compiled = compileScript(descriptor, { id: 'datasets-dialog-regression' }).content.replace(/^import .*?;\r?$/gm, '').replace('export default', 'return');
++    const downloads = [], windowListeners = new Map();
++    const fakeWindow = { addEventListener: (name, fn) => windowListeners.set(name, fn), removeEventListener: name => windowListeners.delete(name) };
++    const props = reactive({ modelValue: true, brandId: 3, brandName: 'Marca A', ...initial }), hooks = [], emitted = [];
++    const defaults = { list: async () => ({ datasets: [], pagination: { current_page: 1, last_page: 1, total: 0 } }), ...client };
++    const factory = new Function('computed', 'nextTick', 'onBeforeUnmount', 'ref', 'shallowRef', 'watch', 'createDatasetClient', 'tableCore', 'downloadStudioBlob', 'window', compiled);
++    const component = factory(computed, nextTick, fn => hooks.push(fn), ref, shallowRef, watch, () => defaults, core, (...args) => downloads.push(args), fakeWindow);
++    const scope = effectScope(); const state = scope.run(() => component.setup(props, { expose() {}, emit: (...args) => emitted.push(args) }));
++    return { state, props, emitted, downloads, windowListeners, close() { hooks.forEach(hook => hook()); scope.stop(); } };
++}
++const flush = async () => { await nextTick(); await new Promise(resolve => setImmediate(resolve)); };
++
++test('dialog creates a local typed table with unsaved state without posting a blank resource', async () => {
++    const panel = mount();
++    try { panel.state.newTable(); assert.equal(panel.state.table.value.columns[0].id, 'c1'); assert.equal(panel.state.selected.value, null); assert.equal(panel.state.name.value, 'Tabla sin título'); assert.equal(panel.state.dirty.value, true); }
++    finally { panel.close(); }
++});
++
++test('dialog lists on open and fences an old brand response even when transport ignores abort', async () => {
++    const requests = []; const panel = mount({ list: (brand, options) => new Promise(resolve => requests.push({ brand, options, resolve })) });
++    try {
++        await flush(); assert.equal(requests.length, 1); assert.equal(requests[0].brand, 3);
++        panel.props.brandId = 9; await flush(); assert.equal(requests[0].options.signal.aborted, true); assert.equal(requests.length, 2);
++        requests[1].resolve({ datasets: [{ id: 90, name: 'Marca B' }], pagination: { current_page: 1, last_page: 1, total: 1 } }); await flush();
++        requests[0].resolve({ datasets: [{ id: 30, name: 'Marca A' }], pagination: { current_page: 1, last_page: 1, total: 1 } }); await flush();
++        assert.deepEqual(panel.state.datasets.value.map(row => row.id), [90]); assert.equal(panel.state.error.value, '');
++    } finally { panel.close(); for (const request of requests) request.resolve({ datasets: [] }); }
++});
++
++test('dialog close asks to discard dirty data and cancellation retains the draft', async () => {
++    const panel = mount();
++    try {
++        panel.state.newTable(); const original = panel.state.table.value;
++        panel.state.requestClose(); assert.ok(panel.state.pendingDiscard.value); assert.equal(panel.emitted.length, 0);
++        panel.state.cancelDiscard(); assert.equal(panel.state.pendingDiscard.value, null); assert.equal(panel.state.table.value, original);
++        panel.state.requestClose(); panel.state.confirmDiscard();
++        assert.deepEqual(panel.emitted, [['update:modelValue', false]]);
++    } finally { panel.close(); }
++});
++
++test('dialog selection aborts the old table and refuses a late result after creating a new draft', async () => {
++    const loads = []; const panel = mount({ load: (brand, id, revision, options) => new Promise(resolve => loads.push({ brand, id, revision, options, resolve })) });
++    try {
++        const open = panel.state.selectDataset({ id: 7, name: 'Anterior', revision: 2 }); await flush();
++        assert.equal(loads.length, 1); panel.state.newTable(); assert.equal(loads[0].options.signal.aborted, true);
++        loads[0].resolve({ table: { columns: [{ id: 'foreign', label: 'Old' }], rows: [] }, revision: 2, sha256: 'a'.repeat(64) }); await open; await flush();
++        assert.equal(panel.state.selected.value, null); assert.equal(panel.state.table.value.columns[0].id, 'c1'); assert.equal(panel.state.name.value, 'Tabla sin título');
++    } finally { panel.close(); loads.forEach(load => load.resolve({ table: blank(), revision: 2, sha256: 'a'.repeat(64) })); }
++});
++
++test('dialog commits explicitly typed cells and undo redo through the shared immutable history', async () => {
++    const core = { ...realCore, blankDatasetTable: blank }; const panel = mount({}, {}, core);
++    try {
++        panel.state.newTable(); panel.state.openCell('r1', 'c1');
++        panel.state.cellDraft.value = '-0.0'; panel.state.cellTypeDraft.value = 'number'; panel.state.commitCell();
++        assert.equal(realCore.cellText(panel.state.table.value.rows[0].values[0]), '-0.0');
++        assert.equal(realCore.cellType(panel.state.table.value.rows[0].values[0]), 'number');
++        panel.state.undoTable('undo'); assert.equal(panel.state.table.value.rows[0].values[0], '');
++        panel.state.undoTable('redo'); assert.equal(realCore.cellText(panel.state.table.value.rows[0].values[0]), '-0.0');
++        panel.state.openCell('r1', 'c1'); panel.state.cellDraft.value = '01'; panel.state.commitCell();
++        assert.ok(panel.state.error.value); assert.equal(realCore.cellText(panel.state.table.value.rows[0].values[0]), '-0.0');
++    } finally { panel.close(); }
++});
++
++test('dialog preserves its edited draft after a revision conflict without silently reloading', async () => {
++    let saves = 0; const panel = mount({ load: async () => ({ table: blank(), revision: 2, sha256: 'a'.repeat(64) }),
++        save: async () => { saves++; throw Object.assign(new Error('Dataset revision conflict.'), { status: 409 }); } });
++    try {
++        await panel.state.selectDataset({ id: 7, name: 'Guardada', revision: 2 }); panel.state.name.value = 'Mi borrador'; const draft = panel.state.table.value;
++        await panel.state.saveTable(); assert.equal(saves, 1); assert.equal(panel.state.conflict.value, true);
++        assert.equal(panel.state.name.value, 'Mi borrador'); assert.equal(panel.state.table.value, draft); assert.equal(panel.state.dirty.value, true); assert.equal(panel.state.selected.value.revision, 2);
++    } finally { panel.close(); }
++});
++test('dialog serializes writes and fences a late save across close and brand change without cancelling it', async () => {
++    let finish; const saves = []; const panel = mount({ save: (brand, id, payload, options) => { saves.push({ brand, id, payload, options }); return new Promise(resolve => { finish = resolve; }); } });
++    try {
++        panel.state.newTable(); const pending = panel.state.saveTable(); await flush();
++        assert.equal(saves.length, 1); await panel.state.saveTable(); assert.equal(saves.length, 1);
++        panel.props.modelValue = false; panel.props.brandId = 9; await flush(); panel.props.modelValue = true; await flush(); panel.state.newTable();
++        finish({ dataset: { id: 7, name: 'Old saved', revision: 1 } }); await pending; await flush();
++        assert.equal(panel.state.selected.value, null); assert.equal(panel.state.name.value, 'Tabla sin título');
++        assert.equal(panel.state.writeBusy.value, false); assert.equal(saves[0].options, undefined); assert.equal(panel.emitted.some(event => event[0] === 'changed'), false);
++    } finally { panel.close(); if (finish) finish({ dataset: { id: 7, revision: 1 } }); }
++});
++
++test('dialog reads paginated revision metadata and historic tables stay read only until explicit current reload', async () => {
++    const loads = [], historyCalls = []; const panel = mount({
++        load: async (brand, id, revision) => { loads.push(revision); return { table: blank(), revision, sha256: 'a'.repeat(64) }; },
++        history: async (brand, id, options) => { historyCalls.push({ brand, id, options }); return { revisions: [{ revision: 1, name: 'Original' }], pagination: { current_page: 2, last_page: 3, total: 41 } }; },
++        get: async () => ({ dataset: { id: 7, name: 'Actual', revision: 3 } }),
++    });
++    try {
++        const dataset = { id: 7, name: 'Actual', revision: 2 }; await panel.state.selectDataset(dataset);
++        await panel.state.showHistory(2); assert.equal(historyCalls[0].options.page, 2); assert.equal(panel.state.revisions.value[0].revision, 1);
++        await panel.state.selectDataset(dataset, 1, 'Original'); assert.equal(panel.state.viewingHistory.value, true); assert.equal(panel.state.canEdit.value, false);
++        await panel.state.reloadSaved(); assert.deepEqual(loads, [2, 1, 3]); assert.equal(panel.state.viewingHistory.value, false); assert.equal(panel.state.name.value, 'Actual');
++    } finally { panel.close(); }
++});
++
++test('dialog structural tools add rename and remove the selected entities', async () => {
++    const panel = mount({}, {}, { ...realCore, blankDatasetTable: blank });
++    try {
++        panel.state.newTable(); panel.state.structure('add-row'); panel.state.structure('add-column');
++        assert.equal(panel.state.table.value.rows.length, 2); assert.equal(panel.state.table.value.columns.length, 2);
++        panel.state.renameColumn('c1', 'Cantidad'); assert.equal(panel.state.table.value.columns[0].label, 'Cantidad');
++        panel.state.selectedRowId.value = panel.state.table.value.rows[1].id; panel.state.structure('remove-row'); assert.equal(panel.state.table.value.rows.length, 1);
++        panel.state.selectedColumnId.value = panel.state.table.value.columns[1].id; panel.state.structure('remove-column'); assert.equal(panel.state.table.value.columns.length, 1);
++    } finally { panel.close(); }
++});
++const loadedPanel = async (values, labels = ['Cantidad', 'Otro']) => {
++    const table = { columns: values[0].map((_, index) => ({ id: `c${index + 1}`, label: labels[index] })), rows: values.map((values, index) => ({ id: `r${index + 1}`, values })) };
++    const panel = mount({ load: async () => ({ table, revision: 2, sha256: 'a'.repeat(64) }) }, {}, realCore);
++    await panel.state.selectDataset({ id: 7, name: 'Datos', revision: 2 }); return panel;
++};
++test('dialog numeric conversion previews row errors and refuses partial application', async () => {
++    const panel = await loadedPanel([['10'], ['bad']]);
++    try {
++        panel.state.previewConversion(); assert.equal(panel.state.conversionPreview.value.errors.length, 1);
++        const original = panel.state.table.value; panel.state.applyConversion(); assert.equal(panel.state.table.value, original);
++        panel.state.openCell('r2', 'c1'); panel.state.cellDraft.value = '30'; panel.state.commitCell();
++        panel.state.previewConversion(); assert.equal(panel.state.conversionPreview.value.errors.length, 0); panel.state.applyConversion();
++        assert.equal(realCore.cellType(panel.state.table.value.rows[1].values[0]), 'number');
++    } finally { panel.close(); }
++});
++test('dialog literal replacement and blank filling preserve types and distinguish null from empty text', async () => {
++    const panel = await loadedPanel([['bad', null], ['bad', '']]);
++    try {
++        panel.state.searchText.value = 'bad'; panel.state.replacementText.value = '30'; panel.state.replaceText();
++        assert.equal(panel.state.table.value.rows[0].values[0], '30'); assert.equal(realCore.cellType(panel.state.table.value.rows[0].values[0]), 'text');
++        panel.state.fillText.value = 'Vacío'; panel.state.fillBlanks();
++        assert.equal(panel.state.table.value.rows[0].values[1], 'Vacío'); assert.equal(panel.state.table.value.rows[1].values[1], '');
++        panel.state.includeEmptyStrings.value = true; panel.state.fillBlanks(); assert.equal(panel.state.table.value.rows[1].values[1], 'Vacío');
++    } finally { panel.close(); }
++});
++test('dialog transpose requires preview confirmation preserves headers and is undoable', async () => {
++    const panel = await loadedPanel([['10', '20'], ['30', '40']]);
++    try {
++        const original = panel.state.table.value; panel.state.transposeTable(); assert.equal(panel.state.table.value, original); assert.equal(panel.state.transposePreview.value, true);
++        panel.state.confirmTranspose(); assert.equal(panel.state.table.value.columns[0].label, 'Columna'); assert.equal(panel.state.table.value.rows[0].values[0], 'Cantidad');
++        panel.state.undoTable('undo'); assert.equal(panel.state.table.value, original);
++    } finally { panel.close(); }
++});
++
++test('dialog imports the selected original file then opens the created fixed revision', async () => {
++    const uploads = [], loads = [], file = new Blob(['A,B\n001,=SUM(A1)\n']);
++    const panel = mount({ upload: async (brand, payload) => { uploads.push({ brand, payload }); return { dataset: { id: 8, name: 'Original', revision: 1 } }; },
++        load: async (brand, id, revision) => { loads.push({ brand, id, revision }); return { table: blank(), revision, sha256: 'a'.repeat(64) }; } });
++    try {
++        panel.state.pickFile({ target: { files: [file] } }); panel.state.importName.value = 'Original'; panel.state.importHeader.value = false;
++        await panel.state.importData(); assert.equal(uploads.length, 1); assert.equal(uploads[0].payload.file, file); assert.equal(uploads[0].payload.header, false);
++        assert.deepEqual(loads, [{ brand: 3, id: 8, revision: 1 }]); assert.equal(panel.state.importFile.value, null); assert.equal(panel.state.selected.value.id, 8);
++    } finally { panel.close(); }
++});
++test('dialog archive and restore update metadata and enforce archive read only state', async () => {
++    const actions = []; const panel = mount({ load: async () => ({ table: blank(), revision: 2, sha256: 'a'.repeat(64) }),
++        control: async (brand, id, action) => { actions.push(action); return { dataset: { id, name: 'Datos', revision: 2, archived_at: action === 'archive' ? '2026-11-06' : null } }; } });
++    try {
++        await panel.state.selectDataset({ id: 7, name: 'Datos', revision: 2, archived_at: null }); await panel.state.mutateDataset('archive');
++        assert.equal(panel.state.canEdit.value, false); assert.ok(panel.state.selected.value.archived_at);
++        await panel.state.mutateDataset('restore'); assert.equal(panel.state.canEdit.value, true); assert.deepEqual(actions, ['archive', 'restore']);
++    } finally { panel.close(); }
++});
++test('dialog copies a table into a new unsaved draft and downloads exact typed JSON locally', async () => {
++    const panel = await loadedPanel([['10', null]]);
++    try {
++        const original = panel.state.table.value; panel.state.copyTable(); assert.equal(panel.state.selected.value, null); assert.notEqual(panel.state.table.value.rows[0].id, original.rows[0].id);
++        panel.state.openCell(panel.state.table.value.rows[0].id, panel.state.table.value.columns[0].id); panel.state.cellDraft.value = '-0.0'; panel.state.cellTypeDraft.value = 'number'; panel.state.commitCell();
++        panel.state.downloadDraft(); assert.equal(panel.downloads.length, 1); const raw = await panel.downloads[0][0].text(); assert.ok(raw.includes('[-0.0,null]'));
++    } finally { panel.close(); }
++});
++
++test('dialog treats unapplied cell input as dirty and refuses to save a draft that would lose that input', async () => {
++    let saves = 0; const panel = mount({ load: async () => ({ table: blank(), revision: 2, sha256: 'a'.repeat(64) }), save: async () => { saves++; return { dataset: { id: 7, revision: 3 } }; } }, {}, realCore);
++    try {
++        await panel.state.selectDataset({ id: 7, name: 'Datos', revision: 2 }); panel.state.openCell('r1', 'c1');
++        panel.state.cellDraft.value = 'Texto pendiente'; assert.equal(panel.state.dirty.value, true);
++        panel.state.requestClose(); assert.ok(panel.state.pendingDiscard.value); panel.state.cancelDiscard();
++        await panel.state.saveTable(); assert.equal(saves, 0); assert.match(panel.state.error.value, /celda/i); assert.equal(panel.state.cellDraft.value, 'Texto pendiente');
++    } finally { panel.close(); }
++});
++
++test('dialog stages a header without losing it on close or saving the previous header silently', async () => {
++    const panel = await loadedPanel([['10']]);
++    try {
++        panel.state.stageColumnLabel('c1', 'Nuevo encabezado'); assert.equal(panel.state.dirty.value, true);
++        panel.state.requestClose(); assert.ok(panel.state.pendingDiscard.value); panel.state.cancelDiscard();
++        assert.equal(panel.state.columnDrafts.value.c1, 'Nuevo encabezado');
++        await panel.state.saveTable(); assert.match(panel.state.error.value, /encabezado/i);
++        panel.state.renameColumn('c1', 'Nuevo encabezado'); assert.equal(panel.state.columnDrafts.value.c1, undefined); assert.equal(panel.state.table.value.columns[0].label, 'Nuevo encabezado');
++    } finally { panel.close(); }
++});
++test('dialog browser reload warns for a dirty visible draft and removes its handler on unmount', () => {
++    const panel = mount(); let prevented = 0;
++    try {
++        panel.state.newTable(); const handler = panel.windowListeners.get('beforeunload'); assert.equal(typeof handler, 'function');
++        handler({ preventDefault() { prevented++; }, returnValue: null }); assert.equal(prevented, 1);
++        panel.props.modelValue = false; handler({ preventDefault() { prevented++; } }); assert.equal(prevented, 1);
++    } finally { panel.close(); }
++    assert.equal(panel.windowListeners.has('beforeunload'), false);
++});
++
++test('dialog renders bounded row and column windows without dropping data from its editor state', async () => {
++    const values = Array.from({ length: 45 }, (_, row) => Array.from({ length: 10 }, (_, column) => `${row}:${column}`));
++    const panel = await loadedPanel(values, Array.from({ length: 10 }, (_, index) => `C${index}`));
++    try {
++        assert.equal(panel.state.visibleRows.value.length, 20); assert.equal(panel.state.visibleColumns.value.length, 8);
++        panel.state.rowPage.value = 2; panel.state.columnPage.value = 1;
++        assert.equal(panel.state.visibleRows.value.length, 5); assert.equal(panel.state.visibleRows.value[0].id, 'r41');
++        assert.equal(panel.state.visibleColumns.value.length, 2); assert.equal(panel.state.table.value.rows.length, 45);
++    } finally { panel.close(); }
++});
++test('dialog refuses cell switching or undo while uncommitted input would be lost', async () => {
++    const panel = await loadedPanel([['A', 'B']]);
++    try {
++        panel.state.openCell('r1', 'c1'); panel.state.cellDraft.value = 'Guardado en borrador'; panel.state.commitCell();
++        panel.state.openCell('r1', 'c1'); panel.state.cellDraft.value = 'Pendiente';
++        panel.state.openCell('r1', 'c2'); assert.equal(panel.state.cellDraft.value, 'Pendiente'); assert.equal(panel.state.cellEditor.value.columnId, 'c1');
++        panel.state.undoTable('undo'); assert.equal(panel.state.cellDraft.value, 'Pendiente'); assert.equal(panel.state.table.value.rows[0].values[0], 'Guardado en borrador');
++    } finally { panel.close(); }
++});
++
++test('dialog undo preserves pending cell input until it is applied or cancelled', async () => {
++    const panel = await loadedPanel([['A']]);
++    try {
++        panel.state.openCell('r1', 'c1'); panel.state.cellDraft.value = 'B'; panel.state.commitCell();
++        panel.state.openCell('r1', 'c1'); panel.state.cellDraft.value = 'Pendiente'; panel.state.undoTable('undo');
++        assert.equal(panel.state.table.value.rows[0].values[0], 'B'); assert.equal(panel.state.cellDraft.value, 'Pendiente'); assert.ok(panel.state.cellEditor.value);
++    } finally { panel.close(); }
++});
++
++test('dialog and its two existing entry pages compile with Vue script and template compilers', () => {
++    for (const name of ['Components/Studio/StudioDatasetsDialog.vue', 'Pages/Studio/Index.vue', 'Pages/Studio/Editor.vue']) {
++        const { descriptor, errors } = parse(readFileSync(new URL(`../../resources/js/${name}`, import.meta.url), 'utf8'));
++        assert.deepEqual(errors, []); const script = compileScript(descriptor, { id: name });
++        const result = compileTemplate({ id: name, source: descriptor.template.content, compilerOptions: { bindingMetadata: script.bindings } });
++        assert.deepEqual(result.errors, [], name);
++    }
++});
++
++test('dialog focuses the type control for an empty cell and its full value editor for text', async () => {
++    const panel = await loadedPanel([[null, 'Complete text']]); let types = 0, values = 0;
++    try {
++        panel.state.cellTypeInput.value = { focus() { types++; } }; panel.state.cellInput.value = { focus() { values++; } };
++        panel.state.openCell('r1', 'c1'); await flush(); assert.equal(types, 1); assert.equal(values, 0);
++        panel.state.openCell('r1', 'c2'); await flush(); assert.equal(values, 1);
++    } finally { panel.close(); }
++});
++
++test('dialog header drafts use own ID keys even for prototype named column IDs', async () => {
++    const table = { columns: [{ id: '__proto__', label: 'Encabezado' }], rows: [{ id: 'constructor', values: ['Texto'] }] };
++    const panel = mount({ load: async () => ({ table, revision: 1, sha256: 'a'.repeat(64) }) }, {}, realCore);
++    try {
++        await panel.state.selectDataset({ id: 7, name: 'IDs válidos', revision: 1 });
++        assert.equal(panel.state.columnDrafts.value.constructor, undefined);
++        panel.state.stageColumnLabel('__proto__', 'Editado'); assert.equal(panel.state.columnDrafts.value.__proto__, 'Editado'); assert.equal(panel.state.dirty.value, true);
++        panel.state.renameColumn('__proto__', 'Editado'); assert.equal(panel.state.table.value.columns[0].label, 'Editado'); assert.equal(Object.getPrototypeOf(panel.state.columnDrafts.value), null);
++    } finally { panel.close(); }
++});
+--- a/resources/js/Pages/Studio/Index.vue
++++ b/resources/js/Pages/Studio/Index.vue
+@@ -7,6 +7,7 @@
+ import StudioDialog from '@/Components/Studio/StudioDialog.vue';
+ import TemplateInstanceDialog from '@/Components/Studio/TemplateInstanceDialog.vue';
+ import StudioFontsDialog from '@/Components/Studio/StudioFontsDialog.vue';
++import StudioDatasetsDialog from '@/Components/Studio/StudioDatasetsDialog.vue';
+ import { blankDocument } from '@/Studio/document';
+ import { STUDIO_TEMPLATES, createFromTemplate } from '@/Studio/templates';
+ import { studioRequest } from '@/Studio/api';
+@@ -29,6 +30,7 @@
+ const paletteText = ref((props.kit?.palette ?? ['#7c3aed', '#111827', '#ffffff']).join(', '));
+ const fontsText = ref((props.kit?.fonts ?? ['Arial']).join(', '));
+ const fontsOpen = ref(false);
++const datasetsOpen = ref(false);
+ const localFonts = ref([...props.fonts]);
+ const selectedKitFonts = ref((props.kit?.font_ids ?? []).filter(id => Number.isInteger(id) && id > 0));
+ const kitFontChoices = computed(() => localFonts.value.filter(font => !font.archived_at || selectedKitFonts.value.includes(font.id)));
+@@ -140,7 +142,7 @@
+             <p v-if="error" role="alert" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{{ error }}</p>
+             <template v-if="brand">
+                 <section class="space-y-4" aria-label="Formatos de diseño">
+-                    <div class="flex flex-wrap items-center justify-between gap-3"><h2 class="text-lg font-semibold tracking-tight">¿Qué vas a crear?</h2><div class="flex flex-wrap gap-4"><button type="button" class="text-sm font-medium text-violet-700" @click="fontsOpen = true">Tipografías de marca</button><button type="button" class="text-sm font-medium text-violet-700" @click="kitOpen = true">Identidad de marca <span aria-hidden="true">↗</span></button></div></div>
++                    <div class="flex flex-wrap items-center justify-between gap-3"><h2 class="text-lg font-semibold tracking-tight">¿Qué vas a crear?</h2><div class="flex flex-wrap gap-4"><button type="button" class="text-sm font-medium text-violet-700" @click="datasetsOpen = true">Tablas de datos</button><button type="button" class="text-sm font-medium text-violet-700" @click="fontsOpen = true">Tipografías de marca</button><button type="button" class="text-sm font-medium text-violet-700" @click="kitOpen = true">Identidad de marca <span aria-hidden="true">↗</span></button></div></div>
+                     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+                         <button v-for="preset in presets" :key="preset.label" type="button" class="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-sm" @click="width = preset.w; height = preset.h; createOpen = true">
+                             <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-50 group-hover:bg-violet-50"><span class="block max-h-8 max-w-8 rounded border-2 border-violet-500 bg-violet-100" :style="{ width: preset.w >= preset.h ? '28px' : `${28 * preset.w / preset.h}px`, height: preset.h >= preset.w ? '28px' : `${28 * preset.h / preset.w}px` }" /></span>
+@@ -188,6 +190,7 @@
+         <StudioDialog v-model="folderOpen" title="Nueva carpeta"><form class="space-y-4" @submit.prevent="createFolder"><label class="block text-sm font-medium">Nombre de la carpeta<input v-model="newFolder" class="field mt-1" maxlength="255" required autofocus /></label><p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p><button type="submit" class="btn-primary" :disabled="busy">Crear carpeta</button></form></StudioDialog>
+         <TemplateInstanceDialog v-model="instanceOpen" :template="instanceTemplate" :busy="busy" :error="error" @create="instantiateTemplate" />
+         <StudioFontsDialog v-if="brand" v-model="fontsOpen" :brand-id="brand.id" @changed="updateFonts" />
++        <StudioDatasetsDialog v-if="brand" v-model="datasetsOpen" :brand-id="brand.id" :brand-name="brand.name" />
+         <StudioDialog v-model="kitOpen" title="Identidad de marca">
+             <form class="space-y-4" @submit.prevent="saveKit">
+                 <p class="text-sm text-slate-500">Los estilos pertenecen a {{ brand?.name }} y se aplican a los diseños de esta marca.</p>
+--- a/resources/js/Pages/Studio/Editor.vue
++++ b/resources/js/Pages/Studio/Editor.vue
+@@ -9,6 +9,7 @@
+ import StudioDialog from '@/Components/Studio/StudioDialog.vue';
+ import VariantsDialog from '@/Components/Studio/VariantsDialog.vue';
+ import StudioFontsDialog from '@/Components/Studio/StudioFontsDialog.vue';
++import StudioDatasetsDialog from '@/Components/Studio/StudioDatasetsDialog.vue';
+ import StudioImageJob from '@/Components/Studio/StudioImageJob.vue';
+ import TimelinePanel from '@/Components/Studio/TimelinePanel.vue';
+ import { blankDocument, cloneDocument, duplicatePage, findPage, validateDocument } from '@/Studio/document';
+@@ -36,6 +37,7 @@
+ const localAssets = ref(props.assets ?? []);
+ const localFonts = ref([...props.fonts]);
+ const fontsOpen = ref(false);
++const datasetsOpen = ref(false);
+ const imageJobSource = ref(null);
+ const imageJobToken = ref(0);
+ const imageBusy = ref(false);
+@@ -553,6 +555,7 @@
+                 <button type="button" class="tool text-xs" :disabled="!ready || busy || automationBusy || exportBusy || conflict" @click="openTemplateSave">Guardar como plantilla</button>
+                 <button type="button" class="tool text-xs" :disabled="!ready || busy || automationBusy || exportBusy || conflict" @click="openVariants">Crear variantes</button>
+                 <button type="button" class="tool text-xs" :disabled="!ready || busy || automationBusy || exportBusy || conflict" @click="applyBrandKit">Aplicar identidad de marca</button>
++                <button type="button" class="tool text-xs" :disabled="busy || automationBusy || exportBusy" @click="datasetsOpen = true">Tablas de datos</button>
+                 <button type="button" class="tool text-xs" :disabled="busy || automationBusy || exportBusy" @click="fontsOpen = true">Tipografías de marca</button>
+                 <button type="button" class="tool text-xs" :aria-pressed="timelineOpen" :disabled="!ready || busy || automationBusy || exportBusy" @click="openTimeline">Línea de tiempo</button>
+                 <span v-if="template" class="ml-auto rounded-full bg-violet-50 px-3 py-1 text-[10px] font-semibold text-violet-800">Plantilla de {{ brand.name }}</span>
+@@ -614,6 +617,7 @@
+         </div>
+         <ExportDialog ref="exporter" v-model="exportOpen" :document="documentData" :assets="localAssets" :fonts="localFonts" :design-id="design.id" :prepare="prepareExport" :playhead="timeline" @busy="exportBusy = $event" />
+         <StudioFontsDialog v-model="fontsOpen" :brand-id="brand.id" @changed="updateFonts" />
++        <StudioDatasetsDialog v-model="datasetsOpen" :brand-id="brand.id" :brand-name="brand.name" />
+         <StudioDialog :model-value="templateSaveOpen" title="Guardar como plantilla" @update:model-value="value => { if (!automationBusy) templateSaveOpen = value; }">
+             <div v-if="templateCreated" class="space-y-5"><p role="status" class="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">Plantilla guardada en {{ brand.name }}. Tu diseño original se conserva.</p><div class="flex flex-wrap justify-end gap-2"><button type="button" class="btn-secondary" @click="templateSaveOpen = false">Cerrar plantilla</button><Link :href="route('studio.designs.edit', templateCreated.id)" class="btn-primary bg-violet-700">Ver plantilla</Link></div></div>
+             <form v-else class="space-y-5" @submit.prevent="saveTemplate"><p class="text-sm leading-relaxed text-slate-500">Guarda una copia independiente de todas las páginas, recursos y campos para los próximos diseños de esta marca.</p><label class="block text-sm font-medium">Nombre de la plantilla<input v-model="templateName" class="field mt-1" maxlength="255" required autofocus :disabled="automationBusy" /></label><p v-if="error" role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-800">{{ error }}</p><div class="flex justify-end"><button type="submit" class="btn-primary bg-violet-700" :disabled="automationBusy || !templateName.trim()">{{ automationBusy ? 'Guardando…' : 'Guardar plantilla' }}</button></div></form>

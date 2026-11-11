@@ -1,0 +1,488 @@
+{
+  "scope": "T12API review2accepted,QA26pending",
+  "sources": {
+    "routes/studio.php": "522908cb45d1ad2bcb52ba54e61d28fbabbe185da27905a2bcb53322f9fb28da",
+    "routes/studio-api.php": "92bb223fa5164673663064445663c50c2a47dfb5b763dc75037926d1cbc97a6c",
+    "bootstrap/app.php": "d57d4ab0e0f0e18454866917c5db162703c00ca728d209ed5d45462bb79caca9",
+    "app/Mcp/Servers/SchedulerServer.php": "11f14fa2b30ac3f82a00937c8521b304535637cb92d7929b8d698537b337c6ca",
+    "app/Mcp/Tools/SchedulerTool.php": "3e20a66af791477f0c430b28f235957b1fdce98d0d69ad563188852aa87ffd77",
+    "tests/Feature/Studio/StudioApiMcpTest.php": "04edaebd7026b630219a76efc81944415bc51ab4f4e06ab47b6aaef4cb213e62",
+    "app/Services/Studio/StudioDatasetActions.php": "0fa0ba8ff2c79e988d14bfdcf1ba59d8ab4385531c632af22588c12b476d0841",
+    "app/Services/Studio/StudioDatasetInput.php": "b6d866bb36ff16d41045edb9ddbee6486e371f4f1a7b712a2a085bd52de92e6e",
+    "app/Http/Controllers/Studio/StudioDatasetController.php": "954da8b6e8d5759637584825cfc6a34f3158898ac8c2ba3a9a82764a3761ee15",
+    "app/Http/Middleware/LimitStudioDatasetPayload.php": "e4f1d64a9328c96aaaa2de51bd387f2c1607ad300c7d3a17d0f6e090056f082f",
+    "app/Mcp/Tools/ManageStudioDataset.php": "47b8026d807d6eb238f225130e577b670104e16977fa9e3a27e36c8fdf3dcb90",
+    "routes/studio-datasets.php": "6d3ce41cd0393e2f91842b58839d33afaf2072d68d0f324ddcc6ef15c45aee6c",
+    "routes/studio-datasets-api.php": "ab6eabdabc40def69203645e22a85d4921543ab4aaeb8b0308ee5c3d4197abe7",
+    "tests/Feature/Studio/StudioDatasetApiTest.php": "64cf9737cdb542e6931a2586b3870c8f6d03b30c76012915bc941cec1e216259",
+    "docs/api/creative-suite.openapi.yaml": "e6e9b161d28b8f5993aadee9488ab295eea2825dd9e106092c8c6832e2dc5b12",
+    "docs/guias/estudio-api-mcp.md": "4346e4d5a99bf0bedfb05d90fed7f4f94fb062626292651e67ab0f866cbb1ac7",
+    "docs/modulos/mcp.md": "86da037eaa057f1e6a1424651fd7fa0950a0677d287b06ea99b4e3b7cd9fd4f4",
+    "README.md": "03dc14126978831f9d551ee0ce9c8715e03e1c0d2f80183b92927f10c6810488",
+    "docs/roadmap/2026-11-03-creative-social-suite/test-plan.md": "96998de5b0ac2d669afafff175373cefe82317a67ff82cd27ae3495d795959a3",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-dataset-api-contract.md": "b1a983fbdd1446f1ac653ae5fa58e5b06210a39e20d0cffee8dd29a0c6c5b034",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-datasets-contract.md": "d3991af471dffec2a7d1358f118fbf86a29f60e691efb42f167067f252d90d75",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-chart-data-contract.md": "bbcfe8bd17af049d62512f1e23960774886973d66394e7db1f4f87b965619ce0",
+    "app/Services/Studio/StudioChartData.php": "8abef7557b81ae55571e7acf4327ba1abb00b6002c1bd2778e5f8d72ddbcf91e",
+    "tests/Feature/Studio/StudioChartDataTest.php": "34cd6393af70fbc87a8de2d1df96a8e5b8224e0de3b26cfb94c625cb235f746b",
+    "app/Services/Studio/StudioDatasets.php": "52df3c869b3993c2cb27f3bf245062d8b2872356cd62adcc1f65b1ca091e6411",
+    "app/Models/Studio/StudioDataset.php": "b2e7eb6d865df56db94fac4b051e4b2c7a0b273bfddd6a9c5d639cf4462033dc",
+    "app/Models/Studio/StudioDatasetRevision.php": "49d41e524b4c90205ae1f566422aca64bfd07745b5f068cfd4500c5ac61a4890",
+    "database/migrations/2026_11_06_010000_create_studio_datasets.php": "90a7b7ed206946a13c41d0ce56b0d18a9ffb78b4c3d5c3df9cc259c5472b2efd",
+    "tests/Feature/Studio/StudioDatasetsTest.php": "c33ef6edaf092d45d96df7e94d8cb6f54f8f30ac52d3e70e224b94be626cf770",
+    "app/Services/Studio/StudioTableExport.php": "cdcfb37bcf22f2e55e3d402cc93a61ed7c416d9ca6787cab45c3d2cfec4b1049",
+    "tests/Feature/Studio/StudioTableExportTest.php": "4a778e19f79fb5c3ccbc52f8040df02443bc009071233a1fcb41eb47207179d0"
+  },
+  "artifacts": [
+    {
+      "path": "review.md",
+      "sha256": "7efdaf18fc440017d5e44f9137c376a3bf5717aed55e4d8c0a27fcd7f5d2fdc4",
+      "bytes": 11885
+    },
+    {
+      "path": "reviewed-sources.json",
+      "sha256": "a2af8e48c58ec6ebc783a671dcc3191dd457f49f3db7b99ad48218405dd3d0e6",
+      "bytes": 4249
+    },
+    {
+      "path": "raw/implementation/adapter-delta.patch",
+      "sha256": "e70bc588a9b12a9da090208c82845bac52d071e1cda1ba74c35e874c2c99c6b3",
+      "bytes": 70375
+    },
+    {
+      "path": "raw/implementation/attempt2-delta.patch",
+      "sha256": "930089c5cc3e3d609eea1719cbb8e1527693cfb8712a65959de440da47773def",
+      "bytes": 10926
+    },
+    {
+      "path": "raw/implementation/attempt2-evidence.md",
+      "sha256": "6c93e86ae3673a5a2040e5b6aaf8f02fd08b1587c91c4aabd7d4749546dccf62",
+      "bytes": 4720
+    },
+    {
+      "path": "raw/implementation/attempt2-standard.xml",
+      "sha256": "41c83d5b2dbba7f53c464ef29a2b82c7dbc040f79fc4e527eca152686af7e515",
+      "bytes": 8537
+    },
+    {
+      "path": "raw/implementation/evidence.md",
+      "sha256": "343c759145212c15398f4899f5f50d324db0954e796111495bc05d18540df62c",
+      "bytes": 7140
+    },
+    {
+      "path": "raw/implementation/pest-bootstrap.php",
+      "sha256": "16e309fe813e98beb7ddadc0f524a1ff80c38e8cfa0fb3f1a8acbce69f9badbf",
+      "bytes": 3479
+    },
+    {
+      "path": "raw/implementation/source-manifest.json",
+      "sha256": "a33e5a988865d207fd19d7ed797ad3522b66a8623f95dfc6644074fba3f5c6e5",
+      "bytes": 3147
+    },
+    {
+      "path": "raw/root-review-attempt1/adapter-delta.patch",
+      "sha256": "8ef482bf53259dc48fdebf777849cb7817a231475ff1b98d9bf5583899f96a62",
+      "bytes": 63916
+    },
+    {
+      "path": "raw/root-review-attempt1/review.md",
+      "sha256": "2e8c0509881657a0efa56a76f9f9e783b30e83ccdded0a66ed28651718ba6100",
+      "bytes": 5410
+    },
+    {
+      "path": "raw/root-review-attempt1/reviewed-manifest.json",
+      "sha256": "0ee7a3a0e999c86613e7789182d6428165a717b09a88c11e440ab88fa40b7808",
+      "bytes": 9073
+    },
+    {
+      "path": "raw/root-review-attempt2/attempt2-delta.patch",
+      "sha256": "930089c5cc3e3d609eea1719cbb8e1527693cfb8712a65959de440da47773def",
+      "bytes": 10926
+    },
+    {
+      "path": "raw/root-review-attempt2/reviewed-manifest.json",
+      "sha256": "c730370959fd5419104c2551b94a8c3cfbe21cf78e498d715753c334e2fe9c3f",
+      "bytes": 7127
+    },
+    {
+      "path": "raw/root-verification1/before.json",
+      "sha256": "5df39e04f698d5afe052eafc1fdcd282abac57092a6d89d1ed54d37493a5a5e5",
+      "bytes": 1543
+    },
+    {
+      "path": "raw/root-verification1/kernel-standard.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "raw/root-verification1/kernel-standard.stdout",
+      "sha256": "cb40bc4820ac41d1fb452114a6a9ac1993366390efff3e39efee7a9682cf840b",
+      "bytes": 662
+    },
+    {
+      "path": "raw/root-verification1/kernel-standard.xml",
+      "sha256": "81f8fdcc14314a0788456a23fca2c0d786a33ef3c8638e84b15214ffa9fc48d4",
+      "bytes": 7707
+    },
+    {
+      "path": "raw/root-verification1/results.json",
+      "sha256": "e41c5fb04b9be2b1b1fdb24f67b58adfe67b083b8f8a284fbe5777c9c0635bd5",
+      "bytes": 2731
+    },
+    {
+      "path": "raw/root-verification1/shared-pest.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "raw/root-verification1/shared-pest.stdout",
+      "sha256": "be659d5e7b2ed3285b0103780ff3eb23cd9a04e34bcd26c2cf1897b1645c4b7a",
+      "bytes": 251
+    },
+    {
+      "path": "raw/root-verification1/shared-pest.xml",
+      "sha256": "e4cce10098e744fb935a08350055948e7981b9edc19d7fb36f62d73cacc2b42c",
+      "bytes": 5750
+    },
+    {
+      "path": "raw/root-verification2/guard.xml",
+      "sha256": "0eed0c5b62ba21e1fa4a1da00a24b763002af8b950e35e33410010626a001ffd",
+      "bytes": 625
+    },
+    {
+      "path": "raw/root-verification2/result.json",
+      "sha256": "6433d43ba0e9f2f9a0d250de16e057e6ce925b9b2db76aaf703fe9437bb4752a",
+      "bytes": 2025
+    },
+    {
+      "path": "raw/root-verification2/stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "raw/root-verification2/stdout.txt",
+      "sha256": "1caa894847d87d9ec886717d98429edbf24dacd977855c75b446a4560757c79b",
+      "bytes": 92
+    },
+    {
+      "path": "raw/root-review-attempt2/descriptors/README.md",
+      "sha256": "03dc14126978831f9d551ee0ce9c8715e03e1c0d2f80183b92927f10c6810488",
+      "bytes": 8987
+    },
+    {
+      "path": "raw/root-review-attempt2/source/bootstrap/app.php",
+      "sha256": "d57d4ab0e0f0e18454866917c5db162703c00ca728d209ed5d45462bb79caca9",
+      "bytes": 3358
+    },
+    {
+      "path": "raw/root-review-attempt2/source/routes/studio-api.php",
+      "sha256": "92bb223fa5164673663064445663c50c2a47dfb5b763dc75037926d1cbc97a6c",
+      "bytes": 5035
+    },
+    {
+      "path": "raw/root-review-attempt2/source/routes/studio-datasets-api.php",
+      "sha256": "ab6eabdabc40def69203645e22a85d4921543ab4aaeb8b0308ee5c3d4197abe7",
+      "bytes": 1769
+    },
+    {
+      "path": "raw/root-review-attempt2/source/routes/studio-datasets.php",
+      "sha256": "6d3ce41cd0393e2f91842b58839d33afaf2072d68d0f324ddcc6ef15c45aee6c",
+      "bytes": 862
+    },
+    {
+      "path": "raw/root-review-attempt2/source/routes/studio.php",
+      "sha256": "522908cb45d1ad2bcb52ba54e61d28fbabbe185da27905a2bcb53322f9fb28da",
+      "bytes": 5185
+    },
+    {
+      "path": "raw/root-review-attempt2/source/tests/Feature/Studio/StudioApiMcpTest.php",
+      "sha256": "04edaebd7026b630219a76efc81944415bc51ab4f4e06ab47b6aaef4cb213e62",
+      "bytes": 20042
+    },
+    {
+      "path": "raw/root-review-attempt2/source/tests/Feature/Studio/StudioDatasetApiTest.php",
+      "sha256": "64cf9737cdb542e6931a2586b3870c8f6d03b30c76012915bc941cec1e216259",
+      "bytes": 33386
+    },
+    {
+      "path": "raw/root-review-attempt2/source/app/Services/Studio/StudioDatasetActions.php",
+      "sha256": "0fa0ba8ff2c79e988d14bfdcf1ba59d8ab4385531c632af22588c12b476d0841",
+      "bytes": 10743
+    },
+    {
+      "path": "raw/root-review-attempt2/source/app/Services/Studio/StudioDatasetInput.php",
+      "sha256": "b6d866bb36ff16d41045edb9ddbee6486e371f4f1a7b712a2a085bd52de92e6e",
+      "bytes": 3179
+    },
+    {
+      "path": "raw/root-review-attempt2/source/app/Mcp/Servers/SchedulerServer.php",
+      "sha256": "11f14fa2b30ac3f82a00937c8521b304535637cb92d7929b8d698537b337c6ca",
+      "bytes": 8365
+    },
+    {
+      "path": "raw/root-review-attempt2/source/app/Mcp/Tools/ManageStudioDataset.php",
+      "sha256": "47b8026d807d6eb238f225130e577b670104e16977fa9e3a27e36c8fdf3dcb90",
+      "bytes": 5470
+    },
+    {
+      "path": "raw/root-review-attempt2/source/app/Mcp/Tools/SchedulerTool.php",
+      "sha256": "3e20a66af791477f0c430b28f235957b1fdce98d0d69ad563188852aa87ffd77",
+      "bytes": 10126
+    },
+    {
+      "path": "raw/root-review-attempt2/source/app/Http/Middleware/LimitStudioDatasetPayload.php",
+      "sha256": "e4f1d64a9328c96aaaa2de51bd387f2c1607ad300c7d3a17d0f6e090056f082f",
+      "bytes": 1682
+    },
+    {
+      "path": "raw/root-review-attempt2/source/app/Http/Controllers/Studio/StudioDatasetController.php",
+      "sha256": "954da8b6e8d5759637584825cfc6a34f3158898ac8c2ba3a9a82764a3761ee15",
+      "bytes": 2398
+    },
+    {
+      "path": "raw/root-review-attempt2/preserved-core/tests/Feature/Studio/StudioChartDataTest.php",
+      "sha256": "34cd6393af70fbc87a8de2d1df96a8e5b8224e0de3b26cfb94c625cb235f746b",
+      "bytes": 19158
+    },
+    {
+      "path": "raw/root-review-attempt2/preserved-core/tests/Feature/Studio/StudioDatasetsTest.php",
+      "sha256": "c33ef6edaf092d45d96df7e94d8cb6f54f8f30ac52d3e70e224b94be626cf770",
+      "bytes": 21308
+    },
+    {
+      "path": "raw/root-review-attempt2/preserved-core/tests/Feature/Studio/StudioTableExportTest.php",
+      "sha256": "4a778e19f79fb5c3ccbc52f8040df02443bc009071233a1fcb41eb47207179d0",
+      "bytes": 5961
+    },
+    {
+      "path": "raw/root-review-attempt2/preserved-core/database/migrations/2026_11_06_010000_create_studio_datasets.php",
+      "sha256": "90a7b7ed206946a13c41d0ce56b0d18a9ffb78b4c3d5c3df9cc259c5472b2efd",
+      "bytes": 1836
+    },
+    {
+      "path": "raw/root-review-attempt2/preserved-core/app/Services/Studio/StudioChartData.php",
+      "sha256": "8abef7557b81ae55571e7acf4327ba1abb00b6002c1bd2778e5f8d72ddbcf91e",
+      "bytes": 11713
+    },
+    {
+      "path": "raw/root-review-attempt2/preserved-core/app/Services/Studio/StudioDatasets.php",
+      "sha256": "52df3c869b3993c2cb27f3bf245062d8b2872356cd62adcc1f65b1ca091e6411",
+      "bytes": 12666
+    },
+    {
+      "path": "raw/root-review-attempt2/preserved-core/app/Services/Studio/StudioTableExport.php",
+      "sha256": "cdcfb37bcf22f2e55e3d402cc93a61ed7c416d9ca6787cab45c3d2cfec4b1049",
+      "bytes": 2546
+    },
+    {
+      "path": "raw/root-review-attempt2/preserved-core/app/Models/Studio/StudioDataset.php",
+      "sha256": "b2e7eb6d865df56db94fac4b051e4b2c7a0b273bfddd6a9c5d639cf4462033dc",
+      "bytes": 809
+    },
+    {
+      "path": "raw/root-review-attempt2/preserved-core/app/Models/Studio/StudioDatasetRevision.php",
+      "sha256": "49d41e524b4c90205ae1f566422aca64bfd07745b5f068cfd4500c5ac61a4890",
+      "bytes": 1075
+    },
+    {
+      "path": "raw/root-review-attempt2/descriptors/docs/api/creative-suite.openapi.yaml",
+      "sha256": "e6e9b161d28b8f5993aadee9488ab295eea2825dd9e106092c8c6832e2dc5b12",
+      "bytes": 70826
+    },
+    {
+      "path": "raw/root-review-attempt2/descriptors/docs/guias/estudio-api-mcp.md",
+      "sha256": "1e8d76cf71a41aaf1f8177f60a5107a0140dbf914847fb1a5bed39f620023ffc",
+      "bytes": 51871
+    },
+    {
+      "path": "raw/root-review-attempt2/descriptors/docs/modulos/mcp.md",
+      "sha256": "836d8585dbb638832a9769b3426c9c35cc9d6f7b9501a1e440c5203f8c1ee62f",
+      "bytes": 24679
+    },
+    {
+      "path": "raw/root-review-attempt2/descriptors/docs/roadmap/2026-11-03-creative-social-suite/t12-chart-data-contract.md",
+      "sha256": "bbcfe8bd17af049d62512f1e23960774886973d66394e7db1f4f87b965619ce0",
+      "bytes": 8968
+    },
+    {
+      "path": "raw/root-review-attempt2/descriptors/docs/roadmap/2026-11-03-creative-social-suite/t12-dataset-api-contract.md",
+      "sha256": "9eb250eeedabd4b4c48d5c91259e6cdf683c82d1a0b9df96b4df3e393782277b",
+      "bytes": 9700
+    },
+    {
+      "path": "raw/root-review-attempt2/descriptors/docs/roadmap/2026-11-03-creative-social-suite/t12-datasets-contract.md",
+      "sha256": "d3991af471dffec2a7d1358f118fbf86a29f60e691efb42f167067f252d90d75",
+      "bytes": 5292
+    },
+    {
+      "path": "raw/root-review-attempt2/descriptors/docs/roadmap/2026-11-03-creative-social-suite/test-plan.md",
+      "sha256": "89c043a2a7de8b0168779db6b2182d5c10cb883b8570965a9e87e16ac5ca86a8",
+      "bytes": 19600
+    },
+    {
+      "path": "raw/root-review-attempt1/descriptor-baseline/README.md",
+      "sha256": "baa26510c23be06d2195c755ab4ea440d9762397883f2fb3253056381bcba6b3",
+      "bytes": 9045
+    },
+    {
+      "path": "raw/root-review-attempt1/descriptors/README.md",
+      "sha256": "03dc14126978831f9d551ee0ce9c8715e03e1c0d2f80183b92927f10c6810488",
+      "bytes": 8987
+    },
+    {
+      "path": "raw/root-review-attempt1/source/bootstrap/app.php",
+      "sha256": "d57d4ab0e0f0e18454866917c5db162703c00ca728d209ed5d45462bb79caca9",
+      "bytes": 3358
+    },
+    {
+      "path": "raw/root-review-attempt1/source/routes/studio-api.php",
+      "sha256": "92bb223fa5164673663064445663c50c2a47dfb5b763dc75037926d1cbc97a6c",
+      "bytes": 5035
+    },
+    {
+      "path": "raw/root-review-attempt1/source/routes/studio-datasets-api.php",
+      "sha256": "ab6eabdabc40def69203645e22a85d4921543ab4aaeb8b0308ee5c3d4197abe7",
+      "bytes": 1769
+    },
+    {
+      "path": "raw/root-review-attempt1/source/routes/studio-datasets.php",
+      "sha256": "6d3ce41cd0393e2f91842b58839d33afaf2072d68d0f324ddcc6ef15c45aee6c",
+      "bytes": 862
+    },
+    {
+      "path": "raw/root-review-attempt1/source/routes/studio.php",
+      "sha256": "522908cb45d1ad2bcb52ba54e61d28fbabbe185da27905a2bcb53322f9fb28da",
+      "bytes": 5185
+    },
+    {
+      "path": "raw/root-review-attempt1/source/tests/Feature/Studio/StudioApiMcpTest.php",
+      "sha256": "04edaebd7026b630219a76efc81944415bc51ab4f4e06ab47b6aaef4cb213e62",
+      "bytes": 20042
+    },
+    {
+      "path": "raw/root-review-attempt1/source/tests/Feature/Studio/StudioDatasetApiTest.php",
+      "sha256": "9e69a39444929d0ae8bb99d409d51ba269b2d4f47f276ddcdeb00bcfcc2a5d41",
+      "bytes": 27590
+    },
+    {
+      "path": "raw/root-review-attempt1/source/app/Services/Studio/StudioDatasetActions.php",
+      "sha256": "0fa0ba8ff2c79e988d14bfdcf1ba59d8ab4385531c632af22588c12b476d0841",
+      "bytes": 10743
+    },
+    {
+      "path": "raw/root-review-attempt1/source/app/Services/Studio/StudioDatasetInput.php",
+      "sha256": "b6d866bb36ff16d41045edb9ddbee6486e371f4f1a7b712a2a085bd52de92e6e",
+      "bytes": 3179
+    },
+    {
+      "path": "raw/root-review-attempt1/source/app/Mcp/Servers/SchedulerServer.php",
+      "sha256": "11f14fa2b30ac3f82a00937c8521b304535637cb92d7929b8d698537b337c6ca",
+      "bytes": 8365
+    },
+    {
+      "path": "raw/root-review-attempt1/source/app/Mcp/Tools/ManageStudioDataset.php",
+      "sha256": "e8a2f12dc90be05d30b1f84c6749f245a54f6145c96231e8445e93b274340f81",
+      "bytes": 5306
+    },
+    {
+      "path": "raw/root-review-attempt1/source/app/Mcp/Tools/SchedulerTool.php",
+      "sha256": "a3e518ddd017db1c416508336f2c715d20423b6ff3b1aaa37dc12ff1fd6c167b",
+      "bytes": 10003
+    },
+    {
+      "path": "raw/root-review-attempt1/source/app/Http/Middleware/LimitStudioDatasetPayload.php",
+      "sha256": "fb3c8d99bd75fc398d35231806dc0de9d72d0a6e2c086de44efc660ad66e004a",
+      "bytes": 1424
+    },
+    {
+      "path": "raw/root-review-attempt1/source/app/Http/Controllers/Studio/StudioDatasetController.php",
+      "sha256": "954da8b6e8d5759637584825cfc6a34f3158898ac8c2ba3a9a82764a3761ee15",
+      "bytes": 2398
+    },
+    {
+      "path": "raw/root-review-attempt1/descriptors/docs/api/creative-suite.openapi.yaml",
+      "sha256": "e6e9b161d28b8f5993aadee9488ab295eea2825dd9e106092c8c6832e2dc5b12",
+      "bytes": 70826
+    },
+    {
+      "path": "raw/root-review-attempt1/descriptors/docs/guias/estudio-api-mcp.md",
+      "sha256": "9feb0aef3706425f69e51fda34a917c3687e6c1e1923ea27ebbfaf0dd0e0f0d9",
+      "bytes": 51513
+    },
+    {
+      "path": "raw/root-review-attempt1/descriptors/docs/modulos/mcp.md",
+      "sha256": "836d8585dbb638832a9769b3426c9c35cc9d6f7b9501a1e440c5203f8c1ee62f",
+      "bytes": 24679
+    },
+    {
+      "path": "raw/root-review-attempt1/descriptors/docs/roadmap/2026-11-03-creative-social-suite/t12-chart-data-contract.md",
+      "sha256": "bbcfe8bd17af049d62512f1e23960774886973d66394e7db1f4f87b965619ce0",
+      "bytes": 8968
+    },
+    {
+      "path": "raw/root-review-attempt1/descriptors/docs/roadmap/2026-11-03-creative-social-suite/t12-dataset-api-contract.md",
+      "sha256": "5a4d121bbe1e3c93131bb8244b5c79a47c101925b1ba3477972c028f11609591",
+      "bytes": 9114
+    },
+    {
+      "path": "raw/root-review-attempt1/descriptors/docs/roadmap/2026-11-03-creative-social-suite/t12-datasets-contract.md",
+      "sha256": "d3991af471dffec2a7d1358f118fbf86a29f60e691efb42f167067f252d90d75",
+      "bytes": 5292
+    },
+    {
+      "path": "raw/root-review-attempt1/descriptors/docs/roadmap/2026-11-03-creative-social-suite/test-plan.md",
+      "sha256": "89c043a2a7de8b0168779db6b2182d5c10cb883b8570965a9e87e16ac5ca86a8",
+      "bytes": 19600
+    },
+    {
+      "path": "raw/root-review-attempt1/descriptor-baseline/docs/api/creative-suite.openapi.yaml",
+      "sha256": "b3f0db9d6486eecfaf2021825ab4944627b562bef1ef6fdd24927c38741f1478",
+      "bytes": 52458
+    },
+    {
+      "path": "raw/root-review-attempt1/descriptor-baseline/docs/guias/estudio-api-mcp.md",
+      "sha256": "70eef1776bdf34553ddbd65059aaece3599644e686fa80b4b8918402d1da12ed",
+      "bytes": 47471
+    },
+    {
+      "path": "raw/root-review-attempt1/descriptor-baseline/docs/modulos/mcp.md",
+      "sha256": "14ef4734abd6e3fd2a8ebccefc68e53ae30f27e680cf501c321de4d144137381",
+      "bytes": 23732
+    },
+    {
+      "path": "raw/root-review-attempt1/descriptor-baseline/docs/roadmap/2026-11-03-creative-social-suite/test-plan.md",
+      "sha256": "99ce8aa5c654e1d2f1f562992ef6c3e2dee309584859a834fe354a0e28963a5d",
+      "bytes": 17177
+    },
+    {
+      "path": "raw/root-review-attempt1/baseline/bootstrap/app.php",
+      "sha256": "8b2959b3439e390c812739cc9d06fa41f2739a23e3f26748d728eee9ac954f0a",
+      "bytes": 3181
+    },
+    {
+      "path": "raw/root-review-attempt1/baseline/routes/studio-api.php",
+      "sha256": "21a744b6b8aa492ca3c64bed4513cba1ec7c3ada31f5e02ae0016aa347f53c81",
+      "bytes": 4991
+    },
+    {
+      "path": "raw/root-review-attempt1/baseline/routes/studio.php",
+      "sha256": "3e8a81add20a8207c0bc88ee63a8c7c8d5d7aa6746747e57363c8f8286e7c975",
+      "bytes": 5144
+    },
+    {
+      "path": "raw/root-review-attempt1/baseline/tests/Feature/Studio/StudioApiMcpTest.php",
+      "sha256": "fbd1f4b5edaf051ee7c3c6efa1619e1bdc0c96d341a49e9c1a83437a376de047",
+      "bytes": 19856
+    },
+    {
+      "path": "raw/root-review-attempt1/baseline/app/Mcp/Servers/SchedulerServer.php",
+      "sha256": "fa3f77667890e1c98288ce6c96e45341eee7221907b93dad399cfc774e936223",
+      "bytes": 8290
+    },
+    {
+      "path": "raw/root-review-attempt1/baseline/app/Mcp/Tools/SchedulerTool.php",
+      "sha256": "2caf1f6b4c4e15bb4e4a585ec6ab43052f707e9f25e7dc6ad4b74a8ca70621ff",
+      "bytes": 9843
+    }
+  ]
+}

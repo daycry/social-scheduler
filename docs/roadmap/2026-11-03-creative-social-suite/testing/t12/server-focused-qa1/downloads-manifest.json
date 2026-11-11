@@ -1,0 +1,47 @@
+[
+  {
+    "file": "downloads/1440/server.svg",
+    "bytes": 87396,
+    "sha256": "d52d5112044e16cfae4b1845a0be86859d52c2edb3266766645fe33bd1ce6f10"
+  },
+  {
+    "file": "downloads/1440/server.png",
+    "bytes": 55608,
+    "sha256": "20312eff12e4f3902970cba52209fd5635bf24794ff766f7be54dd473f4e3c6e"
+  },
+  {
+    "file": "downloads/1440/server.pdf",
+    "bytes": 27523,
+    "sha256": "eee166c40e4c96a72896c289502f111fed58cf7f403a8c14fa319a7a7b8247fd"
+  },
+  {
+    "file": "downloads/375/server.svg",
+    "bytes": 87316,
+    "sha256": "51bec60407713b96ea07dc59a490f1c81a2c5d78a62e3f35afc18b76750cc121"
+  },
+  {
+    "file": "downloads/375/server.png",
+    "bytes": 55608,
+    "sha256": "20312eff12e4f3902970cba52209fd5635bf24794ff766f7be54dd473f4e3c6e"
+  },
+  {
+    "file": "downloads/375/server.pdf",
+    "bytes": 27523,
+    "sha256": "19c7dac36fcb4e9118f7ada318442d3f80dda00acf354f47465a0c5146be0189"
+  },
+  {
+    "file": "downloads/768/server.svg",
+    "bytes": 87104,
+    "sha256": "d79b7875d6f93d9ea32fbdf0c051a1893d60d145e8d7012f1cbf6b20e1e86401"
+  },
+  {
+    "file": "downloads/768/server.png",
+    "bytes": 55608,
+    "sha256": "20312eff12e4f3902970cba52209fd5635bf24794ff766f7be54dd473f4e3c6e"
+  },
+  {
+    "file": "downloads/768/server.pdf",
+    "bytes": 27523,
+    "sha256": "fe03921f6ed75eec8421a4ada83bad911f75070a3965691866402ad614671444"
+  }
+]

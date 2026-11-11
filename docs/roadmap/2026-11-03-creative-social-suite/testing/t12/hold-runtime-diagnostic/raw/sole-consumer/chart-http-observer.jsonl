@@ -1,0 +1,2 @@
+{"kind":"hold-captured-real-response","token":"5293bb02-4e17-4c1d-9e47-f7fb79c09ba0","method":"GET","path":"/brands/1/studio/datasets/2/export","status":200,"upstream_status":200,"bytes":289,"sha256":"5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054","headers":{"content-type":"application/json"}}
+{"kind":"hold-released","token":"5293bb02-4e17-4c1d-9e47-f7fb79c09ba0","cancelled_delivery":false,"unchanged_bytes":289,"sha256":"5f1de6c41cb5f63b6e94feb9f59edbe0aba82f90b71f165efc4edeaf4e727054","deadline_release":false}

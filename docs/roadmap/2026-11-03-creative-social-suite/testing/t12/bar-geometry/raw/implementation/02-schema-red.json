@@ -1,0 +1,28 @@
+{
+  "date": "2026-11-06T11:59:52.224218+00:00",
+  "command": [
+    "node",
+    "--max-old-space-size=512",
+    "--experimental-test-isolation=none",
+    "--test",
+    "--test-name-pattern=^options rejects unknown",
+    "tests/frontend/studio-bar-geometry.test.mjs"
+  ],
+  "exit_code": 1,
+  "before": {
+    "resources/js/Studio/bar-geometry.js": "f3f872d518ca8fedc00dafc837fd2b603a693492f64a0d4c2df6010bc8a22c1b",
+    "tests/frontend/studio-bar-geometry.test.mjs": "76375b5734b5889eb8a3fa3535239bd0c2dd74196415f69833e2cd5ffc354560",
+    "resources/js/Studio/chart-binding.js": "31e4576a81ea58b1b56bd532f0dc01ec0e781635497ab74ac9bc79a6503daca4",
+    "tests/frontend/studio-chart-binding.test.mjs": "a9779052666bfb6f1ff315bfaf00aaf6318503d85e7b596907ade9d06fbfb39d",
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+    "tests/frontend/studio-dataset-table.test.mjs": "b328009c188b652e35fc4cd8f3a18e41035b3d6e0792f50246edc770fa5742d5"
+  },
+  "after": {
+    "resources/js/Studio/bar-geometry.js": "f3f872d518ca8fedc00dafc837fd2b603a693492f64a0d4c2df6010bc8a22c1b",
+    "tests/frontend/studio-bar-geometry.test.mjs": "76375b5734b5889eb8a3fa3535239bd0c2dd74196415f69833e2cd5ffc354560",
+    "resources/js/Studio/chart-binding.js": "31e4576a81ea58b1b56bd532f0dc01ec0e781635497ab74ac9bc79a6503daca4",
+    "tests/frontend/studio-chart-binding.test.mjs": "a9779052666bfb6f1ff315bfaf00aaf6318503d85e7b596907ade9d06fbfb39d",
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+    "tests/frontend/studio-dataset-table.test.mjs": "b328009c188b652e35fc4cd8f3a18e41035b3d6e0792f50246edc770fa5742d5"
+  }
+}

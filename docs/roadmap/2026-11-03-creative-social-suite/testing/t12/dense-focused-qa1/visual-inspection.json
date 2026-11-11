@@ -1,0 +1,22 @@
+{
+  "reviewer": "root: direct view_image inspection of each original figure and each rendered PDF page",
+  "pdf_sha256": "d7f1bbb702ed23dbb805991c12400d7b832b0b5443fb35787b7669b51b1a5d8e",
+  "inspected": {
+    "images/1440-dense-screen.png": "aaa9379a0c8ff07c2648d81df51885ccbcd888f13655f815771a33abe52fdd1a",
+    "images/375-dense-screen.png": "198d5c251fd98df9fdf9e92a4f92a3fe50d2be4fa86235d75ff2c58e6c29c6dd",
+    "images/768-dense-screen.png": "58b44ef324dc547f55c371f0b83625ac3bfc16fe56916bd3411f67cced0d5d22",
+    "images/dense-export-identical-three-viewports.png": "06e19909138b0322d681397962098fcc44b40fbb71d5cc31dec080991b26836a",
+    "pdf-pages/page-001.png": "a533979f37dfdf3af68a9321d3e4fb3a1863b5c64cca55f99f1ac7afc887b624",
+    "pdf-pages/page-002.png": "d814ce1a4bf325a56c7d702907344ac3bc5fc64af13cf52c0224a42701dd7051",
+    "pdf-pages/page-003.png": "3fcc995dd77f3dc21dee95f291d10e12af2146feca10d3a5abdc0cbafb868296",
+    "pdf-pages/page-004.png": "8deb62fb89eaeb13ead82a6e96986ff2eed8db3baeb5c8adb27d28e675e6ab16",
+    "pdf-pages/page-005.png": "9d81dc9a7e6dc36b272d57c250d90d42f0f12ac466ac3e6eac9b96ce985348cc"
+  },
+  "issues": [],
+  "limits": [
+    "Long mobile captures are reduced to fit PDF pages; all original PNGs were inspected separately.",
+    "Dense subpixel bars form an aggregate raster band; individual visual separability is not asserted.",
+    "The screenshots show a selected chart at viewport-dependent zoom; no complete-product visual acceptance."
+  ],
+  "observed": "Report text and figures have no clipping or overlap; chart title, legend and axes visible in original export. Native UI arranged vertically at narrow widths. Semantic 12000-bar count and aggregate raster fidelity remain separate evidence."
+}

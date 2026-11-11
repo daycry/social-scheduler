@@ -1,0 +1,146 @@
+diff --git a/resources/js/Studio/dataset-table.js b/resources/js/Studio/dataset-table.js
+--- a/resources/js/Studio/dataset-table.js
++++ b/resources/js/Studio/dataset-table.js
+@@ -43,7 +43,7 @@
+     }
+     const parsed = value(); ws(); if (pos !== text.length) fail('Contenido después del JSON.'); return parsed;
+ }
+-export function parseDatasetTable(text) { inputBudget(text, 52000000, '52.000.000 bytes de entrada'); return snapshot(validateDatasetTable(parseLossless(text))); }
++export function parseDatasetTable(text) { inputBudget(text, 52000000, '52.000.000 bytes de entrada'); return prepared(parseLossless(text)); }
+ const UTF8 = new TextEncoder();
+ function inputBudget(text, max, label) {
+     if (typeof text !== 'string') fail('Se esperaba JSON como texto.');
+@@ -59,11 +59,43 @@
+     }
+ }
+ const ID = /^[A-Za-z0-9_-]{1,64}$/;
+-const keys = (object, expected, path) => {
++function dataFields(object, expected, path) {
+     if (!object || typeof object !== 'object' || Array.isArray(object)
+-        || ![Object.prototype, null].includes(Object.getPrototypeOf(object))
+-        || Object.keys(object).length !== expected.length || expected.some(key => !Object.hasOwn(object, key))) fail(`${path}: campos inválidos.`);
+-};
++        || ![Object.prototype, null].includes(Object.getPrototypeOf(object))) fail(`${path}: campos inválidos.`);
++    const descriptors = Object.getOwnPropertyDescriptors(object);
++    if (Reflect.ownKeys(descriptors).length !== expected.length) fail(`${path}: campos inválidos.`);
++    const captured = {};
++    for (const key of expected) {
++        const descriptor = descriptors[key];
++        if (!descriptor || !Object.hasOwn(descriptor, 'value') || !descriptor.enumerable) fail(`${path}: se requieren propiedades de datos propias.`);
++        captured[key] = descriptor.value;
++    }
++    return captured;
++}
++const keys = (object, expected, path) => { dataFields(object, expected, path); };
++function denseDataArray(array, min, max, path) {
++    if (!Array.isArray(array)) fail(`${path}: se esperaba una lista.`);
++    const descriptors = Object.getOwnPropertyDescriptors(array); const length = descriptors.length?.value;
++    if (!Number.isInteger(length) || length < min || length > max || Reflect.ownKeys(descriptors).length !== length + 1) fail(`${path}: longitud o propiedades de lista inválidas.`);
++    const captured = [];
++    for (let index = 0; index < length; index++) {
++        const descriptor = descriptors[index];
++        if (!descriptor || !Object.hasOwn(descriptor, 'value') || !descriptor.enumerable) fail(`${path}: la lista debe ser densa y contener datos propios.`);
++        captured.push(descriptor.value);
++    }
++    return captured;
++}
++function captureTableData(table) {
++    if (frozenTables.has(table)) return table;
++    const fields = dataFields(table, ['columns', 'rows'], 'Tabla');
++    const columns = frozenColumnArrays.has(fields.columns) ? fields.columns : denseDataArray(fields.columns, 1, 100, 'Columnas').map((column, index) => dataFields(column, ['id', 'label'], `Columna ${index + 1}`));
++    const rows = denseDataArray(fields.rows, 0, 1000, 'Filas').map((row, index) => {
++        if (frozenRows.has(row)) return row;
++        const fields = dataFields(row, ['id', 'values'], `Fila ${index + 1}`);
++        return { id: fields.id, values: denseDataArray(fields.values, 0, 100, `Fila ${index + 1}`) };
++    });
++    return { columns, rows };
++}
+ function validText(value, limit, path) {
+     if (typeof value !== 'string') fail(`${path}: se esperaba texto.`);
+     let length = 0;
+@@ -99,7 +131,7 @@
+     }
+     yield ']}';
+ }
+-export function validateDatasetTable(table) {
++function validateCapturedTable(table) {
+     keys(table, ['columns', 'rows'], 'Tabla');
+     if (!Array.isArray(table.columns) || !Array.isArray(table.rows) || table.columns.length < 1 || table.columns.length > 100 || table.rows.length > 1000) fail('Tabla: se requieren 1–100 columnas y hasta 1000 filas.');
+     const columnIds = new Set(); const rowIds = new Set(); const checkedStrings = new Set();
+@@ -120,12 +152,14 @@
+     for (const chunk of rawChunks(table)) { bytes += UTF8.encode(chunk).byteLength; if (bytes > 52000000) fail('La tabla supera 52.000.000 bytes JSON UTF-8.'); }
+     return table;
+ }
++export function validateDatasetTable(table) { validateCapturedTable(captureTableData(table)); return table; }
+ function snapshot(table) {
+     if (frozenTables.has(table)) return table;
+-    const columns = Object.isFrozen(table.columns) && table.columns.every(Object.isFrozen) ? table.columns : Object.freeze(table.columns.map(column => Object.isFrozen(column) ? column : Object.freeze({ ...column })));
++    const columns = frozenColumnArrays.has(table.columns) ? table.columns : Object.freeze(table.columns.map(column => Object.freeze({ id: column.id, label: column.label })));
++    frozenColumnArrays.add(columns);
+     const rows = Object.freeze(table.rows.map(row => {
+         if (frozenRows.has(row)) return row;
+-        const result = Object.freeze({ id: row.id, values: Object.freeze(row.values.map(value => typeof value === 'object' && value !== null ? (Object.isFrozen(value) ? value : datasetNumber(value.raw)) : value)) });
++        const result = Object.freeze({ id: row.id, values: Object.freeze([...row.values]) });
+         frozenRows.add(result); return result;
+     }));
+     const result = Object.freeze({ columns, rows }); frozenTables.add(result); return result;
+@@ -141,9 +175,9 @@
+     if (type === 'number') return datasetNumber(text);
+     fail('Tipo de celda desconocido.');
+ }
+-const frozenRows = new WeakSet(); const frozenTables = new WeakSet();
+-function prepared(table) { return frozenTables.has(table) ? table : snapshot(validateDatasetTable(table)); }
+-function finished(columns, rows) { return snapshot(validateDatasetTable({ columns, rows })); }
++const frozenRows = new WeakSet(); const frozenTables = new WeakSet(); const frozenColumnArrays = new WeakSet();
++function prepared(table) { return frozenTables.has(table) ? table : snapshot(validateCapturedTable(captureTableData(table))); }
++function finished(columns, rows) { return prepared({ columns, rows }); }
+ function columnIndex(table, id) { const index = table.columns.findIndex(column => column.id === id); if (index < 0) fail('Columna no encontrada.'); return index; }
+ function rowIndex(table, id) { const index = table.rows.findIndex(row => row.id === id); if (index < 0) fail('Fila no encontrada.'); return index; }
+ function mappedRows(table, transform) {
+diff --git a/tests/frontend/studio-dataset-table.test.mjs b/tests/frontend/studio-dataset-table.test.mjs
+--- a/tests/frontend/studio-dataset-table.test.mjs
++++ b/tests/frontend/studio-dataset-table.test.mjs
+@@ -247,3 +247,43 @@
+     rows.at(-1).values[99] += 'x';
+     assert.throws(() => data.validateDatasetTable(table), /52.000.000/);
+ });
++
++test('regression sparse values are rejected before validation serialization and history', () => {
++    const source = { columns: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }], rows: [{ id: 'r', values: ['keep', 'lost'] }] };
++    delete source.rows[0].values[1];
++    assert.throws(() => data.validateDatasetTable(source), TypeError);
++    assert.throws(() => data.datasetTableChunks(source), TypeError);
++    assert.throws(() => data.createDatasetHistory(source), TypeError);
++});
++test('regression inherited array indices do not substitute own dense JSON data', () => {
++    const values = ['keep', 'lost']; delete values[1];
++    Object.setPrototypeOf(values, Object.assign(Object.create(Array.prototype), { 1: 'inherited' }));
++    const source = { columns: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }], rows: [{ id: 'r', values }] };
++    assert.throws(() => data.validateDatasetTable(source), TypeError);
++    for (const field of ['columns', 'rows']) {
++        const table = sample(); delete table[field][0];
++        Object.setPrototypeOf(table[field], Object.assign(Object.create(Array.prototype), { 0: field === 'columns' ? { id: 'c', label: '' } : { id: 'r', values: ['inherited'] } }));
++        assert.throws(() => data.validateDatasetTable(table), TypeError);
++    }
++});
++test('regression frozen external getters are rejected without evaluation or snapshot aliasing', () => {
++    let label = 'Before'; let calls = 0;
++    const column = Object.freeze({ id: 'c', get label() { calls++; return label; } });
++    const source = { columns: Object.freeze([column]), rows: [{ id: 'r', values: ['x'] }] };
++    assert.throws(() => data.datasetTableChunks(source), TypeError);
++    assert.throws(() => data.createDatasetHistory(source), TypeError);
++    label = 'After\r';
++    assert.equal(calls, 0);
++});
++test('regression accessors in records and list slots are rejected before invoking user code', () => {
++    let calls = 0;
++    const source = sample();
++    Object.defineProperty(source.rows[0].values, '0', { enumerable: true, get() { calls++; return 'x'; } });
++    assert.throws(() => data.validateDatasetTable(source), TypeError);
++    assert.equal(calls, 0);
++    const rowSource = sample(); Object.defineProperty(rowSource.rows[0], 'id', { enumerable: true, get() { calls++; return 'r'; } });
++    assert.throws(() => data.createDatasetHistory(rowSource), TypeError);
++    const tableSource = sample(); Object.defineProperty(tableSource, 'rows', { enumerable: true, get() { calls++; return []; } });
++    assert.throws(() => data.datasetTableChunks(tableSource), TypeError);
++    assert.equal(calls, 0);
++});

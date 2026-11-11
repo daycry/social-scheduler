@@ -1,0 +1,662 @@
+diff --git a/resources/js/Studio/dataset-table.js b/resources/js/Studio/dataset-table.js
+new file mode 100644
+--- /dev/null
++++ b/resources/js/Studio/dataset-table.js
+@@ -0,0 +1,363 @@
++/** Pure, lossless dataset editing. Numbers keep their JSON lexeme instead of entering IEEE-754. */
++const NUMBER = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
++const numberTokens = new WeakSet();
++const fail = message => { throw new TypeError(message); };
++export function datasetNumber(raw) {
++    if (typeof raw !== 'string' || !NUMBER.test(raw) || !Number.isFinite(Number(raw))) fail('Número JSON no finito o inválido.');
++    const token = Object.freeze({ type: 'number', raw }); numberTokens.add(token); return token;
++}
++function parseLossless(text) {
++    if (typeof text !== 'string') fail('Se esperaba JSON como texto.');
++    let pos = 0;
++    const ws = () => { while (/[ \t\r\n]/.test(text[pos] ?? '') && pos < text.length) pos++; };
++    function value(depth = 0) {
++        ws(); if (depth > 16) fail('JSON demasiado anidado.');
++        const start = pos;
++        if (text[pos] === '"') {
++            pos++;
++            while (pos < text.length) {
++                if (text[pos] === '\\') { pos += 2; continue; }
++                if (text[pos++] === '"') return JSON.parse(text.slice(start, pos));
++            }
++            fail('Cadena JSON incompleta.');
++        }
++        if (text[pos] === '[' || text[pos] === '{') {
++            const object = text[pos++] === '{'; const out = object ? {} : []; const end = object ? '}' : ']';
++            ws(); if (text[pos] === end) { pos++; return out; }
++            while (pos < text.length) {
++                let key;
++                if (object) { if (text[pos] !== '"') fail('Clave JSON inválida.'); key = value(depth + 1); if (Object.hasOwn(out, key)) fail('Clave JSON duplicada.'); ws(); if (text[pos++] !== ':') fail('Falta dos puntos.'); }
++                const child = value(depth + 1);
++                if (object) Object.defineProperty(out, key, { value: child, enumerable: true, writable: true, configurable: true }); else out.push(child);
++                ws(); const separator = text[pos++]; if (separator === end) return out;
++                if (separator !== ',') fail('Separador JSON inválido.'); ws();
++            }
++            fail('JSON incompleto.');
++        }
++        for (const [literal, result] of [['null', null], ['true', true], ['false', false]]) {
++            if (text.startsWith(literal, pos)) { pos += literal.length; return result; }
++        }
++        const match = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/.exec(text.slice(pos));
++        if (!match) fail('Valor JSON inválido.');
++        pos += match[0].length; return datasetNumber(match[0]);
++    }
++    const parsed = value(); ws(); if (pos !== text.length) fail('Contenido después del JSON.'); return parsed;
++}
++export function parseDatasetTable(text) { inputBudget(text, 52000000, '52.000.000 bytes de entrada'); return prepared(parseLossless(text)); }
++const UTF8 = new TextEncoder();
++function inputBudget(text, max, label) {
++    if (typeof text !== 'string') fail('Se esperaba JSON como texto.');
++    if (text.length > max) fail(`El JSON supera ${label}.`);
++    let bytes = 0;
++    for (let start = 0; start < text.length;) {
++        let end = Math.min(start + 65536, text.length);
++        const high = text.charCodeAt(end - 1); const low = text.charCodeAt(end);
++        if (end < text.length && high >= 0xd800 && high <= 0xdbff && low >= 0xdc00 && low <= 0xdfff) end--;
++        bytes += UTF8.encode(text.slice(start, end)).byteLength;
++        if (bytes > max) fail(`El JSON supera ${label}.`);
++        start = end;
++    }
++}
++const ID = /^[A-Za-z0-9_-]{1,64}$/;
++function dataFields(object, expected, path) {
++    if (!object || typeof object !== 'object' || Array.isArray(object)
++        || ![Object.prototype, null].includes(Object.getPrototypeOf(object))) fail(`${path}: campos inválidos.`);
++    const descriptors = Object.getOwnPropertyDescriptors(object);
++    if (Reflect.ownKeys(descriptors).length !== expected.length) fail(`${path}: campos inválidos.`);
++    const captured = {};
++    for (const key of expected) {
++        const descriptor = descriptors[key];
++        if (!descriptor || !Object.hasOwn(descriptor, 'value') || !descriptor.enumerable) fail(`${path}: se requieren propiedades de datos propias.`);
++        captured[key] = descriptor.value;
++    }
++    return captured;
++}
++const keys = (object, expected, path) => { dataFields(object, expected, path); };
++function denseDataArray(array, min, max, path) {
++    if (!Array.isArray(array)) fail(`${path}: se esperaba una lista.`);
++    const descriptors = Object.getOwnPropertyDescriptors(array); const length = descriptors.length?.value;
++    if (!Number.isInteger(length) || length < min || length > max || Reflect.ownKeys(descriptors).length !== length + 1) fail(`${path}: longitud o propiedades de lista inválidas.`);
++    const captured = [];
++    for (let index = 0; index < length; index++) {
++        const descriptor = descriptors[index];
++        if (!descriptor || !Object.hasOwn(descriptor, 'value') || !descriptor.enumerable) fail(`${path}: la lista debe ser densa y contener datos propios.`);
++        captured.push(descriptor.value);
++    }
++    return captured;
++}
++function captureTableData(table) {
++    if (frozenTables.has(table)) return table;
++    const fields = dataFields(table, ['columns', 'rows'], 'Tabla');
++    const columns = frozenColumnArrays.has(fields.columns) ? fields.columns : denseDataArray(fields.columns, 1, 100, 'Columnas').map((column, index) => dataFields(column, ['id', 'label'], `Columna ${index + 1}`));
++    const rows = denseDataArray(fields.rows, 0, 1000, 'Filas').map((row, index) => {
++        if (frozenRows.has(row)) return row;
++        const fields = dataFields(row, ['id', 'values'], `Fila ${index + 1}`);
++        return { id: fields.id, values: denseDataArray(fields.values, 0, 100, `Fila ${index + 1}`) };
++    });
++    return { columns, rows };
++}
++function validText(value, limit, path) {
++    if (typeof value !== 'string') fail(`${path}: se esperaba texto.`);
++    let length = 0;
++    for (const point of value) {
++        const code = point.codePointAt(0);
++        if (++length > limit || (code >= 0xd800 && code <= 0xdfff) || (code < 32 && code !== 9 && code !== 10) || (code >= 127 && code <= 159)) fail(`${path}: longitud, Unicode o controles inválidos.`);
++    }
++}
++function validId(id, seen, path) {
++    if (typeof id !== 'string' || !ID.test(id) || seen.has(id)) fail(`${path}: identidad inválida o duplicada.`);
++    seen.add(id);
++}
++function validCell(value, path) {
++    if (value === null) return;
++    if (typeof value === 'string') return validText(value, 10000, path);
++    if (!numberTokens.has(value)) fail(`${path}: se esperaba texto, número tipado o vacío.`);
++    keys(value, ['type', 'raw'], path);
++    if (value.type !== 'number') fail(`${path}: tipo de celda inválido.`);
++    datasetNumber(value.raw);
++}
++const quote = value => JSON.stringify(value).replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
++const encodeCell = value => value === null ? 'null' : typeof value === 'string' ? quote(value) : value.raw;
++function* rawChunks(table) {
++    yield '{"columns":[';
++    for (let i = 0; i < table.columns.length; i++) {
++        const column = table.columns[i];
++        yield `${i ? ',' : ''}{"id":${quote(column.id)},"label":${quote(column.label)}}`;
++    }
++    yield '],"rows":[';
++    for (let i = 0; i < table.rows.length; i++) {
++        const row = table.rows[i];
++        yield `${i ? ',' : ''}{"id":${quote(row.id)},"values":[${row.values.map(encodeCell).join(',')}]}`;
++    }
++    yield ']}';
++}
++function validateCapturedTable(table) {
++    keys(table, ['columns', 'rows'], 'Tabla');
++    if (!Array.isArray(table.columns) || !Array.isArray(table.rows) || table.columns.length < 1 || table.columns.length > 100 || table.rows.length > 1000) fail('Tabla: se requieren 1–100 columnas y hasta 1000 filas.');
++    const columnIds = new Set(); const rowIds = new Set(); const checkedStrings = new Set();
++    table.columns.forEach((column, index) => {
++        keys(column, ['id', 'label'], `Columna ${index + 1}`);
++        validId(column.id, columnIds, `Columna ${index + 1}`); validText(column.label, 500, `Columna ${index + 1}`);
++    });
++    table.rows.forEach((row, index) => {
++        keys(row, ['id', 'values'], `Fila ${index + 1}`); validId(row.id, rowIds, `Fila ${index + 1}`);
++        if (!Array.isArray(row.values) || row.values.length !== table.columns.length) fail(`Fila ${index + 1}: anchura inválida.`);
++        row.values.forEach((value, col) => {
++            if (typeof value === 'string' && checkedStrings.has(value)) return;
++            validCell(value, `Fila ${index + 1}, columna ${col + 1}`);
++            if (typeof value === 'string') checkedStrings.add(value);
++        });
++    });
++    let bytes = 0;
++    for (const chunk of rawChunks(table)) { bytes += UTF8.encode(chunk).byteLength; if (bytes > 52000000) fail('La tabla supera 52.000.000 bytes JSON UTF-8.'); }
++    return table;
++}
++export function validateDatasetTable(table) { validateCapturedTable(captureTableData(table)); return table; }
++function snapshot(table) {
++    if (frozenTables.has(table)) return table;
++    const columns = frozenColumnArrays.has(table.columns) ? table.columns : Object.freeze(table.columns.map(column => Object.freeze({ id: column.id, label: column.label })));
++    frozenColumnArrays.add(columns);
++    const rows = Object.freeze(table.rows.map(row => {
++        if (frozenRows.has(row)) return row;
++        const result = Object.freeze({ id: row.id, values: Object.freeze([...row.values]) });
++        frozenRows.add(result); return result;
++    }));
++    const result = Object.freeze({ columns, rows }); frozenTables.add(result); return result;
++}
++/** Validation happens now, not after the caller has sent download/upload headers. */
++export function datasetTableChunks(table) { return rawChunks(prepared(table)); }
++export function cellType(value) { validCell(value, 'Celda'); return value === null ? 'empty' : typeof value === 'string' ? 'text' : 'number'; }
++export function cellText(value) { return cellType(value) === 'empty' ? '' : typeof value === 'string' ? value : value.raw; }
++export function cellFromInput(text, type) {
++    if (type === 'empty') return null;
++    if (typeof text !== 'string') fail('El valor editable debe ser texto.');
++    if (type === 'text') { validText(text, 10000, 'Celda'); return text; }
++    if (type === 'number') return datasetNumber(text);
++    fail('Tipo de celda desconocido.');
++}
++const frozenRows = new WeakSet(); const frozenTables = new WeakSet(); const frozenColumnArrays = new WeakSet();
++function prepared(table) { return frozenTables.has(table) ? table : snapshot(validateCapturedTable(captureTableData(table))); }
++function finished(columns, rows) { return prepared({ columns, rows }); }
++function columnIndex(table, id) { const index = table.columns.findIndex(column => column.id === id); if (index < 0) fail('Columna no encontrada.'); return index; }
++function rowIndex(table, id) { const index = table.rows.findIndex(row => row.id === id); if (index < 0) fail('Fila no encontrada.'); return index; }
++function mappedRows(table, transform) {
++    let changed = false;
++    const rows = table.rows.map((row, rowIndex) => {
++        const values = row.values.map((value, colIndex) => transform(value, colIndex, rowIndex));
++        if (values.every((value, i) => value === row.values[i])) return row;
++        changed = true; return { id: row.id, values };
++    });
++    return changed ? finished(table.columns, rows) : table;
++}
++export function editDatasetCell(source, rowId, columnId, value) {
++    const table = prepared(source); const ri = rowIndex(table, rowId); const ci = columnIndex(table, columnId); validCell(value, 'Celda');
++    return mappedRows(table, (previous, c, r) => r === ri && c === ci ? value : previous);
++}
++export function renameDatasetColumn(source, columnId, label) {
++    const table = prepared(source); const index = columnIndex(table, columnId); validText(label, 500, 'Columna');
++    return finished(table.columns.map((column, i) => i === index ? { ...column, label } : column), table.rows);
++}
++function newId(kind, existing, idFactory) {
++    for (let index = 1; index <= 10000; index++) {
++        const id = idFactory ? idFactory(kind, index, new Set(existing)) : `${kind}${index}`;
++        if (typeof id !== 'string' || !ID.test(id)) fail('La factoría devolvió una identidad inválida.');
++        if (!existing.has(id)) { existing.add(id); return id; }
++    }
++    fail('No se pudo generar una identidad nueva.');
++}
++export function blankDatasetTable({ rows = 3, columns = 3, idFactory } = {}) {
++    if (!Number.isInteger(rows) || !Number.isInteger(columns) || rows < 0 || rows > 1000 || columns < 1 || columns > 100) fail('Dimensiones de tabla inválidas.');
++    const cids = new Set(); const rids = new Set();
++    return finished(Array.from({ length: columns }, (_, i) => ({ id: newId('c', cids, idFactory), label: `Columna ${i + 1}` })),
++        Array.from({ length: rows }, () => ({ id: newId('r', rids, idFactory), values: Array(columns).fill(null) })));
++}
++export function addDatasetRow(source, { afterId = null, idFactory } = {}) {
++    const table = prepared(source); if (table.rows.length >= 1000) fail('Máximo 1000 filas.');
++    const index = afterId === null ? table.rows.length : rowIndex(table, afterId) + 1;
++    const id = newId('r', new Set(table.rows.map(row => row.id)), idFactory);
++    const rows = [...table.rows]; rows.splice(index, 0, { id, values: Array(table.columns.length).fill(null) });
++    return finished(table.columns, rows);
++}
++export function removeDatasetRow(source, rowId) {
++    const table = prepared(source); const index = rowIndex(table, rowId);
++    return finished(table.columns, table.rows.filter((_, i) => i !== index));
++}
++export function addDatasetColumn(source, { afterId = null, label = 'Columna', idFactory } = {}) {
++    const table = prepared(source); if (table.columns.length >= 100) fail('Máximo 100 columnas.'); validText(label, 500, 'Columna');
++    const index = afterId === null ? table.columns.length : columnIndex(table, afterId) + 1;
++    const id = newId('c', new Set(table.columns.map(column => column.id)), idFactory);
++    const columns = [...table.columns]; columns.splice(index, 0, { id, label });
++    const rows = table.rows.map(row => { const values = [...row.values]; values.splice(index, 0, null); return { id: row.id, values }; });
++    return finished(columns, rows);
++}
++export function removeDatasetColumn(source, columnId) {
++    const table = prepared(source); const index = columnIndex(table, columnId); if (table.columns.length === 1) fail('La tabla necesita al menos una columna.');
++    return finished(table.columns.filter((_, i) => i !== index), table.rows.map(row => ({ id: row.id, values: row.values.filter((_, i) => i !== index) })));
++}
++export function copyDatasetTable(source, { idFactory } = {}) {
++    const table = prepared(source); const cids = new Set(table.columns.map(column => column.id)); const rids = new Set(table.rows.map(row => row.id));
++    return finished(table.columns.map(column => ({ id: newId('c', cids, idFactory), label: column.label })),
++        table.rows.map(row => ({ id: newId('r', rids, idFactory), values: row.values })));
++}
++export function replaceDatasetText(source, search, replacement, { columnId = null } = {}) {
++    const table = prepared(source); validText(search, 10000, 'Buscar'); validText(replacement, 10000, 'Reemplazo'); if (search === '') fail('La búsqueda no puede estar vacía.');
++    const column = columnId === null ? null : columnIndex(table, columnId);
++    return mappedRows(table, (value, c) => {
++        if (typeof value !== 'string' || (column !== null && c !== column)) return value;
++        let occurrences = 0; let pos = 0;
++        while ((pos = value.indexOf(search, pos)) !== -1) { occurrences++; pos += search.length; }
++        if ([...value].length + occurrences * ([...replacement].length - [...search].length) > 10000) fail('El reemplazo supera 10000 caracteres por celda.');
++        return value.split(search).join(replacement);
++    });
++}
++export function fillDatasetBlanks(source, value, { includeEmptyStrings = false, columnId = null } = {}) {
++    const table = prepared(source); validCell(value, 'Relleno'); if (typeof includeEmptyStrings !== 'boolean') fail('Opción de vacíos inválida.');
++    const column = columnId === null ? null : columnIndex(table, columnId);
++    return mappedRows(table, (previous, c) => (column === null || c === column) && (previous === null || (includeEmptyStrings && previous === '')) ? value : previous);
++}
++export function previewDatasetConversion(source, columnId, type) {
++    const table = prepared(source); const index = columnIndex(table, columnId); if (!['text', 'number', 'empty'].includes(type)) fail('Tipo de celda desconocido.');
++    const changes = []; const errors = [];
++    for (const row of table.rows) {
++        try { changes.push({ rowId: row.id, value: cellFromInput(cellText(row.values[index]), type) }); }
++        catch (error) { errors.push({ rowId: row.id, message: error.message }); }
++    }
++    return { changes, errors };
++}
++export function applyDatasetConversion(source, columnId, type) {
++    const table = prepared(source); const index = columnIndex(table, columnId); const preview = previewDatasetConversion(table, columnId, type);
++    if (preview.errors.length) { const error = new TypeError('La conversión contiene errores; no se ha cambiado ninguna celda.'); error.errors = preview.errors; throw error; }
++    const values = new Map(preview.changes.map(change => [change.rowId, change.value]));
++    return mappedRows(table, (value, c, r) => c === index ? values.get(table.rows[r].id) : value);
++}
++export function createDatasetHistory(initial, { limit = 30 } = {}) {
++    if (!Number.isInteger(limit) || limit < 1 || limit > 30) fail('El historial admite de 1 a 30 operaciones.');
++    let states = [prepared(initial)]; let index = 0;
++    return {
++        get table() { return states[index]; }, get canUndo() { return index > 0; }, get canRedo() { return index + 1 < states.length; },
++        get undoDepth() { return index; }, get redoDepth() { return states.length - index - 1; }, get limit() { return limit; },
++        commit(next) {
++            next = prepared(next);
++            if (next !== states[index]) {
++                states.splice(index + 1); states.push(next);
++                if (states.length > limit + 1) states.shift();
++                index = states.length - 1;
++            }
++            return states[index];
++        },
++        undo() { index = Math.max(0, index - 1); return states[index]; },
++        redo() { index = Math.min(states.length - 1, index + 1); return states[index]; },
++        reset(next) { states = [prepared(next)]; index = 0; return states[0]; },
++    };
++}
++export function transposeDatasetTable(source, { idFactory } = {}) {
++    const table = prepared(source); if (table.rows.length > 99) fail('Transponer conservando encabezados admite hasta 99 filas (100 columnas de salida).');
++    const cids = new Set(table.columns.map(column => column.id)); const rids = new Set(table.rows.map(row => row.id));
++    const columns = [{ id: newId('c', cids, idFactory), label: 'Columna' }, ...table.rows.map((_, i) => ({ id: newId('c', cids, idFactory), label: `Fila ${i + 1}` }))];
++    const rows = table.columns.map((column, c) => ({ id: newId('r', rids, idFactory), values: [column.label, ...table.rows.map(row => row.values[c])] }));
++    return finished(columns, rows);
++}
++function integer(value, min, max, path) {
++    const raw = typeof value === 'number' ? String(value) : numberTokens.has(value) ? value.raw : '';
++    const result = Number(raw);
++    if (!/^(?:0|[1-9]\d*)$/.test(raw) || !Number.isSafeInteger(result) || result < min || result > max) fail(`${path}: entero seguro inválido.`);
++    return result;
++}
++function metadata(value, path = 'Metadatos') {
++    if (value === null || typeof value === 'string' || typeof value === 'boolean') return value;
++    if (numberTokens.has(value)) return integer(value, 0, Number.MAX_SAFE_INTEGER, path);
++    if (Array.isArray(value)) return value.map(child => metadata(child, path));
++    if (!value || typeof value !== 'object') fail(`${path}: objeto inválido.`);
++    const result = {};
++    for (const key of Object.keys(value)) {
++        if (['__proto__', 'constructor', 'prototype'].includes(key)) fail(`${path}: clave inválida.`);
++        Object.defineProperty(result, key, { value: metadata(value[key], path), enumerable: true });
++    }
++    return result;
++}
++const validSha = sha => typeof sha === 'string' && /^[a-f0-9]{64}$/.test(sha);
++export function parseDatasetPage(text) {
++    inputBudget(text, 8 * 1024 * 1024, '8 MiB de entrada');
++    const input = parseLossless(text); keys(input, ['dataset', 'revision', 'sha256', 'columns', 'rows', 'pagination'], 'Página');
++    const dataset = metadata(input.dataset);
++    if (!dataset || Array.isArray(dataset) || typeof dataset !== 'object') fail('Dataset inválido.');
++    integer(dataset.id, 1, Number.MAX_SAFE_INTEGER, 'Dataset'); integer(dataset.brand_id, 1, Number.MAX_SAFE_INTEGER, 'Marca');
++    const revision = integer(input.revision, 1, Number.MAX_SAFE_INTEGER, 'Revisión');
++    if (integer(dataset.revision, 1, Number.MAX_SAFE_INTEGER, 'Revisión actual') < revision || !validSha(input.sha256)) fail('Snapshot inválido.');
++    const table = prepared({ columns: input.columns, rows: input.rows });
++    keys(input.pagination, ['offset', 'limit', 'total', 'next_offset'], 'Paginación');
++    const pagination = {
++        offset: integer(input.pagination.offset, 0, 1000, 'Offset'), limit: integer(input.pagination.limit, 1, 100, 'Límite'),
++        total: integer(input.pagination.total, 0, 1000, 'Total'),
++        next_offset: input.pagination.next_offset === null ? null : integer(input.pagination.next_offset, 0, 1000, 'Siguiente offset'),
++    };
++    const next = pagination.offset + table.rows.length;
++    if (table.rows.length > pagination.limit || next > pagination.total || pagination.offset > pagination.total
++        || (next < pagination.total ? table.rows.length === 0 || pagination.next_offset !== next : pagination.next_offset !== null)) fail('Página incompleta o cursor no contiguo.');
++    let rowBytes = 2;
++    for (let i = 0; i < table.rows.length; i++) rowBytes += UTF8.encode(JSON.stringify({ id: table.rows[i].id }).slice(0, -1) + ',"values":[' + table.rows[i].values.map(encodeCell).join(',') + ']}').byteLength + (i ? 1 : 0);
++    if (rowBytes > 6 * 1024 * 1024) fail('La página supera 6 MiB de filas.');
++    return { dataset, revision, sha256: input.sha256, columns: table.columns, rows: table.rows, pagination };
++}
++export function createDatasetAssembler({ datasetId, revision, sha256 = null }) {
++    integer(datasetId, 1, Number.MAX_SAFE_INTEGER, 'Dataset'); integer(revision, 1, Number.MAX_SAFE_INTEGER, 'Revisión');
++    if (sha256 !== null && !validSha(sha256)) fail('SHA de snapshot inválido.');
++    let nextOffset = 0; let columns = null; let rows = []; let brandId = null; let total = null; let table = null; let complete = false;
++    return {
++        get nextOffset() { return nextOffset; }, get complete() { return complete; }, get table() { return table; },
++        get revision() { return revision; }, get sha256() { return sha256; },
++        append(text) {
++            if (complete) fail('La tabla ya está completa.');
++            const page = parseDatasetPage(text);
++            if (page.dataset.id !== datasetId || page.revision !== revision || (sha256 !== null && page.sha256 !== sha256)
++                || (brandId !== null && page.dataset.brand_id !== brandId) || (total !== null && page.pagination.total !== total)
++                || page.pagination.offset !== nextOffset || (columns !== null && (columns.length !== page.columns.length || columns.some((column, i) => column.id !== page.columns[i].id || column.label !== page.columns[i].label)))) fail('Las páginas no pertenecen al mismo snapshot o no son consecutivas.');
++            const candidate = finished(columns ?? page.columns, [...rows, ...page.rows]);
++            const finishedPage = page.pagination.next_offset === null;
++            // Commit only after all consistency, identity and cumulative byte checks have succeeded.
++            columns = candidate.columns; rows = candidate.rows; sha256 = page.sha256; brandId = page.dataset.brand_id; total = page.pagination.total;
++            nextOffset = page.pagination.next_offset; complete = finishedPage; if (complete) table = candidate;
++            return table;
++        },
++    };
++}
+diff --git a/tests/frontend/studio-dataset-table.test.mjs b/tests/frontend/studio-dataset-table.test.mjs
+new file mode 100644
+--- /dev/null
++++ b/tests/frontend/studio-dataset-table.test.mjs
+@@ -0,0 +1,289 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import * as data from '../../resources/js/Studio/dataset-table.js';
++const tableJSON = '{"columns":[{"id":"c1","label":"Valor"}],"rows":[{"id":"r1","values":[0.0]},{"id":"r2","values":[-0.0]},{"id":"r3","values":[9007199254740993]},{"id":"r4","values":["001"]},{"id":"r5","values":[null]}]}';
++test('parse preserves decimal lexemes and typed cells', () => {
++    const table = data.parseDatasetTable(tableJSON);
++    assert.deepEqual(table.columns, [{ id: 'c1', label: 'Valor' }]);
++    assert.deepEqual(table.rows.map(row => row.values[0]), [
++        { type: 'number', raw: '0.0' }, { type: 'number', raw: '-0.0' }, { type: 'number', raw: '9007199254740993' }, '001', null,
++    ]);
++});
++
++const sample = () => ({ columns: [{ id: 'c1', label: 'Valor' }], rows: [{ id: 'r1', values: ['001'] }] });
++test('schema rejects unknown fields duplicate identities invalid cells and limits', () => {
++    const invalid = [
++        { ...sample(), extra: 1 }, { columns: {}, rows: [] }, { columns: [], rows: [] },
++        { columns: [{ id: 'a', label: '' }, { id: 'a', label: '' }], rows: [] },
++        { columns: [{ id: 'bad id', label: '' }], rows: [] },
++        { columns: [{ id: 'a', label: '😀'.repeat(501) }], rows: [] },
++        { columns: [{ id: 'a', label: '\ud800' }], rows: [] },
++        { columns: [{ id: 'a', label: '' }], rows: [{ id: 'r', values: [] }] },
++        { columns: [{ id: 'a', label: '' }], rows: [{ id: 'r', values: [true] }] },
++        { columns: [{ id: 'a', label: '' }], rows: [{ id: 'r', values: [{ type: 'number', raw: '1', extra: 1 }] }] },
++        { columns: [{ id: 'a', label: '' }], rows: [{ id: 'r', values: ['bad\rcontrol'] }] },
++        { columns: [{ id: 'a', label: '' }], rows: [{ id: 'r', values: ['😀'.repeat(10001)] }] },
++        { columns: Array.from({ length: 101 }, (_, i) => ({ id: `c${i}`, label: '' })), rows: [] },
++        { columns: [{ id: 'a', label: '' }], rows: Array.from({ length: 1001 }, (_, i) => ({ id: `r${i}`, values: [''] })) },
++        { columns: [{ id: 'a', label: '' }], rows: [{ id: 'r', values: [''] }, { id: 'r', values: [''] }] },
++    ];
++    for (const table of invalid) assert.throws(() => data.parseDatasetTable(JSON.stringify(table)), TypeError);
++});
++test('JSON parser rejects duplicate keys rather than overwriting', () => {
++    assert.throws(() => data.parseDatasetTable('{"columns":[],"columns":[{"id":"c","label":""}],"rows":[]}'), /duplicada/);
++});
++test('canonical byte budget rejects oversized shared-string tables without allocation of whole JSON', () => {
++    const columns = Array.from({ length: 100 }, (_, i) => ({ id: `c${i}`, label: '' }));
++    const row = Array(100).fill('x'.repeat(10000));
++    const table = { columns, rows: Array.from({ length: 1000 }, (_, i) => ({ id: `r${i}`, values: row })) };
++    assert.throws(() => data.validateDatasetTable(table), /52.000.000/);
++});
++
++test('serializer emits lossless JSON chunks and validates before returning iterator', () => {
++    const table = data.parseDatasetTable(tableJSON);
++    const chunks = [...data.datasetTableChunks(table)];
++    assert.equal(chunks.join(''), tableJSON);
++    assert.ok(chunks.length > 2);
++    assert.throws(() => data.datasetTableChunks({ columns: [], rows: [] }), TypeError);
++    const hostile = data.parseDatasetTable('{"columns":[{"id":"c","label":"\\uFEFFé"}],"rows":[{"id":"r","values":["=HYPERLINK(1)\\n\\t😀\\u2028\\u2029"]}]}');
++    assert.deepEqual(data.parseDatasetTable([...data.datasetTableChunks(hostile)].join('')), hostile);
++});
++test('cell display and explicit conversion preserve text empty and numeric distinctions', () => {
++    const number = data.datasetNumber('-0.0');
++    assert.equal(data.cellType(number), 'number'); assert.equal(data.cellText(number), '-0.0');
++    assert.equal(data.cellType(null), 'empty'); assert.equal(data.cellText(null), '');
++    assert.equal(data.cellType(''), 'text'); assert.equal(data.cellType('001'), 'text');
++    assert.equal(data.cellFromInput('001', 'text'), '001');
++    assert.deepEqual(data.cellFromInput('1e3', 'number'), { type: 'number', raw: '1e3' });
++    assert.equal(data.cellFromInput('anything', 'empty'), null);
++    for (const invalid of ['', ' 1', '01', '+1', 'NaN', 'Infinity', '1e309', '=1+1']) assert.throws(() => data.cellFromInput(invalid, 'number'), TypeError);
++});
++test('cell and column edits are immutable by checked identity and share untouched rows', () => {
++    const source = data.parseDatasetTable(tableJSON);
++    const changed = data.editDatasetCell(source, 'r1', 'c1', 'literal');
++    assert.equal(changed.rows[0].values[0], 'literal');
++    assert.equal(source.rows[0].values[0].raw, '0.0');
++    assert.equal(changed.rows[1], source.rows[1]);
++    assert.equal(changed.columns, source.columns);
++    assert.throws(() => data.editDatasetCell(source, 'unknown', 'c1', 'x'), /Fila/);
++    assert.throws(() => data.editDatasetCell(source, 'r1', 'unknown', 'x'), /Columna/);
++    const named = data.renameDatasetColumn(source, 'c1', 'Nuevo');
++    assert.equal(named.columns[0].label, 'Nuevo'); assert.equal(source.columns[0].label, 'Valor');
++});
++test('row and column structure operations keep identities and enforce dimension limits', () => {
++    const factory = (kind, index) => `${kind}_${index}`;
++    const table = data.blankDatasetTable({ rows: 2, columns: 2, idFactory: factory });
++    assert.equal(table.columns.length, 2); assert.equal(table.rows.length, 2);
++    assert.deepEqual(table.rows[0].values, [null, null]);
++    const row = data.addDatasetRow(table, { afterId: table.rows[0].id, idFactory: factory });
++    assert.equal(row.rows.length, 3); assert.equal(row.rows[0], table.rows[0]); assert.equal(row.rows[2], table.rows[1]);
++    const column = data.addDatasetColumn(row, { afterId: table.columns[0].id, label: 'Extra', idFactory: factory });
++    assert.deepEqual(column.columns.map(c => c.label), ['Columna 1', 'Extra', 'Columna 2']);
++    assert.deepEqual(column.rows[0].values, [null, null, null]);
++    assert.equal(data.removeDatasetRow(column, row.rows[1].id).rows.length, 2);
++    assert.deepEqual(data.removeDatasetColumn(column, column.columns[1].id), row);
++    assert.throws(() => data.removeDatasetColumn(data.blankDatasetTable({ columns: 1 }), 'c1'), TypeError);
++    assert.throws(() => data.blankDatasetTable({ rows: 1001 }), TypeError);
++    assert.throws(() => data.addDatasetColumn(data.blankDatasetTable({ columns: 100 })), TypeError);
++    assert.throws(() => data.addDatasetRow(data.blankDatasetTable({ rows: 1000 })), TypeError);
++});
++test('copy uses new deterministic IDs and retains typed values without source mutation', () => {
++    const source = data.parseDatasetTable(tableJSON);
++    const copy = data.copyDatasetTable(source, { idFactory: (kind, i) => `copy_${kind}_${i}` });
++    assert.notEqual(copy.columns[0].id, source.columns[0].id);
++    assert.notEqual(copy.rows[0].id, source.rows[0].id);
++    assert.deepEqual(copy.rows.map(row => row.values), source.rows.map(row => row.values));
++    assert.equal(source.rows[0].id, 'r1');
++});
++test('literal replacement and explicit blank filling leave numbers and unrelated columns intact', () => {
++    const source = data.parseDatasetTable('{"columns":[{"id":"a","label":"A"},{"id":"b","label":"B"}],"rows":[{"id":"r1","values":["x.x$&",0.0]},{"id":"r2","values":[null,""]}]}');
++    const replaced = data.replaceDatasetText(source, '.', '$&', { columnId: 'a' });
++    assert.equal(replaced.rows[0].values[0], 'x$&x$&');
++    assert.equal(replaced.rows[0].values[1], source.rows[0].values[1]);
++    const filled = data.fillDatasetBlanks(source, 'fill');
++    assert.deepEqual(filled.rows[1].values, ['fill', '']);
++    assert.deepEqual(data.fillDatasetBlanks(source, 'fill', { includeEmptyStrings: true }).rows[1].values, ['fill', 'fill']);
++    assert.equal(source.rows[1].values[0], null);
++    assert.throws(() => data.replaceDatasetText(source, '', 'x'), TypeError);
++});
++test('column conversion previews row errors and applies no partial mutation', () => {
++    const source = data.parseDatasetTable('{"columns":[{"id":"a","label":"A"}],"rows":[{"id":"r1","values":["1.0"]},{"id":"r2","values":["bad"]}]}');
++    const preview = data.previewDatasetConversion(source, 'a', 'number');
++    assert.equal(preview.changes.length, 1); assert.equal(preview.errors.length, 1); assert.equal(preview.errors[0].rowId, 'r2');
++    assert.throws(() => data.applyDatasetConversion(source, 'a', 'number'), error => error.errors?.[0]?.rowId === 'r2');
++    assert.equal(source.rows[0].values[0], '1.0');
++    const valid = data.editDatasetCell(source, 'r2', 'a', '2');
++    assert.deepEqual(data.applyDatasetConversion(valid, 'a', 'number').rows.map(r => r.values[0]), [data.datasetNumber('1.0'), data.datasetNumber('2')]);
++});
++test('history uses bounded shared states and supports undo redo branch and reset', () => {
++    const initial = data.parseDatasetTable(tableJSON); const history = data.createDatasetHistory(initial, { limit: 2 });
++    const one = data.editDatasetCell(initial, 'r1', 'c1', 'one'); history.commit(one);
++    assert.equal(history.table.rows[0].values[0], 'one'); assert.equal(history.canUndo, true);
++    const two = data.editDatasetCell(one, 'r1', 'c1', 'two'); history.commit(two);
++    const three = data.editDatasetCell(two, 'r1', 'c1', 'three'); history.commit(three);
++    assert.equal(history.undoDepth, 2); assert.equal(history.table.rows[1], initial.rows[1]);
++    assert.equal(history.undo(), two); assert.equal(history.undo(), one); assert.equal(history.canUndo, false);
++    assert.equal(history.redo(), two); assert.equal(history.canRedo, true);
++    history.commit(three); assert.equal(history.canRedo, false);
++    assert.throws(() => history.commit({ columns: [], rows: [] }), TypeError);
++    history.reset(initial); assert.equal(history.canUndo, false); assert.equal(history.table.rows[0].values[0].raw, '0.0');
++});
++
++test('transpose retains original headers as values and regenerates all identities', () => {
++    const source = data.parseDatasetTable('{"columns":[{"id":"a","label":"A"},{"id":"b","label":"B"}],"rows":[{"id":"r1","values":[0.0,"x"]},{"id":"r2","values":[null,"y"]}]}');
++    const transposed = data.transposeDatasetTable(source, { idFactory: (kind, i) => `new_${kind}_${i}` });
++    assert.deepEqual(transposed.columns.map(column => column.label), ['Columna', 'Fila 1', 'Fila 2']);
++    assert.deepEqual(transposed.rows.map(row => row.values), [['A', data.datasetNumber('0.0'), null], ['B', 'x', 'y']]);
++    assert.ok(transposed.columns.every(column => !source.columns.some(old => old.id === column.id)));
++    assert.ok(transposed.rows.every(row => !source.rows.some(old => old.id === row.id)));
++    assert.equal(data.transposeDatasetTable(data.blankDatasetTable({ rows: 0, columns: 2 })).rows.length, 2);
++    assert.throws(() => data.transposeDatasetTable(data.blankDatasetTable({ rows: 100 })), /99/);
++    assert.deepEqual(source.rows[0].values, [data.datasetNumber('0.0'), 'x']);
++});
++const pageRaw = ({ offset = 0, next = 1, total = 2, revision = 2, sha256 = 'a'.repeat(64), dataset = 5, brand = 7, currentRevision = 2, rows = '[{"id":"r1","values":[0.0]}]', columns = '[{"id":"c1","label":"Valor"}]' } = {}) =>
++    `{"dataset":{"id":${dataset},"brand_id":${brand},"revision":${currentRevision}},"revision":${revision},"sha256":"${sha256}","columns":${columns},"rows":${rows},"pagination":{"offset":${offset},"limit":50,"total":${total},"next_offset":${next === null ? 'null' : next}}}`;
++test('page decoder keeps numeric cells lossless and validates safe metadata and contiguous offsets', () => {
++    const page = data.parseDatasetPage(pageRaw());
++    assert.deepEqual(page.dataset, { id: 5, brand_id: 7, revision: 2 }); assert.equal(page.revision, 2); assert.equal(page.pagination.offset, 0);
++    assert.deepEqual(page.rows[0].values[0], data.datasetNumber('0.0'));
++    for (const raw of [pageRaw({ next: 0 }), pageRaw({ next: 2 }), pageRaw({ total: 0 }), pageRaw({ dataset: '9007199254740993' }), pageRaw({ sha256: 'bad' }), pageRaw({ revision: 0 })]) assert.throws(() => data.parseDatasetPage(raw), TypeError);
++});
++test('assembler pins historical revision and hash across complete ordered pages', () => {
++    const assembler = data.createDatasetAssembler({ datasetId: 5, revision: 2 });
++    assert.equal(assembler.nextOffset, 0); assert.equal(assembler.append(pageRaw()), null);
++    assert.equal(assembler.nextOffset, 1); assert.equal(assembler.complete, false);
++    const table = assembler.append(pageRaw({ offset: 1, next: null, currentRevision: 3, rows: '[{"id":"r2","values":[9007199254740993]}]' }));
++    assert.equal(assembler.complete, true); assert.equal(assembler.nextOffset, null);
++    assert.equal(assembler.revision, 2); assert.equal(assembler.sha256, 'a'.repeat(64));
++    assert.equal(table.rows[1].values[0].raw, '9007199254740993'); assert.equal(assembler.table, table);
++    assert.throws(() => assembler.append(pageRaw()), TypeError);
++});
++test('assembler rejects mixed brand revision hash columns total gaps cycles and duplicate row IDs atomically', () => {
++    const variants = [
++        { brand: 8 }, { dataset: 6 }, { revision: 3 }, { sha256: 'b'.repeat(64) }, { total: 3, next: 2 },
++        { columns: '[{"id":"c1","label":"Changed"}]' }, { offset: 0, next: 1 }, { rows: '[{"id":"r1","values":[1.0]}]' },
++    ];
++    for (const change of variants) {
++        const assembler = data.createDatasetAssembler({ datasetId: 5, revision: 2, sha256: 'a'.repeat(64) }); assembler.append(pageRaw());
++        assert.throws(() => assembler.append(pageRaw({ offset: 1, next: null, rows: '[{"id":"r2","values":[1.0]}]', ...change })), TypeError);
++        assert.equal(assembler.nextOffset, 1); assert.equal(assembler.complete, false); assert.equal(assembler.table, null);
++        assembler.append(pageRaw({ offset: 1, next: null, rows: '[{"id":"r2","values":[1.0]}]' }));
++        assert.equal(assembler.complete, true);
++    }
++});
++
++test('identity number and hash tokens reject trailing line breaks exactly', () => {
++    for (const raw of ['1\n', '1\r', '1\r\n']) assert.throws(() => data.datasetNumber(raw), TypeError);
++    assert.throws(() => data.parseDatasetTable('{"columns":[{"id":"c1\\n","label":""}],"rows":[]}'), TypeError);
++    assert.throws(() => data.parseDatasetPage(pageRaw({ sha256: 'a'.repeat(64) + '\\n' })), TypeError);
++});
++test('serializer snapshots caller-owned mutable objects without freezing caller state', () => {
++    const source = sample(); const chunks = data.datasetTableChunks(source);
++    source.rows[0].values[0] = 'changed'; source.columns[0].label = 'Changed';
++    const parsed = data.parseDatasetTable([...chunks].join(''));
++    assert.equal(parsed.rows[0].values[0], '001'); assert.equal(parsed.columns[0].label, 'Valor');
++    assert.equal(Object.isFrozen(source.rows[0]), false);
++});
++
++test('JSON cell objects cannot impersonate internal number tokens', () => {
++    const raw = '{"columns":[{"id":"c","label":""}],"rows":[{"id":"r","values":[{"type":"number","raw":"1.0"}]}]}';
++    assert.throws(() => data.parseDatasetTable(raw), TypeError);
++    assert.throws(() => data.validateDatasetTable({ columns: [{ id: 'c', label: '' }], rows: [{ id: 'r', values: [{ type: 'number', raw: '1.0' }] }] }), TypeError);
++});
++
++test('characterization exact Unicode codepoint limits and immutable caller snapshots', () => {
++    const source = { columns: [{ id: 'c', label: '😀'.repeat(500) }], rows: [{ id: 'r', values: ['😀'.repeat(10000)] }] };
++    assert.equal(data.validateDatasetTable(source), source);
++    const history = data.createDatasetHistory(source);
++    source.rows[0].values[0] = 'changed'; source.columns[0].label = 'changed';
++    assert.equal(history.table.rows[0].values[0], '😀'.repeat(10000));
++    assert.equal(history.table.columns[0].label, '😀'.repeat(500));
++    assert.equal(Object.isFrozen(source), false);
++    const numeric = data.datasetNumber('1e-400'); assert.equal(numeric.raw, '1e-400');
++    assert.ok(Object.isFrozen(numeric));
++});
++test('characterization JSON grammar prototype isolation escaped strings and depth', () => {
++    for (const raw of ['null', '[]', '{}', '{"columns":[],"rows":[],}', '{"columns":[{"id":"c","label":""}],"rows":[{"id":"r","values":[01]}]}', '{"columns":[{"id":"c","label":""}],"rows":[{"id":"r","values":[1e309]}]}', '{"__proto__":{"polluted":true},"columns":[{"id":"c","label":""}],"rows":[]}', '['.repeat(18) + '0' + ']'.repeat(18)]) assert.throws(() => data.parseDatasetTable(raw));
++    assert.equal({}.polluted, undefined);
++    const table = data.parseDatasetTable('{"columns":[{"id":"c","label":"Quote \\""}],"rows":[{"id":"r","values":["backslash \\\\ tab\\tLF\\n"]}]}');
++    assert.equal(table.rows[0].values[0], 'backslash \\ tab\tLF\n');
++});
++test('characterization invalid bulk result and row cursors never mutate original', () => {
++    const source = data.parseDatasetTable('{"columns":[{"id":"c","label":""}],"rows":[{"id":"r","values":["abc"]}]}');
++    assert.throws(() => data.replaceDatasetText(source, 'a', 'x'.repeat(10000)), TypeError);
++    assert.equal(source.rows[0].values[0], 'abc');
++    assert.throws(() => data.parseDatasetPage(pageRaw({ dataset: '{"type":"number","raw":"5"}' })), TypeError);
++    const empty = data.createDatasetAssembler({ datasetId: 5, revision: 2 });
++    assert.deepEqual(empty.append(pageRaw({ total: 0, next: null, rows: '[]' })).rows, []);
++});
++
++test('raw table input byte cap is enforced before parsing or whitespace scanning', () => {
++    assert.throws(() => data.parseDatasetTable(' '.repeat(52000001)), /52.000.000 bytes de entrada/);
++});
++test('raw page byte cap counts UTF8 incrementally before decoding schema', () => {
++    const raw = '{"padding":"' + 'é'.repeat(4 * 1024 * 1024) + '"}';
++    assert.throws(() => data.parseDatasetPage(raw), /8 MiB de entrada/);
++});
++
++test('characterization UTF8 budget does not split surrogate pairs at 64KiB chunk boundary', () => {
++    const prefix = '{"padding":"';
++    const before = 'a'.repeat(65535 - prefix.length);
++    const first = prefix + before + '😀';
++    const suffix = '"}';
++    const remaining = 8 * 1024 * 1024 - new TextEncoder().encode(first + suffix).length;
++    const raw = first + 'a'.repeat(remaining) + suffix;
++    assert.throws(() => data.parseDatasetPage(raw), /Página: campos inválidos/);
++});
++test('characterization canonical byte limit accepts exact52M and rejects plus1 by streamed row accounting', () => {
++    const columns = Array.from({ length: 100 }, (_, i) => ({ id: `c${i}`, label: '' }));
++    const rows = Array.from({ length: 1000 }, (_, i) => ({ id: `r${i}`, values: Array(100).fill('') }));
++    const table = { columns, rows }; const encoder = new TextEncoder();
++    const base = [...data.datasetTableChunks(table)].reduce((sum, chunk) => sum + encoder.encode(chunk).length, 0);
++    let remaining = 52000000 - base; const full = 'x'.repeat(10000);
++    for (const row of rows) for (let col = 0; col < row.values.length && remaining; col++) {
++        const amount = Math.min(10000, remaining); row.values[col] = amount === 10000 ? full : 'x'.repeat(amount); remaining -= amount;
++    }
++    assert.equal(remaining, 0); assert.equal(data.validateDatasetTable(table), table);
++    rows.at(-1).values[99] += 'x';
++    assert.throws(() => data.validateDatasetTable(table), /52.000.000/);
++});
++
++test('regression sparse values are rejected before validation serialization and history', () => {
++    const source = { columns: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }], rows: [{ id: 'r', values: ['keep', 'lost'] }] };
++    delete source.rows[0].values[1];
++    assert.throws(() => data.validateDatasetTable(source), TypeError);
++    assert.throws(() => data.datasetTableChunks(source), TypeError);
++    assert.throws(() => data.createDatasetHistory(source), TypeError);
++});
++test('regression inherited array indices do not substitute own dense JSON data', () => {
++    const values = ['keep', 'lost']; delete values[1];
++    Object.setPrototypeOf(values, Object.assign(Object.create(Array.prototype), { 1: 'inherited' }));
++    const source = { columns: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }], rows: [{ id: 'r', values }] };
++    assert.throws(() => data.validateDatasetTable(source), TypeError);
++    for (const field of ['columns', 'rows']) {
++        const table = sample(); delete table[field][0];
++        Object.setPrototypeOf(table[field], Object.assign(Object.create(Array.prototype), { 0: field === 'columns' ? { id: 'c', label: '' } : { id: 'r', values: ['inherited'] } }));
++        assert.throws(() => data.validateDatasetTable(table), TypeError);
++    }
++});
++test('regression frozen external getters are rejected without evaluation or snapshot aliasing', () => {
++    let label = 'Before'; let calls = 0;
++    const column = Object.freeze({ id: 'c', get label() { calls++; return label; } });
++    const source = { columns: Object.freeze([column]), rows: [{ id: 'r', values: ['x'] }] };
++    assert.throws(() => data.datasetTableChunks(source), TypeError);
++    assert.throws(() => data.createDatasetHistory(source), TypeError);
++    label = 'After\r';
++    assert.equal(calls, 0);
++});
++test('regression accessors in records and list slots are rejected before invoking user code', () => {
++    let calls = 0;
++    const source = sample();
++    Object.defineProperty(source.rows[0].values, '0', { enumerable: true, get() { calls++; return 'x'; } });
++    assert.throws(() => data.validateDatasetTable(source), TypeError);
++    assert.equal(calls, 0);
++    const rowSource = sample(); Object.defineProperty(rowSource.rows[0], 'id', { enumerable: true, get() { calls++; return 'r'; } });
++    assert.throws(() => data.createDatasetHistory(rowSource), TypeError);
++    const tableSource = sample(); Object.defineProperty(tableSource, 'rows', { enumerable: true, get() { calls++; return []; } });
++    assert.throws(() => data.datasetTableChunks(tableSource), TypeError);
++    assert.equal(calls, 0);
++});

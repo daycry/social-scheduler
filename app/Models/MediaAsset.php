@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PostStatus;
 use App\Models\Concerns\BelongsToUser;
 use App\Scopes\UserScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -32,9 +33,13 @@ class MediaAsset extends Model
 
     public const SOURCE_GIPHY = 'giphy';
 
+    public const SOURCE_CANVA = 'canva';
+
     public const KIND_IMAGE = 'image';
 
     public const KIND_VIDEO = 'video';
+
+    public const KIND_AUDIO = 'audio';
 
     protected $fillable = [
         'disk', 'path', 'original_name', 'mime', 'kind', 'declared_size', 'size', 'width', 'height',
@@ -43,7 +48,7 @@ class MediaAsset extends Model
 
     protected $attributes = ['source' => self::SOURCE_UPLOAD];
 
-    protected $hidden = ['upload_id', 'source_ref', 'import_state'];
+    protected $hidden = ['upload_id', 'source_ref', 'import_state', 'origin'];
 
     protected function casts(): array
     {
@@ -55,12 +60,51 @@ class MediaAsset extends Model
             'duration' => 'float',
             'fps' => 'float',
             'import_state' => 'array',
+            'origin' => 'array',
         ];
     }
 
     public function posts(): BelongsToMany
     {
         return $this->belongsToMany(Post::class, 'post_media')->withoutGlobalScope(UserScope::class);
+    }
+
+    /**
+     * Media que un destino sin publicar usa en su lista propia (`post_targets.media`, ids y portadas): no esta en `post_media`, asi que
+     * `posts()` no la ve (T-17). Comparacion en PHP para no depender del dialecto JSON de MySQL o SQLite.
+     */
+    public function usedByTargetMedia(): bool
+    {
+        return PostTarget::withoutUserScope()->where('user_id', $this->user_id)->whereNotNull('media')
+            ->where('status', '!=', PostStatus::Published->value)->get(['id', 'media'])
+            ->contains(fn (PostTarget $t) => collect($t->media)->contains(fn ($m) => ($m['id'] ?? null) === $this->id || ($m['cover_id'] ?? null) === $this->id));
+    }
+
+    /**
+     * Media que una serie recurrente activa usa en su contenido (`post_series.payload`: media comun, y media y portada de cada destino): las
+     * ocurrencias futuras la necesitan aunque aun no existan como post. Comparacion en PHP por el mismo motivo que arriba.
+     */
+    public function usedBySeries(): bool
+    {
+        return PostSeries::withoutUserScope()->where('user_id', $this->user_id)->where('status', PostSeries::ACTIVE)->get(['id', 'payload'])
+            ->contains(function (PostSeries $s) {
+                $payload = (array) $s->payload;
+                $ids = array_map('intval', (array) ($payload['media'] ?? []));
+                foreach ((array) ($payload['targets'] ?? []) as $t) {
+                    foreach ((array) ($t['media'] ?? []) as $m) {
+                        $ids[] = (int) ($m['id'] ?? 0);
+                        $ids[] = (int) ($m['cover_id'] ?? 0);
+                    }
+                }
+
+                return in_array($this->id, $ids, true);
+            });
+    }
+
+    /** ¿La usa alguna publicacion (media comun o propia de un destino) o una serie recurrente activa? */
+    public function usedByPosts(): bool
+    {
+        return $this->posts()->exists() || $this->usedByTargetMedia() || $this->usedBySeries();
     }
 
     public function isVideo(): bool
@@ -113,6 +157,8 @@ class MediaAsset extends Model
             'status' => $this->status,
             'error' => $this->error,
             'source' => $this->source,
+            // Origen explicito de un recurso importado de Canva (T-16): id del diseño y enlace, nada mas.
+            'origin' => $this->source === self::SOURCE_CANVA ? $this->publicOrigin() : null,
             // Progreso de una importacion remota (barra de progreso). Nunca la URL, el validador ni el resto de `import_state`.
             'bytes' => $this->import_state['bytes'] ?? null,
             'total' => $this->import_state['total'] ?? null,
@@ -120,6 +166,22 @@ class MediaAsset extends Model
             'runs' => $this->import_state['runs'] ?? null,
             // Para previsualizar la media ya guardada (post reabierto, creado por MCP, elegido de la biblioteca): solo para su dueño.
             'preview_url' => $this->previewable() ? route('media.file', $this, absolute: false) : null,
+        ];
+    }
+
+    /** @return array{provider: string, label: string, design_id: ?string, url: ?string, title: ?string}|null */
+    public function publicOrigin(): ?array
+    {
+        $origin = (array) $this->origin;
+        if (($origin['provider'] ?? null) !== 'canva') {
+            return null;
+        }
+
+        return [
+            'provider' => 'canva', 'label' => 'Canva',
+            'design_id' => is_string($origin['design_id'] ?? null) ? $origin['design_id'] : null,
+            'url' => is_string($origin['url'] ?? null) ? $origin['url'] : null,
+            'title' => is_string($origin['title'] ?? null) ? $origin['title'] : null,
         ];
     }
 }

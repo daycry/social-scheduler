@@ -1,5 +1,6 @@
 <script setup>
 import { useNetworks } from '@/Composables/useNetworks';
+import MetricQuality from '@/Components/MetricQuality.vue';
 import { deltaClass, fmt, fmtPct, UNAVAILABLE } from '@/Pages/Dashboard/Partials/format';
 
 /**
@@ -18,6 +19,9 @@ defineProps({
     previous: { type: Number, default: null },
     comparisonLabel: { type: String, default: '' },
     breakdown: { type: Array, default: () => [] },
+    coverage: Object,
+    freshness: Object,
+    comparisonQuality: Object,
 });
 </script>
 
@@ -30,18 +34,21 @@ defineProps({
             </div>
             <span v-if="comparing && deltaPct !== null" class="rounded-full px-2 py-0.5 text-xs font-semibold" :class="deltaClass(deltaPct)">{{ fmtPct(deltaPct) }}</span>
         </header>
+        <MetricQuality :coverage="coverage" :freshness="freshness" :comparison="comparisonQuality" />
         <p v-if="comparing && previous !== null" class="mt-1 text-xs text-slate-500">{{ comparisonLabel }}: {{ fmt(previous) }}</p>
+        <MetricQuality v-if="comparing" :coverage="comparisonQuality?.previous_coverage" :freshness="comparisonQuality?.previous_freshness" compact />
 
         <ul v-if="breakdown.length" class="mt-3 flex flex-wrap gap-2">
             <li
                 v-for="b in breakdown"
                 :key="b.network"
-                class="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs"
+                class="flex flex-wrap items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs"
                 :class="b.available ? 'border-slate-300 text-slate-800' : 'border-dashed border-slate-300 text-slate-500'"
             >
                 <span class="inline-block h-2.5 w-2.5 rounded-full" :style="{ backgroundColor: catalog.color(b.network) }"></span>
                 {{ b.label }}: {{ b.available ? fmt(b.value) : UNAVAILABLE }}
                 <span v-if="comparing && b.delta_pct !== null" class="rounded px-1" :class="deltaClass(b.delta_pct)">{{ fmtPct(b.delta_pct) }}</span>
+                <MetricQuality :coverage="b.coverage" :freshness="b.freshness" :comparison="b.comparison_quality" compact />
             </li>
         </ul>
 

@@ -1,0 +1,11 @@
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+page.evaluate: TypeError: Cannot read properties of undefined (reading 'digest')
+    at x (C:\laragon\www\metricool\public\build\studio-renderer.js:476:78195)
+    at C:\laragon\www\metricool\scripts\studio\render.mjs:112:14 {
+  log: []
+}
+
+Node.js v22.23.2

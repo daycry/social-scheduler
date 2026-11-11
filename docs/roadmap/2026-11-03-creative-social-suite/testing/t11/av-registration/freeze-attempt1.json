@@ -1,0 +1,6 @@
+{
+  "app/Services/Studio/StudioAvState.php": "87b7f8203e1e48c0576edfff2ce9eca1f72bd11a3b732a72145d51f8cff88e76",
+  "app/Services/MediaUploadService.php": "b6188b620e36ff57816d7daa7fe5521f772fabefb53469b5f0786948b780241f",
+  "tests/Feature/Studio/StudioAvRegistrationTest.php": "96102f8258f53e22c617ddc47db4fcac599c40424803e8398e26be54bdd1bcbc",
+  "docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md": "4f4d1c0a097866bb0443990e036b1a996e959dfee2da1c87c5ace58c38a6df02"
+}

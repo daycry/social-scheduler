@@ -1,0 +1,31 @@
+{
+  "automatic_verdict": "NO-PASS",
+  "mode": "consumer-local",
+  "planned_cases": 3,
+  "actual_cases": 1,
+  "recorded_cases": 3,
+  "global_acceptance": false,
+  "figure_count": 3,
+  "source_count": 494,
+  "visual_review_pending": false,
+  "pdf_generated": true,
+  "missing_viewport_receipts": [],
+  "scope": "E2E28.03 only; T12 open; no exports/dense/AV/other families acceptance",
+  "resource": {
+    "physical_minimum_observed_bytes": 8789098496,
+    "sample_interval_seconds": 0.1,
+    "elapsed": 259.7819011999818,
+    "job": {
+      "scope": "job",
+      "limit": 3221225472,
+      "peak_commit": 707796992,
+      "kill_on_close": true,
+      "breakaway": false
+    },
+    "failure": null
+  },
+  "ports": {
+    "ipv4_8080_free": true,
+    "ipv6_8080_free": true
+  }
+}

@@ -6,16 +6,18 @@ use App\Exceptions\InvalidPostTransition;
 use App\Exceptions\PostValidationException;
 use App\Models\Brand;
 use App\Models\Post;
-use App\Models\PostTarget;
 use App\Models\User;
 use App\Services\AuditLog;
+use App\Services\PostPresenter;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Tool;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 /**
@@ -27,6 +29,12 @@ abstract class SchedulerTool extends Tool
 {
     /** Ability de Sanctum que exige la herramienta. */
     abstract protected function ability(): string;
+
+    /** Tools with read and write actions can require the exact scope for the requested operation. */
+    protected function abilityFor(Request $request): string
+    {
+        return $this->ability();
+    }
 
     /** Recurso sobre el que actua (para la auditoria). */
     protected function resource(): ?string
@@ -44,16 +52,17 @@ abstract class SchedulerTool extends Tool
         $audit = app(AuditLog::class);
         $user = $request->user();
         $action = $this->name();
-        $resourceId = $request->get('post_id') ?? $request->get('report_id') ?? $request->get('brand_id');
+        $resourceId = $request->get('post_id') ?? $request->get('report_id') ?? $request->get('design_id') ?? $request->get('export_id') ?? $request->get('dataset_id') ?? $request->get('brand_id');
 
         if (! $user instanceof User) {
             return Response::error('No autenticado.');
         }
 
-        if (! $user->tokenCan($this->ability())) {
-            $audit->record($user, $action, AuditLog::DENIED, $this->resource(), $resourceId, 'Falta el permiso '.$this->ability());
+        $ability = $this->abilityFor($request);
+        if (! $user->tokenCan($ability)) {
+            $audit->record($user, $action, AuditLog::DENIED, $this->resource(), $resourceId, 'Falta el permiso '.$ability);
 
-            return Response::error("Esta API key no tiene el permiso «{$this->ability()}».");
+            return Response::error("Esta API key no tiene el permiso «{$ability}».");
         }
 
         try {
@@ -66,6 +75,15 @@ abstract class SchedulerTool extends Tool
             $audit->record($user, $action, AuditLog::ERROR, $this->resource(), $resourceId, 'Validacion');
 
             return Response::error('Datos no validos: '.collect($e->errors())->map(fn ($m, $k) => "$k: ".implode(' ', $m))->implode(' | '));
+        } catch (ModelNotFoundException $e) {
+            $audit->record($user, $action, AuditLog::DENIED, $this->resource(), $resourceId, 'Recurso inexistente o ajeno');
+
+            return Response::error('404: Recurso no encontrado.');
+        } catch (HttpExceptionInterface $e) {
+            $status = $e->getStatusCode();
+            $audit->record($user, $action, $status === 404 ? AuditLog::DENIED : AuditLog::ERROR, $this->resource(), $resourceId, 'HTTP '.$status);
+
+            return Response::error(in_array($status, [403, 409, 429], true) ? $status.': '.$e->getMessage() : ($status === 404 ? '404: Recurso no encontrado.' : ($status === 503 && $this->resource() === 'studio_dataset' ? '503: Dataset snapshot unavailable.' : 'No se pudo completar la operación.')));
         } catch (PostValidationException $e) {
             $audit->record($user, $action, AuditLog::ERROR, $this->resource(), $resourceId, 'Validacion');
 
@@ -82,8 +100,13 @@ abstract class SchedulerTool extends Tool
             return Response::error('Error interno al ejecutar la herramienta. Intentalo de nuevo.');
         }
 
-        $audit->record($user, $action, AuditLog::OK, $this->resource(), $result['id'] ?? $resourceId);
+        $audit->record($user, $action, AuditLog::OK, $this->resource(), $result['id'] ?? $result['dataset']['id'] ?? $resourceId);
 
+        return $this->resultResponse($result);
+    }
+
+    protected function resultResponse(array $result): Response
+    {
         return Response::json($result);
     }
 
@@ -161,42 +184,6 @@ abstract class SchedulerTool extends Tool
     /** @return array<string, mixed> */
     protected function presentPost(Post $post): array
     {
-        $post->loadMissing(['brand', 'campaign', 'targets', 'media']);
-        $tz = $post->brand?->timezone ?: 'UTC';
-        $targets = $post->targets;
-
-        return [
-            'id' => $post->id,
-            'brand_id' => $post->brand_id,
-            'brand_name' => $post->brand?->name,
-            'text' => $post->text,
-            'notes' => $post->notes, // internas: nunca se publican
-            'campaign_id' => $post->campaign_id,
-            'campaign' => $post->campaign?->name,
-            'status' => $post->status->value,
-            'scheduled_at_utc' => $post->scheduled_at?->copy()->utc()->toIso8601String(),
-            'scheduled_at_local' => $post->scheduled_at?->copy()->setTimezone($tz)->format('Y-m-d\TH:i'),
-            'timezone' => $tz,
-            'editable' => ! $targets->contains(fn (PostTarget $t) => $t->status->isInFlight() || $t->status->isFinal()),
-            'media_ids' => $post->media->pluck('id')->values()->all(),
-            'targets' => $targets->map(fn (PostTarget $t) => [
-                'account_id' => $t->social_account_id,
-                'network' => $t->network->value,
-                'content_type' => $t->content_type->value,
-                // `text` null = vinculado a la plantilla; `effective_text` es lo que realmente se publica en este destino.
-                'text' => $t->text,
-                'effective_text' => $t->text ?? $post->text,
-                // Primer comentario (C-01b): su estado es independiente del estado de publicacion del destino.
-                'first_comment' => $t->first_comment,
-                'first_comment_status' => $t->first_comment_status?->value,
-                'first_comment_error' => $t->first_comment_error,
-                'first_comment_may_exist' => $t->first_comment_sent_at !== null, // se intento enviar: puede existir en la red aunque el estado sea fallido
-                'options' => $t->options ?? [],
-                'status' => $t->status->value,
-                'error_message' => $t->error_message,
-                'status_note' => $t->status_note,
-                'external_url' => $t->external_url,
-            ])->values()->all(),
-        ];
+        return app(PostPresenter::class)->present($post);
     }
 }

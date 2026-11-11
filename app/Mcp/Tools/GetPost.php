@@ -12,7 +12,7 @@ use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('get_post')]
-#[Description('Consulta una publicacion: texto, campaña, fecha, texto propio y efectivo por destino, primer comentario y su estado por destino, estado por destino, errores y enlace publicado.')]
+#[Description('Consulta una publicacion: texto, media comun y media propia (media) y efectiva (effective_media) de cada destino, campaña, fecha, texto propio y efectivo por destino, primer comentario y su estado por destino, estado por destino, errores y enlace publicado.')]
 #[IsReadOnly]
 class GetPost extends SchedulerTool
 {

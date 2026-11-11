@@ -1,0 +1,12 @@
+{
+  "reviewer": "root, direct inspection of the one failure screenshot and all three PDF pages",
+  "issues": [],
+  "scope": "Faithful failed-run evidence and report layout only; no product acceptance",
+  "pdf_sha256": "52ef5e45f4dc297f8df61d7a1a562dd302f7851510bebf9b58f380d229da23fb",
+  "inspected": {
+    "images/1440-test-failed-1.png": "484adc154b0f27c1169789221f0c700f2f815202c9ba3f14633e4636df813cf1",
+    "pdf-pages/page-001.png": "51d5752b5930149707552b5ead344059ce9437f52fff5b552bc967ee48508ae0",
+    "pdf-pages/page-002.png": "abb6ce5fbd6c1af1d5108c58b1a00c26465abc2f9f9a63508de4186ff44d06d1",
+    "pdf-pages/page-003.png": "311b5b8c9acfd01ffe2e7fbfa0bf28c8de717d30071baee6435667bcbea11686"
+  }
+}

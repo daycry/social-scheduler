@@ -1,0 +1,49 @@
+{
+  "status": "promoted two authorized files; review pending; T12 open",
+  "verification": {
+    "tests": 67,
+    "passed": 67,
+    "assertions": 187,
+    "duration_ms": 14504,
+    "peak_php_bytes": 58720256,
+    "memory_limit": "256M",
+    "php_exit": 0,
+    "pint_exit": 0,
+    "formatting": "Pint after real test run; identical non-whitespace tokens, normalizing CRLF in open-tag/comment trivia only; no test rerun per instruction"
+  },
+  "files": {
+    "app/Services/Studio/StudioChartData.php": {
+      "before_sha256": "b110018f0f2d5679749869cefa3252048e07090dc0609d573c112af540f91845",
+      "after_sha256": "8abef7557b81ae55571e7acf4327ba1abb00b6002c1bd2778e5f8d72ddbcf91e",
+      "before_bytes": 8658,
+      "after_bytes": 11713
+    },
+    "tests/Feature/Studio/StudioChartDataTest.php": {
+      "before_sha256": "3eeacf817fc8fdd12dccb44c5dc9e00a4bc87c127e36ebfd20c32721850a1fd0",
+      "after_sha256": "34cd6393af70fbc87a8de2d1df96a8e5b8224e0de3b26cfb94c625cb235f746b",
+      "before_bytes": 11279,
+      "after_bytes": 19158
+    }
+  },
+  "baselines": {
+    "tests\\Feature\\Studio\\StudioChartDataTest.php": "3eeacf817fc8fdd12dccb44c5dc9e00a4bc87c127e36ebfd20c32721850a1fd0",
+    "docs\\roadmap\\2026-11-03-creative-social-suite\\t12-chart-data-contract.md": "bbcfe8bd17af049d62512f1e23960774886973d66394e7db1f4f87b965619ce0",
+    "docs\\roadmap\\2026-11-03-creative-social-suite\\tasks.md": "b2000c32752d393ef639b783de07fbfedcdea64efccf0ded14e3e234cccba251",
+    "app\\Services\\Studio\\StudioChartData.php": "b110018f0f2d5679749869cefa3252048e07090dc0609d573c112af540f91845"
+  },
+  "evidence_sha256": {
+    "before.json": "eeb27103968da68617ac839d554fae8c444a48eb6b34af10d4be05c3dfb34478",
+    "check-format-only.php": "016373525ed70884c96f350b759815b30684bf360b0fb24859f14d12b8413af7",
+    "contract-addendum.md": "e295d3ded80813f81cd2de1457b2d8e4ad5fe4de11c6594f8a9a684d80fa6ccb",
+    "final-two-files.patch": "2769c68919aec6a48b62a6921ee9f9302866980b857d026676ac0d0ab892bcaf",
+    "format-equivalence.txt": "3228349ebeab36b8fbd9af413bb67ab08e390b88a80d821b432be17ba907fcf5",
+    "manifest.json": "61d760bc89544e8123f68840327bc4d2186bfefa364ed9ba961860cadd1e6a42",
+    "pint-final.txt": "e9d6f79de157b815c74d2ca1a40c52bd72e82a3e9f84c4562b4a1ca835c84a8f",
+    "pint-format.txt": "ae25ce7f615e5952de8cbd2cbc596991d0538de4124ed32b35a7b9da28465c28",
+    "real-pint.txt": "9db68fb0c32fcdb0c3e09ef2730669a8a94eae6e9a89d07ae0fa249bd848a638",
+    "real-tests.txt": "1e244cd402c5746bf2f5ae710e7f0db1db9b0be70047cde1f5ea55808a4ec854",
+    "service.patch": "5d05de8459b6c1e4a5e2b63447f000e47f20b28681ce074d8063aff4d0a41e3b",
+    "tdd-evidence.md": "f889a8f68fc30b13c52e3bcea8ae7e7277d58ad05d965fa12a9b3ecd7667d4c5",
+    "tests.patch": "66d2bc20c7ad2eaaf7a5df4dbf8bb590aeb39ef37f2756be1cfc0a332c86f590"
+  }
+}

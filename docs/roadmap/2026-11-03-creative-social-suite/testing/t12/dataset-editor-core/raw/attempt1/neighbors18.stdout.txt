@@ -1,0 +1,118 @@
+TAP version 13
+# Subtest: parse preserves decimal lexemes and typed cells
+ok 1 - parse preserves decimal lexemes and typed cells
+  ---
+  duration_ms: 2.0425
+  type: 'test'
+  ...
+# Subtest: schema rejects unknown fields duplicate identities invalid cells and limits
+ok 2 - schema rejects unknown fields duplicate identities invalid cells and limits
+  ---
+  duration_ms: 5.4153
+  type: 'test'
+  ...
+# Subtest: JSON parser rejects duplicate keys rather than overwriting
+ok 3 - JSON parser rejects duplicate keys rather than overwriting
+  ---
+  duration_ms: 0.1406
+  type: 'test'
+  ...
+# Subtest: canonical byte budget rejects oversized shared-string tables without allocation of whole JSON
+ok 4 - canonical byte budget rejects oversized shared-string tables without allocation of whole JSON
+  ---
+  duration_ms: 3097.4937
+  type: 'test'
+  ...
+# Subtest: serializer emits lossless JSON chunks and validates before returning iterator
+ok 5 - serializer emits lossless JSON chunks and validates before returning iterator
+  ---
+  duration_ms: 0.6172
+  type: 'test'
+  ...
+# Subtest: cell display and explicit conversion preserve text empty and numeric distinctions
+ok 6 - cell display and explicit conversion preserve text empty and numeric distinctions
+  ---
+  duration_ms: 0.219
+  type: 'test'
+  ...
+# Subtest: cell and column edits are immutable by checked identity and share untouched rows
+ok 7 - cell and column edits are immutable by checked identity and share untouched rows
+  ---
+  duration_ms: 0.335
+  type: 'test'
+  ...
+# Subtest: row and column structure operations keep identities and enforce dimension limits
+ok 8 - row and column structure operations keep identities and enforce dimension limits
+  ---
+  duration_ms: 26.9847
+  type: 'test'
+  ...
+# Subtest: copy uses new deterministic IDs and retains typed values without source mutation
+ok 9 - copy uses new deterministic IDs and retains typed values without source mutation
+  ---
+  duration_ms: 0.5627
+  type: 'test'
+  ...
+# Subtest: literal replacement and explicit blank filling leave numbers and unrelated columns intact
+ok 10 - literal replacement and explicit blank filling leave numbers and unrelated columns intact
+  ---
+  duration_ms: 0.4517
+  type: 'test'
+  ...
+# Subtest: column conversion previews row errors and applies no partial mutation
+ok 11 - column conversion previews row errors and applies no partial mutation
+  ---
+  duration_ms: 0.4206
+  type: 'test'
+  ...
+# Subtest: history uses bounded shared states and supports undo redo branch and reset
+ok 12 - history uses bounded shared states and supports undo redo branch and reset
+  ---
+  duration_ms: 0.2976
+  type: 'test'
+  ...
+# Subtest: transpose retains original headers as values and regenerates all identities
+ok 13 - transpose retains original headers as values and regenerates all identities
+  ---
+  duration_ms: 0.854
+  type: 'test'
+  ...
+# Subtest: page decoder keeps numeric cells lossless and validates safe metadata and contiguous offsets
+ok 14 - page decoder keeps numeric cells lossless and validates safe metadata and contiguous offsets
+  ---
+  duration_ms: 0.8974
+  type: 'test'
+  ...
+# Subtest: assembler pins historical revision and hash across complete ordered pages
+ok 15 - assembler pins historical revision and hash across complete ordered pages
+  ---
+  duration_ms: 0.4347
+  type: 'test'
+  ...
+# Subtest: assembler rejects mixed brand revision hash columns total gaps cycles and duplicate row IDs atomically
+ok 16 - assembler rejects mixed brand revision hash columns total gaps cycles and duplicate row IDs atomically
+  ---
+  duration_ms: 1.3018
+  type: 'test'
+  ...
+# Subtest: identity number and hash tokens reject trailing line breaks exactly
+ok 17 - identity number and hash tokens reject trailing line breaks exactly
+  ---
+  duration_ms: 0.167
+  type: 'test'
+  ...
+# Subtest: serializer snapshots caller-owned mutable objects without freezing caller state
+ok 18 - serializer snapshots caller-owned mutable objects without freezing caller state
+  ---
+  duration_ms: 0.0873
+  type: 'test'
+  ...
+1..18
+# tests 18
+# suites 0
+# pass 18
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3161.7043

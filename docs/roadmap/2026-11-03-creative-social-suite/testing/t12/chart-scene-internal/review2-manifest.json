@@ -1,0 +1,42 @@
+{
+  "scope": "C3 corrections2 for A1/A2/B1/B2/B3/D1; preserve all prior approved criteria; no native acceptance",
+  "files": {
+    "app/Services/Studio/StudioChartFiles.php": "b4af8bc3a2c8286a539e774fab9bc4c37953e4bc9f4e815eb93432ce69903471",
+    "app/Services/Studio/StudioRenderer.php": "3458e5eec1e58a9afcf80380e5616e8d93a447379ad5036a99dd90e195c5c88d",
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-chart-scene-contract.md": "a35df0d29e7124f4b34acf09175fcac14a4e1372238097312a7c2893c659fe4e",
+    "resources/js/Components/Studio/ExportDialog.vue": "8a0cb8441f9c38df6e09ce204ba1135471a2a324da7bea5eb927cd39b523bd21",
+    "resources/js/Components/Studio/Inspector.vue": "d4c5af6ae50db9889648233751c2b972de392cf2e84299dd8c6d76b4179b5b1f",
+    "resources/js/Components/Studio/StudioChartsDialog.vue": "7d3837cf92bba2b650f5a98cabb7a44f65bcff5fc6fefaf4221dcab7453a7728",
+    "resources/js/Components/Studio/StudioDatasetsDialog.vue": "45703968bc8bf650288824dc6938c8d211a5aacca95b8608baac042162ba46d1",
+    "resources/js/Pages/Studio/Editor.vue": "b87d88c278afdaf902cc5b8ff24227ada32439af777b93b93bc17efbcdc5772f",
+    "resources/js/Studio/canvas.js": "f8cecebe626b6a71a7a1e136d0dc4fda7ea6ec0d55c26a04262cc2e09752e7d5",
+    "resources/js/Studio/chart-renderer.js": "f6230fb7abd54c6315fb6d8c621dac398892b8e3ed11368b532a7c8cda0d32c9",
+    "resources/js/Studio/chart-resources.js": "2cf35da3a99b5383d28531dc5868cc9b0877edfdf27658635743a294780c3526",
+    "resources/js/Studio/chart-scene.js": "098fe41ed1d1bbac98b008028a3ae95f9a1d3ba839525ed3a826b59fc9af583d",
+    "resources/js/Studio/exports.js": "cb5793ce4b6a99b405a1b21668387f8c0d69769888f7f3fafbe5b05e90fad167",
+    "resources/js/Studio/frame-renderer.js": "5221fd138df4f8634e9db11c54b39e7dee327c7e5069b208f24406be7beb1840",
+    "resources/js/Studio/render-entry.js": "6ed0de5c3748f3ea7bf14ca11139daf544aa1809b1f418dc42528a629111167b",
+    "resources/js/Studio/timeline-preview.js": "112c4204cbea7156188de40ee949b58f35b18730169de1b50e13cfa6077eb19a",
+    "scripts/studio/render.mjs": "84d7f2efef7c77d970b2f6d31a005e041fdc753b8d082f0be8135e325e090be8",
+    "tests/Feature/Studio/StudioChartFilesTest.php": "78f5c1bc2cefedbca3914d6b6f2562ed69cd94497add503e8f1f106d05d8dd2c",
+    "tests/Feature/Studio/StudioChartRendererTest.php": "7a87112134601f30be3aff37883e594469338bd0499378023aa5ccfb5d6ba65e",
+    "tests/frontend/studio-chart-canvas.test.mjs": "186f39a33b8390e833d6da2d152780890189a3d0b9527ad4030062dadcfc5aec",
+    "tests/frontend/studio-chart-exports.test.mjs": "84491ca900d4fb6105fc988449dbaeacd4048a0d35cda5b7aaf6beb13a2c4b42",
+    "tests/frontend/studio-chart-resources.test.mjs": "0f4bc7dad35f0d8b012abb585d87e85e351304c45639771efc32c59d40f26db3",
+    "tests/frontend/studio-chart-scene.test.mjs": "4b8d3763f1efbc0017e25fe2cfec51c0e084572e8841cd9cdb3cf65c4587bcb3",
+    "tests/frontend/studio-charts-dialog.test.mjs": "4e66d603c91652ef7187c999fd92bd74f18756e239c136bfdd8cb18ae0b8c5e6"
+  },
+  "changed_files": [
+    "docs/roadmap/2026-11-03-creative-social-suite/t12-chart-scene-contract.md",
+    "resources/js/Components/Studio/StudioChartsDialog.vue",
+    "resources/js/Studio/canvas.js",
+    "resources/js/Studio/chart-resources.js",
+    "resources/js/Studio/chart-scene.js",
+    "tests/frontend/studio-chart-canvas.test.mjs",
+    "tests/frontend/studio-chart-exports.test.mjs",
+    "tests/frontend/studio-chart-resources.test.mjs",
+    "tests/frontend/studio-chart-scene.test.mjs",
+    "tests/frontend/studio-charts-dialog.test.mjs"
+  ],
+  "previous_verdict": "../attempt1/verdict.md"
+}

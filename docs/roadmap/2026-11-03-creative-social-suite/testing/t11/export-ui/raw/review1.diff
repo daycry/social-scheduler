@@ -1,0 +1,493 @@
+--- baseline/resources/js/Studio/export-jobs.js
++++ resources/js/Studio/export-jobs.js
+@@ -0,0 +1,54 @@
++import { studioRequest } from './api.js';
++
++/** Native jobs always use the immutable server revision, never the browser's static frame renderer. */
++export function createStudioExportClient({ request = studioRequest, url = (name, id) => route(name, id) } = {}) {
++    return {
++        async start(designId, options) {
++            const { revision, format, pages, scale, quality } = options;
++            const result = await request('POST', url('studio.exports.render', designId), { revision, format, pages, scale, quality, transparent: false });
++            return result.export;
++        },
++        list: (designId, page = 1) => request('GET', `${url('studio.exports.index', designId)}?page=${page}`),
++        async cancel(id) { return (await request('POST', url('studio.exports.cancel', id), {})).export; },
++        async retry(id) { return (await request('POST', url('studio.exports.retry', id), {})).export; },
++        post: id => request('POST', url('studio.exports.post', id), {}),
++    };
++}
++
++/** Poll a whole history page, stop on terminal results, and fence every view against late responses. */
++export function createExportMonitor({ load, onUpdate, onState = () => {}, schedule = setTimeout, cancel = clearTimeout, now = Date.now, interval = 2000, timeout = 300000 }) {
++    let generation = 0, active = false, loading = false, timer, startedAt;
++    let state = { loading: false, paused: false, error: '' };
++    const notify = patch => { state = { ...state, ...patch }; onState(state); };
++    const clear = () => { cancel(timer); timer = undefined; };
++    async function tick(token) {
++        if (!active || token !== generation || loading) return false;
++        if (now() - startedAt > timeout) { notify({ loading: false, paused: true }); return false; }
++        loading = true; notify({ loading: true });
++        try {
++            const data = await load();
++            if (!active || token !== generation) return false;
++            onUpdate(data);
++            if (data.exports.some(job => ['pending', 'processing'].includes(job.status))) timer = schedule(() => tick(token), interval);
++            return true;
++        } catch (error) {
++            if (active && token === generation) notify({ paused: true, error: error.message || 'No se pudo consultar el historial.' });
++            return false;
++        } finally {
++            if (active && token === generation) { loading = false; notify({ loading: false }); }
++        }
++    }
++    function stop() { generation++; active = false; loading = false; clear(); notify({ loading: false }); }
++    return {
++        start() {
++            stop(); active = true; startedAt = now(); notify({ paused: false, error: '' });
++            return tick(generation);
++        },
++        refresh() {
++            if (!active || loading) return Promise.resolve(false);
++            clear(); startedAt = now(); notify({ paused: false, error: '' });
++            return tick(generation);
++        },
++        stop,
++    };
++}
+--- baseline/resources/js/Components/Studio/ExportDialog.vue
++++ resources/js/Components/Studio/ExportDialog.vue
+@@ -2,6 +2,7 @@
+ import { computed, ref, watch } from 'vue';
+ import { router } from '@inertiajs/vue3';
+ import StudioDialog from './StudioDialog.vue';
++import NativeExportJobs from './NativeExportJobs.vue';
+ import { EXPORT_FORMATS, exportDesign } from '@/Studio/exports';
+ import { studioRequest, uploadStudioFile, downloadStudioBlob } from '@/Studio/api';
+ import { compileTimeline } from '@/Studio/timeline';
+@@ -18,8 +19,29 @@
+ const status = ref('');
+ const error = ref('');
+ const raster = computed(() => ['png', 'jpeg', 'webp'].includes(format.value));
+-const outputSize = computed(() => `${Math.round(props.document.width * scale.value)} × ${Math.round(props.document.height * scale.value)} px`);
++const native = computed(() => ['mp4', 'gif'].includes(format.value));
++const formats = [...EXPORT_FORMATS, { value: 'mp4', label: 'MP4 · vídeo con audio' }, { value: 'gif', label: 'GIF · animación sin audio' }];
++const pageOrder = ref(props.document.pages.map(page => page.id));
++const orderedPages = computed(() => native.value ? pageOrder.value.map(id => props.document.pages.find(page => page.id === id)).filter(Boolean) : props.document.pages);
++const outputSize = computed(() => {
++    const dimension = value => native.value ? Math.ceil(Math.round(value * scale.value) / 2) * 2 : Math.round(value * scale.value);
++    return `${dimension(props.document.width)} × ${dimension(props.document.height)} px`;
++});
+ watch(() => props.document.pages.map(page => page.id).join(','), () => { selectedPages.value = props.document.pages.map(page => page.id); });
++watch(() => props.document.pages.map(page => page.id).join(','), () => { pageOrder.value = props.document.pages.map(page => page.id); });
++function movePage(id, direction) {
++    const index = pageOrder.value.indexOf(id), target = index + direction;
++    if (index < 0 || target < 0 || target >= pageOrder.value.length) return;
++    const order = [...pageOrder.value]; [order[index], order[target]] = [order[target], order[index]]; pageOrder.value = order;
++}
++async function nativeOptions() {
++    if (!selectedPages.value.length) throw new Error('Selecciona al menos una página.');
++    const snapshot = await props.prepare();
++    const existing = new Set(snapshot.document.pages.map(page => page.id));
++    const pages = pageOrder.value.filter(id => selectedPages.value.includes(id) && existing.has(id));
++    if (!pages.length) throw new Error('Selecciona al menos una página existente.');
++    return { revision: snapshot.revision, format: format.value, pages, scale: Number(scale.value), quality: Number(quality.value) };
++}
+ function initializeFrames() {
+     const times = Object.create(null);
+     if (props.document.schema_version === 2) for (const page of compileTimeline(props.document).pages) {
+@@ -66,27 +88,28 @@
+     finally { busy.value = false; emit('busy', false); }
+ }
+ function publish() {
+-    if (!raster.value) format.value = 'png';
++    if (!raster.value && !native.value) format.value = 'png';
+     initializeFrames();
+     emit('update:modelValue', true);
+-    return run('post');
++    if (!native.value) return run('post');
+ }
+ defineExpose({ publish });
+ </script>
+ <template>
+     <StudioDialog :model-value="modelValue" title="Exportar diseño" @update:model-value="value => { if (!busy) emit('update:modelValue', value); }">
+         <div class="space-y-5">
+-            <p class="text-sm leading-relaxed text-slate-500">Exporta las páginas elegidas. Los elementos de vídeo se incluyen como fotograma estático.</p>
+-            <label class="block space-y-1 text-sm font-medium">Formato<select v-model="format" aria-label="Formato" class="field" :disabled="busy"><option v-for="item in EXPORT_FORMATS" :key="item.value" :value="item.value">{{ item.label }}</option></select></label>
++            <p class="text-sm leading-relaxed text-slate-500">{{ native ? (format === 'gif' ? 'Exporta la secuencia de páginas como una animación sin sonido.' : 'Exporta la secuencia de páginas con vídeo, transiciones y mezcla de audio.') : 'Exporta las páginas elegidas. Los elementos de vídeo se incluyen como fotograma estático.' }}</p>
++            <label class="block space-y-1 text-sm font-medium">Formato<select v-model="format" aria-label="Formato" class="field" :disabled="busy"><option v-for="item in formats" :key="item.value" :value="item.value">{{ item.label }}</option></select></label>
+             <fieldset :disabled="busy" class="space-y-4">
+                 <div class="grid grid-cols-2 gap-4"><label class="space-y-1 text-sm font-medium">Escala<select v-model.number="scale" aria-label="Escala" class="field"><option :value="0.5">0,5 ×</option><option :value="1">1 ×</option><option :value="2">2 ×</option><option :value="3">3 ×</option><option :value="4">4 ×</option></select></label><label class="space-y-1 text-sm font-medium">Calidad<input v-model.number="quality" class="field" type="number" min="0.1" max="1" step="0.05" /></label></div>
+                 <p class="text-xs text-slate-500">{{ format === 'svg' ? `${document.width} × ${document.height} px · vector y medios embebidos` : outputSize }}{{ format === 'pdf' ? ' · un fotograma por página en PDF' : '' }}</p>
+-                <label v-if="format !== 'jpeg'" class="flex items-center gap-2 text-sm"><input v-model="transparent" type="checkbox" />Fondo transparente</label>
+-                <div><h3 class="mb-2 text-sm font-medium">Páginas</h3><p v-if="document.schema_version === 2" class="mb-2 text-xs text-slate-500">Elige un segundo local por página. Las páginas donde está el cabezal parten de ese instante.</p><div class="max-h-60 space-y-3 overflow-y-auto rounded-xl border border-slate-200 p-3"><div v-for="(page, index) in document.pages" :key="page.id" class="min-w-0 space-y-2"><label class="flex items-center gap-2 text-sm"><input v-model="selectedPages" type="checkbox" :value="page.id" />{{ index + 1 }}. {{ page.name }}</label><label v-if="document.schema_version === 2" class="flex min-w-0 flex-wrap items-center gap-2 text-xs text-slate-600"><span>Fotograma (s)</span><input v-model.number="pageFrameTimes[page.id]" :aria-label="`Fotograma de ${page.name} (s)`" type="number" min="0" :max="page.duration - 0.000001" step="0.001" class="field w-28 text-xs" :disabled="!selectedPages.includes(page.id)" /><span>antes de {{ page.duration }} s</span></label></div></div></div>
++                <label v-if="!native && format !== 'jpeg'" class="flex items-center gap-2 text-sm"><input v-model="transparent" type="checkbox" />Fondo transparente</label>
++                <div><h3 class="mb-2 text-sm font-medium">Páginas</h3><p v-if="native" class="mb-2 text-xs text-slate-500">Selecciona páginas y ajusta el orden de la secuencia con las flechas.</p><p v-else-if="document.schema_version === 2" class="mb-2 text-xs text-slate-500">Elige un segundo local por página. Las páginas donde está el cabezal parten de ese instante.</p><div class="max-h-60 space-y-3 overflow-y-auto rounded-xl border border-slate-200 p-3"><div v-for="(page, index) in orderedPages" :key="page.id" class="min-w-0 space-y-2"><div class="flex items-center justify-between gap-2"><label class="flex min-w-0 items-center gap-2 text-sm"><input v-model="selectedPages" type="checkbox" :value="page.id" /><span class="break-words">{{ index + 1 }}. {{ page.name }}</span></label><span v-if="native" class="flex shrink-0 gap-1"><button type="button" :aria-label="`Subir página ${page.name}`" :disabled="index === 0" class="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-30" @click="movePage(page.id, -1)">↑</button><button type="button" :aria-label="`Bajar página ${page.name}`" :disabled="index === orderedPages.length - 1" class="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-30" @click="movePage(page.id, 1)">↓</button></span></div><label v-if="!native && document.schema_version === 2" class="flex min-w-0 flex-wrap items-center gap-2 text-xs text-slate-600"><span>Fotograma (s)</span><input v-model.number="pageFrameTimes[page.id]" :aria-label="`Fotograma de ${page.name} (s)`" type="number" min="0" :max="page.duration - 0.000001" step="0.001" class="field w-28 text-xs" :disabled="!selectedPages.includes(page.id)" /><span>antes de {{ page.duration }} s</span></label></div></div></div>
+             </fieldset>
++            <NativeExportJobs v-if="native" :active="modelValue" :design-id="designId" :format="format" :prepare="nativeOptions" @busy="value => { busy = value; emit('busy', value); }" @registered="emit('registered', $event)" />
+             <p v-if="status" role="status" class="rounded-xl bg-violet-50 p-3 text-sm text-violet-800">{{ status }}</p>
+             <p v-if="error" role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-800">{{ error }}</p>
+-            <div class="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4"><button type="button" class="btn-secondary" :disabled="busy" @click="emit('update:modelValue',false)">Cerrar exportación</button><button v-if="raster" type="button" class="btn-secondary" :disabled="busy" @click="run('library')">Guardar en biblioteca</button><button type="button" class="btn-primary bg-violet-700" :disabled="busy" @click="run('download')">{{ busy ? 'Preparando…' : 'Descargar' }}</button></div>
++            <div class="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4"><button type="button" class="btn-secondary" :disabled="busy" @click="emit('update:modelValue',false)">Cerrar exportación</button><button v-if="raster" type="button" class="btn-secondary" :disabled="busy" @click="run('library')">Guardar en biblioteca</button><button v-if="!native" type="button" class="btn-primary bg-violet-700" :disabled="busy" @click="run('download')">{{ busy ? 'Preparando…' : 'Descargar' }}</button></div>
+         </div>
+     </StudioDialog>
+ </template>
+--- baseline/resources/js/Components/Studio/NativeExportJobs.vue
++++ resources/js/Components/Studio/NativeExportJobs.vue
+@@ -0,0 +1,88 @@
++<script setup>
++import { onBeforeUnmount, ref, watch } from 'vue';
++import { router } from '@inertiajs/vue3';
++import { createStudioExportClient, createExportMonitor } from '@/Studio/export-jobs';
++
++const props = defineProps({ active: Boolean, designId: Number, format: String, prepare: Function });
++const emit = defineEmits(['busy', 'registered']);
++const client = createStudioExportClient();
++const jobs = ref([]);
++const pagination = ref({ current_page: 1, last_page: 1 });
++const page = ref(1);
++const tracking = ref({ loading: false, paused: false, error: '' });
++const submitting = ref(false);
++const action = ref(null);
++const error = ref('');
++let disposed = false;
++const labels = { pending: 'En cola', processing: 'Procesando', ready: 'Lista', failed: 'Error', cancelled: 'Cancelada' };
++const monitor = createExportMonitor({
++    load: () => client.list(props.designId, page.value),
++    onUpdate: data => { jobs.value = data.exports; pagination.value = data.pagination; },
++    onState: state => { tracking.value = state; },
++});
++const update = job => { jobs.value = [job, ...jobs.value.filter(item => item.id !== job.id)]; emit('registered', job); };
++
++async function begin() {
++    if (submitting.value || action.value) return;
++    submitting.value = true; error.value = ''; monitor.stop(); emit('busy', true);
++    try {
++        const options = await props.prepare();
++        const job = await client.start(props.designId, options);
++        if (!disposed) { page.value = 1; update(job); }
++    } catch (e) { if (!disposed) error.value = e.message; }
++    finally {
++        submitting.value = false;
++        if (!disposed) { emit('busy', false); if (props.active) monitor.start(); }
++    }
++}
++async function control(job, operation) {
++    if (submitting.value || action.value) return;
++    action.value = job.id; error.value = ''; monitor.stop();
++    try {
++        if (operation === 'post') {
++            const result = await client.post(job.id);
++            if (!disposed) router.visit(result.post.edit_url);
++        } else {
++            const current = await client[operation](job.id);
++            if (!disposed) update(current);
++        }
++    } catch (e) { if (!disposed) error.value = e.message; }
++    finally {
++        action.value = null;
++        if (!disposed && props.active) monitor.start();
++    }
++}
++function turn(value) {
++    if (submitting.value || action.value || value < 1 || value > pagination.value.last_page) return;
++    page.value = value; monitor.start();
++}
++watch(() => props.active, active => { if (active) monitor.start(); else monitor.stop(); }, { immediate: true });
++onBeforeUnmount(() => { disposed = true; monitor.stop(); });
++</script>
++
++<template>
++    <section class="space-y-4" aria-label="Exportación audiovisual">
++        <div class="rounded-xl border border-violet-200 bg-violet-50 p-4">
++            <p class="text-sm leading-relaxed text-violet-950">El archivo se prepara en segundo plano y se guarda en la biblioteca de esta marca. Puedes cerrar este diálogo y seguir editando.</p>
++            <button type="button" class="btn-primary mt-3 bg-violet-700" :disabled="submitting || action !== null" @click="begin">{{ submitting ? 'Guardando y enviando…' : `Preparar ${format.toUpperCase()}` }}</button>
++        </div>
++        <p v-if="error || tracking.error" role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-800">{{ error || tracking.error }}</p>
++        <div class="flex flex-wrap items-center justify-between gap-2"><h3 class="text-sm font-semibold">Exportaciones del diseño</h3><button type="button" class="btn-secondary text-xs" :disabled="tracking.loading || submitting || action !== null" @click="monitor.refresh">Actualizar exportaciones</button></div>
++        <p v-if="tracking.paused" role="status" class="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">La consulta automática se ha detenido. El trabajo puede continuar en el servidor. Pulsa Actualizar exportaciones para seguir sin crear otro trabajo.</p>
++        <p v-if="!jobs.length" class="text-sm text-slate-500">{{ tracking.loading ? 'Consultando exportaciones…' : 'Todavía no hay exportaciones en esta página.' }}</p>
++        <div class="space-y-3">
++            <section v-for="job in jobs" :key="job.id" :aria-label="`Exportación ${job.id}`" class="min-w-0 space-y-3 rounded-xl border border-slate-200 p-4">
++                <div class="flex flex-wrap items-center justify-between gap-2"><span class="text-sm font-semibold">{{ job.format.toUpperCase() }} <span class="font-normal text-slate-500">· Revisión {{ job.revision }}</span></span><span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs">{{ labels[job.status] || job.status }}</span></div>
++                <div v-if="job.progress && ['pending', 'processing'].includes(job.status)" class="space-y-1"><label :for="`export-progress-${job.id}`" class="text-xs text-slate-600">Progreso: {{ job.progress.percent }} %</label><progress :id="`export-progress-${job.id}`" :value="job.progress.percent" max="100" class="h-2 w-full accent-violet-600" /></div>
++                <p v-if="job.error" class="break-words text-xs leading-relaxed text-red-800">{{ job.error }}</p>
++                <div class="flex flex-wrap gap-2">
++                    <button v-if="job.can_cancel" type="button" class="btn-secondary text-xs" :disabled="action !== null || submitting" @click="control(job, 'cancel')">Cancelar</button>
++                    <button v-if="job.can_retry" type="button" class="btn-secondary text-xs" :disabled="action !== null || submitting" @click="control(job, 'retry')">Reintentar</button>
++                    <a v-if="job.status === 'ready' && job.download_url" :href="job.download_url" class="btn-secondary text-xs" download>Descargar {{ job.format.toUpperCase() }}</a>
++                    <button v-if="job.status === 'ready' && job.media_ids?.length && ['png', 'jpeg', 'webp', 'mp4', 'gif'].includes(job.format)" type="button" class="btn-primary bg-violet-700 text-xs" :disabled="action !== null || submitting" @click="control(job, 'post')">Crear borrador</button>
++                </div>
++            </section>
++        </div>
++        <nav v-if="pagination.last_page > 1" aria-label="Páginas de exportaciones" class="flex flex-wrap items-center justify-between gap-2 text-xs"><button type="button" class="btn-secondary text-xs" :disabled="page <= 1 || submitting || action !== null" @click="turn(page - 1)">Anteriores</button><span>Página {{ page }} de {{ pagination.last_page }}</span><button type="button" class="btn-secondary text-xs" :disabled="page >= pagination.last_page || submitting || action !== null" @click="turn(page + 1)">Siguientes</button></nav>
++    </section>
++</template>
+--- baseline/tests/frontend/studio-export-jobs.test.mjs
++++ tests/frontend/studio-export-jobs.test.mjs
+@@ -0,0 +1,90 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++
++async function moduleUnderTest() {
++    let result;
++    try { result = await import('../../resources/js/Studio/export-jobs.js'); }
++    catch (error) { if (error.code !== 'ERR_MODULE_NOT_FOUND') throw error; }
++    return result;
++}
++
++test('native export client preserves page order and sends server rendering without static frame or transparency options', async () => {
++    const module = await moduleUnderTest();
++    assert.equal(typeof module?.createStudioExportClient, 'function', 'native export transport is unavailable');
++    const calls = [];
++    const client = module.createStudioExportClient({
++        request: async (...args) => { calls.push(args); return { export: { id: 19, status: 'pending' } }; },
++        url: (name, id) => `${name}/${id}`,
++    });
++    const result = await client.start(7, { revision: 3, format: 'mp4', pages: ['second', 'first'], scale: 0.5, quality: 0.8, frame_times: [{ page_id: 'first', time: 1 }], transparent: true });
++    assert.deepEqual(calls, [['POST', 'studio.exports.render/7', { revision: 3, format: 'mp4', pages: ['second', 'first'], scale: 0.5, quality: 0.8, transparent: false }]]);
++    assert.equal(result.id, 19);
++    await client.cancel(19); await client.retry(19); await client.post(19);
++    assert.deepEqual(calls.slice(1), [['POST', 'studio.exports.cancel/19', {}], ['POST', 'studio.exports.retry/19', {}], ['POST', 'studio.exports.post/19', {}]]);
++    await client.list(7, 2);
++    assert.deepEqual(calls[4], ['GET', 'studio.exports.index/7?page=2']);
++});
++
++test('export monitoring uses one history request per page and never overlaps or recreates work', async () => {
++    const module = await moduleUnderTest();
++    assert.equal(typeof module?.createExportMonitor, 'function', 'resumable export monitoring is unavailable');
++    const timers = [], updates = [], states = [];
++    let calls = 0, release;
++    const monitor = module.createExportMonitor({
++        load: () => { calls++; return new Promise(resolve => { release = resolve; }); },
++        onUpdate: data => updates.push(data), onState: state => states.push(state),
++        schedule: callback => { timers.push(callback); return callback; }, cancel: () => {},
++    });
++    const first = monitor.start();
++    await monitor.refresh();
++    assert.equal(calls, 1);
++    release({ exports: [{ id: 19, status: 'processing' }], pagination: { current_page: 1 } });
++    await first;
++    assert.equal(updates.length, 1); assert.equal(timers.length, 1);
++    const second = timers.shift()();
++    release({ exports: [{ id: 19, status: 'ready' }] }); await second;
++    assert.equal(calls, 2); assert.equal(timers.length, 0);
++    assert.equal(states.at(-1).loading, false);
++    monitor.stop();
++});
++
++test('closing or switching the history ignores late responses and pauses after the polling budget', async () => {
++    const module = await moduleUnderTest();
++    assert.equal(typeof module?.createExportMonitor, 'function', 'resumable export monitoring is unavailable');
++    const releases = [], updates = [], timers = [], states = [];
++    let time = 0;
++    const monitor = module.createExportMonitor({
++        load: () => new Promise(resolve => releases.push(resolve)),
++        onUpdate: data => updates.push(data), onState: state => states.push(state),
++        schedule: callback => { timers.push(callback); return callback; }, cancel: () => {}, now: () => time,
++    });
++    const first = monitor.start(); monitor.stop(); const second = monitor.start();
++    releases[1]({ exports: [{ id: 20, status: 'pending' }] }); await second;
++    releases[0]({ exports: [{ id: 19, status: 'ready' }] }); await first;
++    assert.deepEqual(updates.map(update => update.exports[0].id), [20]);
++    time = 300001; await timers.shift()();
++    assert.equal(releases.length, 2); assert.equal(states.at(-1).paused, true);
++    const resumed = monitor.refresh();
++    releases[2]({ exports: [{ id: 20, status: 'cancelled' }] }); await resumed;
++    assert.equal(updates.at(-1).exports[0].status, 'cancelled');
++    assert.equal(states.at(-1).paused, false);
++    monitor.stop();
++});
++
++test('a history failure pauses polling and manual refresh recovers the same jobs without any mutation', async () => {
++    const { createExportMonitor } = await moduleUnderTest();
++    const updates = [], states = [], timers = [];
++    let calls = 0;
++    const monitor = createExportMonitor({
++        load: async () => { if (++calls === 1) throw new Error('Sesión caducada'); return { exports: [{ id: 19, status: 'ready' }] }; },
++        onUpdate: data => updates.push(data), onState: state => states.push(state),
++        schedule: callback => { timers.push(callback); }, cancel: () => {},
++    });
++    await monitor.start();
++    assert.equal(states.at(-1).paused, true); assert.equal(states.at(-1).error, 'Sesión caducada');
++    assert.equal(timers.length, 0); assert.equal(updates.length, 0);
++    await monitor.refresh();
++    assert.equal(calls, 2); assert.equal(updates[0].exports[0].id, 19);
++    assert.equal(states.at(-1).paused, false); assert.equal(states.at(-1).error, '');
++    monitor.stop();
++});
+--- baseline/tests/e2e/studio-native-export.spec.ts
++++ tests/e2e/studio-native-export.spec.ts
+@@ -0,0 +1,116 @@
++import { expect, test } from '@playwright/test';
++import { execFileSync } from 'node:child_process';
++import fs from 'node:fs';
++import { artisan, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, stamp } from './helpers';
++
++test('Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft', async ({ page }, info) => {
++    test.setTimeout(120_000);
++    const user = e2eUser(info.project.name), errors: string[] = [];
++    cleanComposerBrands(user.email);
++    const brand = seedComposerBrand(user.email, `studio-native-${stamp()}-${info.project.name}`);
++    page.on('pageerror', error => errors.push(error.message));
++    page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
++    try {
++        await loginAs(page, user); await page.goto(`/studio?brand_id=${brand.id}`);
++        const design = await page.evaluate(async brandId => {
++            const csrf = decodeURIComponent((document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '');
++            const response = await fetch(`/brands/${brandId}/studio/designs`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': csrf },
++                body: JSON.stringify({ name: 'Secuencia nativa', document: { schema_version: 2, width: 100, height: 80, timeline: { fps: 12, audio_tracks: [] }, pages: [
++                    { id: 'red', name: 'Roja', duration: 1, background: '#ff0000', elements: [] },
++                    { id: 'blue', name: 'Azul', duration: 1, background: '#0000ff', elements: [] },
++                ] } }) });
++            if (!response.ok) throw new Error(await response.text());
++            return (await response.json()).design;
++        }, brand.id);
++        await page.goto(`/studio/designs/${design.id}/edit`);
++        await page.getByRole('button', { name: 'Exportar', exact: true }).click();
++        const dialog = page.getByRole('dialog', { name: 'Exportar diseño', exact: true });
++        await expect(dialog.getByLabel('Formato', { exact: true }).locator('option[value="mp4"]')).toHaveCount(1);
++        await dialog.getByLabel('Formato', { exact: true }).selectOption('mp4');
++        await expect(dialog.getByText('Fondo transparente', { exact: true })).toHaveCount(0);
++        await expect(dialog.getByLabel('Fotograma de Roja (s)', { exact: true })).toHaveCount(0);
++        await dialog.getByRole('button', { name: 'Subir página Azul', exact: true }).click();
++        const created = page.waitForResponse(response => response.url().endsWith(`/studio/designs/${design.id}/render`) && response.request().method() === 'POST');
++        await dialog.getByRole('button', { name: 'Preparar MP4', exact: true }).click();
++        const initial = await created; expect(initial.status()).toBe(202);
++        expect(initial.request().postDataJSON()).toMatchObject({ format: 'mp4', pages: ['blue', 'red'], transparent: false });
++        expect(initial.request().postDataJSON()).not.toHaveProperty('frame_times');
++        const first = (await initial.json()).export;
++        const row = dialog.getByRole('region', { name: `Exportación ${first.id}`, exact: true });
++        expect(first.status).toBe('processing');
++        await expect(row).toContainText('Procesando');
++        await row.getByRole('button', { name: 'Cancelar', exact: true }).click();
++        await expect(row).toContainText('Cancelada');
++        await dialog.getByRole('button', { name: 'Cerrar exportación', exact: true }).click();
++        await page.reload();
++        await page.getByRole('button', { name: 'Exportar', exact: true }).click();
++        await dialog.getByLabel('Formato', { exact: true }).selectOption('mp4');
++        await expect(row).toContainText('Cancelada');
++        await row.getByRole('button', { name: 'Reintentar', exact: true }).click();
++        await expect(row).toContainText('Procesando');
++        artisan("Illuminate\\Support\\Facades\\Artisan::call('queue:work',['connection'=>'database','--queue'=>'studio','--stop-when-empty'=>true,'--tries'=>1,'--timeout'=>100,'--sleep'=>0]);");
++        await dialog.getByRole('button', { name: 'Actualizar exportaciones', exact: true }).click();
++        await expect(row).toContainText('Lista');
++        const [mp4] = await Promise.all([page.waitForEvent('download'), row.getByRole('link', { name: 'Descargar MP4', exact: true }).click()]);
++        const mp4Path = await mp4.path(); expect(mp4Path).toBeTruthy();
++        await mp4.saveAs(info.outputPath('sequence.mp4'));
++        const probe = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-count_frames', '-show_streams', '-of', 'json', mp4Path!], { encoding: 'utf8' }));
++        expect(probe.streams[0]).toMatchObject({ codec_name: 'h264', width: 100, height: 80, nb_read_frames: '24' });
++        const frame = execFileSync('ffmpeg', ['-v', 'error', '-i', mp4Path!, '-frames:v', '1', '-pix_fmt', 'rgb24', '-f', 'rawvideo', 'pipe:1']);
++        expect(frame[2]).toBeGreaterThan(240); expect(frame[0]).toBeLessThan(15);
++        const lastFrame = execFileSync('ffmpeg', ['-v', 'error', '-i', mp4Path!, '-ss', '1.2', '-frames:v', '1', '-pix_fmt', 'rgb24', '-f', 'rawvideo', 'pipe:1']);
++        expect(lastFrame[0]).toBeGreaterThan(240); expect(lastFrame[2]).toBeLessThan(15);
++        await dialog.getByLabel('Formato', { exact: true }).selectOption('gif');
++        const gifResponse = page.waitForResponse(response => response.url().endsWith(`/studio/designs/${design.id}/render`) && response.request().method() === 'POST');
++        await dialog.getByRole('button', { name: 'Preparar GIF', exact: true }).click();
++        const gif = (await (await gifResponse).json()).export;
++        artisan("Illuminate\\Support\\Facades\\Artisan::call('queue:work',['connection'=>'database','--queue'=>'studio','--stop-when-empty'=>true,'--tries'=>1,'--timeout'=>100,'--sleep'=>0]);");
++        await dialog.getByRole('button', { name: 'Actualizar exportaciones', exact: true }).click();
++        const gifRow = dialog.getByRole('region', { name: `Exportación ${gif.id}`, exact: true });
++        await expect(gifRow).toContainText('Lista');
++        const [download] = await Promise.all([page.waitForEvent('download'), gifRow.getByRole('link', { name: 'Descargar GIF', exact: true }).click()]);
++        await download.saveAs(info.outputPath('sequence.gif'));
++        const gifProbe = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-show_streams', '-of', 'json', (await download.path())!], { encoding: 'utf8' }));
++        expect(gifProbe.streams[0]).toMatchObject({ codec_name: 'gif', width: 100, height: 80 });
++        fs.writeFileSync(info.outputPath('media-probe.json'), JSON.stringify({ mp4: probe, gif: gifProbe, first_pixel: [...frame.subarray(0, 3)], later_pixel: [...lastFrame.subarray(0, 3)] }, null, 2));
++        await gifRow.scrollIntoViewIfNeeded();
++        await page.screenshot({ path: info.outputPath('native-export-ready.png'), fullPage: true });
++        await row.getByRole('button', { name: 'Crear borrador', exact: true }).click();
++        await expect(page).toHaveURL(/\/posts\/\d+\/edit$/);
++        const brandCheck = artisan(`echo json_encode(App\\Models\\Post::withoutUserScope()->latest('id')->first(['brand_id','status']));`);
++        expect(JSON.parse(brandCheck)).toMatchObject({ brand_id: brand.id, status: 'borrador' });
++        await expectNoOverflow(page); expect(errors).toEqual([]);
++    } finally { cleanComposerBrands(user.email); }
++});
++
++test('Studio native history: paginate real exports in one request per page and reopen without creating work', async ({ page }, info) => {
++    const user = e2eUser(info.project.name);
++    cleanComposerBrands(user.email);
++    const brand = seedComposerBrand(user.email, `studio-export-history-${stamp()}-${info.project.name}`);
++    try {
++        const design = JSON.parse(artisan(`$b=App\\Models\\Brand::withoutUserScope()->findOrFail(${brand.id}); $u=App\\Models\\User::findOrFail($b->user_id); $d=app(App\\Services\\Studio\\StudioService::class)->create($u,$b,['name'=>'Historial audiovisual','document'=>['schema_version'=>1,'width'=>100,'height'=>80,'pages'=>[['id'=>'one','name'=>'Una','background'=>'#ffffff','elements'=>[]]]]]); for($i=0;$i<55;$i++){App\\Models\\Studio\\DesignExport::create(['user_id'=>$u->id,'brand_id'=>$b->id,'design_id'=>$d->id,'revision'=>1,'format'=>'png','pages'=>['one'],'options'=>[],'media_ids'=>[],'status'=>'ready']);} echo json_encode(['id'=>$d->id]);`));
++        await loginAs(page, user); await page.goto(`/studio/designs/${design.id}/edit`);
++        const reads: string[] = [], writes: string[] = [];
++        page.on('request', request => {
++            if (new URL(request.url()).pathname !== `/studio/designs/${design.id}/exports`) return;
++            (request.method() === 'GET' ? reads : writes).push(request.url());
++        });
++        await page.getByRole('button', { name: 'Exportar', exact: true }).click();
++        const dialog = page.getByRole('dialog', { name: 'Exportar diseño', exact: true });
++        await dialog.getByLabel('Formato', { exact: true }).selectOption('mp4');
++        const rows = dialog.getByRole('region', { name: /^Exportación \d+$/ });
++        const pager = dialog.getByRole('navigation', { name: 'Páginas de exportaciones', exact: true });
++        await expect(rows).toHaveCount(50); await expect(pager).toContainText('Página 1 de 2');
++        await pager.getByRole('button', { name: 'Siguientes', exact: true }).click();
++        await expect(rows).toHaveCount(5); await expect(pager).toContainText('Página 2 de 2');
++        expect(reads).toHaveLength(2); expect(new URL(reads[1]).searchParams.get('page')).toBe('2');
++        await dialog.getByRole('button', { name: 'Actualizar exportaciones', exact: true }).click();
++        await expect.poll(() => reads.length).toBe(3); await expect(rows).toHaveCount(5);
++        await dialog.getByRole('button', { name: 'Cerrar exportación', exact: true }).click();
++        await page.reload(); await page.getByRole('button', { name: 'Exportar', exact: true }).click();
++        await dialog.getByLabel('Formato', { exact: true }).selectOption('gif');
++        await expect(rows).toHaveCount(50); await expect(pager).toContainText('Página 1 de 2');
++        expect(writes).toEqual([]);
++        await expectNoOverflow(page);
++    } finally { cleanComposerBrands(user.email); }
++});
+--- baseline/docs/guias/estudio-api-mcp.md
++++ docs/guias/estudio-api-mcp.md
+@@ -1,6 +1,6 @@
+ # Estudio nativo: API, MCP y render en servidor
+ 
+-Actualizado: 2026-11-05. Esta guía describe el código del árbol de trabajo; no acredita su despliegue. El editor, la API y MCP utilizan los mismos servicios de diseños, recursos y exportaciones por marca. Las pistas de audio se editan y mezclan durante el preview. La exportación estática permite elegir fotogramas por página; API/MCP incorporan MP4/GIF en el árbol de trabajo; la interfaz y QA integral del padre siguen pendientes.
++Actualizado: 2026-11-05. Esta guía describe el código del árbol de trabajo; no acredita su despliegue. El editor, la API y MCP utilizan los mismos servicios de diseños, recursos y exportaciones por marca. Las pistas de audio se editan y mezclan durante el preview. La exportación estática permite elegir fotogramas por página; La interfaz, API y MCP incorporan MP4/GIF en el árbol de trabajo; la QA integral del padre sigue pendiente.
+ 
+ Referencias: [OpenAPI](../api/creative-suite.openapi.yaml), [contrato completo del documento v1](../roadmap/2026-11-03-creative-social-suite/document-contract.md), [módulo MCP](../modulos/mcp.md), [despliegue general](../modulos/despliegue.md) y [desarrollo local](desarrollo-local.md).
+ 
+@@ -32,7 +32,7 @@
+ 
+ Pulsa «Añadir» en el recurso listo para crear una pista global. La línea de tiempo permite mover su inicio, cambiar duración, recortar origen, ajustar velocidad/volumen, repetir, silenciar y aplicar fundidos. El cabezal sirve para dividirla; deshacer/rehacer y guardar/reabrir conservan sus valores. Varias pistas se mezclan con el vídeo durante play/pausa/seek. Las pistas globales siguen el reloj completo del diseño, sin reiniciarse al cambiar de página.
+ 
+-El preview no modifica la revisión guardada. API/MCP pueden solicitar MP4/GIF con la mezcla guardada; el diálogo audiovisual del editor sigue pendiente de T-11.
++El preview no modifica la revisión guardada. La interfaz, API y MCP pueden solicitar MP4/GIF con la mezcla guardada. El diálogo audiovisual permite seleccionar y ordenar páginas, consultar trabajos y cancelar o reintentar.
+ 
+ ## Fotogramas en exportaciones estáticas
+ 
+@@ -306,7 +306,7 @@
+ - Recursos de entrada seleccionados: hasta 64000000 bytes en conjunto. Cada archivo de salida también se limita a 64000000 bytes; el proceso Node limita la entrada JSON a 90 MB.
+ - El proceso tiene límite PHP de 100 s; el render del navegador, 80 s; el job, 120 s y un intento. Reduce páginas, escala o recursos si falla por capacidad o tiempo.
+ 
+-MP4 y GIF se solicitan por API/MCP y se procesan en la cola database/studio, desde la revisión guardada y con las páginas en el orden indicado. MP4 incluye audio; GIF es silencioso. No aceptan frame_times no vacío ni transparencia. El diálogo del editor conserva los cinco formatos estáticos hasta completar la integración UI. La [revisión y regresión del bloque público](../roadmap/2026-11-03-creative-social-suite/testing/t11/av-public/review.md) documenta su evidencia y límites, sin acreditar despliegue; T-11 sigue abierta en el [roadmap](../roadmap/2026-11-03-creative-social-suite/tasks.md).
++MP4 y GIF se solicitan por API/MCP y se procesan en la cola database/studio, desde la revisión guardada y con las páginas en el orden indicado. MP4 incluye audio; GIF es silencioso. No aceptan frame_times no vacío ni transparencia. El diálogo del editor ofrece los cinco formatos estáticos y MP4/GIF. Selecciona páginas, ordena la secuencia con las flechas y pulsa Preparar MP4/GIF. Se guarda primero la revisión y el trabajo continúa en el servidor al cerrar el diálogo. El historial paginado muestra estado/progreso y permite cancelar/reintentar; Actualizar exportaciones reanuda la consulta sin crear otro trabajo. Tras cinco minutos o un error se pausa la consulta automática. Al recargar y volver a abrir MP4/GIF se recupera el historial. Descargar y Crear borrador son acciones explícitas cuando existe resultado ready; consultar o completar el render no crea publicaciones. La [revisión y regresión del bloque público](../roadmap/2026-11-03-creative-social-suite/testing/t11/av-public/review.md) documenta su evidencia y límites, sin acreditar despliegue; la revisión/QA de interfaz y T-11 siguen abiertas en el [roadmap](../roadmap/2026-11-03-creative-social-suite/tasks.md).
+ 
+ ## MCP: herramientas de diseño y flujo de trabajo
+ 
+--- baseline/docs/roadmap/2026-11-03-creative-social-suite/t11-contract.md
++++ docs/roadmap/2026-11-03-creative-social-suite/t11-contract.md
+@@ -84,3 +84,14 @@
+ 4. Errores/cancelación/reintento, recursos grandes sin JSON base64 masivo, autorización web/API/MCP y privacidad. Revisión A/B/C/D y QA antes de cerrar.
+ 
+ Fuentes primarias consultadas: [documentación de filtros FFmpeg](https://github.com/FFmpeg/FFmpeg/blob/master/doc/filters.texi) y ayuda del FFmpeg9.0.2 instalado (`amix`, `xfade`); [Web Audio](https://webaudio.github.io/web-audio-api/) para la programación de audio, documento en evolución, no garantía de implementación de un navegador concreto. Los smokes miden los binarios/navegadores reales de esta instalación.
++
++
++## Diálogo audiovisual — contrato de interfaz previo
++
++El selector ofrecerá los cinco formatos estáticos y MP4/GIF. Los estáticos conservarán render local, fotograma por página y transparencia donde proceda. MP4/GIF usarán revisión guardada y cola del servidor, con escala/calidad, páginas seleccionadas y orden explícito; no enviarán frame_times ni transparencia. El tamaño mostrado reflejará el padding par del motor. GIF indicará que no contiene sonido.
++
++Preparar un trabajo bloqueará solo el guardado/envío inicial, sin mantener bloqueado el editor durante el worker. El historial del diseño reutilizará su endpoint paginado, una consulta por página cada2s mientras existan trabajos activos, sin solapar consultas. Tras5min o un error se pausará el seguimiento, con botón para volver a consultar sin crear otro trabajo. Cerrar/cambiar formato detendrá consultas y descartará respuestas tardías; el trabajo seguirá en el servidor. Al reabrir o recargar se recuperará el historial real, sin depender del estado temporal del navegador.
++
++Cada fila mostrará formato, revisión, estado, progreso y error seguro. Cancelar y reintentar se ofrecerán según can_cancel/can_retry del DTO; se cercará la lectura pendiente antes de mutar para que un polling antiguo no restituya un estado previo. Las acciones reutilizarán CSRF y rutas web autenticadas. Reintentar conservará el mismo ID/revisión/opciones mediante el servicio compartido. Descarga firmada y crear borrador serán acciones explícitas cuando exista resultado ready; no se crearán borradores automáticamente al consultar o completar el render.
++
++Verificación prevista: cliente/monitor con reloj y respuestas diferidas; E2E en tres viewports con cola real y MP4/GIF descargados, orden de páginas comprobado en píxeles, cancelación/reintento y recuperación tras recargar, borrador de la marca; regresión de fotogramas/estáticos y controles anteriores. No sustituye QA integral del padre, inspección audiovisual ni las pruebas del VPS.
+--- baseline/docs/roadmap/2026-11-03-creative-social-suite/test-plan.md
++++ docs/roadmap/2026-11-03-creative-social-suite/test-plan.md
+@@ -69,3 +69,8 @@
+ | M-04 | Usuario, cuando lo retome | Claude Desktop: sigue aplazado; no volver a abrir autorización. |
+ 
+ El fallo de un requisito externo permanece explícito. La suite no declara paridad completa ni operación en producción por tener estas pruebas locales correctas.
++
++
++### Flujo público audiovisual — interfaz en desarrollo
++
++E2E-13: `studio-native-export.spec.ts` recorrerá MP4/GIF desde el diálogo, orden explícito y omisión de opciones estáticas, cancel/retry y persistencia de historial al recargar, worker database real y descarga con codec/dimensiones/frames/píxel inicial, borrador de la marca sin publicación. Se ejecutará en desktop/mobile/mobile-360. Hasta disponer de sus salidas reales no se considera aprobado. `studio-export-jobs.test.mjs` cubre contrato del cliente, consultas sin solapamiento, respuestas tardías, presupuesto5min y reanudación sin duplicar trabajos.

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\HealthController;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\LimitStudioDatasetPayload;
 use App\Http\Middleware\McpGuard;
 use App\Http\Middleware\TrustProxiesFromConfig;
 use App\Support\CrossUserAccessLogger;
@@ -22,9 +23,22 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function (): void {
             // /health fuera del grupo `web` (sin sesion en BD) y con rate limit.
             Route::get('/health', HealthController::class)->middleware('throttle:30,1')->name('health');
+            Route::middleware('api')->group(base_path('routes/studio-api.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->prepend(LimitStudioDatasetPayload::class);
+        // Design documents are typed data: whitespace and empty text/strokes carry visual meaning.
+        $studioJson = static fn (Request $request): bool => $request->isJson()
+            && ($request->is('studio*', 'brands/*/studio*', 'api/v1/*')
+                || ($request->is('mcp*') && ($request->input('params.name') === 'manage_studio_dataset' || is_array($request->input('params.arguments.document'))
+                    || is_array($request->input('params.arguments.fields')))));
+        $middleware->trimStrings(except: [$studioJson]);
+        $middleware->convertEmptyStringsToNull(except: [$studioJson]);
+
+        // Baja one-click de informes (RFC 8058): el cliente de correo no tiene token CSRF; la firma de la URL protege la peticion.
+        $middleware->validateCsrfTokens(except: ['report-schedules/*/unsubscribe']);
+
         $middleware->web(append: [
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,

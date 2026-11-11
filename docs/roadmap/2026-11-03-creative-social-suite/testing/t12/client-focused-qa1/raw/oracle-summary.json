@@ -1,0 +1,31 @@
+{
+  "xml_checks": 30,
+  "raster_checks": 30,
+  "glyph_checks": 30,
+  "preview_checks": 30,
+  "glyph_min_original_iou": 1.0,
+  "glyph_min_margin": 0.7174959871589085,
+  "preview_max_rgb_error": 0,
+  "preview_max_mean_rgb_error": 0.0,
+  "font_responses_by_project": [
+    {
+      "project": "desktop",
+      "variants": 10,
+      "bars": 48,
+      "private_font_responses": 40
+    },
+    {
+      "project": "mobile",
+      "variants": 10,
+      "bars": 48,
+      "private_font_responses": 40
+    },
+    {
+      "project": "mobile-360",
+      "variants": 10,
+      "bars": 48,
+      "private_font_responses": 40
+    }
+  ],
+  "oracle_elapsed_seconds_sum": 10.839641299971845
+}

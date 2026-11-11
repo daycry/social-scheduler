@@ -1,0 +1,17 @@
+⚠️  T-01: sin campo **Changelog** (otras tareas lo declaran) — su bullet del CHANGELOG degradará al título
+⚠️  T-03: sin campo **Changelog** (otras tareas lo declaran) — su bullet del CHANGELOG degradará al título
+⚠️  T-10: sin campo **Changelog** (otras tareas lo declaran) — su bullet del CHANGELOG degradará al título
+⚠️  T-11: sin campo **Changelog** (otras tareas lo declaran) — su bullet del CHANGELOG degradará al título
+⚠️  T-12: sin campo **Changelog** (otras tareas lo declaran) — su bullet del CHANGELOG degradará al título
+⚠️  T-13: sin campo **Changelog** (otras tareas lo declaran) — su bullet del CHANGELOG degradará al título
+⚠️  T-14: sin campo **Changelog** (otras tareas lo declaran) — su bullet del CHANGELOG degradará al título
+⚠️  T-15: sin campo **Changelog** (otras tareas lo declaran) — su bullet del CHANGELOG degradará al título
+⚠️  T-16: sin campo **Changelog** (otras tareas lo declaran) — su bullet del CHANGELOG degradará al título
+⚠️  T-17: sin campo **Changelog** (otras tareas lo declaran) — su bullet del CHANGELOG degradará al título
+⚠️  T-18: sin campo **Changelog** (otras tareas lo declaran) — su bullet del CHANGELOG degradará al título
+⚠️  T-19: sin campo **Changelog** (otras tareas lo declaran) — su bullet del CHANGELOG degradará al título
+⚠️  T-20: sin campo **Changelog** (otras tareas lo declaran) — su bullet del CHANGELOG degradará al título
+⚠️  T-21: sin campo **Changelog** (otras tareas lo declaran) — su bullet del CHANGELOG degradará al título
+⚠️  T-22: sin campo **Changelog** (otras tareas lo declaran) — su bullet del CHANGELOG degradará al título
+⚠️  T-23: sin campo **Changelog** (otras tareas lo declaran) — su bullet del CHANGELOG degradará al título
+ledger-lint: 0 incoherencias · 16 avisos (tasks.md)

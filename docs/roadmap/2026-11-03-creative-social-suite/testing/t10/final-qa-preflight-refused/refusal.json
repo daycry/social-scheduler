@@ -1,0 +1,7 @@
+{
+  "state": "REFUSED_BEFORE_UUID_OR_SERVER",
+  "reason": "physical_preflight_below_11GiB",
+  "physical_available_bytes": 10829635584,
+  "required_physical_bytes": 11811160064,
+  "runtime": null
+}

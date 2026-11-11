@@ -1,15 +1,18 @@
 # Social Scheduler — documentación
 
-Aplicación web personal para programar publicaciones y consultar analítica en Instagram, Facebook, YouTube, TikTok, Bluesky y Threads. Laravel 13 + Inertia/Vue, cola `database` y media en Cloudflare R2.
+Aplicación web personal para programar publicaciones y consultar analítica en Instagram, Facebook, YouTube, TikTok, Bluesky, Threads, LinkedIn y Pinterest. Laravel 13 + Inertia/Vue, cola `database` y media en Cloudflare R2.
 
-Última actualización: 2026-10-31
+Última actualización: 2026-11-10
 
 ## Por dónde empezar
 
 | Si quieres… | Lee |
 |---|---|
+| Diseñar contenido por marca y reutilizarlo en una publicación | [Estudio creativo](guias/estudio-creativo.md) |
+| Automatizar diseños, recursos y exportación desde API o MCP | [API v1 y MCP del estudio](guias/estudio-api-mcp.md) · [OpenAPI](api/creative-suite.openapi.yaml) |
+| Revisar cobertura, cálculos y recolección de métricas | [Auditoría de métricas](roadmap/2026-11-03-creative-social-suite/testing/metrics/audit-2026-11-03.md) |
 | Entender cómo encaja todo | [Arquitectura](arquitectura.md) y [Stack](stack.md) |
-| Saber qué se decidió por red (Meta, YouTube, TikTok, Bluesky) | [Decisiones por red](referencia/decisiones-por-red.md) |
+| Saber qué se decidió por red (Meta, YouTube, TikTok, Bluesky, Threads, LinkedIn, Pinterest) | [Decisiones por red](referencia/decisiones-por-red.md) |
 | Rellenar el `.env` | [Configuración](referencia/configuracion.md) |
 | Levantar el proyecto en tu máquina | [Desarrollo local con Laragon](guias/desarrollo-local.md) |
 | Ejecutar la validación T-43 con SQLite desechable y conectores simulados | [Pruebas aisladas de T-43](guias/pruebas-t43.md) |
@@ -22,6 +25,12 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Conectar Bluesky con una app password (alta, email verificado para vídeo, revocación) | [Guía de Bluesky](guias/bluesky-app-password.md) |
 | Conectar Threads con una app de Meta (ID y secreto de Threads, URI de redirección, tester y App Review) | [Guía de Threads](guias/threads-app-meta.md) |
 | Activar el buscador de GIFs (clave de Giphy, límites, atribución «Powered by GIPHY» y términos) | [Guía de Giphy](guias/giphy-api-key.md) |
+| Conectar LinkedIn (perfil y páginas) y Pinterest (tablero obligatorio) | [LinkedIn y Pinterest](guias/linkedin-pinterest.md) |
+| Conectar Canva a una marca, exportar a la biblioteca y entender sus límites | [Canva](modulos/canva.md) |
+| Generar imágenes con IA en el estudio (OpenAI y Google, cuotas) | [IA del estudio](modulos/estudio-ia.md) |
+| Aprobaciones, series, lotes, colaboradores, publicación manual y reintento | [Flujo de trabajo](modulos/workflow-publicaciones.md) |
+| Dar a un destino su propia media, alt y portada | [Media por destino](modulos/media-por-destino.md) |
+| Publicar una web de la marca en `/s/{slug}` | [Sitios](modulos/sitios.md) |
 | Saber qué falta por hacer a mano | [Pendientes manuales](referencia/pendientes-manuales.md) |
 
 ## Módulos (documentación técnica)
@@ -33,7 +42,13 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Media, validación e importación (URL y Drive) | [media.md](modulos/media.md) | `app/Services/Media*.php`, `app/Services/Media/`, `app/Jobs/ImportRemoteMedia.php`, `config/media*.php` |
 | Calendario y cuadrícula de Instagram | [calendario.md](modulos/calendario.md) | `app/Services/CalendarService.php`, `app/Services/GridService.php` |
 | Analítica, snapshots y campañas | [analitica.md](modulos/analitica.md) | `app/Analytics/`, `app/Jobs/CollectSnapshots.php`, `app/Services/CampaignAnalytics.php` |
-| Informes PDF/CSV | [informes.md](modulos/informes.md) | `app/Services/ReportService.php` |
+| Estudio (editor, colaboración, tipografías, audio, datasets, exportaciones) | [estudio.md](modulos/estudio.md) | `app/Services/Studio/`, `config/studio.php` |
+| IA del estudio | [estudio-ia.md](modulos/estudio-ia.md) | `app/Services/Studio/StudioAi.php` |
+| Canva | [canva.md](modulos/canva.md) | `app/Services/Canva/`, `routes/canva.php` |
+| Sitios | [sitios.md](modulos/sitios.md) | `app/Services/Sites/`, `routes/sites.php` |
+| Flujo de trabajo de publicaciones | [workflow-publicaciones.md](modulos/workflow-publicaciones.md) | `app/Services/PostWorkflowActions.php` |
+| Media por destino | [media-por-destino.md](modulos/media-por-destino.md) | `app/Support/TargetMedia.php` |
+| Informes PDF/CSV y constructor de informes | [informes.md](modulos/informes.md) | `app/Services/ReportService.php`, `app/Services/Reports/ReportBlocks.php` |
 | Servidor MCP y API keys | [mcp.md](modulos/mcp.md) | `app/Mcp/`, `routes/ai.php` |
 | Planificación avanzada (mejores horas, biblioteca, papelera, autolistas) | [planificacion-avanzada.md](modulos/planificacion-avanzada.md) | `app/Services/{BestTimes,Library,Trash,Autolist}Service.php` |
 | SmartLinks | [smartlinks.md](modulos/smartlinks.md) | `app/Services/SmartLinkService.php`, `app/Support/SafeUrl.php` |
@@ -53,7 +68,9 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 
 ## Estado del proyecto
 
-La ejecución local final de Pest del 2026-10-31 pasa **2.461 tests y 14.549 aserciones**, incluidos los tres refuerzos literales de Bluesky. Su [JUnit](roadmap/2026-10-19-social-scheduler/testing/raw/phpunit-final-p3.xml) conserva el resultado; la evidencia y los comandos constan en el [ledger principal, T-43](roadmap/2026-10-19-social-scheduler/tasks.md#t-43--validación-final-suite-e2e-pruebas-manuales-y-revisión-de-seguridad).
+Estado de la suite del estudio y la profundidad social (2026-11-10): Pest **3.566 passed y 9 skipped**; la batería E2E de Playwright de esta iniciativa está **pendiente de T-22** (no se da cifra hasta que cierre). Todas las integraciones externas nuevas (Canva, LinkedIn, Pinterest, IA del estudio, inbox de Threads, YouTube y Bluesky, worker `studio`) están probadas solo con simulaciones: sus smokes reales son CS-M-01..08 en [pendientes manuales](referencia/pendientes-manuales.md).
+
+Histórico de la iniciativa anterior: la ejecución local final de Pest del 2026-10-31 pasó **2.461 tests y 14.549 aserciones**, incluidos los tres refuerzos literales de Bluesky. Su [JUnit](roadmap/2026-10-19-social-scheduler/testing/raw/phpunit-final-p3.xml) conserva el resultado; la evidencia y los comandos constan en el [ledger principal, T-43](roadmap/2026-10-19-social-scheduler/tasks.md#t-43--validación-final-suite-e2e-pruebas-manuales-y-revisión-de-seguridad).
 
 La revisión focalizada de aislamiento, cifrado y API keys pasa 111 tests y 573 aserciones tras corregir el flash de una API key en sesión. Esa comprobación no acredita DAST ni una auditoría global de ocho dimensiones. `ApiKeyController` cifra el secreto temporal antes de guardarlo en sesión y lo descifra solo para mostrarlo una vez.
 
@@ -64,7 +81,6 @@ Las comprobaciones con cuentas y servidor reales siguen en [Pendientes manuales]
 ## Categorías omitidas
 
 - `docs/security-scan/`: evidencia local de `nemesis`, excluida de git y de publicación documental porque puede contener datos sensibles.
-- Referencia de API HTTP pública: la app no expone API REST propia; la única interfaz máquina a máquina es el MCP ([mcp.md](modulos/mcp.md)).
 - Confluence: no se publica (opt-in no configurado).
 
 - [Ajustes del compositor](guias/ajustes-compositor.md) · paneles globales y por red, colaboradores, IA, título de Facebook y errores; inventario observado y pendientes.

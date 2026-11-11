@@ -1,0 +1,88 @@
+{
+  "state": "finished",
+  "phase": "fixed",
+  "supervisor_pid": 1964,
+  "app_pass_claim": false,
+  "cases": [
+    {
+      "format": "svg",
+      "node_pid": 3052,
+      "node_terminal": true,
+      "exit_code": 0,
+      "stdin_bytes": 68956,
+      "stdin_sha256": "06b69cc542e786a79d0406da3d8c3fc22565cb3da41643ecad4bc93d7f03e670",
+      "dataset_sha256": "f04dd6def88a6ed6d1cf05f171c3a887a2919e797a9b4218f88a56559c8d93eb",
+      "directory": "storage/framework/testing/t12-chart-static-render-regression1/fixed-execution1/studio-exports/1/1/38b9f273-5024-4475-833e-fdb5ddc34214",
+      "output": {
+        "name": "page-001.svg",
+        "bytes": 79949,
+        "sha256": "529d394269906a9e6afd37a0bf0f97aae12902503d7447f183055248ab777153",
+        "mime": "image/svg+xml",
+        "signature_valid": true
+      }
+    },
+    {
+      "format": "png",
+      "node_pid": 22040,
+      "node_terminal": true,
+      "exit_code": 0,
+      "stdin_bytes": 68956,
+      "stdin_sha256": "bcdd2fbf791f5158b7165ca509b22d57dd0fa576f6bcd41f576ea635610f17e1",
+      "dataset_sha256": "f04dd6def88a6ed6d1cf05f171c3a887a2919e797a9b4218f88a56559c8d93eb",
+      "directory": "storage/framework/testing/t12-chart-static-render-regression1/fixed-execution1/studio-exports/1/1/18ee1436-4ef4-4227-a422-d80402ea2825",
+      "output": {
+        "name": "page-001.png",
+        "bytes": 45497,
+        "sha256": "c83db358c10ac6c9a792a7e834c76039a21a534548a7b247d5b05ae9ea0ccf78",
+        "mime": "image/png",
+        "signature_valid": true
+      }
+    },
+    {
+      "format": "pdf",
+      "node_pid": 14040,
+      "node_terminal": true,
+      "exit_code": 0,
+      "stdin_bytes": 68956,
+      "stdin_sha256": "4c91f9498db0d2ef96a2885db9485678c02cb2c2b93c24696187f75122e46b13",
+      "dataset_sha256": "f04dd6def88a6ed6d1cf05f171c3a887a2919e797a9b4218f88a56559c8d93eb",
+      "directory": "storage/framework/testing/t12-chart-static-render-regression1/fixed-execution1/studio-exports/1/1/02b9f030-df7c-4b58-b3db-baba5e2cd6c1",
+      "output": {
+        "name": "page-001.pdf",
+        "bytes": 17461,
+        "sha256": "36a05678bce8c19a8b4803188d57ffcd5c9e0ebb03e2bc5557b8417906dd25ff",
+        "mime": "application/pdf",
+        "signature_valid": true
+      },
+      "pdf_verifier_pid": 24716,
+      "pdf_verification": {
+        "pdf_pages": 1,
+        "dimensions_points": [
+          810,
+          810
+        ],
+        "scope": "1080px at 96dpi; real PDF parse only; no rasterization/render"
+      }
+    }
+  ],
+  "passed": true,
+  "unchanged_sources": true,
+  "children_closed": true,
+  "job_members_before_final_sample": [
+    1964
+  ],
+  "resource": {
+    "physical_minimum_observed_bytes": 11001638912,
+    "sample_interval_seconds": 0.1,
+    "elapsed": 1.935804399981862,
+    "job": {
+      "scope": "job",
+      "limit": 3221225472,
+      "peak_commit": 280952832,
+      "kill_on_close": true,
+      "breakaway": false
+    },
+    "failure": null
+  },
+  "no_listening_server_created": true
+}

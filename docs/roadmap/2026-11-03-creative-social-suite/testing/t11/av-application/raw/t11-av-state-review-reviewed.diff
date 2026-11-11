@@ -1,0 +1,1047 @@
+--- a/app/Services/Studio/StudioAvState.php
++++ b/app/Services/Studio/StudioAvState.php
+@@ -0,0 +1,440 @@
++<?php
++
++namespace App\Services\Studio;
++
++use App\Models\Brand;
++use App\Models\MediaAsset;
++use App\Models\Studio\Design;
++use App\Models\Studio\DesignExport;
++use App\Models\Studio\DesignRevision;
++use App\Models\Studio\StudioAsset;
++use App\Models\Studio\StudioAvLease;
++use App\Models\Studio\StudioAvStep;
++use App\Models\Studio\StudioAvWorkspace;
++use App\Models\User;
++use Illuminate\Database\Eloquent\ModelNotFoundException;
++use Illuminate\Support\Collection;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Str;
++use Illuminate\Validation\ValidationException;
++
++/** Private audiovisual state. Queue/filesystem integration follows the generation and lease contract. */
++class StudioAvState
++{
++    private const WORKSPACE_COLUMNS = ['id', 'user_id', 'brand_id', 'export_id', 'uuid', 'fingerprint', 'media_id', 'active_until', 'created_at', 'updated_at'];
++
++    public function initialize(User $user, DesignExport $export): DesignExport
++    {
++        return DB::transaction(function () use ($user, $export) {
++            $current = DesignExport::withoutUserScope()->where('user_id', $user->id)->whereKey($export->id)->lockForUpdate()->firstOrFail();
++            $document = $this->pinnedDocument($current);
++            if (! in_array($current->format, ['mp4', 'gif'], true)) {
++                throw ValidationException::withMessages(['export' => ['Este trabajo no es una exportación audiovisual.']]);
++            }
++            $documentHash = hash('sha256', json_encode($document, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION));
++            $fingerprint = $this->fingerprint($current, $documentHash);
++            if ($current->render_state !== null) {
++                if (($current->render_state['fingerprint'] ?? null) !== $fingerprint) {
++                    throw ValidationException::withMessages(['export' => ['La revisión u opciones del trabajo cambiaron. Inicia una exportación nueva.']]);
++                }
++
++                return $current;
++            }
++            if ($current->status !== 'pending') {
++                throw ValidationException::withMessages(['export' => ['El trabajo no admite inicialización en su estado actual.']]);
++            }
++            $workspace = StudioAvWorkspace::withoutUserScope()->firstOrCreate(['export_id' => $current->id], [
++                'user_id' => $user->id, 'brand_id' => $current->brand_id, 'uuid' => (string) Str::uuid(),
++                'fingerprint' => $fingerprint, 'active_until' => now()->addSeconds(180),
++            ]);
++            if ($workspace->user_id !== (int) $current->user_id || $workspace->brand_id !== (int) $current->brand_id || $workspace->fingerprint !== $fingerprint) {
++                throw (new ModelNotFoundException)->setModel(DesignExport::class, [$current->id]);
++            }
++            $generation = (string) Str::uuid();
++            StudioAvStep::create(['workspace_id' => $workspace->id, 'generation' => $generation, 'position' => 0, 'phase' => 'plan', 'item' => 0]);
++            $this->saveState($current, ['version' => 1, 'generation' => $generation, 'workspace' => $workspace->uuid, 'allocation_id' => $workspace->id,
++                'fingerprint' => $fingerprint, 'document_hash' => $documentHash, 'position' => 0, 'total' => 1,
++                'lease' => null, 'reuse_generation' => null, 'cancelled_lease' => null]);
++
++            return $current;
++        });
++    }
++
++    public function claim(int $exportId, string $generation, int $bytes = 0): ?StudioAvLease
++    {
++        return DB::transaction(function () use ($exportId, $generation, $bytes) {
++            $export = DesignExport::withoutUserScope()->whereKey($exportId)->lockForUpdate()->first();
++            if (! $export || ! in_array($export->status, ['pending', 'processing'], true) || ($export->render_state['generation'] ?? null) !== $generation) {
++                return null;
++            }
++            $workspace = $this->workspace($export);
++            $this->assertOwnership($export);
++            $state = $export->render_state;
++            $old = isset($state['lease']) ? StudioAvLease::whereKey($state['lease'])->lockForUpdate()->first() : null;
++            if ($old && $old->status === 'running' && $old->expires_at->isFuture()) {
++                return null;
++            }
++            if ($old && $old->status === 'running') {
++                $old->update(['status' => 'abandoned']);
++            }
++            $step = $this->step($state);
++            if (! $step) {
++                return null;
++            }
++            $task = $step->descriptor();
++            $category = match ($task['phase']) {
++                'asset', 'font' => 'snapshot', 'normalize' => 'pcm', 'render', 'mix' => 'segment', 'assemble' => 'output', default => 'none',
++            };
++            if ($bytes < 0 || ($category === 'none' ? $bytes !== 0 : $bytes < 1)) {
++                throw ValidationException::withMessages(['export' => ['La fase necesita una reserva de disco válida.']]);
++            }
++            if ($category !== 'none') {
++                $limit = config('studio.av.disk.'.$category, 8 * 1024 ** 3);
++                $used = (int) StudioAvLease::where('workspace_id', $workspace->id)->where('category', $category)->where('status', '!=', 'released')
++                    ->sum(DB::raw('COALESCE(actual_bytes, reserved_bytes)'));
++                if (! is_int($limit) || $limit < 1 || $limit > 8 * 1024 ** 3 || $bytes > $limit - $used) {
++                    throw ValidationException::withMessages(['export' => ['El trabajo supera su presupuesto de almacenamiento; limpia o reduce los recursos antes de reintentar.']]);
++                }
++            }
++            $lease = StudioAvLease::create(['id' => (string) Str::uuid(), 'workspace_id' => $workspace->id, 'generation' => $generation,
++                'phase' => $task['phase'], 'item' => $task['index'], 'category' => $category, 'reserved_bytes' => $bytes, 'expires_at' => now()->addSeconds(180)]);
++            $state['lease'] = $lease->id;
++            $step->update(['lease_id' => $lease->id]);
++            $this->saveState($export, $state, ['status' => 'processing']);
++            $workspace->update(['active_until' => $lease->expires_at]);
++
++            return $lease;
++        });
++    }
++
++    public function accept(object $lease, array $result, int $bytes = 0): bool
++    {
++        return DB::transaction(function () use ($lease, $result, $bytes) {
++            [$export, $workspace, $current] = $this->activeLease($lease);
++            if (! $current) {
++                return false;
++            }
++            $state = $export->render_state;
++            $step = $this->step($state);
++            $resultLease = $current->id;
++            if ($bytes < 0 || $bytes > $current->reserved_bytes || ($current->category !== 'none' && ($bytes < 1 || ($result['size'] ?? null) !== $bytes))) {
++                throw ValidationException::withMessages(['export' => ['El resultado no coincide con su reserva de disco.']]);
++            }
++            if ($current->phase === 'plan') {
++                $tasks = $this->tasks($export, $result, $workspace);
++                $this->installSteps($workspace, $state['generation'], $tasks);
++                $state['total'] = count($tasks);
++                $workspace->update(['plan' => $result]);
++            } elseif ($current->phase === 'verify') {
++                $task = $step->descriptor();
++                $source = StudioAvLease::where('workspace_id', $workspace->id)->whereKey($task['source'])->where('status', 'accepted')->first();
++                if (! $source || $source->phase !== $task['target_phase'] || $source->item !== $task['target_index'] || $this->canonical($source->result) !== $this->canonical($result)) {
++                    throw ValidationException::withMessages(['export' => ['La verificación no coincide con el checkpoint aceptado.']]);
++                }
++                $resultLease = $source->id;
++            } elseif ($current->phase === 'register') {
++                $mediaId = $result['media_id'] ?? null;
++                $ready = is_int($mediaId) && MediaAsset::withoutUserScope()->where('user_id', $export->user_id)->whereKey($mediaId)->where('status', MediaAsset::STATUS_READY)->exists()
++                    && StudioAsset::withoutUserScope()->where('user_id', $export->user_id)->where('brand_id', $export->brand_id)->where('media_asset_id', $mediaId)->exists();
++                if (! $ready) {
++                    throw ValidationException::withMessages(['export' => ['El recurso final no está listo en la marca del trabajo.']]);
++                }
++                $export->media_ids = [$mediaId];
++            } else {
++                $expected = match ($current->phase) {
++                    'asset' => "imports/{$current->id}/asset-{$current->item}.bin",
++                    'font' => "imports/{$current->id}/font-{$current->item}.woff2",
++                    'normalize' => "audio-sources/{$current->id}/{$current->item}.pcm",
++                    'render' => sprintf('segments/%s/video-%06d.%s', $current->id, $current->item, $export->format),
++                    'mix' => sprintf('segments/%s/audio-%06d.wav', $current->id, $current->item),
++                    'assemble' => "outputs/{$current->id}/project.{$export->format}",
++                    default => null,
++                };
++                if ($expected === null || ($result['file'] ?? null) !== $expected || ($result['namespace'] ?? null) !== $current->id || preg_match('/^[a-f0-9]{64}$/D', $result['sha256'] ?? '') !== 1) {
++                    throw ValidationException::withMessages(['export' => ['El checkpoint no coincide con su fase y lease.']]);
++                }
++            }
++            $current->update(['status' => 'accepted', 'result' => $result, 'actual_bytes' => $bytes]);
++            $step->update(['result_lease_id' => $resultLease]);
++            $state['position']++;
++            $state['lease'] = null;
++            $this->saveState($export, $state, ['status' => $state['position'] === $state['total'] ? 'ready' : 'processing']);
++
++            return true;
++        });
++    }
++
++    public function cancel(User $user, DesignExport $export): DesignExport
++    {
++        return DB::transaction(function () use ($user, $export) {
++            $current = $this->ownedLocked($user, $export);
++            if ($current->status === 'ready' || $current->status === 'failed') {
++                abort(409, 'El estado actual no admite cancelación.');
++            }
++            if ($current->status === 'cancelled') {
++                return $current;
++            }
++            $state = $current->render_state;
++            $state['cancelled_lease'] = $state['lease'];
++            if ($state['lease']) {
++                StudioAvLease::whereKey($state['lease'])->where('status', 'running')->update(['status' => 'abandoned']);
++            }
++            $state['lease'] = null;
++            $this->saveState($current, $state, ['status' => 'cancelled', 'error' => null]);
++
++            return $current;
++        });
++    }
++
++    public function retry(User $user, DesignExport $export): DesignExport
++    {
++        return DB::transaction(function () use ($user, $export) {
++            $current = $this->ownedLocked($user, $export);
++            if (! in_array($current->status, ['failed', 'cancelled'], true)) {
++                abort(409, 'El trabajo todavía está activo o ya tiene un resultado listo.');
++            }
++            $workspace = $this->workspace($current);
++            $document = $this->pinnedDocument($current);
++            if (hash('sha256', json_encode($document, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION)) !== $current->render_state['document_hash']) {
++                throw ValidationException::withMessages(['export' => ['El documento de la revisión cambió; inicia una exportación nueva.']]);
++            }
++            $state = $current->render_state;
++            if (StudioAvStep::where('workspace_id', $workspace->id)->where('generation', $state['generation'])->where('position', '>', 0)->exists()) {
++                $state['reuse_generation'] = $state['generation'];
++            }
++            $state['generation'] = (string) Str::uuid();
++            $state['position'] = 0;
++            $state['total'] = 1;
++            $state['lease'] = null;
++            StudioAvStep::create(['workspace_id' => $workspace->id, 'generation' => $state['generation'], 'position' => 0, 'phase' => 'plan', 'item' => 0]);
++            $workspace->update(['plan' => null]);
++            $this->saveState($current, $state, ['status' => 'pending', 'error' => null]);
++
++            return $current;
++        });
++    }
++
++    public function fail(object $lease, string $code): bool
++    {
++        return DB::transaction(function () use ($lease, $code) {
++            [$export, , $current] = $this->activeLease($lease, false);
++            if (! $current) {
++                return false;
++            }
++            $message = match ($code) {
++                'phase_timeout' => 'La fase superó su tiempo permitido. Reduce el tamaño o reintenta el trabajo.',
++                'runtime_unavailable' => 'El entorno audiovisual no está disponible. Revisa Python, Node, Chromium, FFmpeg y los límites del worker Studio.',
++                'missing_resource' => 'Un recurso o el diseño ya no está disponible en esta marca.',
++                'output_budget', 'plan_budget' => 'El trabajo supera su presupuesto. Reduce la resolución o las páginas seleccionadas.',
++                default => 'No se pudo completar la fase audiovisual. Reintenta o revisa los recursos del diseño.',
++            };
++            $current->update(['status' => 'failed']);
++            $state = $export->render_state;
++            $state['lease'] = null;
++            $this->saveState($export, $state, ['status' => 'failed', 'error' => $message]);
++
++            return true;
++        });
++    }
++
++    private function fingerprint(DesignExport $export, string $documentHash): string
++    {
++        return hash('sha256', json_encode([$export->user_id, $export->brand_id, $export->design_id, $export->revision,
++            $export->format, $export->pages, $export->options, $documentHash], JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION));
++    }
++
++    /** Internal descriptor for orchestration; never part of the public export serializer. */
++    public function task(DesignExport $export): ?array
++    {
++        return $export->render_state ? $this->step($export->render_state)?->descriptor() : null;
++    }
++
++    /** Accepted native result references of this generation; optionally bounded to needed phases. */
++    public function checkpoints(DesignExport $export, array $phases = []): Collection
++    {
++        $state = $export->render_state;
++        if (! $state) {
++            return collect();
++        }
++        $query = StudioAvLease::query()->join('studio_av_steps as checkpoint_steps', 'checkpoint_steps.result_lease_id', '=', 'studio_av_leases.id')
++            ->where('checkpoint_steps.workspace_id', $state['allocation_id'])->where('checkpoint_steps.generation', $state['generation'])
++            ->where('studio_av_leases.workspace_id', $state['allocation_id'])->where('studio_av_leases.status', 'accepted');
++        if ($phases !== []) {
++            $query->whereIn('studio_av_leases.phase', $phases);
++        }
++
++        return $query->select('studio_av_leases.*')->get()->keyBy(fn (StudioAvLease $lease) => $lease->phase.':'.$lease->item);
++    }
++
++    private function step(array $state): ?StudioAvStep
++    {
++        return StudioAvStep::where('workspace_id', $state['allocation_id'])->where('generation', $state['generation'])
++            ->where('position', $state['position'])->first();
++    }
++
++    private function installSteps(StudioAvWorkspace $workspace, string $generation, array $tasks): void
++    {
++        $rows = [];
++        foreach ($tasks as $position => $task) {
++            if ($position === 0) {
++                continue; // The initial plan step already owns the live lease being accepted.
++            }
++            $rows[] = ['workspace_id' => $workspace->id, 'generation' => $generation, 'position' => $position,
++                'phase' => $task['phase'], 'item' => $task['index'], 'source_id' => $task['source'] ?? null,
++                'target_phase' => $task['target_phase'] ?? null, 'target_item' => $task['target_index'] ?? null];
++            if (count($rows) === 500) {
++                StudioAvStep::insert($rows);
++                $rows = [];
++            }
++        }
++        if ($rows !== []) {
++            StudioAvStep::insert($rows);
++        }
++    }
++
++    private function saveState(DesignExport $export, array $state, array $changes = []): void
++    {
++        $total = max(1, $state['total']);
++        $completed = min($total, $state['position']);
++        $phase = match ($changes['status'] ?? $export->status) {
++            'ready' => 'done', 'failed' => 'failed', 'cancelled' => 'cancelled',
++            default => $this->step($state)?->phase ?? 'done',
++        };
++        $progress = ['phase' => in_array($phase, ['asset', 'font'], true) ? 'snapshot' : $phase,
++            'completed' => $completed, 'total' => $total, 'percent' => round(100 * $completed / $total, 2)];
++        $export->fill($changes + ['render_state' => $state, 'render_progress' => $progress])->save();
++    }
++
++    private function canonical(array $value): array
++    {
++        if (! array_is_list($value)) {
++            ksort($value, SORT_STRING);
++        }
++
++        return array_map(fn ($item) => is_array($item) ? $this->canonical($item) : $item, $value);
++    }
++
++    private function workspace(DesignExport $export): StudioAvWorkspace
++    {
++        $state = $export->render_state;
++        $workspace = StudioAvWorkspace::withoutUserScope()->select(self::WORKSPACE_COLUMNS)->whereKey($state['allocation_id'])->where('export_id', $export->id)->where('user_id', $export->user_id)
++            ->where('brand_id', $export->brand_id)->where('uuid', $state['workspace'])->lockForUpdate()->firstOrFail();
++        if ($workspace->fingerprint !== ($state['fingerprint'] ?? null) || $this->fingerprint($export, $state['document_hash']) !== $workspace->fingerprint) {
++            throw ValidationException::withMessages(['export' => ['La revisión u opciones cambiaron; inicia un trabajo nuevo.']]);
++        }
++
++        return $workspace;
++    }
++
++    private function ownedLocked(User $user, DesignExport $export): DesignExport
++    {
++        $current = DesignExport::withoutUserScope()->where('user_id', $user->id)->whereKey($export->id)->lockForUpdate()->firstOrFail();
++        if (! Brand::withoutUserScope()->where('user_id', $user->id)->whereKey($current->brand_id)->exists()) {
++            throw (new ModelNotFoundException)->setModel(DesignExport::class, [$current->id]);
++        }
++        if (! in_array($current->format, ['mp4', 'gif'], true) || ! $current->render_state) {
++            throw ValidationException::withMessages(['export' => ['El trabajo no admite gestión audiovisual.']]);
++        }
++
++        return $current;
++    }
++
++    private function activeLease(object $lease, bool $requireOwner = true): array
++    {
++        $existing = StudioAvLease::find($lease->id);
++        $allocation = $existing ? StudioAvWorkspace::withoutUserScope()->select(self::WORKSPACE_COLUMNS)->find($existing->workspace_id) : null;
++        $export = $allocation ? DesignExport::withoutUserScope()->whereKey($allocation->export_id)->lockForUpdate()->first() : null;
++        if (! $export || $export->status !== 'processing' || ($export->render_state['lease'] ?? null) !== $existing->id || ($export->render_state['generation'] ?? null) !== $existing->generation) {
++            return [null, null, null];
++        }
++        $workspace = $this->workspace($export);
++        $current = StudioAvLease::whereKey($existing->id)->lockForUpdate()->first();
++        if ($requireOwner) {
++            $this->assertOwnership($export);
++        }
++        if ($current->status !== 'running' || $current->expires_at->isPast()) {
++            return [null, null, null];
++        }
++        $step = $this->step($export->render_state);
++        if (! $step || $step->phase !== $current->phase || $step->item !== $current->item || $step->lease_id !== $current->id) {
++            return [null, null, null];
++        }
++
++        return [$export, $workspace, $current];
++    }
++
++    private function tasks(DesignExport $export, array $plan, StudioAvWorkspace $workspace): array
++    {
++        $fps = $plan['fps'] ?? null;
++        $frames = $plan['frameCount'] ?? null;
++        $count = $plan['segmentCount'] ?? null;
++        $size = $plan['segmentFrames'] ?? null;
++        if (! in_array($fps, [12, 15, 24, 25, 30, 50, 60], true) || ! is_int($frames) || $frames < 1 || ! is_int($size) || $size < 1 || $size > $fps * 2
++            || ! is_int($count) || $count < 1 || $count > 4096 || (int) ceil($frames / $size) !== $count || ($plan['sampleRate'] ?? null) !== 48000
++            || ($plan['selection'] ?? null) !== $export->pages || ! is_numeric($plan['duration'] ?? null) || abs($plan['duration'] - $frames / $fps) > 1e-9) {
++            throw ValidationException::withMessages(['export' => ['El plan no tiene un reloj y una selección válidos.']]);
++        }
++        $tasks = [['phase' => 'plan', 'index' => 0]];
++        foreach (['assetIds' => 'asset', 'fontIds' => 'font', 'audioAssetIds' => 'normalize'] as $key => $phase) {
++            $ids = $plan[$key] ?? null;
++            if (! is_array($ids) || ! array_is_list($ids) || count($ids) > ($key === 'fontIds' ? 64 : 50000) || count(array_unique($ids, SORT_REGULAR)) !== count($ids)) {
++                throw ValidationException::withMessages(['export' => ['Los recursos del plan no son válidos.']]);
++            }
++            foreach ($ids as $id) {
++                if (! is_int($id) || $id < 1 || $id > 9007199254740991 || ($phase === 'normalize' && ! in_array($id, $plan['assetIds'], true))) {
++                    throw ValidationException::withMessages(['export' => ['El plan contiene una identidad de recurso inválida.']]);
++                }
++                $tasks[] = ['phase' => $phase, 'index' => $id];
++            }
++        }
++        if ($export->format === 'gif' && $plan['audioAssetIds'] !== []) {
++            throw ValidationException::withMessages(['export' => ['GIF no utiliza pistas de audio.']]);
++        }
++        for ($index = 0; $index < $count; $index++) {
++            $tasks[] = ['phase' => 'render', 'index' => $index];
++            if ($plan['audioAssetIds'] !== []) {
++                $tasks[] = ['phase' => 'mix', 'index' => $index];
++            }
++        }
++        $tasks[] = ['phase' => 'assemble', 'index' => 0];
++        $tasks[] = ['phase' => 'register', 'index' => 0];
++
++        $reuse = $export->render_state['reuse_generation'] ?? null;
++        if ($reuse !== null) {
++            $sources = StudioAvLease::query()->join('studio_av_steps as reusable_steps', function ($join) {
++                $join->on('studio_av_leases.id', '=', DB::raw('COALESCE(reusable_steps.result_lease_id, reusable_steps.source_id)'));
++            })
++                ->where('reusable_steps.workspace_id', $workspace->id)->where('reusable_steps.generation', $reuse)
++                ->where('studio_av_leases.workspace_id', $workspace->id)->where('studio_av_leases.status', 'accepted')
++                ->whereNotIn('studio_av_leases.phase', ['plan', 'register'])->select('studio_av_leases.*')->get()
++                ->keyBy(fn (StudioAvLease $lease) => $lease->phase.':'.$lease->item);
++            $verification = 0;
++            foreach ($tasks as &$task) {
++                $source = $sources->get($task['phase'].':'.$task['index']);
++                if ($source && $source->phase === $task['phase'] && $source->item === $task['index'] && $source->actual_bytes > 0) {
++                    $task = ['phase' => 'verify', 'index' => $verification++, 'source' => $source->id,
++                        'target_phase' => $source->phase, 'target_index' => $source->item];
++                }
++            }
++            unset($task);
++        }
++
++        return $tasks;
++    }
++
++    private function assertOwnership(DesignExport $export): void
++    {
++        if (! User::whereKey($export->user_id)->exists() || ! Brand::withoutUserScope()->where('user_id', $export->user_id)->whereKey($export->brand_id)->exists()
++            || ! Design::withoutUserScope()->where('user_id', $export->user_id)->where('brand_id', $export->brand_id)->whereKey($export->design_id)->exists()) {
++            throw (new ModelNotFoundException)->setModel(DesignExport::class, [$export->id]);
++        }
++    }
++
++    private function pinnedDocument(DesignExport $export): array
++    {
++        $this->assertOwnership($export);
++
++        return DesignRevision::withoutUserScope()->where('user_id', $export->user_id)->where('design_id', $export->design_id)
++            ->where('revision', $export->revision)->firstOrFail()->document;
++    }
++}
+--- a/app/Models/Studio/StudioAvWorkspace.php
++++ b/app/Models/Studio/StudioAvWorkspace.php
+@@ -0,0 +1,23 @@
++<?php
++
++namespace App\Models\Studio;
++
++use App\Models\Concerns\BelongsToUser;
++use Illuminate\Database\Eloquent\Model;
++
++/** Internal allocation journal; it survives deletion of the export, brand or user. */
++class StudioAvWorkspace extends Model
++{
++    use BelongsToUser;
++
++    protected $table = 'studio_av_workspaces';
++
++    protected $guarded = ['id'];
++
++    protected $hidden = ['user_id', 'brand_id', 'export_id', 'uuid', 'fingerprint', 'plan', 'media_id', 'active_until', 'created_at', 'updated_at'];
++
++    protected function casts(): array
++    {
++        return ['user_id' => 'integer', 'brand_id' => 'integer', 'export_id' => 'integer', 'media_id' => 'integer', 'active_until' => 'immutable_datetime', 'plan' => 'array'];
++    }
++}
+--- a/app/Models/Studio/StudioAvLease.php
++++ b/app/Models/Studio/StudioAvLease.php
+@@ -0,0 +1,24 @@
++<?php
++
++namespace App\Models\Studio;
++
++use Illuminate\Database\Eloquent\Model;
++
++/** Internal capability bound to a workspace owner, generation and one phase. Never serialized publicly. */
++class StudioAvLease extends Model
++{
++    protected $table = 'studio_av_leases';
++
++    protected $keyType = 'string';
++
++    public $incrementing = false;
++
++    protected $guarded = [];
++
++    protected $hidden = ['workspace_id', 'generation', 'phase', 'item', 'category', 'reserved_bytes', 'actual_bytes', 'status', 'result', 'expires_at', 'created_at', 'updated_at'];
++
++    protected function casts(): array
++    {
++        return ['workspace_id' => 'integer', 'item' => 'integer', 'reserved_bytes' => 'integer', 'actual_bytes' => 'integer', 'result' => 'array', 'expires_at' => 'immutable_datetime'];
++    }
++}
+--- a/app/Models/Studio/DesignExport.php
++++ b/app/Models/Studio/DesignExport.php
+@@ -15,11 +15,11 @@
+ 
+     protected $guarded = ['id'];
+ 
+-    protected $hidden = ['disk', 'path'];
++    protected $hidden = ['disk', 'path', 'render_state', 'render_progress'];
+ 
+     protected function casts(): array
+     {
+-        return ['revision' => 'integer', 'pages' => 'array', 'media_ids' => 'array', 'options' => 'array'];
++        return ['revision' => 'integer', 'pages' => 'array', 'media_ids' => 'array', 'options' => 'array', 'render_state' => 'array', 'render_progress' => 'array'];
+     }
+ 
+     public function design(): BelongsTo
+--- a/app/Services/Studio/StudioExports.php
++++ b/app/Services/Studio/StudioExports.php
+@@ -21,6 +21,8 @@
+ 
+ class StudioExports
+ {
++    private const PUBLIC_COLUMNS = ['id', 'user_id', 'brand_id', 'design_id', 'revision', 'format', 'pages', 'media_ids', 'options', 'status', 'error', 'disk', 'path', 'render_progress', 'created_at', 'updated_at'];
++
+     public function __construct(private readonly StudioService $studio, private readonly StudioAssets $assets, private readonly PostService $posts) {}
+ 
+     /** Register files already processed by MediaUploadService; a browser declaration alone cannot mark a new asset ready. */
+@@ -75,12 +77,12 @@
+     {
+         $design = $this->studio->owned($user, $design);
+ 
+-        return DesignExport::withoutUserScope()->where('user_id', $user->id)->where('design_id', $design->id)->latest('id')->get();
++        return DesignExport::withoutUserScope()->select(self::PUBLIC_COLUMNS)->where('user_id', $user->id)->where('design_id', $design->id)->latest('id')->get();
+     }
+ 
+     public function owned(User $user, DesignExport $export): DesignExport
+     {
+-        $current = DesignExport::withoutUserScope()->where('user_id', $user->id)->findOrFail($export->id);
++        $current = DesignExport::withoutUserScope()->select(self::PUBLIC_COLUMNS)->where('user_id', $user->id)->findOrFail($export->id);
+         abort_unless(Brand::withoutUserScope()->where('user_id', $user->id)->whereKey($current->brand_id)->exists(), 404);
+ 
+         return $current;
+@@ -92,7 +94,7 @@
+         Validator::make(['page' => $page, 'per_page' => $perPage], ['page' => ['integer', 'min:1'], 'per_page' => ['integer', 'min:1', 'max:100']])->validate();
+ 
+         return DesignExport::withoutUserScope()->where('user_id', $user->id)->where('design_id', $design->id)
+-            ->latest('id')->paginate($perPage, ['*'], 'page', $page);
++            ->latest('id')->paginate($perPage, self::PUBLIC_COLUMNS, 'page', $page);
+     }
+ 
+     public function pageMetadata(LengthAwarePaginator $page): array
+@@ -137,6 +139,9 @@
+         return $current->only(['id', 'brand_id', 'design_id', 'revision', 'format', 'pages', 'media_ids', 'options', 'status', 'error', 'created_at', 'updated_at']) + [
+             'download_url' => $current->status === 'ready' && $current->disk === 'local' && $current->path
+                 ? URL::temporarySignedRoute('studio.exports.download', now()->addMinutes(10), ['export' => $current->id, 'owner' => $user->id]) : null,
++            'progress' => $current->render_progress,
++            'can_cancel' => $current->render_progress !== null && in_array($current->format, ['mp4', 'gif'], true) && in_array($current->status, ['pending', 'processing'], true),
++            'can_retry' => $current->render_progress !== null && in_array($current->format, ['mp4', 'gif'], true) && in_array($current->status, ['failed', 'cancelled'], true),
+         ];
+     }
+ 
+--- a/config/studio.php
++++ b/config/studio.php
+@@ -5,6 +5,11 @@
+ return [
+     'node' => env('STUDIO_NODE_BINARY', 'node'),
+     'python' => env('STUDIO_PYTHON_BINARY', is_file($python) ? $python : (PHP_OS_FAMILY === 'Windows' ? 'python' : 'python3')),
++    'av' => [
++        'queue' => 'studio',
++        'lease_seconds' => 180,
++        'disk' => ['snapshot' => 8 * 1024 ** 3, 'pcm' => 8 * 1024 ** 3, 'segment' => 8 * 1024 ** 3, 'output' => 8 * 1024 ** 3],
++    ],
+     'fonts' => [
+         'disk' => env('STUDIO_FONT_DISK', 'local'),
+         'max_bytes' => 8 * 1024 * 1024,
+--- a/database/migrations/2026_11_05_150000_add_studio_render_state.php
++++ b/database/migrations/2026_11_05_150000_add_studio_render_state.php
+@@ -0,0 +1,70 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    public function up(): void
++    {
++        Schema::table('studio_design_exports', function (Blueprint $table) {
++            $table->json('render_state')->nullable();
++            $table->json('render_progress')->nullable();
++        });
++        // Allocation records deliberately survive parent FK cascades so orphan cleanup remains traceable.
++        Schema::create('studio_av_workspaces', function (Blueprint $table) {
++            $table->id();
++            $table->unsignedBigInteger('user_id')->index();
++            $table->unsignedBigInteger('brand_id');
++            $table->unsignedBigInteger('export_id')->unique();
++            $table->uuid('uuid')->unique();
++            $table->string('fingerprint', 64);
++            $table->json('plan')->nullable();
++            $table->unsignedBigInteger('media_id')->nullable();
++            $table->timestamp('active_until')->index();
++            $table->timestamps();
++        });
++        Schema::create('studio_av_leases', function (Blueprint $table) {
++            $table->uuid('id')->primary();
++            $table->foreignId('workspace_id')->constrained('studio_av_workspaces')->cascadeOnDelete();
++            $table->uuid('generation');
++            $table->string('phase', 20);
++            $table->unsignedBigInteger('item');
++            $table->string('category', 20);
++            $table->unsignedBigInteger('reserved_bytes')->default(0);
++            $table->unsignedBigInteger('actual_bytes')->nullable();
++            $table->string('status', 20)->default('running');
++            $table->json('result')->nullable();
++            $table->timestamp('expires_at')->index();
++            $table->timestamps();
++            $table->index(['workspace_id', 'category', 'status']);
++        });
++        Schema::create('studio_av_steps', function (Blueprint $table) {
++            $table->id();
++            $table->foreignId('workspace_id')->constrained('studio_av_workspaces')->cascadeOnDelete();
++            $table->uuid('generation');
++            $table->unsignedInteger('position');
++            $table->string('phase', 20);
++            $table->unsignedBigInteger('item');
++            $table->uuid('source_id')->nullable();
++            $table->string('target_phase', 20)->nullable();
++            $table->unsignedBigInteger('target_item')->nullable();
++            $table->uuid('lease_id')->nullable();
++            $table->uuid('result_lease_id')->nullable();
++            $table->unique(['workspace_id', 'generation', 'position']);
++            $table->index(['workspace_id', 'generation', 'phase', 'item']);
++            $table->foreign('lease_id')->references('id')->on('studio_av_leases')->nullOnDelete();
++            $table->foreign('source_id')->references('id')->on('studio_av_leases')->nullOnDelete();
++            $table->foreign('result_lease_id')->references('id')->on('studio_av_leases')->nullOnDelete();
++        });
++    }
++
++    public function down(): void
++    {
++        Schema::dropIfExists('studio_av_steps');
++        Schema::dropIfExists('studio_av_leases');
++        Schema::dropIfExists('studio_av_workspaces');
++        Schema::table('studio_design_exports', fn (Blueprint $table) => $table->dropColumn(['render_state', 'render_progress']));
++    }
++};
+--- a/tests/Feature/Studio/StudioAvStateTest.php
++++ b/tests/Feature/Studio/StudioAvStateTest.php
+@@ -0,0 +1,263 @@
++<?php
++
++use App\Models\Brand;
++use App\Models\MediaAsset;
++use App\Models\Studio\DesignExport;
++use App\Models\Studio\DesignRevision;
++use App\Models\Studio\StudioAvStep;
++use App\Models\Studio\StudioAvWorkspace;
++use App\Models\User;
++use App\Services\Studio\StudioAssets;
++use App\Services\Studio\StudioAvState;
++use App\Services\Studio\StudioExports;
++use App\Services\Studio\StudioService;
++use Illuminate\Database\Eloquent\ModelNotFoundException;
++use Illuminate\Support\Str;
++use Illuminate\Validation\ValidationException;
++use Symfony\Component\HttpKernel\Exception\HttpException;
++
++beforeEach(function () {
++    $this->user = User::factory()->create();
++    $this->brand = Brand::factory()->for($this->user)->create();
++    $document = ['schema_version' => 2, 'width' => 100, 'height' => 80, 'timeline' => ['fps' => 12, 'audio_tracks' => []],
++        'pages' => [['id' => 'page_one', 'duration' => 2, 'background' => '#ffffff', 'elements' => []]]];
++    $this->design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'AV state', 'document' => $document]);
++    $this->export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $this->design->id,
++        'revision' => 1, 'format' => 'mp4', 'pages' => ['page_one'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
++});
++
++test('AV initialization pins a private immutable workspace and is idempotent', function () {
++    $state = app(StudioAvState::class);
++    $first = $state->initialize($this->user, $this->export);
++    $snapshot = $first->render_state;
++    expect($snapshot)->toBeArray();
++    expect(Str::isUuid($snapshot['generation']))->toBeTrue()
++        ->and(Str::isUuid($snapshot['workspace']))->toBeTrue()
++        ->and($snapshot['fingerprint'])->toMatch('/^[a-f0-9]{64}$/')
++        ->and($snapshot['position'])->toBe(0)
++        ->and($snapshot['total'])->toBe(1)
++        ->and($snapshot['lease'])->toBeNull();
++    expect($state->task($first))->toBe(['phase' => 'plan', 'index' => 0]);
++    expect($state->initialize($this->user, $first)->render_state)->toBe($snapshot);
++    expect($first->toArray())->not->toHaveKey('render_state');
++});
++
++test('AV initialization cannot take over another owner or a mismatched design brand', function () {
++    $other = User::factory()->create();
++    expect(fn () => app(StudioAvState::class)->initialize($other, $this->export))->toThrow(ModelNotFoundException::class);
++    $another = Brand::factory()->for($this->user)->create();
++    $this->export->update(['brand_id' => $another->id]);
++    expect(fn () => app(StudioAvState::class)->initialize($this->user, $this->export))->toThrow(ModelNotFoundException::class);
++});
++
++function studioStatePlan(): array
++{
++    return ['frameCount' => 24, 'fps' => 12, 'duration' => 2, 'sampleRate' => 48000, 'segmentFrames' => 12, 'segmentCount' => 2,
++        'selection' => ['page_one'], 'assetIds' => [], 'fontIds' => [], 'audioAssetIds' => [],
++        'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]];
++}
++
++test('AV leases fence duplicate deliveries and expired workers before accepting progress', function () {
++    $manager = app(StudioAvState::class);
++    $export = $manager->initialize($this->user, $this->export);
++    $generation = $export->render_state['generation'];
++    $first = $manager->claim($export->id, $generation);
++    expect($first)->not->toBeNull();
++    expect(Str::isUuid($first->id))->toBeTrue()->and($first->phase)->toBe('plan')->and($first->item)->toBe(0);
++    expect($manager->claim($export->id, $generation))->toBeNull();
++    $this->travel(181)->seconds();
++    $second = $manager->claim($export->id, $generation);
++    expect($second)->not->toBeNull();
++    expect($second->id)->not->toBe($first->id)->and($first->refresh()->status)->toBe('abandoned');
++    expect($manager->accept($first, studioStatePlan()))->toBeFalse();
++    expect($manager->accept($second, studioStatePlan()))->toBeTrue();
++    expect($manager->accept($second, studioStatePlan()))->toBeFalse();
++    $current = $export->refresh();
++    expect($current->render_state['position'])->toBe(1)->and($current->status)->toBe('processing');
++    $steps = StudioAvStep::where('workspace_id', $current->render_state['allocation_id'])->where('generation', $generation)->orderBy('position')->get();
++    expect($steps->map(fn ($step) => $step->descriptor())->all())->toBe([
++        ['phase' => 'plan', 'index' => 0], ['phase' => 'render', 'index' => 0], ['phase' => 'render', 'index' => 1],
++        ['phase' => 'assemble', 'index' => 0], ['phase' => 'register', 'index' => 0],
++    ]);
++});
++
++test('AV cancellation and retry keep the revision but reject all replies from the old generation', function () {
++    $manager = app(StudioAvState::class);
++    $export = $manager->initialize($this->user, $this->export);
++    $original = $export->render_state;
++    $lease = $manager->claim($export->id, $original['generation']);
++    expect($manager->cancel($this->user, $export)->status)->toBe('cancelled');
++    expect($manager->cancel($this->user, $export)->status)->toBe('cancelled');
++    expect($manager->accept($lease, studioStatePlan()))->toBeFalse();
++    $retry = $manager->retry($this->user, $export);
++    expect($retry->status)->toBe('pending')->and($retry->revision)->toBe(1)
++        ->and($retry->render_state['generation'])->not->toBe($original['generation'])
++        ->and($retry->render_state['workspace'])->toBe($original['workspace'])
++        ->and($retry->render_state['fingerprint'])->toBe($original['fingerprint']);
++    expect($manager->claim($export->id, $original['generation']))->toBeNull();
++    expect($manager->claim($export->id, $retry->render_state['generation']))->not->toBeNull();
++});
++
++test('AV disk reservations include accepted bytes and refuse oversubscription before allocating a lease', function () {
++    config(['studio.av.disk.segment' => 10]);
++    $manager = app(StudioAvState::class);
++    $export = $manager->initialize($this->user, $this->export);
++    $generation = $export->render_state['generation'];
++    $lease = $manager->claim($export->id, $generation);
++    expect($manager->accept($lease, studioStatePlan()))->toBeTrue();
++    $segment = $manager->claim($export->id, $generation, 7);
++    expect($segment)->not->toBeNull();
++    expect($manager->accept($segment, ['file' => 'segments/'.$segment->id.'/video-000000.mp4', 'namespace' => $segment->id,
++        'size' => 7, 'sha256' => str_repeat('a', 64)], 7))->toBeTrue();
++    expect(fn () => $manager->claim($export->id, $generation, 4))->toThrow(ValidationException::class);
++    $last = $manager->claim($export->id, $generation, 3);
++    expect($last)->not->toBeNull();
++    expect($last->reserved_bytes)->toBe(3)->and($last->category)->toBe('segment');
++});
++
++test('AV orphan allocation remains traceable after deleting the brand and prevents further claims', function () {
++    $manager = app(StudioAvState::class);
++    $export = $manager->initialize($this->user, $this->export);
++    $workspace = $export->render_state['workspace'];
++    $this->brand->delete();
++    expect(DesignExport::withoutUserScope()->find($export->id))->toBeNull();
++    $allocation = StudioAvWorkspace::withoutUserScope()->where('uuid', $workspace)->firstOrFail();
++    expect($allocation->user_id)->toBe($this->user->id)->and($allocation->export_id)->toBe($export->id);
++    expect($manager->claim($export->id, $export->render_state['generation']))->toBeNull();
++});
++
++test('AV retry schedules verification of accepted checkpoints before continuing without reallocating their bytes', function () {
++    $manager = app(StudioAvState::class);
++    $export = $manager->initialize($this->user, $this->export);
++    $generation = $export->render_state['generation'];
++    $manager->accept($manager->claim($export->id, $generation), studioStatePlan());
++    $segment = $manager->claim($export->id, $generation, 7);
++    $result = ['file' => 'segments/'.$segment->id.'/video-000000.mp4', 'namespace' => $segment->id, 'size' => 7, 'sha256' => str_repeat('a', 64)];
++    $manager->accept($segment, $result, 7);
++    $manager->cancel($this->user, $export);
++    $retry = $manager->retry($this->user, $export);
++    $next = $retry->render_state['generation'];
++    $manager->accept($manager->claim($export->id, $next), studioStatePlan());
++    $task = $manager->task($export->refresh());
++    expect($task['phase'])->toBe('verify')->and($task['source'])->toBe($segment->id)
++        ->and($task['target_phase'])->toBe('render')->and($task['target_index'])->toBe(0);
++    $verify = $manager->claim($export->id, $next);
++    expect($verify->reserved_bytes)->toBe(0);
++    // JSON object key order may change in storage; the checkpoint's typed values must not.
++    expect($manager->accept($verify, array_reverse($result, true)))->toBeTrue();
++    expect($manager->checkpoints($export->refresh(), ['render'])->get('render:0')->id)->toBe($segment->id);
++    expect($export->render_state['position'])->toBe(2);
++});
++
++test('AV failure stores a safe actionable error and cannot overwrite a newer generation', function () {
++    $manager = app(StudioAvState::class);
++    $export = $manager->initialize($this->user, $this->export);
++    $lease = $manager->claim($export->id, $export->render_state['generation']);
++    expect($manager->fail($lease, 'phase_timeout'))->toBeTrue();
++    expect($export->refresh()->status)->toBe('failed')->and($export->error)->toContain('tiempo');
++    $retry = $manager->retry($this->user, $export);
++    expect($manager->fail($lease, 'private C:/credentials must not leak'))->toBeFalse();
++    expect($export->refresh()->status)->toBe('pending')->and($export->error)->toBeNull();
++    $current = $manager->claim($export->id, $retry->render_state['generation']);
++    expect($manager->fail($current, 'private C:/credentials must not leak'))->toBeTrue();
++    expect($export->refresh()->error)->not->toContain('private', 'credentials', 'C:/');
++});
++
++test('AV retry rejects a changed pinned revision instead of reusing incompatible checkpoints', function () {
++    $manager = app(StudioAvState::class);
++    $export = $manager->initialize($this->user, $this->export);
++    $manager->cancel($this->user, $export);
++    $revision = DesignRevision::withoutUserScope()->where('design_id', $this->design->id)->firstOrFail();
++    $document = $revision->document;
++    $document['pages'][0]['background'] = '#ff0000';
++    $revision->update(['document' => $document]);
++    expect(fn () => $manager->retry($this->user, $export))->toThrow(ValidationException::class);
++    expect($export->refresh()->status)->toBe('cancelled');
++});
++
++test('AV ready results reject cancel and retry while preserving media and private state', function () {
++    $manager = app(StudioAvState::class);
++    $export = $manager->initialize($this->user, $this->export);
++    $export->update(['status' => 'ready', 'media_ids' => [991]]);
++    expect(fn () => $manager->cancel($this->user, $export))->toThrow(HttpException::class);
++    expect(fn () => $manager->retry($this->user, $export))->toThrow(HttpException::class);
++    expect($export->refresh()->status)->toBe('ready')->and($export->media_ids)->toBe([991]);
++    expect($export->toArray())->not->toHaveKey('render_state');
++});
++
++test('AV public progress exposes accepted work without private state in history queries', function () {
++    $manager = app(StudioAvState::class);
++    $export = $manager->initialize($this->user, $this->export);
++    $exports = app(StudioExports::class);
++    $public = $exports->present($this->user, $export);
++    expect($public)->toHaveKey('progress');
++    expect($public['progress'])->toBe(['phase' => 'plan', 'completed' => 0, 'total' => 1, 'percent' => 0]);
++    expect($public['can_cancel'])->toBeTrue()->and($public['can_retry'])->toBeFalse();
++    $manager->accept($manager->claim($export->id, $export->render_state['generation']), studioStatePlan());
++    $page = $exports->paginated($this->user, $this->design);
++    expect($page->first()->getAttributes())->not->toHaveKey('render_state');
++    $public = $exports->presentMany($this->user, $page->getCollection())[0];
++    expect($public['progress'])->toBe(['phase' => 'render', 'completed' => 1, 'total' => 5, 'percent' => 20]);
++    expect(json_encode($public))->not->toContain('fingerprint', $export->render_state['workspace'], $export->render_state['generation']);
++    $manager->cancel($this->user, $export);
++    $cancelled = $exports->present($this->user, $export);
++    expect($cancelled['progress']['phase'])->toBe('cancelled')->and($cancelled['can_cancel'])->toBeFalse()->and($cancelled['can_retry'])->toBeTrue();
++});
++
++test('AV advancement state stays bounded for a complete 4096 segment project', function (bool $music) {
++    $manager = app(StudioAvState::class);
++    $pages = [];
++    foreach (['a' => 2730, 'b' => 2730, 'c' => 2732] as $id => $duration) {
++        $pages[] = ['id' => $id, 'duration' => $duration, 'background' => '#ffffff', 'elements' => []];
++    }
++    $tracks = [];
++    if ($music) {
++        $audio = MediaAsset::factory()->for($this->user)->create(['kind' => 'audio', 'mime' => 'audio/wav', 'audio_codec' => 'pcm_f32le', 'duration' => 1, 'width' => null, 'height' => null]);
++        app(StudioAssets::class)->attach($this->user, $this->brand, $audio->id);
++        $tracks[] = ['id' => 'music', 'asset_id' => $audio->id, 'start' => 0, 'duration' => 8192, 'loop' => true];
++    }
++    $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Long project', 'document' => [
++        'schema_version' => 2, 'width' => 100, 'height' => 80, 'timeline' => ['fps' => 12, 'audio_tracks' => $tracks], 'pages' => $pages,
++    ]]);
++    $export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $design->id,
++        'revision' => 1, 'format' => 'mp4', 'pages' => ['a', 'b', 'c'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
++    $export = $manager->initialize($this->user, $export);
++    $plan = studioStatePlan();
++    $plan['frameCount'] = 4096 * 24;
++    $plan['duration'] = 8192;
++    $plan['segmentFrames'] = 24;
++    $plan['segmentCount'] = 4096;
++    $plan['selection'] = ['a', 'b', 'c'];
++    if ($music) {
++        $plan['assetIds'] = [$audio->id];
++        $plan['audioAssetIds'] = [$audio->id];
++    }
++    $manager->accept($manager->claim($export->id, $export->render_state['generation']), $plan);
++    $export->refresh();
++    expect(strlen(json_encode($export->render_state)))->toBeLessThan(2000);
++    expect($export->render_progress['total'])->toBe($music ? 8197 : 4099)->and($export->render_progress['completed'])->toBe(1);
++    $render = $manager->claim($export->id, $export->render_state['generation'], 1);
++    expect($render->phase)->toBe($music ? 'asset' : 'render')->and($render->item)->toBe($music ? $audio->id : 0);
++    expect(strlen(json_encode($export->refresh()->render_state)))->toBeLessThan(2000);
++})->with(['silent' => false, 'one track' => true]);
++
++test('AV repeated retries retain accepted verification candidates even before the next plan runs', function () {
++    $manager = app(StudioAvState::class);
++    $export = $manager->initialize($this->user, $this->export);
++    $generation = $export->render_state['generation'];
++    $manager->accept($manager->claim($export->id, $generation), studioStatePlan());
++    $segment = $manager->claim($export->id, $generation, 7);
++    $result = ['file' => 'segments/'.$segment->id.'/video-000000.mp4', 'namespace' => $segment->id, 'size' => 7, 'sha256' => str_repeat('a', 64)];
++    $manager->accept($segment, $result, 7);
++    $manager->cancel($this->user, $export);
++    $manager->retry($this->user, $export);
++    $manager->cancel($this->user, $export); // No plan or verification has run in this generation.
++    $retry = $manager->retry($this->user, $export);
++    $manager->accept($manager->claim($export->id, $retry->render_state['generation']), studioStatePlan());
++    $task = $manager->task($export->refresh());
++    expect($task['phase'])->toBe('verify')->and($task['source'])->toBe($segment->id);
++    $manager->cancel($this->user, $export); // This plan has pending verification, which must also survive retry.
++    $retry = $manager->retry($this->user, $export);
++    $manager->accept($manager->claim($export->id, $retry->render_state['generation']), studioStatePlan());
++    expect($manager->task($export->refresh())['source'])->toBe($segment->id);
++});
+--- a/docs/api/creative-suite.openapi.yaml
++++ b/docs/api/creative-suite.openapi.yaml
+@@ -298,6 +298,7 @@
+         '404': { $ref: '#/components/responses/NotFound' }
+     post:
+       operationId: exportStudioDesign
++      description: Exporta una revisión inmutable. MP4/GIF generan un archivo del proyecto con páginas en el orden indicado; frame_times no vacío y transparencia no se admiten para esos formatos. El diálogo los ofrece cuando el flujo completo está disponible. La implementación audiovisual de esta ampliación está en desarrollo en T-11.
+       requestBody:
+         required: true
+         content:
+@@ -307,7 +308,7 @@
+               required: [revision, format, pages]
+               properties:
+                 revision: { type: integer, minimum: 1 }
+-                format: { type: string, enum: [png, jpeg, webp, svg, pdf] }
++                format: { type: string, enum: [png, jpeg, webp, svg, pdf, mp4, gif] }
+                 pages:
+                   type: array
+                   minItems: 1
+@@ -315,6 +316,9 @@
+                   items: { type: string, maxLength: 64 }
+                 frame_times:
+                   $ref: '#/components/schemas/FrameTimes'
++                scale: { type: number, minimum: 0.1, maximum: 4, default: 1 }
++                quality: { type: number, minimum: 0.1, maximum: 1, default: 0.94 }
++                transparent: { type: boolean, default: false, description: Transparencia de formatos estáticos compatibles; MP4/GIF requieren false }
+       responses:
+         '202': { description: Trabajo de render aceptado, content: { application/json: { schema: { $ref: '#/components/schemas/Export' } } } }
+         '422': { $ref: '#/components/responses/ValidationError' }
+@@ -329,6 +333,28 @@
+       responses:
+         '200': { description: Estado y archivos realmente producidos, content: { application/json: { schema: { $ref: '#/components/schemas/Export' } } } }
+         '404': { $ref: '#/components/responses/NotFound' }
++  /design-exports/{export}/cancel:
++    parameters:
++      - { name: export, in: path, required: true, schema: { type: integer, minimum: 1 } }
++    post:
++      operationId: cancelStudioExport
++      description: Requiere designs:write y propiedad de exportación/marca. Cancela pending/processing audiovisual y señala su proceso; repetir cancelled es idempotente. Ready devuelve409 y conserva sus medios. Formatos estáticos devuelven422. Contrato previo a implementación de T-11.
++      responses:
++        '200': { description: Estado cancelado sin aceptar respuestas tardías, content: { application/json: { schema: { $ref: '#/components/schemas/Export' } } } }
++        '404': { $ref: '#/components/responses/NotFound' }
++        '409': { description: El resultado listo se conserva; no admite cancelación }
++        '422': { $ref: '#/components/responses/ValidationError' }
++  /design-exports/{export}/retry:
++    parameters:
++      - { name: export, in: path, required: true, schema: { type: integer, minimum: 1 } }
++    post:
++      operationId: retryStudioExport
++      description: Requiere designs:write y propiedad de exportación/marca. Solo failed/cancelled audiovisual; conserva revisión/opciones, crea generación nueva y valida los checkpoints antes de reutilizarlos. El ID público no cambia. Pending/processing/ready devuelve409; estáticos422. Contrato previo a implementación de T-11.
++      responses:
++        '202': { description: Nueva generación aceptada, content: { application/json: { schema: { $ref: '#/components/schemas/Export' } } } }
++        '404': { $ref: '#/components/responses/NotFound' }
++        '409': { description: El estado actual no admite reintento }
++        '422': { $ref: '#/components/responses/ValidationError' }
+   /brands/{brand}/analytics:
+     parameters:
+       - $ref: '#/components/parameters/Brand'
+@@ -782,13 +808,26 @@
+         id: { type: integer }
+         design_id: { type: integer }
+         revision: { type: integer }
+-        status: { type: string, enum: [pending, processing, ready, failed] }
+-        format: { type: string, enum: [png, jpeg, webp, svg, pdf] }
++        status: { type: string, enum: [pending, processing, ready, failed, cancelled] }
++        format: { type: string, enum: [png, jpeg, webp, svg, pdf, mp4, gif] }
+         pages: { type: array, items: { type: string } }
+         media_ids: { type: array, nullable: true, items: { type: integer } }
+         options: { type: object, nullable: true }
+         error: { type: string, nullable: true }
+         download_url: { type: string, nullable: true, description: URL firmada de descarga válida durante 10 minutos; null hasta disponer de artefacto listo }
++        progress: { $ref: '#/components/schemas/ExportProgress' }
++        can_cancel: { type: boolean, description: Solo audiovisual pending/processing }
++        can_retry: { type: boolean, description: Solo audiovisual failed/cancelled }
++    ExportProgress:
++      type: object
++      nullable: true
++      description: Progreso por checkpoints aceptados de la generación actual; null en exportaciones estáticas. No contiene rutas, IDs privados de generación/lease, manifiestos ni perfiles PCM.
++      required: [phase, completed, total, percent]
++      properties:
++        phase: { type: string, enum: [plan, verify, snapshot, normalize, render, mix, assemble, register, done, failed, cancelled] }
++        completed: { type: integer, minimum: 0 }
++        total: { type: integer, minimum: 1 }
++        percent: { type: number, minimum: 0, maximum: 100 }
+     FrameTimes:
+       type: array
+       maxItems: 100
+--- a/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
++++ b/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
+@@ -9,6 +9,12 @@
+ Los medios y fuentes se autorizan contra la misma marca antes de copiarlos. Se preparan únicamente los recursos visuales seleccionados y los utilizados por el plan de audio; recursos omitidos no se descargan. Las copias se escriben por streams con tamaño verificado, hash y publicación atómica en el intento privado. Ninguna de esas claves tiene una URL de subida. No se mantienen transacciones de BD durante red o procesos.
+ 
+ Cada inicio/reintento tiene un UUID de intento. Cada fase reclamada obtiene además un lease y un namespace de salida UUID único. Un worker antiguo solo puede terminar dentro de su namespace: nunca sobrescribe los checkpoints aceptados por otro worker. La aceptación de un resultado compara bajo lock usuario/exportación, intento, fase y lease. Los jobs de intentos anteriores se descartan; no reactivan una cancelación o resultado nuevo.
++
++La generación de ejecución cambia al reintentar, mientras el workspace físico puede conservar su UUID para reutilizar archivos inmutables del mismo export/revisión/opciones. Un fingerprint liga propietario, marca, diseño, revisión, páginas, opciones y hash del documento. Antes de reutilizar un checkpoint se programa una fase de verificación física; aceptar metadata en BD por sí solo no acredita el hash del archivo. Las pruebas unitarias del estado usan resultados de contrato y no sustituyen esa prueba de I/O.
++
++Asignaciones y leases tienen registros privados separados, anteriores al I/O, que sobreviven a las FK del usuario/marca/exportación. El lease identifica fase/índice y reserva bytes por categoría; los aceptados contabilizan bytes reales, los fallidos/abandonados conservan su reserva hasta limpieza confirmada. Cada categoría admite hasta8GiB (snapshots, PCM, segmentos, final), sin reservar RAM ni asignar ese disco de antemano. Un resultado no puede superar su reserva. La aceptación/avance se realiza con lock del export/workspace; no se mantiene ese lock durante transporte, encoder o hash de archivos.
++
++El estado que se actualiza por avance es pequeño: generación, asignación, fingerprint, posición, total y lease. El plan se conserva una vez en el workspace; los pasos ordenados y sus referencias a leases se guardan en filas indexadas por workspace/generación/posición. No se vuelve a escribir un array de miles de tareas/checkpoints en cada claim/accept. Al reintentar, la generación anterior identifica los checkpoints candidatos; se consultan en lote para construir pasos de verificación. El resumen público sigue siendo independiente de esos datos privados.
+ 
+ Contrato interno de archivos: `segments/{lease}/video-{indice}.mp4|gif`, `segments/{lease}/audio-{indice}.wav`, `audio-sources/{lease}/{id}.pcm` y `outputs/{lease}/project.mp4|gif`. El namespace es UUID canónico en minúscula, no un path libre. Se publica con creación exclusiva, nunca reemplazo; el enlace duro temporal para publicación atómica se elimina inmediatamente, sin seguir enlaces simbólicos. Los checkpoints llevan ese namespace y la unión comprueba su correspondencia con cada ruta, permitiendo referencias aceptadas de leases diferentes. El modo interno anterior sin namespace conserva sus rutas para compatibilidad; los futuros jobs siempre exigirán namespace. La identidad/autorización y aceptación del lease se comprobarán en el servicio de jobs, aún pendiente.
+ 
+--- a/app/Models/Studio/StudioAvStep.php
++++ b/app/Models/Studio/StudioAvStep.php
+@@ -0,0 +1,32 @@
++<?php
++
++namespace App\Models\Studio;
++
++use Illuminate\Database\Eloquent\Model;
++
++/** Ordered private work; the frequently updated export cursor contains no plan/checkpoint arrays. */
++class StudioAvStep extends Model
++{
++    protected $table = 'studio_av_steps';
++
++    public $timestamps = false;
++
++    protected $guarded = ['id'];
++
++    protected $hidden = ['workspace_id', 'generation', 'position', 'phase', 'item', 'source_id', 'target_phase', 'target_item', 'lease_id', 'result_lease_id'];
++
++    protected function casts(): array
++    {
++        return ['workspace_id' => 'integer', 'position' => 'integer', 'item' => 'integer', 'target_item' => 'integer'];
++    }
++
++    public function descriptor(): array
++    {
++        $result = ['phase' => $this->phase, 'index' => $this->item];
++        if ($this->phase === 'verify') {
++            $result += ['source' => $this->source_id, 'target_phase' => $this->target_phase, 'target_index' => $this->target_item];
++        }
++
++        return $result;
++    }
++}

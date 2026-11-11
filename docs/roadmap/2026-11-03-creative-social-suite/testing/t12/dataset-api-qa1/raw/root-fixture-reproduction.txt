@@ -1,0 +1,2 @@
+{"case":"CRLF","accepted":false,"error":"row 2, column 1 has invalid UTF-8, length or control characters"}
+{"case":"LF","accepted":true}

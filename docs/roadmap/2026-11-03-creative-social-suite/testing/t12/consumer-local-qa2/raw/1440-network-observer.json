@@ -1,0 +1,50 @@
+{
+  "issues": [],
+  "expected_http": [],
+  "intentional_aborts": [],
+  "browser_diagnostics": [],
+  "isolated_font_fixtures": [
+    {
+      "kind": "empty-css-system-fallback",
+      "url": "/css2",
+      "bytes": 154,
+      "sha256": "e81a09edaf280195cd682b0dba66f8a907deec1416903b4eb6aa21773850eeb0",
+      "external_Inter_loaded": false
+    },
+    {
+      "kind": "empty-css-system-fallback",
+      "url": "/css2",
+      "bytes": 154,
+      "sha256": "e81a09edaf280195cd682b0dba66f8a907deec1416903b4eb6aa21773850eeb0",
+      "external_Inter_loaded": false
+    },
+    {
+      "kind": "empty-css-system-fallback",
+      "url": "/css2",
+      "bytes": 154,
+      "sha256": "e81a09edaf280195cd682b0dba66f8a907deec1416903b4eb6aa21773850eeb0",
+      "external_Inter_loaded": false
+    },
+    {
+      "kind": "empty-css-system-fallback",
+      "url": "/css2",
+      "bytes": 154,
+      "sha256": "e81a09edaf280195cd682b0dba66f8a907deec1416903b4eb6aa21773850eeb0",
+      "external_Inter_loaded": false
+    },
+    {
+      "kind": "empty-css-system-fallback",
+      "url": "/css2",
+      "bytes": 154,
+      "sha256": "e81a09edaf280195cd682b0dba66f8a907deec1416903b4eb6aa21773850eeb0",
+      "external_Inter_loaded": false
+    },
+    {
+      "kind": "empty-css-system-fallback",
+      "url": "/css2",
+      "bytes": 154,
+      "sha256": "e81a09edaf280195cd682b0dba66f8a907deec1416903b4eb6aa21773850eeb0",
+      "external_Inter_loaded": false
+    }
+  ]
+}

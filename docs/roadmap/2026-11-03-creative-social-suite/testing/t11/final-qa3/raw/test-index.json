@@ -1,0 +1,1010 @@
+[
+  {
+    "file": "all-brands.spec.ts",
+    "title": "E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de periodo",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 6874,
+    "errors": []
+  },
+  {
+    "file": "all-brands.spec.ts",
+    "title": "E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de periodo",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 6063,
+    "errors": []
+  },
+  {
+    "file": "all-brands.spec.ts",
+    "title": "E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de periodo",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 5944,
+    "errors": []
+  },
+  {
+    "file": "brand-reporting.spec.ts",
+    "title": "Ads and reports retain the selected brand across navigation and report creation",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 4981,
+    "errors": []
+  },
+  {
+    "file": "brand-reporting.spec.ts",
+    "title": "Ads and reports retain the selected brand across navigation and report creation",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 4621,
+    "errors": []
+  },
+  {
+    "file": "brand-reporting.spec.ts",
+    "title": "Ads and reports retain the selected brand across navigation and report creation",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 4448,
+    "errors": []
+  },
+  {
+    "file": "metrics-quality.spec.ts",
+    "title": "Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 3786,
+    "errors": []
+  },
+  {
+    "file": "metrics-quality.spec.ts",
+    "title": "Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 3542,
+    "errors": []
+  },
+  {
+    "file": "metrics-quality.spec.ts",
+    "title": "Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 4122,
+    "errors": []
+  },
+  {
+    "file": "studio-audio-editor.spec.ts",
+    "title": "Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 7508,
+    "errors": []
+  },
+  {
+    "file": "studio-audio-editor.spec.ts",
+    "title": "Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 4885,
+    "errors": []
+  },
+  {
+    "file": "studio-audio-editor.spec.ts",
+    "title": "Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 7479,
+    "errors": []
+  },
+  {
+    "file": "studio-audio-editor.spec.ts",
+    "title": "Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 5020,
+    "errors": []
+  },
+  {
+    "file": "studio-audio-editor.spec.ts",
+    "title": "Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 7065,
+    "errors": []
+  },
+  {
+    "file": "studio-audio-editor.spec.ts",
+    "title": "Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 4423,
+    "errors": []
+  },
+  {
+    "file": "studio-audio-resources.spec.ts",
+    "title": "Studio audio resources API: private binary upload, byte ranges and native browser playback",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 4965,
+    "errors": []
+  },
+  {
+    "file": "studio-audio-resources.spec.ts",
+    "title": "Studio audio resources API: private binary upload, byte ranges and native browser playback",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 4774,
+    "errors": []
+  },
+  {
+    "file": "studio-audio-resources.spec.ts",
+    "title": "Studio audio resources API: private binary upload, byte ranges and native browser playback",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 4729,
+    "errors": []
+  },
+  {
+    "file": "studio-automation.spec.ts",
+    "title": "Studio automation: own template substitutes literal fields in an independent branded design and exports",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 8031,
+    "errors": []
+  },
+  {
+    "file": "studio-automation.spec.ts",
+    "title": "Studio automation: brand styles, proportional resize and independent variants persist and export",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 11842,
+    "errors": []
+  },
+  {
+    "file": "studio-automation.spec.ts",
+    "title": "Studio automation: own template substitutes literal fields in an independent branded design and exports",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 7692,
+    "errors": []
+  },
+  {
+    "file": "studio-automation.spec.ts",
+    "title": "Studio automation: brand styles, proportional resize and independent variants persist and export",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 10773,
+    "errors": []
+  },
+  {
+    "file": "studio-automation.spec.ts",
+    "title": "Studio automation: own template substitutes literal fields in an independent branded design and exports",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 7206,
+    "errors": []
+  },
+  {
+    "file": "studio-automation.spec.ts",
+    "title": "Studio automation: brand styles, proportional resize and independent variants persist and export",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 10119,
+    "errors": []
+  },
+  {
+    "file": "studio-av-composite.spec.ts",
+    "title": "Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 25549,
+    "errors": []
+  },
+  {
+    "file": "studio-av-composite.spec.ts",
+    "title": "Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 26040,
+    "errors": []
+  },
+  {
+    "file": "studio-av-composite.spec.ts",
+    "title": "Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 25332,
+    "errors": []
+  },
+  {
+    "file": "studio-captions.spec.ts",
+    "title": "Studio captions UI: import edit style offset delete undo reopen and download SRT VTT with clear file errors",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 9299,
+    "errors": []
+  },
+  {
+    "file": "studio-captions.spec.ts",
+    "title": "Studio captions render: private font pinned MP4 GIF and SVG retain opaque cues across page fade",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 72370,
+    "errors": []
+  },
+  {
+    "file": "studio-captions.spec.ts",
+    "title": "Studio captions access: revision pinned API MCP abilities ownership and optimistic conflicts",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 6576,
+    "errors": []
+  },
+  {
+    "file": "studio-captions.spec.ts",
+    "title": "Studio captions UI: import edit style offset delete undo reopen and download SRT VTT with clear file errors",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 10186,
+    "errors": []
+  },
+  {
+    "file": "studio-captions.spec.ts",
+    "title": "Studio captions render: private font pinned MP4 GIF and SVG retain opaque cues across page fade",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 72130,
+    "errors": []
+  },
+  {
+    "file": "studio-captions.spec.ts",
+    "title": "Studio captions access: revision pinned API MCP abilities ownership and optimistic conflicts",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 5353,
+    "errors": []
+  },
+  {
+    "file": "studio-captions.spec.ts",
+    "title": "Studio captions UI: import edit style offset delete undo reopen and download SRT VTT with clear file errors",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 8339,
+    "errors": []
+  },
+  {
+    "file": "studio-captions.spec.ts",
+    "title": "Studio captions render: private font pinned MP4 GIF and SVG retain opaque cues across page fade",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 65932,
+    "errors": []
+  },
+  {
+    "file": "studio-captions.spec.ts",
+    "title": "Studio captions access: revision pinned API MCP abilities ownership and optimistic conflicts",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 5368,
+    "errors": []
+  },
+  {
+    "file": "studio-frame-export.spec.ts",
+    "title": "Studio frame export: choose a local page time, export real pixels and retain it with the private brand output",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 6233,
+    "errors": []
+  },
+  {
+    "file": "studio-frame-export.spec.ts",
+    "title": "Studio frame export: choose a local page time, export real pixels and retain it with the private brand output",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 5640,
+    "errors": []
+  },
+  {
+    "file": "studio-frame-export.spec.ts",
+    "title": "Studio frame export: choose a local page time, export real pixels and retain it with the private brand output",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 5640,
+    "errors": []
+  },
+  {
+    "file": "studio-native-export.spec.ts",
+    "title": "Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 16323,
+    "errors": []
+  },
+  {
+    "file": "studio-native-export.spec.ts",
+    "title": "Studio native history: paginate real exports in one request per page and reopen without creating work",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 4965,
+    "errors": []
+  },
+  {
+    "file": "studio-native-export.spec.ts",
+    "title": "Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 15460,
+    "errors": []
+  },
+  {
+    "file": "studio-native-export.spec.ts",
+    "title": "Studio native history: paginate real exports in one request per page and reopen without creating work",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 4520,
+    "errors": []
+  },
+  {
+    "file": "studio-native-export.spec.ts",
+    "title": "Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 14616,
+    "errors": []
+  },
+  {
+    "file": "studio-native-export.spec.ts",
+    "title": "Studio native history: paginate real exports in one request per page and reopen without creating work",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 4395,
+    "errors": []
+  },
+  {
+    "file": "studio-timeline.spec.ts",
+    "title": "Studio timeline: edit windows, split, persist and run a common playhead without changing the document",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 5712,
+    "errors": []
+  },
+  {
+    "file": "studio-timeline.spec.ts",
+    "title": "Studio timeline: an uploaded real video with an open source end can be split and previewed",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 6917,
+    "errors": []
+  },
+  {
+    "file": "studio-timeline.spec.ts",
+    "title": "Studio timeline: splitting the second page uses local clip time and survives undo and redo",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 4790,
+    "errors": []
+  },
+  {
+    "file": "studio-timeline.spec.ts",
+    "title": "Studio timeline: buffering never consumes a short clip before playback starts",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 7623,
+    "errors": []
+  },
+  {
+    "file": "studio-timeline.spec.ts",
+    "title": "Studio timeline: closing while media buffers cancels the pending playback",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 7446,
+    "errors": []
+  },
+  {
+    "file": "studio-timeline.spec.ts",
+    "title": "Studio timeline: edit windows, split, persist and run a common playhead without changing the document",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 5421,
+    "errors": []
+  },
+  {
+    "file": "studio-timeline.spec.ts",
+    "title": "Studio timeline: an uploaded real video with an open source end can be split and previewed",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 6523,
+    "errors": []
+  },
+  {
+    "file": "studio-timeline.spec.ts",
+    "title": "Studio timeline: splitting the second page uses local clip time and survives undo and redo",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 4199,
+    "errors": []
+  },
+  {
+    "file": "studio-timeline.spec.ts",
+    "title": "Studio timeline: buffering never consumes a short clip before playback starts",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 6792,
+    "errors": []
+  },
+  {
+    "file": "studio-timeline.spec.ts",
+    "title": "Studio timeline: closing while media buffers cancels the pending playback",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 7189,
+    "errors": []
+  },
+  {
+    "file": "studio-timeline.spec.ts",
+    "title": "Studio timeline: edit windows, split, persist and run a common playhead without changing the document",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 5315,
+    "errors": []
+  },
+  {
+    "file": "studio-timeline.spec.ts",
+    "title": "Studio timeline: an uploaded real video with an open source end can be split and previewed",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 6560,
+    "errors": []
+  },
+  {
+    "file": "studio-timeline.spec.ts",
+    "title": "Studio timeline: splitting the second page uses local clip time and survives undo and redo",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 4291,
+    "errors": []
+  },
+  {
+    "file": "studio-timeline.spec.ts",
+    "title": "Studio timeline: buffering never consumes a short clip before playback starts",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 6783,
+    "errors": []
+  },
+  {
+    "file": "studio-timeline.spec.ts",
+    "title": "Studio timeline: closing while media buffers cancels the pending playback",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 7134,
+    "errors": []
+  },
+  {
+    "file": "studio.spec.ts",
+    "title": "Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 5718,
+    "errors": []
+  },
+  {
+    "file": "studio.spec.ts",
+    "title": "Studio: design persists, exports real PNG and starts a publication in its brand",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 6203,
+    "errors": []
+  },
+  {
+    "file": "studio.spec.ts",
+    "title": "Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 5499,
+    "errors": []
+  },
+  {
+    "file": "studio.spec.ts",
+    "title": "Studio: a stale revision preserves local edits and can recover the server version",
+    "project": "desktop",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 5043,
+    "errors": []
+  },
+  {
+    "file": "studio.spec.ts",
+    "title": "Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 5404,
+    "errors": []
+  },
+  {
+    "file": "studio.spec.ts",
+    "title": "Studio: design persists, exports real PNG and starts a publication in its brand",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 5843,
+    "errors": []
+  },
+  {
+    "file": "studio.spec.ts",
+    "title": "Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 5169,
+    "errors": []
+  },
+  {
+    "file": "studio.spec.ts",
+    "title": "Studio: a stale revision preserves local edits and can recover the server version",
+    "project": "mobile",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 4764,
+    "errors": []
+  },
+  {
+    "file": "studio.spec.ts",
+    "title": "Studio: fractional exports round to 21 pixels and register PNG JPEG WebP in the brand library",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 5277,
+    "errors": []
+  },
+  {
+    "file": "studio.spec.ts",
+    "title": "Studio: design persists, exports real PNG and starts a publication in its brand",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 5895,
+    "errors": []
+  },
+  {
+    "file": "studio.spec.ts",
+    "title": "Studio: undo, page ordering and portable JPEG/WebP/SVG/PDF exports retain the design",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 4883,
+    "errors": []
+  },
+  {
+    "file": "studio.spec.ts",
+    "title": "Studio: a stale revision preserves local edits and can recover the server version",
+    "project": "mobile-360",
+    "outcome": "expected",
+    "statuses": [
+      "passed"
+    ],
+    "retries": [
+      0
+    ],
+    "duration_ms": 4702,
+    "errors": []
+  }
+]

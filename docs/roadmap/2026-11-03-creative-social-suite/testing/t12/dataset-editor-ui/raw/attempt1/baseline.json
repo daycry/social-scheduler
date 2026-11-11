@@ -1,0 +1,8 @@
+{
+  "resources/js/Components/Studio/StudioDatasetsDialog.vue": null,
+  "resources/js/Studio/dataset-client.js": null,
+  "tests/frontend/studio-dataset-client.test.mjs": null,
+  "tests/frontend/studio-datasets-dialog.test.mjs": null,
+  "resources/js/Pages/Studio/Index.vue": "230ca6d2e2c1a12d291e00f3dcae2d8fca14c494b690539e3873b370c7ee1194",
+  "resources/js/Pages/Studio/Editor.vue": "c7ef9a5cfac3562dd9910af2d8d2093d1801927b70b6558da904234014872562"
+}

@@ -1,0 +1,271 @@
+{
+  "date": "2026-11-05",
+  "scope": "T11 immutable per-lease checkpoints and Windows managed native phases",
+  "parent_complete": false,
+  "public_mp4_gif_ready": false,
+  "laravel_jobs_verified": false,
+  "linux_native_available": false,
+  "t10_onnx_verified": false,
+  "vps_verified": false,
+  "qa_execution": "root after independent A3/B3/D3 review, not independent QA",
+  "review": "A3/B3/D3 no pending gaps; C false by selector",
+  "sources": [
+    {
+      "path": "scripts/studio/av-files.mjs",
+      "sha256": "014618e702bd653c161a146536058a4a21ede0610de86947d92e28233599af62"
+    },
+    {
+      "path": "scripts/studio/av-pcm.mjs",
+      "sha256": "f567d4665e6f503148b02d1205a1451dc9d1beff6525a68b837077b4192aaac6"
+    },
+    {
+      "path": "scripts/studio/av-audio.mjs",
+      "sha256": "2dd32312f86dae7331edc4d24ccf92d3865e2d72dd473e9de594da19685a0bbc"
+    },
+    {
+      "path": "scripts/studio/av-video.mjs",
+      "sha256": "007bfba44d8b34d61bfe10b8550b57594640101a4c63188adf060e92781f93e6"
+    },
+    {
+      "path": "scripts/studio/av-finalize.mjs",
+      "sha256": "26c6a9b23d2d76d894e80bb25ea00f5bee619b27149f92a5d3eb169ebece52ba"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-checkpoints.test.mjs",
+      "sha256": "75202cb8d0a325c567d30f7dc188829d7bea874ef8cbda92e0bdf16f990873fa"
+    },
+    {
+      "path": "scripts/studio/av-runtime.py",
+      "sha256": "44bdc6d68037c75968f1bb4f00549e036445fcf80597d23963e30804dca9ca3b"
+    },
+    {
+      "path": "scripts/studio/render-av.mjs",
+      "sha256": "25bc3f1a1ed4ad10c62299b7fb10d87be24deeab4882e0de728e866cc6bce1a3"
+    },
+    {
+      "path": "tests/studio_runtime/test_av_limits.py",
+      "sha256": "94f1cc8ecd51ce4b6dcbd6538a1ac7f3958ba2f7e78faedaecc6f2cb218cfc84"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-phase.test.mjs",
+      "sha256": "864ed84d238eb02f395e0fbc6abcf1f80dc9013e1f6e9cfe3e517227c8a95d55"
+    }
+  ],
+  "frontend": {
+    "phase": "frontend",
+    "exit": 0,
+    "terminal": true,
+    "sources_match": true,
+    "files": 30,
+    "summary": [
+      "# tests 149",
+      "# pass 149",
+      "# fail 0",
+      "# cancelled 0",
+      "# skipped 0",
+      "# duration_ms 40671.9214"
+    ]
+  },
+  "limits": {
+    "phase": "limits",
+    "exit": 0,
+    "terminal": true,
+    "sources_match": true,
+    "summary": [
+      "----------------------------------------------------------------------",
+      "Ran 3 tests in 0.272s",
+      "",
+      "OK"
+    ]
+  },
+  "ui_regression_reference": "../av-options/raw/playwright.json",
+  "ui_regression_count": 42,
+  "ui_regression_repeated": false,
+  "unchanged_ui_sources_and_bundles": [
+    {
+      "path": "resources/js/Studio/audiovisual-plan.js",
+      "sha256": "a24fe74ed37ada873dcd943a19727174df52a9fa810ab629fe86ad2a29692647"
+    },
+    {
+      "path": "resources/js/Studio/project-render-entry.js",
+      "sha256": "6d8b1291a2d523074ccd2dd1259f529ca74aa36a89b54726a8a41c43a3b9dba8"
+    },
+    {
+      "path": "resources/js/Studio/timeline-preview.js",
+      "sha256": "6139b6d63adc003d361fdb48b5ba1f253594dbffea88a026af9aad8d1bfe8f3f"
+    },
+    {
+      "path": "resources/js/Studio/canvas.js",
+      "sha256": "5d665005fbeb2e18f2c30b0c4b0f6681863160ad0a6452f4e2a96392e8f21eb6"
+    },
+    {
+      "path": "public/build/studio-renderer.js",
+      "sha256": "bddd05d9853c0ead0ffde4a6f77810b85c4edbad06773dcc0ebec7db12a2675c"
+    },
+    {
+      "path": "public/build/studio-project-renderer.js",
+      "sha256": "2e9ec537bf14c6326a9de7e9297e5ef2659dc2d8c12ce92f489c631f80ccf220"
+    }
+  ],
+  "openapi_unchanged": true,
+  "sample_frames_inspected": 4,
+  "samples": [
+    {
+      "format": "mp4",
+      "file": "outputs/fde485ac-4c71-4e02-a5a3-7abcd7afa0db/project.mp4",
+      "namespace": "fde485ac-4c71-4e02-a5a3-7abcd7afa0db",
+      "size": 141787,
+      "sha256": "87c5938b6190379b857249586e6908c11846349eee7522638e180ee807c39b08",
+      "frameCount": 30,
+      "fps": 12,
+      "width": 480,
+      "height": 288,
+      "duration": 2.5,
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "scale": 1.5,
+      "quality": 0.8
+    },
+    {
+      "format": "gif",
+      "file": "outputs/6af8fff3-6177-418c-b5b8-89231f52a97b/project.gif",
+      "namespace": "6af8fff3-6177-418c-b5b8-89231f52a97b",
+      "size": 798208,
+      "sha256": "aeeb11e116e75d9828a1a184f8c6176a8e2178d496c73d3ce9db27def5db9ff2",
+      "frameCount": 30,
+      "fps": 12,
+      "width": 480,
+      "height": 288,
+      "duration": 2.5,
+      "videoCodec": "gif",
+      "audioCodec": null,
+      "scale": 1.5,
+      "quality": 0.8
+    }
+  ],
+  "measured_phase_calls": 21,
+  "phase_max_ms": 1496.7510000000002,
+  "phase_peak_commit_bytes": 294866944,
+  "artifacts": [
+    {
+      "path": "raw/attempt1-manifest.json",
+      "size": 922,
+      "sha256": "6bdc950bb3b5f3f78ac4742867895b25cd595c1ab405745a6b03a7a4c8150ee8"
+    },
+    {
+      "path": "raw/attempt1-reviewed.diff",
+      "size": 25802,
+      "sha256": "c306554ced0537c71eaaa8dfd2bd048262e9256081c3b1aadb1b99f0b9308356"
+    },
+    {
+      "path": "raw/attempt2-manifest.json",
+      "size": 1536,
+      "sha256": "e4158d3aa533108676013d172a27520a645e0096205717c2b9242f27f9e27874"
+    },
+    {
+      "path": "raw/attempt2-reviewed.diff",
+      "size": 57091,
+      "sha256": "34a527a2aa3584ac0eb0794bd002ea0cfea281b6fab0d9ffd4a675b1f447df2d"
+    },
+    {
+      "path": "raw/delta3.diff",
+      "size": 3480,
+      "sha256": "e3eb8b49b6d7924b5defe076bdb14f7e710339c1c1e042e893671c50a80d6b3c"
+    },
+    {
+      "path": "raw/frontend-result.json",
+      "size": 258,
+      "sha256": "d21418137ae44b07ae2aec30f23e165a3f4745e45d2a4fc22e51ee5318ea8cbc"
+    },
+    {
+      "path": "raw/frontend.stderr.txt",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "raw/frontend.tap",
+      "size": 35309,
+      "sha256": "7d4deeb88583a20652a80e751ccf2d23341a00223566b09bbf671c5af5baaa7f"
+    },
+    {
+      "path": "raw/ledger.txt",
+      "size": 1910,
+      "sha256": "a28bed6cacfb2c0db88ff13eb8a6aafc48d542f2327ee19937f24247f4a8f94f"
+    },
+    {
+      "path": "raw/lenses.json",
+      "size": 1066,
+      "sha256": "146101e8e637cb3398d36b49b6836c0e8f9ff0931a5ae52bf88e9ea7a66d1b57"
+    },
+    {
+      "path": "raw/limits-result.json",
+      "size": 238,
+      "sha256": "d3b8741830be33077d55325aee86798a16bb6c45291c9f5757c1decdccd51c0f"
+    },
+    {
+      "path": "raw/limits.txt",
+      "size": 748,
+      "sha256": "508ff8e43cc5cd5743ade9d29ad5ba4c0d6a5b5f9bfbabf5e3ce457d6c828551"
+    },
+    {
+      "path": "raw/reviewed-sources.json",
+      "size": 1538,
+      "sha256": "b9688df607a365200c5360b34bffb3d29c70aadfa6cf810bc0dd7b83eae3ffbe"
+    },
+    {
+      "path": "raw/reviewed.diff",
+      "size": 58436,
+      "sha256": "932e95c5b12f14db226fd295c6775fe2435d24bb61f73183f611d95792fca197"
+    },
+    {
+      "path": "raw/sample-document.json",
+      "size": 4704,
+      "sha256": "b44459ce8d697f0db64dfba5cb4c6d7ca91d81a2ccd869a98e57298d968221af"
+    },
+    {
+      "path": "raw/sample-metrics.json",
+      "size": 20410,
+      "sha256": "6e4d3a5981fb1ad77ac2a3083cdf92759eedeb9efc5b11e632f4ac294f77b380"
+    },
+    {
+      "path": "raw/sample-spectrum.json",
+      "size": 516,
+      "sha256": "d974d56de68bfb90b15d167ea16c6f2aee85c4cc5fcf1337f43e89a5f3514b54"
+    },
+    {
+      "path": "raw/scope.json",
+      "size": 28578,
+      "sha256": "a150cc7c269ca697e329e2bccc12619bb2e9a78271fb837bf3bbebcbdbf68821"
+    },
+    {
+      "path": "samples/frame-000.png",
+      "size": 63857,
+      "sha256": "bc2e494842c88e32ecec66016a3838a77fd1304fe5de3ca11c84f5e4a8f4b926"
+    },
+    {
+      "path": "samples/frame-009.png",
+      "size": 85521,
+      "sha256": "23bf7bf35de3d7a823692f1be79c8ca3259e9bfcf834070538902ee70df6e28d"
+    },
+    {
+      "path": "samples/frame-015.png",
+      "size": 79627,
+      "sha256": "32106d3189ba042f314eecd53a86fd5a158039a1023538452557e0dd16fe3f39"
+    },
+    {
+      "path": "samples/frame-024.png",
+      "size": 20063,
+      "sha256": "0656b3bb56a89be9a6b9ac749770dca0fe6809ac8c112cd6f2686b06b41373c6"
+    },
+    {
+      "path": "samples/sample.gif",
+      "size": 798208,
+      "sha256": "aeeb11e116e75d9828a1a184f8c6176a8e2178d496c73d3ce9db27def5db9ff2"
+    },
+    {
+      "path": "samples/sample.mp4",
+      "size": 141787,
+      "sha256": "87c5938b6190379b857249586e6908c11846349eee7522638e180ee807c39b08"
+    }
+  ]
+}

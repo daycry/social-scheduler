@@ -1,0 +1,7 @@
+{
+  "scope": "job",
+  "limit": 3221225472,
+  "peak_commit": 13434880,
+  "kill_on_close": true,
+  "breakaway": false
+}

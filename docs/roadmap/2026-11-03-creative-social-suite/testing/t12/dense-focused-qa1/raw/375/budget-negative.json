@@ -1,0 +1,46 @@
+[
+  {
+    "scope": "page",
+    "bytes": 2668,
+    "pages": 1,
+    "layers": [
+      2
+    ],
+    "expected_primitives_per_chart": 25100,
+    "status": 422,
+    "error": {
+      "message": "La página supera el presupuesto de gráficos.",
+      "errors": {
+        "document.pages.0": [
+          "La página supera el presupuesto de gráficos."
+        ]
+      }
+    }
+  },
+  {
+    "scope": "document",
+    "bytes": 12144,
+    "pages": 9,
+    "layers": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "expected_primitives_per_chart": 25100,
+    "status": 422,
+    "error": {
+      "message": "El documento supera el presupuesto de gráficos.",
+      "errors": {
+        "document": [
+          "El documento supera el presupuesto de gráficos."
+        ]
+      }
+    }
+  }
+]

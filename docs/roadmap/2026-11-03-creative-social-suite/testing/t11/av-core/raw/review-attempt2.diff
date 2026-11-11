@@ -1,0 +1,1199 @@
+--- a/resources/js/Studio/audiovisual-plan.js
++++ b/resources/js/Studio/audiovisual-plan.js
+@@ -0,0 +1,77 @@
++import { validateDocument } from './document.js';
++import { clipMediaState, compileTimeline } from './timeline.js';
++
++const clamp = value => Math.max(0, Math.min(1, value));
++const fail = message => { throw new Error(message); };
++
++/** One integer frame/sample clock, also when resuming in the middle of a page or transition. */
++export function compileAudiovisual(input, assets = [], { segmentFrames } = {}) {
++    const document = validateDocument(input), timeline = compileTimeline(document);
++    const size = segmentFrames ?? timeline.fps * 2;
++    if (!Number.isInteger(size) || size < 1 || size > timeline.fps * 2) throw new Error('El tramo debe contener entre 1 y dos segundos de fotogramas.');
++    const sampleRate = 48000, segments = [];
++    for (let first = 0; first < timeline.frameCount; first += size) {
++        const count = Math.min(size, timeline.frameCount - first);
++        const sampleStart = Math.round(first * sampleRate / timeline.fps);
++        segments.push({ index: segments.length, frameStart: first, frameCount: count,
++            start: first / timeline.fps, end: (first + count) / timeline.fps, sampleStart,
++            sampleCount: Math.round((first + count) * sampleRate / timeline.fps) - sampleStart });
++    }
++    const resources = new Map();
++    if (!Array.isArray(assets)) fail('Indica una lista de recursos de audio.');
++    for (const asset of assets) {
++        if (!asset || !Number.isSafeInteger(asset.id) || asset.id < 1 || resources.has(asset.id)) fail('ID de recurso inválido o duplicado.');
++        resources.set(asset.id, asset);
++    }
++    const audio = [];
++    const add = (clip, origin, start, end, page = null, video = false) => {
++        if (clip.muted || clip.volume === 0 || start >= end) return;
++        const asset = resources.get(clip.asset_id);
++        if (!asset || asset.status !== 'listo' || !['audio', 'video'].includes(asset.kind)
++            || !Number.isFinite(asset.duration) || asset.duration <= 0) fail(`Falta el recurso de audio listo ${clip.asset_id}.`);
++        if (!asset.audio_codec) { if (video) return; fail('El recurso no contiene audio.'); }
++        const from = clip.trimStart ?? 0, to = clip.trimEnd ?? asset.duration;
++        if (from >= to || to > asset.duration + 1e-9 || (clip.sourceOffset ?? 0) > to - from + 1e-9) fail('El recorte de audio supera el origen.');
++        audio.push({ id: clip.id, assetId: clip.asset_id, sourceDuration: asset.duration, origin, start, end,
++            clip: { ...clip, timing: { start: 0, duration: clip.timing?.duration ?? clip.duration } },
++            fadeIn: page ? timeline.pages[page.index - 1]?.transition ?? null : null, fadeOut: page?.transition ?? null });
++    };
++    for (const page of timeline.pages) {
++        const walk = (elements, inheritedStart, inheritedEnd) => {
++            for (const element of elements) {
++                if (element.visible === false) continue;
++                const timing = element.timing ?? { start: 0, duration: page.source.duration };
++                const start = Math.max(inheritedStart, timing.start), end = Math.min(inheritedEnd, timing.start + timing.duration);
++                if (start >= end) continue;
++                if (element.type === 'group') walk(element.elements, start, end);
++                if (element.type === 'video') add({ ...element, timing }, page.start + timing.start,
++                    page.start + start, page.start + end, page, true);
++            }
++        };
++        walk(page.source.elements, 0, Math.min(page.source.duration, page.end - page.start));
++    }
++    for (const track of document.timeline.audio_tracks) add(track, track.start, track.start, Math.min(track.start + track.duration, timeline.duration));
++    return { document, timeline, fps: timeline.fps, frameCount: timeline.frameCount, duration: timeline.duration, sampleRate, segments, audio };
++}
++
++/** Reference sampler shared by native mix acceptance tests; source phase never resets at a segment. */
++export function audioStateAt(plan, time) {
++    if (!Number.isFinite(time) || time < 0 || time > plan.duration) fail('Tiempo de audio fuera del proyecto.');
++    const result = [];
++    for (const input of plan.audio) {
++        if (time < input.start || time >= input.end) continue;
++        const state = audioInputState(input, time);
++        if (state) result.push(state);
++    }
++    return result;
++}
++
++export function audioInputState(input, time) {
++    if (time < input.start || time >= input.end) return null;
++    const state = clipMediaState(input.clip, time - input.origin, input.sourceDuration);
++    if (!state.audible) return null;
++    const incoming = input.fadeIn, outgoing = input.fadeOut;
++    const fadeIn = incoming?.duration > 0 ? clamp((time - incoming.start) / incoming.duration) : 1;
++    const fadeOut = outgoing?.duration > 0 ? clamp((outgoing.end - time) / outgoing.duration) : 1;
++    return { id: input.id, assetId: input.assetId, sourceTime: state.sourceTime, gain: state.gain * fadeIn * fadeOut, playbackRate: state.playbackRate };
++}
+--- a/resources/js/Studio/timeline-preview.js
++++ b/resources/js/Studio/timeline-preview.js
+@@ -4,7 +4,8 @@
+ import { createTimelineAudio } from './timeline-audio.js';
+ 
+ /** A separate, disposable scene: preview state can never leak into saved Fabric objects. */
+-export async function createTimelinePreview(output, { document: input, assets = [], fonts = [] } = {}) {
++export async function createTimelinePreview(output, { document: input, assets = [], fonts = [], offline = false } = {}) {
++    if (typeof offline !== 'boolean') throw new Error('El modo offline debe ser booleano.');
+     const document = validateDocument(input);
+     const plan = compileTimeline(document);
+     const context = output.getContext('2d');
+@@ -16,7 +17,8 @@
+     const pauseMedia = () => {
+         for (const entry of cache.values()) walk(entry.scene.canvas.getObjects(), object => object.studioVideo?.pause());
+     };
+-    const audio = createTimelineAudio(document.timeline.audio_tracks, assets, { onBuffer: pauseMedia });
++    // Offline export advances a deterministic frame clock. Audio is mixed separately, never played.
++    const audio = createTimelineAudio(offline ? [] : document.timeline.audio_tracks, assets, { onBuffer: pauseMedia });
+     const pause = () => { playing = false; pauseMedia(); audio.pause(); };
+     function visibleElements(elements, time, duration) {
+         const result = [];
+@@ -82,12 +84,19 @@
+                         const video = object.studioVideo;
+                         const state = clipMediaState(element, sample.localTime, video.duration, source.duration);
+                         video.playbackRate = state.playbackRate;
++                        video.preservesPitch = false;
++                        if (offline) video.muted = true;
+                         video.volume = visible ? state.gain * sample.audioGain : 0;
+                         const shouldPlay = playing && visible && state.audible;
+                         // Muted video must still advance visually. Audio EOF holds the final frame.
+                         const visualPlay = playing && visible && (element.loop || state.sourceTime < (element.trimEnd ?? video.duration) - 0.01);
+                         if (!visualPlay) video.pause();
+-                        if (!playing || video.paused || Math.abs(video.currentTime - state.sourceTime) > 0.08) await seekVideoFrame(video, state.sourceTime);
++                        if (offline) {
++                            const from = element.trimStart ?? 0, end = Math.min(element.trimEnd ?? video.duration, video.duration);
++                            if (from >= end) throw new Error('El recorte del vídeo no contiene un fotograma disponible.');
++                            const last = end - Math.min(0.0001, (end - from) / 2);
++                            await seekVideoFrame(video, Math.min(state.sourceTime, last), { positionTolerance: Math.min(0.0001, (end - from) / 4), endTolerance: 0 });
++                        } else if (!playing || video.paused || Math.abs(video.currentTime - state.sourceTime) > 0.08) await seekVideoFrame(video, state.sourceTime);
+                         if (disposed || request !== generation) { video.pause(); return; }
+                         if (visualPlay && video.paused) await video.play();
+                         if (!playing || disposed || request !== generation) video.pause();
+@@ -124,7 +133,7 @@
+         seek(time, { play = false } = {}) {
+             if (!Number.isFinite(time) || time < 0 || time > plan.duration) return Promise.reject(new Error('Tiempo de reproducción fuera del diseño.'));
+             if (!play) pause();
+-            playing = play;
++            playing = offline ? false : play;
+             const request = ++generation;
+             const work = tail.catch(() => {}).then(() => paint(time, request)).catch(error => { pause(); throw error; });
+             tail = work;
+--- a/resources/js/Studio/project-render-entry.js
++++ b/resources/js/Studio/project-render-entry.js
+@@ -0,0 +1,17 @@
++import { compileTimeline } from './timeline.js';
++import { createTimelinePreview } from './timeline-preview.js';
++
++let renderer = null, plan = null, output = null;
++globalThis.prepareStudioProject = async ({ document, assets = [], fonts = [] }) => {
++    if (renderer) throw new Error('El render de este intento ya está preparado.');
++    output = globalThis.document.createElement('canvas'); output.id = 'studio-project-output';
++    globalThis.document.body.append(output);
++    renderer = await createTimelinePreview(output, { document, assets, fonts, offline: true });
++    plan = compileTimeline(document);
++    return { fps: plan.fps, frameCount: plan.frameCount };
++};
++globalThis.paintStudioProjectFrame = async frame => {
++    if (!renderer || !Number.isSafeInteger(frame) || frame < 0 || frame >= plan.frameCount) throw new Error('Fotograma fuera del proyecto.');
++    await renderer.seek(frame / plan.fps);
++};
++globalThis.disposeStudioProject = async () => { await renderer?.dispose(); renderer = null; plan = null; output?.remove(); output = null; };
+--- a/scripts/studio/build.mjs
++++ b/scripts/studio/build.mjs
+@@ -2,3 +2,6 @@
+ await build({ configFile: false, publicDir: false, build: { outDir: 'public/build', emptyOutDir: false,
+     lib: { entry: 'resources/js/Studio/render-entry.js', name: 'StudioRender', formats: ['iife'], fileName: () => 'studio-renderer.js' },
+ } });
++await build({ configFile: false, publicDir: false, build: { outDir: 'public/build', emptyOutDir: false,
++    lib: { entry: 'resources/js/Studio/project-render-entry.js', name: 'StudioProjectRender', formats: ['iife'], fileName: () => 'studio-project-renderer.js' },
++} });
+--- a/scripts/studio/av-files.mjs
++++ b/scripts/studio/av-files.mjs
+@@ -0,0 +1,68 @@
++import fs from 'node:fs/promises';
++import path from 'node:path';
++import { spawn } from 'node:child_process';
++import { createHash, randomUUID } from 'node:crypto';
++import { Readable } from 'node:stream';
++import { pipeline } from 'node:stream/promises';
++
++const samePath = (a, b) => process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;
++export async function attemptDirectory(directory) {
++    if (typeof directory !== 'string' || !path.isAbsolute(directory)
++        || !/[/\\]studio-exports[/\\]\d+[/\\]\d+[/\\][a-f0-9-]+$/i.test(directory)) throw new Error('Directorio privado de exportación no válido.');
++    const resolved = path.resolve(directory), real = await fs.realpath(resolved);
++    if (!samePath(resolved, real) || !(await fs.stat(real)).isDirectory()) throw new Error('El intento no admite enlaces ni directorios ajenos.');
++    return real;
++}
++
++export async function sourceFile(directory, asset) {
++    if (!Number.isSafeInteger(asset?.id) || asset.id < 1 || asset.file !== `assets/${asset.id}.bin`) throw new Error('El recurso necesita un snapshot privado con nombre generado.');
++    const file = path.join(directory, 'assets', `${asset.id}.bin`), real = await fs.realpath(file), stat = await fs.stat(real);
++    if (!samePath(file, real) || !stat.isFile() || stat.size < 1 || stat.size > 2 * 1024 ** 3) throw new Error('Snapshot ausente, enlazado o fuera del límite de 2 GiB.');
++    if (asset.size !== undefined && asset.size !== stat.size) throw new Error('El tamaño del snapshot no coincide con el registrado.');
++    return file;
++}
++
++/** No shell, no unbounded stdout, and the caller's abort/deadline also kills the owned process. */
++export async function boundedProcess(binary, args, { timeout = 15000, maxBytes = 4 * 1024 ** 2, signal, input = null } = {}) {
++    signal?.throwIfAborted();
++    return new Promise((resolve, reject) => {
++        const child = spawn(binary, args, { windowsHide: true, stdio: [input ? 'pipe' : 'ignore', 'pipe', 'pipe'] });
++        const chunks = []; let size = 0, stderr = '', failure = null;
++        const stop = error => { failure ??= error; child.kill('SIGKILL'); };
++        const abort = () => stop(new DOMException('Exportación cancelada.', 'AbortError'));
++        const timer = setTimeout(() => stop(new Error('El proceso de medios superó su tiempo permitido.')), timeout);
++        const cleanup = () => { clearTimeout(timer); signal?.removeEventListener('abort', abort); };
++        signal?.addEventListener('abort', abort, { once: true });
++        child.on('error', error => { cleanup(); reject(error); });
++        child.stdout.on('data', chunk => { size += chunk.length; if (size > maxBytes) stop(new Error('El proceso de medios superó su presupuesto de salida.')); else chunks.push(chunk); });
++        child.stderr.on('data', chunk => { if (stderr.length < 8192) stderr += chunk.toString().slice(0, 8192 - stderr.length); });
++        const writing = input ? pipeline(Readable.from(input), child.stdin, ...(signal ? [{ signal }] : [])).catch(error => { stop(error); }) : Promise.resolve();
++        child.on('close', async code => { cleanup(); if (failure) reject(failure); else if (code !== 0) reject(new Error(`El proceso de medios falló (${code}): ${stderr}`)); else { await writing; if (failure) reject(failure); else resolve(Buffer.concat(chunks)); } });
++        if (signal?.aborted) abort();
++    });
++}
++
++export async function segmentFolder(directory) {
++    const folder = path.join(directory, 'segments'); await fs.mkdir(folder, { recursive: true });
++    if (!samePath(await fs.realpath(folder), folder)) throw new Error('La salida no admite enlaces.');
++    return folder;
++}
++
++export function checkedSegment(plan, segment) {
++    const expected = plan?.segments?.[segment?.index];
++    if (!expected || plan.sampleRate !== 48000 || ![12, 15, 24, 25, 30, 50, 60].includes(plan.fps)
++        || ['frameStart', 'frameCount', 'sampleStart', 'sampleCount', 'start', 'end'].some(key => expected[key] !== segment[key])
++        || !Number.isInteger(segment.frameCount) || segment.frameCount < 1 || segment.frameCount > plan.fps * 2
++        || segment.sampleCount !== segment.frameCount * 48000 / plan.fps) throw new Error('Tramo fuera del plan de fotogramas validado.');
++    return expected;
++}
++
++export async function atomicBytes(directory, relative, bytes) {
++    if (!/^segments\/[a-z0-9_-]{1,32}-\d{6}\.wav$/.test(relative)) throw new Error('Nombre de tramo no válido.');
++    const folder = path.join(directory, 'segments'); await fs.mkdir(folder, { recursive: true });
++    if (!samePath(await fs.realpath(folder), folder)) throw new Error('La salida no admite enlaces.');
++    const target = path.join(directory, relative), temporary = `${target}.${randomUUID()}.part`;
++    try { await fs.writeFile(temporary, bytes, { flag: 'wx' }); await fs.rename(temporary, target); }
++    finally { await fs.rm(temporary, { force: true }); }
++    return { file: relative, size: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') };
++}
+--- a/scripts/studio/av-server.mjs
++++ b/scripts/studio/av-server.mjs
+@@ -0,0 +1,68 @@
++import fs from 'node:fs/promises';
++import { createReadStream } from 'node:fs';
++import path from 'node:path';
++import http from 'node:http';
++import { createHash, randomBytes } from 'node:crypto';
++import { sourceFile } from './av-files.mjs';
++
++/** A token-scoped loopback origin streams private files with Range/backpressure; no giant JSON assets. */
++export async function openResourceServer(directory, assets = [], fonts = []) {
++    const token = randomBytes(32).toString('hex'), resources = new Map(), ids = new Set();
++    let bytes = 0;
++    const media = [];
++    for (const asset of assets) {
++        if (ids.has(asset.id) || !['image/png', 'image/jpeg', 'image/webp', 'video/mp4', 'video/quicktime', 'audio/wav', 'audio/mpeg', 'audio/mp4', 'audio/ogg', 'audio/aac'].includes(asset.mime)) throw new Error('Recurso duplicado o formato no permitido.');
++        ids.add(asset.id);
++        const file = await sourceFile(directory, asset), size = (await fs.stat(file)).size;
++        bytes += size;
++        if (bytes > 8 * 1024 ** 3) throw new Error('Los snapshots superan 8 GiB por intento.');
++        resources.set(`/${token}/assets/${asset.id}`, { file, size, mime: asset.mime });
++        media.push({ ...asset, file: undefined, studio_url: `/${token}/assets/${asset.id}`, preview_url: `/${token}/assets/${asset.id}` });
++    }
++    const fontData = [], fontIds = new Set();
++    for (const font of fonts) {
++        if (!Number.isSafeInteger(font.id) || font.id < 1 || fontIds.has(font.id) || font.file !== `fonts/${font.id}.woff2`
++            || font.mime !== 'font/woff2' || !/^[a-f0-9]{64}$/i.test(font.sha256 ?? '') || !Number.isSafeInteger(font.size) || font.size < 1 || font.size > 8 * 1024 ** 2) throw new Error('Fuente privada inválida.');
++        fontIds.add(font.id);
++        const file = path.join(directory, font.file), real = await fs.realpath(file);
++        if (process.platform === 'win32' ? real.toLowerCase() !== file.toLowerCase() : real !== file) throw new Error('La fuente no admite enlaces externos.');
++        const stat = await fs.stat(file);
++        if (!stat.isFile() || stat.size !== font.size) throw new Error('La fuente cambió de tamaño.');
++        const content = await fs.readFile(file);
++        if (content.subarray(0, 4).toString() !== 'wOF2' || createHash('sha256').update(content).digest('hex') !== font.sha256.toLowerCase()) throw new Error('El hash de la fuente no coincide.');
++        resources.set(`/${token}/fonts/${font.id}`, { file, size: stat.size, mime: 'font/woff2' });
++        fontData.push({ ...font, file: undefined, file_url: `/${token}/fonts/${font.id}` });
++    }
++    const home = `/${token}/`, html = '<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;padding:0;overflow:hidden}canvas{display:block}</style></head><body></body></html>';
++    const server = http.createServer(async (request, response) => {
++        response.setHeader('Cache-Control', 'no-store'); response.setHeader('X-Content-Type-Options', 'nosniff');
++        if (!['GET', 'HEAD'].includes(request.method)) { response.writeHead(405); response.end(); return; }
++        if (request.url === home) {
++            response.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; font-src 'self' data:");
++            response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); response.end(request.method === 'HEAD' ? undefined : html); return;
++        }
++        const resource = resources.get(request.url);
++        if (!resource) { response.writeHead(404); response.end(); return; }
++        let start = 0, end = resource.size - 1, status = 200;
++        if (request.headers.range) {
++            const range = /^bytes=(\d+)-(\d*)$/.exec(request.headers.range);
++            if (!range || !Number.isSafeInteger(Number(range[1])) || !Number.isSafeInteger(range[2] ? Number(range[2]) : end)) {
++                response.writeHead(416, { 'Content-Range': `bytes */${resource.size}` }); response.end(); return;
++            }
++            start = Number(range[1]); end = range[2] ? Math.min(Number(range[2]), end) : end;
++            if (start > end || start >= resource.size) { response.writeHead(416, { 'Content-Range': `bytes */${resource.size}` }); response.end(); return; }
++            status = 206; response.setHeader('Content-Range', `bytes ${start}-${end}/${resource.size}`);
++        }
++        response.writeHead(status, { 'Content-Type': resource.mime, 'Content-Length': end - start + 1, 'Accept-Ranges': 'bytes' });
++        if (request.method === 'HEAD') { response.end(); return; }
++        const stream = createReadStream(resource.file, { start, end, highWaterMark: 64 * 1024 });
++        stream.on('error', () => response.destroy()); response.on('close', () => stream.destroy()); stream.pipe(response);
++    });
++    server.headersTimeout = 10000; server.requestTimeout = 20000;
++    await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
++    const origin = `http://127.0.0.1:${server.address().port}`;
++    return { url: origin + home, assets: media.map(asset => ({ ...asset, studio_url: origin + asset.studio_url, preview_url: origin + asset.preview_url })),
++        fonts: fontData.map(font => ({ ...font, file_url: origin + font.file_url })),
++        allows: url => url === origin + home || url.startsWith(origin) && resources.has(url.slice(origin.length)),
++        async close() { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); } };
++}
+--- a/scripts/studio/av-audio.mjs
++++ b/scripts/studio/av-audio.mjs
+@@ -0,0 +1,59 @@
++import { audioInputState } from '../../resources/js/Studio/audiovisual-plan.js';
++import { attemptDirectory, checkedSegment, atomicBytes } from './av-files.mjs';
++import { pcmWindowReader } from './av-pcm.mjs';
++
++const rate = 48000;
++function header(samples) {
++    const bytes = Buffer.alloc(44);
++    bytes.write('RIFF'); bytes.writeUInt32LE(36 + samples * 8, 4); bytes.write('WAVEfmt ', 8); bytes.writeUInt32LE(16, 16);
++    bytes.writeUInt16LE(3, 20); bytes.writeUInt16LE(2, 22); bytes.writeUInt32LE(rate, 24); bytes.writeUInt32LE(rate * 8, 28);
++    bytes.writeUInt16LE(8, 32); bytes.writeUInt16LE(32, 34); bytes.write('data', 36); bytes.writeUInt32LE(samples * 8, 40);
++    return bytes;
++}
++
++/** Read at most eight source seconds per active clip from previously normalised disk PCM. */
++export async function mixAudioSegment({ directory, plan, audioSources, segment, name = 'audio', signal, onRead = () => {} }) {
++    directory = await attemptDirectory(directory); checkedSegment(plan, segment); signal?.throwIfAborted();
++    if (!/^[a-z0-9_-]{1,32}$/.test(name)) throw new Error('Nombre de mezcla no válido.');
++    const output = new Float64Array(segment.sampleCount * 2), readWindow = pcmWindowReader(directory, audioSources, { signal, onRead });
++    const deadline = Date.now() + 75000;
++    for (const input of plan.audio) {
++        const clip = input.clip, speed = clip.playbackRate ?? 1, from = clip.trimStart ?? 0, to = clip.trimEnd ?? input.sourceDuration;
++        const period = to - from;
++        const first = Math.max(segment.sampleStart, Math.ceil(input.start * rate - 1e-7));
++        let last = Math.min(segment.sampleStart + segment.sampleCount, Math.ceil(input.end * rate - 1e-7));
++        if (!clip.loop) last = Math.min(last, Math.ceil((input.origin + (period - (clip.sourceOffset ?? 0)) / speed) * rate - 1e-7));
++        if (last <= first) continue;
++        signal?.throwIfAborted();
++        if (Date.now() >= deadline) throw new Error('La mezcla del tramo superó su presupuesto de tiempo.');
++        const position = (clip.sourceOffset ?? 0) + (first / rate - input.origin) * speed;
++        const phase = clip.loop ? position % period : position, span = (last - first) / rate * speed;
++        let intervals;
++        if (clip.loop && span >= period) intervals = [[from, to]];
++        else if (clip.loop && phase + span > period) intervals = [[from + phase, to], [from, from + phase + span - period]];
++        else intervals = [[from + phase, Math.min(to, from + phase + span)]];
++        const windows = [];
++        for (const [begin, end] of intervals) {
++            if (end <= begin || end - begin > 8 + 1e-9) throw new Error('La lectura de audio supera el presupuesto por tramo.');
++            windows.push(await readWindow(input.assetId, begin, end));
++        }
++        for (let n = first; n < last; n++) {
++            const state = audioInputState(input, n / rate); if (!state || state.gain === 0) continue;
++            const window = windows.find(window => state.sourceTime >= window.from - 1e-9 && state.sourceTime < window.to + 1e-9);
++            if (!window) throw new Error('Falta una ventana decodificada de audio.');
++            const position = Math.max(0, (state.sourceTime - window.from) * rate), max = window.pcm.length / 2 - 1;
++            if (position > max + 1.001) throw new Error('El decodificador devolvió muestras incompletas del origen.');
++            const index = Math.min(Math.floor(position), max), next = Math.min(index + 1, max), fraction = Math.min(1, position - index);
++            const target = (n - segment.sampleStart) * 2;
++            for (let channel = 0; channel < 2; channel++) {
++                const a = window.pcm[index * 2 + channel], b = window.pcm[next * 2 + channel];
++                output[target + channel] += (a + (b - a) * fraction) * state.gain;
++            }
++        }
++    }
++    signal?.throwIfAborted();
++    const bytes = Buffer.alloc(44 + output.length * 4); header(segment.sampleCount).copy(bytes);
++    for (let i = 0; i < output.length; i++) bytes.writeFloatLE(Math.max(-1, Math.min(1, output[i])), 44 + i * 4);
++    const result = await atomicBytes(directory, `segments/${name}-${String(segment.index).padStart(6, '0')}.wav`, bytes);
++    return { ...result, sampleCount: segment.sampleCount, sampleStart: segment.sampleStart };
++}
+--- a/scripts/studio/av-video.mjs
++++ b/scripts/studio/av-video.mjs
+@@ -0,0 +1,66 @@
++import fs from 'node:fs/promises';
++import path from 'node:path';
++import { fileURLToPath } from 'node:url';
++import { randomUUID, createHash } from 'node:crypto';
++import { chromium } from 'playwright';
++import { attemptDirectory, checkedSegment, segmentFolder, boundedProcess } from './av-files.mjs';
++import { openResourceServer } from './av-server.mjs';
++
++const project = fileURLToPath(new URL('../../', import.meta.url));
++export async function renderVisualSegment({ directory, plan, assets = [], fonts = [], segment, signal, format = 'mp4' }) {
++    directory = await attemptDirectory(directory); checkedSegment(plan, segment); signal?.throwIfAborted();
++    if (!['mp4', 'gif'].includes(format)) throw new Error('Formato audiovisual no admitido.');
++    const width = plan.document.width, height = plan.document.height;
++    if (width * height > 16000000) throw new Error('El render audiovisual admite hasta 16 megapíxeles por fotograma.');
++    const folder = await segmentFolder(directory), name = `video-${String(segment.index).padStart(6, '0')}.${format}`;
++    const temporary = path.join(folder, `${randomUUID()}.part.${format}`), target = path.join(folder, name);
++    let browser, server;
++    const abort = () => { void browser?.close().catch(() => {}); };
++    try {
++        server = await openResourceServer(directory, assets, fonts);
++        browser = await chromium.launch({ headless: true, ...(process.env.STUDIO_CHROMIUM_PATH ? { executablePath: process.env.STUDIO_CHROMIUM_PATH } : {}) });
++        signal?.addEventListener('abort', abort, { once: true }); signal?.throwIfAborted();
++        const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 1, serviceWorkers: 'block', acceptDownloads: false });
++        await context.route('**/*', route => route.request().method() === 'GET' && server.allows(route.request().url()) ? route.continue() : route.abort());
++        const page = await context.newPage(); page.setDefaultTimeout(20000);
++        await page.goto(server.url);
++        await page.addScriptTag({ path: path.join(project, 'public/build/studio-project-renderer.js') });
++        const prepared = await page.evaluate(input => globalThis.prepareStudioProject(input), { document: plan.document, assets: server.assets, fonts: server.fonts });
++        if (prepared.frameCount !== plan.frameCount || prepared.fps !== plan.fps) throw new Error('El navegador y el servidor no comparten el reloj de fotogramas.');
++        async function* frames() {
++            for (let frame = segment.frameStart; frame < segment.frameStart + segment.frameCount; frame++) {
++                signal?.throwIfAborted();
++                await page.evaluate(frame => globalThis.paintStudioProjectFrame(frame), frame);
++                const bytes = await page.locator('#studio-project-output').screenshot({ type: 'png', animations: 'disabled' });
++                if (bytes.length > 64000000) throw new Error('Un fotograma supera el límite de transferencia.');
++                yield bytes;
++            }
++        }
++        const encoding = format === 'mp4' ? ['-vf', 'pad=ceil(iw/2)*2:ceil(ih/2)*2:color=black', '-filter_threads', '1',
++            '-c:v', 'libx264', '-threads', '2', '-preset', 'fast', '-crf', '18', '-pix_fmt', 'yuv420p', '-movflags', '+faststart']
++            : ['-filter_complex', 'pad=ceil(iw/2)*2:ceil(ih/2)*2:color=black,split[a][b];[a]palettegen=stats_mode=single[p];[b][p]paletteuse=new=1',
++                '-filter_complex_threads', '1', '-threads', '1', '-gifflags', '0', '-loop', '0'];
++        await boundedProcess(process.env.STUDIO_FFMPEG_BINARY ?? 'ffmpeg', ['-hide_banner', '-loglevel', 'error', '-nostdin', '-n',
++            '-f', 'image2pipe', '-framerate', String(plan.fps), '-vcodec', 'png', '-i', 'pipe:0', '-an',
++            ...encoding, '-frames:v', String(segment.frameCount), '-fs', String(512 * 1024 ** 2), temporary],
++        { timeout: 80000, maxBytes: 1024, signal, input: frames() });
++        const probe = JSON.parse((await boundedProcess(process.env.STUDIO_FFPROBE_BINARY ?? 'ffprobe', ['-v', 'error', '-count_frames',
++            '-show_entries', 'stream=codec_type,codec_name,width,height,avg_frame_rate,nb_read_frames:format=duration', '-of', 'json', temporary], { signal, maxBytes: 65536 })).toString());
++        const stream = probe.streams?.find(stream => stream.codec_type === 'video');
++        const [numerator, denominator] = (stream?.avg_frame_rate ?? '').split('/').map(Number);
++        const paddedWidth = Math.ceil(width / 2) * 2, paddedHeight = Math.ceil(height / 2) * 2;
++        if (stream?.codec_name !== (format === 'mp4' ? 'h264' : 'gif') || Number(stream.nb_read_frames) !== segment.frameCount || (format === 'mp4' && numerator / denominator !== plan.fps)
++            || stream.width !== paddedWidth || stream.height !== paddedHeight || probe.streams?.length !== 1
++            || Math.abs(Number(probe.format?.duration) - segment.frameCount / plan.fps) > 1 / plan.fps + (format === 'gif' ? 0.01 : 0)) throw new Error('El tramo generado no coincide con sus fotogramas, resolución o códec.');
++        const stat = await fs.stat(temporary);
++        if (stat.size < 1 || stat.size > 512 * 1024 ** 2) throw new Error('El tramo de vídeo supera su presupuesto de disco.');
++        // Only a fully probed segment is published; an interrupted .part is never a downloadable result.
++        await fs.rename(temporary, target);
++        const hash = createHash('sha256');
++        const file = await fs.open(target, 'r'); try { for await (const bytes of file.createReadStream()) hash.update(bytes); } finally { await file.close(); }
++        return { file: `segments/${name}`, size: stat.size, sha256: hash.digest('hex'), frameStart: segment.frameStart,
++            frameCount: segment.frameCount, fps: plan.fps, width: paddedWidth, height: paddedHeight };
++    } finally {
++        signal?.removeEventListener('abort', abort); await browser?.close().catch(() => {}); await server?.close(); await fs.rm(temporary, { force: true });
++    }
++}
+--- a/scripts/studio/av-gif.mjs
++++ b/scripts/studio/av-gif.mjs
+@@ -0,0 +1,83 @@
++import fs from 'node:fs/promises';
++
++/** Small buffered reader; GIF compressed frames remain compressed, never expanded into a project-sized bitmap cache. */
++class Reader {
++    constructor(file) { this.file = file; this.buffer = Buffer.alloc(0); this.offset = 0; }
++    async read(size, optional = false) {
++        const chunks = []; let remaining = size;
++        while (remaining > 0) {
++            if (this.offset >= this.buffer.length) {
++                const buffer = Buffer.alloc(65536), { bytesRead } = await this.file.read(buffer, 0, buffer.length, null);
++                if (!bytesRead) { if (optional && remaining === size) return null; throw new Error('Tramo GIF truncado.'); }
++                this.buffer = buffer.subarray(0, bytesRead); this.offset = 0;
++            }
++            const count = Math.min(remaining, this.buffer.length - this.offset);
++            chunks.push(this.buffer.subarray(this.offset, this.offset + count)); this.offset += count; remaining -= count;
++        }
++        return chunks.length === 1 ? chunks[0] : Buffer.concat(chunks);
++    }
++    async subBlocks() {
++        const chunks = []; let size = 0;
++        for (;;) {
++            const length = await this.read(1); chunks.push(length); size++;
++            if (!length[0]) break;
++            size += length[0]; if (size > 64000000) throw new Error('Un fotograma GIF comprimido supera 64 MB.');
++            chunks.push(await this.read(length[0]));
++        }
++        return Buffer.concat(chunks);
++    }
++}
++
++/** A single GIF89a, with a local palette on every frame and one accumulated centisecond clock. */
++export async function joinGifSegments(files, target, { width, height, fps, frameCount, counts, signal }) {
++    const output = await fs.open(target, 'wx'), deadline = Date.now() + 80000;
++    let frames = 0, bytes = 0;
++    const write = async chunk => {
++        signal?.throwIfAborted();
++        if (Date.now() > deadline || bytes + chunk.length > 8 * 1024 ** 3) throw new Error('La unión GIF supera su presupuesto de tiempo o disco.');
++        let offset = 0;
++        while (offset < chunk.length) { const result = await output.write(chunk, offset, chunk.length - offset, null); if (!result.bytesWritten) throw new Error('No se pudo escribir el GIF completo.'); offset += result.bytesWritten; }
++        bytes += chunk.length;
++    };
++    try {
++        const header = Buffer.alloc(13); header.write('GIF89a'); header.writeUInt16LE(width, 6); header.writeUInt16LE(height, 8); header[10] = 0x70;
++        await write(header); await write(Buffer.from('21ff0b4e45545343415045322e300301000000', 'hex'));
++        for (let index = 0; index < files.length; index++) {
++            const input = await fs.open(files[index], 'r');
++            try {
++                const reader = new Reader(input), header = await reader.read(13);
++                if (!['GIF87a', 'GIF89a'].includes(header.subarray(0, 6).toString()) || header.readUInt16LE(6) !== width || header.readUInt16LE(8) !== height) throw new Error('Las dimensiones o cabecera del tramo GIF no coinciden.');
++                const globalFlags = header[10], globalPalette = globalFlags & 0x80 ? await reader.read(3 * 2 ** ((globalFlags & 7) + 1)) : null;
++                let control = null, localFrames = 0;
++                for (;;) {
++                    const tag = (await reader.read(1))[0];
++                    if (tag === 0x3b) { if (await reader.read(1, true)) throw new Error('Un tramo contiene varios GIF o datos sobrantes.'); break; }
++                    if (tag === 0x21) {
++                        const label = (await reader.read(1))[0];
++                        if (label === 0xf9) { const block = await reader.read(6); if (block[0] !== 4 || block[5] !== 0) throw new Error('Control GIF no válido.'); control = block; }
++                        else await reader.subBlocks(); // No source comments or duplicate NETSCAPE loop metadata.
++                        continue;
++                    }
++                    if (tag !== 0x2c) throw new Error('Bloque GIF desconocido.');
++                    const descriptor = Buffer.from(await reader.read(9));
++                    if (descriptor.readUInt16LE(0) !== 0 || descriptor.readUInt16LE(2) !== 0 || descriptor.readUInt16LE(4) !== width || descriptor.readUInt16LE(6) !== height) throw new Error('El tramo GIF necesita fotogramas completos sin offsets.');
++                    const flags = descriptor[8], palette = flags & 0x80 ? await reader.read(3 * 2 ** ((flags & 7) + 1)) : globalPalette;
++                    if (!palette) throw new Error('El fotograma GIF no tiene paleta.');
++                    descriptor[8] = (flags & 0x78) | 0x80 | (flags & 0x80 ? flags & 7 : globalFlags & 7);
++                    const codeSize = await reader.read(1);
++                    if (codeSize[0] < 2 || codeSize[0] > 8) throw new Error('Código LZW de GIF no válido.');
++                    const data = await reader.subBlocks();
++                    const delay = Math.round((frames + 1) * 100 / fps) - Math.round(frames * 100 / fps);
++                    if (frames >= frameCount || localFrames >= counts[index]) throw new Error('El GIF contiene más fotogramas de los previstos.');
++                    const gce = Buffer.from([0x21, 0xf9, 4, control?.[1] ?? 0, delay & 255, delay >> 8, control?.[4] ?? 0, 0]);
++                    await write(Buffer.concat([gce, Buffer.from([0x2c]), descriptor, palette, codeSize, data]));
++                    frames++; localFrames++; control = null;
++                }
++                if (localFrames !== counts[index]) throw new Error('Faltan fotogramas en el tramo GIF.');
++            } finally { await input.close(); }
++        }
++        if (frames !== frameCount) throw new Error('La unión GIF no cubre todo el proyecto.');
++        await write(Buffer.from([0x3b])); await output.sync();
++        return { frames, duration: Math.round(frameCount * 100 / fps) / 100, bytes };
++    } finally { await output.close(); }
++}
+--- a/scripts/studio/av-finalize.mjs
++++ b/scripts/studio/av-finalize.mjs
+@@ -0,0 +1,59 @@
++import fs from 'node:fs/promises';
++import path from 'node:path';
++import { createReadStream } from 'node:fs';
++import { createHash, randomUUID } from 'node:crypto';
++import { attemptDirectory, boundedProcess } from './av-files.mjs';
++import { joinGifSegments } from './av-gif.mjs';
++
++async function hashFile(file) { const hash = createHash('sha256'); for await (const bytes of createReadStream(file)) hash.update(bytes); return hash.digest('hex'); }
++async function verifiedFile(directory, result, expected) {
++    if (!result || result.file !== expected || !/^[a-f0-9]{64}$/.test(result.sha256 ?? '') || !Number.isSafeInteger(result.size) || result.size < 1) throw new Error('El manifiesto de tramos está incompleto.');
++    const file = path.join(directory, expected), real = await fs.realpath(file);
++    if (process.platform === 'win32' ? real.toLowerCase() !== file.toLowerCase() : real !== file) throw new Error('El tramo no admite enlaces externos.');
++    const stat = await fs.stat(file);
++    if (!stat.isFile() || stat.size !== result.size || stat.size > 512 * 1024 ** 2 || await hashFile(file) !== result.sha256) throw new Error('Un tramo cambió o está incompleto.');
++    return file;
++}
++
++export async function assembleProject({ directory, plan, segments, format, signal }) {
++    directory = await attemptDirectory(directory); signal?.throwIfAborted();
++    if (!['mp4', 'gif'].includes(format) || !Array.isArray(segments) || segments.length !== plan.segments.length) throw new Error('Selecciona todos los tramos ordenados y un formato admitido.');
++    const id = randomUUID(), temporary = path.join(directory, `${id}.part.${format}`), target = path.join(directory, `project.${format}`);
++    const videoList = path.join(directory, `${id}.video.txt`), audioList = path.join(directory, `${id}.audio.txt`);
++    const width = Math.ceil(plan.document.width / 2) * 2, height = Math.ceil(plan.document.height / 2) * 2;
++    try {
++        const videos = [], audio = [];
++        for (const [index, item] of segments.entries()) {
++            signal?.throwIfAborted();
++            const segment = plan.segments[index], suffix = String(index).padStart(6, '0');
++            if (item.video?.frameStart !== segment.frameStart || item.video?.frameCount !== segment.frameCount || item.video?.fps !== plan.fps || item.video?.width !== width || item.video?.height !== height) throw new Error('Los tramos no siguen el reloj y las dimensiones del proyecto.');
++            videos.push(await verifiedFile(directory, item.video, `segments/video-${suffix}.${format}`));
++            if (format === 'mp4' && plan.audio.length) {
++                if (item.audio?.sampleStart !== segment.sampleStart || item.audio?.sampleCount !== segment.sampleCount || item.audio?.size !== 44 + segment.sampleCount * 8) throw new Error('Faltan muestras de audio del proyecto.');
++                audio.push(await verifiedFile(directory, item.audio, `segments/audio-${suffix}.wav`));
++            }
++        }
++        if (format === 'gif') await joinGifSegments(videos, temporary, { width, height, fps: plan.fps, frameCount: plan.frameCount, counts: plan.segments.map(segment => segment.frameCount), signal });
++        else {
++            const list = (files, file) => fs.writeFile(file, files.map(file => `file '${path.relative(directory, file).split(path.sep).join('/')}'`).join('\n') + '\n', { flag: 'wx' });
++            await list(videos, videoList); if (audio.length) await list(audio, audioList);
++            await boundedProcess(process.env.STUDIO_FFMPEG_BINARY ?? 'ffmpeg', ['-hide_banner', '-loglevel', 'error', '-nostdin', '-n',
++                '-f', 'concat', '-safe', '1', '-protocol_whitelist', 'file,pipe', '-i', videoList,
++                ...(audio.length ? ['-f', 'concat', '-safe', '1', '-protocol_whitelist', 'file,pipe', '-i', audioList, '-map', '0:v:0', '-map', '1:a:0', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-ac', '2'] : ['-map', '0:v:0', '-an']),
++                '-c:v', 'copy', '-t', plan.duration.toFixed(12), '-movflags', '+faststart', '-fs', String(8 * 1024 ** 3), temporary], { signal, timeout: 80000, maxBytes: 65536 });
++        }
++        signal?.throwIfAborted();
++        const probe = JSON.parse((await boundedProcess(process.env.STUDIO_FFPROBE_BINARY ?? 'ffprobe', ['-v', 'error', '-count_packets', '-show_entries',
++            'stream=codec_type,codec_name,width,height,nb_read_packets,sample_rate,channels:format=duration', '-of', 'json', temporary], { signal, timeout: 30000, maxBytes: 65536 })).toString());
++        const video = probe.streams?.find(stream => stream.codec_type === 'video'), audioStream = probe.streams?.find(stream => stream.codec_type === 'audio');
++        const audioExpected = format === 'mp4' && plan.audio.length > 0, duration = Number(probe.format?.duration);
++        if (video?.codec_name !== (format === 'mp4' ? 'h264' : 'gif') || Number(video?.nb_read_packets) !== plan.frameCount || video?.width !== width || video?.height !== height
++            || !Number.isFinite(duration) || Math.abs(duration - plan.duration) > (format === 'gif' ? 0.011 : 1 / plan.fps)
++            || probe.streams?.length !== (audioExpected ? 2 : 1) || (audioExpected && (audioStream?.codec_name !== 'aac' || Number(audioStream.sample_rate) !== 48000 || audioStream.channels !== 2))) throw new Error('El archivo final no coincide con sus pistas, duración, dimensiones o fotogramas.');
++        const size = (await fs.stat(temporary)).size;
++        if (size < 1 || size > 8 * 1024 ** 3) throw new Error('El archivo final supera su presupuesto de disco.');
++        const sha256 = await hashFile(temporary); signal?.throwIfAborted(); await fs.rename(temporary, target);
++        return { file: `project.${format}`, size, sha256, frameCount: plan.frameCount, fps: plan.fps, width, height, duration,
++            videoCodec: video.codec_name, audioCodec: audioStream?.codec_name ?? null };
++    } finally { await Promise.all([temporary, videoList, audioList].map(file => fs.rm(file, { force: true }))); }
++}
+--- a/scripts/studio/av-pcm.mjs
++++ b/scripts/studio/av-pcm.mjs
+@@ -0,0 +1,90 @@
++import fs from 'node:fs/promises';
++import { createReadStream } from 'node:fs';
++import path from 'node:path';
++import { createHash, randomUUID } from 'node:crypto';
++import { attemptDirectory, sourceFile, boundedProcess } from './av-files.mjs';
++
++const rate = 48000, frameBytes = 8, limit = 8 * 1024 ** 3;
++const same = (a, b) => process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;
++
++/** A separate checkpointable preparation phase. Never decode a compressed seek as an exact PCM clock. */
++export async function prepareAudioSource({ directory, asset, signal }) {
++    directory = await attemptDirectory(directory); signal?.throwIfAborted();
++    if (!['audio', 'video'].includes(asset?.kind) || !Number.isFinite(asset.duration) || asset.duration <= 0) throw new Error('Origen de audio no válido.');
++    const frames = Math.round(asset.duration * rate), size = frames * frameBytes;
++    if (!Number.isSafeInteger(size) || size < frameBytes || size > limit) throw new Error('El audio normalizado supera 8 GiB.');
++    const source = await sourceFile(directory, asset), original = await fs.stat(source);
++    const probe = JSON.parse((await boundedProcess(process.env.STUDIO_FFPROBE_BINARY ?? 'ffprobe', ['-v', 'error',
++        '-protocol_whitelist', 'file,pipe', '-format_whitelist', 'wav,mov,mp3,ogg,aac', '-show_entries',
++        'stream=codec_type,duration:format=duration', '-of', 'json', source], { signal, maxBytes: 65536 })).toString());
++    const stream = probe.streams?.find(stream => stream.codec_type === asset.kind);
++    const audio = probe.streams?.find(stream => stream.codec_type === 'audio');
++    const seconds = Number(stream?.duration ?? probe.format?.duration);
++    if (!audio || !Number.isFinite(seconds) || Math.abs(seconds - asset.duration) > 0.1) throw new Error('La duración del origen de audio está incompleta o cambió respecto al recurso.');
++    const folder = path.join(directory, 'audio-sources'); await fs.mkdir(folder, { recursive: true });
++    if (!same(await fs.realpath(folder), folder)) throw new Error('Los PCM privados no admiten enlaces.');
++    let used = 0;
++    const name = `${asset.id}.pcm`;
++    for (const entry of await fs.readdir(folder, { withFileTypes: true })) {
++        if (entry.isSymbolicLink() || !entry.isFile()) throw new Error('El directorio PCM contiene una entrada ajena.');
++        if (entry.name !== name) used += (await fs.stat(path.join(folder, entry.name))).size;
++    }
++    if (used + size > limit) throw new Error('Los intermediarios PCM del intento superan 8 GiB.');
++    const temporary = path.join(folder, `${randomUUID()}.part.pcm`), target = path.join(folder, name);
++    try {
++        // No -ss: resampling and codec priming share the same continuous reference as a full decode.
++        // A short video soundtrack ends in real silence; a stale/corrupt media duration failed above.
++        await boundedProcess(process.env.STUDIO_FFMPEG_BINARY ?? 'ffmpeg', ['-hide_banner', '-loglevel', 'error', '-nostdin', '-n',
++            '-protocol_whitelist', 'file,pipe', '-format_whitelist', 'wav,mov,mp3,ogg,aac', '-i', source,
++            '-map', '0:a:0', '-vn', '-sn', '-dn', '-threads', '1', '-map_metadata', '-1', '-ac', '2', '-ar', String(rate),
++            '-af', `aresample=${rate},apad=whole_len=${frames}`, '-t', (frames / rate).toFixed(12), '-fs', String(size + frameBytes), '-f', 'f32le', temporary],
++        { signal, timeout: 80000, maxBytes: 65536 });
++        const after = await fs.stat(source), stat = await fs.stat(temporary);
++        if (original.size !== after.size || original.mtimeMs !== after.mtimeMs || stat.size !== size) throw new Error('El origen cambió o la normalización PCM está incompleta.');
++        const hash = createHash('sha256');
++        for await (const bytes of createReadStream(temporary)) { signal?.throwIfAborted(); hash.update(bytes); }
++        signal?.throwIfAborted(); await fs.rename(temporary, target);
++        return { id: asset.id, file: `audio-sources/${name}`, size, frames, sampleRate: rate, channels: 2, codec: 'pcm_f32le',
++            sha256: hash.digest('hex'), sourceSize: original.size, sourceMtimeMs: original.mtimeMs };
++    } finally { await fs.rm(temporary, { force: true }); }
++}
++
++export async function prepareAudioSources({ directory, plan, assets, signal }) {
++    const resources = new Map(assets.map(asset => [asset.id, asset])), profiles = [];
++    for (const id of new Set(plan.audio.map(input => input.assetId))) profiles.push(await prepareAudioSource({ directory, asset: resources.get(id), signal }));
++    return profiles;
++}
++
++export async function pcmFile(directory, profile) {
++    if (!Number.isSafeInteger(profile?.id) || profile.id < 1 || profile.file !== `audio-sources/${profile.id}.pcm` || profile.sampleRate !== rate
++        || profile.channels !== 2 || profile.codec !== 'pcm_f32le' || !Number.isSafeInteger(profile.frames) || profile.frames < 1
++        || profile.size !== profile.frames * frameBytes || profile.size > limit || !/^[a-f0-9]{64}$/.test(profile.sha256 ?? '')) throw new Error('Perfil PCM no válido o incompleto.');
++    const file = path.join(directory, profile.file), real = await fs.realpath(file), stat = await fs.stat(real);
++    if (!same(file, real) || !stat.isFile() || stat.size !== profile.size) throw new Error('El PCM privado cambió o está incompleto.');
++    return file;
++}
++
++/** A segment-local LRU: identical windows share bytes; total retained PCM never exceeds16MiB. */
++export function pcmWindowReader(directory, profiles, { signal, onRead = () => {} } = {}) {
++    const resources = new Map(), cache = new Map(); let used = 0;
++    if (!Array.isArray(profiles)) throw new Error('Prepara los orígenes PCM antes de mezclar.');
++    for (const profile of profiles) { if (resources.has(profile.id)) throw new Error('Perfil PCM duplicado.'); resources.set(profile.id, profile); }
++    return async (id, from, to) => {
++        signal?.throwIfAborted();
++        const profile = resources.get(id);
++        const first = Math.max(0, Math.floor(from * rate + 1e-7)), end = Math.min(profile?.frames ?? 0, Math.ceil(to * rate - 1e-7) + 1);
++        if (!profile || first >= end || to * rate > profile.frames + 1.001 || (end - first) * frameBytes > 4 * 1024 ** 2) throw new Error('Ventana PCM fuera del origen o del presupuesto de lectura.');
++        const key = `${id}:${first}:${end}`;
++        if (cache.has(key)) { const hit = cache.get(key); cache.delete(key); cache.set(key, hit); return hit; }
++        const file = await pcmFile(directory, profile), count = (end - first) * frameBytes, buffer = Buffer.alloc(count), handle = await fs.open(file, 'r');
++        try {
++            let offset = 0;
++            while (offset < count) { signal?.throwIfAborted(); const { bytesRead } = await handle.read(buffer, offset, count - offset, first * frameBytes + offset); if (!bytesRead) throw new Error('La lectura PCM está truncada.'); offset += bytesRead; }
++        } finally { await handle.close(); }
++        onRead({ assetId: id, from: first / rate, to: end / rate });
++        const result = { from: first / rate, to: end / rate, pcm: new Float32Array(buffer.buffer, buffer.byteOffset, buffer.length / 4) };
++        while (used + count > 16 * 1024 ** 2 && cache.size) { const oldest = cache.keys().next().value; used -= cache.get(oldest).pcm.byteLength; cache.delete(oldest); }
++        cache.set(key, result); used += count;
++        return result;
++    };
++}
+--- a/tests/frontend/studio-audiovisual-plan.test.mjs
++++ b/tests/frontend/studio-audiovisual-plan.test.mjs
+@@ -0,0 +1,89 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { newElement } from '../../resources/js/Studio/document.js';
++import { compileAudiovisual, audioStateAt } from '../../resources/js/Studio/audiovisual-plan.js';
++
++const doc = (pages, tracks = [], fps = 30) => ({ schema_version: 2, width: 100, height: 100,
++    timeline: { fps, audio_tracks: tracks }, pages });
++const page = (id, duration, elements = [], transition) => ({ id, duration, background: '#ffffff', elements, ...(transition ? { transition } : {}) });
++const asset = (id, duration = 10, kind = 'audio') => ({ id, duration, kind, audio_codec: 'pcm_s16le', status: 'listo' });
++const track = (id, asset_id, start, duration, rest = {}) => ({ id, asset_id, start, duration, ...rest });
++
++test('segments cover the accumulated project exactly once in frames and PCM samples', () => {
++    for (const fps of [12, 15, 24, 25, 30, 50, 60]) {
++        const input = doc(Array.from({ length: 100 }, (_, i) => page(`p${i}`, 0.137)), [], fps);
++        const plan = compileAudiovisual(input, [], { segmentFrames: 7 });
++        assert.equal(plan.frameCount, Math.round(13.7 * fps));
++        assert.equal(plan.sampleRate, 48000);
++        assert.equal(plan.segments.at(-1).frameStart + plan.segments.at(-1).frameCount, plan.frameCount);
++        let frames = 0, samples = 0;
++        for (const segment of plan.segments) {
++            assert.equal(segment.frameStart, frames); assert.equal(segment.sampleStart, samples);
++            assert.ok(segment.frameCount > 0 && segment.frameCount <= 7);
++            frames += segment.frameCount; samples += segment.sampleCount;
++        }
++        assert.equal(samples, plan.frameCount * 48000 / fps);
++    }
++});
++
++test('inherited video windows preserve source phase and envelope instead of restarting at the group boundary', () => {
++    const video = newElement('video', { id: 'v', asset_id: 1, timing: { start: 0.5, duration: 3 },
++        trimStart: 1, trimEnd: 7, sourceOffset: 0.3, playbackRate: 2, volume: 0.5,
++        gainPoints: [{ time: 0, value: 0 }, { time: 3, value: 1 }] });
++    const group = newElement('group', { id: 'g', timing: { start: 1, duration: 1 }, elements: [video] });
++    const input = doc([page('p', 4, [group])]); const before = JSON.stringify(input);
++    const plan = compileAudiovisual(input, [asset(1, 10, 'video')]);
++    assert.equal(plan.audio.length, 1); assert.equal(plan.audio[0].start, 1); assert.equal(plan.audio[0].end, 2);
++    assert.deepEqual(audioStateAt(plan, 0.99), []);
++    const [sample] = audioStateAt(plan, 1.5);
++    assert.ok(Math.abs(sample.sourceTime - 3.3) < 1e-9);
++    assert.ok(Math.abs(sample.gain - 1 / 6) < 1e-9);
++    assert.deepEqual(audioStateAt(plan, 2), []); assert.equal(JSON.stringify(input), before);
++});
++
++test('page audio crossfades on the same accumulated clock while global music stays continuous', () => {
++    for (const type of ['fade', 'slide_left', 'slide_right']) {
++        const layer = (id, asset_id) => newElement('video', { id, asset_id });
++        const plan = compileAudiovisual(doc([page('a', 2, [layer('v1', 1)], { type, duration: 1 }),
++            page('b', 2, [layer('v2', 2)])], [track('music', 3, 0, 3, { volume: 0.25 })]),
++        [asset(1, 10, 'video'), asset(2, 10, 'video'), asset(3)]);
++        assert.equal(plan.frameCount, 90);
++        const states = audioStateAt(plan, 1.5); assert.equal(states.length, 3);
++        const byId = Object.fromEntries(states.map(sample => [sample.id, sample]));
++        assert.equal(byId.v1.gain, 0.5); assert.equal(byId.v2.gain, 0.5); assert.equal(byId.music.gain, 0.25);
++        assert.equal(byId.v1.sourceTime, 1.5); assert.equal(byId.v2.sourceTime, 0.5); assert.equal(byId.music.sourceTime, 1.5);
++    }
++});
++
++test('audio source trim, offset, slow rate, loop and EOF use a semi-open interval', () => {
++    const plan = compileAudiovisual(doc([page('p', 5)], [
++        track('once', 1, 0.5, 4, { trimStart: 1, trimEnd: 2, sourceOffset: 0.25, playbackRate: 0.5 }),
++        track('loop', 1, 0.5, 4, { trimStart: 1, trimEnd: 2, sourceOffset: 0.25, playbackRate: 2, loop: true }),
++    ]), [asset(1)]);
++    const at = (id, time) => audioStateAt(plan, time).find(sample => sample.id === id);
++    assert.equal(at('once', 1.5).sourceTime, 1.75);
++    assert.equal(at('once', 2), undefined); assert.equal(at('loop', 2).sourceTime, 1.25);
++    assert.equal(at('loop', 4.5), undefined);
++});
++
++test('muted, silent, invisible and non-intersecting video layers never become audio inputs', () => {
++    const layers = [newElement('video', { id: 'mute', asset_id: 1, muted: true }),
++        newElement('video', { id: 'audible', asset_id: 1, volume: 0.5 }),
++        newElement('video', { id: 'zero', asset_id: 1, volume: 0 }), newElement('video', { id: 'silent', asset_id: 2 }),
++        newElement('group', { id: 'hidden', visible: false, elements: [newElement('video', { id: 'hidden_child', asset_id: 99 })] }),
++        newElement('group', { id: 'disjoint', timing: { start: 0, duration: 1 }, elements: [
++            newElement('video', { id: 'late', asset_id: 99, timing: { start: 2, duration: 1 } }),
++        ] })];
++    const plan = compileAudiovisual(doc([page('p', 4, layers)]), [asset(1, 10, 'video'), { ...asset(2, 10, 'video'), audio_codec: null }]);
++    assert.deepEqual(plan.audio.map(input => input.id), ['audible']);
++});
++
++test('audio compilation rejects unready, duplicate, missing and out-of-source metadata and invalid segment budgets', () => {
++    const input = doc([page('p', 2)], [track('music', 1, 0, 2, { trimStart: 0.5, trimEnd: 1.5 })]);
++    for (const assets of [[], [asset(1, 1)], [{ ...asset(1), status: 'pendiente' }], [asset(1), asset(1)], [{ ...asset(1), duration: NaN }]]) {
++        assert.throws(() => compileAudiovisual(input, assets), /recurso|origen|audio|duplicad/i);
++    }
++    for (const segmentFrames of [0, -1, 1.5, NaN, 61, '10']) {
++        assert.throws(() => compileAudiovisual(input, [asset(1)], { segmentFrames }), /tramo/i);
++    }
++});
+--- a/tests/frontend/studio-audiovisual.browser.test.mjs
++++ b/tests/frontend/studio-audiovisual.browser.test.mjs
+@@ -0,0 +1,60 @@
++import test, { before, after } from 'node:test';
++import assert from 'node:assert/strict';
++import { execFileSync } from 'node:child_process';
++import { chromium } from 'playwright';
++import { build } from 'vite';
++import { newElement } from '../../resources/js/Studio/document.js';
++
++let browser, page;
++before(async () => {
++    const video = execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'color=red:size=64x64:rate=10:duration=1',
++        '-f', 'lavfi', '-i', 'color=blue:size=64x64:rate=10:duration=3', '-filter_complex', '[0:v][1:v]concat=n=2:v=1:a=0[v]', '-map', '[v]',
++        '-c:v', 'libx264', '-threads', '1', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', '-movflags', 'frag_keyframe+empty_moov', '-f', 'mp4', 'pipe:1'], { timeout: 20000 });
++    const bundle = await build({ configFile: false, publicDir: false, logLevel: 'silent', build: { write: false,
++        lib: { entry: 'resources/js/Studio/timeline-preview.js', name: 'OfflinePreview', formats: ['iife'] } } });
++    browser = await chromium.launch({ headless: true }); page = await browser.newPage({ serviceWorkers: 'block' });
++    await page.route('**/*', route => {
++        if (route.request().url() === 'http://av-preview.invalid/') return route.fulfill({ contentType: 'text/html', body: '<!doctype html><body></body>' });
++        if (route.request().url() === 'http://av-preview.invalid/video') {
++            const range = /^bytes=(\d+)-(\d*)$/.exec(route.request().headers().range ?? '');
++            const start = range ? Number(range[1]) : 0, end = range?.[2] ? Math.min(Number(range[2]), video.length - 1) : video.length - 1;
++            return route.fulfill({ status: range ? 206 : 200, contentType: 'video/mp4', body: video.subarray(start, end + 1),
++                headers: { 'Accept-Ranges': 'bytes', ...(range ? { 'Content-Range': `bytes ${start}-${end}/${video.length}` } : {}) } });
++        }
++        return route.abort();
++    });
++    await page.goto('http://av-preview.invalid/');
++    await page.addScriptTag({ content: (Array.isArray(bundle) ? bundle[0] : bundle).output[0].code });
++});
++after(async () => { await browser?.close(); });
++
++test('offline frames never open audio decoders or play media and hold strictly inside trimEnd', async () => {
++    const input = { schema_version: 2, width: 100, height: 100, timeline: { fps: 30,
++        audio_tracks: [{ id: 'music', asset_id: 99, start: 0, duration: 4 }] }, pages: [
++        { id: 'p', duration: 4, background: '#ffffff', elements: [newElement('video', { id: 'v', asset_id: 1,
++            x: 0, y: 0, width: 64, height: 64, trimStart: 0, trimEnd: 1, muted: false })] },
++    ] };
++    const result = await page.evaluate(async doc => {
++        const canvas = document.createElement('canvas'), nodes = [], nativeCreate = document.createElement.bind(document);
++        let audioNodes = 0, plays = 0, preview;
++        const nativePlay = HTMLMediaElement.prototype.play;
++        document.createElement = (...args) => { const node = nativeCreate(...args); if (args[0] === 'audio') audioNodes++;
++            if (args[0] === 'video') nodes.push(node); return node; };
++        HTMLMediaElement.prototype.play = function () { plays++; return nativePlay.call(this); };
++        const before = JSON.stringify(doc), pixels = [], times = [];
++        try {
++            preview = await OfflinePreview.createTimelinePreview(canvas, { document: doc, offline: true,
++                assets: [{ id: 1, kind: 'video', status: 'listo', duration: 4, studio_url: 'http://av-preview.invalid/video' }] });
++            for (const time of [0.5, 0.9, 1, 2, 3.9]) {
++                await preview.seek(time, { play: true });
++                pixels.push(Array.from(canvas.getContext('2d').getImageData(10, 10, 1, 1).data));
++                times.push(nodes[0].currentTime);
++            }
++            return { audioNodes, plays, pixels, times, preservesPitch: nodes[0].preservesPitch, unchanged: before === JSON.stringify(doc) };
++        } finally { await preview?.dispose(); document.createElement = nativeCreate; HTMLMediaElement.prototype.play = nativePlay; }
++    }, input);
++    assert.equal(result.audioNodes, 0); assert.equal(result.plays, 0); assert.equal(result.unchanged, true);
++    assert.equal(result.preservesPitch, false, 'video and standalone audio must use the same source-rate/pitch policy');
++    assert.ok(result.pixels.every(pixel => pixel[0] > 230 && pixel[2] < 20), JSON.stringify(result));
++    assert.ok(result.times.slice(2).every(time => time >= 0.9 && time < 1), JSON.stringify(result));
++});
+--- a/tests/frontend/studio-audiovisual-audio.test.mjs
++++ b/tests/frontend/studio-audiovisual-audio.test.mjs
+@@ -0,0 +1,146 @@
++import test, { before, after } from 'node:test';
++import assert from 'node:assert/strict';
++import fs from 'node:fs/promises';
++import path from 'node:path';
++import crypto from 'node:crypto';
++import { execFileSync } from 'node:child_process';
++import { compileAudiovisual } from '../../resources/js/Studio/audiovisual-plan.js';
++import { mixAudioSegment } from '../../scripts/studio/av-audio.mjs';
++import { prepareAudioSource, prepareAudioSources, pcmWindowReader } from '../../scripts/studio/av-pcm.mjs';
++
++const base = path.resolve('storage/app/private/studio-exports/0/0');
++let directory;
++const rate = 48000;
++function wav(seconds, frequency) {
++    const count = seconds * rate, bytes = Buffer.alloc(44 + count * 8);
++    bytes.write('RIFF'); bytes.writeUInt32LE(bytes.length - 8, 4); bytes.write('WAVEfmt ', 8); bytes.writeUInt32LE(16, 16);
++    bytes.writeUInt16LE(3, 20); bytes.writeUInt16LE(2, 22); bytes.writeUInt32LE(rate, 24); bytes.writeUInt32LE(rate * 8, 28);
++    bytes.writeUInt16LE(8, 32); bytes.writeUInt16LE(32, 34); bytes.write('data', 36); bytes.writeUInt32LE(count * 8, 40);
++    for (let n = 0; n < count; n++) for (let channel = 0; channel < 2; channel++) bytes.writeFloatLE(0.1 * Math.sin(2 * Math.PI * frequency * n / rate), 44 + n * 8 + channel * 4);
++    return bytes;
++}
++before(async () => {
++    directory = path.join(base, crypto.randomUUID()); await fs.mkdir(path.join(directory, 'assets'), { recursive: true });
++    for (const [id, frequency] of [[1, 220], [2, 880], [3, 443]]) await fs.writeFile(path.join(directory, 'assets', `${id}.bin`), wav(4, frequency));
++    await fs.writeFile(path.join(directory, 'assets/4.bin'), wav(0.1, 440));
++    for (const [id, sampleRate, codec, format] of [[5, 44100, 'aac', 'ipod'], [6, 48000, 'aac', 'ipod'], [7, 44100, 'libmp3lame', 'mp3']]) {
++        execFileSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', `sine=frequency=997:sample_rate=${sampleRate}:duration=6`,
++            '-c:a', codec, '-f', format, path.join(directory, `assets/${id}.bin`)], { timeout: 15000 });
++    }
++});
++
++test('native audio rejects truncated decoder output instead of filling the missing tail with a held sample', async () => {
++    const source = { id: 4, file: 'assets/4.bin', kind: 'audio', status: 'listo', audio_codec: 'pcm_f32le', duration: 4, mime: 'audio/wav' };
++    const compiled = compileAudiovisual({ schema_version: 2, width: 100, height: 100, timeline: { fps: 30,
++        audio_tracks: [{ id: 'short', asset_id: 4, start: 0, duration: 2 }] }, pages: [{ id: 'p', duration: 2, background: '#000000', elements: [] }] }, [source]);
++    await assert.rejects(async () => {
++        const audioSources = await prepareAudioSources({ directory, plan: compiled, assets: [source] });
++        return mixAudioSegment({ directory, plan: compiled, audioSources, segment: compiled.segments[0], name: 'truncated' });
++    }, /incomplet|muestras|truncad|duración/i);
++    await assert.rejects(fs.access(path.join(directory, 'segments/truncated-000000.wav')));
++});
++after(async () => { assert.equal(path.dirname(directory), base); await fs.rm(directory, { recursive: true, force: true }); });
++const assets = [1, 2, 3].map(id => ({ id, kind: 'audio', status: 'listo', audio_codec: 'pcm_f32le', duration: 4, file: `assets/${id}.bin`, mime: 'audio/wav' }));
++function plan(tracks, segmentFrames = 15) {
++    return compileAudiovisual({ schema_version: 2, width: 100, height: 100, timeline: { fps: 30, audio_tracks: tracks },
++        pages: [{ id: 'p', duration: 2, background: '#000000', elements: [] }] }, assets, { segmentFrames });
++}
++async function collect(compiled, label) {
++    const samples = [], reads = [];
++    const audioSources = await prepareAudioSources({ directory, plan: compiled, assets });
++    for (const segment of compiled.segments) {
++        const result = await mixAudioSegment({ directory, plan: compiled, audioSources, segment, name: label, onRead: window => reads.push(window) });
++        const bytes = await fs.readFile(path.join(directory, result.file));
++        assert.equal(bytes.subarray(0, 4).toString(), 'RIFF'); assert.equal(bytes.length, 44 + segment.sampleCount * 8);
++        assert.equal(result.sampleCount, segment.sampleCount);
++        for (let offset = 44; offset < bytes.length; offset += 8) samples.push(bytes.readFloatLE(offset));
++    }
++    return { samples, reads };
++}
++function magnitude(samples, from, to, frequency) {
++    let real = 0, imag = 0;
++    for (let n = Math.round(from * rate); n < Math.round(to * rate); n++) {
++        real += samples[n] * Math.cos(2 * Math.PI * frequency * n / rate);
++        imag += samples[n] * Math.sin(2 * Math.PI * frequency * n / rate);
++    }
++    return Math.hypot(real, imag) * 2 / Math.round((to - from) * rate);
++}
++
++test('native PCM segments change rate and mix known tones at their global start without resetting phase', async () => {
++    const { samples, reads } = await collect(plan([
++        { id: 'rate', asset_id: 1, start: 0, duration: 2, playbackRate: 2, volume: 0.5 },
++        { id: 'overlay', asset_id: 2, start: 1, duration: 1, volume: 0.25 },
++    ]), 'tones');
++    assert.equal(samples.length, rate * 2); assert.ok(reads.length > 0, 'real source windows must be decoded');
++    assert.ok(Math.abs(magnitude(samples, 0.25, 0.75, 440) - 0.05) < 0.002);
++    assert.ok(magnitude(samples, 0.25, 0.75, 880) < 0.0002);
++    assert.ok(Math.abs(magnitude(samples, 1.25, 1.75, 440) - 0.05) < 0.002);
++    assert.ok(Math.abs(magnitude(samples, 1.25, 1.75, 880) - 0.025) < 0.002);
++    for (const n of [23999, 24000, 47999, 48000, 71999, 72000]) {
++        const time = n / rate, expected = 0.05 * Math.sin(2 * Math.PI * 440 * time) + (time >= 1 ? 0.025 * Math.sin(2 * Math.PI * 880 * (time - 1)) : 0);
++        assert.ok(Math.abs(samples[n] - expected) < 0.003, `seam ${n}: ${samples[n]} vs ${expected}`);
++    }
++});
++
++test('native loop, trim, offset and envelope match a sample-clock reference across segment boundaries', async () => {
++    const compiled = plan([{ id: 'loop', asset_id: 3, start: 0, duration: 2, trimStart: 0.2, trimEnd: 0.6,
++        sourceOffset: 0.113, playbackRate: 1.5, loop: true, volume: 0.5, gainPoints: [{ time: 0, value: 0.2 }, { time: 2, value: 1 }] }], 7);
++    const { samples, reads } = await collect(compiled, 'loop');
++    let squared = 0;
++    for (let n = 0; n < samples.length; n++) {
++        const time = n / rate, source = 0.2 + (0.113 + time * 1.5) % 0.4;
++        const expected = 0.05 * (0.2 + 0.4 * time) * Math.sin(2 * Math.PI * 443 * source);
++        squared += (samples[n] - expected) ** 2;
++    }
++    assert.ok(Math.sqrt(squared / samples.length) < 0.002, `RMS error ${Math.sqrt(squared / samples.length)}`);
++    assert.ok(reads.every(window => window.to - window.from <= 2 * 4 + 2 / rate), JSON.stringify(reads));
++    // A single neighbour sample permits interpolation; report the actual decode window, not a masked range.
++    assert.ok(reads.every(window => window.from >= 0.2 - 1 / rate && window.to <= 0.6 + 2 / rate));
++});
++
++for (const [id, codec] of [[5, 'm4a44100'], [6, 'm4a48000'], [7, 'mp344100']]) {
++    test(`native ${codec} preserves the continuous PCM sample clock in short and default segments`, async () => {
++        const asset = { id, kind: 'audio', status: 'listo', audio_codec: id === 7 ? 'mp3' : 'aac', duration: 6, file: `assets/${id}.bin` };
++        const reference = execFileSync('ffmpeg', ['-v', 'error', '-i', path.join(directory, asset.file), '-ac', '2', '-ar', '48000', '-f', 'f32le', 'pipe:1'], { timeout: 15000, maxBuffer: 3 * 1024 ** 2 });
++        let audioSources;
++        for (const options of [{ segmentFrames: 7 }, {}]) {
++            const compiled = compileAudiovisual({ schema_version: 2, width: 100, height: 100, timeline: { fps: 30,
++                audio_tracks: [{ id: 'tone', asset_id: id, start: 0, duration: 4 }] }, pages: [{ id: 'p', duration: 4, background: '#000000', elements: [] }] }, [asset], options);
++            audioSources ??= await prepareAudioSources({ directory, plan: compiled, assets: [asset] });
++            for (const segment of compiled.segments) {
++                const result = await mixAudioSegment({ directory, plan: compiled, audioSources, segment, name: codec });
++                const bytes = await fs.readFile(path.join(directory, result.file)); let squared = 0;
++                for (let n = 0; n < segment.sampleCount; n++) squared += (bytes.readFloatLE(44 + n * 8) - reference.readFloatLE((segment.sampleStart + n) * 8)) ** 2;
++                assert.ok(Math.sqrt(squared / segment.sampleCount) < 0.0001, `${codec}/${options.segmentFrames ?? 60}/${segment.index}: RMS=${Math.sqrt(squared / segment.sampleCount)}`);
++            }
++        }
++    });
++}
++
++test('64 clips sharing one source window read that window only once per segment', async () => {
++    const compiled = plan(Array.from({ length: 64 }, (_, i) => ({ id: `same_${i}`, asset_id: 1, start: 0, duration: 2 })), 60), reads = [];
++    const audioSources = await prepareAudioSources({ directory, plan: compiled, assets });
++    assert.equal(audioSources.length, 1, 'one normalisation for the shared resource');
++    await mixAudioSegment({ directory, plan: compiled, audioSources, segment: compiled.segments[0], name: 'shared', onRead: window => reads.push(window) });
++    assert.equal(reads.length, 1, `one unique source window caused ${reads.length} reads`);
++});
++
++test('normalised PCM profiles reject altered lengths, arbitrary paths and duplicate identities', async () => {
++    await fs.copyFile(path.join(directory, 'assets/1.bin'), path.join(directory, 'assets/9.bin'));
++    const profile = await prepareAudioSource({ directory, asset: { ...assets[0], id: 9, file: 'assets/9.bin' } });
++    assert.equal(profile.frames, 4 * 48000); assert.equal(profile.size, 4 * 48000 * 8);
++    const read = pcmWindowReader(directory, [profile]);
++    await assert.rejects(pcmWindowReader(directory, [{ ...profile, file: '../outside.pcm' }])(9, 0, 0.1), /perfil/i);
++    assert.throws(() => pcmWindowReader(directory, [profile, profile]), /duplicado/i);
++    await fs.truncate(path.join(directory, profile.file), profile.size - 8);
++    await assert.rejects(read(9, 0, 0.1), /incompleto/i);
++});
++
++test('cancelled normalisation leaves no usable PCM or partial file', async () => {
++    await fs.copyFile(path.join(directory, 'assets/1.bin'), path.join(directory, 'assets/8.bin'));
++    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 30);
++    try { await assert.rejects(prepareAudioSource({ directory, asset: { ...assets[0], id: 8, file: 'assets/8.bin' }, signal: controller.signal })); }
++    finally { clearTimeout(timer); }
++    await assert.rejects(fs.access(path.join(directory, 'audio-sources/8.pcm')));
++    assert.equal((await fs.readdir(path.join(directory, 'audio-sources'))).some(name => name.includes('.part.')), false);
++});
+--- a/tests/frontend/studio-audiovisual-render.test.mjs
++++ b/tests/frontend/studio-audiovisual-render.test.mjs
+@@ -0,0 +1,136 @@
++import test, { before, after } from 'node:test';
++import assert from 'node:assert/strict';
++import fs from 'node:fs/promises';
++import path from 'node:path';
++import crypto from 'node:crypto';
++import { execFileSync } from 'node:child_process';
++import { newElement } from '../../resources/js/Studio/document.js';
++import { compileAudiovisual } from '../../resources/js/Studio/audiovisual-plan.js';
++import { renderVisualSegment } from '../../scripts/studio/av-video.mjs';
++import { mixAudioSegment } from '../../scripts/studio/av-audio.mjs';
++import { assembleProject } from '../../scripts/studio/av-finalize.mjs';
++import { prepareAudioSources } from '../../scripts/studio/av-pcm.mjs';
++
++const base = path.resolve('storage/app/private/studio-exports/0/0');
++let directory, assets;
++before(async () => {
++    directory = path.join(base, crypto.randomUUID()); await fs.mkdir(path.join(directory, 'assets'), { recursive: true });
++    const source = path.join(directory, 'assets/1.bin');
++    execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-nostdin', '-f', 'lavfi', '-i', 'testsrc2=size=64x64:rate=12:duration=2',
++        '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000:duration=2', '-c:v', 'libx264', '-threads', '1', '-preset', 'ultrafast',
++        '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-movflags', '+faststart', '-f', 'mp4', source], { timeout: 20000 });
++    assets = [{ id: 1, file: 'assets/1.bin', kind: 'video', status: 'listo', mime: 'video/mp4', duration: 2, audio_codec: 'aac', width: 64, height: 64, size: (await fs.stat(source)).size }];
++});
++
++test('native MP4 assembly preserves all frames, AAC sound, duration and faststart after joining segments', { timeout: 90000 }, async () => {
++    const plan = compileAudiovisual({ schema_version: 2, width: 100, height: 100, timeline: { fps: 12,
++        audio_tracks: [{ id: 'music', asset_id: 1, start: 0, duration: 0.5, volume: 0.5 }] },
++        pages: [{ id: 'p', duration: 0.5, background: '#ff0000', elements: [] }] }, assets, { segmentFrames: 3 });
++    const segments = [];
++    const audioSources = await prepareAudioSources({ directory, plan, assets });
++    for (const segment of plan.segments) segments.push({ video: await renderVisualSegment({ directory, plan, assets, segment }),
++        audio: await mixAudioSegment({ directory, plan, audioSources, segment }) });
++    const reference = execFileSync('ffmpeg', ['-v', 'error', '-i', path.join(directory, 'assets/1.bin'), '-t', '0.5', '-vn', '-ac', '2', '-ar', '48000', '-f', 'f32le', 'pipe:1'], { timeout: 15000 });
++    for (const [index, result] of segments.entries()) {
++        const bytes = await fs.readFile(path.join(directory, result.audio.file)), segment = plan.segments[index]; let squared = 0;
++        for (let n = 0; n < segment.sampleCount; n++) squared += (bytes.readFloatLE(44 + n * 8) - reference.readFloatLE((n + segment.sampleStart) * 8) * 0.5) ** 2;
++        assert.ok(Math.sqrt(squared / segment.sampleCount) < 0.002, `AAC source phase drift in segment ${index}: RMS=${Math.sqrt(squared / segment.sampleCount)}`);
++    }
++    const result = await assembleProject({ directory, plan, segments, format: 'mp4' });
++    const bytes = await fs.readFile(path.join(directory, result.file));
++    assert.ok(bytes.indexOf(Buffer.from('moov')) > 0 && bytes.indexOf(Buffer.from('moov')) < bytes.indexOf(Buffer.from('mdat')), 'MP4 must support progressive playback');
++    assert.equal(result.frameCount, 6); assert.equal(result.width, 100); assert.equal(result.height, 100);
++    assert.equal(result.videoCodec, 'h264'); assert.equal(result.audioCodec, 'aac');
++    assert.ok(Math.abs(result.duration - 0.5) <= 1 / 12);
++    const pcm = execFileSync('ffmpeg', ['-v', 'error', '-i', path.join(directory, result.file), '-vn', '-ac', '1', '-ar', '48000', '-f', 'f32le', 'pipe:1'], { timeout: 15000, maxBuffer: 1024 ** 2 });
++    let real = 0, imag = 0;
++    for (let n = 4800; n < 19200; n++) { const value = pcm.readFloatLE(n * 4); real += value * Math.cos(2 * Math.PI * 440 * n / 48000); imag += value * Math.sin(2 * Math.PI * 440 * n / 48000); }
++    const amplitude = Math.hypot(real, imag) * 2 / 14400;
++    assert.ok(amplitude > 0.03, `actual AAC output must contain the source tone: amplitude=${amplitude}, samples=${pcm.length / 4}`);
++});
++
++test('native GIF segments retain palettes and use accumulated centisecond delays when joined', { timeout: 90000 }, async () => {
++    const plan = compileAudiovisual({ schema_version: 2, width: 100, height: 100, timeline: { fps: 30, audio_tracks: [] }, pages: [
++        { id: 'red', duration: 0.5, background: '#ff0000', elements: [] },
++        { id: 'blue', duration: 0.5, background: '#0000ff', elements: [] },
++    ] }, assets, { segmentFrames: 7 });
++    const segments = [];
++    for (const segment of plan.segments) {
++        const video = await renderVisualSegment({ directory, plan, assets, segment, format: 'gif' });
++        assert.match(video.file, /\.gif$/); segments.push({ video });
++    }
++    const result = await assembleProject({ directory, plan, segments, format: 'gif' });
++    assert.equal(result.videoCodec, 'gif'); assert.equal(result.audioCodec, null); assert.equal(result.frameCount, 30);
++    assert.ok(Math.abs(result.duration - 1) <= 0.01, JSON.stringify(result));
++    const file = path.join(directory, result.file), bytes = await fs.readFile(file);
++    assert.equal(bytes.subarray(0, 6).toString(), 'GIF89a');
++    assert.equal(bytes.indexOf(Buffer.from('GIF89a'), 6), -1, 'joining must not concatenate several complete GIF files');
++    const raw = execFileSync('ffmpeg', ['-v', 'error', '-i', file, '-fps_mode', 'passthrough', '-pix_fmt', 'rgb24', '-f', 'rawvideo', 'pipe:1'], { timeout: 15000, maxBuffer: 4 * 1024 ** 2 });
++    assert.equal(raw.length, 30 * 30000);
++    for (const n of [0, 14, 15, 29]) { const pixel = Array.from(raw.subarray(n * 30000, n * 30000 + 3));
++        assert.ok(n < 15 ? pixel[0] > 230 && pixel[2] < 20 : pixel[2] > 230 && pixel[0] < 20, `${n}: ${pixel}`); }
++});
++
++test('native page audio fades on the shared project clock and includes the original video soundtrack', async () => {
++    const layer = (id, volume) => newElement('video', { id, asset_id: 1, volume });
++    const plan = compileAudiovisual({ schema_version: 2, width: 100, height: 100, timeline: { fps: 12, audio_tracks: [] }, pages: [
++        { id: 'a', duration: 1, background: '#ffffff', transition: { type: 'slide_left', duration: 0.5 }, elements: [layer('one', 1)] },
++        { id: 'b', duration: 1, background: '#ffffff', elements: [layer('two', 0.5)] },
++    ] }, assets, { segmentFrames: 3 });
++    const reference = execFileSync('ffmpeg', ['-v', 'error', '-i', path.join(directory, 'assets/1.bin'), '-vn', '-ac', '2', '-ar', '48000', '-f', 'f32le', 'pipe:1'], { timeout: 15000 });
++    let squared = 0, samples = 0;
++    const audioSources = await prepareAudioSources({ directory, plan, assets });
++    for (const segment of plan.segments) {
++        const result = await mixAudioSegment({ directory, plan, audioSources, segment, name: 'pagefade' });
++        const bytes = await fs.readFile(path.join(directory, result.file));
++        for (let n = 0; n < segment.sampleCount; n++) {
++            const global = n + segment.sampleStart, time = global / 48000;
++            let expected = 0;
++            if (time < 1) expected += reference.readFloatLE(global * 8) * (time < 0.5 ? 1 : (1 - time) / 0.5);
++            if (time >= 0.5) expected += reference.readFloatLE((global - 24000) * 8) * 0.5 * (time < 1 ? (time - 0.5) / 0.5 : 1);
++            squared += (bytes.readFloatLE(44 + n * 8) - expected) ** 2; samples++;
++        }
++    }
++    assert.equal(samples, 72000); assert.ok(Math.sqrt(squared / samples) < 0.002, `page crossfade RMS=${Math.sqrt(squared / samples)}`);
++});
++
++test('a video soundtrack shorter than its visual stream becomes silence after audio EOF', async () => {
++    const file = path.join(directory, 'assets/2.bin');
++    execFileSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=64x64:rate=12:duration=2', '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=96000:duration=0.5',
++        '-c:v', 'libx264', '-threads', '1', '-preset', 'ultrafast', '-c:a', 'aac', '-f', 'mp4', file], { timeout: 15000 });
++    const source = { ...assets[0], id: 2, file: 'assets/2.bin', duration: 2 };
++    delete source.size;
++    const plan = compileAudiovisual({ schema_version: 2, width: 100, height: 100, timeline: { fps: 12, audio_tracks: [] },
++        pages: [{ id: 'p', duration: 2, background: '#000000', elements: [newElement('video', { id: 'short_audio', asset_id: 2 })] }] }, [source]);
++    const audioSources = await prepareAudioSources({ directory, plan, assets: [source] });
++    const result = await mixAudioSegment({ directory, plan, audioSources, segment: plan.segments[0], name: 'shortaudio' });
++    const bytes = await fs.readFile(path.join(directory, result.file)); let energy = 0, tail = 0;
++    for (let n = 4800; n < 19200; n++) energy += bytes.readFloatLE(44 + n * 8) ** 2;
++    for (let n = 48000; n < 96000; n++) tail = Math.max(tail, Math.abs(bytes.readFloatLE(44 + n * 8)));
++    assert.ok(Math.sqrt(energy / 14400) > 0.01); assert.ok(tail < 1e-6, `audio EOF peak=${tail}`);
++});
++after(async () => { assert.equal(path.dirname(directory), base); await fs.rm(directory, { recursive: true, force: true }); });
++
++test('native visual segments render moving video, timed overlays and a page transition on the project frame clock', { timeout: 90000 }, async () => {
++    const plan = compileAudiovisual({ schema_version: 2, width: 100, height: 100, timeline: { fps: 12, audio_tracks: [] }, pages: [
++        { id: 'red', background: '#ff0000', duration: 1, transition: { type: 'fade', duration: 0.5 }, elements: [
++            newElement('video', { id: 'motion', asset_id: 1, x: 40, y: 40, width: 60, height: 60, muted: true, trimStart: 0.1, trimEnd: 1.5, playbackRate: 1.5 }),
++            newElement('rect', { id: 'overlay', x: 0, y: 0, width: 30, height: 30, fill: '#00ff00', timing: { start: 0.25, duration: 0.5 } }),
++        ] }, { id: 'blue', background: '#0000ff', duration: 1, elements: [] },
++    ] }, assets, { segmentFrames: 6 });
++    const before = JSON.stringify(plan.document), frames = [], summaries = [];
++    for (const segment of plan.segments) {
++        const result = await renderVisualSegment({ directory, plan, assets, segment }); summaries.push(result);
++        const bytes = execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-i', path.join(directory, result.file), '-an', '-pix_fmt', 'rgb24', '-f', 'rawvideo', 'pipe:1'], { timeout: 15000, maxBuffer: 4 * 1024 ** 2 });
++        assert.equal(bytes.length, 100 * 100 * 3 * segment.frameCount);
++        for (let frame = 0; frame < segment.frameCount; frame++) frames.push(bytes.subarray(frame * 30000, (frame + 1) * 30000));
++    }
++    assert.equal(frames.length, 18); assert.equal(JSON.stringify(plan.document), before);
++    const pixel = (frame, x = 10, y = 10) => Array.from(frames[frame].subarray((y * 100 + x) * 3, (y * 100 + x) * 3 + 3));
++    assert.ok(pixel(0)[0] > 230 && pixel(0)[2] < 20, JSON.stringify(pixel(0)));
++    assert.ok(pixel(3)[1] > 230 && pixel(3)[0] < 20, JSON.stringify(pixel(3)));
++    const middle = pixel(9); assert.ok(middle[0] > 100 && middle[0] < 155 && middle[2] > 100 && middle[2] < 155, JSON.stringify(middle));
++    assert.ok(pixel(15)[2] > 230 && pixel(15)[0] < 20, JSON.stringify(pixel(15)));
++    assert.notDeepEqual(frames[0].subarray(40 * 100 * 3), frames[3].subarray(40 * 100 * 3), 'real source frames must move');
++    assert.ok(summaries.every(result => result.frameCount === 6 && result.fps === 12 && result.width === 100 && result.height === 100));
++});
+--- a/tests/frontend/studio-audiovisual-safety.test.mjs
++++ b/tests/frontend/studio-audiovisual-safety.test.mjs
+@@ -0,0 +1,78 @@
++import test, { before, after } from 'node:test';
++import assert from 'node:assert/strict';
++import fs from 'node:fs/promises';
++import path from 'node:path';
++import crypto from 'node:crypto';
++import { openResourceServer } from '../../scripts/studio/av-server.mjs';
++import { attemptDirectory, sourceFile, boundedProcess } from '../../scripts/studio/av-files.mjs';
++import { compileAudiovisual } from '../../resources/js/Studio/audiovisual-plan.js';
++import { renderVisualSegment } from '../../scripts/studio/av-video.mjs';
++import { assembleProject } from '../../scripts/studio/av-finalize.mjs';
++
++const base = path.resolve('storage/app/private/studio-exports/0/0');
++let directory, bytes;
++before(async () => {
++    directory = path.join(base, crypto.randomUUID()); await fs.mkdir(path.join(directory, 'assets'), { recursive: true });
++    bytes = crypto.randomBytes(128000); await fs.writeFile(path.join(directory, 'assets/1.bin'), bytes);
++});
++after(async () => { assert.equal(path.dirname(directory), base); await fs.rm(directory, { recursive: true, force: true }); });
++const asset = { id: 1, file: 'assets/1.bin', kind: 'image', mime: 'image/png', size: 128000, status: 'listo' };
++const plan = () => compileAudiovisual({ schema_version: 2, width: 100, height: 100, timeline: { fps: 12, audio_tracks: [] },
++    pages: [{ id: 'p', duration: 0.25, background: '#ff0000', elements: [] }] });
++
++test('the private loopback origin serves only its closed map and honours byte ranges', async () => {
++    const server = await openResourceServer(directory, [asset]);
++    try {
++        const url = server.assets[0].studio_url, full = await fetch(url);
++        assert.deepEqual(Buffer.from(await full.arrayBuffer()), bytes);
++        const range = await fetch(url, { headers: { Range: 'bytes=500-999' } });
++        assert.equal(range.status, 206); assert.equal(range.headers.get('content-range'), 'bytes 500-999/128000');
++        assert.deepEqual(Buffer.from(await range.arrayBuffer()), bytes.subarray(500, 1000));
++        assert.equal((await fetch(url, { method: 'HEAD' })).headers.get('content-length'), '128000');
++        for (const value of ['bytes=200000-', 'bytes=9-2', 'bytes=0-1,3-5', 'bytes=9007199254740993-']) {
++            assert.equal((await fetch(url, { headers: { Range: value } })).status, 416);
++        }
++        assert.equal((await fetch(url, { method: 'POST' })).status, 405);
++        assert.equal((await fetch(new URL('/assets/1', url))).status, 404);
++        assert.equal(server.allows('https://example.com/'), false);
++        assert.equal(server.allows(`${url}?different=1`), false);
++        assert.equal(server.allows(url), true);
++    } finally { await server.close(); }
++});
++
++test('native resources reject arbitrary paths, MIME injection, duplicate identities, wrong sizes and unrelated attempt folders', async () => {
++    await assert.rejects(attemptDirectory(path.dirname(directory)), /directorio/i);
++    for (const file of ['../secret', '/etc/passwd', 'assets/2.bin', 'file:///tmp/file', 'https://example.com/']) {
++        await assert.rejects(sourceFile(directory, { ...asset, file }), /snapshot/i);
++    }
++    await assert.rejects(sourceFile(directory, { ...asset, size: 1 }), /tamañ/i);
++    await assert.rejects(openResourceServer(directory, [asset, asset]), /duplicado/i);
++    await assert.rejects(openResourceServer(directory, [{ ...asset, mime: 'image/png\r\nX-Foo: injected' }]), /formato/i);
++});
++
++test('native processes enforce a bounded output and abort the owned child', async () => {
++    await assert.rejects(boundedProcess(process.execPath, ['-e', 'process.stdout.write(Buffer.alloc(65536))'], { maxBytes: 1000 }), /presupuesto/i);
++    const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 30);
++    try { await assert.rejects(boundedProcess(process.execPath, ['-e', 'setInterval(()=>{},1000)'], { signal: controller.signal, timeout: 2000 }), error => error.name === 'AbortError'); }
++    finally { clearTimeout(timeout); }
++});
++
++test('cancelled native render does not publish a segment or leave its part file', async () => {
++    const compiled = plan(), controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 30);
++    try { await assert.rejects(renderVisualSegment({ directory, plan: compiled, segment: compiled.segments[0], signal: controller.signal })); }
++    finally { clearTimeout(timeout); }
++    const files = await fs.readdir(path.join(directory, 'segments'));
++    assert.deepEqual(files, []);
++});
++
++test('final assembly rejects altered, missing and unordered segment manifests before publishing', async () => {
++    const compiled = plan(), segment = compiled.segments[0];
++    const video = await renderVisualSegment({ directory, plan: compiled, segment });
++    for (const item of [{ ...video, sha256: '0'.repeat(64) }, { ...video, frameStart: 4 }, { ...video, file: '../outside.mp4' }]) {
++        await assert.rejects(assembleProject({ directory, plan: compiled, segments: [{ video: item }], format: 'mp4' }));
++    }
++    await assert.rejects(assembleProject({ directory, plan: compiled, segments: [], format: 'mp4' }));
++    const files = await fs.readdir(directory);
++    assert.equal(files.some(file => /project\.|\.part\.|\.txt$/.test(file)), false);
++    assert.ok((await fs.stat(path.join(directory, video.file))).size > 0);
++});

@@ -17,7 +17,7 @@ class InboxComment extends Model
 
     protected $fillable = [
         'network', 'external_id', 'parent_external_id', 'post_external_id', 'author_name', 'text',
-        'is_own', 'hidden', 'commented_at', 'read_at',
+        'is_own', 'hidden', 'commented_at', 'read_at', 'closed_at',
     ];
 
     protected function casts(): array
@@ -28,6 +28,7 @@ class InboxComment extends Model
             'hidden' => 'boolean',
             'commented_at' => 'datetime',
             'read_at' => 'datetime',
+            'closed_at' => 'datetime',
         ];
     }
 
@@ -45,5 +46,10 @@ class InboxComment extends Model
     public function notes(): HasMany
     {
         return $this->hasMany(InboxCommentNote::class)->withoutGlobalScope(UserScope::class)->orderBy('id');
+    }
+
+    public function labels(): HasMany
+    {
+        return $this->hasMany(InboxCommentLabel::class)->withoutGlobalScope(UserScope::class)->orderBy('label');
     }
 }

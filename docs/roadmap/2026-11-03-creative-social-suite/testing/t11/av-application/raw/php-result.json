@@ -1,0 +1,8 @@
+{
+  "mode": "php",
+  "exit": 0,
+  "terminal": true,
+  "source_hashes_match": true,
+  "sources": 13,
+  "stdout": "{\"tool\":\"pest\",\"result\":\"passed\",\"tests\":150,\"passed\":150,\"assertions\":744,\"duration_ms\":6801}\n"
+}

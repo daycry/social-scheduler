@@ -7,7 +7,16 @@ defineProps({ notifications: Array });
 
 const markRead = (id) => router.post(route('notifications.read', id), {}, { preserveScroll: true });
 const markAll = () => router.post(route('notifications.read-all'), {}, { preserveScroll: true });
-const title = (n) => (n.type === 'publish_failed' ? `No se pudo publicar en ${n.network_label}` : n.type === 'first_comment_failed' ? `No se pudo dejar el primer comentario en ${n.network_label}` : n.type === 'reconnect_required' ? `Reconecta ${n.network_label ?? 'tu cuenta'}` : 'Aviso');
+const WORKFLOW = {
+    approval_requested: 'Aprobación pendiente',
+    approval_approved: 'Publicación aprobada',
+    approval_rejected: 'Publicación rechazada',
+    manual_due: 'Toca publicar a mano',
+    collaborator_invited: 'Invitación para aprobar',
+    collaborator_revoked: 'Acceso retirado',
+    series_failed: 'Una serie no se ha podido generar',
+};
+const title = (n) => WORKFLOW[n.type] ?? (n.type === 'publish_failed' ? `No se pudo publicar en ${n.network_label}` : n.type === 'first_comment_failed' ? `No se pudo dejar el primer comentario en ${n.network_label}` : n.type === 'reconnect_required' ? `Reconecta ${n.network_label ?? 'tu cuenta'}` : 'Aviso');
 </script>
 
 <template>
@@ -33,7 +42,9 @@ const title = (n) => (n.type === 'publish_failed' ? `No se pudo publicar en ${n.
                             <p v-if="n.brand_name || n.account_name" class="text-xs text-slate-500">{{ n.brand_name }} {{ n.account_name }}</p>
                         </div>
                         <div class="flex shrink-0 flex-col items-end gap-1 text-sm">
-                            <Link v-if="n.post_id" :href="route('posts.edit', n.post_id)" class="link">Ver publicación</Link>
+                            <Link v-if="n.type === 'manual_due' && n.url" :href="n.url" class="link" data-testid="manual-notice-link">Abrir aviso</Link>
+                            <Link v-else-if="n.type === 'approval_requested' && n.url" :href="n.url" class="link">Revisar</Link>
+                            <Link v-else-if="n.post_id" :href="route('posts.edit', n.post_id)" class="link">Ver publicación</Link>
                             <Link v-else-if="n.brand_id" :href="route('brands.connections.index', n.brand_id)" class="link">Conexiones</Link>
                             <button v-if="!n.read" type="button" class="text-slate-600" @click="markRead(n.id)">Marcar leído</button>
                         </div>

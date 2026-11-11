@@ -1,0 +1,190 @@
+TAP version 13
+# Subtest: parse preserves decimal lexemes and typed cells
+ok 1 - parse preserves decimal lexemes and typed cells
+  ---
+  duration_ms: 4.0236
+  type: 'test'
+  ...
+# Subtest: schema rejects unknown fields duplicate identities invalid cells and limits
+ok 2 - schema rejects unknown fields duplicate identities invalid cells and limits
+  ---
+  duration_ms: 7.7568
+  type: 'test'
+  ...
+# Subtest: JSON parser rejects duplicate keys rather than overwriting
+ok 3 - JSON parser rejects duplicate keys rather than overwriting
+  ---
+  duration_ms: 0.1279
+  type: 'test'
+  ...
+# Subtest: canonical byte budget rejects oversized shared-string tables without allocation of whole JSON
+ok 4 - canonical byte budget rejects oversized shared-string tables without allocation of whole JSON
+  ---
+  duration_ms: 92.6329
+  type: 'test'
+  ...
+# Subtest: serializer emits lossless JSON chunks and validates before returning iterator
+ok 5 - serializer emits lossless JSON chunks and validates before returning iterator
+  ---
+  duration_ms: 0.6672
+  type: 'test'
+  ...
+# Subtest: cell display and explicit conversion preserve text empty and numeric distinctions
+ok 6 - cell display and explicit conversion preserve text empty and numeric distinctions
+  ---
+  duration_ms: 0.2393
+  type: 'test'
+  ...
+# Subtest: cell and column edits are immutable by checked identity and share untouched rows
+ok 7 - cell and column edits are immutable by checked identity and share untouched rows
+  ---
+  duration_ms: 0.3837
+  type: 'test'
+  ...
+# Subtest: row and column structure operations keep identities and enforce dimension limits
+ok 8 - row and column structure operations keep identities and enforce dimension limits
+  ---
+  duration_ms: 40.4833
+  type: 'test'
+  ...
+# Subtest: copy uses new deterministic IDs and retains typed values without source mutation
+ok 9 - copy uses new deterministic IDs and retains typed values without source mutation
+  ---
+  duration_ms: 0.9974
+  type: 'test'
+  ...
+# Subtest: literal replacement and explicit blank filling leave numbers and unrelated columns intact
+ok 10 - literal replacement and explicit blank filling leave numbers and unrelated columns intact
+  ---
+  duration_ms: 0.9363
+  type: 'test'
+  ...
+# Subtest: column conversion previews row errors and applies no partial mutation
+ok 11 - column conversion previews row errors and applies no partial mutation
+  ---
+  duration_ms: 0.6156
+  type: 'test'
+  ...
+# Subtest: history uses bounded shared states and supports undo redo branch and reset
+ok 12 - history uses bounded shared states and supports undo redo branch and reset
+  ---
+  duration_ms: 0.6839
+  type: 'test'
+  ...
+# Subtest: transpose retains original headers as values and regenerates all identities
+ok 13 - transpose retains original headers as values and regenerates all identities
+  ---
+  duration_ms: 1.8851
+  type: 'test'
+  ...
+# Subtest: page decoder keeps numeric cells lossless and validates safe metadata and contiguous offsets
+ok 14 - page decoder keeps numeric cells lossless and validates safe metadata and contiguous offsets
+  ---
+  duration_ms: 1.2608
+  type: 'test'
+  ...
+# Subtest: assembler pins historical revision and hash across complete ordered pages
+ok 15 - assembler pins historical revision and hash across complete ordered pages
+  ---
+  duration_ms: 0.766
+  type: 'test'
+  ...
+# Subtest: assembler rejects mixed brand revision hash columns total gaps cycles and duplicate row IDs atomically
+ok 16 - assembler rejects mixed brand revision hash columns total gaps cycles and duplicate row IDs atomically
+  ---
+  duration_ms: 4.2305
+  type: 'test'
+  ...
+# Subtest: identity number and hash tokens reject trailing line breaks exactly
+ok 17 - identity number and hash tokens reject trailing line breaks exactly
+  ---
+  duration_ms: 0.304
+  type: 'test'
+  ...
+# Subtest: serializer snapshots caller-owned mutable objects without freezing caller state
+ok 18 - serializer snapshots caller-owned mutable objects without freezing caller state
+  ---
+  duration_ms: 0.2228
+  type: 'test'
+  ...
+# Subtest: JSON cell objects cannot impersonate internal number tokens
+ok 19 - JSON cell objects cannot impersonate internal number tokens
+  ---
+  duration_ms: 0.1987
+  type: 'test'
+  ...
+# Subtest: characterization exact Unicode codepoint limits and immutable caller snapshots
+ok 20 - characterization exact Unicode codepoint limits and immutable caller snapshots
+  ---
+  duration_ms: 0.7966
+  type: 'test'
+  ...
+# Subtest: characterization JSON grammar prototype isolation escaped strings and depth
+ok 21 - characterization JSON grammar prototype isolation escaped strings and depth
+  ---
+  duration_ms: 0.4619
+  type: 'test'
+  ...
+# Subtest: characterization invalid bulk result and row cursors never mutate original
+ok 22 - characterization invalid bulk result and row cursors never mutate original
+  ---
+  duration_ms: 0.5623
+  type: 'test'
+  ...
+# Subtest: raw table input byte cap is enforced before parsing or whitespace scanning
+ok 23 - raw table input byte cap is enforced before parsing or whitespace scanning
+  ---
+  duration_ms: 0.1319
+  type: 'test'
+  ...
+# Subtest: raw page byte cap counts UTF8 incrementally before decoding schema
+ok 24 - raw page byte cap counts UTF8 incrementally before decoding schema
+  ---
+  duration_ms: 5.9507
+  type: 'test'
+  ...
+# Subtest: characterization UTF8 budget does not split surrogate pairs at 64KiB chunk boundary
+ok 25 - characterization UTF8 budget does not split surrogate pairs at 64KiB chunk boundary
+  ---
+  duration_ms: 118.0248
+  type: 'test'
+  ...
+# Subtest: characterization canonical byte limit accepts exact52M and rejects plus1 by streamed row accounting
+ok 26 - characterization canonical byte limit accepts exact52M and rejects plus1 by streamed row accounting
+  ---
+  duration_ms: 269.7411
+  type: 'test'
+  ...
+# Subtest: regression sparse values are rejected before validation serialization and history
+ok 27 - regression sparse values are rejected before validation serialization and history
+  ---
+  duration_ms: 0.2588
+  type: 'test'
+  ...
+# Subtest: regression inherited array indices do not substitute own dense JSON data
+ok 28 - regression inherited array indices do not substitute own dense JSON data
+  ---
+  duration_ms: 0.1825
+  type: 'test'
+  ...
+# Subtest: regression frozen external getters are rejected without evaluation or snapshot aliasing
+ok 29 - regression frozen external getters are rejected without evaluation or snapshot aliasing
+  ---
+  duration_ms: 0.1584
+  type: 'test'
+  ...
+# Subtest: regression accessors in records and list slots are rejected before invoking user code
+ok 30 - regression accessors in records and list slots are rejected before invoking user code
+  ---
+  duration_ms: 0.1331
+  type: 'test'
+  ...
+1..30
+# tests 30
+# suites 0
+# pass 30
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 583.342

@@ -1,0 +1,86 @@
+--- a/app/Services/Studio/StudioAvState.php
++++ b/app/Services/Studio/StudioAvState.php
+@@ -501,6 +501,11 @@
+                 ->whereExists(fn ($q) => $q->selectRaw('1')->from('studio_av_steps as checkpoint_steps')
+                     ->where('checkpoint_steps.workspace_id', $state['allocation_id'])->where('checkpoint_steps.generation', $state['generation'])
+                     ->whereColumn('checkpoint_steps.result_lease_id', 'studio_av_leases.id'))->limit(16);
++        } elseif ($phases !== []) {
++            // Phase-filtered lookups (especially assemble per transfer part) must not scan every step.
++            $query->whereExists(fn ($q) => $q->selectRaw('1')->from('studio_av_steps as checkpoint_steps')
++                ->where('checkpoint_steps.workspace_id', $state['allocation_id'])->where('checkpoint_steps.generation', $state['generation'])
++                ->whereColumn('checkpoint_steps.result_lease_id', 'studio_av_leases.id'));
+         } else {
+             $query->join('studio_av_steps as checkpoint_steps', 'checkpoint_steps.result_lease_id', '=', 'studio_av_leases.id')
+                 ->where('checkpoint_steps.workspace_id', $state['allocation_id'])->where('checkpoint_steps.generation', $state['generation']);
+--- a/scripts/studio/av-finalize.mjs
++++ b/scripts/studio/av-finalize.mjs
+@@ -6,6 +6,7 @@
+ import { joinGifSegments } from './av-gif.mjs';
+ import { audiovisualRenderOptions } from '../../resources/js/Studio/audiovisual-plan.js';
+ 
++async function hashFile(file) { const hash = createHash('sha256'); for await (const bytes of createReadStream(file)) hash.update(bytes); return hash.digest('hex'); }
+ export async function outputIntegrity(file, { signal, maxBytes = 8 * 1024 ** 3 } = {}) {
+     signal?.throwIfAborted();
+     const chunk_size = 16 * 1024 ** 2, chunk_sha256 = [], hash = createHash('sha256');
+--- a/tests/Feature/Studio/StudioAvRegistrationTest.php
++++ b/tests/Feature/Studio/StudioAvRegistrationTest.php
+@@ -9,6 +9,7 @@
+ use App\Services\Studio\StudioAvState;
+ use App\Services\Studio\StudioService;
+ use Illuminate\Database\Eloquent\ModelNotFoundException;
++use Illuminate\Support\Facades\DB;
+ use Illuminate\Support\Facades\Event;
+ use Illuminate\Support\Facades\Storage;
+ use Illuminate\Validation\ValidationException;
+@@ -64,6 +65,20 @@
+     expect($media->refresh()->import_state['verified_bytes'])->toBe(0)->and($media->upload_id)->toBe('private-upload');
+ });
+ 
++test('AV assemble lookup starts with the indexed lease phase and checks generation membership', function () {
++    DB::enableQueryLog();
++    try {
++        expect($this->state->checkpoints($this->export, ['assemble'])->keys()->all())->toBe(['assemble:0']);
++        $query = collect(DB::getQueryLog())->first(fn ($row) => str_contains($row['query'], 'studio_av_leases'));
++        $plan = DB::select('EXPLAIN QUERY PLAN '.$query['query'], $query['bindings']);
++        expect($plan[0]->detail)->toContain('workspace_id=? AND phase=?');
++        expect(implode(' ', array_map(fn ($row) => $row->detail, $plan)))->toContain('generation=? AND result_lease_id=?');
++    } finally {
++        DB::disableQueryLog();
++        DB::flushQueryLog();
++    }
++});
++
+ test('AV registration allocation is private idempotent and pinned to its accepted assembly', function () {
+     $first = $this->state->allocateRegistration($this->lease);
+     $second = $this->state->allocateRegistration($this->lease);
+--- a/tests/frontend/studio-output-integrity.test.mjs
++++ b/tests/frontend/studio-output-integrity.test.mjs
+@@ -4,6 +4,7 @@
+ import path from 'node:path';
+ import { randomUUID, createHash } from 'node:crypto';
+ import * as finalize from '../../scripts/studio/av-finalize.mjs';
++import { compileAudiovisual } from '../../resources/js/Studio/audiovisual-plan.js';
+ 
+ const digest = value => createHash('sha256').update(value).digest('hex');
+ 
+@@ -31,3 +32,20 @@
+         await assert.rejects(finalize.outputIntegrity(file, { maxBytes: 4 }), /presupuesto/i);
+     } finally { await fs.rm(folder, { recursive: true, force: true }); }
+ });
++
++test('assembly still checks the segment hash before starting native finalization', async () => {
++    const base = path.resolve('storage/app/private/studio-exports/0/0'), folder = path.join(base, randomUUID());
++    const namespace = randomUUID(), output = randomUUID(), file = `segments/${namespace}/video-000000.mp4`;
++    await fs.mkdir(path.dirname(path.join(folder, file)), { recursive: true });
++    try {
++        await fs.writeFile(path.join(folder, file), 'corrupt');
++        const plan = compileAudiovisual({ schema_version: 2, width: 64, height: 48, timeline: { fps: 12, audio_tracks: [] },
++            pages: [{ id: 'one', duration: 0.25, background: '#ffffff', elements: [] }] }, []);
++        const video = { namespace, file, size: 7, sha256: digest('trusted'), frameStart: 0, frameCount: 3, fps: 12,
++            width: 64, height: 48, scale: 1, quality: 0.94 };
++        await assert.rejects(finalize.assembleProject({ directory: folder, plan, segments: [{ video }], format: 'mp4', namespace: output }), /tramo cambió|incompleto/i);
++    } finally {
++        assert.equal(path.dirname(folder), base);
++        await fs.rm(folder, { recursive: true, force: true });
++    }
++});

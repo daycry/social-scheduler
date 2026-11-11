@@ -1,0 +1,6 @@
+{
+  "alive_owned_pids": [],
+  "ipv4_8080_free": true,
+  "ipv6_8080_free": true,
+  "scope": "post-supervisor terminal check; no listening server was created"
+}

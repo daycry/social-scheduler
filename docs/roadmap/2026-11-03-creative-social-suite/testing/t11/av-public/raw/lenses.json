@@ -1,0 +1,27 @@
+{
+  "lente_c": false,
+  "modo": "auto",
+  "motivos": [],
+  "lente_d": true,
+  "modo_d": "auto",
+  "motivos_d": [
+    {
+      "tipo": "ruta",
+      "fichero": "app/Mcp/Servers/SchedulerServer.php",
+      "patron": "Scheduler"
+    },
+    {
+      "tipo": "ruta",
+      "fichero": "app/Mcp/Tools/ExportDesign.php",
+      "patron": "Export"
+    },
+    {
+      "tipo": "ruta",
+      "fichero": "database/migrations/2026_11_05_150000_add_studio_render_state.php",
+      "patron": "migrations"
+    }
+  ],
+  "base": "--files",
+  "ficheros": 20,
+  "avisos": []
+}

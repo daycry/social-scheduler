@@ -45,7 +45,7 @@ class ListMedia extends SchedulerTool
             throw new InvalidArgumentException('status debe ser listo, pendiente, invalido o todos.');
         }
 
-        $query = MediaAsset::withoutUserScope()->where('user_id', $user->id);
+        $query = MediaAsset::withoutUserScope()->where('user_id', $user->id)->whereIn('kind', [MediaAsset::KIND_IMAGE, MediaAsset::KIND_VIDEO]);
         if ($status !== 'todos') {
             $query->where('status', $status);
         }

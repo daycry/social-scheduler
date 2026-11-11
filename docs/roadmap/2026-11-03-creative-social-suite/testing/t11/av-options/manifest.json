@@ -1,0 +1,156 @@
+{
+  "date": "2026-11-05",
+  "scope": "T11 internal audiovisual selection/order/legacy/scale/quality",
+  "parent_complete": false,
+  "public_mp4_gif_ready": false,
+  "jobs_verified": false,
+  "review": "A1/B1/D1 no pending gaps, C false by selector",
+  "qa_execution": "root, not independent QA",
+  "sources": [
+    {
+      "path": "resources/js/Studio/audiovisual-plan.js",
+      "sha256": "a24fe74ed37ada873dcd943a19727174df52a9fa810ab629fe86ad2a29692647"
+    },
+    {
+      "path": "resources/js/Studio/project-render-entry.js",
+      "sha256": "6d8b1291a2d523074ccd2dd1259f529ca74aa36a89b54726a8a41c43a3b9dba8"
+    },
+    {
+      "path": "resources/js/Studio/timeline-preview.js",
+      "sha256": "6139b6d63adc003d361fdb48b5ba1f253594dbffea88a026af9aad8d1bfe8f3f"
+    },
+    {
+      "path": "resources/js/Studio/canvas.js",
+      "sha256": "5d665005fbeb2e18f2c30b0c4b0f6681863160ad0a6452f4e2a96392e8f21eb6"
+    },
+    {
+      "path": "scripts/studio/av-video.mjs",
+      "sha256": "6f55f88b8685bb5427ca127743b8152b360936f9612bf046a1b7b6b5a1c303e4"
+    },
+    {
+      "path": "scripts/studio/av-finalize.mjs",
+      "sha256": "fd46479b4b046e83ff16389d07d4a4ed8bd09b707b76fcc1b50616a724dbd7c8"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-selection.test.mjs",
+      "sha256": "12641d0fffdbfa994fe6a99d083f89cb6e61755a53a63f367a034643372a598e"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-options-render.test.mjs",
+      "sha256": "3b4250973605443d12b0af49181c40a3f3878081fe442686f9d65aab8aae8641"
+    },
+    {
+      "path": "tests/frontend/studio-audiovisual-options-audio.test.mjs",
+      "sha256": "d7321687fa5155efdb8af3127a875d2f3582f3ed861ea5dace1baf8650fbc291"
+    }
+  ],
+  "bundles": [
+    {
+      "path": "public/build/studio-renderer.js",
+      "sha256": "bddd05d9853c0ead0ffde4a6f77810b85c4edbad06773dcc0ebec7db12a2675c"
+    },
+    {
+      "path": "public/build/studio-project-renderer.js",
+      "sha256": "2e9ec537bf14c6326a9de7e9297e5ef2659dc2d8c12ce92f489c631f80ccf220"
+    }
+  ],
+  "frontend": {
+    "phase": "frontend",
+    "exit": 0,
+    "terminal": true,
+    "source_hashes_match": true,
+    "files": 28,
+    "summary": [
+      "# tests 137",
+      "# pass 137",
+      "# fail 0",
+      "# cancelled 0",
+      "# skipped 0",
+      "# duration_ms 30391.4175"
+    ]
+  },
+  "e2e": {
+    "phase": "e2e",
+    "exit": 0,
+    "terminal": true,
+    "source_hashes_match": true,
+    "stats": {
+      "startTime": "2026-11-05T11:30:29.387Z",
+      "duration": 322470.005,
+      "expected": 42,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "errors": []
+  },
+  "openapi_unchanged": true,
+  "screenshots_copied": 3,
+  "artifacts": [
+    {
+      "path": "raw/e2e-result.json",
+      "size": 281,
+      "sha256": "7ce9ccf31b84dcdd2ad7abdf3a7c7f1bf4b1cc27611b69a267be91b93478f816"
+    },
+    {
+      "path": "raw/frontend-result.json",
+      "size": 264,
+      "sha256": "36bbce73d2c10965fcf0739dc84557b0b22737f0382b0ce79909e43ecbbe3d38"
+    },
+    {
+      "path": "raw/frontend.tap",
+      "size": 32328,
+      "sha256": "8c61d69b2bc3f42b6b77b36b4d8633709483776dc217a966c79db96c7cdbef6e"
+    },
+    {
+      "path": "raw/ledger.txt",
+      "size": 1910,
+      "sha256": "a28bed6cacfb2c0db88ff13eb8a6aafc48d542f2327ee19937f24247f4a8f94f"
+    },
+    {
+      "path": "raw/lenses.json",
+      "size": 1401,
+      "sha256": "b1c94dba7e16a0e4cd89d3361c08f3d35cd32cf3802ad1512459fa9ad7f0e603"
+    },
+    {
+      "path": "raw/playwright.json",
+      "size": 64385,
+      "sha256": "80a3d3e7d6b79c86c58129f7c14e259bd7703272f398f852751de73bca9b5f9d"
+    },
+    {
+      "path": "raw/qa-gate.json",
+      "size": 305,
+      "sha256": "6de00022426e70b78a43bf527b88083ab2cf8b154ec2e062c625a291cd04f747"
+    },
+    {
+      "path": "raw/reviewed-sources.json",
+      "size": 1787,
+      "sha256": "1a890054c96886be79548167097204857c43b5f06c83b9be5351cef8cd90d799"
+    },
+    {
+      "path": "raw/reviewed.diff",
+      "size": 39953,
+      "sha256": "bd9c1a36bf4633cc6f55f5fdcb19debcf6994e9e5da0443bdfc156dac7d9a7c8"
+    },
+    {
+      "path": "raw/scope.json",
+      "size": 25108,
+      "sha256": "4521a460d46244148e554d56d33a3b40cc3fac12e4292b26602bd21dae56fbf3"
+    },
+    {
+      "path": "screenshots/audio-desktop.png",
+      "size": 162699,
+      "sha256": "9679254cb9e09bc2167f0a13912809c3c273dd16e1cb9cb469f8d7aed4100db8"
+    },
+    {
+      "path": "screenshots/audio-mobile-360.png",
+      "size": 134952,
+      "sha256": "5d0cd9e39ef71f1788e9f5d2e69888d243f836ba5ca89b6784e3336147fbb209"
+    },
+    {
+      "path": "screenshots/audio-mobile.png",
+      "size": 134670,
+      "sha256": "083089ac68334155a4141ad4bbf963f609794e859953e8daec52754f952a655e"
+    }
+  ]
+}

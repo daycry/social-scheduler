@@ -1,0 +1,43 @@
+{
+  "sources": {
+    "resources/js/Components/Studio/StudioDatasetsDialog.vue": {
+      "before": "5ae68972ce4a47f7151d6738ddc9816b5036f99e65124994408ecc1eb985f6c1",
+      "after": "7eda4c65230cda8b73f5aae146329e29d51d644588e0feba09eea7b33e42846a"
+    },
+    "tests/frontend/studio-datasets-dialog.test.mjs": {
+      "before": "83ae0374af8e13e8976b4102674358d7a4cf8770cb7659c7ded7a060ef29c3b4",
+      "after": "09ed6ed0e6bfeaccfb0a574504780c1a7c2750e9c048900ca76a89d947798eee"
+    }
+  },
+  "other_reviewed_sources": {
+    "resources/js/Studio/dataset-client.js": "de61d8c872ec8d74cff7e16d1c01436815fdb889dcb3d5e6907399b90c420213",
+    "tests/frontend/studio-dataset-client.test.mjs": "6edc27b4b68eebdb9ea2ea16cc66c03b3a09c587db775b4998bc1adee6d216cc",
+    "resources/js/Pages/Studio/Index.vue": "2ff87f28893febd71a17fefb1d065dcfc6ee5113eec6e0c16798bfd340339982",
+    "resources/js/Pages/Studio/Editor.vue": "bcb8f2536e19fec1bdea3f134aa6296329a85862677024c22ccc5fc2d1ee47ad",
+    "tests/e2e/studio-datasets.spec.ts": "73024973870fdb9be84ad1b3da5048d6ff3aad30f7fc368f36026f9678effd5f",
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+    "tests/frontend/studio-dataset-table.test.mjs": "b328009c188b652e35fc4cd8f3a18e41035b3d6e0792f50246edc770fa5742d5"
+  },
+  "artifacts": {
+    "before-manifest.json": "8a0ae84742c81df7898f0b141d3619e7e92d40d463b55042b0ecf71cd59a5c02",
+    "contrast-first-invalid-3hex.json": "3b31adf2e72268ddb9d0e0cd188f657083258b9d7dcd252e74d5d3d96cb0d1e2",
+    "contrast-first-invalid-3hex.mjs": "9a890ce7b5b75beb14d4da48c6d79343d2818b1eafcb1300859855d2144081cf",
+    "contrast.json": "9d11944dc00a692a42d5166aa39107686040a7b16b7b59e86529a65538aa83f1",
+    "contrast.mjs": "74cbaf13903f452ada1931d2bdcbcfd610ece412751aaf9c8a9be8c62ab301e4",
+    "delta.diff": "665a7d401fd93149a953946e32791ef4fce4e5e97ef76f017e6fa4b4fc5cf454",
+    "evidence.md": "e6b5e7e0f3c1a385bcaa4ceabd224fe04c25514bfeb3bd5e8f4c296e6e0998c0",
+    "green-dirty-cache.json": "8f7e1431360d09f7b6280e4a2f1e7eda7f2a4d8c8cfd47412c07dec0da714ea9",
+    "green-dirty-cache.log": "9997cbfc5133a40ad49034d53f682629e5cef1dc651aeaad4e151ee9932c8a34",
+    "neighbors.log": "894e80119706d3af60cfb94585079a225f4fb5211b940f8707ad95250866b503",
+    "original-artifacts-preserved.json": "1bbb7d1eeacd5a2a3caa4b2d24cf64ac4476c1525dd478abdef526f776c71b18",
+    "red-dirty-cache.json": "88f86960f7722c2dc323883f6f281073174d6f74cb7299b3ea9f3354000fa2d4",
+    "red-dirty-cache.log": "0d2ec38dd4c976415daf59a7e2ebbf000c3ee22286191b0edef47e240d003fec",
+    "run-focal.py": "93afd94b9997fcc7eae91ea374c9881da03172b83ee8bbb5bc1215275cffda2c",
+    "run-neighbors.py": "c01b0205a7e0edb2b3c78496ef53fa7421589d76217d4419d990646e4572c244",
+    "verification.json": "ae6967090794711a5d9f11f49ac9c886e2c582af0f2cba04233a39c18a855936",
+    "before/tests/frontend/studio-datasets-dialog.test.mjs": "83ae0374af8e13e8976b4102674358d7a4cf8770cb7659c7ded7a060ef29c3b4",
+    "before/resources/js/Components/Studio/StudioDatasetsDialog.vue": "5ae68972ce4a47f7151d6738ddc9816b5036f99e65124994408ecc1eb985f6c1",
+    "after/tests/frontend/studio-datasets-dialog.test.mjs": "09ed6ed0e6bfeaccfb0a574504780c1a7c2750e9c048900ca76a89d947798eee",
+    "after/resources/js/Components/Studio/StudioDatasetsDialog.vue": "7eda4c65230cda8b73f5aae146329e29d51d644588e0feba09eea7b33e42846a"
+  }
+}

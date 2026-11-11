@@ -1,0 +1,49 @@
+--- a/app/Http/Controllers/MediaController.php
++++ b/app/Http/Controllers/MediaController.php
+@@ -107,6 +107,7 @@
+     {
+         $this->authorize('update', $asset);
+         abort_if($asset->kind === MediaAsset::KIND_AUDIO, 404);
++        abort_if(isset($asset->import_state['studio_av']), 409, 'Este archivo pertenece a una exportación de Studio.');
+         abort_if($this->storage->isS3() || $asset->status !== MediaAsset::STATUS_PENDING, 409, 'La subida local no esta disponible.');
+ 
+         $stream = $request->getContent(true);
+@@ -121,6 +122,7 @@
+     {
+         $this->authorize('update', $asset);
+         abort_if($asset->kind === MediaAsset::KIND_AUDIO, 404);
++        abort_if(isset($asset->import_state['studio_av']), 409, 'Este archivo pertenece a una exportación de Studio.');
+ 
+         $data = $request->validate([
+             'parts' => ['sometimes', 'array', 'max:10000'],
+--- a/tests/Feature/Studio/StudioAvRegistrationTest.php
++++ b/tests/Feature/Studio/StudioAvRegistrationTest.php
+@@ -185,3 +185,17 @@
+     expect($media->refresh()->kind)->toBe(MediaAsset::KIND_IMAGE)->and($media->mime)->toBe('image/gif')
+         ->and($media->width)->toBe(102)->and($media->height)->toBe(82)->and($media->audio_codec)->toBeNull();
+ });
++
++test('AV HTTP upload and completion refuse the reserved destination before touching its bytes', function (string $operation) {
++    $media = $this->state->allocateRegistration($this->lease);
++    Storage::disk('local')->put($media->path, 'video');
++    $journal = array_replace($media->import_state, ['bytes' => 5, 'verified_bytes' => 5, 'complete' => true]);
++    $media->update(['import_state' => $journal]);
++    $this->actingAs($this->user);
++    $response = $operation === 'upload'
++        ? $this->call('PUT', route('media.upload', $media), [], [], [], ['HTTP_ACCEPT' => 'application/json'], 'wrong')
++        : $this->postJson(route('media.complete', $media), []);
++    expect(Storage::disk('local')->get($media->path))->toBe('video')
++        ->and($media->refresh()->import_state)->toBe($journal)->and($media->isReady())->toBeFalse();
++    $response->assertStatus(409);
++})->with(['upload', 'complete']);
+--- a/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
++++ b/docs/roadmap/2026-11-03-creative-social-suite/t11-job-contract.md
+@@ -44,7 +44,7 @@
+ 
+ La metadata final debe coincidir con el plan: dimensiones padded (también GIF), reloj, fotogramas, duración y codecs. Se aplica el límite real de la biblioteca (imagen/vídeo), aunque el presupuesto interno del encoder permita archivos mayores. `accept(register)` exige esa reserva y un journal de transferencia completo con todos los bytes verificados. Medio listo, vínculo a marca y exportación descargable se guardan en una sola transacción, bajo fencing del lease/generación. Cancelar antes de aceptar o fallar al crear el vínculo revierte toda visibilidad. La descarga del export conserva la copia local aceptada; el medio de biblioteca necesita su propia copia durable fuera del árbol temporal.
+ 
+-Los métodos genéricos complete/finalize y delete de medios no pueden finalizar ni retirar una reserva pendiente del render. Consultan la fila actual para que un modelo obsoleto no eluda el control. El borrado normal de un medio ya listo conserva sus reglas actuales de referencias a publicaciones. La transferencia física, su recuperación/aborto y la conexión de register al runner todavía no están implementadas; los tests de esta capa fabrican explícitamente el journal verificado y no acreditan copia local ni R2.
++Los métodos genéricos complete/finalize y delete de medios no pueden finalizar ni retirar una reserva pendiente del render. Consultan la fila actual para que un modelo obsoleto no eluda el control. Las rutas HTTP upload/complete rechazan la reserva con409 antes de escribir bytes o finalizar el objeto; no basta un rechazo posterior en finalize. El borrado normal de un medio ya listo conserva sus reglas actuales de referencias a publicaciones. La transferencia física, su recuperación/aborto y la conexión de register al runner todavía no están implementadas; los tests de esta capa fabrican explícitamente el journal verificado y no acreditan copia local ni R2.
+ 
+ Una fase nativa tiene un presupuesto total inferior al timeout del job; el job queda por debajo del worker y del retry_after. El límite cubre preparación, navegador, FFmpeg, probes, hashes y cierre de hijos. Los timeouts aislados de FFmpeg del motor no bastan para acreditar esta propiedad.
+ 

@@ -1,0 +1,11 @@
+{
+  "command": [
+    "node",
+    "--max-old-space-size=512",
+    "--experimental-test-isolation=none",
+    "--test",
+    "tests/frontend/studio-dataset-table.test.mjs"
+  ],
+  "exit_code": 0,
+  "duration_seconds": 0.6459863999916706
+}

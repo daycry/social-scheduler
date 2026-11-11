@@ -33,6 +33,20 @@
         .btn:hover, .btn:focus-visible { filter: brightness(1.1); outline: 3px solid var(--fg); outline-offset: 2px; }
         .dest { display: block; margin-top: .25rem; font-size: .7rem; color: var(--muted); overflow-wrap: anywhere; }
         .header { margin-top: 1rem; font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
+        .imglink { display: block; border-radius: .75rem; overflow: hidden; background: var(--card); color: var(--fg); text-decoration: none; font-weight: 600; }
+        .imglink img { display: block; width: 100%; height: auto; max-height: 14rem; object-fit: cover; }
+        .imglink span { display: block; padding: .6rem .8rem; }
+        .video iframe { width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: .75rem; background: #000; }
+        .divider { border-top: 1px solid var(--muted); margin: .5rem 0; padding-top: .35rem; font-size: .75rem; color: var(--muted); }
+        .social, .recent { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; margin-top: .35rem; }
+        .recent { flex-direction: column; }
+        .chip { display: inline-block; padding: .5rem .8rem; border-radius: 9999px; background: var(--card); color: var(--fg); border: 2px solid var(--accent); text-decoration: none; font-weight: 600; font-size: .85rem; overflow-wrap: anywhere; }
+        .chip.wide { border-radius: .75rem; display: block; text-align: left; font-weight: 500; }
+        .mail { display: flex; flex-direction: column; gap: .5rem; text-align: left; }
+        .mail input[type=email] { padding: .7rem .8rem; border-radius: .6rem; border: 2px solid var(--muted); background: var(--card); color: var(--fg); font-size: 1rem; }
+        .mail .btn { border: 0; cursor: pointer; font-size: 1rem; }
+        .trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+        .ok { color: var(--accent); font-weight: 700; margin: 0; }
         footer { margin-top: 2.5rem; font-size: .75rem; color: var(--muted); }
         footer p { margin: .25rem 0; }
         footer a { color: var(--fg); text-decoration: underline; }
@@ -51,14 +65,79 @@
     @endif
     <ul>
         @foreach ($blocks as $block)
-            @if ($block->type === 'header')
-                <li class="header" role="heading" aria-level="2">{{ $block->label }}</li>
-            @else
-                <li>
-                    <a class="btn" rel="nofollow noopener" href="{{ url('/l/'.$link->slug.'/go/'.$block->id) }}">{{ $block->label }}</a>
-                    <span class="dest">Destino: {{ \App\Support\SafeUrl::displayHost($block->url) }}</span>
-                </li>
-            @endif
+            @php $go = url('/l/'.$link->slug.'/go/'.$block->id); @endphp
+            @switch($block->type)
+                @case('header')
+                    <li class="header" role="heading" aria-level="2">{{ $block->label }}</li>
+                    @break
+                @case('divider')
+                    <li><div role="separator" class="divider">{{ $block->label }}</div></li>
+                    @break
+                @case('link')
+                    <li>
+                        <a class="btn" rel="nofollow noopener" href="{{ $go }}">{{ $block->label }}</a>
+                        <span class="dest">Destino: {{ \App\Support\SafeUrl::displayHost($block->url) }}</span>
+                    </li>
+                    @break
+                @case('image')
+                    <li>
+                        <a class="imglink" rel="nofollow noopener" href="{{ $go }}">
+                            <img src="{{ $images[$block->id] }}" alt="{{ $block->label }}" loading="lazy">
+                            <span>{{ $block->label }}</span>
+                        </a>
+                        <span class="dest">Destino: {{ \App\Support\SafeUrl::displayHost($block->url) }}</span>
+                    </li>
+                    @break
+                @case('youtube')
+                    <li class="video">
+                        <iframe src="https://www.youtube-nocookie.com/embed/{{ $block->data['video_id'] }}" title="{{ $block->label }}" loading="lazy" allowfullscreen
+                                referrerpolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>
+                        <a class="dest" rel="nofollow noopener" href="{{ $go }}">{{ $block->label }} (ver en YouTube)</a>
+                    </li>
+                    @break
+                @case('social')
+                    <li>
+                        @if ($block->label !== '')
+                            <p class="header">{{ $block->label }}</p>
+                        @endif
+                        <ul class="social" aria-label="Redes sociales">
+                            @foreach ((array) ($block->data['items'] ?? []) as $i => $item)
+                                <li><a class="chip" rel="nofollow noopener" href="{{ $go }}?i={{ $i }}" aria-label="{{ ucfirst($item['network']) }}">{{ ucfirst($item['network']) }}</a></li>
+                            @endforeach
+                        </ul>
+                    </li>
+                    @break
+                @case('email')
+                    <li id="suscripcion">
+                        <form class="mail" method="post" action="{{ url('/l/'.$link->slug.'/subscribe/'.$block->id) }}">
+                            <label for="sub-email-{{ $block->id }}" class="header">{{ $block->label }}</label>
+                            <input id="sub-email-{{ $block->id }}" type="email" name="email" required maxlength="254" autocomplete="email" placeholder="tu@email.com">
+                            <div class="trap" aria-hidden="true"><label>No rellenar <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+                            <button class="btn" type="submit">{{ $block->data['cta'] ?? 'Suscribirme' }}</button>
+                            <p class="dest">{{ $block->data['consent'] ?? '' }}</p>
+                            @if ($subscribed === '1')
+                                <p class="ok" role="status">¡Gracias! Si la dirección es válida, quedas suscrito.</p>
+                            @elseif ($subscribed === '0')
+                                <p class="ok" role="alert">Revisa la dirección de email.</p>
+                            @endif
+                        </form>
+                    </li>
+                    @break
+                @case('posts')
+                    @if (! empty($posts[$block->id]))
+                        <li>
+                            @if ($block->label !== '')
+                                <p class="header">{{ $block->label }}</p>
+                            @endif
+                            <ul class="recent">
+                                @foreach ($posts[$block->id] as $post)
+                                    <li><a class="chip wide" rel="nofollow noopener" href="{{ $post['url'] }}">{{ $post['text'] }}</a></li>
+                                @endforeach
+                            </ul>
+                        </li>
+                    @endif
+                    @break
+            @endswitch
         @endforeach
     </ul>
     @php $report = config('social.smartlinks.report_email') ?: config('mail.from.address'); @endphp

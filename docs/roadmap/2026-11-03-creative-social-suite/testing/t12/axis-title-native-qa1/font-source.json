@@ -1,0 +1,8 @@
+{
+  "source": "https://raw.githubusercontent.com/google/fonts/bbda7253fc363238b05d97515ca71f8ae49c4fa9/ofl/spacegrotesk/",
+  "commit": "bbda7253fc363238b05d97515ca71f8ae49c4fa9",
+  "license": "SIL OFL 1.1",
+  "ttf_sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72",
+  "woff2_sha256": "8e085aa438094f11487a836652edd5c054fa6a96f63fc7c282105ee3a4b08c07",
+  "conversion": "fontTools 4.68.0, recalcTimestamp=False, flavor=woff2"
+}

@@ -1,0 +1,27 @@
+{
+  "actual_executed_cases": 1,
+  "recorded_cases": 3,
+  "original_stats": {
+    "startTime": "2026-11-06T20:27:05.516Z",
+    "duration": 14602.956,
+    "expected": 0,
+    "skipped": 2,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "failures": [
+    {
+      "project": "desktop",
+      "message": "Error: expect(received).toEqual(expected) // deep equality\n\n- Expected  -   1\n+ Received  + 549\n\n- Array []\n+ Array [\n+   Object {\n+     \"description\": \"Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds\",\n+     \"help\": \"Elements must meet minimum color contrast ratio thresholds\",\n+     \"helpUrl\": \"https://dequeuniversity.com/rules/axe/4.10/color-contrast?application=playwright\",\n+     \"id\": \"color-contrast\",\n+     \"impact\": \"serious\",\n+     \"nodes\": Array [\n+       Object {\n+         \"all\": Array [],\n+         \"any\": Array [\n+           Object {\n+             \"data\": Object {\n+               \"contrastRatio\": 0,\n+               \"expectedContrastRatio\": \"4.5:1\",\n+               \"fontSize\": \"10.5pt (14px)\",\n+               \"fontWeight\": \"normal\",\n+               \"messageKey\": \"bgImage\",\n+             },\n+             \"id\": \"color-contrast\",\n+             \"impact\": \"serious\",\n+             \"message\": \"Element's background color could not be determined due to a background image\",\n+             \"relatedNodes\": Array [\n+               Object {\n+                 \"html\": \"<select data-v-d7a4d025=\\\"\\\" class=\\\"field\\\">\",\n+                 \"target\": Array [\n+                   \".chart-label:nth-child(3) > select\",\n+                 ],\n+               },\n+             ],\n+           },\n+         ],\n+         \"failureSummary\": \"Fix any of the following:\n+   Element's background color could not be determined due to a background image\",\n+         \"html\": \"<select data-v-d7a4d025=\\\"\\\" class=\\\"field\\\">\",\n+         \"impact\": \"serious\",\n+         \"none\": Array [],\n+         \"target\": Array [\n+           \".chart-label:nth-child(3) > select\",\n+         ],\n+       },\n+       Object {\n+         \"all\": Array [],\n+         \"any\": Array [\n+           Object {\n+             \"data\": Object {\n+               \"contrastRatio\": 0,\n+               \"expectedContrastRatio\": \"4.5:1\",\n+               \"fontSize\": \"10.5pt (14px)\",\n+             "
+    },
+    {
+      "project": "desktop",
+      "message": "Error: expect(received).toHaveLength(expected)\n\nExpected length: 1\nReceived length: 0\nReceived array:  []"
+    }
+  ],
+  "global_errors": [
+    {
+      "message": "\u001b[31mTesting stopped early after 1 maximum allowed failures.\u001b[39m"
+    }
+  ]
+}

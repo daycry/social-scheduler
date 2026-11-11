@@ -7,6 +7,7 @@ use App\Services\Media\DriveFileSource;
 use App\Services\Media\UnsafeUrlException;
 use App\Services\MediaStorage;
 use App\Services\MediaUploadService;
+use App\Services\Studio\StudioAudioProbeUnavailable;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -29,6 +30,7 @@ class MediaController extends Controller
     {
         return response()->json([
             'media' => MediaAsset::query()->where('status', MediaAsset::STATUS_READY)
+                ->whereIn('kind', [MediaAsset::KIND_IMAGE, MediaAsset::KIND_VIDEO])
                 ->latest('id')->limit(100)->get()->map->toPublicArray()->values(),
         ]);
     }
@@ -104,6 +106,8 @@ class MediaController extends Controller
     public function upload(Request $request, MediaAsset $asset): JsonResponse
     {
         $this->authorize('update', $asset);
+        abort_if($asset->kind === MediaAsset::KIND_AUDIO, 404);
+        abort_if(isset($asset->import_state['studio_av']), 409, 'Este archivo pertenece a una exportación de Studio.');
         abort_if($this->storage->isS3() || $asset->status !== MediaAsset::STATUS_PENDING, 409, 'La subida local no esta disponible.');
 
         $stream = $request->getContent(true);
@@ -117,6 +121,8 @@ class MediaController extends Controller
     public function complete(Request $request, MediaAsset $asset): JsonResponse
     {
         $this->authorize('update', $asset);
+        abort_if($asset->kind === MediaAsset::KIND_AUDIO, 404);
+        abort_if(isset($asset->import_state['studio_av']), 409, 'Este archivo pertenece a una exportación de Studio.');
 
         $data = $request->validate([
             'parts' => ['sometimes', 'array', 'max:10000'],
@@ -163,6 +169,8 @@ class MediaController extends Controller
             $this->uploads->delete($asset);
         } catch (\DomainException $e) {
             return response()->json(['message' => $e->getMessage()], 409);
+        } catch (StudioAudioProbeUnavailable $e) {
+            return response()->json(['message' => $e->getMessage()], 503);
         }
 
         return response()->json(['ok' => true]);

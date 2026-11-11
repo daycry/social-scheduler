@@ -1,0 +1,16 @@
+{
+  "pdf_sha256": "fe03921f6ed75eec8421a4ada83bad911f75070a3965691866402ad614671444",
+  "pages": 1,
+  "width_pt": 810,
+  "height_pt": 810,
+  "image": {
+    "name": "/Image-7098480789",
+    "width": 1080,
+    "height": 1080,
+    "bytes": 3499200,
+    "sha256": "9cd91cc7648d57779fda871f310595fa112f73801783df640d60b01713cabbad",
+    "raw": "server-pdf-image.rgb"
+  },
+  "title": "Diseño",
+  "text_mode": "raster image; glyphs verified on exact PNG provenance, no extractable text claimed"
+}

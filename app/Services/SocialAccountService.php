@@ -154,10 +154,13 @@ class SocialAccountService
      */
     public function flagReconnection(SocialAccount $account, string $reason): void
     {
-        $changed = DB::transaction(function () use ($account, $reason): bool {
+        $observedVersion = $account->credentialVersion();
+        $changed = DB::transaction(function () use ($account, $reason, $observedVersion): bool {
             $fresh = SocialAccount::withoutUserScope()->lockForUpdate()->find($account->id);
 
-            return $fresh && $fresh->isActive() && $this->markRequiresReconnection($fresh, $reason);
+            return $fresh && $fresh->isActive()
+                && hash_equals($observedVersion, $fresh->credentialVersion())
+                && $this->markRequiresReconnection($fresh, $reason);
         });
 
         if ($changed) {

@@ -1,0 +1,58 @@
+{
+  "stats": {
+    "startTime": "2026-11-05T19:35:50.714Z",
+    "duration": 618225.676,
+    "expected": 62,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "actual_test_count": 63,
+  "runner_errors": [],
+  "retried_results": 0,
+  "non_passed_results": [
+    {
+      "file": "studio-av-composite.spec.ts",
+      "title": "Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft",
+      "project": "mobile-360",
+      "outcome": "unexpected",
+      "statuses": [
+        "failed"
+      ],
+      "retries": [
+        0
+      ],
+      "duration_ms": 32811,
+      "errors": [
+        {
+          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('dialog', { name: 'Exportar diseño', exact: true }).getByRole('region', { name: 'Exportación 131', exact: true })\nExpected substring: \u001b[32m\"\u001b[7mLis\u001b[27mta\"\u001b[39m\nReceived string:    \u001b[31m\"\u001b[7mMP4 · Revisión 1ErrorNo se pudo completar la fase audiovisual. Reintenta o revisa los recursos del diseño.Reinten\u001b[27mta\u001b[7mr\u001b[27m\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" getByRole('dialog', { name: 'Exportar diseño', exact: true }).getByRole('region', { name: 'Exportación 131', exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('dialog', { name: 'Exportar diseño', exact: true }).getByRole('region', { name: 'Exportación 131', exact: true })\u001b[22m\n\u001b[2m    4 × locator resolved to <section aria-label=\"Exportación 131\" class=\"min-w-0 space-y-3 rounded-xl border border-slate-200 p-4\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"MP4 · Revisión 1ProcesandoProgreso: 90.91 %Cancelar\"\u001b[22m\n\u001b[2m    19 × locator resolved to <section aria-label=\"Exportación 131\" class=\"min-w-0 space-y-3 rounded-xl border border-slate-200 p-4\">…</section>\u001b[22m\n\u001b[2m       - unexpected value \"MP4 · Revisión 1ErrorNo se pudo completar la fase audiovisual. Reintenta o revisa los recursos del diseño.Reintentar\"\u001b[22m\n",
+          "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('dialog', { name: 'Exportar diseño', exact: true }).getByRole('region', { name: 'Exportación 131', exact: true })\nExpected substring: \u001b[32m\"\u001b[7mLis\u001b[27mta\"\u001b[39m\nReceived string:    \u001b[31m\"\u001b[7mMP4 · Revisión 1ErrorNo se pudo completar la fase audiovisual. Reintenta o revisa los recursos del diseño.Reinten\u001b[27mta\u001b[7mr\u001b[27m\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" getByRole('dialog', { name: 'Exportar diseño', exact: true }).getByRole('region', { name: 'Exportación 131', exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('dialog', { name: 'Exportar diseño', exact: true }).getByRole('region', { name: 'Exportación 131', exact: true })\u001b[22m\n\u001b[2m    4 × locator resolved to <section aria-label=\"Exportación 131\" class=\"min-w-0 space-y-3 rounded-xl border border-slate-200 p-4\">…</section>\u001b[22m\n\u001b[2m      - unexpected value \"MP4 · Revisión 1ProcesandoProgreso: 90.91 %Cancelar\"\u001b[22m\n\u001b[2m    19 × locator resolved to <section aria-label=\"Exportación 131\" class=\"min-w-0 space-y-3 rounded-xl border border-slate-200 p-4\">…</section>\u001b[22m\n\u001b[2m       - unexpected value \"MP4 · Revisión 1ErrorNo se pudo completar la fase audiovisual. Reintenta o revisa los recursos del diseño.Reintentar\"\u001b[22m\n\n    at C:\\laragon\\www\\metricool\\tests\\e2e\\studio-av-composite.spec.ts:77:27",
+          "location": {
+            "file": "C:\\laragon\\www\\metricool\\tests\\e2e\\studio-av-composite.spec.ts",
+            "column": 27,
+            "line": 77
+          },
+          "snippet": "  75 |         await dialog.getByRole('button', { name: 'Actualizar exportaciones', exact: true }).click();\n  76 |         const row = dialog.getByRole('region', { name: `Exportación ${exported.id}`, exact: true });\n> 77 |         await expect(row).toContainText('Lista');\n     |                           ^\n  78 |         const ready = await page.evaluate(async id => (await (await fetch(`/studio/exports/${id}`, { headers: { Accept: 'application/json' } })).json()).export, exported.id);\n  79 |         expect(ready).toMatchObject({ status: 'ready', revision: design.revision, brand_id: brand.id }); expect(ready.media_ids).toHaveLength(1);\n  80 |         const [download] = await Promise.all([page.waitForEvent('download'), row.getByRole('link', { name: 'Descargar MP4', exact: true }).click()]);"
+        }
+      ]
+    }
+  ],
+  "files": [
+    "all-brands.spec.ts",
+    "brand-reporting.spec.ts",
+    "metrics-quality.spec.ts",
+    "studio-audio-editor.spec.ts",
+    "studio-audio-resources.spec.ts",
+    "studio-automation.spec.ts",
+    "studio-av-composite.spec.ts",
+    "studio-frame-export.spec.ts",
+    "studio-native-export.spec.ts",
+    "studio-timeline.spec.ts",
+    "studio.spec.ts"
+  ],
+  "projects": [
+    "desktop",
+    "mobile",
+    "mobile-360"
+  ]
+}

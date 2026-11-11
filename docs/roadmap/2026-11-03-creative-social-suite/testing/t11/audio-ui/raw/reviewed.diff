@@ -1,0 +1,910 @@
+--- a/resources/js/Pages/Studio/Editor.vue
++++ b/resources/js/Pages/Studio/Editor.vue
+@@ -16,8 +16,9 @@
+ import { createHistory } from '@/Studio/history';
+ import { studioRequest, uploadStudioFile, downloadStudioBlob } from '@/Studio/api';
+ import { STUDIO_RESIZE_MODES } from '@/Studio/format-presets';
+-import { compileTimeline, splitTimelineElement } from '@/Studio/timeline';
++import { clipMediaState, compileTimeline, splitTimelineElement, splitTimelineAudio } from '@/Studio/timeline';
+ import { createTimelinePreview } from '@/Studio/timeline-preview';
++import { completeStudioAudio, isStudioAudio, uploadStudioAudio } from '@/Studio/audio-api';
+ 
+ const props = defineProps({ design: Object, brand: Object, kit: Object, assets: Array, folders: Array, exports: Array, fonts: { type: Array, default: () => [] } });
+ const documentData = ref(validateDocument(props.design.document));
+@@ -49,6 +50,8 @@
+ const exportBusy = ref(false);
+ const error = ref('');
+ const uploadStatus = ref('');
++const pendingAudio = ref(null);
++const selectedAudioId = ref('');
+ const status = ref('Guardado');
+ const conflict = ref(false);
+ const dirty = ref(false);
+@@ -65,6 +68,7 @@
+ const previewBusy = ref(false);
+ const previewElement = ref(null);
+ const timelineDuration = computed(() => documentData.value.schema_version === 2 ? compileTimeline(documentData.value).duration : 0);
++const audioProjectDuration = computed(() => documentData.value.pages.reduce((total, page) => total + page.duration - (page.transition?.duration ?? 0), 0));
+ const timelinePageStart = computed(() => documentData.value.schema_version === 2 ? compileTimeline(documentData.value).pages.find(item => item.id === pageId.value)?.start ?? 0 : 0);
+ const selectedClipId = computed(() => selection.value.length === 1 ? selection.value[0].id : null);
+ const designWidth = ref(documentData.value.width);
+@@ -203,6 +207,61 @@
+ }
+ function patchTimelineFps(fps) { return run(() => applyTimelineChange({ ...cloneDocument(documentData.value), timeline: { ...documentData.value.timeline, fps } })); }
+ 
++function addAudioTrack(asset) {
++    return run(async () => {
++        pauseTimeline(true);
++        const next = cloneDocument(documentData.value);
++        if (next.schema_version === 1) { next.schema_version = 2; next.timeline = { fps: 30, audio_tracks: [] }; }
++        const total = audioProjectDuration.value;
++        const start = timeline.value < total - 1 / next.timeline.fps ? timeline.value : 0;
++        const id = crypto.randomUUID();
++        next.timeline.audio_tracks.push({ id, asset_id: asset.id, start, duration: Math.min(Number(asset.duration), total - start),
++            trimStart: 0, trimEnd: null, playbackRate: 1, sourceOffset: 0, loop: false, volume: 1, muted: false });
++        await applyTimelineChange(next); selectedAudioId.value = id; timelineOpen.value = true;
++    });
++}
++function addLibraryAsset(asset) { return asset.kind === 'audio' ? addAudioTrack(asset) : action('addAsset', asset); }
++function patchAudio(patch) {
++    return run(async () => {
++        const next = cloneDocument(documentData.value);
++        const track = next.timeline.audio_tracks.find(item => item.id === selectedAudioId.value);
++        if (!track) return;
++        const duration = track.duration;
++        Object.assign(track, patch);
++        if (patch.start !== undefined) track.duration = Math.min(track.duration, audioProjectDuration.value - track.start);
++        if (track.gainPoints && duration !== track.duration) track.gainPoints = track.gainPoints.map(point => ({ ...point, time: point.time / duration * track.duration }));
++        const asset = localAssets.value.find(asset => asset.id === track.asset_id);
++        clipMediaState(track, track.start, Number(asset?.duration));
++        await applyTimelineChange(next);
++    });
++}
++function fadeAudio(fades) {
++    const track = documentData.value.timeline.audio_tracks.find(item => item.id === selectedAudioId.value);
++    if (!track) return;
++    if (![fades.in, fades.out].every(value => Number.isFinite(value) && value >= 0) || fades.in + fades.out > track.duration) {
++        error.value = 'Los fundidos deben quedar dentro de la duración del audio.'; return;
++    }
++    const points = new Map([[0, fades.in ? 0 : 1], [track.duration, fades.out ? 0 : 1]]);
++    if (fades.in) points.set(fades.in, 1);
++    if (fades.out) points.set(track.duration - fades.out, 1);
++    return patchAudio({ gainPoints: [...points].sort(([a], [b]) => a - b).map(([time, value]) => ({ time, value })) });
++}
++function splitAudio() {
++    return run(async () => {
++        const track = documentData.value.timeline.audio_tracks.find(item => item.id === selectedAudioId.value);
++        if (!track) return;
++        const asset = localAssets.value.find(asset => asset.id === track.asset_id);
++        await applyTimelineChange(splitTimelineAudio(documentData.value, track.id, timeline.value, { sourceDuration: Number(asset?.duration) }));
++    });
++}
++function removeAudio() {
++    return run(async () => {
++        const next = cloneDocument(documentData.value);
++        next.timeline.audio_tracks = next.timeline.audio_tracks.filter(item => item.id !== selectedAudioId.value);
++        await applyTimelineChange(next); selectedAudioId.value = '';
++    });
++}
++
+ function scheduleSave() {
+     clearTimeout(timer);
+     if (!conflict.value) timer = setTimeout(() => { saveNow(); }, 1200);
+@@ -387,6 +446,14 @@
+     busy.value = true;
+     await run(async () => {
+         for (const file of files) {
++            if (isStudioAudio(file)) {
++                try {
++                    const asset = await uploadStudioAudio(props.brand.id, file, value => { uploadStatus.value = value; });
++                    localAssets.value = [asset, ...localAssets.value.filter(existing => existing.id !== asset.id)];
++                    adapter.setAssets(localAssets.value);
++                } catch (error) { if (error.audioTicket) pendingAudio.value = error.audioTicket; throw error; }
++                continue;
++            }
+             const uploaded = await uploadStudioFile(file, value => { uploadStatus.value = value; });
+             const result = await studioRequest('POST', route('studio.assets.store', props.brand.id), { media_id: uploaded.id });
+             localAssets.value = [result.asset, ...localAssets.value.filter(asset => asset.id !== result.asset.id)];
+@@ -395,6 +462,15 @@
+         uploadStatus.value = 'Recursos añadidos a esta marca.';
+     });
+     busy.value = false; event.target.value = '';
++}
++async function retryAudioValidation() {
++    busy.value = true;
++    await run(async () => {
++        const asset = await completeStudioAudio(pendingAudio.value);
++        localAssets.value = [asset, ...localAssets.value.filter(existing => existing.id !== asset.id)];
++        adapter.setAssets(localAssets.value); pendingAudio.value = null; uploadStatus.value = 'Audio validado y listo.';
++    });
++    busy.value = false;
+ }
+ async function updateFonts({ fonts = [], deletedIds = [] }) {
+     const next = new Map(localFonts.value.map(font => [font.id, font]));
+@@ -487,12 +563,12 @@
+                     <div class="mb-4 flex gap-1 rounded-lg bg-slate-100 p-1"><button type="button" class="flex-1 rounded-md px-2 py-2 text-xs font-medium" :class="leftPanel === 'elements' ? 'bg-white shadow-sm' : 'text-slate-500'" @click="leftPanel = 'elements'">Elementos</button><button type="button" class="flex-1 rounded-md px-2 py-2 text-xs font-medium" :class="leftPanel === 'assets' ? 'bg-white shadow-sm' : 'text-slate-500'" @click="leftPanel = 'assets'">Recursos</button></div>
+                     <div v-if="leftPanel === 'elements'" class="space-y-5"><button type="button" class="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-3 py-3 text-sm font-semibold text-white hover:bg-violet-800 disabled:opacity-50" :disabled="!ready || busy" @click="addText"><span class="font-serif text-xl" aria-hidden="true">T</span>Añadir texto</button><div><h2 class="mb-3 text-xs font-semibold">Formas</h2><div class="grid grid-cols-3 gap-2"><button v-for="shape in [{key:'rect',label:'Rectángulo',symbol:'▭'},{key:'ellipse',label:'Elipse',symbol:'◯'},{key:'triangle',label:'Triángulo',symbol:'△'},{key:'line',label:'Línea',symbol:'╱'},{key:'path',label:'Trazado',symbol:'〰'}]" :key="shape.key" type="button" class="rounded-xl border border-slate-200 py-3 text-2xl text-slate-600 transition hover:border-violet-300 hover:bg-violet-50 disabled:opacity-50" :aria-label="`Añadir ${shape.label.toLowerCase()}`" :title="shape.label" :disabled="!ready || busy" @click="addShape(shape.key)">{{ shape.symbol }}</button></div></div><div class="space-y-3 border-t border-slate-100 pt-4"><button type="button" class="w-full rounded-lg border px-3 py-2 text-xs font-medium" :class="drawing ? 'border-violet-300 bg-violet-50 text-violet-700' : 'border-slate-200'" :aria-pressed="drawing" :disabled="!ready" @click="toggleDrawing">Dibujo libre</button><div v-if="drawing" class="flex items-center gap-2"><label class="sr-only" for="studio-draw-color">Color del pincel</label><input id="studio-draw-color" v-model="drawColor" type="color" class="h-8 w-10" @input="adapter.setDrawing(true,drawColor,drawWidth)" /><label class="sr-only" for="studio-draw-width">Grosor del pincel</label><input id="studio-draw-width" v-model.number="drawWidth" type="number" min="1" max="200" class="field w-20 text-xs" @change="adapter.setDrawing(true,drawColor,drawWidth)" /></div></div><div class="border-t border-slate-100 pt-4"><h3 class="mb-3 text-xs font-semibold">Colores de {{ brand.name }}</h3><div class="flex flex-wrap gap-2"><button v-for="color in kit?.palette ?? []" :key="color" type="button" class="h-7 w-7 rounded-full border border-slate-200" :style="{ background: color }" :aria-label="`Color de marca ${color}`" :disabled="!selection.length" @click="patchSelection({fill:color})" /></div><p class="mt-3 text-[10px] leading-relaxed text-slate-400">Selecciona un elemento para aplicarle un color.</p></div></div>
+                     <div v-else class="space-y-3">
+-                        <button type="button" class="w-full rounded-xl bg-violet-700 px-3 py-2.5 text-xs font-semibold text-white disabled:opacity-50" :disabled="busy" @click="fileInput.click()">Subir imagen o vídeo</button>
+-                        <input ref="fileInput" class="sr-only" type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime" multiple aria-label="Subir recursos de marca" @change="upload" />
++                        <button type="button" class="w-full rounded-xl bg-violet-700 px-3 py-2.5 text-xs font-semibold text-white disabled:opacity-50" :disabled="busy" @click="fileInput.click()">Subir recursos</button>
++                        <input ref="fileInput" class="sr-only" type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,audio/mpeg,audio/wav,audio/mp4,audio/aac,audio/ogg,.mp3,.wav,.m4a,.aac,.ogg" multiple aria-label="Subir recursos de marca" @change="upload" />
+                         <label class="sr-only" for="studio-asset-query">Buscar recursos</label><input id="studio-asset-query" v-model="assetQuery" type="search" class="field text-xs" placeholder="Buscar recursos…" />
+-                        <p v-if="uploadStatus" role="status" class="text-xs text-violet-700">{{ uploadStatus }}</p>
+-                        <div class="grid grid-cols-2 gap-2"><article v-for="asset in visibleAssets" :key="asset.id" class="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50"><button type="button" class="block w-full min-w-0 text-left hover:bg-violet-50" :aria-label="`Añadir ${asset.name}`" :disabled="!ready || busy" @click="action('addAsset',asset)"><img v-if="asset.kind !== 'video'" :src="asset.preview_url" :alt="asset.name" class="aspect-square w-full object-cover" loading="lazy" /><span v-else class="flex aspect-square items-center justify-center text-2xl text-violet-500" aria-hidden="true">▶</span><span class="block truncate p-2 text-[10px]">{{ asset.name }}</span></button><button v-if="asset.kind === 'image'" type="button" class="block w-full border-t border-slate-200 px-2 py-2 text-[10px] font-medium text-violet-700 hover:bg-violet-50 disabled:opacity-50" :aria-label="`Quitar fondo de ${asset.name}`" :disabled="imageBusy" @click="removeBackground(asset.id)">Quitar fondo</button></article></div>
+-                        <p v-if="!visibleAssets.length" class="py-5 text-xs leading-relaxed text-slate-500">{{ assetQuery ? 'No hay recursos con ese nombre.' : 'Sube imágenes o vídeos para usarlos en los diseños de esta marca.' }}</p>
++                        <button v-if="pendingAudio" type="button" class="tool text-xs" :disabled="busy" @click="retryAudioValidation">Reintentar validación del audio</button><p v-if="uploadStatus" role="status" class="text-xs text-violet-700">{{ uploadStatus }}</p>
++                        <div class="grid grid-cols-2 gap-2"><article v-for="asset in visibleAssets" :key="asset.id" class="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50"><button type="button" class="block w-full min-w-0 text-left hover:bg-violet-50" :aria-label="`Añadir ${asset.name}`" :disabled="!ready || busy" @click="addLibraryAsset(asset)"><img v-if="asset.kind === 'image'" :src="asset.preview_url" :alt="asset.name" class="aspect-square w-full object-cover" loading="lazy" /><span v-else class="flex aspect-square items-center justify-center text-2xl text-violet-500" aria-hidden="true">{{ asset.kind === 'audio' ? '♫' : '▶' }}</span><span class="block truncate p-2 text-[10px]">{{ asset.name }}</span></button><button v-if="asset.kind === 'image'" type="button" class="block w-full border-t border-slate-200 px-2 py-2 text-[10px] font-medium text-violet-700 hover:bg-violet-50 disabled:opacity-50" :aria-label="`Quitar fondo de ${asset.name}`" :disabled="imageBusy" @click="removeBackground(asset.id)">Quitar fondo</button></article></div>
++                        <p v-if="!visibleAssets.length" class="py-5 text-xs leading-relaxed text-slate-500">{{ assetQuery ? 'No hay recursos con ese nombre.' : 'Sube imágenes, vídeos o audio para usarlos en los diseños de esta marca.' }}</p>
+                     </div>
+                     <StudioImageJob v-if="imageJobSource" class="mt-4" :brand-id="brand.id" :source-id="imageJobSource.id" :source-name="imageJobSource.name" :request-token="imageJobToken" @busy="imageBusy = $event" @ready="registerImageResult" @add="action('addAsset',$event)" @close="imageJobSource = null" />
+                 </aside>
+@@ -505,7 +581,7 @@
+                         <div v-if="!ready || busy" role="status" class="absolute inset-0 flex items-center justify-center rounded-2xl bg-slate-100/80 text-sm text-slate-600">{{ busy ? 'Preparando página…' : 'Cargando el lienzo…' }}</div>
+                     </div>
+                     <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs"><span class="text-slate-500">{{ documentData.width }} × {{ documentData.height }} px</span><div class="flex items-center gap-2"><button type="button" class="tool" aria-label="Reducir zoom" @click="setZoom(zoom - 10)">−</button><label class="sr-only" for="studio-zoom">Zoom</label><input id="studio-zoom" type="number" min="5" max="400" :value="zoom" class="w-16 rounded-lg border-slate-200 py-1 text-xs" @change="setZoom($event.target.value)" /><span>%</span><button type="button" class="tool" aria-label="Aumentar zoom" @click="setZoom(zoom + 10)">+</button><button type="button" class="tool" @click="fit">Ajustar</button></div></div>
+-                    <TimelinePanel v-if="timelineOpen && documentData.schema_version === 2" :document="documentData" :page="page" :page-start="timelinePageStart" :selected-id="selectedClipId" :time="timeline" :duration="timelineDuration" :playing="playing" :busy="busy || previewBusy || automationBusy" @select="selectLayer" @window="patchClipWindow" @seek="seekTimeline" @play="playTimeline" @split="splitClip" @fps="patchTimelineFps" @edit="pauseTimeline(true)" />
++                    <TimelinePanel v-if="timelineOpen && documentData.schema_version === 2" :document="documentData" :page="page" :page-start="timelinePageStart" :assets="localAssets" :selected-audio-id="selectedAudioId" @audio-select="selectedAudioId = $event" @audio-patch="patchAudio" @audio-split="splitAudio" @audio-remove="removeAudio" @audio-fade="fadeAudio" :selected-id="selectedClipId" :time="timeline" :duration="timelineDuration" :playing="playing" :busy="busy || previewBusy || automationBusy" @select="selectLayer" @window="patchClipWindow" @seek="seekTimeline" @play="playTimeline" @split="splitClip" @fps="patchTimelineFps" @edit="pauseTimeline(true)" />
+                     <div v-else-if="hasVideo && documentData.schema_version === 1" class="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 text-xs"><button type="button" class="tool" @click="togglePlayback">{{ playing ? 'Pausar vídeo' : 'Reproducir vídeo' }}</button><label class="flex items-center gap-2">Fotograma (s)<input v-model.number="timeline" type="number" min="0" step="0.1" class="field w-24 text-xs" @change="run(() => adapter.seek(timeline))" /></label><span class="text-slate-400">La exportación incluye un fotograma estático.</span></div>
+                     <section class="rounded-xl border border-slate-200 bg-white p-3" aria-label="Páginas del diseño"><div class="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 class="text-xs font-semibold">Páginas <span class="font-normal text-slate-400">{{ documentData.pages.length }}/100</span></h2><div class="flex flex-wrap gap-1"><button type="button" class="tool text-xs" :disabled="busy || !ready || documentData.pages.length >= 100" @click="pageAction('add')">Añadir página</button><button type="button" class="tool text-xs" :disabled="busy || !ready || documentData.pages.length >= 100" @click="pageAction('duplicate')">Duplicar página</button><button type="button" class="tool text-xs" :disabled="busy || !ready || documentData.pages.length < 2" @click="pageAction('delete')">Eliminar página</button></div></div><div class="flex gap-2 overflow-x-auto pb-1"><button v-for="(item,index) in documentData.pages" :key="item.id" type="button" class="min-w-24 max-w-40 shrink-0 rounded-lg border p-2 text-left" :class="pageId === item.id ? 'border-violet-400 bg-violet-50 text-violet-800' : 'border-slate-200'" :aria-pressed="pageId === item.id" :disabled="busy" @click="changePage(item.id)"><span class="block text-[10px] text-slate-400">{{ String(index + 1).padStart(2,'0') }}</span><span class="mt-1 block truncate text-xs font-medium">{{ item.name }}</span></button></div><div class="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3"><button type="button" class="tool text-xs" :disabled="busy || documentData.pages[0].id === pageId" @click="pageAction('move',-1)">← Mover página</button><button type="button" class="tool text-xs" :disabled="busy || documentData.pages.at(-1).id === pageId" @click="pageAction('move',1)">Mover página →</button></div></section>
+                 </main>
+--- a/resources/js/Components/Studio/TimelinePanel.vue
++++ b/resources/js/Components/Studio/TimelinePanel.vue
+@@ -1,11 +1,13 @@
+ <script setup>
+ import { computed } from 'vue';
++import AudioTrackPanel from './AudioTrackPanel.vue';
+ 
+-const props = defineProps({ document: Object, page: Object, pageStart: Number, selectedId: String, time: Number, duration: Number, playing: Boolean, busy: Boolean });
+-const emit = defineEmits(['select', 'window', 'seek', 'play', 'split', 'page', 'fps', 'edit']);
++const props = defineProps({ document: Object, page: Object, pageStart: Number, selectedId: String, time: Number, duration: Number, playing: Boolean, busy: Boolean, assets: Array, selectedAudioId: String });
++const emit = defineEmits(['select', 'window', 'seek', 'play', 'split', 'page', 'fps', 'edit', 'audio-select', 'audio-patch', 'audio-split', 'audio-remove', 'audio-fade']);
+ const selected = computed(() => props.page.elements.find(element => element.id === props.selectedId));
+ const window = computed(() => selected.value?.timing ?? { start: 0, duration: props.page.duration });
+ const localTime = computed(() => props.time - props.pageStart);
++const audioDuration = computed(() => props.document.pages.reduce((total, page) => total + page.duration - (page.transition?.duration ?? 0), 0));
+ const canSplit = computed(() => selected.value && localTime.value >= window.value.start + 1 / props.document.timeline.fps - 1e-9
+     && localTime.value <= window.value.start + window.value.duration - 1 / props.document.timeline.fps + 1e-9);
+ const format = value => Number(value.toFixed(3));
+@@ -41,7 +43,9 @@
+             <button type="button" class="timeline-button" :disabled="busy || playing || !canSplit" @click="emit('split')">Dividir clip</button>
+         </div>
+         <p v-else class="text-xs text-slate-500">Selecciona un clip para ajustar sus tiempos o dividirlo.</p>
+-        <p class="text-[10px] leading-relaxed text-slate-500">La reproducción recorre todas las páginas. Los tiempos de los clips pertenecen a la página seleccionada.</p>
++        <AudioTrackPanel :tracks="document.timeline.audio_tracks" :assets="assets ?? []" :duration="audioDuration" :fps="document.timeline.fps" :time="time" :selected-id="selectedAudioId" :disabled="busy || playing"
++            @select="emit('audio-select', $event)" @patch="emit('audio-patch', $event)" @split="emit('audio-split')" @remove="emit('audio-remove')" @fade="emit('audio-fade', $event)" />
++        <p class="text-[10px] leading-relaxed text-slate-500">La reproducción recorre todas las páginas. Los tiempos de los clips pertenecen a la página seleccionada; los del audio, al proyecto completo.</p>
+     </section>
+ </template>
+ 
+--- a/resources/js/Studio/timeline-preview.js
++++ b/resources/js/Studio/timeline-preview.js
+@@ -1,6 +1,7 @@
+ import { validateDocument } from './document.js';
+ import { renderStudioPage, seekVideoFrame } from './canvas.js';
+ import { clipMediaState, compileTimeline, sampleTimeline } from './timeline.js';
++import { createTimelineAudio } from './timeline-audio.js';
+ 
+ /** A separate, disposable scene: preview state can never leak into saved Fabric objects. */
+ export async function createTimelinePreview(output, { document: input, assets = [], fonts = [] } = {}) {
+@@ -15,7 +16,8 @@
+     const pauseMedia = () => {
+         for (const entry of cache.values()) walk(entry.scene.canvas.getObjects(), object => object.studioVideo?.pause());
+     };
+-    const pause = () => { playing = false; pauseMedia(); };
++    const audio = createTimelineAudio(document.timeline.audio_tracks, assets, { onBuffer: pauseMedia });
++    const pause = () => { playing = false; pauseMedia(); audio.pause(); };
+     function visibleElements(elements, time, duration) {
+         const result = [];
+         for (const element of elements) {
+@@ -38,6 +40,7 @@
+         const cached = cache.get(page.id);
+         if (cached?.signature === signature) return { ...cached, bufferingMs: 0 };
+         pauseMedia();
++        audio.pauseMedia();
+         const started = performance.now();
+         if (cached) { cache.delete(page.id); await cached.scene.dispose(); }
+         const { transition: ignored, ...source } = page;
+@@ -54,7 +57,9 @@
+         // Release inactive pages before opening the next ones; keep at most the transition pair.
+         for (const [id, entry] of cache) if (!wanted.has(id)) { cache.delete(id); await entry.scene.dispose(); }
+         const scenes = [];
+-        let bufferingMs = 0;
++        const audioPrepared = await audio.prepare(time, { play: playing });
++        if (disposed || request !== generation) { audio.pause(); return { bufferingMs: 0 }; }
++        let bufferingMs = audioPrepared.bufferingMs;
+         media = [];
+         // Prepare the whole active pair before starting any native media clock.
+         // Buffering pauses all decoders, and its elapsed time is returned to the common clock.
+@@ -109,23 +114,27 @@
+         context.restore();
+         context.save(); context.globalCompositeOperation = 'destination-over'; context.fillStyle = '#000000';
+         context.fillRect(0, 0, output.width, output.height); context.restore();
++        if (playing) await audio.play();
++        else audio.pause();
++        if (disposed || request !== generation || !playing) audio.pause();
+         return { bufferingMs };
+     }
+     return {
+         duration: plan.duration,
+         seek(time, { play = false } = {}) {
+             if (!Number.isFinite(time) || time < 0 || time > plan.duration) return Promise.reject(new Error('Tiempo de reproducción fuera del diseño.'));
++            if (!play) pause();
+             playing = play;
+             const request = ++generation;
+-            const work = tail.catch(() => {}).then(() => paint(time, request));
++            const work = tail.catch(() => {}).then(() => paint(time, request)).catch(error => { pause(); throw error; });
+             tail = work;
+             return work;
+         },
+         pause,
+-        mediaState: () => media.map(item => ({ ...item })),
++        mediaState: () => [...media.map(item => ({ ...item })), ...audio.state()],
+         async dispose() {
+             disposed = true; ++generation; pause();
+-            await tail.catch(() => {});
++            await Promise.all([tail.catch(() => {}), audio.dispose()]);
+             for (const entry of cache.values()) await entry.scene.dispose();
+             cache.clear(); media = [];
+         },
+--- a/resources/js/Studio/timeline-audio.js
++++ b/resources/js/Studio/timeline-audio.js
+@@ -0,0 +1,116 @@
++import { clipMediaState } from './timeline.js';
++
++/** Streaming decoders only for the current window. Never decode a whole library into JS buffers. */
++export function createTimelineAudio(tracks, assets, { onBuffer = () => {} } = {}) {
++    const resources = new Map(assets.map(asset => [asset.id, asset]));
++    const entries = new Map();
++    let context = null, disposed = false, generation = 0, states = new Map();
++    const paused = () => { for (const entry of entries.values()) entry.node.pause(); };
++    function release(id) {
++        const entry = entries.get(id);
++        if (!entry) return;
++        entries.delete(id); entry.abort.abort(); entry.node.pause();
++        entry.source?.disconnect(); entry.gain?.disconnect();
++        entry.node.removeAttribute('src'); entry.node.load();
++    }
++    function wait(node, event, ready, signal) {
++        if (ready()) return Promise.resolve();
++        return new Promise((resolve, reject) => {
++            const cleanup = () => { clearTimeout(timer); node.removeEventListener(event, done); node.removeEventListener('error', failed); signal.removeEventListener('abort', cancelled); };
++            const done = () => { cleanup(); resolve(); };
++            const failed = () => { cleanup(); reject(new Error('No se pudo cargar o decodificar el audio de esta pista.')); };
++            const cancelled = () => { cleanup(); reject(new DOMException('Audio cancelado', 'AbortError')); };
++            const timer = setTimeout(failed, 10000);
++            node.addEventListener(event, done, { once: true }); node.addEventListener('error', failed, { once: true });
++            signal.addEventListener('abort', cancelled, { once: true });
++            if (signal.aborted) cancelled();
++        });
++    }
++    async function prepare(time, { play = false } = {}) {
++        if (disposed) throw new Error('La reproducción de audio ya terminó.');
++        const wanted = tracks.filter(track => time >= track.start && time < track.start + track.duration);
++        const ids = new Set(wanted.map(track => track.id));
++        for (const id of entries.keys()) if (!ids.has(id)) release(id);
++        states = new Map();
++        let buffering = false, began = 0;
++        const buffer = () => { if (!buffering) { buffering = true; began = performance.now(); paused(); onBuffer(); } };
++        try {
++            await Promise.all(wanted.map(async track => {
++                const asset = resources.get(track.asset_id);
++                if (!asset || asset.status !== 'listo' || !['audio', 'video'].includes(asset.kind) || (asset.kind === 'audio' && !asset.audio_codec)
++                    || !(asset.studio_url ?? asset.preview_url)) throw new Error('Falta un recurso de audio válido de esta marca.');
++                const planned = clipMediaState(track, time, Number(asset.duration));
++                states.set(track.id, planned);
++                // Muted/exhausted tracks retain their timeline state without opening a decoder.
++                if (!planned.audible) { release(track.id); return; }
++                let entry = entries.get(track.id);
++                if (!entry) {
++                    buffer();
++                    const node = globalThis.document.createElement('audio');
++                    node.preload = 'auto'; node.loop = false; node.preservesPitch = false;
++                    entry = { node, abort: new AbortController(), source: null, gain: null, state: null };
++                    entries.set(track.id, entry);
++                    const ready = wait(node, 'loadeddata', () => node.readyState >= 2, entry.abort.signal);
++                    node.src = asset.studio_url ?? asset.preview_url; node.load();
++                    await ready;
++                }
++                const { node } = entry;
++                if (node.error || !Number.isFinite(node.duration) || node.duration <= 0) throw new Error('El navegador no puede reproducir este audio.');
++                const state = clipMediaState(track, time, node.duration);
++                states.set(track.id, state);
++                node.playbackRate = state.playbackRate;
++                const target = Math.min(state.sourceTime, Math.max(0, node.duration - 0.001));
++                const tolerance = play && !node.paused ? state.playbackRate / 60 : 0.0005;
++                if (Math.abs(node.currentTime - target) > tolerance || node.seeking) {
++                    buffer();
++                    const ready = wait(node, 'seeked', () => !node.seeking && Math.abs(node.currentTime - target) <= 0.0005, entry.abort.signal);
++                    node.currentTime = target;
++                    await ready;
++                }
++                entry.state = state;
++                if (entry.gain) { node.volume = 1; entry.gain.gain.setValueAtTime(state.gain, context.currentTime); }
++                else node.volume = state.gain;
++                if (!state.audible) node.pause();
++            }));
++        } catch (error) {
++            paused();
++            for (const id of entries.keys()) release(id);
++            states.clear();
++            throw error;
++        }
++        return { bufferingMs: buffering ? performance.now() - began : 0 };
++    }
++    async function play() {
++        const request = ++generation;
++        const audible = [...entries.values()].filter(entry => entry.state?.audible);
++        if (!audible.length || disposed) return;
++        if (!context) {
++            const Constructor = globalThis.AudioContext ?? globalThis.webkitAudioContext;
++            if (!Constructor) throw new Error('Este navegador no dispone de mezcla Web Audio.');
++            context = new Constructor();
++        }
++        let timer;
++        try {
++            await Promise.race([context.resume(), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Pulsa Reproducir para permitir el audio del navegador.')), 5000); })]);
++            if (disposed || request !== generation) return;
++            await Promise.all(audible.map(async entry => {
++                if (!entry.source) {
++                    entry.source = context.createMediaElementSource(entry.node); entry.gain = context.createGain();
++                    entry.source.connect(entry.gain); entry.gain.connect(context.destination);
++                }
++                entry.node.volume = 1; entry.gain.gain.setValueAtTime(entry.state.gain, context.currentTime);
++                if (entry.node.paused) await entry.node.play();
++                if (disposed || request !== generation) entry.node.pause();
++            }));
++        } catch (error) { paused(); throw error; }
++        finally { clearTimeout(timer); }
++    }
++    return {
++        prepare, play,
++        pauseMedia: paused,
++        pause() { ++generation; paused(); },
++        state: () => [...states].map(([id, state]) => { const node = entries.get(id)?.node; return { id, kind: 'audio', active: state.active,
++            audible: !!node && !node.paused && state.audible, sourceTime: node?.currentTime ?? state.sourceTime, gain: state.gain, paused: node?.paused ?? true }; }),
++        async dispose() { disposed = true; ++generation; for (const id of entries.keys()) release(id); states.clear(); await context?.close(); context = null; },
++    };
++}
+--- a/resources/js/Studio/audio-api.js
++++ b/resources/js/Studio/audio-api.js
+@@ -0,0 +1,47 @@
++import { StudioApiError, studioRequest } from './api.js';
++
++export const isStudioAudio = file => file.type.startsWith('audio/') || /\.(mp3|wav|m4a|aac|ogg)$/i.test(file.name);
++const csrf = () => decodeURIComponent((document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '');
++
++export async function completeStudioAudio(ticket) {
++    try {
++        const result = await studioRequest('POST', ticket.complete_url, { parts: ticket.parts ?? [] });
++        if (result.asset?.status !== 'listo') throw new StudioApiError(result.asset?.error || 'El audio todavía no está listo.', 422);
++        return result.asset;
++    } catch (error) { if (error.status === 503 || error instanceof TypeError) error.audioTicket = ticket; throw error; }
++}
++
++/** Binary upload URLs receive no session headers. Retrying validation reuses the completed ticket. */
++export async function uploadStudioAudio(brandId, file, onStatus = () => {}) {
++    const mime = file.type || ({ mp3: 'audio/mpeg', wav: 'audio/wav', m4a: 'audio/mp4', aac: 'audio/aac', ogg: 'audio/ogg' })[file.name.split('.').at(-1).toLowerCase()];
++    onStatus('Preparando el audio…');
++    const ticket = await studioRequest('POST', route('studio.audio.store', brandId), { name: file.name, mime, size: file.size });
++    const { upload } = ticket;
++    if (upload.mode === 'local') {
++        onStatus('Subiendo y validando el audio…');
++        const response = await fetch(upload.url, { method: 'PUT', credentials: 'same-origin', headers: {
++            Accept: 'application/json', 'X-XSRF-TOKEN': csrf(), 'Content-Type': mime }, body: file });
++        const result = await response.json().catch(() => ({}));
++        if (response.ok && result.asset?.status === 'listo') return result.asset;
++        const error = new StudioApiError(result.message || result.asset?.error || 'No se pudo validar el audio.', response.status);
++        if (response.status === 503) error.audioTicket = ticket;
++        throw error;
++    }
++    ticket.parts = [];
++    if (upload.mode === 'single') {
++        onStatus('Subiendo el audio…');
++        const response = await fetch(upload.url, { method: 'PUT', credentials: 'omit', headers: upload.headers ?? {}, body: file });
++        if (!response.ok) throw new StudioApiError('El almacenamiento rechazó el audio.', response.status);
++    } else if (upload.mode === 'multipart') {
++        for (const part of upload.parts) {
++            onStatus(`Subiendo audio: parte ${part.number} de ${upload.parts.length}…`);
++            const start = (part.number - 1) * upload.part_size;
++            const response = await fetch(part.url, { method: 'PUT', credentials: 'omit', body: file.slice(start, Math.min(start + upload.part_size, file.size)) });
++            const etag = response.headers.get('ETag');
++            if (!response.ok || !etag) throw new StudioApiError('No se pudo confirmar una parte del audio.', response.status);
++            ticket.parts.push({ number: part.number, etag });
++        }
++    } else throw new StudioApiError('Este modo de subida de audio no está disponible.', 422);
++    onStatus('Validando el audio…');
++    return completeStudioAudio(ticket);
++}
+--- a/resources/js/Components/Studio/AudioTrackPanel.vue
++++ b/resources/js/Components/Studio/AudioTrackPanel.vue
+@@ -0,0 +1,51 @@
++<script setup>
++import { computed } from 'vue';
++
++const props = defineProps({ tracks: Array, assets: Array, duration: Number, fps: Number, time: Number, selectedId: String, disabled: Boolean });
++const emit = defineEmits(['select', 'patch', 'split', 'remove', 'fade']);
++const selected = computed(() => props.tracks.find(track => track.id === props.selectedId));
++const source = computed(() => props.assets.find(asset => asset.id === selected.value?.asset_id));
++const label = track => props.assets.find(asset => asset.id === track.asset_id)?.name ?? 'Audio';
++const number = (key, event) => emit('patch', { [key]: event.target.value === '' && key === 'trimEnd' ? null : Number(event.target.value) });
++const canSplit = computed(() => selected.value && props.time >= selected.value.start + 1 / props.fps - 1e-9 && props.time <= selected.value.start + selected.value.duration - 1 / props.fps + 1e-9);
++const fadeIn = computed(() => selected.value?.gainPoints?.[0]?.value === 0 ? selected.value.gainPoints.find(point => point.value === 1)?.time ?? 0 : 0);
++const fadeOut = computed(() => selected.value?.gainPoints?.at(-1)?.value === 0 ? selected.value.duration - (selected.value.gainPoints.findLast(point => point.value === 1)?.time ?? selected.value.duration) : 0);
++</script>
++
++<template>
++    <section aria-label="Pistas de audio" class="min-w-0 space-y-3 border-t border-slate-200 pt-4">
++        <h3 class="text-xs font-semibold text-slate-700">Pistas de audio <span class="font-normal text-slate-400">{{ tracks.length }}/64</span></h3>
++        <div class="space-y-2">
++            <div v-for="track in tracks" :key="track.id" class="relative h-9 rounded-lg bg-slate-50">
++                <button type="button" data-testid="timeline-audio-track" :aria-label="`Seleccionar audio ${label(track)}`" :aria-pressed="selectedId === track.id" :disabled="disabled"
++                    class="absolute top-0 flex h-9 min-w-[3px] items-center overflow-hidden rounded-md border px-2 text-left text-[11px] font-medium disabled:opacity-50"
++                    :class="selectedId === track.id ? 'border-emerald-700 bg-emerald-700 text-white' : 'border-emerald-200 bg-emerald-100 text-emerald-900'"
++                    :style="{ left: `${track.start / duration * 100}%`, width: `${track.duration / duration * 100}%` }" @click="emit('select', track.id)"><span class="truncate">♫ {{ label(track) }}{{ track.muted ? ' · Silenciado' : '' }}</span></button>
++            </div>
++        </div>
++        <p v-if="!tracks.length" class="text-xs text-slate-500">Sube un audio en Recursos y añádelo a la línea de tiempo.</p>
++        <div v-if="selected" class="space-y-3 rounded-xl bg-emerald-50/60 p-3">
++            <p class="truncate text-xs font-semibold text-emerald-900">{{ label(selected) }}</p>
++            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
++                <label class="audio-label">Inicio del audio<input aria-label="Inicio del audio" type="number" min="0" :max="duration - 1 / fps" :step="1 / fps" :value="selected.start" :disabled="disabled" @change="number('start', $event)" /></label>
++                <label class="audio-label">Duración del audio<input aria-label="Duración del audio" type="number" :min="1 / fps" :max="duration - selected.start" :step="1 / fps" :value="selected.duration" :disabled="disabled" @change="number('duration', $event)" /></label>
++                <label class="audio-label">Velocidad del audio<input aria-label="Velocidad del audio" type="number" min="0.25" max="4" step="0.25" :value="selected.playbackRate" :disabled="disabled" @change="number('playbackRate', $event)" /></label>
++                <label class="audio-label">Recorte inicial del audio<input aria-label="Recorte inicial del audio" type="number" min="0" :max="(selected.trimEnd ?? source?.duration ?? 3600) - 0.001" step="0.001" :value="selected.trimStart" :disabled="disabled" @change="number('trimStart', $event)" /></label>
++                <label class="audio-label">Recorte final del audio<input aria-label="Recorte final del audio" type="number" :min="selected.trimStart + 0.001" :max="source?.duration ?? 3600" step="0.001" :placeholder="String(source?.duration ?? '')" :value="selected.trimEnd" :disabled="disabled" @change="number('trimEnd', $event)" /></label>
++                <label class="audio-label">Volumen del audio<input aria-label="Volumen del audio" type="number" min="0" max="1" step="0.05" :value="selected.volume" :disabled="disabled" @change="number('volume', $event)" /></label>
++                <label class="audio-label">Fundido de entrada<input aria-label="Fundido de entrada" type="number" min="0" :max="selected.duration - fadeOut" step="0.1" :value="fadeIn" :disabled="disabled" @change="emit('fade', { in: Number($event.target.value), out: fadeOut })" /></label>
++                <label class="audio-label">Fundido de salida<input aria-label="Fundido de salida" type="number" min="0" :max="selected.duration - fadeIn" step="0.1" :value="fadeOut" :disabled="disabled" @change="emit('fade', { in: fadeIn, out: Number($event.target.value) })" /></label>
++            </div>
++            <div class="flex flex-wrap items-center gap-3 text-xs text-emerald-950">
++                <label class="flex items-center gap-2"><input type="checkbox" :checked="selected.loop" :disabled="disabled" @change="emit('patch', { loop: $event.target.checked })" />Repetir audio</label>
++                <label class="flex items-center gap-2"><input type="checkbox" :checked="selected.muted" :disabled="disabled" @change="emit('patch', { muted: $event.target.checked })" />Silenciar audio</label>
++                <button type="button" class="rounded-lg border border-emerald-300 bg-white px-3 py-2 disabled:opacity-40" :disabled="disabled || !canSplit" @click="emit('split')">Dividir audio</button>
++                <button type="button" class="rounded-lg px-3 py-2 text-red-700 disabled:opacity-40" :disabled="disabled" @click="emit('remove')">Eliminar audio</button>
++            </div>
++        </div>
++    </section>
++</template>
++
++<style scoped>
++.audio-label{display:flex;min-width:0;flex-direction:column;gap:4px;font-size:11px;color:#475569}.audio-label input{width:100%;min-width:0;border-radius:8px;border-color:#cbd5e1;padding:6px 8px;font-size:12px}
++</style>
+--- a/tests/frontend/studio-audio-preview.browser.test.mjs
++++ b/tests/frontend/studio-audio-preview.browser.test.mjs
+@@ -0,0 +1,242 @@
++import test, { before, after } from 'node:test';
++import assert from 'node:assert/strict';
++import { chromium } from 'playwright';
++import { build } from 'vite';
++import { execFileSync } from 'node:child_process';
++import { newElement } from '../../resources/js/Studio/document.js';
++
++let browser, page;
++const requests = [];
++function tone(frequency) {
++    const rate = 16000, samples = rate * 4, wav = Buffer.alloc(44 + samples * 2);
++    wav.write('RIFF'); wav.writeUInt32LE(wav.length - 8, 4); wav.write('WAVEfmt ', 8); wav.writeUInt32LE(16, 16);
++    wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(rate, 24); wav.writeUInt32LE(rate * 2, 28);
++    wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write('data', 36); wav.writeUInt32LE(samples * 2, 40);
++    for (let i = 0; i < samples; i++) wav.writeInt16LE(Math.round(12000 * Math.sin(2 * Math.PI * frequency * i / rate)), 44 + i * 2);
++    return wav;
++}
++before(async () => {
++    const video = execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=64x64:rate=30:duration=4',
++        '-c:v', 'libx264', '-threads', '1', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', '-movflags', 'frag_keyframe+empty_moov', '-f', 'mp4', 'pipe:1'], { timeout: 20000 });
++    const bundle = await build({ configFile: false, publicDir: false, logLevel: 'silent', build: { write: false,
++        lib: { entry: 'resources/js/Studio/timeline-preview.js', name: 'AudioPreview', formats: ['iife'] } } });
++    browser = await chromium.launch({ headless: true });
++    page = await browser.newPage({ serviceWorkers: 'block' });
++    await page.route('**/*', route => {
++        const url = new URL(route.request().url());
++        if (url.pathname === '/') return route.fulfill({ contentType: 'text/html', body: '<!doctype html><body><button id="play">Play</button></body>' });
++        if (url.pathname === '/video.mp4') {
++            const range = /^bytes=(\d+)-(\d*)$/.exec(route.request().headers().range ?? '');
++            const start = range ? Number(range[1]) : 0, end = range?.[2] ? Math.min(Number(range[2]), video.length - 1) : video.length - 1;
++            return route.fulfill({ status: range ? 206 : 200, contentType: 'video/mp4', body: video.subarray(start, end + 1),
++                headers: { 'Accept-Ranges': 'bytes', ...(range ? { 'Content-Range': `bytes ${start}-${end}/${video.length}` } : {}) } });
++        }
++        if (url.pathname.endsWith('.wav')) {
++            requests.push(url.pathname);
++            const wav = tone(url.pathname.includes('880') ? 880 : 440);
++            const range = /^bytes=(\d+)-(\d*)$/.exec(route.request().headers().range ?? '');
++            const start = range ? Number(range[1]) : 0, end = range?.[2] ? Math.min(Number(range[2]), wav.length - 1) : wav.length - 1;
++            return route.fulfill({ status: range ? 206 : 200, contentType: 'audio/wav', body: wav.subarray(start, end + 1),
++                headers: { 'Accept-Ranges': 'bytes', ...(range ? { 'Content-Range': `bytes ${start}-${end}/${wav.length}` } : {}) } });
++        }
++        return route.abort();
++    });
++    await page.goto('http://audio-preview.invalid/');
++    await page.addScriptTag({ content: (Array.isArray(bundle) ? bundle[0] : bundle).output[0].code });
++});
++
++test('loop phase, muted tracks, source exhaustion and unavailable assets have explicit preview states', async () => {
++    const result = await page.evaluate(async ({ doc, assets }) => {
++        const output = document.createElement('canvas'); document.body.append(output);
++        const preview = await AudioPreview.createTimelinePreview(output, { document: doc, assets });
++        try { await preview.seek(1.25); return preview.mediaState(); }
++        finally { await preview.dispose(); output.remove(); }
++    }, { doc: doc([track('loop', 1, { start: 0, duration: 3, trimStart: 0.5, trimEnd: 1.5, sourceOffset: 0.25, playbackRate: 2, loop: true }),
++        track('muted', 1, { start: 0, duration: 3, muted: true }), track('eof', 2, { start: 0, duration: 3, trimEnd: 1, sourceOffset: 0 })]), assets });
++    assert.ok(Math.abs(result.find(track => track.id === 'loop').sourceTime - 1.25) < 0.025, JSON.stringify(result));
++    for (const id of ['muted', 'eof']) { const state = result.find(track => track.id === id); assert.equal(state.gain, 0); assert.equal(state.paused, true); }
++    const error = await page.evaluate(async ({ doc }) => {
++        const output = document.createElement('canvas'), preview = await AudioPreview.createTimelinePreview(output, { document: doc, assets: [] });
++        try { await preview.seek(1.5); return null; } catch (error) { return { message: error.message, remaining: preview.mediaState() }; }
++        finally { await preview.dispose(); }
++    }, { doc: doc([track('missing', 123)]) });
++    assert.match(error.message, /recurso de audio válido/); assert.deepEqual(error.remaining, []);
++});
++after(async () => { await browser?.close(); });
++
++test('closing during an unresponsive audio request aborts its decoder and queue immediately', async () => {
++    let pending;
++    await page.route('**/hang.wav', route => { pending = route; });
++    try {
++        const result = await page.evaluate(async ({ doc, assets }) => {
++            const output = document.createElement('canvas'), nodes = [], original = document.createElement.bind(document);
++            document.createElement = (...args) => { const node = original(...args); if (args[0] === 'audio') nodes.push(node); return node; };
++            const preview = await AudioPreview.createTimelinePreview(output, { document: doc, assets });
++            const work = preview.seek(1.5).catch(() => {});
++            await new Promise(resolve => setTimeout(resolve, 40));
++            const start = performance.now();
++            window.pendingAudioCleanup = preview.dispose();
++            const finished = await Promise.race([window.pendingAudioCleanup.then(() => true), new Promise(resolve => setTimeout(() => resolve(false), 250))]);
++            document.createElement = original;
++            window.pendingAudioWork = work;
++            return { finished, elapsed: performance.now() - start, count: nodes.length, released: nodes.every(node => !node.getAttribute('src') && node.paused) };
++        }, { doc: doc([track('loading', 1)]), assets: [{ ...assets[0], preview_url: 'http://audio-preview.invalid/hang.wav' }] });
++        assert.equal(result.count, 1);
++        assert.equal(result.finished, true, JSON.stringify(result));
++        assert.equal(result.released, true, JSON.stringify(result));
++    } finally {
++        await pending?.abort().catch(() => {});
++        await page.evaluate(async () => { await window.pendingAudioWork; await window.pendingAudioCleanup; delete window.pendingAudioWork; delete window.pendingAudioCleanup; });
++        await page.unroute('**/hang.wav');
++    }
++});
++
++test('64 muted tracks do not allocate decoders or introduce buffering during visual playback', async () => {
++    const result = await page.evaluate(async ({ doc, assets }) => {
++        const output = document.createElement('canvas'), nodes = [], original = document.createElement.bind(document);
++        document.createElement = (...args) => { const node = original(...args); if (args[0] === 'audio') nodes.push(node); return node; };
++        const preview = await AudioPreview.createTimelinePreview(output, { document: doc, assets });
++        try {
++            await preview.seek(0); // Canvas preparation is visual buffering, independent of muted audio.
++            const samples = [];
++            for (let frame = 0; frame < 10; frame++) samples.push(await preview.seek(frame / 30, { play: true }));
++            return { decoders: nodes.length, state: preview.mediaState(), buffering: samples.reduce((sum, sample) => sum + sample.bufferingMs, 0) };
++        } finally { await preview.dispose(); document.createElement = original; }
++    }, { doc: doc(Array.from({ length: 64 }, (_, i) => track(`silent${i}`, 1, { start: 0, duration: 3, muted: true }))), assets });
++    assert.equal(result.decoders, 0);
++    assert.equal(result.buffering, 0);
++    assert.equal(result.state.length, 64);
++    assert.ok(result.state.every(state => state.paused && state.gain === 0));
++});
++
++test('paused seeks honor a sub-40ms source trim at slow playback rates', async () => {
++    const result = await page.evaluate(async ({ doc, assets }) => {
++        const preview = await AudioPreview.createTimelinePreview(document.createElement('canvas'), { document: doc, assets });
++        try { await preview.seek(0); return preview.mediaState()[0]; }
++        finally { await preview.dispose(); }
++    }, { doc: doc([track('precise', 1, { start: 0, duration: 3, trimStart: 0.039, sourceOffset: 0, playbackRate: 0.25 })]), assets });
++    assert.ok(Math.abs(result.sourceTime - 0.039) / 0.25 < 1 / 30, JSON.stringify(result));
++});
++
++const track = (id, asset_id, overrides = {}) => ({ id, asset_id, start: 1, duration: 2, trimStart: 0.2, trimEnd: 3,
++    playbackRate: 1.5, sourceOffset: 0.3, loop: false, volume: 0.5, muted: false, ...overrides });
++const doc = tracks => ({ schema_version: 2, width: 100, height: 100, timeline: { fps: 30, audio_tracks: tracks },
++    pages: [{ id: 'one', duration: 4, background: '#ffffff', elements: [] }] });
++const assets = [440, 880].map((frequency, i) => ({ id: i + 1, kind: 'audio', name: `tone${frequency}`, duration: 4,
++    audio_codec: 'pcm_s16le', status: 'listo', preview_url: `http://audio-preview.invalid/${frequency}.wav` }));
++
++test('preview seeks real private audio with trim/rate/envelope and releases it outside its window', async () => {
++    requests.length = 0;
++    const result = await page.evaluate(async ({ doc, assets }) => {
++        const output = document.createElement('canvas'); document.body.append(output);
++        const nodes = [], original = document.createElement.bind(document);
++        document.createElement = (...args) => { const node = original(...args); if (args[0] === 'audio') nodes.push(node); return node; };
++        const preview = await AudioPreview.createTimelinePreview(output, { document: doc, assets });
++        const before = JSON.stringify(doc);
++        try {
++            await preview.seek(0.5); const unallocated = nodes.length;
++            await preview.seek(1.5); const state = preview.mediaState();
++            const actual = nodes.map(node => ({ time: node.currentTime, rate: node.playbackRate, paused: node.paused }));
++            await preview.seek(3); const released = nodes.every(node => node.paused && !node.getAttribute('src'));
++            return { unallocated, state, actual, released, unchanged: JSON.stringify(doc) === before };
++        } finally { await preview.dispose(); document.createElement = original; output.remove(); }
++    }, { doc: doc([track('voice', 1, { gainPoints: [{ time: 0, value: 0 }, { time: 2, value: 1 }] })]), assets });
++    assert.equal(result.unallocated, 0);
++    const audio = result.state.find(item => item.id === 'voice');
++    assert.ok(audio, 'the preview must include the audio track');
++    assert.ok(Math.abs(audio.sourceTime - 1.25) < 0.025, JSON.stringify(result));
++    assert.ok(Math.abs(audio.gain - 0.125) < 0.001);
++    assert.equal(result.actual[0].rate, 1.5);
++    assert.equal(result.actual[0].paused, true);
++    assert.equal(result.released, true);
++    assert.equal(result.unchanged, true);
++    assert.ok(requests.length > 0);
++});
++
++test('two real tones mix through independent gain nodes and pause without mutating tracks', async () => {
++    const result = await page.evaluate(async ({ doc, assets }) => {
++        const meters = [], original = AudioContext.prototype.createGain;
++        AudioContext.prototype.createGain = function () {
++            const gain = original.call(this), analyser = this.createAnalyser(); analyser.fftSize = 8192;
++            gain.connect(analyser); meters.push({ analyser, context: this }); return gain;
++        };
++        const output = document.createElement('canvas'); document.body.append(output);
++        const preview = await AudioPreview.createTimelinePreview(output, { document: doc, assets });
++        const measure = () => meters.map(({ analyser, context }) => {
++            const data = new Float32Array(analyser.fftSize); analyser.getFloatTimeDomainData(data);
++            const spectrum = new Float32Array(analyser.frequencyBinCount); analyser.getFloatFrequencyData(spectrum);
++            let peak = 1; for (let i = 2; i < spectrum.length; i++) if (spectrum[i] > spectrum[peak]) peak = i;
++            return { rms: Math.sqrt(data.reduce((sum, value) => sum + value * value, 0) / data.length), hz: peak * context.sampleRate / analyser.fftSize };
++        });
++        const before = JSON.stringify(doc);
++        try {
++            await preview.seek(0.25);
++            document.querySelector('#play').onclick = async () => {
++                try { await preview.seek(0.25, { play: true }); window.audioProbeDone = true; }
++                catch (error) { window.audioProbeError = error.message; }
++            };
++            window.audioProbe = { preview, measure, before, doc, output, restore: () => { AudioContext.prototype.createGain = original; } };
++            return { prepared: true };
++        } catch (error) { await preview.dispose(); AudioContext.prototype.createGain = original; output.remove(); throw error; }
++    }, { doc: doc([track('low', 1, { start: 0, duration: 3, playbackRate: 1, volume: 0.5 }),
++        track('high', 2, { start: 0, duration: 3, playbackRate: 1, volume: 0.25 })]), assets });
++    assert.equal(result.prepared, true);
++    await page.locator('#play').click();
++    try {
++        await page.waitForFunction(() => window.audioProbeDone || window.audioProbeError);
++        assert.equal(await page.evaluate(() => window.audioProbeError), undefined);
++        await page.waitForTimeout(260);
++        const measured = await page.evaluate(() => ({ meters: window.audioProbe.measure(), state: window.audioProbe.preview.mediaState() }));
++        assert.equal(measured.meters.length, 2);
++        assert.ok(Math.abs(measured.meters[0].hz - 440) < 10, JSON.stringify(measured));
++        assert.ok(Math.abs(measured.meters[1].hz - 880) < 10, JSON.stringify(measured));
++        assert.ok(measured.meters[0].rms > 0.10 && measured.meters[0].rms < 0.15, JSON.stringify(measured));
++        assert.ok(measured.meters[1].rms > 0.05 && measured.meters[1].rms < 0.08, JSON.stringify(measured));
++        assert.ok(measured.state.every(track => !track.paused));
++        await page.evaluate(() => window.audioProbe.preview.pause());
++        await page.waitForTimeout(260);
++        const paused = await page.evaluate(() => ({ meters: window.audioProbe.measure(), state: window.audioProbe.preview.mediaState(),
++            unchanged: window.audioProbe.before === JSON.stringify(window.audioProbe.doc) }));
++        assert.ok(paused.meters.every(meter => meter.rms < 0.0001), JSON.stringify(paused));
++        assert.ok(paused.state.every(track => track.paused));
++        assert.equal(paused.unchanged, true);
++    } finally {
++        await page.evaluate(async () => { const probe = window.audioProbe; await probe.preview.dispose(); probe.restore(); probe.output.remove(); delete window.audioProbe; delete window.audioProbeDone; delete window.audioProbeError; });
++    }
++});
++
++test('a real video and a streaming audio track follow the same clock within one output frame', async () => {
++    const source = doc([track('sound', 1, { start: 0, duration: 3, playbackRate: 1.25 })]);
++    source.pages[0].elements.push(newElement('video', { id: 'visual', asset_id: 3, width: 64, height: 64, muted: true,
++        trimStart: 0.2, trimEnd: 3, sourceOffset: 0.3, playbackRate: 1.25, timing: { start: 0, duration: 3 } }));
++    await page.evaluate(async ({ doc, assets }) => {
++        const output = document.createElement('canvas'), preview = await AudioPreview.createTimelinePreview(output, { document: doc, assets });
++        await preview.seek(0.5);
++        window.avProbe = { preview, before: JSON.stringify(doc), doc, frames: [] };
++        document.querySelector('#play').onclick = async () => {
++            try {
++                await preview.seek(0.5, { play: true });
++                let origin = performance.now() - 500;
++                for (let i = 0; i < 20; i++) {
++                    await new Promise(resolve => requestAnimationFrame(resolve));
++                    const time = (performance.now() - origin) / 1000;
++                    const sample = await preview.seek(time, { play: true }); origin += sample.bufferingMs;
++                    window.avProbe.frames.push({ time, media: preview.mediaState() });
++                }
++                preview.pause(); window.avProbe.done = true;
++            } catch (error) { window.avProbe.error = error.message; }
++        };
++    }, { doc: source, assets: [...assets, { id: 3, kind: 'video', status: 'listo', duration: 4, preview_url: 'http://audio-preview.invalid/video.mp4' }] });
++    try {
++        await page.locator('#play').click(); await page.waitForFunction(() => window.avProbe.done || window.avProbe.error);
++        const result = await page.evaluate(() => ({ ...window.avProbe, preview: undefined }));
++        assert.equal(result.error, undefined);
++        assert.equal(result.frames.length, 20);
++        const errors = result.frames.map(frame => {
++            const audio = frame.media.find(item => item.id === 'sound'), video = frame.media.find(item => item.id === 'visual');
++            return Math.abs(audio.sourceTime - video.sourceTime) / 1.25;
++        });
++        assert.ok(Math.max(...errors) <= 1 / 30, JSON.stringify({ maxOutputDrift: Math.max(...errors), errors }));
++        assert.equal(result.before, JSON.stringify(result.doc));
++    } finally { await page.evaluate(async () => { await window.avProbe.preview.dispose(); delete window.avProbe; }); }
++});
+--- a/tests/frontend/studio-audio-upload.test.mjs
++++ b/tests/frontend/studio-audio-upload.test.mjs
+@@ -0,0 +1,53 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++
++test('audio uploader transfers private binary bytes and completes the brand ticket without leaking credentials to storage', async () => {
++    let api;
++    try { api = await import('../../resources/js/Studio/audio-api.js'); } catch (error) { if (error.code !== 'ERR_MODULE_NOT_FOUND') throw error; }
++    assert.equal(typeof api?.uploadStudioAudio, 'function', 'brand audio uploader is missing');
++    const previous = { fetch: globalThis.fetch, document: globalThis.document, route: globalThis.route };
++    const calls = [];
++    globalThis.document = { cookie: 'XSRF-TOKEN=private-csrf' };
++    globalThis.route = (name, id) => `/brands/${id}/studio/audio`;
++    globalThis.fetch = async (url, options) => {
++        calls.push({ url, ...options });
++        if (calls.length === 1) return Response.json({ asset: { id: 12 }, upload: { mode: 'single', url: 'https://storage.invalid/signed', headers: { 'Content-Type': 'audio/wav' } }, complete_url: '/brands/7/studio/audio/12/complete' });
++        if (calls.length === 2) return new Response('', { status: 200 });
++        return Response.json({ asset: { id: 12, status: 'listo', kind: 'audio' } });
++    };
++    try {
++        const file = new File(['own audio'], 'voice.wav', { type: 'audio/wav' });
++        const result = await api.uploadStudioAudio(7, file);
++        assert.equal(result.id, 12);
++        assert.equal(calls[0].url, '/brands/7/studio/audio');
++        assert.equal(calls[1].body, file);
++        assert.equal(calls[1].credentials, 'omit');
++        assert.equal(calls[1].headers['X-XSRF-TOKEN'], undefined);
++        assert.equal(calls[1].headers.Authorization, undefined);
++        assert.equal(calls[2].url, '/brands/7/studio/audio/12/complete');
++        assert.equal(calls[2].credentials, 'same-origin');
++    } finally { Object.assign(globalThis, previous); }
++});
++
++test('a temporary validation failure retries completion without uploading the bytes again', async () => {
++    const { uploadStudioAudio, completeStudioAudio } = await import('../../resources/js/Studio/audio-api.js');
++    const previous = { fetch: globalThis.fetch, document: globalThis.document, route: globalThis.route };
++    const calls = [];
++    globalThis.document = { cookie: '' }; globalThis.route = () => '/brands/7/studio/audio';
++    globalThis.fetch = async (url, options) => {
++        calls.push({ url, ...options });
++        if (calls.length === 1) return Response.json({ upload: { mode: 'single', url: 'https://storage.invalid/signed' }, complete_url: '/brands/7/studio/audio/12/complete' });
++        if (calls.length === 2) return new Response('', { status: 200 });
++        if (calls.length === 3) return Response.json({ message: 'Sondeador no disponible' }, { status: 503 });
++        return Response.json({ asset: { id: 12, status: 'listo' } });
++    };
++    try {
++        let pending;
++        await assert.rejects(uploadStudioAudio(7, new File(['tone'], 'voice.wav', { type: 'audio/wav' })), error => {
++            pending = error.audioTicket; return error.status === 503 && pending.complete_url === '/brands/7/studio/audio/12/complete';
++        });
++        assert.equal((await completeStudioAudio(pending)).id, 12);
++        assert.equal(calls.filter(call => call.method === 'PUT').length, 1);
++        assert.equal(calls.filter(call => call.url === pending.complete_url).length, 2);
++    } finally { Object.assign(globalThis, previous); }
++});
+--- a/tests/e2e/studio-audio-editor.spec.ts
++++ b/tests/e2e/studio-audio-editor.spec.ts
+@@ -0,0 +1,102 @@
++import { expect, test } from '@playwright/test';
++import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, stamp } from './helpers';
++
++function wave() {
++    const buffer = Buffer.alloc(44 + 4 * 32000);
++    buffer.write('RIFF'); buffer.writeUInt32LE(buffer.length - 8, 4); buffer.write('WAVEfmt ', 8); buffer.writeUInt32LE(16, 16);
++    buffer.writeUInt16LE(1, 20); buffer.writeUInt16LE(1, 22); buffer.writeUInt32LE(16000, 24); buffer.writeUInt32LE(32000, 28);
++    buffer.writeUInt16LE(2, 32); buffer.writeUInt16LE(16, 34); buffer.write('data', 36); buffer.writeUInt32LE(buffer.length - 44, 40);
++    for (let i = 0; i < 64000; i++) buffer.writeInt16LE(Math.round(10000 * Math.sin(2 * Math.PI * 440 * i / 16000)), 44 + i * 2);
++    return buffer;
++}
++
++test('Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track', async ({ page }, info) => {
++    const user = e2eUser(info.project.name), errors: string[] = [];
++    cleanComposerBrands(user.email);
++    const brand = seedComposerBrand(user.email, `studio-audio-editor-${stamp()}-${info.project.name}`);
++    page.on('pageerror', error => errors.push(error.message));
++    page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
++    try {
++        await loginAs(page, user); await page.goto(`/studio?brand_id=${brand.id}`);
++        await page.getByRole('button', { name: 'Nuevo diseño', exact: true }).click();
++        await page.getByRole('dialog', { name: 'Nuevo diseño', exact: true }).getByRole('button', { name: 'Crear diseño', exact: true }).click();
++        await expect(page).toHaveURL(/\/studio\/designs\/\d+\/edit$/);
++        const id = Number(page.url().match(/designs\/(\d+)/)![1]);
++        await page.getByRole('button', { name: 'Recursos', exact: true }).click();
++        await page.getByLabel('Subir recursos de marca', { exact: true }).setInputFiles({ name: 'voz-propia.wav', mimeType: 'audio/wav', buffer: wave() });
++        await expect(page.getByRole('button', { name: 'Añadir voz-propia.wav', exact: true })).toBeVisible();
++        await page.getByRole('button', { name: 'Añadir voz-propia.wav', exact: true }).click();
++        const timeline = page.getByRole('region', { name: 'Línea de tiempo', exact: true });
++        await expect(timeline).toBeVisible();
++        await expect(timeline.getByTestId('timeline-audio-track')).toHaveCount(1);
++        await timeline.getByLabel('Recorte inicial del audio', { exact: true }).fill('0.5');
++        await timeline.getByLabel('Recorte inicial del audio', { exact: true }).press('Tab');
++        await timeline.getByLabel('Volumen del audio', { exact: true }).fill('0.4');
++        await timeline.getByLabel('Volumen del audio', { exact: true }).press('Tab');
++        await timeline.getByLabel('Velocidad del audio', { exact: true }).fill('1.25');
++        await timeline.getByLabel('Velocidad del audio', { exact: true }).press('Tab');
++        await timeline.getByLabel('Fundido de entrada', { exact: true }).fill('0.25');
++        await timeline.getByLabel('Fundido de entrada', { exact: true }).press('Tab');
++        await timeline.getByLabel('Fundido de salida', { exact: true }).fill('0.5');
++        await timeline.getByLabel('Fundido de salida', { exact: true }).press('Tab');
++        await timeline.getByLabel('Repetir audio', { exact: true }).check();
++        await timeline.getByLabel('Silenciar audio', { exact: true }).check();
++        await timeline.getByLabel('Silenciar audio', { exact: true }).uncheck();
++        const clock = timeline.getByLabel('Tiempo de reproducción', { exact: true });
++        await clock.fill('1'); await clock.press('Tab');
++        await timeline.getByRole('button', { name: 'Dividir audio', exact: true }).click();
++        await expect(timeline.getByTestId('timeline-audio-track')).toHaveCount(2);
++        await page.getByRole('button', { name: 'Deshacer', exact: true }).click();
++        await expect(timeline.getByTestId('timeline-audio-track')).toHaveCount(1);
++        await page.getByRole('button', { name: 'Rehacer', exact: true }).click();
++        await expect(timeline.getByTestId('timeline-audio-track')).toHaveCount(2);
++        await page.getByRole('button', { name: 'Guardar ahora', exact: true }).click();
++        await expect(page.getByTestId('studio-save-status')).toHaveText('Guardado');
++        const read = () => page.evaluate(async id => (await (await fetch(`/studio/designs/${id}`, { headers: { Accept: 'application/json' } })).json()).design, id);
++        const before = await read();
++        expect(before.document.timeline.audio_tracks).toHaveLength(2);
++        expect(before.document.timeline.audio_tracks[0]).toMatchObject({ trimStart: 0.5, volume: 0.4, duration: 1, playbackRate: 1.25, loop: true, muted: false });
++        expect(before.document.timeline.audio_tracks[0].gainPoints).toEqual([{ time: 0, value: 0 }, { time: 0.25, value: 1 }, { time: 1, value: 1 }]);
++        await timeline.getByRole('button', { name: 'Reproducir', exact: true }).click();
++        await expect.poll(async () => Number(await clock.inputValue())).toBeGreaterThan(1.1);
++        await timeline.getByRole('button', { name: 'Pausar', exact: true }).click();
++        const paused = await clock.inputValue(); await page.waitForTimeout(100); expect(await clock.inputValue()).toBe(paused);
++        expect((await read()).document).toEqual(before.document);
++        await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
++        await page.screenshot({ path: info.outputPath('audio-timeline.png'), fullPage: true });
++        await page.reload(); await expect(page.getByTestId('timeline-audio-track')).toHaveCount(2);
++        expect((await read()).document).toEqual(before.document);
++        await page.getByTestId('timeline-audio-track').first().click();
++        await page.getByRole('button', { name: 'Eliminar audio', exact: true }).click();
++        await expect(page.getByTestId('timeline-audio-track')).toHaveCount(1);
++        await page.getByRole('button', { name: 'Deshacer', exact: true }).click();
++        await expect(page.getByTestId('timeline-audio-track')).toHaveCount(2);
++        await expectNoOverflow(page); expect(errors).toEqual([]);
++    } finally { cleanComposerBrands(user.email); }
++});
++
++test('Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds', async ({ page }, info) => {
++    const user = e2eUser(info.project.name); cleanComposerBrands(user.email);
++    const brand = seedComposerBrand(user.email, `studio-audio-decimal-${stamp()}-${info.project.name}`);
++    try {
++        await loginAs(page, user); await page.goto(`/studio?brand_id=${brand.id}`);
++        const design = await page.evaluate(async brandId => {
++            const csrf = decodeURIComponent((document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '');
++            const response = await fetch(`/brands/${brandId}/studio/designs`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': csrf },
++                body: JSON.stringify({ name: 'Decimal audio', document: { schema_version: 2, width: 320, height: 180, timeline: { fps: 24, audio_tracks: [] },
++                    pages: [{ id: 'page', duration: 1.2, background: '#ffffff', elements: [] }] } }) });
++            if (!response.ok) throw new Error(await response.text());
++            return (await response.json()).design;
++        }, brand.id);
++        await page.goto(`/studio/designs/${design.id}/edit`);
++        await page.getByRole('button', { name: 'Recursos', exact: true }).click();
++        await page.getByLabel('Subir recursos de marca', { exact: true }).setInputFiles({ name: 'decimal.wav', mimeType: 'audio/wav', buffer: wave() });
++        await page.getByRole('button', { name: 'Añadir decimal.wav', exact: true }).click();
++        await expect(page.getByTestId('timeline-audio-track')).toHaveCount(1);
++        await page.getByRole('button', { name: 'Guardar ahora', exact: true }).click();
++        await expect(page.getByTestId('studio-save-status')).toHaveText('Guardado');
++        const stored = await page.evaluate(async id => (await (await fetch(`/studio/designs/${id}`, { headers: { Accept: 'application/json' } })).json()).design.document, design.id);
++        expect(stored.timeline.audio_tracks[0].duration).toBeCloseTo(1.2, 9);
++        await expectNoOverflow(page);
++    } finally { cleanComposerBrands(user.email); }
++});
+--- a/tests/e2e/helpers.ts
++++ b/tests/e2e/helpers.ts
+@@ -758,18 +758,22 @@
+ export type AnalyticsSeed = { from: string; to: string; days: number };
+ 
+ /**
+- * Siembra `days` snapshots diarios (los días 2..days+1 anteriores a hoy, UTC) de la cuenta de Instagram de la marca con
++ * Siembra `days` snapshots diarios (los días 3..days+2 anteriores a hoy, UTC) de la cuenta de Instagram de la marca con
+  * `views` visualizaciones y `followers` seguidores por día. Facebook no recibe ninguno: sus métricas son «no disponible».
+- * Devuelve el periodo (10 días cerrados) que lo contiene.
++ * Devuelve diez días terminados hace dos días UTC (cerrados también en el Pacífico), dejando un día final sin datos.
++ * El mismo ancla PHP determina snapshots y rango: cruzar medianoche entre PHP y Node no cambia el fixture.
+  */
+ export function seedAnalyticsSnapshots(brandId: number, views: number, followers: number, days = 3): AnalyticsSeed {
+-    artisan(
++    const output = artisan(
+         String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+             String.raw`$ig = App\Models\SocialAccount::withoutUserScope()->where('brand_id', $b->id)->where('network', 'instagram')->firstOrFail(); ` +
+-            String.raw`for ($i = 2; $i < ${days} + 2; $i++) { App\Models\AccountSnapshot::withoutUserScope()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'social_account_id' => $ig->id, 'network' => 'instagram', 'date' => now('UTC')->subDays($i)->format('Y-m-d'), 'metrics' => array_merge(App\Analytics\Metric::blankAccount(), ['views' => ${views}, 'followers' => ${followers}])]); }`,
+-    );
+-    const day = (back: number) => new Date(Date.now() - back * 86_400_000).toISOString().slice(0, 10);
+-    return { from: day(10), to: day(1), days };
++            String.raw`$end = Carbon\CarbonImmutable::now('UTC')->startOfDay()->subDays(2); ` +
++            String.raw`for ($i = 1; $i <= ${days}; $i++) { App\Models\AccountSnapshot::withoutUserScope()->create(['user_id' => $b->user_id, 'brand_id' => $b->id, 'social_account_id' => $ig->id, 'network' => 'instagram', 'date' => $end->subDays($i)->format('Y-m-d'), 'metrics' => array_merge(App\Analytics\Metric::blankAccount(), ['views' => ${views}, 'followers' => ${followers}])]); } ` +
++            String.raw`echo 'ANALYTICS_SEED:'.json_encode(['from' => $end->subDays(9)->format('Y-m-d'), 'to' => $end->format('Y-m-d'), 'days' => ${days}]);`,
++    );
++    const seed = output.match(/ANALYTICS_SEED:(\{[^\r\n]*\})/);
++    if (!seed) throw new Error('The disposable analytics fixture did not return its date range.');
++    return JSON.parse(seed[1]) as AnalyticsSeed;
+ }
+ 
+ // ---------------------------------------------------------------------------------------------------------------

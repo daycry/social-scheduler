@@ -1,0 +1,101 @@
+{
+  "schema": "presentation-session-correction-source-done-v1",
+  "state": "SOURCE_DONE_PENDING_FRESH_REVIEW_ATTEMPT2",
+  "captured_utc": "2026-11-06T23:11:37.985076+00:00",
+  "task": "T-12/P1 correction1 B1 fractional clock",
+  "sources": {
+    "resources/js/Studio/presentation.js": "d86ad0f70b68f36ddf32c2316dfe476dcf67eebe86c5d4b6d3208e7bc21d41cc",
+    "tests/frontend/studio-presentation.test.mjs": "57f9ce2865ce5540ded078822b7146abbcb0b7210fdeb5fbe0f065e6691d0e2f"
+  },
+  "loaded_static_dependencies": {
+    "resources/js/Studio/presentation.js": "d86ad0f70b68f36ddf32c2316dfe476dcf67eebe86c5d4b6d3208e7bc21d41cc",
+    "resources/js/Studio/document.js": "0392aa4b75cf824b5bda0c204a2f46cc1706502a7d43216dece57f4ab271b772",
+    "resources/js/Studio/timeline.js": "dd6af5914c31c9a046017d9d397f7fe9d8e8fa68be4936761a76ebcbacecd800",
+    "resources/js/Studio/captions.js": "9c8384622bf287243efe54e07244ebc7a070db64927424ceaa588c89b4878fa5",
+    "resources/js/Studio/chart-spec.js": "03812080e151fb76dfe91eb0c1e939927c149e3f4cfc6f790f8df8d5cc2a5cc3",
+    "resources/js/Studio/chart-binding.js": "31e4576a81ea58b1b56bd532f0dc01ec0e781635497ab74ac9bc79a6503daca4",
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+    "resources/js/Studio/bar-geometry.js": "805dbbe61f70c95a3a56a41f751e0d20315312a9ddfc4701a90df895bc596da3"
+  },
+  "baseline": {
+    "initial_source_done_sha256": "3d7c53157a68d9f9ed4ed6bab1eb039e48cbe46425784c1900cb4ff7ef35b6c0",
+    "files": {
+      "presentation.js": "da13bf7c2765d5a658533da046ad5217c533840efe94276f523641ffc2b60b54",
+      "SOURCE_DONE.json": "3d7c53157a68d9f9ed4ed6bab1eb039e48cbe46425784c1900cb4ff7ef35b6c0",
+      "studio-presentation.test.mjs": "408e467d36efa366d6ba3d3149c3857e4076480534ed3666a487bb0ca36763b4"
+    }
+  },
+  "tdd": {
+    "red_exit_codes": [
+      1,
+      1,
+      1
+    ],
+    "red_cases": 3,
+    "red": [
+      "512 fractional duration triples fail final completion",
+      "advance(0) from p2 moves backwards to p1/123.39999999999998",
+      "advance(page.durationMs) from p1 remains p1 instead of p2"
+    ],
+    "red_date": "2026-11-07",
+    "red_sequence": "All three RED logs captured before correction1 production edit; both original dedicated regressions are retained.",
+    "green_focal_cases": 16,
+    "green_neighbor_cases": 29,
+    "failures": 0,
+    "skips": 0,
+    "cancellations": 0,
+    "coverage": "512 triples x3startpages x2loop modes with zero/small positive/exact remaining delta; explicit v1/v2 zero/boundary; fractions/full loop/huge safe delta from noninitial pages; initial12cases retained unchanged.",
+    "commands": [
+      "node --max-old-space-size=512 --test --experimental-test-isolation=none --test-name-pattern=fractional duration clocks tests/frontend/studio-presentation.test.mjs",
+      "node --max-old-space-size=512 --test --experimental-test-isolation=none --test-name-pattern=zero delta preserves tests/frontend/studio-presentation.test.mjs",
+      "node --max-old-space-size=512 --test --experimental-test-isolation=none --test-name-pattern=exact fractional page duration tests/frontend/studio-presentation.test.mjs",
+      "node --max-old-space-size=512 --test --experimental-test-isolation=none tests/frontend/studio-presentation.test.mjs",
+      "node --max-old-space-size=512 --test --experimental-test-isolation=none tests/frontend/studio-presentation.test.mjs tests/frontend/studio-document.test.mjs tests/frontend/studio-timeline.test.mjs"
+    ],
+    "syntax_checks": "node --max-old-space-size=512 --check on both current sources, exit0"
+  },
+  "fix": "Consume remaining duration forward from current index/local elapsed; modulo removes full cycles before adding any fractional local offset. No prefix sum reconstruction, epsilon, timers or delta-proportional iteration.",
+  "evidence": {
+    "red-fractional-clock.txt": {
+      "sha256": "1f6a2075d52043224227975adbe6215d6d6aa8b2232e7228672cd6fcd129beba",
+      "bytes": 2174
+    },
+    "red-zero-delta.txt": {
+      "sha256": "b13aa6f9d36fda8b1653ed3c96195600cd06865add4992ca511d05ab6b6fba5e",
+      "bytes": 4254
+    },
+    "red-exact-boundary.txt": {
+      "sha256": "3fceaab6d5a11a5be639335c9212333aec6f69835e4c7a2b84f12fdeedf30165",
+      "bytes": 2086
+    },
+    "green-focal.txt": {
+      "sha256": "e8cf68d8c55f45086a0f963cd003fe5e07d5cf48042111d41b43dff7c87c453b",
+      "bytes": 7624
+    },
+    "green-neighbors.txt": {
+      "sha256": "d3a87341a882c4683c47b1d007408535a2aadd3da2a1ad6eb3a777eef48c3ff3",
+      "bytes": 13722
+    }
+  },
+  "preserved_initial_evidence": {
+    "red-initial.txt": {
+      "sha256": "84bee855b3d4ba7f9f1b8b62eb7eea6803b4db4bb1f27bb95befb2ed8b517929",
+      "bytes": 2428
+    },
+    "green-initial.txt": {
+      "sha256": "18e354fe0fa7b9a747210fac01171b6accefbd9f0c7b5d21b3a35e046b6e77d2",
+      "bytes": 5732
+    },
+    "green-neighbors.txt": {
+      "sha256": "4cf297d196de46793f7ef2f072a188729fb8b6b7141e00f3c1eb40a47d0013b9",
+      "bytes": 11826
+    }
+  },
+  "limits": [
+    "No Editor integration or imports from existing files.",
+    "No presenter/audience UI, notes persistence, fullscreen, recording or Office acceptance.",
+    "No build7 mutation or chart native execution.",
+    "T12 and full roadmap stay open; root sole ledger writer."
+  ],
+  "measurement": "No measured hours/tokens claimed. PureNode512, each command <1s, no browser/build/DB/env/network/models."
+}

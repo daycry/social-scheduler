@@ -1,0 +1,43 @@
+{
+  "command": [
+    "node",
+    "--max-old-space-size=512",
+    "--experimental-test-isolation=none",
+    "--test",
+    "tests/frontend/studio-dataset-client.test.mjs",
+    "tests/frontend/studio-datasets-dialog.test.mjs",
+    "tests/frontend/studio-captions-panel.test.mjs",
+    "tests/frontend/studio-export-job-panel.test.mjs"
+  ],
+  "exit_code": 0,
+  "counts": {
+    "tests": 37,
+    "pass": 37,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "changed_sources": [],
+  "before": {
+    "resources/js/Components/Studio/StudioDatasetsDialog.vue": "20afbcb0fcc9c150b05b887fc0818f35e02e28257a66b046ac76affb7a77df0f",
+    "resources/js/Studio/dataset-client.js": "de61d8c872ec8d74cff7e16d1c01436815fdb889dcb3d5e6907399b90c420213",
+    "tests/frontend/studio-dataset-client.test.mjs": "6edc27b4b68eebdb9ea2ea16cc66c03b3a09c587db775b4998bc1adee6d216cc",
+    "tests/frontend/studio-datasets-dialog.test.mjs": "83ae0374af8e13e8976b4102674358d7a4cf8770cb7659c7ded7a060ef29c3b4",
+    "resources/js/Pages/Studio/Index.vue": "a65b48594216121a7abfd6a83cb296895a4cb2b50fee7598733c5bdc1bd172f6",
+    "resources/js/Pages/Studio/Editor.vue": "3e0d33b9b0a82410f068b42b4245f04bb5974022edf0ee92dcc32c56fee94f3f",
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+    "tests/frontend/studio-dataset-table.test.mjs": "b328009c188b652e35fc4cd8f3a18e41035b3d6e0792f50246edc770fa5742d5"
+  },
+  "after": {
+    "resources/js/Components/Studio/StudioDatasetsDialog.vue": "20afbcb0fcc9c150b05b887fc0818f35e02e28257a66b046ac76affb7a77df0f",
+    "resources/js/Studio/dataset-client.js": "de61d8c872ec8d74cff7e16d1c01436815fdb889dcb3d5e6907399b90c420213",
+    "tests/frontend/studio-dataset-client.test.mjs": "6edc27b4b68eebdb9ea2ea16cc66c03b3a09c587db775b4998bc1adee6d216cc",
+    "tests/frontend/studio-datasets-dialog.test.mjs": "83ae0374af8e13e8976b4102674358d7a4cf8770cb7659c7ded7a060ef29c3b4",
+    "resources/js/Pages/Studio/Index.vue": "a65b48594216121a7abfd6a83cb296895a4cb2b50fee7598733c5bdc1bd172f6",
+    "resources/js/Pages/Studio/Editor.vue": "3e0d33b9b0a82410f068b42b4245f04bb5974022edf0ee92dcc32c56fee94f3f",
+    "resources/js/Studio/dataset-table.js": "9953c98f07e43e04d863f991ef220cbdd067a66561c2704d25c5ad2b8aa80190",
+    "tests/frontend/studio-dataset-table.test.mjs": "b328009c188b652e35fc4cd8f3a18e41035b3d6e0792f50246edc770fa5742d5"
+  },
+  "scope": "Node pure UI/client plus captions/export panel neighbors. No native/browser/build/DB/server. Core dependency observed, not approved by this run."
+}

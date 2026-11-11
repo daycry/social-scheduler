@@ -39,7 +39,7 @@ estado: en-progreso
 
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
-| Fase 1 — Riesgo inmediato | 3 | 11 | 27% | 0 / 63.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3055k |
+| Fase 1 — Riesgo inmediato | 0 | 11 | 0% | 0 / 63.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3055k |
 | Fase 2 — CI y red de tests | 0 | 8 | 0% | 0 / 44.0h | 0 / 11.2h | 0 / 2.8h | 0 / 2140k |
 | Fase 3 — Funciones incompletas | 0 | 16 | 0% | 0 / 118.0h | 0 / 29.6h | 0 / 7.4h | 0 / 5630k |
 | Fase 4 — Refactor del backend | 0 | 15 | 0% | 0 / 90.0h | 0 / 22.8h | 0 / 5.7h | 0 / 4350k |
@@ -47,7 +47,7 @@ estado: en-progreso
 | Fase 6 — Operación y repositorio | 0 | 6 | 0% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
 | Fase 7 — Funciones nuevas | 0 | 24 | 0% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **3** | **100** | **3%** | **0 / 665.0h** | **0 / 167.6h** | **0 / 41.9h** | **0 / 31925k** |
+| **TOTAL** | **0** | **100** | **0%** | **0 / 665.0h** | **0 / 167.6h** | **0 / 41.9h** | **0 / 31925k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -63,8 +63,7 @@ estado: en-progreso
 
 - **Descripción**: Actualizar `symfony/*` y `laravel/framework` (13.37 → 13.42) para cerrar los 11 avisos de `composer audit` y comprobar que nada se rompe.
 - **Changelog**: Actualizadas las dependencias de Symfony y Laravel (13.42) para cerrar 11 avisos de seguridad conocidos; sin cambios visibles.
-- **Cerrada**: 2026-11-11
-- **Estado**: completado
+- **Estado**: en-revision
 - **Cerrada**: 2026-11-11
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
@@ -100,8 +99,7 @@ estado: en-progreso
 
 - **Descripción**: Mover `Http::preventStrayRequests()` a `TestCase::setUp` para que ningún test salga a la red; arreglar los ~234 ficheros que hoy dependen de ello sin saberlo.
 - **Changelog**:
-- **Estado**: completado
-- **Cerrada**: 2026-11-11
+- **Estado**: en-revision
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
@@ -136,8 +134,7 @@ estado: en-progreso
 
 - **Descripción**: Añadir el cron/worker de la cola `studio` en Hestia y la unidad `scheduler-worker@media` en systemd; unificar la documentación de colas entre ambos.
 - **Changelog**:
-- **Estado**: completado
-- **Cerrada**: 2026-11-11
+- **Estado**: en-revision
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —

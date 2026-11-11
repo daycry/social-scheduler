@@ -219,16 +219,24 @@ class HealthCheck
     private function nativeCached(bool $http): array
     {
         $ttl = max(0, (int) config('health.native_cache_seconds', 300));
-        if (! $http || $ttl === 0) {
-            $result = $this->native(! $http);
-            if ($ttl > 0) {
-                Cache::put('health:native', $result, $ttl);
+
+        // Una cache caida (p. ej. CACHE_STORE=database con la BD parada) no debe tumbar app:health: se ejecuta sin cache.
+        try {
+            if (! $http || $ttl === 0) {
+                $result = $this->native(! $http);
+                if ($ttl > 0) {
+                    Cache::put('health:native', $result, $ttl);
+                }
+
+                return $result;
             }
 
-            return $result;
-        }
+            return Cache::remember('health:native', $ttl, fn () => $this->native(false));
+        } catch (Throwable $e) {
+            Log::warning('health.native_cache_failed', ['exception' => $e::class]);
 
-        return Cache::remember('health:native', $ttl, fn () => $this->native(false));
+            return $this->native(! $http);
+        }
     }
 
     private function runs(string $binary, string $flag): bool

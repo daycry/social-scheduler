@@ -193,6 +193,7 @@ Ver [despliegue](../modulos/despliegue.md#healthcheck) para `/health?strict=1`.
 | `RETENTION_STUDIO_AV_STEPS_DAYS` | `14` | Pasos de espacios de trabajo de audio/vídeo caducados |
 | `RETENTION_REVISIONS_KEEP_LAST` | `50` | Revisiones más recientes que se conservan por diseño |
 | `RETENTION_REVISIONS_DAILY_DAYS` | `90` | Se conserva además la última revisión de cada día durante estos días |
+| `RETENTION_REVISIONS_SUPERSEDED_HOURS` | `24` | Horas que se conserva una revisión sustituida por un autoguardado antes de podarla |
 | `STUDIO_REVISION_MIN_INTERVAL` | `300` | Segundos: un autoguardado del mismo autor dentro de este intervalo reescribe la revisión reciente (0 = una revisión por autoguardado) |
 
 La poda de revisiones borra también sus filas de `studio_font_usages`, de modo que una tipografía usada solo por historial podado vuelve a poder borrarse. Requiere MySQL 8 / MariaDB 10.2+ (funciones de ventana).

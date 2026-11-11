@@ -20,5 +20,7 @@ return [
     'design_revisions' => [
         'keep_last' => (int) env('RETENTION_REVISIONS_KEEP_LAST', 50),
         'daily_days' => (int) env('RETENTION_REVISIONS_DAILY_DAYS', 90),
+        // Horas que se conserva una revision sustituida por un autoguardado (sigue sirviendo de base para exportar) antes de podarla.
+        'superseded_hours' => (int) env('RETENTION_REVISIONS_SUPERSEDED_HOURS', 24),
     ],
 ];

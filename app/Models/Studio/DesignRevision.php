@@ -36,21 +36,20 @@ class DesignRevision extends Model
         $dailyDays = (int) config('retention.design_revisions.daily_days');
         $table = $this->getTable();
 
-        $recent = DB::table(DB::raw("(select id, row_number() over (partition by design_id order by revision desc) as rn from {$table}) as ranked"))
+        // Las sustituidas no ocupan plaza en el historial visible: ni entre las ultimas N ni entre las diarias.
+        $recent = DB::table(DB::raw("(select id, row_number() over (partition by design_id order by revision desc) as rn from {$table} where superseded_at is null) as ranked"))
             ->where('rn', '<=', $keepLast)->select('id');
-        $dailyLast = DB::table(DB::raw("(select max(id) as id from {$table} where created_at >= ? group by design_id, date(created_at)) as daily"))
+        $dailyLast = DB::table(DB::raw("(select max(id) as id from {$table} where superseded_at is null and created_at >= ? group by design_id, date(created_at)) as daily"))
             ->setBindings([now()->subDays($dailyDays)->toDateTimeString()])->select('id');
 
-        return static::withoutGlobalScopes()->whereNotIn('id', $recent)->whereNotIn('id', $dailyLast)
+        $grace = max(0, (int) config('retention.design_revisions.superseded_hours', 24));
+
+        return static::withoutGlobalScopes()
+            ->where(fn ($q) => $q->where(fn ($q) => $q->whereNull('superseded_at')->whereNotIn('id', $recent)->whereNotIn('id', $dailyLast))
+                ->orWhere('superseded_at', '<', now()->subHours($grace)))
             ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('studio_design_exports')
                 ->whereColumn('studio_design_exports.design_id', "{$table}.design_id")->whereColumn('studio_design_exports.revision', "{$table}.revision")
                 ->where('studio_design_exports.status', '!=', 'ready'));
-    }
-
-    /** Una exportación no terminada (o fallida, que se puede reintentar) lee el documento de su revisión fijada: no se reescribe ni se poda. */
-    public static function pinnedByExport(int $designId, int $revision): bool
-    {
-        return DB::table('studio_design_exports')->where('design_id', $designId)->where('revision', $revision)->where('status', '!=', 'ready')->exists();
     }
 
     /** Calcula una sola vez qué revisiones se podan (la ventana por diseño no se recalcula en cada lote) y las borra por lotes. */

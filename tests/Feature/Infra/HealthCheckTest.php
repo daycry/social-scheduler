@@ -187,3 +187,15 @@ test('the notifications prune deletes in batches and the read_at index exists', 
         ->and(DB::table('notifications')->count())->toBe(0)
         ->and(collect(Schema::getIndexes('notifications'))->flatten()->contains('notifications_read_at_prune'))->toBeTrue();
 });
+
+test('a broken cache never breaks the native check, over HTTP or CLI', function () {
+    config(['health.native' => true, 'studio.chromium_path' => __FILE__, 'studio.images.model_path' => __FILE__]);
+    Process::fake(['*' => Process::result(output: 'v1', exitCode: 0)]);
+    Cache::partialMock()->shouldReceive('remember')->andThrow(new RuntimeException('cache caida'))
+        ->shouldReceive('put')->with('health:native', Mockery::any(), Mockery::any())->andThrow(new RuntimeException('cache caida'));
+
+    $http = app(HealthCheck::class)->run(true, true);
+    $cli = app(HealthCheck::class)->run(true, false);
+
+    expect($http['checks']['native']['detail'])->toStartWith('ok:')->and($cli['checks']['native']['detail'])->toStartWith('ok:');
+});

@@ -310,7 +310,7 @@ class StudioService
     {
         $owner = $this->collab->authorize($user, $design, 'view');
         $current = $this->owned($owner, $design, $design->trashed());
-        $rows = DesignRevision::withoutUserScope()->where('design_id', $current->id)->orderByDesc('revision')->limit(100)->get(['id', 'revision', 'name', 'author_id', 'created_at']);
+        $rows = DesignRevision::withoutUserScope()->where('design_id', $current->id)->whereNull('superseded_at')->orderByDesc('revision')->limit(100)->get(['id', 'revision', 'name', 'author_id', 'created_at']);
         $names = User::query()->whereIn('id', $rows->pluck('author_id')->filter()->unique())->pluck('name', 'id');
 
         return $rows->map(fn (DesignRevision $row) => ['revision' => $row->revision, 'name' => $row->name, 'author' => $row->author_id !== null ? ($names[$row->author_id] ?? null) : null,
@@ -334,11 +334,12 @@ class StudioService
     }
 
     /**
-     * Guarda la revisión del diseño. Un autoguardado ($autosave) nace marcado y sustituye a la revisión de autoguardado
-     * anterior del mismo autor si cabe en el intervalo mínimo (`studio.revisions.min_interval_seconds`): la nueva fila hereda
-     * la fecha de la sustituida (la ventana no se desliza) y la anterior se borra con sus usos de tipografía. Nunca se
-     * sustituye un punto de control explícito, la revisión 1, una fijada por una exportación no terminada ni la que el editor
-     * usa como referencia de kit. Los números de revisión no se reutilizan (A-07).
+     * Guarda la revisión del diseño. Un autoguardado ($autosave) nace marcado y, si cabe en el intervalo mínimo
+     * (`studio.revisions.min_interval_seconds`), sustituye a la revisión de autoguardado anterior del mismo autor: la nueva
+     * fila hereda su fecha (la ventana no se desliza) y la anterior queda `superseded_at`. No se borra en el acto: otro cliente
+     * (colaborador o segunda pestaña) puede estar parado sobre ella y exportarla; sigue siendo base válida, no aparece en el
+     * historial y la poda la elimina pasado `retention.design_revisions.superseded_hours` salvo que la fije una exportación.
+     * Nunca se sustituye un punto de control explícito, la revisión 1 ni la que el editor usa de referencia de kit (A-07).
      */
     private function snapshot(Design $design, ?int $authorId = null, bool $autosave = false, ?int $kitRevision = null): void
     {
@@ -349,16 +350,16 @@ class StudioService
         $replace = null;
         $interval = (int) config('studio.revisions.min_interval_seconds', 300);
         if ($autosave && $interval > 0) {
-            $previous = DesignRevision::withoutUserScope()->where('design_id', $design->id)->where('revision', '<', $design->revision)->orderByDesc('revision')->first();
+            $previous = DesignRevision::withoutUserScope()->where('design_id', $design->id)->where('revision', '<', $design->revision)->whereNull('superseded_at')->orderByDesc('revision')->first();
             if ($previous !== null && $previous->autosave && $previous->revision > 1 && (int) $previous->author_id === (int) $author
                 && $previous->created_at !== null && $previous->created_at->gt(now()->subSeconds($interval))
-                && $previous->revision !== $kitRevision && ! DesignRevision::pinnedByExport($design->id, $previous->revision)) {
+                && $previous->revision !== $kitRevision) {
                 $replace = $previous;
             }
         }
         $revision = DesignRevision::create(['user_id' => $design->user_id, 'author_id' => $author, 'design_id' => $design->id, 'revision' => $design->revision, 'name' => $design->name,
             'document' => $design->document, 'kit_reference' => $design->kit_reference, 'autosave' => $autosave] + ($replace !== null ? ['created_at' => $replace->created_at] : []));
-        $replace?->delete();
+        $replace?->forceFill(['superseded_at' => now()])->save();
         foreach ($ids as $id) {
             DB::table('studio_font_usages')->insert(['user_id' => $design->user_id, 'font_id' => $id, 'revision_id' => $revision->id]);
         }

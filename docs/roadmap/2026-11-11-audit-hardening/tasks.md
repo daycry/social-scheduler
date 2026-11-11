@@ -3422,3 +3422,15 @@ Estado: T-01, T-02 y T-03 pasan a `completado` (2026-11-11) con los criterios qu
 | 8 | Minor | Poda sin lotes eficientes | T-04 | `DesignRevision::pruneAll` calcula una vez los ids a podar y borra por lotes; notificaciones por lotes (`App\Support\Retention`) con índice `notifications_read_at_prune` | tests «computes the keep set once» (1 consulta de ventana, rojo 4) y «notifications prune deletes in batches» |
 
 Estado: T-04 y T-05 siguen en `en-revision` hasta la re-revisión. Pest focal 57/57; Pest completo y Pint: ver el resumen de la entrega.
+
+## Revisión de dos lentes — intento 2: Fase 1 (T-03, T-04, T-05) — gaps corregidos
+
+Los 8 gaps del intento 1 de T-04/T-05 y los 3 de T-03 quedan corregidos (ver las secciones del intento 1). Nuevos del intento 2:
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| N1 | Important | La fusión borraba la revisión que otro cliente (colaborador, segunda pestaña) usaba como base: exportar daba 422 «La revisión indicada no existe» | T-04 | Enfoque elegido: **no borrar**. La sustituida queda `superseded_at` (migración `2026_12_17_090000`, reversible): sigue sirviendo para exportar y como base, no sale en `versions()`, no cuenta en «últimas N» ni «diaria» y la poda la elimina pasadas `retention.design_revisions.superseded_hours` (24 h) salvo que la fije una exportación no terminada. Se descartó bloquear la fusión mientras haya otro cliente porque el servidor no sabe en qué revisión está parado cada cliente; marcar es la única opción sin estado de sesión. La validación de `StudioRenderer::export` se repite con `sharedLock` dentro de la transacción, justo antes de fijar la revisión, y el borrado de la poda queda tras el margen | tests «a superseded revision stays usable as an export base and is hidden from the history» (rojo: 422/columna inexistente), «superseded revisions are pruned only after the grace period and never when pinned» (rojo) y «an export validates its revision under a lock inside the transaction» (rojo al quitar el bloqueo: 1 lectura en vez de 2) |
+| N2 | Minor | `saveNow` perdía `autosave=true` en los guardados encadenados | T-04 | `Editor.vue`: ambos reenvíos en cadena hacen `saveNow(autosave)`; el explícito sigue explícito | `tests/frontend/studio-autosave-chain.test.mjs` (rojo 0/1 → verde); `npm run build` OK |
+| N3 | Minor | `nativeCached` sin `try/catch`: con la caché caída `app:health` reventaba | T-05 | Envuelto como `scheduler()`: ante fallo de caché registra aviso y ejecuta `native` sin caché | test «a broken cache never breaks the native check, over HTTP or CLI» (rojo: «cache caida») |
+
+Verificación: Pest focal (`Retention`, `Infra`, `StudioBackendTest`, `StudioCollaborationTest`, `StudioApiMcpTest`) 136/136; node `studio-editor-readiness` + `studio-autosave-chain` 4/4; Pint OK; `npm run build` OK. Pest completo lo lanza el coordinador. T-04 y T-05 siguen en `en-revision`.

@@ -390,7 +390,7 @@ async function saveNow(autosave = false) {
     clearTimeout(timer);
     if (notesError.value) { error.value = notesError.value; return false; }
     if (conflict.value) return false;
-    if (pendingSave) { const success = await pendingSave; if (!success || conflict.value) return false; return dirty.value ? saveNow() : true; }
+    if (pendingSave) { const success = await pendingSave; if (!success || conflict.value) return false; return dirty.value ? saveNow(autosave) : true; }
     if (!dirty.value) return true;
     const version = changeVersion;
     const saved = snapshot();
@@ -411,7 +411,7 @@ async function saveNow(autosave = false) {
         }
     })().finally(() => { pendingSave = null; });
     const success = await pendingSave;
-    if (success && dirty.value) return saveNow();
+    if (success && dirty.value) return saveNow(autosave);
     return success;
 }
 async function prepareExport() {

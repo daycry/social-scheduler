@@ -6,6 +6,7 @@ use App\Models\Studio\DesignRevision;
 use App\Models\Studio\StudioFont;
 use App\Models\User;
 use App\Services\Studio\StudioFonts;
+use App\Services\Studio\StudioRenderer;
 use App\Services\Studio\StudioService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -21,9 +22,10 @@ function retentionDocument(string $text = 'Hola'): array
     ]];
 }
 
-function revisionRows(Design $design): array
+/** Revisiones visibles en el historial; con `$all` también las sustituidas por un autoguardado. */
+function revisionRows(Design $design, bool $all = false): array
 {
-    return DesignRevision::withoutUserScope()->where('design_id', $design->id)->orderBy('revision')->pluck('revision')->all();
+    return DesignRevision::withoutUserScope()->where('design_id', $design->id)->when(! $all, fn ($q) => $q->whereNull('superseded_at'))->orderBy('revision')->pluck('revision')->all();
 }
 
 function saveDesign(object $test, Design $design, string $text, bool $autosave): Design
@@ -154,7 +156,7 @@ test('an autosave does not reuse the number of a revision pinned by an unfinishe
 
     $pinned = DesignRevision::withoutUserScope()->where('design_id', $design->id)->where('revision', 2)->first();
     expect($pinned)->not->toBeNull()->and($pinned->document['pages'][0]['elements'][0]['text'])->toBe('uno')
-        ->and(revisionRows($design))->toBe([1, 2, 3]);
+        ->and(revisionRows($design, true))->toBe([1, 2, 3]);
 });
 
 test('pruning keeps revisions pinned by unfinished exports', function () {
@@ -187,4 +189,48 @@ test('pruning computes the keep set once and deletes in batches', function () {
     $deleted = (new DesignRevision)->pruneAll(10);
 
     expect($deleted)->toBe(24)->and($windowQueries)->toBe(1);
+});
+
+test('a superseded revision stays usable as an export base and is hidden from the history', function () {
+    config(['studio.revisions.min_interval_seconds' => 300]);
+    $design = saveDesign($this, $this->design, 'uno', true);    // 2
+    $design = saveDesign($this, $design, 'dos', true);          // 3 sustituye a 2
+
+    $export = app(StudioRenderer::class)->export($this->user, $design, ['revision' => 2, 'format' => 'png', 'pages' => ['page_1']]);
+    expect($export->revision)->toBe(2);
+    expect(DesignRevision::withoutUserScope()->where('design_id', $design->id)->where('revision', 2)->value('superseded_at'))->not->toBeNull();
+    expect(collect($this->studio->versions($this->user, $design))->pluck('revision')->all())->toBe([3, 1]);
+});
+
+test('superseded revisions are pruned only after the grace period and never when pinned', function () {
+    config(['retention.design_revisions.keep_last' => 50, 'retention.design_revisions.daily_days' => 90, 'retention.design_revisions.superseded_hours' => 24]);
+    $design = saveDesign($this, $this->design, 'uno', false);   // 2
+    $design = saveDesign($this, $design, 'dos', false);         // 3
+    $design = saveDesign($this, $design, 'tres', false);        // 4
+    $mark = fn (int $revision, $at) => DesignRevision::withoutUserScope()->where('design_id', $design->id)->where('revision', $revision)->update(['superseded_at' => $at]);
+    $mark(2, now()->subHours(2));     // dentro del margen
+    $mark(3, now()->subHours(30));    // pasado el margen
+    $mark(4, now()->subHours(30));    // pasado el margen pero fijada
+    pinExport($this, $design, 4, 'pending');
+
+    $this->artisan('model:prune', ['--model' => [DesignRevision::class]])->assertSuccessful();
+
+    expect(revisionRows($design, true))->toBe([1, 2, 4]);
+});
+
+test('an export validates its revision under a lock inside the transaction', function () {
+    $design = saveDesign($this, $this->design, 'uno', false);
+    $selects = 0;
+    $inserted = false;
+    DB::listen(function ($q) use (&$selects, &$inserted) {
+        if (str_contains($q->sql, 'insert into "studio_design_exports"')) {
+            $inserted = true;
+        }
+        if (! $inserted && str_starts_with($q->sql, 'select') && str_contains($q->sql, 'from "studio_design_revisions"')) {
+            $selects++;
+        }
+    });
+    app(StudioRenderer::class)->export($this->user, $design, ['revision' => 2, 'format' => 'png', 'pages' => ['page_1']]);
+    // Una lectura para validar y otra, con bloqueo, justo antes de fijarla en la exportación.
+    expect($selects)->toBeGreaterThanOrEqual(2);
 });

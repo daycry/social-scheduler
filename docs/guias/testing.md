@@ -12,11 +12,24 @@ El selector es `scripts/test/run-node-tests.mjs` (`<unit|browser> [--list]`). `s
 
 ## Purga de ejecuciones antiguas
 
-Cada ejecución E2E deja `storage/framework/testing/t43/run-*` (llegó a ocupar 7,6 GB). `scripts/test/purge-testing.mjs` conserva una entrada si es **de las N más recientes o tiene menos de X días**, y borra el resto (hijos directos de `testing/` y de `testing/t43/`). Nunca sigue enlaces simbólicos, no toca ficheros ocultos (`.gitignore`) ni la ejecución en curso (`E2E_GENERAL_RUN_ROOT`).
+Cada ejecución E2E deja un directorio en `storage/framework/testing/t43/` (llegó a ocupar 7,6 GB). `scripts/test/purge-testing.mjs` borra las antiguas, con un alcance deliberadamente estrecho.
+
+**Qué se purga** (lista explícita de nombres, solo hijos directos de `testing/t43/`):
+
+- `run-general-<uuid>`: el `runRoot` de la batería general (`tests/e2e/isolated/runtime.ts`).
+- `run-<epoch ms>-<pid>`: el `runRoot` del runner de T-43 (`playwright.roadmap.config.ts`).
+
+De esos se conserva una entrada si es **de las N más recientes o tiene menos de X días** (por defecto N=5, X=2).
+
+**Qué nunca se toca:**
+
+- Todo lo que no encaje exactamente en esos dos patrones: directorios de evidencia de iniciativas anteriores (`t12-…`, `run-qa-…`, `…-peer-…`), ficheros sueltos y cualquier cosa directamente bajo `testing/`.
+- Cualquier entrada cuyo nombre aparezca en algún `.md` bajo `docs/` (incluido `docs/knowledge/journal`): es evidencia citada.
+- La ejecución en curso (`E2E_GENERAL_RUN_ROOT`), enlaces simbólicos y ficheros ocultos.
 
 ```bash
 node scripts/test/purge-testing.mjs --dry-run            # solo informa qué borraría
 node scripts/test/purge-testing.mjs --keep 5 --min-age-days 2
 ```
 
-Se ejecuta sola en `tests/e2e/global-teardown.ts` al terminar la batería (por defecto N=5, X=2 días; un fallo solo avisa). Variables: `E2E_PURGE=0` la desactiva, `E2E_PURGE_KEEP`, `E2E_PURGE_MIN_AGE_DAYS`. El mínimo de antigüedad protege las ejecuciones de otro proceso en curso.
+Se ejecuta sola en `tests/e2e/global-teardown.ts` al terminar la batería; un fallo solo avisa. Variables: `E2E_PURGE=0` la desactiva, `E2E_PURGE_KEEP`, `E2E_PURGE_MIN_AGE_DAYS`.

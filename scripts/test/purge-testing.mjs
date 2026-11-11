@@ -1,43 +1,62 @@
 #!/usr/bin/env node
 // Purga las ejecuciones antiguas de storage/framework/testing (E-12: llegó a 7,6 GB).
-// Se conserva una entrada si es de las N más recientes O si tiene menos de X días; el resto se borra.
-// Cubre los hijos directos de testing/ y los de testing/t43/ (run-*). Nunca sigue enlaces simbólicos ni
-// toca ficheros ocultos ni la ejecución en curso (E2E_GENERAL_RUN_ROOT / T43_RUN_ROOT).
+// ALCANCE (lista explícita, nada más se toca): solo los hijos directos de testing/t43/ con estos nombres
+//   - run-general-<uuid>   (runRoot de la batería general, tests/e2e/isolated/runtime.ts)
+//   - run-<epoch ms>-<pid> (runRoot del runner de roadmap/T-43, playwright.roadmap.config.ts)
+// Cualquier otro directorio o fichero (evidencia de iniciativas: t12-…, run-qa-…, *-peer-*, etc.) es intocable.
+// Además se salta cualquier entrada cuyo nombre aparezca en algún .md bajo docs/ (evidencia citada).
+// Entre los candidatos se conserva una si es de las N más recientes O de menos de X días.
 //
-// Uso: node scripts/test/purge-testing.mjs [--dry-run] [--keep N] [--min-age-days X] [--root <dir>]
+// Uso: node scripts/test/purge-testing.mjs [--dry-run] [--keep N] [--min-age-days X] [--root <dir>] [--docs <dir>]
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+export const RUN_PATTERNS = [/^run-general-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/, /^run-\d{10,}-\d+$/];
 export const DEFAULT_KEEP = 5;
 export const DEFAULT_MIN_AGE_DAYS = 2;
 const DAY_MS = 86_400_000;
 
 function listCandidates(root) {
     const out = [];
-    const scan = (dir, skipNames = []) => {
-        let names = [];
-        try { names = fs.readdirSync(dir); } catch { return; }
-        for (const name of names) {
-            if (name.startsWith('.') || skipNames.includes(name)) continue;
-            const full = path.join(dir, name);
-            let stat;
-            try { stat = fs.lstatSync(full); } catch { continue; }
-            out.push({ full, name, mtimeMs: stat.mtimeMs, symlink: stat.isSymbolicLink() });
-        }
-    };
-    scan(root, ['t43']);
-    scan(path.join(root, 't43'));
+    const dir = path.join(root, 't43');
+    let names = [];
+    try { names = fs.readdirSync(dir); } catch { return out; }
+    for (const name of names) {
+        if (!RUN_PATTERNS.some(re => re.test(name))) continue;
+        const full = path.join(dir, name);
+        let stat;
+        try { stat = fs.lstatSync(full); } catch { continue; }
+        if (stat.isSymbolicLink() || !stat.isDirectory()) continue;
+        out.push({ full, name, mtimeMs: stat.mtimeMs });
+    }
     return out;
 }
 
+/** Texto de todos los .md bajo docs/ (incluido docs/knowledge/journal); fuente de la «evidencia citada». */
+function readDocs(dir) {
+    let text = '';
+    const walk = d => {
+        let entries = [];
+        try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch { return; }
+        for (const e of entries) {
+            const full = path.join(d, e.name);
+            if (e.isDirectory()) walk(full);
+            else if (e.isFile() && e.name.endsWith('.md')) { try { text += fs.readFileSync(full, 'utf8') + '\n'; } catch { /* ilegible: se ignora */ } }
+        }
+    };
+    walk(dir);
+    return text;
+}
+
 /** Calcula y (salvo dryRun) aplica la purga. Devuelve { kept, removed, failed, bytes? }. */
-export function purge({ root, keep = DEFAULT_KEEP, minAgeDays = DEFAULT_MIN_AGE_DAYS, dryRun = false, now = Date.now(), protectedPaths = [] } = {}) {
+export function purge({ root, keep = DEFAULT_KEEP, minAgeDays = DEFAULT_MIN_AGE_DAYS, dryRun = false, now = Date.now(), protectedPaths = [], docsDir = path.resolve('docs') } = {}) {
     if (!root) throw new Error('purge: root es obligatorio');
     const base = path.resolve(root);
     if (!fs.existsSync(base)) return { kept: [], removed: [], failed: [] };
     const guard = protectedPaths.filter(Boolean).map(p => path.resolve(p).toLowerCase());
-    const entries = listCandidates(base).sort((a, b) => b.mtimeMs - a.mtimeMs);
+    const docs = readDocs(path.resolve(docsDir));
+    const entries = listCandidates(base).filter(e => !docs.includes(e.name)).sort((a, b) => b.mtimeMs - a.mtimeMs);
     const kept = []; const removed = []; const failed = [];
     entries.forEach((entry, index) => {
         const young = now - entry.mtimeMs < minAgeDays * DAY_MS;
@@ -61,6 +80,7 @@ function parse(argv) {
         else if (arg === '--keep') opts.keep = Number(value());
         else if (arg === '--min-age-days') opts.minAgeDays = Number(value());
         else if (arg === '--root') opts.root = path.resolve(value());
+        else if (arg === '--docs') opts.docsDir = path.resolve(value());
         else throw new Error(`Opción desconocida: ${arg}`);
     }
     if (!Number.isInteger(opts.keep) || opts.keep < 0 || !Number.isFinite(opts.minAgeDays) || opts.minAgeDays < 0) throw new Error('--keep y --min-age-days deben ser números no negativos');

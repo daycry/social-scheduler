@@ -508,7 +508,7 @@ estado: en-progreso
 ### T-12 — Scripts de test de Node y purga de `storage/framework/testing`
 
 - **Descripción**: Añadir `test:unit` y `test:browser` (con `--expose-gc` donde haga falta) y purgar ejecuciones antiguas de `storage/framework/testing` en el teardown (7,6 GB hoy).
-- **Changelog**: Nuevos scripts npm test:unit y test:browser para los tests de Node, y la limpieza automática de las ejecuciones E2E antiguas en storage/framework/testing (conserva las 5 más recientes o de menos de 2 días).
+- **Changelog**: Nuevos scripts npm test:unit y test:browser para los tests de Node, y la limpieza automática de las ejecuciones E2E antiguas en storage/framework/testing (solo sus propios directorios run-*, conserva las 5 más recientes o de menos de 2 días y nunca los citados en docs).
 - **Estado**: en-revision
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real 0.4h (estimado)
@@ -539,6 +539,8 @@ estado: en-progreso
 **Evidencia**: `npm run test:unit` → 627 tests, 627 pass, 0 fail (62 ficheros; los 6 `*.browser.test.mjs` y `studio-captions-render-entry.mjs` excluidos, `--list` de `browser` da los 6). `node scripts/test/purge-testing.mjs --dry-run` sobre el repo real → «borraría: 1384 · conservado: 655 · fallos: 0», solo informa (no se borró nada). La purga real se probó únicamente con directorios temporales (`tests/frontend/purge-testing.test.mjs`, 3/3: N más recientes o jóvenes se conservan, la ejecución en curso y `.gitignore` a salvo, `--dry-run` no borra, raíz inexistente no falla).
 
 **Decisiones**: Selector en `scripts/test/run-node-tests.mjs` (no globs de shell: Windows/Node 22 y exclusión limpia de `*.browser.test.mjs`). Purga como script Node invocado por `global-teardown.ts` (no artisan: no depende de PHP ni de BD, y corre aunque el teardown de usuarios falle) con respaldo `E2E_PURGE=0`; un fallo solo avisa. Regla: se conserva si es de las 5 más recientes O de <2 días (por mtime), sobre `testing/*` y `testing/t43/*`; ocultos y symlinks no se tocan. El bookends guard llama a `teardown()` y lo desactiva con `E2E_PURGE=0` (T-13). `docs/guias/testing.md` no existía: creada. `test:browser` no se ejecutó (necesita Chromium/ffmpeg; solo se verificó el listado).
+
+**Ajuste tras revisión del coordinador**: alcance restringido a `t43/run-general-<uuid>` y `t43/run-<epoch>-<pid>`; se excluye toda entrada cuyo nombre aparece en un `.md` de `docs/` (evidencia citada, journal incluido); nada fuera de esos patrones. Test con árbol temporal mixto (runRoots, evidencia sin patrón, directorio citado, joven, en curso): `npm run test:unit` 630/630. `--dry-run` real: «borraría 268 · conservado 43» (antes 1384); no se borró nada.
 
 **Notas**: Tamaño S. No tocar el directorio de otra ejecución en curso: la purga respeta un mínimo de antigüedad.
 

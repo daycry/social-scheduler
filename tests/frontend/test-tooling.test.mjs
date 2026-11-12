@@ -42,8 +42,10 @@ test('el teardown borra usuarios y purga en bloques independientes', () => {
 test('verifyRunIdentity acepta el servidor de SU ejecución y rechaza el de otra', async () => {
     const { verifyRunIdentity } = await import('../e2e/isolated/identity.ts');
     const reply = storage => async () => ({ ok: true, json: async () => ({ storage }) });
-    await verifyRunIdentity('http://localhost:1', 'C:\\run\\run-general-a', reply('C:/run/run-general-a'));
-    await assert.rejects(() => verifyRunIdentity('http://localhost:1', 'C:\\run\\run-general-a', reply('C:/run/run-general-b')), /otra ejecuci|another run/i);
+    // Portable: a runRoot resolved on this OS (backslashes on Windows, slashes elsewhere) and the storage the server reports in posix form.
+    const root = path.resolve('run', 'run-general-a'), posix = p => p.split(path.sep).join('/');
+    await verifyRunIdentity('http://localhost:1', root, reply(posix(root)));
+    await assert.rejects(() => verifyRunIdentity('http://localhost:1', root, reply(posix(root).replace(/-a$/, '-b'))), /otra ejecuci|another run/i);
     await assert.rejects(() => verifyRunIdentity('http://localhost:1', '/r', async () => ({ ok: false, status: 500, json: async () => ({}) })), /500/);
 });
 

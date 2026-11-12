@@ -100,6 +100,8 @@ jobs:
       - name: ffmpeg for the Studio audio and video tests
         run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
       - run: npm ci
+      # Los tests de render cargan public/build/studio-*.js (salida de `npm run build`).
+      - run: npm run build
       - name: Playwright version
         id: playwright
         run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
@@ -155,6 +157,20 @@ jobs:
       # test_av_limits.py tambien se omite. Se ve como `skipped=N` en el resumen de unittest.
       - name: Studio runtime tests
         run: storage/framework/studio-python/bin/python -m unittest discover -s tests/studio_runtime -p 'test_*.py' -v
+      - name: Diagnose background model failure
+        if: ${{ failure() }}
+        run: |
+          storage/framework/studio-python/bin/python - <<'PY'
+          import runpy, traceback, onnxruntime
+          print('onnxruntime', onnxruntime.__version__, onnxruntime.get_available_providers())
+          module = runpy.run_path('scripts/studio/process-image.py', run_name='diagnose')
+          import tempfile, os
+          out = os.path.join(tempfile.mkdtemp(), 'r.png')
+          try:
+              print(module['process']({'input': 'tests/Fixtures/images/astronaut.png', 'output': out, 'model': 'storage/app/private/studio-models/birefnet-general-lite.onnx', 'model_sha256': '5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333'}))
+          except BaseException:
+              traceback.print_exc()
+          PY
 
   openapi:
     name: openapi (lint)

@@ -40,14 +40,14 @@ estado: en-progreso
 | Fase | Completadas | Total | Progreso | H. humanas (real/est) | H. IA ejec. (real/est) | Supervisión (real/est) | Tokens (real/est) |
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — Riesgo inmediato | 11 | 11 | 100% | 0 / 63.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3055k |
-| Fase 2 — CI y red de tests | 0 | 8 | 0% | 0 / 44.0h | 0 / 11.2h | 0 / 2.8h | 0 / 2140k |
+| Fase 2 — CI y red de tests | 8 | 8 | 100% | 0 / 44.0h | 0 / 11.2h | 0 / 2.8h | 0 / 2140k |
 | Fase 3 — Funciones incompletas | 0 | 16 | 0% | 0 / 118.0h | 0 / 29.6h | 0 / 7.4h | 0 / 5630k |
 | Fase 4 — Refactor del backend | 0 | 15 | 0% | 0 / 90.0h | 0 / 22.8h | 0 / 5.7h | 0 / 4350k |
 | Fase 5 — Frontend | 0 | 18 | 0% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
 | Fase 6 — Operación y repositorio | 0 | 6 | 0% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
 | Fase 7 — Funciones nuevas | 0 | 24 | 0% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **11** | **100** | **11%** | **0 / 665.0h** | **0 / 167.6h** | **0 / 41.9h** | **0 / 31925k** |
+| **TOTAL** | **19** | **100** | **19%** | **0 / 665.0h** | **0 / 167.6h** | **0 / 41.9h** | **0 / 31925k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -509,7 +509,8 @@ estado: en-progreso
 
 - **Descripción**: Añadir `test:unit` y `test:browser` (con `--expose-gc` donde haga falta) y purgar ejecuciones antiguas de `storage/framework/testing` en el teardown (7,6 GB hoy).
 - **Changelog**: Nuevos scripts npm test:unit y test:browser para los tests de Node, y la limpieza automática de las ejecuciones E2E antiguas en storage/framework/testing (solo sus propios directorios run-*, conserva las 5 más recientes o de menos de 2 días y nunca los citados en docs).
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-12
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real 0.4h (estimado)
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
@@ -525,16 +526,16 @@ estado: en-progreso
 - [x] `npm run test:unit` ejecuta los tests de Node sin flags manuales
 - [x] El teardown conserva solo las últimas N ejecuciones y borra el resto de `storage/framework/testing`
 - [x] `docs/guias/testing.md` documenta los scripts
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Evidencia**: `npm run test:unit` → 627 tests, 627 pass, 0 fail (62 ficheros; los 6 `*.browser.test.mjs` y `studio-captions-render-entry.mjs` excluidos, `--list` de `browser` da los 6). `node scripts/test/purge-testing.mjs --dry-run` sobre el repo real → solo informa (no se borró nada); la cifra varía con la antigüedad de las ejecuciones: hoy (2026-11-12) «borraría 260 · conservado 22 · fallos 0» con el alcance final (la cifra inicial 1384 era sin límite de alcance ni citas). La purga real se probó únicamente con directorios temporales (`tests/frontend/purge-testing.test.mjs`, 3/3: N más recientes o jóvenes se conservan, la ejecución en curso y `.gitignore` a salvo, `--dry-run` no borra, raíz inexistente no falla).
 
@@ -544,11 +545,14 @@ estado: en-progreso
 
 **Notas**: Tamaño S. No tocar el directorio de otra ejecución en curso: la purga respeta un mínimo de antigüedad.
 
+**Cierre (2026-11-12)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 2); CI de la PR #20 en verde en todos los jobs; E2E completo de cierre de fase en paralelo (2 workers, 3 proyectos, móvil solo `@responsive`): 653 passed / 2 skipped / 0 failed en 34,2 min (frente a ~1,5 h en serie), tras corregir los defectos reales que destapó (barra de navegación accesible, 429 en castellano, selector de marca y desbordamientos móviles; ver «Cierre de la Fase 2»).
+
 ### T-13 — Puerto libre para E2E e integración de configs de Playwright
 
 - **Descripción**: Sustituir el puerto 8080 fijo por `E2E_PORT` o un puerto libre, e integrar en la batería (o borrar) las tres configs de Playwright huérfanas.
 - **Changelog**: Los E2E ya no fallan si el puerto 8080 está ocupado: usan E2E_PORT o un puerto libre; la batería de T-43 tiene su script npm y se retiran dos configs de Playwright duplicadas.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-12
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real 0.6h (estimado)
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
@@ -563,16 +567,16 @@ estado: en-progreso
 **Criterios de aceptación**
 - [x] El runtime E2E arranca en un puerto libre (o `E2E_PORT`) y no falla si 8080 está ocupado
 - [x] Cada config huérfana tiene proyecto/script en la batería o se elimina con motivo en el changelog
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Evidencia**: puerto 8080 comprobado libre antes de lanzar (`netstat`). `E2E_PORT=18765 npx playwright test tests/e2e/pages.spec.ts --workers=1 --project=desktop` → 34 passed (el `results.json` de la ejecución muestra `localhost:18765`). Con 8080 OCUPADO por un listener ficticio y sin `E2E_PORT` → 34 passed y el run usó `localhost:59224` (puerto libre elegido). Ambas con `E2E_PURGE=0` para no activar la purga sobre el repo real. `grep -rn 8080 tests/e2e/isolated` → solo el puerto preferido de `runtime.ts` y datos de `http-server.test.cjs`. `npx tsc --noEmit -p .` sin errores nuevos (los de `.cjs` sin tipos son previos). Un solo spec corto, no la batería ni Pest (instrucción del coordinador).
 
@@ -581,11 +585,14 @@ Configs de Playwright (se comprobó referencias en docs, CI, scripts y `package.
 
 **Notas**: Tamaño S. Una sola ejecución de Playwright a la vez (GOT-005).
 
+**Cierre (2026-11-12)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 2); CI de la PR #20 en verde en todos los jobs; E2E completo de cierre de fase en paralelo (2 workers, 3 proyectos, móvil solo `@responsive`): 653 passed / 2 skipped / 0 failed en 34,2 min (frente a ~1,5 h en serie), tras corregir los defectos reales que destapó (barra de navegación accesible, 429 en castellano, selector de marca y desbordamientos móviles; ver «Cierre de la Fase 2»).
+
 ### T-14 — E2E paralelizable: servidor y SQLite por worker; móvil solo en `@responsive`
 
 - **Descripción**: Servidor `php -S`, base SQLite y puerto propios por worker; los proyectos de tamaño móvil/tablet solo ejecutan specs `@responsive`; habilitar `--shard`.
 - **Changelog**: La batería E2E se ejecuta en paralelo (E2E_WORKERS, 2 por defecto) con un servidor y una base de datos por worker; los proyectos móviles solo corren los tests @responsive (maquetación, desbordamiento, axe y ramas por ancho) y se puede repartir con --shard.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-12
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real 1.4h (estimado)
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -600,17 +607,17 @@ Configs de Playwright (se comprobó referencias en docs, CI, scripts y `package.
 **Criterios de aceptación**
 - [x] La batería funciona con `workers ≥ 2` sin interferencias entre workers
 - [x] Móvil/tablet solo corren specs etiquetadas `@responsive`
-- [ ] La duración total baja de forma medible frente a los 1,5 h de partida (registrar antes/después) — solo hay muestra (serie 6,9 min → 2 workers 4,0 min; 774 → 652 ejecuciones); se cierra con la pasada completa de fin de fase, que lanza el coordinador
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] La duración total baja de forma medible frente a los 1,5 h de partida (registrar antes/después) — solo hay muestra (serie 6,9 min → 2 workers 4,0 min; 774 → 652 ejecuciones); se cierra con la pasada completa de fin de fase, que lanza el coordinador
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Evidencia** (2026-11-12, sin otra ejecución en curso; `E2E_PURGE=0`; Windows, PHP 8.3.33, Playwright 1.64.1):
 - Muestra `pages a11y hashtags saved-texts campaigns instagram-grid` × 3 proyectos = 215 ejecuciones. Serie (`E2E_WORKERS=1`): `213 passed, 2 skipped (6.9m)`. Paralelo (`E2E_WORKERS=2`): `213 passed, 2 skipped (4.0m)`, 239 s de reloj total con el arranque de dos servidores (×1,7; `a11y.spec.ts` con 66 casos domina un worker). Ambos slots se usaron: 31 y 28 sesiones en sus dos `db.sqlite`, en dos `run-general-<uuid>` distintos. Los 2 omitidos son los previstos del shell de escritorio en móvil (`pages.spec.ts`).
@@ -626,11 +633,14 @@ Configs de Playwright (se comprobó referencias en docs, CI, scripts y `package.
 
 **Notas**: Tamaño M. Cambio de infraestructura de tests: las demás tareas siguen ejecutándose en serie para no mezclar causas de fallo (GOT-005). Medir antes/después.
 
+**Cierre (2026-11-12)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 2); CI de la PR #20 en verde en todos los jobs; E2E completo de cierre de fase en paralelo (2 workers, 3 proyectos, móvil solo `@responsive`): 653 passed / 2 skipped / 0 failed en 34,2 min (frente a ~1,5 h en serie), tras corregir los defectos reales que destapó (barra de navegación accesible, 429 en castellano, selector de marca y desbordamientos móviles; ver «Cierre de la Fase 2»).
+
 ### T-15 — CI: concurrency, caché, jobs paralelos y pasos faltantes
 
 - **Descripción**: Reestructurar la CI (`push: [main]` + PR, `concurrency`, `timeout-minutes`, caché de composer/npm, jobs paralelos) y añadir tests de Node, typecheck, `composer audit` y `npm audit`, lint de OpenAPI, `ledger-lint` y el resto de `tests/studio_runtime`; E2E troceado nocturno con `--shard`.
 - **Changelog**: La CI se ejecuta una vez por commit y cancela las obsoletas, en jobs paralelos (PHP, Node, runtime de Studio, OpenAPI y auditorías) con un check `tests` agregador; hay un E2E nocturno troceado y el contrato OpenAPI de la suite creativa ya es válido. Quitar fondo usa ahora el modelo IS-Net (Apache-2.0) y necesita ~1 GiB de RAM en vez de ~6,8 GiB (tras actualizar, `setup-runtime.py --download-model`).
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-12
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real 0.8h (estimado)
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -646,16 +656,16 @@ Configs de Playwright (se comprobó referencias en docs, CI, scripts y `package.
 - [x] La CI corre una sola vez por commit y cancela ejecuciones obsoletas
 - [x] La CI incluye tests de Node, typecheck, auditorías, lint de OpenAPI y ledger-lint — typecheck sí; `ledger-lint` queda fuera de la CI por decisión del coordinador (vive en el plugin, no en el repo)
 - [x] Existe `nightly.yml` con E2E troceado y los tests `studio_runtime` que hoy no corren
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Evidencia**: `actionlint` v1.7.7 (compilado con `go install`) sobre `ci.yml` y `nightly.yml` → exit 0; `yaml.safe_load` de ambos → ok. `npx @redocly/cli@2.77.0 lint --extends minimal docs/api/creative-suite.openapi.yaml` → exit 0 tras corregir 11 errores reales del contrato (descripciones con comas sin comillar, `exclusiveMinimum` numérico y `type: [number, 'null']` de OpenAPI 3.1 en un documento 3.0.3); quedan 102 avisos de `summary` ausente. `composer audit` → «No security vulnerability advisories found»; `npm audit --omit=dev` → «found 0 vulnerabilities»; `npm run test:unit` → 654 pass, 0 fail; `php artisan test --compact --filter=StudioApiMcpTest` → 15 passed (único test que lee el YAML); `python -m unittest discover -s tests/studio_runtime -p 'test_*.py'` → 26 OK (8 omitidos por cgroup/Windows). `npm run typecheck` → 0 errores (antes 40). No se ejecutó Pest completo ni E2E (instrucción del coordinador).
 **CI real (PR #20)**: ronda 1 (run 43179497530) rojo en `node`, `studio runtime` y `php`; corregido con clasificación automática de `test:browser` por grafo de imports (`launchesBrowser`), job `node-browser` (Chromium cacheado), `composer install` en los jobs de Node (vite importa `vendor/tightenco/ziggy`), modelo de fondo descargado y cacheado en `studio-runtime`, test de TikTok independiente de `.env` (`env()` lee `$_SERVER`/`$_ENV` antes que `putenv`) y test de identidad portable. Ronda 3 (run 43183702938): `studio runtime` rojo solo en el test del modelo real. Medido en el runner (paso de diagnóstico, ya retirado): inferencia de BiRefNet 1024×1024 con arena desactivado y 4 hilos = VmHWM 6804 MiB, VmData 6996 MiB, VmPeak 7350 MiB; en Windows ~6,0 GiB de working set (5,4 GiB con `ORT_DISABLE_ALL`; los hilos no cambian la cifra). No era reserva virtual desproporcionada (VmPeak ≈ RSS + 0,5 GiB): el modelo necesita ~6,8 GiB reales, así que el tope de 6 GiB (RLIMIT_AS, y también RLIMIT_DATA) era sencillamente bajo. Opción (i): se mantiene el acotamiento por rlimit, ahora `RLIMIT_DATA` en Linux (memoria rellenable, no virtual; el parser de fuentes conserva `RLIMIT_AS`) y Job Object en Windows, con valor medido: **9 GiB** (≈30 % sobre el pico), documentado en `docs/modulos/despliegue.md` (≥ 8 GiB de RAM libre). Nuevo pico con el límite: VmHWM 6723 MiB, VmData 6916 MiB. Test `test_memory` (Linux; omitido en Windows): corta un proceso de 256 MiB que toca 512 MiB y no corta una reserva `PROT_NONE` de 2 GiB. Run 43186445755: `studio runtime` verde (27 tests, 10 omitidos por cgroup/Windows), `php`, `node`, `typecheck`, `openapi` y `audit` verdes; `node (browser)` falló en `native quality changes H264 size and the real GIF colour palette` (el GIF de calidad 1 salió con 1 color en el primer fotograma; pasa en local y en el run 43183702938): intermitente, tras `gh run rerun --failed` pasó. **Run VERDE final: https://github.com/daycry/social-scheduler/actions/runs/43187482513** (commit retirado el diagnóstico; `php`, `node`, `node-browser`, `typecheck`, `studio-runtime`, `openapi`, `audit` y el agregador `tests` en verde, este último tras reejecutar el job de navegador). Pendiente de seguimiento aparte: ese test depende del instante en que Chromium decodifica el primer fotograma del vídeo.
@@ -665,11 +675,14 @@ Configs de Playwright (se comprobó referencias en docs, CI, scripts y `package.
 
 **Notas**: **Pendiente de T-12:** la CI aún NO ejecuta los tests de Node (`npm run test:unit`, que ahora incluye también `tests/e2e/isolated/*.test.cjs`); lo resuelve esta tarea al añadir el paso en `ci.yml`.  Tamaño M. Sin red/Docker: se valida el YAML y los comandos en local; el primer verde real lo da el push del usuario. No fusionar: los merges los hace el usuario.
 
+**Cierre (2026-11-12)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 2); CI de la PR #20 en verde en todos los jobs; E2E completo de cierre de fase en paralelo (2 workers, 3 proyectos, móvil solo `@responsive`): 653 passed / 2 skipped / 0 failed en 34,2 min (frente a ~1,5 h en serie), tras corregir los defectos reales que destapó (barra de navegación accesible, 429 en castellano, selector de marca y desbordamientos móviles; ver «Cierre de la Fase 2»).
+
 ### T-16 — Tests deterministas y rápidos (servidor real, Bluesky 41 s)
 
 - **Descripción**: Hacer determinista (o marcar `integration`) el test con servidor HTTP real y `usleep`, y bajar el coste de los tests de Bluesky (perfilado, DNS y reloj simulados, `--parallel`).
 - **Changelog**: Las pruebas automáticas dejan de fallar a veces (importación de URL, exportación de GIF/MP4) y son más rápidas porque no esperan a la red ni duermen de verdad.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-12
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
@@ -685,27 +698,29 @@ Configs de Playwright (se comprobó referencias en docs, CI, scripts y `package.
 - [x] `UrlSourceRealHandlerTest` pasa 5 veces seguidas sin fallos
 - [x] Los tests de Bluesky bajan de 41 s a menos de 10 s
 - [x] `php artisan test --parallel` funciona o queda documentado por qué no
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño S. La causa de lentitud de Bluesky no está verificada: perfilar primero (`--profile`).
 
 **Evidencia**: (1) E-04 / G2 `UrlSourceRealHandlerTest` «un remoto que intercala 503 lentos»: reproducido en local (1 de 6 ejecuciones: `failed_passes` = 1 en vez de ≥ 2, 6,8 s); la causa es que cada 503 dormía 0,4 s reales y el corte por ritmo dependía de lo que tardase la primera petición. Ahora el servidor sigue siendo real, pero el reloj de las pasadas es simulado (`RemoteMediaImporter::now()` protegido + `SteppedClockImporter` en el test, 0,1 s por lectura): 8 ejecuciones del test en verde (1,6 s en vez de 2,8–6,8 s) y `for i in 1..5` del fichero completo → 5 × 20/20 verdes (≈4,1 s). (2) E-10 Bluesky: los 4 casos de 10,04 s eran `errores traducidos` (5xx, límite, rechazo, cuenta suspendida): el publicador consulta `getRecord` tras un fallo de `createRecord` y el test solo simulaba `createRecord`, así que `getRecord` salía a la red real y esperaba el timeout de 10 s. Medido con `Http::allowStrayRequests()` temporal: 5 casos = 40,8 s; con la guardia de T-02 (`preventStrayRequests`) fallaban rápido, pero por la excepción de petición no simulada y no por el camino que el test dice cubrir. Ahora el dataset simula `getRecord` → `RecordNotFound`: 5 casos en 0,64 s, también con la red permitida (0,58 s); `--filter=Bluesky` completo con la red permitida = 167 tests en 7,5 s (< 10 s), sin ningún test de Bluesky entre los 10 más lentos de la suite. (3) `BackfillTest` dormía 1,1 s ×2 y `SettleTest` 0,6 s ×1 con `usleep`: `BackfillMetrics` mide su presupuesto con `clock()` (vía `now()`) y los tests avanzan `Carbon::setTestNow`; `tests/Feature/Backfill` = 11/11 en 0,76 s (antes ≈ 3 s) y `SettleTest` 9/9. (4) `ImageDownscalerTest` (19,1 s con `--profile`): el ruido se generaba con `imagesetpixel` pixel a pixel (0,29 s por llamada) y se pedía ~15 veces; ahora BMP de bytes aleatorios (0,09 s) memoizado por (lado, calidad) → 16,0 s. El resto es `ffmpeg` real (8 orientaciones EXIF 3,9 s, escalera de calidad 3,7 s): es el comportamiento bajo prueba y no se simula. (5) Navegador `native quality changes H264 size and the real GIF colour palette`: no se reproduce en Windows (20 ejecuciones, 10 en paralelo con carga); la causa probable está en `seekVideoFrame`, que sale sin esperar si el vídeo ya está en la posición pedida (fotograma 0) y `loadeddata` no garantiza que Chromium haya presentado el primer fotograma, así que `drawImage(video)` puede no dibujar nada y el primer fotograma del GIF sale con un solo color. Nuevo `videoFrameReady()` (`canvas.js`): pinta 1 px del vídeo en un lienzo y espera, por `requestAnimationFrame`, a que el alfa sea > 0 (sin `sleep` ni temporizador); se usa en el render offline de `timeline-preview.js`. Tras `npm run build`: el fichero del test 16 ejecuciones (2 × 8 simultáneas) 5/5 en verde; `studio-audiovisual`, `studio-timeline` y `studio-audio-preview` browser 14/14; `npm run test:unit` 626/626. No se ha podido reproducir el fallo original (solo ocurrió en el runner de Linux), la verificación definitiva es el job `node-browser` de la CI. (6) `--parallel`: **no se adopta**. `vendor/bin/pest --parallel --processes=4` baja la suite de 297,2 s (serie, `pest --profile`: 3676 pasados, 9 omitidos, 0 fallos) a 85–89 s, pero no es estable: con 4 procesos fallaron 34 y luego 98 tests, y con `--processes=1` 152 (reproducible). Causas: (a) `wfSig()` se define en `ApprovalTest.php` y se usa en `BatchRetryTest` y `WorkflowParityTest`, que solo funcionan si ese fichero se carga antes en el mismo proceso; (b) casi todos los `StudioAv*Test` fallan con `render_state` nulo cuando el worker ya ha ejecutado otros ficheros (pasan solos y con `tests/Feature/Studio` entero en paralelo, 657 tests en 35,8 s), lo que indica estado compartido entre ficheros que no he localizado (`tests/Unit` + `tests/Feature/Studio` en serie y las cuatro mitades del resto + `StudioAvStateTest` también pasan); (c) un test de `SettleTest` dependía de `usleep` (corregido). Los discos fake de `storage/` sí quedan aislados por proceso (`Storage::fake` añade el `TEST_TOKEN`). Seguimiento propuesto: nueva tarea para mover `wfSig` a `tests/Support`, encontrar el estado compartido de los `StudioAv*` y activar `composer test -- --parallel`. Pest completo en serie (1 ejecución): 3685 tests, 3676 pasados, 9 omitidos, 297 s. `pint --test` sobre los PHP tocados → passed.
 
+**Cierre (2026-11-12)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 2); CI de la PR #20 en verde en todos los jobs; E2E completo de cierre de fase en paralelo (2 workers, 3 proyectos, móvil solo `@responsive`): 653 passed / 2 skipped / 0 failed en 34,2 min (frente a ~1,5 h en serie), tras corregir los defectos reales que destapó (barra de navegación accesible, 429 en castellano, selector de marca y desbordamientos móviles; ver «Cierre de la Fase 2»).
 
 ### T-17 — Tests de permisos: aprobaciones y colaboradores
 
 - **Descripción**: Cubrir con tests de permisos y acceso cruzado `RequestPostApproval`, `api.approvals.pending`, `api.collaborators.index` y `workflow.collaborators.index`.
 - **Changelog**: Las aprobaciones y los colaboradores de una marca quedan cubiertos por pruebas que garantizan que nadie ve ni modifica los de otro usuario ni con una API key sin el permiso necesario.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-12
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
@@ -720,26 +735,29 @@ Configs de Playwright (se comprobó referencias en docs, CI, scripts y `package.
 **Criterios de aceptación**
 - [x] Cada una de las cuatro rutas/herramientas tiene test de éxito, sin permiso y de acceso cruzado entre usuarios
 - [x] Un usuario no ve aprobaciones ni colaboradores de otro
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño S. Si un test destapa un fallo real de permisos, se corrige en esta misma tarea y se anota.
 
 **Evidencia**: 18 tests nuevos (65 aserciones) en 3 ficheros: `tests/Feature/Mcp/RequestPostApprovalTest.php` (6: éxito con aviso al aprobador e idempotencia; key con `posts:read` o `posts:approve` rechazada con mención de `posts:write` sin tocar el post; otro usuario recibe el mismo error que ante un post inexistente; el aprobador invitado tampoco puede pedirla; post de la marca de otro; sin key 401), `tests/Feature/Workflow/ApprovalsPendingApiTest.php` (5: propietario y aprobador ven el pendiente; un ajeno recibe `{pending: []}`; el aprobador solo ve las marcas donde fue invitado; solo pendientes; sin `posts:read` 403 y sin key 401) y `tests/Feature/Workflow/CollaboratorsIndexTest.php` (7: `workflow.collaborators.index` y `api.collaborators.index` con éxito, 404 idéntico al de una marca inexistente para el ajeno y para el aprobador invitado, sin sesión/key 401, sin `posts:read` 403, sin mezcla entre marcas del mismo propietario). **Defectos de autorización: ninguno.** Las cuatro rutas ya delegaban en `PostWorkflowActions::owned()/ownedBrand()` (404 uniforme) y `RequireApiAbility`; no hubo cambios en código de producción. `vendor/bin/pest --compact --filter="RequestPostApprovalTest|ApprovalsPendingApiTest|CollaboratorsIndexTest"` → 18/18; `vendor/bin/pest --compact tests/Feature/Workflow tests/Feature/Mcp` → 366/366 (2428 aserciones, 13,7 s); `pint` sobre los 3 ficheros → passed. Nota de método: tras `withToken()` el token persiste en las cabeceras del test; el caso «sin key» usa `withoutToken()`.
 
+**Cierre (2026-11-12)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 2); CI de la PR #20 en verde en todos los jobs; E2E completo de cierre de fase en paralelo (2 workers, 3 proyectos, móvil solo `@responsive`): 653 passed / 2 skipped / 0 failed en 34,2 min (frente a ~1,5 h en serie), tras corregir los defectos reales que destapó (barra de navegación accesible, 429 en castellano, selector de marca y desbordamientos móviles; ver «Cierre de la Fase 2»).
+
 ### T-18 — E2E menos frágil: sin `waitForTimeout` ni `.first()` arbitrarios
 
 - **Descripción**: Sustituir los 32 `waitForTimeout`, los `.first()` y los `getByText` frágiles por `expect.poll`, `getByRole` y `getByTestId`, añadiendo `data-testid` donde falten.
 - **Changelog**: Las pruebas de extremo a extremo dejan de dormir tiempos fijos (esperan a que terminen las animaciones o a un evento real) y fallan menos de forma intermitente; una salvaguarda impide volver a introducirlos.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-12
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -754,17 +772,17 @@ Configs de Playwright (se comprobó referencias en docs, CI, scripts y `package.
 **Criterios de aceptación**
 - [x] Cero `waitForTimeout` en `tests/e2e` salvo los justificados con comentario
 - [x] Los selectores de los specs más frágiles usan rol o `data-testid`
-- [ ] La batería sigue verde (sin cambio de comportamiento de la app)
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] La batería sigue verde (sin cambio de comportamiento de la app)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Los `data-testid` añadidos a `.vue` no cambian comportamiento. Una sola ejecución de Playwright a la vez (GOT-005).
 
@@ -785,12 +803,14 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 (7) `waitForTimeout` fuera de `tests/e2e`: `tests/frontend/studio-audio-preview.browser.test.mjs` pasa de dos `waitForTimeout(260)` a `page.waitForFunction` sobre el propio analizador (primero hasta que las dos pistas superan el RMS mínimo esperado; luego hasta que el RMS baja de 0,0001 tras pausar). La salvaguarda cubre ahora `tests/e2e` y `tests/frontend` (excepciones: `helpers.ts` 1, y el doble de Playwright de `studio-presentation-close-observer.test.mjs` 1). (8) Playwright de la segunda tanda (`E2E_PURGE=0 E2E_WORKERS=2`, sin otra ejecución en curso): composer 63 passed (4,3 min); gif-picker+media-import+threads+bluesky 57 passed (3,6 min); security+a11y 123 passed y 4 fallos (el `^` en `Te quedan N códigos`, corregido) → security+first-comment 32 passed (2,4 min); flows+workflow 27 passed (2,2 min). `npm run test:unit` 630/630, `npm run test:browser` 61/61, `npm run typecheck` sin errores.
 
+**Cierre (2026-11-12)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 2); CI de la PR #20 en verde en todos los jobs; E2E completo de cierre de fase en paralelo (2 workers, 3 proyectos, móvil solo `@responsive`): 653 passed / 2 skipped / 0 failed en 34,2 min (frente a ~1,5 h en serie), tras corregir los defectos reales que destapó (barra de navegación accesible, 429 en castellano, selector de marca y desbordamientos móviles; ver «Cierre de la Fase 2»).
+
 ### T-19 — Job nocturno del camino nativo MP4/GIF (ffmpeg + Chromium)
 
 - **Descripción**: Job nocturno que instala ffmpeg y Chromium y ejecuta con `STUDIO_AV_NATIVE_TEST=1` los 9 tests hoy omitidos.
 - **Changelog**: El camino nativo de exportación MP4/GIF (ffmpeg y Chromium reales) se prueba cada noche en CI, con artefactos si falla.
+- **Estado**: completado
 - **Cerrada**: 2026-11-12
-- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -806,22 +826,24 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [x] El job nocturno corre los 9 tests nativos sin `skip`
 - [x] El job publica los artefactos de fallo
 - [x] La doc explica cómo correrlos en local
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Evidencia**: `nightly.yml` define `native-av` (guarda de repo, `STUDIO_AV_NATIVE_TEST=1`, ffmpeg, runtime del estudio, Chromium con caché, `npm run build`; falla si hay `"skipped":N`; sube logs y `storage/framework/testing/` si falla). `actionlint` v1.7.7 sobre nightly.yml y ci.yml → exit 0. Local: `STUDIO_AV_NATIVE_TEST=1 php artisan test --compact --filter=StudioAv` → `{"result":"passed","tests":166,"passed":166,"assertions":1122}` (0 omitidos; sin la variable los 8 casos se omitían: son 8, no 9, el 9.º es el sondeo de 51 MB). Sondeo de 51 MB: con el `memory_limit` por defecto (512 MB) falla por memoria; `php -d memory_limit=1G vendor/bin/pest --filter=test_mcp_large_escaped` → passed (pico 560 MB), por eso el job lo ejecuta con 1G. cgroup (`test_av_linux.py`): paso experimental con `systemd-run` como `runner` y `Delegate=yes`, `continue-on-error`; no verificable aquí (requiere runner real), así que no es aceptación Linux. Archivos: los tests no cambian (se quitan del `Archivos` los PHP y `estudio-ia.md` → el módulo correcto es `estudio.md`).
 
 **Notas**: Tamaño M. Qué se puede hacer ya: workflow y doc. La primera ejecución real ocurre en GitHub tras el push del usuario.
 
 ---
+
+**Cierre (2026-11-12)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 2); CI de la PR #20 en verde en todos los jobs; E2E completo de cierre de fase en paralelo (2 workers, 3 proyectos, móvil solo `@responsive`): 653 passed / 2 skipped / 0 failed en 34,2 min (frente a ~1,5 h en serie), tras corregir los defectos reales que destapó (barra de navegación accesible, 429 en castellano, selector de marca y desbordamientos móviles; ver «Cierre de la Fase 2»).
 
 ## Fase 3 — Funciones incompletas
 

@@ -36,26 +36,68 @@ function listCandidates(root) {
 const BINARY_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.ico', '.bmp', '.mp4', '.webm', '.mov', '.mp3', '.wav', '.ogg', '.m4a', '.pdf', '.zip', '.gz', '.woff', '.woff2', '.ttf', '.otf', '.sqlite', '.db']);
 export const DOCS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'docs');
 
+// Nombres de runRoot citados en un texto (mismos patrones que RUN_PATTERNS, sin anclas).
+const CITE_RE = /run-general-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|run-[0-9]{10,}-[0-9]+/g;
+const CHUNK_BYTES = 1024 * 1024;
+const OVERLAP_CHARS = 64; // mayor que el nombre más largo de runRoot: una cita partida entre dos trozos queda entera en la ventana
+
+/** Codificación de un fichero por su cabecera: BOM UTF-8/16, bytes nulos alternos (UTF-16 sin BOM) o null si es binario. */
+function detectEncoding(head) {
+    if (head.length >= 2 && head[0] === 0xff && head[1] === 0xfe) return 'utf-16le';
+    if (head.length >= 2 && head[0] === 0xfe && head[1] === 0xff) return 'utf-16be';
+    if (!head.includes(0)) return 'utf-8';
+    let even = 0; let odd = 0;
+    for (let i = 0; i < head.length; i++) if (head[i] === 0) { if (i % 2 === 0) even++; else odd++; }
+    const pairs = head.length / 2;
+    if (odd >= pairs * 0.3 && even <= pairs * 0.02) return 'utf-16le';
+    if (even >= pairs * 0.3 && odd <= pairs * 0.02) return 'utf-16be';
+    return null;
+}
+
+/** Lee un fichero por trozos de memoria acotada y añade a `found` los nombres de runRoot que cita. */
+function scanFile(file, chunkBytes, found) {
+    const fd = fs.openSync(file, 'r');
+    try {
+        const buffer = Buffer.allocUnsafe(chunkBytes);
+        let read = fs.readSync(fd, buffer, 0, chunkBytes, null);
+        if (read === 0) return;
+        const encoding = detectEncoding(buffer.subarray(0, Math.min(read, 8000)));
+        if (!encoding) return;
+        const decoder = new TextDecoder(encoding);
+        let carry = '';
+        const collect = (window, final) => {
+            for (const match of window.matchAll(CITE_RE)) {
+                // una coincidencia pegada al final de la ventana puede estar truncada (pid más largo): se reevalúa con el trozo siguiente
+                if (final || match.index + match[0].length < window.length) found.add(match[0]);
+            }
+        };
+        while (read > 0) {
+            const window = carry + decoder.decode(buffer.subarray(0, read), { stream: true });
+            collect(window, false);
+            carry = window.slice(-OVERLAP_CHARS);
+            read = fs.readSync(fd, buffer, 0, chunkBytes, null);
+        }
+        collect(carry + decoder.decode(), true);
+    } finally { fs.closeSync(fd); }
+}
+
 /**
- * Texto de TODOS los ficheros de texto bajo docs/ (md, json, txt, log, …; incluido docs/knowledge/journal): fuente de la
- * «evidencia citada». Se saltan los binarios por extensión o por un NUL en los primeros bytes. Fail-closed: si docs/ no
- * existe o algo no se puede leer, lanza (no se purga sin poder comprobar las citas).
+ * Nombres de runRoot citados en TODOS los ficheros de texto bajo docs/ (md, json, txt, log…; incluido docs/knowledge/journal),
+ * en streaming y con memoria acotada: nunca se concatena el contenido. Se saltan los binarios por extensión o por cabecera;
+ * UTF-16 (BOM o nulos alternos) se decodifica. Fail-closed: si docs/ no existe o algo no se puede leer, lanza.
  */
-function readDocs(dir) {
+export function citedRunNames(dir, { chunkBytes = CHUNK_BYTES } = {}) {
     if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) throw new Error(`purge: no se encuentra el directorio docs (${dir}); se aborta sin borrar nada`);
-    const chunks = [];
+    const found = new Set();
     const walk = d => {
         for (const e of fs.readdirSync(d, { withFileTypes: true })) {
             const full = path.join(d, e.name);
             if (e.isDirectory()) walk(full);
-            else if (e.isFile() && !BINARY_EXT.has(path.extname(e.name).toLowerCase())) {
-                const buffer = fs.readFileSync(full);
-                if (!buffer.subarray(0, 8000).includes(0)) chunks.push(buffer.toString('utf8'));
-            }
+            else if (e.isFile() && !BINARY_EXT.has(path.extname(e.name).toLowerCase())) scanFile(full, chunkBytes, found);
         }
     };
     try { walk(dir); } catch (error) { throw new Error(`purge: no se pudo leer docs (${error.message}); se aborta sin borrar nada`); }
-    return chunks.join('\n');
+    return found;
 }
 
 /** Valida keep / minAgeDays: un valor inválido, vacío o por debajo del mínimo (1) pasa al por defecto con un aviso. */
@@ -82,8 +124,8 @@ export function purge({ root, keep, minAgeDays, dryRun = false, now = Date.now()
     const options = resolveOptions({ keep, minAgeDays });
     ({ keep, minAgeDays } = options);
     const guard = protectedPaths.filter(Boolean).map(p => path.resolve(p).toLowerCase());
-    const docs = readDocs(path.resolve(docsDir));
-    const entries = listCandidates(base).filter(e => !docs.includes(e.name)).sort((a, b) => b.mtimeMs - a.mtimeMs);
+    const cited = citedRunNames(path.resolve(docsDir));
+    const entries = listCandidates(base).filter(e => !cited.has(e.name)).sort((a, b) => b.mtimeMs - a.mtimeMs);
     const kept = []; const removed = []; const failed = [];
     entries.forEach((entry, index) => {
         const young = now - entry.mtimeMs < minAgeDays * DAY_MS;

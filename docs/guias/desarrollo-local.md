@@ -62,7 +62,6 @@ npm run test:e2e                                  # arranca el servidor de prueb
 npx playwright test tests/e2e/security.spec.ts    # solo 2FA y passkeys
 E2E_PORT=18080 npm run test:e2e                   # fija el puerto del servidor de pruebas
 npm run test:e2e:roadmap                          # la batería de T-43 (localhost:8081, E2E_ROADMAP_PORT)
-E2E_NO_SERVER=1 npm run test:e2e                  # el servidor ya está en marcha (ver abajo)
 E2E_JSON_REPORT=ruta/results.json npm run test:e2e   # además escribe el informe json
 npx tsc --noEmit -p .                             # tipos de tests/e2e
 npm run test:unit                                 # tests de Node sin navegador
@@ -86,7 +85,14 @@ Los tests de Node y la purga de `storage/framework/testing` (se ejecuta sola al 
 
 **No corras la batería mientras pruebas con tráfico real por ngrok:** los tests reinician los contadores de DCR y `/oauth/token` de `127.0.0.1` y `::1` (el tráfico de ngrok puede llegar con esa IP), y borran solo la auditoría `oauth.*` sin usuario ligada a clientes `e2e-%`.
 
-`php artisan serve` descarta las variables del entorno cuando existe `.env` salvo con `--no-reload`, que es lo que usa el `webServer`. Para arrancarlo a mano (y usar `E2E_NO_SERVER=1`), con las mismas variables:
+**Ya no se puede apuntar la batería a un servidor arrancado a mano.** El arnés general (`tests/e2e/isolated/`) exige su propio servidor desechable: `E2E_NO_SERVER` y un `E2E_BASE_URL` distinto del suyo hacen que `runtime.ts` falle, y `global-setup` comprueba que el servidor que responde en el puerto es el de su ejecución. Para depurar un spec usa el servidor gestionado, con un puerto fijo si lo necesitas:
+
+```bash
+E2E_PORT=18080 npx playwright test tests/e2e/security.spec.ts --workers=1 --project=desktop --headed
+E2E_PURGE=0 npm run test:e2e   # sin purgar ejecuciones antiguas al terminar
+```
+
+Si solo quieres explorar a mano la app con el entorno E2E (sin Playwright), `php artisan serve` descarta las variables del entorno cuando existe `.env` salvo con `--no-reload`; arráncalo con las mismas variables, en el puerto que quieras (no lo usa la batería):
 
 ```bash
 MCP_OAUTH_REGISTER_GLOBAL_PER_HOUR=100000 APP_ENV=e2e GOOGLE_LOGIN_CLIENT_ID=e2e-google-id GOOGLE_LOGIN_CLIENT_SECRET=e2e-google-secret META_LOGIN_APP_ID=e2e-meta-id META_LOGIN_APP_SECRET=e2e-meta-secret APP_URL=http://localhost:8080 WEBAUTHN_RP_ID=localhost WEBAUTHN_ORIGINS=http://localhost:8080 SESSION_SECURE_COOKIE=false TRUSTED_PROXIES= php artisan serve --host=localhost --port=8080 --no-reload

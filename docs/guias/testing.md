@@ -24,7 +24,7 @@ De esos se conserva una entrada si es **de las N más recientes o tiene menos de
 **Qué nunca se toca:**
 
 - Todo lo que no encaje exactamente en esos dos patrones: directorios de evidencia de iniciativas anteriores (`t12-…`, `run-qa-…`, `…-peer-…`), ficheros sueltos y cualquier cosa directamente bajo `testing/`.
-- Cualquier entrada cuyo nombre aparezca en **cualquier fichero de texto** bajo `docs/` (`.md`, `.json`, `.txt`, `.log`…; incluido `docs/knowledge/journal`): es evidencia citada. Los binarios (imágenes, vídeo, PDF…) no cuentan. `docs/` se resuelve respecto al propio script; si no existe o no se puede leer, la purga **aborta sin borrar nada**.
+- Cualquier entrada cuyo nombre aparezca en **cualquier fichero de texto** bajo `docs/` (`.md`, `.json`, `.txt`, `.log`…; incluido `docs/knowledge/journal`): es evidencia citada. Los ficheros se leen en streaming por trozos de 1 MB (memoria acotada, sin cargar ni concatenar `docs/`; un nombre partido entre dos trozos se detecta por un solape) y se decodifica UTF-16 (BOM o bytes nulos alternos, p. ej. logs de PowerShell). Los binarios (imágenes, vídeo, PDF o ficheros con bytes nulos sueltos) no cuentan. `docs/` se resuelve respecto al propio script; si no existe o no se puede leer, la purga **aborta sin borrar nada**.
 - La ejecución en curso (`E2E_GENERAL_RUN_ROOT`), enlaces simbólicos y ficheros ocultos.
 
 ```bash

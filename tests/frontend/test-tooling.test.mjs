@@ -48,3 +48,9 @@ test('verifyRunIdentity acepta el servidor de SU ejecución y rechaza el de otra
 test('la guía de T-43 describe el puerto actual del adaptador general', () => {
     assert.doesNotMatch(read('docs/guias/pruebas-t43.md'), /URL diferente de `http:\/\/localhost:8080`/);
 });
+
+test('la guía de desarrollo local ya no propone arrancar el servidor a mano con E2E_NO_SERVER', () => {
+    const doc = read('docs/guias/desarrollo-local.md');
+    assert.doesNotMatch(doc, /y usar `E2E_NO_SERVER=1`/);
+    assert.doesNotMatch(doc, /\nE2E_NO_SERVER=1 npm run test:e2e/);
+});

@@ -33,6 +33,8 @@ test('E2E-20a · cobertura por red, filtro por red y por estado', { tag: '@respo
     await expect(page.getByTestId('coverage-tiktok')).toContainText('No disponible');
     await expect(page.getByTestId('coverage-tiktok')).toContainText('API pública');
     await expect(page.getByTestId('coverage-threads')).toContainText('Leer y responder');
+    await expect(page.getByTestId('coverage-linkedin')).toContainText('Community Management');
+    await expect(page.getByTestId('coverage-pinterest')).toContainText('No disponible');
     await expect(page.getByTestId('coverage-instagram')).toContainText('mensajes directos');
     await expectNoOverflow(page);
     await axeSeriousCritical(page, 'Inbox ampliado (inicio)');

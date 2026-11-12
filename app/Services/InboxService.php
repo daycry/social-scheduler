@@ -55,6 +55,43 @@ class InboxService
     }
 
     /**
+     * Permisos de LECTURA que faltan a la cuenta (T-22), para decir exactamente cual activar. Vacio si no se conocen por permiso
+     * (YouTube) o si no falta ninguno.
+     *
+     * @return list<string>
+     */
+    public function missingScopes(SocialAccount $account): array
+    {
+        $needed = match ($account->network) {
+            Network::Instagram, Network::Facebook => Comments::READ_SCOPES[$account->network->value],
+            Network::Threads => ThreadsComments::READ_SCOPES,
+            default => [],
+        };
+
+        return array_values(array_diff($needed, (array) $account->scopes));
+    }
+
+    /** Instruccion clara (T-22) cuando la cuenta no puede leer: que activar, donde y que hacer despues. Null si puede leer. */
+    public function help(SocialAccount $account): ?string
+    {
+        if ($this->hasScopes($account)) {
+            return null;
+        }
+
+        $missing = $this->missingScopes($account);
+        $list = $missing === [] ? '' : ' ('.implode(', ', $missing).')';
+
+        return match ($account->network) {
+            Network::Facebook => 'Facebook necesita el permiso pages_read_user_content, que no se pide por defecto: actívalo en los casos de uso de la app de Meta, '
+                .'añádelo a META_EXTRA_SCOPES en el servidor (separado por comas, p. ej. pages_read_user_content,ads_read) y reconecta la cuenta desde Conexiones.',
+            Network::Instagram => 'Falta el permiso de comentarios'.$list.': actívalo en los casos de uso de la app de Meta y reconecta la cuenta desde Conexiones.',
+            Network::Threads => 'Falta el permiso de respuestas'.$list.': reconecta la cuenta de Threads desde Conexiones aceptando los permisos de respuestas.',
+            Network::YouTube => 'Falta el permiso de comentarios (youtube.force-ssl): reconecta la cuenta de YouTube desde Conexiones aceptando ese permiso.',
+            default => 'Falta el permiso de comentarios: reconecta la cuenta desde Conexiones.',
+        };
+    }
+
+    /**
      * Cobertura del inbox por red (T-20): lo que se lee y responde y lo que queda fuera, con su motivo.
      *
      * @return list<array{network: string, label: string, read: bool, reply: bool, hide: bool, note: string}>
@@ -67,6 +104,8 @@ class InboxService
             ['network' => 'threads', 'label' => 'Threads', 'read' => true, 'reply' => true, 'hide' => false, 'note' => 'Respuestas a tus hilos (permisos threads_read_replies y threads_manage_replies).'],
             ['network' => 'bluesky', 'label' => 'Bluesky', 'read' => true, 'reply' => true, 'hide' => false, 'note' => 'Respuestas a tus publicaciones; lectura pública y respuesta con la contraseña de aplicación.'],
             ['network' => 'youtube', 'label' => 'YouTube', 'read' => true, 'reply' => true, 'hide' => false, 'note' => 'Comentarios de tus videos (permiso youtube.force-ssl); cada respuesta gasta 50 unidades del cupo diario.'],
+            ['network' => 'linkedin', 'label' => 'LinkedIn', 'read' => false, 'reply' => false, 'hide' => false, 'note' => 'Fuera por ahora: los comentarios exigen el permiso de Community Management de LinkedIn, que se aprueba aparte (se activará cuando LinkedIn lo conceda).'],
+            ['network' => 'pinterest', 'label' => 'Pinterest', 'read' => false, 'reply' => false, 'hide' => false, 'note' => 'Fuera: la API de Pinterest no permite leer ni responder los comentarios de los pines.'],
             ['network' => 'tiktok', 'label' => 'TikTok', 'read' => false, 'reply' => false, 'hide' => false, 'note' => 'Fuera: TikTok no ofrece una API pública de comentarios para terceros.'],
         ];
     }

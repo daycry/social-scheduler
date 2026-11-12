@@ -935,8 +935,8 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 ### T-22 — Inbox: scopes de Meta, permisos de Threads y cobertura de redes
 
 - **Descripción**: La UI explica cuándo faltan scopes de Meta (inbox/Ads) y cómo activarlos; Threads trata el error de permiso como «reconecta» y retira el scope; LinkedIn y Pinterest aparecen en la tabla de cobertura del inbox.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El inbox explica qué permiso falta en cada cuenta (Facebook necesita META_EXTRA_SCOPES y reconectar), Threads pide reconectar si se retiran los permisos de respuesta y la cobertura por red incluye LinkedIn y Pinterest con su motivo.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -949,19 +949,24 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Verificación**: `php artisan test --compact --filter=InboxCoverageTest` → verde · `php artisan test --compact --filter=ThreadsPermissionErrorTest` → verde
 
 **Criterios de aceptación**
-- [ ] Sin scopes Meta, el inbox/Ads muestra un estado claro con el motivo y los pasos (no un panel vacío)
-- [ ] Un error de permiso de Threads marca la cuenta como «reconectar» y retira el scope concedido
-- [ ] La tabla de cobertura incluye LinkedIn y Pinterest con su motivo
+- [x] Sin scopes Meta, el inbox/Ads muestra un estado claro con el motivo y los pasos (no un panel vacío)
+- [x] Un error de permiso de Threads marca la cuenta como «reconectar» y retira el scope concedido
+- [x] La tabla de cobertura incluye LinkedIn y Pinterest con su motivo
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+- RED: tests/Feature/Inbox/InboxCoverageTest.php falló con «Failed asserting that an array has the key 'linkedin'» y la prop `accounts.0.help` inexistente; tests/Feature/Inbox/ThreadsPermissionErrorTest.php falló con PermanentPublishException (no ReconnectRequiredException) · 2026-11-12
+- Verificación (2026-11-12): `php artisan test --compact --filter=InboxCoverageTest` → verde; `--filter=ThreadsPermissionErrorTest` → verde (7 tests / 45 aserciones entre ambos); Pint OK; `npm run build` OK, `test:unit` y `typecheck` OK; Playwright `inbox-triage.spec.ts` 9/9 (`E2E_PURGE=0 E2E_WORKERS=2`, filas de cobertura de LinkedIn y Pinterest añadidas a E2E-20a).
+- Decisiones: Meta Ads ya tenía su aviso con pasos (`AdsService::HOWTO`); el inbox ahora da por cuenta el permiso que falta y los pasos (`missing_scopes`, `help`) con enlace a Conexiones, y reutiliza el patrón de aviso ámbar existente. En Threads el rechazo por permisos retira solo el scope afectado (leer → `threads_read_replies`, responder → `threads_manage_replies`); el cambio de estado y el aviso los hace el flujo común `flagReconnection`. `ThreadsConnector.php:103` guarda los scopes PEDIDOS al conectar, así que reconectar los restablece.
+- Pendiente (coordinador): revisión adversarial A+B(+C); `META_EXTRA_SCOPES` y reconexión (usuario); `CommentSource` de LinkedIn tras su aprobación.
 
 **Notas**: Tamaño M. Qué se puede hacer ya: UI, retirada de scope y filas de cobertura. Queda a la espera (U): activar el caso de uso en Meta, rellenar `META_EXTRA_SCOPES` y reconectar; `CommentSource` de LinkedIn tras su aprobación. **A la espera (no bloquea la fase)**: `META_EXTRA_SCOPES` y reconexión (usuario); `CommentSource` de LinkedIn (aprobación).
 

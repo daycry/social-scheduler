@@ -4,6 +4,7 @@ namespace App\Connectors\Threads;
 
 use App\Connectors\Contracts\CommentSource;
 use App\Connectors\Exceptions\PermanentPublishException;
+use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Models\SocialAccount;
 use Carbon\CarbonImmutable;
 use InvalidArgumentException;
@@ -38,8 +39,8 @@ class ThreadsComments implements CommentSource
             if ($page > 0 && $deadline !== null && microtime(true) + (float) config('social.http_timeout', 15) > $deadline) {
                 break;
             }
-            $json = $this->client->get($postExternalId.'/conversation', ['fields' => self::FIELDS, 'reverse' => 'true', 'limit' => (int) config('social.inbox.comments_per_post', 50)]
-                + ($after !== null ? ['after' => $after] : []), (string) $account->access_token, true);
+            $json = $this->guarded($account, ['threads_read_replies'], fn () => $this->client->get($postExternalId.'/conversation', ['fields' => self::FIELDS, 'reverse' => 'true', 'limit' => (int) config('social.inbox.comments_per_post', 50)]
+                + ($after !== null ? ['after' => $after] : []), (string) $account->access_token, true));
 
             foreach ((array) ($json['data'] ?? []) as $c) {
                 $row = $this->normalize($account, $c, $postExternalId);
@@ -63,14 +64,39 @@ class ThreadsComments implements CommentSource
     {
         $this->assertId($commentId);
         $token = (string) $account->access_token;
-        $container = $this->client->post($account->external_id.'/threads', ['media_type' => 'TEXT', 'text' => $message, 'reply_to_id' => $commentId], $token);
+        $container = $this->guarded($account, ['threads_manage_replies'], fn () => $this->client->post($account->external_id.'/threads', ['media_type' => 'TEXT', 'text' => $message, 'reply_to_id' => $commentId], $token));
         $creation = (string) ($container['id'] ?? '');
         if ($creation === '') {
             throw new PermanentPublishException('Threads no devolvio el contenedor de la respuesta.', 'sin_contenedor');
         }
-        $published = $this->client->post($account->external_id.'/threads_publish', ['creation_id' => $creation], $token);
+        $published = $this->guarded($account, ['threads_manage_replies'], fn () => $this->client->post($account->external_id.'/threads_publish', ['creation_id' => $creation], $token));
 
         return (string) ($published['id'] ?? '');
+    }
+
+    /**
+     * Si Threads rechaza la llamada por PERMISOS, el usuario los quito (o nunca los concedio): se retiran de los scopes guardados
+     * (la UI deja de ofrecer leer/responder) y se pide reconectar, en vez de un error permanente sin salida.
+     *
+     * @template T
+     *
+     * @param  list<string>  $scopes  permisos que se retiran
+     * @param  \Closure(): T  $call
+     * @return T
+     */
+    private function guarded(SocialAccount $account, array $scopes, \Closure $call): mixed
+    {
+        try {
+            return $call();
+        } catch (PermanentPublishException $e) {
+            if ($e->errorCode !== 'permisos') {
+                throw $e;
+            }
+
+            $account->forceFill(['scopes' => array_values(array_diff((array) $account->scopes, $scopes))])->save();
+
+            throw new ReconnectRequiredException('Threads ya no tiene los permisos de respuestas ('.implode(', ', $scopes).'): reconecta la cuenta aceptándolos.', 0, $e);
+        }
     }
 
     /** @param array<string, mixed> $c */

@@ -53,7 +53,7 @@ test('E2E-29 notes preserve immediate save, page ownership, Unicode, history and
         await page.getByRole('button', { name: 'Rehacer', exact: true }).click(); await expect(notes).toHaveValue('Segunda Ω');
         await notes.fill('🎵'.repeat(20000)); await expect(notes).toHaveAttribute('aria-invalid', 'false');
         await notes.fill('🎵'.repeat(20001)); await expect(notes).toHaveAttribute('aria-invalid', 'true');
-        await page.getByRole('button', { name: 'Guardar ahora', exact: true }).click(); await expect(page.getByText(/Las notas admiten hasta/).first()).toBeVisible();
+        await page.getByRole('button', { name: 'Guardar ahora', exact: true }).click(); await expect(notes).toHaveAccessibleDescription(/Las notas admiten hasta/);
         await notes.fill('Última edición antes de presentar');
         await page.getByRole('button', { name: 'Presentar', exact: true }).click();
         await expect(presentation(page).getByRole('button', { name: 'Reproducir presentación', exact: true })).toBeEnabled();

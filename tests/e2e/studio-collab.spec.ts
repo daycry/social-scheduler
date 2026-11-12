@@ -131,7 +131,7 @@ test('Studio: dos usuarios comparten, comentan, editan a la vez, ven el 409 y se
         await expect(status(member.page)).toHaveText('Guardado');
         await page.getByLabel('Nombre del diseño').fill('Versión de la propietaria');
         await expect(status(page)).toHaveText('Conflicto de revisión');
-        await expect(page.getByRole('alert').first()).toContainText(`El diseño cambió en otra sesión (${guest.name})`);
+        await expect(page.getByRole('alert').filter({ hasText: `El diseño cambió en otra sesión (${guest.name})` })).toHaveCount(1);
         await expect(page.getByRole('button', { name: 'Guardar como copia' })).toBeVisible();
         await axeClean(page, '[role="alert"]');
         expect(await savedName(page, designId)).toBe('Versión de la invitada');

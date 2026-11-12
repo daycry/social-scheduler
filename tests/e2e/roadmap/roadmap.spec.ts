@@ -303,10 +303,10 @@ test('E2E-10 · dashboard de treinta días cambia red y periodo con gráficos y 
         await page.goto(`/dashboard/${network}?brand_id=${seed.brandId}`);
         await expect(page.getByRole('heading', { name: 'Crecimiento', exact: true })).toBeVisible();
         await expect(page.getByRole('main')).toContainText('Seguidores');
-        if (network === 'instagram') await expect(page.getByText('Alcance', { exact: true }).first()).toBeVisible();
+        if (network === 'instagram') await expect(page.getByRole('main')).toContainText('Alcance');
         await expect(page.getByText('Engagement (cuenta)', { exact: true })).toBeVisible();
         // The canonical views metric replaces the old impressions metric in Meta.
-        if (network !== 'tiktok') await expect(page.getByText('Visualizaciones', { exact: true }).first()).toBeVisible();
+        if (network !== 'tiktok') await expect(page.getByRole('main')).toContainText('Visualizaciones');
         await expect(page.getByRole('main')).toContainText(/No disponible/i);
         await expect(page.getByRole('img', { name: 'Gráfico de evolución' }).first()).toBeVisible();
         await page.getByRole('button', { name: '7 días', exact: true }).click();

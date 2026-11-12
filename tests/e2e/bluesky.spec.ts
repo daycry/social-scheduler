@@ -96,7 +96,7 @@ test('E2E-03 · Bluesky en el calendario y en el dashboard (icono, filtro y pág
     await page.goto(`/dashboard/bluesky?brand_id=${brand.id}`);
     await settle(page);
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Bluesky');
-    await expect(page.getByText('No disponible').first()).toBeVisible();
+    await expect(page.getByRole('main')).toContainText('No disponible');
     await expect(page.getByText('Alcance', { exact: true })).toHaveCount(0); // Bluesky no da alcance (ni visualizaciones de cuenta)
     await expectNoOverflow(page);
     await axeSeriousCritical(page, 'Dashboard de Bluesky');

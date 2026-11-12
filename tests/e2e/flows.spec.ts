@@ -130,7 +130,7 @@ test.describe('con sesión de un usuario e2e-sec-*', () => {
             await page.getByLabel('Texto del bloque 1').fill('e2e Mi web');
             await page.getByLabel('URL del bloque 1').fill('https://example.com/e2e');
             await page.getByRole('button', { name: 'Guardar', exact: true }).click();
-            await expect(page.getByText(`/l/${slug}`).first()).toBeVisible();
+            await expect(page.getByRole('link', { name: new RegExp(`/l/${slug}$`) })).toBeVisible();
             await expectNoOverflow(page);
 
             // Sin sesión ni cookies.

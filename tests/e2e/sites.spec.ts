@@ -310,6 +310,6 @@ test('E2E-15b · Sitios: la lista y el editor son responsive y accesibles sin si
     await page.getByTestId('new-site-slug').fill('AB');
     await page.getByRole('button', { name: 'Crear sitio' }).click();
     await settle(page);
-    await expect(page.getByText(/Usa de 3 a 40 caracteres/).first()).toBeVisible();
+    await expect(page.getByLabel('Dirección', { exact: true })).toHaveAccessibleDescription(/Usa de 3 a 40 caracteres/);
     expect(w.errors).toEqual([]);
 });

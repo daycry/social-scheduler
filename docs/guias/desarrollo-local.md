@@ -71,7 +71,7 @@ npm run test:browser                              # tests de Node con Chromium
 
 Los tests de Node y la purga de `storage/framework/testing` (se ejecuta sola al acabar la batería E2E; `E2E_PURGE=0` la desactiva) están en [testing](testing.md).
 
-**Servidor de pruebas.** Playwright lo lanza solo (`webServer` de `playwright.config.ts`) en `http://localhost:<puerto>` con variables del proceso, sin tocar el `.env`. El puerto es `E2E_PORT` si lo defines (entero entre 1024 y 65535); si no, `8080` cuando está libre y, si está ocupado, un puerto libre que elige el arranque (se fija una vez y lo heredan los workers). `APP_URL` y `WEBAUTHN_ORIGINS` salen de ese puerto; el RP ID es `localhost` siempre (no lleva puerto). Así la batería no falla porque `8080` esté ocupado:
+**Servidor de pruebas.** Playwright lo lanza solo (`webServer` de `playwright.config.ts`) en `http://localhost:<puerto>` con variables del proceso, sin tocar el `.env`. El puerto es `E2E_PORT` si lo defines (entero entre 1024 y 65535); si no, un puerto libre que elige el SO al arrancar (ya no se intenta `8080`: dos ejecuciones simultáneas se lo disputaban); se fija una vez y lo heredan los workers, y `global-setup` comprueba antes de los tests que el servidor que responde en ese puerto es el de SU ejecución. `APP_URL` y `WEBAUTHN_ORIGINS` salen de ese puerto; el RP ID es `localhost` siempre (no lleva puerto). Así la batería no falla porque un puerto esté ocupado:
 
 | Variable | Valor E2E | Por qué |
 |---|---|---|

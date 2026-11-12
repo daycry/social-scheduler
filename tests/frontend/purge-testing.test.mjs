@@ -59,5 +59,45 @@ test('--dry-run informa pero no borra nada', () => {
 });
 
 test('una raíz inexistente no falla', () => {
-    assert.deepEqual(purge({ root: path.join(os.tmpdir(), 'no-existe-purge-xyz') }), { kept: [], removed: [], failed: [] });
+    assert.deepEqual(purge({ root: path.join(os.tmpdir(), 'no-existe-purge-xyz') }), { kept: [], removed: [], failed: [], warnings: [] });
+});
+
+test('la evidencia citada se busca en todos los ficheros de texto de docs (json, txt, log), no solo en .md; los binarios no cuentan', () => {
+    const { base, root, docs, now, make } = fixture();
+    try {
+        const names = [0, 1, 2, 3].map(i => `run-general-${uuid(i)}`);
+        for (const n of names) make(`t43/${n}`, 30);
+        fs.mkdirSync(path.join(docs, 'qa', 'raw'), { recursive: true });
+        fs.writeFileSync(path.join(docs, 'qa', 'raw', 'run-root.txt'), `C:/x/t43/${names[0]}`);
+        fs.writeFileSync(path.join(docs, 'qa', 'raw', 'results.json'), JSON.stringify({ root: `t43/${names[1]}` }));
+        fs.writeFileSync(path.join(docs, 'qa', 'raw', 'shot.png'), Buffer.concat([Buffer.from([0x89, 0x50, 0, 0x47]), Buffer.from(names[2])]));
+        fs.writeFileSync(path.join(docs, 'qa', 'raw', 'video.mp4'), names[3]);
+        const result = purge({ root, keep: 1, minAgeDays: 1, dryRun: true, now, docsDir: docs });
+        const removed = result.removed.map(p => path.basename(p)).sort();
+        // names[0] y names[1] citados (txt/json); names[2] y names[3] solo en binarios: candidatos, el más reciente se conserva por keep
+        assert.ok(!removed.includes(names[0]) && !removed.includes(names[1]));
+        assert.ok(removed.includes(names[2]) || removed.includes(names[3]));
+    } finally { fs.rmSync(base, { recursive: true, force: true }); }
+});
+
+test('sin docs legible la purga aborta y no borra nada (fail-closed)', () => {
+    const { base, root, now, make } = fixture();
+    try {
+        for (let i = 0; i < 4; i++) make(`t43/run-general-${uuid(i)}`, 30);
+        assert.throws(() => purge({ root, keep: 1, minAgeDays: 1, now, docsDir: path.join(base, 'no-hay-docs') }), /docs/i);
+        assert.equal(fs.readdirSync(path.join(root, 't43')).length, 4);
+    } finally { fs.rmSync(base, { recursive: true, force: true }); }
+});
+
+test('keep y minAgeDays inválidos o vacíos vuelven al valor por defecto con aviso; mínimo 1', () => {
+    const { base, root, docs, now, make } = fixture();
+    try {
+        for (let i = 0; i < 8; i++) make(`t43/run-general-${uuid(i)}`, 30 + i);
+        for (const bad of ['', 'abc', NaN, 0, '0', -3, undefined]) {
+            const r = purge({ root, keep: bad, minAgeDays: bad, dryRun: true, now, docsDir: docs });
+            assert.equal(r.kept.length, 5, `keep=${String(bad)} debe conservar el valor por defecto (5)`);
+            if (bad !== undefined) assert.ok(r.warnings.length >= 1, `aviso para ${String(bad)}`);
+        }
+        assert.equal(purge({ root, keep: '2', minAgeDays: '1', dryRun: true, now, docsDir: docs }).kept.length, 2);
+    } finally { fs.rmSync(base, { recursive: true, force: true }); }
 });

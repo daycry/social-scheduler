@@ -127,7 +127,7 @@ test('E2E-02 · aislamiento de una marca entre dos sesiones reales', async ({ pa
     await page.goto('/brands');
     const href = await page.getByRole('main').getByRole('link', { name, exact: true }).getAttribute('href');
     expect(href).toBeTruthy();
-    const context = await browser.newContext({ baseURL: 'http://localhost:8081', locale: 'es-ES', timezoneId: 'Europe/Madrid', viewport: info.project.use.viewport, isMobile: info.project.use.isMobile, hasTouch: info.project.use.hasTouch });
+    const context = await browser.newContext({ baseURL: info.project.use.baseURL, locale: 'es-ES', timezoneId: 'Europe/Madrid', viewport: info.project.use.viewport, isMobile: info.project.use.isMobile, hasTouch: info.project.use.hasTouch });
     const pageB = await context.newPage();
     try {
         await login(pageB, other);
@@ -433,7 +433,7 @@ test('API-02 · key inválida no devuelve herramientas ni datos', async ({ page 
 
 test('API-03 · MCP rechaza leer una marca ajena sin revelar sus datos', async ({ page, browser }, info) => {
     const seed = fixture<Seed>('seed', info.project.name);
-    const context = await browser.newContext({ baseURL: 'http://localhost:8081', locale: 'es-ES', timezoneId: 'Europe/Madrid', viewport: info.project.use.viewport, isMobile: info.project.use.isMobile, hasTouch: info.project.use.hasTouch });
+    const context = await browser.newContext({ baseURL: info.project.use.baseURL, locale: 'es-ES', timezoneId: 'Europe/Madrid', viewport: info.project.use.viewport, isMobile: info.project.use.isMobile, hasTouch: info.project.use.hasTouch });
     const pageB = await context.newPage();
     try {
         await login(pageB, other);

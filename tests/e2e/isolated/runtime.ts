@@ -1,14 +1,12 @@
 import crypto from 'node:crypto';
 import path from 'node:path';
-
 import { execFileSync } from 'node:child_process';
 
-// The port is E2E_PORT or, by default, a free one chosen once. Playwright re-evaluates this module in every worker,
-// so the choice is written back to process.env and inherited instead of being drawn again.
-export const DEFAULT_PORT = 8080;
+// The port is E2E_PORT or, by default, a free port chosen once by the OS (never a fixed one: two simultaneous runs would race
+// for 8080). Playwright re-evaluates this module in every worker, so the choice is written back to process.env and inherited
+// instead of being drawn again. global-setup then verifies the server answering there belongs to THIS run (identity.ts).
 function freePort(): number {
-    // Prefer 8080 when it is free (stable URL for local debugging); otherwise ask the OS for an ephemeral port.
-    const probe = `const n=require('node:net');const t=(p,c)=>{const s=n.createServer();s.once('error',()=>c(0));s.listen(p,'127.0.0.1',()=>{const a=s.address().port;s.close(()=>c(a));});};t(${DEFAULT_PORT},a=>a?console.log(a):t(0,b=>console.log(b)));`;
+    const probe = "const s=require('node:net').createServer();s.listen(0,'127.0.0.1',()=>{console.log(s.address().port);s.close();});";
     return Number(execFileSync(process.execPath, ['-e', probe], { encoding: 'utf8' }).trim());
 }
 export const port = (() => {

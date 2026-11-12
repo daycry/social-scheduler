@@ -2,11 +2,15 @@ import { chromium, type FullConfig } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 import { AUTH_FILE, READONLY, artisan, createE2eUsers, login } from './helpers';
+import { verifyRunIdentity } from './isolated/identity';
+import { runRoot } from './isolated/runtime';
 
 /** Persist an independent readonly session; security scenarios use three separate disposable users. */
 export default async function globalSetup(config: FullConfig) {
-    createE2eUsers();
     const baseURL = config.projects[0].use.baseURL as string;
+    // Another concurrent run could own this port: confirm the server is ours before touching anything.
+    await verifyRunIdentity(baseURL, runRoot);
+    createE2eUsers();
     const browser = await chromium.launch();
     try {
         const context = await browser.newContext({ baseURL, locale: 'es-ES' });

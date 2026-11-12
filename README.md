@@ -91,7 +91,7 @@ npm run test:e2e:roadmap # T-43: SQLite desechable en localhost:8081 (E2E_ROADMA
 
 CI (`.github/workflows/ci.yml`) ejecuta Pint y la suite Pest en cada push y PR.
 
-La batería general (`npm run test:e2e`) usa un servidor propio en `localhost:8080` (o `E2E_PORT`; si 8080 está ocupado, un puerto libre), SQLite y almacenamiento desechables y cuatro usuarios de prueba. La QA de T-77 del 2026-10-31 pasa 502 casos y omite los dos previstos del shell de escritorio en móvil, sin fallos ni flaky. La [guía de T-43](docs/guias/pruebas-t43.md) explica qué configuración elegir y dónde quedan las evidencias.
+La batería general (`npm run test:e2e`) usa un servidor propio en `E2E_PORT` o, por defecto, en un puerto libre elegido por el SO, SQLite y almacenamiento desechables y cuatro usuarios de prueba. La QA de T-77 del 2026-10-31 pasa 502 casos y omite los dos previstos del shell de escritorio en móvil, sin fallos ni flaky. La [guía de T-43](docs/guias/pruebas-t43.md) explica qué configuración elegir y dónde quedan las evidencias.
 
 ## Documentación
 

@@ -418,11 +418,12 @@ test('G2: una pasada que acaba en 503 suma su tiempo y su pasada; un 503 suelto 
 });
 
 test('G2: un remoto que intercala 503 lentos acaba cortado por ritmo, con el tiempo de los fallos contabilizado', function () {
-    // Escala reducida: gracia 1 s y ritmo minimo 100 KB/s; cada 206 trae 700 B. El servidor es real pero el RELOJ de las pasadas es
+    // Escala reducida: gracia 1 s y ritmo minimo 2.500 B/s; cada 206 trae 700 B. Una pasada buena rinde 3.500 B/s (700 B en 0,2 s: por encima
+    // del minimo), pero con los 503 intercalados el ritmo medio cae a 1.750 B/s (700 B en 0,4 s): SOLO se corta si el tiempo de los fallos se suma. El servidor es real pero el RELOJ de las pasadas es
     // simulado (cada lectura avanza 0,1 s, asi cada pasada dura 0,2 s): antes cada 503 dormia 0,4 s de verdad y el corte dependia
     // de lo que tardase la maquina (la primera peticion lenta bastaba para cortar tras un solo 503).
     app()->bind(RemoteMediaImporter::class, SteppedClockImporter::class);
-    config(['media.import_min_pass_bytes' => 1, 'media.import_min_pass_seconds' => 0, 'media.import_rate_grace_seconds' => 1, 'media.import_min_rate_bytes' => 100_000]);
+    config(['media.import_min_pass_bytes' => 1, 'media.import_min_pass_seconds' => 0, 'media.import_rate_grace_seconds' => 1, 'media.import_min_rate_bytes' => 2_500]);
     $source = new UrlSource(app(UrlGuard::class), 'http://cdn.example.com/flaky-slow.jpg');
     $asset = app(MediaUploadService::class)->beginImport($this->user, MediaAsset::SOURCE_URL, $source->reference(), $source->name());
     $importer = app(RemoteMediaImporter::class);

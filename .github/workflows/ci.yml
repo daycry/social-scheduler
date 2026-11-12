@@ -1,8 +1,10 @@
 name: CI
 
 # E-15 / E-01. Una sola ejecucion por commit: push solo a main (las ramas se prueban por su pull_request) y las
-# ejecuciones obsoletas de una misma rama/PR se cancelan. En main NO se cancela (un run cancelado en main
-# lo trataria ci-failure-notify.yml como rojo y deploy.sh no veria el commit en verde).
+# ejecuciones obsoletas de una misma rama/PR se cancelan. En main NO se cancela nada: el grupo es POR COMMIT
+# (github.sha), porque con un grupo comun GitHub cancela igualmente el run *pendiente* del mismo grupo (cancel-in-progress
+# solo afecta al que esta en curso) y al fusionar varios PRs seguidos se perderia el del commit intermedio; ci-failure-notify.yml
+# lo daria por rojo y deploy.sh no lo veria en verde.
 # El check requerido de la proteccion de main (deploy/github/protect-main.sh, CHECK_CONTEXT=tests) es el job
 # agregador `tests` del final: pasa solo si pasan TODOS los demas jobs.
 on:
@@ -11,7 +13,7 @@ on:
   pull_request:
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'push' && github.sha || github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:

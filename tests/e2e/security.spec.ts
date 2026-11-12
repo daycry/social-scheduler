@@ -290,7 +290,7 @@ test.describe('passkey · alta, login y avisos', () => {
         await addPasskey(page, 'Móvil', 'Añadir otra passkey');
         await expect(lista.getByRole('listitem')).toHaveCount(2);
         await expect(lista.getByText('Móvil', { exact: true })).toBeVisible();
-        await expect(lista.getByRole('listitem').filter({ hasText: /Añadida el/ })).not.toHaveCount(0);
+        await expect(lista.getByRole('listitem').filter({ hasText: 'Móvil' }).filter({ hasText: /Añadida el/ })).toBeVisible();
         expect(await movil.credentials()).toBe(1);
         await shot(page, info, 'e2e-05-dos-passkeys');
         await expectNoOverflow(page);

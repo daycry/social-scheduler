@@ -364,8 +364,8 @@ test('E2E-04 · panel único de errores, botón dividido con teclado y selector 
     await page.getByLabel('Texto', { exact: true }).fill('x'.repeat(63207));
     const panel = page.getByTestId('errors-panel');
     const items = panel.getByTestId('error-item');
-    await expect(items.filter({ hasText: /Facebook · e2e Facebook/ })).not.toHaveCount(0);
-    await expect(items.filter({ hasText: /Instagram · e2e Instagram/ })).not.toHaveCount(0);
+    await expect(items.filter({ hasText: /Facebook · e2e Facebook/ }).filter({ hasText: /caracteres/ })).toBeVisible();
+    await expect(items.filter({ hasText: /Instagram · e2e Instagram/ }).filter({ hasText: /caracteres/ })).toBeVisible();
     expect(await items.count()).toBeGreaterThanOrEqual(2);
     await expect(panel).toHaveAttribute('aria-live', 'polite');
     await page.screenshot({ path: 'test-results/composer-panel-errores.png' });

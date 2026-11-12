@@ -125,6 +125,19 @@ class StudioImages
             if (! hash_equals($job->input_sha256, hash_file('sha256', $input))) {
                 throw new \RuntimeException;
             }
+            // Un trabajo encolado antes de cambiar de modelo (p. ej. BiRefNet -> IS-Net) guarda la ruta y el sha del modelo viejo, que ya no
+            // existe: se resuelve SIEMPRE el modelo vigente de la config y se deja constancia en el trabajo.
+            $code = 'model_unavailable';
+            $model = (string) config('studio.images.model_path');
+            $sha = (string) config('studio.images.model_sha256');
+            if (! is_file($model) || preg_match('/^[a-f0-9]{64}$/D', $sha) !== 1) {
+                throw new \RuntimeException;
+            }
+            if ($job->model_path !== $model || $job->model_sha256 !== $sha) {
+                StudioImageJob::withoutUserScope()->whereKey($job->id)->update(['model_path' => $model, 'model_sha256' => $sha]);
+                $job->model_path = $model;
+                $job->model_sha256 = $sha;
+            }
             $code = 'runtime_unavailable';
             $result = Process::path(base_path())->timeout((int) config('studio.images.timeout', 85))->input(json_encode([
                 'input' => $input, 'output' => $output, 'model' => $job->model_path, 'model_sha256' => $job->model_sha256,

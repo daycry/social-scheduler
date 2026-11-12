@@ -7,7 +7,7 @@
   "copyright": "Copyright (c) Xuebin Qin et al. (DIS / IS-Net)",
   "model_source": "https://github.com/xuebinqin/DIS",
   "license_file": {
-    "url": "https://raw.githubusercontent.com/xuebinqin/DIS/main/LICENSE.md",
+    "url": "https://raw.githubusercontent.com/xuebinqin/DIS/7ca15e0e7d0f119cb026bb2d1527c87895428d6c/LICENSE.md",
     "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
     "bytes": 11357
   }

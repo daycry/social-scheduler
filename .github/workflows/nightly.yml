@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   e2e:
+    if: github.repository == 'daycry/social-scheduler'
     name: e2e (shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 120

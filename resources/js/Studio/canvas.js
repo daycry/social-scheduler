@@ -51,19 +51,32 @@ export async function videoFrameReady(video, { timeout = 10000, signal } = {}) {
     const probe = document.createElement('canvas');
     probe.width = probe.height = 1;
     const context = probe.getContext('2d', { willReadFrequently: true });
-    const deadline = performance.now() + timeout;
-    for (;;) {
-        if (signal?.aborted) throw new DOMException('Carga cancelada', 'AbortError');
-        if (video.error) throw new StudioDocumentError('No se pudo preparar el fotograma del vídeo.');
-        if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
-            try {
-                context.clearRect(0, 0, 1, 1);
-                context.drawImage(video, 0, 0, 1, 1);
-                if (context.getImageData(0, 0, 1, 1).data[3] > 0) return;
-            } catch { return; }
+    // El límite es un temporizador REAL, no `performance.now()` comprobado en cada `requestAnimationFrame`: con la pestaña oculta el
+    // navegador no dispara rAF, y la espera no se cumpliría ni se podría abortar. `limit` rechaza por tiempo o por `signal`.
+    let timer, onAbort, frame = 0;
+    const limit = new Promise((resolve, reject) => {
+        timer = setTimeout(() => reject(new StudioDocumentError('No se pudo preparar el fotograma del vídeo.')), timeout);
+        onAbort = () => reject(new DOMException('Carga cancelada', 'AbortError'));
+        if (signal?.aborted) onAbort(); else signal?.addEventListener('abort', onAbort, { once: true });
+    });
+    limit.catch(() => {});
+    try {
+        for (;;) {
+            if (signal?.aborted) throw new DOMException('Carga cancelada', 'AbortError');
+            if (video.error) throw new StudioDocumentError('No se pudo preparar el fotograma del vídeo.');
+            if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+                try {
+                    context.clearRect(0, 0, 1, 1);
+                    context.drawImage(video, 0, 0, 1, 1);
+                    if (context.getImageData(0, 0, 1, 1).data[3] > 0) return;
+                } catch { return; }
+            }
+            await Promise.race([new Promise(resolve => { frame = requestAnimationFrame(() => resolve()); }), limit]);
         }
-        if (performance.now() > deadline) throw new StudioDocumentError('No se pudo preparar el fotograma del vídeo.');
-        await new Promise(resolve => requestAnimationFrame(() => resolve()));
+    } finally {
+        clearTimeout(timer);
+        signal?.removeEventListener('abort', onAbort);
+        if (frame) cancelAnimationFrame(frame);
     }
 }
 

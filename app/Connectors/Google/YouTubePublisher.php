@@ -147,7 +147,6 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
 
             return $this->upload($account, $request, $session, $media, $reader, 0);
         } finally {
-            $reader->close();
             $this->passStartedAt = null;
         }
     }
@@ -509,7 +508,6 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
         try {
             return $this->continueUpload($account, $request, $session, $media, $reader);
         } finally {
-            $reader->close();
             $this->passStartedAt = null;
         }
     }

@@ -16,7 +16,6 @@ ENVIRONMENT = ROOT / 'storage/framework/studio-python'
 MODEL = ROOT / 'storage/app/private/studio-models/isnet-general-use.onnx'
 LICENSE = MODEL.parent / 'IS-Net-LICENSE.txt'
 # Weights of the model used before the switch to IS-Net; they are never read again and can be deleted (see docs/modulos/despliegue.md).
-LEGACY_MODELS = ('birefnet-general-lite.onnx', 'birefnet-general-lite.json', 'BiRefNet-LICENSE.txt')
 
 
 def verified(path, spec):
@@ -92,11 +91,8 @@ def main():
     if args.check:
         runtime_ok = check_runtime()
         model_ok = verified(MODEL, spec) and verified(LICENSE, spec['license_file'])
-        legacy = [name for name in LEGACY_MODELS if (MODEL.parent / name).exists()]
         if not model_ok:
             print('The background model %s is missing or does not match the pinned checksum: run `setup-runtime.py --download-model`.' % MODEL.name, file=sys.stderr)
-            if legacy:
-                print('Previous model files still present (no longer used, can be deleted): %s' % ', '.join(legacy), file=sys.stderr)
         print(json.dumps({'runtime_ready': runtime_ok, 'background_model_ready': model_ok}))
         return 0 if runtime_ok and model_ok else 1
     if sys.version_info < (3, 12):

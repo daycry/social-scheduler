@@ -14,7 +14,7 @@ class ProcessingFailure(Exception):
         self.code = code
 
 
-# IS-Net (isnet-general-use) at its fixed 1024x1024 input needs far less than the BiRefNet model it replaced (~6.8 GiB). Measured with
+# IS-Net (isnet-general-use) at its fixed 1024x1024 input needs about 1 GiB. Measured with
 # the final script, a 16-megapixel JPEG (the largest accepted image): VmHWM 949 MiB / VmPeak 1264 MiB on Linux (the cap fails below
 # ~1 GiB: 896 MiB was not enough, 1024 MiB passed) and 818 MiB peak working set / 797 MiB peak commit on Windows; a 512x512 photo
 # peaks at 839 MiB (Linux) / 686 MiB (Windows). Activations, not a virtual reservation (the arena is off). 1.25 GiB leaves ~35 % over

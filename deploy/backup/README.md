@@ -29,7 +29,7 @@ Variables del script (`backup.sh --help`): `BACKUP_DIR` (por defecto `storage/ba
 
 - **Local:** `backup.sh` borra los `db-*.enc` y `media-*.enc` con más de `BACKUP_KEEP_DAYS` días (14). El destino que es una ruta se poda igual.
 - **Remoto (R2/S3/B2/rsync):** no se borra desde el script (una clave de solo escritura no debe poder borrar). Pon una regla de ciclo de vida en el bucket: p. ej. 30 días de diarios; guarda un mensual 12 meses copiándolo a otro prefijo.
-- **Integridad:** cada fichero cifrado lleva un `.hmac` (HMAC-SHA256 con una subclave derivada de la frase; CBC solo no autentica). `restore.sh` lo verifica **antes** de descifrar y se niega si no coincide (fichero alterado, corrupto o frase equivocada). Los respaldos anteriores, sin `.hmac` y con 10000 iteraciones, siguen restaurándose con un aviso.
+- **Integridad:** cada fichero cifrado lleva un `.hmac` (HMAC-SHA256 con una subclave derivada de la frase; CBC solo no autentica). `restore.sh` lo verifica **antes** de descifrar y se niega si no coincide (fichero alterado, corrupto o frase equivocada). Un fichero sin `.hmac` tampoco se restaura.
 - **Marcas de frescura:** `last-backup` (respaldo completo; es la que mira `app:backup-verify`) se escribe **solo cuando todo, incluida la copia externa, ha ido bien**; si la copia externa falla, `backup.sh` sale con código distinto de 0 y `app:backup-verify` acaba avisando por antigüedad. `backup.sh --db-only` (volcado previo de `deploy.sh`) escribe su propia marca `last-db-backup` y no pisa la del completo.
 - Cada respaldo es independiente (volcado completo y copia completa): para restaurar solo hace falta el par `db-*` y `media-*` de la misma marca de tiempo.
 

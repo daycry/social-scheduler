@@ -223,7 +223,7 @@ test('Studio image jobs queued before a model change run with the current model,
     $created = $this->actingAs($this->user)->postJson($this->url, ['media_id' => $this->image->id, 'operation' => 'remove_background'])
         ->assertAccepted()->json('job.id');
     // El despliegue cambia de modelo con el trabajo ya encolado: el guardado apunta a un fichero que ya no existe.
-    StudioImageJob::withoutUserScope()->whereKey($created)->update(['model_path' => storage_path('framework/testing/birefnet-viejo.onnx'), 'model_sha256' => str_repeat('a', 64)]);
+    StudioImageJob::withoutUserScope()->whereKey($created)->update(['model_path' => storage_path('framework/testing/modelo-anterior.onnx'), 'model_sha256' => str_repeat('a', 64)]);
     $new = storage_path('framework/testing/image-job-test-nuevo.onnx');
     file_put_contents($new, 'modelo-vigente');
     config(['studio.images.model_path' => $new, 'studio.images.model_sha256' => hash_file('sha256', $new)]);

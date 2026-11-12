@@ -152,7 +152,7 @@ it('backup.sh y restore.sh hacen un viaje de ida y vuelta cifrado con HMAC y mys
     File::deleteDirectory($root);
 });
 
-it('restore.sh rechaza un fichero alterado (HMAC) y admite un respaldo anterior sin .hmac', function () {
+it('restore.sh rechaza un fichero alterado (HMAC) y uno sin .hmac, y no toca la BD', function () {
     needsBash();
     ['root' => $root, 'env' => $env] = backupSandbox();
     Process::env($env)->run(['bash', base_path('deploy/backup/backup.sh'), '--db-only'])->throw();
@@ -165,13 +165,13 @@ it('restore.sh rechaza un fichero alterado (HMAC) y admite un respaldo anterior 
         ->and($bad->errorOutput())->toContain('HMAC')
         ->and(file_exists("$root/restored.sql"))->toBeFalse();
 
-    // Formato anterior: 10000 iteraciones por defecto y sin .hmac.
-    $legacy = "$root/legacy.sql.gz.enc";
-    $make = 'printf "CREATE TABLE legacy;" | gzip -c | openssl enc -aes-256-cbc -pbkdf2 -salt -pass "file:$(cygpath -m "$BACKUP_PASSFILE" 2>/dev/null || echo "$BACKUP_PASSFILE")" > "$OUT"';
-    Process::env($env + ['OUT' => $legacy])->run(['bash', '-c', $make])->throw();
-    $old = Process::env($env)->run(['bash', base_path('deploy/backup/restore.sh'), '--db', $legacy, '--yes']);
-    expect($old->successful())->toBeTrue($old->errorOutput())
-        ->and(file_get_contents("$root/restored.sql"))->toContain('CREATE TABLE legacy');
+    // Sin .hmac no hay forma de comprobar la integridad: no se restaura.
+    $unsigned = "$root/unsigned.sql.gz.enc";
+    file_put_contents($unsigned, 'cualquier contenido');
+    $missing = Process::env($env)->run(['bash', base_path('deploy/backup/restore.sh'), '--db', $unsigned, '--yes']);
+    expect($missing->successful())->toBeFalse()
+        ->and($missing->errorOutput())->toContain('no tiene .hmac')
+        ->and(file_exists("$root/restored.sql"))->toBeFalse();
 
     File::deleteDirectory($root);
 });

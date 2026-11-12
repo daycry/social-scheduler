@@ -125,8 +125,8 @@ class StudioImages
             if (! hash_equals($job->input_sha256, hash_file('sha256', $input))) {
                 throw new \RuntimeException;
             }
-            // Un trabajo encolado antes de cambiar de modelo (p. ej. BiRefNet -> IS-Net) guarda la ruta y el sha del modelo viejo, que ya no
-            // existe: se resuelve SIEMPRE el modelo vigente de la config y se deja constancia en el trabajo.
+            // Un trabajo encolado antes de cambiar de modelo guarda la ruta y el sha del modelo de entonces, que puede no existir ya: se
+            // resuelve SIEMPRE el modelo vigente de la config y se deja constancia en el trabajo.
             $code = 'model_unavailable';
             $model = (string) config('studio.images.model_path');
             $sha = (string) config('studio.images.model_sha256');

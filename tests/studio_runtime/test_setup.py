@@ -59,22 +59,6 @@ class PinnedManifestTest(unittest.TestCase):
         self.assertTrue(spec['url'].startswith('https://github.com/danielgatis/rembg/releases/download/'))
         self.assertEqual(setup.MODEL.name, 'isnet-general-use.onnx')
 
-    def test_check_warns_when_only_the_previous_model_is_installed(self):
-        with tempfile.TemporaryDirectory(dir=ROOT / 'storage/framework/testing') as directory:
-            folder = Path(directory)
-            (folder / 'birefnet-general-lite.onnx').write_bytes(b'old weights')
-            stderr = io.StringIO()
-            patches = [patch.object(setup, 'MODEL', folder / 'isnet-general-use.onnx'), patch.object(setup, 'LICENSE', folder / 'IS-Net-LICENSE.txt'),
-                       patch.object(setup, 'check_runtime', return_value=True), patch('sys.argv', ['setup-runtime.py', '--check']),
-                       patch('sys.stderr', stderr), patch('sys.stdout', stdout := io.StringIO())]
-            with contextlib.ExitStack() as stack:
-                for active in patches:
-                    stack.enter_context(active)
-                self.assertEqual(setup.main(), 1)
-            self.assertIn('"background_model_ready": false', stdout.getvalue())
-            self.assertIn('--download-model', stderr.getvalue())
-            self.assertIn('birefnet-general-lite.onnx', stderr.getvalue())
-
 
 if __name__ == '__main__':
     unittest.main()

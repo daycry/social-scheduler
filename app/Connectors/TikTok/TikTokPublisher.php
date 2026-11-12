@@ -187,7 +187,6 @@ class TikTokPublisher implements Publisher, StatusPoller
 
             return $this->uploadChunks($account, $request, $publishId, $progress, $media, $reader);
         } finally {
-            $reader->close();
             $this->passStartedAt = null;
         }
     }
@@ -277,7 +276,6 @@ class TikTokPublisher implements Publisher, StatusPoller
 
             return $this->uploadChunks($account, $request, (string) $request->reference, $progress, $media, $reader);
         } finally {
-            $reader->close();
             $this->passStartedAt = null;
         }
     }

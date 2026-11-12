@@ -125,7 +125,7 @@ test('destino manual: el aviso trae el contenido y se marca como publicado con u
 
     // El aviso llega a Avisos y lleva a la pantalla de publicación manual.
     await page.goto('/notifications');
-    await expect(page.getByText('Toca publicar a mano').first()).toBeVisible();
+    await expect(page.getByText('Toca publicar a mano').first()).toBeVisible(); // puede haber un aviso por cada destino manual
     await page.getByTestId('manual-notice-link').first().click();
     await page.waitForURL(new RegExp(`/posts/${id}/manual`));
     await expect(page.getByTestId('manual-text')).toHaveValue('e2e texto para copiar a mano');

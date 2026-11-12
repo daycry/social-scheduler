@@ -171,12 +171,13 @@ test('la deteccion de @responsive distingue tests etiquetados, de grupo y sin et
 // Excepciones justificadas: fichero -> cuántas llamadas admite y por qué.
 const WAIT_FOR_TIMEOUT_EXCEPTIONS = {
     'tests/e2e/helpers.ts': { max: 1, why: 'quietFor(): aserciones negativas en el tiempo (que algo NO ocurra durante una ventana), sin evento que esperar' },
+    'tests/frontend/studio-presentation-close-observer.test.mjs': { max: 1, why: 'doble de Playwright del test: simula page.waitForTimeout y le delega quietFor; no espera nada real' },
 };
 
-function e2eSources(dir = 'tests/e2e') {
+function sourcesIn(dir) {
     return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
         const full = `${dir}/${entry.name}`;
-        if (entry.isDirectory()) return entry.name === 'node_modules' ? [] : e2eSources(full);
+        if (entry.isDirectory()) return entry.name === 'node_modules' ? [] : sourcesIn(full);
         return /\.(ts|mts|cts|mjs|cjs|js)$/.test(entry.name) ? [full] : [];
     });
 }
@@ -185,18 +186,75 @@ function waitForTimeoutCalls(src) {
     return src.split('\n').filter(line => /\.waitForTimeout\s*\(/.test(line) && !/^\s*(\/\/|\*|\/\*)/.test(line)).length;
 }
 
-test('los E2E no usan waitForTimeout salvo las excepciones justificadas', () => {
+test('los tests de navegador (tests/e2e y tests/frontend) no usan waitForTimeout salvo las excepciones justificadas', () => {
     const offenders = [];
-    for (const file of e2eSources()) {
+    for (const file of [...sourcesIn('tests/e2e'), ...sourcesIn('tests/frontend')]) {
+        if (file === 'tests/frontend/test-tooling.test.mjs') continue; // este fichero cita la llamada en los casos de la propia detección
         const calls = waitForTimeoutCalls(read(file));
         const allowed = WAIT_FOR_TIMEOUT_EXCEPTIONS[file]?.max ?? 0;
         if (calls > allowed) offenders.push(`${file}: ${calls} (admite ${allowed})`);
     }
-    assert.deepEqual(offenders, [], 'espera un evento (expect.poll, toBeVisible, animationsDone); si es una ausencia en el tiempo usa quietFor() de helpers.ts');
+    assert.deepEqual(offenders, [], 'espera un evento (expect.poll, toBeVisible, waitForFunction, animationsDone); si es una ausencia en el tiempo usa quietFor() de tests/e2e/helpers.ts');
     for (const [file, { why }] of Object.entries(WAIT_FOR_TIMEOUT_EXCEPTIONS)) assert.ok(why.length > 20 && fs.existsSync(file), `${file}: la excepcion necesita motivo`);
 });
 
 test('la deteccion de waitForTimeout ve las llamadas y no los comentarios', () => {
-    assert.equal(waitForTimeoutCalls("await page.waitForTimeout(400);\n// page.waitForTimeout(1)\n * waitForTimeout\nawait pub.waitForTimeout (5);"), 2);
+    assert.equal(waitForTimeoutCalls('await page.waitForTimeout(400);\n// page.waitForTimeout(1)\n * waitForTimeout\nawait pub.waitForTimeout (5);'), 2);
     assert.equal(waitForTimeoutCalls('await quietFor(page, 400);'), 0);
+});
+
+// E-16: `.first()` desambigua en silencio y esconde selectores ambiguos (se rompe cuando la página repite el texto). Cupo por fichero = los que
+// quedan tras revisar uno a uno (cada uno es el primero de una lista ordenada a propósito, un primer resultado o un primer fotograma, o consta
+// como pendiente de acotar en el ledger de T-18). Un `.first()` nuevo exige acotar con un ámbito, getByRole con name o una fila concreta; si de
+// verdad es «el primero de la lista», sube el cupo de su fichero en el mismo commit y justifícalo en el ledger.
+const FIRST_QUOTA = {
+    'tests/e2e/all-brands.spec.ts': 1,
+    'tests/e2e/bluesky.spec.ts': 1,
+    'tests/e2e/brand-reporting.spec.ts': 1,
+    'tests/e2e/calendar-views.spec.ts': 3,
+    'tests/e2e/campaigns.spec.ts': 2,
+    'tests/e2e/canva.spec.ts': 3,
+    'tests/e2e/competitors.spec.ts': 7,
+    'tests/e2e/composer-refresh.spec.ts': 1,
+    'tests/e2e/composer.spec.ts': 4,
+    'tests/e2e/flows.spec.ts': 2,
+    'tests/e2e/helpers.ts': 1,
+    'tests/e2e/inbox-triage.spec.ts': 1,
+    'tests/e2e/isolated/bookends.guard.ts': 1,
+    'tests/e2e/metrics-quality.spec.ts': 4,
+    'tests/e2e/pages.spec.ts': 2,
+    'tests/e2e/report-builder.spec.ts': 3,
+    'tests/e2e/roadmap/roadmap.spec.ts': 4,
+    'tests/e2e/saved-texts.spec.ts': 1,
+    'tests/e2e/security.spec.ts': 4,
+    'tests/e2e/sites.spec.ts': 3,
+    'tests/e2e/smartlinks-blocks.spec.ts': 1,
+    'tests/e2e/studio-ai.spec.ts': 4,
+    'tests/e2e/studio-audio-editor.spec.ts': 1,
+    'tests/e2e/studio-automation.spec.ts': 2,
+    'tests/e2e/studio-boards.spec.ts': 2,
+    'tests/e2e/studio-captions.spec.ts': 3,
+    'tests/e2e/studio-charts.spec.ts': 4,
+    'tests/e2e/studio-collab.spec.ts': 6,
+    'tests/e2e/studio-datasets.spec.ts': 2,
+    'tests/e2e/studio-imaging.spec.ts': 1,
+    'tests/e2e/studio-presentations.spec.ts': 1,
+    'tests/e2e/studio.spec.ts': 3,
+    'tests/e2e/threads.spec.ts': 1,
+    'tests/e2e/workflow.spec.ts': 5
+};
+
+test('los E2E no acumulan .first() nuevos sin revisión (cupo por fichero)', () => {
+    const offenders = [];
+    for (const file of sourcesIn('tests/e2e')) {
+        const calls = (read(file).match(/\.first\(\)/g) ?? []).length;
+        const allowed = FIRST_QUOTA[file] ?? 0;
+        if (calls > allowed) offenders.push(`${file}: ${calls} (cupo ${allowed})`);
+    }
+    assert.deepEqual(offenders, [], 'acota el locator (ámbito, getByRole con name, fila) en vez de .first(); o sube el cupo justificándolo');
+    for (const file of Object.keys(FIRST_QUOTA)) assert.ok(fs.existsSync(file), `${file}: cupo de un fichero que ya no existe`);
+});
+
+test('la deteccion de .first() cuenta las llamadas', () => {
+    assert.equal(('a.first().click(); b.nth(0); c.first()'.match(/\.first\(\)/g) ?? []).length, 2);
 });

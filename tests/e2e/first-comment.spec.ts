@@ -56,7 +56,7 @@ test('E2E-03 · el campo aparece en Instagram, no en TikTok ni en una Historia, 
     await expect(page.getByTestId('first-comment-count')).toContainText('supera el máximo');
     await expect(field).toHaveAttribute('aria-invalid', 'true');
     // La validación en vivo lo rechaza con el mismo mensaje del servidor.
-    await expect(page.getByText(/El primer comentario admite como maximo 2200/).first()).toBeVisible({ timeout: 8000 });
+    await expect(page.getByTestId('errors-panel').getByText(/El primer comentario admite como maximo 2200/)).toBeVisible({ timeout: 8000 });
 
     await field.fill('Más info en el enlace');
     await expect(page.getByTestId('first-comment-count')).toContainText('21 / 2200');

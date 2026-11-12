@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, animationsDone, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, postMediaSection, seedComposerBrand, animationsDone, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * Buscador de GIFs de Giphy (C-04b, E2E-09). El servidor de pruebas no tiene `GIPHY_API_KEY`: sin clave el botón «GIF» no existe. Con clave se
@@ -142,7 +142,7 @@ test('E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e impo
     await page.keyboard.press('Enter');
 
     // Se importa el MP4 por el servidor, el modal se cierra y la media entra en el post.
-    await expect(page.getByText('1. giphy-gato1.mp4').first()).toBeVisible({ timeout: 20_000 });
+    await expect(postMediaSection(page).getByText('1. giphy-gato1.mp4')).toBeVisible({ timeout: 20_000 });
     expect(seen.imported).toBe(MP4);
     await expect(dialog).toBeHidden();
     await expect(button).toBeFocused();

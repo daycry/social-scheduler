@@ -79,7 +79,7 @@ test.describe('con sesión de un usuario e2e-sec-*', () => {
             await page.getByRole('button', { name: /Guardar la publicación \d+ en la biblioteca/ }).click();
             await page.waitForURL(/\/library/);
             await expect(page.getByText('Guardado en la biblioteca.')).toBeVisible();
-            await expect(page.getByText(text).first()).toBeVisible();
+            await expect(page.locator('li').filter({ hasText: text })).not.toHaveCount(0);
             await expectNoOverflow(page);
 
             // Enviarlo a la papelera desde el editor

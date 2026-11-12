@@ -276,7 +276,7 @@ test('E2E-03 · el botón Atrás del navegador pide confirmación con cambios si
     // Navegación de Inertia (sin recarga) para que Atrás sea un `popstate`.
     await page.goto(`/brands/${brand.id}`);
     await settle(page);
-    await page.getByRole('link', { name: 'Nueva publicación' }).first().click();
+    await page.getByRole('link', { name: 'Nueva publicación' }).click();
     await expect(page).toHaveURL(/posts\/create$/);
     await settle(page);
     const texto = page.getByLabel('Texto', { exact: true });
@@ -286,7 +286,7 @@ test('E2E-03 · el botón Atrás del navegador pide confirmación con cambios si
     await page.goBack();
     await expect(page).toHaveURL(new RegExp(`/brands/${brand.id}$`));
     await settle(page);
-    await page.getByRole('link', { name: 'Nueva publicación' }).first().click();
+    await page.getByRole('link', { name: 'Nueva publicación' }).click();
     await expect(page).toHaveURL(/posts\/create$/);
     await settle(page);
 
@@ -364,14 +364,15 @@ test('E2E-04 · panel único de errores, botón dividido con teclado y selector 
     await page.getByLabel('Texto', { exact: true }).fill('x'.repeat(63207));
     const panel = page.getByTestId('errors-panel');
     const items = panel.getByTestId('error-item');
-    await expect(panel.getByText(/Facebook · e2e Facebook/).first()).toBeVisible();
-    await expect(panel.getByText(/Instagram · e2e Instagram/).first()).toBeVisible();
+    await expect(items.filter({ hasText: /Facebook · e2e Facebook/ })).not.toHaveCount(0);
+    await expect(items.filter({ hasText: /Instagram · e2e Instagram/ })).not.toHaveCount(0);
     expect(await items.count()).toBeGreaterThanOrEqual(2);
     await expect(panel).toHaveAttribute('aria-live', 'polite');
     await page.screenshot({ path: 'test-results/composer-panel-errores.png' });
     await expectNoOverflow(page);
 
     // El enlace de cada error lleva al control afectado (la pastilla de la cuenta).
+    // El primer error de Instagram de la lista (hay varios y el orden es el del formulario).
     await items.filter({ hasText: 'Instagram' }).first().getByRole('button', { name: /Ir al control/ }).click();
     await expect(page.getByRole('button', { name: /^Instagram: e2e Instagram/ })).toBeFocused();
 
@@ -594,10 +595,10 @@ test('E2E-07 · Guardar en biblioteca sin guardar el post: crea la plantilla y n
 
     await page.goto(`/library?brand_id=${brand.id}`);
     await settle(page);
-    await expect(page.getByText('e2e texto de plantilla sin guardar').first()).toBeVisible();
-    await expect(page.getByText('e2e plantilla del compositor').first()).toBeVisible();
-    // La plantilla conserva los destinos: las dos redes elegidas.
     const plantilla = page.locator('li').filter({ hasText: 'e2e plantilla del compositor' });
+    await expect(plantilla.getByText('e2e texto de plantilla sin guardar', { exact: true })).toBeVisible();
+    await expect(plantilla.getByText('e2e plantilla del compositor', { exact: true })).toBeVisible();
+    // La plantilla conserva los destinos: las dos redes elegidas.
     await expect(plantilla.getByText('Instagram', { exact: true })).toBeVisible();
     await expect(plantilla.getByText('Facebook', { exact: true })).toBeVisible();
     await page.screenshot({ path: 'test-results/biblioteca-plantilla.png' });

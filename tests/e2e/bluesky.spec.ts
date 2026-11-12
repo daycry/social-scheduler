@@ -104,7 +104,7 @@ test('E2E-03 · Bluesky en el calendario y en el dashboard (icono, filtro y pág
     // Resumen: Bluesky entra en las pestañas de red (móvil) o en la barra lateral (escritorio).
     await page.goto(`/dashboard?brand_id=${brand.id}`);
     await settle(page);
-    await expect(page.getByRole('link', { name: /Bluesky/ }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /Bluesky/ }).and(page.locator(':visible'))).toBeVisible();
     await expectNoOverflow(page);
     await axeSeriousCritical(page, 'Resumen con Bluesky');
     expect(w.errors, w.errors.join('\n')).toEqual([]);

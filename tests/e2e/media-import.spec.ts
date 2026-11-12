@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, animationsDone, quietFor, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, postMediaSection, seedComposerBrand, animationsDone, quietFor, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * Importar media desde una URL (C-04a, E2E-08): usuarios `e2e-sec-*` y marcas `e2e-composer-*`. El rechazo de `UrlGuard` se prueba contra el servidor real:
@@ -141,8 +141,8 @@ test('E2E-08 · el progreso avanza, un fallo suelto del sondeo se tolera y al te
 
     // Termina: el elemento de progreso desaparece y la media queda UNA sola vez en la lista de la publicación.
     await expect(item).toHaveCount(0, { timeout: 20_000 });
-    await expect(page.getByText('1. foto.jpg').first()).toBeVisible(); // la previsualizacion por red (T-17) repite el nombre
-    await expect(page.getByText('2. foto.jpg')).toHaveCount(0);
+    await expect(postMediaSection(page).getByText('1. foto.jpg')).toBeVisible();
+    await expect(postMediaSection(page).getByText('2. foto.jpg')).toHaveCount(0);
     const getsAtEnd = seen.gets;
     await quietFor(page, 4000); // negativa: el sondeo ya parado no vuelve a consultar
     expect(seen.gets, 'el sondeo se detiene al terminar').toBe(getsAtEnd);
@@ -312,7 +312,7 @@ test('E2E-09 · Drive: con la clave configurada el botón aparece, se usa con te
     await expect(button).toBeFocused();
     await page.keyboard.press('Enter');
 
-    await expect(page.getByText('1. clip.mp4').first()).toBeVisible({ timeout: 20_000 }); // la previsualizacion por red (T-17) repite el nombre
+    await expect(postMediaSection(page).getByText('1. clip.mp4')).toBeVisible({ timeout: 20_000 });
     expect(seen.body).toEqual({ file_id: 'FILE_id-1', access_token: 'ya29.stub-token' });
     // El token no queda en la URL, el almacenamiento ni el DOM.
     expect(page.url()).not.toContain('ya29');

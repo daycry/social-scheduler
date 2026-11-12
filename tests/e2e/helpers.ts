@@ -113,6 +113,9 @@ export async function quietFor(page: Page, ms: number) {
     await page.waitForTimeout(ms);
 }
 
+/** Sección «Imágenes y vídeos» del compositor: la lista de media de la publicación, sin la previsualización por red que repite los nombres. */
+export const postMediaSection = (page: Page) => page.locator('section').filter({ has: page.getByRole('heading', { name: 'Imágenes y vídeos' }) });
+
 export const stamp = () => Date.now().toString(36);
 
 /** Borra las marcas cuyo nombre contiene `prefix` (por defecto todas las `e2e-`); con ellas se van sus datos. */

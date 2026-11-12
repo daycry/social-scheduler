@@ -24,6 +24,7 @@ test.afterEach(async ({}, info) => {
     cleanComposerBrands(e2eUser(info.project.name).email);
 });
 
+const lista = (page: Page) => page.getByRole('region', { name: 'Lista de publicaciones' });
 const card = (page: Page) => page.locator('section[data-network="threads"]');
 
 test('E2E-08 · Conexiones: la tarjeta de Threads y su cuenta conectada, sin desborde', { tag: '@responsive' }, async ({ page }) => {
@@ -50,8 +51,8 @@ test('E2E-08 · calendario: iconos de Threads y Bluesky y filtro por red', { tag
     await page.goto(`/calendar?view=list&brand_id=${brand.id}`);
     await settle(page);
 
-    await expect(page.getByText('e2e programada en Threads').first()).toBeVisible();
-    await expect(page.getByText('e2e programada en Bluesky').first()).toBeVisible();
+    await expect(lista(page).getByRole('link', { name: 'e2e programada en Threads' })).toBeVisible();
+    await expect(lista(page).getByRole('link', { name: 'e2e programada en Bluesky' })).toBeVisible();
     // Cada fila lleva el chip de su red (nombre y abreviatura del catálogo).
     const fila = (texto: string) => page.locator(`xpath=//a[contains(normalize-space(.), "${texto}")]/ancestor::tr[1]`);
     await expect(fila('e2e programada en Threads')).toContainText('Threads');
@@ -66,7 +67,7 @@ test('E2E-08 · calendario: iconos de Threads y Bluesky y filtro por red', { tag
     await red.selectOption('threads');
     await page.waitForURL(/network=threads/);
     await settle(page);
-    await expect(page.getByText('e2e programada en Threads').first()).toBeVisible();
+    await expect(lista(page).getByRole('link', { name: 'e2e programada en Threads' })).toBeVisible();
     await expect(page.getByText('e2e programada en Bluesky')).toHaveCount(0);
     await expectNoOverflow(page);
     await axeSeriousCritical(page, 'Calendario filtrado por Threads');
@@ -95,8 +96,8 @@ test('E2E-08 · dashboard de Threads: visitas al perfil (no visualizaciones), cl
     // Resumen: Threads y Bluesky entran en las pestañas de red (móvil) o en la barra lateral (escritorio).
     await page.goto(`/dashboard?brand_id=${brand.id}`);
     await settle(page);
-    await expect(page.getByRole('link', { name: /Threads/ }).first()).toBeVisible();
-    await expect(page.getByRole('link', { name: /Bluesky/ }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /Threads/ }).and(page.locator(':visible'))).toBeVisible();
+    await expect(page.getByRole('link', { name: /Bluesky/ }).and(page.locator(':visible'))).toBeVisible();
     await expectNoOverflow(page);
     await axeSeriousCritical(page, 'Resumen con Threads y Bluesky');
     expect(w.errors, w.errors.join('\n')).toEqual([]);

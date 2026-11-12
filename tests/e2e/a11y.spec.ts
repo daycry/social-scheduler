@@ -104,7 +104,7 @@ test.describe('axe · seguridad de cuenta', () => {
 
         // Sin 2FA y sin passkeys.
         await page.goto('/profile');
-        await expect(page.getByText('El doble factor está desactivado')).toBeVisible();
+        await expect(page.getByText(/^El doble factor está desactivado/)).toBeVisible();
         await axeYSinDesbordamiento(page, '/profile (sin 2FA)');
 
         // QR y clave visibles.

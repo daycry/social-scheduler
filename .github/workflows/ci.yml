@@ -80,6 +80,19 @@ jobs:
       # Los tests de audio/video de tests/frontend generan y decodifican medios con ffmpeg (libx264).
       - name: ffmpeg for the Studio audio and video tests
         run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+      # vite importa vendor/tightenco/ziggy: el build necesita las dependencias de Composer.
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, pdo_mysql, pdo_sqlite, bcmath, gd
+          coverage: none
+      - name: Composer cache (vendor)
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-vendor-php8.4-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-vendor-php8.4-
+      - run: composer install --no-interaction --prefer-dist --no-scripts
       - run: npm ci
       # tests/frontend/*.test.mjs (sin navegador) y tests/e2e/isolated/*.test.cjs, con `node --test --expose-gc`.
       - name: Node unit tests
@@ -99,6 +112,19 @@ jobs:
           cache: npm
       - name: ffmpeg for the Studio audio and video tests
         run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+      # vite importa vendor/tightenco/ziggy: el build necesita las dependencias de Composer.
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, pdo_mysql, pdo_sqlite, bcmath, gd
+          coverage: none
+      - name: Composer cache (vendor)
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-vendor-php8.4-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-vendor-php8.4-
+      - run: composer install --no-interaction --prefer-dist --no-scripts
       - run: npm ci
       # Los tests de render cargan public/build/studio-*.js (salida de `npm run build`).
       - run: npm run build
@@ -165,6 +191,8 @@ jobs:
           print('onnxruntime', onnxruntime.__version__, onnxruntime.get_available_providers())
           module = runpy.run_path('scripts/studio/process-image.py', run_name='diagnose')
           import tempfile, os
+          limits = runpy.run_path('scripts/studio/font_probe.py', run_name='diagnose')
+          limits['limit_memory'](6 * 1024**3, 80)
           out = os.path.join(tempfile.mkdtemp(), 'r.png')
           try:
               print(module['process']({'input': 'tests/Fixtures/images/astronaut.png', 'output': out, 'model': 'storage/app/private/studio-models/birefnet-general-lite.onnx', 'model_sha256': '5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333'}))

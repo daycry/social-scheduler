@@ -64,9 +64,12 @@ export function watch(page: Page): Watch {
     return w;
 }
 
-/** Desbordamiento horizontal: el documento no debe ser más ancho que la ventana. */
+/**
+ * Desbordamiento horizontal: el documento no debe ser más ancho que la ventana. Se mide contra `clientWidth` y no contra
+ * `innerWidth`: en emulación móvil, un desbordamiento ensancha el viewport de diseño y `innerWidth` crece con él (medía siempre 0).
+ */
 export async function overflowX(page: Page): Promise<number> {
-    return page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - window.innerWidth);
+    return page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - document.documentElement.clientWidth);
 }
 
 export async function expectNoOverflow(page: Page) {

@@ -146,14 +146,14 @@ return [
             'label' => 'una publicacion de Bluesky',
             'media' => ['min' => 0, 'max' => 4, 'kinds' => ['image']],
             'text' => ['max' => 300, 'max_bytes' => 3000, 'count' => 'graphemes', 'required' => false, 'required_without_media' => true],
-            'first_comment' => ['max' => 300], // respuesta propia al post (`reply{root,parent}`), mismo limite de texto
+            'first_comment' => ['max' => 300, 'max_bytes' => 3000, 'count' => 'graphemes'], // respuesta propia al post (`reply{root,parent}`), mismo limite y conteo que el texto
             'image' => ['mimes' => ['image/jpeg', 'image/png', 'image/webp'], 'recompress_to_config' => 'social.bluesky.image_max_bytes'],
         ],
         'bluesky_video' => [
             'label' => 'un video de Bluesky',
             'media' => ['min' => 1, 'max' => 1, 'kinds' => ['video']],
             'text' => ['max' => 300, 'max_bytes' => 3000, 'count' => 'graphemes', 'required' => false],
-            'first_comment' => ['max' => 300],
+            'first_comment' => ['max' => 300, 'max_bytes' => 3000, 'count' => 'graphemes'],
             // MP4; hasta 3 min (limite de Bluesky; getUploadLimits puede ser menor y se comprueba al publicar).
             'video' => [
                 'mimes' => ['video/mp4'],
@@ -172,13 +172,13 @@ return [
             'label' => 'una publicacion de texto de Threads',
             'media' => ['min' => 0, 'max' => 0, 'kinds' => []],
             'text' => ['max' => 500, 'count' => 'threads', 'required' => true, 'advise_hashtags' => 1],
-            'first_comment' => ['max' => 500], // respuesta propia (`reply_to_id`); exige threads_manage_replies
+            'first_comment' => ['max' => 500, 'count' => 'threads'], // respuesta propia (`reply_to_id`); exige threads_manage_replies
         ],
         'threads_image' => [
             'label' => 'una imagen de Threads',
             'media' => ['min' => 1, 'max' => 1, 'kinds' => ['image']],
             'text' => ['max' => 500, 'count' => 'threads', 'required' => false, 'advise_hashtags' => 1],
-            'first_comment' => ['max' => 500], // respuesta propia (`reply_to_id`); exige threads_manage_replies
+            'first_comment' => ['max' => 500, 'count' => 'threads'], // respuesta propia (`reply_to_id`); exige threads_manage_replies
             // JPEG y PNG, 8 MB, relacion hasta 10:1; de 320 a 1440 px de ancho (la red reescala).
             'image' => ['mimes' => ['image/jpeg', 'image/png'], 'max_bytes' => 8 * $mb, 'aspect' => ['min' => 0.1, 'max' => 10]],
         ],
@@ -186,7 +186,7 @@ return [
             'label' => 'un video de Threads',
             'media' => ['min' => 1, 'max' => 1, 'kinds' => ['video']],
             'text' => ['max' => 500, 'count' => 'threads', 'required' => false, 'advise_hashtags' => 1],
-            'first_comment' => ['max' => 500], // respuesta propia (`reply_to_id`); exige threads_manage_replies
+            'first_comment' => ['max' => 500, 'count' => 'threads'], // respuesta propia (`reply_to_id`); exige threads_manage_replies
             'video' => [
                 'mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 1024 * $mb, 'min_duration' => 0.1, 'max_duration' => 300,
                 'min_fps' => 23, 'max_fps' => 60, 'max_width' => 1920, 'aspect' => ['min' => 0.01, 'max' => 10], 'codecs' => ['h264', 'hevc'],
@@ -196,7 +196,7 @@ return [
             'label' => 'un carrusel de Threads',
             'media' => ['min' => 2, 'max' => 20, 'kinds' => ['image', 'video']],
             'text' => ['max' => 500, 'count' => 'threads', 'required' => false, 'advise_hashtags' => 1],
-            'first_comment' => ['max' => 500], // respuesta propia (`reply_to_id`); exige threads_manage_replies
+            'first_comment' => ['max' => 500, 'count' => 'threads'], // respuesta propia (`reply_to_id`); exige threads_manage_replies
             'image' => ['mimes' => ['image/jpeg', 'image/png'], 'max_bytes' => 8 * $mb, 'aspect' => ['min' => 0.1, 'max' => 10]],
             'video' => [
                 'mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 1024 * $mb, 'min_duration' => 0.1, 'max_duration' => 300,

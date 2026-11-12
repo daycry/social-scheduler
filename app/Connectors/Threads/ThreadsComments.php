@@ -5,7 +5,6 @@ namespace App\Connectors\Threads;
 use App\Connectors\Contracts\CommentSource;
 use App\Connectors\Exceptions\CommentSearchInconclusiveException;
 use App\Connectors\Exceptions\PermanentPublishException;
-use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Connectors\Exceptions\ScopeMissingException;
 use App\Connectors\Meta\Comments;
 use App\Models\SocialAccount;
@@ -95,15 +94,17 @@ class ThreadsComments implements CommentSource
     /**
      * Id de una respuesta PROPIA de nivel superior con ese texto (comparacion normalizada), o null. Busqueda acotada y cronologica
      * (`GET /{id}/replies`, `reverse=false`): el primer comentario, publicado justo tras el post, sale en las primeras paginas. Sin
-     * permiso de lectura no se puede comprobar y devuelve null. Si se agotan las paginas con mas por leer, no se sabe: inconclusa.
+     * permiso de lectura no se puede comprobar: es inconclusa (nunca null). Si se agotan las paginas con mas por leer, no se sabe: inconclusa.
      *
      * @throws CommentSearchInconclusiveException
      */
     public function findOwn(SocialAccount $account, string $postExternalId, string $text): ?string
     {
         $this->assertId($postExternalId);
+        // Sin permiso de lectura no se puede comprobar si el comentario ya existe: NO se da por inexistente (se duplicaria en un reintento);
+        // la busqueda es inconclusa y el job aplica la proteccion de `first_comment_sent_at`.
         if (! $this->hasScopes($account)) {
-            return null;
+            throw new CommentSearchInconclusiveException('No se puede comprobar si el comentario ya existe porque la cuenta de Threads no tiene el permiso para leer respuestas (threads_read_replies). No se crea otro a ciegas: comprueba en la red si ya esta; si lo esta, pulsa «Ya esta publicado», y si no, reconecta la cuenta o pulsa «Publicar igualmente» (puede duplicarse si en realidad ya existe).', 'busqueda_inconclusa');
         }
 
         $wanted = Comments::canon($text);
@@ -158,7 +159,8 @@ class ThreadsComments implements CommentSource
 
             $account->forceFill(['scopes' => array_values(array_diff((array) $account->scopes, $scopes))])->save();
 
-            throw new ReconnectRequiredException('Threads ya no tiene los permisos de respuestas ('.implode(', ', $scopes).'): reconecta la cuenta aceptándolos.', 0, $e);
+            // Son permisos OPCIONALES (la cuenta sigue publicando): falla solo esta lectura o respuesta, sin marcar la cuenta.
+            throw new ScopeMissingException('Threads ya no tiene los permisos de respuestas ('.implode(', ', $scopes).'): reconecta la cuenta aceptándolos.', 0, $e);
         }
     }
 

@@ -7,15 +7,18 @@ use App\Connectors\Exceptions\CommentSearchInconclusiveException;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Connectors\Network;
+use App\Connectors\Threads\ThreadsClient;
 use App\Connectors\Threads\ThreadsComments;
 use App\Connectors\Threads\ThreadsPublisher;
 use App\Enums\ContentType;
 use App\Enums\FirstCommentStatus;
 use App\Enums\PostStatus;
+use App\Exceptions\PostValidationException;
 use App\Jobs\PostFirstComment;
 use App\Models\InboxComment;
 use App\Models\Post;
 use App\Models\PostTarget;
+use App\Services\FirstCommentService;
 use App\Services\InboxService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
@@ -84,9 +87,9 @@ test('Threads findOwnComment encuentra la respuesta propia por texto normalizado
         ->and(app(ThreadsPublisher::class)->findOwnComment($account, 'POST1', 'Otro texto'))->toBeNull();
 });
 
-test('Threads findOwnComment sin permiso de lectura devuelve null y con mas paginas que el tope es inconclusa', function () {
+test('Threads findOwnComment sin permiso de lectura es inconclusa (no se crea a ciegas) y con mas paginas que el tope tambien', function () {
     $blind = ThreadsFake::account(['scopes' => ['threads_basic', 'threads_manage_replies']]);
-    expect(app(ThreadsPublisher::class)->findOwnComment($blind, 'POST1', 'Hola'))->toBeNull();
+    expect(fn () => app(ThreadsPublisher::class)->findOwnComment($blind, 'POST1', 'Hola'))->toThrow(CommentSearchInconclusiveException::class);
     Http::assertNothingSent();
 
     config(['social.first_comment.find_pages' => 2]);
@@ -242,8 +245,26 @@ test('el rechazo de permisos de la cuenta (codigo 10) sigue retirando el scope y
         ->and($account->fresh()->scopes)->not->toContain('threads_read_replies');
 });
 
-test('el job de primer comentario marca la cuenta para reconectar cuando Threads rechaza sus permisos', function () {
+test('el job de primer comentario marca la cuenta para reconectar cuando Threads rechaza el TOKEN', function () {
     $account = ThreadsFake::account(['scopes' => ['threads_basic', 'threads_read_replies', 'threads_manage_replies']]);
+    $post = Post::factory()->create(['brand_id' => $account->brand_id, 'user_id' => $account->user_id, 'status' => PostStatus::Published]);
+    $t = PostTarget::factory()->create([
+        'post_id' => $post->id, 'user_id' => $account->user_id, 'social_account_id' => $account->id, 'status' => PostStatus::Published,
+        'content_type' => ContentType::ThreadsText->value, 'network' => Network::Threads, 'external_id' => 'POST1', 'first_comment' => 'Hola',
+        'first_comment_status' => FirstCommentStatus::Pending, 'first_comment_attempts' => 0,
+    ]);
+    Http::fake(['graph.threads.com/*' => Http::response(['error' => ['message' => 'Error validating access token: Session has expired', 'code' => 190]], 401)]);
+
+    app()->call([new PostFirstComment($t->id), 'handle']);
+
+    expect($t->fresh()->first_comment_status)->toBe(FirstCommentStatus::Failed)
+        ->and($account->fresh()->status)->not->toBe('activa');
+});
+
+// ------------------------------------------------------------------ revision intento 1 (T-24)
+
+test('un permiso opcional rechazado por Threads falla solo el comentario: retira el scope y NO marca la cuenta', function () {
+    $account = ThreadsFake::account(['scopes' => ['threads_basic', 'threads_content_publish', 'threads_read_replies', 'threads_manage_replies']]);
     $post = Post::factory()->create(['brand_id' => $account->brand_id, 'user_id' => $account->user_id, 'status' => PostStatus::Published]);
     $t = PostTarget::factory()->create([
         'post_id' => $post->id, 'user_id' => $account->user_id, 'social_account_id' => $account->id, 'status' => PostStatus::Published,
@@ -254,6 +275,78 @@ test('el job de primer comentario marca la cuenta para reconectar cuando Threads
 
     app()->call([new PostFirstComment($t->id), 'handle']);
 
-    expect($t->fresh()->first_comment_status)->toBe(FirstCommentStatus::Failed)
-        ->and($account->fresh()->status)->not->toBe('activa');
+    $fresh = $account->fresh();
+    expect($t->fresh()->first_comment_status)->toBe(FirstCommentStatus::Failed)->and($fresh->status)->toBe('activa')
+        ->and($fresh->scopes)->not->toContain('threads_read_replies')->toContain('threads_content_publish');
+});
+
+test('en el inbox un permiso opcional rechazado no deja la cuenta en reconexion', function () {
+    $account = ThreadsFake::account(['scopes' => ['threads_basic', 'threads_content_publish', 'threads_read_replies', 'threads_manage_replies']]);
+    $c = InboxComment::factory()->create(['user_id' => $account->user_id, 'social_account_id' => $account->id, 'network' => $account->network]);
+    Http::fake(['graph.threads.com/*' => Http::response(['error' => ['message' => '(#10) Application does not have permission for this action', 'code' => 10]], 403)]);
+
+    expect(fn () => app(InboxService::class)->reply($account->user, $c, 'hola'))->toThrow(PostValidationException::class);
+
+    expect($account->fresh()->status)->toBe('activa')->and($account->fresh()->scopes)->not->toContain('threads_manage_replies');
+});
+
+/** Mensajes reales de Meta (Graph / Threads) -> ¿del objeto (publicacion borrada o ajena) o de la cuenta? */
+dataset('threads_permission_messages', [
+    'cuenta: #10 permiso denegado' => [10, '(#10) Application does not have permission for this action', false],
+    'cuenta: #200 sin autorizar la app' => [200, "(#200) The user hasn't authorized the application to perform this action", false],
+    'cuenta: #200 permisos de administrador' => [200, 'User does not have sufficient administrative permission for this action on this page', false],
+    'cuenta: #200 requiere permiso' => [200, '(#200) Requires threads_content_publish permission to manage the object', false],
+    'cuenta: #299 permiso especifico' => [299, '(#299) Permissions error: the user must grant threads_manage_replies', false],
+    'cuenta: #3 metodo de API' => [3, '(#3) Application does not have the capability to make this API call', false],
+    'cuenta: #200 contenido sin mas' => [200, '(#200) This content is not available for this user', false],
+    'cuenta: #200 post sin mas' => [200, '(#200) You do not have access to the post', false],
+    'objeto: no existe' => [200, '(#200) The object does not exist', true],
+    'objeto: borrado' => [200, 'The post was deleted and can no longer be accessed', true],
+    'objeto: de otra persona' => [200, '(#200) The media belongs to another user and cannot be accessed', true],
+    'objeto: no existe (100)' => [200, "Unsupported get request. Object with ID '123' does not exist, cannot be loaded due to missing permissions, or does not support this operation", true],
+]);
+
+test('la clasificacion de permisos de Threads solo da por «de objeto» las senales inequivocas', function (int $code, string $message, bool $object) {
+    Http::fake(['graph.threads.com/*' => Http::response(['error' => ['message' => $message, 'code' => $code]], 403)]);
+
+    try {
+        app(ThreadsClient::class)->get('POST1/replies', [], 'tok', true);
+        $thrown = null;
+    } catch (PermanentPublishException $e) {
+        $thrown = $e->errorCode;
+    }
+
+    expect($thrown)->toBe($object ? 'permisos_objeto' : 'permisos');
+})->with('threads_permission_messages');
+
+// ------------------------------------------------------------------ limites con el modo de conteo de cada red (revision, Minor)
+
+test('el limite del primer comentario cuenta grafemas en Bluesky y la regla de Threads (emojis por bytes)', function () {
+    // 150 emojis compuestos de familia = 150 grafemas (caben en 300) pero muchos mas caracteres y bytes.
+    $family = '👨‍👩‍👧‍👦';
+    expect(config('media_specs.types.bluesky_post.first_comment.count'))->toBe('graphemes')
+        ->and(config('media_specs.types.threads_text.first_comment.count'))->toBe('threads');
+
+    $service = app(FirstCommentService::class);
+    $account = BlueskyFake::account();
+    $post = Post::factory()->create(['brand_id' => $account->brand_id, 'user_id' => $account->user_id, 'status' => PostStatus::Published]);
+    $mk = fn (string $text, ContentType $type, Network $net) => PostTarget::factory()->create([
+        'post_id' => $post->id, 'user_id' => $account->user_id, 'social_account_id' => $account->id, 'status' => PostStatus::Published,
+        'content_type' => $type->value, 'network' => $net, 'external_id' => 'x', 'first_comment' => 'a',
+        'first_comment_status' => FirstCommentStatus::Failed, 'first_comment_attempts' => 3,
+    ]);
+
+    // Bluesky: 250 emojis simples = 250 grafemas (<= 300) aunque mb_strlen de familias seria muy superior.
+    $ok = $mk('a', ContentType::BlueskyPost, Network::Bluesky);
+    expect($service->update($ok, str_repeat($family, 100))->first_comment)->toBe(str_repeat($family, 100));
+    expect(fn () => $service->update($ok, str_repeat('a', 301)))->toThrow(PostValidationException::class);
+
+    // Threads: cada emoji cuenta sus bytes UTF-8; 100 emojis (4 bytes) = 400 <= 500 pero 130 = 520 > 500.
+    $th = PostTarget::factory()->create([
+        'post_id' => $post->id, 'user_id' => $account->user_id, 'social_account_id' => $account->id, 'status' => PostStatus::Published,
+        'content_type' => ContentType::ThreadsText->value, 'network' => Network::Threads, 'external_id' => 'y', 'first_comment' => 'a',
+        'first_comment_status' => FirstCommentStatus::Failed, 'first_comment_attempts' => 3,
+    ]);
+    expect($service->update($th, str_repeat('😀', 100))->first_comment)->toBe(str_repeat('😀', 100));
+    expect(fn () => $service->update($th, str_repeat('😀', 130)))->toThrow(PostValidationException::class);
 });

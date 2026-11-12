@@ -1068,7 +1068,7 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 **Criterios de aceptación**
 - [x] Se pueden añadir competidores de Bluesky y YouTube y se recogen snapshots (con fakes)
-- [x] La cuota de YouTube se contabiliza con `QuotaPolicy`
+- [x] La cuota de YouTube se contabiliza con el mecanismo de cuota de YouTube de la app (`YouTubeQuota` global + presupuesto propio de competidores, global y por usuario); `QuotaPolicy` es la política de PUBLICACIÓN y no aplica a lecturas (criterio enmendado por decisión del coordinador en la revisión del intento 1)
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
@@ -4144,3 +4144,22 @@ Cada gap lleva su test, que falló antes del arreglo (`tests/Feature/Notificatio
 | 10 | Minor | `Notifications/Index.vue` perdió «Ver publicación» | T-23 | Un aviso con `post_id` lleva siempre «Ver publicación»; el resto, etiqueta por tipo | E2E-03 (`media_missing`) |
 
 Verificación (2026-11-12): Pest focal `Notifications`+`Connections`+`Parity`+`Inbox`+`Infra`+`StudioAvQueueTest` 331/331 (4 omitidos) y `Media`+`Canva` 337/337; Pint OK; `npm run build`, `test:unit` 636/636 y `typecheck` OK; Playwright `notifications-unified.spec.ts` + `inbox-triage.spec.ts` con `E2E_PURGE=0 E2E_WORKERS=2` (sin otra ejecución en curso). T-22 y T-23 siguen en `en-revision`.
+
+## Revisión de dos lentes — intento 1: Fase 3 (T-24, T-25) — gaps corregidos
+
+1 Critical, 5 Important y 4 Minor; cada gap lleva su test, rojo antes del arreglo cuando era posible (`CompetitorMigrationOrderTest`, `FirstCommentThreadsBlueskyTest`, `CompetitorSourcesTest`). Los dos gaps de T-22 absorbidos antes (`ThreadsComments`) se reajustan en los puntos 3 y 4.
+
+| # | Sev. | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| 1 | Critical | La migración borraba `unique(brand_id, username)` antes de crear otro índice con `brand_id`: en MySQL falla con el error 1553 (sostiene la FK). Igual en `down()` | T-25 | `up()` crea `unique(brand_id, network, username)` y después borra el antiguo; `down()` recrea el antiguo y después borra el nuevo. Anotado en `pendientes-manuales.md` (probar en MySQL 8 real) | RED: 2 tests de orden fallaban (posición del `dropUnique` anterior a la del `unique`); verde. MySQL real: pendiente |
+| 2 | Important | `findOwnComment` de Threads devolvía `null` sin `threads_read_replies`: un reintento podía duplicar el comentario | T-24 | Lanza `CommentSearchInconclusiveException`: actúa la protección de `first_comment_sent_at` | RED: «not thrown»; verde |
+| 3 | Important | Un permiso opcional de respuestas rechazado (`guarded`) lanzaba `ReconnectRequiredException` y bloqueaba la cuenta (y lo programado) | T-24/T-22 | `ScopeMissingException` para `threads_read_replies`/`threads_manage_replies`: falla solo ese comentario o lectura y retira el scope; `PostFirstComment`, `InboxService::call` y `GuardsInsightsErrors` no marcan la cuenta. Solo un token rechazado (190) la marca. El test de T-22 «desde el inbox la cuenta queda marcada» se ajusta a este criterio | RED: 3 tests (cuenta quedaba `requiere_reconexion`); verde |
+| 4 | Important | La clasificación `permisos_objeto` usaba palabras sueltas (`user`, `post`, `media`, `content`) y tomaba por «de objeto» errores de la cuenta | T-24 | Por defecto el rechazo es de la cuenta; solo es de objeto con frases completas (no existe, se borró, pertenece a otra persona). Batería de 12 mensajes de Meta (8 de cuenta, 4 de objeto) | RED: 4 mensajes de cuenta salían como objeto; verde |
+| 5 | Important | Un 401 de YouTube en competidores marcaba el canal para reconectar y bloqueaba subidas programadas | T-25 | 401 transitorio (como `Analytics`): se reintenta tras el refresco programado de tokens y solo si este falla se marca | RED: la cuenta quedaba bloqueada; verde |
+| 6 | Important | El presupuesto de YouTube (300 ud) era global y los competidores con id alto se quedaban sin datos | T-25 | Presupuesto global + tope por usuario (60, `SOCIAL_COMPETITORS_YOUTUBE_USER_UNITS`); los despachadores procesan primero a los que nunca tuvieron datos y a los más antiguos. Capacidad documentada: ~3 ud por competidor y día, ~100 en la instalación y ~20 por usuario | RED: 2 tests (`usedBy` inexistente, orden por id); verde |
+| 7 | Minor | El límite del primer comentario contaba con `mb_strlen` | T-24 | `first_comment.count` (`graphemes`/`threads`) y `max_bytes` (Bluesky) en `media_specs`; `FirstCommentService::lengthError` lo usan `PostService` y la edición; el contador del compositor usa `countText` con el mismo modo | RED: 100 familias de emojis rechazadas; verde |
+| 8 | Minor | Chips de red de competidores con marcado propio | T-25 | Componente común `Components/NetworkChips.vue` (flechas, Inicio y Fin mueven el foco) usado por Competidores y por el adaptador del Dashboard (`Dashboard/Partials/NetworkTabs.vue`); los textos por red salen de `CompetitorSource::copy()`. El `NetworkTabs` del compositor (pestañas ARIA del texto) es otro componente y no se toca | `test:unit` (el test de «ninguna página repite la lista de redes» lo detectó antes del cambio) y E2E |
+| 9 | Minor | MCP `compare_competitors` no validaba `network` | T-25 | El enum sale de las redes con fuente y la ejecución rechaza una red sin fuente o deshabilitada | RED: `tiktok`/`nope`/Bluesky apagado se aceptaban; verde |
+| 10 | Minor | `CompetitorSources::for` ignoraba `isAvailable()`; criterio de `QuotaPolicy` incoherente | T-25 | `for()` exige disponibilidad y los jobs saltan las redes apagadas; criterio enmendado (decisión del coordinador): `QuotaPolicy` es de publicación, la cuota de lectura la llevan `YouTubeQuota` y el presupuesto de competidores | RED: «not thrown»; verde |
+
+Verificación (2026-11-12): Pest focal `FirstComment`+`Competitors`+`Parity`+`Connectors`+`Inbox`+`Mcp`+`Dashboard`+`Posts`+`Unit` 1686/1686; Pint OK; `npm run build`, `test:unit` 636/636 y `typecheck` OK; Playwright `competitors`+`first-comment`+`pages`+`metrics-quality` (`E2E_PURGE=0`, `E2E_WORKERS=2`, sin otra ejecución en curso) 125 pasan, 2 omitidos. T-24 y T-25 siguen en `en-revision`.

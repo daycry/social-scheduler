@@ -105,6 +105,7 @@ Los demás límites de tamaño y sondeo (`MEDIA_*`) no están en `.env.example`;
 | `PINTEREST_APP_ID`, `PINTEREST_APP_SECRET` | ID y secreto de la app de Pinterest Developers (API v5). Sin `PINTEREST_APP_ID` la red no se ofrece |
 | `PINTEREST_ENABLED` | `true`. `false` retira Pinterest de la aplicación (las cuentas se conservan) |
 | `PINTEREST_AUTH_HOST`, `PINTEREST_API_HOST`, `PINTEREST_UPLOAD_TIMEOUT`, `PINTEREST_UPLOAD_URL_TTL` | `https://www.pinterest.com`, `https://api.pinterest.com` , `100` s y `20` min (subida del vídeo en streaming, una petición dentro de los 110 s del job; el TTL es la vigencia de la URL prefirmada reutilizable en un reintento; el tope de vídeo es de 128 MB en `config/media_specs.php`) |
+| `CANVA_BRAND_TEMPLATES` | `false` con `true` se piden también los permisos `brandtemplate:meta:read` y `brandtemplate:content:read` (plantillas de marca y Autofill); la app de Canva Developers debe tenerlos activados y la cuenta, un plan que los incluya. Ver [Canva](../modulos/canva.md) |
 | `CANVA_CLIENT_ID`, `CANVA_CLIENT_SECRET` | Cliente de Canva Developers (OAuth 2.0 con PKCE). Sin ellos Canva aparece «no configurada». Ver [Canva](../modulos/canva.md) |
 | `OPENAI_API_KEY`, `GEMINI_API_KEY` | Claves de la IA del estudio. Cada proveedor solo se ofrece si tiene clave. Ver [IA del estudio](../modulos/estudio-ia.md) |
 | `STUDIO_AI_OPENAI_KEY`, `STUDIO_AI_GOOGLE_KEY` | Clave específica de la IA del estudio; si se define, manda sobre `OPENAI_API_KEY` / `GEMINI_API_KEY` |
@@ -250,7 +251,7 @@ Variables nuevas, todas opcionales (valores por defecto en la segunda columna). 
 | `SOCIAL_INBOX_BUDGET_SECONDS` | `60` | Presupuesto de tiempo por pasada del job (< `timeout` 90 s); si no caben todas las publicaciones, el job se reencola con el desplazamiento |
 | `SOCIAL_BEST_TIMES_DAYS` / `_MIN_POSTS` / `_CACHE_MINUTES` | `90` / `10` / `10` | Ventana del mapa de calor, mínimo de publicaciones con métricas y caché corta (0 = sin caché) |
 | `SOCIAL_COMPETITORS_DAILY_AT` / `_MAX` | `13:00` / `10` | Hora UTC del snapshot diario de competidores y máximo por marca |
-| `SOCIAL_COMPETITORS_YOUTUBE_UNITS` | `300` | Unidades de cuota de YouTube por día que pueden gastar los competidores (T-25) |
+| `SOCIAL_COMPETITORS_YOUTUBE_UNITS` / `_USER_UNITS` | `300` / `60` | Unidades de cuota de YouTube por día que pueden gastar los competidores en toda la instalación y cada usuario (T-25; ~3 ud por competidor y día: ~100 en total, ~20 por usuario) |
 | `SOCIAL_ADS_CACHE_MINUTES` | `10` | Caché de las respuestas de Meta Ads |
 | `AI_ASSISTANT_ENABLED` + `ANTHROPIC_API_KEY` | `false` / vacío | El asistente «Sugerir texto» solo existe si **ambas** están definidas |
 | `AI_ASSISTANT_DAILY_LIMIT` / `_GLOBAL_DAILY_LIMIT` | `20` / `200` | Sugerencias por usuario y día, y tope global diario entre todos los usuarios (0 = sin tope global) |

@@ -35,7 +35,7 @@ class CompareCompetitors extends SchedulerTool
             'from' => $schema->string()->description('Fecha inicial AAAA-MM-DD'),
             'to' => $schema->string()->description('Fecha final AAAA-MM-DD'),
             'sort' => $schema->string()->enum(CompetitorService::SORTS)->description('Metrica del ranking (por defecto followers)'),
-            'network' => $schema->string()->enum(['instagram', 'bluesky', 'youtube'])->description('Red de los competidores (por defecto instagram)'),
+            'network' => $schema->string()->enum(array_map(fn ($n) => $n->value, app(CompetitorService::class)->networks()))->description('Red de los competidores (por defecto instagram)'),
             'top_posts' => $schema->integer()->description('Publicaciones destacadas por competidor (0-10)'),
         ];
     }
@@ -44,7 +44,11 @@ class CompareCompetitors extends SchedulerTool
     {
         $brand = $this->brandFrom($request, $user);
         $service = app(CompetitorService::class);
-        $out = $service->comparison($user, $brand, $request->get('from'), $request->get('to'), (string) ($request->get('sort') ?? 'followers'), Network::tryFrom((string) $request->get('network')) ?? Network::Instagram);
+        $network = $request->get('network') === null ? Network::Instagram : Network::tryFrom((string) $request->get('network'));
+        if ($network === null || ! $service->available($network)) {
+            throw new \InvalidArgumentException('Red no valida para competidores. Usa una de: '.implode(', ', array_map(fn ($n) => $n->value, $service->networks())).'.');
+        }
+        $out = $service->comparison($user, $brand, $request->get('from'), $request->get('to'), (string) ($request->get('sort') ?? 'followers'), $network);
         $top = is_numeric($request->get('top_posts')) ? max(0, min(10, (int) $request->get('top_posts'))) : 0;
 
         $out['competitors'] = array_map(function (array $c) use ($service, $user, $out, $top) {

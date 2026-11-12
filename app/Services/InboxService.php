@@ -6,6 +6,7 @@ use App\Connectors\Bluesky\BlueskyComments;
 use App\Connectors\Contracts\CommentSource;
 use App\Connectors\Exceptions\ConnectorException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
+use App\Connectors\Exceptions\ScopeMissingException;
 use App\Connectors\Exceptions\TransientPublishException;
 use App\Connectors\Google\YouTubeComments;
 use App\Connectors\Meta\Comments;
@@ -361,6 +362,9 @@ class InboxService
     {
         try {
             return $work();
+        } catch (ScopeMissingException $e) {
+            // Permiso opcional: falla esta accion y se explica, sin marcar la cuenta (sigue publicando).
+            throw new PostValidationException(['account' => [$e->getMessage()]]);
         } catch (ReconnectRequiredException $e) {
             $this->accounts->flagReconnection($account, $e->getMessage());
             throw new PostValidationException(['account' => ['La cuenta necesita reconectarse.']]);

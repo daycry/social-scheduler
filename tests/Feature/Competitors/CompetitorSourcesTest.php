@@ -2,10 +2,12 @@
 
 use App\Connectors\CompetitorSources;
 use App\Connectors\Contracts\CompetitorSource;
+use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Google\YouTubeCompetitorBudget;
 use App\Connectors\Google\YouTubeQuota;
 use App\Connectors\Network;
 use App\Jobs\CollectCompetitorSnapshot;
+use App\Jobs\CollectCompetitorSnapshots;
 use App\Models\Brand;
 use App\Models\Competitor;
 use App\Models\CompetitorPost;
@@ -16,7 +18,11 @@ use App\Services\CompetitorService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Tests\Support\BlueskyFake;
+use Tests\Support\McpClient;
+
+uses(McpClient::class);
 
 /**
  * T-25 · fuentes de competidores por red detras de `CompetitorSource`: Bluesky (AppView publico, sin cuenta) y YouTube (Data API con
@@ -217,7 +223,7 @@ test('YouTube: 403 quotaExceeded marca el dia agotado y el job de snapshot se re
     Http::assertSentCount(2);
 });
 
-test('YouTube: un 429 de ritmo respeta Retry-After y se reintenta; el 401 marca la cuenta para reconectar', function () {
+test('YouTube: un 429 de ritmo respeta Retry-After y se reintenta; un 401 es transitorio (el token se renueva) y NO bloquea el canal', function () {
     $account = ytAccount();
     Http::fake(['*youtube/v3/channels*' => Http::sequence()->push(ytChannel())
         ->push(['error' => ['code' => 429, 'message' => 'slow down']], 429, ['Retry-After' => '45'])
@@ -232,7 +238,9 @@ test('YouTube: un 429 de ritmo respeta Retry-After y se reintenta; el 401 marca 
     $job2 = (new CollectCompetitorSnapshot($c->id, '2026-11-03'))->withFakeQueueInteractions();
     app()->call([$job2, 'handle']);
 
-    expect($account->fresh()->status)->not->toBe(SocialAccount::STATUS_ACTIVE);
+    // Como en Analytics: el token pudo caducar entre renovaciones; se reintenta y el canal (y sus subidas) siguen activos.
+    $job2->assertReleased(120);
+    expect($account->fresh()->status)->toBe(SocialAccount::STATUS_ACTIVE);
 });
 
 // ------------------------------------------------------------------ UI y comparativa por red
@@ -253,4 +261,76 @@ test('la comparativa y la pagina se filtran por red y ofrecen la eleccion de red
 
     // Una red sin fuente no se admite.
     $this->actingAs($this->user)->get(route('competitors.index', ['brand_id' => $this->brand->id, 'network' => 'tiktok']))->assertSessionHasErrors('network');
+});
+
+// ------------------------------------------------------------------ revision intento 1: reparto del presupuesto de YouTube
+
+test('el presupuesto de YouTube tiene un tope por usuario: uno no deja sin datos a los demas', function () {
+    config(['social.competitors.youtube_daily_units' => 100, 'social.competitors.youtube_user_daily_units' => 3]);
+    $budget = app(YouTubeCompetitorBudget::class);
+
+    $budget->assertAllows(1, 1);
+    $budget->charge(3, 1);
+
+    expect(fn () => $budget->assertAllows(1, 1))->toThrow(QuotaExceededException::class, 'tu parte');
+    $budget->assertAllows(1, 2); // otro usuario sigue teniendo cupo
+    $budget->charge(1, 2);
+    expect($budget->used())->toBe(4)->and($budget->usedBy(1))->toBe(3)->and($budget->usedBy(2))->toBe(1);
+
+    config(['social.competitors.youtube_daily_units' => 4]);
+    expect(fn () => $budget->assertAllows(1, 2))->toThrow(QuotaExceededException::class, 'de toda la instalacion');
+});
+
+test('el despachador procesa primero a los competidores sin datos y a los que llevan mas tiempo sin sincronizar', function () {
+    Queue::fake();
+    $mk = fn (string $name, ?string $synced) => tap(new Competitor(['network' => Network::Bluesky, 'username' => $name, 'last_synced_at' => $synced]), function ($c) {
+        $c->user_id = test()->user->id;
+        $c->brand_id = test()->brand->id;
+        $c->save();
+    });
+    $reciente = $mk('reciente.bsky.social', '2026-11-01 11:00:00');
+    $nunca = $mk('nunca.bsky.social', null);
+    $antiguo = $mk('antiguo.bsky.social', '2026-10-20 11:00:00');
+
+    (new CollectCompetitorSnapshots)->handle();
+
+    $order = [];
+    Queue::assertPushed(CollectCompetitorSnapshot::class, function ($job) use (&$order) {
+        $order[] = $job->competitorId;
+
+        return true;
+    });
+    expect($order)->toBe([$nunca->id, $antiguo->id, $reciente->id]);
+});
+
+// ------------------------------------------------------------------ revision intento 1: MCP y redes deshabilitadas
+
+test('MCP compare_competitors valida la red contra las que tienen fuente y devuelve la de Bluesky', function () {
+    Http::fake([BS_PROFILE => Http::response(bsProfile())]);
+    $this->actingAs($this->user)->post(route('competitors.store'), ['brand_id' => $this->brand->id, 'network' => 'bluesky', 'username' => 'rival.bsky.social']);
+    $key = $this->mcpKey($this->user, ['stats:read']);
+
+    [$err, $res] = $this->callTool($key, 'compare_competitors', ['brand_id' => $this->brand->id, 'network' => 'bluesky']);
+    expect($err)->toBeFalse()->and($res['network'])->toBe('bluesky')->and($res['competitors'])->toHaveCount(1);
+
+    foreach (['tiktok', 'nope'] as $bad) {
+        [$err] = $this->callTool($key, 'compare_competitors', ['brand_id' => $this->brand->id, 'network' => $bad]);
+        expect($err)->toBeTrue();
+    }
+
+    config(['social.bluesky.enabled' => false]);
+    [$err] = $this->callTool($key, 'compare_competitors', ['brand_id' => $this->brand->id, 'network' => 'bluesky']);
+    expect($err)->toBeTrue();
+});
+
+test('con una red deshabilitada la fuente no se consulta (ni en jobs ni en el servicio)', function () {
+    Http::fake([BS_PROFILE => Http::response(bsProfile())]);
+    $this->actingAs($this->user)->post(route('competitors.store'), ['brand_id' => $this->brand->id, 'network' => 'bluesky', 'username' => 'rival.bsky.social']);
+    $c = Competitor::query()->firstOrFail();
+    config(['social.bluesky.enabled' => false]);
+    Http::fake();
+
+    expect(fn () => app(CompetitorSources::class)->for(Network::Bluesky))->toThrow(InvalidArgumentException::class);
+    app()->call([new CollectCompetitorSnapshot($c->id, '2026-11-02'), 'handle']);
+    Http::assertNothingSent();
 });

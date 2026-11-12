@@ -30,6 +30,14 @@ class BlueskyCompetitors implements CompetitorSource
         return Network::Bluesky;
     }
 
+    public function copy(): array
+    {
+        return [
+            'username' => 'Usuario de Bluesky (por ejemplo ana.bsky.social)', 'placeholder' => 'ana.bsky.social', 'followers' => 'Seguidores', 'media' => 'Publicaciones',
+            'note' => 'Solo se leen datos públicos: seguidores y número de publicaciones, una vez al día. No hace falta conectar una cuenta de Bluesky.',
+        ];
+    }
+
     public function needsAccount(): bool
     {
         return false;

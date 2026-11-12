@@ -30,14 +30,14 @@ test('responder sin el permiso de respuestas retira threads_manage_replies y pid
     expect($this->account->fresh()->scopes)->not->toContain('threads_manage_replies')->toContain('threads_read_replies');
 });
 
-test('desde el inbox la cuenta queda marcada para reconectar y se avisa una vez', function () {
+test('desde el inbox un permiso opcional rechazado retira el scope y NO marca la cuenta (T-24 revision)', function () {
     Http::fake(['graph.threads.com/*' => $this->denied]);
     $c = InboxComment::factory()->create(['user_id' => $this->account->user_id, 'social_account_id' => $this->account->id, 'network' => $this->account->network]);
 
     expect(fn () => app(InboxService::class)->reply($this->account->user, $c, 'hola'))->toThrow(PostValidationException::class);
 
     $fresh = $this->account->fresh();
-    expect($fresh->status)->not->toBe('activa')->and($fresh->scopes)->not->toContain('threads_manage_replies');
+    expect($fresh->status)->toBe('activa')->and($fresh->scopes)->not->toContain('threads_manage_replies');
 });
 
 test('un error que no es de permisos no toca los scopes', function () {

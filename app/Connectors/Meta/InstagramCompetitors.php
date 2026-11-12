@@ -17,6 +17,14 @@ class InstagramCompetitors implements CompetitorSource
         return Network::Instagram;
     }
 
+    public function copy(): array
+    {
+        return [
+            'username' => 'Usuario de Instagram (cuenta Business o Creator)', 'placeholder' => '@usuario', 'followers' => 'Seguidores', 'media' => 'Publicaciones',
+            'note' => 'Solo se leen datos públicos: seguidores y número de publicaciones, una vez al día.',
+        ];
+    }
+
     public function needsAccount(): bool
     {
         return true;

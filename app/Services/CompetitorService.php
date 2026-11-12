@@ -38,6 +38,11 @@ class CompetitorService
         return $this->sources->for($network);
     }
 
+    public function available(Network $network): bool
+    {
+        return $this->sources->has($network);
+    }
+
     /** @return list<Network> Redes en las que se pueden seguir competidores en esta instalacion. */
     public function networks(): array
     {

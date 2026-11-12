@@ -20,6 +20,14 @@ interface CompetitorSource
 {
     public function network(): Network;
 
+    /**
+     * Textos de la pantalla de Competidores para esta red (la pagina es comun a todas): etiqueta del campo de usuario, ejemplo,
+     * como se llama a lo que se cuenta y la nota sobre los datos que se leen.
+     *
+     * @return array{username: string, placeholder: string, followers: string, media: string, note: string}
+     */
+    public function copy(): array;
+
     /** ¿Hace falta una cuenta PROPIA conectada de esa red (su token) para consultar? Bluesky no; Instagram y YouTube si. */
     public function needsAccount(): bool;
 

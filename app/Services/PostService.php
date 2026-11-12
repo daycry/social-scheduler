@@ -908,8 +908,8 @@ class PostService
                     $errors[$key][] = "{$account->network->label()} no admite primer comentario en este tipo de contenido.";
                 } elseif ($account->network === Network::LinkedIn && ! LinkedInPublisher::canComment($account)) {
                     $errors[$key][] = (string) LinkedInPublisher::commentNote($account);
-                } elseif (mb_strlen($firstComment) > (int) $max) {
-                    $errors[$key][] = "El primer comentario admite como maximo $max caracteres en {$account->network->label()} (tiene ".mb_strlen($firstComment).').';
+                } elseif (($lengthError = FirstCommentService::lengthError($firstComment, (array) config("media_specs.types.{$type->value}.first_comment"), $account->network->label())) !== null) {
+                    $errors[$key][] = $lengthError;
                 }
             }
 

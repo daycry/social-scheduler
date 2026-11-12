@@ -90,7 +90,7 @@ Decisiones de la tercera ola (opción O1 del diseño: contrato segregado y catá
 
 ## YouTube · competidores (T-25)
 
-Datos públicos de canales ajenos con la YouTube Data API v3 y el token de un canal propio: `channels.list` (`forHandle`/`id`, `snippet,statistics`; `hiddenSubscriberCount`), `playlistItems.list` (lista de subidas `UU…`) y `videos.list` (`statistics`: `likeCount` y `commentCount` pueden faltar). Coste **1 unidad** por lista. Cuota: `YouTubeQuota` global + presupuesto propio `YouTubeCompetitorBudget` (300/día). `quotaExceeded` (403) y 429 se reintentan con `GuardsInsightsErrors`. **No verificado contra la documentación en esta sesión** (las páginas de Google/Meta no se pudieron leer): costes y `forHandle` se toman del contrato conocido de la API y quedan para el smoke del usuario.
+Datos públicos de canales ajenos con la YouTube Data API v3 y el token de un canal propio: `channels.list` (`forHandle`/`id`, `snippet,statistics`; `hiddenSubscriberCount`), `playlistItems.list` (lista de subidas `UU…`) y `videos.list` (`statistics`: `likeCount` y `commentCount` pueden faltar). Coste **1 unidad** por lista. Cuota: `YouTubeQuota` global + presupuesto propio `YouTubeCompetitorBudget` (300/día global y 60 por usuario). El 401 se trata como transitorio (como `Analytics`). `quotaExceeded` (403) y 429 se reintentan con `GuardsInsightsErrors`. **No verificado contra la documentación en esta sesión** (las páginas de Google/Meta no se pudieron leer): costes y `forHandle` se toman del contrato conocido de la API y quedan para el smoke del usuario.
 
 ## Threads
 

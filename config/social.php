@@ -377,6 +377,8 @@ return [
         /* YouTube (T-25): unidades de cuota/dia que pueden gastar los competidores (channels/playlistItems/videos.list = 1 ud cada una),
            aparte del cupo global de `YouTubeQuota`, para no dejar sin cupo las subidas (~1.600 ud). */
         'youtube_daily_units' => (int) env('SOCIAL_COMPETITORS_YOUTUBE_UNITS', 300),
+        /* Tope POR USUARIO dentro del global: un usuario no agota el cupo de los demas (~3 ud por competidor y dia: ~20 competidores). */
+        'youtube_user_daily_units' => (int) env('SOCIAL_COMPETITORS_YOUTUBE_USER_UNITS', 60),
     ],
 
     /*

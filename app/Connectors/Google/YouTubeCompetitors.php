@@ -25,7 +25,7 @@ use Throwable;
  *  - perfil: `channels.list` (`part=snippet,statistics`, por `forHandle` o `id`): 1 unidad; `subscriberCount` solo si el canal no lo oculta;
  *  - publicaciones: `playlistItems.list` de la lista de subidas (`UU` + id sin `UC`) y `videos.list` (`statistics`): 1 + 1 unidades.
  * Cuota: cada llamada se comprueba ANTES y se carga DESPUES en `YouTubeQuota` (cupo del proyecto, 10.000/dia) y en
- * `YouTubeCompetitorBudget` (tope diario propio, para no dejar sin cupo las subidas). `quotaExceeded`/`dailyLimitExceeded` (403) y 429
+ * `YouTubeCompetitorBudget` (tope diario global y por usuario, para no dejar sin cupo las subidas ni a otros usuarios). `quotaExceeded`/`dailyLimitExceeded` (403) y 429
  * son `QuotaExceededException` (con `Retry-After` si llega) y los reintenta `GuardsInsightsErrors` con espera creciente.
  */
 class YouTubeCompetitors implements CompetitorSource
@@ -44,6 +44,14 @@ class YouTubeCompetitors implements CompetitorSource
     public function network(): Network
     {
         return Network::YouTube;
+    }
+
+    public function copy(): array
+    {
+        return [
+            'username' => 'Usuario del canal de YouTube (@usuario) o su URL', 'placeholder' => '@canal', 'followers' => 'Suscriptores', 'media' => 'Videos',
+            'note' => 'Solo se leen datos públicos: suscriptores y número de videos, una vez al día. Cada lectura gasta cuota de la API de YouTube, con un tope diario propio para no quitársela a tus subidas.',
+        ];
     }
 
     public function needsAccount(): bool
@@ -148,7 +156,7 @@ class YouTubeCompetitors implements CompetitorSource
         }
 
         $this->quota->assertAvailable(self::LIST_COST);
-        $this->budget->assertAllows(self::LIST_COST);
+        $this->budget->assertAllows(self::LIST_COST, (int) $account->user_id);
 
         try {
             $response = Http::timeout((int) config('social.http_timeout', 15))->acceptJson()->withToken((string) $account->access_token)->get(self::API.'/'.$resource, $query);
@@ -158,7 +166,7 @@ class YouTubeCompetitors implements CompetitorSource
 
         // Toda llamada que llega a la API gasta cupo (tambien las que fallan con 4xx), salvo que Google diga que ya esta agotado.
         $this->quota->charge(self::LIST_COST);
-        $this->budget->charge(self::LIST_COST);
+        $this->budget->charge(self::LIST_COST, (int) $account->user_id);
 
         if (! $response->successful()) {
             throw $this->exceptionFor($response);
@@ -173,8 +181,10 @@ class YouTubeCompetitors implements CompetitorSource
         $reason = (string) ($response->json('error.errors.0.reason') ?? $response->json('error.status') ?? '');
         Log::warning('youtube.competitor_error', ['status' => $status, 'reason' => $reason]);
 
+        // 401: el access token pudo caducar entre renovaciones. Como en `Analytics`, es transitorio: se reintenta tras el refresco programado
+        // de tokens y SOLO si ese refresco falla se marca el canal para reconectar (marcarlo aqui bloquearia sus subidas programadas).
         if ($status === 401) {
-            return new ReconnectRequiredException('YouTube rechazo las credenciales ('.($reason ?: $status).'). Reconecta el canal.');
+            return new TransientPublishException('YouTube rechazo el token (puede haber caducado); se reintentara tras renovarlo.', 'youtube_token_caducado');
         }
 
         if (in_array($reason, ['quotaExceeded', 'dailyLimitExceeded', 'RESOURCE_EXHAUSTED'], true)) {

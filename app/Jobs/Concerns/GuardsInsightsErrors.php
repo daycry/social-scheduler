@@ -5,6 +5,7 @@ namespace App\Jobs\Concerns;
 use App\Connectors\Exceptions\ConnectorException;
 use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
+use App\Connectors\Exceptions\ScopeMissingException;
 use App\Connectors\Exceptions\TransientPublishException;
 use App\Models\SocialAccount;
 use App\Services\SocialAccountService;
@@ -30,6 +31,9 @@ trait GuardsInsightsErrors
             $work();
 
             return true;
+        } catch (ScopeMissingException $e) {
+            // Permiso opcional retirado: se pide reconectar cuando convenga, pero la cuenta sigue sirviendo y no se bloquea.
+            Log::warning('analytics.scope_missing', ['account_id' => $account?->id]);
         } catch (ReconnectRequiredException $e) {
             // Sin cuenta propia (fuentes publicas como Bluesky) no hay nada que marcar: se registra y la pasada siguiente reintenta.
             $account ? $accounts->flagReconnection($account, $e->getMessage()) : Log::warning('analytics.reconnect_without_account', ['code' => $e->getCode()]);

@@ -22,9 +22,10 @@ class CompetitorSources
         }
     }
 
+    /** @throws InvalidArgumentException si la red no tiene fuente o esta deshabilitada en esta instalacion (no se consulta). */
     public function for(Network $network): CompetitorSource
     {
-        return $this->sources[$network->value] ?? throw new InvalidArgumentException("No hay fuente de competidores para {$network->label()}.");
+        return $this->has($network) ? $this->sources[$network->value] : throw new InvalidArgumentException("No hay fuente de competidores disponible para {$network->label()}.");
     }
 
     public function has(Network $network): bool

@@ -48,6 +48,11 @@ class CollectCompetitorSnapshot implements ShouldBeUnique, ShouldQueue
             return;
         }
 
+        // Una red deshabilitada en esta instalacion no se consulta.
+        if (! $competitors->available($competitor->network)) {
+            return;
+        }
+
         // Cada red lee con su fuente publica (Instagram y YouTube con el token de una cuenta propia; Bluesky sin cuenta).
         $account = $competitors->accountFor($competitor);
         if ($account === null && $competitors->source($competitor->network)->needsAccount()) {

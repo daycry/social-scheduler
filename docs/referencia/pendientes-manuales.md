@@ -112,3 +112,11 @@ Listadas en [configuración](configuracion.md#resumen-de-decisiones-por-confirma
 | Guardar `APP_KEY` y la frase de cifrado en un gestor de secretos | Sin ellos una restauración deja ilegibles tokens y 2FA |
 | Ejecutar `deploy/github/protect-main.sh` (T-10) | Requiere ser admin del repo; no se ha ejecutado. Comprobar después con `gh api repos/:owner/:repo/branches/main/protection` |
 | Probar `deploy/hestia/deploy.sh` y `rollback` en el VPS (T-11) | Solo se probó `--dry-run` y el orden de pasos; un despliegue real y un rollback reales son del usuario. Necesita `gh` autenticado en el servidor (o `--force-unverified`) |
+
+## Verificación real de T-24 y T-25 (competidores y primer comentario)
+
+| Pendiente | Detalle |
+|---|---|
+| Probar la migración `2026_12_20_090000_add_network_to_competitors` en MySQL 8 | Sube y baja con `php artisan migrate` / `migrate:rollback --step=1` sobre una base con competidores. El orden crea el único `(brand_id, network, username)` antes de borrar el antiguo `(brand_id, username)` (el error 1553 salta si se borra el único que sostiene la FK de `brand_id`); el test solo comprueba el orden. Comprobar también que el índice con `username` de 253 caracteres cabe (utf8mb4) |
+| Smoke de competidores de Bluesky y YouTube | Seguir un handle real de Bluesky y un canal real de YouTube; ver snapshots, publicaciones destacadas y el gasto de cuota (`SOCIAL_COMPETITORS_YOUTUBE_UNITS`) |
+| Smoke del primer comentario en Threads y Bluesky | Publicar con primer comentario en ambas redes; comprobar que no se duplica en un reintento y que el hilo muestra enlaces y menciones |

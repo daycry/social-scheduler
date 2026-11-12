@@ -4,7 +4,7 @@ import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import FeatureEmpty from '@/Components/FeatureEmpty.vue';
 import NetworkChip from '@/Components/NetworkChip.vue';
-import NetworkIcon from '@/Components/NetworkIcon.vue';
+import NetworkChips from '@/Components/NetworkChips.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
@@ -24,24 +24,15 @@ const props = defineProps({
 const form = useForm({ brand_id: props.brand?.id ?? '', username: '' });
 const submit = () => form.transform((d) => ({ ...d, network: props.network })).post(route('competitors.store'), { preserveScroll: true, onSuccess: () => form.reset('username') });
 
-// Textos por red: el resto de la pantalla es común a todas.
-const netLabel = computed(() => props.networks.find((n) => n.value === props.network)?.label ?? 'Instagram');
-const usernameLabel = computed(
-    () =>
-        ({
-            instagram: 'Usuario de Instagram (cuenta Business o Creator)',
-            bluesky: 'Usuario de Bluesky (por ejemplo ana.bsky.social)',
-            youtube: 'Usuario del canal de YouTube (@usuario) o su URL',
-        })[props.network] ?? `Usuario de ${netLabel.value}`,
-);
-const usernamePlaceholder = computed(() => ({ instagram: '@usuario', bluesky: 'ana.bsky.social', youtube: '@canal' })[props.network] ?? '@usuario');
-const followersLabel = computed(() => (props.network === 'youtube' ? 'Suscriptores' : 'Seguidores'));
-const mediaLabel = computed(() => (props.network === 'youtube' ? 'Videos' : 'Publicaciones'));
-const dataNote = computed(() =>
-    props.network === 'youtube'
-        ? 'Solo se leen datos públicos: suscriptores y número de videos, una vez al día. Cada lectura gasta cuota de la API de YouTube (con un tope diario propio para no quitársela a tus subidas).'
-        : 'Solo se leen datos públicos: seguidores y número de publicaciones, una vez al día.',
-);
+// Textos por red: vienen del servidor (la fuente de cada red); el resto de la pantalla es común a todas.
+const current = computed(() => props.networks.find((n) => n.value === props.network) ?? null);
+const netLabel = computed(() => current.value?.label ?? '');
+const copy = computed(() => current.value?.copy ?? { username: 'Usuario', placeholder: '@usuario', followers: 'Seguidores', media: 'Publicaciones', note: '' });
+const usernameLabel = computed(() => copy.value.username);
+const usernamePlaceholder = computed(() => copy.value.placeholder);
+const followersLabel = computed(() => copy.value.followers);
+const mediaLabel = computed(() => copy.value.media);
+const dataNote = computed(() => copy.value.note);
 const remove = (c) => {
     if (confirm(`¿Dejar de seguir a @${c.username}?`)) router.delete(route('competitors.destroy', c.id), { preserveScroll: true });
 };
@@ -49,7 +40,7 @@ const remove = (c) => {
 const range = useForm({ from: props.comparison?.range?.from ?? '', to: props.comparison?.range?.to ?? '', sort: props.comparison?.sort ?? 'followers' });
 const sortLabels = computed(() => ({ followers: followersLabel.value, growth: 'Crecimiento', growth_pct: 'Crecimiento %', media: mediaLabel.value, avg_interactions: 'Interacciones medias' }));
 const query = () => ({ brand_id: props.brand?.id, network: props.network, from: range.from, to: range.to, sort: range.sort });
-const networkHref = (value) => route('competitors.index', { brand_id: props.brand?.id, network: value });
+const networkItems = computed(() => props.networks.map((n) => ({ value: n.value, label: n.label, href: route('competitors.index', { brand_id: props.brand?.id, network: n.value }), testid: `competitor-network-${n.value}` })));
 const apply = () => router.get(route('competitors.index'), query(), { preserveScroll: true });
 const exportUrl = computed(() => route('competitors.export', query()));
 const showPosts = (c) => router.get(route('competitors.index'), { ...query(), competitor: c.id }, { preserveScroll: true });
@@ -80,18 +71,7 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
 
         <div class="space-y-5">
             <p v-if="flash?.success" class="text-sm text-emerald-700" role="status">{{ flash.success }}</p>
-            <nav v-if="brand && networks.length > 1" class="flex gap-2 overflow-x-auto pb-1 text-sm" aria-label="Red de los competidores" data-testid="competitor-networks">
-                <Link
-                    v-for="n in networks"
-                    :key="n.value"
-                    :href="networkHref(n.value)"
-                    :aria-current="n.value === network ? 'page' : undefined"
-                    :data-testid="`competitor-network-${n.value}`"
-                    :class="['flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 font-medium', n.value === network ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200']"
-                >
-                    <NetworkIcon :network="n.value" size="sm" />{{ n.label }}
-                </Link>
-            </nav>
+            <NetworkChips v-if="brand && networks.length > 1" :items="networkItems" :active="network" label="Red de los competidores" data-testid="competitor-networks" />
             <FeatureEmpty
                 v-if="!brand || !has_account"
                 :network="network"

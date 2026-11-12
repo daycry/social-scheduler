@@ -154,17 +154,18 @@ class ThreadsClient
     }
 
     /**
-     * ¿El rechazo de permisos se refiere a un objeto concreto y no a la cuenta? El codigo 10 («Application does not have permission for
-     * this action») es siempre de la cuenta; el resto (3, 200-299) lo es solo si el mensaje nombra el permiso o la aplicacion, y es del
-     * objeto si habla de la publicacion/contenido/usuario (borrado, ajeno, no visible). Ante la duda, de la cuenta (comportamiento previo).
+     * ¿El rechazo de permisos se refiere a UN objeto (publicacion borrada, inexistente o de otra persona) y no a la cuenta? Por defecto
+     * es de la CUENTA (retira el scope y pide reconectar, el comportamiento seguro). Solo se da por «de objeto» con frases completas e
+     * inequivocas: palabras sueltas como «user», «post» o «content» aparecen tambien en errores de la cuenta («The user hasn't authorized
+     * the application…», «User does not have sufficient administrative permission…»).
      */
     private static function aboutObject(int $code, string $message): bool
     {
-        if ($code === 10 || str_starts_with($message, '(#10)') || preg_match('/threads_[a-z_]+|application does not have|app does not have|permission[s]? (is|are) (not|either)|scope/i', $message) === 1) {
+        if ($code === 10 || str_starts_with($message, '(#10)')) {
             return false;
         }
 
-        return preg_match('/\b(post|thread|media|object|content|user|reply|replies|deleted|not visible|cannot be (accessed|loaded)|does not exist)\b/i', $message) === 1;
+        return preg_match('/(does not exist|doesn.t exist|no longer (exists|available)|(was|has been|been) (deleted|removed)|belongs to (another|a different|someone else)|owned by (another|a different|someone else))/i', $message) === 1;
     }
 
     /** @return array{0: int, 1: int, 2: string} codigo, subcodigo y mensaje legible. */

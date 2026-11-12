@@ -46,6 +46,7 @@ class CompetitorController extends Controller
                 'value' => $n->value,
                 'label' => $n->label(),
                 'needs_account' => $this->competitors->source($n)->needsAccount(),
+                'copy' => $this->competitors->source($n)->copy(),
                 'has_account' => $brand ? $this->hasAccount($request->user()->id, $brand->id, $n) : false,
             ])->values()->all(),
             'comparison' => $comparison,

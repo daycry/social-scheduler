@@ -250,6 +250,7 @@ Variables nuevas, todas opcionales (valores por defecto en la segunda columna). 
 | `SOCIAL_INBOX_BUDGET_SECONDS` | `60` | Presupuesto de tiempo por pasada del job (< `timeout` 90 s); si no caben todas las publicaciones, el job se reencola con el desplazamiento |
 | `SOCIAL_BEST_TIMES_DAYS` / `_MIN_POSTS` / `_CACHE_MINUTES` | `90` / `10` / `10` | Ventana del mapa de calor, mínimo de publicaciones con métricas y caché corta (0 = sin caché) |
 | `SOCIAL_COMPETITORS_DAILY_AT` / `_MAX` | `13:00` / `10` | Hora UTC del snapshot diario de competidores y máximo por marca |
+| `SOCIAL_COMPETITORS_YOUTUBE_UNITS` | `300` | Unidades de cuota de YouTube por día que pueden gastar los competidores (T-25) |
 | `SOCIAL_ADS_CACHE_MINUTES` | `10` | Caché de las respuestas de Meta Ads |
 | `AI_ASSISTANT_ENABLED` + `ANTHROPIC_API_KEY` | `false` / vacío | El asistente «Sugerir texto» solo existe si **ambas** están definidas |
 | `AI_ASSISTANT_DAILY_LIMIT` / `_GLOBAL_DAILY_LIMIT` | `20` / `200` | Sugerencias por usuario y día, y tope global diario entre todos los usuarios (0 = sin tope global) |

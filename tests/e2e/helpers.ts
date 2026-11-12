@@ -895,3 +895,13 @@ export function seedCompetitors(brandId: number) {
             String.raw`$p = new App\Models\CompetitorPost(['competitor_id' => $c->id, 'external_id' => $u . '-1', 'caption' => $caption, 'likes_count' => $likes, 'comments_count' => $comments, 'posted_at' => now()->subDays(3), 'permalink' => 'https://www.instagram.com/p/' . $u . '/']); $p->user_id = $b->user_id; $p->save(); }`,
     );
 }
+
+/** T-25 · un competidor de Bluesky ya «recogido» (snapshots y una publicación), sin llamar a la red. */
+export function seedBlueskyCompetitor(brandId: number) {
+    artisan(
+        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$c = new App\Models\Competitor(['network' => 'bluesky', 'username' => 'rival_bsky.bsky.social', 'external_id' => 'did:plc:e2erivalbsky', 'name' => 'E2E Rival Bluesky']); $c->user_id = $b->user_id; $c->brand_id = $b->id; $c->save(); ` +
+            String.raw`foreach ([[20, 400], [1, 520]] as [$ago, $f]) { App\Models\CompetitorSnapshot::withoutUserScope()->create(['user_id' => $b->user_id, 'competitor_id' => $c->id, 'date' => now('UTC')->subDays($ago)->toDateString(), 'followers_count' => $f, 'media_count' => 12]); } ` +
+            String.raw`$p = new App\Models\CompetitorPost(['competitor_id' => $c->id, 'external_id' => '3ke2epost', 'caption' => 'e2e post bluesky', 'likes_count' => 9, 'comments_count' => 2, 'posted_at' => now()->subDays(2), 'permalink' => 'https://bsky.app/profile/rival_bsky.bsky.social/post/3ke2epost']); $p->user_id = $b->user_id; $p->save();`,
+    );
+}

@@ -2,12 +2,15 @@
 
 namespace App\Providers;
 
+use App\Connectors\Bluesky\BlueskyCompetitors;
 use App\Connectors\Bluesky\BlueskyConnector;
 use App\Connectors\Bluesky\BlueskyInsights;
 use App\Connectors\Bluesky\BlueskyPublisher;
+use App\Connectors\CompetitorSources;
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Google\Analytics as YouTubeAnalytics;
 use App\Connectors\Google\GoogleConnector;
+use App\Connectors\Google\YouTubeCompetitors;
 use App\Connectors\Google\YouTubePublisher;
 use App\Connectors\LinkedIn\LinkedInConnector;
 use App\Connectors\LinkedIn\LinkedInPublisher;
@@ -15,6 +18,7 @@ use App\Connectors\Meta\Facebook\FacebookPublisher;
 use App\Connectors\Meta\GraphClient;
 use App\Connectors\Meta\Insights as MetaInsights;
 use App\Connectors\Meta\Instagram\InstagramPublisher;
+use App\Connectors\Meta\InstagramCompetitors;
 use App\Connectors\Meta\MetaConnector;
 use App\Connectors\Network;
 use App\Connectors\Pinterest\PinterestConnector;
@@ -65,6 +69,13 @@ class AppServiceProvider extends ServiceProvider
         // Passkeys (T-08): las rutas del paquete no se cargan; las propias (routes/auth.php) llaman a sus Actions
         // a traves de PasskeyGateway. Hay que ignorarlas antes de que arranque el provider del paquete.
         Passkeys::ignoreRoutes();
+
+        // Fuentes de competidores (T-25), una por red detras del contrato `CompetitorSource`.
+        $this->app->singleton(CompetitorSources::class, fn ($app) => new CompetitorSources([
+            $app->make(InstagramCompetitors::class),
+            $app->make(BlueskyCompetitors::class),
+            $app->make(YouTubeCompetitors::class),
+        ]));
 
         // Los conectores de cada proveedor se registran aqui (T-12 Meta, T-13 Google, T-14 TikTok).
         $this->app->singleton(ConnectorRegistry::class, function () {

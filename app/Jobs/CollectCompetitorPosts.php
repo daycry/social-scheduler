@@ -52,9 +52,12 @@ class CollectCompetitorPosts implements ShouldBeUnique, ShouldQueue
         }
 
         $competitor = Competitor::withoutUserScope()->find($this->competitorId);
-        $account = $competitor ? $competitors->queryAccount($competitor->user_id, $competitor->brand_id, $competitor->social_account_id) : null;
-        if (! $competitor || ! $account) {
+        if (! $competitor) {
             return;
+        }
+        $account = $competitors->accountFor($competitor);
+        if ($account === null && $competitors->source($competitor->network)->needsAccount()) {
+            return; // sin cuenta propia activa en esa red no hay con que consultar
         }
 
         $this->guarded($account, $accounts, function () use ($competitors, $competitor): void {

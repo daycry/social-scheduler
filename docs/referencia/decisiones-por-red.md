@@ -85,7 +85,12 @@ Decisiones de la tercera ola (opción O1 del diseño: contrato segregado y catá
 - **Idempotencia:** `rkey` TID guardada antes de `createRecord`; `getRecord` antes de fallar.
 - **Métricas:** solo seguidores y posts de cuenta; likes, respuestas, reposts y citas por post; sin visualizaciones ni alcance (`null`).
 - **Primer comentario (T-24):** respuesta propia con `reply{root,parent}` (ambos = la publicación, `strongRef` uri+cid). Verificado el 2026-11-12 en el lexicon `app.bsky.feed.post` (`reply` → `#replyRef`, requeridos `root` y `parent`) y `com.atproto.repo.listRecords` (lectura pública; `limit` 1–100, `cursor`, `reverse`) del paquete `@atproto/api` 0.31.1. Límite 300 caracteres. Idempotencia: `listRecords` del repositorio propio filtrado por `reply.parent`. Pendiente del smoke: que el hilo se vea en la app con enlaces y menciones.
+- **Competidores (T-25):** fuente pública sin cuenta propia: `app.bsky.actor.getProfile` (`did`, `handle`, `displayName`, `avatar`, `followersCount`, `postsCount`) y `app.bsky.feed.getAuthorFeed` (`filter=posts_no_replies`; cada `post` con `likeCount` y `replyCount`) en el AppView. Los parámetros de `getAuthorFeed` y la forma de `feed[].post` no se pudieron contrastar con la documentación en esta sesión (solo el lexicon de `listRecords`/`post`); queda para el smoke real. Detalle en [competidores](../modulos/competidores.md).
 - **Pendiente de verificar en el smoke real (T-30, M-01):** `aud` del `getServiceAuth` de subida de vídeo, error del PDS con `rkey` repetida y host público del AppView.
+
+## YouTube · competidores (T-25)
+
+Datos públicos de canales ajenos con la YouTube Data API v3 y el token de un canal propio: `channels.list` (`forHandle`/`id`, `snippet,statistics`; `hiddenSubscriberCount`), `playlistItems.list` (lista de subidas `UU…`) y `videos.list` (`statistics`: `likeCount` y `commentCount` pueden faltar). Coste **1 unidad** por lista. Cuota: `YouTubeQuota` global + presupuesto propio `YouTubeCompetitorBudget` (300/día). `quotaExceeded` (403) y 429 se reintentan con `GuardsInsightsErrors`. **No verificado contra la documentación en esta sesión** (las páginas de Google/Meta no se pudieron leer): costes y `forHandle` se toman del contrato conocido de la API y quedan para el smoke del usuario.
 
 ## Threads
 

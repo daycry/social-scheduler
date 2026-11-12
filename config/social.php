@@ -374,6 +374,9 @@ return [
         'posts_limit' => (int) env('SOCIAL_COMPETITORS_POSTS_LIMIT', 25),
         'posts_at' => env('SOCIAL_COMPETITORS_POSTS_AT', '13:30'),
         'max_per_brand' => (int) env('SOCIAL_COMPETITORS_MAX', 10),
+        /* YouTube (T-25): unidades de cuota/dia que pueden gastar los competidores (channels/playlistItems/videos.list = 1 ud cada una),
+           aparte del cupo global de `YouTubeQuota`, para no dejar sin cupo las subidas (~1.600 ud). */
+        'youtube_daily_units' => (int) env('SOCIAL_COMPETITORS_YOUTUBE_UNITS', 300),
     ],
 
     /*

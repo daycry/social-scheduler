@@ -24,27 +24,28 @@ use Throwable;
 trait GuardsInsightsErrors
 {
     /** @param Closure(): void $work */
-    protected function guarded(SocialAccount $account, SocialAccountService $accounts, Closure $work): bool
+    protected function guarded(?SocialAccount $account, SocialAccountService $accounts, Closure $work): bool
     {
         try {
             $work();
 
             return true;
         } catch (ReconnectRequiredException $e) {
-            $accounts->flagReconnection($account, $e->getMessage());
+            // Sin cuenta propia (fuentes publicas como Bluesky) no hay nada que marcar: se registra y la pasada siguiente reintenta.
+            $account ? $accounts->flagReconnection($account, $e->getMessage()) : Log::warning('analytics.reconnect_without_account', ['code' => $e->getCode()]);
         } catch (TransientPublishException $e) {
-            Log::warning('analytics.transient', ['account_id' => $account->id, 'network' => $account->network->value, 'code' => $e->errorCode]);
+            Log::warning('analytics.transient', ['account_id' => $account?->id, 'network' => $account?->network->value, 'code' => $e->errorCode]);
 
             $this->release($this->backoff);
         } catch (QuotaExceededException $e) {
             $delay = $this->quotaDelay($e);
-            Log::warning('analytics.quota', ['account_id' => $account->id, 'network' => $account->network->value, 'code' => $e->errorCode, 'delay' => $delay]);
+            Log::warning('analytics.quota', ['account_id' => $account?->id, 'network' => $account?->network->value, 'code' => $e->errorCode, 'delay' => $delay]);
 
             $this->release($delay);
         } catch (ConnectorException $e) {
-            Log::warning('analytics.error', ['account_id' => $account->id, 'exception' => $e::class]);
+            Log::warning('analytics.error', ['account_id' => $account?->id, 'exception' => $e::class]);
         } catch (Throwable $e) {
-            Log::error('analytics.unexpected', ['account_id' => $account->id, 'exception' => $e::class]);
+            Log::error('analytics.unexpected', ['account_id' => $account?->id, 'exception' => $e::class]);
         }
 
         return false;

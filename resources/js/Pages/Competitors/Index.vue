@@ -4,13 +4,16 @@ import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import FeatureEmpty from '@/Components/FeatureEmpty.vue';
 import NetworkChip from '@/Components/NetworkChip.vue';
+import NetworkIcon from '@/Components/NetworkIcon.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
-/** Competidores de Instagram (PA-08): seguidores y publicaciones de otras cuentas profesionales (Business Discovery). */
+/** Competidores (PA-08, T-25): seguidores y publicaciones públicas de otras cuentas en Instagram (Business Discovery), Bluesky y YouTube. */
 const props = defineProps({
     brand: Object,
-    has_instagram: Boolean,
+    network: { type: String, default: 'instagram' },
+    networks: { type: Array, default: () => [] },
+    has_account: Boolean,
     comparison: Object,
     max: Number,
     sorts: { type: Array, default: () => [] },
@@ -19,14 +22,34 @@ const props = defineProps({
 });
 
 const form = useForm({ brand_id: props.brand?.id ?? '', username: '' });
-const submit = () => form.post(route('competitors.store'), { preserveScroll: true, onSuccess: () => form.reset('username') });
+const submit = () => form.transform((d) => ({ ...d, network: props.network })).post(route('competitors.store'), { preserveScroll: true, onSuccess: () => form.reset('username') });
+
+// Textos por red: el resto de la pantalla es común a todas.
+const netLabel = computed(() => props.networks.find((n) => n.value === props.network)?.label ?? 'Instagram');
+const usernameLabel = computed(
+    () =>
+        ({
+            instagram: 'Usuario de Instagram (cuenta Business o Creator)',
+            bluesky: 'Usuario de Bluesky (por ejemplo ana.bsky.social)',
+            youtube: 'Usuario del canal de YouTube (@usuario) o su URL',
+        })[props.network] ?? `Usuario de ${netLabel.value}`,
+);
+const usernamePlaceholder = computed(() => ({ instagram: '@usuario', bluesky: 'ana.bsky.social', youtube: '@canal' })[props.network] ?? '@usuario');
+const followersLabel = computed(() => (props.network === 'youtube' ? 'Suscriptores' : 'Seguidores'));
+const mediaLabel = computed(() => (props.network === 'youtube' ? 'Videos' : 'Publicaciones'));
+const dataNote = computed(() =>
+    props.network === 'youtube'
+        ? 'Solo se leen datos públicos: suscriptores y número de videos, una vez al día. Cada lectura gasta cuota de la API de YouTube (con un tope diario propio para no quitársela a tus subidas).'
+        : 'Solo se leen datos públicos: seguidores y número de publicaciones, una vez al día.',
+);
 const remove = (c) => {
     if (confirm(`¿Dejar de seguir a @${c.username}?`)) router.delete(route('competitors.destroy', c.id), { preserveScroll: true });
 };
 
 const range = useForm({ from: props.comparison?.range?.from ?? '', to: props.comparison?.range?.to ?? '', sort: props.comparison?.sort ?? 'followers' });
-const sortLabels = { followers: 'Seguidores', growth: 'Crecimiento', growth_pct: 'Crecimiento %', media: 'Publicaciones', avg_interactions: 'Interacciones medias' };
-const query = () => ({ brand_id: props.brand?.id, from: range.from, to: range.to, sort: range.sort });
+const sortLabels = computed(() => ({ followers: followersLabel.value, growth: 'Crecimiento', growth_pct: 'Crecimiento %', media: mediaLabel.value, avg_interactions: 'Interacciones medias' }));
+const query = () => ({ brand_id: props.brand?.id, network: props.network, from: range.from, to: range.to, sort: range.sort });
+const networkHref = (value) => route('competitors.index', { brand_id: props.brand?.id, network: value });
 const apply = () => router.get(route('competitors.index'), query(), { preserveScroll: true });
 const exportUrl = computed(() => route('competitors.export', query()));
 const showPosts = (c) => router.get(route('competitors.index'), { ...query(), competitor: c.id }, { preserveScroll: true });
@@ -51,17 +74,29 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
         <template #header>
             <div class="flex flex-wrap items-center gap-3">
                 <h1 class="text-xl font-bold text-slate-900">Competidores</h1>
-                <NetworkChip network="instagram" />
+                <NetworkChip :network="network" />
             </div>
         </template>
 
         <div class="space-y-5">
             <p v-if="flash?.success" class="text-sm text-emerald-700" role="status">{{ flash.success }}</p>
+            <nav v-if="brand && networks.length > 1" class="flex gap-2 overflow-x-auto pb-1 text-sm" aria-label="Red de los competidores" data-testid="competitor-networks">
+                <Link
+                    v-for="n in networks"
+                    :key="n.value"
+                    :href="networkHref(n.value)"
+                    :aria-current="n.value === network ? 'page' : undefined"
+                    :data-testid="`competitor-network-${n.value}`"
+                    :class="['flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 font-medium', n.value === network ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200']"
+                >
+                    <NetworkIcon :network="n.value" size="sm" />{{ n.label }}
+                </Link>
+            </nav>
             <FeatureEmpty
-                v-if="!brand || !has_instagram"
-                network="instagram"
-                :title="brand ? 'Conecta Instagram para comparar competidores' : 'Crea una marca para comparar competidores'"
-                :description="brand ? `«${brand.name}» necesita una cuenta de Instagram profesional conectada para comparar su crecimiento con el de otras cuentas.` : 'Compara tu cuenta de Instagram con otras cuentas profesionales y mide su crecimiento.'"
+                v-if="!brand || !has_account"
+                :network="network"
+                :title="brand ? `Conecta ${netLabel} para comparar competidores` : 'Crea una marca para comparar competidores'"
+                :description="brand ? `«${brand.name}» necesita una cuenta de ${netLabel} conectada para comparar su crecimiento con el de otras cuentas.` : `Compara tu cuenta de ${netLabel} con otras cuentas y mide su crecimiento.`"
                 :cards="[
                     { title: 'Comparativa de seguidores', text: 'Tu cuenta frente a la de tus competidores, en un vistazo.', kind: 'chart' },
                     { title: 'Crecimiento a 7 y 30 días', text: 'Quién gana seguidores y a qué ritmo.', kind: 'calendar' },
@@ -69,7 +104,7 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
                 ]"
             >
                 <template #cta>
-                    <Link v-if="brand" :href="route('brands.connections.index', brand.id)" class="btn-primary">Conectar Instagram</Link>
+                    <Link v-if="brand" :href="route('brands.connections.index', brand.id)" class="btn-primary">Conectar {{ netLabel }}</Link>
                     <Link v-else :href="route('brands.create')" class="btn-primary">Crear mi primera marca</Link>
                 </template>
             </FeatureEmpty>
@@ -77,12 +112,12 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
             <template v-else>
                 <form class="card space-y-3 p-5" @submit.prevent="submit">
                     <label class="block text-sm">
-                        <span class="block text-xs font-medium text-slate-600">Usuario de Instagram (cuenta Business o Creator)</span>
-                        <input v-model="form.username" type="text" maxlength="31" required placeholder="@usuario" class="field max-w-xs" />
+                        <span class="block text-xs font-medium text-slate-600">{{ usernameLabel }}</span>
+                        <input v-model="form.username" type="text" maxlength="300" required :placeholder="usernamePlaceholder" class="field max-w-xs" data-testid="competitor-username" />
                     </label>
                     <InputError :message="form.errors.username || form.errors.brand_id" />
                     <PrimaryButton :disabled="form.processing">Seguir cuenta</PrimaryButton>
-                    <p class="text-xs text-slate-600">Hasta {{ max }} cuentas por marca. Solo se leen datos públicos: seguidores y número de publicaciones, una vez al día.</p>
+                    <p class="text-xs text-slate-600">Hasta {{ max }} cuentas por marca. {{ dataNote }}</p>
                 </form>
 
                 <form class="card flex flex-wrap items-end gap-3 p-4 text-sm" data-testid="range-form" @submit.prevent="apply">
@@ -107,23 +142,23 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
 
                 <section class="card overflow-x-auto" tabindex="0" role="region" aria-label="Comparativa de competidores">
                     <table class="w-full text-left text-sm">
-                        <caption class="sr-only">Comparativa de seguidores y publicaciones</caption>
+                        <caption class="sr-only">Comparativa de {{ followersLabel.toLowerCase() }} y {{ mediaLabel.toLowerCase() }}</caption>
                         <thead class="border-b text-xs text-slate-600">
                             <tr>
                                 <th scope="col" class="px-3 py-3 text-right font-medium">Pos.</th>
                                 <th scope="col" class="px-5 py-3 font-medium">Cuenta</th>
-                                <th scope="col" class="px-3 py-3 text-right font-medium">Seguidores</th>
+                                <th scope="col" class="px-3 py-3 text-right font-medium">{{ followersLabel }}</th>
                                 <th scope="col" class="px-3 py-3 text-right font-medium">En el rango</th>
                                 <th scope="col" class="px-3 py-3 text-right font-medium">%</th>
                                 <th scope="col" class="px-3 py-3 text-right font-medium">7 días</th>
                                 <th scope="col" class="px-3 py-3 text-right font-medium">30 días</th>
-                                <th scope="col" class="px-3 py-3 text-right font-medium">Publicaciones</th>
+                                <th scope="col" class="px-3 py-3 text-right font-medium">{{ mediaLabel }}</th>
                                 <th scope="col" class="px-3 py-3 text-right font-medium">Interacc. medias</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y">
                             <tr v-if="rows.length === 0">
-                                <td colspan="9" class="px-5 py-4 text-slate-600">Aún no sigues a ninguna cuenta.</td>
+                                <td colspan="9" class="px-5 py-4 text-slate-600">Aún no sigues a ninguna cuenta de {{ netLabel }}.</td>
                             </tr>
                             <tr v-for="r in rows" :key="r.id" data-testid="competitor-row">
                                 <td class="px-3 py-3 text-right tabular-nums" data-testid="rank">{{ r.rank ?? '—' }}</td>
@@ -162,7 +197,7 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
                             <p class="whitespace-pre-line break-words text-slate-800">{{ p.caption || 'Sin texto' }}</p>
                             <p class="mt-1 text-xs text-slate-600">
                                 {{ fmtDate(p.posted_at) }} · {{ n(p.likes) }} me gusta · {{ n(p.comments) }} comentarios · {{ n(p.interactions) }} interacciones
-                                <a v-if="p.permalink" :href="p.permalink" target="_blank" rel="noopener noreferrer" class="ms-1 underline">ver en Instagram</a>
+                                <a v-if="p.permalink" :href="p.permalink" target="_blank" rel="noopener noreferrer" class="ms-1 underline">ver en {{ netLabel }}</a>
                             </p>
                         </li>
                     </ol>

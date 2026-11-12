@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use App\Connectors\CompetitorSources;
+use App\Connectors\Contracts\CompetitorSource;
 use App\Connectors\Exceptions\ConnectorException;
+use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Connectors\Exceptions\TransientPublishException;
-use App\Connectors\Meta\BusinessDiscovery;
 use App\Connectors\Meta\CompetitorNotFound;
 use App\Connectors\Network;
 use App\Exceptions\PostValidationException;
@@ -20,20 +22,33 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
+use InvalidArgumentException;
 
 /**
- * Competidores de Instagram (PA-08): alta con comprobacion inmediata en Business Discovery, snapshot diario y
- * comparativa con la cuenta propia (seguidores, publicaciones y crecimiento a 7 y 30 dias).
+ * Competidores (PA-08, T-25): alta con comprobacion inmediata en la fuente publica de la red (Instagram: Business Discovery; Bluesky:
+ * AppView publico; YouTube: Data API con cuota), snapshot diario y comparativa con la cuenta propia de esa red (seguidores,
+ * publicaciones y crecimiento a 7 y 30 dias). Una fuente por red detras de `CompetitorSource` (ver `CompetitorSources`).
  */
 class CompetitorService
 {
-    public function __construct(private readonly BusinessDiscovery $discovery, private readonly SocialAccountService $accounts) {}
+    public function __construct(private readonly CompetitorSources $sources, private readonly SocialAccountService $accounts) {}
 
-    /** Cuenta de Instagram activa de la marca desde la que se consulta (la mas antigua). */
-    public function queryAccount(int $userId, int $brandId, ?int $preferredId = null): ?SocialAccount
+    public function source(Network $network): CompetitorSource
+    {
+        return $this->sources->for($network);
+    }
+
+    /** @return list<Network> Redes en las que se pueden seguir competidores en esta instalacion. */
+    public function networks(): array
+    {
+        return $this->sources->networks();
+    }
+
+    /** Cuenta propia activa de la marca en esa red desde la que se consulta (la mas antigua; Instagram por defecto). */
+    public function queryAccount(int $userId, int $brandId, ?int $preferredId = null, Network $network = Network::Instagram): ?SocialAccount
     {
         $query = SocialAccount::withoutUserScope()->where('user_id', $userId)->where('brand_id', $brandId)
-            ->where('network', Network::Instagram->value)->where('status', SocialAccount::STATUS_ACTIVE);
+            ->where('network', $network->value)->where('status', SocialAccount::STATUS_ACTIVE);
 
         if ($preferredId !== null && ($preferred = (clone $query)->find($preferredId))) {
             return $preferred;
@@ -42,51 +57,91 @@ class CompetitorService
         return $query->orderBy('id')->first();
     }
 
-    public function add(User $user, Brand $brand, string $username): Competitor
+    /** Cuenta propia con la que se consulta a este competidor, o null si su red no la necesita (Bluesky) o no hay ninguna activa. */
+    public function accountFor(Competitor $competitor): ?SocialAccount
+    {
+        return $this->source($competitor->network)->needsAccount()
+            ? $this->queryAccount($competitor->user_id, $competitor->brand_id, $competitor->social_account_id, $competitor->network)
+            : null;
+    }
+
+    /**
+     * Perfil publico actual del competidor (la fuente de su red).
+     *
+     * @return array<string, mixed>
+     */
+    public function fetchProfile(Competitor $competitor, ?SocialAccount $account): array
+    {
+        return $this->source($competitor->network)->lookup($account, $competitor->external_id ?: $competitor->username);
+    }
+
+    public function add(User $user, Brand $brand, string $username, Network $network = Network::Instagram): Competitor
     {
         if ($brand->user_id !== $user->id) {
             throw new PostValidationException(['brand' => ['La marca no pertenece al usuario.']]);
         }
+        if (! $this->sources->has($network)) {
+            throw new PostValidationException(['network' => ["{$network->label()} no admite competidores en esta instalacion."]]);
+        }
 
-        $username = strtolower(ltrim(trim($username), '@'));
-        if (preg_match(BusinessDiscovery::USERNAME_PATTERN, $username) !== 1) {
-            throw new PostValidationException(['username' => ['Escribe un usuario de Instagram valido (letras, numeros, puntos y guiones bajos).']]);
+        $source = $this->source($network);
+        $label = $network->label();
+        try {
+            $username = $source->normalize($username);
+        } catch (InvalidArgumentException $e) {
+            throw new PostValidationException(['username' => [$e->getMessage()]]);
         }
 
         $query = Competitor::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id);
-        if ((clone $query)->where('username', $username)->exists()) {
+        if ((clone $query)->where('network', $network->value)->where('username', $username)->exists()) {
             throw new PostValidationException(['username' => ['Ya sigues a esa cuenta.']]);
         }
         if ((clone $query)->count() >= (int) config('social.competitors.max_per_brand', 10)) {
             throw new PostValidationException(['username' => ['Has alcanzado el maximo de competidores para esta marca.']]);
         }
 
-        $account = $this->queryAccount($user->id, $brand->id);
-        if (! $account) {
-            throw new PostValidationException(['username' => ['Conecta una cuenta de Instagram activa en esta marca para comparar.']]);
+        $account = $source->needsAccount() ? $this->queryAccount($user->id, $brand->id, null, $network) : null;
+        if ($source->needsAccount() && ! $account) {
+            throw new PostValidationException(['username' => ["Conecta una cuenta de $label activa en esta marca para comparar."]]);
         }
-        if (strtolower((string) $account->username) === $username) {
+
+        // Una cuenta propia de la marca en esa red no es un competidor.
+        $own = SocialAccount::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->where('network', $network->value)->pluck('username')
+            ->map(fn ($u) => ltrim(mb_strtolower((string) $u), '@'));
+        if ($own->contains($username)) {
             throw new PostValidationException(['username' => ['Esa es tu propia cuenta.']]);
         }
 
         try {
-            $profile = $this->discovery->lookup($account, $username);
+            $profile = $source->lookup($account, $username);
         } catch (CompetitorNotFound $e) {
             throw new PostValidationException(['username' => [$e->getMessage()]]);
         } catch (ReconnectRequiredException $e) {
-            $this->accounts->flagReconnection($account, $e->getMessage());
-            throw new PostValidationException(['username' => ['Tu cuenta de Instagram necesita reconectarse.']]);
+            if ($account) {
+                $this->accounts->flagReconnection($account, $e->getMessage());
+            }
+            throw new PostValidationException(['username' => ["Tu cuenta de $label necesita reconectarse."]]);
+        } catch (QuotaExceededException) {
+            throw new PostValidationException(['username' => ["La cuota diaria de $label para competidores esta agotada. Se libera pronto; intentalo mas tarde."]]);
         } catch (TransientPublishException) {
-            throw new PostValidationException(['username' => ['Instagram no responde ahora mismo. Intentalo de nuevo en unos minutos.']]);
+            throw new PostValidationException(['username' => ["$label no responde ahora mismo. Intentalo de nuevo en unos minutos."]]);
         } catch (ConnectorException) {
-            throw new PostValidationException(['username' => ['Instagram rechazo la consulta. Revisa los permisos de la cuenta conectada.']]);
+            throw new PostValidationException(['username' => ["$label rechazo la consulta. Revisa los permisos de la cuenta conectada."]]);
+        }
+
+        // El perfil trae el usuario canonico (un canal de YouTube o un handle de Bluesky pueden haberse escrito de otra forma).
+        $canonical = mb_strtolower($profile['username']);
+        if ($canonical !== $username && (clone $query)->where('network', $network->value)->where('username', $canonical)->exists()) {
+            throw new PostValidationException(['username' => ['Ya sigues a esa cuenta.']]);
         }
 
         $competitor = new Competitor([
-            'username' => strtolower($profile['username']),
+            'network' => $network,
+            'username' => $canonical,
+            'external_id' => $profile['external_id'] ?? null,
             'name' => $profile['name'],
             'profile_picture_url' => $profile['profile_picture_url'],
-            'social_account_id' => $account->id,
+            'social_account_id' => $account?->id,
             'last_synced_at' => now(),
         ]);
         $competitor->user_id = $user->id;
@@ -104,6 +159,7 @@ class CompetitorService
         $competitor->forceFill([
             'name' => $profile['name'] ?? $competitor->name,
             'profile_picture_url' => $profile['profile_picture_url'] ?? $competitor->profile_picture_url,
+            'external_id' => $profile['external_id'] ?? $competitor->external_id,
             'last_synced_at' => now(),
             'last_error' => null,
         ])->save();
@@ -141,12 +197,13 @@ class CompetitorService
     /** Lee las ultimas publicaciones publicas del competidor y las guarda (upsert por id). Devuelve cuantas procesó. */
     public function refreshPosts(Competitor $competitor): int
     {
-        $account = $this->queryAccount($competitor->user_id, $competitor->brand_id, $competitor->social_account_id);
-        if (! $account) {
-            throw new PostValidationException(['username' => ['Conecta una cuenta de Instagram activa en esta marca para comparar.']]);
+        $source = $this->source($competitor->network);
+        $account = $this->accountFor($competitor);
+        if ($source->needsAccount() && ! $account) {
+            throw new PostValidationException(['username' => ["Conecta una cuenta de {$competitor->network->label()} activa en esta marca para comparar."]]);
         }
 
-        $rows = $this->discovery->media($account, $competitor->username, (int) config('social.competitors.posts_limit', 25));
+        $rows = $source->media($account, $competitor->username, $competitor->external_id, (int) config('social.competitors.posts_limit', 25));
         foreach ($rows as $r) {
             $post = CompetitorPost::withoutUserScope()->firstOrNew(['competitor_id' => $competitor->id, 'external_id' => $r['external_id']]);
             $post->fill($r);
@@ -181,11 +238,13 @@ class CompetitorService
         } catch (CompetitorNotFound $e) {
             throw new PostValidationException(['username' => [$e->getMessage()]]);
         } catch (ReconnectRequiredException $e) {
-            throw new PostValidationException(['username' => ['Tu cuenta de Instagram necesita reconectarse.']]);
+            throw new PostValidationException(['username' => ["Tu cuenta de {$competitor->network->label()} necesita reconectarse."]]);
+        } catch (QuotaExceededException) {
+            throw new PostValidationException(['username' => ["La cuota diaria de {$competitor->network->label()} para competidores esta agotada. Se libera pronto; intentalo mas tarde."]]);
         } catch (TransientPublishException) {
-            throw new PostValidationException(['username' => ['Instagram no responde ahora mismo. Intentalo de nuevo en unos minutos.']]);
+            throw new PostValidationException(['username' => ["{$competitor->network->label()} no responde ahora mismo. Intentalo de nuevo en unos minutos."]]);
         } catch (ConnectorException) {
-            throw new PostValidationException(['username' => ['Instagram rechazo la consulta. Revisa los permisos de la cuenta conectada.']]);
+            throw new PostValidationException(['username' => ["{$competitor->network->label()} rechazo la consulta. Revisa los permisos de la cuenta conectada."]]);
         }
     }
 
@@ -213,15 +272,15 @@ class CompetitorService
      * crecimiento (absoluto y %), publicaciones, interacciones medias de lo recogido y su posicion en el ranking.
      * Solo usa datos recogidos: sin snapshot en el rango el valor es null (no 0).
      *
-     * @return array{own: ?array<string, mixed>, competitors: list<array<string, mixed>>, range: array{from: string, to: string}, sort: string}
+     * @return array{own: ?array<string, mixed>, competitors: list<array<string, mixed>>, range: array{from: string, to: string}, sort: string, network: string}
      */
-    public function comparison(User $user, Brand $brand, ?string $from = null, ?string $to = null, string $sort = 'followers'): array
+    public function comparison(User $user, Brand $brand, ?string $from = null, ?string $to = null, string $sort = 'followers', Network $network = Network::Instagram): array
     {
         [$from, $to] = $this->range($from, $to);
         $sort = in_array($sort, self::SORTS, true) ? $sort : 'followers';
         $since = min($from, now('UTC')->subDays(31)->toDateString());
 
-        $competitors = Competitor::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->orderBy('username')->get();
+        $competitors = Competitor::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->where('network', $network->value)->orderBy('username')->get();
         $snapshots = CompetitorSnapshot::withoutUserScope()->where('user_id', $user->id)
             ->whereIn('competitor_id', $competitors->pluck('id'))->where('date', '>=', $since)->where('date', '<=', $to)
             ->orderBy('date')->get()->groupBy('competitor_id');
@@ -239,11 +298,11 @@ class CompetitorService
         })->values()->all();
 
         $own = null;
-        $account = $this->queryAccount($user->id, $brand->id);
+        $account = $this->queryAccount($user->id, $brand->id, null, $network);
         if ($account) {
             $series = AccountSnapshot::withoutUserScope()->where('user_id', $user->id)->where('social_account_id', $account->id)
                 ->where('date', '>=', $since)->where('date', '<=', $to)->orderBy('date')->get()
-                ->map(fn ($s) => ['date' => substr((string) ($s->date instanceof \DateTimeInterface ? $s->date->format('Y-m-d') : $s->date), 0, 10), 'followers' => $s->metrics['followers'] ?? null, 'media' => $s->metrics['video_count'] ?? null])->values();
+                ->map(fn ($s) => ['date' => substr((string) ($s->date instanceof \DateTimeInterface ? $s->date->format('Y-m-d') : $s->date), 0, 10), 'followers' => $s->metrics['followers'] ?? null, 'media' => $s->metrics['video_count'] ?? $s->metrics['post_count'] ?? null])->values();
             $own = ['username' => $account->username, 'name' => $account->name, 'posts_collected' => 0, 'avg_interactions' => null] + $this->growth($series) + $this->rangeStats($series, $from, $to);
         }
 
@@ -256,7 +315,7 @@ class CompetitorService
             $own['rank'] = $position[$own['username']] ?? null;
         }
 
-        return ['own' => $own, 'competitors' => $rows, 'range' => ['from' => $from, 'to' => $to], 'sort' => $sort];
+        return ['own' => $own, 'competitors' => $rows, 'range' => ['from' => $from, 'to' => $to], 'sort' => $sort, 'network' => $network->value];
     }
 
     /**

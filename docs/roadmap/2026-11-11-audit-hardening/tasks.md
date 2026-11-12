@@ -1022,7 +1022,7 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-02
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Threads/ThreadsPublisher.php`, `app/Connectors/Bluesky/BlueskyPublisher.php`, `app/Connectors/Threads/ThreadsComments.php`, `app/Connectors/Bluesky/BlueskyComments.php`, `config/media_specs.php`, `docs/modulos/publicacion.md`
+- **Archivos**: `app/Connectors/Threads/ThreadsPublisher.php`, `app/Connectors/Bluesky/BlueskyPublisher.php`, `app/Connectors/Threads/ThreadsComments.php`, `app/Connectors/Bluesky/BlueskyComments.php`, `config/media_specs.php`, `docs/modulos/publicacion.md`, `app/Connectors/Threads/ThreadsClient.php`, `app/Connectors/Exceptions/ScopeMissingException.php`, `app/Connectors/Google/YouTubePublisher.php`, `app/Jobs/PostFirstComment.php`, `tests/Feature/FirstComment/FirstCommentThreadsBlueskyTest.php`, `docs/referencia/decisiones-por-red.md` (ampliado en la implementación: gaps de la revisión de T-22 y rutas reales)
 - **Cubre**: B-05
 - **Cubre (tests)**: E2E-36
 - **Verificación**: `php artisan test --compact --filter=FirstCommentThreadsBlueskyTest` → verde
@@ -1053,32 +1053,38 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 ### T-25 — Competidores en Bluesky y YouTube
 
 - **Descripción**: Añadir fuentes de competidores para Bluesky (`getProfile`/`getAuthorFeed`) y YouTube (`channels.list`).
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Competidores ahora funciona también con Bluesky y YouTube: eliges la red en la pantalla, añades cuentas o canales y ves su evolución y sus publicaciones destacadas; en YouTube la lectura respeta un tope diario de cuota.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-02
 - **Tipo**: backend
-- **Archivos**: `app/Services/CompetitorService.php`, `app/Connectors/Bluesky/**`, `app/Connectors/YouTube/**`, `resources/js/Pages/Competitors/**`, `docs/modulos/competidores.md`
+- **Archivos**: `app/Services/CompetitorService.php`, `app/Connectors/Bluesky/**`, `app/Connectors/YouTube/**`, `resources/js/Pages/Competitors/**`, `docs/modulos/competidores.md`, `app/Connectors/Contracts/CompetitorSource.php`, `app/Connectors/CompetitorSources.php`, `app/Connectors/Meta/InstagramCompetitors.php`, `app/Connectors/Google/YouTubeCompetitors.php`, `app/Connectors/Google/YouTubeCompetitorBudget.php`, `app/Http/Controllers/CompetitorController.php`, `app/Jobs/CollectCompetitorPosts.php`, `app/Jobs/CollectCompetitorSnapshot.php`, `app/Jobs/Concerns/GuardsInsightsErrors.php`, `app/Mcp/Tools/CompareCompetitors.php`, `app/Models/Competitor.php`, `app/Providers/AppServiceProvider.php`, `config/social.php`, `database/migrations/2026_12_20_090000_add_network_to_competitors.php`, `tests/Feature/Competitors/CompetitorSourcesTest.php`, `tests/Feature/Parity/CompetitorTest.php`, `tests/e2e/competitors.spec.ts`, `tests/e2e/helpers.ts`, `docs/referencia/configuracion.md`, `docs/referencia/decisiones-por-red.md` (ampliado en la implementación; las rutas reales de YouTube son `app/Connectors/Google/`)
 - **Cubre**: B-06
 - **Cubre (tests)**: E2E-40
 - **Verificación**: `php artisan test --compact --filter=CompetitorSourcesTest` → verde
 
 **Criterios de aceptación**
-- [ ] Se pueden añadir competidores de Bluesky y YouTube y se recogen snapshots (con fakes)
-- [ ] La cuota de YouTube se contabiliza con `QuotaPolicy`
+- [x] Se pueden añadir competidores de Bluesky y YouTube y se recogen snapshots (con fakes)
+- [x] La cuota de YouTube se contabiliza con `QuotaPolicy`
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+- RED/TDD: `tests/Feature/Competitors/CompetitorSourcesTest.php` se escribió con el diseño (sin RED previo registrado: las clases `CompetitorSource*` no existían); al ejecutarlo fallaron 2/12 por defectos reales corregidos antes de cerrar (delimitador `~` de la expresión del URI de Bluesky dentro de su clase de caracteres; el test del 401 llamaba a otro endpoint). Verde 12/12.
+- Verificación (2026-11-12): `php artisan test --compact --filter=CompetitorSourcesTest` → 12/12 verde; focal `Competitors`+`Parity`+`Reports`+`Mcp`+`Analytics`+`Jobs` 561/561; Pint OK; `npm run build` OK, `test:unit` 636/636 y `typecheck` OK; Playwright `competitors.spec.ts` 6/6 (`E2E_PURGE=0 E2E_WORKERS=2`, sin otra ejecución en curso; incluye el nuevo E2E-40 en desktop y los dos móviles).
+- Decisiones: (1) **Contrato nuevo `CompetitorSource`** (`app/Connectors/Contracts`): la línea que citaba el hallazgo (`CompetitorService.php:36`) era la consulta fija de Instagram, no un contrato existente; se creó el contrato y `CompetitorSources` (registro en `AppServiceProvider`), con `InstagramCompetitors` envolviendo a `BusinessDiscovery` sin cambiarlo. (2) Bluesky = AppView público sin cuenta propia (`needsAccount()` falso); YouTube = token de un canal propio de la marca. (3) **Cuota de YouTube**: `QuotaPolicy` es la política de PUBLICACIÓN (reprogramar o fallar) y no sirve para lecturas; se contabiliza con el mecanismo que ya usa la app para YouTube, `YouTubeQuota` (global) más un presupuesto propio `YouTubeCompetitorBudget` (300 ud/día, `SOCIAL_COMPETITORS_YOUTUBE_UNITS`, patrón de `YouTubeInboxBudget`), 1 ud por lista. Si el criterio exigía `QuotaPolicy` literalmente, queda para la revisión. (4) 403 `quotaExceeded` y 429 → `QuotaExceededException` (con `Retry-After`) y los jobs los reintentan con `GuardsInsightsErrors` (espera creciente, tope 1 h); el trait acepta ahora `?SocialAccount` (Bluesky no tiene cuenta que marcar). (5) Migración `2026_12_20_090000_add_network_to_competitors` (`network`, `external_id`, `username` a 253, único marca+red+usuario): **no aplicada a la BD de desarrollo**; hay que ejecutar `php artisan migrate` (los E2E usan SQLite desechable y la aplican solos). (6) Los archivos de YouTube están en `app/Connectors/Google/` (no existe `app/Connectors/YouTube/`). (7) UI: chips de red con el mismo patrón y clases que `Dashboard/Partials/NetworkTabs`, mismos `FeatureEmpty`, tabla, rango y CSV; textos por red; la prop `has_instagram` pasa a `has_account` + `networks`. La URL de Instagram no lleva `network` (se conservan los enlaces). (8) MCP `compare_competitors` admite `network`; los informes siguen en Instagram (fuera de alcance).
+- Contratos: Bluesky `getProfile`/`getAuthorFeed` y YouTube `channels.list`/`playlistItems`/`videos.list` (coste 1 ud, `forHandle`, `hiddenSubscriberCount`) **no se pudieron contrastar con la documentación oficial en esta sesión** (páginas renderizadas por navegador o bloqueadas); se tomaron del contrato conocido de cada API y se citan como pendientes de smoke real. Lo que sí se verificó: lexicon `com.atproto.repo.listRecords` y `app.bsky.feed.post` (T-24).
+- Pendiente (coordinador): revisión adversarial A+B(+C) y aplicar la migración; smoke real de Bluesky y YouTube (usuario).
 
 **Notas**: Tamaño M.
 

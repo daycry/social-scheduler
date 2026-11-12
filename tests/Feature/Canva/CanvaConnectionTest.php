@@ -180,7 +180,7 @@ test('las capacidades del plan activan o desactivan funciones y cada una desacti
         ->and($free['export']['available'])->toBeTrue()->and($free['export']['reason'])->toBeNull();
 
     $pro = collect(CanvaCapabilities::features(['export_png_transparency', 'brand_template'], config('services.canva.scopes')))->keyBy('key');
-    expect($pro['transparent_png']['available'])->toBeTrue()->and($pro['brand_templates']['available'])->toBeFalse()->and($pro['brand_templates']['reason'])->toContain('todavía no lo usa');
+    expect($pro['transparent_png']['available'])->toBeTrue()->and($pro['brand_templates']['available'])->toBeFalse()->and($pro['brand_templates']['reason'])->toContain('brandtemplate:meta:read'); // el plan lo permite pero la conexión no tiene los permisos
 
     $noAsset = collect(CanvaCapabilities::features([], ['design:meta:read', 'design:content:read']))->keyBy('key');
     expect($noAsset['send']['available'])->toBeFalse()->and($noAsset['send']['reason'])->toContain('asset:write')->and($noAsset['create']['available'])->toBeFalse();

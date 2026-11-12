@@ -4,18 +4,22 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
+import PdfAsset from '@/Components/PdfAsset.vue';
+import PermissionNotice from '@/Components/PermissionNotice.vue';
 import { studioRequest } from '@/Studio/api';
 
 const props = defineProps({ brand: Object, canva: Object, focus: { type: String, default: null }, flash: Object });
 const page = usePage();
 const flash = computed(() => props.flash ?? page.props.flash ?? {});
 
-const STATUS = { queued: 'En cola', processing: 'Canva está exportando…', importing: 'Guardando en la biblioteca…', ready: 'Listo', failed: 'Con error' };
+const STATUS = { queued: 'En cola', processing: 'Canva está trabajando…', importing: 'Guardando en la biblioteca…', ready: 'Listo', failed: 'Con error' };
+const JOB_KIND = { export: 'Exportar', upload: 'Enviar a Canva', autofill: 'Rellenar plantilla' };
+const PDF_NOTICE = [{ id: 'pdf', help: 'Los PDF se guardan para verlos y descargarlos; no se pueden adjuntar a una publicación. Para publicar, exporta el diseño como PNG, JPG o MP4.' }];
 const EXPORT_FORMATS = [
     { value: 'png', label: 'PNG (imagen)' },
     { value: 'jpg', label: 'JPG (imagen)' },
     { value: 'mp4', label: 'MP4 (vídeo)' },
-    { value: 'pdf', label: 'PDF (enlace de Canva, no entra en la biblioteca)' },
+    { value: 'pdf', label: 'PDF (documento: se guarda en la biblioteca, no se publica en redes)' },
 ];
 
 const connected = computed(() => props.canva.connected);
@@ -28,6 +32,16 @@ const loaded = ref(false);
 const error = ref('');
 const notice = ref('');
 const jobs = ref([...(props.canva.jobs ?? [])]);
+const documents = ref([...(props.canva.documents ?? [])]);
+const designLinks = ref({});
+const templates = ref([]);
+const templateQuery = ref('');
+const templatesLoaded = ref(false);
+const templatesLoading = ref(false);
+const template = ref(null);
+const fields = ref([]);
+const fieldValues = ref({});
+const autofillTitle = ref('');
 const createFormat = ref(props.canva.formats?.[0]?.key ?? 'square');
 const createTitle = ref('');
 const created = ref(null);
@@ -39,6 +53,9 @@ const busy = ref(false);
 let timer = null;
 
 const formatOf = id => exportFormat.value[id] ?? 'png';
+const hasPdf = computed(() => documents.value.length > 0 || jobs.value.some(j => j.media?.some(m => m.kind === 'pdf')));
+const textFields = computed(() => fields.value.filter(f => f.supported));
+const otherFields = computed(() => fields.value.filter(f => !f.supported));
 const active = computed(() => jobs.value.some(j => ['queued', 'processing', 'importing'].includes(j.status)));
 const fail = e => { error.value = e?.message || 'No se pudo completar la operación.'; };
 
@@ -67,7 +84,49 @@ async function createDesign() {
 function track(job) {
     const i = jobs.value.findIndex(j => j.id === job.id);
     if (i >= 0) jobs.value[i] = job; else jobs.value.unshift(job);
+    if (job.status === 'ready') { linkDesign(job); if (job.media?.some(m => m.kind === 'pdf')) loadDocuments(); }
     schedule();
+}
+
+/** Enlace fresco «Abrir en Canva» del diseño que ha creado Autofill (los de Canva son temporales). */
+async function linkDesign(job) {
+    if (job.kind !== 'autofill' || !job.design_id || designLinks.value[job.id]) return;
+    try { designLinks.value[job.id] = (await studioRequest('GET', route('canva.designs.show', [props.brand.id, job.design_id]))).design.open_url; } catch { /* sin enlace: el diseño sigue en Canva */ }
+}
+
+async function loadDocuments() {
+    try { documents.value = (await studioRequest('GET', route('canva.status', props.brand.id))).documents ?? []; } catch { /* se recarga con la página */ }
+}
+
+async function removeDocument(doc) {
+    if (!confirm(`¿Eliminar «${doc.name}» de la biblioteca?`)) return;
+    error.value = '';
+    try { await studioRequest('DELETE', route('media.destroy', doc.id)); documents.value = documents.value.filter(d => d.id !== doc.id); } catch (e) { fail(e); }
+}
+
+async function loadTemplates() {
+    if (templatesLoading.value) return;
+    templatesLoading.value = true; error.value = '';
+    try {
+        const params = new URLSearchParams();
+        if (templateQuery.value.trim()) params.set('query', templateQuery.value.trim());
+        templates.value = (await studioRequest('GET', `${route('canva.templates.index', props.brand.id)}${params.size ? `?${params}` : ''}`)).items;
+        templatesLoaded.value = true;
+    } catch (e) { fail(e); } finally { templatesLoading.value = false; }
+}
+
+async function pickTemplate(t) {
+    template.value = t; fields.value = []; fieldValues.value = {}; error.value = '';
+    try { fields.value = (await studioRequest('GET', route('canva.templates.dataset', [props.brand.id, t.id]))).fields; } catch (e) { fail(e); }
+}
+
+async function startAutofill() {
+    busy.value = true; error.value = ''; notice.value = '';
+    try {
+        const data = await studioRequest('POST', route('canva.autofills.store', props.brand.id), { brand_template_id: template.value.id, fields: fieldValues.value, title: autofillTitle.value.trim() || undefined });
+        track(data.job);
+        notice.value = `Rellenando «${template.value.title}» en Canva.`;
+    } catch (e) { fail(e); } finally { busy.value = false; }
 }
 
 async function startExport(design) {
@@ -117,6 +176,8 @@ onMounted(() => {
     if (connected.value) {
         loadDesigns();
         if (features.value.send?.available) loadLibrary();
+        if (features.value.brand_templates?.available) loadTemplates();
+        jobs.value.forEach(linkDesign);
         schedule();
     }
 });
@@ -230,6 +291,37 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer); });
                     <SecondaryButton v-if="continuation" type="button" :disabled="loading" @click="loadDesigns(true)">Cargar más</SecondaryButton>
                 </section>
 
+                <section v-if="features.brand_templates?.available" class="card space-y-3 p-6" aria-labelledby="canva-templates" data-testid="canva-templates">
+                    <h2 id="canva-templates" class="font-semibold text-slate-900">Plantillas de marca (Autofill)</h2>
+                    <p class="text-xs text-slate-600">Elige una plantilla de tu marca en Canva y rellena sus campos de texto: Canva crea un diseño nuevo que puedes abrir y exportar.</p>
+                    <form class="flex flex-wrap items-end gap-2" role="search" @submit.prevent="loadTemplates">
+                        <label class="min-w-0 flex-1 basis-56 text-sm font-medium text-slate-900">Buscar plantilla
+                            <input v-model="templateQuery" type="search" class="field mt-1 w-full" maxlength="255" placeholder="Nombre de la plantilla">
+                        </label>
+                        <SecondaryButton type="submit" :disabled="templatesLoading">Buscar plantillas</SecondaryButton>
+                    </form>
+                    <p v-if="templatesLoaded && !templates.length" class="text-sm text-slate-600" data-testid="canva-no-templates">No hay plantillas de marca que coincidan.</p>
+                    <ul class="space-y-2">
+                        <li v-for="t in templates" :key="t.id" class="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 text-sm" :class="template?.id === t.id ? 'border-violet-500 bg-violet-50' : 'border-slate-200'" :data-testid="`canva-template-${t.id}`">
+                            <span class="min-w-0 break-words font-medium text-slate-900">{{ t.title }}</span>
+                            <SecondaryButton type="button" :disabled="!features.autofill?.available" :aria-label="`Rellenar ${t.title}`" @click="pickTemplate(t)">Rellenar</SecondaryButton>
+                        </li>
+                    </ul>
+                    <p v-if="!features.autofill?.available" class="text-xs text-slate-600" data-testid="canva-autofill-unavailable">Autofill no disponible: {{ features.autofill?.reason }}</p>
+                    <form v-if="template && features.autofill?.available" class="space-y-3 border-t border-slate-100 pt-3" data-testid="canva-autofill-form" @submit.prevent="startAutofill">
+                        <h3 class="text-sm font-semibold text-slate-900">Campos de «{{ template.title }}»</h3>
+                        <p v-if="!textFields.length" class="text-xs text-slate-600">Esta plantilla no tiene campos de texto que rellenar desde aquí.</p>
+                        <label v-for="f in textFields" :key="f.name" class="block text-sm font-medium text-slate-900">{{ f.name }}
+                            <input v-model="fieldValues[f.name]" class="field mt-1 w-full" maxlength="2000">
+                        </label>
+                        <p v-if="otherFields.length" class="text-xs text-slate-600" data-testid="canva-autofill-skipped">Se conserva el valor de la plantilla en los campos que no son de texto: {{ otherFields.map(f => `${f.name} (${f.type})`).join(', ') }}.</p>
+                        <label class="block text-sm font-medium text-slate-900">Título del diseño (opcional)
+                            <input v-model="autofillTitle" class="field mt-1 w-full" maxlength="255">
+                        </label>
+                        <PrimaryButton type="submit" :disabled="busy || !textFields.length">Crear diseño en Canva</PrimaryButton>
+                    </form>
+                </section>
+
                 <section class="card space-y-3 p-6" aria-labelledby="canva-send">
                     <h2 id="canva-send" class="font-semibold text-slate-900">Enviar a Canva</h2>
                     <p v-if="!features.send?.available" class="text-xs text-slate-600">{{ features.send?.reason }}</p>
@@ -249,19 +341,30 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer); });
                     <p v-if="!jobs.length" class="text-sm text-slate-600">Todavía no has exportado ni enviado nada.</p>
                     <ul class="space-y-2">
                         <li v-for="j in jobs" :key="j.id" class="rounded-lg border border-slate-200 p-3 text-sm" :data-testid="`canva-job-${j.id}`" :data-status="j.status">
-                            <p class="font-medium text-slate-900">{{ j.kind === 'upload' ? 'Enviar a Canva' : 'Exportar' }}: {{ j.title || j.design_id }} <span v-if="j.format" class="uppercase text-slate-500">{{ j.format }}</span></p>
+                            <p class="font-medium text-slate-900">{{ JOB_KIND[j.kind] ?? j.kind }}: {{ j.title || j.design_id }} <span v-if="j.format" class="uppercase text-slate-500">{{ j.format }}</span></p>
                             <p role="status" :class="j.status === 'failed' ? 'text-red-700' : 'text-slate-700'">{{ STATUS[j.status] ?? j.status }}<template v-if="j.status === 'failed' && j.error">: {{ j.error }}</template></p>
                             <ul v-if="j.media?.length" class="mt-1 space-y-1">
-                                <li v-for="m in j.media" :key="m.id" data-testid="canva-imported">
-                                    {{ m.name }} <span class="text-slate-500">({{ m.width }}×{{ m.height }})</span>
-                                    <a v-if="m.origin?.url" :href="m.origin.url" target="_blank" rel="noopener noreferrer" class="link ml-2 text-xs" data-testid="canva-origin">Origen: Canva</a>
-                                </li>
+                                <template v-for="m in j.media" :key="m.id">
+                                    <li v-if="m.kind === 'pdf'" data-testid="canva-imported"><PdfAsset :asset="m" /></li>
+                                    <li v-else data-testid="canva-imported">
+                                        {{ m.name }} <span class="text-slate-500">({{ m.width }}×{{ m.height }})</span>
+                                        <a v-if="m.origin?.url" :href="m.origin.url" target="_blank" rel="noopener noreferrer" class="link ml-2 text-xs" data-testid="canva-origin">Origen: Canva</a>
+                                    </li>
+                                </template>
                             </ul>
-                            <ul v-if="j.download_urls?.length" class="mt-1 space-y-1">
-                                <li v-for="(u, i) in j.download_urls" :key="i"><a :href="u" target="_blank" rel="noopener noreferrer" class="link text-xs">Descargar PDF desde Canva (enlace temporal, 24 h)</a></li>
-                            </ul>
+                            <p v-if="j.kind === 'autofill' && j.status === 'ready' && designLinks[j.id]" class="mt-1">
+                                <a :href="designLinks[j.id]" target="_blank" rel="noopener noreferrer" class="link text-xs" data-testid="canva-autofill-open">Abrir el diseño en Canva (pestaña nueva)</a>
+                            </p>
                             <p v-if="j.canva_asset_id && j.status === 'ready'" class="mt-1 text-xs text-slate-600">Ya está en tu biblioteca de Canva.</p>
                         </li>
+                    </ul>
+                </section>
+
+                <section v-if="hasPdf" class="card space-y-3 p-6" aria-labelledby="canva-documents" data-testid="canva-documents">
+                    <h2 id="canva-documents" class="font-semibold text-slate-900">Documentos PDF</h2>
+                    <PermissionNotice title="Los PDF no se publican en redes" :items="PDF_NOTICE" />
+                    <ul class="space-y-3">
+                        <li v-for="d in documents" :key="d.id" class="rounded-lg border border-slate-200 p-3 text-sm" :data-testid="`canva-document-${d.id}`"><PdfAsset :asset="d" removable @remove="removeDocument" /></li>
                     </ul>
                 </section>
             </template>

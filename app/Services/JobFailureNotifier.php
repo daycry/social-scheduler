@@ -89,9 +89,12 @@ class JobFailureNotifier
 
     public function canvaDone(CanvaJob $job): void
     {
-        $upload = $job->kind === CanvaJob::KIND_UPLOAD;
-        $this->done((int) $job->user_id, 'canva', 'canva:'.$job->id, $upload ? 'Recurso enviado a Canva' : 'Exportación de Canva lista',
-            $upload ? 'Ya puedes usarlo en tus diseños de Canva.' : 'Ya la tienes en la biblioteca.', route('canva.index', $job->brand_id, false), (string) ($job->title ?? ''), $job->brand_id);
+        [$title, $message] = match ($job->kind) {
+            CanvaJob::KIND_UPLOAD => ['Recurso enviado a Canva', 'Ya puedes usarlo en tus diseños de Canva.'],
+            CanvaJob::KIND_AUTOFILL => ['Diseño de Canva creado desde la plantilla', 'Ya puedes abrirlo en Canva.'],
+            default => ['Exportación de Canva lista', 'Ya la tienes en la biblioteca.'],
+        };
+        $this->done((int) $job->user_id, 'canva', 'canva:'.$job->id, $title, $message, route('canva.index', $job->brand_id, false), (string) ($job->title ?? ''), $job->brand_id);
     }
 
     /** Solo importaciones por URL (las de Canva ya avisan con su propio trabajo). */

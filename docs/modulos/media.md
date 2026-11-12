@@ -2,6 +2,17 @@
 
 Dos modos según `MEDIA_DISK`. Con **`local`** (producción actual) el navegador envía el fichero a la app (`PUT media/{asset}/upload`), se guarda en `storage/app/private` y las redes lo descargan por URL firmada y temporal de la app. Con **`r2`** el navegador sube el binario directo a Cloudflare R2 con URLs prefirmadas y PHP-FPM nunca recibe el vídeo. Detalle, límites y diferencias entre `local` y `public` en [Despliegue → Almacenamiento de media](despliegue.md#almacenamiento-de-media).
 
+## Tipos de archivo
+
+| Tipo (`kind`) | MIME | Cómo entra | ¿Publicable en redes? |
+|---|---|---|---|
+| `image` | JPEG, PNG, WebP | subida, URL, Drive, Canva, Studio | sí |
+| `video` | MP4, MOV | subida, URL, Drive, Giphy, Canva, Studio | sí |
+| `audio` | MP3, WAV, M4A, AAC, OGG | solo Studio | no (pista de audio) |
+| `pdf` | `application/pdf` | **solo la exportación de Canva** ([Canva](canva.md#pdf-en-la-biblioteca)) | **no** |
+
+Un PDF se valida por sus bytes (`%PDF-`) y por `MEDIA_MAX_PDF_BYTES`, se ve y se descarga (`GET media/{asset}/file` y `GET media/{asset}/download`, solo su dueño) y se muestra con un icono de documento. No aparece en el selector del compositor ni en `list_media`; subirlo desde el compositor o importarlo por URL o Drive da «Los PDF no se pueden publicar en redes…», y el validador de publicaciones rechaza un PDF adjunto con el mismo aviso.
+
 ## Flujo de subida
 
 | Paso | Ruta HTTP | Código |
@@ -60,6 +71,7 @@ La validación en vivo del compositor usa `POST brands/{brand}/posts/validate`. 
 |---|---|
 | `MEDIA_MAX_IMAGE_BYTES` | 30 MiB |
 | `MEDIA_MAX_VIDEO_BYTES` | 4 GiB |
+| `MEDIA_MAX_PDF_BYTES` | 50 MiB |
 | `MEDIA_PENDING_TTL_HOURS` | 24 |
 | `MEDIA_IMPORT_BUDGET_SECONDS` | 80 |
 | `MEDIA_IMPORT_MIN_PASS_BYTES` | 65536 |

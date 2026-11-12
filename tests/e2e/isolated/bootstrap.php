@@ -78,8 +78,10 @@ function generalBootstrap(): Application
             // `studio-ai-text-off` apaga el asistente de texto para comprobar su vista «no configurado».
             ...(is_file($root.'/studio-ai-on') ? ['studio.ai.providers.openai.key' => 'e2e-fake-openai-key', 'studio.ai.providers.google.key' => 'e2e-fake-google-key', 'studio.ai.backoff' => [0, 0]] : []),
             // T-16: Canva falso. Con `<run root>/canva-on` hay credenciales ficticias y api.canva.com / export-download.canva.com los atiende
-            // generalFakeCanva() (sin red); `canva-pro` anade la capacidad de PNG transparente. Sin la bandera la UI dice «no configurada».
+            // generalFakeCanva() (sin red); `canva-pro` anade la capacidad de PNG transparente y `canva-templates` las de plantillas de marca y Autofill
+            // (con sus permisos). Sin la bandera la UI dice «no configurada».
             ...(is_file($root.'/canva-on') ? ['services.canva.client_id' => 'e2e-canva-client', 'services.canva.client_secret' => 'e2e-canva-secret', 'services.canva.poll_delay' => 0] : []),
+            ...(is_file($root.'/canva-templates') ? ['services.canva.scopes' => [...(array) config('services.canva.scopes'), 'brandtemplate:meta:read', 'brandtemplate:content:read']] : []),
             ...(is_file($root.'/studio-ai-text-off') ? ['social.ai.enabled' => false] : []),
             // Read-only, pinned weights; all image input/output stays in this run's storage.
             'studio.images.model_path' => dirname(__DIR__, 3).'/storage/app/private/studio-models/isnet-general-use.onnx',

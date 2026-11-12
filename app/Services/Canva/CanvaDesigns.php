@@ -167,7 +167,7 @@ class CanvaDesigns
         return rtrim(strtr(base64_encode(hash_hmac('sha256', 'canva-return|'.$userId.'|'.$prefix, (string) config('app.key'), true)), '+/', '-_'), '=');
     }
 
-    private static function canvaUrl(mixed $url): ?string
+    public static function canvaUrl(mixed $url): ?string
     {
         if (! is_string($url) || strlen($url) > 2000) {
             return null;

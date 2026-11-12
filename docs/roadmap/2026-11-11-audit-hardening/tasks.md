@@ -1129,32 +1129,38 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 ### T-27 — Canva: PDF en la biblioteca y Autofill según capacidades
 
 - **Descripción**: Tipo PDF en la biblioteca (no solo enlace de 24 h) y flujo de Autofill/Brand Templates condicionado a las capacidades reales de la cuenta.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Los PDF exportados desde Canva ahora se guardan en la biblioteca (con icono, vista previa y descarga; no se pueden publicar en redes) y, si tu plan de Canva incluye plantillas de marca y Autofill, puedes rellenar una plantilla de texto y obtener un diseño nuevo.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-26
 - **Tipo**: fullstack
-- **Archivos**: `app/Services/Canva/CanvaJobs.php`, `app/Services/Canva/CanvaCapabilities.php`, `resources/js/Pages/Canva/Index.vue`, `docs/modulos/canva.md`
+- **Archivos**: `app/Services/Canva/CanvaJobs.php`, `app/Services/Canva/CanvaCapabilities.php`, `resources/js/Pages/Canva/Index.vue`, `docs/modulos/canva.md`, `app/Services/Canva/CanvaBrandTemplates.php`, `app/Services/Canva/CanvaClient.php`, `app/Services/Canva/CanvaIntegration.php`, `app/Http/Controllers/Canva/CanvaController.php`, `app/Http/Controllers/MediaController.php`, `app/Mcp/Tools/ManageCanva.php`, `app/Mcp/Abilities.php`, `app/Models/Canva/CanvaJob.php`, `app/Models/MediaAsset.php`, `app/Services/MediaUploadService.php`, `app/Services/MediaProbe.php`, `app/Services/MediaValidator.php`, `app/Services/Media/RemoteMediaImporter.php`, `app/Services/JobFailureNotifier.php`, `config/media.php`, `config/services.php`, `.env.example`, `routes/canva.php`, `routes/canva-api.php`, `routes/web.php`, `database/migrations/2026_12_21_090000_drop_download_urls_from_canva_jobs.php`, `resources/js/Components/PdfAsset.vue`, `tests/Feature/Canva/CanvaPdfLibraryTest.php`, `tests/Feature/Canva/CanvaAutofillCapabilitiesTest.php`, `tests/Feature/Canva/CanvaApiMcpTest.php`, `tests/Feature/Canva/CanvaConnectionTest.php`, `tests/Feature/Canva/CanvaJobsTest.php`, `tests/Feature/Canva/CanvaTestSupport.php`, `tests/Feature/Media/ImportRemoteMediaTest.php`, `tests/e2e/canva.spec.ts`, `tests/e2e/isolated/bootstrap.php`, `tests/e2e/isolated/fakes.php`, `docs/modulos/media.md`, `docs/referencia/configuracion.md`, `docs/api/creative-suite.openapi.yaml`
 - **Cubre**: B-08
 - **Cubre (tests)**: E2E-39, M-10
 - **Verificación**: `php artisan test --compact --filter=CanvaPdfLibraryTest` → verde · `php artisan test --compact --filter=CanvaAutofillCapabilitiesTest` → verde
 
 **Criterios de aceptación**
-- [ ] Un export PDF se guarda en la biblioteca como media de tipo PDF
-- [ ] Brand Templates/Autofill se muestran solo si `CanvaCapabilities` lo permite
+- [x] Un export PDF se guarda en la biblioteca como media de tipo PDF
+- [x] Brand Templates/Autofill se muestran solo si `CanvaCapabilities` lo permite
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+- RED/TDD: `RED: CanvaPdfLibraryTest falló con «Undefined array key 0» (el PDF no entraba en la biblioteca: seguía devolviendo download_urls) y «Route [media.download] not defined» (4 de 8) · 2026-11-12`. `CanvaAutofillCapabilitiesTest` se escribió antes del código (sin `CanvaBrandTemplates`, rutas ni capacidades) pero su primer rojo no se registró aparte: la primera ejecución con el código parcial dio 11/12 (falló el Autofill con campo vacío, `null` ≠ texto).
+- Verificación (2026-11-12): `php artisan test --compact --filter=CanvaPdfLibraryTest` → 10/10 verde; `--filter=CanvaAutofillCapabilitiesTest` → 12/12 verde; focal `Canva`+`Media`+`Studio`+`Connectors`+`Console/BackupVerifyTest`+`Mcp`+`Parity` → 2042 pasan, 9 omitidos, 0 fallos (no se lanzó el Pest completo); Pint OK; `npm run build` OK, `test:unit` 636/636, `typecheck` OK; Playwright `canva.spec.ts` 10/10 (`E2E_PURGE=0 E2E_WORKERS=2`, sin otra ejecución en curso; incluye E2E-39 en desktop y los dos móviles), más `notifications-unified.spec.ts` y `media-import.spec.ts` 29/29.
+- Decisiones: (1) Nuevo tipo `MediaAsset::KIND_PDF = 'pdf'` (MIME `application/pdf`, `media.allowed_pdf_mimes`, tope `MEDIA_MAX_PDF_BYTES` = 50 MiB). Solo lo admite el export de Canva (`RemoteMediaImporter::allowsDocument`: `source = canva`); por subida, URL o Drive un PDF se rechaza con «Los PDF no se pueden publicar en redes…». (2) Tipo real: `MediaProbe` exige `%PDF-` al principio y, antes, el importador comprueba con `finfo` que el contenido es `application/pdf`; HTML o PNG con cabecera de PDF quedan `invalido`. (3) Vista previa = icono de documento (`PdfAsset.vue`, sin miniatura: no hay rasterizador de PDF en el servidor); ver (`media.file`, en línea) y descargar (`media.download`, adjunto, 404 si no es PDF, solo el dueño). (4) NO publicable: `GET media` y `list_media` ya filtraban imagen/vídeo (se añadió test), el validador de publicaciones da un aviso propio (`MediaValidator`), y la UI lo explica con el aviso común de la app, `PermissionNotice` (tarjeta ámbar con título e ítems, el mismo de Meta Ads y el buzón). (5) Se eliminó el enlace temporal de 24 h: `CanvaJobs` ya no tiene rama PDF, `present()` no devuelve `download_urls`, el modelo no lo castea y una migración borra la columna (`2026_12_21_090000`; **no aplicada a la BD de desarrollo**: ejecutar `php artisan migrate`; el código funciona con o sin la columna). (6) Capacidades: `brand_templates` (capacidad `brand_template` + permisos `brandtemplate:meta:read` y `brandtemplate:content:read`) y `autofill` (además `autofill` y `design:content:write`) sustituyen al `false` fijo; sin ellas la página no muestra la sección y los endpoints dan 403 `capability_required` sin llamar a Canva. (7) Los permisos de plantillas solo se piden con `CANVA_BRAND_TEMPLATES=true` (config `services.canva.scopes`): pedir un scope que la app de Canva Developers no tenga activado rompería la conexión de todos; si falta, el motivo dice que es cosa del servidor y no de reconectar. (8) Flujo de Autofill según la guía oficial: `GET /brand-templates`, `GET /brand-templates/{id}/dataset`, `POST /autofills` (`create_from_brand_template`, `data.{CAMPO}.{type: text, text}`, `title`), sondeo de `GET /autofills/{id}` en el mismo `RunCanvaJob` (nuevo `kind = autofill`, mismo límite de trabajos activos y sondeo acotado) y, al terminar, `design_id` del diseño creado y enlace «Abrir en Canva» fresco. Solo campos de **texto**: imagen/vídeo exigen subir antes un asset y referenciarlo, y gráfico/hoja necesitan datos tabulares; esos campos se omiten y Canva conserva el valor de la plantilla (la UI lo dice). (9) Superficies: API REST (`templates`, `templates/{t}/dataset`, `autofills`), OpenAPI y MCP `manage_canva` (`templates`, `autofill`) con las abilities `canva:read`/`canva:write`. (10) E2E: el Canva falso sirve PDF, `/connect/keys`, plantillas y Autofill (`canva-templates`); el limitador `canva`/`canva-connect` de cada usuario se limpia en `afterEach` (los 10 intentos por minuto se agotaban entre tests).
+- Contrato Canva: **verificado en parte** contra la documentación oficial (2026-11-12): guía de Autofill https://www.canva.dev/docs/apps/rest-apis/autofill-guide/, `Create design autofill job`, `Get design autofill job`, `List brand templates` y `Get brand template dataset` (campos, modos `create_from_brand_template`/`create_from_design`/`update_design`, capacidades `brand_template`/`autofill`, planes Pro/Teams/Enterprise, scopes `brandtemplate:*`). **Sin verificar**: los códigos de error de un autofill fallido (mensaje genérico), la paginación real de `brand-templates` y todo el comportamiento contra una cuenta real con Autofill (**A la espera (U)**: acceso a un plan con plantillas de marca; el smoke CS-M-01 de `pendientes-manuales.md` no se tocó porque ese fichero tenía cambios ajenos sin commitear: debe ampliarse con «exportar PDF, ver y descargar» y «rellenar una plantilla»).
+- Pendiente (coordinador): revisión adversarial A+B(+C); aplicar `php artisan migrate`.
 
 **Notas**: Tamaño M. Qué se puede hacer ya: PDF y flujo condicional. Queda a la espera (U): acceso Enterprise a Brand Templates/Autofill para probarlo en real. **A la espera (no bloquea la fase)**: Capacidad Enterprise de Canva (tercero).
 

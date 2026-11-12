@@ -4,6 +4,7 @@ namespace App\Services\Canva;
 
 use App\Models\Brand;
 use App\Models\Canva\CanvaConnection;
+use App\Models\MediaAsset;
 use App\Models\User;
 
 /** Estado de la integracion con Canva de una marca y su conexion activa (T-16). Lo comparten la web, la API y el MCP. */
@@ -16,7 +17,7 @@ class CanvaIntegration
     {
         $configured = CanvaClient::configured();
         $connection = $configured ? $this->connections->find($user, $brand) : null;
-        $base = ['configured' => $configured, 'connected' => false, 'status' => $configured ? 'disconnected' : 'not_configured', 'name' => null, 'features' => [], 'capabilities_known' => false, 'formats' => [], 'jobs' => []];
+        $base = ['configured' => $configured, 'connected' => false, 'status' => $configured ? 'disconnected' : 'not_configured', 'name' => null, 'features' => [], 'capabilities_known' => false, 'formats' => [], 'jobs' => [], 'documents' => []];
         if ($connection === null) {
             return $base;
         }
@@ -37,7 +38,15 @@ class CanvaIntegration
             'features' => CanvaCapabilities::features($caps, array_values((array) $connection->scopes)),
             'formats' => collect(CanvaDesigns::FORMATS)->map(fn ($f, $key) => ['key' => $key] + $f)->values()->all(),
             'jobs' => array_map(fn ($j) => $this->jobs->present($j), $this->jobs->recent($user, $brand)),
+            'documents' => $this->documents($user),
         ] + $base;
+    }
+
+    /** PDF de la biblioteca (T-27): los exportados desde Canva, para verlos y descargarlos. No son media publicable. @return list<array<string, mixed>> */
+    private function documents(User $user): array
+    {
+        return MediaAsset::withoutUserScope()->where('user_id', $user->id)->where('kind', MediaAsset::KIND_PDF)->where('status', MediaAsset::STATUS_READY)
+            ->latest('id')->limit(20)->get()->map->toPublicArray()->all();
     }
 
     /** La conexion activa de la marca o un `CanvaException` explicando por que no la hay. */

@@ -450,10 +450,31 @@ class MediaUploadService
         return $asset;
     }
 
-    public function kindFor(string $mime, bool $allowAudio = false): string
+    /** Lo que el usuario ve en «el fichero supera el maximo para {tipo}». */
+    public function kindNoun(string $kind): string
+    {
+        return match ($kind) {
+            MediaAsset::KIND_VIDEO => 'vídeos',
+            MediaAsset::KIND_PDF => 'PDF',
+            default => 'imágenes',
+        };
+    }
+
+    /**
+     * Tipo de media de un MIME. El audio y el PDF solo se admiten por su cauce propio (`$allowAudio` para Studio, `$allowDocument` para el
+     * export de Canva): por cualquier otro, un PDF se rechaza explicando que no es media publicable.
+     */
+    public function kindFor(string $mime, bool $allowAudio = false, bool $allowDocument = false): string
     {
         if ($allowAudio && in_array($mime, (array) config('media.allowed_audio_mimes'), true)) {
             return MediaAsset::KIND_AUDIO;
+        }
+        if (in_array($mime, (array) config('media.allowed_pdf_mimes'), true)) {
+            if ($allowDocument) {
+                return MediaAsset::KIND_PDF;
+            }
+
+            throw new InvalidArgumentException('Los PDF no se pueden publicar en redes. Los exportados desde Canva se guardan en la página de Canva de la marca, donde puedes verlos y descargarlos.');
         }
         foreach ((array) config('media.allowed_mimes') as $kind => $mimes) {
             if (in_array($mime, $mimes, true)) {
@@ -476,6 +497,7 @@ class MediaUploadService
             'audio/mp4' => 'm4a',
             'audio/aac' => 'aac',
             'audio/ogg' => 'ogg',
+            'application/pdf' => 'pdf',
             default => 'mp4',
         };
     }

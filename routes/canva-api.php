@@ -11,10 +11,13 @@ Route::prefix('api/v1')->name('api.')->middleware(['auth:sanctum', 'throttle:120
     Route::middleware(RequireApiAbility::class.':'.Abilities::CANVA_READ)->group(function () {
         Route::get('brands/{brand}/canva', [CanvaController::class, 'status'])->whereNumber('brand')->name('canva.status');
         Route::get('brands/{brand}/canva/designs', [CanvaController::class, 'designs'])->middleware('throttle:canva')->whereNumber('brand')->name('canva.designs.index');
+        Route::get('brands/{brand}/canva/templates', [CanvaController::class, 'templates'])->middleware('throttle:canva')->whereNumber('brand')->name('canva.templates.index');
+        Route::get('brands/{brand}/canva/templates/{template}/dataset', [CanvaController::class, 'templateDataset'])->middleware('throttle:canva')->whereNumber('brand')->name('canva.templates.dataset');
         Route::get('brands/{brand}/canva/jobs/{job}', [CanvaController::class, 'showJob'])->whereNumber(['brand', 'job'])->name('canva.jobs.show');
     });
     Route::middleware([RequireApiAbility::class.':'.Abilities::CANVA_WRITE, 'throttle:canva'])->group(function () {
         Route::post('brands/{brand}/canva/exports', [CanvaController::class, 'storeExport'])->whereNumber('brand')->name('canva.exports.store');
+        Route::post('brands/{brand}/canva/autofills', [CanvaController::class, 'storeAutofill'])->whereNumber('brand')->name('canva.autofills.store');
         Route::post('brands/{brand}/canva/uploads', [CanvaController::class, 'storeUpload'])->whereNumber('brand')->name('canva.uploads.store');
     });
 });

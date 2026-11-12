@@ -77,7 +77,11 @@ return [
         'client_secret' => env('CANVA_CLIENT_SECRET'),
         'api_base' => 'https://api.canva.com/rest/v1',
         'authorize_url' => 'https://www.canva.com/api/oauth/authorize',
-        'scopes' => ['profile:read', 'design:meta:read', 'design:content:read', 'design:content:write', 'asset:read', 'asset:write'],
+        /* Plantillas de marca y Autofill (T-27): sus permisos solo se piden con CANVA_BRAND_TEMPLATES=true, y la app de Canva Developers debe tenerlos activados. */
+        'scopes' => [
+            'profile:read', 'design:meta:read', 'design:content:read', 'design:content:write', 'asset:read', 'asset:write',
+            ...(env('CANVA_BRAND_TEMPLATES', false) ? ['brandtemplate:meta:read', 'brandtemplate:content:read'] : []),
+        ],
         /* Hosts desde los que se descargan los ficheros exportados (cada salto de redireccion debe cumplirlo, ademas de UrlGuard). */
         'download_host_pattern' => '/^(?:[a-z0-9-]+\.)*canva\.com$/',
         /* Sondeo acotado de los trabajos de Canva: como mucho `max_polls` consultas, esperando `poll_delay` segundos entre ellas. */

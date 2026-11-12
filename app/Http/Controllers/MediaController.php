@@ -161,6 +161,22 @@ class MediaController extends Controller
         ])->setPrivate()->setMaxAge(3600);
     }
 
+    /** Descarga de un PDF de la biblioteca (T-27) como adjunto, solo para su dueño. Otro tipo de media no tiene descarga: se previsualiza o se publica. */
+    public function download(MediaAsset $asset): BinaryFileResponse|RedirectResponse
+    {
+        $this->authorize('view', $asset);
+        abort_unless($asset->isPdf() && $asset->isReady(), 404);
+
+        if ($this->storage->isS3()) {
+            return redirect()->away($asset->publicUrl(30));
+        }
+
+        $disk = $this->storage->disk();
+        abort_unless($disk->exists($asset->path), 404);
+
+        return response()->download($disk->path($asset->path), $asset->original_name, ['Content-Type' => $asset->mime, 'X-Content-Type-Options' => 'nosniff'])->setPrivate();
+    }
+
     public function destroy(MediaAsset $asset): JsonResponse
     {
         $this->authorize('delete', $asset);

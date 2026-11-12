@@ -19,9 +19,10 @@ use InvalidArgumentException;
 /**
  * Trabajos asincronos contra Canva (T-16).
  *  - Exportar: crea el job de exportacion de Canva (PNG, JPG, MP4 o PDF), lo sondea de forma ACOTADA y, al terminar, descarga cada URL con
- *    `CanvaSource` (UrlGuard, host de Canva, tipo real y tamaño) a la biblioteca con su origen. El PDF no entra en la biblioteca (solo admite
- *    imagen y vídeo): se devuelve el enlace temporal de Canva.
+ *    `CanvaSource` (UrlGuard, host de Canva, tipo real y tamaño) a la biblioteca con su origen. El PDF entra como media de tipo PDF (se ve y se
+ *    descarga, pero no se publica en redes).
  *  - Enviar a Canva: sube los bytes de un recurso de la biblioteca como asset de Canva y sondea el job.
+ *  - Autofill: rellena una plantilla de marca con textos (`POST /autofills`) y sondea el job; el resultado es un diseño NUEVO en Canva.
  * Nunca compra nada ni publica nada.
  */
 class CanvaJobs
@@ -35,6 +36,10 @@ class CanvaJobs
     public const TRANSIENT = ['unreachable', 'unavailable', 'rate_limited'];
 
     private const UPLOAD_MAX_BYTES = 50 * 1024 * 1024;
+
+    private const FIELDS_MAX = 50;
+
+    private const FIELD_MAX = 2000;
 
     public function __construct(
         private readonly CanvaClient $client,
@@ -97,6 +102,49 @@ class CanvaJobs
     }
 
     /**
+     * Rellena una plantilla de marca con textos. Solo si el plan (`brand_template` + `autofill`) y los permisos lo permiten. `$fields` es
+     * nombre de campo => texto; los vacios se omiten (Canva conserva el valor de la plantilla).
+     *
+     * @param  array<string, mixed>  $fields
+     */
+    public function startAutofill(User $user, Brand $brand, CanvaConnection $connection, string $templateId, array $fields, ?string $title): CanvaJob
+    {
+        $scopes = (array) $connection->scopes;
+        $caps = $this->connections->capabilities($connection);
+        if (! CanvaCapabilities::allows('autofill', $caps, $scopes)) {
+            throw new CanvaException((string) CanvaCapabilities::reason('autofill', $caps, $scopes), 403, 'capability_required');
+        }
+        $data = [];
+        foreach ($fields as $key => $value) {
+            if ($value === null) {
+                continue; // un campo vacio llega como null: se omite
+            }
+            $name = (string) $key; // un campo llamado «2024» llega como clave entera
+            if (! is_string($value) || mb_strlen($value) > self::FIELD_MAX || $name === '' || mb_strlen($name) > 100 || preg_match('/[\x00-\x1f]/', $name)) {
+                throw new CanvaException('Los campos de la plantilla deben ser texto de hasta '.self::FIELD_MAX.' caracteres.', 422, 'bad_fields');
+            }
+            if (trim($value) !== '') {
+                $data[$name] = trim($value);
+            }
+        }
+        if ($data === [] || count($data) > self::FIELDS_MAX) {
+            throw new CanvaException('Rellena al menos un campo de texto de la plantilla (máximo '.self::FIELDS_MAX.').', 422, 'bad_fields');
+        }
+        $title = Str::limit(trim((string) $title), 255, '');
+        $this->assertRoom($user);
+
+        $job = new CanvaJob([
+            'brand_id' => $brand->id, 'kind' => CanvaJob::KIND_AUTOFILL, 'title' => $title !== '' ? $title : null, 'status' => CanvaJob::QUEUED,
+            'options' => ['template_id' => CanvaBrandTemplates::validId($templateId), 'fields' => $data],
+        ]);
+        $job->user_id = $user->id;
+        $job->save();
+        RunCanvaJob::dispatch($job->id);
+
+        return $job;
+    }
+
+    /**
      * Un paso del trabajo. Devuelve true si hay que volver a sondear (el job se reencola con espera) y false si ha terminado.
      */
     public function process(int $jobId): bool
@@ -133,7 +181,11 @@ class CanvaJobs
             return $this->fail($job, (string) ($remote['error']['code'] ?? 'failed'), $this->remoteError($job, $remote));
         }
         if ($status === 'success') {
-            return $job->kind === CanvaJob::KIND_EXPORT ? $this->finishExport($job, $remote) : $this->finishUpload($job, $remote);
+            return match ($job->kind) {
+                CanvaJob::KIND_EXPORT => $this->finishExport($job, $remote),
+                CanvaJob::KIND_AUTOFILL => $this->finishAutofill($job, $remote),
+                default => $this->finishUpload($job, $remote),
+            };
         }
 
         $job->forceFill(['status' => CanvaJob::PROCESSING, 'polls' => $job->polls + 1])->save();
@@ -159,8 +211,6 @@ class CanvaJobs
         return [
             'id' => $job->id, 'kind' => $job->kind, 'status' => $job->status, 'design_id' => $job->design_id, 'title' => $job->title, 'format' => $job->format,
             'media_id' => $job->media_id, 'media' => $media,
-            // Enlaces temporales (24 h) de Canva para los formatos que no entran en la biblioteca (PDF): explicitos, nunca descargados aqui.
-            'download_urls' => $job->format === 'pdf' && $job->status === CanvaJob::READY ? array_values((array) $job->download_urls) : [],
             'canva_asset_id' => $job->canva_asset_id, 'error_code' => $job->error_code, 'error' => $job->error,
             'created_at' => $job->created_at?->toIso8601String(),
         ];
@@ -187,6 +237,9 @@ class CanvaJobs
                 throw new CanvaException('El recurso ya no está en la biblioteca.', 404, 'bad_media');
             }
             $remote = $this->client->uploadAsset($token, (string) pathinfo((string) $media->original_name, PATHINFO_FILENAME) ?: 'recurso', (string) $disk->get($media->path));
+        } elseif ($job->kind === CanvaJob::KIND_AUTOFILL) {
+            $data = array_map(fn (string $text) => ['type' => 'text', 'text' => $text], (array) ($job->options['fields'] ?? []));
+            $remote = $this->client->createAutofill($token, (string) ($job->options['template_id'] ?? ''), $data, $job->title);
         } else {
             $format = ['type' => $job->format];
             if ($job->format === 'jpg') {
@@ -210,7 +263,11 @@ class CanvaJobs
     {
         $id = (string) $job->canva_job_id;
 
-        return $job->kind === CanvaJob::KIND_UPLOAD ? $this->client->assetUploadJob($token, $id) : $this->client->exportJob($token, $id);
+        return match ($job->kind) {
+            CanvaJob::KIND_UPLOAD => $this->client->assetUploadJob($token, $id),
+            CanvaJob::KIND_AUTOFILL => $this->client->autofillJob($token, $id),
+            default => $this->client->exportJob($token, $id),
+        };
     }
 
     /** @param  array<string, mixed>  $remote */
@@ -225,13 +282,6 @@ class CanvaJobs
                 return $this->fail($job, 'bad_url', 'Canva devolvió una dirección de descarga que no se acepta.');
             }
         }
-        if ($job->format === 'pdf') {
-            $job->forceFill(['status' => CanvaJob::READY, 'download_urls' => $urls])->save();
-            app(JobFailureNotifier::class)->canvaDone($job);
-
-            return false;
-        }
-
         $user = User::find($job->user_id);
         if ($user === null) {
             return $this->fail($job, 'not_connected', 'El usuario ya no existe.');
@@ -248,7 +298,7 @@ class CanvaJobs
                 continue;
             }
             try {
-                $name = trim($base).(count($urls) > 1 ? ' ('.($i + 1).')' : '').'.'.($job->format === 'jpg' ? 'jpg' : $job->format);
+                $name = trim($base).(count($urls) > 1 ? ' ('.($i + 1).')' : '').'.'.$job->format;
                 $asset = $this->uploads->beginImport($user, MediaAsset::SOURCE_CANVA, $this->stripQuery($url), $name);
             } catch (InvalidArgumentException $e) {
                 return $this->fail($job, 'import_unavailable', $e->getMessage());
@@ -261,6 +311,21 @@ class CanvaJobs
             dispatch(new ImportRemoteMedia($asset->id, $url));
         }
         $job->forceFill(['status' => self::IMPORTING, 'output_media_ids' => $ids])->save();
+
+        return false;
+    }
+
+    /** @param  array<string, mixed>  $remote */
+    private function finishAutofill(CanvaJob $job, array $remote): bool
+    {
+        $design = $remote['result']['design'] ?? null;
+        $id = is_array($design) ? ($design['id'] ?? null) : null;
+        if (! is_string($id) || ! preg_match('/^[A-Za-z0-9_-]{4,40}$/', $id)) {
+            return $this->fail($job, 'bad_response', 'Canva no devolvió el diseño creado. Inténtalo de nuevo.');
+        }
+        $title = Str::limit((string) ($design['title'] ?? ''), 255, '');
+        $job->forceFill(['status' => CanvaJob::READY, 'design_id' => $id, 'title' => $title !== '' ? $title : $job->title])->save();
+        app(JobFailureNotifier::class)->canvaDone($job);
 
         return false;
     }
@@ -305,7 +370,11 @@ class CanvaJobs
             'approval_required' => 'El diseño necesita la aprobación de un revisor en Canva antes de exportarse.',
             'file_too_big' => 'El fichero es demasiado grande para Canva.',
             'fetch_failed', 'import_failed' => 'Canva no pudo procesar el fichero.',
-            default => $job->kind === CanvaJob::KIND_EXPORT ? 'Canva no pudo exportar el diseño. Inténtalo de nuevo más tarde.' : 'Canva no pudo guardar el recurso. Inténtalo de nuevo más tarde.',
+            default => match ($job->kind) {
+                CanvaJob::KIND_EXPORT => 'Canva no pudo exportar el diseño. Inténtalo de nuevo más tarde.',
+                CanvaJob::KIND_AUTOFILL => 'Canva no pudo rellenar la plantilla con esos datos. Revisa los campos e inténtalo de nuevo.',
+                default => 'Canva no pudo guardar el recurso. Inténtalo de nuevo más tarde.',
+            },
         };
     }
 

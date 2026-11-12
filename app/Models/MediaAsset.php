@@ -42,6 +42,9 @@ class MediaAsset extends Model
 
     public const KIND_AUDIO = 'audio';
 
+    /** Documento PDF (T-27): se guarda, se ve y se descarga, pero NO es media publicable en redes. */
+    public const KIND_PDF = 'pdf';
+
     protected $fillable = [
         'disk', 'path', 'original_name', 'mime', 'kind', 'declared_size', 'size', 'width', 'height',
         'duration', 'fps', 'codec', 'audio_codec', 'status', 'upload_id', 'error', 'source', 'source_ref', 'import_state',
@@ -145,6 +148,11 @@ class MediaAsset extends Model
         return $this->kind === self::KIND_VIDEO;
     }
 
+    public function isPdf(): bool
+    {
+        return $this->kind === self::KIND_PDF;
+    }
+
     /**
      * Lista y con fichero: en disco local se comprueba que exista (un `stat`), para no ofrecer una vista previa rota; en R2 se
      * da por presente (comprobarlo seria una peticion por asset en cada listado).
@@ -199,7 +207,7 @@ class MediaAsset extends Model
             'runs' => $this->import_state['runs'] ?? null,
             // Para previsualizar la media ya guardada (post reabierto, creado por MCP, elegido de la biblioteca): solo para su dueño.
             'preview_url' => $this->previewable() ? route('media.file', $this, absolute: false) : null,
-        ];
+        ] + ($this->isPdf() ? ['download_url' => $this->previewable() ? route('media.download', $this, absolute: false) : null] : []); // solo un PDF se descarga como adjunto
     }
 
     /** @return array{provider: string, label: string, design_id: ?string, url: ?string, title: ?string}|null */

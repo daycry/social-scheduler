@@ -7,7 +7,7 @@ use App\Models\Concerns\PrunesByAge;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
-/** Trabajo asincrono contra Canva (T-16): exportar un diseno a la biblioteca o enviar un recurso a Canva. */
+/** Trabajo asincrono contra Canva (T-16): exportar un diseno a la biblioteca, enviar un recurso a Canva o rellenar una plantilla de marca (Autofill). */
 class CanvaJob extends Model
 {
     use BelongsToUser;
@@ -27,6 +27,8 @@ class CanvaJob extends Model
 
     public const KIND_UPLOAD = 'upload';
 
+    public const KIND_AUTOFILL = 'autofill';
+
     public const QUEUED = 'queued';
 
     public const PROCESSING = 'processing';
@@ -37,11 +39,9 @@ class CanvaJob extends Model
 
     protected $guarded = ['id'];
 
-    protected $hidden = ['download_urls'];
-
     protected function casts(): array
     {
-        return ['options' => 'array', 'output_media_ids' => 'array', 'download_urls' => 'array', 'polls' => 'integer'];
+        return ['options' => 'array', 'output_media_ids' => 'array', 'polls' => 'integer'];
     }
 
     public function isActive(): bool

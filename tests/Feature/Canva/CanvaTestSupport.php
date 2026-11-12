@@ -5,6 +5,7 @@ use App\Models\Canva\CanvaConnection;
 use App\Models\User;
 use App\Services\Media\UrlGuard;
 use Firebase\JWT\JWT;
+use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
@@ -79,4 +80,24 @@ function canvaSignedJwt(array $pair, string $state, array $over = []): string
 function canvaFakeKeys(array ...$pairs): void
 {
     Http::fake(['api.canva.com/rest/v1/connect/keys' => Http::response(['keys' => array_map(fn ($p) => $p['jwk'], $pairs)])]);
+}
+
+/** Permisos de una conexion con las plantillas de marca activadas (`CANVA_BRAND_TEMPLATES=true`). */
+const CANVA_BT_SCOPES = ['profile:read', 'design:meta:read', 'design:content:read', 'design:content:write', 'asset:read', 'asset:write', 'brandtemplate:meta:read', 'brandtemplate:content:read'];
+
+/** Canva falso de plantillas de marca y Autofill (una plantilla `BT123abcdef` con campos de texto, imagen y grafico). */
+function canvaBrandTemplateFakes(?array $autofillSteps = null): void
+{
+    Http::swap(new Factory);
+    Http::preventStrayRequests();
+    $sequence = Http::sequence();
+    foreach ($autofillSteps ?? [['job' => ['id' => 'af-1', 'status' => 'success', 'result' => ['type' => 'create_design', 'design' => ['id' => 'DAFnew00001', 'title' => 'Ciudad de hoy', 'urls' => ['edit_url' => 'https://www.canva.com/api/design/t/edit']]]]]] as $step) {
+        $sequence->push($step);
+    }
+    Http::fake([
+        'api.canva.com/rest/v1/brand-templates/BT123abcdef/dataset' => Http::response(['dataset' => ['CITY' => ['type' => 'text'], 'BACKGROUND' => ['type' => 'image'], 'SALES' => ['type' => 'chart']]]),
+        'api.canva.com/rest/v1/brand-templates*' => Http::response(['items' => [['id' => 'BT123abcdef', 'title' => 'Ciudad del día', 'view_url' => 'https://www.canva.com/brand/t/view', 'create_url' => 'https://www.canva.com/brand/t/create', 'created_at' => 1700000000, 'thumbnail' => ['url' => 'https://document-export.canva.com/t.png', 'width' => 100, 'height' => 80]]], 'continuation' => 'tok']),
+        'api.canva.com/rest/v1/autofills' => Http::response(['job' => ['id' => 'af-1', 'status' => 'in_progress']]),
+        'api.canva.com/rest/v1/autofills/af-1' => $sequence,
+    ]);
 }

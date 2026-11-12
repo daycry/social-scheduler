@@ -51,6 +51,12 @@ class MediaValidator
                 continue;
             }
 
+            if ($asset->isPdf()) {
+                $errors[] = $prefix.'Los PDF no se pueden publicar en redes: "'.$asset->original_name.'" se guarda en la biblioteca para verlo y descargarlo, no para adjuntarlo a una publicación.';
+
+                continue;
+            }
+
             if (! in_array($asset->kind, $spec['media']['kinds'], true)) {
                 $kinds = implode(' o ', array_map(fn ($k) => $k === 'video' ? 'video' : 'imagen', $spec['media']['kinds']));
                 $errors[] = $prefix.ucfirst($label)." solo admite $kinds.";

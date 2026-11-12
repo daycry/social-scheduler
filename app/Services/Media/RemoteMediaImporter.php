@@ -63,17 +63,19 @@ class RemoteMediaImporter
         $state['runs'] = ($state['runs'] ?? 0) + 1;
         $this->save($asset, $state);
 
-        $policy = function (?string $mime, ?int $total): int {
+        // Solo el export de Canva trae PDF a la biblioteca; por URL o Drive un PDF se rechaza.
+        $allowDocument = $this->allowsDocument($asset);
+        $policy = function (?string $mime, ?int $total) use ($allowDocument): int {
             try {
-                $kind = $this->uploads->kindFor((string) $mime);
-            } catch (InvalidArgumentException) {
-                throw new ImportFailedException('Tipo de fichero no admitido. Usa JPG, PNG, WebP, MP4 o MOV.');
+                $kind = $this->uploads->kindFor((string) $mime, allowDocument: $allowDocument);
+            } catch (InvalidArgumentException $e) {
+                throw new ImportFailedException($mime !== null && in_array($mime, (array) config('media.allowed_pdf_mimes'), true) ? $e->getMessage() : 'Tipo de fichero no admitido. Usa JPG, PNG, WebP, MP4 o MOV.');
             }
 
             $cap = (int) config("media.max_bytes.$kind");
 
             if ($total !== null && $total > $cap) {
-                throw new ImportFailedException('El fichero supera el tamaño máximo permitido para '.($kind === 'video' ? 'vídeos' : 'imágenes').'.');
+                throw new ImportFailedException('El fichero supera el tamaño máximo permitido para '.$this->uploads->kindNoun($kind).'.');
             }
 
             return $cap;
@@ -140,7 +142,7 @@ class RemoteMediaImporter
         }
 
         if ($pass->mime !== null && $offset === 0) {
-            $kind = $this->uploads->kindFor($pass->mime);
+            $kind = $this->uploads->kindFor($pass->mime, allowDocument: $this->allowsDocument($asset));
             $asset->forceFill(['mime' => $pass->mime, 'kind' => $kind]);
             $state['mime'] = $pass->mime;
         }
@@ -230,14 +232,14 @@ class RemoteMediaImporter
     private function finish(MediaAsset $asset, array $state, string $mime, int $bytes): bool
     {
         $partial = $asset->path;
-        $final = preg_replace('/\.(part|jpe?g|png|webp|mp4|mov)$/i', '', $partial).'.'.$this->uploads->extensionFor($mime);
+        $final = preg_replace('/\.(part|jpe?g|png|webp|mp4|mov|pdf)$/i', '', $partial).'.'.$this->uploads->extensionFor($mime);
         $disk = $this->storage->disk();
         $disk->move($partial, $final);
 
         $asset->forceFill([
             'path' => $final,
             'mime' => $mime,
-            'kind' => $this->uploads->kindFor($mime),
+            'kind' => $this->uploads->kindFor($mime, allowDocument: $this->allowsDocument($asset)),
             'declared_size' => $bytes,
             'import_state' => $state,
         ]);
@@ -263,6 +265,11 @@ class RemoteMediaImporter
         $real = (new \finfo(FILEINFO_MIME_TYPE))->buffer($head) ?: '';
 
         return $real === $mime;
+    }
+
+    private function allowsDocument(MediaAsset $asset): bool
+    {
+        return $asset->source === MediaAsset::SOURCE_CANVA;
     }
 
     private function save(MediaAsset $asset, array $state): void

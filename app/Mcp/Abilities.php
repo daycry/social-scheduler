@@ -54,8 +54,8 @@ final class Abilities
             self::INBOX_WRITE => 'Responder a comentarios de Instagram, Facebook, Threads, YouTube y Bluesky y anadirles notas internas',
             self::SITES_READ => 'Leer los sitios publicados de las marcas y su URL',
             self::SITES_WRITE => 'Publicar y despublicar los sitios de las marcas',
-            self::CANVA_READ => 'Ver el estado de Canva de una marca, listar sus disenos de Canva y consultar trabajos de importacion',
-            self::CANVA_WRITE => 'Exportar disenos de Canva a la biblioteca y enviar recursos a Canva (no compra ni publica nada)',
+            self::CANVA_READ => 'Ver el estado de Canva de una marca, listar sus disenos y plantillas de marca de Canva y consultar trabajos de importacion',
+            self::CANVA_WRITE => 'Exportar disenos de Canva a la biblioteca, enviar recursos a Canva y rellenar plantillas de marca con Autofill (no compra ni publica nada)',
             self::STUDIO_AI => 'Generar y editar imagenes con IA en el estudio (consume la cuota del proveedor configurado)',
         ];
     }

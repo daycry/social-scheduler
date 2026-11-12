@@ -584,8 +584,7 @@ Configs de Playwright (se comprobó referencias en docs, CI, scripts y `package.
 ### T-14 — E2E paralelizable: servidor y SQLite por worker; móvil solo en `@responsive`
 
 - **Descripción**: Servidor `php -S`, base SQLite y puerto propios por worker; los proyectos de tamaño móvil/tablet solo ejecutan specs `@responsive`; habilitar `--shard`.
-- **Changelog**: La batería E2E se ejecuta en paralelo (E2E_WORKERS, 2 por defecto) con un servidor y una base de datos por worker; los proyectos móviles solo corren los tests @responsive y se puede repartir con --shard.
-- **Cerrada**: 2026-11-12
+- **Changelog**: La batería E2E se ejecuta en paralelo (E2E_WORKERS, 2 por defecto) con un servidor y una base de datos por worker; los proyectos móviles solo corren los tests @responsive (maquetación, desbordamiento, axe y ramas por ancho) y se puede repartir con --shard.
 - **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real 1.4h (estimado)
@@ -596,12 +595,12 @@ Configs de Playwright (se comprobó referencias en docs, CI, scripts y `package.
 - **Archivos**: `playwright.config.ts`, `tests/e2e/isolated/serve.cjs`, `tests/e2e/isolated/runtime.ts`, `tests/e2e/helpers.ts`, `tests/e2e/global-setup.ts`, `tests/e2e/global-teardown.ts`, `tests/e2e/isolated/guard.config.ts`, `tests/e2e/isolated/parallel.test.cjs`, `tests/frontend/test-tooling.test.mjs`, `tests/e2e/{pages,a11y,flows,calendar-views,composer,sites,instagram-grid,campaigns,saved-texts,studio,studio-boards}.spec.ts` (solo la etiqueta `@responsive`), `docs/guias/testing.md`, `docs/guias/desarrollo-local.md`, `README.md`
 - **Cubre**: E-02
 - **Cubre (tests)**: E2E-39
-- **Verificación**: `npx playwright test --workers=2 --grep @smoke` → verde y sin colisiones · `npx playwright test --list --project=mobile` → solo specs `@responsive`
+- **Verificación**: `E2E_PURGE=0 E2E_WORKERS=2 npx playwright test tiktok-audio canva hashtags bluesky` → verde, sin colisiones (incluye 2 specs serial y 2 con banderas) · `npx playwright test --list --project=mobile` → solo tests `@responsive` (lo comprueba `tests/e2e/isolated/parallel.test.cjs`) · `npm run test:unit`
 
 **Criterios de aceptación**
 - [x] La batería funciona con `workers ≥ 2` sin interferencias entre workers
 - [x] Móvil/tablet solo corren specs etiquetadas `@responsive`
-- [x] La duración total baja de forma medible frente a los 1,5 h de partida (registrar antes/después) — medido en una muestra (serie 6,9 min → 2 workers 4,0 min) y -46 % de ejecuciones (774 → 416); la pasada completa la lanza el coordinador al cerrar la fase
+- [ ] La duración total baja de forma medible frente a los 1,5 h de partida (registrar antes/después) — solo hay muestra (serie 6,9 min → 2 workers 4,0 min; 774 → 652 ejecuciones); se cierra con la pasada completa de fin de fase, que lanza el coordinador
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
@@ -615,14 +614,15 @@ Configs de Playwright (se comprobó referencias en docs, CI, scripts y `package.
 
 **Evidencia** (2026-11-12, sin otra ejecución en curso; `E2E_PURGE=0`; Windows, PHP 8.3.33, Playwright 1.64.1):
 - Muestra `pages a11y hashtags saved-texts campaigns instagram-grid` × 3 proyectos = 215 ejecuciones. Serie (`E2E_WORKERS=1`): `213 passed, 2 skipped (6.9m)`. Paralelo (`E2E_WORKERS=2`): `213 passed, 2 skipped (4.0m)`, 239 s de reloj total con el arranque de dos servidores (×1,7; `a11y.spec.ts` con 66 casos domina un worker). Ambos slots se usaron: 31 y 28 sesiones en sus dos `db.sqlite`, en dos `run-general-<uuid>` distintos. Los 2 omitidos son los previstos del shell de escritorio en móvil (`pages.spec.ts`).
-- `npx playwright test --list --project=…`: desktop 258, mobile 79, mobile-360 79 (antes 258 × 3 = 774; ahora 416, -46 %); `parallel.test.cjs` comprueba que los móviles solo listan `@responsive`.
+- `npx playwright test --list --project=…` tras la revisión 1: desktop 258, mobile 197, mobile-360 197 (antes 258 × 3 = 774; ahora 652, -16 %); la primera versión, con 79, dejaba fuera cobertura real. `parallel.test.cjs` comprueba que los móviles solo listan `@responsive`.
+- Muestra de la revisión 1 (`E2E_WORKERS=2`, `E2E_PURGE=0`, sin otra ejecución previa): `tiktok-audio canva hashtags bluesky` → `32 passed (2.1m)`; incluye `hashtags` y `bluesky` (serial) y `tiktok-audio`/`canva` (banderas de runRoot por slot).
 - `npm run test:unit` → `# tests 652 / # pass 652 / # fail 0` (incluye `parallel.test.cjs`, slots distintos, `E2E_WORKERS` inválido, `verifyRunIdentitySync`). `npx tsc --noEmit -p .`: sin errores nuevos (los 40 previos siguen). Guards del arnés (`tests/e2e/isolated/guard.config.ts`): 3 passed.
 - RAM medida con 2 workers sobre la muestra ligera: ≈ 1,9 GB (Chromium 0,9 + Node 0,8 + PHP 0,1); presupuesto recomendado 1,5-2 GB por worker + 1 GB (Studio y exportaciones pesan más). Fijo 2 workers por defecto por la OOM de la fase 1.
 - `PHP_CLI_SERVER_WORKERS=2 php -S …` en Windows: `forking is not supported on this platform` y sigue con un solo proceso → documentado; el paralelismo está en los servidores por worker.
 - No se ha lanzado la batería completa (la lanza el coordinador al cerrar la fase) ni Pest.
 
 **Decisiones**: slot = `parallelIndex` (`TEST_PARALLEL_INDEX`, que Playwright fija antes de cargar el config en el worker); `runtime.ts` decide una vez N puertos libres distintos y N `run-general-<uuid>` (hermanos, porque `bootstrap.php` exige ese patrón; el slot 0 es el de `E2E_GENERAL_RUN_ROOT`) y los publica en `E2E_SLOTS` para los workers. `helpers.ts` (`artisan`, `createE2eUsers`, `deleteE2eUsers`…) acepta un slot opcional con el actual por defecto, de modo que ningún spec cambia. Un `webServer` por slot. `global-setup` prepara cada slot (identidad, usuarios, sesión readonly) y rechaza `--workers` > `E2E_WORKERS`; cada worker repite la identidad al arrancar (`verifyRunIdentitySync`, inline en `runtime.ts` porque Node con type-stripping no resuelve imports sin extensión y los tests de `test-tooling` importan ese módulo). `fullyParallel` sigue en `false`: ficheros en paralelo, tests de un fichero en orden en un worker (los 23 specs `serial` incluidos). El teardown borra los usuarios de todos los slots y la purga protege todos sus `runRoot`.
-**Criterio `@responsive`** (lo que comprueba maquetación, desbordamiento, navegación/menú móvil, rejillas o a11y a ancho estrecho; la lógica de negocio es igual en cualquier ancho y queda solo en desktop): `pages` (3 grupos: públicas, autenticadas, shell), `a11y` (`axe · públicas`, `axe · autenticadas`), `flows` (registro; marca → borrador → calendario/lista/papelera/biblioteca), `calendar-views` (entrada por el menú), `composer` (E2E-01 pastillas, E2E-12 barrido de desbordamiento, A11Y-01, E2E-13 selector de tipo con rama por ancho), `sites` (E2E-15, E2E-15b: vista previa móvil/tablet), `instagram-grid` (E2E-05), `campaigns` (E2E-06 lista/selector con captura por proyecto), `saved-texts` (E2E-02 menú sobre el cursor), `studio` (editor de diseño, `scrollWidth`) y `studio-boards` (pizarra, ramas táctiles). Casi todos los specs llaman a `expectNoOverflow`, por eso no se usó «contiene overflow» como criterio: se etiqueta el test cuyo OBJETO es la maquetación. Quedan solo en desktop el resto de Studio, media, publicación, seguridad, OAuth, redes, etc.
+**Criterio `@responsive` (versión inicial, SUSTITUIDA por la de la revisión 1 al final de este ledger)**: `pages` (3 grupos: públicas, autenticadas, shell), `a11y` (`axe · públicas`, `axe · autenticadas`), `flows` (registro; marca → borrador → calendario/lista/papelera/biblioteca), `calendar-views` (entrada por el menú), `composer` (E2E-01 pastillas, E2E-12 barrido de desbordamiento, A11Y-01, E2E-13 selector de tipo con rama por ancho), `sites` (E2E-15, E2E-15b: vista previa móvil/tablet), `instagram-grid` (E2E-05), `campaigns` (E2E-06 lista/selector con captura por proyecto), `saved-texts` (E2E-02 menú sobre el cursor), `studio` (editor de diseño, `scrollWidth`) y `studio-boards` (pizarra, ramas táctiles). Casi todos los specs llaman a `expectNoOverflow`, por eso no se usó «contiene overflow» como criterio: se etiqueta el test cuyo OBJETO es la maquetación. Quedan solo en desktop el resto de Studio, media, publicación, seguridad, OAuth, redes, etc.
 
 **Notas**: Tamaño M. Cambio de infraestructura de tests: las demás tareas siguen ejecutándose en serie para no mezclar causas de fallo (GOT-005). Medir antes/después.
 
@@ -3645,3 +3645,26 @@ Cifras del dry-run: varían con la antigüedad de las ejecuciones; hoy (2026-11-
 | G3 | Minor | `desarrollo-local.md` aún describía `E2E_NO_SERVER=1` y `artisan serve --port=8080` para la batería | T-13 | Reescrito: ya no se puede apuntar la batería a un servidor manual (qué lo impide); depuración con `E2E_PORT`/`--headed`/`E2E_PURGE=0`; el `artisan serve` queda solo como exploración manual ajena a la batería | test «la guía de desarrollo local ya no propone…» (el texto antiguo sí contenía la frase: 1 coincidencia en HEAD) |
 
 Dry-run real (hoy, 2026-11-12; varía con la antigüedad): «borraría 260 · conservado 23» en 0,75 s con 153 MB de RSS máximo (el proceso base de Node son ~45 MB); `t43/` sigue con 394 entradas, no se borró nada. `npm run test:unit` 647/647. Sin E2E ni Pest en este intento. T-12 y T-13 siguen `en-revision`.
+
+## Revisión de dos lentes — intento 1: Fase 2 (T-14) — gaps corregidos
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| 1 | Important | La lista `@responsive` incumplía su propio criterio: ~40 ficheros llaman a `expectNoOverflow` y no llevaban la etiqueta (p. ej. composer E2E-08 a 375 px, `studio-datasets` E2E27.01 con su rama axe de mobile-360, `studio-captions`, composer E2E-07) | T-14 | Inventario sistemático por script sobre los 54 specs: se etiqueta todo test que llama a `expectNoOverflow`/`overflowX`/`scrollWidth`, hace axe, tiene ramas por proyecto o viewport (`project.name ===`, `startsWith`, `isMobile`, `viewportSize`, `.viewport`), o lo haga a través de un helper local. +119 tests etiquetados. Excepciones: ver tabla. Salvaguarda en `test-tooling.test.mjs` | `--list`: desktop 258, mobile 197, mobile-360 197 (652 ejecuciones, antes 774; el primer intento dejaba 416); `npm run test:unit` en verde con los dos tests nuevos |
+| 2 | Minor | La `Verificación` usaba `--grep @smoke`, que no existe | T-14 | Campo reescrito con comandos ejecutables | `E2E_PURGE=0 E2E_WORKERS=2 npx playwright test tiktok-audio canva hashtags bluesky` → 32 passed (2.1m), con specs serial (`hashtags`, `bluesky`) y con banderas (`tiktok-audio`, `canva`) |
+| 3 | Minor | Criterio de duración marcado `[x]` solo con una muestra | T-14 | Desmarcado; se cierra con la pasada completa de fin de fase (la lanza el coordinador). Quitado `Cerrada` | ledger |
+
+**Criterio vigente de `@responsive`** (sustituye al inicial): lleva la etiqueta todo test que (a) llama a `expectNoOverflow`, `overflowX` o `scrollWidth`, (b) hace una auditoría axe, (c) tiene ramas por `project.name`, `isMobile`, viewport o `project.use`, o (d) consta en un ledger como fallo histórico solo en móvil (composer E2E-08 en `2026-10-23-post-composer`; no se halló ningún otro fallo móvil-only de los tests que quedan fuera, buscando en todos los `tasks.md`). Los helpers locales con esas llamadas cuentan. `project.name` usado solo para nombrar datos (`${stamp()}-${info.project.name}`, `e2eUser(info.project.name)`) NO cuenta.
+
+**Tests que quedan solo en desktop (61 casos; 258 − 197).** Ninguno cumple (a)-(d); se comprobó con el script y a mano. Por grupo:
+
+| Spec (casos) | Motivo |
+|---|---|
+| `canva` 159, `first-comment` 165, `target-media` 167, `natural-schedule` 160 (4) | variantes de lógica (plan de pago, salidas de duplicado, limpieza de alt, IA desactivada) sin comprobación de ancho; el overflow/axe del mismo flujo ya lo cubre otro test etiquetado del fichero |
+| `composer` 196, 261, 274, 328 (×2), 462, 610, 641, 661 (9) | confirmación de salida, emoji multilínea, Atrás, zona horaria Auckland, publicar ahora y fechas límite: lógica; la maquetación del compositor la cubren E2E-01/02/03/04/05/08… etiquetados |
+| `composer-refresh` 5 (×2), `instagram-audio` 65/128/157, `tiktok-audio` 48, `gif-picker` 154 (7) | reintentos, consultas lentas, errores y foco: lógica de estado. `gif-picker` 154 es falso positivo de la detección por helper (`RESPONSIVE_EXCEPTIONS`) |
+| `media-import` 126/168/198/216/325/338/353/364 (8) | sondeo, atascos, cancelación y Drive/Picker: lógica y red simulada |
+| `oauth` 111/127/199, `security` 139/182/334/376, `social` 80/91/184/203 (11) | metadatos/DCR (API), reto 2FA, bloqueos, passkeys y vinculación: flujo y backend sin comprobación de ancho |
+| `studio-automation` (2), `studio-boards` 160/220, `studio-captions` 86, `studio-charts` (3), `studio-presentation-media` (5), `studio-presentation-tools` (3), `studio-presentations` 41/103, `studio-timeline` 133, `studio` 25/103/162 (22) | exportación, persistencia, vídeo/audio nativo y presentación en Studio: comprobaciones de píxeles y de API, sin rama por ancho; `studio-boards` 263, el editor y la pizarra con ramas táctiles, sí están etiquetados |
+
+Reparto por proyecto tras la revisión: `desktop` 258, `mobile` 197, `mobile-360` 197 → 652 ejecuciones. Salvaguarda: `todo test que mira desbordamiento, axe, viewport o ramas por proyecto lleva @responsive` (falla si aparece uno sin etiqueta y sin motivo en `RESPONSIVE_EXCEPTIONS`) y `la deteccion de @responsive distingue…` (prueba el propio detector). T-14 sigue `en-revision`.

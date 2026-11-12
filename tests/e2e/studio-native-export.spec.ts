@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import { artisan, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, stamp } from './helpers';
 
-test('Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft', async ({ page }, info) => {
+test('Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft', { tag: '@responsive' }, async ({ page }, info) => {
     test.setTimeout(120_000);
     const user = e2eUser(info.project.name), errors: string[] = [];
     cleanComposerBrands(user.email);
@@ -83,7 +83,7 @@ test('Studio native export: order pages, resume history, cancel retry and downlo
     } finally { cleanComposerBrands(user.email); }
 });
 
-test('Studio native history: paginate real exports in one request per page and reopen without creating work', async ({ page }, info) => {
+test('Studio native history: paginate real exports in one request per page and reopen without creating work', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `studio-export-history-${stamp()}-${info.project.name}`);

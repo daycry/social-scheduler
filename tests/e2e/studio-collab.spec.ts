@@ -39,7 +39,7 @@ const ready = (page: Page) => expect(page.getByRole('button', { name: 'Añadir t
 const status = (page: Page) => page.getByTestId('studio-save-status');
 const savedName = (page: Page, id: number) => page.evaluate(async designId => (await (await fetch(`/studio/designs/${designId}`, { headers: { Accept: 'application/json' } })).json()).design.name, id);
 
-test('Studio: dos usuarios comparten, comentan, editan a la vez, ven el 409 y se revoca el acceso', async ({ browser, page }, info) => {
+test('Studio: dos usuarios comparten, comentan, editan a la vez, ven el 409 y se revoca el acceso', { tag: '@responsive' }, async ({ browser, page }, info) => {
     test.setTimeout(240_000);
     const owner = e2eUser(info.project.name);
     cleanComposerBrands(owner.email);

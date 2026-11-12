@@ -26,7 +26,7 @@ async function captionPreviewCoverage(page: Page) {
     });
 }
 
-test('Studio captions UI: import edit style offset delete undo reopen and download SRT VTT with clear file errors', async ({ page }, info) => {
+test('Studio captions UI: import edit style offset delete undo reopen and download SRT VTT with clear file errors', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name); cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `captions-ui-${stamp()}-${info.project.name}`), errors: string[] = [];
     page.on('pageerror', e => errors.push(e.message));
@@ -249,7 +249,7 @@ test('Studio captions render: private font pinned MP4 GIF and SVG retain opaque 
     } finally { cleanComposerBrands(user.email); }
 });
 
-test('Studio captions access: revision pinned API MCP abilities ownership and optimistic conflicts', async ({ page }, info) => {
+test('Studio captions access: revision pinned API MCP abilities ownership and optimistic conflicts', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name); cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `captions-access-${stamp()}-${info.project.name}`);
     const tokenName = `captions-e2e-${stamp()}`;

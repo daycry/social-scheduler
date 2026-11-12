@@ -13,7 +13,7 @@ function frame(file: string, time: number) {
 function pixel(bytes: Buffer, x: number, y: number, width = 100) { return [...bytes.subarray((y * width + x) * 3, (y * width + x) * 3 + 3)]; }
 function near(actual: number[], expected: number[], tolerance = 18) { actual.forEach((value, index) => expect(Math.abs(value - expected[index])).toBeLessThanOrEqual(tolerance)); }
 
-test('Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft', async ({ page }, info) => {
+test('Studio composite export: public uploads and revision preserve moving video overlays transition and measured two-tone audio through download and draft', { tag: '@responsive' }, async ({ page }, info) => {
     test.setTimeout(180_000);
     const user = e2eUser(info.project.name), errors: string[] = [];
     cleanComposerBrands(user.email);

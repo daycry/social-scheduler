@@ -23,7 +23,7 @@ test.afterEach(async ({}, info) => {
     cleanComposerBrands(e2eUser(info.project.name).email);
 });
 
-test('E2E-20e · SmartLinks: bloques enriquecidos, reordenar, programar, formulario público y clics por bloque', async ({ page }) => {
+test('E2E-20e · SmartLinks: bloques enriquecidos, reordenar, programar, formulario público y clics por bloque', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/smartlinks?brand_id=${brand.id}`);
     await settle(page);

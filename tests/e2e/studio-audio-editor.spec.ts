@@ -10,7 +10,7 @@ function wave() {
     return buffer;
 }
 
-test('Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track', async ({ page }, info) => {
+test('Studio audio editor: upload, add, trim, split, undo, play, persist and reopen a private brand track', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name), errors: string[] = [];
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `studio-audio-editor-${stamp()}-${info.project.name}`);
@@ -75,7 +75,7 @@ test('Studio audio editor: upload, add, trim, split, undo, play, persist and reo
     } finally { cleanComposerBrands(user.email); }
 });
 
-test('Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds', async ({ page }, info) => {
+test('Studio audio editor: decimal page duration uses document bounds rather than rounded frame bounds', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name); cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `studio-audio-decimal-${stamp()}-${info.project.name}`);
     try {

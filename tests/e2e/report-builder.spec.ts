@@ -14,7 +14,7 @@ async function axeNow(page: Page, label: string) {
 
 const order = (page: Page) => page.locator('[data-builder] [data-block]').evaluateAll((els) => els.map((e) => e.getAttribute('data-block-type')));
 
-test('Report builder: blocks, template, PDF download, schedule and brand isolation', async ({ page }, info) => {
+test('Report builder: blocks, template, PDF download, schedule and brand isolation', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const a = seedComposerBrand(user.email, `A-report-builder-${stamp()}`);

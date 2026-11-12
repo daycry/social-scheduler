@@ -25,7 +25,7 @@ test.afterEach(async ({}, info) => {
 const row = (page: import('@playwright/test').Page, text: string) => page.locator('li').filter({ hasText: text }).first();
 const rows = (page: import('@playwright/test').Page) => page.getByTestId('select-comment');
 
-test('E2E-20a · cobertura por red, filtro por red y por estado', async ({ page }) => {
+test('E2E-20a · cobertura por red, filtro por red y por estado', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/inbox?brand_id=${brand.id}`);
     await settle(page);
@@ -60,7 +60,7 @@ test('E2E-20a · cobertura por red, filtro por red y por estado', async ({ page 
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-20b · etiquetas, asignación y filtros', async ({ page }) => {
+test('E2E-20b · etiquetas, asignación y filtros', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/inbox?brand_id=${brand.id}`);
     await settle(page);
@@ -98,7 +98,7 @@ test('E2E-20b · etiquetas, asignación y filtros', async ({ page }) => {
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-20c · lote (leer y cerrar) y respuestas guardadas', async ({ page }) => {
+test('E2E-20c · lote (leer y cerrar) y respuestas guardadas', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/inbox?brand_id=${brand.id}`);
     await settle(page);

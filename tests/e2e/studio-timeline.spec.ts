@@ -13,7 +13,7 @@ test.afterEach(async ({ page }) => {
     expect(browserErrors.get(page) ?? []).toEqual([]);
 });
 
-test('Studio timeline: edit windows, split, persist and run a common playhead without changing the document', async ({ page }, info) => {
+test('Studio timeline: edit windows, split, persist and run a common playhead without changing the document', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `studio-timeline-${stamp()}-${info.project.name}`);
@@ -60,7 +60,7 @@ test('Studio timeline: edit windows, split, persist and run a common playhead wi
     } finally { cleanComposerBrands(user.email); }
 });
 
-test('Studio timeline: an uploaded real video with an open source end can be split and previewed', async ({ page }, info) => {
+test('Studio timeline: an uploaded real video with an open source end can be split and previewed', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `studio-timeline-video-${stamp()}-${info.project.name}`);
@@ -98,7 +98,7 @@ test('Studio timeline: an uploaded real video with an open source end can be spl
     } finally { cleanComposerBrands(user.email); }
 });
 
-test('Studio timeline: splitting the second page uses local clip time and survives undo and redo', async ({ page }, info) => {
+test('Studio timeline: splitting the second page uses local clip time and survives undo and redo', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `studio-timeline-pages-${stamp()}-${info.project.name}`);
@@ -162,7 +162,7 @@ test('Studio timeline: buffering never consumes a short clip before playback sta
     } finally { cleanComposerBrands(user.email); }
 });
 
-test('Studio timeline: closing while media buffers cancels the pending playback', async ({ page }, info) => {
+test('Studio timeline: closing while media buffers cancels the pending playback', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `studio-timeline-cancel-${stamp()}-${info.project.name}`);

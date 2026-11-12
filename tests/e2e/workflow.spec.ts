@@ -45,7 +45,7 @@ async function newClient(browser: Browser, info: TestInfo): Promise<{ context: B
 
 const listUrl = () => `/calendar?view=list&brand_id=${brand.id}`;
 
-test('aprobar y rechazar con dos usuarios: invitación uniforme, decisión del aprobador y estado en el calendario', async ({ browser, page }, info) => {
+test('aprobar y rechazar con dos usuarios: invitación uniforme, decisión del aprobador y estado en el calendario', { tag: '@responsive' }, async ({ browser, page }, info) => {
     test.setTimeout(180_000);
     const owner = e2eUser(info.project.name);
     const guest = { email: `e2e-approver-${info.project.name}-${stamp()}@example.test`, name: 'e2e Aprobadora', password: GUEST_PASSWORD };
@@ -112,7 +112,7 @@ test('aprobar y rechazar con dos usuarios: invitación uniforme, decisión del a
     }
 });
 
-test('destino manual: el aviso trae el contenido y se marca como publicado con una URL https', async ({ page }, info) => {
+test('destino manual: el aviso trae el contenido y se marca como publicado con una URL https', { tag: '@responsive' }, async ({ page }, info) => {
     test.setTimeout(120_000);
     const owner = e2eUser(info.project.name);
     const [id] = seedPosts(owner.email, [{
@@ -148,7 +148,7 @@ test('destino manual: el aviso trae el contenido y se marca como publicado con u
     await expect(row.getByRole('link', { name: 'Ver' }).first()).toHaveAttribute('href', 'https://facebook.com/pagina/posts/42');
 });
 
-test('serie semanal: se crea desde la pantalla y las ocurrencias aparecen en el calendario sin duplicarse', async ({ page }, info) => {
+test('serie semanal: se crea desde la pantalla y las ocurrencias aparecen en el calendario sin duplicarse', { tag: '@responsive' }, async ({ page }, info) => {
     test.setTimeout(120_000);
     const owner = e2eUser(info.project.name);
     await loginAs(page, owner);
@@ -191,7 +191,7 @@ test('serie semanal: se crea desde la pantalla y las ocurrencias aparecen en el 
     await expect(page.getByTestId('series-badge')).toHaveCount(0);
 });
 
-test('lote: reprogramar y cancelar con un resultado parcial por elemento', async ({ page }, info) => {
+test('lote: reprogramar y cancelar con un resultado parcial por elemento', { tag: '@responsive' }, async ({ page }, info) => {
     test.setTimeout(120_000);
     const owner = e2eUser(info.project.name);
     const [p1, p2, p3, done] = seedPosts(owner.email, [
@@ -226,7 +226,7 @@ test('lote: reprogramar y cancelar con un resultado parcial por elemento', async
     await expect(page.getByTestId(`row-${p3}`)).toContainText('Programada');
 });
 
-test('reintento: un destino con error vuelve a programarse una sola vez', async ({ page }, info) => {
+test('reintento: un destino con error vuelve a programarse una sola vez', { tag: '@responsive' }, async ({ page }, info) => {
     test.setTimeout(120_000);
     const owner = e2eUser(info.project.name);
     const [id] = seedPosts(owner.email, [{

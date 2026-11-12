@@ -87,7 +87,7 @@ async function enableFakeGiphy(page: Page, seen: { queries: string[]; imported: 
 const newSeen = () => ({ queries: [] as string[], imported: null as string | null, external: [] as string[] });
 const catalog = (q: string) => ({ body: { results: q === 'xyz' ? [] : [gif(1, 'Gato saltando'), gif(2, 'Gato dormido'), gif(3, 'Gato curioso')], next_offset: null } });
 
-test('E2E-09 · GIF: sin GIPHY_API_KEY no hay botón «GIF» ni se pide nada a Giphy', async ({ page }, info) => {
+test('E2E-09 · GIF: sin GIPHY_API_KEY no hay botón «GIF» ni se pide nada a Giphy', { tag: '@responsive' }, async ({ page }, info) => {
     const giphy: string[] = [];
     page.on('request', (r) => {
         if (/giphy\.com|\/gifs(\?|$)/.test(r.url())) giphy.push(r.url());
@@ -105,7 +105,7 @@ test('E2E-09 · GIF: sin GIPHY_API_KEY no hay botón «GIF» ni se pide nada a G
     await axeNow(page, `compositor sin GIF (${info.project.name})`);
 });
 
-test('E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e importar el MP4 (axe y sin desborde)', async ({ page }, info) => {
+test('E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e importar el MP4 (axe y sin desborde)', { tag: '@responsive' }, async ({ page }, info) => {
     const w = watch(page);
     const seen = newSeen();
     await enableFakeGiphy(page, seen, catalog);

@@ -67,7 +67,7 @@ test('E2E-29 notes preserve immediate save, page ownership, Unicode, history and
     } finally { cleanComposerBrands(user.email); }
 });
 
-test('E2E-29 presenter uses real pixels, manual fade destination, keys, autoplay, loop, blackout and popup cleanup', async ({ page }, info) => {
+test('E2E-29 presenter uses real pixels, manual fade destination, keys, autoplay, loop, blackout and popup cleanup', { tag: '@responsive' }, async ({ page }, info) => {
     const { user, id } = await setup(page, info);
     try {
         const before = await installDeck(page, id);

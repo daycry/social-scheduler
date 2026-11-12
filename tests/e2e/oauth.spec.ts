@@ -138,7 +138,7 @@ test.describe('MCP OAuth · API (sin interfaz)', () => {
 });
 
 test.describe('MCP OAuth · navegador', () => {
-    test('E2E-05 · registro, consentimiento con preset publish, token en /mcp y Origin ajeno (CA-16, CA-18, CA-19, CA-20, CA-28)', async ({ page, request, baseURL }, info) => {
+    test('E2E-05 · registro, consentimiento con preset publish, token en /mcp y Origin ajeno (CA-16, CA-18, CA-19, CA-20, CA-28)', { tag: '@responsive' }, async ({ page, request, baseURL }, info) => {
         const w = watch(page);
         const client = await register(request, 'flujo');
         const { verifier, challenge } = pkce();
@@ -241,7 +241,7 @@ test.describe('MCP OAuth · navegador', () => {
         expect(params.get('state')).toBe(state);
     });
 
-    test('E2E-07 · origen, reautorización, revocación y coexistencia con las API keys (CA-24, CA-25, CA-26)', async ({ page, request, baseURL }, info) => {
+    test('E2E-07 · origen, reautorización, revocación y coexistencia con las API keys (CA-24, CA-25, CA-26)', { tag: '@responsive' }, async ({ page, request, baseURL }, info) => {
         const manual = createManualKey(user.email, 'e2e key manual');
         await loginAs(page, user);
         const client = await register(request, 'origen');

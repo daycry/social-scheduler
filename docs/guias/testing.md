@@ -24,22 +24,11 @@ La batería general (`npm run test:e2e`) iba en serie (un worker, un `php -S`, t
 
 ### Proyectos móviles: solo `@responsive`
 
-`desktop` ejecuta todo (258 casos); `mobile` (375 px) y `mobile-360` solo los tests etiquetados `{ tag: '@responsive' }` (79 casos cada uno). Total: 416 ejecuciones en vez de 774. Criterio: se etiqueta lo que comprueba **maquetación, desbordamiento horizontal, navegación o menús que cambian en móvil, vistas con tablas/rejillas o accesibilidad a anchos estrechos**; la lógica de negocio (publicar, programar, importar media, permisos, 2FA, OAuth, Studio headless) es la misma en cualquier ancho y se queda solo en `desktop`.
+`desktop` ejecuta todo (258 casos); `mobile` (375 px) y `mobile-360` solo los tests etiquetados `{ tag: '@responsive' }` (197 casos cada uno): 652 ejecuciones en vez de 774 (-16 %). Manda la cobertura: un fallo real de maquetación (por ejemplo el desbordamiento a 375 px de las pestañas «Editar por red») solo se ve en un ancho estrecho.
 
-| Spec | Tests `@responsive` | Por qué |
-|---|---|---|
-| `pages.spec.ts` | los 3 grupos: páginas públicas, autenticadas y shell | recorre todas las páginas con 0 px de desbordamiento y el menú |
-| `a11y.spec.ts` | `axe · públicas` y `axe · autenticadas` | contraste y tamaño de objetivo cambian a 375/360 px |
-| `flows.spec.ts` | registro; marca → borrador → calendario/lista/papelera/biblioteca | formularios y navegación completa en móvil |
-| `calendar-views.spec.ts` | la vista por defecto al entrar por el menú | el menú de móvil es otro |
-| `composer.spec.ts` | E2E-01 (pantalla completa y pastillas), E2E-12 (barrido de desbordamiento), A11Y-01 (emoji/IA/salida), E2E-13 (selector de tipo, ramas por ancho) | maquetación del compositor |
-| `sites.spec.ts` | E2E-15 y E2E-15b | vista previa móvil/tablet/escritorio de los Sitios |
-| `instagram-grid.spec.ts` | E2E-05 | rejilla de 3 columnas sin desbordar |
-| `campaigns.spec.ts` | E2E-06 | lista y selector de campañas con captura por proyecto |
-| `saved-texts.spec.ts` | E2E-02 | menú del compositor sobre el cursor |
-| `studio.spec.ts`, `studio-boards.spec.ts` | el editor de diseño y la pizarra | lienzo en pantalla estrecha y ramas táctiles |
+**Regla.** Lleva `@responsive` todo test que cumpla al menos una de estas condiciones: llama a `expectNoOverflow` (o `overflowX`/`scrollWidth`), hace una auditoría axe, tiene ramas por proyecto o viewport (`project.name ===`, `startsWith('mobile')`, `isMobile`, `viewportSize`, `.viewport`) o aparece en un ledger como fallo histórico solo en móvil. Se detecta también a través de los helpers locales que contengan esas llamadas. Se etiqueta un test con `test('…', { tag: '@responsive' }, async …)` y un grupo con `test.describe('…', { tag: '@responsive' }, …)`.
 
-Etiqueta un test nuevo con `test('…', { tag: '@responsive' }, async …)` o un grupo con `test.describe('…', { tag: '@responsive' }, …)` si es una comprobación de maquetación o navegación; `npx playwright test --list --project=mobile` debe listar solo etiquetados (lo comprueba `tests/e2e/isolated/parallel.test.cjs`).
+**Quedan solo en desktop** (61 casos): los que no tienen ninguna de esas condiciones —lógica de publicación, importación y cancelación de media, seguridad 2FA/passkey en sus casos sin maquetación propia, flujos OAuth/social sin captura de desbordamiento, API del MCP, Studio headless (exportación, presentaciones, temporizadores, automatización, gráficos)—. Una excepción con la detección activada (falso positivo de helper) debe figurar con su motivo en `RESPONSIVE_EXCEPTIONS` de `tests/frontend/test-tooling.test.mjs`, que falla (en `npm run test:unit`) si un test con esas condiciones no lleva la etiqueta. `npx playwright test --list --project=mobile` debe listar solo etiquetados (lo comprueba `tests/e2e/isolated/parallel.test.cjs`).
 
 ### Medición
 
@@ -50,7 +39,7 @@ Muestra de 215 ejecuciones (6 specs ligeros × 3 proyectos con `@responsive`), `
 | `E2E_WORKERS=1` (serie) | 6,9 min | 213 verdes, 2 omitidos previstos |
 | `E2E_WORKERS=2` | 4,0 min (239 s en total, con el arranque de dos servidores) | 213 verdes, 2 omitidos previstos |
 
-Con 2 workers el reparto es por ficheros, y `a11y.spec.ts` (66 casos) domina; con más specs el reparto mejora. Sumado a la reducción móvil, la estimación de la batería completa es el ~54 % de las ejecuciones originales repartidas entre los workers; el dato real lo da la pasada completa.
+Con 2 workers el reparto es por ficheros, y `a11y.spec.ts` (66 casos) domina; con más specs el reparto mejora. La duración total de la batería completa se mide en la pasada de fin de fase; esta muestra solo demuestra el reparto y el aislamiento.
 
 ## Purga de ejecuciones antiguas
 

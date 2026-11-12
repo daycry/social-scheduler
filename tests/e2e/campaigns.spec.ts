@@ -98,7 +98,7 @@ test('E2E-06 · gestión de campañas: alta con color y fechas, selector del com
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-07 · panel de campaña: KPIs de los últimos snapshots, «No disponible» distinto de 0, alcance acumulado y aviso de 30 días', async ({ page }, info) => {
+test('E2E-07 · panel de campaña: KPIs de los últimos snapshots, «No disponible» distinto de 0, alcance acumulado y aviso de 30 días', { tag: '@responsive' }, async ({ page }, info) => {
     const w = watch(page);
     const seed: CampaignSeed = seedCampaignPanel(e2eUser(info.project.name).email, brand.id);
 

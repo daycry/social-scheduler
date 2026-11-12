@@ -66,7 +66,7 @@ test.afterEach(async ({}, info) => {
     cleanComposerBrands(e2eUser(info.project.name).email);
 });
 
-test('T-17 · media común más una red con media y alt propios: guardar, reabrir, previsualizar por red y publicar en simulado', async ({ page }) => {
+test('T-17 · media común más una red con media y alt propios: guardar, reabrir, previsualizar por red y publicar en simulado', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     const { A, B, C } = s.assets;
     await page.goto(`/posts/${s.post}/edit`);
@@ -146,7 +146,7 @@ test('T-17 · media común más una red con media y alt propios: guardar, reabri
     expect(w.errors.filter((e) => !/422/.test(e)), w.errors.join('\n')).toEqual([]);
 });
 
-test('T-17 · el error de la media propia nombra la red y bloquea Programar', async ({ page }) => {
+test('T-17 · el error de la media propia nombra la red y bloquea Programar', { tag: '@responsive' }, async ({ page }) => {
     const { A, B } = s.assets;
     await page.goto(`/posts/${s.post}/edit`);
     await settle(page);

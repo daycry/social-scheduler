@@ -52,7 +52,7 @@ async function connectCanva(page: Page, brandId: number) {
 /** Ejecuta los trabajos pendientes con artisan: Canva (crear y sondear la exportacion) y la descarga a la biblioteca. */
 const runQueue = () => artisan(String.raw`for ($i = 0; $i < 40 && ($job = Illuminate\Support\Facades\Queue::connection('database')->pop('media')); $i++) { $job->fire(); } echo 'QUEUE:done';`);
 
-test('Canva: sin credenciales la funcion aparece como no configurada y no ofrece conectar', async ({ page }, info) => {
+test('Canva: sin credenciales la funcion aparece como no configurada y no ofrece conectar', { tag: '@responsive' }, async ({ page }, info) => {
     const errors = watchErrors(page);
     const owner = e2eUser(info.project.name);
     cleanComposerBrands(owner.email);
@@ -69,7 +69,7 @@ test('Canva: sin credenciales la funcion aparece como no configurada y no ofrece
     expect(errors).toEqual([]);
 });
 
-test('Canva: conectar (OAuth simulado), plan, listar y buscar, crear, retorno firmado, exportar a la biblioteca con origen y desconectar', async ({ page }, info) => {
+test('Canva: conectar (OAuth simulado), plan, listar y buscar, crear, retorno firmado, exportar a la biblioteca con origen y desconectar', { tag: '@responsive' }, async ({ page }, info) => {
     test.setTimeout(240_000);
     fs.writeFileSync(flagOn, 'Canva falso');
     const errors = watchErrors(page);

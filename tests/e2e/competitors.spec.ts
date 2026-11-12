@@ -24,7 +24,7 @@ test.afterEach(async ({}, info) => {
 const rivals = (page: import('@playwright/test').Page) => page.getByTestId('competitor-row').filter({ hasText: 'rival_' });
 const names = (page: import('@playwright/test').Page) => rivals(page).locator('p.font-medium');
 
-test('E2E-20d · competidores: rango, ranking por métrica, publicaciones destacadas y CSV', async ({ page }) => {
+test('E2E-20d · competidores: rango, ranking por métrica, publicaciones destacadas y CSV', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/competitors?brand_id=${brand.id}`);
     await settle(page);

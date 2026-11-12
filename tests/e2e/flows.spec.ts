@@ -108,7 +108,7 @@ test.describe('con sesión de un usuario e2e-sec-*', () => {
         expect(w.errors).toEqual([]);
     });
 
-    test('SmartLink: crear con un bloque, abrir sin sesión y el clic redirige', async ({ page, browser, baseURL }, info) => {
+    test('SmartLink: crear con un bloque, abrir sin sesión y el clic redirige', { tag: '@responsive' }, async ({ page, browser, baseURL }, info) => {
         const w = watch(page);
         aceptarDialogos(page);
         const brand = `e2e-sl-${stamp()}-${info.project.name}`;
@@ -160,7 +160,7 @@ test.describe('con sesión de un usuario e2e-sec-*', () => {
         expect(w.errors).toEqual([]);
     });
 
-    test('API keys: crear y revocar', async ({ page }, info) => {
+    test('API keys: crear y revocar', { tag: '@responsive' }, async ({ page }, info) => {
         const w = watch(page);
         aceptarDialogos(page);
         const name = `e2e-key-${stamp()}-${info.project.name}`;

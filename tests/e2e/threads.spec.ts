@@ -26,7 +26,7 @@ test.afterEach(async ({}, info) => {
 
 const card = (page: Page) => page.locator('section[data-network="threads"]');
 
-test('E2E-08 · Conexiones: la tarjeta de Threads y su cuenta conectada, sin desborde', async ({ page }) => {
+test('E2E-08 · Conexiones: la tarjeta de Threads y su cuenta conectada, sin desborde', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/brands/${brand.id}/connections`);
     await settle(page);
@@ -45,7 +45,7 @@ test('E2E-08 · Conexiones: la tarjeta de Threads y su cuenta conectada, sin des
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-08 · calendario: iconos de Threads y Bluesky y filtro por red', async ({ page }) => {
+test('E2E-08 · calendario: iconos de Threads y Bluesky y filtro por red', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/calendar?view=list&brand_id=${brand.id}`);
     await settle(page);
@@ -74,7 +74,7 @@ test('E2E-08 · calendario: iconos de Threads y Bluesky y filtro por red', async
     expect(scheduledDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 });
 
-test('E2E-08 · dashboard de Threads: visitas al perfil (no visualizaciones), clics y la publicación con sus cifras', async ({ page }) => {
+test('E2E-08 · dashboard de Threads: visitas al perfil (no visualizaciones), clics y la publicación con sus cifras', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/dashboard/threads?brand_id=${brand.id}`);
     await settle(page);
@@ -102,7 +102,7 @@ test('E2E-08 · dashboard de Threads: visitas al perfil (no visualizaciones), cl
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-08 · compositor: Threads cuenta 500 caracteres con cada emoji por sus bytes UTF-8', async ({ page }) => {
+test('E2E-08 · compositor: Threads cuenta 500 caracteres con cada emoji por sus bytes UTF-8', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/brands/${brand.id}/posts/create`);
     await settle(page);
@@ -130,7 +130,7 @@ test('E2E-08 · compositor: Threads cuenta 500 caracteres con cada emoji por sus
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-08 · compositor: con 2 etiquetas en Threads aparece el aviso de que solo se usa la primera (CA-14)', async ({ page }) => {
+test('E2E-08 · compositor: con 2 etiquetas en Threads aparece el aviso de que solo se usa la primera (CA-14)', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/brands/${brand.id}/posts/create`);
     await settle(page);

@@ -23,7 +23,7 @@ test.afterEach(async ({}, info) => {
 
 const row = (page: import('@playwright/test').Page, text: string) => page.locator('li').filter({ hasText: text });
 
-test('E2E-01 · notas del inbox: alta, insignia, filtro y borrado', async ({ page }) => {
+test('E2E-01 · notas del inbox: alta, insignia, filtro y borrado', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/inbox?brand_id=${brand.id}`);
     await settle(page);

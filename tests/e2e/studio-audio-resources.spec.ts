@@ -11,7 +11,7 @@ function waveBytes() {
     return buffer;
 }
 
-test('Studio audio resources API: private binary upload, byte ranges and native browser playback', async ({ page }, info) => {
+test('Studio audio resources API: private binary upload, byte ranges and native browser playback', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `studio-audio-resource-${stamp()}-${info.project.name}`);

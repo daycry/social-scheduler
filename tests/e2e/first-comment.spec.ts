@@ -35,7 +35,7 @@ async function axeNow(page: Page, label: string) {
 const pill = (page: Page, network: string, name: string) => page.getByRole('button', { name: new RegExp(`^${network}: ${name}`) });
 const fields = (page: Page) => page.getByTestId('first-comment');
 
-test('E2E-03 · el campo aparece en Instagram, no en TikTok ni en una Historia, y el contador avisa del máximo', async ({ page }) => {
+test('E2E-03 · el campo aparece en Instagram, no en TikTok ni en una Historia, y el contador avisa del máximo', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     seedExtraAccount(brand.id, 'tiktok', 'e2e TikTok');
     await page.goto(`/brands/${brand.id}/posts/create`);
@@ -72,7 +72,7 @@ test('E2E-03 · el campo aparece en Instagram, no en TikTok ni en una Historia, 
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-03 · YouTube sin el permiso de comentarios avisa de reconectar y deshabilita el campo', async ({ page }) => {
+test('E2E-03 · YouTube sin el permiso de comentarios avisa de reconectar y deshabilita el campo', { tag: '@responsive' }, async ({ page }) => {
     seedExtraAccount(brand.id, 'youtube', 'e2e YouTube');
     await page.goto(`/brands/${brand.id}/posts/create`);
     await settle(page);
@@ -85,7 +85,7 @@ test('E2E-03 · YouTube sin el permiso de comentarios avisa de reconectar y desh
     await axeNow(page, 'YouTube sin permiso de comentarios');
 });
 
-test('E2E-04 · un comentario fallido se edita y se reintenta sin tocar el estado del destino', async ({ page }, info) => {
+test('E2E-04 · un comentario fallido se edita y se reintenta sin tocar el estado del destino', { tag: '@responsive' }, async ({ page }, info) => {
     const w = watch(page);
     const seeded = seedPublishedWithComment(e2eUser(info.project.name).email, brand.id);
     await page.goto(`/posts/${seeded.postId}/edit`);
@@ -120,7 +120,7 @@ test('E2E-04 · un comentario fallido se edita y se reintenta sin tocar el estad
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-04 · un comentario publicado no se edita ni se reintenta', async ({ page }, info) => {
+test('E2E-04 · un comentario publicado no se edita ni se reintenta', { tag: '@responsive' }, async ({ page }, info) => {
     const seeded = seedPublishedWithComment(e2eUser(info.project.name).email, brand.id, 'publicado', '');
     await page.goto(`/posts/${seeded.postId}/edit`);
     await settle(page);
@@ -132,7 +132,7 @@ test('E2E-04 · un comentario publicado no se edita ni se reintenta', async ({ p
     await expectNoOverflow(page);
 });
 
-test('E2E-04 · con envío previo posible: «Ya está publicado» no llama a la red y «Publicar igualmente» pide confirmación', async ({ page }, info) => {
+test('E2E-04 · con envío previo posible: «Ya está publicado» no llama a la red y «Publicar igualmente» pide confirmación', { tag: '@responsive' }, async ({ page }, info) => {
     const w = watch(page);
     const email = e2eUser(info.project.name).email;
     const seeded = seedPublishedWithComment(email, brand.id, 'fallido', 'No se pudo comprobar si el comentario ya existe.', true);

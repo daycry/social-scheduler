@@ -99,7 +99,7 @@ test('E2E-01 · compositor a pantalla completa con pastillas de red', { tag: '@r
 // Familia con ZWJ: 3 emojis + 2 uniones = 5 puntos de código (PHP `mb_strlen` cuenta 5; `.length` de JS contaría 8).
 const FAMILIA = '\u{1F468}‍\u{1F469}‍\u{1F467}';
 
-test('E2E-02 · contadores por red y tope de hashtags', async ({ page }) => {
+test('E2E-02 · contadores por red y tope de hashtags', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await open(page);
     await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
@@ -135,7 +135,7 @@ test('E2E-02 · contadores por red y tope de hashtags', async ({ page }) => {
     expect(w.errors).toEqual([]);
 });
 
-test('E2E-03 · barra del editor: emoji en el cursor, IA y media con teclado', async ({ page }) => {
+test('E2E-03 · barra del editor: emoji en el cursor, IA y media con teclado', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     // El asistente IA es opcional en el servidor: se simula su estado para poder probar el botón (sin llamar a ningún proveedor).
     await page.route('**/ai/status', (route) => route.fulfill({ json: { enabled: true, remaining: 5 } }));
@@ -235,7 +235,7 @@ test('E2E-03 · confirmación al salir con cambios sin guardar', async ({ page }
     expect(w.errors).toEqual([]);
 });
 
-test('E2E-02 · el contador cuenta sobre el texto recortado y avisa al superar el máximo de caracteres', async ({ page }) => {
+test('E2E-02 · el contador cuenta sobre el texto recortado y avisa al superar el máximo de caracteres', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await open(page);
     await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
@@ -347,7 +347,7 @@ for (const scenario of ['mismo mes', 'cambio de mes'] as const) {
     });
 }
 
-test('E2E-04 · panel único de errores, botón dividido con teclado y selector de fecha con la zona de la marca', async ({ page }) => {
+test('E2E-04 · panel único de errores, botón dividido con teclado y selector de fecha con la zona de la marca', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     // La marca está en Pacific/Auckland y el navegador en Europe/Madrid. Con el reloj fijado a las 20:00 UTC, en Madrid es el día D
     // y en Auckland (UTC+12/13) ya es D+1: si el selector usara la hora local del navegador, «hoy» sería otro día y el test fallaría.
@@ -495,7 +495,7 @@ test('E2E-05 · Publicar ahora desde el compositor: «Enviando…», una sola pe
     expect(w.errors).toEqual([]);
 });
 
-test('E2E-06 · Publicar ahora desde el calendario y la lista: confirmación accesible y solo en lo que se puede publicar', async ({ page }, info) => {
+test('E2E-06 · Publicar ahora desde el calendario y la lista: confirmación accesible y solo en lo que se puede publicar', { tag: '@responsive' }, async ({ page }, info) => {
     const w = watch(page);
     const posts = seedComposerPosts(e2eUser(info.project.name).email, brand.id);
     const boton = (id: number) => page.getByRole('button', { name: `Publicar ahora la publicación ${id}` });
@@ -568,7 +568,7 @@ test('E2E-06 · Publicar ahora desde el calendario y la lista: confirmación acc
     expect(w.errors).toEqual([]);
 });
 
-test('E2E-07 · Guardar en biblioteca sin guardar el post: crea la plantilla y no crea ninguna publicación', async ({ page }) => {
+test('E2E-07 · Guardar en biblioteca sin guardar el post: crea la plantilla y no crea ninguna publicación', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     page.on('dialog', (d) => d.accept().catch(() => {})); // beforeunload al salir con el formulario sin guardar
     await open(page);
@@ -688,7 +688,7 @@ test('E2E-05 · con una subida de media en curso se deshabilitan Programar, Guar
     expect(w.errors.filter((e) => !/422/.test(e))).toEqual([]);
 });
 
-test('E2E-05 · al subir un vídeo la previsualización lo muestra con un reproductor', async ({ page }) => {
+test('E2E-05 · al subir un vídeo la previsualización lo muestra con un reproductor', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await open(page);
     // Subida simulada en modo local: el registro y el PUT responden sin tocar el almacenamiento.
@@ -767,7 +767,7 @@ const tabOf = (page: Page, name: string | RegExp) => page.getByRole('tab', { nam
 const chars = (s: string) => [...s].length;
 const miles = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 
-test('E2E-08 · texto común por defecto y mezcla de redes: una personalizada y otra vinculada, contadores y teclado', async ({ page }) => {
+test('E2E-08 · texto común por defecto y mezcla de redes: una personalizada y otra vinculada, contadores y teclado', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await open(page);
     await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
@@ -854,7 +854,7 @@ test('E2E-08 · texto común por defecto y mezcla de redes: una personalizada y 
     expect(w.errors.filter((e) => !/422/.test(e))).toEqual([]);
 });
 
-test('E2E-08 · guardar, reabrir conserva el texto propio y volver a vincular (con confirmación) lo borra', async ({ page }) => {
+test('E2E-08 · guardar, reabrir conserva el texto propio y volver a vincular (con confirmación) lo borra', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     seedExtraFacebook(brand.id, 'e2e Pagina B');
     await open(page);
@@ -912,7 +912,7 @@ test('E2E-08 · guardar, reabrir conserva el texto propio y volver a vincular (c
 
 const seccion = (page: Page, red: string, cuenta: string) => page.getByRole('region', { name: `Opciones de ${red} (${cuenta})` });
 
-test('E2E-09 · interruptores por red: se recuerdan por marca, no se recuerdan los textos y la etiqueta de IA solo sale donde la API la admite', async ({ page }, info) => {
+test('E2E-09 · interruptores por red: se recuerdan por marca, no se recuerdan los textos y la etiqueta de IA solo sale donde la API la admite', { tag: '@responsive' }, async ({ page }, info) => {
     const w = watch(page);
     const user = e2eUser(info.project.name);
     const otra = seedComposerBrand(user.email, `${stamp()}-b-${info.project.name}`);
@@ -999,7 +999,7 @@ test('E2E-09 · interruptores por red: se recuerdan por marca, no se recuerdan l
     expect(w.errors.filter((e) => !/422/.test(e))).toEqual([]);
 });
 
-test('E2E-10 · notas internas: se guardan en un post ya publicado, el calendario las marca y no se renderizan como HTML', async ({ page }, info) => {
+test('E2E-10 · notas internas: se guardan en un post ya publicado, el calendario las marca y no se renderizan como HTML', { tag: '@responsive' }, async ({ page }, info) => {
     const w = watch(page);
     const posts = seedComposerPosts(e2eUser(info.project.name).email, brand.id);
     const nota = 'Revisar con el cliente <b>negrita</b> <img src=x onerror=alert(1)>\nSegunda línea';
@@ -1037,7 +1037,7 @@ test('E2E-10 · notas internas: se guardan en un post ya publicado, el calendari
     expect(w.errors).toEqual([]);
 });
 
-test('E2E-11 · generador de UTM: inserta en el cursor, codifica, rechaza URLs peligrosas y Limpiar vacía', async ({ page }) => {
+test('E2E-11 · generador de UTM: inserta en el cursor, codifica, rechaza URLs peligrosas y Limpiar vacía', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await open(page);
     await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
@@ -1115,7 +1115,7 @@ test('E2E-11 · generador de UTM: inserta en el cursor, codifica, rechaza URLs p
     expect(w.errors).toEqual([]);
 });
 
-test('E2E-09 · los interruptores recordados también se aplican al cambiar de tipo, sin pisar lo que ya se tocó en el post', async ({ page }) => {
+test('E2E-09 · los interruptores recordados también se aplican al cambiar de tipo, sin pisar lo que ya se tocó en el post', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     seedExtraAccount(brand.id, 'youtube', 'e2e YouTube');
     artisan(
@@ -1222,7 +1222,7 @@ test('E2E-13 · selector de tipo junto a cada red: icono, nombre y subtítulo, t
     expect(w.errors).toEqual([]);
 });
 
-test('E2E-13 · un tipo guardado que ya no se ofrece se muestra como «no disponible», deja elegir uno válido y no pierde el foco', async ({ page }) => {
+test('E2E-13 · un tipo guardado que ya no se ofrece se muestra como «no disponible», deja elegir uno válido y no pierde el foco', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     seedExtraAccount(brand.id, 'tiktok', 'e2e TikTok');
     const draft = seedTiktokPhotoDraft(brand.id, 'e2e TikTok');

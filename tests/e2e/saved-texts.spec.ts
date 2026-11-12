@@ -48,7 +48,7 @@ async function guardar(page: Page, o: { kind?: string; brand?: string; title: st
     await expect(form.getByLabel('Título')).toHaveValue(''); // el formulario se vacía al guardar
 }
 
-test('E2E-01 · página «Textos guardados»: alta, edición, filtro por marca y borrado', async ({ page }) => {
+test('E2E-01 · página «Textos guardados»: alta, edición, filtro por marca y borrado', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     page.on('dialog', (d) => d.accept().catch(() => {}));
     await page.goto('/settings/saved-texts');

@@ -23,7 +23,7 @@ test.afterEach(async ({}, info) => {
 
 const card = (page: Page) => page.locator('section[data-network="bluesky"]');
 
-test('E2E-03 · conectar Bluesky: formulario de credenciales accesible y sin desborde', async ({ page }) => {
+test('E2E-03 · conectar Bluesky: formulario de credenciales accesible y sin desborde', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/brands/${brand.id}/connections`);
     await settle(page);
@@ -59,7 +59,7 @@ test('E2E-03 · conectar Bluesky: formulario de credenciales accesible y sin des
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-03 · una cuenta de Bluesky conectada aparece con su estado y sin credenciales en la página', async ({ page }) => {
+test('E2E-03 · una cuenta de Bluesky conectada aparece con su estado y sin credenciales en la página', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     seedExtraAccount(brand.id, 'bluesky', 'e2e Bluesky');
     await page.goto(`/brands/${brand.id}/connections`);
@@ -77,7 +77,7 @@ test('E2E-03 · una cuenta de Bluesky conectada aparece con su estado y sin cred
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-03 · Bluesky en el calendario y en el dashboard (icono, filtro y página de red)', async ({ page }) => {
+test('E2E-03 · Bluesky en el calendario y en el dashboard (icono, filtro y página de red)', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     seedExtraAccount(brand.id, 'bluesky', 'e2e Bluesky');
 
@@ -110,7 +110,7 @@ test('E2E-03 · Bluesky en el calendario y en el dashboard (icono, filtro y pág
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-03 · compositor: Bluesky cuenta grafemas (un emoji compuesto es 1) con tope de 300', async ({ page }) => {
+test('E2E-03 · compositor: Bluesky cuenta grafemas (un emoji compuesto es 1) con tope de 300', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     seedExtraAccount(brand.id, 'bluesky', 'e2e Bluesky');
     await page.goto(`/brands/${brand.id}/posts/create`);

@@ -33,7 +33,7 @@ async function axeNow(page: Page, label: string) {
     expect(bad, `violaciones de accesibilidad en ${label}:\n${detail}`).toEqual([]);
 }
 
-test('E2E-08 · una URL a una IP interna se rechaza con un error en español y sin crear ningún asset', async ({ page }, info) => {
+test('E2E-08 · una URL a una IP interna se rechaza con un error en español y sin crear ningún asset', { tag: '@responsive' }, async ({ page }, info) => {
     const w = watch(page);
     const imports: string[] = [];
     page.on('request', (r) => {
@@ -75,7 +75,7 @@ test('E2E-08 · una URL a una IP interna se rechaza con un error en español y s
     expect(w.errors.filter((e) => !/Failed to load resource: the server responded with a status of 422/.test(e)), w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-08 · el botón no envía con el campo vacío y un esquema distinto de http se rechaza', async ({ page }) => {
+test('E2E-08 · el botón no envía con el campo vacío y un esquema distinto de http se rechaza', { tag: '@responsive' }, async ({ page }) => {
     await page.goto(`/brands/${brand.id}/posts/create`);
     await settle(page);
 
@@ -148,7 +148,7 @@ test('E2E-08 · el progreso avanza, un fallo suelto del sondeo se tolera y al te
     expect(seen.gets, 'el sondeo se detiene al terminar').toBe(getsAtEnd);
 });
 
-test('E2E-08 · una importación que acaba «invalida» muestra el motivo y se puede descartar', async ({ page }) => {
+test('E2E-08 · una importación que acaba «invalida» muestra el motivo y se puede descartar', { tag: '@responsive' }, async ({ page }) => {
     await mockImport(page, [
         { asset: fakeAsset({ bytes: 100, total: 1000 }) },
         { asset: fakeAsset({ status: 'invalido', error: 'El servidor remoto respondió 404.' }) },
@@ -231,7 +231,7 @@ test('E2E-08 · se puede cancelar una importación en curso', async ({ page }) =
  * página (se inyecta `drivePicker` en las props de Inertia), `window.google`/`window.gapi` (stub del Picker, sin cargar ningún script de Google)
  * y `POST /media/import-drive`: nada llega a Google.
  */
-test('E2E-09 · Drive: sin GOOGLE_PICKER_API_KEY no hay botón «Google Drive» ni se cargan scripts de Google', async ({ page }, info) => {
+test('E2E-09 · Drive: sin GOOGLE_PICKER_API_KEY no hay botón «Google Drive» ni se cargan scripts de Google', { tag: '@responsive' }, async ({ page }, info) => {
     const google: string[] = [];
     page.on('request', (r) => {
         if (/accounts\.google\.com|apis\.google\.com/.test(r.url())) google.push(r.url());
@@ -295,7 +295,7 @@ async function enableFakeDrive(page: Page, seen: { token: string | null; clicks:
     }));
 }
 
-test('E2E-09 · Drive: con la clave configurada el botón aparece, se usa con teclado e importa el fichero elegido sin tocar Google', async ({ page }, info) => {
+test('E2E-09 · Drive: con la clave configurada el botón aparece, se usa con teclado e importa el fichero elegido sin tocar Google', { tag: '@responsive' }, async ({ page }, info) => {
     const seen = { token: null as string | null, clicks: 0, body: null as Record<string, string> | null };
     await enableFakeDrive(page, seen);
     await page.goto(`/brands/${brand.id}/posts/create`);

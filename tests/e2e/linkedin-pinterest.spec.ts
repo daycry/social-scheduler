@@ -48,7 +48,7 @@ function seedPost() {
 
 const region = (page: Page, name: string) => page.getByRole('region', { name, exact: true });
 
-test('T-18 · Conexiones: LinkedIn y Pinterest se conectan con el proveedor simulado y quedan como cuentas conectadas', async ({ page }) => {
+test('T-18 · Conexiones: LinkedIn y Pinterest se conectan con el proveedor simulado y quedan como cuentas conectadas', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/brands/${brand.id}/connections`);
     await settle(page);
@@ -71,7 +71,7 @@ test('T-18 · Conexiones: LinkedIn y Pinterest se conectan con el proveedor simu
     expect(w.errors.filter((e) => !/409/.test(e)), w.errors.join('\n')).toEqual([]);
 });
 
-test('T-18 · compositor: opciones de LinkedIn y Pinterest, errores del tablero y publicar en simulado', async ({ page }) => {
+test('T-18 · compositor: opciones de LinkedIn y Pinterest, errores del tablero y publicar en simulado', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     seedPost();
     await page.goto(`/posts/${post}/edit`);
@@ -113,7 +113,7 @@ test('T-18 · compositor: opciones de LinkedIn y Pinterest, errores del tablero 
     expect(w.errors.filter((e) => !/422/.test(e)), w.errors.join('\n')).toEqual([]);
 });
 
-test('T-18 · compositor: LinkedIn y Pinterest se ofrecen con su contador de caracteres propio y sin desbordar', async ({ page }) => {
+test('T-18 · compositor: LinkedIn y Pinterest se ofrecen con su contador de caracteres propio y sin desbordar', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     seedPost();
     await page.goto(`/brands/${brand.id}/posts/create`);

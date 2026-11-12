@@ -52,7 +52,7 @@ test.describe('2FA · doble factor (TOTP)', () => {
     });
     test.afterEach(() => resetSecurity(user.email));
 
-    test('2FA · activar con un TOTP real y recibir 8 códigos (E2E-01)', async ({ page }, info) => {
+    test('2FA · activar con un TOTP real y recibir 8 códigos (E2E-01)', { tag: '@responsive' }, async ({ page }, info) => {
         const w = watch(page);
         await loginAs(page, user);
         await page.goto('/profile');
@@ -103,7 +103,7 @@ test.describe('2FA · doble factor (TOTP)', () => {
         expect(w.errors).toEqual([]);
     });
 
-    test('2FA · el login pide el reto, lo supera con el TOTP y rechaza su reutilización (E2E-02)', async ({ page }, info) => {
+    test('2FA · el login pide el reto, lo supera con el TOTP y rechaza su reutilización (E2E-02)', { tag: '@responsive' }, async ({ page }, info) => {
         const { secret } = enableTwoFactorDirect(user.email);
 
         // CA-04: tras la contraseña no se entra al panel.
@@ -268,7 +268,7 @@ test.describe('passkey · alta, login y avisos', () => {
     });
     test.afterEach(() => resetSecurity(user.email));
 
-    test('passkey · alta, segunda passkey, duplicada y renombrado (E2E-05)', async ({ page, context }, info) => {
+    test('passkey · alta, segunda passkey, duplicada y renombrado (E2E-05)', { tag: '@responsive' }, async ({ page, context }, info) => {
         const w = watch(page);
         const portatil = await virtualAuthenticator(context, page);
         await loginAs(page, user);
@@ -393,7 +393,7 @@ test.describe('passkey · alta, login y avisos', () => {
         await expect(page).toHaveURL(/\/dashboard/);
     });
 
-    test('passkey · sin WebAuthn no hay controles, sale el aviso y la contraseña funciona (E2E-07)', async ({ page }, info) => {
+    test('passkey · sin WebAuthn no hay controles, sale el aviso y la contraseña funciona (E2E-07)', { tag: '@responsive' }, async ({ page }, info) => {
         await page.addInitScript(() => {
             Object.defineProperty(window, 'PublicKeyCredential', { value: undefined, configurable: true });
         });

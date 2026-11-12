@@ -109,7 +109,7 @@ async function save(page: Page) {
     await expect(page.getByTestId('studio-save-status')).toHaveText('Guardado');
 }
 
-test('Studio imaging: real private font upload, preview, search, kit, archive and protected deletion', async ({ page }, info) => {
+test('Studio imaging: real private font upload, preview, search, kit, archive and protected deletion', { tag: '@responsive' }, async ({ page }, info) => {
     test.setTimeout(100_000);
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
@@ -183,7 +183,7 @@ test('Studio imaging: real private font upload, preview, search, kit, archive an
     } finally { cleanComposerBrands(user.email); }
 });
 
-test('Studio imaging: real background inference preserves original and a masked filtered result persists and exports', async ({ page }, info) => {
+test('Studio imaging: real background inference preserves original and a masked filtered result persists and exports', { tag: '@responsive' }, async ({ page }, info) => {
     test.setTimeout(100_000);
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);

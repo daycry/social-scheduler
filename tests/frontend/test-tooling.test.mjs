@@ -76,3 +76,56 @@ test('verifyRunIdentitySync acepta el servidor de su slot y rechaza el de otro s
     verifyRunIdentitySync('http://localhost:1', 'C:/run/run-general-a', ask('C:/run/run-general-a'));
     assert.throws(() => verifyRunIdentitySync('http://localhost:1', 'C:/run/run-general-a', ask('C:/run/run-general-b')), /otra ejecuci|otro worker/);
 });
+
+// Salvaguarda de cobertura móvil (T-14): los proyectos mobile y mobile-360 solo ejecutan lo etiquetado @responsive, así que un test
+// que mira desbordamiento, auditoría axe, el viewport o ramas por proyecto no puede quedarse solo en desktop sin justificarlo aquí.
+const RESPONSIVE_MARKERS = /expectNoOverflow|overflowX|scrollWidth|project\.name\s*(?:===|!==|==|\.startsWith|\.includes)|project\.use|isMobile|viewportSize|\.viewport|innerWidth|\baxe\w*\(|AxeBuilder|setViewportSize/;
+// «fichero: inicio del título» -> motivo. Falsos positivos de la detección por helpers; un test nuevo solo entra aquí con motivo.
+const RESPONSIVE_EXCEPTIONS = {
+    'gif-picker.spec.ts: E2E-09 · GIF: Esc cierra el modal': 'solo lógica de foco, vacío y errores 429; los helpers `catalog`/`newSeen` no miran layout (falso positivo de la detección)',
+};
+const indentOf = line => line.length - line.trimStart().length;
+function blockEnd(lines, i) {
+    const ind = indentOf(lines[i]);
+    let j = i + 1;
+    while (j < lines.length && !(indentOf(lines[j]) === ind && lines[j].trimStart().startsWith('}'))) j++;
+    return j;
+}
+export function untaggedResponsiveTests(file, source = read(file)) {
+    const lines = source.split('\n');
+    const helpers = new Set();
+    lines.forEach((line, i) => {
+        const m = line.match(/^\s*(?:export )?(?:async )?function (\w+)/) || line.match(/^\s*(?:export )?const (\w+) = (?:async )?\(/);
+        if (m && RESPONSIVE_MARKERS.test(lines.slice(i, blockEnd(lines, i) + 1).join('\n'))) helpers.add(m[1]);
+    });
+    const tagged = [];
+    lines.forEach((line, i) => { if (/test\.describe\(/.test(line) && line.includes('@responsive')) tagged.push([i, blockEnd(lines, i)]); });
+    const found = [];
+    lines.forEach((line, i) => {
+        if (!/^\s*test(\.only)?\(/.test(line) || line.includes('@responsive') || tagged.some(([a, b]) => i >= a && i <= b)) return;
+        const single = line.trimEnd().endsWith(');') && line.split('(').length === line.split(')').length;
+        const body = lines.slice(i, (single ? i : blockEnd(lines, i)) + 1).join('\n');
+        if (RESPONSIVE_MARKERS.test(body) || [...helpers].some(h => new RegExp('(^|[^A-Za-z0-9_])' + h + '[(]').test(body))) found.push(line.trim());
+    });
+    return found;
+}
+
+test('todo test que mira desbordamiento, axe, viewport o ramas por proyecto lleva @responsive (o excepcion justificada)', () => {
+    const offenders = [];
+    for (const name of fs.readdirSync('tests/e2e').filter(f => f.endsWith('.spec.ts'))) {
+        for (const title of untaggedResponsiveTests(`tests/e2e/${name}`)) {
+            if (!Object.keys(RESPONSIVE_EXCEPTIONS).some(key => key.startsWith(`${name}: `) && title.includes(key.slice(name.length + 2)))) offenders.push(`${name}: ${title.slice(0, 90)}`);
+        }
+    }
+    assert.deepEqual(offenders, [], 'etiqueta con { tag: \'@responsive\' } o justifica la excepcion en RESPONSIVE_EXCEPTIONS');
+});
+
+test('la deteccion de @responsive distingue tests etiquetados, de grupo y sin etiquetar', () => {
+    const src = [
+        "test('a', async ({ page }) => {", '    await expectNoOverflow(page);', '});',
+        "test('b', { tag: '@responsive' }, async ({ page }) => {", '    await expectNoOverflow(page);', '});',
+        "test.describe('g', { tag: '@responsive' }, () => {", "    test('c', async ({ page }) => {", '        await axeNow(page);', '    });', '});',
+        "test('d', async ({ page }) => {", '    await page.goto("/x");', '});',
+    ].join('\n');
+    assert.deepEqual(untaggedResponsiveTests('x.spec.ts', src), ["test('a', async ({ page }) => {"]);
+});

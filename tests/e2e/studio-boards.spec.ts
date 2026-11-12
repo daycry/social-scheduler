@@ -260,7 +260,7 @@ test('Studio: a chart bound to a saved table is inserted, saved, reopened and ex
     } finally { cleanComposerBrands(user.email); }
 });
 
-test('Studio: a chart bound to a saved table is exported on the server as SVG, PNG and PDF', async ({ page, browser }, info) => {
+test('Studio: a chart bound to a saved table is exported on the server as SVG, PNG and PDF', { tag: '@responsive' }, async ({ page, browser }, info) => {
     test.setTimeout(180_000);
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);

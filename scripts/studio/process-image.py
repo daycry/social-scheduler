@@ -14,6 +14,12 @@ class ProcessingFailure(Exception):
         self.code = code
 
 
+# BiRefNet at 1024x1024 really needs ~6.8 GiB of resident memory (measured on a Linux runner: VmHWM 6804 MiB, VmData 6996 MiB,
+# VmPeak 7350 MiB; ~6.0 GiB peak working set on Windows) -- activations, not a virtual reservation, and it does not shrink with
+# threads or the arena (already off). 9 GiB leaves ~30 % margin over the measured peak and still stops a runaway process.
+MEMORY_LIMIT = 9 * 1024**3
+
+
 def process(payload):
     if not isinstance(payload, dict) or set(payload) - {'input', 'output', 'model', 'model_sha256', 'max_pixels', 'max_bytes'}:
         raise ProcessingFailure('invalid_request')
@@ -99,7 +105,7 @@ def main():
         limits = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(limits)
         try:
-            _memory_job = limits.limit_memory(6 * 1024**3, 80, resident=True)
+            _memory_job = limits.limit_memory(MEMORY_LIMIT, 80, resident=True)
         except (OSError, RuntimeError, ValueError):
             raise ProcessingFailure('runtime_unavailable') from None
         # Bound BLAS pools before importing NumPy/ORT; the model uses four ORT threads.

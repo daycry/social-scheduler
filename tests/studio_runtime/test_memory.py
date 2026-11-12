@@ -6,7 +6,7 @@ import unittest
 
 
 class WorkerMemoryTest(unittest.TestCase):
-    def test_worker_main_applies_a_real_six_gib_os_memory_limit(self):
+    def test_worker_main_applies_a_real_nine_gib_os_memory_limit(self):
         child = r'''
 import ctypes, io, json, os, runpy, sys
 def observe(_):
@@ -29,7 +29,7 @@ raise SystemExit(namespace['main']())
 '''
         result = subprocess.run([sys.executable, '-c', child], capture_output=True, text=True, timeout=20)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(json.loads(result.stdout)['observed_memory_limit'], 6 * 1024**3)
+        self.assertEqual(json.loads(result.stdout)['observed_memory_limit'], 9 * 1024**3)
 
 
     @unittest.skipIf(os.name == 'nt', 'RLIMIT_DATA is POSIX only; Windows enforces the same bound with a Job Object (covered by the test above)')
@@ -38,7 +38,7 @@ raise SystemExit(namespace['main']())
 import json, mmap, runpy, sys
 limits = runpy.run_path('scripts/studio/font_probe.py', run_name='probe')
 limits['limit_memory'](256 * 1024 * 1024, 60, resident=True)
-reserved = mmap.mmap(-1, 2 * 1024**3, flags=mmap.MAP_PRIVATE | mmap.MAP_ANONYMOUS, prot=mmap.PROT_NONE)  # untouched virtual range, like ORT/NumPy arenas
+reserved = mmap.mmap(-1, 2 * 1024**3, flags=mmap.MAP_PRIVATE | mmap.MAP_ANONYMOUS, prot=0)  # PROT_NONE  # untouched virtual range, like ORT/NumPy arenas
 outcome = {'reserved': True}
 try:
     block = bytearray(512 * 1024 * 1024)

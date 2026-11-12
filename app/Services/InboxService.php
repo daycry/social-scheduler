@@ -20,6 +20,7 @@ use App\Models\InboxSavedReply;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Support\PermissionHelp;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
@@ -82,8 +83,7 @@ class InboxService
         $list = $missing === [] ? '' : ' ('.implode(', ', $missing).')';
 
         return match ($account->network) {
-            Network::Facebook => 'Facebook necesita el permiso pages_read_user_content, que no se pide por defecto: actívalo en los casos de uso de la app de Meta, '
-                .'añádelo a META_EXTRA_SCOPES en el servidor (separado por comas, p. ej. pages_read_user_content,ads_read) y reconecta la cuenta desde Conexiones.',
+            Network::Facebook => PermissionHelp::meta('Facebook', 'pages_read_user_content'),
             Network::Instagram => 'Falta el permiso de comentarios'.$list.': actívalo en los casos de uso de la app de Meta y reconecta la cuenta desde Conexiones.',
             Network::Threads => 'Falta el permiso de respuestas'.$list.': reconecta la cuenta de Threads desde Conexiones aceptando los permisos de respuestas.',
             Network::YouTube => 'Falta el permiso de comentarios (youtube.force-ssl): reconecta la cuenta de YouTube desde Conexiones aceptando ese permiso.',

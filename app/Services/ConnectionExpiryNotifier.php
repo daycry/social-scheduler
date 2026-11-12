@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Brand;
 use App\Models\SocialAccount;
 use App\Notifications\ConnectionExpiring;
 use Illuminate\Support\Facades\Log;
@@ -18,16 +19,22 @@ class ConnectionExpiryNotifier
     public function run(): int
     {
         $sent = 0;
-        $window = now()->addDays(ConnectionExpiry::windowDays());
+        $window = now()->addDays(ConnectionExpiry::windowDays())->addSeconds(ConnectionExpiry::intervalSeconds());
 
         SocialAccount::withoutUserScope()->where('status', SocialAccount::STATUS_ACTIVE)
-            ->where(fn ($q) => $q->whereBetween('data_access_expires_at', [now(), $window])->orWhereBetween('token_expires_at', [now(), $window]))
+            ->where(fn ($q) => $q->whereBetween('data_access_expires_at', [now(), $window])->orWhereBetween('token_expires_at', [now(), $window])->orWhereBetween('refresh_expires_at', [now(), $window]))
             ->with('user')->orderBy('id')
             ->each(function (SocialAccount $account) use (&$sent): void {
                 $sent += $this->notify($account) ? 1 : 0;
             });
 
         return $sent;
+    }
+
+    /** Zona de la marca (la de sus fechas en la app); UTC si no se conoce. */
+    private function timezone(SocialAccount $account): string
+    {
+        return (string) (Brand::withoutUserScope()->whereKey($account->brand_id)->value('timezone') ?: 'UTC');
     }
 
     private function notify(SocialAccount $account): bool
@@ -37,10 +44,11 @@ class ConnectionExpiryNotifier
             return false;
         }
 
-        $daysLeft = (int) ceil(now()->diffInSeconds($deadline['at'], false) / 86400);
+        // Una pasada al dia: el aviso de N dias se emite cuando quedan N dias + el intervalo de la pasada, asi llega con N dias de margen como minimo.
+        $left = now()->diffInSeconds($deadline['at'], false);
         $applicable = null;
         foreach (array_reverse(ConnectionExpiry::thresholds()) as $threshold) { // de menor a mayor: el mas estrecho que ya se alcanzo
-            if ($daysLeft <= $threshold) {
+            if ($left <= $threshold * 86400 + ConnectionExpiry::intervalSeconds()) {
                 $applicable = $threshold;
                 break;
             }
@@ -56,7 +64,7 @@ class ConnectionExpiryNotifier
         }
 
         try {
-            $account->user->notify(new ConnectionExpiring($account, ConnectionExpiry::message($account, $deadline['reason']), $deadline['at']->locale('es')->isoFormat('D [de] MMMM [de] YYYY')));
+            $account->user->notify(new ConnectionExpiring($account, ConnectionExpiry::message($account, $deadline['reason']), $deadline['at']->copy()->setTimezone($this->timezone($account))->locale('es')->isoFormat('D [de] MMMM [de] YYYY')));
         } catch (Throwable $e) {
             Log::error('social.expiry_notification_failed', ['account_id' => $account->id, 'exception' => $e::class]);
 

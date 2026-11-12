@@ -48,6 +48,10 @@ Con la URL de ngrok de desarrollo ya registrada, añade estas **sin quitar** las
 
 `deploy.sh` ejecuta: fetch → comprobación de CI → compilar aparte (composer, `npm ci && npm run build`; exige `public/build/manifest.json`) → `artisan down` → volcado previo → código y cambio de vendor/build → migrate → caches → `queue:restart` → `up` → reinicio de `WORKER_UNITS` → smoke con `app:health --skip-scheduler`. Si falla antes de cambiar el código, la app vuelve a subir; si falla después, se queda en mantenimiento.
 
+## Cambios de configuración
+
+- `LINKEDIN_RECONNECT_NOTICE_DAYS` desaparece; usa `SOCIAL_EXPIRY_NOTICE_DAYS` (días de antelación separados por comas, por defecto `7,1`; vale para todas las redes con caducidad conocida) y, si quieres otra hora, `SOCIAL_EXPIRY_NOTICE_AT`. Hay que ejecutar `php artisan migrate` (nueva columna `users.notify_by_mail`) y la tarea programada `connections:notify-expiry` ya va en el scheduler.
+
 ## Primer usuario
 
 Con `REGISTRATION_ENABLED=false` no hay registro público: el primer usuario (y cualquier otro) se crea por consola tras el primer `deploy.sh`.

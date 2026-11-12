@@ -238,6 +238,7 @@ class StudioRenderer
                     $this->assets->attach($user, $brand, $id);
                 }
                 $export->forceFill(['status' => 'ready', 'disk' => 'local', 'path' => $download, 'media_ids' => $mediaIds, 'error' => null])->save();
+                DB::afterCommit(fn () => app(JobFailureNotifier::class)->exportDone($export));
             });
         } catch (\Throwable $e) {
             $export->forceFill(['status' => 'failed', 'error' => $e instanceof StudioRenderFailure ? Str::limit($e->getMessage(), 350) : 'No se pudo renderizar esta revisión. Revisa sus recursos y la configuración del renderizador.'])->save();

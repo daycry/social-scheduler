@@ -217,6 +217,9 @@ class StudioAi
             }
             $done = StudioAiJob::withoutUserScope()->whereKey($id)->where('status', 'processing')
                 ->update(['status' => 'ready', 'output_media_ids' => json_encode(array_map(fn (MediaAsset $m) => $m->id, $created)), 'error_code' => null, 'error' => null]);
+            if ($done === 1) {
+                app(JobFailureNotifier::class)->aiDone(StudioAiJob::withoutUserScope()->findOrFail($id));
+            }
             if ($done !== 1) {
                 // Otro proceso (failed() del worker) ya cerro el trabajo como error: no dejar recursos huerfanos.
                 $this->discard($created);

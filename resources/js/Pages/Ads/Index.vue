@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import KpiCard from '@/Components/KpiCard.vue';
-import FeatureEmpty from '@/Components/FeatureEmpty.vue';
+import PermissionNotice from '@/Components/PermissionNotice.vue';
 import NetworkIcon from '@/Components/NetworkIcon.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { computed } from 'vue';
@@ -34,16 +34,10 @@ const go = (patch) => {
         </template>
 
         <div class="space-y-5">
-            <FeatureEmpty
+            <PermissionNotice
                 v-if="!o.available && ['sin_permiso', 'reconectar'].includes(o.reason)"
                 title="Meta Ads no disponible"
-                :description="o.message"
-                network="facebook"
-                :cards="[
-                    { title: 'Gasto y alcance', text: 'Gasto, impresiones y clics por periodo.', kind: 'chart' },
-                    { title: 'Campañas', text: 'Estado y métricas de cada campaña.', kind: 'report' },
-                    { title: 'Solo lectura', text: 'No se crea ni se modifica ningún anuncio.', kind: 'link' },
-                ]"
+                :items="[{ id: 'ads', name: brand?.name, help: o.help, brand_id: brand?.id }]"
             />
             <p v-else-if="!o.available" class="card p-5 text-sm text-slate-700" role="alert">{{ o.message }}</p>
 

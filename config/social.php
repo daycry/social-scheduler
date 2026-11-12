@@ -139,6 +139,7 @@ return [
     */
     'expiry_notice_days' => array_values(array_filter(array_map('intval', explode(',', (string) env('SOCIAL_EXPIRY_NOTICE_DAYS', '7,1'))))),
     'expiry_notice_at' => env('SOCIAL_EXPIRY_NOTICE_AT', '09:00'),
+    'expiry_notice_interval_hours' => 24, // la pasada es diaria; ver `ConnectionExpiry::intervalSeconds()`
 
     /*
     | Threads (C-02, T1: conector propio). Hosts verificados en la documentacion de Meta el 2026-10-27 y configurables por si vuelven a

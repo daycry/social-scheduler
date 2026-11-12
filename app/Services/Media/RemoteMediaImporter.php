@@ -243,7 +243,8 @@ class RemoteMediaImporter
         ]);
 
         try {
-            $this->uploads->finalize($asset);
+            $result = $this->uploads->finalize($asset);
+            $result->status === MediaAsset::STATUS_INVALID ? app(JobFailureNotifier::class)->import($result) : app(JobFailureNotifier::class)->importDone($result);
         } catch (\Throwable $e) {
             if ($disk->exists($final)) {
                 $disk->move($final, $partial);

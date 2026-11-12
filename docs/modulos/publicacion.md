@@ -140,8 +140,11 @@ Todos comparten la misma pantalla (`Notifications/Index`) y el mismo contrato: e
 |---|---|---|
 | `connection_expiring` | `ConnectionExpiring` | `connections:notify-expiry` (diario, `SOCIAL_EXPIRY_NOTICE_AT`) avisa a los `SOCIAL_EXPIRY_NOTICE_DAYS` (7 y 1) días de la caducidad, una vez por umbral y fecha (`meta.expiry_notice` de la cuenta) |
 | `job_failed_report` / `_studio_export` / `_studio_ai` / `_canva` / `_import` | `AsyncJobFailed` | Un informe programado, una exportación MP4/GIF, un trabajo de IA, de Canva o una importación remota fallan (`JobFailureNotifier`) |
+| `job_failed_summary` | `AsyncJobFailureSummary` | «Y N fallos más de … en la última hora»: lo que supera el tope de avisos individuales; se actualiza en su sitio |
+| `job_done_studio_export` / `_studio_ai` / `_canva` / `_import` | `AsyncJobDone` | Terminó BIEN un trabajo largo que el usuario no ve terminar (MP4/GIF, Canva, IA de imagen, importación por URL). Solo en la app; el informe programado no avisa (su correo ya es el aviso) |
 | `studio_design_shared` / `_role` / `_revoked` / `_comment` | `StudioDesignActivity` | Colaboración en un diseño; el enlace abre el diseño (sin enlace si se retiró el acceso) |
 
-- **Frecuencia**: `JobFailureNotifier` avisa una sola vez por trabajo (aunque fallen la cola y el servicio) y como mucho 5 avisos por tipo y hora y usuario; la caducidad, una vez por umbral y fecha.
+- **Frecuencia**: `JobFailureNotifier` avisa una sola vez por ejecución (el informe, por fecha; el resto, por trabajo, aunque fallen la cola y el servicio) y como mucho 5 avisos por tipo, usuario y hora; el resto queda en el log (`jobs.failure_notification_capped`) y en el aviso resumen, y su clave no se consume. La caducidad, una vez por umbral y fecha, y el umbral de N días se emite cuando queda N días + el intervalo de la pasada (24 h) para llegar con N días de margen.
+- **Enlaces**: un aviso con `post_id` muestra «Ver publicación»; el resto, la etiqueta de su tipo sobre `url`.
 - **Correo opcional**: `users.notify_by_mail` (apagado por defecto, casilla en Perfil). Con ella, estos avisos añaden el canal `mail`; sin ella solo van a la base de datos. `PublishFailed` y `ReconnectRequired` siguen enviando correo siempre.
 - Los avisos de fallo de trabajos van por cola (`poll`) como `ReconnectRequired`; sin SMTP real, los tests usan `Notification::fake`.

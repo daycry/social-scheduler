@@ -17,6 +17,7 @@ class NotificationController extends Controller
                 'id' => $n->id,
                 'type' => $n->data['type'] ?? 'info',
                 'title' => $n->data['title'] ?? null,
+                'count' => $n->data['count'] ?? null,
                 'message' => $n->data['message'] ?? '',
                 'network_label' => $n->data['network_label'] ?? ($n->data['network'] ?? null),
                 'account_name' => $n->data['account_name'] ?? null,

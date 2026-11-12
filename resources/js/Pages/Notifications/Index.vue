@@ -33,9 +33,15 @@ const LINK = {
     job_failed_studio_ai: 'Abrir el estudio',
     job_failed_canva: 'Abrir Canva',
     job_failed_import: 'Ver biblioteca',
+    job_failed_summary: 'Ver detalle',
+    job_done_studio_export: 'Abrir diseño',
+    job_done_studio_ai: 'Abrir el estudio',
+    job_done_canva: 'Abrir Canva',
+    job_done_import: 'Ver biblioteca',
 };
-const linkLabel = (n) => LINK[n.type] ?? 'Abrir';
-const title = (n) => WORKFLOW[n.type] ?? (n.type === 'connection_expiring' ? `Reconecta ${n.network_label ?? 'tu cuenta'} antes de que caduque` : n.type?.startsWith('job_failed_') && n.title ? n.title : n.type === 'publish_failed' ? `No se pudo publicar en ${n.network_label}` : n.type === 'first_comment_failed' ? `No se pudo dejar el primer comentario en ${n.network_label}` : n.type === 'reconnect_required' ? `Reconecta ${n.network_label ?? 'tu cuenta'}` : 'Aviso');
+// Un aviso de una publicación lleva siempre «Ver publicación» (aunque traiga también `url`); el resto, la etiqueta de su tipo.
+const linkLabel = (n) => (n.post_id ? 'Ver publicación' : (LINK[n.type] ?? 'Abrir'));
+const title = (n) => WORKFLOW[n.type] ?? (n.type === 'connection_expiring' ? `Reconecta ${n.network_label ?? 'tu cuenta'} antes de que caduque` : (n.type?.startsWith('job_failed_') || n.type?.startsWith('job_done_')) && n.title ? n.title : n.type === 'publish_failed' ? `No se pudo publicar en ${n.network_label}` : n.type === 'first_comment_failed' ? `No se pudo dejar el primer comentario en ${n.network_label}` : n.type === 'reconnect_required' ? `Reconecta ${n.network_label ?? 'tu cuenta'}` : 'Aviso');
 </script>
 
 <template>
@@ -52,7 +58,7 @@ const title = (n) => WORKFLOW[n.type] ?? (n.type === 'connection_expiring' ? `Re
         <div>
             <div class="max-w-3xl space-y-3">
                 <p v-if="notifications.length === 0" class="card p-6 text-slate-600">No tienes avisos.</p>
-                <article v-for="n in notifications" :key="n.id" class="card p-4" :class="n.read ? 'opacity-70' : 'border-l-4 border-red-400'">
+                <article v-for="n in notifications" :key="n.id" class="card p-4" :class="n.read ? 'opacity-70' : (n.type?.startsWith('job_done_') ? 'border-l-4 border-emerald-400' : 'border-l-4 border-red-400')">
                     <div class="flex items-start justify-between gap-3">
                         <div>
                             <h2 class="font-medium text-slate-900">{{ title(n) }}</h2>

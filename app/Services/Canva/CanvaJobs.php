@@ -227,6 +227,7 @@ class CanvaJobs
         }
         if ($job->format === 'pdf') {
             $job->forceFill(['status' => CanvaJob::READY, 'download_urls' => $urls])->save();
+            app(JobFailureNotifier::class)->canvaDone($job);
 
             return false;
         }
@@ -269,6 +270,7 @@ class CanvaJobs
     {
         $id = $remote['asset']['id'] ?? null;
         $job->forceFill(['status' => CanvaJob::READY, 'canva_asset_id' => is_string($id) ? Str::limit($id, 80, '') : null])->save();
+        app(JobFailureNotifier::class)->canvaDone($job);
 
         return false;
     }
@@ -289,6 +291,7 @@ class CanvaJobs
             app(JobFailureNotifier::class)->canva($job);
         } else {
             $job->forceFill(['status' => CanvaJob::READY])->save();
+            app(JobFailureNotifier::class)->canvaDone($job);
         }
 
         return $job;

@@ -8,7 +8,7 @@ use Carbon\CarbonInterface;
 
 /**
  * Caducidad CONOCIDA de una conexion que el sistema NO puede renovar solo (T-23): hay que volver a iniciar sesion antes de la fecha.
- * Dos casos: el acceso a datos (Meta lo limita a 90 dias desde el ultimo inicio de sesion; cualquier red que lo informe) y un token de
+ * Tres casos: la renovacion (`refresh_expires_at`, p. ej. LinkedIn a 1 año), el acceso a datos (Meta lo limita a 90 dias desde el ultimo inicio de sesion; cualquier red que lo informe) y un token de
  * acceso sin refresh_token (LinkedIn). Los tokens que se refrescan solos (Threads, Pinterest, TikTok, Google...) no cuentan: su renovacion
  * ya la hace `RefreshSocialAccount`, que avisa si falla.
  */
@@ -17,6 +17,8 @@ final class ConnectionExpiry
     public const DATA_ACCESS = 'data_access';
 
     public const TOKEN = 'token';
+
+    public const REFRESH = 'refresh';
 
     /** @return array{at: CarbonInterface, reason: string}|null  Fecha mas proxima (futura) y motivo; null si no hay caducidad que avisar. */
     public static function deadline(SocialAccount $account): ?array
@@ -29,6 +31,11 @@ final class ConnectionExpiry
 
         if ($account->data_access_expires_at !== null) {
             $candidates[] = ['at' => $account->data_access_expires_at, 'reason' => self::DATA_ACCESS];
+        }
+
+        // El refresh token tambien caduca (LinkedIn 1 año; Pinterest y TikTok lo guardan): al vencer ya no hay renovacion automatica.
+        if ($account->refresh_expires_at !== null) {
+            $candidates[] = ['at' => $account->refresh_expires_at, 'reason' => self::REFRESH];
         }
 
         if ($account->network === Network::LinkedIn && $account->token_expires_at !== null && (string) $account->refresh_token === '') {
@@ -50,6 +57,12 @@ final class ConnectionExpiry
         return $days === [] ? [7, 1] : $days;
     }
 
+    /** Segundos entre dos pasadas del comando: el aviso de N dias se emite cuando queda N dias + este intervalo, para llegar con N dias de margen como minimo. */
+    public static function intervalSeconds(): int
+    {
+        return max(1, (int) config('social.expiry_notice_interval_hours', 24)) * 3600;
+    }
+
     /** Ventana (dias) en la que la pantalla de Conexiones marca «reconecta antes de»: el umbral mayor. */
     public static function windowDays(): int
     {
@@ -68,6 +81,10 @@ final class ConnectionExpiry
     public static function message(SocialAccount $account, string $reason): string
     {
         $label = $account->network->label();
+
+        if ($reason === self::REFRESH) {
+            return "La renovación automática de {$label} caduca y después no se podrá renovar sola: vuelve a iniciar sesión antes de esa fecha.";
+        }
 
         return $reason === self::DATA_ACCESS
             ? "El acceso a datos de {$label} caduca (Meta lo limita a 90 días) y no se renueva solo: vuelve a iniciar sesión para ampliarlo."

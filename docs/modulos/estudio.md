@@ -30,6 +30,8 @@ Se suben TTF, OTF, WOFF o WOFF2 de hasta 8 MiB a una marca (`design-fonts`, `man
 
 Las pistas de audio son recursos privados por marca: se sube con un ticket (PUT binario local o URL prefirmada, hasta 100 MiB), se sondea (duración y códec) y solo entonces se usa en `timeline.audio_tracks`. Los vídeos del lienzo se recortan, hay mezcla y subtítulos manuales (SRT y WebVTT, hasta 5000 cues). Las exportaciones MP4 y GIF se renderizan con Node, FFmpeg y Chromium en la cola **`studio`**, con su propio worker y límites de memoria ([despliegue](despliegue.md#worker-de-la-cola-studio-mp4-y-gif)). No hay voz sintética ni traducción automática.
 
+Los ocho casos de Pest que renderizan de verdad (Node + FFmpeg + Chromium) se omiten salvo con `STUDIO_AV_NATIVE_TEST=1`; el job nocturno `native-av` los ejecuta cada noche y en local se lanzan con `STUDIO_AV_NATIVE_TEST=1 php artisan test --filter=StudioAv` (ver [guía de testing](../guias/testing.md)).
+
 ## Datasets y gráficos (T-12)
 
 Tablas privadas versionadas por marca (`datasets`, `manage_studio_dataset`): hasta 1000 filas y 100 columnas, importación de CSV/TSV (25 MB) o JSON tipado (52 MB), revisiones inmutables y exportación por enlace privado con bearer. Alimentan gráficos del lienzo y una vista de presentación con herramientas de audiencia. XLSX y las fuentes conectadas no están implementados.

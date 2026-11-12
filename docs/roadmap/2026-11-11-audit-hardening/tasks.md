@@ -788,33 +788,36 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 ### T-19 — Job nocturno del camino nativo MP4/GIF (ffmpeg + Chromium)
 
 - **Descripción**: Job nocturno que instala ffmpeg y Chromium y ejecuta con `STUDIO_AV_NATIVE_TEST=1` los 9 tests hoy omitidos.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El camino nativo de exportación MP4/GIF (ffmpeg y Chromium reales) se prueba cada noche en CI, con artefactos si falla.
+- **Cerrada**: 2026-11-12
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-15
 - **Tipo**: devops
-- **Archivos**: `.github/workflows/nightly.yml`, `tests/Feature/Studio/StudioAvProcessTest.php`, `tests/Feature/Studio/StudioAvQueueTest.php`, `docs/modulos/estudio-ia.md`, `docs/guias/testing.md`
+- **Archivos**: `.github/workflows/nightly.yml`, `docs/modulos/estudio.md`, `docs/guias/testing.md`
 - **Cubre**: E-08
 - **Cubre (tests)**: —
 - **Verificación**: lectura: `nightly.yml` define el job `native-av` con `STUDIO_AV_NATIVE_TEST=1` · `STUDIO_AV_NATIVE_TEST=1 php artisan test --compact --filter=StudioAv` → 0 omitidos (si ffmpeg/Chromium están instalados; si no, `skip` documentado)
 
 **Criterios de aceptación**
-- [ ] El job nocturno corre los 9 tests nativos sin `skip`
-- [ ] El job publica los artefactos de fallo
-- [ ] La doc explica cómo correrlos en local
+- [x] El job nocturno corre los 9 tests nativos sin `skip`
+- [x] El job publica los artefactos de fallo
+- [x] La doc explica cómo correrlos en local
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Evidencia**: `nightly.yml` define `native-av` (guarda de repo, `STUDIO_AV_NATIVE_TEST=1`, ffmpeg, runtime del estudio, Chromium con caché, `npm run build`; falla si hay `"skipped":N`; sube logs y `storage/framework/testing/` si falla). `actionlint` v1.7.7 sobre nightly.yml y ci.yml → exit 0. Local: `STUDIO_AV_NATIVE_TEST=1 php artisan test --compact --filter=StudioAv` → `{"result":"passed","tests":166,"passed":166,"assertions":1122}` (0 omitidos; sin la variable los 8 casos se omitían: son 8, no 9, el 9.º es el sondeo de 51 MB). Sondeo de 51 MB: con el `memory_limit` por defecto (512 MB) falla por memoria; `php -d memory_limit=1G vendor/bin/pest --filter=test_mcp_large_escaped` → passed (pico 560 MB), por eso el job lo ejecuta con 1G. cgroup (`test_av_linux.py`): paso experimental con `systemd-run` como `runner` y `Delegate=yes`, `continue-on-error`; no verificable aquí (requiere runner real), así que no es aceptación Linux. Archivos: los tests no cambian (se quitan del `Archivos` los PHP y `estudio-ia.md` → el módulo correcto es `estudio.md`).
 
 **Notas**: Tamaño M. Qué se puede hacer ya: workflow y doc. La primera ejecución real ocurre en GitHub tras el push del usuario.
 

@@ -87,6 +87,21 @@ jobs:
       - name: Build
         run: npm run build
 
+  typecheck:
+    name: typecheck (tsc)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # tsc --noEmit sobre tests/e2e y las configs de Playwright (tsconfig.json; los .cjs/.mjs se infieren con allowJs, sin checkJs).
+      - name: Typecheck
+        run: npm run typecheck
+
   studio-runtime:
     name: studio runtime (python)
     runs-on: ubuntu-latest
@@ -140,7 +155,7 @@ jobs:
   # Check requerido de main (`tests`): agrega el resultado de todos los jobs. Si se anade un job, anadelo a `needs`.
   tests:
     name: tests
-    needs: [php, node, studio-runtime, openapi, audit]
+    needs: [php, node, typecheck, studio-runtime, openapi, audit]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5

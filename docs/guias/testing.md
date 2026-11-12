@@ -47,6 +47,7 @@ Con 2 workers el reparto es por ficheros, y `a11y.spec.ts` (66 casos) domina; co
 |---|---|---|
 | `ci.yml` · `php` | PR y push a `main` | `vendor/bin/pint --test` y `composer test` (Pest completo); caché de `vendor` |
 | `ci.yml` · `node` | ídem | `npm run test:unit` (incluye el arnés E2E) y `npm run build`; instala `ffmpeg` |
+| `ci.yml` · `typecheck` | ídem | `npm run typecheck` (`tsc --noEmit` sobre `tests/e2e` y las configs de Playwright; los `.cjs`/`.mjs` se infieren con `allowJs`, sin `checkJs`) |
 | `ci.yml` · `studio-runtime` | ídem | `python -m unittest discover -s tests/studio_runtime -p 'test_*.py'` con el Python privado de Studio |
 | `ci.yml` · `openapi` | ídem | `npx @redocly/cli@2.77.0 lint --extends minimal docs/api/creative-suite.openapi.yaml` |
 | `ci.yml` · `audit` | ídem | `composer audit --locked` y `npm audit --omit=dev` |
@@ -56,7 +57,7 @@ Con 2 workers el reparto es por ficheros, y `a11y.spec.ts` (66 casos) domina; co
 - Una ejecución por commit: `push` solo a `main` (las ramas se prueban por su PR) y `concurrency` cancela las ejecuciones obsoletas de la misma rama/PR (en `main` no cancela). Cada job lleva `timeout-minutes`.
 - **`tests/studio_runtime`:** `test_av_linux.py` necesita un cgroup v2 delegado y acotado (`STUDIO_AV_CGROUP_TEST=1`), que un runner hospedado no ofrece; se omite solo (`skipUnless`) y `test_av_limits.py` solo corre en Windows. Esos casos (8 omitidos en total) siguen requiriendo una prueba manual en un servidor real.
 - **OpenAPI:** el perfil `minimal` de Redocly falla con errores estructurales (tipos 3.1 en un documento 3.0.3, descripciones mal escapadas…); los `summary` que faltan son avisos (102 hoy). Versión fijada: súbela a propósito, no con `latest`.
-- **No están en la CI:** `ledger-lint` (es un script del plugin de agentes, fuera del repo; se ejecuta en local con el kit) y el typecheck (`npx tsc --noEmit` da 40 errores previos en `tests/e2e`; arreglarlos es otra tarea). `npm run test:browser` y el E2E completo tampoco corren por PR: el E2E va en el nocturno.
+- **No están en la CI:** `ledger-lint` (es un script del plugin de agentes, fuera del repo; se ejecuta en local con el kit). `npm run test:browser` y el E2E completo tampoco corren por PR: el E2E va en el nocturno.
 - Local: `actionlint` valida los workflows (`go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7`).
 
 ## Purga de ejecuciones antiguas

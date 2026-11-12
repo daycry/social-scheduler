@@ -5,6 +5,8 @@
         "moduleResolution": "Bundler",
         "strict": true,
         "noEmit": true,
+        "allowJs": true,
+        "checkJs": false,
         "skipLibCheck": true,
         "esModuleInterop": true,
         "types": ["node"]

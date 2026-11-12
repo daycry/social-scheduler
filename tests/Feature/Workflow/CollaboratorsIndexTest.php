@@ -9,6 +9,9 @@ use Illuminate\Testing\TestResponse;
 // E-09: listado de colaboradores de una marca por la web (workflow.collaborators.index) y por la API (api.collaborators.index).
 
 beforeEach(function () {
+    // El 404 se compara byte a byte con el de una marca inexistente: sin modo debug, para que la traza (con números de
+    // línea) no entre en la respuesta. En CI el .env sale de .env.example, que trae APP_DEBUG=true.
+    config(['app.debug' => false]);
     Http::preventStrayRequests();
     $this->owner = User::factory()->create();
     $this->approver = User::factory()->create();

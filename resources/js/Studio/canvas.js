@@ -41,6 +41,32 @@ export async function seekVideoFrame(video, seconds, { timeout = 10000, signal, 
     });
 }
 
+/**
+ * Espera a que el navegador tenga YA un fotograma decodificado y pintable del vídeo (no un temporizador). `seeked`/`loadeddata` no lo
+ * garantizan: tras cargar o sin mover la posición (fotograma 0) Chromium puede aún no haber presentado el primer fotograma, y
+ * `drawImage(video)` dibuja entonces nada. Se comprueba pintando 1 px en un lienzo y mirando su alfa; se reintenta en cada
+ * `requestAnimationFrame`, que es cuando el compositor presenta fotogramas. Si el lienzo no se puede leer (origen cruzado), basta `readyState`.
+ */
+export async function videoFrameReady(video, { timeout = 10000, signal } = {}) {
+    const probe = document.createElement('canvas');
+    probe.width = probe.height = 1;
+    const context = probe.getContext('2d', { willReadFrequently: true });
+    const deadline = performance.now() + timeout;
+    for (;;) {
+        if (signal?.aborted) throw new DOMException('Carga cancelada', 'AbortError');
+        if (video.error) throw new StudioDocumentError('No se pudo preparar el fotograma del vídeo.');
+        if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+            try {
+                context.clearRect(0, 0, 1, 1);
+                context.drawImage(video, 0, 0, 1, 1);
+                if (context.getImageData(0, 0, 1, 1).data[3] > 0) return;
+            } catch { return; }
+        }
+        if (performance.now() > deadline) throw new StudioDocumentError('No se pudo preparar el fotograma del vídeo.');
+        await new Promise(resolve => requestAnimationFrame(() => resolve()));
+    }
+}
+
 function toFabricFill(fill, width, height) {
     if (typeof fill === 'string') return fill;
     const value = normalizeFill(fill);

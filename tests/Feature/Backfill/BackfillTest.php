@@ -63,7 +63,7 @@ it('Backfill: sin presupuesto de tiempo se reencola con el desplazamiento por do
     {
         public function accountInsights(SocialAccount $account, CarbonInterface $day): array
         {
-            usleep(1_100_000);
+            Carbon::setTestNow(now()->addMilliseconds(1100)); // el tiempo avanza en el reloj simulado, sin dormir
 
             return parent::accountInsights($account, $day);
         }
@@ -84,7 +84,7 @@ it('Backfill: a continuation across midnight keeps the original closed-day range
         public function accountInsights(SocialAccount $account, CarbonInterface $day): array
         {
             if ($this->accountCalls === 0) {
-                usleep(1_100_000);
+                Carbon::setTestNow(now()->addMilliseconds(1100)); // el tiempo avanza en el reloj simulado, sin dormir
             }
 
             return parent::accountInsights($account, $day);

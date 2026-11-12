@@ -1,5 +1,5 @@
 import { validateDocument } from './document.js';
-import { renderStudioPage, seekVideoFrame } from './canvas.js';
+import { renderStudioPage, seekVideoFrame, videoFrameReady } from './canvas.js';
 import { clipMediaState, compileTimeline, sampleTimeline } from './timeline.js';
 import { createTimelineAudio } from './timeline-audio.js';
 import { createCaptionLayer } from './captions-renderer.js';
@@ -111,6 +111,8 @@ export async function createTimelinePreview(output, { document: input, assets = 
                             if (from >= end) throw new Error('El recorte del vídeo no contiene un fotograma disponible.');
                             const last = end - Math.min(0.0001, (end - from) / 2);
                             await seekVideoFrame(video, Math.min(state.sourceTime, last), { positionTolerance: Math.min(0.0001, (end - from) / 4), endTolerance: 0 });
+                            // Exportar: el fotograma tiene que estar decodificado antes de capturar (si no, el primero sale en blanco a veces).
+                            await videoFrameReady(video);
                         } else if (!playing || video.paused || Math.abs(video.currentTime - state.sourceTime) > 0.08) await seekVideoFrame(video, state.sourceTime);
                         if (disposed || request !== generation) { video.pause(); return; }
                         if (visualPlay && video.paused) await video.play();

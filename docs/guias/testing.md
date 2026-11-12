@@ -41,6 +41,11 @@ Muestra de 215 ejecuciones (6 specs ligeros × 3 proyectos con `@responsive`), `
 
 Con 2 workers el reparto es por ficheros, y `a11y.spec.ts` (66 casos) domina; con más specs el reparto mejora. La duración total de la batería completa se mide en la pasada de fin de fase; esta muestra solo demuestra el reparto y el aislamiento.
 
+## Pest: tiempos y `--parallel`
+
+- En serie, `pest` tarda ~5 min (3685 tests). Los tests que antes dormían o salían a la red ya no lo hacen: el reloj de `RemoteMediaImporter` y de `BackfillMetrics` se simula (`SteppedClockImporter`, `Carbon::setTestNow`) y los datasets de Bluesky simulan también `getRecord`. Con `Http::preventStrayRequests()` (TestCase) una petición sin simular falla al instante; si un test parece lento, mide con `vendor/bin/pest --profile`.
+- **`--parallel` no se usa todavía.** Baja la suite a ~90 s con 4 procesos, pero no es estable: `wfSig()` vive en `ApprovalTest.php` y lo usan otros dos ficheros, y los `StudioAv*Test` fallan cuando el worker ya ejecutó otros ficheros (estado compartido sin localizar). `Storage::fake` sí aísla los discos por proceso. Hasta resolverlo, `composer test` sigue en serie.
+
 ## CI (`.github/workflows/`)
 
 | Workflow / job | Cuándo | Qué ejecuta |

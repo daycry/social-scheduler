@@ -158,7 +158,10 @@ test('un token caducado se renueva y la publicacion continua', function () {
 });
 
 test('errores traducidos: sesion -> reconectar, 5xx y limite -> transitorio, rechazo -> permanente', function (array $fake, string $exception) {
-    Http::fake($fake);
+    // Tras un fallo del createRecord el publicador consulta getRecord (por si el PDS si lo creo): se simula como inexistente. Sin ese
+    // fake la consulta salia a la red real y cada caso esperaba su timeout de 10 s (41 s en total); con `preventStrayRequests` solo
+    // fallaba rapido por la excepcion de peticion no simulada, no por el camino que el test dice cubrir.
+    Http::fake($fake + ['pds.example.com/xrpc/com.atproto.repo.getRecord*' => fn () => Http::response(['error' => 'RecordNotFound', 'message' => 'x'], 400)]);
 
     expect(fn () => $this->publisher->publish($this->account, bskyRequest('Hola')))->toThrow($exception);
 })->with([

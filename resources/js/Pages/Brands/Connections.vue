@@ -142,6 +142,9 @@ const discardPending = () => router.delete(route('brands.connections.pending.dis
                                         {{ refreshingBoards === a.id ? 'Actualizando…' : 'Actualizar tableros' }}
                                     </button>
                                 </p>
+                                <p v-if="a.network === 'pinterest' && a.boards_partial" class="mt-1 text-xs text-amber-700" role="status" :data-testid="`pinterest-boards-partial-${a.id}`">
+                                    Mostrando {{ a.boards_count }} tableros, pero hay más; si no ves tu tablero, indícalo por su id en el compositor.
+                                </p>
                                 <p v-if="a.reconnect_before && a.status === 'activa'" class="mt-1 text-xs text-amber-700" data-testid="reconnect-before" role="status">
                                     Reconecta antes del {{ new Date(a.reconnect_before).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) }}: LinkedIn no permite renovar el acceso automáticamente. Mientras tanto sigue publicando.
                                 </p>

@@ -7,6 +7,7 @@ use App\Models\Brand;
 use App\Models\SocialAccount;
 use App\Models\User;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Support\NewNetworksFake;
@@ -98,4 +99,58 @@ test('un fallo de Pinterest al refrescar se avisa sin romper', function () {
 
     $this->actingAs($this->user)->post(route('brands.connections.pinterest-boards.refresh', [$this->brand, $this->account], false))
         ->assertRedirect()->assertSessionHas('error');
+});
+
+test('G3: al llegar al tope de paginas con bookmark pendiente la lista se marca como incompleta', function () {
+    $seq = Http::sequence();
+    foreach (range(1, 6) as $i) {
+        $seq->push(['items' => pinBoards($i * 10, 2), 'bookmark' => 'BM'.$i]);
+    }
+    Http::fake(['api.pinterest.com/v5/boards*' => $seq]);
+
+    $boards = $this->connector->refreshBoards($this->account);
+    $meta = $this->account->fresh()->meta;
+
+    expect($boards)->toHaveCount(10)->and(pinBoardRequests())->toHaveCount(5)->and($meta['boards_partial'])->toBeTrue();
+});
+
+test('G3: una lista leida hasta la ultima pagina no esta marcada como incompleta', function () {
+    Http::fake(['api.pinterest.com/v5/boards*' => Http::response(['items' => pinBoards(1, 2), 'bookmark' => null])]);
+
+    $this->connector->refreshBoards($this->account);
+
+    expect($this->account->fresh()->meta['boards_partial'])->toBeFalse();
+});
+
+test('G3: al conectar, una pagina que falla deja la lista parcial en vez de silenciosamente completa', function () {
+    Http::fake([
+        'api.pinterest.com/v5/oauth/token' => Http::response(['access_token' => 'PI-A', 'refresh_token' => 'PI-R', 'expires_in' => 2592000]),
+        'api.pinterest.com/v5/user_account' => Http::response(['username' => 'ana_pins']),
+        'api.pinterest.com/v5/boards*' => Http::sequence()->push(['items' => pinBoards(1, 2), 'bookmark' => 'BM1'])->push(['message' => 'boom'], 500),
+    ]);
+
+    [$candidate] = $this->connector->exchangeCode('CODE', 'https://app.test/cb');
+
+    expect($candidate->meta['boards'])->toHaveCount(2)->and($candidate->meta['boards_partial'])->toBeTrue();
+});
+
+test('Extra: el refresco corta limpio al agotar su presupuesto de tiempo y marca la lista como parcial', function () {
+    $clock = Carbon::setTestNow('2026-11-10 12:00:00');
+    Http::fake(['api.pinterest.com/v5/boards*' => function () {
+        Carbon::setTestNow(now()->addSeconds(11)); // cada pagina «tarda» 11 s
+
+        return Http::response(['items' => pinBoards((int) now()->format('s') + 1, 2), 'bookmark' => 'BM'.now()->timestamp]);
+    }]);
+
+    $this->connector->refreshBoards($this->account);
+
+    expect(pinBoardRequests())->toHaveCount(1)->and($this->account->fresh()->meta['boards_partial'])->toBeTrue();
+    Carbon::setTestNow();
+});
+
+test('G3: Conexiones expone si la lista de tableros es parcial y el aviso lo recoge la pagina', function () {
+    $this->account->forceFill(['meta' => array_merge($this->account->meta, ['boards_partial' => true])])->save();
+
+    $this->actingAs($this->user)->get(route('brands.connections.index', $this->brand, false))
+        ->assertInertia(fn (Assert $p) => $p->where('accounts.0.boards_partial', true));
 });

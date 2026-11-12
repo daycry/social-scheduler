@@ -1,16 +1,21 @@
 <?php
 
 use App\Analytics\Metric;
+use App\Analytics\Period;
 use App\Analytics\SnapshotCollector;
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Contracts\RangeInsightsReader;
-use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Connectors\Network;
 use App\Connectors\Pinterest\PinterestInsightsReader;
+use App\Jobs\BackfillMetrics;
+use App\Models\Brand;
 use App\Models\PostTarget;
+use App\Services\AnalyticsService;
+use App\Services\SocialAccountService;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Queue\Job;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\Support\NewNetworksFake;
@@ -144,23 +149,67 @@ test('401 pide reconectar', function () {
     expect(fn () => $this->reader->accountInsights($this->account, CarbonImmutable::parse('2026-11-05')))->toThrow(ReconnectRequiredException::class);
 });
 
-test('403 es rechazo permanente (sin permiso o sandbox)', function () {
-    Http::fake(['api.pinterest.com/v5/user_account/analytics*' => Http::response(['code' => 403, 'message' => 'Not authorized'], 403)]);
+test('403 en produccion: la analitica queda no disponible por acceso, el perfil se lee igual y se anota la razon', function () {
+    Http::fake([
+        'api.pinterest.com/v5/user_account/analytics*' => Http::response(['code' => 403, 'message' => 'Not authorized'], 403),
+        'api.pinterest.com/v5/user_account' => Http::response(['follower_count' => 77, 'pin_count' => 9]),
+    ]);
 
-    expect(fn () => $this->reader->accountInsights($this->account, CarbonImmutable::parse('2026-11-05')))->toThrow(PermanentPublishException::class);
+    $out = $this->reader->accountInsights($this->account, CarbonImmutable::parse('2026-11-09'));
+
+    expect($out[Metric::VIEWS])->toBeNull()->and($out[Metric::FOLLOWERS])->toBe(77)->and($out[Metric::POST_COUNT])->toBe(9)
+        ->and($this->account->fresh()->meta['analytics_unavailable'])->toMatchArray(['reason' => 'access', 'metrics' => [Metric::VIEWS, Metric::INTERACTIONS, Metric::CLICKS]]);
 });
 
-test('429 sube como cuota para que el job reintente', function () {
-    Http::fake(['api.pinterest.com/v5/pins/9/analytics*' => Http::response(['code' => 8, 'message' => 'Too many'], 429)]);
+test('si la analitica vuelve a responder se borra la razon de no disponible', function () {
+    $this->account->forceFill(['meta' => array_merge($this->account->meta, ['analytics_unavailable' => ['reason' => 'sandbox', 'metrics' => [Metric::VIEWS]]])])->save();
+    Http::fake(['api.pinterest.com/v5/user_account/analytics*' => Http::response(pinAccountBody(date: '2026-11-05'))]);
 
-    expect(fn () => $this->reader->postInsights($this->account, '9'))->toThrow(QuotaExceededException::class);
+    $this->reader->accountInsights($this->account, CarbonImmutable::parse('2026-11-05'));
+
+    expect($this->account->fresh()->meta)->not->toHaveKey('analytics_unavailable');
 });
 
-test('en el sandbox la analitica no existe: el rechazo deja el dia como no disponible en el colector', function () {
+test('429 sube como cuota con el Retry-After de Pinterest', function () {
+    Http::fake(['api.pinterest.com/v5/pins/9/analytics*' => Http::response(['code' => 8, 'message' => 'Too many'], 429, ['Retry-After' => '700'])]);
+
+    try {
+        $this->reader->postInsights($this->account, '9');
+        $this->fail('Debia lanzar QuotaExceededException');
+    } catch (QuotaExceededException $e) {
+        expect((int) now()->diffInSeconds($e->retryAt, false))->toBe(700);
+    }
+});
+
+test('un 429 en el backfill de Pinterest libera el job con el Retry-After y no abandona los dias', function () {
+    config(['social.analytics.backfill_days.pinterest' => 10]);
+    Http::fake(['api.pinterest.com/v5/user_account*' => Http::response(['message' => 'Too many'], 429, ['Retry-After' => '700'])]);
+    $queueJob = Mockery::mock(Job::class);
+    $queueJob->shouldReceive('attempts')->andReturn(1);
+    $queueJob->shouldReceive('release')->once()->with(700);
+    $job = new BackfillMetrics($this->account->id);
+    $job->setJob($queueJob);
+
+    $job->handle(app(SnapshotCollector::class), app(SocialAccountService::class));
+
+    expect($this->account->fresh()->status)->toBe('activa');
+});
+
+test('en el sandbox la analitica no existe: queda no disponible por entorno, con seguidores y pines del perfil', function () {
     config(['social.pinterest.api_host' => 'https://api-sandbox.pinterest.com']);
-    Http::fake(['api-sandbox.pinterest.com/v5/user_account/analytics*' => Http::response(['code' => 403, 'message' => 'Not authorized'], 403)]);
+    Http::fake([
+        'api-sandbox.pinterest.com/v5/user_account/analytics*' => Http::response(['code' => 403, 'message' => 'Not authorized'], 403),
+        'api-sandbox.pinterest.com/v5/user_account' => Http::response(['follower_count' => 12, 'pin_count' => 3]),
+    ]);
 
-    $snapshot = app(SnapshotCollector::class)->collectAccount($this->account, CarbonImmutable::parse('2026-11-05'));
+    $snapshot = app(SnapshotCollector::class)->collectAccount($this->account, CarbonImmutable::parse('2026-11-09'));
+    $brand = Brand::withoutGlobalScopes()->findOrFail($this->account->brand_id);
+    $detail = app(AnalyticsService::class)->network($this->account->user, $brand, Network::Pinterest, Period::make('2026-11-05', '2026-11-09'));
+    $metrics = collect($detail['metrics'])->keyBy('key');
 
-    expect($snapshot->metrics[Metric::VIEWS] ?? null)->toBeNull();
+    expect($snapshot->metrics[Metric::VIEWS] ?? null)->toBeNull()->and($snapshot->metrics[Metric::FOLLOWERS])->toBe(12)
+        ->and($this->account->fresh()->meta['analytics_unavailable']['reason'])->toBe('sandbox')
+        ->and($metrics['views']['coverage']['status'])->toBe('unavailable_sandbox')
+        ->and($metrics['followers']['coverage']['status'])->not->toBe('unavailable_sandbox')
+        ->and($metrics['followers']['total'])->toBe(12);
 });

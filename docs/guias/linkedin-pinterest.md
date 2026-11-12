@@ -36,7 +36,7 @@ Opciones por destino: `linkedin_visibility` (`PUBLIC` o `CONNECTIONS`; las pági
 
 **Token.** El acceso dura 30 días y el refresh 60; el refresco rota el `refresh_token`.
 
-**Tablero obligatorio.** Todo pin vive en un tablero: la opción `pinterest_board_id` es **obligatoria** y el destino se rechaza sin ella con el mensaje «Elige el tablero de Pinterest». Al conectar se leen los tableros (`meta.boards`, paginando con `bookmark` de 100 en 100 hasta 500) para elegirlo; en **Conexiones → Actualizar tableros** se vuelven a leer cuando creas otros en Pinterest; sin `boards:read` la cuenta se conecta igualmente y el tablero se indica por id. Antes de crear un pin se buscan los últimos del tablero para no duplicar un reintento.
+**Tablero obligatorio.** Todo pin vive en un tablero: la opción `pinterest_board_id` es **obligatoria** y el destino se rechaza sin ella con el mensaje «Elige el tablero de Pinterest». Al conectar se leen los tableros (`meta.boards`, paginando con `bookmark` de 100 en 100 hasta 500) para elegirlo; si se alcanza el tope, falla una página o se agota el presupuesto de 10 s de la petición, la lista queda marcada como incompleta (`meta.boards_partial`) y Conexiones avisa («si no ves tu tablero, indícalo por su id»); en **Conexiones → Actualizar tableros** se vuelven a leer cuando creas otros en Pinterest; sin `boards:read` la cuenta se conecta igualmente y el tablero se indica por id. Antes de crear un pin se buscan los últimos del tablero para no duplicar un reintento.
 
 | Tipo | Reglas |
 |---|---|

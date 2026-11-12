@@ -49,6 +49,7 @@ class ConnectionController extends Controller
                 'status' => $a->status,
                 'last_error' => $a->last_error,
                 'boards_count' => $a->network === Network::Pinterest ? count((array) ($a->meta['boards'] ?? [])) : null,
+                'boards_partial' => $a->network === Network::Pinterest ? (bool) ($a->meta['boards_partial'] ?? false) : null,
                 'boards_refreshed_at' => $a->network === Network::Pinterest ? ($a->meta['boards_refreshed_at'] ?? null) : null,
                 'direct_post' => $a->network === Network::TikTok && ($a->meta['direct_post'] ?? false) === true,
                 'token_expires_at' => $a->token_expires_at?->toIso8601String(),
@@ -172,6 +173,10 @@ class ConnectionController extends Controller
             $boards = $pinterest->refreshBoards($account);
         } catch (ConnectorException $e) {
             return $back->with('error', 'No se pudieron actualizar los tableros: '.$e->getMessage());
+        }
+
+        if ((bool) ($account->fresh()->meta['boards_partial'] ?? false)) {
+            return $back->with('success', 'Tableros actualizados: '.count($boards).' (lista incompleta; si no ves tu tablero, indícalo por su id).');
         }
 
         return $back->with('success', count($boards) === 1 ? 'Tableros actualizados: 1 tablero.' : 'Tableros actualizados: '.count($boards).' tableros.');

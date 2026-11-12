@@ -24,8 +24,10 @@ use Carbon\CarbonInterface;
  *    IMPRESSION -> VIEWS, SAVE -> SAVED; `lifetime_metrics` TOTAL_REACTIONS -> LIKES y TOTAL_COMMENTS -> COMMENTS; INTERACTIONS = SAVE + PIN_CLICK +
  *    OUTBOUND_CLICK + reacciones + comentarios (los presentes). Pinterest no da alcance ni comparticiones: `null`.
  *
- * Ambos endpoints estan `x-sandbox: disabled`: con `PINTEREST_API_HOST` apuntando al sandbox responden error y la analitica queda «no disponible»
- * (el colector trata el rechazo permanente como tal). Los tableros y el perfil si funcionan en sandbox.
+ * Ambos endpoints estan `x-sandbox: disabled`: con `PINTEREST_API_HOST` apuntando al sandbox responden error. Un rechazo permanente de la analitica
+ * NO impide leer el perfil (seguidores y pines, `x-sandbox: enabled`) y deja en `meta.analytics_unavailable` la razon (`sandbox` si el host es el
+ * sandbox, `access` si no: falta de permiso o app sin acceso estandar) para que `MetricCoverage` la explique en vez de un `no_data` eterno; se
+ * borra en cuanto la analitica responde.
  */
 class PinterestInsightsReader implements RangeInsightsReader
 {
@@ -48,7 +50,8 @@ class PinterestInsightsReader implements RangeInsightsReader
     public function accountInsights(SocialAccount $account, CarbonInterface $day): array
     {
         $label = $day->format('Y-m-d');
-        $out = $this->accountDay($this->accountDaily($account, $label, $label)[$label] ?? null);
+        $daily = $this->guardedDaily($account, $label, $label);
+        $out = $this->accountDay($daily[$label] ?? null);
 
         if (CarbonImmutable::createFromFormat('!Y-m-d', $label, 'UTC')->gte(Days::closed(Network::Pinterest))) {
             $profile = $this->profile($account);
@@ -61,7 +64,7 @@ class PinterestInsightsReader implements RangeInsightsReader
 
     public function accountInsightsRange(SocialAccount $account, CarbonInterface $from, CarbonInterface $to): array
     {
-        $daily = $this->accountDaily($account, $from->format('Y-m-d'), $to->format('Y-m-d'));
+        $daily = $this->guardedDaily($account, $from->format('Y-m-d'), $to->format('Y-m-d'));
         $out = [];
 
         for ($d = CarbonImmutable::instance($from)->startOfDay(); $d->lte($to); $d = $d->addDay()) {
@@ -123,6 +126,40 @@ class PinterestInsightsReader implements RangeInsightsReader
         }
 
         return $byDate;
+    }
+
+    /** Lee la analitica de cuenta; un rechazo permanente no es un error: queda anotado en la cuenta y los dias salen en blanco. */
+    private function guardedDaily(SocialAccount $account, string $from, string $to): array
+    {
+        try {
+            $daily = $this->accountDaily($account, $from, $to);
+        } catch (PermanentPublishException) {
+            $this->flagUnavailable($account, str_contains(strtolower((string) config('social.pinterest.api_host')), 'sandbox') ? 'sandbox' : 'access');
+
+            return [];
+        }
+
+        $this->flagUnavailable($account, null);
+
+        return $daily;
+    }
+
+    private function flagUnavailable(SocialAccount $account, ?string $reason): void
+    {
+        $meta = (array) ($account->meta ?? []);
+        $current = $meta['analytics_unavailable']['reason'] ?? null;
+
+        if ($current === $reason) {
+            return;
+        }
+
+        if ($reason === null) {
+            unset($meta['analytics_unavailable']);
+        } else {
+            $meta['analytics_unavailable'] = ['reason' => $reason, 'metrics' => [Metric::VIEWS, Metric::INTERACTIONS, Metric::CLICKS], 'since' => now()->toIso8601String()];
+        }
+
+        $account->forceFill(['meta' => $meta])->save();
     }
 
     /** @return array<string, int|float|null> */

@@ -20,9 +20,14 @@ final class MetricCoverage
         $expected = $observed = $present = $withData = $lagging = 0;
         $latestAttempt = $latestData = $latestExpected = null;
         $latestByAccount = [];
+        $reasons = [];
         $rowsByAccount = $snapshots->groupBy('social_account_id');
 
         foreach ($supported as $account) {
+            $flag = (array) ($account->meta['analytics_unavailable'] ?? []);
+            if (isset($flag['reason']) && in_array($metric, (array) ($flag['metrics'] ?? []), true)) {
+                $reasons[] = 'unavailable_'.$flag['reason'];
+            }
             $closed = Days::closed($account->network)->format('Y-m-d');
             $dates = array_values(array_filter($period->dates(), fn (string $date) => $date <= $closed));
             $expected += count($dates);
@@ -56,7 +61,9 @@ final class MetricCoverage
         return [
             'coverage' => [
                 'unit' => 'account_days',
-                'status' => self::status($supported->count(), $expected, $observed),
+                // Razon explicita cuando la red no da la metrica en este entorno (p. ej. analitica de Pinterest en sandbox): no es un `no_data` eterno.
+                'status' => $observed === 0 && $expected > 0 && $reasons !== [] ? $reasons[0] : self::status($supported->count(), $expected, $observed),
+                'reason' => $reasons[0] ?? null,
                 'accounts' => $supported->count(), 'accounts_with_data' => $withData,
                 'unsupported_accounts' => $accounts->count() - $supported->count(),
                 'expected_account_days' => $expected, 'snapshot_account_days' => $present,
@@ -77,13 +84,15 @@ final class MetricCoverage
     public static function merge(array $items): array
     {
         $coverage = ['unit' => 'account_days', 'accounts' => 0, 'accounts_with_data' => 0, 'unsupported_accounts' => 0,
-            'expected_account_days' => 0, 'snapshot_account_days' => 0, 'observed_account_days' => 0, 'missing_account_days' => 0];
+            'expected_account_days' => 0, 'snapshot_account_days' => 0, 'observed_account_days' => 0, 'missing_account_days' => 0, 'reason' => null];
         $freshness = ['basis' => 'snapshot_attempts', 'latest_attempt_at' => null, 'latest_data_date' => null,
             'oldest_latest_data_date' => null, 'latest_expected_date' => null, 'lagging_accounts' => 0, 'is_stale' => null, 'data_updated_at' => null];
         $oldest = [];
         foreach ($items as $item) {
             foreach ($coverage as $key => $value) {
-                if ($key !== 'unit') {
+                if ($key === 'reason') {
+                    $coverage[$key] ??= $item['coverage'][$key] ?? null;
+                } elseif ($key !== 'unit') {
                     $coverage[$key] += $item['coverage'][$key];
                 }
             }
@@ -95,7 +104,9 @@ final class MetricCoverage
                 $oldest[] = $item['freshness']['oldest_latest_data_date'];
             }
         }
-        $coverage['status'] = self::status($coverage['accounts'], $coverage['expected_account_days'], $coverage['observed_account_days']);
+        $coverage['status'] = $coverage['observed_account_days'] === 0 && $coverage['expected_account_days'] > 0 && $coverage['reason'] !== null
+            ? $coverage['reason']
+            : self::status($coverage['accounts'], $coverage['expected_account_days'], $coverage['observed_account_days']);
         $freshness['oldest_latest_data_date'] = $oldest === [] || in_array(null, $oldest, true) ? null : min($oldest);
         $freshness['is_stale'] = $coverage['expected_account_days'] === 0 ? null : $freshness['lagging_accounts'] > 0;
 

@@ -131,7 +131,9 @@ class PinterestClient
             return new ReconnectRequiredException('Pinterest rechazo las credenciales ('.$message.'). Reconecta la cuenta.');
         }
         if ($status === 429) {
-            return new QuotaExceededException('Pinterest limito las peticiones de la app ('.$message.').', null, 'rate_limit');
+            $retry = (string) $response->header('Retry-After');
+
+            return new QuotaExceededException('Pinterest limito las peticiones de la app ('.$message.').', ctype_digit($retry) && $retry !== '' ? now()->addSeconds(min((int) $retry, 86400)) : null, 'rate_limit');
         }
         if ($status === 403) {
             return new PermanentPublishException('Pinterest nego el permiso ('.$message.'). Las apps nuevas estan en acceso de prueba (solo sandbox) hasta que Pinterest las aprueba; revisa los permisos y vuelve a conectar.', 'permisos');

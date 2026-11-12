@@ -6,6 +6,7 @@ use App\Connectors\ConnectorRegistry;
 use App\Connectors\Contracts\CredentialConnector;
 use App\Connectors\Exceptions\ConnectorException;
 use App\Connectors\Network;
+use App\Connectors\Pinterest\PinterestConnector;
 use App\Connectors\TikTok\TikTokPublisher;
 use App\Http\Controllers\OAuth\OAuthController;
 use App\Models\Brand;
@@ -47,6 +48,8 @@ class ConnectionController extends Controller
                 'username' => $a->username,
                 'status' => $a->status,
                 'last_error' => $a->last_error,
+                'boards_count' => $a->network === Network::Pinterest ? count((array) ($a->meta['boards'] ?? [])) : null,
+                'boards_refreshed_at' => $a->network === Network::Pinterest ? ($a->meta['boards_refreshed_at'] ?? null) : null,
                 'direct_post' => $a->network === Network::TikTok && ($a->meta['direct_post'] ?? false) === true,
                 'token_expires_at' => $a->token_expires_at?->toIso8601String(),
                 // Aviso «reconecta antes de»: cuentas que no se pueden renovar (sin refresh_token) cuyo token caduca en pocos dias. No bloquea nada.
@@ -154,6 +157,24 @@ class ConnectionController extends Controller
         return redirect()->route('brands.connections.index', $brand)->with('success', $enabled
             ? 'Direct Post activado: TikTok publicara directamente (requiere auditoria aprobada).'
             : 'Direct Post desactivado: los videos se enviaran como borrador a la bandeja de TikTok.');
+    }
+
+    /** Vuelve a leer los tableros de una cuenta de Pinterest (paginados con `bookmark`) y guarda la lista para el compositor. */
+    public function refreshPinterestBoards(Brand $brand, SocialAccount $account, PinterestConnector $pinterest): RedirectResponse
+    {
+        $this->authorize('update', $brand);
+        $this->authorize('disconnect', $account);
+        abort_unless($account->brand_id === $brand->id && $account->network === Network::Pinterest, 404);
+
+        $back = redirect()->route('brands.connections.index', $brand);
+
+        try {
+            $boards = $pinterest->refreshBoards($account);
+        } catch (ConnectorException $e) {
+            return $back->with('error', 'No se pudieron actualizar los tableros: '.$e->getMessage());
+        }
+
+        return $back->with('success', count($boards) === 1 ? 'Tableros actualizados: 1 tablero.' : 'Tableros actualizados: '.count($boards).' tableros.');
     }
 
     /**

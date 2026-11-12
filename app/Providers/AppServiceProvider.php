@@ -18,6 +18,7 @@ use App\Connectors\Meta\Instagram\InstagramPublisher;
 use App\Connectors\Meta\MetaConnector;
 use App\Connectors\Network;
 use App\Connectors\Pinterest\PinterestConnector;
+use App\Connectors\Pinterest\PinterestInsightsReader;
 use App\Connectors\Pinterest\PinterestPublisher;
 use App\Connectors\Threads\ThreadsConnector;
 use App\Connectors\Threads\ThreadsInsights;
@@ -102,7 +103,9 @@ class AppServiceProvider extends ServiceProvider
                 $registry->register($this->app->make(LinkedInConnector::class))->registerPublisher(Network::LinkedIn, $linkedin);
             }
             if (Network::Pinterest->isAvailable()) {
-                $registry->register($this->app->make(PinterestConnector::class))->registerPublisher(Network::Pinterest, $this->app->make(PinterestPublisher::class));
+                $registry->register($this->app->make(PinterestConnector::class))
+                    ->registerPublisher(Network::Pinterest, $this->app->make(PinterestPublisher::class))
+                    ->registerInsights(Network::Pinterest, $this->app->make(PinterestInsightsReader::class));
             }
 
             return $registry;

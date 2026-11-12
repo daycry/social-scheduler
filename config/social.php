@@ -309,7 +309,8 @@ return [
             // La serie de cuenta de Threads admite rango (desde 2024-04-13); se pide por tramos.
             'threads' => (int) env('SOCIAL_BACKFILL_DAYS_THREADS', 30),
             'linkedin' => 0,
-            'pinterest' => 0,
+            // Pinterest (T-21): `user_account/analytics` admite rango (<= 90 dias atras y de rango); se piden 30 y por tramos de 30.
+            'pinterest' => (int) env('SOCIAL_BACKFILL_DAYS_PINTEREST', 30),
         ],
         /* Presupuesto (s) de una pasada de backfill; si no acaba, el job se reencola y continua. */
         'backfill_budget_seconds' => (int) env('SOCIAL_BACKFILL_BUDGET', 80),

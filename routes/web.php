@@ -61,6 +61,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('brands/{brand}/connections/select', [ConnectionController::class, 'select'])->name('brands.connections.select');
     Route::delete('brands/{brand}/connections/pending', [ConnectionController::class, 'discardPending'])->name('brands.connections.pending.discard');
     Route::delete('brands/{brand}/connections/{account}', [ConnectionController::class, 'destroy'])->name('brands.connections.destroy');
+    Route::post('brands/{brand}/connections/{account}/pinterest-boards', [ConnectionController::class, 'refreshPinterestBoards'])->whereNumber(['brand', 'account'])->middleware('throttle:10,1')->name('brands.connections.pinterest-boards.refresh');
     Route::patch('brands/{brand}/connections/{account}/direct-post', [ConnectionController::class, 'directPost'])->name('brands.connections.direct-post');
     Route::get('brands/{brand}/connections/{account}/tiktok-creator', [ConnectionController::class, 'tiktokCreator'])->middleware('throttle:30,1')->name('brands.connections.tiktok-creator');
     // POST (con CSRF): iniciar el OAuth cambia el estado de la sesion y puede reactivar cuentas; un GET

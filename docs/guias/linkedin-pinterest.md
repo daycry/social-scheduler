@@ -30,9 +30,13 @@ Opciones por destino: `linkedin_visibility` (`PUBLIC` o `CONNECTIONS`; las pági
 
 **App.** En Pinterest Developers, crea la app (API v5). Las apps nuevas empiezan con acceso de prueba (sandbox) hasta que Pinterest las aprueba. Scopes: `boards:read`, `pins:read`, `pins:write` y `user_accounts:read`. Redirect URI: `<APP_URL>/connections/pinterest/callback`. Define `PINTEREST_APP_ID` y `PINTEREST_APP_SECRET`.
 
+**Analítica (T-21).** `PinterestInsightsReader` lee `GET /v5/user_account/analytics` (scope `user_accounts:read`) y `GET /v5/pins/{id}/analytics` (`pins:read` + `boards:read`); los cuatro scopes ya se piden al conectar, así que las cuentas existentes no necesitan reconectar. Alimenta el panel de la red, las mejores horas, los informes y el top de publicaciones. Todo lo que Pinterest no da (alcance, comparticiones, minutos reproducidos) es «no disponible», nunca 0.
+
+**Sandbox frente a producción.** Con `PINTEREST_API_HOST` apuntando al sandbox (`https://api-sandbox.pinterest.com`) funcionan los tableros, el perfil (`/v5/user_account`) y publicar, pero **ni `user_account/analytics` ni `pins/{id}/analytics` están disponibles** (`x-sandbox: disabled` en la especificación OpenAPI oficial): la analítica queda «no disponible» hasta tener el acceso estándar de producción (`https://api.pinterest.com`). Hay que verificarlo con una cuenta real (smoke M-01, a cargo del usuario).
+
 **Token.** El acceso dura 30 días y el refresh 60; el refresco rota el `refresh_token`.
 
-**Tablero obligatorio.** Todo pin vive en un tablero: la opción `pinterest_board_id` es **obligatoria** y el destino se rechaza sin ella con el mensaje «Elige el tablero de Pinterest». Al conectar se leen hasta 25 tableros (`meta.boards`) para elegirlo; sin `boards:read` la cuenta se conecta igualmente y el tablero se indica por id. Antes de crear un pin se buscan los últimos del tablero para no duplicar un reintento.
+**Tablero obligatorio.** Todo pin vive en un tablero: la opción `pinterest_board_id` es **obligatoria** y el destino se rechaza sin ella con el mensaje «Elige el tablero de Pinterest». Al conectar se leen los tableros (`meta.boards`, paginando con `bookmark` de 100 en 100 hasta 500) para elegirlo; en **Conexiones → Actualizar tableros** se vuelven a leer cuando creas otros en Pinterest; sin `boards:read` la cuenta se conecta igualmente y el tablero se indica por id. Antes de crear un pin se buscan los últimos del tablero para no duplicar un reintento.
 
 | Tipo | Reglas |
 |---|---|

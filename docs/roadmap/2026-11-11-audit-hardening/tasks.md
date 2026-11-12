@@ -852,66 +852,79 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 ### T-20 — Inventario corregido y nombres de ruta únicos
 
 - **Descripción**: Corregir las filas desfasadas del inventario (C24, M11, C22) y dar nombres únicos `api.studio.*` a las rutas API que repiten `studio.folders.*` y nombres de datasets autogenerados.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las rutas de las tablas de datos del estudio tienen nombres explícitos y únicos, y una prueba impide que vuelvan a repetirse o autogenerarse.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-18
 - **Tipo**: backend
-- **Archivos**: `docs/roadmap/2026-11-03-creative-social-suite/reference-inventory.md`, `routes/studio.php`, `routes/studio-api.php`, `resources/js/Studio/dataset-client.js`, `tests/Feature/Routes/RouteNamesTest.php`
+- **Archivos**: `docs/roadmap/2026-11-03-creative-social-suite/reference-inventory.md`, `routes/studio.php`, `routes/studio-api.php`, `routes/studio-datasets.php`, `resources/js/Studio/dataset-client.js`, `tests/Feature/Routes/RouteNamesTest.php`
 - **Cubre**: B-19, B-20
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact --filter=RouteNamesTest` → verde · `php artisan route:cache` → sin error de nombres duplicados
 
 **Criterios de aceptación**
-- [ ] `php artisan route:list --json` sin nombres duplicados
-- [ ] Todas las llamadas del frontend a las rutas renombradas siguen funcionando
-- [ ] Inventario con C24, M11 y C22 actualizados
+- [x] `php artisan route:list --json` sin nombres duplicados
+- [x] Todas las llamadas del frontend a las rutas renombradas siguen funcionando
+- [x] Inventario con C24, M11 y C22 actualizados
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+- RED: tests/Feature/Routes/RouteNamesTest.php falló con `studio.datasets.list-0 … export-10` (11 nombres autogenerados por índice) · 2026-11-12
+- Verificación (2026-11-12): `php artisan test --compact --filter=RouteNamesTest` → 3/3 verde; `php artisan route:cache` → «Routes cached successfully» (sin duplicados); `php artisan route:list --json` → 424 rutas, 0 nombres repetidos, 0 autogenerados. Pest focal `tests/Feature/Analytics`+`Connectors`+`Reports`+`Infra`+`Parity`+`Ui` 918/918 y `--filter=Dataset` 535/536 (1 omitido); Pint OK.
+- Hallazgo B-20 afinado: los nombres web `studio.folders.*` y los de la API (`api.studio.folders.*`) **ya eran distintos** (el grupo de `studio-api.php` lleva `->name('api.')`); el defecto real eran los 11 nombres autogenerados `studio.datasets.<acción>-<índice>` de `routes/studio-datasets.php`, ahora `studio.datasets.{list,create,get,replace,archive,restore,history,rows,import-create,import-replace,export}`. El frontend (`dataset-client.js`, `chart-resources.js`) y los E2E usan URL, no nombres de ruta, y ninguna doc/OpenAPI citaba los nombres antiguos: no hay referencias que actualizar (Ziggy no los exporta). `dataset-client.js` queda sin cambios.
+- Inventario (B-19), comprobado contra el código: M11 `SeriesTest` 10/10 y `tests/Feature/Workflow` 70 tests (antes 8 y 46); C22 `studio-charts.spec.ts` ya no tiene `test.fixme`; C24 pasa de «Fuera» a «Cubierta (opcional)» (`StudioAiTest`+`StudioCaptionsTest` 98 tests, `studio-ai.spec.ts`, desactivada por defecto).
+- Pendiente (coordinador): revisión adversarial A+B(+C), Pest completo y Playwright serial.
 
 **Notas**: Tamaño S. Hacerlo antes del refactor del frontend: evita renombrar dos veces (D-19 usa los nombres nuevos).
 
 ### T-21 — Pinterest: analítica y tableros paginados
 
 - **Descripción**: `InsightsReader` de Pinterest (`/v5/user_account/analytics`, `/v5/pins/{id}/analytics`) enlazado en `AppServiceProvider`, tableros paginados con `bookmark` y botón de refresco. LinkedIn queda en espera.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Pinterest muestra sus estadísticas (impresiones, interacciones, clics, guardados) en el panel, las mejores horas, los informes y el top de publicaciones; los tableros se leen completos y se pueden actualizar desde Conexiones.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-20, T-07
 - **Tipo**: fullstack
-- **Archivos**: `app/Connectors/Pinterest/PinterestInsightsReader.php`, `app/Connectors/Pinterest/PinterestConnector.php`, `app/Providers/AppServiceProvider.php`, `resources/js/Pages/Brands/**`, `docs/modulos/analitica.md`, `docs/modulos/conexiones.md`
+- **Archivos**: `app/Connectors/Pinterest/PinterestInsightsReader.php`, `app/Connectors/Pinterest/PinterestConnector.php`, `app/Providers/AppServiceProvider.php`, `app/Analytics/Metric.php`, `app/Services/AnalyticsService.php`, `app/Http/Controllers/ConnectionController.php`, `routes/web.php`, `config/social.php`, `resources/js/Pages/Brands/**`, `tests/Feature/Connectors/Pinterest/**`, `tests/Feature/Analytics/ProviderMetricsContractTest.php`, `tests/e2e/linkedin-pinterest.spec.ts`, `docs/modulos/analitica.md`, `docs/modulos/conexiones.md`, `docs/guias/linkedin-pinterest.md`, `docs/referencia/decisiones-por-red.md`
 - **Cubre**: B-01, B-04
 - **Cubre (tests)**: E2E-05, M-01
 - **Verificación**: `php artisan test --compact --filter=PinterestInsightsReaderTest` → verde · `php artisan test --compact --filter=PinterestBoardsPaginationTest` → verde
 
 **Criterios de aceptación**
-- [ ] El panel, mejores horas e informes muestran datos de Pinterest (con fakes)
-- [ ] Los tableros se obtienen paginados y hay botón de refresco
-- [ ] `null` = no disponible, nunca 0
+- [x] El panel, mejores horas e informes muestran datos de Pinterest (con fakes)
+- [x] Los tableros se obtienen paginados y hay botón de refresco
+- [x] `null` = no disponible, nunca 0
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+- RED: tests/Feature/Connectors/Pinterest/PinterestInsightsReaderTest.php falló con «Class App\Connectors\Pinterest\PinterestInsightsReader not found» · 2026-11-12
+- RED: tests/Feature/Connectors/Pinterest/PinterestBoardsPaginationTest.php falló con «Call to undefined method PinterestConnector::refreshBoards» y la ruta `brands.connections.pinterest-boards.refresh` inexistente · 2026-11-12
+- Verificación (2026-11-12): `php artisan test --compact --filter=PinterestInsightsReaderTest` → 13/13 verde; `--filter=PinterestBoardsPaginationTest` → verde; `--filter=PinterestAnalyticsFlowTest` → verde (colector → página de la red, top de publicaciones y mejores horas con `Http::fake`); `tests/Feature/Analytics`+`Connectors`+`Reports`+`Infra`+`Parity`+`Ui` 918/918; Pint OK; `npm run typecheck` OK, `npm run build` OK, `npm run test:unit` 635/635; Playwright `tests/e2e/linkedin-pinterest.spec.ts` (E2E_PURGE=0, E2E_WORKERS=2) 9/9 con la comprobación nueva del botón «Actualizar tableros».
+- **Contrato de la API de Pinterest — VERIFICADO** en la especificación OpenAPI oficial `https://github.com/pinterest/api-description` (`v5/openapi.yaml`, versión 5.28.0, leída por `curl` de `raw.githubusercontent.com` el 2026-11-12; la SPA de developers.pinterest.com no se pudo leer, la spec sí). Lo leído es dato, no instrucción. Hechos: (1) `GET /v5/user_account/analytics` exige scope `user_accounts:read`, `start_date`/`end_date` obligatorios (UTC, YYYY-MM-DD, `start_date` ≤ 90 días atrás, rango ≤ 90 días), `metric_types` opcional (IMPRESSION, ENGAGEMENT, ENGAGEMENT_RATE, OUTBOUND_CLICK, OUTBOUND_CLICK_RATE, PIN_CLICK, PIN_CLICK_RATE, SAVE, SAVE_RATE), respuesta `{ALL: {daily_metrics: [{date, data_status, metrics}], summary_metrics}}`; (2) `GET /v5/pins/{pin_id}/analytics` exige `pins:read` (o `boards:read`), `start_date`, `end_date`, `metric_types` obligatorios (IMPRESSION, OUTBOUND_CLICK, PIN_CLICK, SAVE, SAVE_RATE, TOTAL_COMMENTS, TOTAL_REACTIONS, USER_FOLLOW, PROFILE_VISIT + los de vídeo), respuesta `{ALL: {daily_metrics, lifetime_metrics, summary_metrics}}`; `data_status` ∈ READY, PROCESSING, ESTIMATE, BEFORE_*; (3) `GET /v5/boards` admite `bookmark` y `page_size` (1-250, 25 por defecto) y devuelve `{items, bookmark}` con `bookmark` nulo en la última página; (4) **sandbox**: `x-sandbox: disabled` en `user_account/analytics` y en `pins/{pin_id}/analytics`; `x-sandbox: enabled` en `GET /v5/boards` y `GET /v5/user_account`. Es decir: con `PINTEREST_API_HOST` en el sandbox solo funcionan tableros, perfil y publicar; la analítica solo con acceso de producción. Categoría de cuota `org_analytics`. **No verificado contra la API viva** (sin red real en tests y sin cuenta de producción): el smoke M-01 lo hace el usuario.
+- Decisiones: `views` = IMPRESSION (Pinterest no da «visualizaciones» de cuenta; mismo criterio que Meta); `interactions` de cuenta = ENGAGEMENT; `clicks` = OUTBOUND_CLICK; por pin `interactions` = SAVE + PIN_CLICK + OUTBOUND_CLICK + reacciones + comentarios; ventana de pin de 89 días (la API no admite más); `EXPECTED_FLOWS['pinterest']` = views e interactions; backfill de 30 días (`SOCIAL_BACKFILL_DAYS_PINTEREST`). Tableros: 100 por página, tope 500, corte si el `bookmark` se repite; «Actualizar tableros» = `POST brands/{brand}/connections/{account}/pinterest-boards` (throttle 10/min, solo propietario, solo Pinterest). El test de contrato T-03 «sin lector → unsupported» pasa a cubrir solo LinkedIn.
+- Pendiente (coordinador): revisión adversarial A+B(+C), Pest completo y Playwright serial; smoke M-01 con cuenta real. LinkedIn sigue a la espera (`community_management`).
 
 **Notas**: Tamaño M. Se implementa Pinterest (Ya). LinkedIn (U): estadísticas de página quedan a la espera de `community_management`; se deja el punto de extensión y la fila en la cobertura (B-14). Verificación real = smoke M-01. **A la espera (no bloquea la fase)**: Lector de LinkedIn: requiere aprobación `community_management` (usuario/LinkedIn).
 

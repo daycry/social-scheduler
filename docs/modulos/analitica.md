@@ -18,7 +18,7 @@ Estos metadatos describen el periodo solicitado, no certifican que el cron esté
 | Cálculos (crecimiento, engagement) | `app/Analytics/Calculator.php`, `Metric.php`, `Period.php` |
 | Servicio | `app/Services/AnalyticsService.php` (`withLatestSnapshot`: el último snapshot de cada destino, compartido con las campañas) |
 | Campañas | `app/Services/CampaignAnalytics.php`, `resources/js/Pages/Campaigns/{Index,Show}.vue` |
-| Lectores por red | `Meta/Insights.php`, `Google/Analytics.php`, `TikTok/Display.php`, `Bluesky/BlueskyInsights.php`, `Threads/ThreadsInsights.php` |
+| Lectores por red | `Meta/Insights.php`, `Google/Analytics.php`, `TikTok/Display.php`, `Bluesky/BlueskyInsights.php`, `Threads/ThreadsInsights.php`, `Pinterest/PinterestInsightsReader.php` |
 | UI | `resources/js/Pages/Dashboard/{Index,Network}.vue`, `LineChart.vue` |
 | Tablas | `account_snapshots` (con `settled_at`), `post_metric_snapshots` |
 
@@ -39,6 +39,7 @@ Las publicaciones se refrescan cada 6 h (`15 */6 * * *`) durante las primeras 72
 | YouTube | 365 | un informe `dimensions=day` por tramo de 90 días |
 | TikTok | 0 | la Display API no da serie histórica |
 | Bluesky | 0 | solo hay stocks (seguidores y posts): no existe el valor de un día pasado |
+| Pinterest | 30 (`SOCIAL_BACKFILL_DAYS_PINTEREST`) | `user_account/analytics` admite hasta 90 días atrás y 90 de rango; se piden tramos de 30 (`maxRangeDays` = 30) |
 | Threads | 30 (`SOCIAL_BACKFILL_DAYS_THREADS`) | la serie de cuenta admite `since`/`until` (desde el 2024-04-13), pero los totales del día se piden día a día (`maxRangeDays` = 0) |
 
 ## Métricas: lo medido en el spike
@@ -81,6 +82,16 @@ El panel (`/campaigns/{id}`) lee de las mismas tablas que el dashboard y reutili
 - **Post** (`GET /{id}/insights`, `lifetime`): `views` → `views`, `likes`, `replies` → `comments`, `reposts + quotes + shares` → `shares` e `interactions` = la suma. **`views` y `shares` figuran «en desarrollo»**: si la API rechaza el conjunto se piden una a una y lo rechazado queda `null`. Una publicación de otra persona (`REPOST_FACADE`) da una lista vacía: todo `null`. El ID de un contenedor sin localizar (`external_id_kind = container`) no se lee.
 - **Expectativas** (`Metric::EXPECTED_FLOWS['threads']`): `profile_views`, `likes`, `comments`, `shares` e `interactions` (sin `clicks`: sin enlaces pulsados no hay dato). `AnalyticsService::SUPPORTED['threads']` = seguidores, visitas al perfil, interacciones, me gusta, comentarios, compartidos y clics.
 - **Agregado y CSV:** el total de «Visualizaciones» de una marca ignora a Threads (es `null` y se respeta el `null`); sus visitas al perfil salen en la página de la red y en el informe de red.
+
+## Pinterest (T-21)
+
+`PinterestInsightsReader` (`RangeInsightsReader`) lee la API v5 con el token de la cuenta. Contrato leído en el OpenAPI oficial `pinterest/api-description` v5.28.0 (2026-11-12); las respuestas van como `{ "ALL": { daily_metrics, summary_metrics, lifetime_metrics } }`.
+
+- **Cuenta** (`GET /v5/user_account/analytics`, scope `user_accounts:read`, fechas UTC): `IMPRESSION` → `views`, `ENGAGEMENT` → `interactions`, `OUTBOUND_CLICK` → `clicks`. Un día solo vale con `data_status = READY`; `PROCESSING`/`BEFORE_*` o ausente es `null` (se reintenta). `followers` y `post_count` salen de `GET /v5/user_account` (`follower_count`, `pin_count`) y solo para el último día cerrado.
+- **Pin** (`GET /v5/pins/{id}/analytics`, `pins:read`): `summary_metrics` de los últimos 89 días (la API rechaza más de 90 atrás) → `views` (`IMPRESSION`), `saved` (`SAVE`); `lifetime_metrics` `TOTAL_REACTIONS` → `likes` y `TOTAL_COMMENTS` → `comments`; `interactions` = guardados + clics en el pin + clics de salida + reacciones + comentarios (los presentes). Sin `reach` ni `shares`: `null`.
+- **Expectativas:** `EXPECTED_FLOWS['pinterest']` = `views` e `interactions`; `AnalyticsService::SUPPORTED['pinterest']` = seguidores, visualizaciones, interacciones, clics y publicaciones.
+- **Sandbox:** ambos endpoints están `x-sandbox: disabled`; con `PINTEREST_API_HOST` en el sandbox responden error y el colector deja el día «no disponible» (rechazo permanente, no error del job). Los tableros y el perfil sí funcionan allí.
+- **Límite de cuota:** categoría `org_analytics`; un 429 sube como cuota y el job reintenta.
 
 ## Todas las marcas (C-03b)
 

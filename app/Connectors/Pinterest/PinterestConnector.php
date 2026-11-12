@@ -14,12 +14,16 @@ use Carbon\CarbonImmutable;
 /**
  * Conector de Pinterest (T-18, API v5): OAuth 2.0 con codigo (`/oauth/` + `POST /v5/oauth/token` con Basic). El acceso dura ~30 dias y el
  * refresco ~60 (renovacion continua: cada refresco devuelve un `refresh_token` nuevo, que se guarda). `external_id` es el id de la cuenta
- * (o su usuario). Al conectar se leen hasta 25 tableros en `meta.boards` ([{id, name}]) para elegir el destino de cada pin; un tablero que
- * no aparezca (creado despues) se puede indicar por su id.
+ * (o su usuario). Al conectar se leen los tableros (paginando con `bookmark`, hasta `BOARDS_MAX_PAGES` paginas de `BOARDS_PAGE_SIZE`) en
+ * `meta.boards` ([{id, name}]) para elegir el destino de cada pin; «Actualizar tableros» en Conexiones los vuelve a leer (`refreshBoards`) y un
+ * tablero que aun no aparezca se puede indicar por su id.
  */
 class PinterestConnector implements OAuthConnector
 {
-    private const BOARDS_PAGE = 25;
+    /** `GET /v5/boards`: `page_size` 1-250 (25 por defecto); `bookmark` pide la pagina siguiente. */
+    private const BOARDS_PAGE_SIZE = 100;
+
+    private const BOARDS_MAX_PAGES = 5;
 
     public function __construct(private readonly PinterestClient $client = new PinterestClient) {}
 
@@ -80,7 +84,7 @@ class PinterestConnector implements OAuthConnector
             tokenExpiresAt: $this->expiry($token['expires_in'] ?? null),
             refreshExpiresAt: $this->expiry($token['refresh_token_expires_in'] ?? null),
             scopes: $scopes,
-            meta: ['boards' => $this->boards($access)],
+            meta: ['boards' => $this->boards($access, strict: false)],
         )];
     }
 
@@ -102,28 +106,62 @@ class PinterestConnector implements OAuthConnector
     }
 
     /**
-     * Tableros del usuario; sin `boards:read` (403) la cuenta se conecta igualmente y el tablero se indica por id.
+     * Vuelve a leer los tableros de la cuenta (paginados) y guarda la lista en `meta.boards`. Si Pinterest falla se propaga la excepcion y la
+     * lista anterior se conserva.
      *
      * @return list<array{id: string, name: string}>
      */
-    private function boards(#[\SensitiveParameter] string $access): array
+    public function refreshBoards(SocialAccount $account): array
     {
-        try {
-            $items = (array) ($this->client->api('GET', 'v5/boards', $access, query: ['page_size' => self::BOARDS_PAGE], read: true)->json('items') ?? []);
-        } catch (ReconnectRequiredException $e) {
-            throw $e;
-        } catch (\Throwable) {
-            return [];
-        }
+        $boards = $this->boards((string) $account->access_token, strict: true);
 
+        $account->forceFill(['meta' => array_merge($account->meta ?? [], ['boards' => $boards, 'boards_refreshed_at' => now()->toIso8601String()])])->save();
+
+        return $boards;
+    }
+
+    /**
+     * Tableros del usuario, siguiendo el `bookmark` hasta la ultima pagina (con tope de paginas y corte si el cursor se repite). Al conectar
+     * (`strict: false`) un rechazo (p. ej. sin `boards:read`, 403) deja la lista vacia y la cuenta se conecta igualmente; al refrescar se propaga.
+     *
+     * @return list<array{id: string, name: string}>
+     */
+    private function boards(#[\SensitiveParameter] string $access, bool $strict): array
+    {
         $boards = [];
-        foreach ($items as $board) {
-            if (isset($board['id']) && preg_match('/^\d{1,30}$/D', (string) $board['id'])) {
-                $boards[] = ['id' => (string) $board['id'], 'name' => mb_substr((string) ($board['name'] ?? 'Tablero '.$board['id']), 0, 100)];
+        $bookmark = null;
+        $seen = [];
+
+        for ($page = 0; $page < self::BOARDS_MAX_PAGES; $page++) {
+            $query = ['page_size' => self::BOARDS_PAGE_SIZE] + ($bookmark !== null ? ['bookmark' => $bookmark] : []);
+
+            try {
+                $json = $this->client->api('GET', 'v5/boards', $access, query: $query, read: true)->json() ?? [];
+            } catch (ReconnectRequiredException $e) {
+                throw $e;
+            } catch (\Throwable $e) {
+                if ($strict) {
+                    throw $e instanceof ConnectorException ? $e : new ConnectorException('No se pudieron leer los tableros de Pinterest.');
+                }
+
+                return array_values($boards);
             }
+
+            foreach ((array) ($json['items'] ?? []) as $board) {
+                if (isset($board['id']) && preg_match('/^\d{1,30}$/D', (string) $board['id'])) {
+                    $boards[(string) $board['id']] = ['id' => (string) $board['id'], 'name' => mb_substr((string) ($board['name'] ?? 'Tablero '.$board['id']), 0, 100)];
+                }
+            }
+
+            $next = $json['bookmark'] ?? null;
+            if (! is_string($next) || $next === '' || isset($seen[$next])) {
+                break;
+            }
+            $seen[$next] = true;
+            $bookmark = $next;
         }
 
-        return array_slice($boards, 0, self::BOARDS_PAGE);
+        return array_values($boards);
     }
 
     private function expiry(mixed $seconds): ?CarbonImmutable

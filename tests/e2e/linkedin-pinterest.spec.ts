@@ -62,6 +62,10 @@ test('T-18 · Conexiones: LinkedIn y Pinterest se conectan con el proveedor simu
         await expect(page.locator(`section[data-network="${network}"]`)).toContainText(`T43 ${label}`);
         await expect(page.locator(`section[data-network="${network}"]`)).toContainText('Conectada');
     }
+    // T-21 (B-04): las cuentas de Pinterest ofrecen refrescar los tableros (paginados) y dicen cuantos hay.
+    const boards = page.locator('section[data-network="pinterest"]').getByTestId(/^pinterest-boards-/);
+    await expect(boards).toContainText(/tableros? disponibles?/);
+    await expect(boards.getByRole('button', { name: 'Actualizar tableros', exact: true })).toBeEnabled();
     const html = await page.content();
     expect(html).not.toContain('access_token');
     expect(html).not.toContain('t43-fake-access');

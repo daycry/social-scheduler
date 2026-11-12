@@ -131,12 +131,12 @@ Añadidas en T-18 (creative-social-suite). Guía de alta, scopes e interruptores
 | Decisión | LinkedIn | Pinterest |
 |---|---|---|
 | Autenticación | OAuth 2.0 de tres patas; token de ~60 días; `refresh_token` solo en apps con programa de partner | OAuth con Basic en `/v5/oauth/token`; acceso de 30 días y refresh de 60 con rotación |
-| Destinos | Perfil personal siempre; páginas solo con `LINKEDIN_COMMUNITY_MANAGEMENT` (Community Management API aprobada aparte) | Cuenta con sus tableros (hasta 25 leídos al conectar) |
+| Destinos | Perfil personal siempre; páginas solo con `LINKEDIN_COMMUNITY_MANAGEMENT` (Community Management API aprobada aparte) | Cuenta con sus tableros (paginados con `bookmark`, hasta 500; botón «Actualizar tableros» en Conexiones) |
 | Condición de publicar | `w_member_social`; leer lo publicado exige `r_member_social` (`LINKEDIN_R_MEMBER_SOCIAL`) | **Tablero obligatorio** (`pinterest_board_id`) |
 | Tipos | texto, imagen, varias imágenes (2 a 20), vídeo | pin de imagen, carrusel (2 a 5), vídeo con portada opcional |
 | Texto | 3000 caracteres | descripción 800, título 100, alt 500, enlace https |
 | Primer comentario | Sí (1250 caracteres) | No (la API v5 no comenta pines) |
-| Métricas | Sin lector: «no disponible» | Sin lector: «no disponible» |
+| Métricas | Sin lector (pendiente de `community_management`): «no disponible» | `PinterestInsightsReader` (T-21): impresiones → `views`, `ENGAGEMENT` → `interactions`, `OUTBOUND_CLICK` → `clicks`, seguidores y pines del perfil; por pin: impresiones, guardados, reacciones, comentarios. Sin alcance ni comparticiones. Solo con acceso de producción: en sandbox la analítica no existe |
 | Fuera | Portada de vídeo (`uploadThumbnail`) | — |
 | Versión de la API (A-04) | `LINKEDIN_API_VERSION=202610` (la 202511 se retira el 2026-11-16); `app:health` avisa a los 10 meses | — |
 | Vídeo (A-05) | — | Subida en streaming a la URL prefirmada; tope de 128 MB (Pinterest admite 2 GB) y timeout de 100 s dentro del job de 110 s |

@@ -44,10 +44,11 @@ estado: en-progreso
 | Fase 3 — Funciones incompletas | 0 | 16 | 0% | 0 / 118.0h | 0 / 29.6h | 0 / 7.4h | 0 / 5630k |
 | Fase 4 — Refactor del backend | 0 | 15 | 0% | 0 / 90.0h | 0 / 22.8h | 0 / 5.7h | 0 / 4350k |
 | Fase 5 — Frontend | 0 | 18 | 0% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
+| Fase 5b — Unificación | 0 | 8 | 0% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
 | Fase 6 — Operación y repositorio | 0 | 6 | 0% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
 | Fase 7 — Funciones nuevas | 0 | 24 | 0% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **19** | **100** | **19%** | **0 / 665.0h** | **0 / 167.6h** | **0 / 41.9h** | **0 / 31925k** |
+| **TOTAL** | **19** | **108** | **18%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -729,6 +730,7 @@ Configs de Playwright (se comprobó referencias en docs, CI, scripts y `package.
 - **Tipo**: test
 - **Archivos**: `tests/Feature/Mcp/RequestPostApprovalTest.php`, `tests/Feature/Workflow/ApprovalsPendingApiTest.php`, `tests/Feature/Workflow/CollaboratorsIndexTest.php`, `routes/post-workflow-api.php`, `app/Mcp/Tools/RequestPostApproval.php`
 - **Cubre**: E-09
+- **Cubre (unificación)**: U-22
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact --filter=RequestPostApprovalTest` → verde · `php artisan test --compact --filter=ApprovalsPendingApiTest` → verde · `php artisan test --compact --filter=CollaboratorsIndexTest` → verde
 
@@ -747,6 +749,8 @@ Configs de Playwright (se comprobó referencias en docs, CI, scripts y `package.
 - [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño S. Si un test destapa un fallo real de permisos, se corrige en esta misma tarea y se anota.
+
+**Ampliación (unificación, U-22)**: criterio pendiente que se cierra en T-105: un test de permisos cubre al colaborador de la marca frente a los diseños del estudio (ver, editar y aprobar según su rol). Esta tarea queda completada con su alcance original.
 
 **Evidencia**: 18 tests nuevos (65 aserciones) en 3 ficheros: `tests/Feature/Mcp/RequestPostApprovalTest.php` (6: éxito con aviso al aprobador e idempotencia; key con `posts:read` o `posts:approve` rechazada con mención de `posts:write` sin tocar el post; otro usuario recibe el mismo error que ante un post inexistente; el aprobador invitado tampoco puede pedirla; post de la marca de otro; sin key 401), `tests/Feature/Workflow/ApprovalsPendingApiTest.php` (5: propietario y aprobador ven el pendiente; un ajeno recibe `{pending: []}`; el aprobador solo ve las marcas donde fue invitado; solo pendientes; sin `posts:read` 403 y sin key 401) y `tests/Feature/Workflow/CollaboratorsIndexTest.php` (7: `workflow.collaborators.index` y `api.collaborators.index` con éxito, 404 idéntico al de una marca inexistente para el ajeno y para el aprobador invitado, sin sesión/key 401, sin `posts:read` 403, sin mezcla entre marcas del mismo propietario). **Defectos de autorización: ninguno.** Las cuatro rutas ya delegaban en `PostWorkflowActions::owned()/ownedBrand()` (404 uniforme) y `RequireApiAbility`; no hubo cambios en código de producción. `vendor/bin/pest --compact --filter="RequestPostApprovalTest|ApprovalsPendingApiTest|CollaboratorsIndexTest"` → 18/18; `vendor/bin/pest --compact tests/Feature/Workflow tests/Feature/Mcp` → 366/366 (2428 aserciones, 13,7 s); `pint` sobre los 3 ficheros → passed. Nota de método: tras `withToken()` el token persiste en las cabeceras del test; el caso «sin key» usa `withoutToken()`.
 
@@ -974,6 +978,7 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Tipo**: backend
 - **Archivos**: `app/Jobs/RefreshSocialAccount.php`, `app/Jobs/SendScheduledReport.php`, `app/Jobs/Studio/RunStudioAiJob.php`, `app/Jobs/RunCanvaJob.php`, `app/Jobs/ImportRemoteMedia.php`, `app/Notifications/**`, `app/Http/Controllers/ConnectionController.php`, `resources/js/Pages/Notifications/**`, `docs/modulos/conexiones.md`
 - **Cubre**: B-03, B-13
+- **Cubre (unificación)**: U-21
 - **Cubre (tests)**: E2E-03
 - **Verificación**: `php artisan test --compact --filter=ConnectionExpiryNotificationTest` → verde · `php artisan test --compact --filter=JobCompletionNotificationTest` → verde
 
@@ -981,6 +986,7 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [ ] Meta (90 días) y LinkedIn avisan N días antes de caducar, una sola vez por umbral
 - [ ] Informes, MP4/GIF, IA, Canva e importaciones generan notificación al terminar o fallar
 - [ ] El correo es opcional por preferencia del usuario
+- [ ] Los avisos `studio_design_*` se muestran con título por tipo (no como «Aviso» genérico) y con enlace a su diseño mediante `n.url` genérico (`Notifications/Index.vue`, `StudioDesignActivity.php`)
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
@@ -1136,12 +1142,14 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Tipo**: backend
 - **Archivos**: `routes/posts-api.php`, `routes/api.php`, `app/Http/Controllers/Api/**`, `app/Http/Resources/**`, `docs/api/openapi.yaml`, `docs/api/**`
 - **Cubre**: B-09
+- **Cubre (unificación)**: U-23
 - **Cubre (tests)**: API-01
 - **Verificación**: `php artisan test --compact --filter=ApiV1PostsTest` → verde · `npx @redocly/cli lint docs/api/openapi.yaml` → sin errores
 
 **Criterios de aceptación**
 - [ ] Los endpoints respetan abilities de API key y propiedad (acceso cruzado → 404/403)
 - [ ] La OpenAPI describe cada endpoint y pasa el lint
+- [ ] El listado de diseños y de posts usa el contrato de paginación por cursor único (mismo formato de `next_cursor`/`has_more`) que define esta tarea para `api/v1`
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
@@ -1168,12 +1176,14 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Tipo**: backend
 - **Archivos**: `routes/api.php`, `app/Http/Controllers/Api/**`, `docs/api/openapi.yaml`
 - **Cubre**: — (continuación de la tarea anterior; el ID se cuenta allí)
+- **Cubre (unificación)**: U-25
 - **Cubre (tests)**: API-02
 - **Verificación**: `php artisan test --compact --filter=ApiV1ResourcesTest` → verde · `npx @redocly/cli lint docs/api/openapi.yaml` → sin errores
 
 **Criterios de aceptación**
 - [ ] Paridad de lectura con el MCP en los recursos listados
 - [ ] OpenAPI completa y con lint limpio
+- [ ] `ListMedia` y el resto de listados de `api/v1` siguen el contrato de cursor común; la marca va siempre en la ruta (no en la query) y hay un único OpenAPI para el núcleo social y la suite creativa
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
@@ -1969,6 +1979,7 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Tipo**: frontend
 - **Archivos**: `resources/js/lib/http.js`, `resources/js/Studio/api.js`, `resources/js/composables/useWorkflow.js`, `resources/js/Components/AiSuggest.vue`, `tests/frontend/http.test.mjs`
 - **Cubre**: D-03
+- **Cubre (unificación)**: U-18
 - **Cubre (tests)**: E2E-39
 - **Verificación**: `npm run test:unit` → pasa (incluye `http.test.mjs`) · `grep -rn "XSRF-TOKEN" resources/js | wc -l` → 1
 
@@ -1976,6 +1987,7 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [ ] No quedan lectores de cookie XSRF duplicados
 - [ ] Los errores HTTP llegan como objeto tipado a la UI
 - [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [ ] `http.js` expone un único `uploadMedia()` (con progreso y cancelación) que sustituye a `Studio/api.js:22-40`, `MediaSection.vue` y `MediaUploader.vue`; `grep -rn "FormData" resources/js | wc -l` no crece
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
@@ -2000,14 +2012,17 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-53
 - **Tipo**: frontend
-- **Archivos**: `resources/js/lib/format.js`, `resources/js/Pages/Inbox/Index.vue`, `resources/js/Pages/Trash/Index.vue`, `resources/js/Pages/ApiKeys/Index.vue`, `resources/js/Pages/Reports/Index.vue`, `lang/**`
+- **Archivos**: `resources/js/lib/format.js`, `resources/js/Pages/Inbox/Index.vue`, `resources/js/Pages/Trash/Index.vue`, `resources/js/Pages/ApiKeys/Index.vue`, `resources/js/Pages/Reports/Index.vue`, `lang/**`, `docs/knowledge/glossary.md`
 - **Cubre**: D-09, D-21
+- **Cubre (unificación)**: U-13, U-14
 - **Cubre (tests)**: E2E-11
 - **Verificación**: `npm run test:unit` → pasa (test de `format.js` con zonas distintas) · `npx playwright test tests/e2e/pages.spec.ts --workers=1` → verde
 
 **Criterios de aceptación**
 - [ ] Las seis pantallas muestran la hora de la marca
 - [ ] Sin erratas listadas y terminología uniforme
+- [ ] «Biblioteca» designa solo los archivos; las plantillas de publicación se llaman «Plantillas de publicación» (`navigation.js:47`, `LibraryController.php:18`, `ExportDialog.vue:87`, `Canva/Index.vue:225`)
+- [ ] Existe `docs/knowledge/glossary.md` con un término único por concepto (recursos/media, plantillas, papelera, identidad de marca frente a `brand-kit`) y la UI, `lang/**` y los textos del estudio y del compositor lo respetan
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
@@ -2066,6 +2081,7 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Tipo**: frontend
 - **Archivos**: `resources/js/Components/BaseDialog.vue`, `resources/js/Components/Modal.vue`, `resources/js/Components/Studio/StudioDialog.vue`, `resources/js/Components/UtmModal.vue`
 - **Cubre**: D-05
+- **Cubre (unificación)**: U-10
 - **Cubre (tests)**: E2E-08, M-12
 - **Verificación**: `npx playwright test tests/e2e/a11y.spec.ts --workers=1` → verde
 
@@ -2073,6 +2089,7 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [ ] `UtmModal` atrapa el foco y cierra con Escape
 - [ ] Los cuatro patrones usan `BaseDialog`
 - [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [ ] `BaseDialog` parte de `StudioDialog` (`<dialog>` nativo); no quedan `fixed inset-0` a mano ni `Modal.vue` paralelo, y las pantallas del estudio lo usan
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
@@ -2099,12 +2116,14 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Tipo**: frontend
 - **Archivos**: `resources/js/Components/ConfirmDialog.vue`, `resources/js/composables/useConfirm.js`, `resources/js/Pages/Brands/Index.vue`, `resources/js/Pages/Sites/Edit.vue`, `resources/js/Pages/Studio/Index.vue`
 - **Cubre**: D-04
+- **Cubre (unificación)**: U-11
 - **Cubre (tests)**: E2E-08
 - **Verificación**: `grep -rnE "(^|[^.])confirm\(" resources/js | grep -v useConfirm | wc -l` → 0 · `npx playwright test tests/e2e/pages.spec.ts --workers=1` → verde
 
 **Criterios de aceptación**
 - [ ] `grep -rn "confirm(" resources/js` → solo `useConfirm`
 - [ ] Cada acción destructiva pide confirmación y se puede cancelar
+- [ ] Las confirmaciones del estudio usan `ConfirmDialog`/`useConfirm()` común, sin diálogos propios
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
@@ -2131,12 +2150,14 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Tipo**: frontend
 - **Archivos**: `app/Http/Middleware/HandleInertiaRequests.php`, `resources/js/Layouts/AuthenticatedLayout.vue`, `resources/js/Components/FlashBanner.vue`, `app/Http/Controllers/Studio/StudioController.php`, `app/Http/Controllers/ApiKeyController.php`
 - **Cubre**: D-06
+- **Cubre (unificación)**: U-21
 - **Cubre (tests)**: E2E-09
 - **Verificación**: `php artisan test --compact --filter=FlashSharedPropsTest` → verde · `npx playwright test tests/e2e/pages.spec.ts --workers=1` → verde
 
 **Criterios de aceptación**
 - [ ] Los mensajes de `StudioController` y `ApiKeyController` se muestran
 - [ ] No quedan flashes por página con estilos distintos
+- [ ] El banner único de flash/aviso se usa también en `Studio/Index.vue` y `Editor.vue` (sin banners propios del estudio)
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
@@ -2163,12 +2184,14 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Tipo**: fullstack
 - **Archivos**: `app/Http/Controllers/TrashController.php`, `app/Http/Controllers/LibraryController.php`, `app/Http/Controllers/NotificationController.php`, `app/Http/Controllers/ReportController.php`, `resources/js/Components/Pagination.vue`, `resources/js/Pages/Trash/Index.vue`, `resources/js/Pages/Library/**`
 - **Cubre**: D-07
+- **Cubre (unificación)**: U-23
 - **Cubre (tests)**: E2E-10
 - **Verificación**: `php artisan test --compact --filter=PaginationListsTest` → verde
 
 **Criterios de aceptación**
 - [ ] Cada lista pagina y muestra el total
 - [ ] Con más de 200 elementos se alcanzan todos
+- [ ] La paginación común de papelera, biblioteca, avisos e informes se usa también en `Studio/Index.vue` y sigue el contrato de cursor único de T-28
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
@@ -2195,6 +2218,7 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Tipo**: frontend
 - **Archivos**: `resources/js/Components/InputError.vue`, `resources/js/Components/FormField.vue`, `resources/js/Pages/Calendar/Index.vue`, `resources/js/Components/Studio/StudioCollabPanel.vue`, `resources/js/Pages/ApiKeys/Index.vue`, `resources/js/Components/NetworkTabs.vue`
 - **Cubre**: D-10, D-17
+- **Cubre (unificación)**: U-09, U-11
 - **Cubre (tests)**: E2E-12, M-12
 - **Verificación**: `npx playwright test tests/e2e/a11y.spec.ts --workers=1` → verde
 
@@ -2202,6 +2226,7 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [ ] Los errores de formulario se asocian al campo
 - [ ] Las pestañas se manejan con flechas y declaran `tabpanel`
 - [ ] `a11y.spec.ts` sin violaciones serious/critical nuevas
+- [ ] `AudioTrackPanel.vue`, `CaptionsPanel.vue` y `StudioChartsDialog.vue` usan `.field`/`FormField` en lugar de etiquetas e inputs propios; el estudio usa `EmptyState`, `PrimaryButton` y el paginador comunes
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
@@ -2262,6 +2287,7 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Tipo**: frontend
 - **Archivos**: `resources/js/Pages/Studio/Editor.vue`, `resources/js/Studio/composables/useStudioSave.js`, `resources/js/Studio/composables/useStudioHistory.js`, `resources/js/Studio/composables/useTimelinePlayback.js`
 - **Cubre**: D-11
+- **Cubre (unificación)**: U-05, U-10
 - **Cubre (tests)**: E2E-07
 - **Verificación**: `npx playwright test tests/e2e/studio-boards.spec.ts tests/e2e/studio-captions.spec.ts --workers=1` → verde
 
@@ -2269,6 +2295,7 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [ ] `Editor.vue` pierde al menos 50 declaraciones de nivel superior
 - [ ] Los specs del estudio pasan antes y después
 - [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [ ] `Editor.vue` usa la prop `fullBleed` del layout (sin `-m-3` ni `max-w-[1500px]` inertes) y abre sus diálogos con `BaseDialog`
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
@@ -2295,6 +2322,7 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Tipo**: frontend
 - **Archivos**: `resources/js/Pages/Studio/Editor.vue`, `resources/js/Studio/composables/usePresentation.js`, `resources/js/Studio/composables/useChartFlow.js`, `resources/js/Components/Studio/EditorToolbar.vue`
 - **Cubre**: — (continuación de la tarea anterior; el ID se cuenta allí)
+- **Cubre (unificación)**: U-09, U-10
 - **Cubre (tests)**: E2E-07
 - **Verificación**: `npx playwright test --grep studio --workers=1` → verde
 
@@ -2302,6 +2330,7 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [ ] `Editor.vue` < 40 declaraciones de nivel superior
 - [ ] Todos los specs `studio-*` pasan antes y después
 - [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [ ] Los diálogos de presentación y gráficos extraídos usan `BaseDialog` y `.field`, sin bloques `<style>` ni botones propios
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
@@ -2479,6 +2508,322 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Continuación de D-14.
+
+---
+
+## Fase 5b — Unificación
+
+**Estado**: borrador · **Estimado**: 64.0h · **Real**: — · **Coste est.**: 3200 € (base) + tokens ⚠️ verificar · **Tokens est.**: 3040k
+
+> Nace de [`audit-unificacion.md`](./audit-unificacion.md) (U-01..U-25): la app debe ser **una sola aplicación**. Va tras la Fase 5 porque depende de sus componentes comunes (T-53, T-56, T-57, T-60). Las que superaban una M se dividen en (1/2) y (2/2).
+
+### T-101 — Puentes de datos (1/2): diseño → publicación y Canva → Recursos
+
+- **Descripción**: Que lo que se crea en el estudio y lo que se importa de Canva viva en el mismo sitio que la parte social: el post recuerda su diseño y su exportación de origen, y lo importado de Canva entra como `StudioAsset`.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 8.0h · real —
+- **Tiempo IA (ejec.)**: est. 2.0h · real —
+- **Supervisión**: est. 0.50h (≈25 % IA) · real —
+- **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
+- **Dependencias**: T-06, T-53
+- **Tipo**: backend + frontend
+- **Archivos**: `database/migrations/*_add_design_export_id_to_post_target_media.php`, `app/Models/PostTargetMedia.php`, `app/Jobs/CanvaJobs.php`, `app/Models/StudioAsset.php`, `resources/js/Components/Studio/ExportDialog.vue`, `resources/js/Components/Composer/MediaSection.vue`, `tests/Feature/StudioBridgeTest.php`, `tests/e2e/unification.spec.ts`
+- **Cubre**: U-15, U-17
+- **Cubre (tests)**: E2E-41, E2E-42
+- **Verificación**: `php artisan test --compact --filter=StudioBridge` → pasa · `npx playwright test tests/e2e/unification.spec.ts --workers=1 -g "puentes"` → verde
+
+**Criterios de aceptación**
+- [ ] `post_target_media.design_export_id` existe con FK (`nullOnDelete`) y se rellena al crear el post desde `ExportDialog.vue:83-86`
+- [ ] En el post aparece el botón «Editar en el Estudio», que abre el diseño de origen con la marca del post
+- [ ] Tras una nueva exportación del diseño, el post de origen queda con la media actualizada (mientras no esté publicado) y avisa si ya lo está
+- [ ] Un archivo importado de Canva aparece como `StudioAsset` en «Recursos» del estudio, sin duplicarse al reimportar (`CanvaJobs.php`, `StudioAssets.php:34`)
+- [ ] Sin cambios en el flujo existente de publicación: Pest y E2E en verde antes y después
+- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+
+**Subtareas**
+- [ ] Migración y modelo con FK a la exportación del diseño
+- [ ] Rellenar `design_export_id` al exportar a una publicación
+- [ ] Botón «Editar en el Estudio» y re-sincronización de la media tras una nueva exportación
+- [ ] Enlazar la importación de Canva como `StudioAsset` (idempotente)
+- [ ] Pest y E2E «publicación → estudio → nueva exportación» y «Canva → Recursos»
+- [ ] Implementar (implementer)
+- [ ] Revisión adversarial A+B(+C)
+- [ ] Corregir hallazgos de la revisión
+- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Notas**: Tamaño M. Depende de T-06 (referencias de media con FK) y T-53 (cliente HTTP único). Continúa en T-106.
+
+### T-102 — Sistema de diseño único (1/2): acento, botones y estilos
+
+- **Descripción**: Un solo token de acento y un solo juego de botones para toda la app: se elimina el `violet-*` del estudio frente al `indigo` de la parte social y los ocho bloques `<style>` con cinco estilos de botón propios.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 8.0h · real —
+- **Tiempo IA (ejec.)**: est. 2.0h · real —
+- **Supervisión**: est. 0.50h (≈25 % IA) · real —
+- **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
+- **Dependencias**: T-60
+- **Tipo**: frontend
+- **Archivos**: `tailwind.config.js`, `resources/css/app.css`, `resources/js/Pages/Studio/Index.vue`, `resources/js/Pages/Studio/Editor.vue`, `resources/js/Components/Studio/Inspector.vue`, `resources/js/Components/Studio/PresentationDialog.vue`, `resources/js/Components/Studio/StudioDatasetsDialog.vue`, `resources/js/Components/Studio/TimelinePanel.vue`, `resources/js/Studio/document.js`
+- **Cubre**: U-07, U-08, U-12
+- **Cubre (tests)**: E2E-43
+- **Verificación**: `npm run build` → sin errores · `grep -rln "<style" resources/js | wc -l` → 1 (solo `.studio-stage`) · `grep -rn "violet-" resources/js | wc -l` → 0
+
+**Criterios de aceptación**
+- [ ] Existe el token `accent` en Tailwind y toda la app (social y estudio) lo usa; no quedan `violet-*` ni `indigo-*` como acento
+- [ ] `btn-primary` y el resto de `btn-*` no se sobrescriben con clases de color (`Index.vue:205,227`)
+- [ ] `.btn-tool` y `.btn-toggle` viven en `app.css`; los bloques `<style>` del estudio desaparecen salvo `.studio-stage`
+- [ ] Los colores hex de la UI pasan a tokens o clases; los colores por defecto del documento van a `Studio/document.js`
+- [ ] `a11y.spec.ts` sin violaciones serious/critical nuevas (contraste del nuevo acento)
+- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+
+**Subtareas**
+- [ ] Definir el token `accent` y migrar `violet-*`/`indigo-*`
+- [ ] Pasar `.btn-tool` y `.btn-toggle` a `app.css` y quitar los `<style>`
+- [ ] Sustituir hex por tokens y mover los colores del documento a `document.js`
+- [ ] Prohibir sobrescribir `btn-*` (regla de ESLint o grep en CI)
+- [ ] Implementar (implementer)
+- [ ] Revisión adversarial A+B(+C)
+- [ ] Corregir hallazgos de la revisión
+- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Notas**: Tamaño M. Depende de T-56/T-57/T-60 (componentes comunes). Continúa en T-107.
+
+### T-103 — Shell y navegación unificados
+
+- **Descripción**: Que el estudio sea una pantalla más de la misma app: orden y marcado activo del menú, entrada de Canva, cabecera y ancho comunes, y selector de marca coherente con el diseño abierto.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 8.0h · real —
+- **Tiempo IA (ejec.)**: est. 2.0h · real —
+- **Supervisión**: est. 0.50h (≈25 % IA) · real —
+- **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
+- **Dependencias**: T-63, T-102
+- **Tipo**: frontend + backend
+- **Archivos**: `resources/js/lib/navigation.js`, `resources/js/Layouts/AuthenticatedLayout.vue`, `resources/js/Pages/Studio/Index.vue`, `resources/js/Pages/Studio/Editor.vue`, `app/Http/Middleware/CurrentBrand.php`, `app/Http/Controllers/StudioController.php`, `tests/e2e/unification.spec.ts`, `tests/Feature/StudioBrandAlignmentTest.php`
+- **Cubre**: U-01, U-02, U-03, U-04, U-05, U-06
+- **Cubre (tests)**: E2E-44, E2E-45
+- **Verificación**: `npx playwright test tests/e2e/unification.spec.ts --workers=1 -g "shell"` → verde · `php artisan test --compact --filter=StudioBrandAlignment` → pasa
+
+**Criterios de aceptación**
+- [ ] «Estudio» va después de Planificación en `navigation.js:14-24` (o dentro de ella como «Crear»)
+- [ ] «Plantillas», «Identidad» y «Papelera de diseños» se marcan activas según la query (`templates`, `tab`, `archived`)
+- [ ] Hay una entrada «Canva» en el lateral y abrirla no deja marcada «Cuenta»
+- [ ] `Studio/Index.vue` y `Editor.vue` usan `#header` con el mismo h1 que el resto (sin hero `bg-[#ede8ff]`)
+- [ ] `AuthenticatedLayout` acepta la prop `fullBleed` y el editor no usa `-m-3` ni `max-w-[1500px]`
+- [ ] Abrir `studio/designs/{design}/edit` alinea la marca de la sesión con la del diseño y el selector la muestra
+- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+
+**Subtareas**
+- [ ] Reordenar y marcar activas las entradas de `navigation.js`
+- [ ] Entrada «Canva» en el lateral
+- [ ] `#header` común en `Studio/Index.vue` y `Editor.vue`
+- [ ] Prop `fullBleed` en el layout y limpieza del editor
+- [ ] Alinear la marca de la sesión con la del diseño en `StudioController` y `CurrentBrand`
+- [ ] Implementar (implementer)
+- [ ] Revisión adversarial A+B(+C)
+- [ ] Corregir hallazgos de la revisión
+- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Notas**: Tamaño M. Cada hallazgo es S; la tarea completa es M. Depende de T-63 porque toca el layout del editor ya partido.
+
+### T-104 — Kit de marca e IA compartidos
+
+- **Descripción**: Que la identidad de marca y la IA sean de la marca y no del estudio: pestaña «Identidad» en la ficha de la marca, y una sola pila de IA con estado y cuota comunes que usa la «Voz de la marca».
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 8.0h · real —
+- **Tiempo IA (ejec.)**: est. 2.0h · real —
+- **Supervisión**: est. 0.50h (≈25 % IA) · real —
+- **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
+- **Dependencias**: T-55, T-103
+- **Tipo**: frontend + backend
+- **Archivos**: `resources/js/Pages/Brands/Show.vue`, `resources/js/Pages/Studio/Index.vue`, `app/Services/AiAssistant.php`, `config/studio-ai.php`, `app/Services/StudioService.php`, `app/Services/AiProviders.php`, `tests/Feature/SharedAiTest.php`, `tests/e2e/unification.spec.ts`
+- **Cubre**: U-19, U-20
+- **Cubre (tests)**: E2E-46
+- **Verificación**: `php artisan test --compact --filter=SharedAi` → pasa · `npx playwright test tests/e2e/unification.spec.ts --workers=1 -g "identidad"` → verde
+
+**Criterios de aceptación**
+- [ ] La ficha de la marca (`Brands/Show.vue`) tiene la pestaña «Identidad» con el kit de marca; el estudio enlaza a ella en lugar de duplicarla
+- [ ] Los prompts de `AiAssistant` y de `StudioService` (`:220,230`) inyectan `guidelines` y `voice` de la marca
+- [ ] El estado de la IA y su cuota son comunes: `AiAssistant` y `AiProviders` comparten contador y `useAiStatus`
+- [ ] Una prueba verifica que la «Voz de la marca» llega al prompt de ambas pilas
+- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+
+**Subtareas**
+- [ ] Pestaña «Identidad» en la ficha de la marca
+- [ ] Inyectar `guidelines` y `voice` en ambos prompts
+- [ ] Unificar estado y cuota de IA
+- [ ] Tests de prompt y de cuota compartida
+- [ ] Implementar (implementer)
+- [ ] Revisión adversarial A+B(+C)
+- [ ] Corregir hallazgos de la revisión
+- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Notas**: Tamaño M. Depende de T-55 (`useAiStatus`) y T-103 (navegación de la marca).
+
+### T-105 — Permisos y abilities unificados (1/2): roles de marca con acceso al estudio
+
+- **Descripción**: Un solo modelo de permisos: el colaborador de la marca ve y trabaja los diseños de esa marca según su rol, y las claves de rol dejan de mezclar idiomas.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 8.0h · real —
+- **Tiempo IA (ejec.)**: est. 2.0h · real —
+- **Supervisión**: est. 0.50h (≈25 % IA) · real —
+- **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
+- **Dependencias**: T-17, T-45
+- **Tipo**: backend
+- **Archivos**: `app/Models/BrandCollaborator.php`, `app/Models/StudioCollab.php`, `app/Models/StudioAssets.php`, `app/Policies/**`, `app/Http/Controllers/StudioController.php`, `lang/**`, `tests/Feature/BrandRolesStudioTest.php`
+- **Cubre**: U-22
+- **Cubre (tests)**: E2E-47
+- **Verificación**: `php artisan test --compact --filter=BrandRolesStudio` → pasa
+
+**Criterios de aceptación**
+- [ ] El colaborador de la marca ve los diseños de esa marca en el estudio con el alcance de su rol (`BrandCollaborator.php:15` frente a `StudioCollab.php:24-28`)
+- [ ] La aprobación de diseños usa las `approvals` existentes, sin un flujo paralelo
+- [ ] Las claves de rol (`StudioAssets.php:142`) están en un solo idioma, con migración o alias para los datos existentes
+- [ ] Los tests de T-17 y los nuevos pasan; un colaborador sin rol no accede
+- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+
+**Subtareas**
+- [ ] Definir la matriz rol de marca → acceso al estudio
+- [ ] Aplicarla en Policies/`Ownership::assert()`
+- [ ] Unificar claves de rol con alias de compatibilidad
+- [ ] Aprobación de diseños vía `approvals`
+- [ ] Implementar (implementer)
+- [ ] Revisión adversarial A+B(+C)
+- [ ] Corregir hallazgos de la revisión
+- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Notas**: Tamaño M. Depende de T-17 (tests de permisos) y T-45 (propiedad unificada). Continúa en T-108.
+
+### T-106 — Puentes de datos (2/2): biblioteca en el compositor y subida única
+
+- **Descripción**: El compositor y el estudio comparten archivos: el compositor elige desde la biblioteca del estudio y abre una imagen en el estudio; una sola subida de medios para ambos.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 8.0h · real —
+- **Tiempo IA (ejec.)**: est. 2.0h · real —
+- **Supervisión**: est. 0.50h (≈25 % IA) · real —
+- **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
+- **Dependencias**: T-101, T-53
+- **Tipo**: frontend
+- **Archivos**: `resources/js/Components/Composer/MediaSection.vue`, `resources/js/Components/MediaUploader.vue`, `resources/js/Pages/Library/Index.vue`, `resources/js/Studio/api.js`, `resources/js/lib/http.js`, `tests/e2e/unification.spec.ts`
+- **Cubre**: U-16, U-18
+- **Cubre (tests)**: E2E-41, E2E-42
+- **Verificación**: `npx playwright test tests/e2e/unification.spec.ts --workers=1 -g "biblioteca"` → verde · `npm run test:unit` → pasa
+
+**Criterios de aceptación**
+- [ ] `MediaSection.vue` ofrece «Desde la biblioteca» con los archivos y exportaciones del estudio
+- [ ] Desde una imagen del compositor o de `Library/Index.vue` se puede «Abrir en el Estudio»
+- [ ] `MediaSection.vue`, `MediaUploader.vue` y el estudio suben con el único `uploadMedia()` de `http.js` (T-53); no queda otro pipeline
+- [ ] Un E2E sube un archivo desde el compositor y lo ve en Recursos
+- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+
+**Subtareas**
+- [ ] Selector «Desde la biblioteca» en el compositor
+- [ ] «Abrir en el Estudio» en compositor y biblioteca
+- [ ] Migrar las subidas a `uploadMedia()`
+- [ ] E2E de subida y de apertura
+- [ ] Implementar (implementer)
+- [ ] Revisión adversarial A+B(+C)
+- [ ] Corregir hallazgos de la revisión
+- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Notas**: Tamaño M. Continuación de T-101.
+
+### T-107 — Sistema de diseño único (2/2): diálogos, campos y componentes comunes en el estudio
+
+- **Descripción**: Aplicar en el estudio los componentes comunes: un solo `BaseDialog`, `.field`/`FormField` y `EmptyState`, `PrimaryButton`, paginador y banner comunes.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 8.0h · real —
+- **Tiempo IA (ejec.)**: est. 2.0h · real —
+- **Supervisión**: est. 0.50h (≈25 % IA) · real —
+- **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
+- **Dependencias**: T-102, T-56, T-57, T-60
+- **Tipo**: frontend
+- **Archivos**: `resources/js/Components/Studio/StudioDialog.vue`, `resources/js/Components/Modal.vue`, `resources/js/Components/Studio/AudioTrackPanel.vue`, `resources/js/Components/Studio/CaptionsPanel.vue`, `resources/js/Components/Studio/StudioChartsDialog.vue`, `resources/js/Pages/Studio/Index.vue`, `resources/js/Pages/Studio/Editor.vue`
+- **Cubre**: U-09, U-10, U-11
+- **Cubre (tests)**: E2E-43
+- **Verificación**: `grep -rn "fixed inset-0" resources/js | wc -l` → 0 · `npx playwright test tests/e2e/a11y.spec.ts --workers=1` → verde
+
+**Criterios de aceptación**
+- [ ] `StudioDialog.vue` (7 usos) y `Modal.vue` (6) convergen en un único `BaseDialog` sobre `<dialog>` nativo; no queda `fixed inset-0` a mano
+- [ ] `AudioTrackPanel.vue`, `CaptionsPanel.vue` y `StudioChartsDialog.vue` usan `.field`/`FormField`
+- [ ] `Studio/Index.vue` y `Editor.vue` usan `EmptyState`, `PrimaryButton`, el paginador y el banner comunes (`Index.vue:189,192`, `Editor.vue:697`)
+- [ ] Sin regresión: `a11y.spec.ts` y los E2E del estudio en verde
+- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+
+**Subtareas**
+- [ ] Migrar los diálogos del estudio y `Modal.vue` a `BaseDialog`
+- [ ] `.field`/`FormField` en los tres paneles
+- [ ] Sustituir componentes propios por los comunes
+- [ ] Implementar (implementer)
+- [ ] Revisión adversarial A+B(+C)
+- [ ] Corregir hallazgos de la revisión
+- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Notas**: Tamaño M. Continuación de T-102.
+
+### T-108 — Permisos y abilities unificados (2/2): `media:*` y `designs:ai`
+
+- **Descripción**: Prefijos de abilities coherentes: los archivos tienen `media:read`/`media:write` y la IA del estudio pasa de `studio:ai` a `designs:ai`, con alias de compatibilidad.
+- **Changelog**:
+- **Estado**: borrador
+- **Tiempo humano**: est. 8.0h · real —
+- **Tiempo IA (ejec.)**: est. 2.0h · real —
+- **Supervisión**: est. 0.50h (≈25 % IA) · real —
+- **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
+- **Dependencias**: T-105, T-29
+- **Tipo**: backend
+- **Archivos**: `app/Support/Abilities.php`, `app/Mcp/Tools/ListMedia.php`, `app/Mcp/Tools/ImportMediaFromUrl.php`, `routes/api.php`, `tests/Feature/ApiAbilitiesTest.php`
+- **Cubre**: U-24
+- **Cubre (tests)**: API-02
+- **Verificación**: `php artisan test --compact --filter=ApiAbilities` → pasa
+
+**Criterios de aceptación**
+- [ ] Existen `media:read` y `media:write` y `ListMedia`/`ImportMediaFromUrl` los exigen (`Abilities.php:19-39`)
+- [ ] `studio:ai` pasa a `designs:ai` y el nombre antiguo sigue funcionando como alias
+- [ ] Las claves de API existentes no pierden acceso (migración o alias) y hay test
+- [ ] La documentación de abilities lista el nuevo conjunto
+- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+
+**Subtareas**
+- [ ] Añadir `media:*` y exigirlas
+- [ ] Renombrar `studio:ai` a `designs:ai` con alias
+- [ ] Tests de compatibilidad y documentación
+- [ ] Implementar (implementer)
+- [ ] Revisión adversarial A+B(+C)
+- [ ] Corregir hallazgos de la revisión
+- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Notas**: Tamaño M. Continuación de T-105.
 
 ---
 

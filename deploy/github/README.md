@@ -9,7 +9,7 @@
 
 ## Estado requerido: `CI / tests`
 
-En la lista de checks de una PR se ve como **`CI / tests`** (workflow `CI`, job `tests` de `.github/workflows/ci.yml`). La API de protección de ramas usa solo el **nombre del job**: `tests`. Es lo que configura el script (`CHECK_CONTEXT`, por defecto `tests`); comprobado con `gh api repos/<owner>/<repo>/commits/main/check-runs --jq '.check_runs[].name'`.
+En la lista de checks de una PR se ve como **`CI / tests`** (workflow `CI`, job `tests` de `.github/workflows/ci.yml`). Desde T-15 la CI se reparte en jobs paralelos (`php`, `node`, `studio-runtime`, `openapi`, `audit`) y **`tests` es un job agregador** (`needs` de todos ellos, `if: always()`) que solo pasa si pasan todos: así el check requerido sigue siendo uno solo y estable aunque se añadan o renombren jobs. Si añades un job a `ci.yml`, añádelo también a su `needs`; si cambias el nombre de `tests`, cambia `CHECK_CONTEXT` y repite `protect-main.sh`. Los jobs sueltos no son checks requeridos, pero cualquiera que falle hace fallar `tests`. El workflow nocturno `nightly.yml` (E2E troceado) no es un check requerido. La API de protección de ramas usa solo el **nombre del job**: `tests`. Es lo que configura el script (`CHECK_CONTEXT`, por defecto `tests`); comprobado con `gh api repos/<owner>/<repo>/commits/main/check-runs --jq '.check_runs[].name'`.
 
 ## Aplicarlo (lo hace el usuario, con permisos de administrador del repo)
 

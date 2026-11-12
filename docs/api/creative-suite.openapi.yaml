@@ -302,7 +302,7 @@ paths:
         - { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
         - { name: query, in: query, schema: { type: string, maxLength: 120 } }
       responses:
-        '200': { description: Revision, optional caption style, cues and pagination, content: { application/json: { schema: { type: object } } } }
+        '200': { description: "Revision, optional caption style, cues and pagination", content: { application/json: { schema: { type: object } } } }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
     patch:
@@ -375,7 +375,7 @@ paths:
           in: query
           schema: { type: integer, minimum: 1, default: 1 }
       responses:
-        '200': { description: Documento, revisión, recursos privados y exportaciones, content: { application/json: { schema: { $ref: '#/components/schemas/Design' } } } }
+        '200': { description: "Documento, revisión, recursos privados y exportaciones", content: { application/json: { schema: { $ref: '#/components/schemas/Design' } } } }
         '404': { $ref: '#/components/responses/NotFound' }
     patch:
       operationId: updateStudioDesign
@@ -732,7 +732,7 @@ paths:
           in: query
           schema: { type: string }
       responses:
-        '200': { description: Métricas, comparación y cobertura compatibles con dashboard; nulos preservados }
+        '200': { description: "Métricas, comparación y cobertura compatibles con dashboard; nulos preservados" }
         '422': { $ref: '#/components/responses/ValidationError' }
   /brands/{brand}/design-fonts:
     parameters:
@@ -780,7 +780,7 @@ paths:
       responses:
         '204': { description: Fuente eliminada }
         '404': { $ref: '#/components/responses/NotFound' }
-        '409': { description: Fuente usada en un diseño, revisión o kit }
+        '409': { description: "Fuente usada en un diseño, revisión o kit" }
   /brands/{brand}/design-fonts/{font}/file:
     parameters:
       - $ref: '#/components/parameters/Brand'
@@ -1475,7 +1475,7 @@ components:
       required: [start, duration]
       properties:
         start: { type: number, minimum: 0, maximum: 3600 }
-        duration: { type: number, exclusiveMinimum: 0, maximum: 3600 }
+        duration: { type: number, minimum: 0, exclusiveMinimum: true, maximum: 3600 }
     GainPoint:
       type: object
       additionalProperties: false
@@ -1498,9 +1498,9 @@ components:
         id: { type: string, minLength: 1, maxLength: 64 }
         asset_id: { type: integer, minimum: 1 }
         start: { type: number, minimum: 0, maximum: 360000 }
-        duration: { type: number, exclusiveMinimum: 0, maximum: 360000 }
+        duration: { type: number, minimum: 0, exclusiveMinimum: true, maximum: 360000 }
         trimStart: { type: number, minimum: 0, maximum: 86400 }
-        trimEnd: { type: [number, 'null'], exclusiveMinimum: 0, maximum: 86400 }
+        trimEnd: { type: number, nullable: true, minimum: 0, exclusiveMinimum: true, maximum: 86400 }
         sourceOffset: { type: number, minimum: 0, maximum: 86400 }
         playbackRate: { type: number, minimum: 0.25, maximum: 4 }
         loop: { type: boolean }
@@ -1654,7 +1654,7 @@ components:
             revision: { type: integer, minimum: 1 }
             template_fields: { type: array, items: { type: string, pattern: '^[A-Za-z_][A-Za-z0-9_]{0,63}$' }, description: Campos ASCII únicos ordenados encontrados en textos anidados; no se incluyen en el listado ligero }
             kit_reference: { type: object, nullable: true, description: Referencia de paleta/fuentes/logos al crear o aplicar el kit; no admite entradas del cliente }
-            fonts: { type: array, items: { $ref: '#/components/schemas/StudioFont' }, description: Tipografías privadas usadas por el documento, incluidas las archivadas; URLs Bearer en API y MCP }
+            fonts: { type: array, items: { $ref: '#/components/schemas/StudioFont' }, description: "Tipografías privadas usadas por el documento, incluidas las archivadas; URLs Bearer en API y MCP" }
             exports: { type: array, items: { $ref: '#/components/schemas/Export' } }
             exports_pagination: { $ref: '#/components/schemas/PaginationMeta' }
     DesignFolder:

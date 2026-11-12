@@ -1,0 +1,72 @@
+name: Nightly E2E
+
+# E-01 / E-02. La bateria Playwright (~650 ejecuciones) es demasiado larga para cada PR: corre de noche, troceada con
+# --shard en una matriz (cada shard monta sus propios servidores php -S + SQLite + puerto libre, ver docs/guias/testing.md).
+# Tambien se puede lanzar a mano (workflow_dispatch). No es un check requerido de main.
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-e2e
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: e2e (shard ${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    env:
+      E2E_WORKERS: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, pdo_mysql, pdo_sqlite, bcmath, gd
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: requirements-studio.txt
+      - name: ffmpeg/ffprobe for Studio audio and video
+        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+      - name: Private Studio font runtime
+        run: python scripts/studio/setup-runtime.py
+      - name: Composer cache (vendor)
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-vendor-php8.4-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-vendor-php8.4-
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate
+      - run: npm ci && npm run build
+      - name: Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: E2E (shard ${{ matrix.shard }}/4)
+        run: npx playwright test --shard=${{ matrix.shard }}/4
+      # results.json, informes y trazas/capturas de fallos viven bajo el runRoot de cada slot.
+      - name: Upload E2E evidence
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-evidence-shard-${{ matrix.shard }}
+          path: |
+            storage/framework/testing/t43/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14

@@ -629,33 +629,36 @@ Configs de Playwright (se comprobó referencias en docs, CI, scripts y `package.
 ### T-15 — CI: concurrency, caché, jobs paralelos y pasos faltantes
 
 - **Descripción**: Reestructurar la CI (`push: [main]` + PR, `concurrency`, `timeout-minutes`, caché de composer/npm, jobs paralelos) y añadir tests de Node, typecheck, `composer audit` y `npm audit`, lint de OpenAPI, `ledger-lint` y el resto de `tests/studio_runtime`; E2E troceado nocturno con `--shard`.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: La CI se ejecuta una vez por commit y cancela las obsoletas, en jobs paralelos (PHP, Node, runtime de Studio, OpenAPI y auditorías) con un check `tests` agregador; hay un E2E nocturno troceado y el contrato OpenAPI de la suite creativa ya es válido.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
-- **Tiempo IA (ejec.)**: est. 2.0h · real —
+- **Tiempo IA (ejec.)**: est. 2.0h · real 0.8h (estimado)
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-14, T-10
 - **Tipo**: devops
-- **Archivos**: `.github/workflows/ci.yml`, `.github/workflows/nightly.yml`, `package.json`, `docs/guias/testing.md`
+- **Archivos**: `.github/workflows/ci.yml`, `.github/workflows/nightly.yml`, `docs/api/creative-suite.openapi.yaml`, `deploy/github/protect-main.sh`, `deploy/github/README.md`, `docs/modulos/despliegue.md`, `docs/guias/testing.md`
 - **Cubre**: E-15, E-01
 - **Cubre (tests)**: —
 - **Verificación**: `python3 -c "import yaml;[yaml.safe_load(open(f)) for f in ['.github/workflows/ci.yml','.github/workflows/nightly.yml']]"` → sin error · lectura: el nuevo `ci.yml` tiene `concurrency` y `timeout-minutes` en cada job
 
 **Criterios de aceptación**
-- [ ] La CI corre una sola vez por commit y cancela ejecuciones obsoletas
-- [ ] La CI incluye tests de Node, typecheck, auditorías, lint de OpenAPI y ledger-lint
-- [ ] Existe `nightly.yml` con E2E troceado y los tests `studio_runtime` que hoy no corren
+- [x] La CI corre una sola vez por commit y cancela ejecuciones obsoletas
+- [x] La CI incluye tests de Node, typecheck, auditorías, lint de OpenAPI y ledger-lint — cumplido salvo typecheck y ledger-lint, fuera con motivo (ver Evidencia/Decisiones; pendiente de decisión del usuario)
+- [x] Existe `nightly.yml` con E2E troceado y los tests `studio_runtime` que hoy no corren
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Evidencia**: `actionlint` v1.7.7 (compilado con `go install`) sobre `ci.yml` y `nightly.yml` → exit 0; `yaml.safe_load` de ambos → ok. `npx @redocly/cli@2.77.0 lint --extends minimal docs/api/creative-suite.openapi.yaml` → exit 0 tras corregir 11 errores reales del contrato (descripciones con comas sin comillar, `exclusiveMinimum` numérico y `type: [number, 'null']` de OpenAPI 3.1 en un documento 3.0.3); quedan 102 avisos de `summary` ausente. `composer audit` → «No security vulnerability advisories found»; `npm audit --omit=dev` → «found 0 vulnerabilities»; `npm run test:unit` → 654 pass, 0 fail; `python -m unittest discover -s tests/studio_runtime -p 'test_*.py'` → 26 OK (8 omitidos por cgroup/Windows). No se ejecutó Pest completo ni E2E (instrucción del coordinador).
+**Decisiones**: check requerido = job agregador `tests` (`needs` de `php`, `node`, `studio-runtime`, `openapi`, `audit`, `if: always()`), así `protect-main.sh` sigue con `CHECK_CONTEXT=tests` sin cambios de lógica (solo comentario/README). `cancel-in-progress` es falso en `main` para que `ci-failure-notify.yml` y `deploy.sh` no vean runs cancelados. `ledger-lint` queda FUERA: es un script del plugin de agentes (`agent-kits/shared`), no existe en el repo. Typecheck FUERA: `npx tsc --noEmit` da 40 errores previos en `tests/e2e` (TS7006/TS7016); arreglarlos no es de esta tarea. `test_av_linux.py` se omite solo (`skipUnless STUDIO_AV_CGROUP_TEST=1`). `package.json` no se tocó (ya tenía `test:unit`). El primer verde real lo da el push del usuario.
 
 **Notas**: **Pendiente de T-12:** la CI aún NO ejecuta los tests de Node (`npm run test:unit`, que ahora incluye también `tests/e2e/isolated/*.test.cjs`); lo resuelve esta tarea al añadir el paso en `ci.yml`.  Tamaño M. Sin red/Docker: se valida el YAML y los comandos en local; el primer verde real lo da el push del usuario. No fusionar: los merges los hace el usuario.
 

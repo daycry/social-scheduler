@@ -12,7 +12,7 @@
 # Variables:
 #   REPO             owner/repo (por defecto: el de `gh repo view`)
 #   BRANCH           rama a proteger (por defecto: main)
-#   CHECK_CONTEXT    nombre del check requerido (por defecto: tests, el job `tests` de .github/workflows/ci.yml;
+#   CHECK_CONTEXT    nombre del check requerido (por defecto: tests, el job agregador `tests` de .github/workflows/ci.yml, que depende de todos los demas;
 #                    en la lista de checks de una PR aparece como "CI / tests", pero la API usa solo el nombre del job)
 #   APPROVALS        aprobaciones requeridas en la PR (por defecto 0: un solo desarrollador no puede aprobar la suya)
 #   ENFORCE_ADMINS   true (por defecto) = tambien obliga a los administradores; con un unico desarrollador (que es admin) es lo que

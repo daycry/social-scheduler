@@ -41,6 +41,24 @@ Muestra de 215 ejecuciones (6 specs ligeros × 3 proyectos con `@responsive`), `
 
 Con 2 workers el reparto es por ficheros, y `a11y.spec.ts` (66 casos) domina; con más specs el reparto mejora. La duración total de la batería completa se mide en la pasada de fin de fase; esta muestra solo demuestra el reparto y el aislamiento.
 
+## CI (`.github/workflows/`)
+
+| Workflow / job | Cuándo | Qué ejecuta |
+|---|---|---|
+| `ci.yml` · `php` | PR y push a `main` | `vendor/bin/pint --test` y `composer test` (Pest completo); caché de `vendor` |
+| `ci.yml` · `node` | ídem | `npm run test:unit` (incluye el arnés E2E) y `npm run build`; instala `ffmpeg` |
+| `ci.yml` · `studio-runtime` | ídem | `python -m unittest discover -s tests/studio_runtime -p 'test_*.py'` con el Python privado de Studio |
+| `ci.yml` · `openapi` | ídem | `npx @redocly/cli@2.77.0 lint --extends minimal docs/api/creative-suite.openapi.yaml` |
+| `ci.yml` · `audit` | ídem | `composer audit --locked` y `npm audit --omit=dev` |
+| `ci.yml` · `tests` | ídem | agregador: pasa si pasan todos los anteriores; es el **check requerido** de `main` |
+| `nightly.yml` · `e2e` | cron diario 02:17 UTC y a mano | `npx playwright test --shard=i/4` en matriz (`E2E_WORKERS=2`); sube `storage/framework/testing/t43/` y `test-results/` como artefacto si falla |
+
+- Una ejecución por commit: `push` solo a `main` (las ramas se prueban por su PR) y `concurrency` cancela las ejecuciones obsoletas de la misma rama/PR (en `main` no cancela). Cada job lleva `timeout-minutes`.
+- **`tests/studio_runtime`:** `test_av_linux.py` necesita un cgroup v2 delegado y acotado (`STUDIO_AV_CGROUP_TEST=1`), que un runner hospedado no ofrece; se omite solo (`skipUnless`) y `test_av_limits.py` solo corre en Windows. Esos casos (8 omitidos en total) siguen requiriendo una prueba manual en un servidor real.
+- **OpenAPI:** el perfil `minimal` de Redocly falla con errores estructurales (tipos 3.1 en un documento 3.0.3, descripciones mal escapadas…); los `summary` que faltan son avisos (102 hoy). Versión fijada: súbela a propósito, no con `latest`.
+- **No están en la CI:** `ledger-lint` (es un script del plugin de agentes, fuera del repo; se ejecuta en local con el kit) y el typecheck (`npx tsc --noEmit` da 40 errores previos en `tests/e2e`; arreglarlos es otra tarea). `npm run test:browser` y el E2E completo tampoco corren por PR: el E2E va en el nocturno.
+- Local: `actionlint` valida los workflows (`go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7`).
+
 ## Purga de ejecuciones antiguas
 
 Cada ejecución E2E deja un directorio en `storage/framework/testing/t43/` (llegó a ocupar 7,6 GB). `scripts/test/purge-testing.mjs` borra las antiguas, con un alcance deliberadamente estrecho.

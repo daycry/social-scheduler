@@ -1,16 +1,27 @@
 name: CI
 
+# E-15 / E-01. Una sola ejecucion por commit: push solo a main (las ramas se prueban por su pull_request) y las
+# ejecuciones obsoletas de una misma rama/PR se cancelan. En main NO se cancela (un run cancelado en main
+# lo trataria ci-failure-notify.yml como rojo y deploy.sh no veria el commit en verde).
+# El check requerido de la proteccion de main (deploy/github/protect-main.sh, CHECK_CONTEXT=tests) es el job
+# agregador `tests` del final: pasa solo si pasan TODOS los demas jobs.
 on:
   push:
-    branches: [main, 'feature/**']
+    branches: [main]
   pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
 
 jobs:
-  tests:
+  php:
+    name: php (Pint + Pest)
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     services:
       mysql:
         image: mysql:8.0
@@ -41,14 +52,104 @@ jobs:
         run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
       - name: Private Studio font runtime
         run: python scripts/studio/setup-runtime.py
+      - name: Composer cache (vendor)
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-vendor-php8.4-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-vendor-php8.4-
       - run: composer install --no-interaction --prefer-dist
       - run: cp .env.example .env && php artisan key:generate
+      # Pest renderiza vistas Inertia que leen el manifiesto de Vite: hace falta el build.
       - run: npm ci && npm run build
       - name: Pint
         run: vendor/bin/pint --test
       - name: Tests
         run: composer test
-      - name: Studio runtime contracts
-        run: storage/framework/studio-python/bin/python -m unittest discover -s tests/studio_runtime -p 'test_setup.py' -v
-      - name: Studio font parser and process budgets
-        run: storage/framework/studio-python/bin/python -m unittest discover -s tests/studio_runtime -p 'test_[fm]*.py' -v
+
+  node:
+    name: node (unit + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # Los tests de audio/video de tests/frontend generan y decodifican medios con ffmpeg (libx264).
+      - name: ffmpeg for the Studio audio and video tests
+        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+      - run: npm ci
+      # tests/frontend/*.test.mjs (sin navegador) y tests/e2e/isolated/*.test.cjs, con `node --test --expose-gc`.
+      - name: Node unit tests
+        run: npm run test:unit
+      - name: Build
+        run: npm run build
+
+  studio-runtime:
+    name: studio runtime (python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: requirements-studio.txt
+      - name: Private Studio font runtime
+        run: python scripts/studio/setup-runtime.py
+      # Todos los test_*.py. test_av_linux.py (y el resto de lo que exige un cgroup v2 delegado y acotado) se omite solo:
+      # esta marcado con skipUnless(STUDIO_AV_CGROUP_TEST=1), que un runner hospedado no puede cumplir; en Windows
+      # test_av_limits.py tambien se omite. Se ve como `skipped=N` en el resumen de unittest.
+      - name: Studio runtime tests
+        run: storage/framework/studio-python/bin/python -m unittest discover -s tests/studio_runtime -p 'test_*.py' -v
+
+  openapi:
+    name: openapi (lint)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Version exacta fijada. `minimal` falla con errores estructurales del contrato (los `summary` que faltan son avisos).
+      - name: Lint docs/api/creative-suite.openapi.yaml
+        run: npx --yes @redocly/cli@2.77.0 lint --extends minimal docs/api/creative-suite.openapi.yaml
+
+  audit:
+    name: audit (composer + npm)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: composer audit
+        run: composer audit --locked
+      - name: npm audit (production)
+        run: npm audit --omit=dev
+
+  # Check requerido de main (`tests`): agrega el resultado de todos los jobs. Si se anade un job, anadelo a `needs`.
+  tests:
+    name: tests
+    needs: [php, node, studio-runtime, openapi, audit]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Todos los jobs en verde
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Resultados: $RESULTS"
+          for result in $RESULTS; do
+            [ "$result" = "success" ] || { echo "::error::Algun job de CI no termino en success ($result)"; exit 1; }
+          done

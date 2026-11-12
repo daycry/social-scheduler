@@ -99,7 +99,7 @@ def main():
         limits = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(limits)
         try:
-            _memory_job = limits.limit_memory(6 * 1024**3, 80)
+            _memory_job = limits.limit_memory(6 * 1024**3, 80, resident=True)
         except (OSError, RuntimeError, ValueError):
             raise ProcessingFailure('runtime_unavailable') from None
         # Bound BLAS pools before importing NumPy/ORT; the model uses four ORT threads.

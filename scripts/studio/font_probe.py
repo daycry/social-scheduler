@@ -9,11 +9,17 @@ import struct
 import sys
 
 
-def limit_memory(limit=512 * 1024 * 1024, cpu_seconds=18):
+def limit_memory(limit=512 * 1024 * 1024, cpu_seconds=18, resident=False):
+    """Bound this process. On POSIX the default is RLIMIT_AS (virtual address space), right for the small font parser.
+
+    `resident=True` uses RLIMIT_DATA instead (writable private mappings, anonymous mmap included since Linux 4.7): it counts memory
+    the process can actually fill, not the large virtual ranges that onnxruntime/NumPy/thread stacks reserve and never touch, which
+    make an address-space cap fail with std::bad_alloc long before real memory is exhausted. Windows always uses a Job Object limit.
+    """
     if os.name != "nt":
         import resource
 
-        resource.setrlimit(resource.RLIMIT_AS, (limit, limit))
+        resource.setrlimit(resource.RLIMIT_DATA if resident else resource.RLIMIT_AS, (limit, limit))
         resource.setrlimit(resource.RLIMIT_CPU, (cpu_seconds, cpu_seconds))
         return None
 

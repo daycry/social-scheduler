@@ -183,21 +183,26 @@ jobs:
       # test_av_limits.py tambien se omite. Se ve como `skipped=N` en el resumen de unittest.
       - name: Studio runtime tests
         run: storage/framework/studio-python/bin/python -m unittest discover -s tests/studio_runtime -p 'test_*.py' -v
-      - name: Diagnose background model failure
-        if: ${{ failure() }}
+      - name: Measure background model memory
+        if: ${{ always() }}
         run: |
           storage/framework/studio-python/bin/python - <<'PY'
-          import runpy, traceback, onnxruntime
-          print('onnxruntime', onnxruntime.__version__, onnxruntime.get_available_providers())
-          module = runpy.run_path('scripts/studio/process-image.py', run_name='diagnose')
-          import tempfile, os
-          limits = runpy.run_path('scripts/studio/font_probe.py', run_name='diagnose')
-          limits['limit_memory'](6 * 1024**3, 80)
+          import json, os, runpy, tempfile, threading, time
+          module = runpy.run_path('scripts/studio/process-image.py', run_name='measure')
+          def status():
+              return {line.split(':')[0]: int(line.split()[1]) // 1024 for line in open('/proc/self/status') if line.split(':')[0] in ('VmPeak', 'VmData', 'VmHWM', 'VmRSS')}
+          peaks = {}
+          done = threading.Event()
+          def sample():
+              while not done.is_set():
+                  for key, value in status().items():
+                      peaks[key] = max(peaks.get(key, 0), value)
+                  time.sleep(0.02)
+          threading.Thread(target=sample, daemon=True).start()
           out = os.path.join(tempfile.mkdtemp(), 'r.png')
-          try:
-              print(module['process']({'input': 'tests/Fixtures/images/astronaut.png', 'output': out, 'model': 'storage/app/private/studio-models/birefnet-general-lite.onnx', 'model_sha256': '5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333'}))
-          except BaseException:
-              traceback.print_exc()
+          result = module['process']({'input': 'tests/Fixtures/images/astronaut.png', 'output': out, 'model': 'storage/app/private/studio-models/birefnet-general-lite.onnx', 'model_sha256': '5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333'})
+          done.set(); time.sleep(0.1)
+          print('MEMORY_MIB', json.dumps(peaks), result['ok'])
           PY
 
   openapi:

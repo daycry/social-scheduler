@@ -9,6 +9,7 @@ use App\Support\CrossUserAccessLogger;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
@@ -59,6 +60,22 @@ return Application::configure(basePath: dirname(__DIR__))
         // que la Policy, asi que se registra aqui sin cambiar la respuesta al cliente.
         $exceptions->render(function (NotFoundHttpException $e): void {
             CrossUserAccessLogger::log($e);
+        });
+
+        // 429 de `throttle`: el mensaje de Laravel sale en ingles ("Too Many Attempts."). En JSON (web con fetch/axios, API v1 y MCP)
+        // se devuelve en castellano y con el tiempo de espera de Retry-After; las cabeceras originales se conservan.
+        $exceptions->render(function (ThrottleRequestsException $e, Request $request) {
+            if (! ($request->is('api/*', 'mcp') || $request->expectsJson())) {
+                return null;
+            }
+            $headers = $e->getHeaders();
+            $retry = (int) ($headers['Retry-After'] ?? 0);
+
+            return response()->json([
+                'message' => $retry > 0
+                    ? trans_choice('Demasiados intentos. Espera :seconds segundo y vuelve a probar.|Demasiados intentos. Espera :seconds segundos y vuelve a probar.', $retry, ['seconds' => $retry])
+                    : 'Demasiados intentos. Espera unos segundos y vuelve a probar.',
+            ], 429, $headers);
         });
 
         $exceptions->shouldRenderJsonWhen(

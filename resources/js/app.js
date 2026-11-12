@@ -7,8 +7,10 @@ import { createApp, h } from 'vue';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 
 import { installBackGuard } from './Composables/backGuard';
+import { installNavigationProgress } from './Composables/navigationProgress';
 
 installBackGuard(); // antes que Inertia: ver backGuard.js
+installNavigationProgress(); // sustituye a la barra de Inertia (role="bar" invalido): ver navigationProgress.js
 
 const appName = import.meta.env.VITE_APP_NAME || 'Social Scheduler';
 
@@ -25,7 +27,5 @@ createInertiaApp({
             .use(ZiggyVue)
             .mount(el);
     },
-    progress: {
-        color: '#4B5563',
-    },
+    progress: false,
 });

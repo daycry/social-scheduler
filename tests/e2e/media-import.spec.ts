@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, postMediaSection, seedComposerBrand, animationsDone, quietFor, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { cleanComposerBrands, clearUserThrottle, e2eUser, expectNoOverflow, loginAs, postMediaSection, seedComposerBrand, animationsDone, quietFor, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * Importar media desde una URL (C-04a, E2E-08): usuarios `e2e-sec-*` y marcas `e2e-composer-*`. El rechazo de `UrlGuard` se prueba contra el servidor real:
@@ -14,6 +14,7 @@ let brand: ComposerBrand;
 test.beforeEach(async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
+    clearUserThrottle(user.email); // el cubo `throttle` del usuario lo comparten todos los specs del worker
     brand = seedComposerBrand(user.email, `mediaimp-${stamp()}-${info.project.name}`);
     await loginAs(page, user);
 });

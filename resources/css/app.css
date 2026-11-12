@@ -98,3 +98,39 @@
         @apply rounded font-medium text-indigo-600 underline-offset-2 hover:text-indigo-500 hover:underline;
     }
 }
+
+/* Indicador de navegacion (Composables/navigationProgress.js): barra indeterminada de 2 px; sin animacion si se pide menos movimiento. */
+#nprogress {
+    pointer-events: none;
+}
+
+#nprogress .bar {
+    position: fixed;
+    z-index: 1031;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: #4b5563;
+    transform-origin: 0 50%;
+    animation: nprogress-indeterminate 1.4s ease-in-out infinite;
+}
+
+@keyframes nprogress-indeterminate {
+    0% {
+        transform: scaleX(0.05);
+    }
+    60% {
+        transform: scaleX(0.85);
+    }
+    100% {
+        transform: scaleX(0.95);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #nprogress .bar {
+        animation: none;
+        transform: scaleX(0.5);
+    }
+}

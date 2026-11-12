@@ -17,13 +17,17 @@ Al conectar, la app lee `/users/me/capabilities` (se cachea 15 min) y activa sol
 
 Lo exportado entra en la biblioteca como un recurso más con **origen explícito**: `origin` (Canva, id del diseño y enlace) y, en el compositor, «Origen: Canva» con enlace al diseño. Las exportaciones admiten PNG, JPG, MP4 y PDF.
 
+## Contrato verificado contra la documentación oficial
+
+Consultado el 2026-11-12 en la [guía de navegación de retorno](https://www.canva.dev/docs/connect/return-navigation-guide/): la Return URL recibe `?correlation_jwt=<JWT>`; Canva publica sus claves como JWKS en `https://api.canva.com/rest/v1/connect/keys` y el ejemplo oficial valida el JWT contra ese conjunto con `audience = {CLIENT_ID}` y lee `sub`, `team_id` y `type` (`rti`). **Sin verificar:** el algoritmo (RS256, el de la especificación de la tarea; la guía no lo nombra), que no se exija `iss` (la guía no lo documenta) y el comportamiento real contra Canva, que depende del smoke del usuario (CS-M-01). Las pruebas usan un par RSA generado en el test y `Http::fake` del endpoint de claves.
+
 ## Cola y límites
 
 Los trabajos (`RunCanvaJob`) van en la cola **`media`** (`media.import_queue`) y necesitan su worker. Sondeo acotado: como máximo 40 consultas con 3 s de espera; hasta 3 trabajos activos a la vez; `$timeout` del job de 100 s.
 
 | Límite | Detalle |
 |---|---|
-| Firma del JWT de retorno | **No se verifica con JWKS.** `resolveReturn` valida las reclamaciones (`type`, `aud`, `exp`) y, sobre todo, el `correlation_state` firmado por esta app y ligado al usuario. Verificar la firma exigiría una librería JWT directa; queda como mejora |
+| Firma del JWT de retorno | `CanvaJwks` verifica la firma **RS256** del `correlation_jwt` con las claves públicas de Canva (`GET https://api.canva.com/rest/v1/connect/keys`, sin credenciales), el `kid`, la caducidad (`exp` obligatorio) y la audiencia (`aud` = `CANVA_CLIENT_ID`); `resolveReturn` exige además `type = rti` y el `correlation_state` firmado por esta app. Las claves se cachean 1 h y un `kid` desconocido las renueva como mucho una vez por minuto (rotación). Si Canva no responde o la firma no cuadra, el retorno se rechaza. Librería: `firebase/php-jwt` (dependencia directa) |
 | PDF | No entra en la biblioteca: se devuelve solo como **enlace temporal de 24 h** de Canva (`download_urls`) |
 | Host de descarga | Cada salto de redirección debe cumplir `services.canva.download_host_pattern` (`/^(?:[a-z0-9-]+\.)*canva\.com$/`) además de `UrlGuard`. Si el host real de Canva es otro, hay que ajustar el patrón |
 | MP4 | Solo si el diseño es de vídeo (Canva rechaza el resto); se valida con `ffprobe` |

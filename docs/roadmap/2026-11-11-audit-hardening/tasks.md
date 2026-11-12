@@ -1091,32 +1091,38 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 ### T-26 — Canva: verificación JWKS del `correlation_jwt`
 
 - **Descripción**: Leer y cachear `/rest/v1/connect/keys` y validar RS256 del `correlation_jwt`.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El retorno desde el editor de Canva ahora verifica la firma del enlace de vuelta con las claves públicas de Canva; un enlace falsificado, caducado o de otra aplicación se rechaza.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-02
 - **Tipo**: backend
-- **Archivos**: `app/Services/Canva/CanvaDesigns.php`, `app/Services/Canva/CanvaJwks.php`, `docs/modulos/canva.md`
+- **Archivos**: `app/Services/Canva/CanvaDesigns.php`, `app/Services/Canva/CanvaJwks.php`, `docs/modulos/canva.md`, `composer.json`, `composer.lock`, `app/Services/Canva/CanvaJwks.php`, `tests/Feature/Canva/CanvaJwksTest.php`, `tests/Feature/Canva/CanvaConnectionTest.php`, `tests/Feature/Canva/CanvaTestSupport.php`
 - **Cubre**: B-07
 - **Cubre (tests)**: M-10
 - **Verificación**: `php artisan test --compact --filter=CanvaJwksTest` → verde
 
 **Criterios de aceptación**
-- [ ] Un JWT con firma inválida, expirado o `kid` desconocido se rechaza
-- [ ] Las claves se cachean con renovación ante `kid` desconocido
+- [x] Un JWT con firma inválida, expirado o `kid` desconocido se rechaza
+- [x] Las claves se cachean con renovación ante `kid` desconocido
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+- RED/TDD: `RED: CanvaJwksTest falló con «Target class [App\Services\Canva\CanvaJwks] does not exist» (17/17) · 2026-11-12`. Antes se corrigió el helper de claves de prueba: en esta máquina `openssl_pkey_new` falla sin `openssl.cnf` (error 07000072), así que el helper escribe un `openssl.cnf` mínimo en el directorio temporal.
+- Verificación (2026-11-12): `php artisan test --compact --filter=CanvaJwksTest` → 17/17 verde (29 aserciones); `tests/Feature/Canva` → 86/86 verde; Pint OK.
+- Decisiones: (1) `firebase/php-jwt` ^7.2 declarada como dependencia directa (`composer require`; el lock ya traía v7.2.1, solo cambia `content-hash`). (2) `CanvaJwks::verify()` fija RS256 en la cabecera Y en cada `Key` (rechaza none/HS256), exige `kid` conocido, `exp` y `aud` = `client_id` (cadena o lista); `iss` NO se exige porque la guía oficial no lo documenta. (3) Caché de claves 1 h; un `kid` desconocido renueva como mucho una vez por minuto (`Cache::add`), de modo que un `kid` inventado no dispara una petición por intento. (4) Sin `client_id` o sin claves (500, red caída, vacío) el JWT se rechaza: nunca se acepta sin verificar. (5) `resolveReturn` delega en `CanvaJwks` y conserva `type = rti` y el `correlation_state` firmado; se eliminó la lectura manual del payload.
+- Contrato Canva: **verificado en parte** contra https://www.canva.dev/docs/connect/return-navigation-guide/ (2026-11-12): `?correlation_jwt=`, JWKS en `https://api.canva.com/rest/v1/connect/keys` sin credenciales, validación con `audience = CLIENT_ID`, payload `sub`/`team_id`/`type = rti`. **Sin verificar**: el algoritmo RS256 (la guía no lo nombra; viene de la especificación de la tarea) y el comportamiento real contra Canva (smoke del usuario, CS-M-01).
+- Pendiente (coordinador): revisión adversarial A+B(+C); Playwright no aplica a T-26 (sin cambios de Vue; el flujo de retorno solo lo cubre Pest).
 
 **Notas**: Tamaño S. Contrato Canva sin verificar contra la API real: el test usa un par de claves RSA generado en el propio test. **A la espera (no bloquea la fase)**: Verificación real contra Canva (smoke del usuario).
 

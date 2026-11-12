@@ -4,6 +4,7 @@ use App\Models\Brand;
 use App\Models\Canva\CanvaConnection;
 use App\Models\User;
 use App\Services\Media\UrlGuard;
+use Firebase\JWT\JWT;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
@@ -44,4 +45,38 @@ function canvaConnect(User $user, Brand $brand, array $scopes = [], array $capab
     ])->save();
 
     return $connection;
+}
+
+/**
+ * Par de claves RSA generado en el propio test (nunca una clave real) y su JWK publico tal como lo serviria `/connect/keys`.
+ *
+ * @return array{pem: string, jwk: array<string, string>}
+ */
+function canvaKeyPair(string $kid = 'kid-1'): array
+{
+    // Configuracion minima propia: en Windows/Laragon OpenSSL puede no encontrar su `openssl.cnf` y `openssl_pkey_new` falla.
+    $config = sys_get_temp_dir().DIRECTORY_SEPARATOR.'canva-test-openssl.cnf';
+    file_put_contents($config, '[req]
+distinguished_name = dn
+[dn]
+');
+    $options = ['config' => $config, 'private_key_type' => OPENSSL_KEYTYPE_RSA, 'private_key_bits' => 2048];
+    $key = openssl_pkey_new($options);
+    openssl_pkey_export($key, $pem, null, $options);
+    $rsa = openssl_pkey_get_details($key)['rsa'];
+    $b64 = fn (string $raw) => rtrim(strtr(base64_encode($raw), '+/', '-_'), '=');
+
+    return ['pem' => $pem, 'jwk' => ['kty' => 'RSA', 'use' => 'sig', 'kid' => $kid, 'n' => $b64($rsa['n']), 'e' => $b64($rsa['e'])]];
+}
+
+/** `correlation_jwt` firmado RS256 con la clave dada (reclamaciones validas por defecto; `$over` las cambia). */
+function canvaSignedJwt(array $pair, string $state, array $over = []): string
+{
+    return JWT::encode($over + ['type' => 'rti', 'aud' => 'OC-test-client', 'exp' => now()->addDay()->timestamp, 'correlation_state' => $state], $pair['pem'], 'RS256', $pair['jwk']['kid']);
+}
+
+/** Publica un conjunto de claves en el endpoint de Canva (la respuesta de `Http::fake`). */
+function canvaFakeKeys(array ...$pairs): void
+{
+    Http::fake(['api.canva.com/rest/v1/connect/keys' => Http::response(['keys' => array_map(fn ($p) => $p['jwk'], $pairs)])]);
 }

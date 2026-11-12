@@ -87,6 +87,35 @@ jobs:
       - name: Build
         run: npm run build
 
+  node-browser:
+    name: node (browser)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: ffmpeg for the Studio audio and video tests
+        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+      - run: npm ci
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Chromium cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      # Descarga solo si falta en la cache; con --with-deps instala siempre las librerias del sistema.
+      - name: Chromium
+        run: npx playwright install --with-deps chromium
+      # Los tests de tests/frontend que importan playwright (directa o transitivamente) los clasifica
+      # scripts/test/run-node-tests.mjs; npm run test:unit nunca lanza un navegador.
+      - name: Node browser tests
+        run: npm run test:browser
+
   typecheck:
     name: typecheck (tsc)
     runs-on: ubuntu-latest
@@ -113,8 +142,14 @@ jobs:
           python-version: '3.13'
           cache: pip
           cache-dependency-path: requirements-studio.txt
-      - name: Private Studio font runtime
-        run: python scripts/studio/setup-runtime.py
+      - name: Pinned background model cache
+        uses: actions/cache@v4
+        with:
+          path: storage/app/private/studio-models
+          key: studio-bg-model-${{ hashFiles('scripts/studio/background-model.json') }}
+      # Runtime privado + modelo de quitar fondo (MIT, ~214 MiB, SHA-256 fijado): el modelo solo se descarga si falta en la cache.
+      - name: Private Studio runtime and pinned background model
+        run: python scripts/studio/setup-runtime.py --download-model
       # Todos los test_*.py. test_av_linux.py (y el resto de lo que exige un cgroup v2 delegado y acotado) se omite solo:
       # esta marcado con skipUnless(STUDIO_AV_CGROUP_TEST=1), que un runner hospedado no puede cumplir; en Windows
       # test_av_limits.py tambien se omite. Se ve como `skipped=N` en el resumen de unittest.
@@ -155,7 +190,7 @@ jobs:
   # Check requerido de main (`tests`): agrega el resultado de todos los jobs. Si se anade un job, anadelo a `needs`.
   tests:
     name: tests
-    needs: [php, node, typecheck, studio-runtime, openapi, audit]
+    needs: [php, node, node-browser, typecheck, studio-runtime, openapi, audit]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5

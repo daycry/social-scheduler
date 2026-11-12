@@ -4,11 +4,11 @@ Además de Pest (`composer test`) y Playwright (`npm run test:e2e`), el repo tie
 
 | Script | Qué ejecuta |
 |---|---|
-| `npm run test:unit` | los `tests/frontend/*.test.mjs` que **no** necesitan navegador (excluye `*.browser.test.mjs`) y los `tests/e2e/isolated/*.test.cjs` (comprobaciones del arnés E2E, del paralelismo y del servidor HTTP local), con `node --test --expose-gc` |
-| `npm run test:browser` | los 6 `tests/frontend/*.browser.test.mjs` (Chromium de Playwright, `ffmpeg` y Vite) |
+| `npm run test:unit` | los `tests/frontend/*.test.mjs` que **no** lanzan un navegador y los `tests/e2e/isolated/*.test.cjs` (comprobaciones del arnés E2E, del paralelismo y del servidor HTTP local), con `node --test --expose-gc` |
+| `npm run test:browser` | los que lanzan Chromium: los `*.browser.test.mjs` y cualquier test que **importe `playwright`, directa o transitivamente** (p. ej. todos los que importan `scripts/studio/av-video.mjs`); 13 ficheros hoy. Necesita Chromium (`npx playwright install chromium`), `ffmpeg` y Vite |
 | `npm run test:purge` | purga de `storage/framework/testing` (ver abajo) |
 
-El selector es `scripts/test/run-node-tests.mjs` (`<unit|browser> [--list]`). `studio-captions-render-entry.mjs` no es un test (no acaba en `.test.mjs`): lo importa un test de navegador y nunca se ejecuta solo.
+El selector es `scripts/test/run-node-tests.mjs` (`<unit|browser> [--list]`). La clasificación es **automática** (análisis estático del grafo de imports relativos; `@playwright/test` no cuenta, es el runner), no por nombre de fichero; `tests/frontend/test-tooling.test.mjs` falla si un test de `test:unit` importa un navegador. `studio-captions-render-entry.mjs` no es un test (no acaba en `.test.mjs`): lo importa un test de navegador y nunca se ejecuta solo.
 
 ## E2E en paralelo: workers, shard y `@responsive`
 
@@ -47,15 +47,16 @@ Con 2 workers el reparto es por ficheros, y `a11y.spec.ts` (66 casos) domina; co
 |---|---|---|
 | `ci.yml` · `php` | PR y push a `main` | `vendor/bin/pint --test` y `composer test` (Pest completo); caché de `vendor` |
 | `ci.yml` · `node` | ídem | `npm run test:unit` (incluye el arnés E2E) y `npm run build`; instala `ffmpeg` |
+| `ci.yml` · `node-browser` | ídem | `npm run test:browser` con Chromium (`npx playwright install --with-deps chromium`, con caché de `~/.cache/ms-playwright` por versión de Playwright) y `ffmpeg` |
 | `ci.yml` · `typecheck` | ídem | `npm run typecheck` (`tsc --noEmit` sobre `tests/e2e` y las configs de Playwright; los `.cjs`/`.mjs` se infieren con `allowJs`, sin `checkJs`) |
-| `ci.yml` · `studio-runtime` | ídem | `python -m unittest discover -s tests/studio_runtime -p 'test_*.py'` con el Python privado de Studio |
+| `ci.yml` · `studio-runtime` | ídem | `python -m unittest discover -s tests/studio_runtime -p 'test_*.py'` con el Python privado de Studio y el modelo de quitar fondo (`setup-runtime.py --download-model`, SHA-256 fijado, con caché) |
 | `ci.yml` · `openapi` | ídem | `npx @redocly/cli@2.77.0 lint --extends minimal docs/api/creative-suite.openapi.yaml` |
 | `ci.yml` · `audit` | ídem | `composer audit --locked` y `npm audit --omit=dev` |
 | `ci.yml` · `tests` | ídem | agregador: pasa si pasan todos los anteriores; es el **check requerido** de `main` |
 | `nightly.yml` · `e2e` | cron diario 02:17 UTC y a mano | `npx playwright test --shard=i/4` en matriz (`E2E_WORKERS=2`); sube `storage/framework/testing/t43/` y `test-results/` como artefacto si falla |
 
 - Una ejecución por commit: `push` solo a `main` (las ramas se prueban por su PR) y `concurrency` cancela las ejecuciones obsoletas de la misma rama/PR (en `main` no cancela). Cada job lleva `timeout-minutes`.
-- **`tests/studio_runtime`:** `test_av_linux.py` necesita un cgroup v2 delegado y acotado (`STUDIO_AV_CGROUP_TEST=1`), que un runner hospedado no ofrece; se omite solo (`skipUnless`) y `test_av_limits.py` solo corre en Windows. Esos casos (8 omitidos en total) siguen requiriendo una prueba manual en un servidor real.
+- **`tests/studio_runtime`:** `test_av_linux.py` necesita un cgroup v2 delegado y acotado (`STUDIO_AV_CGROUP_TEST=1`), que un runner hospedado no ofrece; se omite solo (`skipUnless`) y `test_av_limits.py` solo corre en Windows. `test_background.py` usa el modelo real (MIT, ~214 MiB) que la CI descarga y cachea; sin él el test del modelo real se omite con motivo explícito, y el de checksum usa un fichero propio (no depende del modelo). Esos casos (8 omitidos en total) siguen requiriendo una prueba manual en un servidor real.
 - **OpenAPI:** el perfil `minimal` de Redocly falla con errores estructurales (tipos 3.1 en un documento 3.0.3, descripciones mal escapadas…); los `summary` que faltan son avisos (102 hoy). Versión fijada: súbela a propósito, no con `latest`.
 - **No están en la CI:** `ledger-lint` (es un script del plugin de agentes, fuera del repo; se ejecuta en local con el kit). `npm run test:browser` y el E2E completo tampoco corren por PR: el E2E va en el nocturno.
 - Local: `actionlint` valida los workflows (`go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7`).

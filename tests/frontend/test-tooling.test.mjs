@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { listTests } from '../../scripts/test/run-node-tests.mjs';
+import { launchesBrowser, listTests } from '../../scripts/test/run-node-tests.mjs';
 
 const read = f => fs.readFileSync(f, 'utf8');
 
@@ -43,6 +45,39 @@ test('verifyRunIdentity acepta el servidor de SU ejecución y rechaza el de otra
     await verifyRunIdentity('http://localhost:1', 'C:\\run\\run-general-a', reply('C:/run/run-general-a'));
     await assert.rejects(() => verifyRunIdentity('http://localhost:1', 'C:\\run\\run-general-a', reply('C:/run/run-general-b')), /otra ejecuci|another run/i);
     await assert.rejects(() => verifyRunIdentity('http://localhost:1', '/r', async () => ({ ok: false, status: 500, json: async () => ({}) })), /500/);
+});
+
+test('test:unit nunca lanza un navegador: lo que importa playwright (directa o transitivamente) va a test:browser', () => {
+    const unit = listTests('unit'), browser = listTests('browser').map(f => f.replaceAll('\\', '/'));
+    for (const file of unit) {
+        assert.equal(launchesBrowser(file), false, `${file} lanza un navegador y no puede estar en test:unit`);
+        // Independent of the classifier: no direct driver import or launch in a unit test.
+        assert.doesNotMatch(read(file), /(?:from|require\()\s*['"](?:playwright|playwright-core|puppeteer)['"]|chromium\.launch\(/, `${file} importa un navegador`);
+    }
+    // Real cases: direct import, and through scripts/studio/av-video.mjs (renderVisualSegment launches Chromium).
+    assert.ok(browser.includes('tests/frontend/studio-advanced-rendering.test.mjs'));
+    assert.ok(browser.includes('tests/frontend/studio-audiovisual-render.test.mjs'));
+    assert.ok(browser.every(f => !f.startsWith('tests/e2e/')));
+    assert.ok(listTests('unit').length > 0 && unit.every(f => !browser.includes(f.replaceAll('\\', '/'))));
+});
+
+test('launchesBrowser sigue la cadena de imports y no confunde @playwright/test con un navegador', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'launch-'));
+    try {
+        const spec = name => `'${name}'`; // keeps these fixtures from being read as imports of THIS file
+        fs.writeFileSync(path.join(dir, 'driver.mjs'), `import { chromium } from ${spec('playwright')};
+export const x = chromium;
+`);
+        fs.writeFileSync(path.join(dir, 'middle.mjs'), `export * from ${spec('./driver.mjs')};
+`);
+        fs.writeFileSync(path.join(dir, 'indirect.test.mjs'), `import ${spec('./middle.mjs')};
+`);
+        fs.writeFileSync(path.join(dir, 'runner.test.mjs'), `import { test } from ${spec('@playwright/test')};
+import fs from ${spec('node:fs')};
+`);
+        assert.equal(launchesBrowser(path.join(dir, 'indirect.test.mjs')), true);
+        assert.equal(launchesBrowser(path.join(dir, 'runner.test.mjs')), false);
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
 test('la guía de T-43 describe el puerto actual del adaptador general', () => {

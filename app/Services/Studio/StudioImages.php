@@ -50,7 +50,7 @@ class StudioImages
                 throw ValidationException::withMessages(['operation' => ['Ya hay diez imágenes pendientes. Espera a que terminen antes de iniciar otra.']]);
             }
             $job = StudioImageJob::create(['user_id' => $user->id, 'brand_id' => $brand->id, 'source_media_id' => $source->id,
-                'operation' => $data['operation'], 'status' => 'queued', 'model' => 'birefnet-general-lite', 'model_path' => $model,
+                'operation' => $data['operation'], 'status' => 'queued', 'model' => 'isnet-general-use', 'model_path' => $model,
                 'model_sha256' => $sha, 'input_sha256' => $inputSha]);
             ProcessStudioImage::dispatch($job->id)->afterCommit();
 

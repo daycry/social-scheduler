@@ -9,8 +9,8 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
-MODEL = ROOT / 'storage/app/private/studio-models/birefnet-general-lite.onnx'
-MODEL_SHA = '5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333'
+MODEL = ROOT / 'storage/app/private/studio-models/isnet-general-use.onnx'
+MODEL_SHA = '60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a'
 PHOTO = ROOT / 'tests/Fixtures/images/astronaut.png'
 SCRATCH = ROOT / 'storage/framework/testing'
 
@@ -44,7 +44,11 @@ class BackgroundRuntimeTest(unittest.TestCase):
                 self.assertLess(image.getpixel((15, 15))[3], 30)
                 self.assertGreater(image.getpixel((220, 130))[3], 220)
                 self.assertGreater(image.getpixel((200, 350))[3], 220)
-                self.assertGreater(len(set(image.getchannel('A').get_flattened_data())), 32)
+                alpha = list(image.getchannel('A').get_flattened_data())
+                self.assertGreater(len(set(alpha)), 32)
+                # IS-Net on this fixture (measured: ~46 % transparent, ~53 % opaque): the cut must neither erase the astronaut nor keep the sky.
+                self.assertTrue(0.30 < sum(value > 220 for value in alpha) / len(alpha) < 0.70)
+                self.assertTrue(0.30 < sum(value < 30 for value in alpha) / len(alpha) < 0.70)
             self.assertEqual(hashlib.sha256(PHOTO.read_bytes()).hexdigest(), before)
             self.assertEqual(response['model_sha256'], MODEL_SHA)
 

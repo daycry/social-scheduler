@@ -10,7 +10,7 @@ import { artisan, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedC
 
 // Explicit disposable native settings; no environment file or private helper imports.
 osEnvironment.applyTo(environment);
-Object.assign(environment, { STUDIO_PYTHON_BINARY: path.resolve('storage/framework/studio-python/Scripts/python.exe'), STUDIO_BACKGROUND_MODEL_PATH: path.resolve('storage/app/private/studio-models/birefnet-general-lite.onnx'), STUDIO_BACKGROUND_MODEL_SHA256: '5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333' });
+Object.assign(environment, { STUDIO_PYTHON_BINARY: path.resolve('storage/framework/studio-python/Scripts/python.exe'), STUDIO_BACKGROUND_MODEL_PATH: path.resolve('storage/app/private/studio-models/isnet-general-use.onnx'), STUDIO_BACKGROUND_MODEL_SHA256: '60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a' });
 const policies = new WeakMap<Page, ReturnType<typeof isolation.state>>();
 const fontReads = new WeakMap<Page, Promise<any>[]>();
 test.beforeEach(async ({ page }, info) => {
@@ -212,7 +212,7 @@ test('Studio imaging: real background inference preserves original and a masked 
             return (await response.json()).job;
         }, { brandId: brand.id, jobId: job.id });
         expect(result.status).toBe('ready');
-        expect(result.model_sha256).toBe('5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333');
+        expect(result.model_sha256).toBe('60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a');
         expect(result.output_asset.id).not.toBe(original.id);
         const pixels = await page.evaluate(async ({ output, source }) => {
             const response = await fetch(output);

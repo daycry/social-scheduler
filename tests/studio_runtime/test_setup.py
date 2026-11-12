@@ -1,7 +1,9 @@
 """Installation must never publish a partial or unverified model."""
+import contextlib
 import hashlib
 import importlib.util
 import io
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -45,6 +47,33 @@ class ModelInstallationTest(unittest.TestCase):
             with patch('urllib.request.urlopen', side_effect=AssertionError('unexpected network')):
                 setup.install_model(target, self.spec(b'good model'))
             self.assertEqual(target.read_bytes(), b'good model')
+
+
+class PinnedManifestTest(unittest.TestCase):
+    def test_manifest_pins_the_isnet_model_and_its_apache_license(self):
+        spec = json.loads((ROOT / 'scripts/studio/background-model.json').read_text(encoding='utf-8'))
+        self.assertEqual(spec['name'], 'isnet-general-use')
+        self.assertEqual(spec['license'], 'Apache-2.0')
+        self.assertEqual(spec['bytes'], 178648008)
+        self.assertEqual(spec['sha256'], '60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a')
+        self.assertTrue(spec['url'].startswith('https://github.com/danielgatis/rembg/releases/download/'))
+        self.assertEqual(setup.MODEL.name, 'isnet-general-use.onnx')
+
+    def test_check_warns_when_only_the_previous_model_is_installed(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / 'storage/framework/testing') as directory:
+            folder = Path(directory)
+            (folder / 'birefnet-general-lite.onnx').write_bytes(b'old weights')
+            stderr = io.StringIO()
+            patches = [patch.object(setup, 'MODEL', folder / 'isnet-general-use.onnx'), patch.object(setup, 'LICENSE', folder / 'IS-Net-LICENSE.txt'),
+                       patch.object(setup, 'check_runtime', return_value=True), patch('sys.argv', ['setup-runtime.py', '--check']),
+                       patch('sys.stderr', stderr), patch('sys.stdout', stdout := io.StringIO())]
+            with contextlib.ExitStack() as stack:
+                for active in patches:
+                    stack.enter_context(active)
+                self.assertEqual(setup.main(), 1)
+            self.assertIn('"background_model_ready": false', stdout.getvalue())
+            self.assertIn('--download-model', stderr.getvalue())
+            self.assertIn('birefnet-general-lite.onnx', stderr.getvalue())
 
 
 if __name__ == '__main__':

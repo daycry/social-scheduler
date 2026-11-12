@@ -1,14 +1,14 @@
 {
-  "name": "birefnet-general-lite",
-  "url": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-general-bb_swin_v1_tiny-epoch_232.onnx",
-  "sha256": "5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333",
-  "bytes": 224005088,
-  "license": "MIT",
-  "copyright": "Copyright (c) 2024 ZhengPeng",
-  "model_source": "https://huggingface.co/ZhengPeng7/BiRefNet_lite",
+  "name": "isnet-general-use",
+  "url": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx",
+  "sha256": "60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a",
+  "bytes": 178648008,
+  "license": "Apache-2.0",
+  "copyright": "Copyright (c) Xuebin Qin et al. (DIS / IS-Net)",
+  "model_source": "https://github.com/xuebinqin/DIS",
   "license_file": {
-    "url": "https://raw.githubusercontent.com/ZhengPeng7/BiRefNet/main/LICENSE",
-    "sha256": "92a7089e0915fc32bc40067560b398f1e6a7a5958abd7d04eda393629a5acefb",
-    "bytes": 1066
+    "url": "https://raw.githubusercontent.com/xuebinqin/DIS/main/LICENSE.md",
+    "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+    "bytes": 11357
   }
 }

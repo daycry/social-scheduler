@@ -175,7 +175,7 @@ jobs:
         with:
           path: storage/app/private/studio-models
           key: studio-bg-model-${{ hashFiles('scripts/studio/background-model.json') }}
-      # Runtime privado + modelo de quitar fondo (MIT, ~214 MiB, SHA-256 fijado): el modelo solo se descarga si falta en la cache.
+      # Runtime privado + modelo de quitar fondo (IS-Net, Apache-2.0, ~170 MiB, SHA-256 fijado; la clave de cache depende del manifiesto): el modelo solo se descarga si falta en la cache.
       - name: Private Studio runtime and pinned background model
         run: python scripts/studio/setup-runtime.py --download-model
       # Todos los test_*.py. test_av_linux.py (y el resto de lo que exige un cgroup v2 delegado y acotado) se omite solo:

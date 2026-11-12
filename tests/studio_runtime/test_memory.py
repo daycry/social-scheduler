@@ -6,7 +6,7 @@ import unittest
 
 
 class WorkerMemoryTest(unittest.TestCase):
-    def test_worker_main_applies_a_real_nine_gib_os_memory_limit(self):
+    def test_worker_main_applies_a_real_1280_mib_os_memory_limit(self):
         child = r'''
 import ctypes, io, json, os, runpy, sys
 def observe(_):
@@ -29,7 +29,7 @@ raise SystemExit(namespace['main']())
 '''
         result = subprocess.run([sys.executable, '-c', child], capture_output=True, text=True, timeout=20)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(json.loads(result.stdout)['observed_memory_limit'], 9 * 1024**3)
+        self.assertEqual(json.loads(result.stdout)['observed_memory_limit'], 1280 * 1024**2)
 
 
     @unittest.skipIf(os.name == 'nt', 'RLIMIT_DATA is POSIX only; Windows enforces the same bound with a Job Object (covered by the test above)')

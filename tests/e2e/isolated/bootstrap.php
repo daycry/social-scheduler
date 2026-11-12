@@ -82,7 +82,7 @@ function generalBootstrap(): Application
             ...(is_file($root.'/canva-on') ? ['services.canva.client_id' => 'e2e-canva-client', 'services.canva.client_secret' => 'e2e-canva-secret', 'services.canva.poll_delay' => 0] : []),
             ...(is_file($root.'/studio-ai-text-off') ? ['social.ai.enabled' => false] : []),
             // Read-only, pinned weights; all image input/output stays in this run's storage.
-            'studio.images.model_path' => dirname(__DIR__, 3).'/storage/app/private/studio-models/birefnet-general-lite.onnx',
+            'studio.images.model_path' => dirname(__DIR__, 3).'/storage/app/private/studio-models/isnet-general-use.onnx',
         ]);
     });
     $app->make(Kernel::class)->bootstrap();

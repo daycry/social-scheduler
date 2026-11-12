@@ -23,8 +23,8 @@ return [
         'probe_timeout' => 20,
     ],
     'images' => [
-        'model_path' => env('STUDIO_BACKGROUND_MODEL_PATH', storage_path('app/private/studio-models/birefnet-general-lite.onnx')),
-        'model_sha256' => env('STUDIO_BACKGROUND_MODEL_SHA256', '5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333'),
+        'model_path' => env('STUDIO_BACKGROUND_MODEL_PATH', storage_path('app/private/studio-models/isnet-general-use.onnx')),
+        'model_sha256' => env('STUDIO_BACKGROUND_MODEL_SHA256', '60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a'),
         'timeout' => 85,
         'max_pixels' => 16000000,
         'max_bytes' => 30 * 1024 * 1024,

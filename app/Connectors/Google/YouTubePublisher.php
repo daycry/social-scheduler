@@ -14,6 +14,7 @@ use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\PublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
+use App\Connectors\Exceptions\ScopeMissingException;
 use App\Connectors\Exceptions\TransientPublishException;
 use App\Connectors\Meta\Comments;
 use App\Connectors\Support\MediaChunkReader;
@@ -269,7 +270,7 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
     public function comment(SocialAccount $account, string $externalId, string $text): string
     {
         if (! self::canComment($account)) {
-            throw new ReconnectRequiredException('Reconecta el canal de YouTube para poder comentar (falta el permiso de comentarios).');
+            throw new ScopeMissingException('Reconecta el canal de YouTube para poder comentar (falta el permiso de comentarios).');
         }
 
         $this->quota->assertAvailable(self::COMMENT_COST);
@@ -364,7 +365,7 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
     public function replyToComment(SocialAccount $account, string $parentId, string $text): string
     {
         if (! self::canComment($account)) {
-            throw new ReconnectRequiredException('Reconecta el canal de YouTube para poder responder (falta el permiso de comentarios).');
+            throw new ScopeMissingException('Reconecta el canal de YouTube para poder responder (falta el permiso de comentarios).');
         }
         $this->quota->assertAvailable(self::COMMENT_COST);
 

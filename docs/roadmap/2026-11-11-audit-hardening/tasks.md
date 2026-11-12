@@ -1014,8 +1014,8 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 ### T-24 — Primer comentario en Threads y Bluesky
 
 - **Descripción**: Implementar `FirstCommenter` en Threads y Bluesky reutilizando `ThreadsComments`/`BlueskyComments`.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Puedes añadir un primer comentario a las publicaciones de Threads y Bluesky; si el comentario falla, la publicación principal sigue publicada y puedes reintentarlo.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -1028,19 +1028,25 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Verificación**: `php artisan test --compact --filter=FirstCommentThreadsBlueskyTest` → verde
 
 **Criterios de aceptación**
-- [ ] Un post con primer comentario en Threads o Bluesky lo publica tras el principal (con fakes)
-- [ ] Si el primer comentario falla, el post principal queda publicado y el fallo se registra
-- [ ] El compositor muestra el campo para esas redes
+- [x] Un post con primer comentario en Threads o Bluesky lo publica tras el principal (con fakes)
+- [x] Si el primer comentario falla, el post principal queda publicado y el fallo se registra
+- [x] El compositor muestra el campo para esas redes
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+- RED: tests/Feature/FirstComment/FirstCommentThreadsBlueskyTest.php falló sin el código (stash de app/Connectors y config/media_specs.php): 0/11 pasan, «Failed asserting that null is an instance of interface App\Connectors\Contracts\FirstCommenter» (`commenterFor` devolvía null para Threads y Bluesky) · 2026-11-12. Los 4 tests de los gaps de T-22 se escribieron en rojo antes del arreglo (cuenta sin marcar tras `Reconnect` en el job; permisos de un objeto retiraban el scope).
+- Verificación (2026-11-12): `php artisan test --compact --filter=FirstCommentThreadsBlueskyTest` → 15/15 verde; focal `FirstComment`+`Connectors/Threads`+`Inbox`+`FirstCommenterYouTubeTest` 242/242; `Connectors/Bluesky` 110/110; Pint OK. Sin cambios de Vue: el campo del compositor sale de `media_specs.types.*.first_comment` (`firstCommentMax`), por eso no hace falta build ni E2E propios (E2E-36 queda en el smoke del usuario).
+- Contratos (fuentes): **Bluesky** verificado el 2026-11-12 en los lexicons del paquete oficial `@atproto/api` 0.31.1 (`unpkg.com/@atproto/api/dist/client/lexicons.js`): `app.bsky.feed.post.reply` → `#replyRef` con `root` y `parent` requeridos (`com.atproto.repo.strongRef`: uri+cid) y `com.atproto.repo.listRecords` (`repo`, `collection`, `limit` 1–100, `cursor`, `reverse`; sin auth). **Threads** (`reply_to_id` en el contenedor `TEXT` + `threads_publish`; `GET /{id}/replies`): NO verificado contra la documentación (las páginas de Meta exigen navegador y no se pudieron leer en esta sesión); se apoya en la respuesta del inbox de T-22 y queda para el smoke del usuario. Lo leído se trató como dato.
+- Decisiones: reutilizan `ThreadsComments::reply` y `BlueskyComments` (refactor a `createReply`, con facets de enlaces/etiquetas/menciones); el cid del padre en Bluesky se lee del PDS propio (`getRecord`) y la idempotencia con `listRecords` del repositorio propio (sin retraso del índice del AppView); Threads busca en `/replies` cronológico y devuelve null sin `threads_read_replies`. Búsqueda agotada con más resultados = `CommentSearchInconclusiveException` (como Meta/YouTube). Límites del compositor: Bluesky 300, Threads 500 (por caracteres; el recuento de bytes de emojis de Threads lo rechaza la red si se pasa).
+- Gaps de la revisión de T-22 absorbidos aquí (vienen del coordinador, mismo fichero `ThreadsComments.php`): (1) **Important** un rechazo de permisos sobre UNA publicación ya no retira el scope ni pone la cuenta en reconexión: `ThreadsClient` distingue `permisos` (cuenta: código 10 o 3/200/299 que nombran el permiso/aplicación) de `permisos_objeto` (publicación borrada, ajena o no visible, por el texto del error) y `ThreadsComments::guarded` solo actúa con el primero; `InboxService` ya salta las publicaciones con `ConnectorException`. **Limitación declarada:** la API no da un código distinto para «objeto» y «cuenta» en 3/200/299, la clasificación usa el texto del error (no verificado en la documentación de Meta; ante la duda se trata como de la cuenta, comportamiento previo). (2) `PostFirstComment` ahora llama a `flagReconnection` (flujo común) cuando captura `ReconnectRequiredException`; para no bloquear lo programado por un permiso OPCIONAL, la falta de permiso de comentar usa la nueva `ScopeMissingException` (YouTube y Threads), que falla el comentario sin marcar la cuenta.
 
 **Notas**: Tamaño M. Verificación real = smokes de Threads/Bluesky del usuario (contratos sin verificar).
 

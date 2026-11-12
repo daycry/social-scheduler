@@ -84,6 +84,7 @@ Decisiones de la tercera ola (opción O1 del diseño: contrato segregado y catá
 - **Tope de vídeo de esta instalación (D3, decisión del usuario 2026-10-27):** unos **50 MB** (`BLUESKY_VIDEO_MAX_BYTES`, 52.428.800). La subida es una sola petición dentro de los 85 s del paso del job (110 s; worker de 120 s): con unos 5 Mbps de subida, 50 MB caben en unos 80 s. Un vídeo mayor se rechaza al guardar. Hacen falta además el email de la cuenta verificado y cupo diario (`getUploadLimits`).
 - **Idempotencia:** `rkey` TID guardada antes de `createRecord`; `getRecord` antes de fallar.
 - **Métricas:** solo seguidores y posts de cuenta; likes, respuestas, reposts y citas por post; sin visualizaciones ni alcance (`null`).
+- **Primer comentario (T-24):** respuesta propia con `reply{root,parent}` (ambos = la publicación, `strongRef` uri+cid). Verificado el 2026-11-12 en el lexicon `app.bsky.feed.post` (`reply` → `#replyRef`, requeridos `root` y `parent`) y `com.atproto.repo.listRecords` (lectura pública; `limit` 1–100, `cursor`, `reverse`) del paquete `@atproto/api` 0.31.1. Límite 300 caracteres. Idempotencia: `listRecords` del repositorio propio filtrado por `reply.parent`. Pendiente del smoke: que el hilo se vea en la app con enlaces y menciones.
 - **Pendiente de verificar en el smoke real (T-30, M-01):** `aud` del `getServiceAuth` de subida de vídeo, error del PDS con `rkey` repetida y host público del AppView.
 
 ## Threads
@@ -122,6 +123,7 @@ Decisiones de la tercera ola (opción T1 del diseño: conector `threads` propio,
 - **Métricas:** `views` de cuenta son visitas al perfil (`profile_views`), no visualizaciones; clics en la nueva métrica `clicks`; `views` y `shares` del post «en desarrollo» (`null` si no llegan). Detalle en [analítica](../modulos/analitica.md#threads).
 - **Hosts configurables:** `THREADS_AUTH_HOST` (`https://threads.com`), `THREADS_GRAPH_HOST` (`https://graph.threads.com`) y `THREADS_API_VERSION` (`v1.0`).
 - **Límites en la configuración:** `config/media_specs.php` (`threads_text`, `threads_image`, `threads_video`, `threads_carousel`, versión 2026-10-27) y `config/social.php` (`threads`: `publish_quota` 250, margen de renovación 168 h, histórico de 30 días).
+- **Primer comentario (T-24):** respuesta propia = contenedor `TEXT` con `reply_to_id` + `threads_publish` (`threads_manage_replies`) y búsqueda por `GET /{id}/replies` (`threads_read_replies`). **No verificado contra la documentación en esta sesión** (las páginas de Meta exigen navegador): se apoya en la misma llamada de respuesta del inbox (T-22) y queda para el smoke del usuario.
 - **Pendiente del smoke (T-64, M-02):** modo desarrollo con *testers*, regla de emojis en secuencias, códigos de error propios, `shares`/`views` de post, zona del día de las métricas y si Threads acepta `Authorization: Bearer`.
 
 ## LinkedIn y Pinterest

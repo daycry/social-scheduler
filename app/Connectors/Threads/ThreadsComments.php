@@ -3,8 +3,11 @@
 namespace App\Connectors\Threads;
 
 use App\Connectors\Contracts\CommentSource;
+use App\Connectors\Exceptions\CommentSearchInconclusiveException;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
+use App\Connectors\Exceptions\ScopeMissingException;
+use App\Connectors\Meta\Comments;
 use App\Models\SocialAccount;
 use Carbon\CarbonImmutable;
 use InvalidArgumentException;
@@ -72,6 +75,66 @@ class ThreadsComments implements CommentSource
         $published = $this->guarded($account, ['threads_manage_replies'], fn () => $this->client->post($account->external_id.'/threads_publish', ['creation_id' => $creation], $token));
 
         return (string) ($published['id'] ?? '');
+    }
+
+    /**
+     * Primer comentario: una respuesta a la publicacion propia (`reply_to_id` = id de la publicacion). Reutiliza `reply()`; sin el
+     * permiso de respuestas pide reconectar (las cuentas conectadas antes de pedirlo no lo tienen) en vez de llamar a ciegas.
+     */
+    public function create(SocialAccount $account, string $postExternalId, string $message): string
+    {
+        if (! $this->hasScopes($account, true)) {
+            throw new ScopeMissingException('Threads necesita el permiso para responder (threads_manage_replies): reconecta la cuenta aceptando todos los permisos.');
+        }
+
+        $id = $this->reply($account, $postExternalId, $message);
+
+        return $id !== '' ? $id : throw new PermanentPublishException('Threads no devolvio el id del comentario.', 'sin_id');
+    }
+
+    /**
+     * Id de una respuesta PROPIA de nivel superior con ese texto (comparacion normalizada), o null. Busqueda acotada y cronologica
+     * (`GET /{id}/replies`, `reverse=false`): el primer comentario, publicado justo tras el post, sale en las primeras paginas. Sin
+     * permiso de lectura no se puede comprobar y devuelve null. Si se agotan las paginas con mas por leer, no se sabe: inconclusa.
+     *
+     * @throws CommentSearchInconclusiveException
+     */
+    public function findOwn(SocialAccount $account, string $postExternalId, string $text): ?string
+    {
+        $this->assertId($postExternalId);
+        if (! $this->hasScopes($account)) {
+            return null;
+        }
+
+        $wanted = Comments::canon($text);
+        $deadline = microtime(true) + (float) config('social.first_comment.find_budget_seconds', 80);
+        $limit = max(1, min(100, (int) config('social.first_comment.find_per_page', 100)));
+        $after = null;
+        $more = false;
+
+        for ($page = 0, $max = max(1, (int) config('social.first_comment.find_pages', 3)); $page < $max; $page++) {
+            if ($page > 0 && microtime(true) + (float) config('social.http_timeout', 15) > $deadline) {
+                $more = true;
+                break;
+            }
+            $json = $this->guarded($account, ['threads_read_replies'], fn () => $this->client->get($postExternalId.'/replies', ['fields' => self::FIELDS, 'reverse' => 'false', 'limit' => $limit]
+                + ($after !== null ? ['after' => $after] : []), (string) $account->access_token, true));
+
+            foreach ((array) ($json['data'] ?? []) as $c) {
+                $row = $this->normalize($account, $c, $postExternalId);
+                if ($row && $row['is_own'] && Comments::canon((string) $row['text']) === $wanted) {
+                    return $row['external_id'];
+                }
+            }
+
+            $after = $json['paging']['cursors']['after'] ?? null;
+            $more = ! empty($json['paging']['next']) && $after !== null && $after !== '';
+            if (! $more) {
+                return null; // fin de la lista: concluyente
+            }
+        }
+
+        throw new CommentSearchInconclusiveException('No se pudo comprobar si el comentario ya existe: la publicacion tiene demasiadas respuestas para revisarlas todas. No se crea otro a ciegas: comprueba en la red si ya esta; si lo esta, pulsa «Ya esta publicado», y si no, «Publicar igualmente» (puede duplicarse si en realidad ya existe).', 'busqueda_inconclusa');
     }
 
     /**

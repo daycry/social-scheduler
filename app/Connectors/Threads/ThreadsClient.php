@@ -137,6 +137,12 @@ class ThreadsClient
         }
 
         if (in_array($code, [3, 10, 200, 299], true) || str_starts_with($message, '(#10)') || str_starts_with($message, '(#200)')) {
+            // Un rechazo de permisos puede ser de la CUENTA (el token no tiene el permiso: codigo 10, o 3/200/299 que nombran el permiso)
+            // o de UN objeto concreto (publicacion borrada, ajena o no visible). Solo el primero justifica retirar el scope y pedir reconectar.
+            if (self::aboutObject($code, $message)) {
+                return new PermanentPublishException('Threads no permite acceder a ese contenido ('.$message.').', 'permisos_objeto');
+            }
+
             return new PermanentPublishException('Faltan permisos en Threads para publicar ('.$message.'). Revisa los permisos concedidos y vuelve a conectar la cuenta.', 'permisos');
         }
 
@@ -145,6 +151,20 @@ class ThreadsClient
         }
 
         return new PermanentPublishException('Threads rechazo la publicacion: '.$message, 'rechazada');
+    }
+
+    /**
+     * ¿El rechazo de permisos se refiere a un objeto concreto y no a la cuenta? El codigo 10 («Application does not have permission for
+     * this action») es siempre de la cuenta; el resto (3, 200-299) lo es solo si el mensaje nombra el permiso o la aplicacion, y es del
+     * objeto si habla de la publicacion/contenido/usuario (borrado, ajeno, no visible). Ante la duda, de la cuenta (comportamiento previo).
+     */
+    private static function aboutObject(int $code, string $message): bool
+    {
+        if ($code === 10 || str_starts_with($message, '(#10)') || preg_match('/threads_[a-z_]+|application does not have|app does not have|permission[s]? (is|are) (not|either)|scope/i', $message) === 1) {
+            return false;
+        }
+
+        return preg_match('/\b(post|thread|media|object|content|user|reply|replies|deleted|not visible|cannot be (accessed|loaded)|does not exist)\b/i', $message) === 1;
     }
 
     /** @return array{0: int, 1: int, 2: string} codigo, subcodigo y mensaje legible. */

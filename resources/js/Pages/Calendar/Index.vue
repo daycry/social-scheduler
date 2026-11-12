@@ -230,7 +230,7 @@ const retry = async (item) => {
                     <span class="font-medium capitalize text-slate-800">{{ title }}</span>
                     <span class="text-xs text-slate-500">Zona horaria: {{ timezone }}</span>
 
-                    <div class="ml-auto flex flex-wrap items-center gap-2 text-sm">
+                    <div class="ml-auto flex min-w-0 max-w-full flex-wrap items-center gap-2 text-sm">
                         <ViewsMenu :views="views" :active-view="active_view" :filters="filters" :view="view" :date="date" />
                         <select :value="filters.brand_id ?? ''" class="field w-auto py-1.5" aria-label="Marca" @change="setFilter('brand_id', $event.target.value)">
                             <option value="">Todas las marcas</option>

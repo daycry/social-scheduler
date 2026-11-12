@@ -3728,6 +3728,19 @@ La pasada completa (`E2E_PURGE=0 E2E_WORKERS=2`, 36 min) dio 644 aprobados, 2 fa
 Verificación de esta corrección: `npm run build`, Pest focal, `npm run test:unit` (635 passed), `npm run typecheck`, Pint, y Playwright con `E2E_PURGE=0 E2E_WORKERS=2` de `all-brands`, `media-import`, `a11y`, `progress-bar` y `roadmap` E2E-10. Nota: la clave compartida de los `throttle:N,1` numéricos entre rutas es un comportamiento de Laravel que ya existía (los limitadores con nombre sí llevan prefijo); no se toca aquí.
 
 
+### Desbordamientos horizontales móviles destapados por `overflowX()` corregido
+
+Con la medida contra `clientWidth` salieron 7 fallos `expectNoOverflow` (más 23 tests `serial` sin ejecutar). Elementos medidos con `getBoundingClientRect().right > clientWidth` en mobile-360; todos eran defectos de la interfaz.
+
+| Página | Elemento que desbordaba | Corrección |
+|---|---|---|
+| Calendario / lista a 360 px (`bluesky` E2E-03, `calendar-views` E2E-02, `csv-export` E2E-05, `threads` E2E-08, `workflow` lote) | Los `select.field.w-auto` (Marca, Red, Estado) toman el ancho de su `<option>` más larga y empujaban al contenedor `ml-auto flex-wrap` de la barra de filtros fuera del viewport (la tabla de la lista ya estaba dentro de su `overflow-x-auto`) | `resources/css/app.css`: `max-w-full` en `.field` (barrido: cubre todas las ocurrencias de `field w-auto` de Ads, Autolists, Inbox, Series, SmartLinks, PeriodFilter, BatchBar, DateTimePicker, Reports y Calendar); `Calendar/Index.vue`: `min-w-0 max-w-full` en el contenedor de filtros |
+| Compositor 375/360 px (`composer` A11Y-01) | Popover del selector de emoji: `left-0` anclado a un botón que no está en el borde, con `w-[min(22rem,100vw-1.5rem)]` (r=365 > 360) | `EmojiPicker.vue`: `inset-x-0` en móvil (ancho de la barra del editor) y `sm:left-0 sm:w-[22rem] sm:max-w-[calc(100vw-1.5rem)]`; el envoltorio en `EditorToolbar.vue` pasa a `sm:relative`, mismo patrón que `HashtagSuggestions` |
+| Compositor 375/360 px (`saved-texts` E2E-02) | Popover del menú de textos guardados, mismo ancho fijo anclado al botón (r=365) | `SavedTextsMenu.vue`: igual que el emoji (`sm:relative` en el envoltorio y `inset-x-0` / `sm:w-[22rem]`) |
+
+Verificación: `npm run build`; los 7 specs afectados (bluesky, calendar-views, csv-export, threads, workflow, composer, saved-texts) en desktop, mobile y mobile-360 con `E2E_PURGE=0 E2E_WORKERS=2`: 123 aprobados, 0 fallos. Barrido de los demás specs `@responsive` (43 ficheros) en mobile y mobile-360, en 6 tandas: 318 aprobados, 0 fallos, sin más desbordamientos. `npm run test:unit` 635 pass; `npm run typecheck` sin errores.
+
+
 ### Regresión posterior: `report-builder.spec.ts:17` (mobile-360) fallaba 4 de cada 5
 
 - **Síntoma:** `waitForEvent('download')` agotaba 60 s; el trace mostraba el clic en «Descargar» reintentado sin fin (`<p> from <div> subtree intercepts pointer events`). No era la barra `#nprogress` (tiene `pointer-events: none` y no estaba en el DOM), ni el sondeo, ni el 429.

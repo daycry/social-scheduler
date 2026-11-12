@@ -28,7 +28,7 @@ const hashtags = computed(() => countHashtags(form.text));
     <div v-if="editable" class="relative mt-2 flex flex-wrap items-start gap-2" role="toolbar" aria-label="Herramientas del editor" data-testid="editor-toolbar">
         <MediaUploader label="Añadir imagen o vídeo" @uploaded="onUploaded" @busy="setUploading" />
 
-        <div class="relative">
+        <div class="sm:relative">
             <button
                 ref="emojiButton"
                 type="button"

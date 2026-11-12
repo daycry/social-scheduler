@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\MediaAsset;
 use App\Services\Canva\CanvaSource;
+use App\Services\JobFailureNotifier;
 use App\Services\Media\DriveFileSource;
 use App\Services\Media\GiphySource;
 use App\Services\Media\RemoteMediaImporter;
@@ -75,6 +76,7 @@ class ImportRemoteMedia implements ShouldBeEncrypted, ShouldBeUniqueUntilProcess
 
         app(MediaStorage::class)->disk()->delete($asset->path);
         app(MediaUploadService::class)->invalidate($asset, 'No se pudo descargar el fichero; inténtalo de nuevo más tarde.');
+        app(JobFailureNotifier::class)->import($asset);
     }
 
     private function sourceFor(MediaAsset $asset): RemoteSource

@@ -265,7 +265,7 @@ test('Web: filtros de red/estado/etiqueta/asignado, lote, cierre, etiqueta y gua
 
     $this->get(route('inbox.index', ['network' => 'threads', 'status' => 'open', 'label' => 'urgente', 'assigned' => 'none']))
         ->assertInertia(fn ($p) => $p->component('Inbox/Index')->has('comments.data', 1)->where('comments.data.0.labels', ['urgente'])
-            ->where('saved_replies.0.title', 'Hola')->has('coverage', 6));
+            ->where('saved_replies.0.title', 'Hola')->has('coverage', 8));
     $this->get(route('inbox.index', ['status' => 'closed']))->assertInertia(fn ($p) => $p->has('comments.data', 1)->where('comments.data.0.closed', true));
     $this->get(route('inbox.index', ['network' => 'tiktok']))->assertSessionHasErrors('network');
 

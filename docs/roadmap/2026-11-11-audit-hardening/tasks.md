@@ -973,35 +973,41 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 ### T-23 — Avisos de caducidad y notificaciones de jobs asíncronos
 
 - **Descripción**: Generalizar el aviso de caducidad a toda caducidad conocida (notificación + correo N días antes) y notificar en BD (y correo opcional) los informes programados, MP4/GIF, IA, Canva e importaciones.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Conexiones y Avisos te dicen con antelación (7 y 1 días) cuándo caduca el acceso de Meta o LinkedIn y hay que reconectar, y un informe programado, una exportación MP4/GIF, un trabajo de IA, de Canva o una importación que falla te avisa en la app (y por correo si lo activas en tu perfil), con título y enlace propios también en los avisos del estudio.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-20
 - **Tipo**: backend
-- **Archivos**: `app/Jobs/RefreshSocialAccount.php`, `app/Jobs/SendScheduledReport.php`, `app/Jobs/Studio/RunStudioAiJob.php`, `app/Jobs/RunCanvaJob.php`, `app/Jobs/ImportRemoteMedia.php`, `app/Notifications/**`, `app/Http/Controllers/ConnectionController.php`, `resources/js/Pages/Notifications/**`, `docs/modulos/conexiones.md`
+- **Archivos**: `app/Jobs/RefreshSocialAccount.php`, `app/Jobs/SendScheduledReport.php`, `app/Jobs/Studio/RunStudioAiJob.php`, `app/Jobs/RunCanvaJob.php`, `app/Jobs/ImportRemoteMedia.php`, `app/Notifications/**`, `app/Http/Controllers/ConnectionController.php`, `resources/js/Pages/Notifications/**`, `docs/modulos/conexiones.md`, `app/Services/ConnectionExpiry.php`, `app/Services/ConnectionExpiryNotifier.php`, `app/Services/JobFailureNotifier.php`, `app/Console/Commands/NotifyConnectionExpiry.php`, `app/Services/Studio/StudioAi.php`, `app/Services/Studio/StudioAvState.php`, `app/Services/Studio/StudioRenderer.php`, `app/Services/Canva/CanvaJobs.php`, `app/Services/Media/RemoteMediaImporter.php`, `app/Jobs/Studio/RenderStudioDesign.php`, `app/Models/User.php`, `app/Http/Controllers/NotificationController.php`, `app/Http/Requests/ProfileUpdateRequest.php`, `app/Connectors/LinkedIn/LinkedInConnector.php`, `config/social.php`, `routes/console.php`, `database/migrations/2026_12_19_090000_add_notify_by_mail_to_users.php`, `resources/js/Pages/Brands/Connections.vue`, `resources/js/Pages/Profile/Partials/UpdateProfileInformationForm.vue`, `docs/modulos/publicacion.md`, `docs/referencia/configuracion.md`, `docs/guias/linkedin-pinterest.md`, `tests/Feature/Connections/ConnectionExpiryNotificationTest.php`, `tests/Feature/Notifications/JobCompletionNotificationTest.php`, `tests/Feature/Studio/StudioAvQueueTest.php`, `tests/Feature/Inbox/InboxProvidersTest.php`, `tests/e2e/notifications-unified.spec.ts`
 - **Cubre**: B-03, B-13
 - **Cubre (unificación)**: U-21
 - **Cubre (tests)**: E2E-03
 - **Verificación**: `php artisan test --compact --filter=ConnectionExpiryNotificationTest` → verde · `php artisan test --compact --filter=JobCompletionNotificationTest` → verde
 
 **Criterios de aceptación**
-- [ ] Meta (90 días) y LinkedIn avisan N días antes de caducar, una sola vez por umbral
-- [ ] Informes, MP4/GIF, IA, Canva e importaciones generan notificación al terminar o fallar
-- [ ] El correo es opcional por preferencia del usuario
-- [ ] Los avisos `studio_design_*` se muestran con título por tipo (no como «Aviso» genérico) y con enlace a su diseño mediante `n.url` genérico (`Notifications/Index.vue`, `StudioDesignActivity.php`)
+- [x] Meta (90 días) y LinkedIn avisan N días antes de caducar, una sola vez por umbral
+- [x] Informes, MP4/GIF, IA, Canva e importaciones generan notificación al terminar o fallar
+- [x] El correo es opcional por preferencia del usuario
+- [x] Los avisos `studio_design_*` se muestran con título por tipo (no como «Aviso» genérico) y con enlace a su diseño mediante `n.url` genérico (`Notifications/Index.vue`, `StudioDesignActivity.php`)
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+- RED: tests/Feature/Connections/ConnectionExpiryNotificationTest.php y tests/Feature/Notifications/JobCompletionNotificationTest.php fallaron con «Class App\Services\ConnectionExpiryNotifier not found», «App\Notifications\AsyncJobFailed not found» y la columna `notify_by_mail` inexistente (16 tests, 8 en rojo por clases ausentes) · 2026-11-12
+- Verificación (2026-11-12): `php artisan test --compact --filter=ConnectionExpiryNotificationTest` → 7/7 verde; `--filter=JobCompletionNotificationTest` → 10/10 verde; focal `Notifications`+`Connections`+`Auth`+`ProfileTest` 290/290; `Canva`+`Studio`+`Reports`+`Media`+`Jobs`+`Console`+`Routes`+`Infra`+`Parity`+`Inbox`+`Ui`+`AdvancedOptionsContractTest` 1438 tests con 3 rojos legítimos corregidos (cobertura del inbox 6→8 filas; `StudioAvQueueTest` aserta ahora «no se encola ProcessStudioAvPhase» porque el aviso de fallo es un efecto esperado) y vuelto a ejecutar en verde; Pint OK; `npm run build` OK, `test:unit` 636/636, `typecheck` OK; Playwright `notifications-unified.spec.ts` (E2E-03) 3/3 y `workflow.spec.ts` + `linkedin-pinterest.spec.ts` con `E2E_PURGE=0 E2E_WORKERS=2`.
+- Decisiones: (1) Caducidad conocida que NO se renueva sola = acceso a datos (`data_access_expires_at`, cualquier red que lo informe: Meta 90 días) y token de LinkedIn sin `refresh_token` (`ConnectionExpiry`); los tokens que se refrescan solos no avisan (ya lo hace `ReconnectRequired` si fallan). (2) Umbrales `SOCIAL_EXPIRY_NOTICE_DAYS=7,1`, pasada diaria `connections:notify-expiry`; marca `meta.expiry_notice {at, threshold}` por cuenta: una vez por umbral y fecha, se reinicia al reconectar. Sustituye a `LINKEDIN_RECONNECT_NOTICE_DAYS`. (3) Preferencias de notificación: no existían; se añade `users.notify_by_mail` (apagado por defecto, casilla en Perfil) que activa el canal `mail` solo en `AsyncJobFailed` y `ConnectionExpiring`; `PublishFailed`/`ReconnectRequired` no cambian. (4) Solo FALLOS de jobs (el alcance pedido); el aviso de «terminado correcto» no se genera para no inundar (cada panel ya muestra el éxito). (5) Frecuencia: un aviso por trabajo (clave de caché 24 h) y tope de 5 por tipo y hora y usuario (`JobFailureNotifier::BURST`). (6) Exportaciones: solo MP4/GIF; el aviso del cierre por `StudioAvState` va tras el commit (`DB::afterCommit`). (7) U-21: `StudioDesignActivity` lleva `url` al diseño (ninguno si se retiró el acceso) y `Notifications/Index.vue` da título por tipo y un enlace genérico `n.url` con etiqueta por tipo; también corrige que `series_failed` enlazara a Conexiones.
+- Migración nueva `2026_12_19_090000_add_notify_by_mail_to_users` (no aplicada a la BD de desarrollo/E2E: hay que ejecutar `php artisan migrate` antes de usar la casilla de Perfil).
+- Pendiente (coordinador): revisión adversarial A+B(+C), aplicar la migración, y el smoke real de correo (sin SMTP real: `Notification::fake`).
 
 **Notas**: Tamaño M. Reutilizar el mecanismo de notificación de fallos de publicación. Sin SMTP real: `Mail::fake`.
 

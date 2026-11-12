@@ -3,6 +3,7 @@
 namespace App\Services\Media;
 
 use App\Models\MediaAsset;
+use App\Services\JobFailureNotifier;
 use App\Services\MediaStorage;
 use App\Services\MediaUploadService;
 use InvalidArgumentException;
@@ -272,6 +273,7 @@ class RemoteMediaImporter
     {
         $this->storage->disk()->delete($asset->path);
         $this->uploads->invalidate($asset, $reason);
+        app(JobFailureNotifier::class)->import($asset);
 
         return true;
     }

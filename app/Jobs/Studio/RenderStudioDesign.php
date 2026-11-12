@@ -3,6 +3,7 @@
 namespace App\Jobs\Studio;
 
 use App\Models\Studio\DesignExport;
+use App\Services\JobFailureNotifier;
 use App\Services\Studio\StudioRenderer;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -27,7 +28,11 @@ class RenderStudioDesign implements ShouldQueue
 
     public function failed(?\Throwable $exception): void
     {
-        DesignExport::withoutUserScope()->whereKey($this->exportId)->whereIn('status', ['pending', 'processing'])
+        $closed = DesignExport::withoutUserScope()->whereKey($this->exportId)->whereIn('status', ['pending', 'processing'])
             ->update(['status' => 'failed', 'error' => 'La exportación se interrumpió o superó el tiempo permitido. Puedes iniciar otra con menos páginas.']);
+
+        if ($closed === 1 && $export = DesignExport::withoutUserScope()->find($this->exportId)) {
+            app(JobFailureNotifier::class)->export($export);
+        }
     }
 }

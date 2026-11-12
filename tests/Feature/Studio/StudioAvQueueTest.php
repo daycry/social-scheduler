@@ -175,7 +175,7 @@ PHP, $database, $marker]);
         if ($mutation === 'claim') {
             Queue::assertPushed(ProcessStudioAvPhase::class, 1);
         } else {
-            Queue::assertNothingPushed();
+            Queue::assertNotPushed(ProcessStudioAvPhase::class); // el aviso de fallo (SendQueuedNotifications) es un efecto legitimo de fail/failPosition
         }
     } finally {
         if ($writer instanceof Symfony\Component\Process\Process) {

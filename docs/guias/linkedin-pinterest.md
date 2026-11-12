@@ -11,7 +11,7 @@ LinkedIn y Pinterest se conectan por OAuth como las demás redes y publican por 
 | `LINKEDIN_COMMUNITY_MANAGEMENT` | `false` | Pide también `w_organization_social`, `r_organization_social` y `rw_organization_admin` y ofrece las **páginas** que el usuario administra (hasta 20). Solo con la Community Management API aprobada por LinkedIn; sin él solo se conecta el perfil personal |
 | `LINKEDIN_R_MEMBER_SOCIAL` | `false` | Pide `r_member_social`. Solo apps aprobadas. Sin él, un perfil personal no tiene búsqueda de idempotencia (un reintento tras un fallo ambiguo no puede comprobar si ya se publicó) ni primer comentario |
 
-**Token.** Dura unos 60 días. Solo las apps con programa de partner reciben `refresh_token`: sin él no se puede renovar y la app avisa «reconecta antes de» `LINKEDIN_RECONNECT_NOTICE_DAYS` (7) días antes de que caduque.
+**Token.** Dura unos 60 días. Solo las apps con programa de partner reciben `refresh_token`: sin él no se puede renovar y la app avisa «reconecta antes de» `SOCIAL_EXPIRY_NOTICE_DAYS` (7 y 1) días antes de que caduque, en Conexiones y con un aviso (y correo si lo activas en tu perfil).
 
 **Contenido** (`config/media_specs.php`):
 

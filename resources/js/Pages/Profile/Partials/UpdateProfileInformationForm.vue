@@ -1,5 +1,6 @@
 <script setup>
 import InputError from '@/Components/InputError.vue';
+import Checkbox from '@/Components/Checkbox.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -19,6 +20,7 @@ const user = usePage().props.auth.user;
 const form = useForm({
     name: user.name,
     email: user.email,
+    notify_by_mail: Boolean(user.notify_by_mail),
 });
 </script>
 
@@ -68,6 +70,14 @@ const form = useForm({
 
                 <InputError class="mt-2" :message="form.errors.email" />
             </div>
+
+            <label class="flex items-start gap-2 text-sm text-slate-700" for="notify_by_mail">
+                <Checkbox id="notify_by_mail" name="notify_by_mail" v-model:checked="form.notify_by_mail" data-testid="notify-by-mail" />
+                <span>
+                    Avisarme también por correo cuando falle un informe programado, una exportación de video, la IA, Canva o una importación, y antes de que caduque una conexión.
+                    Los avisos siempre se muestran en Avisos.
+                </span>
+            </label>
 
             <div v-if="mustVerifyEmail && user.email_verified_at === null">
                 <p class="mt-2 text-sm text-slate-800">

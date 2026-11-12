@@ -81,6 +81,8 @@ Threads es un conector **propio** (`provider = threads`), no una red del proveed
 
 `RefreshTokens` corre cada 30 min y renueva con margen: Meta 168 h, Google 1 h, TikTok 6 h, Bluesky 1 h, Threads 168 h, LinkedIn 168 h y Pinterest 72 h (`SOCIAL_REFRESH_MARGIN_*_HOURS`). LinkedIn sin `refresh_token` no se renueva: la UI avisa «reconecta antes de».
 
+**Caducidad conocida que no se renueva solo (T-23)**: `ConnectionExpiry` calcula la fecha de la conexión a reconectar: el **acceso a datos** (`data_access_expires_at`; Meta lo limita a 90 días desde el último inicio de sesión) en cualquier red que lo informe, y el **token de LinkedIn sin `refresh_token`**. Los tokens que sí se refrescan solos (Threads, Pinterest, TikTok, Google…) no cuentan: si su renovación falla, `ReconnectRequired` avisa. Conexiones muestra «Reconecta antes del …» con el motivo (`reconnect_before`, `reconnect_reason`, `reconnect_message`) dentro de la ventana del umbral mayor, y el comando diario `connections:notify-expiry` (`ConnectionExpiryNotifier`) envía `ConnectionExpiring` (aviso en la app y, con la preferencia `notify_by_mail` del usuario, correo) a `SOCIAL_EXPIRY_NOTICE_DAYS` días (por defecto `7,1`) de la caducidad, una sola vez por umbral y fecha: al reconectar, la fecha cambia y el ciclo se reinicia. Ver [avisos](publicacion.md#avisos).
+
 - Fallo **permanente** (`invalid_grant`, 401, `data_access_expires_at` o `refresh_expires_at` vencidos): la cuenta pasa a `requiere_reconexion` al instante y se envía `ReconnectRequired`.
 - Fallo **transitorio** (5xx, red): se cuenta en `refresh_failures`; tras `SOCIAL_REFRESH_MAX_TRANSIENT_FAILURES` (12, ≈ 6 h) seguidos escala a `requiere_reconexion`.
 - Al reconectar se conservan las publicaciones pendientes de esa cuenta.

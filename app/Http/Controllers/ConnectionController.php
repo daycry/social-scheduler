@@ -11,6 +11,7 @@ use App\Connectors\TikTok\TikTokPublisher;
 use App\Http\Controllers\OAuth\OAuthController;
 use App\Models\Brand;
 use App\Models\SocialAccount;
+use App\Services\ConnectionExpiry;
 use App\Services\SocialAccountService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
@@ -53,8 +54,8 @@ class ConnectionController extends Controller
                 'boards_refreshed_at' => $a->network === Network::Pinterest ? ($a->meta['boards_refreshed_at'] ?? null) : null,
                 'direct_post' => $a->network === Network::TikTok && ($a->meta['direct_post'] ?? false) === true,
                 'token_expires_at' => $a->token_expires_at?->toIso8601String(),
-                // Aviso «reconecta antes de»: cuentas que no se pueden renovar (sin refresh_token) cuyo token caduca en pocos dias. No bloquea nada.
-                'reconnect_before' => $this->reconnectBefore($a),
+                // Aviso «reconecta antes de» (T-23): caducidad conocida que el sistema no renueva (acceso a datos de Meta, token de LinkedIn sin refresh_token) en pocos dias. No bloquea nada.
+                ...$this->expiryProps($a),
                 'data_access_expires_at' => $a->data_access_expires_at?->toIso8601String(),
                 'connected_at' => $a->connected_at?->toIso8601String(),
             ])->values(),
@@ -83,15 +84,12 @@ class ConnectionController extends Controller
         ]);
     }
 
-    private function reconnectBefore(SocialAccount $a): ?string
+    /** @return array{reconnect_before: ?string, reconnect_reason: ?string, reconnect_message: ?string} */
+    private function expiryProps(SocialAccount $a): array
     {
-        if ($a->network !== Network::LinkedIn || $a->status !== 'activa' || $a->token_expires_at === null || (string) $a->refresh_token !== '') {
-            return null;
-        }
+        $d = ConnectionExpiry::dueSoon($a);
 
-        return $a->token_expires_at->isFuture() && $a->token_expires_at->lte(now()->addDays((int) config('social.linkedin.reconnect_notice_days', 7)))
-            ? $a->token_expires_at->toIso8601String()
-            : null;
+        return ['reconnect_before' => $d['at'] ?? null, 'reconnect_reason' => $d['reason'] ?? null, 'reconnect_message' => $d ? ConnectionExpiry::message($a, $d['reason']) : null];
     }
 
     /** @return list<array{name: string, label: string, type: string, help?: string}> */

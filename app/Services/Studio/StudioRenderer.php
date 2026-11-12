@@ -8,6 +8,7 @@ use App\Models\MediaAsset;
 use App\Models\Studio\Design;
 use App\Models\Studio\DesignExport;
 use App\Models\User;
+use App\Services\JobFailureNotifier;
 use App\Services\MediaUploadService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Process;
@@ -240,6 +241,7 @@ class StudioRenderer
             });
         } catch (\Throwable $e) {
             $export->forceFill(['status' => 'failed', 'error' => $e instanceof StudioRenderFailure ? Str::limit($e->getMessage(), 350) : 'No se pudo renderizar esta revisión. Revisa sus recursos y la configuración del renderizador.'])->save();
+            app(JobFailureNotifier::class)->export($export);
             foreach ($createdMedia as $media) {
                 try {
                     app(MediaUploadService::class)->delete($media);

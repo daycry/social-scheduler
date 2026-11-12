@@ -133,6 +133,14 @@ return [
     ],
 
     /*
+    | Aviso de caducidad de conexiones (T-23): dias de antelacion (coma-separados, de mayor a menor) con que se avisa una sola vez por umbral
+    | de que hay que reconectar una cuenta cuya caducidad el sistema no puede renovar (acceso a datos de Meta de 90 dias, token de LinkedIn
+    | sin refresh_token). El umbral mayor es tambien la ventana del «Reconecta antes de» de Conexiones. Hora de la pasada diaria en `expiry_notice_at`.
+    */
+    'expiry_notice_days' => array_values(array_filter(array_map('intval', explode(',', (string) env('SOCIAL_EXPIRY_NOTICE_DAYS', '7,1'))))),
+    'expiry_notice_at' => env('SOCIAL_EXPIRY_NOTICE_AT', '09:00'),
+
+    /*
     | Threads (C-02, T1: conector propio). Hosts verificados en la documentacion de Meta el 2026-10-27 y configurables por si vuelven a
     | cambiar (la doc admite tambien graph.threads.net). Valores de T-54 en docs/referencia/decisiones-por-red.md. El plazo de procesado es el de `config/publishing.php` (`poll_max_minutes`).
     */
@@ -153,8 +161,6 @@ return [
         // `r_member_social` (leer publicaciones/comentarios del perfil): LinkedIn solo lo da a apps aprobadas. Sin el no hay busqueda de
         // idempotencia ni primer comentario en perfiles personales.
         'member_read' => (bool) env('LINKEDIN_R_MEMBER_SOCIAL', false),
-        // Dias de antelacion con que la UI avisa «reconecta antes de» en cuentas cuyo token no se puede renovar.
-        'reconnect_notice_days' => (int) env('LINKEDIN_RECONNECT_NOTICE_DAYS', 7),
         'text_max' => 3000,
         'image_max_bytes' => 36152320,
         'video_max_bytes' => 500 * 1024 * 1024,

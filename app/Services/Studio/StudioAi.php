@@ -8,6 +8,7 @@ use App\Models\MediaAsset;
 use App\Models\Studio\StudioAiJob;
 use App\Models\Studio\StudioAsset;
 use App\Models\User;
+use App\Services\JobFailureNotifier;
 use App\Services\MediaUploadService;
 use App\Services\Studio\Ai\AiImageRequest;
 use App\Services\Studio\Ai\AiProviderException;
@@ -226,8 +227,11 @@ class StudioAi
             if (! $e instanceof AiProviderException) {
                 Log::warning('studio.ai_job_failed', ['job' => $id, 'exception' => $e::class]);
             }
-            StudioAiJob::withoutUserScope()->whereKey($id)->where('status', 'processing')
+            $closed = StudioAiJob::withoutUserScope()->whereKey($id)->where('status', 'processing')
                 ->update(['status' => 'failed', 'error_code' => $code, 'error' => $e instanceof AiProviderException ? $e->getMessage() : self::errorMessage($code)]);
+            if ($closed === 1) {
+                app(JobFailureNotifier::class)->ai(StudioAiJob::withoutUserScope()->findOrFail($id));
+            }
         }
     }
 

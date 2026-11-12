@@ -130,3 +130,17 @@ Por defecto el vídeo va a la bandeja de TikTok. El destino queda `publicada` co
 ## Avisos
 
 `PublishFailed` (base de datos + correo, cola `poll`), `ReconnectRequired` y `FirstCommentFailed` (solo base de datos). La UI los lista en `/notifications`.
+
+### Avisos de caducidad y de trabajos asíncronos (T-23)
+
+Todos comparten la misma pantalla (`Notifications/Index`) y el mismo contrato: el aviso guarda `type`, `message` y, si lleva a algún sitio, un `url` relativo que la pantalla muestra como enlace genérico (sin lógica por tipo en el enlace). El título sale del tipo (o del `title` del propio aviso).
+
+| Tipo | Clase | Cuándo |
+|---|---|---|
+| `connection_expiring` | `ConnectionExpiring` | `connections:notify-expiry` (diario, `SOCIAL_EXPIRY_NOTICE_AT`) avisa a los `SOCIAL_EXPIRY_NOTICE_DAYS` (7 y 1) días de la caducidad, una vez por umbral y fecha (`meta.expiry_notice` de la cuenta) |
+| `job_failed_report` / `_studio_export` / `_studio_ai` / `_canva` / `_import` | `AsyncJobFailed` | Un informe programado, una exportación MP4/GIF, un trabajo de IA, de Canva o una importación remota fallan (`JobFailureNotifier`) |
+| `studio_design_shared` / `_role` / `_revoked` / `_comment` | `StudioDesignActivity` | Colaboración en un diseño; el enlace abre el diseño (sin enlace si se retiró el acceso) |
+
+- **Frecuencia**: `JobFailureNotifier` avisa una sola vez por trabajo (aunque fallen la cola y el servicio) y como mucho 5 avisos por tipo y hora y usuario; la caducidad, una vez por umbral y fecha.
+- **Correo opcional**: `users.notify_by_mail` (apagado por defecto, casilla en Perfil). Con ella, estos avisos añaden el canal `mail`; sin ella solo van a la base de datos. `PublishFailed` y `ReconnectRequired` siguen enviando correo siempre.
+- Los avisos de fallo de trabajos van por cola (`poll`) como `ReconnectRequired`; sin SMTP real, los tests usan `Notification::fake`.

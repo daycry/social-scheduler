@@ -9,6 +9,7 @@ use App\Models\Canva\CanvaConnection;
 use App\Models\Canva\CanvaJob;
 use App\Models\MediaAsset;
 use App\Models\User;
+use App\Services\JobFailureNotifier;
 use App\Services\MediaUploadService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
@@ -285,6 +286,7 @@ class CanvaJobs
         $bad = $assets->firstWhere('status', MediaAsset::STATUS_INVALID);
         if ($assets->count() < count((array) $job->output_media_ids) || $bad !== null) {
             $job->forceFill(['status' => CanvaJob::FAILED, 'error_code' => 'import_failed', 'error' => Str::limit((string) ($bad?->error ?: 'No se pudo guardar el fichero exportado en la biblioteca.'), 500, '')])->save();
+            app(JobFailureNotifier::class)->canva($job);
         } else {
             $job->forceFill(['status' => CanvaJob::READY])->save();
         }
@@ -307,6 +309,7 @@ class CanvaJobs
     private function fail(CanvaJob $job, string $code, string $message): bool
     {
         $job->forceFill(['status' => CanvaJob::FAILED, 'error_code' => Str::limit($code, 40, ''), 'error' => Str::limit($message, 500, '')])->save();
+        app(JobFailureNotifier::class)->canva($job);
 
         return false;
     }

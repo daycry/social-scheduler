@@ -60,6 +60,9 @@ Schedule::command('posts:purge-trash')->dailyAt('04:30')->name('posts-purge-tras
 Schedule::job(new CollectCompetitorSnapshots)->dailyAt((string) config('social.competitors.daily_at', '13:00'))->name('collect-competitor-snapshots')->withoutOverlapping();
 Schedule::job(new CollectCompetitorPosts)->dailyAt((string) config('social.competitors.posts_at', '13:30'))->name('collect-competitor-posts')->withoutOverlapping();
 
+// Caducidad de conexiones (T-23): avisa N dias antes (Meta 90 dias, LinkedIn sin renovacion); una vez por umbral y fecha.
+Schedule::command('connections:notify-expiry')->dailyAt((string) config('social.expiry_notice_at', '09:00'))->name('notify-connection-expiry')->withoutOverlapping();
+
 // Autolistas (PA-09): genera las publicaciones programadas de los proximos dias (idempotente). Cola `poll`.
 Schedule::job(new GenerateAutolistPosts)->dailyAt((string) config('social.autolists.daily_at', '02:00'))->name('generate-autolist-posts')->withoutOverlapping();
 

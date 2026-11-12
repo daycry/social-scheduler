@@ -704,8 +704,8 @@ Configs de Playwright (se comprobó referencias en docs, CI, scripts y `package.
 ### T-17 — Tests de permisos: aprobaciones y colaboradores
 
 - **Descripción**: Cubrir con tests de permisos y acceso cruzado `RequestPostApproval`, `api.approvals.pending`, `api.collaborators.index` y `workflow.collaborators.index`.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las aprobaciones y los colaboradores de una marca quedan cubiertos por pruebas que garantizan que nadie ve ni modifica los de otro usuario ni con una API key sin el permiso necesario.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
@@ -733,18 +733,20 @@ Configs de Playwright (se comprobó referencias en docs, CI, scripts y `package.
 
 **Notas**: Tamaño S. Si un test destapa un fallo real de permisos, se corrige en esta misma tarea y se anota.
 
+**Evidencia**: 18 tests nuevos (65 aserciones) en 3 ficheros: `tests/Feature/Mcp/RequestPostApprovalTest.php` (6: éxito con aviso al aprobador e idempotencia; key con `posts:read` o `posts:approve` rechazada con mención de `posts:write` sin tocar el post; otro usuario recibe el mismo error que ante un post inexistente; el aprobador invitado tampoco puede pedirla; post de la marca de otro; sin key 401), `tests/Feature/Workflow/ApprovalsPendingApiTest.php` (5: propietario y aprobador ven el pendiente; un ajeno recibe `{pending: []}`; el aprobador solo ve las marcas donde fue invitado; solo pendientes; sin `posts:read` 403 y sin key 401) y `tests/Feature/Workflow/CollaboratorsIndexTest.php` (7: `workflow.collaborators.index` y `api.collaborators.index` con éxito, 404 idéntico al de una marca inexistente para el ajeno y para el aprobador invitado, sin sesión/key 401, sin `posts:read` 403, sin mezcla entre marcas del mismo propietario). **Defectos de autorización: ninguno.** Las cuatro rutas ya delegaban en `PostWorkflowActions::owned()/ownedBrand()` (404 uniforme) y `RequireApiAbility`; no hubo cambios en código de producción. `vendor/bin/pest --compact --filter="RequestPostApprovalTest|ApprovalsPendingApiTest|CollaboratorsIndexTest"` → 18/18; `vendor/bin/pest --compact tests/Feature/Workflow tests/Feature/Mcp` → 366/366 (2428 aserciones, 13,7 s); `pint` sobre los 3 ficheros → passed. Nota de método: tras `withToken()` el token persiste en las cabeceras del test; el caso «sin key» usa `withoutToken()`.
+
 ### T-18 — E2E menos frágil: sin `waitForTimeout` ni `.first()` arbitrarios
 
 - **Descripción**: Sustituir los 32 `waitForTimeout`, los `.first()` y los `getByText` frágiles por `expect.poll`, `getByRole` y `getByTestId`, añadiendo `data-testid` donde falten.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las pruebas de extremo a extremo dejan de dormir tiempos fijos (esperan a que terminen las animaciones o a un evento real) y fallan menos de forma intermitente; una salvaguarda impide volver a introducirlos.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-14
 - **Tipo**: test
-- **Archivos**: `tests/e2e/a11y.spec.ts`, `tests/e2e/composer.spec.ts`, `tests/e2e/helpers.ts`, `tests/e2e/**/*.spec.ts`
+- **Archivos**: `tests/e2e/a11y.spec.ts`, `tests/e2e/composer.spec.ts`, `tests/e2e/helpers.ts`, `tests/e2e/**/*.spec.ts`, `tests/frontend/test-tooling.test.mjs`, `tests/frontend/studio-presentation-close-observer.test.mjs`
 - **Cubre**: E-16
 - **Cubre (tests)**: E2E-39
 - **Verificación**: `grep -rn "waitForTimeout" tests/e2e` → ≤ 3 coincidencias (justificadas) · `npx playwright test tests/e2e/composer.spec.ts tests/e2e/a11y.spec.ts --workers=1` → verde
@@ -765,6 +767,8 @@ Configs de Playwright (se comprobó referencias en docs, CI, scripts y `package.
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Los `data-testid` añadidos a `.vue` no cambian comportamiento. Una sola ejecución de Playwright a la vez (GOT-005).
+
+**Evidencia**: (1) `waitForTimeout`: de 32 llamadas a 1 (la de `quietFor()` en `helpers.ts`, `grep -rn '\.waitForTimeout' tests/e2e` → 1 coincidencia). 11 sueños de 400 ms antes de axe (transiciones de color tras `mouse.move(0, 0)`) y 4 de los diálogos de `a11y.spec.ts:126,132,141,196` pasan al helper nuevo `animationsDone(page)`, que espera dos fotogramas y al evento `finished` de cada animación/transición CSS finita (las infinitas, p. ej. spinners, se ignoran); `a11y.spec.ts` lo llama una vez en `axeYSinDesbordamiento`. Los 16 restantes eran aserciones NEGATIVAS en el tiempo (que algo NO ocurra durante una ventana: pausa del reloj/audio/vídeo, sondeo detenido, debounce cancelado, Enter sobre un enlace que no debe enviar, anti-bot de 2 s en `sites.spec.ts` verificado en `PublicSiteController::contact`, `$age >= 2`): no hay evento al que esperar, así que van por `quietFor(page, ms)` con el motivo comentado en cada llamada, y `helpers.ts` es la única excepción. (2) Salvaguarda en `tests/frontend/test-tooling.test.mjs`: recorre `tests/e2e` y falla si un fichero supera su número de llamadas admitidas (0 salvo `helpers.ts`: 1, con motivo); más un test de la propia detección. `tests/frontend/studio-presentation-close-observer.test.mjs` extrae un bloque del spec y ahora recibe `quietFor`. (3) Selectores: se probó añadir `{ exact: true }` a los 33 `getByText` de cadena literal de a11y, security y composer; falló en 7 casos (`security.spec` y `a11y.spec`: 'El doble factor está desactivado', 'Te quedan 6 códigos de recuperación', 'Las passkeys requieren HTTPS' son subcadenas de un párrafo mayor), así que se revirtió ese cambio por completo; solo se quitó el `.first()` redundante sobre el `<code>` de la clave 2FA (`a11y.spec.ts:114`, `security.spec.ts:72`, filtrado por regex y único). Sin `data-testid` nuevos. Quedan 103 `.first()` y 157 `getByText` (conteo de ocurrencias con `grep -o`; el audit contaba 97 y 151 por líneas/otro criterio): la mayoría son el primero de una lista deliberado o ya van acotados a un panel; revisarlos uno a uno sin poder ejecutar toda la batería queda como seguimiento. (4) Playwright (`E2E_PURGE=0 E2E_WORKERS=2`, sin otra ejecución en marcha, en 6 tandas): a11y+security 127 passed (4,1 min), composer 63 passed (4,3 min), campaigns+first-comment+gif-picker+hashtags 38 passed (2,4 min), instagram-audio+instagram-grid+media-import+natural-schedule+saved-texts 54 passed (3,4 min), sites+studio-audio-editor+studio-audio-resources+studio-timeline 28 passed (2,9 min), studio-presentation-media+studio-presentation-tools 8 passed (1,2 min) → 318 passed, 0 fallos. `studio-captions` no se tocó. (5) `npm run test:unit` 628/628 (la primera ejecución dio 4 fallos de `studio-presentation-close-observer` por `quietFor is not defined`; corregido); `npm run typecheck` sin errores. Pendiente fuera de alcance: `tests/frontend/studio-audio-preview.browser.test.mjs` (2 `waitForTimeout(260)`, fuera de `tests/e2e`, no cubierto por la salvaguarda).
 
 ### T-19 — Job nocturno del camino nativo MP4/GIF (ffmpeg + Chromium)
 

@@ -2717,7 +2717,7 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 **Criterios de aceptación**
 - [ ] El colaborador de la marca ve los diseños de esa marca en el estudio con el alcance de su rol (`BrandCollaborator.php:15` frente a `StudioCollab.php:24-28`)
 - [ ] La aprobación de diseños usa las `approvals` existentes, sin un flujo paralelo
-- [ ] Las claves de rol (`StudioAssets.php:142`) están en un solo idioma, con migración o alias para los datos existentes
+- [ ] Las claves de rol (`StudioAssets.php:142`) están en un solo idioma; una migración de datos convierte las existentes y el código no conserva las claves antiguas (sin alias)
 - [ ] Los tests de T-17 y los nuevos pasan; un colaborador sin rol no accede
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
@@ -2726,7 +2726,7 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 **Subtareas**
 - [ ] Definir la matriz rol de marca → acceso al estudio
 - [ ] Aplicarla en Policies/`Ownership::assert()`
-- [ ] Unificar claves de rol con alias de compatibilidad
+- [ ] Unificar claves de rol con migración de datos (sin alias)
 - [ ] Aprobación de diseños vía `approvals`
 - [ ] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
@@ -2813,7 +2813,7 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 ### T-108 — Permisos y abilities unificados (2/2): `media:*` y `designs:ai`
 
-- **Descripción**: Prefijos de abilities coherentes: los archivos tienen `media:read`/`media:write` y la IA del estudio pasa de `studio:ai` a `designs:ai`, con alias de compatibilidad.
+- **Descripción**: Prefijos de abilities coherentes: los archivos tienen `media:read`/`media:write` y la IA del estudio pasa de `studio:ai` a `designs:ai`. Sin alias: una migración de datos reescribe las abilities guardadas en las API keys existentes y el nombre antiguo deja de existir en el código.
 - **Changelog**:
 - **Estado**: borrador
 - **Tiempo humano**: est. 8.0h · real —
@@ -2829,8 +2829,8 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 **Criterios de aceptación**
 - [ ] Existen `media:read` y `media:write` y `ListMedia`/`ImportMediaFromUrl` los exigen (`Abilities.php:19-39`)
-- [ ] `studio:ai` pasa a `designs:ai` y el nombre antiguo sigue funcionando como alias
-- [ ] Las claves de API existentes no pierden acceso (migración o alias) y hay test
+- [ ] `studio:ai` pasa a `designs:ai`; un grep de `studio:ai` en `app/`, `config/`, `resources/`, `tests/` y `docs/` (salvo roadmap) da 0
+- [ ] Las claves de API existentes no pierden acceso: una migración de datos reescribe sus abilities, con test de la migración
 - [ ] La documentación de abilities lista el nuevo conjunto
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
@@ -2838,8 +2838,8 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 **Subtareas**
 - [ ] Añadir `media:*` y exigirlas
-- [ ] Renombrar `studio:ai` a `designs:ai` con alias
-- [ ] Tests de compatibilidad y documentación
+- [ ] Renombrar `studio:ai` a `designs:ai` con migración de datos (sin alias)
+- [ ] Test de la migración y documentación (nota de despliegue: las abilities se renombran)
 - [ ] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión

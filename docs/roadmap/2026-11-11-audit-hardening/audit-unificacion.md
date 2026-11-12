@@ -31,7 +31,7 @@ Requisito del usuario: Social Scheduler tiene que ser **una sola aplicación**, 
 | U-21 | Avisos | `StudioDesignActivity.php:21`, `Notifications/Index.vue:20,46-49` | Los avisos `studio_design_*` salen como «Aviso» genérico y sin enlace | Título por tipo y enlace genérico `n.url` | M | S |
 | U-22 | Permisos | `BrandCollaborator.php:15` frente a `StudioCollab.php:24-28`; `StudioAssets.php:142` | Dos modelos de permisos; el colaborador de la marca no ve sus diseños; roles con claves en idiomas mezclados | Roles de marca con acceso al estudio; aprobación de diseños vía `approvals`; claves en un solo idioma | M | L |
 | U-23 | API/MCP | `ListDesigns.php:15`, `ListMedia.php:16`, `creative-suite.openapi.yaml:19` | Tres estilos de paginación | Contrato de paginación por cursor único | M | M |
-| U-24 | API/MCP | `Abilities.php:19-39`, `ListMedia.php:20`, `ImportMediaFromUrl` | Prefijos de abilities mezclados (`designs:`/`studio:`); los archivos no tienen ability propia | `media:read`/`media:write`; `studio:ai` pasa a `designs:ai` (con alias) | B | S |
+| U-24 | API/MCP | `Abilities.php:19-39`, `ListMedia.php:20`, `ImportMediaFromUrl` | Prefijos de abilities mezclados (`designs:`/`studio:`); los archivos no tienen ability propia | `media:read`/`media:write`; `studio:ai` pasa a `designs:ai` (migración de datos, sin alias) | B | S |
 | U-25 | API/MCP | 80 rutas de diseño o marca frente a 10 de posts en `api/v1`; OpenAPI solo de la suite creativa; marca a veces en la query y a veces en la ruta | El estudio está más expuesto que el núcleo social | Un OpenAPI único; la marca siempre en la ruta | B | M |
 
 ## Cómo entra en el plan

@@ -53,11 +53,11 @@ async function axeYSinDesbordamiento(page: Page, label: string) {
     await expectNoOverflow(page);
 }
 
-test.describe('axe · públicas', () => {
+test.describe('axe · públicas', { tag: '@responsive' }, () => {
     for (const [name, path] of PUBLIC_PAGES) test(name, async ({ page }) => axe(page, path));
 });
 
-test.describe('axe · autenticadas', () => {
+test.describe('axe · autenticadas', { tag: '@responsive' }, () => {
     test.use({ storageState: AUTH_FILE });
     for (const [name, path] of AUTH_PAGES) test(name, async ({ page }) => axe(page, path));
 });

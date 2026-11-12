@@ -584,33 +584,45 @@ Configs de Playwright (se comprobó referencias en docs, CI, scripts y `package.
 ### T-14 — E2E paralelizable: servidor y SQLite por worker; móvil solo en `@responsive`
 
 - **Descripción**: Servidor `php -S`, base SQLite y puerto propios por worker; los proyectos de tamaño móvil/tablet solo ejecutan specs `@responsive`; habilitar `--shard`.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: La batería E2E se ejecuta en paralelo (E2E_WORKERS, 2 por defecto) con un servidor y una base de datos por worker; los proyectos móviles solo corren los tests @responsive y se puede repartir con --shard.
+- **Cerrada**: 2026-11-12
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
-- **Tiempo IA (ejec.)**: est. 2.0h · real —
+- **Tiempo IA (ejec.)**: est. 2.0h · real 1.4h (estimado)
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-13
 - **Tipo**: test
-- **Archivos**: `playwright.config.ts`, `tests/e2e/isolated/serve.cjs`, `tests/e2e/isolated/runtime.ts`, `tests/e2e/helpers.ts`, `tests/e2e/global-setup.ts`, `docs/guias/testing.md`
+- **Archivos**: `playwright.config.ts`, `tests/e2e/isolated/serve.cjs`, `tests/e2e/isolated/runtime.ts`, `tests/e2e/helpers.ts`, `tests/e2e/global-setup.ts`, `tests/e2e/global-teardown.ts`, `tests/e2e/isolated/guard.config.ts`, `tests/e2e/isolated/parallel.test.cjs`, `tests/frontend/test-tooling.test.mjs`, `tests/e2e/{pages,a11y,flows,calendar-views,composer,sites,instagram-grid,campaigns,saved-texts,studio,studio-boards}.spec.ts` (solo la etiqueta `@responsive`), `docs/guias/testing.md`, `docs/guias/desarrollo-local.md`, `README.md`
 - **Cubre**: E-02
 - **Cubre (tests)**: E2E-39
 - **Verificación**: `npx playwright test --workers=2 --grep @smoke` → verde y sin colisiones · `npx playwright test --list --project=mobile` → solo specs `@responsive`
 
 **Criterios de aceptación**
-- [ ] La batería funciona con `workers ≥ 2` sin interferencias entre workers
-- [ ] Móvil/tablet solo corren specs etiquetadas `@responsive`
-- [ ] La duración total baja de forma medible frente a los 1,5 h de partida (registrar antes/después)
+- [x] La batería funciona con `workers ≥ 2` sin interferencias entre workers
+- [x] Móvil/tablet solo corren specs etiquetadas `@responsive`
+- [x] La duración total baja de forma medible frente a los 1,5 h de partida (registrar antes/después) — medido en una muestra (serie 6,9 min → 2 workers 4,0 min) y -46 % de ejecuciones (774 → 416); la pasada completa la lanza el coordinador al cerrar la fase
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+**Evidencia** (2026-11-12, sin otra ejecución en curso; `E2E_PURGE=0`; Windows, PHP 8.3.33, Playwright 1.64.1):
+- Muestra `pages a11y hashtags saved-texts campaigns instagram-grid` × 3 proyectos = 215 ejecuciones. Serie (`E2E_WORKERS=1`): `213 passed, 2 skipped (6.9m)`. Paralelo (`E2E_WORKERS=2`): `213 passed, 2 skipped (4.0m)`, 239 s de reloj total con el arranque de dos servidores (×1,7; `a11y.spec.ts` con 66 casos domina un worker). Ambos slots se usaron: 31 y 28 sesiones en sus dos `db.sqlite`, en dos `run-general-<uuid>` distintos. Los 2 omitidos son los previstos del shell de escritorio en móvil (`pages.spec.ts`).
+- `npx playwright test --list --project=…`: desktop 258, mobile 79, mobile-360 79 (antes 258 × 3 = 774; ahora 416, -46 %); `parallel.test.cjs` comprueba que los móviles solo listan `@responsive`.
+- `npm run test:unit` → `# tests 652 / # pass 652 / # fail 0` (incluye `parallel.test.cjs`, slots distintos, `E2E_WORKERS` inválido, `verifyRunIdentitySync`). `npx tsc --noEmit -p .`: sin errores nuevos (los 40 previos siguen). Guards del arnés (`tests/e2e/isolated/guard.config.ts`): 3 passed.
+- RAM medida con 2 workers sobre la muestra ligera: ≈ 1,9 GB (Chromium 0,9 + Node 0,8 + PHP 0,1); presupuesto recomendado 1,5-2 GB por worker + 1 GB (Studio y exportaciones pesan más). Fijo 2 workers por defecto por la OOM de la fase 1.
+- `PHP_CLI_SERVER_WORKERS=2 php -S …` en Windows: `forking is not supported on this platform` y sigue con un solo proceso → documentado; el paralelismo está en los servidores por worker.
+- No se ha lanzado la batería completa (la lanza el coordinador al cerrar la fase) ni Pest.
+
+**Decisiones**: slot = `parallelIndex` (`TEST_PARALLEL_INDEX`, que Playwright fija antes de cargar el config en el worker); `runtime.ts` decide una vez N puertos libres distintos y N `run-general-<uuid>` (hermanos, porque `bootstrap.php` exige ese patrón; el slot 0 es el de `E2E_GENERAL_RUN_ROOT`) y los publica en `E2E_SLOTS` para los workers. `helpers.ts` (`artisan`, `createE2eUsers`, `deleteE2eUsers`…) acepta un slot opcional con el actual por defecto, de modo que ningún spec cambia. Un `webServer` por slot. `global-setup` prepara cada slot (identidad, usuarios, sesión readonly) y rechaza `--workers` > `E2E_WORKERS`; cada worker repite la identidad al arrancar (`verifyRunIdentitySync`, inline en `runtime.ts` porque Node con type-stripping no resuelve imports sin extensión y los tests de `test-tooling` importan ese módulo). `fullyParallel` sigue en `false`: ficheros en paralelo, tests de un fichero en orden en un worker (los 23 specs `serial` incluidos). El teardown borra los usuarios de todos los slots y la purga protege todos sus `runRoot`.
+**Criterio `@responsive`** (lo que comprueba maquetación, desbordamiento, navegación/menú móvil, rejillas o a11y a ancho estrecho; la lógica de negocio es igual en cualquier ancho y queda solo en desktop): `pages` (3 grupos: públicas, autenticadas, shell), `a11y` (`axe · públicas`, `axe · autenticadas`), `flows` (registro; marca → borrador → calendario/lista/papelera/biblioteca), `calendar-views` (entrada por el menú), `composer` (E2E-01 pastillas, E2E-12 barrido de desbordamiento, A11Y-01, E2E-13 selector de tipo con rama por ancho), `sites` (E2E-15, E2E-15b: vista previa móvil/tablet), `instagram-grid` (E2E-05), `campaigns` (E2E-06 lista/selector con captura por proyecto), `saved-texts` (E2E-02 menú sobre el cursor), `studio` (editor de diseño, `scrollWidth`) y `studio-boards` (pizarra, ramas táctiles). Casi todos los specs llaman a `expectNoOverflow`, por eso no se usó «contiene overflow» como criterio: se etiqueta el test cuyo OBJETO es la maquetación. Quedan solo en desktop el resto de Studio, media, publicación, seguridad, OAuth, redes, etc.
 
 **Notas**: Tamaño M. Cambio de infraestructura de tests: las demás tareas siguen ejecutándose en serie para no mezclar causas de fallo (GOT-005). Medir antes/después.
 

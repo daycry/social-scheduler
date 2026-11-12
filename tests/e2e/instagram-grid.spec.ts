@@ -37,7 +37,7 @@ async function axeNow(page: Page, label: string) {
     expect(bad, `violaciones de accesibilidad en ${label}:\n${detail}`).toEqual([]);
 }
 
-test('E2E-05 · programadas arriba (la más tardía primero), publicadas debajo, sin la Story, sin desbordar y con axe limpio', async ({ page }, info) => {
+test('E2E-05 · programadas arriba (la más tardía primero), publicadas debajo, sin la Story, sin desbordar y con axe limpio', { tag: '@responsive' }, async ({ page }, info) => {
     const w = watch(page);
     // Las miniaturas de lo programado salen de medios sembrados que no existen en disco: se sirven con un PNG de 1x1.
     const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAwS2OUAAAAABJRU5ErkJggg==', 'base64');

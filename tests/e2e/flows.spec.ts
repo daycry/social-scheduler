@@ -9,7 +9,7 @@ import { axeSeriousCritical, borrarMarcasE2e, e2eUser, expectNoOverflow, loginAs
 
 const aceptarDialogos = (page: Page) => page.on('dialog', (d) => d.accept());
 
-test('registro: crea la cuenta y pide verificar el correo', async ({ page }, info) => {
+test('registro: crea la cuenta y pide verificar el correo', { tag: '@responsive' }, async ({ page }, info) => {
     const w = watch(page);
     const email = `e2e-${stamp()}-${info.project.name}@example.test`;
     const password = `E2e-${stamp()}-Pass1!`;
@@ -44,7 +44,7 @@ test.describe('con sesión de un usuario e2e-sec-*', () => {
         await loginAs(page, e2eUser(info.project.name));
     });
 
-    test('marca → borrador → calendario/lista → papelera → restaurar → biblioteca', async ({ page }, info) => {
+    test('marca → borrador → calendario/lista → papelera → restaurar → biblioteca', { tag: '@responsive' }, async ({ page }, info) => {
         const w = watch(page);
         aceptarDialogos(page);
         const brand = `e2e-marca-${stamp()}-${info.project.name}`;

@@ -12,13 +12,13 @@ async function check(page: Page, path: string) {
     expect(w.errors, `errores de consola en ${path}`).toEqual([]);
 }
 
-test.describe('páginas públicas', () => {
+test.describe('páginas públicas', { tag: '@responsive' }, () => {
     for (const [name, path] of PUBLIC_PAGES) {
         test(name, async ({ page }) => check(page, path));
     }
 });
 
-test.describe('páginas autenticadas', () => {
+test.describe('páginas autenticadas', { tag: '@responsive' }, () => {
     test.use({ storageState: AUTH_FILE });
 
     for (const [name, path] of AUTH_PAGES) {

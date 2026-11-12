@@ -32,7 +32,7 @@ test('roadmap.spec no fija ningún puerto 808x', () => {
 
 test('el teardown borra usuarios y purga en bloques independientes', () => {
     const src = read('tests/e2e/global-teardown.ts');
-    assert.match(src, /try\s*\{\s*deleteE2eUsers\(\)/);
+    assert.match(src, /try\s*\{\s*deleteE2eUsers\(slot\)/);
     assert.match(src, /E2E_PURGE_KEEP/);
     assert.doesNotMatch(src, /Number\(process\.env\.E2E_PURGE/);
 });
@@ -53,4 +53,26 @@ test('la guía de desarrollo local ya no propone arrancar el servidor a mano con
     const doc = read('docs/guias/desarrollo-local.md');
     assert.doesNotMatch(doc, /y usar `E2E_NO_SERVER=1`/);
     assert.doesNotMatch(doc, /\nE2E_NO_SERVER=1 npm run test:e2e/);
+});
+
+test('E2E paralelo: un slot (puerto, runRoot y SQLite) por worker, distintos entre sí; E2E_WORKERS inválido falla', () => {
+    const probe = 'import("./tests/e2e/isolated/runtime.ts").then(m=>console.log(JSON.stringify(m.slots.map(s=>[s.port,s.runRoot,s.environment.DB_DATABASE]))),e=>{console.log("ERR "+e.message)})';
+    const run = env => {
+        const clean = { ...process.env, ...env };
+        for (const key of ['E2E_GENERAL_RUN_ROOT', 'T43_RUN_ROOT', 'E2E_BASE_URL', 'E2E_NO_SERVER', 'E2E_SLOTS', 'E2E_PORT', 'E2E_WORKERS']) if (!(key in env)) delete clean[key];
+        return execFileSync(process.execPath, ['--input-type=module', '-e', probe], { env: clean, encoding: 'utf8' }).trim();
+    };
+    const slots = JSON.parse(run({ E2E_WORKERS: '3' }));
+    assert.equal(slots.length, 3);
+    for (const column of [0, 1, 2]) assert.equal(new Set(slots.map(s => s[column])).size, 3, `columna ${column} duplicada`);
+    assert.equal(JSON.parse(run({})).length, 2, 'por defecto 2 workers');
+    assert.equal(JSON.parse(run({ E2E_WORKERS: '2', E2E_PORT: '18124' }))[0][0], 18124);
+    for (const bad of ['0', '17', 'abc', '1.5']) assert.match(run({ E2E_WORKERS: bad }), /^ERR .*E2E_WORKERS/);
+});
+
+test('verifyRunIdentitySync acepta el servidor de su slot y rechaza el de otro slot', async () => {
+    const { verifyRunIdentitySync } = await import('../e2e/isolated/runtime.ts');
+    const ask = storage => () => JSON.stringify({ storage });
+    verifyRunIdentitySync('http://localhost:1', 'C:/run/run-general-a', ask('C:/run/run-general-a'));
+    assert.throws(() => verifyRunIdentitySync('http://localhost:1', 'C:/run/run-general-a', ask('C:/run/run-general-b')), /otra ejecuci|otro worker/);
 });

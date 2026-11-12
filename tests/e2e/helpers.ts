@@ -5,7 +5,10 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { authFile, usersFile, startFile, fakeSocialFile, environment } from './isolated/runtime';
+import { authFile, usersFile, startFile, fakeSocialFile, environment, slots, slotIndex, type Slot } from './isolated/runtime';
+
+/** Slot (servidor + SQLite + runRoot) de ESTE proceso: el de su worker, o el 0 en el proceso principal. */
+const currentSlot: Slot = slots[slotIndex];
 
 export const READONLY = { email: 'e2e-sec-readonly@example.test', password: 'E2e-Readonly-Disposable-Aa1!' };
 export const AUTH_FILE = authFile;
@@ -111,10 +114,10 @@ export type E2eUser = { email: string; password: string; name: string };
 export const e2eEmail = (project: string) => `e2e-sec-${project}@example.test`;
 
 /** Ejecuta PHP en el contexto de la app (tinker) y devuelve su salida. Solo para preparar/limpiar datos `e2e-`. */
-export function artisan(code: string): string {
+export function artisan(code: string, env: Record<string, string> = environment): string {
     let out: string;
     try {
-        out = execFileSync('php', ['tests/e2e/isolated/cli.php', 'tinker', code], { env: environment, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+        out = execFileSync('php', ['tests/e2e/isolated/cli.php', 'tinker', code], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
     } catch (error) {
         const failure = error as { stdout?: string; stderr?: string };
         throw new Error(`Disposable E2E PHP failed: ${failure.stdout ?? ''}\n${failure.stderr ?? ''}`);
@@ -136,26 +139,27 @@ const cleanUserPhp = (email: string) =>
     `foreach (['127.0.0.1', '::1'] as $ip) { Illuminate\\Support\\Facades\\RateLimiter::clear(Illuminate\\Support\\Str::lower(${q(email)}) . '|' . $ip); }`;
 
 /** Crea los usuarios de seguridad y guarda sus credenciales en el directorio auth del run desechable. */
-export function createE2eUsers(): Record<string, E2eUser> {
+export function createE2eUsers(slot: Slot = currentSlot): Record<string, E2eUser> {
     const users: Record<string, E2eUser> = {};
     for (const project of E2E_PROJECTS) {
         const user = { email: e2eEmail(project), name: `e2e Seguridad ${project}`, password: `E2e-${crypto.randomBytes(9).toString('hex')}-Aa1!` };
         artisan(
             `$u = App\\Models\\User::firstOrNew(['email' => ${q(user.email)}]); ` +
                 `$u->forceFill(['name' => ${q(user.name)}, 'password' => Illuminate\\Support\\Facades\\Hash::make(${q(user.password)}), 'email_verified_at' => now()])->save();`,
+            slot.environment,
         );
-        resetSecurity(user.email);
+        resetSecurity(user.email, slot.environment);
         users[project] = user;
     }
-    fs.mkdirSync(path.dirname(E2E_USERS_FILE), { recursive: true });
-    fs.writeFileSync(E2E_USERS_FILE, JSON.stringify(users));
-    fs.writeFileSync(E2E_START_FILE, new Date().toISOString().slice(0, 19).replace('T', ' '));
-    clearFakeSocial();
+    fs.mkdirSync(path.dirname(slot.usersFile), { recursive: true });
+    fs.writeFileSync(slot.usersFile, JSON.stringify(users));
+    fs.writeFileSync(slot.startFile, new Date().toISOString().slice(0, 19).replace('T', ' '));
+    clearFakeSocial(slot);
     return users;
 }
 
 /** Borra los usuarios E2E (con ellos se van sus passkeys, marcas y sesiones asociadas por cascada). */
-export function deleteE2eUsers() {
+export function deleteE2eUsers(slot: Slot = currentSlot) {
     // La auditoria pone user_id a NULL al borrar el usuario: sus filas se borran antes para no dejar huerfanas.
     artisan(
         `$ids = App\\Models\\User::whereIn('email', [${[...E2E_PROJECTS.map(e2eEmail), READONLY.email].map(q).join(', ')}])->pluck('id'); ` +
@@ -163,6 +167,7 @@ export function deleteE2eUsers() {
             // Los tokens de Sanctum no tienen FK al usuario: se borran a mano (keys manuales y tokens OAuth de los tests).
             `Illuminate\\Support\\Facades\\DB::table('personal_access_tokens')->where('tokenable_type', App\\Models\\User::class)->whereIn('tokenable_id', $ids)->delete(); ` +
             `App\\Models\\User::whereIn('id', $ids)->get()->each->delete();`,
+        slot.environment,
     );
     // Auditoría sin usuario (user_id NULL): SOLO se borra la identificable como e2e, a partir de los ids de los clientes `e2e-%`
     // (registros DCR: `detail` = `client_id=<id>`), y se hace ANTES de borrar los clientes. Los rechazos del login social
@@ -171,11 +176,12 @@ export function deleteE2eUsers() {
     artisan(
         `$cid = App\\Models\\OAuthClient::where('name', 'like', 'e2e-%')->pluck('id'); ` +
             `Illuminate\\Support\\Facades\\DB::table('audit_logs')->whereNull('user_id')->where('action', 'like', 'oauth.%')->where(fn ($w) => $cid->each(fn ($id) => $w->orWhere('detail', 'like', 'client_id=' . $id . '%')))->whereIn('ip', ['127.0.0.1', '::1'])->when($cid->isEmpty(), fn ($q) => $q->whereRaw('1 = 0'))->delete();`,
+        slot.environment,
     );
-    deleteE2eOAuthClients();
-    fs.rmSync(E2E_START_FILE, { force: true });
-    clearFakeSocial();
-    fs.rmSync(E2E_USERS_FILE, { force: true });
+    deleteE2eOAuthClients(slot.environment);
+    fs.rmSync(slot.startFile, { force: true });
+    clearFakeSocial(slot);
+    fs.rmSync(slot.usersFile, { force: true });
 }
 
 export function e2eUser(project: string): E2eUser {
@@ -183,8 +189,8 @@ export function e2eUser(project: string): E2eUser {
 }
 
 /** Deja al usuario sin 2FA ni passkeys y sin bloqueos del reto (estado inicial de cada test). */
-export function resetSecurity(email: string) {
-    artisan(cleanUserPhp(email));
+export function resetSecurity(email: string, env: Record<string, string> = environment) {
+    artisan(cleanUserPhp(email), env);
 }
 
 /** Libera el antirreplay del TOTP (`two_factor_last_used_at`) y el bloqueo del reto: para flujos que no prueban eso. */
@@ -344,8 +350,8 @@ export function setFakeSocial(provider: 'google' | 'facebook', identity: FakeIde
     fs.writeFileSync(FAKE_SOCIAL_FILE, JSON.stringify(all));
 }
 
-export function clearFakeSocial() {
-    fs.rmSync(FAKE_SOCIAL_FILE, { force: true });
+export function clearFakeSocial(slot: Slot = currentSlot) {
+    fs.rmSync(slot.fakeSocialFile, { force: true });
 }
 
 /** El callback social va limitado a 20/min por IP: se libera para que la batería no dependa del ritmo (la clave es el md5 del limitador). */
@@ -391,8 +397,8 @@ export function createExtraE2eUser(label: string): string {
 export const OAUTH_REDIRECT = 'http://127.0.0.1:53111/callback';
 
 /** Borra los clientes OAuth `e2e-*` (con ellos se van sus códigos; los tokens quedan sin cliente y se borran con el usuario). */
-export function deleteE2eOAuthClients() {
-    artisan(`App\\Models\\OAuthClient::where('name', 'like', 'e2e-%')->get()->each->delete();`);
+export function deleteE2eOAuthClients(env: Record<string, string> = environment) {
+    artisan(`App\\Models\\OAuthClient::where('name', 'like', 'e2e-%')->get()->each->delete();`, env);
 }
 
 /**

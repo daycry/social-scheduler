@@ -52,7 +52,7 @@ test('Studio: fractional exports round to 21 pixels and register PNG JPEG WebP i
     } finally { cleanComposerBrands(user.email); }
 });
 
-test('Studio: design persists, exports real PNG and starts a publication in its brand', async ({ page }, info) => {
+test('Studio: design persists, exports real PNG and starts a publication in its brand', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `studio-${stamp()}-${info.project.name}`);

@@ -34,7 +34,7 @@ async function axeNow(page: Page, label: string) {
 
 const rows = (page: Page) => page.getByTestId('campaign-row');
 
-test('E2E-06 · gestión de campañas: alta con color y fechas, selector del compositor solo con las de la marca, alta en línea y archivo', async ({ page }, info) => {
+test('E2E-06 · gestión de campañas: alta con color y fechas, selector del compositor solo con las de la marca, alta en línea y archivo', { tag: '@responsive' }, async ({ page }, info) => {
     const w = watch(page);
     const user = e2eUser(info.project.name);
     seedOtherBrandCampaign(user.email, `${stamp()}-${info.project.name}`);

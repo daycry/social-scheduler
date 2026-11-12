@@ -56,7 +56,7 @@ async function guardarBorrador(page: Page) {
     await guardado;
 }
 
-test('E2E-01 · compositor a pantalla completa con pastillas de red', async ({ page }) => {
+test('E2E-01 · compositor a pantalla completa con pastillas de red', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await open(page);
 
@@ -708,7 +708,7 @@ test('E2E-05 · al subir un vídeo la previsualización lo muestra con un reprod
     expect(w.errors).toEqual([]);
 });
 
-test('E2E-12 · barrido de accesibilidad y desbordamiento del compositor (crear y editar)', async ({ page }) => {
+test('E2E-12 · barrido de accesibilidad y desbordamiento del compositor (crear y editar)', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await open(page);
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
@@ -732,7 +732,7 @@ test('E2E-12 · barrido de accesibilidad y desbordamiento del compositor (crear 
     expect(w.errors).toEqual([]);
 });
 
-test('A11Y-01 · compositor con el selector de emoji, la IA y el diálogo de salida abiertos', async ({ page }) => {
+test('A11Y-01 · compositor con el selector de emoji, la IA y el diálogo de salida abiertos', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.route('**/ai/status', (route) => route.fulfill({ json: { enabled: true, remaining: 5 } }));
     await open(page);
@@ -1141,7 +1141,7 @@ test('E2E-09 · los interruptores recordados también se aplican al cambiar de t
     expect(w.errors).toEqual([]);
 });
 
-test('E2E-13 · selector de tipo junto a cada red: icono, nombre y subtítulo, teclado, Escape y Enter sin enviar el formulario', async ({ page }) => {
+test('E2E-13 · selector de tipo junto a cada red: icono, nombre y subtítulo, teclado, Escape y Enter sin enviar el formulario', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await open(page);
     const url = page.url();

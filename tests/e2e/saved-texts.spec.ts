@@ -88,7 +88,7 @@ test('E2E-01 · página «Textos guardados»: alta, edición, filtro por marca y
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-02 · menú del compositor: solo los de la marca y los globales; inserta en el cursor', async ({ page }, info) => {
+test('E2E-02 · menú del compositor: solo los de la marca y los globales; inserta en el cursor', { tag: '@responsive' }, async ({ page }, info) => {
     const w = watch(page);
     seedSavedTexts(e2eUser(info.project.name).email, brand.id, `${stamp()}-${info.project.name}`);
     await page.goto(`/brands/${brand.id}/posts/create`);

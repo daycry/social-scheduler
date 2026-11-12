@@ -127,7 +127,7 @@ test('E2E-02 · la vista por defecto se aplica al abrir el calendario', async ({
     await expectNoOverflow(page);
 });
 
-test('E2E-02 · la vista por defecto también se aplica al entrar por el menú (brand_id y view en el enlace)', async ({ page }) => {
+test('E2E-02 · la vista por defecto también se aplica al entrar por el menú (brand_id y view en el enlace)', { tag: '@responsive' }, async ({ page }) => {
     await page.goto('/calendar?view=list');
     await settle(page);
     await select(page, 'Red').selectOption('facebook');

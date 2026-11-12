@@ -58,7 +58,7 @@ test.afterEach(async ({}, info) => {
     cleanMedia(email);
 });
 
-test('E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo publicado, proteger y revocar', async ({ page, browser }, info) => {
+test('E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo publicado, proteger y revocar', { tag: '@responsive' }, async ({ page, browser }, info) => {
     test.setTimeout(240_000);
     const w = watch(page);
     page.on('dialog', (d) => d.accept().catch(() => {}));
@@ -299,7 +299,7 @@ test('E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo 
     expect(w.errors, 'errores de consola en el editor').toEqual([]);
 });
 
-test('E2E-15b · Sitios: la lista y el editor son responsive y accesibles sin sitios ni bloques', async ({ page }) => {
+test('E2E-15b · Sitios: la lista y el editor son responsive y accesibles sin sitios ni bloques', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/sites?brand_id=${brand.id}`);
     await settle(page);

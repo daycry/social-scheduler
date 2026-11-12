@@ -33,7 +33,7 @@ const download = async (page: Page, path: string) => {
 };
 const layer = (page: Page, index: number) => page.getByTestId('studio-layer').nth(index).getByRole('button').first();
 
-test('Studio: whiteboard with a table, glued connectors and free drawing persists and exports PNG, SVG and PDF', async ({ page }, info) => {
+test('Studio: whiteboard with a table, glued connectors and free drawing persists and exports PNG, SVG and PDF', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `studio-board-${stamp()}-${info.project.name}`);

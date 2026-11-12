@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, stamp } from './helpers';
+import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, quietFor, seedComposerBrand, stamp } from './helpers';
 
 function wave() {
     const buffer = Buffer.alloc(44 + 4 * 32000);
@@ -60,7 +60,7 @@ test('Studio audio editor: upload, add, trim, split, undo, play, persist and reo
         await timeline.getByRole('button', { name: 'Reproducir', exact: true }).click();
         await expect.poll(async () => Number(await clock.inputValue())).toBeGreaterThan(1.1);
         await timeline.getByRole('button', { name: 'Pausar', exact: true }).click();
-        const paused = await clock.inputValue(); await page.waitForTimeout(100); expect(await clock.inputValue()).toBe(paused);
+        const paused = await clock.inputValue(); await quietFor(page, 100); /* negativa: en pausa el reloj no avanza */ expect(await clock.inputValue()).toBe(paused);
         expect((await read()).document).toEqual(before.document);
         await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
         await page.screenshot({ path: info.outputPath('audio-timeline.png'), fullPage: true });

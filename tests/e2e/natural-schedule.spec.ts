@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedExtraAccount, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedExtraAccount, animationsDone, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * Programar en lenguaje natural (C-04c, E2E-07): «Escribe cuándo» propone una fecha y unas redes y SOLO las aplica al confirmar.
@@ -55,7 +55,7 @@ async function axeNow(page: Page, label: string) {
     await settle(page);
     await expect(page.locator('#nprogress')).toHaveCount(0);
     await page.mouse.move(0, 0);
-    await page.waitForTimeout(400);
+    await animationsDone(page);
     const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     const bad = result.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
     expect(bad, `${label}: ${JSON.stringify(bad.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target) })))}`).toEqual([]);

@@ -86,6 +86,33 @@ export async function settle(page: Page) {
     await page.waitForLoadState('networkidle');
 }
 
+/**
+ * Espera a que terminen las animaciones y transiciones CSS en curso (por ejemplo la de un diálogo o el color de un botón tras mover el ratón),
+ * en vez de dormir un tiempo fijo. Se resuelve por el evento `finished` de cada animación; una animación cancelada cuenta como terminada.
+ */
+export async function animationsDone(page: Page) {
+    await page.evaluate(async () => {
+        // Dos fotogramas: una transición de Vue/CSS empieza en el siguiente repintado y aún no aparece en getAnimations().
+        await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+        for (let round = 0; round < 5; round++) {
+            // Las animaciones infinitas (spinners) nunca terminan: no son una transición que esperar.
+            const running = document.getAnimations().filter((a) => a.effect?.getComputedTiming().endTime !== Infinity);
+            if (running.length === 0) return;
+            await Promise.all(running.map((a) => a.finished.catch(() => undefined)));
+        }
+    });
+}
+
+/**
+ * Única excepción a "sin waitForTimeout" (la salvaguarda de tests/frontend/test-tooling.test.mjs solo admite este fichero).
+ * Para aserciones NEGATIVAS en el tiempo ("no se vuelve a enviar", "el vídeo sigue en pausa", "el sondeo se detiene"): no hay evento al que
+ * esperar porque lo que se comprueba es que NO ocurre nada durante una ventana. Dar `ms` mayor que el plazo máximo del comportamiento vigilado
+ * y decir en el sitio de la llamada cuál es.
+ */
+export async function quietFor(page: Page, ms: number) {
+    await page.waitForTimeout(ms);
+}
+
 export const stamp = () => Date.now().toString(36);
 
 /** Borra las marcas cuyo nombre contiene `prefix` (por defecto todas las `e2e-`); con ellas se van sus datos. */
@@ -586,7 +613,7 @@ export async function axeSeriousCritical(page: Page, label: string) {
     await settle(page);
     await expect(page.locator('#nprogress')).toHaveCount(0); // barra transitoria de Inertia
     await page.mouse.move(0, 0);
-    await page.waitForTimeout(400); // fin de las transiciones de color
+    await animationsDone(page); // fin de las transiciones de color
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     const bad = results.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
     const detail = bad.map((v) => `${v.id} [${v.impact}] ${v.help}: ${v.nodes.slice(0, 3).map((n) => `${n.target.join(' ')} ${n.html.slice(0, 200)}`).join(' | ')}`).join(' // ');

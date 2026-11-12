@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, animationsDone, quietFor, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * Importar media desde una URL (C-04a, E2E-08): usuarios `e2e-sec-*` y marcas `e2e-composer-*`. El rechazo de `UrlGuard` se prueba contra el servidor real:
@@ -26,7 +26,7 @@ async function axeNow(page: Page, label: string) {
     await settle(page);
     await expect(page.locator('#nprogress')).toHaveCount(0);
     await page.mouse.move(0, 0);
-    await page.waitForTimeout(400);
+    await animationsDone(page);
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     const bad = results.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
     const detail = bad.map((v) => `${v.id} [${v.impact}] ${v.help}\n   ${v.nodes.slice(0, 3).map((n) => `${n.target.join(' ')} ${n.html.slice(0, 200)}`).join('\n   ')}`).join('\n');
@@ -144,7 +144,7 @@ test('E2E-08 · el progreso avanza, un fallo suelto del sondeo se tolera y al te
     await expect(page.getByText('1. foto.jpg').first()).toBeVisible(); // la previsualizacion por red (T-17) repite el nombre
     await expect(page.getByText('2. foto.jpg')).toHaveCount(0);
     const getsAtEnd = seen.gets;
-    await page.waitForTimeout(4000);
+    await quietFor(page, 4000); // negativa: el sondeo ya parado no vuelve a consultar
     expect(seen.gets, 'el sondeo se detiene al terminar').toBe(getsAtEnd);
 });
 
@@ -187,7 +187,7 @@ test('E2E-08 · una importación que lleva minutos «pendiente» sin un byte avi
 
     // Sigue comprobando, pero con intervalo largo (20 s): en 6 s no hay más de una consulta.
     const getsAtStall = seen.gets;
-    await page.waitForTimeout(6000);
+    await quietFor(page, 6000); // negativa: con el intervalo lento (20 s) no hay más de una consulta
     expect(seen.gets - getsAtStall, 'sondeo lento tras el aviso').toBeLessThanOrEqual(1);
 
     // El worker vuelve y la importación se completa: el aviso desaparece y la media se añade.

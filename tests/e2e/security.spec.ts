@@ -69,7 +69,7 @@ test.describe('2FA · doble factor (TOTP)', () => {
         const qr = page.getByRole('img', { name: /Código QR para configurar/ });
         await expect(qr).toBeVisible();
         await expect(qr).toHaveAttribute('alt', /clave de configuración/);
-        const secretNode = page.locator('code').filter({ hasText: /^[A-Z2-7]{16,}$/ }).first();
+        const secretNode = page.locator('code').filter({ hasText: /^[A-Z2-7]{16,}$/ });
         const secret = (await secretNode.innerText()).trim();
         expect(secret).toMatch(/^[A-Z2-7]{16,}$/);
         await expect(page.getByRole('button', { name: 'Copiar clave' })).toBeVisible();

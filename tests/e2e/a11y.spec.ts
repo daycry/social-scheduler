@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 import {
     AUTH_FILE,
     AUTH_PAGES,
+    animationsDone,
     PUBLIC_PAGES,
     confirmPassword,
     e2eUser,
@@ -49,6 +50,7 @@ async function axeYSinDesbordamiento(page: Page, label: string) {
     await expect(page.locator('#nprogress')).toHaveCount(0);
     // El ratón queda donde hizo el último clic y activa el :hover del botón bajo él; el contraste se mide en reposo.
     await page.mouse.move(0, 0);
+    await animationsDone(page); // fin de la transición del diálogo y del color del botón
     await axeNow(page, label);
     await expectNoOverflow(page);
 }
@@ -109,7 +111,7 @@ test.describe('axe · seguridad de cuenta', () => {
         await page.getByRole('button', { name: 'Activar doble factor' }).click();
         await expect(page.getByRole('img', { name: /Código QR para configurar/ })).toBeVisible();
         await axeYSinDesbordamiento(page, '/profile (QR visible)');
-        const secret = (await page.locator('code').filter({ hasText: /^[A-Z2-7]{16,}$/ }).first().innerText()).trim();
+        const secret = (await page.locator('code').filter({ hasText: /^[A-Z2-7]{16,}$/ }).innerText()).trim();
 
         // Códigos de recuperación visibles.
         await page.locator('#tf_code').fill(totp(secret));
@@ -123,13 +125,11 @@ test.describe('axe · seguridad de cuenta', () => {
         await axeYSinDesbordamiento(page, '/profile (2FA activo)');
         await page.getByRole('button', { name: 'Desactivar doble factor' }).click();
         await expect(page.getByLabel('Contraseña', { exact: true })).toBeVisible();
-        await page.waitForTimeout(400); // transición del diálogo
         await axeYSinDesbordamiento(page, '/profile (diálogo de desactivar)');
         await page.getByRole('button', { name: 'Cancelar' }).click();
 
         // Lista de passkeys y sus diálogos.
         await page.getByRole('button', { name: 'Añadir passkey' }).click();
-        await page.waitForTimeout(400);
         await axeYSinDesbordamiento(page, '/profile (diálogo de alta de passkey)');
         await page.getByLabel('Nombre de la passkey').fill('Portátil con un nombre bastante largo para comprobar que no desborda en móvil');
         await page.getByRole('button', { name: 'Continuar' }).click();
@@ -138,7 +138,6 @@ test.describe('axe · seguridad de cuenta', () => {
         expect(await autenticador.credentials()).toBe(1);
         await axeYSinDesbordamiento(page, '/profile (lista de passkeys)');
         await page.getByRole('button', { name: /^Eliminar la passkey/ }).click();
-        await page.waitForTimeout(400);
         await axeYSinDesbordamiento(page, '/profile (diálogo de eliminar passkey)');
     });
 });
@@ -193,7 +192,6 @@ test.describe('axe · login social, cuentas vinculadas y consentimiento', () => 
 
         await page.getByRole('button', { name: 'Desvincular Google' }).click();
         await expect(page.getByRole('dialog')).toBeVisible();
-        await page.waitForTimeout(400); // transición del diálogo
         await axeYSinDesbordamiento(page, '/profile (diálogo de desvincular)');
     });
 

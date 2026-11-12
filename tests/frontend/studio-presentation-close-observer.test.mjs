@@ -12,7 +12,7 @@ assert.ok(end > start);
 const closeBlock = spec.slice(start, end).replaceAll('(e: any)', '(e)');
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 const executeCloseBlock = new AsyncFunction('page', 'button', 'mark', 'paused', 'expect', 'evidence', 'modal', 'info',
-    'armPresentationCloseObserver', 'readPresentationCloseObservation', `let data; ${closeBlock}; return closed;`);
+    'armPresentationCloseObserver', 'readPresentationCloseObservation', 'quietFor', `let data; ${closeBlock}; return closed;`);
 const helperURL = new URL('../e2e/support/studio-presentation-observer.mjs', import.meta.url);
 const helperSource = fs.existsSync(helperURL) ? fs.readFileSync(helperURL, 'utf8') : '';
 
@@ -56,7 +56,7 @@ function fixture(options = {}) {
     });
     return { probe, snapshots, listeners, waits, async run() {
         return executeCloseBlock(page, () => target, async (_page, closed) => { probe.closed = closed; return clock.now; },
-            async () => {}, expect, async () => ({ events: probe.events }), () => ({ count: 0 }), {}, helpers.arm, helpers.read);
+            async () => {}, expect, async () => ({ events: probe.events }), () => ({ count: 0 }), {}, helpers.arm, helpers.read, (target, ms) => target.waitForTimeout(ms));
     } };
 }
 

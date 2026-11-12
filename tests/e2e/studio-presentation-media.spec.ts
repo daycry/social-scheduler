@@ -2,7 +2,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
-import { cleanComposerBrands } from './helpers';
+import { cleanComposerBrands, quietFor } from './helpers';
 import { setup, read, save, web, dataset, uploadFont, choose, configure, apply } from './support/studio-chart-ui';
 import { armPresentationCloseObserver, readPresentationCloseObservation } from './support/studio-presentation-observer.mjs';
 
@@ -76,7 +76,7 @@ test('E2E-29 real own video and audio emit native frames and playback; pause nav
         await expect.poll(() => page.evaluate(() => (window as any).__presentationProbe.events.filter((e: any) => e.event === 'frame').length)).toBeGreaterThan(1);
         await page.screenshot({ path: info.outputPath('native-av-playing.png'), fullPage: true });
         await button(page, 'Pausar presentación').click(); await paused(page); const stopped = await mark(page);
-        await page.waitForTimeout(250); let data = await evidence(page, info, 'native-av-paused'); expect(data.events.filter((e: any) => e.at > stopped && ['play', 'playing', 'call:play'].includes(e.event))).toEqual([]);
+        await quietFor(page, 250); /* negativa: en pausa no hay nuevos play */ let data = await evidence(page, info, 'native-av-paused'); expect(data.events.filter((e: any) => e.at > stopped && ['play', 'playing', 'call:play'].includes(e.event))).toEqual([]);
         expect(data.media.some((e: any) => e.kind === 'VIDEO' && e.width === 64 && e.height === 64)).toBe(true);
         const renderedVideo = await modal(page).getByRole('img', { name: 'Diapositiva de audiencia', exact: true }).evaluate((canvas: HTMLCanvasElement) => {
             const p = (window as any).__presentationProbe, ancestors = new Set([p.id(canvas)]); let changed = true;
@@ -93,7 +93,7 @@ test('E2E-29 real own video and audio emit native frames and playback; pause nav
         const close = await page.evaluate(readPresentationCloseObservation);
         expect(close?.trusted).toBe(true); expect(Number.isFinite(close?.at)).toBe(true);
         expect(Number.isSafeInteger(close?.eventIndex) && close.eventIndex >= 0).toBe(true);
-        const closed = close.at; await paused(page); await page.waitForTimeout(350);
+        const closed = close.at; await paused(page); await quietFor(page, 350); /* negativa: cerrada la presentación no hay nuevos play */
         data = await evidence(page, info, 'native-av-closed'); expect(data.events.filter((e: any) => e.at > closed && ['play', 'playing', 'call:play'].includes(e.event))).toEqual([]);
         expect(close.eventIndex <= data.events.length).toBe(true); expect(data.events.slice(close.eventIndex).filter((e: any) => ['play', 'playing', 'call:play'].includes(e.event))).toEqual([]); await expect(modal(page)).toHaveCount(0);
     } finally { cleanComposerBrands(user.email); }
@@ -160,14 +160,14 @@ for (const action of ['close', 'design-unmount'] as const) test(`E2E-29 pending 
         const outputs = await modal(page).locator('canvas').evaluateAll(nodes => nodes.map(node => (window as any).__presentationProbe.id(node)));
         if (action === 'close') {
             const closed = await mark(page, true); await button(page, 'Cerrar presentación').click(); release();
-            await expect.poll(() => delivered).toBe(true); await page.waitForTimeout(1200); await paused(page); const data = await evidence(page, info, 'native-preparation-cancelled');
+            await expect.poll(() => delivered).toBe(true); await quietFor(page, 1200); /* negativa: una preparación cancelada no llega a reproducir */ await paused(page); const data = await evidence(page, info, 'native-preparation-cancelled');
             expect(data.events.filter((e: any) => e.at > closed && ['play', 'playing', 'call:play'].includes(e.event))).toEqual([]);
             expect(data.draws.filter((d: any) => d.at > closed && outputs.includes(d.target))).toEqual([]); await expect(modal(page)).toHaveCount(0);
         } else {
             // Inertia navigation unmounts the editor in the same JS realm, retaining native observers.
             const home = page.getByRole('link', { name: 'Volver al estudio', exact: true }); await expect(home).toBeAttached();
             const closed = await mark(page, true); await home.evaluate((anchor: HTMLAnchorElement) => anchor.click()); await expect(page).toHaveURL(/\/studio(?:\?.*)?$/);
-            release(); await page.waitForTimeout(1200); await paused(page);
+            release(); await quietFor(page, 1200); /* negativa: una preparación cancelada no llega a reproducir */ await paused(page);
             const data = await evidence(page, info, 'native-design-unmounted'); expect(data.events.filter((e: any) => e.at > closed && ['play', 'playing', 'call:play'].includes(e.event))).toEqual([]);
             expect(data.draws.filter((d: any) => d.at > closed && outputs.includes(d.target))).toEqual([]);
             await expect(modal(page)).toHaveCount(0);

@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedHashtagHistory, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedHashtagHistory, animationsDone, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * Sugerencias de hashtags del compositor (C-04a, E2E-06): salen del histórico propio (sin IA), solo con 2 o más usos y ordenadas por
@@ -52,7 +52,7 @@ test('E2E-06 · hashtags desde el histórico: ≥ 2 usos, por rendimiento, se in
 
     await settle(page);
     await page.mouse.move(0, 0);
-    await page.waitForTimeout(400);
+    await animationsDone(page);
     const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     const bad = axe.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
     expect(bad, JSON.stringify(bad.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target) })))).toEqual([]);

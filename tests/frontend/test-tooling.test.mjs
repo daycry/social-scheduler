@@ -166,3 +166,37 @@ test('la deteccion de @responsive distingue tests etiquetados, de grupo y sin et
     ].join('\n');
     assert.deepEqual(untaggedResponsiveTests('x.spec.ts', src), ["test('a', async ({ page }) => {"]);
 });
+
+// E-16: dormir un tiempo fijo hace los E2E lentos y frágiles; se espera a un evento (expect.poll, toBeVisible, animationsDone).
+// Excepciones justificadas: fichero -> cuántas llamadas admite y por qué.
+const WAIT_FOR_TIMEOUT_EXCEPTIONS = {
+    'tests/e2e/helpers.ts': { max: 1, why: 'quietFor(): aserciones negativas en el tiempo (que algo NO ocurra durante una ventana), sin evento que esperar' },
+};
+
+function e2eSources(dir = 'tests/e2e') {
+    return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+        const full = `${dir}/${entry.name}`;
+        if (entry.isDirectory()) return entry.name === 'node_modules' ? [] : e2eSources(full);
+        return /\.(ts|mts|cts|mjs|cjs|js)$/.test(entry.name) ? [full] : [];
+    });
+}
+
+function waitForTimeoutCalls(src) {
+    return src.split('\n').filter(line => /\.waitForTimeout\s*\(/.test(line) && !/^\s*(\/\/|\*|\/\*)/.test(line)).length;
+}
+
+test('los E2E no usan waitForTimeout salvo las excepciones justificadas', () => {
+    const offenders = [];
+    for (const file of e2eSources()) {
+        const calls = waitForTimeoutCalls(read(file));
+        const allowed = WAIT_FOR_TIMEOUT_EXCEPTIONS[file]?.max ?? 0;
+        if (calls > allowed) offenders.push(`${file}: ${calls} (admite ${allowed})`);
+    }
+    assert.deepEqual(offenders, [], 'espera un evento (expect.poll, toBeVisible, animationsDone); si es una ausencia en el tiempo usa quietFor() de helpers.ts');
+    for (const [file, { why }] of Object.entries(WAIT_FOR_TIMEOUT_EXCEPTIONS)) assert.ok(why.length > 20 && fs.existsSync(file), `${file}: la excepcion necesita motivo`);
+});
+
+test('la deteccion de waitForTimeout ve las llamadas y no los comentarios', () => {
+    assert.equal(waitForTimeoutCalls("await page.waitForTimeout(400);\n// page.waitForTimeout(1)\n * waitForTimeout\nawait pub.waitForTimeout (5);"), 2);
+    assert.equal(waitForTimeoutCalls('await quietFor(page, 400);'), 0);
+});

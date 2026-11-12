@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { artisan, chooseContentType, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, settle, stamp } from './helpers';
+import { artisan, chooseContentType, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, quietFor, seedComposerBrand, settle, stamp } from './helpers';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -145,12 +145,12 @@ test('Audio Reel: changing a query invalidates slow responses and closing cancel
     await input.fill('Actual');
     await expect(page.getByRole('button', { name: 'Elegir Actual', exact: true })).toBeVisible();
     releaseOld();
-    await page.waitForTimeout(450);
+    await quietFor(page, 450); // negativa: la respuesta vieja, ya liberada, no debe pintar (debounce < 450 ms)
     await expect(page.getByRole('button', { name: 'Elegir Anterior', exact: true })).toHaveCount(0);
     await input.fill('Cancelada');
     await page.keyboard.press('Escape');
     await expect(add).toBeFocused();
-    await page.waitForTimeout(450);
+    await quietFor(page, 450); // negativa: la búsqueda cancelada con Escape no debe llegar a lanzarse (debounce < 450 ms)
     expect(queries).not.toContain('Cancelada');
 });
 

@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { artisan, chooseContentType, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedComposerPosts, seedExtraAccount, seedExtraFacebook, seedTiktokPhotoDraft, seedYoutubeDraft, setBrandTimezone, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { artisan, chooseContentType, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedComposerPosts, seedExtraAccount, seedExtraFacebook, seedTiktokPhotoDraft, seedYoutubeDraft, setBrandTimezone, animationsDone, quietFor, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * Compositor de publicaciones (C-01): pantalla completa, pastillas de red, contadores, barra del editor y salida con cambios.
@@ -27,7 +27,7 @@ async function axeNow(page: Page, label: string) {
     await expect(page.locator('#nprogress')).toHaveCount(0);
     // El ratón queda donde hizo el último clic y activa el :hover del botón bajo él; el contraste se mide en reposo.
     await page.mouse.move(0, 0);
-    await page.waitForTimeout(400); // fin de las transiciones de color
+    await animationsDone(page);
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     const bad = results.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
     const detail = bad.map((v) => `${v.id} [${v.impact}] ${v.help}\n   ${v.nodes.slice(0, 3).map((n) => `${n.target.join(' ')} ${n.html.slice(0, 200)} ${n.any.map((a) => a.message).join('; ')}`).join('\n   ')}`).join('\n');
@@ -1215,7 +1215,7 @@ test('E2E-13 · selector de tipo junto a cada red: icono, nombre y subtítulo, t
     // (la validación en vivo, `posts/validate`, no guarda nada y puede dispararse al escribir)
     page.on('request', (r) => { if (r.method() !== 'GET' && !r.url().includes('/posts/validate')) envios.push(`${r.method()} ${r.url()}`); });
     await enlace.press('Enter');
-    await page.waitForTimeout(800);
+    await quietFor(page, 800); // negativa: pulsar Enter sobre el enlace no debe enviar nada
     expect(envios).toEqual([]);
     expect(page.url()).toBe(url);
     await expect(enlace).toBeVisible();

@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, animationsDone, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * Buscador de GIFs de Giphy (C-04b, E2E-09). El servidor de pruebas no tiene `GIPHY_API_KEY`: sin clave el botón «GIF» no existe. Con clave se
@@ -26,7 +26,7 @@ async function axeNow(page: Page, label: string) {
     await settle(page);
     await expect(page.locator('#nprogress')).toHaveCount(0);
     await page.mouse.move(0, 0);
-    await page.waitForTimeout(400);
+    await animationsDone(page);
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     const bad = results.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
     const detail = bad.map((v) => `${v.id} [${v.impact}] ${v.help}\n   ${v.nodes.slice(0, 3).map((n) => `${n.target.join(' ')} ${n.html.slice(0, 200)}`).join('\n   ')}`).join('\n');

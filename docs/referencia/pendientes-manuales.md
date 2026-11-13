@@ -99,6 +99,9 @@ Listadas en [configuración](configuracion.md#resumen-de-decisiones-por-confirma
 
 ## Verificación en MySQL de T-06 (referencias de media con FK)
 
+> **Verificado 2026-11-13 en MySQL 8.4.3 (Laragon):** las 29 migraciones pendientes se aplicaron sobre la base de desarrollo real (con copia previa en `storage/backups/`), incluidas `create_post_target_media_tables` y `add_network_to_competitors`; y en una base vacía de prueba `laravel_migtest` las 6 últimas bajaron con `migrate:rollback --step=6` y volvieron a subir sin errores (índice de 253 caracteres y orden de únicos correctos). Queda solo repetirlo en el VPS de producción.
+
+
 | Pendiente | Detalle |
 |---|---|
 | Probar la migración `2026_12_18_090000_create_post_target_media_tables` en MySQL 8 | Revisada a mano (nombres de índice y FK por debajo de 64 caracteres, tipos de FK iguales, `dropColumn` de una columna JSON sin índice, `down()` reconstruye el JSON) pero no ejecutada: aquí no hay MySQL. Ejecutar `migrate`, `migrate:rollback --step=1` y `migrate` sobre una copia de la base de datos; revisar el log por «Migracion post_target_media» (destinos marcados fallidos por media inexistente) |

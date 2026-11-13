@@ -1267,64 +1267,78 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 ### T-30 — MCP: SmartLinks, Ads, autolistas, competidores, ocultar comentarios, textos, presets y papelera
 
 - **Descripción**: Herramientas MCP finas sobre los servicios existentes para las áreas que hoy faltan.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Los agentes conectados por MCP pueden ahora gestionar el SmartLink de una marca, consultar Meta Ads, administrar autolistas, dar de alta y baja competidores, ocultar o mostrar comentarios, gestionar textos guardados, ver los presets del compositor y usar la papelera.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-29
 - **Tipo**: backend
-- **Archivos**: `app/Mcp/Tools/**`, `app/Mcp/Servers/**`, `docs/modulos/mcp.md`, `tests/Feature/Mcp/**`
+- **Archivos**: `app/Mcp/Tools/**`, `app/Mcp/Servers/**`, `docs/modulos/mcp.md`, `tests/Feature/Mcp/**`, `app/Services/AutolistService.php`, `app/Services/SavedTextService.php`, `app/Services/TrashService.php`, `app/Services/CompetitorService.php`, `app/Http/Controllers/AutolistController.php`, `app/Http/Controllers/TrashController.php`, `app/Http/Controllers/CompetitorController.php`, `app/Http/Requests/SavedTextRequest.php`, `docs/guias/estudio-api-mcp.md`, `docs/RAG-INDEX.md`
 - **Cubre**: B-10
 - **Cubre (tests)**: —
 - **Verificación**: `php artisan test --compact --filter=McpNewToolsTest` → verde
 
 **Criterios de aceptación**
-- [ ] Cada herramienta nueva valida abilities y propiedad
-- [ ] `docs/modulos/mcp.md` lista las herramientas nuevas
+- [x] Cada herramienta nueva valida abilities y propiedad
+- [x] `docs/modulos/mcp.md` lista las herramientas nuevas
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+- RED/TDD: `McpNewToolsTest` se escribió junto a las herramientas (no hubo ejecución en rojo registrada aparte): la primera ejecución con el código dio 9/14 y destapó cuatro fallos (mensajes de «no encontrada» con género incorrecto, un helper de test que no sobrescribía los argumentos y un `ComposerPreset` creado sin `user_id`), corregidos en la misma tarea · 2026-11-13.
+- Verificación (2026-11-13): `php artisan test --compact --filter=McpNewToolsTest` → 14/14 verde (308 aserciones); focal `Parity/AutolistTest`+`Parity/TrashTest`+`Competitors`+`Mcp`+`Api`+`Studio/StudioApiMcpTest` → 392/392 verde; `SavedTexts`+`Ui/SavedTextsPageTest`+`Parity` → 139/139 verde; Pint OK. No se lanzó el Pest completo. Sin Vue: no se ejecutaron `npm run build`, `test:unit`, `typecheck` ni Playwright.
+- Herramientas nuevas (57 → 64, tres páginas de `tools/list`: 30, 30 y 4): `manage_smartlink` (get/save/stats), `get_ads` (solo lectura), `manage_autolist` (list/create/update/delete/add_item/remove_item/generate), `manage_competitor` (add/remove), `manage_saved_texts` (list/create/update/delete), `get_composer_presets` (solo lectura) y `manage_trash` (list/restore/delete_forever). Ocultar comentarios no añade herramienta: `triage_comments` gana `hide` y `unhide` (reutiliza `triage_comments` en lugar de crear otra para no gastar tope de página).
+- Decisiones: (1) Sin lógica duplicada: se extrajeron a los servicios las reglas, presentadores y operaciones que antes vivían en los controladores web (`AutolistService::createRules/itemRules/query/present/update/delete/removeItem`, `SavedTextService::rules/query` con `SavedTextRequest` delegando, `TrashService::query/present/RETENTION_DAYS`, `CompetitorService::remove`) y los controladores web los usan (menos código, un solo contrato). (2) Abilities existentes: `smartlinks:read|write` para SmartLinks, `stats:read` para `get_ads`, `posts:read` para listar autolistas/textos/presets/papelera y `posts:write` para cambiarlos y para dar de alta o baja competidores (no hay ability propia y se respetó «usa las existentes»; `compare_competitors` sigue en `stats:read`). `hide`/`unhide` con `inbox:write`. (3) Listados de autolistas, textos guardados y papelera con el contrato común `CursorPage` (`limit`, `cursor`, `has_more`, `next_cursor`). (4) Presets: solo lectura (decisión C-04: solo los guarda el compositor web). (5) Las etiquetas de `owned()` salen «<X> no encontrada»: se usaron nombres femeninos neutros («Cuenta de competidor», «Entrada de texto guardado») para que el mensaje concuerde.
+- Nota de unificación (coordinador): los errores de estado de las herramientas nuevas (p. ej. restaurar una publicación que no está en la papelera) salen como `PostValidationException` → «Datos no válidos». Cuando exista la excepción de conflicto de estado → 409 que introduce la corrección de T-28/T-29 (no existía al cerrar esto), habrá que usarla en `ManageTrash` (`TrashService::assertTrashed`) y unificarla; no se tocó aquí para no pisar ese trabajo. `ManageAutolist`, `ManageSavedTexts` y `ManageTrash` fueron tocados después por el agente de la corrección de la API para el parámetro de ámbito del cursor de `CursorPage::fetch`.
+- Pendiente (coordinador): revisión adversarial A+B(+C).
 
 **Notas**: Tamaño M.
 
 ### T-31 — Facebook: varias fotos y stories
 
 - **Descripción**: Dos tipos de contenido nuevos en Facebook: publicación con varias fotos y stories.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Ya puedes publicar en una Página de Facebook un álbum de 2 a 10 fotos en una sola publicación y subir historias de foto o de vídeo, eligiendo el tipo en el compositor como en las demás redes.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-02
 - **Tipo**: fullstack
-- **Archivos**: `config/media_specs.php`, `app/Connectors/Meta/FacebookPublisher.php`, `resources/js/Pages/Posts/**`, `docs/modulos/media-por-destino.md`
+- **Archivos**: `config/media_specs.php`, `app/Connectors/Meta/FacebookPublisher.php`, `resources/js/Pages/Posts/**`, `docs/modulos/media-por-destino.md`, `app/Enums/ContentType.php`, `app/Support/TargetMedia.php`, `tests/Feature/Connectors/Meta/Facebook/**`, `tests/Unit/MediaValidator/MediaValidatorTest.php`, `tests/Feature/Posts/Compose/ComposeTest.php`, `docs/modulos/publicacion.md`, `docs/referencia/decisiones-por-red.md`, `docs/arquitectura.md`
 - **Cubre**: B-12
 - **Cubre (tests)**: E2E-36, M-04
 - **Verificación**: `php artisan test --compact --filter=FacebookMultiPhotoStoryTest` → verde
 
 **Criterios de aceptación**
-- [ ] Los tipos aparecen en `list_accounts` y en el compositor con sus límites de media
-- [ ] La publicación de varias fotos y de stories funciona con fakes
+- [x] Los tipos aparecen en `list_accounts` y en el compositor con sus límites de media
+- [x] La publicación de varias fotos y de stories funciona con fakes
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+- RED/TDD: `FacebookMultiPhotoStoryTest` se escribió después del código de `FacebookPublisher` (no hubo ejecución en rojo previa); la primera ejecución dio 6/10 y destapó un fallo real (el álbum no validaba todas las imágenes antes de subir la primera, ahora sí) y tres errores de los propios tests, corregidos · 2026-11-13.
+- Verificación (2026-11-13): `php artisan test --compact --filter=FacebookMultiPhotoStoryTest` → 10/10 verde; focal `Unit`+`Connectors/Meta`+`Posts`+`Publishing`+`Media` → 1056/1056 verde; `FirstComment`+`Library`+`Jobs`+`Ui` verde (un fallo ajeno en `CalendarViewCrudTest` por el trabajo en curso de límites de ritmo de T-28/T-29); `MediaValidatorTest` actualizado (29 reglas) y `ComposeTest` (6 tipos de Facebook) verdes; Pint OK en mis ficheros. **No hay cambio de Vue**: el selector de tipo del compositor y `list_accounts` se alimentan de `ContentType`, así que no se ejecutaron `npm run build`, `test:unit`, `typecheck` ni Playwright; E2E-36 (varias fotos y lugar en Facebook) queda sin spec propio y la cobertura de los tipos en el compositor es `ComposeTest` (props `contentTypes`) y `list_accounts`.
+- Tipos nuevos: `facebook_photos` (2 a 10 fotos; `attached_media`, cada foto con `published=false`) y `facebook_story` (foto por `photo_stories`, vídeo por `video_stories`; reglas `facebook_story_photo` y `facebook_story_video`, igual que las historias de Instagram). Los IDs de las fotos subidas van a `progress.photos` (checkpoint) y un reintento no las repite; `findPublished` reconoce el álbum por texto y hora, el vídeo por su ID y la historia de foto por su ID de foto en `GET /{page}/stories`.
+- Contrato Facebook: **verificado en parte** (2026-11-13). **Verificado**: publicación con varias fotos (`/{page-id}/photos` con `published=false`, `/feed` con `attached_media[i]={"media_fbid":…}`, foto temporal ~24 h) en la referencia oficial https://developers.facebook.com/docs/graph-api/reference/page/photos/ ; y los parámetros de `photo_stories` (`photo_id`) y `video_stories` (`upload_phase`, `video_id`, `video_state`) en el SDK oficial de Meta (`facebook-python-business-sdk`, `page.py`: `create_photo_story`, `create_video_story`). **Sin verificar**: la guía «Page Stories API» y las páginas de referencia `photo_stories`/`video_stories` no se pudieron leer (devuelven 404 o una página sin contenido sin JavaScript); por tanto la forma de la respuesta de las historias (`success`, `post_id`), la lectura `GET /{page}/stories`, la subida por `file_url` en `video_stories` y los límites de media (máximo de 10 fotos y límites de las historias, tomados de Instagram) quedan como supuestos documentados en `docs/referencia/decisiones-por-red.md`. Verificación real = smoke M-04 del usuario.
+- Decisiones: (1) Una sola variante de enum por concepto, como Instagram: `FacebookStory` se resuelve por la clase de media. (2) Las historias no tienen `first_comment` (se rechaza) y el texto común se ignora, como en Instagram. (3) Sin red real: todo con `Http::fake`/`FakeGraph`.
+- Pendiente (coordinador): revisión adversarial A+B(+C); smoke M-04 del usuario; añadir el spec E2E-36 si se quiere cubrir el compositor en navegador.
 
 **Notas**: Tamaño M. Verificación real = smoke de Meta del usuario.
 

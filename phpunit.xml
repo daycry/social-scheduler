@@ -32,6 +32,7 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="MEDIA_IMPORT_MIN_PASS_SECONDS" value="0"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="STUDIO_THUMBNAILS" value="false"/>
         <env name="SOCIAL_BACKFILL_ON_CONNECT" value="false"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>

@@ -71,9 +71,9 @@ onBeforeUnmount(() => { disposed = true; view++; monitor.stop(); emit('busy', fa
 </script>
 
 <template>
-    <section class="space-y-4" aria-label="Exportación audiovisual">
+    <section class="space-y-4" aria-label="Exportación en segundo plano">
         <div class="rounded-xl border border-violet-200 bg-violet-50 p-4">
-            <p class="text-sm leading-relaxed text-violet-950">El archivo se prepara en segundo plano y se guarda en la biblioteca de esta marca. Puedes cerrar este diálogo y seguir editando.</p>
+            <p class="text-sm leading-relaxed text-violet-950">{{ format === 'pptx' ? 'El archivo se prepara en segundo plano y se descarga desde esta lista; no se guarda en la biblioteca.' : 'El archivo se prepara en segundo plano y se guarda en la biblioteca de esta marca.' }} Puedes cerrar este diálogo y seguir editando.</p>
             <button type="button" class="btn-primary mt-3 bg-violet-700" :disabled="submitting || action !== null" @click="begin">{{ submitting ? 'Guardando y enviando…' : `Preparar ${format.toUpperCase()}` }}</button>
         </div>
         <p v-if="error || tracking.error" role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-800">{{ error || tracking.error }}</p>

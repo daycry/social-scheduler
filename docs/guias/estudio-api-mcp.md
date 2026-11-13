@@ -476,7 +476,7 @@ La herramienta MCP dedicada `manage_design_captions` utiliza estas mismas operac
 
 Al exportar páginas, los runs contiguos conservan un único reloj fuente. Una página A de2s exportada sola conserva un cue1,8–1,95s entero aunque tuviera una transición original. En transiciones del resultado entre runs disjuntos, la fuente visual de subtítulos cambia en el punto medio del solapamiento para evitar duplicación o atenuación; el documento original permanece intacto.
 
-Este bloque manual no implementa reconocimiento de voz ni traducción: ambas capacidades permanecen en T-14 sobre el contrato de cues. La [QA integral local de T-11](../roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa3/report.md) está aceptada, incluidos los subtítulos manuales. Las pruebas locales no acreditan despliegue, workers del VPS ni publicación real en redes.
+Este bloque manual no implementa reconocimiento de voz: sigue pendiente de elegir proveedor. La traducción de subtítulos (T-35) usa el asistente de IA: acción `translate_captions` de `POST /brands/{brand}/ai-text` (`studio:ai`), que devuelve una propuesta sin guardar nada. La [QA integral local de T-11](../roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa3/report.md) está aceptada, incluidos los subtítulos manuales. Las pruebas locales no acreditan despliegue, workers del VPS ni publicación real en redes.
 
 
 ## Datasets por marca: API y MCP

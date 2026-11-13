@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import AudioTrackPanel from './AudioTrackPanel.vue';
 import CaptionsPanel from './CaptionsPanel.vue';
 
-const props = defineProps({ document: Object, page: Object, pageStart: Number, selectedId: String, time: Number, duration: Number, playing: Boolean, busy: Boolean, assets: Array, selectedAudioId: String, applyCaptions: Function, fonts: Array, kitFonts: Array });
+const props = defineProps({ document: Object, page: Object, pageStart: Number, selectedId: String, time: Number, duration: Number, playing: Boolean, busy: Boolean, assets: Array, selectedAudioId: String, applyCaptions: Function, fonts: Array, kitFonts: Array, brandId: Number });
 const emit = defineEmits(['select', 'window', 'seek', 'play', 'split', 'page', 'fps', 'edit', 'audio-select', 'audio-patch', 'audio-split', 'audio-remove', 'audio-fade']);
 const selected = computed(() => props.page.elements.find(element => element.id === props.selectedId));
 const window = computed(() => selected.value?.timing ?? { start: 0, duration: props.page.duration });
@@ -46,7 +46,7 @@ const format = value => Number(value.toFixed(3));
         <p v-else class="text-xs text-slate-500">Selecciona un clip para ajustar sus tiempos o dividirlo.</p>
         <AudioTrackPanel :tracks="document.timeline.audio_tracks" :assets="assets ?? []" :duration="audioDuration" :fps="document.timeline.fps" :time="time" :selected-id="selectedAudioId" :disabled="busy || playing"
             @select="emit('audio-select', $event)" @patch="emit('audio-patch', $event)" @split="emit('audio-split')" @remove="emit('audio-remove')" @fade="emit('audio-fade', $event)" />
-        <CaptionsPanel :document="document" :time="time" :duration="audioDuration" :apply="applyCaptions" :fonts="fonts ?? []" :kit-fonts="kitFonts ?? []" :disabled="busy || playing" @seek="emit('seek', $event)" />
+        <CaptionsPanel :brand-id="brandId" :document="document" :time="time" :duration="audioDuration" :apply="applyCaptions" :fonts="fonts ?? []" :kit-fonts="kitFonts ?? []" :disabled="busy || playing" @seek="emit('seek', $event)" />
         <p class="text-[10px] leading-relaxed text-slate-500">La reproducción recorre todas las páginas. Los tiempos de los clips pertenecen a la página seleccionada; los del audio, al proyecto completo.</p>
     </section>
 </template>

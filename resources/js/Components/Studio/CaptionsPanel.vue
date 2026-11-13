@@ -2,7 +2,8 @@
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { CAPTION_LIMITS, compileCaptions, parseCaptionFile, encodeCaptionFile } from '@/Studio/captions';
 import { downloadBlob } from '@/Studio/exports';
-const props = defineProps({ document: Object, time: Number, duration: Number, apply: Function, disabled: Boolean, fonts: Array, kitFonts: Array });
+import { studioRequest } from '@/Studio/api';
+const props = defineProps({ document: Object, time: Number, duration: Number, apply: Function, disabled: Boolean, fonts: Array, kitFonts: Array, brandId: Number });
 const emit = defineEmits(['seek']);
 const error = ref(''), warnings = ref([]), saving = ref(false), selectedId = ref(''), query = ref(''), page = ref(1), mode = ref('append'), offset = ref(0);
 const captions = computed(() => props.document.timeline.captions);
@@ -61,6 +62,54 @@ function chooseFont(value) {
     } else { delete next.font_id; next.fontFamily = value; }
     return apply({ action: 'style', style: next });
 }
+// Traducción con IA (T-35): el asistente configurado (Claude) propone la traducción; no se guarda nada hasta pulsar «Aplicar». Los textos solo
+// se envían al pulsar «Traducir con IA» y sin correos, teléfonos ni enlaces. Sin asistente activado se muestra el mismo aviso que el resto de textos con IA.
+const TRANSLATE_BATCH = { cues: 40, chars: 12000 };
+const LANGUAGES = ['inglés', 'francés', 'alemán', 'italiano', 'portugués', 'catalán', 'español'];
+const aiText = ref(null), translating = ref(false), language = ref('inglés'), proposal = ref(null), translateError = ref('');
+const canTranslate = computed(() => !!props.brandId && cues.value.length > 0);
+async function loadAiStatus() {
+    if (!props.brandId || aiText.value !== null) return;
+    try { aiText.value = (await studioRequest('GET', route('studio.ai.status', props.brandId))).text ?? { enabled: false }; }
+    catch { aiText.value = { enabled: false }; }
+}
+function batches() {
+    const out = []; let current = [], chars = 0;
+    for (const cue of cues.value) {
+        if (current.length && (current.length >= TRANSLATE_BATCH.cues || chars + cue.text.length > TRANSLATE_BATCH.chars)) { out.push(current); current = []; chars = 0; }
+        current.push({ id: cue.id, text: cue.text }); chars += cue.text.length;
+    }
+    if (current.length) out.push(current);
+    return out;
+}
+async function translate() {
+    if (blocked.value || translating.value || !canTranslate.value) return;
+    translateError.value = ''; proposal.value = null; translating.value = true;
+    const request = ++generation, texts = new Map();
+    try {
+        for (const batch of batches()) {
+            const result = await studioRequest('POST', route('studio.ai-text', props.brandId), { action: 'translate_captions', language: language.value, cues: batch });
+            if (request !== generation) return;
+            for (const cue of result.result.cues) texts.set(cue.id, cue.text);
+        }
+        proposal.value = { language: language.value, texts, cues: cues.value.map(cue => ({ ...cue, text: texts.get(cue.id) ?? cue.text })) };
+    } catch (e) { translateError.value = e.message; }
+    finally { translating.value = false; }
+}
+async function applyTranslation() {
+    if (!proposal.value) return;
+    const current = new Map(cues.value.map(cue => [cue.id, cue]));
+    // Solo cambian los textos: los tiempos y los ids son los actuales (si algún subtítulo cambió mientras tanto, se conserva su tiempo).
+    const next = proposal.value.cues.filter(cue => current.has(cue.id)).map(cue => ({ ...current.get(cue.id), text: cue.text }));
+    await apply({ action: 'replace', captions: { ...(captions.value ?? { style: style.value }), cues: next } });
+    if (!error.value) proposal.value = null;
+}
+function exportTranslation(format) {
+    translateError.value = '';
+    try {
+        downloadBlob(new Blob([encodeCaptionFile(proposal.value.cues, format)], { type: format === 'vtt' ? 'text/vtt;charset=utf-8' : 'application/x-subrip;charset=utf-8' }), `captions-${proposal.value.language}.${format}`);
+    } catch (e) { translateError.value = e.message; }
+}
 function exportFile(format) {
     error.value = '';
     try {
@@ -72,7 +121,7 @@ function exportFile(format) {
 <template>
     <section aria-label="Subtítulos" class="min-w-0 space-y-3 border-t border-slate-200 pt-4" data-testid="captions-panel">
         <div class="flex flex-wrap items-center gap-2"><h3 class="mr-auto text-xs font-semibold text-slate-700">Subtítulos <span class="font-normal text-slate-400">{{ cues.length }}/5000</span></h3><button type="button" class="caption-button" :disabled="blocked" @click="addCue">Añadir subtítulo</button></div>
-        <p class="text-[11px] text-slate-500">Una pista para todo el proyecto. Importa SRT/VTT o escribe texto; el reconocimiento de voz y la traducción aún no están disponibles.</p>
+        <p class="text-[11px] text-slate-500">Una pista para todo el proyecto. Importa SRT/VTT o escribe texto; el reconocimiento de voz aún no está disponible; la traducción usa el asistente de IA si está activado.</p>
         <div class="flex flex-wrap items-end gap-2">
             <label class="caption-label">Al importar<select v-model="mode" :disabled="blocked"><option value="append">Añadir a la pista</option><option value="replace">Reemplazar la pista</option></select></label>
             <label class="caption-label min-w-0 flex-1">Archivo SRT o VTT<input type="file" accept=".srt,.vtt" aria-label="Importar subtítulos" :disabled="blocked" class="max-w-full text-xs" @change="importFile" /></label>
@@ -93,6 +142,22 @@ function exportFile(format) {
             <div class="flex flex-wrap gap-2"><button type="button" class="caption-button" :disabled="blocked" @click="emit('seek', selected.start)">Ir al subtítulo</button><button type="button" class="caption-button text-red-700" :disabled="blocked" @click="apply({ action: 'delete', ids: [selected.id] })">Eliminar subtítulo</button></div>
         </div>
         <div class="flex flex-wrap items-end gap-2"><label class="caption-label">Desplazar toda la pista (segundos)<input v-model.number="offset" type="number" step="0.001" :disabled="blocked" /></label><button type="button" class="caption-button" :disabled="blocked || !cues.length" @click="apply({ action: 'offset', seconds: offset })">Aplicar desplazamiento</button></div>
+        <details class="rounded-lg border border-slate-100 p-2" data-testid="captions-translate" @toggle="$event.target.open && loadAiStatus()"><summary class="cursor-pointer text-xs font-medium">Traducir subtítulos con IA</summary>
+            <div class="mt-3 space-y-2">
+                <p v-if="aiText && !aiText.enabled" data-testid="captions-translate-unconfigured" class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-xs leading-relaxed text-slate-600">Textos con IA: no configurado. Requiere activar el asistente con la clave de Claude en el servidor.</p>
+                <template v-else-if="aiText">
+                    <p class="text-[11px] leading-relaxed text-slate-500">Al pulsar «Traducir con IA», el texto de los subtítulos se envía al asistente (sin correos, teléfonos ni enlaces) y consume tu cuota diaria. Revisa la propuesta antes de aplicarla.</p>
+                    <div class="flex flex-wrap items-end gap-2"><label class="caption-label min-w-0 flex-1">Idioma de destino<input v-model="language" list="caption-languages" maxlength="40" :disabled="blocked || translating" aria-label="Idioma de destino" /></label><datalist id="caption-languages"><option v-for="item in LANGUAGES" :key="item" :value="item" /></datalist><button type="button" class="caption-button" :disabled="blocked || translating || !canTranslate || language.trim().length < 2" @click="translate">{{ translating ? 'Traduciendo…' : 'Traducir con IA' }}</button></div>
+                    <p v-if="translateError" role="alert" class="rounded-lg bg-red-50 p-2 text-xs text-red-800">{{ translateError }}</p>
+                    <div v-if="proposal" class="space-y-2" data-testid="captions-translation">
+                        <p class="text-xs font-medium">Propuesta en {{ proposal.language }} ({{ proposal.cues.length }} subtítulos)</p>
+                        <ul class="max-h-40 space-y-1 overflow-y-auto text-xs"><li v-for="cue in proposal.cues.slice(0, 50)" :key="cue.id" class="rounded-lg border border-slate-100 p-2">{{ cue.text }}</li></ul>
+                        <div class="flex flex-wrap gap-2"><button type="button" class="caption-button" :disabled="blocked" @click="applyTranslation">Aplicar traducción (reemplaza los textos)</button><button type="button" class="caption-button" @click="exportTranslation('srt')">Descargar SRT traducido</button><button type="button" class="caption-button" @click="exportTranslation('vtt')">Descargar VTT traducido</button><button type="button" class="caption-button" @click="proposal = null">Descartar</button></div>
+                    </div>
+                </template>
+                <p v-else class="text-xs text-slate-500">Consultando el asistente…</p>
+            </div>
+        </details>
         <details v-if="captions" class="rounded-lg border border-slate-100 p-2"><summary class="cursor-pointer text-xs font-medium">Estilo de subtítulos</summary>
             <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                 <label class="caption-label col-span-2">Fuente de subtítulos<select :value="style.font_id ? `id:${style.font_id}` : style.fontFamily ?? 'Arial'" :disabled="blocked" @change="chooseFont($event.target.value)"><option v-for="family in families" :key="family" :value="family">{{ family }}</option><option v-for="font in fonts" :key="font.id" :value="`id:${font.id}`">{{ font.name }} · {{ font.family }}</option></select></label>

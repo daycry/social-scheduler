@@ -27,6 +27,7 @@ use App\Http\Controllers\ReportScheduleController;
 use App\Http\Controllers\ReportTemplateController;
 use App\Http\Controllers\SavedTextController;
 use App\Http\Controllers\Studio\StudioExportDownloadController;
+use App\Http\Controllers\Studio\StudioThumbnailController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -191,5 +192,7 @@ require __DIR__.'/canva.php';
 require __DIR__.'/studio.php';
 require __DIR__.'/post-workflow.php';
 
+Route::get('studio/thumbnails/{design}/{owner}', StudioThumbnailController::class)
+    ->whereNumber(['design', 'owner'])->middleware(['signed', 'throttle:studio.thumbnails'])->name('studio.designs.thumbnail');
 Route::get('studio/downloads/{export}/{owner}', StudioExportDownloadController::class)
     ->whereNumber(['export', 'owner'])->middleware(['signed', 'throttle:studio.exports.download'])->name('studio.exports.download');

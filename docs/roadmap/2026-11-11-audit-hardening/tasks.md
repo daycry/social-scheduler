@@ -1421,65 +1421,76 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 ### T-34 — Opciones de publicación: portada LinkedIn, lugares IG, `place` FB, editor de `user_tags`
 
 - **Descripción**: Portada de vídeo en LinkedIn, búsqueda de lugares en Instagram, `place` en Facebook y editor web de `user_tags`.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El compositor deja elegir un lugar para Instagram y Facebook (buscándolo o pegando su id), etiquetar usuarios en una imagen de Instagram pulsando sobre ella y poner portada a los vídeos de LinkedIn.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-31
 - **Tipo**: fullstack
-- **Archivos**: `app/Connectors/LinkedIn/LinkedInPublisher.php`, `app/Connectors/Meta/InstagramPublisher.php`, `app/Connectors/Meta/FacebookPublisher.php`, `resources/js/composables/useComposer.js`, `resources/js/Pages/Posts/**`, `docs/modulos/publicacion.md`
+- **Archivos**: `app/Connectors/LinkedIn/LinkedInPublisher.php`, `app/Connectors/LinkedIn/LinkedInClient.php`, `app/Connectors/Meta/Instagram/InstagramPostOptions.php`, `app/Connectors/Meta/Facebook/FacebookPostOptions.php`, `app/Connectors/Meta/Facebook/FacebookPublisher.php`, `app/Connectors/Meta/PlaceSearch.php`, `app/Connectors/Meta/PlaceSearchUnavailable.php`, `app/Http/Controllers/ConnectionController.php`, `app/Http/Requests/PostRequest.php`, `app/Mcp/Tools/PostPayload.php`, `app/Services/PostService.php`, `app/Support/TargetMedia.php`, `config/rate_limits.php`, `routes/web.php`, `resources/js/Components/Composer/TargetOptions.vue`, `resources/js/Components/Composer/PlaceField.vue`, `resources/js/Components/Composer/InstagramUserTagsField.vue`, `resources/js/Composables/composerOptions.js`, `resources/js/Composables/placeSearch.js`, `resources/js/Composables/useComposer.js`, `resources/js/Composables/userTags.js`, `docs/modulos/publicacion.md`, `docs/modulos/media-por-destino.md`, `docs/guias/linkedin-pinterest.md`, `docs/referencia/decisiones-por-red.md`, `docs/referencia/pendientes-manuales.md`, `tests/Feature/Publishing/PublishOptionsTest.php`, `tests/frontend/composer-user-tags.test.mjs`, `tests/e2e/publish-options.spec.ts`
 - **Cubre**: B-17
 - **Cubre (tests)**: E2E-36, M-02, M-04
 - **Verificación**: `php artisan test --compact --filter=PublishOptionsTest` → verde
 
 **Criterios de aceptación**
-- [ ] El compositor permite elegir lugar y etiquetar usuarios (con fakes de la API)
-- [ ] LinkedIn acepta portada de vídeo
+- [x] El compositor permite elegir lugar y etiquetar usuarios (con fakes de la API)
+- [x] LinkedIn acepta portada de vídeo
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+- RED/TDD: `PublishOptionsTest` se escribió junto al código (portada de LinkedIn y `place` ya implementados al ejecutarlo por primera vez); la primera pasada dio 6/9 con dos fallos del propio test (`Http::fake` encadenado dos veces y la cuenta de LinkedIn sin activar en el servicio), corregidos en la tarea · 2026-11-13. `TDD n/a` para los componentes Vue: cubiertos por `composer-user-tags.test.mjs` (lógica pura) y el E2E.
+- Verificación (2026-11-13): `php artisan test --compact --filter=PublishOptionsTest` → 9/9 verde; focal `tests/Feature/Publishing` + `Connectors/LinkedIn` + `Connectors/Meta` + `Mcp` → 657/657 verde; Pint OK. `npm run build` OK, `typecheck` OK, `test:unit` 639/639 (con `composer-user-tags.test.mjs`). Playwright (`E2E_PURGE=0 E2E_WORKERS=2`): `publish-options.spec.ts` (nuevo, E2E-36: lugar con la búsqueda interceptada en el navegador, motivo y id a mano cuando Meta la restringe, `user_tags` pulsando sobre la imagen y guardado/recarga) 3/3 y `composer-presets` + `linkedin-pinterest` + `instagram-audio` 27/27 (los 3 proyectos). No se lanzó el Pest completo.
+- Contratos (consultados el 2026-11-13; detalle en `decisiones-por-red.md#opciones-de-publicación-t-34`): LEÍDO en la [Videos API de LinkedIn](https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/videos-api): `uploadThumbnail: true` → `thumbnailUploadUrl`, `PUT` con `media-type-family: STILLIMAGE` y `Content-Type: application/octet-stream` (201); `finalizeUpload` no cambia. LEÍDO en la referencia de Page/feed y Page/photos de Graph: `place` (id de la Página del lugar). **Sin verificar** (las páginas de Meta se cargan con JavaScript y no se pueden leer): formato/tamaño de la miniatura de LinkedIn, `place` en vídeos/Reels/historias (no documentado: se rechaza), `location_id` y `user_tags` de Instagram, y la búsqueda `GET /pages/search`.
+- Decisiones: (1) **Búsqueda de lugares**: `GET /pages/search?q&fields=id,name,location` con el token de la cuenta, solo web (`brands/{brand}/connections/{account}/places`, política de la marca, 30/min, cuentas de Instagram y Facebook). Meta la restringe (función «Page Public Metadata Access»): un error de permisos responde 422 con el motivo y el compositor deja **pegar el id**; nunca se guarda ni se cachea el resultado. API y MCP aceptan `place`, `location_id` y `user_tags` pero no buscan. (2) **Facebook `place`**: texto, foto y varias fotos; vídeo, Reel e historia lo rechazan con un error en español. (3) **Portada de LinkedIn** = la portada por destino de la media propia (T-17, `cover_id`), ahora admitida en `linkedin_video`; si LinkedIn no devuelve `thumbnailUploadUrl` falla antes de subir el vídeo (no se publica sin la portada pedida). (4) **Editor de `user_tags`**: pulsar sobre la imagen coloca la etiqueta; «Añadir en el centro» y los campos x/y son la alternativa de teclado; repetir un usuario mueve su etiqueta; tope de 20 (el de la API). (5) Se borró el texto «la app no busca lugares / se envían por la API o el MCP» de la UI, de `InstagramPostOptions` y del MCP (criterio de código limpio).
+- Pendiente (coordinador): revisión adversarial A+B(+C). Smoke real del usuario: CS-M-05/M-04 (lugar, `user_tags`, portada de LinkedIn).
 
 **Notas**: Tamaño M. Verificación real = smoke del usuario (`location_id`/`user_tags`, LinkedIn).
 
 ### T-35 — Estudio: PPTX, miniaturas por diseño y traducción de subtítulos
 
 - **Descripción**: Exportación PPTX, miniaturas generadas por diseño y traducción de subtítulos con el asistente de IA configurado. La transcripción automática (ASR) no entra (ver F-26).
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El estudio exporta un diseño a PowerPoint (una diapositiva por página), enseña una miniatura de cada diseño en el listado y traduce los subtítulos con el asistente de IA cuando está activado.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-33
 - **Tipo**: fullstack
-- **Archivos**: `app/Services/Studio/StudioPptxExporter.php`, `app/Services/Studio/StudioThumbnails.php`, `app/Services/Studio/StudioCaptions.php`, `resources/js/Pages/Studio/**`, `docs/modulos/estudio.md`
+- **Archivos**: `app/Services/Studio/StudioPptxExporter.php`, `app/Services/Studio/StudioZipWriter.php`, `app/Services/Studio/StudioThumbnails.php`, `app/Services/Studio/StudioCaptions.php`, `app/Services/Studio/StudioRenderer.php`, `app/Jobs/Studio/RenderStudioThumbnail.php`, `app/Http/Controllers/Studio/StudioThumbnailController.php`, `app/Http/Controllers/Studio/StudioController.php`, `app/Http/Controllers/Studio/StudioAiController.php`, `app/Mcp/Tools/ExportDesign.php`, `database/migrations/2026_12_24_090000_add_thumbnail_to_studio_designs.php`, `config/studio.php`, `config/rate_limits.php`, `routes/web.php`, `phpunit.xml`, `resources/js/Pages/Studio/Index.vue`, `resources/js/Pages/Studio/Editor.vue`, `resources/js/Components/Studio/ExportDialog.vue`, `resources/js/Components/Studio/NativeExportJobs.vue`, `resources/js/Components/Studio/CaptionsPanel.vue`, `resources/js/Components/Studio/TimelinePanel.vue`, `docs/modulos/estudio.md`, `docs/modulos/mcp.md`, `docs/guias/estudio-api-mcp.md`, `docs/api/openapi.yaml`, `tests/Feature/Studio/StudioPptxExportTest.php`, `tests/Feature/Studio/StudioThumbnailsTest.php`, `tests/Feature/Studio/StudioCaptionTranslationTest.php`, `tests/e2e/studio-pptx-thumbnails.spec.ts`
 - **Cubre**: B-18
 - **Cubre (tests)**: E2E-07, M-11
 - **Verificación**: `php artisan test --compact --filter=StudioPptxExportTest` → verde · `php artisan test --compact --filter=StudioThumbnailsTest` → verde
 
 **Criterios de aceptación**
-- [ ] Un diseño se exporta a PPTX válido (abre con una librería de lectura en test)
-- [ ] Cada diseño tiene miniatura actualizada
-- [ ] La traducción de subtítulos usa `AiAssistant` y está desactivada sin clave
+- [x] Un diseño se exporta a PPTX válido (abre con una librería de lectura en test)
+- [x] Cada diseño tiene miniatura actualizada
+- [x] La traducción de subtítulos usa `AiAssistant` y está desactivada sin clave
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+- RED/TDD: los tres ficheros de test se escribieron antes que el código que prueban, pero no se registró una ejecución en rojo aparte (faltaban las clases y rutas); la primera pasada ya con el código tuvo fallos de los propios tests (`SimpleXML` y atributos, tamaño mínimo de diapositiva, directorio de trabajo que exige `StudioChartFiles`, cuota que devolvía 500 por `PostValidationException` sin envolver), corregidos en la tarea · 2026-11-13.
+- Verificación (2026-11-13): `php artisan test --compact --filter=StudioPptxExportTest` → 3/3 verde · `--filter=StudioThumbnailsTest` → 5/5 verde · `--filter=StudioCaptionTranslationTest` → 16/16 verde; focal `tests/Feature/Studio` + `Mcp` + `Api` → 1030/1039 verde (9 omitidas ya existentes); Pint OK; migración `2026_12_24_090000` probada hacia arriba, abajo y arriba en un SQLite temporal (nunca el MySQL de desarrollo). `npm run build` OK, `typecheck` OK, `test:unit` 639/639. Playwright (`E2E_PURGE=0 E2E_WORKERS=2`): `studio-pptx-thumbnails.spec.ts` (nuevo, E2E-07) 9/9 (miniatura bajo demanda con Chromium real, invalidada al editar, PPTX descargado y validado con `python -m zipfile -t`, traducción apagada y propuesta aplicada con la IA simulada en el navegador) y `studio` + `studio-captions` + `studio-native-export` + `studio-boards` 28/28. No se lanzó el Pest completo.
+- Decisiones: (1) **PPTX = `format: "pptx"` del render del servidor** (diálogo, API, MCP): Chromium genera los PNG, `StudioPptxExporter` escribe el OOXML y `StudioZipWriter` lo empaqueta **sin `ext-zip` ni dependencias nuevas** (no se añadió `phpoffice/phppresentation`: exige `ext-zip`, que este servidor no tiene, y compone con `composer.json`). Una diapositiva por página con la imagen a pantalla completa; **texto no editable** porque las capas del estudio no tienen equivalente fiel en las formas de PowerPoint. No crea media ni «Crear borrador»; se descarga de la lista. El test lo abre con un lector ZIP/OOXML propio (firmas, CRC, XML, relaciones) y, si hay `ext-zip`, con `ZipArchive` (`CHECKCONS`). Abrirlo en PowerPoint = M-11. (2) **Miniaturas bajo demanda**, no al guardar: un hook en el guardado ejecutaría Chromium en cada autoguardado (y con la cola `sync` de los tests, en todos los tests de estudio). Se cachean por revisión (`thumbnail_path`/`thumbnail_revision`), se invalidan solas al editar, se encolan desde el listado en `media` (únicas por diseño, 12 por listado, aplazadas 10 min tras un fallo) y no tocan `revision` ni `updated_at`; `STUDIO_THUMBNAILS=false` las apaga (también en `phpunit.xml`). (3) **Refactor mínimo de `StudioRenderer`**: `execute()` es el cuerpo común de exportar y de miniatura; `render()` conserva su contrato. (4) **Traducción con `AiAssistant`** (acción `translate_captions` de `ai-text`, web y API, no MCP): propuesta sin guardar, ids y orden validados, correos/teléfonos/enlaces fuera, cuota diaria compartida; sin asistente activado no se envía nada y la UI muestra el aviso común. Aplicar cambia solo los textos. (5) La transcripción (ASR) sigue a la espera de proveedor (F-26).
+- Pendiente (coordinador): revisión adversarial A+B(+C). Manual M-11 (abrir el PPTX en PowerPoint) y CS-M-08 (miniaturas con Chromium en el VPS).
 
 **Notas**: Tamaño M. Qué se puede hacer ya: PPTX, miniaturas y traducción (con fake de IA). Queda a la espera (U): proveedor de ASR para transcripción (F-26 [D]); abrir el PPTX en PowerPoint es el manual M-11. **A la espera (no bloquea la fase)**: Proveedor de ASR (decisión del usuario).
 

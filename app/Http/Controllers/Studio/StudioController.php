@@ -19,6 +19,7 @@ use App\Services\Studio\StudioFrames;
 use App\Services\Studio\StudioRenderer;
 use App\Services\Studio\StudioService;
 use App\Services\Studio\StudioSharedFiles;
+use App\Services\Studio\StudioThumbnails;
 use App\Support\CurrentBrand;
 use App\Support\CursorPage;
 use Illuminate\Http\JsonResponse;
@@ -47,6 +48,7 @@ class StudioController extends Controller
         $filters = $request->validate(['query' => ['nullable', 'string', 'max:120'], 'folder_id' => ['nullable', 'integer', 'min:1'],
             'templates' => ['nullable', 'boolean'], 'archived' => ['nullable', 'boolean']] + CursorPage::RULES);
         $designs = $this->studio->designs($request->user(), $brand, $filters);
+        $designs['designs'] = app(StudioThumbnails::class)->decorate($request->user(), $designs['designs']);
         $props = $this->brandProps($request, $brand) + ['designs' => $designs, 'filters' => $filters, 'shared' => $this->collab->sharedWith($request->user())];
 
         return $request->expectsJson() ? response()->json($props) : Inertia::render('Studio/Index', $props);

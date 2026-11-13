@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Icon from '@/Components/Icon.vue';
@@ -48,6 +48,17 @@ const guidelines = ref(props.kit?.guidelines ?? '');
 const voice = ref(props.kit?.voice ?? '');
 const rows = computed(() => props.designs?.designs ?? []);
 const archived = computed(() => !!props.filters?.archived);
+// Miniaturas (T-35): se generan en segundo plano por la cola; mientras falten, se recarga el listado unas pocas veces (la caducada se regenera sola).
+const missingThumbnails = computed(() => !archived.value && rows.value.some(design => !design.thumbnail_url));
+let thumbnailTimer = null, thumbnailTries = 0;
+const pollThumbnails = () => {
+    thumbnailTimer = setTimeout(() => {
+        if (thumbnailTries++ >= 3 || !missingThumbnails.value) return;
+        router.reload({ only: ['designs'], onFinish: pollThumbnails });
+    }, 8000);
+};
+watch(missingThumbnails, missing => { clearTimeout(thumbnailTimer); thumbnailTries = 0; if (missing) pollThumbnails(); }, { immediate: true });
+onBeforeUnmount(() => clearTimeout(thumbnailTimer));
 const templatesOnly = computed(() => !!props.filters?.templates);
 const presets = STUDIO_FORMAT_PRESETS;
 
@@ -221,7 +232,8 @@ const date = value => new Intl.DateTimeFormat('es', { day: 'numeric', month: 'sh
                     <div v-if="rows.length" class="grid grid-cols-1 gap-5 min-[440px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         <article v-for="design in rows" :key="design.id" class="group min-w-0">
                             <Link v-if="!archived" :href="route('studio.designs.edit', design.id)" class="flex aspect-[4/3] items-center justify-center rounded-2xl border border-slate-200 bg-white p-6 transition group-hover:border-violet-300 group-hover:shadow-sm" :aria-label="`Editar ${design.name}`">
-                                <div class="flex h-full max-w-full items-center justify-center rounded border border-slate-200 bg-slate-50 px-5 text-center" :style="{ aspectRatio: `${design.width ?? 1080} / ${design.height ?? 1080}` }"><span class="text-xs font-medium leading-relaxed text-slate-500">{{ design.name }}<span class="mt-2 block text-[10px] font-normal">{{ design.width }} × {{ design.height }} · {{ design.page_count }} {{ design.page_count === 1 ? 'página' : 'páginas' }}</span></span></div>
+                                <img v-if="design.thumbnail_url" :src="design.thumbnail_url" alt="" loading="lazy" class="max-h-full max-w-full rounded border border-slate-200 object-contain" :style="{ aspectRatio: `${design.width ?? 1080} / ${design.height ?? 1080}` }" data-testid="design-thumbnail" />
+                                <div v-else class="flex h-full max-w-full items-center justify-center rounded border border-slate-200 bg-slate-50 px-5 text-center" :style="{ aspectRatio: `${design.width ?? 1080} / ${design.height ?? 1080}` }" data-testid="design-thumbnail-pending"><span class="text-xs font-medium leading-relaxed text-slate-500">{{ design.name }}<span class="mt-2 block text-[10px] font-normal">{{ design.width }} × {{ design.height }} · {{ design.page_count }} {{ design.page_count === 1 ? 'página' : 'páginas' }}</span></span></div>
                             </Link>
                             <div v-else class="flex aspect-[4/3] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-100"><Icon name="trash" class="h-8 w-8 text-slate-400" /></div>
                             <div class="mt-3 flex items-start gap-2"><div class="min-w-0 flex-1"><h3 class="truncate text-sm font-semibold">{{ design.name }}</h3><p class="mt-1 text-xs text-slate-500">{{ date(design.updated_at) }}<span v-if="design.is_template"> · Plantilla</span></p></div><details class="relative"><summary class="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-lg hover:bg-slate-100" :aria-label="`Opciones de ${design.name}`">•••</summary><div class="absolute right-0 z-20 mt-1 min-w-40 rounded-xl border border-slate-200 bg-white p-1 shadow-lg"><button v-if="!archived" type="button" class="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-50" :disabled="busy" @click="mutate(design, 'duplicate')">Duplicar diseño</button><button v-if="!archived" type="button" class="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-50" :disabled="busy" data-testid="design-move" @click="askMove(design)">Mover a carpeta</button><button type="button" class="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-50" :disabled="busy" @click="mutate(design, archived ? 'restore' : 'archive')">{{ archived ? 'Restaurar' : 'Mover a papelera' }}</button></div></details></div>

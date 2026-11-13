@@ -83,5 +83,6 @@ return [
         'report-schedules.unsubscribe' => 30,
         'reports.download' => 30,
         'studio.exports.download' => 60,
+        'studio.thumbnails' => 600,
     ],
 ];

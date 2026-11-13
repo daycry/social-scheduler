@@ -105,6 +105,32 @@ return [
             'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 1024 * $mb, 'min_duration' => 3, 'max_duration' => 90, 'min_fps' => 24, 'max_fps' => 60, 'min_width' => 540, 'min_height' => 960, 'aspect' => ['min' => 0.5, 'max' => 0.6]],
         ],
 
+        // Varias fotos en una publicacion: cada foto se sube con `published=false` y se publican juntas con `attached_media` en `/feed`.
+        // El tope de 10 fotos es conservador y SIN VERIFICAR en la documentacion oficial (que no lo declara).
+        'facebook_photos' => [
+            'label' => 'una publicacion de varias fotos de Facebook',
+            'media' => ['min' => 2, 'max' => 10, 'kinds' => ['image']],
+            'text' => ['max' => 63206, 'required' => false],
+            'first_comment' => ['max' => 8000],
+            'image' => ['mimes' => ['image/jpeg', 'image/png', 'image/webp'], 'max_bytes' => 10 * $mb],
+        ],
+        // Historias de Pagina (`/photo_stories` y `/video_stories`): sin texto ni primer comentario desde la API. Los limites son SIN VERIFICAR
+        // (la guia de Page Stories no se pudo leer): se usan los mismos que las historias de Instagram, mas conservadores que los de un reel.
+        'facebook_story_photo' => [
+            'label' => 'una historia de Facebook',
+            'media' => ['min' => 1, 'max' => 1, 'kinds' => ['image', 'video']],
+            'text' => ['max' => 2200, 'required' => false],
+            'image' => ['mimes' => ['image/jpeg', 'image/png'], 'max_bytes' => 8 * $mb, 'min_width' => 320, 'aspect' => ['min' => 0.1, 'max' => 10]],
+            'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 100 * $mb, 'min_duration' => 3, 'max_duration' => 60, 'min_fps' => 23, 'max_fps' => 60, 'aspect' => ['min' => 0.1, 'max' => 10]],
+        ],
+        'facebook_story_video' => [
+            'label' => 'una historia de Facebook',
+            'media' => ['min' => 1, 'max' => 1, 'kinds' => ['image', 'video']],
+            'text' => ['max' => 2200, 'required' => false],
+            'image' => ['mimes' => ['image/jpeg', 'image/png'], 'max_bytes' => 8 * $mb, 'min_width' => 320, 'aspect' => ['min' => 0.1, 'max' => 10]],
+            'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 100 * $mb, 'min_duration' => 3, 'max_duration' => 60, 'min_fps' => 23, 'max_fps' => 60, 'aspect' => ['min' => 0.1, 'max' => 10]],
+        ],
+
         // ---------------------------------------------------------------- YouTube
         'youtube_video' => [
             'label' => 'un video de YouTube',

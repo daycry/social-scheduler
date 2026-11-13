@@ -19,7 +19,7 @@ final class TargetMedia
 
     /** Tipos que publican texto alternativo por imagen. */
     private const ALT_TYPES = [
-        ContentType::InstagramImage, ContentType::InstagramCarousel, ContentType::FacebookPhoto,
+        ContentType::InstagramImage, ContentType::InstagramCarousel, ContentType::FacebookPhoto, ContentType::FacebookPhotos,
         ContentType::ThreadsImage, ContentType::ThreadsCarousel, ContentType::BlueskyPost,
         ContentType::LinkedInImage, ContentType::LinkedInCarousel, ContentType::PinterestPin,
     ];

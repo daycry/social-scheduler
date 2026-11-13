@@ -33,6 +33,21 @@ Verificado en el spike (app en modo desarrollo, usuario admin):
 - Token de larga duración OK; `data_access_expires_at` a 90 días, se renueva con re-login.
 - Borrar un medio de IG exige `instagram_manage_contents`; por eso está en los scopes de `config/social.php`.
 
+### Facebook: varias fotos e historias (T-31)
+
+Dos tipos de contenido nuevos en Páginas de Facebook: `facebook_photos` (varias fotos) y `facebook_story` (historia de foto o de vídeo; la clase de media decide la regla `facebook_story_photo` o `facebook_story_video`, como las historias de Instagram).
+
+| Qué | Contrato | Estado de la verificación |
+|---|---|---|
+| Varias fotos | Cada foto: `POST /{page-id}/photos` con `url` y `published=false` (queda ~24 h en estado temporal). Luego `POST /{page-id}/feed` con `message` y `attached_media[i]={"media_fbid":"<id>"}`. Devuelve el ID de la publicación. | **Verificado** en la referencia oficial de Graph API, [Page › photos](https://developers.facebook.com/docs/graph-api/reference/page/photos/) (sección «Publishing a multi-photo post with uploaded photos»). Con publicación programada la doc exige además `published=false`, `scheduled_publish_time` y `unpublished_content_type=SCHEDULED` en el `/feed` (y `temporary=true` en la foto): no se usan porque la app programa ella misma y publica en el momento. |
+| Historia de foto | Foto subida con `published=false` y `POST /{page-id}/photo_stories` con `photo_id`. | Parámetro `photo_id` **verificado** en el SDK oficial de Meta (`facebook-python-business-sdk`, `Page.create_photo_story`); la guía «Page Stories API» no se pudo leer (la página no entrega contenido sin JavaScript). La forma de la respuesta (`success`, `post_id`) es **sin verificar**: si falta `post_id` se usa el ID de la foto. |
+| Historia de vídeo | `POST /{page-id}/video_stories` con `upload_phase=start`, subida por `file_url` a la `upload_url` devuelta y `upload_phase=finish` con `video_id` y `video_state=PUBLISHED`; se sondea el estado del vídeo. | Parámetros (`upload_phase`, `video_id`, `video_state`) **verificados** en el SDK oficial (`Page.create_video_story`); el flujo de subida por `file_url` se toma del de los reels (ya verificado) y es **sin verificar** para historias. |
+| Límites de media | Varias fotos: de 2 a 10, JPEG/PNG/WebP de hasta 10 MB. Historias: 1 pieza, foto JPEG/PNG de hasta 8 MB o vídeo MP4/MOV de 3 a 60 s, hasta 100 MB. | **Sin verificar**: la documentación no declara el máximo de fotos ni los de las historias; se usan valores conservadores (los de las historias de Instagram) y se ajustan tras el smoke M-04. |
+
+Las historias no llevan texto ni primer comentario (el tipo no tiene entrada `first_comment`, así que se rechaza); el texto común de la publicación se ignora, igual que en Instagram.
+
+Recuperación e idempotencia (`FacebookPublisher::findPublished`): las fotos subidas se guardan en `progress.photos` (por id de media) y un reintento no las vuelve a subir; la publicación de varias fotos se reconoce por texto y hora como el resto de tipos (sin texto no se puede reconocer: limitación conocida); una historia de vídeo se resuelve por el ID del vídeo; una historia de foto se busca por el ID de la foto en `GET /{page-id}/stories` (**lectura sin verificar**; si Meta la rechaza se trata como no publicada).
+
 Limitaciones: la cuenta debe estar en modo desarrollo con roles propios mientras no pase App Review; ⚠️ verificar publicación real de reel, story y FB texto (M-01).
 
 ## YouTube

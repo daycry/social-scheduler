@@ -34,7 +34,7 @@ test('MediaValidator: hay reglas versionadas para todos los tipos de contenido',
     // El conteo se deriva de los tipos (no se edita al anadir una red): una regla por tipo y variante, sin reglas huerfanas.
     $expected = collect(ContentType::cases())->flatMap(fn (ContentType $t) => [$t->specKey(), $t->specKey('video')])->unique()->count();
 
-    expect(config('media_specs.version'))->not->toBeEmpty()->and($types)->toHaveCount($expected)->and($expected)->toBe(26);
+    expect(config('media_specs.version'))->not->toBeEmpty()->and($types)->toHaveCount($expected)->and($expected)->toBe(29);
     foreach (ContentType::cases() as $type) {
         expect($types)->toHaveKey($type->specKey())->and($types)->toHaveKey($type->specKey('video'));
     }
@@ -47,6 +47,8 @@ test('MediaValidator: acepta contenido valido en los 13 tipos', function (string
     expect(checkMedia($type, $media()))->toBe([]);
 })->with([
     'ig imagen' => ['instagram_image', fn () => [imgAsset()]],
+    'fb fotos' => ['facebook_photos', fn () => [imgAsset(), imgAsset(['mime' => 'image/png'])]],
+    'fb historia' => ['facebook_story', fn () => [vidAsset(['duration' => 45])]],
     'ig carrusel' => ['instagram_carousel', fn () => [imgAsset(), vidAsset(['duration' => 20, 'width' => 1080, 'height' => 1080])]],
     'ig reel' => ['instagram_reel', fn () => [vidAsset(['duration' => 600])]],
     'ig historia imagen' => ['instagram_story', fn () => [imgAsset(['width' => 1080, 'height' => 1920])]],
@@ -82,6 +84,11 @@ test('MediaValidator: rechaza indicando el limite incumplido en los 13 tipos', f
     'fb foto sin media' => [ContentType::FacebookPhoto, fn () => [], 'x', 'necesita al menos un archivo'],
     'fb video largo' => [ContentType::FacebookVideo, fn () => [vidAsset(['duration' => 1500])], 'x', 'como maximo 20 min'],
     'fb reel horizontal' => [ContentType::FacebookReel, fn () => [vidAsset(['width' => 1920, 'height' => 1080])], 'x', 'proporcion'],
+    'fb fotos 1 sola' => [ContentType::FacebookPhotos, fn () => [imgAsset()], 'x', 'necesita al menos 2 archivos'],
+    'fb fotos 11' => [ContentType::FacebookPhotos, fn () => array_fill(0, 11, imgAsset()), 'x', 'como maximo 10 archivos'],
+    'fb fotos con video' => [ContentType::FacebookPhotos, fn () => [imgAsset(), vidAsset()], 'x', 'solo admite imagen'],
+    'fb historia 2 archivos' => [ContentType::FacebookStory, fn () => [imgAsset(), imgAsset()], 'x', 'como maximo 1 archivo'],
+    'fb historia larga' => [ContentType::FacebookStory, fn () => [vidAsset(['duration' => 90])], 'x', 'como maximo 60 s'],
     'fb reel pocos fps' => [ContentType::FacebookReel, fn () => [vidAsset(['fps' => 15.0])], 'x', 'al menos 24 fps'],
     'yt video corto sin texto grande' => [ContentType::YouTubeVideo, fn () => [vidAsset()], str_repeat('a', 5001), 'como maximo 5000'],
     'yt short largo' => [ContentType::YouTubeShort, fn () => [vidAsset(['duration' => 200])], 'x', 'como maximo 3 min.'],

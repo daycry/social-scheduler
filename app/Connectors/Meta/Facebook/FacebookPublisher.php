@@ -21,11 +21,17 @@ use Illuminate\Support\Facades\Log;
  *  - foto:           `POST /{page}/photos` (url)   (sincrono)
  *  - video:          `POST /{page}/videos` (file_url) -> procesamiento asincrono, se sondea `status.video_status`
  *  - reel:           `POST /{page}/video_reels` start -> subida por `file_url` -> finish -> sondeo
+ *  - varias fotos:   cada foto `POST /{page}/photos` con `published=false` y luego `POST /{page}/feed` con `attached_media[i]`
+ *                    ({"media_fbid": id}); los IDs subidos se guardan en `progress.photos` (viven ~24 h) para no repetir subidas al reintentar
+ *  - historia foto:  foto `published=false` y `POST /{page}/photo_stories` con `photo_id` (sincrono)
+ *  - historia video: `POST /{page}/video_stories` start -> subida por `file_url` -> finish -> sondeo (como el reel)
  *
  * `external_reference` mientras el destino esta `procesando` = ID del video/reel.
  *
  * Idempotencia: `findPublished` busca en las publicaciones/videos recientes de la Pagina una con el mismo
- * texto posterior a la hora programada; un video ya creado se resuelve por su ID (sin crear otro).
+ * texto posterior a la hora programada; un video ya creado se resuelve por su ID (sin crear otro). Una historia de foto
+ * no lleva texto: se reconoce por el ID de la foto subida (`progress.photos`) en `/{page}/stories` (lectura SIN VERIFICAR en la
+ * documentacion; si Meta la rechaza se trata como «no publicada», como cualquier fallo de la consulta).
  */
 class FacebookPublisher implements FirstCommenter, Publisher, StatusPoller
 {
@@ -79,7 +85,38 @@ class FacebookPublisher implements FirstCommenter, Publisher, StatusPoller
             case ContentType::FacebookReel:
                 $this->requireMedia($media, 'video');
 
-                return $this->startReel($account, $media->url, $text, FacebookPostOptions::params($request->options));
+                return $this->startUpload($account, "$page/video_reels", $media->url, $text, FacebookPostOptions::params($request->options));
+
+            case ContentType::FacebookPhotos:
+                if (count($request->media) < 2) {
+                    throw new PermanentPublishException('Una publicacion de varias fotos necesita al menos 2 imagenes.', 'media_invalida');
+                }
+                foreach ($request->media as $item) {
+                    $this->requireMedia($item, 'image'); // todo el album se valida antes de subir nada
+                }
+                $photos = $this->uploadPhotos($account, $request);
+                $params = $text !== '' ? ['message' => $text] : [];
+                foreach (array_values($photos) as $i => $id) {
+                    $params["attached_media[$i]"] = json_encode(['media_fbid' => $id]);
+                }
+
+                return $this->published($this->graph->post("$page/feed", $params, $token)['id'] ?? null, $account);
+
+            case ContentType::FacebookStory:
+                if ($media === null) {
+                    throw new PermanentPublishException('Falta el archivo de la historia.', 'media_invalida');
+                }
+                if ($media->isVideo()) {
+                    return $this->startUpload($account, "$page/video_stories", $media->url);
+                }
+                $photoId = array_values($this->uploadPhotos($account, $request))[0];
+                $res = $this->graph->post("$page/photo_stories", ['photo_id' => $photoId], $token);
+                $storyId = (string) ($res['post_id'] ?? (($res['success'] ?? false) ? $photoId : ''));
+                if ($storyId === '') {
+                    throw new PermanentPublishException('Facebook no devolvio el ID de la historia.', 'sin_id');
+                }
+
+                return PublishResult::published($storyId);
 
             default:
                 throw new PermanentPublishException('Tipo de contenido no admitido en Facebook.', 'tipo_no_admitido');
@@ -117,6 +154,10 @@ class FacebookPublisher implements FirstCommenter, Publisher, StatusPoller
             return $this->poll($account, $request);
         }
 
+        if ($request->type === ContentType::FacebookStory) {
+            return $this->findStory($account, $request);
+        }
+
         $text = trim((string) $request->text);
 
         if ($text === '') {
@@ -147,23 +188,77 @@ class FacebookPublisher implements FirstCommenter, Publisher, StatusPoller
         return null;
     }
 
-    /** Reel en 3 pasos: abrir la sesion, indicar el fichero por URL y cerrar publicandolo. */
-    private function startReel(SocialAccount $account, string $url, string $description, array $extra = []): PublishResult
+    /**
+     * Sube cada imagen del destino SIN publicarla (`published=false`) y devuelve el ID de Facebook de cada una por media. Los IDs ya
+     * subidos (`progress.photos`, que Meta conserva ~24 h) se reutilizan y cada subida nueva se guarda en el acto (`checkpoint`).
+     *
+     * @return array<string, string> media id => id de la foto en Facebook, en orden de publicacion
+     */
+    private function uploadPhotos(SocialAccount $account, PublishRequest $request): array
+    {
+        $done = (array) ($request->progress['photos'] ?? []);
+        $out = [];
+
+        foreach ($request->media as $item) {
+            $this->requireMedia($item, 'image');
+            $key = (string) $item->id;
+
+            if (! isset($done[$key])) {
+                $res = $this->graph->post("{$account->external_id}/photos", ['url' => $item->url, 'published' => 'false'] + ($item->alt !== null && $item->alt !== '' ? ['alt_text_custom' => $item->alt] : []), (string) $account->access_token);
+                if ((string) ($res['id'] ?? '') === '') {
+                    throw new PermanentPublishException('Facebook no devolvio el ID de la foto subida.', 'sin_id');
+                }
+                $done[$key] = (string) $res['id'];
+                $request->checkpoint(null, ['photos' => $done]);
+            }
+            $out[$key] = (string) $done[$key];
+        }
+
+        return $out;
+    }
+
+    /** Historia ya publicada: la que usa la foto subida por este destino (`progress.photos`); un video se resuelve por su ID. */
+    private function findStory(SocialAccount $account, PublishRequest $request): ?PublishResult
+    {
+        $ids = array_map('strval', array_values((array) ($request->progress['photos'] ?? [])));
+
+        if ($ids === []) {
+            return null; // sin texto ni foto subida no hay forma fiable de reconocerla
+        }
+
+        try {
+            $data = $this->graph->get("{$account->external_id}/stories", ['fields' => 'post_id,media_id,status,creation_time,url', 'limit' => self::RECENT], (string) $account->access_token);
+        } catch (PublishException $e) {
+            Log::notice('facebook.lookup_failed', ['account_id' => $account->id, 'code' => $e->errorCode]);
+
+            return null;
+        }
+
+        foreach ($data['data'] ?? [] as $item) {
+            if (in_array((string) ($item['media_id'] ?? ''), $ids, true) && ! empty($item['post_id'])) {
+                return PublishResult::published((string) $item['post_id'], $this->url($item['url'] ?? null));
+            }
+        }
+
+        return null;
+    }
+
+    /** Reel o historia de video en 3 pasos: abrir la sesion, indicar el fichero por URL y cerrar publicandolo. */
+    private function startUpload(SocialAccount $account, string $edge, string $url, string $description = '', array $extra = []): PublishResult
     {
         $token = (string) $account->access_token;
-        $page = $account->external_id;
 
-        $start = $this->graph->post("$page/video_reels", ['upload_phase' => 'start'], $token);
+        $start = $this->graph->post($edge, ['upload_phase' => 'start'], $token);
         $videoId = (string) ($start['video_id'] ?? '');
         $uploadUrl = (string) ($start['upload_url'] ?? '');
 
         if ($videoId === '' || $uploadUrl === '') {
-            throw new PermanentPublishException('Facebook no abrio la sesion de subida del reel.', 'sin_sesion');
+            throw new PermanentPublishException('Facebook no abrio la sesion de subida del video.', 'sin_sesion');
         }
 
         $this->graph->postToUrl($uploadUrl, ['Authorization' => 'OAuth '.$token, 'file_url' => $url]);
 
-        $this->graph->post("$page/video_reels", [
+        $this->graph->post($edge, [
             'upload_phase' => 'finish',
             'video_id' => $videoId,
             'video_state' => 'PUBLISHED',

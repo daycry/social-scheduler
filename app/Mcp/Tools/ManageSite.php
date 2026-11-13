@@ -56,7 +56,7 @@ class ManageSite extends SchedulerTool
                 $query->where('brand_id', $brand->id);
             }
 
-            return ['sites' => $query->get()->map(fn (Site $s) => $this->present($s))->all()];
+            return ['sites' => $query->get()->map(fn (Site $s) => $sites->present($s))->all()];
         }
 
         /** @var Site $site */
@@ -67,17 +67,6 @@ class ManageSite extends SchedulerTool
             $site = $sites->unpublish($user, $site);
         }
 
-        return $this->present($site) + ['id' => $site->id];
-    }
-
-    /** @return array<string, mixed> */
-    private function present(Site $s): array
-    {
-        return [
-            'id' => $s->id, 'brand_id' => $s->brand_id, 'slug' => $s->slug, 'title' => $s->title, 'published' => $s->is_published,
-            'access_mode' => $s->access_mode, 'noindex' => $s->noindex, 'url' => $s->url(),
-            'accessible' => $s->is_published && $s->access_mode === Site::ACCESS_PUBLIC,
-            'published_at' => $s->published_at?->toIso8601String(), 'has_unpublished_changes' => $s->is_published && $s->published_revision !== $s->revision,
-        ];
+        return $sites->present($site) + ['id' => $site->id];
     }
 }

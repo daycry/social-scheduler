@@ -98,7 +98,7 @@ export function useComposer(props) {
         if (libraryState.value === 'loading' || libraryState.value === 'ready') return;
         libraryState.value = 'loading';
         try {
-            const response = await fetch(route('media.index'), { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+            const response = await fetch(route('media.index', { limit: 100 }), { credentials: 'same-origin', headers: { Accept: 'application/json' } });
             if (!response.ok) throw new Error(String(response.status));
             libraryItems.value = (await response.json()).media ?? [];
             libraryState.value = 'ready';

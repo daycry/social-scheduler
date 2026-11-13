@@ -2,7 +2,7 @@
 
 Actualizado: 2026-11-10. Esta guía describe el código del árbol de trabajo; no acredita su despliegue. El editor, la API y MCP utilizan los mismos servicios de diseños, recursos y exportaciones por marca. Las pistas de audio se editan y mezclan durante el preview. La exportación estática permite elegir fotogramas por página; La interfaz, API y MCP incorporan MP4/GIF; la [QA integral local de T-07/T-11](../roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa3/report.md) está aceptada. Las pruebas locales no acreditan el despliegue en el VPS.
 
-Referencias: [OpenAPI](../api/creative-suite.openapi.yaml), [contrato completo del documento v1](../roadmap/2026-11-03-creative-social-suite/document-contract.md), [módulo MCP](../modulos/mcp.md), [despliegue general](../modulos/despliegue.md) y [desarrollo local](desarrollo-local.md).
+Referencias: [OpenAPI](../api/openapi.yaml), [contrato completo del documento v1](../roadmap/2026-11-03-creative-social-suite/document-contract.md), [módulo MCP](../modulos/mcp.md), [despliegue general](../modulos/despliegue.md) y [desarrollo local](desarrollo-local.md).
 
 ## Acceso y permisos
 
@@ -61,7 +61,7 @@ Estos son fotogramas locales de páginas. Las transiciones entre páginas y la m
 
 El audio del estudio utiliza tickets por marca (`design-audio` en API, `studio/audio` en web y `manage_studio_audio` en MCP). El ticket devuelve el modo de transferencia y `complete_url`; el archivo viaja por PUT binario local o por URLs de almacenamiento prefirmadas. Las URLs externas no reciben la sesión, el token Bearer ni el CSRF de la aplicación. Tras completar la transferencia, un503 de validación permite repetir complete conservando el ticket y las partes confirmadas, sin volver a subir bytes. El recurso solo aparece listo tras comprobar tamaño, contenido y duración; el catálogo social sigue excluyendo audio como adjunto aislado. Catálogo MCP del servidor: 57 herramientas (paginadas de 30 en 30).
 
-Las respuestas de crear/leer/actualizar un diseño son el objeto de diseño en el nivel superior: `.id`, `.document`, `.revision`. El listado devuelve el paginador en el nivel superior: `.data`, `.current_page`, `.last_page`, `.total`. Los listados de recursos y exportaciones usan `.assets` y `.exports` respectivamente.
+Las respuestas de crear/leer/actualizar un diseño son el objeto de diseño en el nivel superior: `.id`, `.document`, `.revision`. El listado devuelve `.designs` y el contrato de cursor común (`.has_more`, `.next_cursor`; ver la [guía de la API v1](api-v1.md)). Los listados de recursos y exportaciones usan `.assets` y `.exports` respectivamente.
 
 | Método y ruta, después de `/api/v1` | Permiso | Resultado |
 |---|---|---|
@@ -106,13 +106,13 @@ Las respuestas de crear/leer/actualizar un diseño son el objeto de diseño en e
 | `POST /design-exports/{export}/post` | `designs:write` + `posts:write` | 201, borrador de la marca con medios ready; solo text/targets, nunca programa. |
 | `GET /brands/{brand}/analytics` | `stats:read` | Métricas del mismo servicio que el dashboard. |
 
-El listado de diseños acepta `query` —búsqueda literal, también para `%` y `_`—, `folder_id`, `templates`, `archived` y `page`. `archived=true` lista únicamente archivados. Los booleanos de query admiten `true`/`false` y `1`/`0`.
+El listado de diseños acepta `query` —búsqueda literal, también para `%` y `_`—, `folder_id`, `templates`, `archived`, `limit` (1-100, 24 por defecto) y `cursor`. `archived=true` lista únicamente archivados. Los booleanos de query admiten `true`/`false` y `1`/`0`.
 
 ```bash
 curl --fail --get "$BASE/api/v1/brands/$BRAND_ID/designs" \
   -H "Authorization: Bearer $TOKEN" -H 'Accept: application/json' \
   --data-urlencode 'query=Campaña' --data-urlencode 'templates=false' \
-  --data-urlencode 'archived=false' --data-urlencode 'page=1'
+  --data-urlencode 'archived=false' --data-urlencode 'limit=24'
 ```
 
 ## Documento tipado y creación
@@ -326,7 +326,7 @@ La siguiente llamada tiene la forma `{"jsonrpc":"2.0","id":2,"method":"tools/lis
 
 | Herramienta | Argumentos y resultado |
 |---|---|
-| `list_designs` | `brand` o `brand_id`; opcionales `query`, `folder_id`, `templates`, `archived`, `page`. Resúmenes paginados de 24. `designs:read`. |
+| `list_designs` | `brand` o `brand_id`; opcionales `query`, `folder_id`, `templates`, `archived`, `limit`, `cursor`. Resúmenes paginados por cursor (24 por defecto; `has_more` y `next_cursor`). `designs:read`. |
 | `get_design` | `design_id`, `exports_page` opcional. Documento completo, revisión, kit, recursos con `file_url` e historial `exports` de 50 por página con `exports_pagination`. `designs:read`. |
 | `create_design` | Marca, `name`, `document`, opcionales `folder_id`/`is_template`. Diseño con revisión 1. `designs:write`. |
 | `update_design` | `design_id`, `name`, `document`, `revision`, opcionales `folder_id`/`is_template`. Nueva revisión o conflicto 409. `designs:write`. |
@@ -481,7 +481,7 @@ Este bloque manual no implementa reconocimiento de voz ni traducción: ambas cap
 
 ## Datasets por marca: API y MCP
 
-Las rutas están implementadas y aprobadas en la segunda revisión independiente. [QA26 intento2](../roadmap/2026-11-03-creative-social-suite/testing/t12/dataset-api-qa2/report.md) acepta el transporte HTTP/TCP local y MCP real con 13/13 casos, sin reintentos. El editor de tablas está aceptado por [QA27 intento3](../roadmap/2026-11-03-creative-social-suite/testing/t12/dataset-editor-qa3/report.md), con 15/15 casos en tres tamaños de pantalla y tres auditorías de accesibilidad sin violaciones ni comprobaciones incompletas. Los gráficos siguen pendientes. El [contrato OpenAPI](../api/creative-suite.openapi.yaml) describe las once operaciones bajo `/api/v1/brands/{brand}/datasets`. Las rutas web usan `/brands/{brand}/studio/datasets` con sesión verificada y CSRF. Todas comprueban usuario y marca: acceder desde otra marca devuelve 404 aunque ambas pertenezcan al mismo usuario.
+Las rutas están implementadas y aprobadas en la segunda revisión independiente. [QA26 intento2](../roadmap/2026-11-03-creative-social-suite/testing/t12/dataset-api-qa2/report.md) acepta el transporte HTTP/TCP local y MCP real con 13/13 casos, sin reintentos. El editor de tablas está aceptado por [QA27 intento3](../roadmap/2026-11-03-creative-social-suite/testing/t12/dataset-editor-qa3/report.md), con 15/15 casos en tres tamaños de pantalla y tres auditorías de accesibilidad sin violaciones ni comprobaciones incompletas. Los gráficos siguen pendientes. El [contrato OpenAPI](../api/openapi.yaml) describe las once operaciones bajo `/api/v1/brands/{brand}/datasets`. Las rutas web usan `/brands/{brand}/studio/datasets` con sesión verificada y CSRF. Todas comprueban usuario y marca: acceder desde otra marca devuelve 404 aunque ambas pertenezcan al mismo usuario.
 
 | Ruta relativa a la colección | Operación | Permiso API |
 |---|---|---|

@@ -5,13 +5,16 @@ namespace App\Http\Controllers;
 use App\Models\MediaAsset;
 use App\Services\Media\DriveFileSource;
 use App\Services\Media\UnsafeUrlException;
+use App\Services\MediaListing;
 use App\Services\MediaStorage;
 use App\Services\MediaUploadService;
 use App\Services\Studio\StudioAudioProbeUnavailable;
+use App\Support\CursorPage;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -25,14 +28,12 @@ class MediaController extends Controller
         private readonly MediaStorage $storage,
     ) {}
 
-    /** Media lista del usuario (para el selector del compositor). */
-    public function index(Request $request): JsonResponse
+    /** Media lista del usuario (selector del compositor y biblioteca), con el contrato de cursor comun de la API v1. */
+    public function index(Request $request, MediaListing $listing): JsonResponse
     {
-        return response()->json([
-            'media' => MediaAsset::query()->where('status', MediaAsset::STATUS_READY)
-                ->whereIn('kind', [MediaAsset::KIND_IMAGE, MediaAsset::KIND_VIDEO])
-                ->latest('id')->limit(100)->get()->map->toPublicArray()->values(),
-        ]);
+        $data = $request->validate(CursorPage::RULES + ['status' => ['nullable', Rule::in(MediaListing::STATUSES)], 'kind' => ['nullable', Rule::in(MediaListing::KINDS)]]);
+
+        return response()->json($listing->page($request->user(), $data['status'] ?? null, $data['limit'] ?? null, $data['cursor'] ?? null, web: ! $request->routeIs('api.*'), kind: $data['kind'] ?? null));
     }
 
     /** Registra el asset y devuelve las URLs prefirmadas (single/multipart) o el modo local. */
@@ -52,7 +53,7 @@ class MediaController extends Controller
 
         $upload = $result['upload'];
         if ($upload['mode'] === 'local') {
-            $upload['url'] = route('media.upload', $result['asset'], absolute: false);
+            $upload['url'] = route($request->routeIs('api.*') ? 'api.media.upload' : 'media.upload', $result['asset'], absolute: false);
         }
 
         return response()->json(['asset' => $result['asset']->toPublicArray(), 'upload' => $upload], 201);

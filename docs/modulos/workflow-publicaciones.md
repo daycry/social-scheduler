@@ -46,4 +46,4 @@ curl -X POST "$BASE/api/v1/posts/batch" \
 
 `/approvals` (bandeja y aprobadores por marca), `/posts/{id}/manual`, `/series` y, en la lista del calendario, selección múltiple con barra de lotes, insignias de aprobación, manual y serie, y el botón «Reintentar».
 
-Contrato HTTP en el [OpenAPI](../api/creative-suite.openapi.yaml); abilities en [MCP](mcp.md#abilities); estados de publicación en [publicación](publicacion.md).
+Contrato HTTP en el [OpenAPI](../api/openapi.yaml); abilities en [MCP](mcp.md#abilities); estados de publicación en [publicación](publicacion.md).

@@ -10,7 +10,7 @@ use App\Models\Studio\DesignRevision;
 use App\Models\Studio\DesignShare;
 use App\Models\Studio\StudioFont;
 use App\Models\User;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use App\Support\CursorPage;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +21,12 @@ class StudioService
 {
     public function __construct(private readonly StudioDocument $documents, private readonly StudioAssets $assets, private readonly StudioCollab $collab) {}
 
-    public function designs(User $user, Brand $brand, array $filters = []): LengthAwarePaginator
+    /**
+     * Diseños de la marca (resumenes sin documento), mas recientes primero, con el contrato de cursor comun (limit, cursor, has_more, next_cursor).
+     *
+     * @return array{designs: list<array<string, mixed>>, has_more: bool, next_cursor: ?string}
+     */
+    public function designs(User $user, Brand $brand, array $filters = []): array
     {
         $this->assets->assertBrand($user, $brand);
         $query = Design::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)
@@ -41,7 +46,9 @@ class StudioService
             $query->where('is_template', filter_var($filters['templates'], FILTER_VALIDATE_BOOLEAN));
         }
 
-        return $query->latest('updated_at')->latest('id')->paginate(24, ['*'], 'page', isset($filters['page']) ? (int) $filters['page'] : null)->withQueryString();
+        [$rows, $page] = CursorPage::fetch($query->latest('updated_at')->latest('id'), $filters['limit'] ?? null, $filters['cursor'] ?? null, 24);
+
+        return ['designs' => $rows->map->toArray()->values()->all()] + $page;
     }
 
     public function create(User $user, Brand $brand, array $data, ?array $kitReference = null): Design

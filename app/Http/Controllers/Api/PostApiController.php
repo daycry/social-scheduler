@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
 use App\Enums\PostStatus;
 use App\Exceptions\InvalidPostTransition;
@@ -12,43 +12,85 @@ use App\Models\PostTarget;
 use App\Services\AuditLog;
 use App\Services\PostPresenter;
 use App\Services\PostService;
+use App\Support\CursorPage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 /**
  * API REST de publicaciones (T-17): el mismo contrato que el compositor web y el MCP (`PostRequest` + `PostService` + `PostPresenter`).
  * `media` es la media comun y `targets[].media` la propia de cada destino (null/ausente = hereda la comun).
  */
-class PostApiController extends Controller
+class PostApiController extends ApiController
 {
     public function __construct(private readonly PostService $posts, private readonly PostPresenter $presenter) {}
 
     public function show(Request $request, Post $post): JsonResponse
     {
         abort_unless($post->user_id === $request->user()->id, 404);
-        $this->audit($request, 'get_post', AuditLog::OK, $post->id);
+        $this->audit($request, 'get_post', AuditLog::OK, 'post', $post->id);
 
         return response()->json($this->presenter->present($post));
     }
 
-    public function store(Request $request): JsonResponse
+    /** Publicaciones de la marca, las mas recientes primero, con el contrato de cursor comun (`limit`, `cursor`, `has_more`, `next_cursor`). */
+    public function index(Request $request, int $brand): JsonResponse
     {
-        $data = $this->validated($request->all(), ['brand_id' => ['required', 'integer']]);
-        $brand = Brand::withoutUserScope()->where('user_id', $request->user()->id)->find($data['brand_id']);
-        abort_if($brand === null, 404);
-        unset($data['brand_id']);
+        $brand = $this->ownedBrand($request, $brand);
+        $filters = $request->validate(CursorPage::RULES + ['status' => ['nullable', Rule::enum(PostStatus::class)]]);
+        $query = Post::withoutUserScope()->where('user_id', $request->user()->id)->where('brand_id', $brand->id)
+            ->when(isset($filters['status']), fn ($q) => $q->where('status', $filters['status']))
+            ->with(['brand', 'campaign', 'targets', 'media'])->latest('id');
+        [$rows, $page] = CursorPage::fetch($query, $filters['limit'] ?? null, $filters['cursor'] ?? null);
+        $this->audit($request, 'list_posts', AuditLog::OK, 'brand', $brand->id);
+
+        return response()->json(['posts' => $rows->map(fn (Post $p) => $this->presenter->present($p))->values()->all()] + $page);
+    }
+
+    public function store(Request $request, int $brand): JsonResponse
+    {
+        $brand = $this->ownedBrand($request, $brand);
+        $data = $this->validated($request->all(), []);
 
         try {
             $post = $this->posts->create($request->user(), $brand, $data);
         } catch (PostValidationException $e) {
-            $this->audit($request, 'create_post', AuditLog::ERROR);
+            $this->audit($request, 'create_post', AuditLog::ERROR, 'post', null);
 
             return $this->invalid($e);
         }
-        $this->audit($request, 'create_post', AuditLog::OK, $post->id);
+        $this->audit($request, 'create_post', AuditLog::OK, 'post', $post->id);
 
         return response()->json($this->presenter->present($post), 201);
+    }
+
+    /** Borra una publicacion aun no publicada (como `delete_post` del MCP y la papelera de la web). */
+    public function destroy(Request $request, Post $post): JsonResponse
+    {
+        abort_unless($post->user_id === $request->user()->id, 404);
+
+        return $this->respond($request, 'delete_post', 'post', $post->id, function () use ($request, $post) {
+            $this->posts->delete($request->user(), $post);
+
+            return ['id' => $post->id, 'deleted' => true];
+        });
+    }
+
+    /** Cancela la programacion: la publicacion pendiente vuelve a borrador. */
+    public function cancel(Request $request, Post $post): JsonResponse
+    {
+        abort_unless($post->user_id === $request->user()->id, 404);
+
+        return $this->respond($request, 'cancel_post', 'post', $post->id, fn () => $this->presenter->present($this->posts->unschedule($request->user(), $post)));
+    }
+
+    /** Publica ya un borrador o una programada: se valida como al programar y se encola al instante. */
+    public function publish(Request $request, Post $post): JsonResponse
+    {
+        abort_unless($post->user_id === $request->user()->id, 404);
+
+        return $this->respond($request, 'publish_post_now', 'post', $post->id, fn () => $this->presenter->present($this->posts->publishNow($request->user(), $post)), 202);
     }
 
     /**
@@ -71,7 +113,7 @@ class PostApiController extends Controller
                     if (array_key_exists('campaign_id', $sent)) {
                         $post = $this->posts->updateCampaign($user, $post, $sent['campaign_id'] === null || $sent['campaign_id'] === '' ? null : (int) $sent['campaign_id']);
                     }
-                    $this->audit($request, 'update_post', AuditLog::OK, $post->id);
+                    $this->audit($request, 'update_post', AuditLog::OK, 'post', $post->id);
 
                     return response()->json($this->presenter->present($post));
                 }
@@ -81,15 +123,15 @@ class PostApiController extends Controller
             }
             $post = $this->posts->update($user, $post, $data);
         } catch (PostValidationException $e) {
-            $this->audit($request, 'update_post', AuditLog::ERROR, $post->id);
+            $this->audit($request, 'update_post', AuditLog::ERROR, 'post', $post->id);
 
             return $this->invalid($e);
         } catch (InvalidPostTransition $e) {
-            $this->audit($request, 'update_post', AuditLog::ERROR, $post->id);
+            $this->audit($request, 'update_post', AuditLog::ERROR, 'post', $post->id);
 
             return response()->json(['message' => $e->getMessage()], 409);
         }
-        $this->audit($request, 'update_post', AuditLog::OK, $post->id);
+        $this->audit($request, 'update_post', AuditLog::OK, 'post', $post->id);
 
         return response()->json($this->presenter->present($post));
     }
@@ -115,11 +157,6 @@ class PostApiController extends Controller
                 'text' => $t->text, 'first_comment' => $t->first_comment, 'media' => $t->media, 'manual' => $t->manual,
             ])->all(),
         ];
-    }
-
-    private function audit(Request $request, string $action, string $outcome, ?int $postId = null): void
-    {
-        app(AuditLog::class)->record($request->user(), $action, $outcome, 'post', $postId, null, 'api');
     }
 
     /**

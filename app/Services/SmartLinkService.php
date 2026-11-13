@@ -19,6 +19,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 /**
  * SmartLinks (PA-07): alta/edicion del microsite de una marca y contadores diarios agregados (visitas y clics) sin
@@ -27,6 +28,69 @@ use Illuminate\Support\Facades\DB;
 class SmartLinkService
 {
     public const MAX_BLOCKS = 30;
+
+    public const MESSAGES = ['slug.regex' => 'Usa de 3 a 40 caracteres: minusculas, numeros y guiones (sin guion al principio ni al final).'];
+
+    /**
+     * Reglas de validacion de `save()` (sin la marca): las comparten la web y la API v1.
+     *
+     * @return array<string, mixed>
+     */
+    public static function rules(?int $ignoreId): array
+    {
+        return [
+            'slug' => ['required', 'string', 'regex:/^'.SmartLink::SLUG_PATTERN.'$/', Rule::unique('smart_links', 'slug')->ignore($ignoreId)],
+            'title' => ['required', 'string', 'max:100'],
+            'bio' => ['nullable', 'string', 'max:300'],
+            'avatar_media_id' => ['nullable', 'integer'],
+            'theme_color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'theme_mode' => ['nullable', 'in:light,dark'],
+            'published' => ['nullable', 'boolean'],
+            'blocks' => ['nullable', 'array', 'max:'.self::MAX_BLOCKS],
+            'blocks.*.id' => ['nullable', 'integer'],
+            'blocks.*.type' => ['required', 'in:'.implode(',', SmartLinkBlock::TYPES)],
+            'blocks.*.label' => ['nullable', 'string', 'max:100'],
+            'blocks.*.url' => ['nullable', 'string', 'max:2000'],
+            'blocks.*.media_id' => ['nullable', 'integer'],
+            'blocks.*.data' => ['nullable', 'array'],
+            'blocks.*.data.items' => ['nullable', 'array', 'max:8'],
+            'blocks.*.data.items.*.network' => ['nullable', 'string', 'max:20'],
+            'blocks.*.data.items.*.url' => ['nullable', 'string', 'max:2000'],
+            'blocks.*.data.cta' => ['nullable', 'string', 'max:30'],
+            'blocks.*.data.consent' => ['nullable', 'string', 'max:200'],
+            'blocks.*.data.count' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'blocks.*.visible_from' => ['nullable', 'string', 'max:40'],
+            'blocks.*.visible_until' => ['nullable', 'string', 'max:40'],
+        ];
+    }
+
+    /**
+     * Representacion unica del microsite para la web y la API v1 (horas de visibilidad en la zona de la marca).
+     *
+     * @return array<string, mixed>
+     */
+    public function present(SmartLink $link, Brand $brand): array
+    {
+        $tz = $brand->timezone ?: 'UTC';
+
+        return [
+            'id' => $link->id,
+            'slug' => $link->slug,
+            'title' => $link->title,
+            'bio' => $link->bio,
+            'avatar_media_id' => $link->avatar_media_id,
+            'theme_color' => $link->theme_color,
+            'theme_mode' => $link->theme_mode,
+            'published' => $link->published,
+            'public_url' => $link->url(),
+            'blocks' => $link->blocks->map(fn ($b) => [
+                'id' => $b->id, 'type' => $b->type, 'label' => $b->label, 'url' => $b->url, 'media_id' => $b->media_id, 'data' => $b->data,
+                'visible_from' => $b->visible_from?->setTimezone($tz)->format('Y-m-d\TH:i'),
+                'visible_until' => $b->visible_until?->setTimezone($tz)->format('Y-m-d\TH:i'),
+                'visibility' => $b->visible_from && $b->visible_from > now() ? 'scheduled' : ($b->visible_until && $b->visible_until <= now() ? 'expired' : 'visible'),
+            ])->values()->all(),
+        ];
+    }
 
     /**
      * Crea (o actualiza, si la marca ya tiene uno) el microsite. Los bloques con `id` de este microsite se actualizan

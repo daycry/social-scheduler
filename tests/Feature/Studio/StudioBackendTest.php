@@ -77,11 +77,11 @@ test('Studio: searches literal percent and underscore characters and returns lig
         $this->postJson($this->createUrl, ['name' => $name, 'document' => studioDocument()])->assertCreated();
     }
     $this->postJson('/brands/'.$this->otherBrand->id.'/studio/designs', ['name' => 'Oferta 100%', 'document' => studioDocument()])->assertCreated();
-    $response = $this->getJson($this->createUrl.'?query='.urlencode('100%'))->assertOk()->assertJsonCount(1, 'designs.data');
-    expect($response->json('designs.data.0'))->not->toHaveKey('document')
-        ->and($response->json('designs.data.0.width'))->toBe(1080)
-        ->and($response->json('designs.data.0.page_count'))->toBe(1);
-    $this->getJson($this->createUrl.'?query='.urlencode('_'))->assertJsonCount(1, 'designs.data');
+    $response = $this->getJson($this->createUrl.'?query='.urlencode('100%'))->assertOk()->assertJsonCount(1, 'designs.designs');
+    expect($response->json('designs.designs.0'))->not->toHaveKey('document')
+        ->and($response->json('designs.designs.0.width'))->toBe(1080)
+        ->and($response->json('designs.designs.0.page_count'))->toBe(1);
+    $this->getJson($this->createUrl.'?query='.urlencode('_'))->assertJsonCount(1, 'designs.designs');
 });
 
 test('Studio: an update can explicitly remove its folder association', function () {
@@ -224,7 +224,7 @@ test('Studio: kit and folders are scoped to brand and require registered own log
     $otherFolder = $this->postJson('/brands/'.$this->otherBrand->id.'/studio/folders', ['name' => 'Otra'])->json('folder');
     $this->postJson($this->createUrl, ['name' => 'Mala carpeta', 'document' => studioDocument(), 'folder_id' => $otherFolder['id']])->assertUnprocessable();
     $this->postJson($this->createUrl, ['name' => 'Plantilla', 'document' => studioDocument(), 'folder_id' => $folder['id'], 'is_template' => true])->assertCreated();
-    $this->getJson($this->createUrl.'?templates=1&folder_id='.$folder['id'])->assertOk()->assertJsonCount(1, 'designs.data');
+    $this->getJson($this->createUrl.'?templates=1&folder_id='.$folder['id'])->assertOk()->assertJsonCount(1, 'designs.designs');
     $logo = MediaAsset::factory()->for($this->user)->create();
     $kit = ['palette' => ['#7c3aed', '#ffffff'], 'fonts' => ['Arial'], 'logos' => [$logo->id], 'voice' => 'Cercana', 'guidelines' => 'Usar marca'];
     $this->putJson($base.'/brand-kit', $kit)->assertUnprocessable();
@@ -244,7 +244,7 @@ test('Studio: duplicate and archive are independent and folder deletion preserve
     $this->getJson('/studio/designs/'.$created['id'])->assertJsonPath('design.folder_id', null);
     $this->deleteJson('/studio/designs/'.$created['id'])->assertOk();
     $this->getJson('/studio/designs/'.$created['id'])->assertNotFound();
-    $this->getJson($this->createUrl.'?archived=1')->assertJsonCount(1, 'designs.data');
+    $this->getJson($this->createUrl.'?archived=1')->assertJsonCount(1, 'designs.designs');
     $this->postJson('/studio/designs/'.$created['id'].'/restore')->assertOk();
     $this->getJson('/studio/designs/'.$created['id'])->assertOk();
 });

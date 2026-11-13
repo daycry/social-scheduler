@@ -38,7 +38,7 @@ const selectedLogos = ref([...(props.kit?.logos ?? [])]);
 const logoAssets = computed(() => (props.assets ?? []).filter(asset => asset.kind === 'image'));
 const guidelines = ref(props.kit?.guidelines ?? '');
 const voice = ref(props.kit?.voice ?? '');
-const rows = computed(() => props.designs?.data ?? []);
+const rows = computed(() => props.designs?.designs ?? []);
 const archived = computed(() => !!props.filters?.archived);
 const templatesOnly = computed(() => !!props.filters?.templates);
 const presets = STUDIO_FORMAT_PRESETS;
@@ -167,7 +167,7 @@ const date = value => new Intl.DateTimeFormat('es', { day: 'numeric', month: 'sh
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <div class="flex items-center gap-5">
                             <h2 id="studio-designs-title" class="text-xl font-semibold tracking-tight">{{ archived ? 'Papelera' : templatesOnly ? 'Tus plantillas' : 'Mis diseños' }}</h2>
-                            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">{{ designs?.total ?? 0 }}</span>
+                            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">{{ rows.length }}{{ designs?.has_more ? '+' : '' }}</span>
                         </div>
                         <form class="flex w-full max-w-sm items-center gap-2" role="search" @submit.prevent="filter()"><label class="sr-only" for="studio-search">Buscar diseños</label><input id="studio-search" v-model="query" class="field min-w-0" type="search" placeholder="Buscar en esta marca…" /><button type="submit" class="btn-secondary px-3">Buscar</button></form>
                     </div>
@@ -189,7 +189,7 @@ const date = value => new Intl.DateTimeFormat('es', { day: 'numeric', month: 'sh
                         </article>
                     </div>
                     <div v-else class="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-12 text-center"><Icon :name="archived ? 'trash' : 'palette'" class="mx-auto mb-4 h-8 w-8 text-violet-400" /><h3 class="text-base font-semibold">{{ query ? 'No hay diseños con esa búsqueda' : archived ? 'La papelera está vacía' : 'Aquí empieza tu próxima idea' }}</h3><p class="mt-2 text-sm text-slate-500">{{ query ? 'Prueba con otro nombre o carpeta.' : 'Crea un diseño o elige una plantilla para empezar.' }}</p><button v-if="!archived" type="button" class="mt-5 rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white" @click="createOpen = true">Crear mi primer diseño</button></div>
-                    <nav v-if="(designs?.last_page ?? 1) > 1" class="flex flex-wrap justify-center gap-2" aria-label="Paginación de diseños"><template v-for="(link, i) in designs.links" :key="i"><Link v-if="link.url" :href="link.url" class="rounded-lg border px-3 py-2 text-xs" :class="link.active ? 'border-violet-300 bg-violet-50' : 'border-slate-200 bg-white'">{{ i === 0 ? 'Anterior' : i === designs.links.length - 1 ? 'Siguiente' : i }}</Link></template></nav>
+                    <nav v-if="designs?.has_more || filters?.cursor" class="flex flex-wrap justify-center gap-2" aria-label="Paginación de diseños"><Link v-if="filters?.cursor" :href="route('studio.index', { brand_id: brand?.id, query: filters?.query || undefined, folder_id: filters?.folder_id || undefined, templates: templatesOnly ? 1 : undefined, archived: archived ? 1 : undefined })" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs">Primera página</Link><Link v-if="designs?.has_more" :href="route('studio.index', { brand_id: brand?.id, query: filters?.query || undefined, folder_id: filters?.folder_id || undefined, templates: templatesOnly ? 1 : undefined, archived: archived ? 1 : undefined, cursor: designs.next_cursor })" class="rounded-lg border border-violet-300 bg-violet-50 px-3 py-2 text-xs">Siguiente</Link></nav>
                 </section>
 
                 <section v-if="!archived" class="space-y-4" aria-labelledby="studio-templates-title"><div><h2 id="studio-templates-title" class="text-xl font-semibold tracking-tight">Una idea para empezar</h2><p class="mt-1 text-sm text-slate-500">Plantillas editables que puedes adaptar a tu marca.</p></div><div class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5"><button v-for="template in STUDIO_TEMPLATES" :key="template.key" type="button" class="text-left transition hover:-translate-y-1" :disabled="busy" @click="create(template)"><TemplatePreview :template="template" :kit="kit" :fonts="localFonts" /><span class="mt-2 block text-sm font-semibold">{{ template.name }}</span><span class="mt-1 block text-xs text-slate-500">{{ template.category }} · {{ template.width }} × {{ template.height }}</span></button></div></section>

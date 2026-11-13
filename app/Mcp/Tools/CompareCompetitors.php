@@ -2,9 +2,7 @@
 
 namespace App\Mcp\Tools;
 
-use App\Connectors\Network;
 use App\Mcp\Abilities;
-use App\Models\Competitor;
 use App\Models\User;
 use App\Services\CompetitorService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -42,27 +40,9 @@ class CompareCompetitors extends SchedulerTool
 
     protected function run(Request $request, User $user): array
     {
-        $brand = $this->brandFrom($request, $user);
-        $service = app(CompetitorService::class);
-        $network = $request->get('network') === null ? Network::Instagram : Network::tryFrom((string) $request->get('network'));
-        if ($network === null || ! $service->available($network)) {
-            throw new \InvalidArgumentException('Red no valida para competidores. Usa una de: '.implode(', ', array_map(fn ($n) => $n->value, $service->networks())).'.');
-        }
-        $out = $service->comparison($user, $brand, $request->get('from'), $request->get('to'), (string) ($request->get('sort') ?? 'followers'), $network);
-        $top = is_numeric($request->get('top_posts')) ? max(0, min(10, (int) $request->get('top_posts'))) : 0;
-
-        $out['competitors'] = array_map(function (array $c) use ($service, $user, $out, $top) {
-            unset($c['series'], $c['picture']);
-            if ($top > 0) {
-                $c['top_posts'] = array_map(fn ($p) => $p + ['untrusted' => true], $service->topPosts($user, Competitor::query()->findOrFail($c['id']), $out['range']['from'], $out['range']['to'], $top));
-            }
-
-            return $c;
-        }, $out['competitors']);
-        if ($out['own']) {
-            unset($out['own']['series']);
-        }
-
-        return $out;
+        return app(CompetitorService::class)->summary($user, $this->brandFrom($request, $user), [
+            'from' => $request->get('from'), 'to' => $request->get('to'), 'sort' => $request->get('sort'),
+            'network' => $request->get('network'), 'top_posts' => $request->get('top_posts'),
+        ]);
     }
 }

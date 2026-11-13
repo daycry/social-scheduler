@@ -109,6 +109,21 @@ class SiteService
         return $site;
     }
 
+    /**
+     * Representacion unica de un sitio para la API v1 y el MCP. Nunca incluye tokens de acceso: solo se muestran al crearlos en la app.
+     *
+     * @return array<string, mixed>
+     */
+    public function present(Site $s): array
+    {
+        return [
+            'id' => $s->id, 'brand_id' => $s->brand_id, 'slug' => $s->slug, 'title' => $s->title, 'published' => $s->is_published,
+            'access_mode' => $s->access_mode, 'noindex' => $s->noindex, 'url' => $s->url(),
+            'accessible' => $s->is_published && $s->access_mode === Site::ACCESS_PUBLIC,
+            'published_at' => $s->published_at?->toIso8601String(), 'has_unpublished_changes' => $s->is_published && $s->published_revision !== $s->revision,
+        ];
+    }
+
     /** Publica: copia el borrador (y el tema resuelto) a una instantanea inmutable. Lo editado despues no cambia nada hasta repetirlo. */
     public function publish(User $user, Site $site): Site
     {

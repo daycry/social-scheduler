@@ -30,6 +30,11 @@ final class Abilities
 
     public const SITES_WRITE = 'sites:write';
 
+    /** SmartLinks (T-29): el microsite publico de una marca y sus estadisticas; escribir = crearlo, editarlo y publicarlo. Solo en la API v1. */
+    public const SMARTLINKS_READ = 'smartlinks:read';
+
+    public const SMARTLINKS_WRITE = 'smartlinks:write';
+
     /** Canva (T-16): listar disenos de Canva de una marca conectada y consultar trabajos; escribir = exportar a la biblioteca o enviar un recurso a Canva. */
     public const CANVA_READ = 'canva:read';
 
@@ -54,6 +59,8 @@ final class Abilities
             self::INBOX_WRITE => 'Responder a comentarios de Instagram, Facebook, Threads, YouTube y Bluesky y anadirles notas internas',
             self::SITES_READ => 'Leer los sitios publicados de las marcas y su URL',
             self::SITES_WRITE => 'Publicar y despublicar los sitios de las marcas',
+            self::SMARTLINKS_READ => 'Leer el SmartLink de las marcas y sus estadisticas de visitas y clics',
+            self::SMARTLINKS_WRITE => 'Crear, editar y publicar el SmartLink de las marcas',
             self::CANVA_READ => 'Ver el estado de Canva de una marca, listar sus disenos y plantillas de marca de Canva y consultar trabajos de importacion',
             self::CANVA_WRITE => 'Exportar disenos de Canva a la biblioteca, enviar recursos a Canva y rellenar plantillas de marca con Autofill (no compra ni publica nada)',
             self::STUDIO_AI => 'Generar y editar imagenes con IA en el estudio (consume la cuota del proveedor configurado)',

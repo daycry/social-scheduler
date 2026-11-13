@@ -20,6 +20,7 @@ use App\Services\Studio\StudioRenderer;
 use App\Services\Studio\StudioService;
 use App\Services\Studio\StudioSharedFiles;
 use App\Support\CurrentBrand;
+use App\Support\CursorPage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,7 +36,7 @@ class StudioController extends Controller
     {
         $brand = CurrentBrand::resolve($request);
         if ($brand === null) {
-            return Inertia::render('Studio/Index', ['brand' => null, 'designs' => ['data' => [], 'total' => 0, 'links' => []], 'kit' => null, 'assets' => [], 'folders' => [], 'filters' => [], 'shared' => $this->collab->sharedWith($request->user())]);
+            return Inertia::render('Studio/Index', ['brand' => null, 'designs' => ['designs' => [], 'has_more' => false, 'next_cursor' => null], 'kit' => null, 'assets' => [], 'folders' => [], 'filters' => [], 'shared' => $this->collab->sharedWith($request->user())]);
         }
 
         return $this->indexBrand($request, $brand);
@@ -44,8 +45,8 @@ class StudioController extends Controller
     public function indexBrand(Request $request, Brand $brand): Response|JsonResponse
     {
         $filters = $request->validate(['query' => ['nullable', 'string', 'max:120'], 'folder_id' => ['nullable', 'integer', 'min:1'],
-            'templates' => ['nullable', 'boolean'], 'archived' => ['nullable', 'boolean'], 'page' => ['nullable', 'integer', 'min:1']]);
-        $designs = $this->studio->designs($request->user(), $brand, $filters)->toArray();
+            'templates' => ['nullable', 'boolean'], 'archived' => ['nullable', 'boolean']] + CursorPage::RULES);
+        $designs = $this->studio->designs($request->user(), $brand, $filters);
         $props = $this->brandProps($request, $brand) + ['designs' => $designs, 'filters' => $filters, 'shared' => $this->collab->sharedWith($request->user())];
 
         return $request->expectsJson() ? response()->json($props) : Inertia::render('Studio/Index', $props);

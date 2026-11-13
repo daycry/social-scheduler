@@ -7,6 +7,7 @@ use App\Http\Middleware\RequireApiAbility;
 use Illuminate\Support\Facades\Route;
 
 require __DIR__.'/posts-api.php';
+require __DIR__.'/api.php';
 require __DIR__.'/post-workflow-api.php';
 require __DIR__.'/canva-api.php';
 require __DIR__.'/studio-captions-api.php';

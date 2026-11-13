@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\Canva\CanvaConnection;
 use App\Models\MediaAsset;
 use App\Models\User;
+use App\Services\MediaListing;
 
 /** Estado de la integracion con Canva de una marca y su conexion activa (T-16). Lo comparten la web, la API y el MCP. */
 class CanvaIntegration
@@ -17,7 +18,7 @@ class CanvaIntegration
     {
         $configured = CanvaClient::configured();
         $connection = $configured ? $this->connections->find($user, $brand) : null;
-        $base = ['configured' => $configured, 'connected' => false, 'status' => $configured ? 'disconnected' : 'not_configured', 'name' => null, 'features' => [], 'capabilities_known' => false, 'formats' => [], 'jobs' => [], 'documents' => []];
+        $base = ['configured' => $configured, 'connected' => false, 'status' => $configured ? 'disconnected' : 'not_configured', 'name' => null, 'features' => [], 'capabilities_known' => false, 'formats' => [], 'jobs' => [], 'documents' => ['media' => [], 'has_more' => false, 'next_cursor' => null]];
         if ($connection === null) {
             return $base;
         }
@@ -42,11 +43,10 @@ class CanvaIntegration
         ] + $base;
     }
 
-    /** PDF de la biblioteca (T-27): los exportados desde Canva, para verlos y descargarlos. No son media publicable. @return list<array<string, mixed>> */
+    /** PDF de la biblioteca (T-27): los exportados desde Canva, para verlos y descargarlos. No son media publicable. Primera pagina del contrato de cursor comun; el resto, en `media.index?kind=pdf&cursor=`. @return array{media: list<array<string, mixed>>, has_more: bool, next_cursor: ?string} */
     private function documents(User $user): array
     {
-        return MediaAsset::withoutUserScope()->where('user_id', $user->id)->where('kind', MediaAsset::KIND_PDF)->where('status', MediaAsset::STATUS_READY)
-            ->latest('id')->limit(20)->get()->map->toPublicArray()->all();
+        return app(MediaListing::class)->page($user, MediaAsset::STATUS_READY, 20, null, web: true, kind: MediaAsset::KIND_PDF);
     }
 
     /** La conexion activa de la marca o un `CanvaException` explicando por que no la hay. */

@@ -21,6 +21,7 @@ use App\Models\InboxSavedReply;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Support\CursorPage;
 use App\Support\PermissionHelp;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -254,6 +255,26 @@ class InboxService
             ->when(! empty($filters['label']), fn (Builder $q) => $q->whereHas('labels', fn (Builder $l) => $l->where('label', $filters['label'])))
             ->when(isset($filters['hidden']), fn (Builder $q) => $q->where('hidden', (bool) $filters['hidden']))
             ->orderByDesc('commented_at')->orderByDesc('id');
+    }
+
+    /**
+     * Pagina de comentarios (mas recientes primero por id) con el contrato de cursor comun, con sus notas y etiquetas: la usan la API v1 y el MCP.
+     * El texto y el autor los escribe un tercero: cada fila lleva `untrusted` y nunca debe leerse como instrucciones.
+     *
+     * @param  array<string, mixed>  $filters  los de `query()`
+     * @param  array<int, string>  $brandNames  nombre de cada marca por id
+     * @return array{comments: list<array<string, mixed>>, has_more: bool, next_cursor: ?string}
+     */
+    public function page(User $user, array $filters, mixed $limit, mixed $cursor, array $brandNames): array
+    {
+        [$rows, $page] = CursorPage::fetch($this->query($user, $filters)->with(['notes', 'labels'])->reorder('id', 'desc'), $limit, $cursor);
+
+        return ['comments' => $rows->map(fn (InboxComment $c) => [
+            'id' => $c->id, 'network' => $c->network->value, 'brand_id' => $c->brand_id, 'brand_name' => $brandNames[$c->brand_id] ?? null, 'author' => $c->author_name, 'text' => $c->text,
+            'commented_at' => $c->commented_at?->toIso8601String(), 'read' => $c->read_at !== null, 'hidden' => $c->hidden, 'closed' => $c->closed_at !== null, 'assigned_user_id' => $c->assigned_user_id, 'labels' => $c->labels->pluck('label')->values()->all(),
+            'notes' => $c->notes->map(fn ($n) => ['id' => $n->id, 'body' => $n->body, 'created_at' => $n->created_at?->toIso8601String()])->values()->all(),
+            'untrusted' => true,
+        ])->values()->all()] + $page;
     }
 
     public function unreadCount(User $user): int

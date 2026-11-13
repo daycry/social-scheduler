@@ -63,7 +63,7 @@ function aocCreate(string $channel, array $payload): array
         return ['ok' => aocWebErrors() === [], 'errors' => aocWebErrors(), 'id' => Post::withoutUserScope()->latest('id')->value('id')];
     }
     if ($channel === 'api') {
-        $r = $t->withToken($t->key)->postJson('/api/v1/posts', ['brand_id' => $t->brand->id] + $payload);
+        $r = $t->withToken($t->key)->postJson('/api/v1/brands/'.$t->brand->id.'/posts', $payload);
 
         return ['ok' => $r->status() === 201, 'errors' => $r->json('errors') ?? [], 'id' => $r->json('id')];
     }

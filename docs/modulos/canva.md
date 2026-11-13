@@ -54,7 +54,7 @@ Con la capacidad del plan, la página de Canva lista las plantillas de marca (`G
 
 ## API y MCP
 
-Abilities `canva:read` (estado, diseños, plantillas, trabajo) y `canva:write` (exportar, enviar, Autofill): `GET /api/v1/brands/{brand}/canva`, `.../canva/designs`, `.../canva/templates`, `.../canva/templates/{template}/dataset`, `.../canva/jobs/{job}`, `POST .../canva/exports`, `.../canva/uploads` y `.../canva/autofills` ([OpenAPI](../api/creative-suite.openapi.yaml)). MCP: `manage_canva` con `status`, `designs`, `templates`, `export`, `send`, `autofill` y `get`.
+Abilities `canva:read` (estado, diseños, plantillas, trabajo) y `canva:write` (exportar, enviar, Autofill): `GET /api/v1/brands/{brand}/canva`, `.../canva/designs`, `.../canva/templates`, `.../canva/templates/{template}/dataset`, `.../canva/jobs/{job}`, `POST .../canva/exports`, `.../canva/uploads` y `.../canva/autofills` ([OpenAPI](../api/openapi.yaml)). MCP: `manage_canva` con `status`, `designs`, `templates`, `export`, `send`, `autofill` y `get`.
 
 ## Despliegue
 

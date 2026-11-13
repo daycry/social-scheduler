@@ -17,6 +17,7 @@ use App\Services\Studio\StudioFrames;
 use App\Services\Studio\StudioRenderer;
 use App\Services\Studio\StudioService;
 use App\Services\Studio\StudioSharedFiles;
+use App\Support\CursorPage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -33,7 +34,7 @@ class StudioApiController extends Controller
             }
         }
         $filters = $request->validate(['query' => ['nullable', 'string', 'max:120'], 'folder_id' => ['nullable', 'integer', 'min:1'],
-            'templates' => ['nullable', 'boolean'], 'archived' => ['nullable', 'boolean'], 'page' => ['nullable', 'integer', 'min:1']]);
+            'templates' => ['nullable', 'boolean'], 'archived' => ['nullable', 'boolean']] + CursorPage::RULES);
 
         return response()->json($this->studio->designs($request->user(), $brand, $filters));
     }

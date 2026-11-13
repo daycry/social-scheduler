@@ -106,6 +106,7 @@ Nginx/Hestia debe pasar la cabecera `Authorization` a PHP-FPM y dejar llegar `/.
 | `inbox:read` / `inbox:write` | leer comentarios (Instagram, Facebook, Threads, YouTube y Bluesky) / responder, anotar y ordenar el buzón (`triage_comments`) |
 | `designs:read` / `designs:write` | consultar diseños, kits, carpetas y trabajos / crear, modificar, registrar recursos, tipografías, audio, colaboración y exportar |
 | `sites:read` / `sites:write` | leer los sitios publicados de las marcas y su URL / publicarlos y despublicarlos (`manage_site`) |
+| `smartlinks:read` / `smartlinks:write` | leer el SmartLink de las marcas y sus estadísticas / crearlo, editarlo y publicarlo. Solo existen en la API v1 (no hay herramienta MCP) |
 | `canva:read` / `canva:write` | estado de Canva, diseños de Canva y trabajos / exportar a la biblioteca y enviar recursos a Canva (`manage_canva`) |
 | `studio:ai` | generar y editar imágenes con IA (`generate_studio_image`); consume la cuota del proveedor. `designs:write` no basta |
 
@@ -117,11 +118,15 @@ La pantalla **API keys** y el consentimiento OAuth ofrecen tres conjuntos (`Abil
 
 | Conjunto | Abilities |
 |---|---|
-| Solo lectura (`read`) | todas las que acaban en `:read`: `brands:read`, `posts:read`, `stats:read`, `designs:read`, `inbox:read`, `sites:read`, `canva:read` |
+| Solo lectura (`read`) | todas las que acaban en `:read`: `brands:read`, `posts:read`, `stats:read`, `designs:read`, `inbox:read`, `sites:read`, `smartlinks:read`, `canva:read` |
 | Publicar (`publish`) | las de lectura más `posts:write` y `reports:write` |
-| Todo (`all`) | las quince abilities, incluidas `posts:approve`, `designs:write`, `inbox:write`, `sites:write`, `canva:write` y `studio:ai` |
+| Todo (`all`) | las diecisiete abilities, incluidas `posts:approve`, `designs:write`, `inbox:write`, `sites:write`, `smartlinks:write`, `canva:write` y `studio:ai` |
 
-«Publicar» no incluye `posts:approve`, `designs:write` ni `studio:ai`: una key que apruebe, diseñe o consuma cuota de IA debe pedirlos de forma explícita.
+«Publicar» no incluye `posts:approve`, `designs:write`, `smartlinks:write` ni `studio:ai`: una key que apruebe, diseñe o consuma cuota de IA debe pedirlos de forma explícita.
+
+## Paginación común por cursor (U-23)
+
+`list_media`, `list_comments` y `list_designs` (y los listados de `api/v1` equivalentes) comparten **un único contrato**: entrada `limit` (1-100; 50 por defecto, 24 en diseños) y `cursor`; salida `has_more` y `next_cursor` (opaco, `null` en la última página) junto a la colección (`media`, `comments`, `designs`). Para continuar, pasa el `next_cursor` recibido como `cursor`. Un cursor inventado o de otro listado da un error de validación. Ya no existen `before_id`, `page`, `current_page`, `last_page` ni `total`. `list_media` acepta además `kind` (`image`, `video` o `pdf`): sin él solo lista lo publicable (imagen y vídeo); `pdf` lista los PDF de la biblioteca, que no se publican en redes.
 
 ## Herramientas (57)
 

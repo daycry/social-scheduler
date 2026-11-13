@@ -47,4 +47,4 @@ Stories, TikTok y el vídeo de Facebook rechazan el `alt` con un error en españ
 
 ## API y MCP
 
-`POST /api/v1/posts`, `GET/PUT/PATCH /api/v1/posts/{post}` (abilities `posts:read|write`) y las herramientas `create_post`, `update_post` y `get_post` usan el mismo `PostRequest`. Contrato en el [OpenAPI](../api/creative-suite.openapi.yaml). El compositor muestra una previsualización por red de lo que se publicará. Ver también [publicación](publicacion.md) y [media](media.md).
+`POST /api/v1/brands/{brand}/posts`, `GET/PUT/PATCH /api/v1/posts/{post}` (abilities `posts:read|write`) y las herramientas `create_post`, `update_post` y `get_post` usan el mismo `PostRequest`. Contrato en el [OpenAPI](../api/openapi.yaml). El compositor muestra una previsualización por red de lo que se publicará. Ver también [publicación](publicacion.md) y [media](media.md).

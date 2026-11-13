@@ -11,6 +11,7 @@ use App\Jobs\GenerateReport;
 use App\Models\Brand;
 use App\Models\PostTarget;
 use App\Models\Report;
+use App\Models\ReportTemplate;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\Reports\PdfRenderer;
@@ -43,6 +44,65 @@ class ReportService
         private readonly CompetitorService $competitors,
         private readonly AdsService $ads,
     ) {}
+
+    /**
+     * Pide un informe (API v1 y MCP): valida el rango, la comparacion y los bloques (directos o los de una plantilla ya resuelta por el llamante,
+     * que decide como responde un recurso ajeno) y lo encola. Devuelve su estado inicial, como `status()`.
+     *
+     * @param  array{format?: mixed, from?: mixed, to?: mixed, compare?: mixed, blocks?: mixed}  $input
+     * @return array<string, mixed>
+     *
+     * @throws InvalidArgumentException rango, comparacion, formato o bloques no validos
+     * @throws TooManyActiveReports
+     */
+    public function request(User $user, Brand $brand, array $input, ?ReportTemplate $template = null): array
+    {
+        $period = Period::make($input['from'] ?? null, $input['to'] ?? null, $brand->timezone);
+        $compare = (string) (($input['compare'] ?? null) ?: 'none');
+        $period->comparison($compare); // rango de comparacion invalido: error de validacion, no informe fallido
+
+        if ($template !== null && ($input['blocks'] ?? null) !== null) {
+            throw new InvalidArgumentException('Usa template_id o blocks, no ambos.');
+        }
+        if ($template !== null && (int) $template->brand_id !== (int) $brand->id) {
+            throw new InvalidArgumentException('La plantilla no es de esta marca.');
+        }
+        $blocks = $template !== null ? ReportBlocks::normalize($template->blocks) : (($input['blocks'] ?? null) !== null ? ReportBlocks::normalize($input['blocks']) : null);
+
+        // Limite de informes en curso atomico (transaccion + bloqueo del usuario) dentro de `enqueue()`.
+        [$report] = $this->enqueue($user, $brand, [(string) ($input['format'] ?? '')], $period, $compare, $blocks);
+
+        return [
+            'id' => $report->id, 'status' => $report->status, 'brand_id' => $brand->id, 'brand_name' => $brand->name, 'format' => $report->format,
+            'from' => $period->toArray()['from'], 'to' => $period->toArray()['to'],
+            'blocks' => $report->blocks === null ? null : array_column($report->blocks, 'type'),
+        ];
+    }
+
+    /**
+     * Estado de un informe y, si esta listo, su URL firmada de descarga (no exige sesion y caduca en unos minutos).
+     *
+     * @return array<string, mixed>
+     */
+    public function status(Report $report, ?string $brandName): array
+    {
+        $minutes = (int) config('reports.download_minutes', 5);
+
+        return [
+            'id' => $report->id,
+            'brand_id' => $report->brand_id,
+            'brand_name' => $brandName,
+            'format' => $report->format,
+            'status' => $report->status,
+            'from' => $report->from->format('Y-m-d'),
+            'to' => $report->to->format('Y-m-d'),
+            'blocks' => $report->blocks === null ? null : array_column($report->blocks, 'type'),
+            'size' => $report->size,
+            'error' => $report->error,
+            'download_url' => $report->isReady() ? $report->signedDownloadUrl() : null,
+            'download_expires_in_minutes' => $report->isReady() ? $minutes : null,
+        ];
+    }
 
     /**
      * Crea los informes pendientes de los formatos pedidos respetando el limite de informes en curso de forma atomica

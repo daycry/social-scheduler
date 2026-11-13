@@ -55,7 +55,7 @@ Con 2 workers el reparto es por ficheros, y `a11y.spec.ts` (66 casos) domina; co
 | `ci.yml` · `node-browser` | ídem | `npm run test:browser` con Chromium (`npx playwright install --with-deps chromium`, con caché de `~/.cache/ms-playwright` por versión de Playwright) y `ffmpeg` |
 | `ci.yml` · `typecheck` | ídem | `npm run typecheck` (`tsc --noEmit` sobre `tests/e2e` y las configs de Playwright; los `.cjs`/`.mjs` se infieren con `allowJs`, sin `checkJs`) |
 | `ci.yml` · `studio-runtime` | ídem | `python -m unittest discover -s tests/studio_runtime -p 'test_*.py'` con el Python privado de Studio y el modelo de quitar fondo (`setup-runtime.py --download-model`, SHA-256 fijado, con caché) |
-| `ci.yml` · `openapi` | ídem | `npx @redocly/cli@2.77.0 lint --extends minimal docs/api/creative-suite.openapi.yaml` |
+| `ci.yml` · `openapi` | ídem | `npx @redocly/cli@2.77.0 lint --extends minimal docs/api/openapi.yaml` |
 | `ci.yml` · `audit` | ídem | `composer audit --locked` y `npm audit --omit=dev` |
 | `ci.yml` · `tests` | ídem | agregador: pasa si pasan todos los anteriores; es el **check requerido** de `main` |
 | `nightly.yml` · `e2e` | cron diario 02:17 UTC y a mano | `npx playwright test --shard=i/4` en matriz (`E2E_WORKERS=2`); sube `storage/framework/testing/t43/` y `test-results/` como artefacto si falla |

@@ -10,7 +10,6 @@ use App\Models\User;
 use App\Services\Reports\ReportBlocks;
 use App\Services\ReportService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use InvalidArgumentException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
@@ -49,37 +48,12 @@ class GenerateReport extends SchedulerTool
     protected function run(Request $request, User $user): array
     {
         $brand = $this->brandFrom($request, $user);
-        $period = Period::make($request->get('from'), $request->get('to'), $brand->timezone);
+        /** @var ReportTemplate|null $template */
+        $template = $request->get('template_id') !== null ? $this->owned(ReportTemplate::class, $user, $request->get('template_id'), 'Plantilla') : null;
 
-        $compare = (string) ($request->get('compare') ?: 'none');
-        $period->comparison($compare); // rango de comparacion invalido: error de validacion, no informe fallido
-
-        if ($request->get('template_id') !== null && $request->get('blocks') !== null) {
-            throw new InvalidArgumentException('Usa template_id o blocks, no ambos.');
-        }
-
-        $blocks = null;
-
-        if ($request->get('template_id') !== null) {
-            /** @var ReportTemplate $template */
-            $template = $this->owned(ReportTemplate::class, $user, $request->get('template_id'), 'Plantilla');
-
-            if ((int) $template->brand_id !== (int) $brand->id) {
-                throw new InvalidArgumentException('La plantilla no es de esta marca.');
-            }
-
-            $blocks = ReportBlocks::normalize($template->blocks);
-        } elseif ($request->get('blocks') !== null) {
-            $blocks = ReportBlocks::normalize($request->get('blocks'));
-        }
-
-        // Limite de informes en curso atomico (transaccion + bloqueo del usuario) dentro del servicio.
-        [$report] = app(ReportService::class)->enqueue($user, $brand, [(string) $request->get('format')], $period, $compare, $blocks);
-
-        return [
-            'id' => $report->id, 'status' => $report->status, 'brand_id' => $brand->id, 'brand_name' => $brand->name, 'format' => $report->format,
-            'from' => $period->toArray()['from'], 'to' => $period->toArray()['to'],
-            'blocks' => $report->blocks === null ? null : array_column($report->blocks, 'type'),
-        ];
+        return app(ReportService::class)->request($user, $brand, [
+            'format' => $request->get('format'), 'from' => $request->get('from'), 'to' => $request->get('to'),
+            'compare' => $request->get('compare'), 'blocks' => $request->get('blocks'),
+        ], $template);
     }
 }

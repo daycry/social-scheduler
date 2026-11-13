@@ -279,6 +279,39 @@ class CompetitorService
      *
      * @return array{own: ?array<string, mixed>, competitors: list<array<string, mixed>>, range: array{from: string, to: string}, sort: string, network: string}
      */
+    /**
+     * Comparacion para la API v1 y el MCP: la de `comparison()` sin series ni imagenes y, con `top_posts` (1-10), las publicaciones con mas
+     * interacciones de cada competidor. Los textos (caption) los escribe un tercero: llevan `untrusted`.
+     *
+     * @param  array{from?: ?string, to?: ?string, sort?: ?string, network?: ?string, top_posts?: mixed}  $input
+     * @return array<string, mixed>
+     *
+     * @throws InvalidArgumentException si la red no admite competidores
+     */
+    public function summary(User $user, Brand $brand, array $input): array
+    {
+        $network = ($input['network'] ?? null) === null ? Network::Instagram : Network::tryFrom((string) $input['network']);
+        if ($network === null || ! $this->available($network)) {
+            throw new InvalidArgumentException('Red no valida para competidores. Usa una de: '.implode(', ', array_map(fn ($n) => $n->value, $this->networks())).'.');
+        }
+        $out = $this->comparison($user, $brand, $input['from'] ?? null, $input['to'] ?? null, (string) ($input['sort'] ?? 'followers'), $network);
+        $top = is_numeric($input['top_posts'] ?? null) ? max(0, min(10, (int) $input['top_posts'])) : 0;
+
+        $out['competitors'] = array_map(function (array $c) use ($user, $out, $top) {
+            unset($c['series'], $c['picture']);
+            if ($top > 0) {
+                $c['top_posts'] = array_map(fn ($p) => $p + ['untrusted' => true], $this->topPosts($user, Competitor::query()->findOrFail($c['id']), $out['range']['from'], $out['range']['to'], $top));
+            }
+
+            return $c;
+        }, $out['competitors']);
+        if ($out['own']) {
+            unset($out['own']['series']);
+        }
+
+        return $out;
+    }
+
     public function comparison(User $user, Brand $brand, ?string $from = null, ?string $to = null, string $sort = 'followers', Network $network = Network::Instagram): array
     {
         [$from, $to] = $this->range($from, $to);

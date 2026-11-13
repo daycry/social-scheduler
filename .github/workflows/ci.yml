@@ -196,8 +196,8 @@ jobs:
         with:
           node-version: 22
       # Version exacta fijada. `minimal` falla con errores estructurales del contrato (los `summary` que faltan son avisos).
-      - name: Lint docs/api/creative-suite.openapi.yaml
-        run: npx --yes @redocly/cli@2.77.0 lint --extends minimal docs/api/creative-suite.openapi.yaml
+      - name: Lint docs/api/openapi.yaml
+        run: npx --yes @redocly/cli@2.77.0 lint --extends minimal docs/api/openapi.yaml
 
   audit:
     name: audit (composer + npm)

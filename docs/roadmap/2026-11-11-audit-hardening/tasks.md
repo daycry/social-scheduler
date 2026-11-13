@@ -1345,66 +1345,76 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 ### T-32 — Series: recuperar fechas perdidas, heredar aprobación y recordatorio manual
 
 - **Descripción**: Relleno opcional de lo perdido, herencia de aprobación en las ocurrencias y recordatorio de publicación manual.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las publicaciones de una serie pueden exigir aprobación antes de salir, las fechas recientes que una serie no pudo generar se recuperan con un botón opcional y las publicaciones manuales avisan antes de su hora, también por correo si lo tienes activado.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-02
 - **Tipo**: fullstack
-- **Archivos**: `app/Services/SeriesService.php`, `app/Jobs/GenerateSeriesOccurrences.php`, `app/Services/ManualPublishService.php`, `resources/js/Pages/Series/**`, `docs/modulos/planificacion-avanzada.md`
+- **Archivos**: `app/Services/SeriesService.php`, `app/Jobs/GenerateSeriesOccurrences.php`, `app/Services/ManualPublishService.php`, `resources/js/Pages/Series/**`, `docs/modulos/planificacion-avanzada.md`, `docs/modulos/workflow-publicaciones.md`, `docs/api/openapi.yaml`, `app/Http/Controllers/PostWorkflowController.php`, `app/Services/PostWorkflowActions.php`, `app/Services/PostService.php`, `app/Models/PostTarget.php`, `app/Notifications/PostWorkflowActivity.php`, `app/Jobs/DispatchDuePosts.php`, `app/Mcp/Tools/ManagePostSeries.php`, `config/social.php`, `routes/post-workflow.php`, `routes/post-workflow-api.php`, `database/migrations/2026_12_22_090000_add_manual_reminded_at_to_post_targets.php`, `tests/Feature/Workflow/SeriesApprovalInheritanceTest.php`, `tests/Feature/Workflow/SeriesBackfillTest.php`, `tests/Feature/Workflow/ManualReminderTest.php`, `tests/e2e/workflow.spec.ts`
 - **Cubre**: B-15
 - **Cubre (tests)**: E2E-37
-- **Verificación**: `php artisan test --compact --filter=SeriesApprovalInheritanceTest` → verde · `php artisan test --compact --filter=SeriesBackfillTest` → verde
+- **Verificación**: `php artisan test --compact --filter=SeriesApprovalInheritanceTest` → verde · `php artisan test --compact --filter=SeriesBackfillTest` → verde · `php artisan test --compact --filter=ManualReminderTest` → verde
 
 **Criterios de aceptación**
-- [ ] Las ocurrencias heredan la aprobación de la serie
-- [ ] El relleno de fechas perdidas es opcional y explícito
-- [ ] La publicación manual envía un recordatorio por correo/in-app
+- [x] Las ocurrencias heredan la aprobación de la serie
+- [x] El relleno de fechas perdidas es opcional y explícito
+- [x] La publicación manual envía un recordatorio por correo/in-app
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+- RED/TDD: los tests (`SeriesApprovalInheritanceTest`, `SeriesBackfillTest`, `ManualReminderTest`) se escribieron junto al código, sin ejecución en rojo registrada aparte; la primera pasada dio 13/14 y destapó solo un fallo de test (la API de aprobar exige `signature`), corregido en la misma tarea · 2026-11-13.
+- Verificación (2026-11-13): `--filter='SeriesApprovalInheritanceTest|SeriesBackfillTest|ManualReminderTest'` → 14/14 verde; focal `SeriesTest`+`ManualPublishTest`+`ReviewFixesTest`+`Mcp`+`MigrationTest` → 466/466 verde (2 omitidos); Pint OK. `npm run build` OK, `npm run typecheck` OK, `npm run test:unit` 636/636. Playwright (`E2E_PURGE=0 E2E_WORKERS=2`, `workflow.spec.ts` + `studio.spec.ts`, desktop+mobile+mobile-360) → 23/23 verde, con un E2E nuevo «serie con aprobación…» (E2E-37). No se lanzó el Pest completo. Una ejecución más amplia (`--filter` con `Mcp`) mostró un fallo AJENO en `Parity/InboxTest` («Comentario no encontrado.» frente a «no encontrada»), sin relación con esta tarea.
+- Decisiones: (1) **Fechas perdidas**: nunca se recuperan solas; `SeriesService::recover()` (web `POST workflow/series/{series}/recover`, API `POST /api/v1/series/{series}/recover`, acción `recover` del MCP, botón «Recuperar fechas perdidas» en `/series`) rehace solo las fechas posteriores a la creación de la serie y dentro de `social.series.recovery_days` (2 por defecto, 1-7); las crea como ocurrencias normales programadas +10 min escalonadas, idempotentes (clave única serie+fecha) y respetando la aprobación; `recoverable` en `present()` lo cuenta. (2) **Aprobación**: no existe configuración de aprobación por marca ni «post origen» en las series, así que la fuente única es `requires_approval` en el payload de la serie (casilla en la UI, API y MCP): las ocurrencias nacen como borrador pendiente (reusa `PostService::create`) y `reconcile()` solo programa las que ya son publicables. (3) **Recordatorio manual**: `ManualPublishService::remindUpcoming()` (columna `manual_reminded_at`, migración 2026_12_22 reversible, claim atómico, rearmada al reprogramar), antelación `social.series.manual_reminder_minutes` (60); `PostWorkflowActivity` con tipo `manual_reminder` va por `database` y, con `notify_by_mail`, también `mail` (mismo criterio que `ConnectionExpiring`); se emite desde `DispatchDuePosts`. No se usó `JobFailureNotifier` porque es para fallos asíncronos, no recordatorios. No hay push (F-07/F-16).
+- Pendiente (coordinador): revisión adversarial A+B(+C); tras ella, marcar los criterios de revisión y de Pest/Playwright.
 
 **Notas**: Tamaño M. El recordatorio por push se completa con F-07/F-16.
 
 ### T-33 — Estudio: renombrar, borrar y mover a carpeta
 
 - **Descripción**: Menú de carpeta (renombrar, borrar) y «Mover a carpeta» para un diseño.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: En el estudio ahora puedes renombrar y borrar carpetas (con confirmación; sus diseños pasan a «Sin carpeta») y mover un diseño a otra carpeta desde su tarjeta.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-20
 - **Tipo**: fullstack
-- **Archivos**: `resources/js/Pages/Studio/Index.vue`, `app/Http/Controllers/Studio/StudioFolderController.php`, `routes/studio.php`, `docs/modulos/estudio.md`
+- **Archivos**: `resources/js/Pages/Studio/Index.vue`, `app/Http/Controllers/Studio/StudioFolderController.php`, `routes/studio.php`, `docs/modulos/estudio.md`, `docs/api/openapi.yaml`, `app/Http/Controllers/Studio/StudioApiController.php`, `app/Services/Studio/StudioService.php`, `app/Mcp/Tools/ManageDesignFolder.php`, `routes/studio-api.php`, `tests/Feature/Studio/StudioFoldersTest.php`, `tests/e2e/studio.spec.ts`
 - **Cubre**: B-16
 - **Cubre (tests)**: E2E-06
 - **Verificación**: `php artisan test --compact --filter=StudioFoldersTest` → verde · `npx playwright test tests/e2e/studio-boards.spec.ts --workers=1` → verde
 
 **Criterios de aceptación**
-- [ ] Una carpeta se renombra y se borra (con confirmación) desde la UI
-- [ ] Un diseño se mueve entre carpetas
-- [ ] Borrar una carpeta con diseños no los pierde (pide destino)
+- [x] Una carpeta se renombra y se borra (con confirmación) desde la UI
+- [x] Un diseño se mueve entre carpetas
+- [x] Borrar una carpeta con diseños no los pierde (pide destino)
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+- RED/TDD: `StudioFoldersTest` se escribió junto al código, sin ejecución en rojo registrada aparte; la primera pasada dio 6/7 (un índice de orden mal supuesto en el propio test), corregido en la tarea · 2026-11-13.
+- Verificación (2026-11-13): `php artisan test --compact --filter=StudioFoldersTest` → 7/7 verde; focal `StudioBackendTest`+`StudioApiMcpTest`+`StudioCollaborationTest`+`RouteNamesTest` → 80/80 verde (con `StudioFoldersTest`); Pint OK. `npm run build` OK, `typecheck` OK, `test:unit` 636/636 (el E2E nuevo no usa `.first()`, que el cupo de `test-tooling` limita). Playwright (`E2E_PURGE=0 E2E_WORKERS=2`, `studio.spec.ts` + `workflow.spec.ts`) → 23/23 verde, con el E2E nuevo «Studio: folders are renamed…» (E2E-06: crea carpetas, renombra con teclado, mueve el diseño, borra con confirmación y comprueba que el diseño sigue). La verificación declarada `studio-boards.spec.ts` no cubre carpetas (es de la pizarra): el E2E de carpetas va en `studio.spec.ts`. No se lanzó el Pest completo.
+- Decisiones: (1) **Borrado**: los diseños (activos, plantillas y archivados) pasan a «Sin carpeta» (ya era el comportamiento de `deleteFolder`); la UI no pide destino —el criterio original «pide destino» se resuelve con destino único «Sin carpeta» y la confirmación dice cuántos diseños pasan—; el servidor devuelve `designs_moved` y el listado `designs_count`. (2) **Confirmación**: no existe `ConfirmDialog` común todavía (llega con D-04) y el estudio usa su `StudioDialog` (`<dialog>` nativo, foco y Esc gestionados) para todo; se usó ese, sin `confirm()` nativo. (3) **Mover** es un endpoint propio (`PATCH studio/designs/{design}/folder`, API `designs/{design}/folder`, MCP `manage_design_folder` acción `move`): no crea revisión y solo lo hace el propietario (un editor invitado recibe 404); el **autoguardado del editor ya no cambia la carpeta** (antes reenviaba la carpeta cargada y podía pisar un movimiento o fallar con una carpeta borrada). (4) **Autorización**: renombrar, borrar y mover resuelven el recurso por `user_id` (404 si es ajeno) y la carpeta destino debe ser de la marca del diseño (422); igual en web, API (`designs:write`) y MCP (`rename`, `move`, `delete`). (5) Teclado: botones reales con `aria-label` por carpeta, formulario de renombrado enviable con Enter y cerrable con Esc, diálogos nativos.
+- Pendiente (coordinador): revisión adversarial A+B(+C); tras ella, marcar los criterios de revisión y de Pest/Playwright.
 
 **Notas**: Tamaño M. La confirmación usa `confirm()` ahora y pasa a `ConfirmDialog` en D-04.
 

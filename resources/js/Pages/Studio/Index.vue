@@ -25,6 +25,14 @@ const height = ref(1080);
 const selectedFolder = ref(props.filters?.folder_id ?? '');
 const newFolder = ref('');
 const folderOpen = ref(false);
+const foldersOpen = ref(false);
+const renaming = ref(null);
+const renameName = ref('');
+const deleting = ref(null);
+const deleteOpen = ref(false);
+const moving = ref(null);
+const moveOpen = ref(false);
+const moveTarget = ref('');
 const instanceOpen = ref(false);
 const instanceTemplate = ref(null);
 const paletteText = ref((props.kit?.palette ?? ['#7c3aed', '#111827', '#ffffff']).join(', '));
@@ -119,6 +127,35 @@ const createFolder = async () => {
         folderOpen.value = false; newFolder.value = ''; router.reload({ only: ['folders'] });
     } catch (e) { error.value = e.message; } finally { busy.value = false; }
 };
+const startRename = folder => { renaming.value = folder.id; renameName.value = folder.name; error.value = ''; };
+const renameFolder = async folder => {
+    if (!renameName.value.trim() || busy.value) return;
+    busy.value = true; error.value = '';
+    try {
+        await studioRequest('PATCH', route('studio.folders.update', folder.id), { name: renameName.value.trim() });
+        renaming.value = null; router.reload({ only: ['folders'] });
+    } catch (e) { error.value = e.message; } finally { busy.value = false; }
+};
+const askDelete = folder => { deleting.value = folder; error.value = ''; deleteOpen.value = true; };
+const deleteFolder = async () => {
+    if (!deleting.value || busy.value) return;
+    busy.value = true; error.value = '';
+    try {
+        const id = deleting.value.id;
+        await studioRequest('DELETE', route('studio.folders.destroy', id));
+        deleteOpen.value = false; deleting.value = null;
+        if (String(selectedFolder.value) === String(id)) { selectedFolder.value = ''; filter({ folder_id: undefined }); } else router.reload({ only: ['folders', 'designs'] });
+    } catch (e) { error.value = e.message; } finally { busy.value = false; }
+};
+const askMove = design => { moving.value = design; moveTarget.value = design.folder_id ?? ''; error.value = ''; moveOpen.value = true; };
+const moveDesign = async () => {
+    if (!moving.value || busy.value) return;
+    busy.value = true; error.value = '';
+    try {
+        await studioRequest('PATCH', route('studio.designs.move', moving.value.id), { folder_id: moveTarget.value ? Number(moveTarget.value) : null });
+        moveOpen.value = false; moving.value = null; router.reload({ only: ['designs', 'folders'] });
+    } catch (e) { error.value = e.message; } finally { busy.value = false; }
+};
 const date = value => new Intl.DateTimeFormat('es', { day: 'numeric', month: 'short' }).format(new Date(value));
 </script>
 
@@ -176,7 +213,8 @@ const date = value => new Intl.DateTimeFormat('es', { day: 'numeric', month: 'sh
                         <button type="button" class="rounded-full border px-3 py-2" :class="templatesOnly ? 'border-violet-300 bg-violet-50 text-violet-800' : 'border-slate-200 bg-white'" @click="filter({ templates: 1, archived: undefined })">Plantillas</button>
                         <button type="button" class="rounded-full border px-3 py-2" :class="archived ? 'border-violet-300 bg-violet-50 text-violet-800' : 'border-slate-200 bg-white'" @click="filter({ archived: 1, templates: undefined })">Papelera</button>
                         <label class="sr-only" for="studio-folder-filter">Carpeta</label><select id="studio-folder-filter" v-model="selectedFolder" class="rounded-full border-slate-200 py-2 pl-3 pr-8 text-xs" @change="filter()"><option value="">Todas las carpetas</option><option v-for="folder in folders" :key="folder.id" :value="folder.id">{{ folder.name }}</option></select>
-                        <button type="button" class="ml-auto inline-flex items-center gap-1 rounded-full px-3 py-2 text-slate-600 hover:bg-slate-100" @click="folderOpen = true"><Icon name="folder" class="h-4 w-4" />Nueva carpeta</button>
+                        <button type="button" class="ml-auto inline-flex items-center gap-1 rounded-full px-3 py-2 text-slate-600 hover:bg-slate-100" data-testid="folders-manage" @click="foldersOpen = true"><Icon name="folder" class="h-4 w-4" />Gestionar carpetas</button>
+                        <button type="button" class="inline-flex items-center gap-1 rounded-full px-3 py-2 text-slate-600 hover:bg-slate-100" @click="folderOpen = true"><Icon name="folder" class="h-4 w-4" />Nueva carpeta</button>
                     </div>
                     <div v-if="rows.length" class="grid grid-cols-1 gap-5 min-[440px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         <article v-for="design in rows" :key="design.id" class="group min-w-0">
@@ -184,7 +222,7 @@ const date = value => new Intl.DateTimeFormat('es', { day: 'numeric', month: 'sh
                                 <div class="flex h-full max-w-full items-center justify-center rounded border border-slate-200 bg-slate-50 px-5 text-center" :style="{ aspectRatio: `${design.width ?? 1080} / ${design.height ?? 1080}` }"><span class="text-xs font-medium leading-relaxed text-slate-500">{{ design.name }}<span class="mt-2 block text-[10px] font-normal">{{ design.width }} × {{ design.height }} · {{ design.page_count }} {{ design.page_count === 1 ? 'página' : 'páginas' }}</span></span></div>
                             </Link>
                             <div v-else class="flex aspect-[4/3] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-100"><Icon name="trash" class="h-8 w-8 text-slate-400" /></div>
-                            <div class="mt-3 flex items-start gap-2"><div class="min-w-0 flex-1"><h3 class="truncate text-sm font-semibold">{{ design.name }}</h3><p class="mt-1 text-xs text-slate-500">{{ date(design.updated_at) }}<span v-if="design.is_template"> · Plantilla</span></p></div><details class="relative"><summary class="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-lg hover:bg-slate-100" :aria-label="`Opciones de ${design.name}`">•••</summary><div class="absolute right-0 z-20 mt-1 min-w-40 rounded-xl border border-slate-200 bg-white p-1 shadow-lg"><button v-if="!archived" type="button" class="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-50" :disabled="busy" @click="mutate(design, 'duplicate')">Duplicar diseño</button><button type="button" class="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-50" :disabled="busy" @click="mutate(design, archived ? 'restore' : 'archive')">{{ archived ? 'Restaurar' : 'Mover a papelera' }}</button></div></details></div>
+                            <div class="mt-3 flex items-start gap-2"><div class="min-w-0 flex-1"><h3 class="truncate text-sm font-semibold">{{ design.name }}</h3><p class="mt-1 text-xs text-slate-500">{{ date(design.updated_at) }}<span v-if="design.is_template"> · Plantilla</span></p></div><details class="relative"><summary class="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-lg hover:bg-slate-100" :aria-label="`Opciones de ${design.name}`">•••</summary><div class="absolute right-0 z-20 mt-1 min-w-40 rounded-xl border border-slate-200 bg-white p-1 shadow-lg"><button v-if="!archived" type="button" class="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-50" :disabled="busy" @click="mutate(design, 'duplicate')">Duplicar diseño</button><button v-if="!archived" type="button" class="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-50" :disabled="busy" data-testid="design-move" @click="askMove(design)">Mover a carpeta</button><button type="button" class="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-50" :disabled="busy" @click="mutate(design, archived ? 'restore' : 'archive')">{{ archived ? 'Restaurar' : 'Mover a papelera' }}</button></div></details></div>
                             <button v-if="design.is_template && !archived" type="button" class="mt-3 w-full rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-semibold text-violet-800 hover:border-violet-300 hover:bg-violet-100 disabled:opacity-50" :disabled="busy" @click="useTemplate(design)">Usar plantilla</button>
                         </article>
                     </div>
@@ -200,6 +238,40 @@ const date = value => new Intl.DateTimeFormat('es', { day: 'numeric', month: 'sh
             <form class="space-y-5" @submit.prevent="create()"><div><label class="mb-1 block text-sm font-medium" for="studio-create-name">Nombre</label><input id="studio-create-name" v-model="createName" class="field" maxlength="255" autofocus required /></div><div class="grid grid-cols-2 gap-4"><label class="space-y-1 text-sm font-medium">Ancho<input v-model.number="width" type="number" min="40" max="8000" class="field" required /></label><label class="space-y-1 text-sm font-medium">Alto<input v-model.number="height" type="number" min="40" max="8000" class="field" required /></label></div><p class="text-xs text-slate-500">Dimensiones en píxeles. Podrás adaptarlas desde el editor.</p><p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p><div class="flex justify-end gap-2"><button type="button" class="btn-secondary" @click="createOpen = false">Cancelar</button><button type="submit" class="btn-primary bg-violet-700" :disabled="busy">{{ busy ? 'Creando…' : 'Crear diseño' }}</button></div></form>
         </StudioDialog>
         <StudioDialog v-model="folderOpen" title="Nueva carpeta"><form class="space-y-4" @submit.prevent="createFolder"><label class="block text-sm font-medium">Nombre de la carpeta<input v-model="newFolder" class="field mt-1" maxlength="255" required autofocus /></label><p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p><button type="submit" class="btn-primary" :disabled="busy">Crear carpeta</button></form></StudioDialog>
+        <StudioDialog v-model="foldersOpen" title="Carpetas">
+            <p v-if="!folders?.length" class="text-sm text-slate-600">Todavía no hay carpetas en esta marca.</p>
+            <ul v-else class="space-y-2">
+                <li v-for="folder in folders" :key="folder.id" class="rounded-xl border border-slate-200 p-3" :data-testid="`folder-${folder.id}`">
+                    <form v-if="renaming === folder.id" class="flex flex-wrap items-end gap-2" @submit.prevent="renameFolder(folder)">
+                        <label class="min-w-0 flex-1 text-sm font-medium">Nuevo nombre<input v-model="renameName" class="field mt-1" maxlength="255" required autofocus data-testid="folder-rename-input" @keydown.esc.stop="renaming = null" /></label>
+                        <button type="submit" class="btn-primary px-3" :disabled="busy" data-testid="folder-rename-save">Guardar</button>
+                        <button type="button" class="btn-secondary px-3" @click="renaming = null">Cancelar</button>
+                    </form>
+                    <div v-else class="flex flex-wrap items-center gap-2">
+                        <span class="min-w-0 flex-1 truncate text-sm font-medium">{{ folder.name }}</span>
+                        <span class="text-xs text-slate-500">{{ folder.designs_count }} {{ folder.designs_count === 1 ? 'diseño' : 'diseños' }}</span>
+                        <button type="button" class="btn-secondary px-3 py-1 text-xs" :aria-label="`Renombrar la carpeta ${folder.name}`" data-testid="folder-rename" @click="startRename(folder)">Renombrar</button>
+                        <button type="button" class="btn-secondary px-3 py-1 text-xs text-red-700" :aria-label="`Borrar la carpeta ${folder.name}`" data-testid="folder-delete" @click="askDelete(folder)">Borrar</button>
+                    </div>
+                </li>
+            </ul>
+            <p v-if="error && !deleteOpen" role="alert" class="mt-3 text-sm text-red-700">{{ error }}</p>
+        </StudioDialog>
+        <StudioDialog v-model="deleteOpen" title="Borrar carpeta">
+            <form class="space-y-4" @submit.prevent="deleteFolder">
+                <p class="text-sm text-slate-700">¿Borrar la carpeta «{{ deleting?.name }}»? <span v-if="deleting?.designs_count">Sus {{ deleting.designs_count }} {{ deleting.designs_count === 1 ? 'diseño' : 'diseños' }} no se borran: pasan a «Sin carpeta».</span><span v-else>Está vacía.</span></p>
+                <p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p>
+                <div class="flex gap-2"><button type="submit" class="btn-primary" :disabled="busy" data-testid="folder-delete-confirm">Borrar carpeta</button><button type="button" class="btn-secondary" @click="deleteOpen = false">Cancelar</button></div>
+            </form>
+        </StudioDialog>
+        <StudioDialog v-model="moveOpen" title="Mover a carpeta">
+            <form class="space-y-4" @submit.prevent="moveDesign">
+                <label class="block text-sm font-medium" for="studio-move-target">Carpeta de «{{ moving?.name }}»</label>
+                <select id="studio-move-target" v-model="moveTarget" class="field" data-testid="move-target"><option value="">Sin carpeta</option><option v-for="folder in folders" :key="folder.id" :value="folder.id">{{ folder.name }}</option></select>
+                <p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p>
+                <button type="submit" class="btn-primary" :disabled="busy" data-testid="move-confirm">Mover</button>
+            </form>
+        </StudioDialog>
         <TemplateInstanceDialog v-model="instanceOpen" :template="instanceTemplate" :busy="busy" :error="error" @create="instantiateTemplate" />
         <StudioFontsDialog v-if="brand" v-model="fontsOpen" :brand-id="brand.id" @changed="updateFonts" />
         <StudioDatasetsDialog v-if="brand" v-model="datasetsOpen" :brand-id="brand.id" :brand-name="brand.name" />

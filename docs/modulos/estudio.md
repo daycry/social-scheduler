@@ -18,6 +18,18 @@ Estudio crea diseños gráficos, tablas, presentaciones y vídeo por marca y los
 
 Cada diseño pertenece a una marca y a un usuario. El editor guarda un documento propio versionado (páginas, capas, grupos, formas, texto, imágenes, vídeo, tablas y gráficos) con control optimista por `revision`: un conflicto devuelve 409 y conserva el trabajo local. Parte de catorce plantillas originales y de plantillas propias con campos `{{campo}}`. El kit de marca (paleta, tipografías, logos, guía y voz) se aplica de forma trazable; también hay redimensionado y variantes. Formatos de documento: lienzos sociales, documentos A4, pizarras, presentaciones y gráficos.
 
+## Carpetas (T-33)
+
+Cada marca tiene sus carpetas de diseños. En `/studio`, «Gestionar carpetas» (diálogo común del estudio, accesible con teclado) permite renombrarlas y borrarlas, y el menú de cada tarjeta ofrece «Mover a carpeta» (también «Sin carpeta»). Mover es organización, no contenido: no crea revisión ni la pisa un autoguardado del editor abierto (el autoguardado nunca cambia de carpeta). **Política al borrar:** los diseños de una carpeta borrada (activos, plantillas y archivados) no se borran ni piden destino: pasan a «Sin carpeta», y la confirmación dice cuántos. Solo el propietario administra carpetas; un recurso ajeno o de otra marca responde 404 o 422 igual que uno inexistente.
+
+| Superficie | Renombrar | Mover diseño | Borrar |
+|---|---|---|---|
+| Web | `PATCH /studio/folders/{folder}` | `PATCH /studio/designs/{design}/folder` | `DELETE /studio/folders/{folder}` |
+| API (`designs:write`) | `PATCH /api/v1/design-folders/{folder}` | `PATCH /api/v1/designs/{design}/folder` | `DELETE /api/v1/design-folders/{folder}` |
+| MCP `manage_design_folder` | `rename` | `move` (sin `folder_id` = «Sin carpeta») | `delete` |
+
+El listado de carpetas incluye `designs_count` (diseños activos) y el borrado devuelve `designs_moved`.
+
 ## Colaboración (T-13)
 
 Roles `reader`, `commenter` y `editor` por invitación por email a un usuario registrado, o enlaces de lectura o comentario con token revocable (SHA-256 en base de datos, caducidad opcional de hasta un año). Comentarios en hilo, historial de versiones con restauración y copia propia. No hay edición en tiempo real: un conflicto se resuelve recargando o guardando como copia. Los invitados no exportan ni aplican el kit; solo el propietario. Sin acceso la respuesta es 404; con acceso insuficiente, 403. API: `/api/v1/designs/{design}/shares|links|comments|versions|copies`; MCP: `manage_design_collaboration`.

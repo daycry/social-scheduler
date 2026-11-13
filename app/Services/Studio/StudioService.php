@@ -81,6 +81,10 @@ class StudioService
             // Carpeta y condición de plantilla son decisiones del propietario: un editor invitado no las cambia ni las ve.
             unset($data['folder_id'], $data['is_template']);
         }
+        if (($data['autosave'] ?? false) === true) {
+            // El autoguardado no mueve de carpeta: pisaria un «Mover a carpeta» hecho mientras el editor seguia abierto (o fallaria con una carpeta ya borrada).
+            unset($data['folder_id']);
+        }
         $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($current->brand_id);
         $document = $this->documents->validate($user, $brand, $data['document']);
         $folderId = $this->folderId($user, $brand, array_key_exists('folder_id', $data) ? $data['folder_id'] : $current->folder_id);
@@ -198,7 +202,35 @@ class StudioService
     {
         $this->assets->assertBrand($user, $brand);
 
-        return DesignFolder::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->orderBy('name')->get();
+        $folders = DesignFolder::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->orderBy('name')->get();
+        $counts = Design::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->whereIn('folder_id', $folders->modelKeys())
+            ->selectRaw('folder_id, count(*) as total')->groupBy('folder_id')->pluck('total', 'folder_id');
+
+        return $folders->each(fn (DesignFolder $folder) => $folder->setAttribute('designs_count', (int) ($counts[$folder->id] ?? 0)));
+    }
+
+    /** Renombra una carpeta propia. Un id ajeno responde 404 como uno inexistente. */
+    public function renameFolder(User $user, DesignFolder $folder, string $name): DesignFolder
+    {
+        $owned = DesignFolder::withoutUserScope()->where('user_id', $user->id)->findOrFail($folder->id);
+        $name = trim($name);
+        Validator::make(['name' => $name], ['name' => ['required', 'string', 'max:255']])->validate();
+        $owned->forceFill(['name' => $name])->save();
+
+        return $owned;
+    }
+
+    /**
+     * Mueve un diseño propio a otra carpeta de SU marca (o a «Sin carpeta» con null). Es organizacion, no contenido: no crea revision ni
+     * pisa un autoguardado. Solo el propietario: un editor invitado recibe 404 igual que con un diseño ajeno.
+     */
+    public function moveDesign(User $user, Design $design, mixed $folderId): Design
+    {
+        $current = $this->owned($user, $design);
+        $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($current->brand_id);
+        $current->forceFill(['folder_id' => $this->folderId($user, $brand, $folderId)])->save();
+
+        return $current;
     }
 
     public function createFolder(User $user, Brand $brand, string $name): DesignFolder
@@ -210,12 +242,16 @@ class StudioService
         return DesignFolder::create(['user_id' => $user->id, 'brand_id' => $brand->id, 'name' => $name]);
     }
 
-    public function deleteFolder(User $user, DesignFolder $folder): void
+    /** Borra una carpeta propia. Sus diseños (activos, archivados y plantillas) NO se borran: pasan a «Sin carpeta». Devuelve cuantos. */
+    public function deleteFolder(User $user, DesignFolder $folder): int
     {
         $owned = DesignFolder::withoutUserScope()->where('user_id', $user->id)->findOrFail($folder->id);
-        DB::transaction(function () use ($owned): void {
-            Design::withoutUserScope()->withTrashed()->where('user_id', $owned->user_id)->where('folder_id', $owned->id)->update(['folder_id' => null]);
+
+        return DB::transaction(function () use ($owned): int {
+            $moved = Design::withoutUserScope()->withTrashed()->where('user_id', $owned->user_id)->where('folder_id', $owned->id)->update(['folder_id' => null]);
             $owned->delete();
+
+            return $moved;
         });
     }
 

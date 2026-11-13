@@ -132,11 +132,24 @@ class StudioApiController extends Controller
         return response()->json(['folder' => $this->studio->createFolder($request->user(), $brand, $data['name'])], 201);
     }
 
+    public function updateFolder(Request $request, DesignFolder $folder): JsonResponse
+    {
+        $data = $request->validate(['name' => ['required', 'string', 'max:255']]);
+
+        return response()->json(['folder' => $this->studio->renameFolder($request->user(), $folder, $data['name'])]);
+    }
+
     public function destroyFolder(Request $request, DesignFolder $folder): JsonResponse
     {
-        $this->studio->deleteFolder($request->user(), $folder);
+        return response()->json(['deleted' => true, 'designs_moved' => $this->studio->deleteFolder($request->user(), $folder)]);
+    }
 
-        return response()->json(['deleted' => true]);
+    public function moveDesign(Request $request, Design $design): JsonResponse
+    {
+        $data = $request->validate(['folder_id' => ['present', 'nullable', 'integer', 'min:1']]);
+        $moved = $this->studio->moveDesign($request->user(), $design, $data['folder_id']);
+
+        return response()->json(['design' => ['id' => $moved->id, 'folder_id' => $moved->folder_id]]);
     }
 
     public function updateKit(Request $request, Brand $brand): JsonResponse

@@ -542,11 +542,26 @@ paths:
         in: path
         required: true
         schema: { type: integer, minimum: 1 }
+    patch:
+      operationId: renameStudioFolder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 255 }
+      responses:
+        '200': { description: Carpeta renombrada; requiere designs:write, content: { application/json: { schema: { type: object, properties: { folder: { type: object, additionalProperties: true } } } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
     delete:
       operationId: deleteStudioFolder
       responses:
         '200':
-          description: Carpeta eliminada; conserva diseños activos y archivados sin asociación; requiere designs:write
+          description: Carpeta eliminada; sus diseños (activos, plantillas y archivados) pasan a «Sin carpeta» y `designs_moved` dice cuántos; requiere designs:write
           content:
             application/json:
               schema:
@@ -554,7 +569,27 @@ paths:
                 required: [deleted]
                 properties:
                   deleted: { type: boolean }
+                  designs_moved: { type: integer }
         '404': { $ref: '#/components/responses/NotFound' }
+  /designs/{design}/folder:
+    parameters:
+      - $ref: '#/components/parameters/Design'
+    patch:
+      operationId: moveStudioDesignToFolder
+      description: designs:write. Mueve un diseño propio a una carpeta de su marca, o a «Sin carpeta» con `folder_id` null. No crea revisión. Un diseño ajeno responde 404; una carpeta de otra marca, 422.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [folder_id]
+              properties:
+                folder_id: { type: integer, minimum: 1, nullable: true }
+      responses:
+        '200': { description: Diseño movido, content: { application/json: { schema: { type: object, properties: { design: { type: object, properties: { id: { type: integer }, folder_id: { type: integer, nullable: true } } } } } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
   /brands/{brand}/brand-kit:
     parameters:
       - $ref: '#/components/parameters/Brand'
@@ -1339,6 +1374,9 @@ paths:
     get: {"operationId": "getPostSeries", "tags": ["Workflow"], "description": "posts:read. Serie con hasta 60 ocurrencias.", "responses": {"200": {"description": "Serie", "content": {"application/json": {"schema": {"type": "object", "properties": {"series": {"$ref": "#/components/schemas/PostSeries"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:read"}, "404": {"$ref": "#/components/responses/NotFound"}}}
     patch: {"operationId": "updatePostSeries", "tags": ["Workflow"], "description": "posts:write. Cambia las ocurrencias futuras sin editar; una serie cancelada responde 422.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PostSeriesInput"}}}}, "responses": {"200": {"description": "Serie actualizada", "content": {"application/json": {"schema": {"type": "object", "properties": {"series": {"$ref": "#/components/schemas/PostSeries"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:write"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}}}
     delete: {"operationId": "cancelPostSeries", "tags": ["Workflow"], "description": "posts:write. Cancela la serie y borra las ocurrencias futuras pendientes.", "responses": {"200": {"description": "Serie cancelada", "content": {"application/json": {"schema": {"type": "object", "properties": {"series": {"$ref": "#/components/schemas/PostSeries"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:write"}, "404": {"$ref": "#/components/responses/NotFound"}}}
+  /series/{series}/recover:
+    parameters: [{"name": "series", "in": "path", "required": true, "schema": {"type": "integer", "minimum": 1}}]
+    post: {"operationId": "recoverPostSeries", "tags": ["Workflow"], "description": "posts:write. Opcional y explícito: rehace las fechas recientes (social.series.recovery_days) que la serie no generó mientras fallaba; cada una se programa unos minutos después y respeta la aprobación de la serie. Idempotente. Una serie cancelada responde 422.", "responses": {"200": {"description": "Fechas recuperadas", "content": {"application/json": {"schema": {"type": "object", "properties": {"recovered": {"type": "integer"}, "series": {"$ref": "#/components/schemas/PostSeries"}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:write"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}}}
   /brands/{brand}/collaborators:
     parameters: [{"$ref": "#/components/parameters/Brand"}]
     get: {"operationId": "listBrandCollaborators", "tags": ["Workflow"], "description": "posts:read. Aprobadores invitados de la marca; solo el propietario.", "responses": {"200": {"description": "Colaboradores", "content": {"application/json": {"schema": {"type": "object", "properties": {"collaborators": {"type": "array", "items": {"type": "object", "additionalProperties": true}}}}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:read"}, "404": {"$ref": "#/components/responses/NotFound"}}}
@@ -2471,8 +2509,8 @@ components:
     PostApprovalResult: {"type": "object", "properties": {"post": {"$ref": "#/components/schemas/PostApproval"}}}
     PostBatchInput: {"type": "object", "properties": {"action": {"type": "string", "enum": ["schedule", "reschedule", "cancel", "delete", "approve", "reject"]}, "post_ids": {"type": "array", "minItems": 1, "maxItems": 100, "items": {"type": "integer", "minimum": 1}}, "shift_days": {"type": "integer", "minimum": -365, "maximum": 365, "description": "reschedule"}, "shift_hours": {"type": "integer", "minimum": -8760, "maximum": 8760, "description": "reschedule"}, "comment": {"type": "string", "nullable": true, "maxLength": 2000, "description": "reject: obligatorio"}, "signatures": {"type": "object", "additionalProperties": {"type": "string"}, "description": "approve y reject: id de publicación => content_signature revisada"}, "idempotency_key": {"type": "string", "description": "Alternativa a la cabecera Idempotency-Key"}}, "required": ["action", "post_ids"], "additionalProperties": false}
     PostBatchResult: {"type": "object", "properties": {"action": {"type": "string"}, "total": {"type": "integer"}, "ok": {"type": "integer"}, "failed": {"type": "integer"}, "replayed": {"type": "boolean"}, "results": {"type": "array", "items": {"type": "object", "properties": {"post_id": {"type": "integer"}, "ok": {"type": "boolean"}, "error": {"type": "string"}}, "additionalProperties": true}}}}
-    PostSeriesInput: {"type": "object", "properties": {"brand_id": {"type": "integer", "description": "Solo al crear"}, "frequency": {"type": "string", "enum": ["diaria", "semanal", "mensual"]}, "weekdays": {"type": "array", "maxItems": 7, "items": {"type": "integer", "minimum": 1, "maximum": 7}, "description": "Solo semanal; ISO 1-7. Si falta, el día de starts_on"}, "time_local": {"type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$", "description": "HH:MM en la zona de la marca"}, "starts_on": {"type": "string", "format": "date"}, "ends_on": {"type": "string", "format": "date", "nullable": true}, "max_occurrences": {"type": "integer", "minimum": 1, "nullable": true}, "text": {"type": "string", "nullable": true}, "media": {"type": "array", "items": {"type": "integer"}}, "targets": {"type": "array", "minItems": 1, "maxItems": 40, "items": {"$ref": "#/components/schemas/PostTargetInput"}}}, "required": ["frequency", "time_local", "starts_on", "targets"]}
-    PostSeries: {"type": "object", "properties": {"id": {"type": "integer"}, "last_error": {"type": "string", "nullable": true, "description": "Motivo del último fallo de generación; null si la última generación fue correcta"}, "last_error_at": {"type": "string", "format": "date-time", "nullable": true}, "brand_id": {"type": "integer"}, "frequency": {"type": "string", "enum": ["diaria", "semanal", "mensual"]}, "weekdays": {"type": "array", "nullable": true, "items": {"type": "integer"}}, "time_local": {"type": "string"}, "starts_on": {"type": "string", "format": "date"}, "ends_on": {"type": "string", "format": "date", "nullable": true}, "max_occurrences": {"type": "integer", "nullable": true}, "status": {"type": "string"}, "text": {"type": "string", "nullable": true}, "targets": {"type": "array", "items": {"type": "object", "additionalProperties": true}}, "generated": {"type": "integer"}, "occurrences": {"type": "array", "items": {"type": "object", "properties": {"date": {"type": "string", "format": "date"}, "post_id": {"type": "integer", "nullable": true}, "status": {"type": "string", "nullable": true}, "edited": {"type": "boolean"}}, "additionalProperties": true}}}, "additionalProperties": true}
+    PostSeriesInput: {"type": "object", "properties": {"brand_id": {"type": "integer", "description": "Solo al crear"}, "frequency": {"type": "string", "enum": ["diaria", "semanal", "mensual"]}, "weekdays": {"type": "array", "maxItems": 7, "items": {"type": "integer", "minimum": 1, "maximum": 7}, "description": "Solo semanal; ISO 1-7. Si falta, el día de starts_on"}, "time_local": {"type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$", "description": "HH:MM en la zona de la marca"}, "starts_on": {"type": "string", "format": "date"}, "ends_on": {"type": "string", "format": "date", "nullable": true}, "max_occurrences": {"type": "integer", "minimum": 1, "nullable": true}, "text": {"type": "string", "nullable": true}, "media": {"type": "array", "items": {"type": "integer"}}, "targets": {"type": "array", "minItems": 1, "maxItems": 40, "items": {"$ref": "#/components/schemas/PostTargetInput"}}, "requires_approval": {"type": "boolean", "description": "Cada ocurrencia nace como borrador pendiente de aprobación"}}, "required": ["frequency", "time_local", "starts_on", "targets"]}
+    PostSeries: {"type": "object", "properties": {"id": {"type": "integer"}, "last_error": {"type": "string", "nullable": true, "description": "Motivo del último fallo de generación; null si la última generación fue correcta"}, "last_error_at": {"type": "string", "format": "date-time", "nullable": true}, "brand_id": {"type": "integer"}, "frequency": {"type": "string", "enum": ["diaria", "semanal", "mensual"]}, "weekdays": {"type": "array", "nullable": true, "items": {"type": "integer"}}, "time_local": {"type": "string"}, "starts_on": {"type": "string", "format": "date"}, "ends_on": {"type": "string", "format": "date", "nullable": true}, "max_occurrences": {"type": "integer", "nullable": true}, "status": {"type": "string"}, "text": {"type": "string", "nullable": true}, "targets": {"type": "array", "items": {"type": "object", "additionalProperties": true}}, "generated": {"type": "integer"}, "requires_approval": {"type": "boolean"}, "recoverable": {"type": "integer", "description": "Fechas recientes sin generar que POST /series/{series}/recover puede rehacer"}, "occurrences": {"type": "array", "items": {"type": "object", "properties": {"date": {"type": "string", "format": "date"}, "post_id": {"type": "integer", "nullable": true}, "status": {"type": "string", "nullable": true}, "edited": {"type": "boolean"}}, "additionalProperties": true}}}, "additionalProperties": true}
     CanvaState: {"type": "object", "properties": {"configured": {"type": "boolean"}, "connected": {"type": "boolean"}, "status": {"type": "string", "enum": ["not_configured", "disconnected", "expired", "active"]}, "name": {"type": "string", "nullable": true}, "capabilities_known": {"type": "boolean"}, "features": {"type": "object", "additionalProperties": true, "description": "Funciones según el plan; cada desactivada lleva su motivo"}, "formats": {"type": "array", "items": {"type": "object", "additionalProperties": true}}, "jobs": {"type": "array", "items": {"$ref": "#/components/schemas/CanvaJob"}}}, "additionalProperties": true}
     CanvaJob: {"type": "object", "properties": {"id": {"type": "integer"}, "kind": {"type": "string"}, "status": {"type": "string"}, "design_id": {"type": "string", "nullable": true}, "title": {"type": "string", "nullable": true}, "format": {"type": "string", "nullable": true}, "media_id": {"type": "integer", "nullable": true}, "media": {"type": "array", "items": {"type": "object", "additionalProperties": true}, "description": "Recursos importados a la biblioteca con origen Canva (un PDF lleva `kind: pdf` y `download_url`)"}}, "additionalProperties": true}
     StudioAiJobInput: {"type": "object", "properties": {"kind": {"type": "string", "enum": ["generate", "edit", "outpaint", "variation"]}, "provider": {"type": "string", "enum": ["openai", "google"], "description": "Debe estar configurado"}, "prompt": {"type": "string", "nullable": true, "maxLength": 1000}, "aspect": {"type": "string", "nullable": true, "enum": ["1:1", "3:2", "2:3", "16:9", "9:16"]}, "style": {"type": "string", "nullable": true}, "count": {"type": "integer", "minimum": 1, "maximum": 3}, "media_id": {"type": "integer", "minimum": 1, "description": "edit, outpaint y variation: imagen de esta marca"}, "mask": {"type": "object", "properties": {"x": {"type": "number", "minimum": 0, "maximum": 1}, "y": {"type": "number", "minimum": 0, "maximum": 1}, "width": {"type": "number", "minimum": 0, "maximum": 1}, "height": {"type": "number", "minimum": 0, "maximum": 1}}, "additionalProperties": false}, "idempotency_key": {"type": "string", "pattern": "^[A-Za-z0-9_-]{8,64}$"}}, "required": ["kind", "provider"], "additionalProperties": false}

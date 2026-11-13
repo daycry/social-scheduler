@@ -36,6 +36,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('brands/{brand}/studio/assets/{media}/file', [StudioController::class, 'assetFile'])->whereNumber(['brand', 'media'])->name('studio.assets.file');
     Route::get('brands/{brand}/studio/folders', [StudioController::class, 'folders'])->whereNumber('brand')->name('studio.folders.index');
     Route::post('brands/{brand}/studio/folders', [StudioController::class, 'storeFolder'])->whereNumber('brand')->name('studio.folders.store');
+    Route::patch('studio/folders/{folder}', [StudioController::class, 'updateFolder'])->whereNumber('folder')->name('studio.folders.update');
+    Route::patch('studio/designs/{design}/folder', [StudioController::class, 'moveDesign'])->whereNumber('design')->name('studio.designs.move');
     Route::delete('studio/folders/{folder}', [StudioController::class, 'destroyFolder'])->whereNumber('folder')->name('studio.folders.destroy');
     Route::get('studio/designs/{design}/exports', [StudioController::class, 'exports'])->whereNumber('design')->name('studio.exports.index');
     Route::post('studio/designs/{design}/exports', [StudioController::class, 'registerExport'])->whereNumber('design')->name('studio.exports.store');

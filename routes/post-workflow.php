@@ -25,6 +25,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('series', [PostWorkflowController::class, 'seriesStore'])->middleware('throttle:series.store')->name('series.store');
         Route::get('series/{series}', [PostWorkflowController::class, 'seriesShow'])->whereNumber('series')->name('series.show');
         Route::patch('series/{series}', [PostWorkflowController::class, 'seriesUpdate'])->whereNumber('series')->middleware('throttle:series.update')->name('series.update');
+        Route::post('series/{series}/recover', [PostWorkflowController::class, 'seriesRecover'])->whereNumber('series')->middleware('throttle:series.update')->name('series.recover');
         Route::delete('series/{series}', [PostWorkflowController::class, 'seriesCancel'])->whereNumber('series')->name('series.cancel');
 
         Route::get('brands/{brand}/collaborators', [PostWorkflowController::class, 'collaborators'])->whereNumber('brand')->name('collaborators.index');

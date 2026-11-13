@@ -104,6 +104,11 @@ class PostWorkflowController extends Controller
         return $this->guard($request, 'cancel_series', null, fn () => $this->actions->seriesCancel($request->user(), $series));
     }
 
+    public function seriesRecover(Request $request, int $series): JsonResponse
+    {
+        return $this->guard($request, 'recover_series', null, fn () => $this->actions->seriesRecover($request->user(), $series));
+    }
+
     public function collaborators(Request $request, int $brand): JsonResponse
     {
         return $this->guard($request, 'list_collaborators', null, fn () => $this->actions->collaborators($request->user(), $brand));

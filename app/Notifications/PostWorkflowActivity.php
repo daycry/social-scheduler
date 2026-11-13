@@ -2,11 +2,12 @@
 
 namespace App\Notifications;
 
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
  * Aviso in-app (solo base de datos) del flujo de publicacion (T-19): aprobacion pedida / aprobada / rechazada, invitacion de
- * colaborador y publicacion manual que toca. Guarda escalares y nunca tokens ni URLs firmadas.
+ * colaborador y publicacion manual que toca y su recordatorio previo (`manual_reminder`, con correo si `notify_by_mail`). Guarda escalares y nunca tokens ni URLs firmadas.
  */
 class PostWorkflowActivity extends Notification
 {
@@ -24,7 +25,16 @@ class PostWorkflowActivity extends Notification
     /** @return list<string> */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return $this->kind === 'manual_reminder' && $notifiable->notify_by_mail ? ['database', 'mail'] : ['database'];
+    }
+
+    /** Solo el recordatorio de publicacion manual (T-32) sale por correo, y solo con `notify_by_mail`. */
+    public function toMail(object $notifiable): MailMessage
+    {
+        return (new MailMessage)
+            ->subject('Recuerda publicar a mano: '.$this->brandName)
+            ->line($this->message)
+            ->action('Abrir el contenido', route('posts.manual.show', (int) $this->postId));
     }
 
     /** @return array<string, mixed> */

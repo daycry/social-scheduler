@@ -125,6 +125,15 @@ class PostWorkflowActions
     }
 
     /** @return array<string, mixed> */
+    public function seriesRecover(User $user, int $series): array
+    {
+        $model = $this->ownedSeries($user, $series);
+        $created = $this->series->recover($user, $model);
+
+        return ['recovered' => $created, 'series' => $this->series->present($model->fresh())];
+    }
+
+    /** @return array<string, mixed> */
     public function collaborators(User $user, int $brand): array
     {
         return ['collaborators' => $this->collab->list($user, $this->ownedBrand($user, $brand))];

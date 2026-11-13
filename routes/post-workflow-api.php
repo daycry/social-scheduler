@@ -28,6 +28,7 @@ Route::prefix('api/v1')->name('api.')->middleware(['auth:sanctum', 'throttle:api
         Route::post('posts/batch', [PostWorkflowController::class, 'batch'])->middleware('throttle:post-batches')->name('batch');
         Route::post('brands/{brand}/series', [PostWorkflowController::class, 'seriesStore'])->whereNumber('brand')->middleware('throttle:api.series.store')->name('series.store');
         Route::patch('series/{series}', [PostWorkflowController::class, 'seriesUpdate'])->whereNumber('series')->name('series.update');
+        Route::post('series/{series}/recover', [PostWorkflowController::class, 'seriesRecover'])->whereNumber('series')->name('series.recover');
         Route::delete('series/{series}', [PostWorkflowController::class, 'seriesCancel'])->whereNumber('series')->name('series.cancel');
     });
 });

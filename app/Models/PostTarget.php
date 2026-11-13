@@ -28,7 +28,7 @@ class PostTarget extends Model
     protected $fillable = [
         'social_account_id', 'network', 'content_type', 'status', 'options', 'text', 'external_id', 'external_url',
         'external_reference', 'progress', 'status_note', 'attempts', 'error_code', 'error_message', 'started_at', 'next_attempt_at', 'published_at',
-        'media', 'has_own_media', 'manual', 'manual_notified_at', 'first_comment', 'first_comment_status', 'first_comment_attempts', 'first_comment_external_id', 'first_comment_error', 'first_comment_at', 'first_comment_sent_at',
+        'media', 'has_own_media', 'manual', 'manual_notified_at', 'manual_reminded_at', 'first_comment', 'first_comment_status', 'first_comment_attempts', 'first_comment_external_id', 'first_comment_error', 'first_comment_at', 'first_comment_sent_at',
     ];
 
     protected function casts(): array
@@ -40,6 +40,7 @@ class PostTarget extends Model
             'options' => 'array',
             'manual' => 'boolean',
             'manual_notified_at' => 'datetime',
+            'manual_reminded_at' => 'datetime',
             'has_own_media' => 'boolean',
             'progress' => 'array',
             'attempts' => 'integer',

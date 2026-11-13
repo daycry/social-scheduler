@@ -35,6 +35,9 @@ class SeriesService
 
     public const MAX_ACTIVE_SERIES = 50;
 
+    /** Margen entre pulsar «Recuperar fechas perdidas» y la hora a la que sale la primera ocurrencia recuperada. */
+    public const RECOVERY_DELAY_MINUTES = 10;
+
     public function __construct(private readonly PostService $posts) {}
 
     /** @param array<string, mixed> $data */
@@ -72,7 +75,7 @@ class SeriesService
             $merged['weekdays'] = null;
         }
         $rule = $this->validatedRule($merged, $series);
-        $payloadIn = array_replace($series->payload, Arr::only($data, ['text', 'media', 'targets']));
+        $payloadIn = array_replace($series->payload, Arr::only($data, ['text', 'media', 'targets', 'requires_approval']));
         $payload = $this->validatedPayload($user, $brand, $payloadIn, $rule['time_local']);
 
         DB::transaction(fn () => $series->forceFill($rule + ['payload' => $payload])->save());
@@ -131,14 +134,8 @@ class SeriesService
             }
 
             try {
-                DB::transaction(function () use ($series, $brand, $user, $date, $at, &$created): void {
-                    // La reserva primero: si otra pasada ya la tiene, el unique aborta la transaccion y no queda ningun post.
-                    $slot = PostSeriesOccurrence::query()->create(['series_id' => $series->id, 'occurrence_date' => $date]);
-                    $post = $this->posts->create($user, $brand, $this->occurrenceData($series, $at->setTimezone($brand->timezone ?: 'UTC')));
-                    Post::withoutUserScope()->whereKey($post->id)->update(['series_id' => $series->id]);
-                    $slot->forceFill(['post_id' => $post->id])->save();
-                    $created++;
-                });
+                $this->materialize($series, $brand, $user, $date, $at);
+                $created++;
             } catch (QueryException) {
                 continue; // otra ejecucion la creo entre medias
             } catch (PostValidationException $e) {
@@ -153,9 +150,82 @@ class SeriesService
     }
 
     /**
+     * Fechas perdidas que se pueden recuperar (T-32): las que ya pasaron SIN ocurrencia, desde que existe la serie y dentro de
+     * `social.series.recovery_days`. Las mas antiguas no se reconstruyen: publicar con semanas de retraso no tiene sentido.
+     *
+     * @return list<string> fechas locales Y-m-d
+     */
+    public function recoverableDates(PostSeries $series, ?CarbonImmutable $now = null): array
+    {
+        if ($series->status !== PostSeries::ACTIVE) {
+            return [];
+        }
+        $tz = Brand::withoutUserScope()->whereKey($series->brand_id)->value('timezone') ?: 'UTC';
+        $now ??= CarbonImmutable::now('UTC');
+        $floor = $now->subDays((int) config('social.series.recovery_days', 2));
+        $since = CarbonImmutable::instance($series->created_at ?? $now);
+
+        $out = [];
+        foreach ($this->dates($series, $now->setTimezone($tz)->startOfDay()) as $date) {
+            $at = CarbonImmutable::parse($date.' '.$series->time_local, $tz);
+            if ($at->utc()->gt($now) || $at->utc()->lt($floor) || $at->utc()->lt($since)) {
+                continue;
+            }
+            if (! PostSeriesOccurrence::query()->where('series_id', $series->id)->whereDate('occurrence_date', $date)->exists()) {
+                $out[] = $date;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * «Recuperar fechas perdidas» (T-32), accion explicita del usuario: crea una ocurrencia por cada fecha recuperable, programada
+     * unos minutos despues (no se puede programar en el pasado) y escalonada. Respeta la aprobacion de la serie. Devuelve cuantas creo.
+     */
+    public function recover(User $user, PostSeries $series, ?CarbonImmutable $now = null): int
+    {
+        $this->assertOwns($user, $series);
+        if ($series->status !== PostSeries::ACTIVE) {
+            throw new PostValidationException(['series' => ['La serie esta cancelada.']]);
+        }
+        $brand = Brand::withoutUserScope()->findOrFail($series->brand_id);
+        $now ??= CarbonImmutable::now('UTC');
+
+        $created = 0;
+        $failure = null;
+        foreach ($this->recoverableDates($series, $now) as $date) {
+            try {
+                $this->materialize($series, $brand, $user, $date, $now->addMinutes(self::RECOVERY_DELAY_MINUTES * ($created + 1)));
+                $created++;
+            } catch (QueryException) {
+                continue; // otra ejecucion la creo entre medias
+            } catch (PostValidationException $e) {
+                $failure ??= $e;
+            }
+        }
+        if ($created === 0 && $failure !== null) {
+            throw $failure; // la causa sigue sin resolverse: se dice al usuario en vez de callar
+        }
+
+        return $created;
+    }
+
+    /** Reserva la fecha y crea su post en UNA transaccion: si otra pasada ya tiene la fecha, el unique aborta y no queda ningun post. */
+    private function materialize(PostSeries $series, Brand $brand, User $user, string $date, CarbonImmutable $at): void
+    {
+        DB::transaction(function () use ($series, $brand, $user, $date, $at): void {
+            $slot = PostSeriesOccurrence::query()->create(['series_id' => $series->id, 'occurrence_date' => $date]);
+            $post = $this->posts->create($user, $brand, $this->occurrenceData($series, $at->setTimezone($brand->timezone ?: 'UTC')));
+            Post::withoutUserScope()->whereKey($post->id)->update(['series_id' => $series->id]);
+            $slot->forceFill(['post_id' => $post->id])->save();
+        });
+    }
+
+    /**
      * Deja el resultado de la pasada en la serie: el motivo del fallo (visible en la UI, la API y el MCP) o lo limpia si esta vez no hubo
      * ninguno. Se avisa al usuario solo si el motivo es nuevo, para no repetir el aviso cada hora. Las fechas que pasan mientras la serie
-     * falla NO se recuperan: `generate()` salta las pasadas, asi que al arreglarse la causa la serie sigue desde la proxima fecha futura.
+     * falla NO se recuperan solas: `generate()` salta las pasadas y la serie sigue desde la proxima fecha futura. Recuperarlas es opcional y explicito (`recover()`).
      */
     private function recordOutcome(PostSeries $series, Brand $brand, User $user, ?string $failure): void
     {
@@ -245,6 +315,8 @@ class SeriesService
             'last_error' => $series->last_error,
             'last_error_at' => $series->last_error_at?->toIso8601String(),
             'text' => $series->payload['text'] ?? null,
+            'requires_approval' => (bool) ($series->payload['requires_approval'] ?? false),
+            'recoverable' => count($this->recoverableDates($series)),
             'targets' => collect($series->payload['targets'] ?? [])->map(fn ($t) => Arr::only($t, ['account_id', 'content_type', 'manual']))->all(),
             'generated' => $rows->count(),
             'occurrences' => $rows->take(60)->map(fn ($r) => [
@@ -313,12 +385,13 @@ class SeriesService
      * Valida el contenido con las mismas reglas de formato y el mismo planificador que un post normal.
      *
      * @param  array<string, mixed>  $data
-     * @return array{text: ?string, media: list<int>, targets: list<array<string, mixed>>}
+     * @return array{text: ?string, media: list<int>, targets: list<array<string, mixed>>, requires_approval: bool}
      */
     private function validatedPayload(User $user, Brand $brand, array $data, string $time): array
     {
         $rules = Arr::only((new PostRequest)->rules(), ['text', 'media', 'media.*', 'targets', 'targets.*.account_id', 'targets.*.content_type', 'targets.*.text', 'targets.*.first_comment', 'targets.*.media', 'targets.*.media.*', 'targets.*.media.*.id', 'targets.*.media.*.alt', 'targets.*.media.*.cover_id', 'targets.*.options']);
         $rules['targets.*.manual'] = ['nullable', 'boolean'];
+        $rules['requires_approval'] = ['nullable', 'boolean'];
         $rules['targets'] = ['required', 'array', 'min:1', 'max:40'];
         $clean = Validator::make($data, $rules)->validate();
 
@@ -326,6 +399,7 @@ class SeriesService
             'text' => $clean['text'] ?? null,
             'media' => array_values(array_map('intval', $clean['media'] ?? [])),
             'targets' => array_values(array_map(fn ($t) => Arr::only($t, ['account_id', 'content_type', 'text', 'first_comment', 'media', 'options', 'manual']), $clean['targets'])),
+            'requires_approval' => (bool) ($clean['requires_approval'] ?? false),
         ];
 
         $probe = CarbonImmutable::now($brand->timezone ?: 'UTC')->addDay()->format('Y-m-d').'T'.$time;
@@ -369,7 +443,8 @@ class SeriesService
                     $row?->delete(); // la fecha deja de ser de la serie: si vuelve a serlo, se podra regenerar
                 } else {
                     $at = CarbonImmutable::parse($date.' '.$series->time_local, $tz);
-                    $this->posts->update($user, $post, $series->payload + ['schedule' => true, 'scheduled_at' => $at->format('Y-m-d\TH:i')]);
+                    // Una ocurrencia que espera aprobacion se queda como borrador: solo se programa la que ya es publicable.
+                    $this->posts->update($user, $post, $series->payload + ['schedule' => $post->isPublishable(), 'scheduled_at' => $at->format('Y-m-d\TH:i')]);
                     Post::withoutUserScope()->whereKey($post->id)->update(['series_exception' => false]);
                 }
             } catch (Throwable) {

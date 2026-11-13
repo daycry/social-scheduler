@@ -25,6 +25,7 @@ const form = ref({
     end_mode: 'count',
     ends_on: '',
     max_occurrences: 4,
+    requires_approval: false,
     targets: {}, // account_id -> content_type seleccionado
 });
 const brand = computed(() => props.brands.find((b) => b.id === Number(form.value.brand_id)));
@@ -60,6 +61,7 @@ const create = async () => {
         weekdays: f.frequency === 'semanal' ? f.weekdays : null,
         ends_on: f.end_mode === 'date' ? f.ends_on || null : null,
         max_occurrences: f.end_mode === 'count' ? Number(f.max_occurrences) || null : null,
+        requires_approval: f.requires_approval,
         targets: Object.entries(f.targets).map(([id, type]) => ({ account_id: Number(id), content_type: type })),
     };
     const result = await workflowRequest('POST', route('workflow.series.store'), body);
@@ -73,6 +75,13 @@ const cancel = async (s) => {
     const result = await workflowRequest('DELETE', route('workflow.series.cancel', s.id));
     busy.value = false;
     result.ok ? done('Serie cancelada.') : (error.value = workflowError(result));
+};
+const recover = async (s) => {
+    if (busy.value) return;
+    busy.value = true;
+    const result = await workflowRequest('POST', route('workflow.series.recover', s.id));
+    busy.value = false;
+    result.ok ? done(`Se han recuperado ${result.data.recovered} fechas perdidas: saldrán en unos minutos.`) : (error.value = workflowError(result));
 };
 const startEdit = (s) => {
     editing.value = s.id;
@@ -173,6 +182,12 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
                         <textarea id="s-text" v-model="form.text" rows="3" class="field w-full" data-testid="series-text"></textarea>
                     </div>
                     <div class="sm:col-span-2">
+                        <label class="inline-flex items-center gap-2 text-sm text-slate-800">
+                            <input v-model="form.requires_approval" type="checkbox" class="h-4 w-4 rounded border-slate-400 text-indigo-600" data-testid="series-requires-approval" />
+                            Cada publicación necesita aprobación antes de salir
+                        </label>
+                    </div>
+                    <div class="sm:col-span-2">
                         <button type="submit" class="btn btn-primary" :disabled="busy || Object.keys(form.targets).length === 0" data-testid="series-create">Crear serie</button>
                     </div>
                 </form>
@@ -189,11 +204,15 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
                         <div class="flex flex-wrap items-center gap-2">
                             <StatusBadge :status="s.status" :label="s.status === 'activa' ? 'Activa' : 'Cancelada'" />
                             <span class="text-sm font-medium text-slate-900">{{ freq(s) }} a las {{ s.time_local }}</span>
-                            <span class="text-xs text-slate-600">desde {{ s.starts_on }} · {{ ends(s) }} · {{ s.generated }} generadas</span>
+                            <span class="text-xs text-slate-600">desde {{ s.starts_on }} · {{ ends(s) }} · {{ s.generated }} generadas<template v-if="s.requires_approval"> · con aprobación</template></span>
                         </div>
                         <p v-if="s.last_error" class="mt-2 rounded-lg border border-red-200 bg-red-50 p-2 text-sm text-red-800" role="alert" :data-testid="`series-last-error-${s.id}`">
-                            No se han podido generar publicaciones: {{ s.last_error }} Las fechas que pasen mientras tanto no se recuperan; al corregirlo, la serie sigue desde la próxima fecha.
+                            No se han podido generar publicaciones: {{ s.last_error }} Las fechas que pasen mientras tanto no se recuperan solas; al corregirlo, la serie sigue desde la próxima fecha.
                         </p>
+                        <div v-if="s.status === 'activa' && s.recoverable > 0" class="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2 text-sm text-amber-900" :data-testid="`series-recover-${s.id}`">
+                            <p>Hay {{ s.recoverable }} {{ s.recoverable === 1 ? 'fecha reciente que no se generó' : 'fechas recientes que no se generaron' }}. Solo se recuperan las de los últimos días; las más antiguas no se reconstruyen.</p>
+                            <button type="button" class="btn btn-secondary mt-1 px-3 py-1 text-sm" :disabled="busy" data-testid="series-recover" @click="recover(s)">Recuperar fechas perdidas</button>
+                        </div>
                         <p class="mt-1 line-clamp-2 text-sm text-slate-800">{{ s.text || '(sin texto)' }}</p>
                         <ul class="mt-2 flex flex-wrap gap-1.5">
                             <li v-for="o in s.occurrences.slice(0, 12)" :key="o.date" class="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-xs">

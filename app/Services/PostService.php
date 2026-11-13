@@ -361,7 +361,7 @@ class PostService
 
             // Mover una ocurrencia a mano la saca de la serie: `reconcile()` no la devuelve a su fecha.
             $post->forceFill(['scheduled_at' => $at] + ($post->series_id !== null ? ['series_exception' => true] : []))->save();
-            PostTarget::withoutUserScope()->where('post_id', $post->id)->where('manual', true)->update(['manual_notified_at' => null]);
+            PostTarget::withoutUserScope()->where('post_id', $post->id)->where('manual', true)->update(['manual_notified_at' => null, 'manual_reminded_at' => null]);
             $targets->filter(fn (PostTarget $t) => $t->status === PostStatus::Failed)
                 ->each(function (PostTarget $t) use ($post, $oldScheduledAt) {
                     $this->transition($t, PostStatus::Scheduled, $this->freshAttempt($t, $this->effectiveTextOf($t, $post->text), $oldScheduledAt));
@@ -450,7 +450,7 @@ class PostService
 
                     continue;
                 }
-                $this->applyTransition($target, PostStatus::Scheduled, $this->freshAttempt($target, $this->effectiveTextOf($target, $locked->text), $locked->scheduled_at) + ['manual_notified_at' => null]);
+                $this->applyTransition($target, PostStatus::Scheduled, $this->freshAttempt($target, $this->effectiveTextOf($target, $locked->text), $locked->scheduled_at) + ['manual_notified_at' => null, 'manual_reminded_at' => null]);
                 YouTubePublisher::forgetUploadSession($target->id);
                 $retried[] = $target->id;
             }
@@ -996,7 +996,7 @@ class PostService
             $manual = (bool) ($t['manual'] ?? false);
             $rescheduled = $before !== null && ! $this->sameInstant($before['scheduled_at'] ?? null, $plan['scheduled_at'] ?? null);
             // El aviso manual se rearma si cambia la hora, el modo manual o el contenido: el usuario volvera a recibirlo.
-            $rearm = ($manual !== (bool) $current->manual || $rescheduled || $fresh) ? ['manual_notified_at' => null] : [];
+            $rearm = ($manual !== (bool) $current->manual || $rescheduled || $fresh) ? ['manual_notified_at' => null, 'manual_reminded_at' => null] : [];
             $attributes = ['options' => $t['options'] ?: null, 'text' => $t['text'], 'media' => $t['media'], 'manual' => $manual, 'first_comment' => $t['first_comment'] ?? null] + $rearm + ($fresh ? $this->freshAttempt($current, $oldText, $before['scheduled_at'] ?? null) : []);
             if (! $fresh) {
                 $attributes += $this->releaseBackoff($current, (bool) ($plan['publish_now'] ?? false));

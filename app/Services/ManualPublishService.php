@@ -12,6 +12,8 @@ use App\Models\User;
 use App\Notifications\PostWorkflowActivity;
 use App\Support\TargetMedia;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Publicacion manual (T-19): un destino marcado `manual` NUNCA se envia a la red. Al llegar la hora programada se avisa una sola vez
@@ -54,6 +56,52 @@ class ManualPublishService
                 'Toca publicar a mano en '.$labels.' la publicacion de «'.$brand?->name.'». Abre el aviso para copiar el texto y descargar la media.',
                 (string) $post->text,
             ));
+        }
+
+        return array_sum(array_map('count', $claimed));
+    }
+
+    /**
+     * Recordatorio previo (T-32): avisa una sola vez, `social.series.manual_reminder_minutes` antes de la hora, de los destinos manuales
+     * aprobados que aun no se han recordado. Mismo claim atomico que `notifyDue()`; en la app siempre y por correo con `notify_by_mail`.
+     * Un fallo del correo se registra y no rompe el resto de la pasada.
+     */
+    public function remindUpcoming(): int
+    {
+        $lead = (int) config('social.series.manual_reminder_minutes', 60);
+        $upcoming = PostTarget::withoutUserScope()
+            ->where('manual', true)->where('status', PostStatus::Scheduled->value)->whereNull('manual_reminded_at')->whereNull('manual_notified_at')
+            ->whereIn('post_id', Post::withoutUserScope()->where('scheduled_at', '>', now())->where('scheduled_at', '<=', now()->addMinutes($lead))
+                ->where(fn ($q) => $q->whereNull('approval_status')->orWhere('approval_status', Post::APPROVAL_APPROVED))->select('id'))
+            ->orderBy('id')->limit(500)->pluck('id');
+
+        $claimed = [];
+        foreach ($upcoming as $id) {
+            $won = PostTarget::withoutUserScope()->whereKey($id)->where('manual', true)->whereNull('manual_reminded_at')
+                ->where('status', PostStatus::Scheduled->value)->update(['manual_reminded_at' => now()]);
+            if ($won === 1) {
+                $claimed[(int) PostTarget::withoutUserScope()->whereKey($id)->value('post_id')][] = (int) $id;
+            }
+        }
+
+        foreach ($claimed as $postId => $targetIds) {
+            $post = Post::withoutUserScope()->find($postId);
+            $owner = $post ? User::query()->find($post->user_id) : null;
+            if ($post === null || $owner === null) {
+                continue;
+            }
+            $brand = Brand::withoutUserScope()->find($post->brand_id);
+            $labels = PostTarget::withoutUserScope()->whereIn('id', $targetIds)->get()->map(fn (PostTarget $t) => $t->network->label())->unique()->implode(', ');
+            $when = $post->scheduledAtLocal()?->locale('es')->isoFormat('D [de] MMMM [a las] HH:mm');
+            try {
+                $owner->notify(new PostWorkflowActivity(
+                    'manual_reminder', $post->id, $post->brand_id, (string) $brand?->name,
+                    'Recuerda: el '.($when ?? 'la hora prevista').' toca publicar a mano en '.$labels.' la publicacion de «'.$brand?->name.'». Abre el aviso para tener el texto y la media a mano.',
+                    (string) $post->text,
+                ));
+            } catch (Throwable $e) {
+                Log::error('manual_publish.reminder_failed', ['post_id' => $post->id, 'exception' => $e::class]);
+            }
         }
 
         return array_sum(array_map('count', $claimed));

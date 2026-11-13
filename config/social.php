@@ -382,6 +382,16 @@ return [
     ],
 
     /*
+    | Series recurrentes (T-32). `recovery_days`: margen (1-7 dias) dentro del cual «Recuperar fechas perdidas» rehace una fecha que no se
+    | pudo generar mientras la serie fallaba; mas antiguas no se reconstruyen. `manual_reminder_minutes`: antelacion del recordatorio de
+    | un destino de publicacion manual (en la app y, con `notify_by_mail`, por correo).
+    */
+    'series' => [
+        'recovery_days' => max(1, min(7, (int) env('SOCIAL_SERIES_RECOVERY_DAYS', 2))),
+        'manual_reminder_minutes' => max(5, (int) env('SOCIAL_MANUAL_REMINDER_MINUTES', 60)),
+    ],
+
+    /*
     | Autolistas (PA-09): el job diario genera las publicaciones programadas de los proximos `horizon_days` dias.
     */
     'autolists' => [

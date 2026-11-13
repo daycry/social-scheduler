@@ -80,6 +80,12 @@ class CompetitorService
         return $this->source($competitor->network)->lookup($account, $competitor->external_id ?: $competitor->username);
     }
 
+    /** Deja de seguir a un competidor (la propiedad ya la comprueba quien llama: politica en la web, busqueda por usuario en el MCP). */
+    public function remove(Competitor $competitor): void
+    {
+        $competitor->delete();
+    }
+
     public function add(User $user, Brand $brand, string $username, Network $network = Network::Instagram): Competitor
     {
         if ($brand->user_id !== $user->id) {

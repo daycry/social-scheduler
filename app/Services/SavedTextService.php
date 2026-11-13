@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\SavedText;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 
 /**
  * Textos guardados (C-01a): fragmentos y grupos de hashtags por usuario. `brand_id` nulo = «Todas las marcas».
@@ -12,10 +14,38 @@ use Illuminate\Support\Collection;
  */
 class SavedTextService
 {
+    /**
+     * Reglas de validacion del alta y la edicion: las comparten la web y el MCP. La marca, si se informa, debe ser del usuario.
+     *
+     * @return array<string, mixed>
+     */
+    public static function rules(?int $userId): array
+    {
+        return [
+            'kind' => ['required', 'string', Rule::in(SavedText::KINDS)],
+            'title' => ['required', 'string', 'max:120'],
+            'body' => ['required', 'string', 'max:5000'],
+            'brand_id' => ['nullable', 'integer', Rule::exists('brands', 'id')->where('user_id', $userId)],
+        ];
+    }
+
+    /**
+     * Textos del usuario con el nombre de la marca, el mas reciente primero (orden total por id). Con `$brandId`, solo los de
+     * «Todas las marcas» mas los de esa marca.
+     *
+     * @return Builder<SavedText>
+     */
+    public function query(User $user, ?int $brandId = null): Builder
+    {
+        return SavedText::withoutUserScope()->where('user_id', $user->id)->with('brand:id,name')
+            ->when($brandId, fn (Builder $q) => $q->where(fn ($w) => $w->whereNull('brand_id')->orWhere('brand_id', $brandId)))
+            ->latest('id');
+    }
+
     /** Todos los textos del usuario, con el nombre de la marca (el más reciente primero). */
     public function list(User $user): Collection
     {
-        return SavedText::withoutUserScope()->where('user_id', $user->id)->with('brand:id,name')->latest('id')->get();
+        return $this->query($user)->get();
     }
 
     /**
@@ -25,10 +55,7 @@ class SavedTextService
      */
     public function forBrand(User $user, int $brandId): array
     {
-        return SavedText::withoutUserScope()->where('user_id', $user->id)
-            ->where(fn ($q) => $q->whereNull('brand_id')->orWhere('brand_id', $brandId))
-            ->with('brand:id,name')
-            ->orderBy('title')->get()->map(fn (SavedText $t) => $this->toArray($t))->values()->all();
+        return $this->query($user, $brandId)->reorder('title')->orderBy('id')->get()->map(fn (SavedText $t) => $this->toArray($t))->values()->all();
     }
 
     /** @param array{kind: string, title: string, body: string, brand_id?: int|null} $data */

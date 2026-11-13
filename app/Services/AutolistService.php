@@ -15,6 +15,7 @@ use App\Models\PostTemplate;
 use App\Models\SocialAccount;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -37,6 +38,96 @@ class AutolistService
     private const LEAD_MINUTES = 5;
 
     public function __construct(private readonly PostService $posts) {}
+
+    /**
+     * Reglas de validacion del alta (sin la marca): las comparten la web y el MCP.
+     *
+     * @return array<string, mixed>
+     */
+    public static function createRules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:120'],
+            'recycle' => ['boolean'],
+            'targets' => ['required', 'array', 'min:1', 'max:20'],
+            'targets.*.account_id' => ['required', 'integer'],
+            'targets.*.content_type' => ['required', 'string'],
+            'slots' => ['required', 'array', 'min:1', 'max:'.self::MAX_SLOTS],
+            'slots.*.day' => ['required', 'integer', 'between:1,7'],
+            'slots.*.time' => ['required', 'date_format:H:i'],
+        ];
+    }
+
+    /**
+     * Reglas de validacion de un elemento de la cola: las comparten la web y el MCP.
+     *
+     * @return array<string, mixed>
+     */
+    public static function itemRules(): array
+    {
+        return [
+            'post_template_id' => ['nullable', 'integer'],
+            'text' => ['nullable', 'string', 'max:10000'],
+            'media' => ['nullable', 'array', 'max:10'],
+            'media.*' => ['integer'],
+        ];
+    }
+
+    /**
+     * Autolistas del usuario por nombre (opcionalmente de una marca), con su cola cargada.
+     *
+     * @return Builder<Autolist>
+     */
+    public function query(User $user, ?int $brandId = null): Builder
+    {
+        return Autolist::withoutUserScope()->where('user_id', $user->id)->when($brandId, fn (Builder $q) => $q->where('brand_id', $brandId))
+            ->with('items.template:id,name,text')->orderBy('name')->orderBy('id');
+    }
+
+    /**
+     * Representacion unica de una autolista y su cola para la web y el MCP.
+     *
+     * @return array<string, mixed>
+     */
+    public function present(Autolist $l): array
+    {
+        return [
+            'id' => $l->id,
+            'brand_id' => $l->brand_id,
+            'name' => $l->name,
+            'active' => $l->active,
+            'recycle' => $l->recycle,
+            'slots' => $l->slots,
+            'targets' => $l->targets,
+            'cursor' => $l->cursor,
+            'last_generated_at' => $l->last_generated_at?->toIso8601String(),
+            'items' => $l->items->map(fn (AutolistItem $i) => [
+                'id' => $i->id,
+                'label' => $i->template?->name ?? mb_substr((string) $i->text, 0, 80),
+                'is_template' => $i->post_template_id !== null,
+                'times_used' => $i->times_used,
+            ])->values()->all(),
+        ];
+    }
+
+    /** Activa o pausa la lista, o cambia el reciclado. @param array{active?: bool, recycle?: bool} $data */
+    public function update(Autolist $autolist, array $data): Autolist
+    {
+        $autolist->forceFill($data)->save();
+
+        return $autolist;
+    }
+
+    public function delete(Autolist $autolist): void
+    {
+        $autolist->delete();
+    }
+
+    /** Quita un elemento de la cola de la lista (404 si no es de esa lista). */
+    public function removeItem(Autolist $autolist, int $itemId): void
+    {
+        AutolistItem::withoutUserScope()->where('autolist_id', $autolist->id)->whereKey($itemId)->firstOrFail()->delete();
+    }
 
     /**
      * @param  list<array<string, mixed>>  $targets  [{account_id, content_type}]

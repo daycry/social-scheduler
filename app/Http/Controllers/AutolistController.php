@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Enums\ContentType;
 use App\Exceptions\PostValidationException;
 use App\Models\Autolist;
-use App\Models\AutolistItem;
 use App\Models\Brand;
 use App\Models\PostTemplate;
 use App\Models\SocialAccount;
@@ -40,39 +39,14 @@ class AutolistController extends Controller
                     ->map(fn (ContentType $t) => ['value' => $t->value, 'label' => $t->label()])->values(),
             ])->values(),
             'templates' => $brand ? PostTemplate::query()->where('brand_id', $brand->id)->orderBy('name')->limit(200)->get(['id', 'name'])->map(fn ($t) => ['id' => $t->id, 'name' => $t->name])->values() : [],
-            'autolists' => $lists->map(fn (Autolist $l) => [
-                'id' => $l->id,
-                'name' => $l->name,
-                'active' => $l->active,
-                'recycle' => $l->recycle,
-                'slots' => $l->slots,
-                'targets' => $l->targets,
-                'cursor' => $l->cursor,
-                'last_generated_at' => $l->last_generated_at?->toIso8601String(),
-                'items' => $l->items->map(fn (AutolistItem $i) => [
-                    'id' => $i->id,
-                    'label' => $i->template?->name ?? mb_substr((string) $i->text, 0, 80),
-                    'is_template' => $i->post_template_id !== null,
-                    'times_used' => $i->times_used,
-                ])->values(),
-            ])->values(),
+            'autolists' => $lists->map(fn (Autolist $l) => $this->autolists->present($l))->values(),
             'flash' => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error')],
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'brand_id' => ['required', 'integer'],
-            'name' => ['required', 'string', 'max:120'],
-            'recycle' => ['boolean'],
-            'targets' => ['required', 'array', 'min:1', 'max:20'],
-            'targets.*.account_id' => ['required', 'integer'],
-            'targets.*.content_type' => ['required', 'string'],
-            'slots' => ['required', 'array', 'min:1', 'max:'.AutolistService::MAX_SLOTS],
-            'slots.*.day' => ['required', 'integer', 'between:1,7'],
-            'slots.*.time' => ['required', 'date_format:H:i'],
-        ]);
+        $data = $request->validate(['brand_id' => ['required', 'integer']] + AutolistService::createRules());
         $brand = Brand::query()->findOrFail((int) $data['brand_id']); // UserScope: una marca ajena es 404
 
         try {
@@ -89,7 +63,7 @@ class AutolistController extends Controller
     {
         $this->authorize('update', $autolist);
         $data = $request->validate(['active' => ['sometimes', 'boolean'], 'recycle' => ['sometimes', 'boolean']]);
-        $autolist->forceFill($data)->save();
+        $this->autolists->update($autolist, $data);
 
         return back()->with('success', 'Autolista actualizada.');
     }
@@ -98,7 +72,7 @@ class AutolistController extends Controller
     {
         $this->authorize('delete', $autolist);
         $brandId = $autolist->brand_id;
-        $autolist->delete();
+        $this->autolists->delete($autolist);
 
         return redirect()->route('autolists.index', ['brand_id' => $brandId])->with('success', 'Autolista eliminada. Las publicaciones ya generadas se conservan.');
     }
@@ -106,12 +80,7 @@ class AutolistController extends Controller
     public function addItem(Request $request, Autolist $autolist): RedirectResponse
     {
         $this->authorize('update', $autolist);
-        $data = $request->validate([
-            'post_template_id' => ['nullable', 'integer'],
-            'text' => ['nullable', 'string', 'max:10000'],
-            'media' => ['nullable', 'array', 'max:10'],
-            'media.*' => ['integer'],
-        ]);
+        $data = $request->validate(AutolistService::itemRules());
 
         try {
             $this->autolists->addItem($request->user(), $autolist, isset($data['post_template_id']) ? (int) $data['post_template_id'] : null, $data['text'] ?? null, $data['media'] ?? []);
@@ -125,7 +94,7 @@ class AutolistController extends Controller
     public function removeItem(Autolist $autolist, int $item): RedirectResponse
     {
         $this->authorize('update', $autolist);
-        AutolistItem::withoutUserScope()->where('autolist_id', $autolist->id)->whereKey($item)->firstOrFail()->delete();
+        $this->autolists->removeItem($autolist, $item);
 
         return back()->with('success', 'Elemento quitado de la cola.');
     }

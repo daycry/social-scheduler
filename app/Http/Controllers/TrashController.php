@@ -15,24 +15,15 @@ class TrashController extends Controller
 {
     use AuthorizesRequests;
 
-    public const RETENTION_DAYS = 30;
-
     public function __construct(private readonly TrashService $trash) {}
 
     public function index(): Response
     {
-        $posts = Post::onlyTrashed()->with(['brand:id,name', 'targets'])->orderByDesc('deleted_at')->limit(200)->get();
+        $posts = $this->trash->query(request()->user())->limit(200)->get();
 
         return Inertia::render('Trash/Index', [
-            'retention_days' => self::RETENTION_DAYS,
-            'posts' => $posts->map(fn (Post $p) => [
-                'id' => $p->id,
-                'brand' => $p->brand?->name,
-                'text' => $p->text,
-                'networks' => $p->targets->pluck('network')->map(fn ($n) => $n->value)->unique()->values(),
-                'deleted_at' => $p->deleted_at?->toIso8601String(),
-                'days_left' => max(0, self::RETENTION_DAYS - (int) $p->deleted_at?->diffInDays(now())),
-            ])->values(),
+            'retention_days' => TrashService::RETENTION_DAYS,
+            'posts' => $posts->map(fn (Post $p) => $this->trash->present($p))->values(),
             'flash' => ['success' => session('success'), 'error' => session('error')],
         ]);
     }

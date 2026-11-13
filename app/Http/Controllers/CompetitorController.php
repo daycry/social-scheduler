@@ -98,7 +98,7 @@ class CompetitorController extends Controller
     {
         $this->authorize('delete', $competitor);
         $brandId = $competitor->brand_id;
-        $competitor->delete();
+        $this->competitors->remove($competitor);
 
         return redirect()->route('competitors.index', ['brand_id' => $brandId] + $this->networkQuery($competitor->network))->with('success', 'Competidor eliminado.');
     }

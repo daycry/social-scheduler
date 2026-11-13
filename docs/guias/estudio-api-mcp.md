@@ -313,7 +313,7 @@ MP4 y GIF se solicitan por API/MCP y se procesan en la cola database/studio, des
 
 ## MCP: herramientas de diseño y flujo de trabajo
 
-El servidor registra 57 herramientas en total (incluidas las sociales). `tools/list` devuelve 30 en la primera página y un `nextCursor`; envía ese valor como `params.cursor` para obtener la siguiente. Acumula todas las páginas hasta que `nextCursor` no exista. Las herramientas de diseño quedan repartidas entre páginas; `get_stats` sigue siendo la herramienta de métricas existente.
+El servidor registra 64 herramientas en total (incluidas las sociales). `tools/list` devuelve 30 en la primera página y un `nextCursor`; envía ese valor como `params.cursor` para obtener la siguiente. Acumula todas las páginas hasta que `nextCursor` no exista. Las herramientas de diseño quedan repartidas entre páginas; `get_stats` sigue siendo la herramienta de métricas existente.
 
 ```bash
 curl --fail "$BASE/mcp" \

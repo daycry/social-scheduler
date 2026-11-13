@@ -60,7 +60,7 @@ class ManageSite extends SchedulerTool
         }
 
         /** @var Site $site */
-        $site = $this->owned(Site::class, $user, $request->get('site_id'), 'Sitio');
+        $site = $this->owned(Site::class, $user, $request->get('site_id'), 'Sitio', masculine: true);
         if ($action === 'publish') {
             $site = $sites->publish($user, $site);
         } elseif ($action === 'unpublish') {

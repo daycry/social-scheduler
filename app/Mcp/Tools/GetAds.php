@@ -6,6 +6,7 @@ use App\Mcp\Abilities;
 use App\Models\User;
 use App\Services\AdsService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use InvalidArgumentException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
@@ -42,6 +43,14 @@ class GetAds extends SchedulerTool
             'days' => ['nullable', 'integer', 'in:'.implode(',', AdsService::PERIODS)],
         ]);
 
-        return app(AdsService::class)->overview($user, $this->brandFrom($request, $user), $data['ad_account'] ?? null, (int) ($data['days'] ?? 30));
+        $overview = app(AdsService::class)->overview($user, $this->brandFrom($request, $user), $data['ad_account'] ?? null, (int) ($data['days'] ?? 30));
+        $asked = $data['ad_account'] ?? null;
+
+        // Una cuenta que Meta no devolvio para esta conexion no se sustituye en silencio por la primera: se dice cuales hay.
+        if ($asked !== null && $overview['available'] && $overview['ad_accounts'] !== [] && ($overview['selected']['id'] ?? null) !== $asked) {
+            throw new InvalidArgumentException("La cuenta publicitaria {$asked} no es una de las de esta conexion de Meta: usa una de ".implode(', ', array_column($overview['ad_accounts'], 'id')).'.');
+        }
+
+        return $overview;
     }
 }

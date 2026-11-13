@@ -46,7 +46,12 @@ Dos tipos de contenido nuevos en Páginas de Facebook: `facebook_photos` (varias
 
 Las historias no llevan texto ni primer comentario (el tipo no tiene entrada `first_comment`, así que se rechaza); el texto común de la publicación se ignora, igual que en Instagram.
 
-Recuperación e idempotencia (`FacebookPublisher::findPublished`): las fotos subidas se guardan en `progress.photos` (por id de media) y un reintento no las vuelve a subir; la publicación de varias fotos se reconoce por texto y hora como el resto de tipos (sin texto no se puede reconocer: limitación conocida); una historia de vídeo se resuelve por el ID del vídeo; una historia de foto se busca por el ID de la foto en `GET /{page-id}/stories` (**lectura sin verificar**; si Meta la rechaza se trata como no publicada).
+Recuperación e idempotencia (`FacebookPublisher::findPublished`):
+
+- Las fotos subidas se guardan en `progress.photos` con su hora (`{media: {id, at}}`) y un reintento no las vuelve a subir. Meta borra las fotos sin publicar a las ~24 h: pasadas **23 h** (o sin hora guardada) se descartan y se vuelven a subir, nunca se manda a `/feed` un ID caducado.
+- Álbum: se reconoce por texto y hora y, **sin texto**, por las fotos subidas dentro de los `attachments` de `GET /{page-id}/posts` (campo `subattachments{target{id}}`, **sin verificar**). Si hay fotos subidas y la consulta falla, el resultado es **inconcluso** (transitorio, se reintenta sin publicar otra vez); una consulta correcta sin coincidencia es «no publicado».
+- Historia de vídeo: se resuelve por el ID del vídeo.
+- Historia de foto: se busca por el ID de la foto en `GET /{page-id}/stories` (**lectura sin verificar**). Si la consulta falla o la respuesta no trae `data[].media_id` y `post_id`, es **inconcluso** (no «no publicada») para no duplicar la historia; una lista bien formada sin la foto es «no publicada». Esta ruta la resuelve el smoke M-04: si Meta no admite esa lectura, una historia con un primer intento ambiguo se queda reintentando hasta agotar los intentos y hay que revisarla a mano.
 
 Limitaciones: la cuenta debe estar en modo desarrollo con roles propios mientras no pase App Review; ⚠️ verificar publicación real de reel, story y FB texto (M-01).
 

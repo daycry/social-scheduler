@@ -36,9 +36,9 @@ test('un diseño editado entre dos paginas no desaparece ni se repite: se ordena
     expect($seen)->toBe(array_reverse($ids))->and($third['has_more'])->toBeFalse();
 });
 
-test('todo el codigo fuente (app, routes y config) y los tests de la API estan en UTF-8 valido', function () {
+test('todo el codigo fuente (app, routes y config) y todos los tests estan en UTF-8 valido', function () {
     $bad = [];
-    foreach (['app', 'routes', 'config', 'tests/Feature/Api'] as $dir) {
+    foreach (['app', 'routes', 'config', 'tests'] as $dir) {
         $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(base_path($dir), FilesystemIterator::SKIP_DOTS));
         foreach ($it as $file) {
             if ($file->isFile() && $file->getExtension() === 'php' && ! mb_check_encoding((string) file_get_contents($file->getPathname()), 'UTF-8')) {

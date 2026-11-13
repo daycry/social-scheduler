@@ -42,7 +42,7 @@ class ManageSmartLink extends SchedulerTool
             'avatar_media_id' => $schema->integer()->description('save: id de una imagen propia de list_media'),
             'theme_color' => $schema->string()->description('save: color #rrggbb'),
             'theme_mode' => $schema->string()->enum(['light', 'dark']),
-            'published' => $schema->boolean()->description('save: visible al publico (por defecto true)'),
+            'published' => $schema->boolean()->description('save: visible al publico. Sin indicarlo, un SmartLink nuevo queda sin publicar y uno existente conserva su estado'),
             'blocks' => $schema->array()->items($schema->object([
                 'id' => $schema->integer()->description('Id del bloque existente (conserva sus clics)'),
                 'type' => $schema->string()->enum(SmartLinkBlock::TYPES)->required(),

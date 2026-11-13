@@ -1,6 +1,7 @@
 <?php
 
 use App\Connectors\Network;
+use App\Mcp\Abilities;
 use App\Models\Autolist;
 use App\Models\Brand;
 use App\Models\Competitor;
@@ -189,12 +190,15 @@ test('manage_competitor: alta por Bluesky y baja; otro usuario, otra marca, abil
     config(['social.bluesky.enabled' => true]);
     Http::fake(['*/xrpc/app.bsky.actor.getProfile*' => Http::response(['did' => 'did:plc:rival1234567890abcdefgh', 'handle' => 'rival.bsky.social', 'displayName' => 'El Rival', 'followersCount' => 1500, 'followsCount' => 20, 'postsCount' => 320])]);
     $reader = $this->mcpKey($this->user, ['stats:read']);
+    $poster = $this->mcpKey($this->user, ['posts:write']);
 
     [$err, $added] = $this->callTool($this->key, 'manage_competitor', ['action' => 'add', 'brand_id' => $this->brand->id, 'network' => 'bluesky', 'username' => '@Rival.Bsky.Social']);
     expect($err)->toBeFalse()->and($added)->toMatchArray(['network' => 'bluesky', 'username' => 'rival.bsky.social', 'brand_id' => $this->brand->id]);
 
     [$err, $msg] = $this->callTool($reader, 'manage_competitor', ['action' => 'add', 'brand_id' => $this->brand->id, 'network' => 'bluesky', 'username' => 'otro.bsky.social']);
-    expect($err)->toBeTrue()->and($msg)->toContain('posts:write');
+    expect($err)->toBeTrue()->and($msg)->toContain('competitors:write');
+    [$err, $msg] = $this->callTool($poster, 'manage_competitor', ['action' => 'add', 'brand_id' => $this->brand->id, 'network' => 'bluesky', 'username' => 'otro.bsky.social']);
+    expect($err)->toBeTrue()->and($msg)->toContain('competitors:write');
     [$err, $msg] = $this->callTool($this->key, 'manage_competitor', ['action' => 'add', 'brand_id' => $this->foreignBrand->id, 'network' => 'bluesky', 'username' => 'otro.bsky.social']);
     expect($err)->toBeTrue()->and($msg)->toContain('Marca no encontrada');
     [$err] = $this->callTool($this->key, 'manage_competitor', ['action' => 'add', 'brand_id' => $this->brand->id, 'network' => 'tiktok', 'username' => 'x']);
@@ -204,9 +208,13 @@ test('manage_competitor: alta por Bluesky y baja; otro usuario, otra marca, abil
     [$err] = $this->callTool($this->key, 'manage_competitor', ['action' => 'add', 'brand_id' => $this->brand->id, 'network' => 'bluesky', 'username' => 'sin punto']);
     expect($err)->toBeTrue()->and(Competitor::withoutUserScope()->count())->toBe(1);
 
-    [$err, $msg] = $this->callTool($this->otherKey, 'manage_competitor', ['action' => 'remove', 'competitor_id' => $added['id']]);
-    expect($err)->toBeTrue()->and($msg)->toContain('Cuenta de competidor no encontrada')->and(Competitor::withoutUserScope()->count())->toBe(1);
-    [$err, $removed] = $this->callTool($this->key, 'manage_competitor', ['action' => 'remove', 'competitor_id' => $added['id']]);
+    [$err, $msg] = $this->callTool($this->otherKey, 'manage_competitor', ['action' => 'remove', 'competitor_id' => $added['id'], 'confirm' => true]);
+    expect($err)->toBeTrue()->and($msg)->toContain('Competidor no encontrado')->and(Competitor::withoutUserScope()->count())->toBe(1);
+    [$err, $msg] = $this->callTool($this->key, 'manage_competitor', ['action' => 'remove', 'competitor_id' => $added['id']]);
+    expect($err)->toBeTrue()->and($msg)->toContain('confirm')->and(Competitor::withoutUserScope()->count())->toBe(1);
+    [$err] = $this->callTool($this->key, 'manage_competitor', ['action' => 'remove', 'competitor_id' => $added['id'], 'confirm' => false]);
+    expect($err)->toBeTrue()->and(Competitor::withoutUserScope()->count())->toBe(1);
+    [$err, $removed] = $this->callTool($this->key, 'manage_competitor', ['action' => 'remove', 'competitor_id' => $added['id'], 'confirm' => true]);
     expect($err)->toBeFalse()->and($removed['removed'])->toBeTrue()->and(Competitor::withoutUserScope()->count())->toBe(0);
 });
 
@@ -226,7 +234,7 @@ test('triage_comments: hide y unhide llaman a Meta y guardan el estado; ajeno, a
     expect($err)->toBeFalse()->and($res['hidden'])->toBeFalse()->and($comment->fresh()->hidden)->toBeFalse();
 
     [$err, $msg] = $this->callTool($this->otherKey, 'triage_comments', ['action' => 'hide', 'comment_id' => $comment->id]);
-    expect($err)->toBeTrue()->and($msg)->toContain('Comentario no encontrada');
+    expect($err)->toBeTrue()->and($msg)->toContain('Comentario no encontrado');
     [$err, $msg] = $this->callTool($this->mcpKey($this->user, ['inbox:read']), 'triage_comments', ['action' => 'hide', 'comment_id' => $comment->id]);
     expect($err)->toBeTrue()->and($msg)->toContain('inbox:write');
 
@@ -265,7 +273,7 @@ test('manage_saved_texts: otro usuario, otra marca, ability ausente y validacion
     $reader = $this->mcpKey($this->user, ['posts:read']);
 
     [$err, $msg] = $this->callTool($this->otherKey, 'manage_saved_texts', ['action' => 'delete', 'saved_text_id' => $a['id']]);
-    expect($err)->toBeTrue()->and($msg)->toContain('Entrada de texto guardado no encontrada')->and(SavedText::withoutUserScope()->count())->toBe(1);
+    expect($err)->toBeTrue()->and($msg)->toContain('Texto guardado no encontrado')->and(SavedText::withoutUserScope()->count())->toBe(1);
     [$err] = $this->callTool($this->otherKey, 'manage_saved_texts', ['action' => 'update', 'saved_text_id' => $a['id'], 'kind' => 'fragmento', 'title' => 'Robado', 'body' => 'x']);
     expect($err)->toBeTrue()->and(SavedText::withoutUserScope()->find($a['id'])->title)->toBe('Mio');
     [$err, $msg] = $this->callTool($this->key, 'manage_saved_texts', ['action' => 'create', 'kind' => 'fragmento', 'title' => 'T', 'body' => 'x', 'brand_id' => $this->foreignBrand->id]);
@@ -327,7 +335,11 @@ test('manage_trash: listar con cursor, restaurar y eliminar para siempre', funct
 
     [$err, $restored] = $this->callTool($this->key, 'manage_trash', ['action' => 'restore', 'post_id' => $a->id]);
     expect($err)->toBeFalse()->and($restored['restored'])->toBeTrue()->and($restored['id'])->toBe($a->id)->and(Post::withoutUserScope()->find($a->id)->trashed())->toBeFalse();
-    [$err, $gone] = $this->callTool($this->key, 'manage_trash', ['action' => 'delete_forever', 'post_id' => $b->id]);
+    [$err, $msg] = $this->callTool($this->key, 'manage_trash', ['action' => 'delete_forever', 'post_id' => $b->id]);
+    expect($err)->toBeTrue()->and($msg)->toContain('confirm')->and(Post::withoutUserScope()->withTrashed()->find($b->id))->not->toBeNull();
+    [$err] = $this->callTool($this->key, 'manage_trash', ['action' => 'delete_forever', 'post_id' => $b->id, 'confirm' => 'si']);
+    expect($err)->toBeTrue()->and(Post::withoutUserScope()->withTrashed()->find($b->id))->not->toBeNull();
+    [$err, $gone] = $this->callTool($this->key, 'manage_trash', ['action' => 'delete_forever', 'post_id' => $b->id, 'confirm' => true]);
     expect($err)->toBeFalse()->and($gone['deleted'])->toBeTrue()->and(Post::withoutUserScope()->withTrashed()->find($b->id))->toBeNull();
 
     [$err, $msg] = $this->callTool($this->key, 'manage_trash', ['action' => 'restore', 'post_id' => $a->id]);
@@ -341,8 +353,8 @@ test('manage_trash: otro usuario, ability ausente y validacion', function () {
 
     [, $otherList] = $this->callTool($this->otherKey, 'manage_trash', ['action' => 'list']);
     expect($otherList['posts'])->toBe([]);
-    [$err, $msg] = $this->callTool($this->otherKey, 'manage_trash', ['action' => 'delete_forever', 'post_id' => $post->id]);
-    [$errMissing, $msgMissing] = $this->callTool($this->otherKey, 'manage_trash', ['action' => 'delete_forever', 'post_id' => 999999]);
+    [$err, $msg] = $this->callTool($this->otherKey, 'manage_trash', ['action' => 'delete_forever', 'post_id' => $post->id, 'confirm' => true]);
+    [$errMissing, $msgMissing] = $this->callTool($this->otherKey, 'manage_trash', ['action' => 'delete_forever', 'post_id' => 999999, 'confirm' => true]);
     expect($err)->toBeTrue()->and($errMissing)->toBeTrue()->and($msg)->toBe($msgMissing)->and(Post::withoutUserScope()->onlyTrashed()->count())->toBe(1);
 
     [$err, $msg] = $this->callTool($reader, 'manage_trash', ['action' => 'restore', 'post_id' => $post->id]);
@@ -370,4 +382,86 @@ test('tools/list incluye las herramientas nuevas y pagina el catalogo completo',
 
     expect($names)->toHaveCount(64)->and($names->unique())->toHaveCount(64)
         ->toContain('manage_smartlink', 'get_ads', 'manage_autolist', 'manage_competitor', 'manage_saved_texts', 'get_composer_presets', 'manage_trash', 'triage_comments');
+});
+
+// ------------------------------------------------------------------------------------------------- revision 1 (T-30)
+
+/** Catalogo completo de herramientas por nombre (acumula todas las paginas de tools/list). */
+function mcpCatalog()
+{
+    $tools = collect();
+    $cursor = null;
+    do {
+        $r = test()->rpc(test()->key, 'tools/list', $cursor === null ? [] : ['cursor' => $cursor]);
+        $tools = $tools->merge(collect($r->json('result.tools'))->keyBy('name'));
+        $cursor = $r->json('result.nextCursor');
+    } while ($cursor !== null);
+
+    return $tools;
+}
+
+test('manage_smartlink: la descripcion de published dice lo que hace (sin publicar por defecto; uno existente conserva su estado)', function () {
+    $tool = mcpCatalog()->get('manage_smartlink');
+    $description = $tool['inputSchema']['properties']['published']['description'] ?? '';
+
+    expect($description)->not->toContain('por defecto true')->and($description)->toContain('sin publicar')->and($description)->toContain('conserva');
+
+    $writer = $this->mcpKey($this->user, ['smartlinks:write']);
+    [, $created] = $this->callTool($writer, 'manage_smartlink', ['action' => 'save', 'brand_id' => $this->brand->id, 'slug' => 'sin-publicar', 'title' => 'T']);
+    expect($created['published'])->toBeFalse();
+});
+
+test('manage_trash: delete_forever es irreversible y la descripcion lo avisa; sin confirm no borra', function () {
+    $names = mcpCatalog();
+    $tool = $names->get('manage_trash');
+
+    expect($tool['description'])->toContain('IRREVERSIBLE')->and($tool['description'])->toContain('confirm')->and($tool['description'])->toContain('humana')
+        ->and($names->get('manage_competitor')['description'])->toContain('confirm')->and($names->get('manage_competitor')['description'])->toContain('competitors:write');
+});
+
+test('competitors:write es una ability propia: esta en el preset all y no en publish ni read, y posts:write no basta', function () {
+    expect(Abilities::keys())->toContain('competitors:write')
+        ->and(Abilities::presets()['all']['abilities'])->toContain('competitors:write')
+        ->and(Abilities::presets()['publish']['abilities'])->not->toContain('competitors:write')
+        ->and(Abilities::presets()['read']['abilities'])->not->toContain('competitors:write')
+        ->and(Abilities::all())->toHaveKey('competitors:write');
+    $own = $this->mcpKey($this->user, ['competitors:write']);
+
+    [$err, $msg] = $this->callTool($own, 'manage_competitor', ['action' => 'remove', 'competitor_id' => 999999, 'confirm' => true]);
+
+    expect($err)->toBeTrue()->and($msg)->toContain('Competidor no encontrado');
+});
+
+test('triage_comments hide: una red sin moderacion por esta via (Bluesky) se rechaza con su mensaje y no llama a nadie', function () {
+    $writer = $this->mcpKey($this->user, ['inbox:write']);
+    $account = SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::Bluesky, 'scopes' => []]);
+    $comment = InboxComment::factory()->create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'social_account_id' => $account->id, 'network' => Network::Bluesky, 'external_id' => 'at://x/1']);
+
+    [$err, $msg] = $this->callTool($writer, 'triage_comments', ['action' => 'hide', 'comment_id' => $comment->id]);
+
+    expect($err)->toBeTrue()->and($msg)->toContain('solo está disponible en Instagram y Facebook')->and($comment->fresh()->hidden)->toBeFalse();
+    Http::assertNothingSent();
+});
+
+test('get_ads: una ad_account que Meta no devolvio para esta conexion da un error claro en vez de usar la primera', function () {
+    SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::Facebook, 'access_token' => 'PAGE', 'refresh_token' => 'USER-TOKEN', 'scopes' => ['pages_show_list', 'ads_read']]);
+    $graph = new FakeGraph;
+    mcpAdsFake($graph);
+
+    [$err, $msg] = $this->callTool($this->mcpKey($this->user, ['stats:read']), 'get_ads', ['brand_id' => $this->brand->id, 'ad_account' => 'act_999']);
+    expect($err)->toBeTrue()->and($msg)->toContain('act_999')->and($msg)->toContain('act_111');
+
+    [$err, $res] = $this->callTool($this->mcpKey($this->user, ['stats:read']), 'get_ads', ['brand_id' => $this->brand->id, 'ad_account' => 'act_111']);
+    expect($err)->toBeFalse()->and($res['selected']['id'])->toBe('act_111');
+});
+
+test('los mensajes de recurso no encontrado concuerdan en genero (Marca, Comentario, Informe, Sitio, Diseno)', function () {
+    [, $m1] = $this->callTool($this->key, 'get_report', ['report_id' => 999999]);
+    [, $m2] = $this->callTool($this->key, 'manage_site', ['action' => 'get_url', 'site_id' => 999999]);
+    [, $m3] = $this->callTool($this->key, 'reply_comment', ['comment_id' => 999999, 'text' => 'x']);
+    [, $m4] = $this->callTool($this->key, 'manage_design', ['action' => 'archive', 'brand_id' => $this->brand->id, 'design_id' => 999999]);
+    [, $m5] = $this->callTool($this->key, 'manage_autolist', ['action' => 'delete', 'autolist_id' => 999999]);
+
+    expect($m1)->toBe('Informe no encontrado.')->and($m2)->toBe('Sitio no encontrado.')->and($m3)->toBe('Comentario no encontrado.')->and($m5)->toBe('Autolista no encontrada.')
+        ->and($m4)->toContain('no encontrad');
 });

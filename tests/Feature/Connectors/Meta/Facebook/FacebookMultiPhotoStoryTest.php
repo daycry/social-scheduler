@@ -3,6 +3,7 @@
 use App\Connectors\Data\PublishMedia;
 use App\Connectors\Data\PublishRequest;
 use App\Connectors\Exceptions\PermanentPublishException;
+use App\Connectors\Exceptions\TransientPublishException;
 use App\Connectors\Meta\Facebook\FacebookPublisher;
 use App\Connectors\Network;
 use App\Enums\ContentType;
@@ -77,7 +78,7 @@ test('varias fotos: guarda cada foto subida y, al reintentar, reutiliza las ya s
         $saved = $progress;
     });
     expect(fn () => $this->fb->publish($this->account, $request))->toThrow(Exception::class);
-    expect($saved)->toBe(['photos' => ['1' => 'ph1']])->and($this->graph->callsTo('POST', '#/feed$#'))->toBeEmpty();
+    expect($saved)->toBe(['photos' => ['1' => ['id' => 'ph1', 'at' => now()->timestamp]]])->and($this->graph->callsTo('POST', '#/feed$#'))->toBeEmpty();
 
     // Segundo intento con el progreso guardado: solo falta la foto 2.
     $r = $this->fb->publish($this->account, mpRequest(ContentType::FacebookPhotos, [mpImage(1), mpImage(2)], progress: $saved));
@@ -85,6 +86,80 @@ test('varias fotos: guarda cada foto subida y, al reintentar, reutiliza las ya s
     expect($r->isPublished())->toBeTrue()->and($this->graph->callsTo('POST', '#/photos$#'))->toHaveCount(3)
         ->and($this->graph->callsTo('POST', '#/photos$#')[2]['params']['url'])->toBe('https://cdn.test/2.jpg')
         ->and(json_decode($this->graph->callsTo('POST', '#/feed$#')[0]['params']['attached_media[0]'], true))->toBe(['media_fbid' => 'ph1']);
+});
+
+function mpPhotos(array $ids, int $ageSeconds = 60): array
+{
+    return ['photos' => array_map(fn ($id) => ['id' => $id, 'at' => now()->timestamp - $ageSeconds], $ids)];
+}
+
+test('varias fotos: las fotos subidas hace mas de 23 h caducaron en Meta y se vuelven a subir (nunca se mandan a /feed)', function () {
+    $this->graph->on('POST', '#^'.MP_PAGE.'/photos$#', FakeGraph::seq(['id' => 'nueva1'], ['id' => 'nueva2']));
+    $this->graph->on('POST', '#^'.MP_PAGE.'/feed$#', ['id' => MP_PAGE.'_902']);
+    $saved = null;
+
+    $r = $this->fb->publish($this->account, mpRequest(ContentType::FacebookPhotos, [mpImage(1), mpImage(2)], progress: mpPhotos(['1' => 'vieja1', '2' => 'vieja2'], 24 * 3600), checkpoint: function ($ref, $progress) use (&$saved) {
+        $saved = $progress;
+    }));
+
+    expect($r->isPublished())->toBeTrue()->and($this->graph->callsTo('POST', '#/photos$#'))->toHaveCount(2);
+    $feed = $this->graph->callsTo('POST', '#/feed$#')[0]['params'];
+    expect(json_decode($feed['attached_media[0]'], true))->toBe(['media_fbid' => 'nueva1'])->and($feed)->not->toContain(json_encode(['media_fbid' => 'vieja1']))
+        ->and($saved['photos']['2']['id'])->toBe('nueva2');
+});
+
+test('varias fotos: una foto subida hace poco se reutiliza y una sin hora guardada se trata como caducada', function () {
+    $this->graph->on('POST', '#^'.MP_PAGE.'/photos$#', ['id' => 'nueva']);
+    $this->graph->on('POST', '#^'.MP_PAGE.'/feed$#', ['id' => MP_PAGE.'_903']);
+
+    $this->fb->publish($this->account, mpRequest(ContentType::FacebookPhotos, [mpImage(1), mpImage(2)], progress: mpPhotos(['1' => 'reciente'], 22 * 3600)));
+    expect($this->graph->callsTo('POST', '#/photos$#'))->toHaveCount(1);
+
+    $this->fb->publish($this->account, mpRequest(ContentType::FacebookPhotos, [mpImage(1), mpImage(2)], progress: ['photos' => ['1' => 'sin_hora', '2' => 'sin_hora2']]));
+    expect($this->graph->callsTo('POST', '#/photos$#'))->toHaveCount(3);
+});
+
+function mpFeedWith(array $photoIds, string $postId = MP_PAGE.'_77'): array
+{
+    return ['id' => $postId, 'created_time' => '2026-11-01T12:01:00+0000', 'attachments' => ['data' => [['subattachments' => ['data' => array_map(fn ($id) => ['target' => ['id' => $id]], $photoIds)]]]]];
+}
+
+test('album sin texto: se reconoce por las fotos subidas en los adjuntos de /posts; sin coincidencia, null; si la consulta falla, inconcluso', function () {
+    $this->graph->on('GET', '#^'.MP_PAGE.'/posts$#', ['data' => [mpFeedWith(['x1', 'x2'], MP_PAGE.'_1'), mpFeedWith(['ph1', 'ph2', 'otra'], MP_PAGE.'_2')]]);
+
+    $found = $this->fb->findPublished($this->account, mpRequest(ContentType::FacebookPhotos, [mpImage(1), mpImage(2)], text: '', progress: mpPhotos(['1' => 'ph1', '2' => 'ph2'])));
+    expect($found?->isPublished())->toBeTrue()->and($found->externalId)->toBe(MP_PAGE.'_2');
+    expect($this->graph->callsTo('GET', '#/posts$#')[0]['params']['fields'])->toContain('attachments');
+
+    $none = $this->fb->findPublished($this->account, mpRequest(ContentType::FacebookPhotos, [mpImage(1), mpImage(2)], text: '', progress: mpPhotos(['1' => 'zz1', '2' => 'zz2'])));
+    expect($none)->toBeNull();
+});
+
+test('album sin texto: si la consulta de /posts falla no se devuelve null (se reintentaria y duplicaria): es inconcluso', function () {
+    $this->graph->on('GET', '#^'.MP_PAGE.'/posts$#', FakeGraph::error(2, 'Unavailable', null, 503));
+
+    expect(fn () => $this->fb->findPublished($this->account, mpRequest(ContentType::FacebookPhotos, [mpImage(1), mpImage(2)], text: '', progress: mpPhotos(['1' => 'ph1', '2' => 'ph2']))))
+        ->toThrow(TransientPublishException::class);
+});
+
+test('album sin texto y sin fotos subidas: nada pudo publicarse, null sin consultar', function () {
+    expect($this->fb->findPublished($this->account, mpRequest(ContentType::FacebookPhotos, [mpImage(1), mpImage(2)], text: '')))->toBeNull()
+        ->and($this->graph->calls)->toBeEmpty();
+});
+
+test('album: con fotos caducadas no se reconcilia por ellas (null sin consultar si tampoco hay texto)', function () {
+    expect($this->fb->findPublished($this->account, mpRequest(ContentType::FacebookPhotos, [mpImage(1), mpImage(2)], text: '', progress: mpPhotos(['1' => 'ph1', '2' => 'ph2'], 25 * 3600))))->toBeNull()
+        ->and($this->graph->calls)->toBeEmpty();
+});
+
+test('historia de foto: si /stories falla o no trae los campos esperados es inconcluso, no «no publicada»; una lista bien formada sin la foto, null', function () {
+    $progress = mpPhotos(['7' => 'ph7']);
+    $this->graph->on('GET', '#^'.MP_PAGE.'/stories$#', FakeGraph::seq(FakeGraph::error(100, 'Unsupported get request', null, 400), ['data' => [['id' => 'raro']]], ['paging' => []], ['data' => [['post_id' => 's1', 'media_id' => 'otra']]]));
+
+    expect(fn () => $this->fb->findPublished($this->account, mpRequest(ContentType::FacebookStory, [mpImage(7)], progress: $progress)))->toThrow(TransientPublishException::class);
+    expect(fn () => $this->fb->findPublished($this->account, mpRequest(ContentType::FacebookStory, [mpImage(7)], progress: $progress)))->toThrow(TransientPublishException::class, 'M-04');
+    expect(fn () => $this->fb->findPublished($this->account, mpRequest(ContentType::FacebookStory, [mpImage(7)], progress: $progress)))->toThrow(TransientPublishException::class);
+    expect($this->fb->findPublished($this->account, mpRequest(ContentType::FacebookStory, [mpImage(7)], progress: $progress)))->toBeNull();
 });
 
 test('varias fotos: una sola imagen o un video se rechazan antes de llamar a Meta', function () {
@@ -124,8 +199,8 @@ test('historia de foto: sin post_id usa el id de la foto si Meta responde succes
 test('historia de foto: findPublished la reconoce por el id de la foto subida en /stories; sin coincidencia o sin foto, null', function () {
     $this->graph->on('GET', '#^'.MP_PAGE.'/stories$#', ['data' => [['post_id' => 'st_1', 'media_id' => 'otra'], ['post_id' => 'st_2', 'media_id' => 'ph7', 'url' => 'https://www.facebook.com/stories/2']]]);
 
-    $found = $this->fb->findPublished($this->account, mpRequest(ContentType::FacebookStory, [mpImage(7)], progress: ['photos' => ['7' => 'ph7']]));
-    $other = $this->fb->findPublished($this->account, mpRequest(ContentType::FacebookStory, [mpImage(7)], progress: ['photos' => ['7' => 'ph8']]));
+    $found = $this->fb->findPublished($this->account, mpRequest(ContentType::FacebookStory, [mpImage(7)], progress: mpPhotos(['7' => 'ph7'])));
+    $other = $this->fb->findPublished($this->account, mpRequest(ContentType::FacebookStory, [mpImage(7)], progress: mpPhotos(['7' => 'ph8'])));
     $none = $this->fb->findPublished($this->account, mpRequest(ContentType::FacebookStory, [mpImage(7)]));
 
     expect($found?->externalId)->toBe('st_2')->and($found->url)->toBe('https://www.facebook.com/stories/2')->and($other)->toBeNull()->and($none)->toBeNull();

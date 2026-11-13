@@ -121,7 +121,7 @@ abstract class SchedulerTool extends Tool
      *
      * @param  class-string<Model>  $model
      */
-    protected function owned(string $model, User $user, mixed $id, string $label): Model
+    protected function owned(string $model, User $user, mixed $id, string $label, bool $masculine = false): Model
     {
         $id = is_numeric($id) ? (int) $id : null;
         $found = $id === null ? null : $model::withoutUserScope()->where('user_id', $user->id)->find($id);
@@ -132,7 +132,7 @@ abstract class SchedulerTool extends Tool
 
         $crossUser = $id !== null && $model::withoutUserScope()->whereKey($id)->exists();
 
-        throw new NotOwned("$label no encontrada.", strtolower(class_basename($model)), $id, $crossUser);
+        throw new NotOwned($label.($masculine ? ' no encontrado.' : ' no encontrada.'), strtolower(class_basename($model)), $id, $crossUser);
     }
 
     /**

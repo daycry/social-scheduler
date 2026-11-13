@@ -26,7 +26,7 @@ class AutolistController extends Controller
     public function index(Request $request): Response
     {
         $brand = CurrentBrand::resolve($request);
-        $lists = $brand ? Autolist::query()->where('brand_id', $brand->id)->with('items.template:id,name,text')->orderBy('name')->get() : collect();
+        $lists = $brand ? $this->autolists->query($request->user(), $brand->id)->get() : collect();
         $accounts = $brand
             ? SocialAccount::query()->where('brand_id', $brand->id)->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)->orderBy('network')->orderBy('name')->get()
             : collect();

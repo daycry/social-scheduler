@@ -64,7 +64,7 @@ class ManageSavedTexts extends SchedulerTool
         }
 
         /** @var SavedText $text */
-        $text = $this->owned(SavedText::class, $user, $request->get('saved_text_id'), 'Entrada de texto guardado');
+        $text = $this->owned(SavedText::class, $user, $request->get('saved_text_id'), 'Texto guardado', masculine: true);
 
         if ($action === 'delete') {
             $texts->delete($text);

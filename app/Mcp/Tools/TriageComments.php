@@ -55,7 +55,7 @@ class TriageComments extends SchedulerTool
         }
 
         /** @var InboxComment $comment */
-        $comment = $this->owned(InboxComment::class, $user, $data['comment_id'] ?? 0, 'Comentario');
+        $comment = $this->owned(InboxComment::class, $user, $data['comment_id'] ?? 0, 'Comentario', masculine: true);
 
         match ($data['action']) {
             'label' => $inbox->addLabel($user, $comment, (string) ($data['label'] ?? '')),

@@ -99,12 +99,13 @@ Nginx/Hestia debe pasar la cabecera `Authorization` a PHP-FPM y dejar llegar `/.
 |---|---|
 | `brands:read` | marcas, cuentas conectadas y media |
 | `posts:read` | publicaciones, estado y calendario; aprobaciones pendientes, series y colaboradores (lectura); autolistas, textos guardados, presets y papelera (lectura) |
-| `posts:write` | crear, programar, editar, cancelar y borrar; pedir aprobación, reintentar, publicación manual, lotes, series y colaboradores de marca; autolistas, altas y bajas de competidores, textos guardados y papelera (restaurar y eliminar para siempre) |
+| `posts:write` | crear, programar, editar, cancelar y borrar; pedir aprobación, reintentar, publicación manual, lotes, series y colaboradores de marca; autolistas, textos guardados y papelera (restaurar y eliminar para siempre, que pide `confirm: true`) |
 | `posts:approve` | aprobar y rechazar publicaciones pendientes (`approve_post`, `reject_post` y las acciones `approve`/`reject` de `batch_posts`) e invitar o retirar aprobadores de marca (`manage_brand_collaborators` invite/revoke y `POST/DELETE /brands/{brand}/collaborators`). `posts:write` no basta |
 | `stats:read` | estadísticas de marcas, redes y publicaciones; `compare_competitors`; `get_ads` (Meta Ads, solo lectura) |
 | `reports:write` | generar y descargar informes |
 | `inbox:read` / `inbox:write` | leer comentarios (Instagram, Facebook, Threads, YouTube y Bluesky) / responder, anotar y ordenar el buzón (`triage_comments`, incluido ocultar y mostrar comentarios en Instagram y Facebook) |
 | `designs:read` / `designs:write` | consultar diseños, kits, carpetas y trabajos / crear, modificar, registrar recursos, tipografías, audio, colaboración y exportar |
+| `competitors:write` | dar de alta y de baja competidores (`manage_competitor`); la baja borra su histórico y pide `confirm: true`. `posts:write` no basta y no entra en el conjunto «Publicar» |
 | `sites:read` / `sites:write` | leer los sitios publicados de las marcas y su URL / publicarlos y despublicarlos (`manage_site`) |
 | `smartlinks:read` / `smartlinks:write` | leer el SmartLink de las marcas y sus estadísticas / crearlo, editarlo y publicarlo (`manage_smartlink` en el MCP y los endpoints de la API v1) |
 | `canva:read` / `canva:write` | estado de Canva, diseños de Canva y trabajos / exportar a la biblioteca y enviar recursos a Canva (`manage_canva`) |
@@ -120,7 +121,7 @@ La pantalla **API keys** y el consentimiento OAuth ofrecen tres conjuntos (`Abil
 |---|---|
 | Solo lectura (`read`) | todas las que acaban en `:read`: `brands:read`, `posts:read`, `stats:read`, `designs:read`, `inbox:read`, `sites:read`, `smartlinks:read`, `canva:read` |
 | Publicar (`publish`) | las de lectura más `posts:write` y `reports:write` |
-| Todo (`all`) | las diecisiete abilities, incluidas `posts:approve`, `designs:write`, `inbox:write`, `sites:write`, `smartlinks:write`, `canva:write` y `studio:ai` |
+| Todo (`all`) | las dieciocho abilities, incluidas `posts:approve`, `competitors:write`, `designs:write`, `inbox:write`, `sites:write`, `smartlinks:write`, `canva:write` y `studio:ai` |
 
 «Publicar» no incluye `posts:approve`, `designs:write`, `smartlinks:write` ni `studio:ai`: una key que apruebe, diseñe o consuma cuota de IA debe pedirlos de forma explícita.
 
@@ -145,13 +146,13 @@ La pantalla **API keys** y el consentimiento OAuth ofrecen tres conjuntos (`Abil
 | `manage_smartlink` | `get`, `save` (crea o reemplaza el microsite; los bloques con `id` conservan sus clics), `stats` (`days` 1-365) | `smartlinks:read`; `save`, `smartlinks:write` | `SmartLinkService` (`rules`, `present`, `save`, `stats`) |
 | `get_ads` | solo lectura: cuentas publicitarias, campañas y métricas (`ad_account`, `days` 7/30/90); `available:false` con `reason` si falta Meta o `ads_read` | `stats:read` | `AdsService::overview` |
 | `manage_autolist` | `list`, `create`, `update` (`active`, `recycle`), `delete`, `add_item`, `remove_item`, `generate` | `posts:read` (`list`); el resto, `posts:write` | `AutolistService` |
-| `manage_competitor` | `add` (`username`, `network` instagram/bluesky/youtube), `remove` (`competitor_id`) | `posts:write` | `CompetitorService` |
+| `manage_competitor` | `add` (`username`, `network` instagram/bluesky/youtube), `remove` (`competitor_id` y `confirm: true`: borra el histórico, sin `confirm` no borra nada) | `competitors:write` | `CompetitorService` |
 | `triage_comments` | añade `hide` y `unhide` (sobre `comment_id`, solo Instagram y Facebook) | `inbox:write` | `InboxService::setHidden` |
 | `manage_saved_texts` | `list` (con `brand` filtra: todas las marcas más esa), `create`, `update`, `delete` | `posts:read` (`list`); el resto, `posts:write` | `SavedTextService` |
 | `get_composer_presets` | solo lectura: `{red: {interruptor: bool}}` de la marca | `posts:read` | `ComposerPresetService::forBrand` |
-| `manage_trash` | `list`, `restore`, `delete_forever` | `posts:read` (`list`); el resto, `posts:write` | `TrashService` |
+| `manage_trash` | `list`, `restore`, `delete_forever` (irreversible: exige `confirm: true` y confirmación humana, igual que `reply_comment`) | `posts:read` (`list`); el resto, `posts:write` | `TrashService` |
 
-No hay ability propia para competidores, autolistas, textos ni papelera: se usan las existentes (`posts:write` para cambiar). Los presets no se pueden escribir por MCP (decisión C-04: solo los recuerda el compositor). Pruebas: `tests/Feature/Mcp/McpNewToolsTest.php` (éxito, otro usuario, otra marca, ability ausente y validación de cada herramienta).
+Competidores tiene su ability (`competitors:write`); autolistas, textos y papelera usan las existentes (`posts:write` para cambiar). `get_ads` rechaza con un error una `ad_account` que Meta no devolvió para la conexión, en vez de usar la primera. Los presets no se pueden escribir por MCP (decisión C-04: solo los recuerda el compositor). Pruebas: `tests/Feature/Mcp/McpNewToolsTest.php` (éxito, otro usuario, otra marca, ability ausente y validación de cada herramienta).
 
 **Estudio por marca.** Se añaden `list_designs`, `get_design`, `create_design`, `update_design`, `manage_design`, `manage_design_folder`, `attach_design_asset`, `manage_brand_kit` y `export_design`. Comparten servicios y revisiones con web y API v1. `tools/list` pagina de 30 en 30 con `nextCursor`; continúa hasta agotarlo. El historial de exportaciones también está paginado, 50 por defecto. [Guía completa de API/MCP, permisos y render](../guias/estudio-api-mcp.md).
 

@@ -35,7 +35,7 @@ class GetReport extends SchedulerTool
     protected function run(Request $request, User $user): array
     {
         /** @var Report $report */
-        $report = $this->owned(Report::class, $user, $request->get('report_id'), 'Informe');
+        $report = $this->owned(Report::class, $user, $request->get('report_id'), 'Informe', masculine: true);
 
         return app(ReportService::class)->status($report, $this->brandNames($user)[$report->brand_id] ?? null);
     }

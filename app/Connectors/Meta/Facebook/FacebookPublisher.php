@@ -9,6 +9,7 @@ use App\Connectors\Data\PublishRequest;
 use App\Connectors\Data\PublishResult;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\PublishException;
+use App\Connectors\Exceptions\TransientPublishException;
 use App\Connectors\Meta\Comments;
 use App\Connectors\Meta\GraphClient;
 use App\Enums\ContentType;
@@ -31,11 +32,18 @@ use Illuminate\Support\Facades\Log;
  * Idempotencia: `findPublished` busca en las publicaciones/videos recientes de la Pagina una con el mismo
  * texto posterior a la hora programada; un video ya creado se resuelve por su ID (sin crear otro). Una historia de foto
  * no lleva texto: se reconoce por el ID de la foto subida (`progress.photos`) en `/{page}/stories` (lectura SIN VERIFICAR en la
- * documentacion; si Meta la rechaza se trata como «no publicada», como cualquier fallo de la consulta).
+ * documentacion): si la consulta falla o no trae los campos esperados el resultado es INCONCLUSO (transitorio, nunca «no publicada»)
+ * para no duplicar; lo resuelve el smoke M-04. Un album sin texto se reconoce por las fotos subidas en los `attachments` de `/posts`.
+ *
+ * Las fotos subidas con `published=false` caducan en Meta a las ~24 h: `progress.photos` guarda la hora de cada subida y a partir de
+ * 23 h se descartan y se vuelven a subir (nunca se manda a `/feed` un ID caducado).
  */
 class FacebookPublisher implements FirstCommenter, Publisher, StatusPoller
 {
     private const RECENT = 25;
+
+    /** Segundos que se confia en una foto subida sin publicar (Meta la borra a las ~24 h). */
+    private const PHOTO_TTL = 23 * 3600;
 
     public function __construct(private readonly GraphClient $graph = new GraphClient) {}
 
@@ -158,6 +166,10 @@ class FacebookPublisher implements FirstCommenter, Publisher, StatusPoller
             return $this->findStory($account, $request);
         }
 
+        if ($request->type === ContentType::FacebookPhotos) {
+            return $this->findAlbum($account, $request);
+        }
+
         $text = trim((string) $request->text);
 
         if ($text === '') {
@@ -189,14 +201,36 @@ class FacebookPublisher implements FirstCommenter, Publisher, StatusPoller
     }
 
     /**
-     * Sube cada imagen del destino SIN publicarla (`published=false`) y devuelve el ID de Facebook de cada una por media. Los IDs ya
-     * subidos (`progress.photos`, que Meta conserva ~24 h) se reutilizan y cada subida nueva se guarda en el acto (`checkpoint`).
+     * IDs de Facebook de las fotos ya subidas por este destino que siguen vigentes (media id => id), segun `progress.photos`
+     * (`{media id: {id, at}}`). Sin hora guardada, o con mas de 23 h, la foto se considera caducada.
+     *
+     * @return array<string, string>
+     */
+    private function freshPhotos(PublishRequest $request): array
+    {
+        $out = [];
+        foreach ((array) ($request->progress['photos'] ?? []) as $key => $photo) {
+            if (is_array($photo) && (string) ($photo['id'] ?? '') !== '' && isset($photo['at']) && now()->timestamp - (int) $photo['at'] <= self::PHOTO_TTL) {
+                $out[(string) $key] = (string) $photo['id'];
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Sube cada imagen del destino SIN publicarla (`published=false`) y devuelve el ID de Facebook de cada una por media. Las ya
+     * subidas y vigentes (`freshPhotos`) se reutilizan; cada subida nueva se guarda en el acto con su hora (`checkpoint`).
      *
      * @return array<string, string> media id => id de la foto en Facebook, en orden de publicacion
      */
     private function uploadPhotos(SocialAccount $account, PublishRequest $request): array
     {
-        $done = (array) ($request->progress['photos'] ?? []);
+        $fresh = $this->freshPhotos($request);
+        $done = [];
+        foreach ($fresh as $key => $id) {
+            $done[$key] = ['id' => $id, 'at' => (int) $request->progress['photos'][$key]['at']];
+        }
         $out = [];
 
         foreach ($request->media as $item) {
@@ -208,34 +242,90 @@ class FacebookPublisher implements FirstCommenter, Publisher, StatusPoller
                 if ((string) ($res['id'] ?? '') === '') {
                     throw new PermanentPublishException('Facebook no devolvio el ID de la foto subida.', 'sin_id');
                 }
-                $done[$key] = (string) $res['id'];
+                $done[$key] = ['id' => (string) $res['id'], 'at' => now()->timestamp];
                 $request->checkpoint(null, ['photos' => $done]);
             }
-            $out[$key] = (string) $done[$key];
+            $out[$key] = $done[$key]['id'];
         }
 
         return $out;
     }
 
-    /** Historia ya publicada: la que usa la foto subida por este destino (`progress.photos`); un video se resuelve por su ID. */
+    /**
+     * Album ya publicado: por texto y hora (como el resto) o, sin texto, por las fotos subidas en los `attachments` de `/posts`
+     * (campo `subattachments{target{id}}`, SIN VERIFICAR en esta sesion). Si hay fotos subidas y la consulta falla, es inconcluso.
+     */
+    private function findAlbum(SocialAccount $account, PublishRequest $request): ?PublishResult
+    {
+        $text = trim((string) $request->text);
+        $ids = array_values($this->freshPhotos($request));
+
+        if ($text === '' && $ids === []) {
+            return null; // sin texto ni fotos subidas vigentes no hay forma de reconocerla (ni nada que reconocer)
+        }
+
+        try {
+            $data = $this->graph->get("{$account->external_id}/posts", ['fields' => 'id,message,permalink_url,created_time,attachments{subattachments{target{id}}}', 'limit' => self::RECENT], (string) $account->access_token);
+        } catch (PublishException $e) {
+            Log::notice('facebook.lookup_failed', ['account_id' => $account->id, 'code' => $e->errorCode]);
+
+            if ($ids !== []) {
+                throw new TransientPublishException('No se pudo comprobar si el album de Facebook ya se publico; se reintenta sin volver a publicar.');
+            }
+
+            return null;
+        }
+
+        foreach ($data['data'] ?? [] as $item) {
+            $when = isset($item['created_time']) ? strtotime((string) $item['created_time']) : false;
+            $sameText = $text !== '' && trim((string) ($item['message'] ?? '')) === $text && ($request->since === null || ($when !== false && $when >= $request->since->getTimestamp()));
+            $attached = [];
+            foreach ((array) ($item['attachments']['data'] ?? []) as $attachment) {
+                foreach ((array) ($attachment['subattachments']['data'] ?? []) as $sub) {
+                    $attached[] = (string) ($sub['target']['id'] ?? '');
+                }
+            }
+
+            if ($sameText || ($ids !== [] && array_diff($ids, $attached) === [])) {
+                return PublishResult::published((string) $item['id'], $this->url($item['permalink_url'] ?? null));
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Historia de foto ya publicada: la que usa la foto subida por este destino, en `GET /{page}/stories` (SIN VERIFICAR). Si la
+     * consulta falla o la respuesta no trae los campos esperados (`data[].media_id` y `post_id`) no se sabe si salio: INCONCLUSO
+     * (transitorio) para no duplicarla; una lista bien formada sin la foto, no publicada. Lo resuelve el smoke M-04.
+     */
     private function findStory(SocialAccount $account, PublishRequest $request): ?PublishResult
     {
-        $ids = array_map('strval', array_values((array) ($request->progress['photos'] ?? [])));
+        $ids = array_values($this->freshPhotos($request));
 
         if ($ids === []) {
-            return null; // sin texto ni foto subida no hay forma fiable de reconocerla
+            return null; // sin foto subida vigente no hay historia que reconocer
         }
+
+        $inconclusive = new TransientPublishException('No se pudo comprobar si la historia de Facebook ya se publico (consulta /stories sin verificar, ver M-04); se reintenta sin volver a publicar.');
 
         try {
             $data = $this->graph->get("{$account->external_id}/stories", ['fields' => 'post_id,media_id,status,creation_time,url', 'limit' => self::RECENT], (string) $account->access_token);
         } catch (PublishException $e) {
             Log::notice('facebook.lookup_failed', ['account_id' => $account->id, 'code' => $e->errorCode]);
 
-            return null;
+            throw $inconclusive;
         }
 
-        foreach ($data['data'] ?? [] as $item) {
-            if (in_array((string) ($item['media_id'] ?? ''), $ids, true) && ! empty($item['post_id'])) {
+        if (! is_array($data['data'] ?? null)) {
+            throw $inconclusive;
+        }
+
+        foreach ($data['data'] as $item) {
+            if (! is_array($item) || ! array_key_exists('media_id', $item) || ! array_key_exists('post_id', $item)) {
+                throw $inconclusive;
+            }
+            if (in_array((string) $item['media_id'], $ids, true)) {
                 return PublishResult::published((string) $item['post_id'], $this->url($item['url'] ?? null));
             }
         }

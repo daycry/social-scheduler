@@ -41,7 +41,7 @@ class ExportDesign extends SchedulerTool
     {
         app(StudioFrames::class)->assertJsonList(request(), 'params.arguments.frame_times');
         $data = $request->validate(['design_id' => ['required', 'integer', 'min:1']]);
-        $export = app(StudioRenderer::class)->export($user, $this->owned(Design::class, $user, $data['design_id'], 'Diseño'), $request->all());
+        $export = app(StudioRenderer::class)->export($user, $this->owned(Design::class, $user, $data['design_id'], 'Diseño', masculine: true), $request->all());
 
         return app(StudioExports::class)->present($user, $export);
     }

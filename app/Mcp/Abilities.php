@@ -35,6 +35,9 @@ final class Abilities
 
     public const SMARTLINKS_WRITE = 'smartlinks:write';
 
+    /** Alta y baja de competidores de una marca (T-30): la baja borra su historico. No basta posts:write; solo en el preset `all`. */
+    public const COMPETITORS_WRITE = 'competitors:write';
+
     /** Canva (T-16): listar disenos de Canva de una marca conectada y consultar trabajos; escribir = exportar a la biblioteca o enviar un recurso a Canva. */
     public const CANVA_READ = 'canva:read';
 
@@ -61,6 +64,7 @@ final class Abilities
             self::SITES_WRITE => 'Publicar y despublicar los sitios de las marcas',
             self::SMARTLINKS_READ => 'Leer el SmartLink de las marcas y sus estadisticas de visitas y clics',
             self::SMARTLINKS_WRITE => 'Crear, editar y publicar el SmartLink de las marcas',
+            self::COMPETITORS_WRITE => 'Dar de alta y de baja competidores de las marcas (la baja borra su historico)',
             self::CANVA_READ => 'Ver el estado de Canva de una marca, listar sus disenos y plantillas de marca de Canva y consultar trabajos de importacion',
             self::CANVA_WRITE => 'Exportar disenos de Canva a la biblioteca, enviar recursos a Canva y rellenar plantillas de marca con Autofill (no compra ni publica nada)',
             self::STUDIO_AI => 'Generar y editar imagenes con IA en el estudio (consume la cuota del proveedor configurado)',

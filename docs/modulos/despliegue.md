@@ -57,6 +57,7 @@ Quien use la API v1 o el MCP con claves ya emitidas debe adaptar estos puntos (n
 - **409 frente a 422.** Un estado que no admite la operación (borrar o publicar una publicación ya publicada, cancelar una que ya es borrador, borrar media en uso) responde 409; 422 queda para errores de entrada. El MCP lo marca con el prefijo `409:`.
 - **Límites de ritmo por ruta.** Cada ruta con límite propio tiene su contador (por usuario o IP) y sus valores viven en `config/rate_limits.php` (antes, un `throttle:N,1` numérico compartía contador con las demás rutas y el límite propio nunca actuaba). El tope conjunto de la API sigue siendo 120 por minuto y usuario (`api-v1`); si necesitas vaciar los contadores de un usuario, usa `App\Support\RouteLimits::forget($userId)`.
 - **SmartLink.** Un `PUT /brands/{brand}/smart-link` sin `published` ya no publica: uno nuevo queda sin publicar y uno existente conserva su estado.
+- **Alta y baja de competidores (T-30).** `manage_competitor` exige la ability nueva `competitors:write` (no basta `posts:write`; las claves `*` siguen valiendo, sin alias) y la baja necesita `confirm: true` porque borra el histórico. `manage_trash delete_forever` también exige `confirm: true`. Las claves existentes que no sean `*` deben añadir `competitors:write` para dar de alta o baja competidores.
 - **Nuevas abilities** `smartlinks:read` y `smartlinks:write`: las claves existentes no las tienen; añádelas donde haga falta.
 
 ## Cambios de configuración

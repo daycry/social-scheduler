@@ -45,6 +45,7 @@ class CanvaJobs
         private readonly CanvaClient $client,
         private readonly CanvaConnections $connections,
         private readonly MediaUploadService $uploads,
+        private readonly CanvaBrandTemplates $templates,
     ) {}
 
     /** @param  array{transparent?: bool, title?: ?string}  $options */
@@ -129,6 +130,15 @@ class CanvaJobs
         }
         if ($data === [] || count($data) > self::FIELDS_MAX) {
             throw new CanvaException('Rellena al menos un campo de texto de la plantilla (máximo '.self::FIELDS_MAX.').', 422, 'bad_fields');
+        }
+        // Solo se envian como texto los campos que la plantilla declara de texto: otro tipo (imagen, vídeo, gráfico, hoja) o un campo
+        // inexistente se rechaza aqui, nunca se manda a Canva como `type: text`.
+        $declared = collect($this->templates->dataset($connection, $templateId))->keyBy('name');
+        foreach (array_keys($data) as $name) {
+            $field = $declared->get($name);
+            if ($field === null || ! $field['supported']) {
+                throw new CanvaException($field === null ? "La plantilla no tiene el campo «{$name}»." : "El campo «{$name}» es de tipo {$field['type']} y solo se pueden rellenar campos de texto desde aquí.", 422, 'bad_fields');
+            }
         }
         $title = Str::limit(trim((string) $title), 255, '');
         $this->assertRoom($user);

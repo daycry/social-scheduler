@@ -90,6 +90,8 @@ return [
         'max_active_jobs' => 3,
         'max_pages' => 10,
         'timeout' => 20,
+        /* Margen de reloj (s) al verificar el `correlation_jwt` de retorno (iat, nbf, exp). */
+        'jwt_leeway' => 60,
     ],
 
     /*

@@ -99,3 +99,33 @@ test('sin client_id configurado no se acepta ningun JWT ni se pide nada', functi
     expect(app(CanvaJwks::class)->verify(canvaSignedJwt($this->pair, 's')))->toBeNull();
     Http::assertNothingSent();
 });
+
+test('un reloj desfasado unos segundos no rechaza un retorno legítimo: margen de 60 s en iat y exp, sin tocar el margen global de la librería', function () {
+    canvaFakeKeys($this->pair);
+    $jwks = app(CanvaJwks::class);
+
+    expect($jwks->verify(canvaSignedJwt($this->pair, 's', ['iat' => now()->addSeconds(30)->timestamp])))->not->toBeNull()
+        ->and($jwks->verify(canvaSignedJwt($this->pair, 's', ['exp' => now()->subSeconds(30)->timestamp])))->not->toBeNull()
+        ->and($jwks->verify(canvaSignedJwt($this->pair, 's', ['exp' => now()->subSeconds(120)->timestamp])))->toBeNull()
+        ->and($jwks->verify(canvaSignedJwt($this->pair, 's', ['iat' => now()->addSeconds(300)->timestamp])))->toBeNull()
+        ->and(JWT::$leeway)->toBe(0);
+});
+
+test('si Canva falla, el fallo se cachea un minuto: no se pide el JWKS en cada verificación', function () {
+    Http::fake(['api.canva.com/rest/v1/connect/keys' => Http::response([], 500)]);
+    $jwks = app(CanvaJwks::class);
+
+    $jwks->verify(canvaSignedJwt($this->pair, 'a'));
+    $jwks->verify(canvaSignedJwt($this->pair, 'b'));
+    Http::assertSentCount(1);
+
+    $this->travel(61)->seconds();
+    $jwks->verify(canvaSignedJwt($this->pair, 'c'));
+    Http::assertSentCount(2);
+});
+
+test('una clave mal formada se descarta y el resto del conjunto sigue sirviendo', function () {
+    Http::fake(['api.canva.com/rest/v1/connect/keys' => Http::response(['keys' => [['kty' => 'RSA', 'kid' => 'rota'], $this->pair['jwk']]])]);
+
+    expect(app(CanvaJwks::class)->verify(canvaSignedJwt($this->pair, 's')))->not->toBeNull();
+});

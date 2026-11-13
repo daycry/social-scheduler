@@ -182,6 +182,17 @@ class MediaAsset extends Model
         );
     }
 
+    /** URL temporal firmada que fuerza la DESCARGA como adjunto (R2/S3 la sirve en linea si no se le pide `attachment`). */
+    public function downloadUrl(int $minutes = 30): string
+    {
+        $name = (string) preg_replace('/[\x00-\x1f"\\\\]/', '', (string) $this->original_name);
+
+        return Storage::disk($this->disk)->temporaryUrl($this->path, now()->addMinutes($minutes), [
+            'ResponseContentDisposition' => 'attachment; filename="'.$name.'"; filename*=UTF-8\'\''.rawurlencode($name),
+            'ResponseContentType' => $this->mime,
+        ]);
+    }
+
     /** Campos seguros para el navegador. */
     public function toPublicArray(): array
     {

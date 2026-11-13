@@ -83,6 +83,8 @@ class LibraryService
             throw new PostValidationException(['name' => ['Has alcanzado el maximo de plantillas.']]);
         }
 
+        app(MediaValidator::class)->assertPublishable(MediaAsset::withoutUserScope()->where('user_id', $user->id)->whereIn('id', $mediaIds)->get());
+
         return DB::transaction(function () use ($user, $brand, $name, $text, $mediaIds, $targets, $campaignId) {
             $template = new PostTemplate(['name' => $name, 'text' => $text, 'targets' => $targets ?: null]);
             $template->campaign_id = $campaignId;

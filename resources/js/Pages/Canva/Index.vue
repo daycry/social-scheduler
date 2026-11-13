@@ -5,7 +5,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import PdfAsset from '@/Components/PdfAsset.vue';
-import PermissionNotice from '@/Components/PermissionNotice.vue';
+import InfoNote from '@/Components/InfoNote.vue';
 import { studioRequest } from '@/Studio/api';
 
 const props = defineProps({ brand: Object, canva: Object, focus: { type: String, default: null }, flash: Object });
@@ -14,7 +14,6 @@ const flash = computed(() => props.flash ?? page.props.flash ?? {});
 
 const STATUS = { queued: 'En cola', processing: 'Canva está trabajando…', importing: 'Guardando en la biblioteca…', ready: 'Listo', failed: 'Con error' };
 const JOB_KIND = { export: 'Exportar', upload: 'Enviar a Canva', autofill: 'Rellenar plantilla' };
-const PDF_NOTICE = [{ id: 'pdf', help: 'Los PDF se guardan para verlos y descargarlos; no se pueden adjuntar a una publicación. Para publicar, exporta el diseño como PNG, JPG o MP4.' }];
 const EXPORT_FORMATS = [
     { value: 'png', label: 'PNG (imagen)' },
     { value: 'jpg', label: 'JPG (imagen)' },
@@ -32,9 +31,11 @@ const loaded = ref(false);
 const error = ref('');
 const notice = ref('');
 const jobs = ref([...(props.canva.jobs ?? [])]);
-const documents = ref([...(props.canva.documents ?? [])]);
+const documents = ref([...(props.canva.documents?.media ?? [])]);
+const documentsCursor = ref(props.canva.documents?.has_more ? props.canva.documents.next_cursor : null);
 const designLinks = ref({});
 const templates = ref([]);
+const templatesContinuation = ref(null);
 const templateQuery = ref('');
 const templatesLoaded = ref(false);
 const templatesLoading = ref(false);
@@ -95,7 +96,21 @@ async function linkDesign(job) {
 }
 
 async function loadDocuments() {
-    try { documents.value = (await studioRequest('GET', route('canva.status', props.brand.id))).documents ?? []; } catch { /* se recarga con la página */ }
+    try {
+        const page = (await studioRequest('GET', route('canva.status', props.brand.id))).documents;
+        documents.value = page?.media ?? [];
+        documentsCursor.value = page?.has_more ? page.next_cursor : null;
+    } catch { /* se recarga con la página */ }
+}
+
+// Siguiente página de la biblioteca de PDF: el mismo contrato de cursor que el resto de listados (`has_more`, `next_cursor`).
+async function moreDocuments() {
+    if (!documentsCursor.value) return;
+    try {
+        const page = await studioRequest('GET', route('media.index', { kind: 'pdf', cursor: documentsCursor.value }));
+        documents.value = [...documents.value, ...(page.media ?? [])];
+        documentsCursor.value = page.has_more ? page.next_cursor : null;
+    } catch (e) { fail(e); }
 }
 
 async function removeDocument(doc) {
@@ -104,13 +119,16 @@ async function removeDocument(doc) {
     try { await studioRequest('DELETE', route('media.destroy', doc.id)); documents.value = documents.value.filter(d => d.id !== doc.id); } catch (e) { fail(e); }
 }
 
-async function loadTemplates() {
+async function loadTemplates(more = false) {
     if (templatesLoading.value) return;
     templatesLoading.value = true; error.value = '';
     try {
         const params = new URLSearchParams();
         if (templateQuery.value.trim()) params.set('query', templateQuery.value.trim());
-        templates.value = (await studioRequest('GET', `${route('canva.templates.index', props.brand.id)}${params.size ? `?${params}` : ''}`)).items;
+        if (more && templatesContinuation.value) params.set('continuation', templatesContinuation.value);
+        const data = await studioRequest('GET', `${route('canva.templates.index', props.brand.id)}${params.size ? `?${params}` : ''}`);
+        templates.value = more ? [...templates.value, ...data.items] : data.items;
+        templatesContinuation.value = data.continuation;
         templatesLoaded.value = true;
     } catch (e) { fail(e); } finally { templatesLoading.value = false; }
 }
@@ -142,7 +160,7 @@ async function startExport(design) {
 }
 
 async function loadLibrary() {
-    try { library.value = (await studioRequest('GET', route('media.index'))).media; } catch { library.value = []; }
+    try { library.value = (await studioRequest('GET', route('media.index', { limit: 100 }))).media; } catch { library.value = []; }
 }
 
 async function sendToCanva() {
@@ -294,7 +312,7 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer); });
                 <section v-if="features.brand_templates?.available" class="card space-y-3 p-6" aria-labelledby="canva-templates" data-testid="canva-templates">
                     <h2 id="canva-templates" class="font-semibold text-slate-900">Plantillas de marca (Autofill)</h2>
                     <p class="text-xs text-slate-600">Elige una plantilla de tu marca en Canva y rellena sus campos de texto: Canva crea un diseño nuevo que puedes abrir y exportar.</p>
-                    <form class="flex flex-wrap items-end gap-2" role="search" @submit.prevent="loadTemplates">
+                    <form class="flex flex-wrap items-end gap-2" role="search" @submit.prevent="loadTemplates()">
                         <label class="min-w-0 flex-1 basis-56 text-sm font-medium text-slate-900">Buscar plantilla
                             <input v-model="templateQuery" type="search" class="field mt-1 w-full" maxlength="255" placeholder="Nombre de la plantilla">
                         </label>
@@ -307,6 +325,7 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer); });
                             <SecondaryButton type="button" :disabled="!features.autofill?.available" :aria-label="`Rellenar ${t.title}`" @click="pickTemplate(t)">Rellenar</SecondaryButton>
                         </li>
                     </ul>
+                    <SecondaryButton v-if="templatesContinuation" type="button" :disabled="templatesLoading" @click="loadTemplates(true)">Cargar más plantillas</SecondaryButton>
                     <p v-if="!features.autofill?.available" class="text-xs text-slate-600" data-testid="canva-autofill-unavailable">Autofill no disponible: {{ features.autofill?.reason }}</p>
                     <form v-if="template && features.autofill?.available" class="space-y-3 border-t border-slate-100 pt-3" data-testid="canva-autofill-form" @submit.prevent="startAutofill">
                         <h3 class="text-sm font-semibold text-slate-900">Campos de «{{ template.title }}»</h3>
@@ -362,10 +381,11 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer); });
 
                 <section v-if="hasPdf" class="card space-y-3 p-6" aria-labelledby="canva-documents" data-testid="canva-documents">
                     <h2 id="canva-documents" class="font-semibold text-slate-900">Documentos PDF</h2>
-                    <PermissionNotice title="Los PDF no se publican en redes" :items="PDF_NOTICE" />
+                    <InfoNote title="Los PDF no se publican en redes">Los PDF se guardan para verlos y descargarlos; no se pueden adjuntar a una publicación. Para publicar, exporta el diseño como PNG, JPG o MP4.</InfoNote>
                     <ul class="space-y-3">
                         <li v-for="d in documents" :key="d.id" class="rounded-lg border border-slate-200 p-3 text-sm" :data-testid="`canva-document-${d.id}`"><PdfAsset :asset="d" removable @remove="removeDocument" /></li>
                     </ul>
+                    <button v-if="documentsCursor" type="button" class="btn-secondary px-3" data-testid="canva-documents-more" @click="moreDocuments">Ver más PDF</button>
                 </section>
             </template>
         </div>

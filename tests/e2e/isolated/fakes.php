@@ -154,7 +154,14 @@ function generalFakeCanva(string $root): void
         ]]),
         'api.canva.com/rest/v1/connect/keys' => fn () => Http::response(generalCanvaJwks($root)),
         'api.canva.com/rest/v1/brand-templates/BTe2eCiudad1/dataset' => Http::response(['dataset' => ['CITY' => ['type' => 'text'], 'TEMPERATURE' => ['type' => 'text'], 'BACKGROUND' => ['type' => 'image']]]),
-        'api.canva.com/rest/v1/brand-templates*' => Http::response(['items' => [['id' => 'BTe2eCiudad1', 'title' => 'Ciudad del día E2E', 'view_url' => 'https://www.canva.com/brand/BTe2eCiudad1/view', 'created_at' => 1790000000]]]),
+        'api.canva.com/rest/v1/brand-templates*' => function (Request $request) {
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+            $template = fn (string $id, string $title) => ['id' => $id, 'title' => $title, 'view_url' => "https://www.canva.com/brand/$id/view", 'created_at' => 1790000000];
+
+            return isset($query['continuation'])
+                ? Http::response(['items' => [$template('BTe2eSemana2', 'Semana E2E')]])
+                : Http::response(['items' => [$template('BTe2eCiudad1', 'Ciudad del día E2E')], 'continuation' => 'e2e-page-2']);
+        },
         'api.canva.com/rest/v1/autofills' => Http::response(['job' => ['id' => 'e2e-autofill-1', 'status' => 'in_progress']]),
         'api.canva.com/rest/v1/autofills/*' => Http::response(['job' => ['id' => 'e2e-autofill-1', 'status' => 'success', 'result' => ['type' => 'create_design', 'design' => $design('DAFe2eAutof4', 'Ciudad de hoy E2E')]]]),
         'api.canva.com/rest/v1/designs*' => function (Request $request) use ($all, $design) {

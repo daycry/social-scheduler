@@ -126,3 +126,15 @@ test('Autofill: un fallo de Canva deja el trabajo en error con un mensaje claro 
 
     expect($present['status'])->toBe('failed')->and($present['error'])->toContain('plantilla')->not->toContain('secreto-interno');
 });
+
+test('Autofill: un campo que no es de texto, o que la plantilla no tiene, se rechaza con un 422 claro antes de crear el trabajo (nunca se envía como texto)', function (string $field) {
+    canvaConnect($this->user, $this->brand, CANVA_BT_SCOPES, ['brand_template', 'autofill']);
+    canvaBrandTemplateFakes();
+
+    $res = $this->actingAs($this->user)->postJson(route('canva.autofills.store', $this->brand), ['brand_template_id' => 'BT123abcdef', 'fields' => ['CITY' => 'Sydney', $field => 'x']])
+        ->assertStatus(422)->assertJsonPath('code', 'bad_fields');
+
+    expect($res->json('message'))->toContain($field);
+    Http::assertNotSent(fn (Request $r) => str_ends_with($r->url(), '/rest/v1/autofills'));
+    expect(CanvaJob::withoutUserScope()->count())->toBe(0);
+})->with(['BACKGROUND', 'SALES', 'NO_EXISTE']);

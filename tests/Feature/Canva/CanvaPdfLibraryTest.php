@@ -1,9 +1,15 @@
 <?php
 
 use App\Enums\ContentType;
+use App\Exceptions\PostValidationException;
+use App\Models\Autolist;
 use App\Models\MediaAsset;
 use App\Models\User;
+use App\Services\AutolistService;
+use App\Services\LibraryService;
+use App\Services\MediaStorage;
 use App\Services\MediaValidator;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -141,7 +147,78 @@ test('el estado de la marca lista los PDF de la biblioteca (los suyos, solo list
     MediaAsset::factory()->for(User::factory()->create())->create(['kind' => 'pdf', 'mime' => 'application/pdf', 'original_name' => 'ajeno.pdf']);
     MediaAsset::factory()->for($this->user)->create(['kind' => 'pdf', 'mime' => 'application/pdf', 'status' => 'invalido', 'original_name' => 'roto.pdf']);
 
-    $documents = $this->actingAs($this->user)->getJson(route('canva.status', $this->brand))->assertOk()->json('documents');
+    $documents = $this->actingAs($this->user)->getJson(route('canva.status', $this->brand))->assertOk()->json('documents.media');
 
     expect(array_column($documents, 'id'))->toBe([$mine])->and($documents[0]['download_url'])->toContain('/download');
+});
+
+test('con 25 PDF todos son accesibles: la biblioteca los pagina por cursor, el estado de Canva avisa de que hay mas y el compositor no los ve', function () {
+    $ids = MediaAsset::factory()->count(25)->for($this->user)->create(['kind' => 'pdf', 'mime' => 'application/pdf'])->pluck('id')->sortDesc()->values()->all();
+    $image = MediaAsset::factory()->for($this->user)->create();
+
+    $status = $this->actingAs($this->user)->getJson(route('canva.status', $this->brand))->assertOk()->json('documents');
+    expect($status['media'])->toHaveCount(20)->and($status['has_more'])->toBeTrue()->and($status['next_cursor'])->toBeString();
+
+    $seen = [];
+    $cursor = null;
+    do {
+        $page = $this->actingAs($this->user)->getJson(route('media.index', array_filter(['kind' => 'pdf', 'limit' => 10, 'cursor' => $cursor])))->assertOk()->json();
+        $seen = [...$seen, ...array_column($page['media'], 'id')];
+        $cursor = $page['next_cursor'];
+    } while ($page['has_more']);
+    expect($seen)->toBe($ids);
+
+    // Sin `kind` (el selector del compositor) solo hay media publicable.
+    $default = $this->actingAs($this->user)->getJson(route('media.index'))->assertOk()->json('media');
+    expect(array_column($default, 'id'))->toBe([$image->id]);
+
+    // Y cualquiera de ellos se puede borrar desde la biblioteca, tambien el mas antiguo.
+    $this->actingAs($this->user)->deleteJson(route('media.destroy', end($ids)))->assertOk();
+    $this->actingAs($this->user)->getJson(route('media.index', ['kind' => 'pdf']))->assertJsonCount(24, 'media');
+    $this->actingAs($this->user)->getJson(route('media.index', ['kind' => 'zip']))->assertUnprocessable();
+});
+
+test('un PDF no entra en una autolista ni en una plantilla de la biblioteca: se rechaza al darlo de alta con el mismo aviso del validador', function () {
+    $pdf = MediaAsset::factory()->for($this->user)->create(['kind' => 'pdf', 'mime' => 'application/pdf', 'original_name' => 'Informe.pdf']);
+    $autolist = new Autolist(['name' => 'Cola', 'targets' => [], 'slots' => [], 'cursor' => 0]);
+    $autolist->user_id = $this->user->id;
+    $autolist->brand_id = $this->brand->id;
+    $autolist->save();
+    $expected = app(MediaValidator::class)->pdfNotice($pdf);
+
+    foreach ([
+        fn () => app(AutolistService::class)->addItem($this->user, $autolist, null, 'Texto', [$pdf->id]),
+        fn () => app(LibraryService::class)->store($this->user, $this->brand, 'Plantilla', 'Texto', [$pdf->id]),
+    ] as $attempt) {
+        try {
+            $attempt();
+            $message = null;
+        } catch (PostValidationException $e) {
+            $message = $e->errors()['media'][0] ?? null;
+        }
+        expect($message)->toBe($expected)->and($message)->toContain('Los PDF no se pueden publicar en redes');
+    }
+});
+
+test('con almacenamiento S3/R2 la descarga de un PDF redirige a una URL firmada que fuerza el adjunto (no se abre en línea)', function () {
+    $pdf = MediaAsset::factory()->for($this->user)->create(['kind' => 'pdf', 'mime' => 'application/pdf', 'original_name' => 'Informe E2E.pdf', 'disk' => 's3fake']);
+    $options = null;
+    $disk = Mockery::mock(FilesystemAdapter::class);
+    $disk->shouldReceive('temporaryUrl')->once()->andReturnUsing(function ($path, $expires, $given = []) use (&$options) {
+        $options = $given;
+
+        return 'https://r2.example.test/signed?x=1';
+    });
+    Storage::set('s3fake', $disk);
+    app()->instance(MediaStorage::class, new class extends MediaStorage
+    {
+        public function isS3(): bool
+        {
+            return true;
+        }
+    });
+
+    $this->actingAs($this->user)->get(route('media.download', $pdf))->assertRedirect('https://r2.example.test/signed?x=1');
+
+    expect($options['ResponseContentDisposition'])->toStartWith('attachment;')->toContain('Informe E2E.pdf')->and($options['ResponseContentType'])->toBe('application/pdf');
 });

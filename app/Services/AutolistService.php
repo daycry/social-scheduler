@@ -89,10 +89,11 @@ class AutolistService
         } else {
             $text = $text !== null ? trim($text) : null;
             $ids = array_values(array_unique(array_map('intval', $mediaIds)));
-            $owned = $ids === [] ? [] : MediaAsset::withoutUserScope()->where('user_id', $user->id)->whereIn('id', $ids)->pluck('id')->all();
-            if (count($owned) !== count($ids)) {
+            $owned = $ids === [] ? collect() : MediaAsset::withoutUserScope()->where('user_id', $user->id)->whereIn('id', $ids)->get();
+            if ($owned->count() !== count($ids)) {
                 throw new PostValidationException(['media' => ['Algun archivo no existe.']]);
             }
+            app(MediaValidator::class)->assertPublishable($owned);
             $media = $ids;
             if (($text === null || $text === '') && $media === []) {
                 throw new PostValidationException(['text' => ['Escribe un texto, elige archivos o una plantilla.']]);

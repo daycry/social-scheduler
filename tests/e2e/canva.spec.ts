@@ -176,7 +176,7 @@ test('Canva: conectar (OAuth simulado), plan, listar y buscar, crear, retorno fi
     await expect(pdfJob.getByRole('status')).toHaveText('Listo', { timeout: 20_000 });
     await expect(pdfJob.getByTestId('pdf-asset')).toContainText('Rebajas E2E.pdf');
     const documents = page.getByTestId('canva-documents');
-    await expect(documents.getByTestId('permission-notice')).toContainText('Los PDF no se publican en redes');
+    await expect(documents.getByRole('note')).toContainText('Los PDF no se publican en redes');
     await expect(documents.getByTestId('pdf-asset')).toContainText('PDF ·');
     const download = documents.getByRole('link', { name: 'Descargar Rebajas E2E.pdf' });
     const pdf = await page.request.get((await download.getAttribute('href'))!);
@@ -232,6 +232,9 @@ test('Canva: Brand Templates y Autofill solo con la capacidad del plan; rellena 
     await expect(page.getByTestId('canva-feature-autofill')).toHaveAttribute('data-available', 'true');
     const template = page.getByTestId('canva-template-BTe2eCiudad1');
     await expect(template).toContainText('Ciudad del día E2E');
+    await page.getByRole('button', { name: 'Cargar más plantillas' }).click(); // paginación por `continuation`, como Diseños
+    await expect(page.getByTestId('canva-template-BTe2eSemana2')).toContainText('Semana E2E');
+    await expect(page.getByRole('button', { name: 'Cargar más plantillas' })).toHaveCount(0);
     await template.getByRole('button', { name: 'Rellenar Ciudad del día E2E' }).click();
 
     const form = page.getByTestId('canva-autofill-form');

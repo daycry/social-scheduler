@@ -15,7 +15,6 @@ SPEC_PATH = ROOT / 'scripts/studio/background-model.json'
 ENVIRONMENT = ROOT / 'storage/framework/studio-python'
 MODEL = ROOT / 'storage/app/private/studio-models/isnet-general-use.onnx'
 LICENSE = MODEL.parent / 'IS-Net-LICENSE.txt'
-# Weights of the model used before the switch to IS-Net; they are never read again and can be deleted (see docs/modulos/despliegue.md).
 
 
 def verified(path, spec):

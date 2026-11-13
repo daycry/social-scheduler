@@ -35,6 +35,13 @@ class CanvaJwks
 
     private const REFRESH_THROTTLE_SECONDS = 60;
 
+    /** Tras un fallo de Canva no se vuelve a pedir el JWKS hasta pasado este tiempo (CWE-400: cada verificacion no puede ser una peticion). */
+    private const FAILURE_KEY = 'canva.jwks.failed';
+
+    private const FAILURE_SECONDS = 60;
+
+    private const FETCH_TIMEOUT_SECONDS = 5;
+
     /** Reclamaciones del JWT si la firma, la audiencia y la caducidad son validas; null en cualquier otro caso. @return array<string, mixed>|null */
     public function verify(string $jwt): ?array
     {
@@ -59,8 +66,15 @@ class CanvaJwks
         }
 
         try {
-            // Cada `Key` lleva su algoritmo fijo (RS256): un JWT con otro `alg` (none, HS256…) no se decodifica.
-            $claims = (array) JWT::decode($jwt, [$kid => $keys[$kid]]);
+            // Cada `Key` lleva su algoritmo fijo (RS256): un JWT con otro `alg` (none, HS256…) no se decodifica. El margen de reloj
+            // (`iat`, `nbf` y `exp`) es el de la configuracion y se aplica solo durante esta llamada: el estatico global se restaura.
+            $previous = JWT::$leeway;
+            JWT::$leeway = max(0, (int) config('services.canva.jwt_leeway', 60));
+            try {
+                $claims = (array) JWT::decode($jwt, [$kid => $keys[$kid]]);
+            } finally {
+                JWT::$leeway = $previous;
+            }
         } catch (Throwable) {
             return null;
         }
@@ -75,27 +89,35 @@ class CanvaJwks
     /** @return array<string, Key> las claves publicas por `kid` (vacio si no se pudieron obtener). */
     private function keys(bool $refresh = false): array
     {
-        $set = $refresh ? null : Cache::get(self::CACHE_KEY);
+        $cached = Cache::get(self::CACHE_KEY);
+        $set = $refresh ? null : $cached;
         if (! is_array($set)) {
-            $set = $this->fetch();
+            $set = Cache::has(self::FAILURE_KEY) ? [] : $this->fetch();
             if ($set !== []) {
                 Cache::put(self::CACHE_KEY, $set, self::CACHE_TTL_SECONDS);
+            } else {
+                Cache::put(self::FAILURE_KEY, 1, self::FAILURE_SECONDS);
+                $set = is_array($cached) ? $cached : []; // una renovacion fallida no tira las claves buenas que ya hay
             }
         }
-        try {
-            return $set === [] ? [] : JWK::parseKeySet(['keys' => $set], self::ALGORITHM);
-        } catch (Throwable) {
-            Cache::forget(self::CACHE_KEY);
-
-            return [];
+        $keys = [];
+        foreach ($set as $jwk) {
+            try {
+                $key = JWK::parseKey($jwk, self::ALGORITHM);
+            } catch (Throwable) {
+                continue; // una clave mal formada se descarta; el resto del conjunto sigue valiendo
+            }
+            $keys[(string) $jwk['kid']] = $key;
         }
+
+        return $keys;
     }
 
     /** @return list<array<string, mixed>> */
     private function fetch(): array
     {
         try {
-            $response = Http::acceptJson()->timeout((int) config('services.canva.timeout', 20))->connectTimeout(10)
+            $response = Http::acceptJson()->timeout(self::FETCH_TIMEOUT_SECONDS)->connectTimeout(self::FETCH_TIMEOUT_SECONDS)
                 ->get(rtrim((string) config('services.canva.api_base'), '/').'/connect/keys');
         } catch (ConnectionException) {
             Log::warning('canva.jwks_unreachable');

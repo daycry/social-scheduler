@@ -2,6 +2,7 @@
 
 use App\Connectors\Network;
 use App\Enums\PostStatus;
+use App\Exceptions\PostValidationException;
 use App\Models\Brand;
 use App\Models\Post;
 use App\Models\PostSeries;
@@ -10,6 +11,8 @@ use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\SeriesService;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 
@@ -77,4 +80,51 @@ test('la API expone el numero recuperable y la accion respeta al propietario y l
 test('un margen mayor recupera mas fechas', function () {
     config(['social.series.recovery_days' => 4]);
     expect(app(SeriesService::class)->recoverableDates($this->series->fresh()))->toBe(['2026-11-06', '2026-11-07', '2026-11-08', '2026-11-09']);
+});
+
+test('una fecha que solo existe por haber cambiado la regla no es recuperable', function () {
+    // La serie (diaria, desde el 5) cambia hoy a las 11:00 su hora: las fechas de ayer con la regla nueva nunca debieron generarse.
+    Carbon::setTestNow('2026-11-09 12:30:00');
+    app(SeriesService::class)->update($this->user, $this->series->fresh(), ['time_local' => '11:00']);
+    $series = $this->series->fresh();
+    expect($series->rule_changed_at)->not->toBeNull();
+
+    expect(app(SeriesService::class)->recoverableDates($series))->toBe([]); // ni 8 ni 9 a las 11:00 existian antes del cambio
+    PostSeriesOccurrence::query()->where('series_id', $series->id)->whereDate('occurrence_date', '<=', '2026-11-09')->delete();
+
+    // Cambiar solo el texto no es cambiar la regla.
+    $before = $series->rule_changed_at;
+    Carbon::setTestNow('2026-11-09 12:45:00');
+    app(SeriesService::class)->update($this->user, $series, ['text' => 'Nuevo']);
+    expect($this->series->fresh()->rule_changed_at->equalTo($before))->toBeTrue();
+});
+
+test('dos recuperaciones a la vez no se pisan: la segunda espera al lock de la serie', function () {
+    $lock = Cache::lock('series-recover:'.$this->series->id, 30);
+    expect($lock->get())->toBeTrue();
+
+    expect(fn () => app(SeriesService::class)->recover($this->user, $this->series->fresh()))->toThrow(PostValidationException::class);
+    expect(PostSeriesOccurrence::query()->where('series_id', $this->series->id)->count())->toBe(0);
+
+    $lock->release();
+    expect(app(SeriesService::class)->recover($this->user, $this->series->fresh()))->toBe(2);
+});
+
+test('el listado de series presenta con un numero constante de consultas', function () {
+    foreach (range(1, 6) as $i) {
+        $extra = $this->series->replicate();
+        $extra->save();
+    }
+    $count = function (int $expected) {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $this->actingAs($this->user)->getJson(route('workflow.series.index'))->assertOk()->assertJsonCount($expected, 'series');
+
+        return count(DB::getQueryLog());
+    };
+    $with7 = $count(7);
+    PostSeries::withoutUserScope()->where('id', '>', $this->series->id)->take(5)->get()->each->delete();
+    $with2 = $count(2);
+
+    expect($with7)->toBeLessThanOrEqual($with2 + 1); // 5 series mas no anaden consultas (antes: varias por serie y por fecha)
 });

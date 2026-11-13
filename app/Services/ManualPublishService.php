@@ -9,6 +9,7 @@ use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\User;
+use App\Notifications\ManualPublishReminder;
 use App\Notifications\PostWorkflowActivity;
 use App\Support\TargetMedia;
 use Illuminate\Support\Facades\DB;
@@ -69,16 +70,16 @@ class ManualPublishService
     public function remindUpcoming(): int
     {
         $lead = (int) config('social.series.manual_reminder_minutes', 60);
-        $upcoming = PostTarget::withoutUserScope()
+        // La misma condicion filtra la seleccion Y el claim: entre ambos el destino pudo reprogramarse, avisarse a la hora o dejar de ser publicable.
+        $eligible = fn () => PostTarget::withoutUserScope()
             ->where('manual', true)->where('status', PostStatus::Scheduled->value)->whereNull('manual_reminded_at')->whereNull('manual_notified_at')
             ->whereIn('post_id', Post::withoutUserScope()->where('scheduled_at', '>', now())->where('scheduled_at', '<=', now()->addMinutes($lead))
-                ->where(fn ($q) => $q->whereNull('approval_status')->orWhere('approval_status', Post::APPROVAL_APPROVED))->select('id'))
-            ->orderBy('id')->limit(500)->pluck('id');
+                ->where(fn ($q) => $q->whereNull('approval_status')->orWhere('approval_status', Post::APPROVAL_APPROVED))->select('id'));
+        $upcoming = $eligible()->orderBy('id')->limit(500)->pluck('id');
 
         $claimed = [];
         foreach ($upcoming as $id) {
-            $won = PostTarget::withoutUserScope()->whereKey($id)->where('manual', true)->whereNull('manual_reminded_at')
-                ->where('status', PostStatus::Scheduled->value)->update(['manual_reminded_at' => now()]);
+            $won = $eligible()->whereKey($id)->update(['manual_reminded_at' => now()]);
             if ($won === 1) {
                 $claimed[(int) PostTarget::withoutUserScope()->whereKey($id)->value('post_id')][] = (int) $id;
             }
@@ -94,8 +95,8 @@ class ManualPublishService
             $labels = PostTarget::withoutUserScope()->whereIn('id', $targetIds)->get()->map(fn (PostTarget $t) => $t->network->label())->unique()->implode(', ');
             $when = $post->scheduledAtLocal()?->locale('es')->isoFormat('D [de] MMMM [a las] HH:mm');
             try {
-                $owner->notify(new PostWorkflowActivity(
-                    'manual_reminder', $post->id, $post->brand_id, (string) $brand?->name,
+                $owner->notify(new ManualPublishReminder(
+                    $post->id, $post->brand_id, (string) $brand?->name,
                     'Recuerda: el '.($when ?? 'la hora prevista').' toca publicar a mano en '.$labels.' la publicacion de «'.$brand?->name.'». Abre el aviso para tener el texto y la media a mano.',
                     (string) $post->text,
                 ));

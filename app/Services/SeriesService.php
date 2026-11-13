@@ -10,10 +10,13 @@ use App\Models\Post;
 use App\Models\PostSeries;
 use App\Models\PostSeriesOccurrence;
 use App\Models\User;
+use App\Notifications\PostWorkflowActivity;
 use App\Notifications\SeriesGenerationFailed;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Throwable;
@@ -78,11 +81,57 @@ class SeriesService
         $payloadIn = array_replace($series->payload, Arr::only($data, ['text', 'media', 'targets', 'requires_approval']));
         $payload = $this->validatedPayload($user, $brand, $payloadIn, $rule['time_local']);
 
-        DB::transaction(fn () => $series->forceFill($rule + ['payload' => $payload])->save());
-        $this->reconcile($user, $series->fresh());
-        $this->generate($series->fresh());
+        $wasApproval = (bool) ($series->payload['requires_approval'] ?? false);
+        $ruleChanged = ! $this->sameRule($rule, $this->ruleInput($series));
+        DB::transaction(fn () => $series->forceFill($rule + ['payload' => $payload] + ($ruleChanged ? ['rule_changed_at' => now()] : []))->save());
+
+        // Retener/liberar, reconciliar y generar en UNA tanda: los aprobadores reciben un solo aviso agrupado, no uno por ocurrencia.
+        $ids = $this->posts->collectApprovalRequests(function () use ($user, $series, $wasApproval): void {
+            $this->syncApproval($series->fresh(), $wasApproval);
+            $this->reconcile($user, $series->fresh());
+            $this->generate($series->fresh());
+        });
+        $this->notifyApprovers($series->fresh(), $ids);
 
         return $series->fresh();
+    }
+
+    /** @param array<string, mixed> $a @param array<string, mixed> $b */
+    private function sameRule(array $a, array $b): bool
+    {
+        ksort($a);
+        ksort($b);
+
+        return json_encode($a) === json_encode($b);
+    }
+
+    /**
+     * Cambiar `requires_approval` alcanza tambien a las ocurrencias YA generadas (CWE-863): al activarla, las futuras aun no publicadas pasan a
+     * pendientes y dejan de programarse; al desactivarla, las pendientes se programan. Las ya aprobadas, rechazadas o publicadas no se tocan.
+     */
+    private function syncApproval(PostSeries $series, bool $was): void
+    {
+        $now = (bool) ($series->payload['requires_approval'] ?? false);
+        if ($now === $was) {
+            return;
+        }
+        foreach ($this->pendingPosts($series) as $post) {
+            $now ? $this->posts->holdForApproval($post) : $this->posts->releaseApproval($post);
+        }
+    }
+
+    /** Un unico aviso por serie y tanda a los aprobadores de la marca: «N publicaciones de la serie … pendientes de aprobacion». @param list<int> $postIds */
+    private function notifyApprovers(PostSeries $series, array $postIds): void
+    {
+        if ($postIds === []) {
+            return;
+        }
+        $brand = Brand::withoutUserScope()->find($series->brand_id);
+        $count = count($postIds);
+        $message = $count.($count === 1 ? ' publicacion' : ' publicaciones').' de la serie de «'.$brand?->name.'» pendientes de aprobacion.';
+        foreach (app(BrandCollaboration::class)->approvers((int) $series->brand_id) as $approver) {
+            $approver->notify(new PostWorkflowActivity('approval_requested', null, $series->brand_id, (string) $brand?->name, $message, (string) ($series->payload['text'] ?? '')));
+        }
     }
 
     /** Cancela la serie y borra sus ocurrencias futuras pendientes. Idempotente. */
@@ -124,25 +173,28 @@ class SeriesService
 
         $created = 0;
         $failure = null;
-        foreach ($this->dates($series, $horizon) as $date) {
-            $at = CarbonImmutable::parse($date.' '.$series->time_local, $tz);
-            if ($at->utc()->lte($now)) {
-                continue; // pasada: no se crea (cuenta para el numero de veces, pero no se publica con retraso)
-            }
-            if (PostSeriesOccurrence::query()->where('series_id', $series->id)->whereDate('occurrence_date', $date)->exists()) {
-                continue;
-            }
+        $ids = $this->posts->collectApprovalRequests(function () use ($series, $brand, $user, $tz, $now, $horizon, &$created, &$failure): void {
+            foreach ($this->dates($series, $horizon) as $date) {
+                $at = CarbonImmutable::parse($date.' '.$series->time_local, $tz);
+                if ($at->utc()->lte($now)) {
+                    continue; // pasada: no se crea (cuenta para el numero de veces, pero no se publica con retraso)
+                }
+                if (PostSeriesOccurrence::query()->where('series_id', $series->id)->whereDate('occurrence_date', $date)->exists()) {
+                    continue;
+                }
 
-            try {
-                $this->materialize($series, $brand, $user, $date, $at);
-                $created++;
-            } catch (QueryException) {
-                continue; // otra ejecucion la creo entre medias
-            } catch (PostValidationException $e) {
-                // p. ej. cuenta desconectada: se reintenta en la siguiente pasada, sin duplicar. El fallo NO se traga: queda en la serie y se avisa.
-                $failure ??= $e->getMessage();
+                try {
+                    $this->materialize($series, $brand, $user, $date, $at);
+                    $created++;
+                } catch (QueryException) {
+                    continue; // otra ejecucion la creo entre medias
+                } catch (PostValidationException $e) {
+                    // p. ej. cuenta desconectada: se reintenta en la siguiente pasada, sin duplicar. El fallo NO se traga: queda en la serie y se avisa.
+                    $failure ??= $e->getMessage();
+                }
             }
-        }
+        });
+        $this->notifyApprovers($series, $ids);
 
         $this->recordOutcome($series, $brand, $user, $failure);
 
@@ -155,25 +207,29 @@ class SeriesService
      *
      * @return list<string> fechas locales Y-m-d
      */
-    public function recoverableDates(PostSeries $series, ?CarbonImmutable $now = null): array
+    public function recoverableDates(PostSeries $series, ?CarbonImmutable $now = null, ?string $timezone = null, ?array $existing = null): array
     {
         if ($series->status !== PostSeries::ACTIVE) {
             return [];
         }
-        $tz = Brand::withoutUserScope()->whereKey($series->brand_id)->value('timezone') ?: 'UTC';
+        $tz = $timezone ?? (Brand::withoutUserScope()->whereKey($series->brand_id)->value('timezone') ?: 'UTC');
         $now ??= CarbonImmutable::now('UTC');
         $floor = $now->subDays((int) config('social.series.recovery_days', 2));
+        // Desde que existe la serie Y desde el ultimo cambio de su regla: una fecha que la regla vigente no tenia cuando debio generarse no se perdio.
         $since = CarbonImmutable::instance($series->created_at ?? $now);
+        if ($series->rule_changed_at !== null && $series->rule_changed_at->gt($since)) {
+            $since = CarbonImmutable::instance($series->rule_changed_at);
+        }
+        $existing ??= PostSeriesOccurrence::query()->where('series_id', $series->id)->get()->map(fn ($o) => $o->occurrence_date->format('Y-m-d'))->all();
+        $existing = array_flip($existing);
 
         $out = [];
         foreach ($this->dates($series, $now->setTimezone($tz)->startOfDay()) as $date) {
             $at = CarbonImmutable::parse($date.' '.$series->time_local, $tz);
-            if ($at->utc()->gt($now) || $at->utc()->lt($floor) || $at->utc()->lt($since)) {
+            if ($at->utc()->gt($now) || $at->utc()->lt($floor) || $at->utc()->lt($since) || isset($existing[$date])) {
                 continue;
             }
-            if (! PostSeriesOccurrence::query()->where('series_id', $series->id)->whereDate('occurrence_date', $date)->exists()) {
-                $out[] = $date;
-            }
+            $out[] = $date;
         }
 
         return $out;
@@ -192,23 +248,36 @@ class SeriesService
         $brand = Brand::withoutUserScope()->findOrFail($series->brand_id);
         $now ??= CarbonImmutable::now('UTC');
 
-        $created = 0;
-        $failure = null;
-        foreach ($this->recoverableDates($series, $now) as $date) {
-            try {
-                $this->materialize($series, $brand, $user, $date, $now->addMinutes(self::RECOVERY_DELAY_MINUTES * ($created + 1)));
-                $created++;
-            } catch (QueryException) {
-                continue; // otra ejecucion la creo entre medias
-            } catch (PostValidationException $e) {
-                $failure ??= $e;
-            }
-        }
-        if ($created === 0 && $failure !== null) {
-            throw $failure; // la causa sigue sin resolverse: se dice al usuario en vez de callar
+        // Un lock por serie: dos recuperaciones a la vez (doble clic, web + API) no escalonan sobre las mismas horas ni se pisan.
+        $lock = Cache::lock('series-recover:'.$series->id, 30);
+        if (! $lock->get()) {
+            throw new PostValidationException(['series' => ['Ya hay una recuperacion en curso para esta serie.']]);
         }
 
-        return $created;
+        try {
+            $created = 0;
+            $failure = null;
+            $ids = $this->posts->collectApprovalRequests(function () use ($series, $brand, $user, $now, &$created, &$failure): void {
+                foreach ($this->recoverableDates($series->fresh(), $now) as $date) {
+                    try {
+                        $this->materialize($series, $brand, $user, $date, $now->addMinutes(self::RECOVERY_DELAY_MINUTES * ($created + 1)));
+                        $created++;
+                    } catch (QueryException) {
+                        continue; // otra ejecucion la creo entre medias
+                    } catch (PostValidationException $e) {
+                        $failure ??= $e;
+                    }
+                }
+            });
+            $this->notifyApprovers($series, $ids);
+            if ($created === 0 && $failure !== null) {
+                throw $failure; // la causa sigue sin resolverse: se dice al usuario en vez de callar
+            }
+
+            return $created;
+        } finally {
+            $lock->release();
+        }
     }
 
     /** Reserva la fecha y crea su post en UNA transaccion: si otra pasada ya tiene la fecha, el unique aborta y no queda ningun post. */
@@ -299,9 +368,34 @@ class SeriesService
     /** @return array<string, mixed> */
     public function present(PostSeries $series): array
     {
-        $rows = PostSeriesOccurrence::query()->where('series_id', $series->id)->orderBy('occurrence_date')->get();
-        $posts = Post::withoutUserScope()->withTrashed()->whereIn('id', $rows->pluck('post_id')->filter())->get()->keyBy('id');
+        return $this->presentMany([$series])[0];
+    }
 
+    /**
+     * Presenta varias series con consultas en bloque (marcas, ocurrencias y posts de TODAS a la vez): el listado no hace una consulta por serie
+     * ni por fecha recuperable.
+     *
+     * @param  iterable<PostSeries>  $seriesList
+     * @return list<array<string, mixed>>
+     */
+    public function presentMany(iterable $seriesList): array
+    {
+        $seriesList = collect($seriesList)->values();
+        $ids = $seriesList->pluck('id')->all();
+        $allRows = PostSeriesOccurrence::query()->whereIn('series_id', $ids)->orderBy('occurrence_date')->get()->groupBy('series_id');
+        $posts = Post::withoutUserScope()->withTrashed()->whereIn('id', $allRows->flatten(1)->pluck('post_id')->filter()->unique())->get()->keyBy('id');
+        $zones = Brand::withoutUserScope()->whereIn('id', $seriesList->pluck('brand_id')->unique())->pluck('timezone', 'id');
+
+        return $seriesList->map(fn (PostSeries $series) => $this->presentOne($series, $allRows->get($series->id, collect()), $posts, (string) (($zones[$series->brand_id] ?? null) ?: 'UTC')))->all();
+    }
+
+    /**
+     * @param  Collection<int, PostSeriesOccurrence>  $rows
+     * @param  Collection<int, Post>  $posts
+     * @return array<string, mixed>
+     */
+    private function presentOne(PostSeries $series, Collection $rows, Collection $posts, string $timezone): array
+    {
         return [
             'id' => $series->id,
             'brand_id' => $series->brand_id,
@@ -316,7 +410,7 @@ class SeriesService
             'last_error_at' => $series->last_error_at?->toIso8601String(),
             'text' => $series->payload['text'] ?? null,
             'requires_approval' => (bool) ($series->payload['requires_approval'] ?? false),
-            'recoverable' => count($this->recoverableDates($series)),
+            'recoverable' => count($this->recoverableDates($series, null, $timezone, $rows->map(fn ($r) => $r->occurrence_date->format('Y-m-d'))->all())),
             'targets' => collect($series->payload['targets'] ?? [])->map(fn ($t) => Arr::only($t, ['account_id', 'content_type', 'manual']))->all(),
             'generated' => $rows->count(),
             'occurrences' => $rows->take(60)->map(fn ($r) => [

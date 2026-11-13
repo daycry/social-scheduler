@@ -90,8 +90,7 @@ class PostWorkflowActions
     /** @return array<string, mixed> */
     public function seriesIndex(User $user): array
     {
-        return ['series' => PostSeries::withoutUserScope()->where('user_id', $user->id)->orderByDesc('id')->limit(100)->get()
-            ->map(fn (PostSeries $s) => $this->series->present($s))->all()];
+        return ['series' => $this->series->presentMany(PostSeries::withoutUserScope()->where('user_id', $user->id)->orderByDesc('id')->limit(100)->get())];
     }
 
     /** @return array<string, mixed> */

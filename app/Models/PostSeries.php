@@ -25,7 +25,7 @@ class PostSeries extends Model
 
     protected function casts(): array
     {
-        return ['weekdays' => 'array', 'payload' => 'array', 'starts_on' => 'date:Y-m-d', 'ends_on' => 'date:Y-m-d', 'cancelled_at' => 'datetime', 'last_error_at' => 'datetime', 'max_occurrences' => 'integer'];
+        return ['weekdays' => 'array', 'payload' => 'array', 'starts_on' => 'date:Y-m-d', 'ends_on' => 'date:Y-m-d', 'cancelled_at' => 'datetime', 'last_error_at' => 'datetime', 'rule_changed_at' => 'datetime', 'max_occurrences' => 'integer'];
     }
 
     protected static function booted(): void

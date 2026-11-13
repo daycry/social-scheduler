@@ -33,7 +33,7 @@ const message = ref('');
 const error = ref('');
 const busy = ref(false);
 const editing = ref(null);
-const edit = ref({ text: '', time_local: '' });
+const edit = ref({ text: '', time_local: '', requires_approval: false });
 
 const toggleAccount = (account, on) => {
     const next = { ...form.value.targets };
@@ -85,12 +85,12 @@ const recover = async (s) => {
 };
 const startEdit = (s) => {
     editing.value = s.id;
-    edit.value = { text: s.text ?? '', time_local: s.time_local };
+    edit.value = { text: s.text ?? '', time_local: s.time_local, requires_approval: !!s.requires_approval };
 };
 const saveEdit = async (s) => {
     if (busy.value) return;
     busy.value = true;
-    const result = await workflowRequest('PATCH', route('workflow.series.update', s.id), { text: edit.value.text, time_local: edit.value.time_local });
+    const result = await workflowRequest('PATCH', route('workflow.series.update', s.id), { text: edit.value.text, time_local: edit.value.time_local, requires_approval: edit.value.requires_approval });
     busy.value = false;
     if (result.ok) {
         editing.value = null;
@@ -229,7 +229,11 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
                             <textarea :id="`e-text-${s.id}`" v-model="edit.text" rows="3" class="field w-full"></textarea>
                             <label :for="`e-time-${s.id}`" class="block text-sm font-medium text-slate-800">Hora</label>
                             <input :id="`e-time-${s.id}`" v-model="edit.time_local" type="time" class="field w-auto" required />
-                            <p class="text-xs text-slate-600">Las ocurrencias que hayas editado a mano no cambian.</p>
+                            <label class="inline-flex items-center gap-2 text-sm text-slate-800">
+                                <input v-model="edit.requires_approval" type="checkbox" class="h-4 w-4 rounded border-slate-400 text-indigo-600" :data-testid="`series-edit-approval-${s.id}`" />
+                                Cada publicación necesita aprobación antes de salir
+                            </label>
+                            <p class="text-xs text-slate-600">Las ocurrencias que hayas editado a mano no cambian su texto u hora. Al activar la aprobación, las próximas publicaciones pendientes de salir pasan a pendientes de aprobar; al desactivarla, las pendientes se programan.</p>
                             <div class="flex gap-2">
                                 <button type="submit" class="btn btn-primary px-3 py-1 text-sm" :disabled="busy">Guardar</button>
                                 <button type="button" class="btn btn-secondary px-3 py-1 text-sm" @click="editing = null">Cerrar</button>

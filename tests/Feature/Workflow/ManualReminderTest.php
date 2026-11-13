@@ -6,15 +6,19 @@ use App\Models\Brand;
 use App\Models\Post;
 use App\Models\SocialAccount;
 use App\Models\User;
-use App\Notifications\PostWorkflowActivity;
+use App\Notifications\ManualPublishReminder;
 use App\Services\ManualPublishService;
 use App\Services\PostService;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Schema;
 
-// T-32: recordatorio ANTES de la hora de una publicacion manual, una sola vez, en la app y por correo si notify_by_mail.
+// T-32: recordatorio ANTES de la hora de una publicacion manual, una sola vez, en la app y por correo si notify_by_mail, siempre por la cola.
 
 beforeEach(function () {
     Http::preventStrayRequests();
@@ -42,19 +46,22 @@ test('el recordatorio sale solo dentro de la antelacion, una sola vez, y es solo
     expect(app(ManualPublishService::class)->remindUpcoming())->toBe(1)
         ->and(app(ManualPublishService::class)->remindUpcoming())->toBe(0);
 
-    Notification::assertSentToTimes($this->user, PostWorkflowActivity::class, 1);
-    Notification::assertSentTo($this->user, PostWorkflowActivity::class, fn (PostWorkflowActivity $n) => $n->kind === 'manual_reminder' && $n->via($this->user) === ['database']);
+    Notification::assertSentToTimes($this->user, ManualPublishReminder::class, 1);
+    Notification::assertSentTo($this->user, ManualPublishReminder::class, fn (ManualPublishReminder $n) => $n->via($this->user) === ['database']);
 });
 
-test('con notify_by_mail el recordatorio tambien va por correo', function () {
+test('con notify_by_mail el recordatorio tambien va por correo y se encola (nunca sincrono en el despachador)', function () {
     $this->user->forceFill(['notify_by_mail' => true])->save();
     $post = reminderPost('2026-11-09T12:30');
 
     expect(app(ManualPublishService::class)->remindUpcoming())->toBe(1);
-    $n = new PostWorkflowActivity('manual_reminder', $post->id, $this->brand->id, 'Marca', 'Recuerda', 'x');
-    expect($n->via($this->user->fresh()))->toBe(['database', 'mail'])
+    $n = new ManualPublishReminder($post->id, $this->brand->id, 'Marca', 'Recuerda', 'x');
+    expect($n)->toBeInstanceOf(ShouldQueue::class)
+        ->and($n->via($this->user->fresh()))->toBe(['database', 'mail'])
         ->and($n->toMail($this->user)->actionUrl)->toContain('/posts/'.$post->id.'/manual')
-        ->and($this->user->notifications()->where('data->type', 'manual_reminder')->count())->toBe(1);
+        ->and($n->toArray($this->user)['type'])->toBe('manual_reminder');
+    Queue::assertPushed(SendQueuedNotifications::class, 2); // un trabajo por canal (app y correo), encolados y no enviados dentro de la pasada
+    expect($this->user->notifications()->count())->toBe(0);
 });
 
 test('reprogramar rearma el recordatorio y el aviso de la hora sigue su curso', function () {
@@ -75,4 +82,24 @@ test('un post pendiente de aprobacion no recuerda', function () {
     $post = reminderPost('2026-11-09T12:30', ['requires_approval' => true]);
 
     expect($post->approval_status)->toBe(Post::APPROVAL_PENDING)->and(app(ManualPublishService::class)->remindUpcoming())->toBe(0);
+});
+
+test('el claim atomico repite la ventana, el aviso de la hora y el estado en el propio UPDATE', function () {
+    Notification::fake();
+    reminderPost('2026-11-09T12:30');
+    $updates = [];
+    DB::listen(function ($query) use (&$updates) {
+        if (str_starts_with(strtolower($query->sql), 'update "post_targets"') || str_starts_with(strtolower($query->sql), 'update `post_targets`')) {
+            $updates[] = strtolower($query->sql);
+        }
+    });
+
+    expect(app(ManualPublishService::class)->remindUpcoming())->toBe(1);
+
+    $claim = collect($updates)->first(fn ($sql) => str_contains($sql, 'manual_reminded_at'));
+    expect($claim)->toContain('manual_notified_at')->toContain('scheduled_at')->toContain('approval_status')->toContain('status');
+});
+
+test('los destinos manuales programados tienen indice propio', function () {
+    expect(Schema::hasIndex('post_targets', 'post_targets_manual_status_idx'))->toBeTrue();
 });

@@ -168,7 +168,7 @@ class MediaController extends Controller
         abort_unless($asset->isPdf() && $asset->isReady(), 404);
 
         if ($this->storage->isS3()) {
-            return redirect()->away($asset->publicUrl(30));
+            return redirect()->away($asset->downloadUrl(30));
         }
 
         $disk = $this->storage->disk();

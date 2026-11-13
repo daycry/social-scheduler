@@ -54,7 +54,7 @@ class ManageSavedTexts extends SchedulerTool
 
         if ($action === 'list') {
             $request->validate(CursorPage::RULES);
-            [$rows, $page] = CursorPage::fetch($texts->query($user, $brand?->id), $request->get('limit'), $request->get('cursor'));
+            [$rows, $page] = CursorPage::fetch($texts->query($user, $brand?->id), $request->get('limit'), $request->get('cursor'), 'saved-texts:u'.$user->id.':b'.($brand?->id ?? 'all'));
 
             return ['saved_texts' => $rows->map(fn (SavedText $t) => $texts->toArray($t))->values()->all()] + $page;
         }

@@ -17,18 +17,18 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('sites', [SiteController::class, 'index'])->name('sites.index');
-    Route::post('sites', [SiteController::class, 'store'])->middleware('throttle:20,1')->name('sites.store');
+    Route::post('sites', [SiteController::class, 'store'])->middleware('throttle:sites.store')->name('sites.store');
     Route::get('sites/{site}', [SiteController::class, 'edit'])->whereNumber('site')->name('sites.edit');
-    Route::put('sites/{site}', [SiteController::class, 'update'])->middleware('throttle:60,1')->whereNumber('site')->name('sites.update');
+    Route::put('sites/{site}', [SiteController::class, 'update'])->middleware('throttle:sites.update')->whereNumber('site')->name('sites.update');
     Route::delete('sites/{site}', [SiteController::class, 'destroy'])->whereNumber('site')->name('sites.destroy');
-    Route::post('sites/{site}/publish', [SiteController::class, 'publish'])->middleware('throttle:30,1')->whereNumber('site')->name('sites.publish');
-    Route::post('sites/{site}/unpublish', [SiteController::class, 'unpublish'])->middleware('throttle:30,1')->whereNumber('site')->name('sites.unpublish');
-    Route::put('sites/{site}/access', [SiteController::class, 'access'])->middleware('throttle:30,1')->whereNumber('site')->name('sites.access');
-    Route::post('sites/{site}/tokens', [SiteController::class, 'storeToken'])->middleware('throttle:30,1')->whereNumber('site')->name('sites.tokens.store');
-    Route::delete('sites/{site}/tokens/{token}', [SiteController::class, 'destroyToken'])->middleware('throttle:60,1')->whereNumber(['site', 'token'])->name('sites.tokens.destroy');
-    Route::post('sites/{site}/revoke-access', [SiteController::class, 'revokeAll'])->middleware('throttle:30,1')->whereNumber('site')->name('sites.revoke-access');
-    Route::delete('sites/{site}/messages', [SiteController::class, 'clearMessages'])->middleware('throttle:30,1')->whereNumber('site')->name('sites.messages.clear');
-    Route::delete('sites/{site}/messages/{message}', [SiteController::class, 'destroyMessage'])->middleware('throttle:60,1')->whereNumber(['site', 'message'])->name('sites.messages.destroy');
+    Route::post('sites/{site}/publish', [SiteController::class, 'publish'])->middleware('throttle:sites.publish')->whereNumber('site')->name('sites.publish');
+    Route::post('sites/{site}/unpublish', [SiteController::class, 'unpublish'])->middleware('throttle:sites.unpublish')->whereNumber('site')->name('sites.unpublish');
+    Route::put('sites/{site}/access', [SiteController::class, 'access'])->middleware('throttle:sites.access')->whereNumber('site')->name('sites.access');
+    Route::post('sites/{site}/tokens', [SiteController::class, 'storeToken'])->middleware('throttle:sites.tokens.store')->whereNumber('site')->name('sites.tokens.store');
+    Route::delete('sites/{site}/tokens/{token}', [SiteController::class, 'destroyToken'])->middleware('throttle:sites.tokens.destroy')->whereNumber(['site', 'token'])->name('sites.tokens.destroy');
+    Route::post('sites/{site}/revoke-access', [SiteController::class, 'revokeAll'])->middleware('throttle:sites.revoke-access')->whereNumber('site')->name('sites.revoke-access');
+    Route::delete('sites/{site}/messages', [SiteController::class, 'clearMessages'])->middleware('throttle:sites.messages.clear')->whereNumber('site')->name('sites.messages.clear');
+    Route::delete('sites/{site}/messages/{message}', [SiteController::class, 'destroyMessage'])->middleware('throttle:sites.messages.destroy')->whereNumber(['site', 'message'])->name('sites.messages.destroy');
     Route::get('sites/{site}/preview/{page?}', [SiteController::class, 'preview'])->whereNumber('site')->where('page', '[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?')->name('sites.preview');
     Route::get('sites/{site}/preview-media/{media}', [SiteController::class, 'previewMedia'])->whereNumber(['site', 'media'])->name('sites.preview-media');
 });
@@ -42,7 +42,7 @@ Route::withoutMiddleware([
     ValidateCsrfToken::class,
     PreventRequestForgery::class,
     HandleInertiaRequests::class,
-])->middleware('throttle:120,1')->group(function () {
+])->middleware('throttle:web-public-sites')->group(function () {
     $slug = '[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])';
     $page = '[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?';
     $key = '[a-f0-9]{8}';

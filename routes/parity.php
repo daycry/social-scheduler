@@ -44,17 +44,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // SmartLinks (PA-07): el microsite de la marca.
     Route::get('smartlinks', [SmartLinkController::class, 'index'])->name('smartlinks.index');
     Route::post('smartlinks', [SmartLinkController::class, 'save'])->name('smartlinks.save');
-    Route::get('smartlinks/{smartLink}/subscribers.csv', [SmartLinkController::class, 'subscribers'])->middleware('throttle:20,1')->whereNumber('smartLink')->name('smartlinks.subscribers');
-    Route::delete('smartlinks/{smartLink}/subscribers/{subscriber}', [SmartLinkController::class, 'destroySubscriber'])->middleware('throttle:60,1')->whereNumber(['smartLink', 'subscriber'])->name('smartlinks.subscribers.destroy');
-    Route::delete('smartlinks/{smartLink}/subscribers', [SmartLinkController::class, 'clearSubscribers'])->middleware('throttle:20,1')->whereNumber('smartLink')->name('smartlinks.subscribers.clear');
+    Route::get('smartlinks/{smartLink}/subscribers.csv', [SmartLinkController::class, 'subscribers'])->middleware('throttle:smartlinks.subscribers')->whereNumber('smartLink')->name('smartlinks.subscribers');
+    Route::delete('smartlinks/{smartLink}/subscribers/{subscriber}', [SmartLinkController::class, 'destroySubscriber'])->middleware('throttle:smartlinks.subscribers.destroy')->whereNumber(['smartLink', 'subscriber'])->name('smartlinks.subscribers.destroy');
+    Route::delete('smartlinks/{smartLink}/subscribers', [SmartLinkController::class, 'clearSubscribers'])->middleware('throttle:smartlinks.subscribers.clear')->whereNumber('smartLink')->name('smartlinks.subscribers.clear');
     Route::delete('smartlinks/{smartLink}', [SmartLinkController::class, 'destroy'])->whereNumber('smartLink')->name('smartlinks.destroy');
 
     // Analytics · Competidores de Instagram (PA-08).
     Route::get('competitors', [CompetitorController::class, 'index'])->name('competitors.index');
-    Route::post('competitors', [CompetitorController::class, 'store'])->middleware('throttle:20,1')->name('competitors.store');
+    Route::post('competitors', [CompetitorController::class, 'store'])->middleware('throttle:competitors.store')->name('competitors.store');
     // T-20: comparativa por rango, publicaciones del competidor y CSV.
-    Route::get('competitors/export.csv', [CompetitorController::class, 'export'])->middleware('throttle:30,1')->name('competitors.export');
-    Route::post('competitors/{competitor}/posts', [CompetitorController::class, 'refreshPosts'])->middleware('throttle:6,1')->whereNumber('competitor')->name('competitors.posts.refresh');
+    Route::get('competitors/export.csv', [CompetitorController::class, 'export'])->middleware('throttle:competitors.export')->name('competitors.export');
+    Route::post('competitors/{competitor}/posts', [CompetitorController::class, 'refreshPosts'])->middleware('throttle:competitors.posts.refresh')->whereNumber('competitor')->name('competitors.posts.refresh');
     Route::delete('competitors/{competitor}', [CompetitorController::class, 'destroy'])->whereNumber('competitor')->name('competitors.destroy');
 
     // Planificacion · Autolistas (PA-09).
@@ -64,33 +64,33 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('autolists/{autolist}', [AutolistController::class, 'destroy'])->whereNumber('autolist')->name('autolists.destroy');
     Route::post('autolists/{autolist}/items', [AutolistController::class, 'addItem'])->whereNumber('autolist')->name('autolists.items.store');
     Route::delete('autolists/{autolist}/items/{item}', [AutolistController::class, 'removeItem'])->whereNumber(['autolist', 'item'])->name('autolists.items.destroy');
-    Route::post('autolists/{autolist}/generate', [AutolistController::class, 'generate'])->middleware('throttle:20,1')->whereNumber('autolist')->name('autolists.generate');
+    Route::post('autolists/{autolist}/generate', [AutolistController::class, 'generate'])->middleware('throttle:autolists.generate')->whereNumber('autolist')->name('autolists.generate');
 
     // Inbox de comentarios de Instagram/Facebook (PA-10).
     Route::get('inbox', [InboxController::class, 'index'])->name('inbox.index');
-    Route::post('inbox/sync', [InboxController::class, 'sync'])->middleware('throttle:6,1')->name('inbox.sync');
+    Route::post('inbox/sync', [InboxController::class, 'sync'])->middleware('throttle:inbox.sync')->name('inbox.sync');
     Route::post('inbox/read-all', [InboxController::class, 'readAll'])->name('inbox.read-all');
     Route::post('inbox/{comment}/read', [InboxController::class, 'read'])->whereNumber('comment')->name('inbox.read');
-    Route::post('inbox/{comment}/reply', [InboxController::class, 'reply'])->middleware('throttle:30,1')->whereNumber('comment')->name('inbox.reply');
-    Route::post('inbox/{comment}/hide', [InboxController::class, 'hide'])->middleware('throttle:30,1')->whereNumber('comment')->name('inbox.hide');
+    Route::post('inbox/{comment}/reply', [InboxController::class, 'reply'])->middleware('throttle:inbox.reply')->whereNumber('comment')->name('inbox.reply');
+    Route::post('inbox/{comment}/hide', [InboxController::class, 'hide'])->middleware('throttle:inbox.hide')->whereNumber('comment')->name('inbox.hide');
     // T-20: triaje (cerrar, etiquetas, asignar, lotes) y respuestas guardadas.
-    Route::post('inbox/batch', [InboxController::class, 'batch'])->middleware('throttle:30,1')->name('inbox.batch');
-    Route::post('inbox/{comment}/close', [InboxController::class, 'close'])->middleware('throttle:60,1')->whereNumber('comment')->name('inbox.close');
-    Route::post('inbox/{comment}/label', [InboxController::class, 'label'])->middleware('throttle:60,1')->whereNumber('comment')->name('inbox.label');
-    Route::post('inbox/{comment}/assign', [InboxController::class, 'assign'])->middleware('throttle:60,1')->whereNumber('comment')->name('inbox.assign');
-    Route::post('inbox/saved-replies', [InboxController::class, 'storeSavedReply'])->middleware('throttle:30,1')->name('inbox.saved-replies.store');
-    Route::delete('inbox/saved-replies/{reply}', [InboxController::class, 'destroySavedReply'])->middleware('throttle:30,1')->whereNumber('reply')->name('inbox.saved-replies.destroy');
+    Route::post('inbox/batch', [InboxController::class, 'batch'])->middleware('throttle:inbox.batch')->name('inbox.batch');
+    Route::post('inbox/{comment}/close', [InboxController::class, 'close'])->middleware('throttle:inbox.close')->whereNumber('comment')->name('inbox.close');
+    Route::post('inbox/{comment}/label', [InboxController::class, 'label'])->middleware('throttle:inbox.label')->whereNumber('comment')->name('inbox.label');
+    Route::post('inbox/{comment}/assign', [InboxController::class, 'assign'])->middleware('throttle:inbox.assign')->whereNumber('comment')->name('inbox.assign');
+    Route::post('inbox/saved-replies', [InboxController::class, 'storeSavedReply'])->middleware('throttle:inbox.saved-replies.store')->name('inbox.saved-replies.store');
+    Route::delete('inbox/saved-replies/{reply}', [InboxController::class, 'destroySavedReply'])->middleware('throttle:inbox.saved-replies.destroy')->whereNumber('reply')->name('inbox.saved-replies.destroy');
     // Notas internas de los comentarios (C-04d).
-    Route::post('inbox/{comment}/notes', [InboxNoteController::class, 'store'])->middleware('throttle:60,1')->whereNumber('comment')->name('inbox.notes.store');
-    Route::delete('inbox/notes/{note}', [InboxNoteController::class, 'destroy'])->middleware('throttle:60,1')->whereNumber('note')->name('inbox.notes.destroy');
+    Route::post('inbox/{comment}/notes', [InboxNoteController::class, 'store'])->middleware('throttle:inbox.notes.store')->whereNumber('comment')->name('inbox.notes.store');
+    Route::delete('inbox/notes/{note}', [InboxNoteController::class, 'destroy'])->middleware('throttle:inbox.notes.destroy')->whereNumber('note')->name('inbox.notes.destroy');
 
     // Analytics · Meta Ads, solo lectura (PA-11).
-    Route::get('ads', [AdsController::class, 'index'])->middleware('throttle:30,1')->name('ads.index');
+    Route::get('ads', [AdsController::class, 'index'])->middleware('throttle:ads.index')->name('ads.index');
 
     // Asistente IA opcional del compositor (T-14): JSON; solo existe con AI_ASSISTANT_ENABLED y ANTHROPIC_API_KEY.
     Route::get('ai/status', [AiAssistantController::class, 'status'])->name('ai.status');
-    Route::post('ai/suggest', [AiAssistantController::class, 'suggest'])->middleware('throttle:10,1')->name('ai.suggest');
-    Route::post('ai/schedule', [AiAssistantController::class, 'schedule'])->middleware('throttle:10,1')->name('ai.schedule');
+    Route::post('ai/suggest', [AiAssistantController::class, 'suggest'])->middleware('throttle:ai.suggest')->name('ai.suggest');
+    Route::post('ai/schedule', [AiAssistantController::class, 'schedule'])->middleware('throttle:ai.schedule')->name('ai.schedule');
 });
 
 // SmartLinks publicos (PA-07): sin login, sin sesion ni cookies (ni Set-Cookie ni CSRF) y sin el middleware de Inertia
@@ -103,7 +103,7 @@ Route::withoutMiddleware([
     ValidateCsrfToken::class,
     PreventRequestForgery::class,
     HandleInertiaRequests::class,
-])->middleware('throttle:120,1')->group(function () {
+])->middleware('throttle:web-public-parity')->group(function () {
     $slug = '[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])';
     Route::get('l/{slug}', [PublicSmartLinkController::class, 'show'])->where('slug', $slug)->name('smartlinks.public');
     Route::post('l/{slug}/subscribe/{block}', [PublicSmartLinkController::class, 'subscribe'])->middleware('throttle:5,1,smartlink-subscribe')->where(['slug' => $slug, 'block' => '[0-9]+'])->name('smartlinks.subscribe');

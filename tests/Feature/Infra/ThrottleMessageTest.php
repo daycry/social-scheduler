@@ -2,7 +2,7 @@
 
 use App\Models\User;
 use App\Services\Media\UrlGuard;
-use Illuminate\Support\Facades\RateLimiter;
+use App\Support\RouteLimits;
 use Illuminate\Support\Facades\Route;
 
 // Un 429 de `throttle` sale en castellano y con el tiempo de espera, en la web (JSON), la API y MCP; las cabeceras se conservan.
@@ -37,7 +37,7 @@ test('Throttle: una peticion HTML normal conserva la respuesta por defecto', fun
     $this->get('/_throttle-html')->assertStatus(429)->assertHeader('Retry-After');
 });
 
-test('Throttle: el cubo de `throttle:N,1` de un usuario se vacia con RateLimiter::clear(sha1(id)) (lo usa el E2E aislado)', function () {
+test('Throttle: los contadores por ruta de un usuario se vacian con RouteLimits::forget (lo usa el E2E aislado)', function () {
     app()->instance(UrlGuard::class, new UrlGuard(fn (string $host) => []));
     $user = User::factory()->create();
     for ($i = 0; $i < 11; $i++) {
@@ -45,7 +45,7 @@ test('Throttle: el cubo de `throttle:N,1` de un usuario se vacia con RateLimiter
     }
     $this->actingAs($user)->postJson(route('media.import-url'), ['url' => 'https://cdn.example.com/a.jpg'])->assertStatus(429);
 
-    RateLimiter::clear(sha1((string) $user->id));
+    RouteLimits::forget($user->id);
 
     $this->actingAs($user)->postJson(route('media.import-url'), ['url' => 'https://cdn.example.com/a.jpg'])->assertStatus(422);
 });

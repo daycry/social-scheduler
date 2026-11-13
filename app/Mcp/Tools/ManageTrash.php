@@ -48,7 +48,7 @@ class ManageTrash extends SchedulerTool
 
         if ($action === 'list') {
             $request->validate(CursorPage::RULES);
-            [$rows, $page] = CursorPage::fetch($trash->query($user), $request->get('limit'), $request->get('cursor'));
+            [$rows, $page] = CursorPage::fetch($trash->query($user), $request->get('limit'), $request->get('cursor'), 'trash:u'.$user->id);
 
             return ['retention_days' => TrashService::RETENTION_DAYS, 'posts' => $rows->map(fn (Post $p) => $trash->present($p))->values()->all()] + $page;
         }

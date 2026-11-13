@@ -15,6 +15,7 @@ use App\Connectors\TikTok\TikTokPublisher;
 use App\Enums\ContentType;
 use App\Enums\PostStatus;
 use App\Exceptions\InvalidPostTransition;
+use App\Exceptions\PostStateConflict;
 use App\Exceptions\PostValidationException;
 use App\Http\Requests\PostRequest;
 use App\Jobs\DispatchDuePosts;
@@ -612,7 +613,7 @@ class PostService
 
         // Borrar/cancelar sí se permite sobre un `procesando` atascado cuya cuenta no esta activa (nadie lo va a sondear).
         if ($targets->contains(fn (PostTarget $t) => ($t->status->isInFlight() || $t->status->isFinal()) && ! ($allowOrphans && $this->isOrphanedProcessing($t)))) {
-            throw new PostValidationException(['post' => [$message]]);
+            throw new PostStateConflict($message);
         }
 
         return $targets->keyBy(fn (PostTarget $t) => $t->social_account_id.'|'.$t->content_type->value);

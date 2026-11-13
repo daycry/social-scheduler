@@ -98,6 +98,13 @@ class MediaUploadService
         ]];
     }
 
+    /** Reglas del cuerpo de `complete` (partes de un multipart), compartidas por la web y la API v1. */
+    public const COMPLETE_RULES = [
+        'parts' => ['sometimes', 'array', 'max:10000'],
+        'parts.*.number' => ['required_with:parts', 'integer', 'min:1', 'max:10000'],
+        'parts.*.etag' => ['required_with:parts', 'string', 'max:200'],
+    ];
+
     /** Importaciones remotas vivas (pendientes y recientes) que un usuario puede tener a la vez. */
     public const MAX_LIVE_IMPORTS = 3;
 
@@ -215,6 +222,39 @@ class MediaUploadService
         $asset->save();
 
         return $asset;
+    }
+
+    /**
+     * Recibe el binario de una subida local (disco local, solo mientras el asset esta pendiente) y lo finaliza. Lo comparten la web y la API v1.
+     *
+     * @param  resource  $stream
+     */
+    public function receiveLocal(MediaAsset $asset, $stream): MediaAsset
+    {
+        $this->assertGenericUpload($asset);
+        abort_if($this->storage->isS3() || $asset->status !== MediaAsset::STATUS_PENDING, 409, 'La subida local no esta disponible.');
+
+        $this->storage->disk()->writeStream($asset->path, $stream);
+
+        return $this->finalize($asset);
+    }
+
+    /**
+     * Cierra una subida desde un cliente (multipart o ya completa) comprobando que es media generica y no un audio o un render del Estudio.
+     *
+     * @param  list<array{number: int, etag: string}>  $parts
+     */
+    public function completeClientUpload(MediaAsset $asset, array $parts = []): MediaAsset
+    {
+        $this->assertGenericUpload($asset);
+
+        return $this->complete($asset, $parts);
+    }
+
+    private function assertGenericUpload(MediaAsset $asset): void
+    {
+        abort_if($asset->kind === MediaAsset::KIND_AUDIO, 404);
+        abort_if(isset($asset->import_state['studio_av']), 409, 'Este archivo pertenece a una exportación de Studio.');
     }
 
     /**

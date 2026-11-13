@@ -72,5 +72,5 @@ it('no admite notas en respuestas propias (is_own)', function () {
 });
 
 it('borrar notas lleva throttle', function () {
-    expect(app('router')->getRoutes()->getByName('inbox.notes.destroy')->gatherMiddleware())->toContain('throttle:60,1');
+    expect(app('router')->getRoutes()->getByName('inbox.notes.destroy')->gatherMiddleware())->toContain('throttle:inbox.notes.destroy');
 });

@@ -227,12 +227,12 @@ export function resetSecurity(email: string, env: Record<string, string> = envir
 }
 
 /**
- * Vacia el cubo de los `throttle:N,1` numericos del usuario (todos comparten la clave sha1(id)). Cada worker tiene su propio limitador
+ * Vacia los contadores de ritmo por ruta del usuario (`config/rate_limits.php`: uno por ruta y usuario). Cada worker tiene su propio limitador
  * (cache de archivos del slot) pero sus tests reutilizan al mismo usuario E2E: sin esto, los de unos specs gastan el cupo de otros y
  * aparece un 429 ajeno al test. Solo toca el servidor aislado; el limite de produccion no cambia.
  */
 export function clearUserThrottle(email: string) {
-    artisan(String.raw`$u = App\Models\User::where('email', ${q(email)})->first(); if ($u) { Illuminate\Support\Facades\RateLimiter::clear(sha1((string) $u->id)); }`);
+    artisan(String.raw`$u = App\Models\User::where('email', ${q(email)})->first(); if ($u) { App\Support\RouteLimits::forget($u->id); }`);
 }
 
 /** Libera el antirreplay del TOTP (`two_factor_last_used_at`) y el bloqueo del reto: para flujos que no prueban eso. */

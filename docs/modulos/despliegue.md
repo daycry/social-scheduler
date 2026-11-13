@@ -48,6 +48,17 @@ Con la URL de ngrok de desarrollo ya registrada, añade estas **sin quitar** las
 
 `deploy.sh` ejecuta: fetch → comprobación de CI → compilar aparte (composer, `npm ci && npm run build`; exige `public/build/manifest.json`) → `artisan down` → volcado previo → código y cambio de vendor/build → migrate → caches → `queue:restart` → `up` → reinicio de `WORKER_UNITS` → smoke con `app:health --skip-scheduler`. Si falla antes de cambiar el código, la app vuelve a subir; si falla después, se queda en mantenimiento.
 
+## Cambios incompatibles de API y MCP (`audit-hardening`, T-28/T-29)
+
+Quien use la API v1 o el MCP con claves ya emitidas debe adaptar estos puntos (no hay alias de los formatos antiguos):
+
+- **La marca va en la ruta.** `POST /api/v1/posts` pasa a `POST /api/v1/brands/{brand}/posts` y `POST /api/v1/series` a `POST /api/v1/brands/{brand}/series`. `brand_id` ya no se acepta en el cuerpo.
+- **Paginación por cursor.** Los listados de posts, media, comentarios y diseños (API y MCP: `list_media`, `list_comments`, `list_designs`) usan `limit` y `cursor` y devuelven `has_more` y `next_cursor`; desaparecen `page`, `before_id`, `current_page`, `last_page` y `total`. El cursor es opaco y solo vale para el listado que lo emitió (otro da 422). Los diseños se ordenan por id (los más recientes primero), no por última edición. La colección de diseños pasa de `data` a `designs`.
+- **409 frente a 422.** Un estado que no admite la operación (borrar o publicar una publicación ya publicada, cancelar una que ya es borrador, borrar media en uso) responde 409; 422 queda para errores de entrada. El MCP lo marca con el prefijo `409:`.
+- **Límites de ritmo por ruta.** Cada ruta con límite propio tiene su contador (por usuario o IP) y sus valores viven en `config/rate_limits.php` (antes, un `throttle:N,1` numérico compartía contador con las demás rutas y el límite propio nunca actuaba). El tope conjunto de la API sigue siendo 120 por minuto y usuario (`api-v1`); si necesitas vaciar los contadores de un usuario, usa `App\Support\RouteLimits::forget($userId)`.
+- **SmartLink.** Un `PUT /brands/{brand}/smart-link` sin `published` ya no publica: uno nuevo queda sin publicar y uno existente conserva su estado.
+- **Nuevas abilities** `smartlinks:read` y `smartlinks:write`: las claves existentes no las tienen; añádelas donde haga falta.
+
 ## Cambios de configuración
 
 - `LINKEDIN_RECONNECT_NOTICE_DAYS` desaparece; usa `SOCIAL_EXPIRY_NOTICE_DAYS` (días de antelación separados por comas, por defecto `7,1`; vale para todas las redes con caducidad conocida) y, si quieres otra hora, `SOCIAL_EXPIRY_NOTICE_AT`. Hay que ejecutar `php artisan migrate` (nueva columna `users.notify_by_mail`) y la tarea programada `connections:notify-expiry` ya va en el scheduler.

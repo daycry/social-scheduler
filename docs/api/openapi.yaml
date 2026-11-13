@@ -352,7 +352,7 @@ paths:
         - $ref: '#/components/parameters/Limit'
         - $ref: '#/components/parameters/Cursor'
       responses:
-        '200': { description: Página de diseños (24 por defecto) con el contrato de cursor común, content: { application/json: { schema: { $ref: '#/components/schemas/DesignPage' } } } }
+        '200': { description: "Página de diseños (24 por defecto; los más recientes primero por id) con el contrato de cursor común", content: { application/json: { schema: { $ref: '#/components/schemas/DesignPage' } } } }
         '422': { $ref: '#/components/responses/ValidationError' }
         '404': { $ref: '#/components/responses/NotFound' }
     post:
@@ -994,7 +994,7 @@ paths:
     post:
       operationId: cancelPost
       tags: [Publicaciones]
-      description: "posts:write. Cancela la programación: la publicación pendiente vuelve a borrador y no se publicará. No la borra."
+      description: "posts:write. Cancela la programación: la publicación pendiente vuelve a borrador y no se publicará. No la borra. Una que ya es borrador (ya cancelada) o ya se publicó responde 409."
       responses:
         '200': { description: Publicación en borrador, content: { application/json: { schema: { $ref: '#/components/schemas/Post' } } } }
         '401': { $ref: '#/components/responses/Unauthenticated' }
@@ -1008,7 +1008,7 @@ paths:
     post:
       operationId: publishPostNow
       tags: [Publicaciones]
-      description: "posts:write. Publica ya un borrador o una programada: se valida como al programar (sin exigir fecha futura) y se encola de inmediato. El estado pasa a publicada cuando la red responde. Una publicación que se está publicando o ya se publicó responde 422."
+      description: "posts:write. Publica ya un borrador o una programada: se valida como al programar (sin exigir fecha futura) y se encola de inmediato. El estado pasa a publicada cuando la red responde. Una publicación que se está publicando o ya se publicó responde 409."
       responses:
         '202': { description: Publicación encolada, content: { application/json: { schema: { $ref: '#/components/schemas/Post' } } } }
         '401': { $ref: '#/components/responses/Unauthenticated' }
@@ -1070,9 +1070,9 @@ paths:
     delete:
       operationId: deleteMedia
       tags: [Media]
-      description: "posts:write. Borra un fichero propio que no esté en uso."
+      description: "posts:write. Borra un fichero propio que no esté en uso (en uso responde 409)."
       responses:
-        '200': { description: Borrado, content: { application/json: { schema: { type: object, properties: { ok: { type: boolean } } } } } }
+        '200': { description: Borrado, content: { application/json: { schema: { type: object, properties: { id: { type: integer }, deleted: { type: boolean } } } } } }
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/MissingAbility' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -1230,7 +1230,7 @@ paths:
     put:
       operationId: saveSmartLink
       tags: [SmartLinks]
-      description: "smartlinks:write. Crea (201) o reemplaza (200) el SmartLink de la marca. Los bloques con `id` de este SmartLink se actualizan (conservan sus clics); los nuevos se crean y los que no llegan se borran."
+      description: "smartlinks:write. Crea (201) o reemplaza (200) el SmartLink de la marca. Sin `published` nunca publica: uno nuevo queda sin publicar y uno existente conserva su estado. Los bloques con `id` de este SmartLink se actualizan (conservan sus clics); los nuevos se crean y los que no llegan se borran."
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SmartLinkInput' } } } }
       responses:
         '200': { description: SmartLink actualizado, content: { application/json: { schema: { $ref: '#/components/schemas/SmartLink' } } } }
@@ -1306,7 +1306,7 @@ paths:
     get: {"operationId": "getPost", "tags": ["Workflow"], "description": "posts:read. Una publicación ajena responde 404.", "responses": {"200": {"description": "Publicación", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Post"}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:read"}, "404": {"$ref": "#/components/responses/NotFound"}}}
     put: {"operationId": "replacePost", "tags": ["Workflow"], "description": "posts:write. Reemplaza la publicación entera con el mismo cuerpo que POST /brands/{brand}/posts. Una publicación en vuelo o publicada responde 409.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PostInput"}}}}, "responses": {"200": {"description": "Publicación actualizada", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Post"}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:write"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}, "409": {"description": "Conflicto o transición no permitida", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}}}
     patch: {"operationId": "updatePost", "tags": ["Workflow"], "description": "posts:write. Fusiona lo enviado sobre el estado actual (destinos y media se envían enteros si se envían) y valida el resultado. Solo `notes` y `campaign_id` también se aceptan en una publicación ya publicada.", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PostInput"}}}}, "responses": {"200": {"description": "Publicación actualizada", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Post"}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:write"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}, "409": {"description": "Conflicto o transición no permitida", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}}}
-    delete: {"operationId": "deletePost", "tags": ["Publicaciones"], "description": "posts:write. Borra una publicación que aún no se ha publicado ni se está publicando. Es irreversible. Una ya publicada responde 422.", "responses": {"200": {"description": "Borrada", "content": {"application/json": {"schema": {"type": "object", "properties": {"id": {"type": "integer"}, "deleted": {"type": "boolean"}}}}}}, "401": {"$ref": "#/components/responses/Unauthenticated"}, "403": {"$ref": "#/components/responses/MissingAbility"}, "404": {"$ref": "#/components/responses/NotFound"}, "422": {"$ref": "#/components/responses/ValidationError"}, "429": {"$ref": "#/components/responses/TooManyRequests"}}}
+    delete: {"operationId": "deletePost", "tags": ["Publicaciones"], "description": "posts:write. Borra una publicación que aún no se ha publicado ni se está publicando. Es irreversible. Una ya publicada o en vuelo responde 409.", "responses": {"200": {"description": "Borrada", "content": {"application/json": {"schema": {"type": "object", "properties": {"id": {"type": "integer"}, "deleted": {"type": "boolean"}}}}}}, "401": {"$ref": "#/components/responses/Unauthenticated"}, "403": {"$ref": "#/components/responses/MissingAbility"}, "404": {"$ref": "#/components/responses/NotFound"}, "409": {"$ref": "#/components/responses/Conflict"}, "429": {"$ref": "#/components/responses/TooManyRequests"}}}
   /posts/batch:
     post: {"operationId": "batchPosts", "tags": ["Workflow"], "description": "posts:write (approve y reject exigen posts:approve). Hasta 100 publicaciones; cada elemento se autoriza y ejecuta aparte y devuelve ok o error sin parar el lote. Con `Idempotency-Key` (o `idempotency_key` en el cuerpo) repetir la petición devuelve la misma respuesta sin volver a ejecutar; la cabecera de respuesta `Idempotency-Replayed` indica si fue una repetición. approve y reject exigen `signatures` (id => content_signature) y reject un `comment`.", "parameters": [{"name": "Idempotency-Key", "in": "header", "required": false, "schema": {"type": "string"}}], "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PostBatchInput"}}}}, "responses": {"200": {"description": "Resultado por elemento", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PostBatchResult"}}}}, "401": {"description": "Autenticación requerida"}, "403": {"description": "Falta la ability posts:write"}, "422": {"$ref": "#/components/responses/ValidationError"}, "429": {"description": "Demasiados lotes"}}}
   /approvals:
@@ -1497,7 +1497,7 @@ components:
         content_types: { type: array, items: { type: string } }
     CursorPage:
       type: object
-      description: "Contrato de paginación por cursor único de la API v1 y del MCP: `has_more` indica si hay más y `next_cursor` (opaco) se envía tal cual como `cursor` para pedir la siguiente página; es null en la última."
+      description: "Contrato de paginación por cursor único de la API v1 y del MCP: `has_more` indica si hay más y `next_cursor` (opaco) se envía tal cual como `cursor` para pedir la siguiente página; es null en la última. El cursor solo vale para el listado que lo emitió (recurso, marca y usuario); otro da 422."
       required: [has_more, next_cursor]
       properties:
         has_more: { type: boolean }

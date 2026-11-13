@@ -62,7 +62,7 @@ class ManageAutolist extends SchedulerTool
         if ($action === 'list') {
             $request->validate(CursorPage::RULES);
             $brand = $this->brandFrom($request, $user, required: false);
-            [$rows, $page] = CursorPage::fetch($lists->query($user, $brand?->id)->reorder('id', 'desc'), $request->get('limit'), $request->get('cursor'));
+            [$rows, $page] = CursorPage::fetch($lists->query($user, $brand?->id)->reorder('id', 'desc'), $request->get('limit'), $request->get('cursor'), 'autolists:u'.$user->id.':b'.($brand?->id ?? 'all'));
 
             return ['autolists' => $rows->map(fn (Autolist $l) => $lists->present($l))->values()->all()] + $page;
         }

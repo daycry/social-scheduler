@@ -3,6 +3,7 @@
 use App\Connectors\Network;
 use App\Jobs\PublishPostTarget;
 use App\Models\Brand;
+use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\SocialAccount;
 use App\Models\User;
@@ -105,7 +106,7 @@ test('posts: ver uno propio; el de otro usuario 404; sin ability 403', function 
     v1($this->noneKey, 'GET', 'posts/'.$id)->assertForbidden();
 });
 
-test('posts: borrar un borrador; el ajeno 404; sin ability 403; uno ya publicado 422', function () {
+test('posts: borrar un borrador; el ajeno 404; sin ability 403; uno ya publicado 409', function () {
     $id = v1Draft();
     v1($this->readKey, 'DELETE', 'posts/'.$id)->assertForbidden();
     v1($this->otherKey, 'DELETE', 'posts/'.$id)->assertNotFound();
@@ -116,7 +117,7 @@ test('posts: borrar un borrador; el ajeno 404; sin ability 403; uno ya publicado
 
     $published = v1Draft('publicado');
     Post::withoutUserScope()->find($published)->targets()->update(['status' => 'publicada']);
-    v1($this->key, 'DELETE', 'posts/'.$published)->assertUnprocessable();
+    v1($this->key, 'DELETE', 'posts/'.$published)->assertStatus(409)->assertJsonMissingPath('errors');
 });
 
 test('posts: cancelar la programacion devuelve a borrador; ajeno 404; sin ability 403', function () {
@@ -138,10 +139,48 @@ test('posts: publicar ya encola el destino; ajeno 404; sin ability 403; un post 
     // Uno ya publicado no se vuelve a publicar: error de dominio, no 500.
     $published = v1Draft('publicado');
     Post::withoutUserScope()->find($published)->targets()->update(['status' => 'publicada']);
-    v1($this->key, 'POST', 'posts/'.$published.'/publish')->assertUnprocessable();
+    v1($this->key, 'POST', 'posts/'.$published.'/publish')->assertStatus(409);
 });
 
 test('la marca ya no viaja en el cuerpo: POST /posts y POST /series sin marca en la ruta no existen', function () {
     v1($this->key, 'POST', 'posts', ['brand_id' => $this->brand->id, 'text' => 'x'])->assertNotFound();
     v1($this->key, 'POST', 'series', ['brand_id' => $this->brand->id])->assertStatus(405);
+});
+
+test('409 es el estado que no admite la operacion y 422 solo el error de entrada, en la API y en el MCP', function () {
+    $id = v1Draft('conflicto');
+    // Cancelar un borrador (ya cancelado): no hay programacion que cancelar.
+    v1($this->key, 'POST', 'posts/'.$id.'/cancel')->assertStatus(409)->assertJsonPath('message', fn (string $m) => str_contains($m, 'borrador'));
+    // Editar un post ya publicado: estado, no entrada.
+    Post::withoutUserScope()->find($id)->targets()->update(['status' => 'publicada']);
+    v1($this->key, 'PUT', 'posts/'.$id, ['text' => 'nuevo', 'schedule' => false, 'targets' => [['account_id' => $this->fb->id, 'content_type' => 'facebook_text']]])->assertStatus(409);
+    v1($this->key, 'POST', 'posts/'.$id.'/cancel')->assertStatus(409);
+    // Una entrada invalida sigue siendo 422 con sus errores por campo.
+    $other = v1Draft('otro');
+    v1($this->key, 'PUT', 'posts/'.$other, ['text' => 'x', 'schedule' => false, 'targets' => 'no'])->assertUnprocessable()->assertJsonValidationErrors('targets');
+
+    // El MCP distingue el conflicto de estado de un error de datos.
+    [$err, $msg] = $this->callTool($this->key, 'delete_post', ['post_id' => $id]);
+    expect($err)->toBeTrue()->and($msg)->toStartWith('409:');
+    [$err2, $msg2] = $this->callTool($this->key, 'create_post', ['brand_id' => $this->brand->id, 'text' => 'x', 'schedule' => false, 'targets' => 'no']);
+    expect($err2)->toBeTrue()->and($msg2)->not->toStartWith('409:');
+});
+
+test('un cursor de otro listado se rechaza con 422: la identidad (recurso, marca y usuario) va en el cursor', function () {
+    foreach (['a', 'b', 'c'] as $t) {
+        v1Draft($t);
+        v1Draft($t, $this->brand2->id, SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand2->id, 'network' => Network::Facebook])->id);
+    }
+    $cursor = v1($this->key, 'GET', 'brands/'.$this->brand->id.'/posts?limit=1')->assertOk()->json('next_cursor');
+    // Misma marca: sirve. Otra marca del mismo usuario: no.
+    v1($this->key, 'GET', 'brands/'.$this->brand->id.'/posts?limit=1&cursor='.urlencode($cursor))->assertOk();
+    v1($this->key, 'GET', 'brands/'.$this->brand2->id.'/posts?limit=1&cursor='.urlencode($cursor))->assertUnprocessable()->assertJsonValidationErrors('cursor');
+    // Un cursor de la media no vale para los posts, ni al reves.
+    $mediaCursor = (function () {
+        MediaAsset::factory()->count(2)->for($this->user)->create();
+
+        return v1($this->key, 'GET', 'media?limit=1')->assertOk()->json('next_cursor');
+    })->call($this);
+    v1($this->key, 'GET', 'brands/'.$this->brand->id.'/posts?cursor='.urlencode($mediaCursor))->assertUnprocessable();
+    v1($this->key, 'GET', 'media?cursor='.urlencode($cursor))->assertUnprocessable()->assertJsonValidationErrors('cursor');
 });

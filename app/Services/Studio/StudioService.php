@@ -22,7 +22,7 @@ class StudioService
     public function __construct(private readonly StudioDocument $documents, private readonly StudioAssets $assets, private readonly StudioCollab $collab) {}
 
     /**
-     * Diseños de la marca (resumenes sin documento), mas recientes primero, con el contrato de cursor comun (limit, cursor, has_more, next_cursor).
+     * DiseÃ±os de la marca (resumenes sin documento), los mas recientes primero por id (estable entre paginas aunque un diseno se edite), con el contrato de cursor comun (limit, cursor, has_more, next_cursor).
      *
      * @return array{designs: list<array<string, mixed>>, has_more: bool, next_cursor: ?string}
      */
@@ -46,7 +46,7 @@ class StudioService
             $query->where('is_template', filter_var($filters['templates'], FILTER_VALIDATE_BOOLEAN));
         }
 
-        [$rows, $page] = CursorPage::fetch($query->latest('updated_at')->latest('id'), $filters['limit'] ?? null, $filters['cursor'] ?? null, 24);
+        [$rows, $page] = CursorPage::fetch($query->latest('id'), $filters['limit'] ?? null, $filters['cursor'] ?? null, 'designs:u'.$user->id.':b'.$brand->id, 24);
 
         return ['designs' => $rows->map->toArray()->values()->all()] + $page;
     }

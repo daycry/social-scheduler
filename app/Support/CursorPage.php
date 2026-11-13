@@ -12,6 +12,9 @@ use UnexpectedValueException;
 /**
  * Contrato de paginacion por cursor unico de la API v1, el MCP y la web: entrada `limit` (1-100) y `cursor` (opaco), salida
  * `has_more` y `next_cursor` (nulo en la ultima pagina). El orden de la consulta debe ser total (acabar en `id`).
+ *
+ * El cursor lleva la identidad del listado (`scope`: recurso, marca y usuario): uno de otro listado se rechaza con 422 en lugar de
+ * paginar otra cosa o filtrar por casualidad.
  */
 final class CursorPage
 {
@@ -22,14 +25,19 @@ final class CursorPage
 
     /**
      * @param  Builder<Model>  $query  con su orden total ya aplicado
+     * @param  string  $scope  identidad del listado, p. ej. `posts:u1:b2`
      * @return array{0: Collection<int, Model>, 1: array{has_more: bool, next_cursor: ?string}}
      */
-    public static function fetch(Builder $query, mixed $limit, mixed $cursor, int $default = 50): array
+    public static function fetch(Builder $query, mixed $limit, mixed $cursor, string $scope, int $default = 50): array
     {
         $limit = is_numeric($limit) ? min(self::MAX_LIMIT, max(1, (int) $limit)) : $default;
         $decoded = null;
         if (is_string($cursor) && $cursor !== '') {
-            $decoded = Cursor::fromEncoded($cursor);
+            $outer = json_decode((string) base64_decode(strtr($cursor, '-_', '+/'), true), true);
+            if (! is_array($outer) || ($outer['s'] ?? null) !== $scope || ! is_string($outer['c'] ?? null)) {
+                throw self::invalid();
+            }
+            $decoded = Cursor::fromEncoded($outer['c']);
             if ($decoded === null || $decoded->pointsToPreviousItems()) {
                 throw self::invalid();
             }
@@ -42,7 +50,12 @@ final class CursorPage
             throw self::invalid();
         }
 
-        return [$page->getCollection(), ['has_more' => $page->hasMorePages(), 'next_cursor' => $page->nextCursor()?->encode()]];
+        return [$page->getCollection(), ['has_more' => $page->hasMorePages(), 'next_cursor' => self::seal($scope, $page->nextCursor())]];
+    }
+
+    private static function seal(string $scope, ?Cursor $cursor): ?string
+    {
+        return $cursor === null ? null : rtrim(strtr(base64_encode((string) json_encode(['s' => $scope, 'c' => $cursor->encode()])), '+/', '-_'), '=');
     }
 
     private static function invalid(): ValidationException

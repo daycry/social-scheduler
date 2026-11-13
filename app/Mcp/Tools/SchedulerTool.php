@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools;
 
 use App\Exceptions\InvalidPostTransition;
+use App\Exceptions\PostStateConflict;
 use App\Exceptions\PostValidationException;
 use App\Models\Brand;
 use App\Models\Post;
@@ -84,6 +85,11 @@ abstract class SchedulerTool extends Tool
             $audit->record($user, $action, $status === 404 ? AuditLog::DENIED : AuditLog::ERROR, $this->resource(), $resourceId, 'HTTP '.$status);
 
             return Response::error(in_array($status, [403, 409, 429], true) ? $status.': '.$e->getMessage() : ($status === 404 ? '404: Recurso no encontrado.' : ($status === 503 && $this->resource() === 'studio_dataset' ? '503: Dataset snapshot unavailable.' : 'No se pudo completar la operación.')));
+        } catch (PostStateConflict $e) {
+            // Estado que no admite la operacion: distinguible de un error de datos (como el 409 de la API).
+            $audit->record($user, $action, AuditLog::ERROR, $this->resource(), $resourceId, 'Conflicto de estado');
+
+            return Response::error('409: '.$e->getMessage());
         } catch (PostValidationException $e) {
             $audit->record($user, $action, AuditLog::ERROR, $this->resource(), $resourceId, 'Validacion');
 

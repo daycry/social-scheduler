@@ -152,7 +152,8 @@ class SmartLinkService
                     'avatar_media_id' => $avatarId,
                     'theme_color' => $data['theme_color'] ?? '#4f46e5',
                     'theme_mode' => $data['theme_mode'] ?? 'light',
-                    'published' => (bool) ($data['published'] ?? true),
+                    // Sin `published` nunca se publica por defecto (CWE-1188): un microsite nuevo nace sin publicar y uno existente conserva su estado.
+                    'published' => (bool) ($data['published'] ?? $existing?->published ?? false),
                 ]);
                 $link->user_id = $user->id;
                 $link->brand_id = $brand->id;

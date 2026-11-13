@@ -267,7 +267,7 @@ class InboxService
      */
     public function page(User $user, array $filters, mixed $limit, mixed $cursor, array $brandNames): array
     {
-        [$rows, $page] = CursorPage::fetch($this->query($user, $filters)->with(['notes', 'labels'])->reorder('id', 'desc'), $limit, $cursor);
+        [$rows, $page] = CursorPage::fetch($this->query($user, $filters)->with(['notes', 'labels'])->reorder('id', 'desc'), $limit, $cursor, 'comments:u'.$user->id.':b'.($filters['brand_id'] ?? 'all'));
 
         return ['comments' => $rows->map(fn (InboxComment $c) => [
             'id' => $c->id, 'network' => $c->network->value, 'brand_id' => $c->brand_id, 'brand_name' => $brandNames[$c->brand_id] ?? null, 'author' => $c->author_name, 'text' => $c->text,

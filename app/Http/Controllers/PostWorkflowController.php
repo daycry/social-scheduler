@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\InvalidPostTransition;
+use App\Exceptions\PostStateConflict;
 use App\Exceptions\PostValidationException;
 use App\Services\AuditLog;
 use App\Services\PostWorkflowActions;
@@ -127,6 +128,10 @@ class PostWorkflowController extends Controller
     {
         try {
             $result = $run();
+        } catch (PostStateConflict $e) {
+            $this->audit($request, $action, AuditLog::ERROR, $postId);
+
+            return response()->json(['message' => $e->getMessage()], 409);
         } catch (PostValidationException $e) {
             $this->audit($request, $action, AuditLog::ERROR, $postId);
 

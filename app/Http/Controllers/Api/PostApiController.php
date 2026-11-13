@@ -3,8 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\PostStatus;
-use App\Exceptions\InvalidPostTransition;
-use App\Exceptions\PostValidationException;
+use App\Exceptions\PostStateConflict;
 use App\Http\Requests\PostRequest;
 use App\Models\Brand;
 use App\Models\Post;
@@ -42,7 +41,7 @@ class PostApiController extends ApiController
         $query = Post::withoutUserScope()->where('user_id', $request->user()->id)->where('brand_id', $brand->id)
             ->when(isset($filters['status']), fn ($q) => $q->where('status', $filters['status']))
             ->with(['brand', 'campaign', 'targets', 'media'])->latest('id');
-        [$rows, $page] = CursorPage::fetch($query, $filters['limit'] ?? null, $filters['cursor'] ?? null);
+        [$rows, $page] = CursorPage::fetch($query, $filters['limit'] ?? null, $filters['cursor'] ?? null, 'posts:u'.$request->user()->id.':b'.$brand->id);
         $this->audit($request, 'list_posts', AuditLog::OK, 'brand', $brand->id);
 
         return response()->json(['posts' => $rows->map(fn (Post $p) => $this->presenter->present($p))->values()->all()] + $page);
@@ -51,18 +50,8 @@ class PostApiController extends ApiController
     public function store(Request $request, int $brand): JsonResponse
     {
         $brand = $this->ownedBrand($request, $brand);
-        $data = $this->validated($request->all(), []);
 
-        try {
-            $post = $this->posts->create($request->user(), $brand, $data);
-        } catch (PostValidationException $e) {
-            $this->audit($request, 'create_post', AuditLog::ERROR, 'post', null);
-
-            return $this->invalid($e);
-        }
-        $this->audit($request, 'create_post', AuditLog::OK, 'post', $post->id);
-
-        return response()->json($this->presenter->present($post), 201);
+        return $this->respond($request, 'create_post', 'post', null, fn () => $this->presenter->present($this->posts->create($request->user(), $brand, $this->validated($request->all()))), 201);
     }
 
     /** Borra una publicacion aun no publicada (como `delete_post` del MCP y la papelera de la web). */
@@ -82,7 +71,14 @@ class PostApiController extends ApiController
     {
         abort_unless($post->user_id === $request->user()->id, 404);
 
-        return $this->respond($request, 'cancel_post', 'post', $post->id, fn () => $this->presenter->present($this->posts->unschedule($request->user(), $post)));
+        return $this->respond($request, 'cancel_post', 'post', $post->id, function () use ($request, $post) {
+            // Cancelar solo tiene sentido con algo programado: un borrador (ya cancelado) no admite la operacion.
+            if ($post->status === PostStatus::Draft) {
+                throw new PostStateConflict('La publicacion ya es un borrador: no hay programacion que cancelar.');
+            }
+
+            return $this->presenter->present($this->posts->unschedule($request->user(), $post));
+        });
     }
 
     /** Publica ya un borrador o una programada: se valida como al programar y se encola al instante. */
@@ -100,40 +96,31 @@ class PostApiController extends ApiController
     public function update(Request $request, Post $post): JsonResponse
     {
         abort_unless($post->user_id === $request->user()->id, 404);
+
+        return $this->respond($request, 'update_post', 'post', $post->id, fn () => $this->presenter->present($this->applyUpdate($request, $post)));
+    }
+
+    private function applyUpdate(Request $request, Post $post): Post
+    {
         $user = $request->user();
-
-        try {
-            if ($request->isMethod('PATCH')) {
-                $sent = $request->all();
-                if ($sent !== [] && array_diff(array_keys($sent), ['notes', 'campaign_id']) === []) {
-                    Validator::make($sent, array_intersect_key((new PostRequest)->rules(), $sent))->validate();
-                    if (array_key_exists('notes', $sent)) {
-                        $post = $this->posts->updateNotes($user, $post, $sent['notes']);
-                    }
-                    if (array_key_exists('campaign_id', $sent)) {
-                        $post = $this->posts->updateCampaign($user, $post, $sent['campaign_id'] === null || $sent['campaign_id'] === '' ? null : (int) $sent['campaign_id']);
-                    }
-                    $this->audit($request, 'update_post', AuditLog::OK, 'post', $post->id);
-
-                    return response()->json($this->presenter->present($post));
+        if ($request->isMethod('PATCH')) {
+            $sent = $request->all();
+            if ($sent !== [] && array_diff(array_keys($sent), ['notes', 'campaign_id']) === []) {
+                Validator::make($sent, array_intersect_key((new PostRequest)->rules(), $sent))->validate();
+                if (array_key_exists('notes', $sent)) {
+                    $post = $this->posts->updateNotes($user, $post, $sent['notes']);
                 }
-                $data = $this->validated(array_replace($this->current($post), $sent), []);
-            } else {
-                $data = $this->validated($request->all(), []);
+                if (array_key_exists('campaign_id', $sent)) {
+                    $post = $this->posts->updateCampaign($user, $post, $sent['campaign_id'] === null || $sent['campaign_id'] === '' ? null : (int) $sent['campaign_id']);
+                }
+
+                return $post;
             }
-            $post = $this->posts->update($user, $post, $data);
-        } catch (PostValidationException $e) {
-            $this->audit($request, 'update_post', AuditLog::ERROR, 'post', $post->id);
 
-            return $this->invalid($e);
-        } catch (InvalidPostTransition $e) {
-            $this->audit($request, 'update_post', AuditLog::ERROR, 'post', $post->id);
-
-            return response()->json(['message' => $e->getMessage()], 409);
+            return $this->posts->update($user, $post, $this->validated(array_replace($this->current($post), $sent)));
         }
-        $this->audit($request, 'update_post', AuditLog::OK, 'post', $post->id);
 
-        return response()->json($this->presenter->present($post));
+        return $this->posts->update($user, $post, $this->validated($request->all()));
     }
 
     /**
@@ -163,13 +150,8 @@ class PostApiController extends ApiController
      * @param  array<string, mixed>  $extra
      * @return array<string, mixed>
      */
-    private function validated(array $input, array $only = []): array
+    private function validated(array $input): array
     {
-        return Validator::make($input, $only + (new PostRequest)->rules())->validate();
-    }
-
-    private function invalid(PostValidationException $e): JsonResponse
-    {
-        return response()->json(['message' => $e->getMessage(), 'errors' => $e->errors()], 422);
+        return Validator::make($input, (new PostRequest)->rules())->validate();
     }
 }

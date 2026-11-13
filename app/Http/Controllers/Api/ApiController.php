@@ -3,13 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Exceptions\InvalidPostTransition;
+use App\Exceptions\PostStateConflict;
 use App\Exceptions\PostValidationException;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Services\AuditLog;
 use App\Services\Reports\TooManyActiveReports;
+use App\Services\Studio\StudioAudioProbeUnavailable;
+use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
@@ -35,14 +39,23 @@ abstract class ApiController extends Controller
     {
         try {
             $result = $run();
+        } catch (PostStateConflict|InvalidPostTransition|DomainException $e) {
+            // Estado que no admite la operacion: 409. 422 queda solo para errores de entrada.
+            $this->audit($request, $action, AuditLog::ERROR, $resource, $id);
+
+            return response()->json(['message' => $e->getMessage()], 409);
         } catch (PostValidationException $e) {
             $this->audit($request, $action, AuditLog::ERROR, $resource, $id);
 
             return response()->json(['message' => $e->getMessage(), 'errors' => $e->errors()], 422);
-        } catch (InvalidPostTransition $e) {
+        } catch (ValidationException $e) {
             $this->audit($request, $action, AuditLog::ERROR, $resource, $id);
 
-            return response()->json(['message' => $e->getMessage()], 409);
+            throw $e;
+        } catch (StudioAudioProbeUnavailable $e) {
+            $this->audit($request, $action, AuditLog::ERROR, $resource, $id);
+
+            return response()->json(['message' => $e->getMessage()], 503);
         } catch (TooManyActiveReports $e) {
             $this->audit($request, $action, AuditLog::ERROR, $resource, $id);
 

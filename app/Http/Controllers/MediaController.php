@@ -33,7 +33,7 @@ class MediaController extends Controller
     {
         $data = $request->validate(CursorPage::RULES + ['status' => ['nullable', Rule::in(MediaListing::STATUSES)], 'kind' => ['nullable', Rule::in(MediaListing::KINDS)]]);
 
-        return response()->json($listing->page($request->user(), $data['status'] ?? null, $data['limit'] ?? null, $data['cursor'] ?? null, web: ! $request->routeIs('api.*'), kind: $data['kind'] ?? null));
+        return response()->json($listing->page($request->user(), $data['status'] ?? null, $data['limit'] ?? null, $data['cursor'] ?? null, web: true, kind: $data['kind'] ?? null));
     }
 
     /** Registra el asset y devuelve las URLs prefirmadas (single/multipart) o el modo local. */
@@ -53,7 +53,7 @@ class MediaController extends Controller
 
         $upload = $result['upload'];
         if ($upload['mode'] === 'local') {
-            $upload['url'] = route($request->routeIs('api.*') ? 'api.media.upload' : 'media.upload', $result['asset'], absolute: false);
+            $upload['url'] = route('media.upload', $result['asset'], absolute: false);
         }
 
         return response()->json(['asset' => $result['asset']->toPublicArray(), 'upload' => $upload], 201);
@@ -107,32 +107,26 @@ class MediaController extends Controller
     public function upload(Request $request, MediaAsset $asset): JsonResponse
     {
         $this->authorize('update', $asset);
-        abort_if($asset->kind === MediaAsset::KIND_AUDIO, 404);
-        abort_if(isset($asset->import_state['studio_av']), 409, 'Este archivo pertenece a una exportación de Studio.');
-        abort_if($this->storage->isS3() || $asset->status !== MediaAsset::STATUS_PENDING, 409, 'La subida local no esta disponible.');
 
         $stream = $request->getContent(true);
-        $this->storage->disk()->writeStream($asset->path, $stream);
-        is_resource($stream) && fclose($stream);
+        try {
+            $asset = $this->uploads->receiveLocal($asset, $stream);
+        } finally {
+            is_resource($stream) && fclose($stream);
+        }
 
-        return response()->json(['asset' => $this->uploads->finalize($asset)->toPublicArray()]);
+        return response()->json(['asset' => $asset->toPublicArray()]);
     }
 
     /** Cierra la subida (multipart) y extrae los metadatos. */
     public function complete(Request $request, MediaAsset $asset): JsonResponse
     {
         $this->authorize('update', $asset);
-        abort_if($asset->kind === MediaAsset::KIND_AUDIO, 404);
-        abort_if(isset($asset->import_state['studio_av']), 409, 'Este archivo pertenece a una exportación de Studio.');
 
-        $data = $request->validate([
-            'parts' => ['sometimes', 'array', 'max:10000'],
-            'parts.*.number' => ['required_with:parts', 'integer', 'min:1', 'max:10000'],
-            'parts.*.etag' => ['required_with:parts', 'string', 'max:200'],
-        ]);
+        $data = $request->validate(MediaUploadService::COMPLETE_RULES);
 
         try {
-            $asset = $this->uploads->complete($asset, $data['parts'] ?? []);
+            $asset = $this->uploads->completeClientUpload($asset, $data['parts'] ?? []);
         } catch (InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }

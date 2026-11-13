@@ -35,11 +35,19 @@ class MediaListing
         if ($status !== 'todos') {
             $query->where('status', $status);
         }
-        [$rows, $page] = CursorPage::fetch($query->latest('id'), $limit, $cursor);
+        [$rows, $page] = CursorPage::fetch($query->latest('id'), $limit, $cursor, 'media:u'.$user->id);
 
-        // Las URLs de vista previa y descarga son de la web (piden la sesion del navegador): no sirven a un cliente de la API ni del MCP.
-        return [
-            'media' => $rows->map(fn (MediaAsset $m) => $web ? $m->toPublicArray() : array_diff_key($m->toPublicArray(), ['preview_url' => true, 'download_url' => true]))->values()->all(),
-        ] + $page;
+        return ['media' => $rows->map(fn (MediaAsset $m) => self::present($m, $web))->values()->all()] + $page;
+    }
+
+    /**
+     * Forma de un fichero. Las URLs de vista previa y descarga son de la web (piden la sesion del navegador): no sirven a un cliente de la API
+     * ni del MCP, que no las reciben.
+     *
+     * @return array<string, mixed>
+     */
+    public static function present(MediaAsset $asset, bool $web = false): array
+    {
+        return $web ? $asset->toPublicArray() : array_diff_key($asset->toPublicArray(), ['preview_url' => true, 'download_url' => true]);
     }
 }

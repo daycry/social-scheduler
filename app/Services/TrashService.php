@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\PostStatus;
+use App\Exceptions\PostStateConflict;
 use App\Exceptions\PostValidationException;
 use App\Models\Post;
 use App\Models\PostTarget;
@@ -131,7 +132,7 @@ class TrashService
         }
 
         if (! $post->trashed()) {
-            throw new PostValidationException(['post' => ['La publicacion no esta en la papelera.']]);
+            throw new PostStateConflict('La publicacion no esta en la papelera.');
         }
     }
 }

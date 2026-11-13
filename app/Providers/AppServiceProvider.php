@@ -205,6 +205,13 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('giphy', fn (Request $request) => Limit::perMinute((int) config('social.giphy.per_user_per_minute', 20))
             ->by('giphy:'.($request->user()?->id ?? $request->ip())));
 
+        // Limites de las rutas por nombre (config/rate_limits.php): contador propio por usuario (o IP) y nombre, nunca compartido entre rutas.
+        // El valor se lee al pedir el limite (no al arrancar), asi que se puede ajustar con config() en pruebas y en tiempo de ejecucion.
+        foreach (array_keys((array) config('rate_limits.limits')) as $name) {
+            RateLimiter::for($name, fn (Request $request) => Limit::perMinute((int) (config('rate_limits.limits')[$name] ?? 60))
+                ->by($name.':'.($request->user()?->id ?? $request->ip())));
+        }
+
         RateLimiter::for('mcp', fn (Request $request) => Limit::perMinute((int) config('services.mcp.per_minute', 60))
             ->by('mcp:'.($request->user()?->currentAccessToken()?->id ?? $request->ip())));
         // Gestion del 2FA: contador propio por usuario (el `throttle:10,1` anonimo comparte clave con otras rutas).

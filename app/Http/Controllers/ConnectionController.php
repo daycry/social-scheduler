@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Contracts\CredentialConnector;
 use App\Connectors\Exceptions\ConnectorException;
+use App\Connectors\Meta\PlaceSearch;
+use App\Connectors\Meta\PlaceSearchUnavailable;
 use App\Connectors\Network;
 use App\Connectors\Pinterest\PinterestConnector;
 use App\Connectors\TikTok\TikTokPublisher;
@@ -209,6 +211,24 @@ class ConnectionController extends Controller
             'stitch_disabled' => (bool) ($info['stitch_disabled'] ?? false),
             'max_video_post_duration_sec' => isset($info['max_video_post_duration_sec']) ? (int) $info['max_video_post_duration_sec'] : null,
         ]);
+    }
+
+    /**
+     * Busca lugares de Meta para `location_id` (Instagram) y `place` (Facebook) desde el compositor. Con la busqueda restringida o sin
+     * permisos responde 422 con el motivo: el compositor deja pegar el id a mano.
+     */
+    public function places(Request $request, Brand $brand, SocialAccount $account, PlaceSearch $search): JsonResponse
+    {
+        $this->authorize('update', $brand);
+        $this->authorize('disconnect', $account);
+        abort_unless($account->brand_id === $brand->id && in_array($account->network, [Network::Instagram, Network::Facebook], true), 404);
+        $q = trim((string) $request->validate(['q' => ['required', 'string', 'min:2', 'max:100']])['q']);
+
+        try {
+            return response()->json(['places' => $search->search($account, $q)]);
+        } catch (PlaceSearchUnavailable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
     }
 
     public function destroy(Request $request, Brand $brand, SocialAccount $account): RedirectResponse

@@ -64,6 +64,7 @@ return [
         'brands.instagram-audio' => 30,
         'brands.connections.pinterest-boards.refresh' => 10,
         'brands.connections.tiktok-creator' => 30,
+        'brands.connections.places' => 30,
         'brands.connections.credentials' => 10,
         'calendar-views.store' => 60,
         'calendar-views.update' => 60,

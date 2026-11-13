@@ -64,6 +64,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('brands/{brand}/connections/{account}/pinterest-boards', [ConnectionController::class, 'refreshPinterestBoards'])->whereNumber(['brand', 'account'])->middleware('throttle:brands.connections.pinterest-boards.refresh')->name('brands.connections.pinterest-boards.refresh');
     Route::patch('brands/{brand}/connections/{account}/direct-post', [ConnectionController::class, 'directPost'])->name('brands.connections.direct-post');
     Route::get('brands/{brand}/connections/{account}/tiktok-creator', [ConnectionController::class, 'tiktokCreator'])->middleware('throttle:brands.connections.tiktok-creator')->name('brands.connections.tiktok-creator');
+    Route::get('brands/{brand}/connections/{account}/places', [ConnectionController::class, 'places'])->whereNumber(['brand', 'account'])->middleware('throttle:brands.connections.places')->name('brands.connections.places');
     // POST (con CSRF): iniciar el OAuth cambia el estado de la sesion y puede reactivar cuentas; un GET
     // forzado desde otra web no debe poder lanzarlo.
     Route::post('brands/{brand}/connections/{provider}/connect', [OAuthController::class, 'redirect'])

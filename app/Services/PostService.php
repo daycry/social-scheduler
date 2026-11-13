@@ -502,12 +502,119 @@ class PostService
         return $plan;
     }
 
+    /** @var list<int>|null ids de los posts que han pedido aprobacion dentro de una tanda (`collectApprovalRequests`) */
+    private ?array $approvalBatch = null;
+
+    /**
+     * Ejecuta `$run` sin avisar a los aprobadores post a post y devuelve los ids que han pedido aprobacion, para que el llamador emita UN
+     * aviso agrupado (una serie diaria no genera decenas de avisos de golpe). No se anida: dentro de otra tanda solo ejecuta.
+     *
+     * @return list<int>
+     */
+    public function collectApprovalRequests(callable $run): array
+    {
+        if ($this->approvalBatch !== null) {
+            $run();
+
+            return [];
+        }
+        $this->approvalBatch = [];
+        try {
+            $run();
+
+            return array_values(array_unique($this->approvalBatch));
+        } finally {
+            $this->approvalBatch = null;
+        }
+    }
+
+    /**
+     * Una ocurrencia de serie ya aprobada pasa a `programada` en su fecha SIN editarla (`update()` la sacaria de la serie). Idempotente;
+     * solo si la fecha sigue siendo futura y todos sus destinos estan en borrador. Devuelve si programo algo.
+     */
+    public function scheduleApprovedOccurrence(Post $post): bool
+    {
+        return DB::transaction(function () use ($post): bool {
+            $locked = Post::withoutUserScope()->lockForUpdate()->find($post->id);
+            if ($locked === null || $locked->series_id === null || ! $locked->isPublishable() || $locked->scheduled_at === null || $locked->scheduled_at->lte(now())) {
+                return false;
+            }
+
+            return $this->scheduleDraftTargets($locked);
+        });
+    }
+
+    /**
+     * Activar `requires_approval` en una serie retiene sus ocurrencias futuras aun no publicadas: sus destinos vuelven a borrador y la
+     * ocurrencia queda pendiente de aprobacion (nada la publica hasta que se apruebe). Devuelve si cambio algo.
+     */
+    public function holdForApproval(Post $post): bool
+    {
+        return DB::transaction(function () use ($post): bool {
+            $locked = Post::withoutUserScope()->lockForUpdate()->find($post->id);
+            if ($locked === null || $locked->approval_status !== null || $locked->scheduled_at === null || $locked->scheduled_at->lte(now())) {
+                return false;
+            }
+            $targets = PostTarget::withoutUserScope()->where('post_id', $locked->id)->orderBy('id')->lockForUpdate()->get();
+            if ($targets->contains(fn (PostTarget $t) => $t->status->isInFlight() || $t->status->isFinal())) {
+                return false; // ya salio o esta saliendo: no se retiene
+            }
+            foreach ($targets->where('status', PostStatus::Scheduled) as $target) {
+                $this->applyTransition($target, PostStatus::Draft, $this->freshAttempt($target, $this->effectiveTextOf($target, $locked->text), $locked->scheduled_at));
+            }
+            $locked->syncStatus();
+            $this->markApprovalPending($locked->fresh());
+
+            return true;
+        });
+    }
+
+    /** Desactivar `requires_approval`: las ocurrencias pendientes (no las rechazadas) dejan de necesitarla y se programan. */
+    public function releaseApproval(Post $post): bool
+    {
+        return DB::transaction(function () use ($post): bool {
+            $locked = Post::withoutUserScope()->lockForUpdate()->find($post->id);
+            if ($locked === null || $locked->approval_status !== Post::APPROVAL_PENDING) {
+                return false;
+            }
+            $locked->forceFill(['approval_status' => null, 'approval_comment' => null, 'approval_requested_at' => null, 'approval_decided_at' => null, 'approval_decided_by' => null, 'approval_signature' => null])->save();
+            if ($locked->scheduled_at !== null && $locked->scheduled_at->gt(now())) {
+                $this->scheduleDraftTargets($locked);
+            }
+
+            return true;
+        });
+    }
+
+    /** Pasa a `programada` los destinos en borrador del post (ya bloqueado) y recalcula su estado. */
+    private function scheduleDraftTargets(Post $locked): bool
+    {
+        $changed = false;
+        foreach (PostTarget::withoutUserScope()->where('post_id', $locked->id)->orderBy('id')->lockForUpdate()->get() as $target) {
+            if ($target->status === PostStatus::Draft) {
+                $this->applyTransition($target, PostStatus::Scheduled, $this->freshAttempt($target, $this->effectiveTextOf($target, $locked->text), $locked->scheduled_at) + ['manual_notified_at' => null, 'manual_reminded_at' => null]);
+                $changed = true;
+            }
+        }
+        if ($changed) {
+            $locked->syncStatus();
+        }
+
+        return $changed;
+    }
+
     private function markApprovalPending(Post $post, bool $edited = false): void
     {
         $post->forceFill([
             'approval_status' => Post::APPROVAL_PENDING, 'approval_comment' => null, 'approval_requested_at' => now(),
             'approval_decided_at' => null, 'approval_decided_by' => null, 'approval_signature' => $this->postSignature($post),
         ])->save();
+
+        if ($this->approvalBatch !== null) {
+            $this->approvalBatch[] = (int) $post->id; // el aviso lo emite quien abrio la tanda, agrupado
+
+            return;
+        }
 
         $brandName = (string) Brand::withoutUserScope()->whereKey($post->brand_id)->value('name');
         $message = $edited ? 'Una publicacion aprobada de «'.$brandName.'» se ha editado y vuelve a necesitar tu aprobacion.' : 'Hay una publicacion de «'.$brandName.'» que pide tu aprobacion.';
@@ -654,7 +761,7 @@ class PostService
      */
     public static function normalizeOptions(array $options): array
     {
-        $options = LinkedInPostOptions::normalize(InstagramPostOptions::normalize($options));
+        $options = LinkedInPostOptions::normalize(InstagramPostOptions::normalize(FacebookPostOptions::normalize($options)));
         foreach (self::BOOLEAN_OPTIONS as $key) {
             if (array_key_exists($key, $options) && $options[$key] !== null) {
                 $options[$key] = filter_var($options[$key], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $options[$key];

@@ -25,7 +25,7 @@ final class TargetMedia
     ];
 
     /** Tipos que publican una portada (imagen) para un video. */
-    private const COVER_TYPES = [ContentType::InstagramReel, ContentType::YouTubeVideo, ContentType::YouTubeShort, ContentType::PinterestVideo];
+    private const COVER_TYPES = [ContentType::InstagramReel, ContentType::YouTubeVideo, ContentType::YouTubeShort, ContentType::PinterestVideo, ContentType::LinkedInVideo];
 
     public static function supportsAlt(ContentType $type): bool
     {

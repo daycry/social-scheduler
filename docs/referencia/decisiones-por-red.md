@@ -55,6 +55,20 @@ Recuperación e idempotencia (`FacebookPublisher::findPublished`):
 
 Limitaciones: la cuenta debe estar en modo desarrollo con roles propios mientras no pase App Review; ⚠️ verificar publicación real de reel, story y FB texto (M-01).
 
+### Opciones de publicación (T-34)
+
+Contratos y estado de verificación (consultados el 2026-11-13; las páginas de Meta se cargan con JavaScript y no se pueden leer desde la línea de comandos, así que lo no marcado como leído queda **sin verificar**):
+
+| Opción | Contrato | Fuente y estado |
+|---|---|---|
+| Portada de vídeo de LinkedIn | `POST /rest/videos?action=initializeUpload` con `uploadThumbnail: true` devuelve `thumbnailUploadUrl`; la imagen se sube con `PUT` (`Content-Type: application/octet-stream` y `media-type-family: STILLIMAGE`, respuesta 201) y el `finalizeUpload` no cambia. Sin portada LinkedIn genera la miniatura. | Leído en la [Videos API](https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/videos-api) (versión `li-lms-2026-04`). **Sin verificar:** formato y tamaño admitidos de la miniatura (la página no los da; se envían los bytes del archivo tal cual, la app solo exige que sea una imagen lista). Si LinkedIn no devuelve `thumbnailUploadUrl`, la publicación falla antes de subir el vídeo. |
+| `place` de Facebook | Id de la Página del lugar en `POST /{page}/feed` (texto y varias fotos) y `POST /{page}/photos`. | Leído en la referencia de [Page/feed](https://developers.facebook.com/docs/graph-api/reference/page/feed/) y [Page/photos](https://developers.facebook.com/docs/graph-api/reference/page/photos/) (`place`: id de la Página de un lugar). **Sin verificar para vídeos, Reels e historias:** la referencia de Page/videos no lo documenta, y la app lo rechaza ahí con un error en español. |
+| `location_id` de Instagram | Id de la Página de un lugar en el contenedor de media (imagen, Reel y carrusel). | **Sin verificar** contra la documentación (no legible); es el contrato que ya usaba T-18, con un mensaje de error legible si Meta rechaza el id. |
+| `user_tags` de Instagram | `[{username, x, y}]` con `x` e `y` entre 0 y 1 desde la esquina superior izquierda, solo imágenes (no Reels ni carruseles), hasta 20. | **Sin verificar** contra la documentación (no legible). El editor web solo genera esa forma; el límite de 20 es el que ya validaba la API. |
+| Búsqueda de lugares | `GET /pages/search?q=…&fields=id,name,location` (Pages Search) con el token de la cuenta. | **Sin verificar** y **restringida por Meta**: necesita la función «Page Public Metadata Access» de la app (revisión de Meta). Sin ella devuelve un error de permisos: el compositor muestra el motivo y deja **pegar el id a mano** (`PlaceSearchUnavailable`, HTTP 422). Nunca se guarda ni se cachea el resultado. |
+
+En el compositor, el campo de lugar (`Composer/PlaceField.vue`) sirve a Instagram (`location_id`) y a Facebook (`place`) con el mismo patrón por red que el resto de opciones; el editor de etiquetas (`Composer/InstagramUserTagsField.vue`) coloca cada usuario pulsando sobre la imagen o con los campos x/y. El endpoint `GET brands/{brand}/connections/{account}/places?q=` es solo web (sesión, política de la marca, limitado a 30 por minuto): el MCP y la API aceptan `place`, `location_id` y `user_tags`, pero no buscan lugares. Smoke real: CS-M-05 y M-04.
+
 ## YouTube
 
 - Subida de `Libre.mp4` pidiendo `public`: quedó `public` tras `processed`, sin forzarse a privado. ⚠️ Re-verificar a las 24 h con `--inspect` y en YouTube Studio.
@@ -164,7 +178,7 @@ Añadidas en T-18 (creative-social-suite). Guía de alta, scopes e interruptores
 | Texto | 3000 caracteres | descripción 800, título 100, alt 500, enlace https |
 | Primer comentario | Sí (1250 caracteres) | No (la API v5 no comenta pines) |
 | Métricas | Sin lector (pendiente de `community_management`): «no disponible» | `PinterestInsightsReader` (T-21): impresiones → `views`, `ENGAGEMENT` → `interactions`, `OUTBOUND_CLICK` → `clicks`, seguidores y pines del perfil; por pin: impresiones, guardados, reacciones, comentarios. Sin alcance ni comparticiones. Solo con acceso de producción: en sandbox la analítica no existe |
-| Fuera | Portada de vídeo (`uploadThumbnail`) | — |
+| Portada de vídeo | Sí (T-34, `uploadThumbnail`) | Sí |
 | Versión de la API (A-04) | `LINKEDIN_API_VERSION=202610` (la 202511 se retira el 2026-11-16); `app:health` avisa a los 10 meses | — |
 | Vídeo (A-05) | — | Subida en streaming a la URL prefirmada; tope de 128 MB (Pinterest admite 2 GB) y timeout de 100 s dentro del job de 110 s |
 

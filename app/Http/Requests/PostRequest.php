@@ -81,6 +81,7 @@ class PostRequest extends FormRequest
             // T-18: ubicacion y etiquetas de Instagram, LinkedIn (visibilidad, comparticion) y Pinterest (tablero, titulo, enlace). El detalle por red
             // (formas, coordenadas, paginas sin CONNECTIONS, tablero obligatorio) lo valida PostService::optionErrors con el mismo texto en web, API y MCP.
             'targets.*.options.location_id' => ['nullable'],
+            'targets.*.options.place' => ['nullable'],
             'targets.*.options.user_tags' => ['nullable', 'array', 'max:20'],
             'targets.*.options.user_tags.*' => ['nullable', 'array:username,x,y'],
             'targets.*.options.user_tags.*.username' => ['nullable', 'string', 'max:64'],

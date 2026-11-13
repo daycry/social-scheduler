@@ -7,6 +7,8 @@ import ManualToggle from '@/Components/Composer/ManualToggle.vue';
 import InstagramAudioField from '@/Components/Composer/InstagramAudioField.vue';
 import PresetSection from '@/Components/Composer/PresetSection.vue';
 import InstagramCollaboratorsField from '@/Components/Composer/InstagramCollaboratorsField.vue';
+import InstagramUserTagsField from '@/Components/Composer/InstagramUserTagsField.vue';
+import PlaceField from '@/Components/Composer/PlaceField.vue';
 import { watchEffect } from 'vue';
 import { hasYoutubeFields, switchesFor } from '@/Composables/composerOptions';
 import { useComposerContext } from '@/Composables/useComposer';
@@ -36,6 +38,7 @@ const hasOptions = (account) => {
     if (account.audio?.embedded_video_types?.includes(t.content_type)) return true;
     return t.content_type === 'instagram_reel' || t.content_type === 'facebook_text'
         || account.network === 'youtube' || account.network === 'tiktok' || account.network === 'linkedin' || account.network === 'pinterest'
+        || ['facebook_photo', 'facebook_photos'].includes(t.content_type)
         || ['instagram_image', 'instagram_carousel'].includes(t.content_type);
 };
 </script>
@@ -62,12 +65,10 @@ const hasOptions = (account) => {
                 <input :id="`fb-title-${account.id}`" v-model="targetFor(account.id).options.facebook_title" :disabled="!editable" type="text" maxlength="255" class="field mt-1" @keydown.enter.prevent />
                 <p class="mt-1 text-xs text-slate-600">Título del vídeo o Reel, independiente del texto de la publicación.</p>
             </div>
-            <!-- Instagram (T-18): ubicación por id de lugar de Facebook (la app no busca lugares). -->
-            <div v-if="account.network === 'instagram' && ['instagram_image', 'instagram_reel', 'instagram_carousel'].includes(targetFor(account.id).content_type)">
-                <InputLabel :for="`ig-location-${account.id}`" value="Id de ubicación (opcional)" />
-                <input :id="`ig-location-${account.id}`" v-model="targetFor(account.id).options.location_id" :disabled="!editable" type="text" inputmode="numeric" maxlength="20" pattern="[0-9]*" class="field mt-1" @keydown.enter.prevent />
-                <p class="mt-1 text-xs text-slate-600">Id numérico del lugar de Facebook. Las etiquetas de usuario con coordenadas se envían por la API o el MCP (<code>user_tags</code>).</p>
-            </div>
+            <!-- Lugar (T-34): `location_id` de Instagram y `place` de Facebook, con búsqueda de Meta o id pegado a mano. -->
+            <PlaceField v-if="account.network === 'instagram' && ['instagram_image', 'instagram_reel', 'instagram_carousel'].includes(targetFor(account.id).content_type)" :account="account" option-key="location_id" label="Ubicación (opcional)" />
+            <PlaceField v-if="account.network === 'facebook' && ['facebook_text', 'facebook_photo', 'facebook_photos'].includes(targetFor(account.id).content_type)" :account="account" option-key="place" label="Lugar (opcional)" />
+            <InstagramUserTagsField v-if="account.network === 'instagram' && targetFor(account.id).content_type === 'instagram_image'" :account="account" />
             <div v-if="account.network === 'linkedin'" class="space-y-2">
                 <div>
                     <InputLabel :for="`li-visibility-${account.id}`" value="Visibilidad" />

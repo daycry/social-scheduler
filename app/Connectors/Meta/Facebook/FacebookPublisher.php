@@ -69,7 +69,7 @@ class FacebookPublisher implements FirstCommenter, Publisher, StatusPoller
 
         switch ($request->type) {
             case ContentType::FacebookText:
-                $params = ['message' => $text];
+                $params = ['message' => $text] + FacebookPostOptions::placeParams($request->options);
                 if (! empty($request->options['link'])) {
                     $params['link'] = (string) $request->options['link'];
                 }
@@ -79,7 +79,7 @@ class FacebookPublisher implements FirstCommenter, Publisher, StatusPoller
 
             case ContentType::FacebookPhoto:
                 $this->requireMedia($media, 'image');
-                $res = $this->graph->post("$page/photos", ['url' => $media->url, 'published' => 'true'] + ($text !== '' ? ['caption' => $text] : []) + ($media->alt !== null && $media->alt !== '' ? ['alt_text_custom' => $media->alt] : []), $token);
+                $res = $this->graph->post("$page/photos", ['url' => $media->url, 'published' => 'true'] + ($text !== '' ? ['caption' => $text] : []) + ($media->alt !== null && $media->alt !== '' ? ['alt_text_custom' => $media->alt] : []) + FacebookPostOptions::placeParams($request->options), $token);
 
                 // `post_id` es el ID de la publicacion en el muro; `id` el de la foto.
                 return $this->published($res['post_id'] ?? $res['id'] ?? null, $account);
@@ -103,7 +103,7 @@ class FacebookPublisher implements FirstCommenter, Publisher, StatusPoller
                     $this->requireMedia($item, 'image'); // todo el album se valida antes de subir nada
                 }
                 $photos = $this->uploadPhotos($account, $request);
-                $params = $text !== '' ? ['message' => $text] : [];
+                $params = ($text !== '' ? ['message' => $text] : []) + FacebookPostOptions::placeParams($request->options);
                 foreach (array_values($photos) as $i => $id) {
                     $params["attached_media[$i]"] = json_encode(['media_fbid' => $id]);
                 }

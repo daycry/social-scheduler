@@ -80,13 +80,17 @@ class LinkedInClient
         throw $this->exceptionFor($response, $read);
     }
 
-    /** Sube bytes a la URL de subida que dio LinkedIn (PUT). Devuelve la cabecera `ETag` (partes de video). */
-    public function upload(string $url, string $bytes, #[\SensitiveParameter] string $token): ?string
+    /**
+     * Sube bytes a la URL de subida que dio LinkedIn (PUT). Devuelve la cabecera `ETag` (partes de video).
+     *
+     * @param  array<string, string>  $headers  cabeceras extra (la portada de video lleva `media-type-family: STILLIMAGE`)
+     */
+    public function upload(string $url, string $bytes, #[\SensitiveParameter] string $token, array $headers = []): ?string
     {
         $this->assertUploadUrl($url);
 
         try {
-            $response = Http::timeout((int) config('social.linkedin.upload_timeout', 60))->withToken($token)
+            $response = Http::timeout((int) config('social.linkedin.upload_timeout', 60))->withToken($token)->withHeaders($headers)
                 ->withBody($bytes, 'application/octet-stream')->put($url);
         } catch (ConnectionException) {
             throw new TransientPublishException('No se pudo subir la media a LinkedIn (tiempo agotado o red).', 'red');

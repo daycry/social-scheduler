@@ -59,6 +59,7 @@ Quien use la API v1 o el MCP con claves ya emitidas debe adaptar estos puntos (n
 - **SmartLink.** Un `PUT /brands/{brand}/smart-link` sin `published` ya no publica: uno nuevo queda sin publicar y uno existente conserva su estado.
 - **Alta y baja de competidores (T-30).** `manage_competitor` exige la ability nueva `competitors:write` (no basta `posts:write`; las claves `*` siguen valiendo, sin alias) y la baja necesita `confirm: true` porque borra el histórico. `manage_trash delete_forever` también exige `confirm: true`. Las claves existentes que no sean `*` deben añadir `competitors:write` para dar de alta o baja competidores.
 - **Nuevas abilities** `smartlinks:read` y `smartlinks:write`: las claves existentes no las tienen; añádelas donde haga falta.
+- **Carpeta de un diseño (T-33).** `update_design` (MCP) y la actualización de diseños de la API ya no cambian la carpeta: `folder_id` se ignora. Para mover un diseño se usa `PATCH /api/v1/brands/{brand}/studio/designs/{design}/folder` o `manage_design_folder` con `action: move`.
 
 ## Cambios de configuración
 

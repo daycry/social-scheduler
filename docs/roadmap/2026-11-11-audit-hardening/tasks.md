@@ -41,14 +41,14 @@ estado: en-progreso
 |------|------------|-------|----------|-----------------------|------------------------|------------------------|-------------------|
 | Fase 1 — Riesgo inmediato | 11 | 11 | 100% | 0 / 63.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3055k |
 | Fase 2 — CI y red de tests | 8 | 8 | 100% | 0 / 44.0h | 0 / 11.2h | 0 / 2.8h | 0 / 2140k |
-| Fase 3 — Funciones incompletas | 0 | 16 | 0% | 0 / 118.0h | 0 / 29.6h | 0 / 7.4h | 0 / 5630k |
+| Fase 3 — Funciones incompletas | 16 | 16 | 100% | 0 / 118.0h | 0 / 29.6h | 0 / 7.4h | 0 / 5630k |
 | Fase 4 — Refactor del backend | 0 | 15 | 0% | 0 / 90.0h | 0 / 22.8h | 0 / 5.7h | 0 / 4350k |
 | Fase 5 — Frontend | 0 | 18 | 0% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
 | Fase 5b — Unificación | 0 | 8 | 0% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
 | Fase 6 — Operación y repositorio | 0 | 6 | 0% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
 | Fase 7 — Funciones nuevas | 0 | 24 | 0% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **19** | **108** | **18%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
+| **TOTAL** | **35** | **108** | **32%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -857,7 +857,8 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 - **Descripción**: Corregir las filas desfasadas del inventario (C24, M11, C22) y dar nombres únicos `api.studio.*` a las rutas API que repiten `studio.folders.*` y nombres de datasets autogenerados.
 - **Changelog**: Las rutas de las tablas de datos del estudio tienen nombres explícitos y únicos, y una prueba impide que vuelvan a repetirse o autogenerarse.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-13
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
@@ -873,16 +874,16 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [x] `php artisan route:list --json` sin nombres duplicados
 - [x] Todas las llamadas del frontend a las rutas renombradas siguen funcionando
 - [x] Inventario con C24, M11 y C22 actualizados
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 - RED: tests/Feature/Routes/RouteNamesTest.php falló con `studio.datasets.list-0 … export-10` (11 nombres autogenerados por índice) · 2026-11-12
 - Verificación (2026-11-12): `php artisan test --compact --filter=RouteNamesTest` → 3/3 verde; `php artisan route:cache` → «Routes cached successfully» (sin duplicados); `php artisan route:list --json` → 424 rutas, 0 nombres repetidos, 0 autogenerados. Pest focal `tests/Feature/Analytics`+`Connectors`+`Reports`+`Infra`+`Parity`+`Ui` 918/918 y `--filter=Dataset` 535/536 (1 omitido); Pint OK.
@@ -892,11 +893,14 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 **Notas**: Tamaño S. Hacerlo antes del refactor del frontend: evita renombrar dos veces (D-19 usa los nombres nuevos).
 
+**Cierre (2026-11-13)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 3); Pest completo en solitario 4024 passed / 9 skipped / 0 failed; E2E completo de cierre de fase en paralelo: 672 passed y 2 rojos (contraste de la insignia de avisos, corregido con `bg-rose-700`, y un `ERR_NO_BUFFER_SPACE` de Windows del entorno), relanzados `workflow`+`pages` en los 3 tamaños: 116 passed / 0 failed. Migraciones de la fase aplicadas en el MySQL 8.4 de desarrollo con copia previa.
+
 ### T-21 — Pinterest: analítica y tableros paginados
 
 - **Descripción**: `InsightsReader` de Pinterest (`/v5/user_account/analytics`, `/v5/pins/{id}/analytics`) enlazado en `AppServiceProvider`, tableros paginados con `bookmark` y botón de refresco. LinkedIn queda en espera.
 - **Changelog**: Pinterest muestra sus estadísticas (impresiones, interacciones, clics, guardados) en el panel, las mejores horas, los informes y el top de publicaciones; los tableros se leen paginados (con aviso si la lista queda incompleta) y se pueden actualizar desde Conexiones, y si la analítica no existe en el entorno de pruebas el panel lo explica.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-13
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -912,16 +916,16 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [x] El panel, mejores horas e informes muestran datos de Pinterest (con fakes)
 - [x] Los tableros se obtienen paginados y hay botón de refresco
 - [x] `null` = no disponible, nunca 0
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 - RED: tests/Feature/Connectors/Pinterest/PinterestInsightsReaderTest.php falló con «Class App\Connectors\Pinterest\PinterestInsightsReader not found» · 2026-11-12
 - RED: tests/Feature/Connectors/Pinterest/PinterestBoardsPaginationTest.php falló con «Call to undefined method PinterestConnector::refreshBoards» y la ruta `brands.connections.pinterest-boards.refresh` inexistente · 2026-11-12
@@ -932,11 +936,14 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 **Notas**: Tamaño M. Se implementa Pinterest (Ya). LinkedIn (U): estadísticas de página quedan a la espera de `community_management`; se deja el punto de extensión y la fila en la cobertura (B-14). Verificación real = smoke M-01. **A la espera (no bloquea la fase)**: Lector de LinkedIn: requiere aprobación `community_management` (usuario/LinkedIn).
 
+**Cierre (2026-11-13)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 3); Pest completo en solitario 4024 passed / 9 skipped / 0 failed; E2E completo de cierre de fase en paralelo: 672 passed y 2 rojos (contraste de la insignia de avisos, corregido con `bg-rose-700`, y un `ERR_NO_BUFFER_SPACE` de Windows del entorno), relanzados `workflow`+`pages` en los 3 tamaños: 116 passed / 0 failed. Migraciones de la fase aplicadas en el MySQL 8.4 de desarrollo con copia previa.
+
 ### T-22 — Inbox: scopes de Meta, permisos de Threads y cobertura de redes
 
 - **Descripción**: La UI explica cuándo faltan scopes de Meta (inbox/Ads) y cómo activarlos; Threads trata el error de permiso como «reconecta» y retira el scope; LinkedIn y Pinterest aparecen en la tabla de cobertura del inbox.
 - **Changelog**: El inbox explica qué permiso falta en cada cuenta (Facebook necesita META_EXTRA_SCOPES y reconectar), Threads pide reconectar si se retiran los permisos de respuesta y la cobertura por red incluye LinkedIn y Pinterest con su motivo.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-13
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -952,16 +959,16 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [x] Sin scopes Meta, el inbox/Ads muestra un estado claro con el motivo y los pasos (no un panel vacío)
 - [x] Un error de permiso de Threads marca la cuenta como «reconectar» y retira el scope concedido
 - [x] La tabla de cobertura incluye LinkedIn y Pinterest con su motivo
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 - RED: tests/Feature/Inbox/InboxCoverageTest.php falló con «Failed asserting that an array has the key 'linkedin'» y la prop `accounts.0.help` inexistente; tests/Feature/Inbox/ThreadsPermissionErrorTest.php falló con PermanentPublishException (no ReconnectRequiredException) · 2026-11-12
 - Verificación (2026-11-12): `php artisan test --compact --filter=InboxCoverageTest` → verde; `--filter=ThreadsPermissionErrorTest` → verde (7 tests / 45 aserciones entre ambos); Pint OK; `npm run build` OK, `test:unit` y `typecheck` OK; Playwright `inbox-triage.spec.ts` 9/9 (`E2E_PURGE=0 E2E_WORKERS=2`, filas de cobertura de LinkedIn y Pinterest añadidas a E2E-20a).
@@ -970,11 +977,14 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 **Notas**: Tamaño M. Qué se puede hacer ya: UI, retirada de scope y filas de cobertura. Queda a la espera (U): activar el caso de uso en Meta, rellenar `META_EXTRA_SCOPES` y reconectar; `CommentSource` de LinkedIn tras su aprobación. **A la espera (no bloquea la fase)**: `META_EXTRA_SCOPES` y reconexión (usuario); `CommentSource` de LinkedIn (aprobación).
 
+**Cierre (2026-11-13)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 3); Pest completo en solitario 4024 passed / 9 skipped / 0 failed; E2E completo de cierre de fase en paralelo: 672 passed y 2 rojos (contraste de la insignia de avisos, corregido con `bg-rose-700`, y un `ERR_NO_BUFFER_SPACE` de Windows del entorno), relanzados `workflow`+`pages` en los 3 tamaños: 116 passed / 0 failed. Migraciones de la fase aplicadas en el MySQL 8.4 de desarrollo con copia previa.
+
 ### T-23 — Avisos de caducidad y notificaciones de jobs asíncronos
 
 - **Descripción**: Generalizar el aviso de caducidad a toda caducidad conocida (notificación + correo N días antes) y notificar en BD (y correo opcional) los informes programados, MP4/GIF, IA, Canva e importaciones.
 - **Changelog**: Conexiones y Avisos te dicen con antelación (7 y 1 días) cuándo caduca el acceso de Meta o LinkedIn y hay que reconectar, y un informe programado, una exportación MP4/GIF, un trabajo de IA, de Canva o una importación que falla te avisa en la app (y por correo si lo activas en tu perfil), con título y enlace propios también en los avisos del estudio.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-13
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -992,16 +1002,16 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [x] Fallo de informes programados, MP4/GIF, IA, Canva e importaciones: aviso al fallar; al terminar BIEN, aviso solo en la app (nunca por correo) para los trabajos largos que el usuario no ve terminar: exportación MP4/GIF, exportación o envío de Canva, IA de imagen e importación por URL (decisión del coordinador; el informe programado no avisa al terminar porque su correo ya es el aviso)
 - [x] El correo es opcional por preferencia del usuario
 - [x] Los avisos `studio_design_*` se muestran con título por tipo (no como «Aviso» genérico) y con enlace a su diseño mediante `n.url` genérico (`Notifications/Index.vue`, `StudioDesignActivity.php`)
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 - RED: tests/Feature/Connections/ConnectionExpiryNotificationTest.php y tests/Feature/Notifications/JobCompletionNotificationTest.php fallaron con «Class App\Services\ConnectionExpiryNotifier not found», «App\Notifications\AsyncJobFailed not found» y la columna `notify_by_mail` inexistente (16 tests, 8 en rojo por clases ausentes) · 2026-11-12
 - Verificación (2026-11-12): `php artisan test --compact --filter=ConnectionExpiryNotificationTest` → 7/7 verde; `--filter=JobCompletionNotificationTest` → 10/10 verde; focal `Notifications`+`Connections`+`Auth`+`ProfileTest` 290/290; `Canva`+`Studio`+`Reports`+`Media`+`Jobs`+`Console`+`Routes`+`Infra`+`Parity`+`Inbox`+`Ui`+`AdvancedOptionsContractTest` 1438 tests con 3 rojos legítimos corregidos (cobertura del inbox 6→8 filas; `StudioAvQueueTest` aserta ahora «no se encola ProcessStudioAvPhase» porque el aviso de fallo es un efecto esperado) y vuelto a ejecutar en verde; Pint OK; `npm run build` OK, `test:unit` 636/636, `typecheck` OK; Playwright `notifications-unified.spec.ts` (E2E-03) 3/3 y `workflow.spec.ts` + `linkedin-pinterest.spec.ts` con `E2E_PURGE=0 E2E_WORKERS=2`.
@@ -1011,11 +1021,14 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 **Notas**: Tamaño M. Reutilizar el mecanismo de notificación de fallos de publicación. Sin SMTP real: `Mail::fake`.
 
+**Cierre (2026-11-13)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 3); Pest completo en solitario 4024 passed / 9 skipped / 0 failed; E2E completo de cierre de fase en paralelo: 672 passed y 2 rojos (contraste de la insignia de avisos, corregido con `bg-rose-700`, y un `ERR_NO_BUFFER_SPACE` de Windows del entorno), relanzados `workflow`+`pages` en los 3 tamaños: 116 passed / 0 failed. Migraciones de la fase aplicadas en el MySQL 8.4 de desarrollo con copia previa.
+
 ### T-24 — Primer comentario en Threads y Bluesky
 
 - **Descripción**: Implementar `FirstCommenter` en Threads y Bluesky reutilizando `ThreadsComments`/`BlueskyComments`.
 - **Changelog**: Puedes añadir un primer comentario a las publicaciones de Threads y Bluesky; si el comentario falla, la publicación principal sigue publicada y puedes reintentarlo.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-13
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -1031,16 +1044,16 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [x] Un post con primer comentario en Threads o Bluesky lo publica tras el principal (con fakes)
 - [x] Si el primer comentario falla, el post principal queda publicado y el fallo se registra
 - [x] El compositor muestra el campo para esas redes
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 - RED: tests/Feature/FirstComment/FirstCommentThreadsBlueskyTest.php falló sin el código (stash de app/Connectors y config/media_specs.php): 0/11 pasan, «Failed asserting that null is an instance of interface App\Connectors\Contracts\FirstCommenter» (`commenterFor` devolvía null para Threads y Bluesky) · 2026-11-12. Los 4 tests de los gaps de T-22 se escribieron en rojo antes del arreglo (cuenta sin marcar tras `Reconnect` en el job; permisos de un objeto retiraban el scope).
 - Verificación (2026-11-12): `php artisan test --compact --filter=FirstCommentThreadsBlueskyTest` → 15/15 verde; focal `FirstComment`+`Connectors/Threads`+`Inbox`+`FirstCommenterYouTubeTest` 242/242; `Connectors/Bluesky` 110/110; Pint OK. Sin cambios de Vue: el campo del compositor sale de `media_specs.types.*.first_comment` (`firstCommentMax`), por eso no hace falta build ni E2E propios (E2E-36 queda en el smoke del usuario).
@@ -1050,11 +1063,14 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 **Notas**: Tamaño M. Verificación real = smokes de Threads/Bluesky del usuario (contratos sin verificar).
 
+**Cierre (2026-11-13)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 3); Pest completo en solitario 4024 passed / 9 skipped / 0 failed; E2E completo de cierre de fase en paralelo: 672 passed y 2 rojos (contraste de la insignia de avisos, corregido con `bg-rose-700`, y un `ERR_NO_BUFFER_SPACE` de Windows del entorno), relanzados `workflow`+`pages` en los 3 tamaños: 116 passed / 0 failed. Migraciones de la fase aplicadas en el MySQL 8.4 de desarrollo con copia previa.
+
 ### T-25 — Competidores en Bluesky y YouTube
 
 - **Descripción**: Añadir fuentes de competidores para Bluesky (`getProfile`/`getAuthorFeed`) y YouTube (`channels.list`).
 - **Changelog**: Competidores ahora funciona también con Bluesky y YouTube: eliges la red en la pantalla, añades cuentas o canales y ves su evolución y sus publicaciones destacadas; en YouTube la lectura respeta un tope diario de cuota.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-13
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -1069,16 +1085,16 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 **Criterios de aceptación**
 - [x] Se pueden añadir competidores de Bluesky y YouTube y se recogen snapshots (con fakes)
 - [x] La cuota de YouTube se contabiliza con el mecanismo de cuota de YouTube de la app (`YouTubeQuota` global + presupuesto propio de competidores, global y por usuario); `QuotaPolicy` es la política de PUBLICACIÓN y no aplica a lecturas (criterio enmendado por decisión del coordinador en la revisión del intento 1)
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 - RED/TDD: `tests/Feature/Competitors/CompetitorSourcesTest.php` se escribió con el diseño (sin RED previo registrado: las clases `CompetitorSource*` no existían); al ejecutarlo fallaron 2/12 por defectos reales corregidos antes de cerrar (delimitador `~` de la expresión del URI de Bluesky dentro de su clase de caracteres; el test del 401 llamaba a otro endpoint). Verde 12/12.
 - Verificación (2026-11-12): `php artisan test --compact --filter=CompetitorSourcesTest` → 12/12 verde; focal `Competitors`+`Parity`+`Reports`+`Mcp`+`Analytics`+`Jobs` 561/561; Pint OK; `npm run build` OK, `test:unit` 636/636 y `typecheck` OK; Playwright `competitors.spec.ts` 6/6 (`E2E_PURGE=0 E2E_WORKERS=2`, sin otra ejecución en curso; incluye el nuevo E2E-40 en desktop y los dos móviles).
@@ -1088,11 +1104,14 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 **Notas**: Tamaño M.
 
+**Cierre (2026-11-13)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 3); Pest completo en solitario 4024 passed / 9 skipped / 0 failed; E2E completo de cierre de fase en paralelo: 672 passed y 2 rojos (contraste de la insignia de avisos, corregido con `bg-rose-700`, y un `ERR_NO_BUFFER_SPACE` de Windows del entorno), relanzados `workflow`+`pages` en los 3 tamaños: 116 passed / 0 failed. Migraciones de la fase aplicadas en el MySQL 8.4 de desarrollo con copia previa.
+
 ### T-26 — Canva: verificación JWKS del `correlation_jwt`
 
 - **Descripción**: Leer y cachear `/rest/v1/connect/keys` y validar RS256 del `correlation_jwt`.
 - **Changelog**: El retorno desde el editor de Canva ahora verifica la firma del enlace de vuelta con las claves públicas de Canva; un enlace falsificado, caducado o de otra aplicación se rechaza.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-13
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
@@ -1107,16 +1126,16 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 **Criterios de aceptación**
 - [x] Un JWT con firma inválida, expirado o `kid` desconocido se rechaza
 - [x] Las claves se cachean con renovación ante `kid` desconocido
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 - RED/TDD: `RED: CanvaJwksTest falló con «Target class [App\Services\Canva\CanvaJwks] does not exist» (17/17) · 2026-11-12`. Antes se corrigió el helper de claves de prueba: en esta máquina `openssl_pkey_new` falla sin `openssl.cnf` (error 07000072), así que el helper escribe un `openssl.cnf` mínimo en el directorio temporal.
 - Verificación (2026-11-12): `php artisan test --compact --filter=CanvaJwksTest` → 17/17 verde (29 aserciones); `tests/Feature/Canva` → 86/86 verde; Pint OK.
@@ -1126,11 +1145,14 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 **Notas**: Tamaño S. Contrato Canva sin verificar contra la API real: el test usa un par de claves RSA generado en el propio test. **A la espera (no bloquea la fase)**: Verificación real contra Canva (smoke del usuario).
 
+**Cierre (2026-11-13)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 3); Pest completo en solitario 4024 passed / 9 skipped / 0 failed; E2E completo de cierre de fase en paralelo: 672 passed y 2 rojos (contraste de la insignia de avisos, corregido con `bg-rose-700`, y un `ERR_NO_BUFFER_SPACE` de Windows del entorno), relanzados `workflow`+`pages` en los 3 tamaños: 116 passed / 0 failed. Migraciones de la fase aplicadas en el MySQL 8.4 de desarrollo con copia previa.
+
 ### T-27 — Canva: PDF en la biblioteca y Autofill según capacidades
 
 - **Descripción**: Tipo PDF en la biblioteca (no solo enlace de 24 h) y flujo de Autofill/Brand Templates condicionado a las capacidades reales de la cuenta.
 - **Changelog**: Los PDF exportados desde Canva ahora se guardan en la biblioteca (con icono, vista previa y descarga; no se pueden publicar en redes) y, si tu plan de Canva incluye plantillas de marca y Autofill, puedes rellenar una plantilla de texto y obtener un diseño nuevo.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-13
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -1145,16 +1167,16 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 **Criterios de aceptación**
 - [x] Un export PDF se guarda en la biblioteca como media de tipo PDF
 - [x] Brand Templates/Autofill se muestran solo si `CanvaCapabilities` lo permite
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 - RED/TDD: `RED: CanvaPdfLibraryTest falló con «Undefined array key 0» (el PDF no entraba en la biblioteca: seguía devolviendo download_urls) y «Route [media.download] not defined» (4 de 8) · 2026-11-12`. `CanvaAutofillCapabilitiesTest` se escribió antes del código (sin `CanvaBrandTemplates`, rutas ni capacidades) pero su primer rojo no se registró aparte: la primera ejecución con el código parcial dio 11/12 (falló el Autofill con campo vacío, `null` ≠ texto).
 - Verificación (2026-11-12): `php artisan test --compact --filter=CanvaPdfLibraryTest` → 10/10 verde; `--filter=CanvaAutofillCapabilitiesTest` → 12/12 verde; focal `Canva`+`Media`+`Studio`+`Connectors`+`Console/BackupVerifyTest`+`Mcp`+`Parity` → 2042 pasan, 9 omitidos, 0 fallos (no se lanzó el Pest completo); Pint OK; `npm run build` OK, `test:unit` 636/636, `typecheck` OK; Playwright `canva.spec.ts` 10/10 (`E2E_PURGE=0 E2E_WORKERS=2`, sin otra ejecución en curso; incluye E2E-39 en desktop y los dos móviles), más `notifications-unified.spec.ts` y `media-import.spec.ts` 29/29.
@@ -1179,11 +1201,14 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 **Notas**: Tamaño M. Qué se puede hacer ya: PDF y flujo condicional. Queda a la espera (U): acceso Enterprise a Brand Templates/Autofill para probarlo en real. **A la espera (no bloquea la fase)**: Capacidad Enterprise de Canva (tercero).
 
+**Cierre (2026-11-13)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 3); Pest completo en solitario 4024 passed / 9 skipped / 0 failed; E2E completo de cierre de fase en paralelo: 672 passed y 2 rojos (contraste de la insignia de avisos, corregido con `bg-rose-700`, y un `ERR_NO_BUFFER_SPACE` de Windows del entorno), relanzados `workflow`+`pages` en los 3 tamaños: 116 passed / 0 failed. Migraciones de la fase aplicadas en el MySQL 8.4 de desarrollo con copia previa.
+
 ### T-28 — API v1: posts y marcas (listar, borrar, cancelar, publicar)
 
 - **Descripción**: Primera mitad de la API v1: endpoints REST sobre `PostService`/`BrandService` (listar, borrar, cancelar, publicar ahora) y OpenAPI ampliada. B-09 se cuenta aquí; la tarea siguiente es continuación.
 - **Changelog**: La API v1 ya permite listar, ver, borrar, cancelar y publicar ya tus publicaciones y consultar tus marcas y cuentas, y los listados (posts, media, comentarios y diseños) comparten una paginación por cursor única (`limit`, `cursor`, `has_more`, `next_cursor`).
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-13
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -1200,16 +1225,16 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [x] Los endpoints respetan abilities de API key y propiedad (acceso cruzado → 404/403)
 - [x] La OpenAPI describe cada endpoint y pasa el lint
 - [x] El listado de diseños y de posts usa el contrato de paginación por cursor único (mismo formato de `next_cursor`/`has_more`) que define esta tarea para `api/v1`
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. B-09 es L: se parte en dos tareas.
 
@@ -1219,12 +1244,14 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - Rutas cambiadas (U-25): `POST /api/v1/posts` → `POST /api/v1/brands/{brand}/posts` y `POST /api/v1/series` → `POST /api/v1/brands/{brand}/series` (la marca ya no va en el cuerpo; en series manda la de la ruta). Tests y documentación actualizados. `PostApiController` pasa a `app/Http/Controllers/Api/` y hereda de `ApiController` (traducción de errores y auditoría únicas).
 - Decisiones: (1) Abilities como el MCP (`brands:read`, `posts:read|write`). (2) Los errores de dominio de borrar y publicar un post ya publicado son 422 (mismo `PostValidationException` que usa el MCP), no 409; 409 queda para `InvalidPostTransition`. (3) Se crean presentadores compartidos (`AccountPresenter`) para no duplicar con el MCP.
 
+**Cierre (2026-11-13)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 3); Pest completo en solitario 4024 passed / 9 skipped / 0 failed; E2E completo de cierre de fase en paralelo: 672 passed y 2 rojos (contraste de la insignia de avisos, corregido con `bg-rose-700`, y un `ERR_NO_BUFFER_SPACE` de Windows del entorno), relanzados `workflow`+`pages` en los 3 tamaños: 116 passed / 0 failed. Migraciones de la fase aplicadas en el MySQL 8.4 de desarrollo con copia previa.
 
 ### T-29 — API v1 (continuación): cuentas, media, inbox, informes, mejores horas, competidores, SmartLinks, sitios
 
 - **Descripción**: Segunda mitad de B-09: endpoints de cuentas, media, inbox, informes, mejores horas, competidores, SmartLinks y sitios, y cierre de la OpenAPI.
 - **Changelog**: La API v1 cubre ya la media (listar, subir e importar), el buzón de comentarios, los informes, las mejores horas, los competidores, los SmartLinks y los sitios, con un único OpenAPI y la marca siempre en la ruta.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-13
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -1241,16 +1268,16 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [x] Paridad de lectura con el MCP en los recursos listados
 - [x] OpenAPI completa y con lint limpio
 - [x] `ListMedia` y el resto de listados de `api/v1` siguen el contrato de cursor común; la marca va siempre en la ruta (no en la query) y hay un único OpenAPI para el núcleo social y la suite creativa
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Continuación de B-09 (ver tarea anterior).
 
@@ -1263,12 +1290,14 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Gap 2 de la revisión de T-27, resuelto en T-28/T-29**: la lista de PDF de Canva estaba fija a 20 sin paginar y la biblioteca no mostraba PDF. Ahora `MediaListing` admite `kind` (`image`, `video`, `pdf`; sin él, solo lo publicable, así que el compositor sigue sin ver PDF), `GET /media?kind=pdf` (web y API) pagina con el cursor común y borrar sigue siendo `DELETE /media/{asset}`; el estado de Canva (`documents`) devuelve la primera página con `has_more`/`next_cursor` y la página de Canva carga más con «Ver más PDF». La acción de descarga de `MediaController` no se ha tocado. Test: `CanvaPdfLibraryTest` «con 25 PDF todos son accesibles» (cursor de 10 en 10, el compositor no los ve, se borra el más antiguo, `kind` inválido 422). Los hunks de `Canva/Index.vue` y de ese test entraron en el commit del agente de Canva (0d3fb35).
 - Límites declarados: no hay endpoint de la API para añadir notas a comentarios, gestionar competidores ni la edición de SmartLinks por bloques sueltos (solo reemplazo completo); la ruta `reports/{report}` usa `reports:write` igual que el MCP. Los listados con `page`/`per_page` del estudio (exportaciones, audio, tipografías, subtítulos, datasets) siguen con su paginación propia: U-23 acotaba diseños, media y comentarios.
 
+**Cierre (2026-11-13)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 3); Pest completo en solitario 4024 passed / 9 skipped / 0 failed; E2E completo de cierre de fase en paralelo: 672 passed y 2 rojos (contraste de la insignia de avisos, corregido con `bg-rose-700`, y un `ERR_NO_BUFFER_SPACE` de Windows del entorno), relanzados `workflow`+`pages` en los 3 tamaños: 116 passed / 0 failed. Migraciones de la fase aplicadas en el MySQL 8.4 de desarrollo con copia previa.
 
 ### T-30 — MCP: SmartLinks, Ads, autolistas, competidores, ocultar comentarios, textos, presets y papelera
 
 - **Descripción**: Herramientas MCP finas sobre los servicios existentes para las áreas que hoy faltan.
 - **Changelog**: Los agentes conectados por MCP pueden ahora gestionar el SmartLink de una marca, consultar Meta Ads, administrar autolistas, dar de alta y baja competidores, ocultar o mostrar comentarios, gestionar textos guardados, ver los presets del compositor y usar la papelera.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-13
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -1283,16 +1312,16 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 **Criterios de aceptación**
 - [x] Cada herramienta nueva valida abilities y propiedad
 - [x] `docs/modulos/mcp.md` lista las herramientas nuevas
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 - RED/TDD: `McpNewToolsTest` se escribió junto a las herramientas (no hubo ejecución en rojo registrada aparte): la primera ejecución con el código dio 9/14 y destapó cuatro fallos (mensajes de «no encontrada» con género incorrecto, un helper de test que no sobrescribía los argumentos y un `ComposerPreset` creado sin `user_id`), corregidos en la misma tarea · 2026-11-13.
 - Verificación (2026-11-13): `php artisan test --compact --filter=McpNewToolsTest` → 14/14 verde (308 aserciones); focal `Parity/AutolistTest`+`Parity/TrashTest`+`Competitors`+`Mcp`+`Api`+`Studio/StudioApiMcpTest` → 392/392 verde; `SavedTexts`+`Ui/SavedTextsPageTest`+`Parity` → 139/139 verde; Pint OK. No se lanzó el Pest completo. Sin Vue: no se ejecutaron `npm run build`, `test:unit`, `typecheck` ni Playwright.
@@ -1303,11 +1332,14 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 **Notas**: Tamaño M.
 
+**Cierre (2026-11-13)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 3); Pest completo en solitario 4024 passed / 9 skipped / 0 failed; E2E completo de cierre de fase en paralelo: 672 passed y 2 rojos (contraste de la insignia de avisos, corregido con `bg-rose-700`, y un `ERR_NO_BUFFER_SPACE` de Windows del entorno), relanzados `workflow`+`pages` en los 3 tamaños: 116 passed / 0 failed. Migraciones de la fase aplicadas en el MySQL 8.4 de desarrollo con copia previa.
+
 ### T-31 — Facebook: varias fotos y stories
 
 - **Descripción**: Dos tipos de contenido nuevos en Facebook: publicación con varias fotos y stories.
 - **Changelog**: Ya puedes publicar en una Página de Facebook un álbum de 2 a 10 fotos en una sola publicación y subir historias de foto o de vídeo, eligiendo el tipo en el compositor como en las demás redes.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-13
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -1322,16 +1354,16 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 **Criterios de aceptación**
 - [x] Los tipos aparecen en `list_accounts` y en el compositor con sus límites de media
 - [x] La publicación de varias fotos y de stories funciona con fakes
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 - RED/TDD: `FacebookMultiPhotoStoryTest` se escribió después del código de `FacebookPublisher` (no hubo ejecución en rojo previa); la primera ejecución dio 6/10 y destapó un fallo real (el álbum no validaba todas las imágenes antes de subir la primera, ahora sí) y tres errores de los propios tests, corregidos · 2026-11-13.
 - Verificación (2026-11-13): `php artisan test --compact --filter=FacebookMultiPhotoStoryTest` → 10/10 verde; focal `Unit`+`Connectors/Meta`+`Posts`+`Publishing`+`Media` → 1056/1056 verde; `FirstComment`+`Library`+`Jobs`+`Ui` verde (un fallo ajeno en `CalendarViewCrudTest` por el trabajo en curso de límites de ritmo de T-28/T-29); `MediaValidatorTest` actualizado (29 reglas) y `ComposeTest` (6 tipos de Facebook) verdes; Pint OK en mis ficheros. **No hay cambio de Vue**: el selector de tipo del compositor y `list_accounts` se alimentan de `ContentType`, así que no se ejecutaron `npm run build`, `test:unit`, `typecheck` ni Playwright; E2E-36 (varias fotos y lugar en Facebook) queda sin spec propio y la cobertura de los tipos en el compositor es `ComposeTest` (props `contentTypes`) y `list_accounts`.
@@ -1342,11 +1374,14 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 **Notas**: Tamaño M. Verificación real = smoke de Meta del usuario.
 
+**Cierre (2026-11-13)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 3); Pest completo en solitario 4024 passed / 9 skipped / 0 failed; E2E completo de cierre de fase en paralelo: 672 passed y 2 rojos (contraste de la insignia de avisos, corregido con `bg-rose-700`, y un `ERR_NO_BUFFER_SPACE` de Windows del entorno), relanzados `workflow`+`pages` en los 3 tamaños: 116 passed / 0 failed. Migraciones de la fase aplicadas en el MySQL 8.4 de desarrollo con copia previa.
+
 ### T-32 — Series: recuperar fechas perdidas, heredar aprobación y recordatorio manual
 
 - **Descripción**: Relleno opcional de lo perdido, herencia de aprobación en las ocurrencias y recordatorio de publicación manual.
 - **Changelog**: Las publicaciones de una serie pueden exigir aprobación antes de salir, las fechas recientes que una serie no pudo generar se recuperan con un botón opcional y las publicaciones manuales avisan antes de su hora, también por correo si lo tienes activado.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-13
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -1362,16 +1397,16 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [x] Las ocurrencias heredan la aprobación de la serie
 - [x] El relleno de fechas perdidas es opcional y explícito
 - [x] La publicación manual envía un recordatorio por correo/in-app
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 - RED/TDD: los tests (`SeriesApprovalInheritanceTest`, `SeriesBackfillTest`, `ManualReminderTest`) se escribieron junto al código, sin ejecución en rojo registrada aparte; la primera pasada dio 13/14 y destapó solo un fallo de test (la API de aprobar exige `signature`), corregido en la misma tarea · 2026-11-13.
 - Verificación (2026-11-13): `--filter='SeriesApprovalInheritanceTest|SeriesBackfillTest|ManualReminderTest'` → 14/14 verde; focal `SeriesTest`+`ManualPublishTest`+`ReviewFixesTest`+`Mcp`+`MigrationTest` → 466/466 verde (2 omitidos); Pint OK. `npm run build` OK, `npm run typecheck` OK, `npm run test:unit` 636/636. Playwright (`E2E_PURGE=0 E2E_WORKERS=2`, `workflow.spec.ts` + `studio.spec.ts`, desktop+mobile+mobile-360) → 23/23 verde, con un E2E nuevo «serie con aprobación…» (E2E-37). No se lanzó el Pest completo. Una ejecución más amplia (`--filter` con `Mcp`) mostró un fallo AJENO en `Parity/InboxTest` («Comentario no encontrado.» frente a «no encontrada»), sin relación con esta tarea.
@@ -1380,11 +1415,14 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 **Notas**: Tamaño M. El recordatorio por push se completa con F-07/F-16.
 
+**Cierre (2026-11-13)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 3); Pest completo en solitario 4024 passed / 9 skipped / 0 failed; E2E completo de cierre de fase en paralelo: 672 passed y 2 rojos (contraste de la insignia de avisos, corregido con `bg-rose-700`, y un `ERR_NO_BUFFER_SPACE` de Windows del entorno), relanzados `workflow`+`pages` en los 3 tamaños: 116 passed / 0 failed. Migraciones de la fase aplicadas en el MySQL 8.4 de desarrollo con copia previa.
+
 ### T-33 — Estudio: renombrar, borrar y mover a carpeta
 
 - **Descripción**: Menú de carpeta (renombrar, borrar) y «Mover a carpeta» para un diseño.
 - **Changelog**: En el estudio ahora puedes renombrar y borrar carpetas (con confirmación; sus diseños pasan a «Sin carpeta») y mover un diseño a otra carpeta desde su tarjeta.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-13
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -1400,16 +1438,16 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [x] Una carpeta se renombra y se borra (con confirmación) desde la UI
 - [x] Un diseño se mueve entre carpetas
 - [x] Borrar una carpeta con diseños no los pierde (pide destino)
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 - RED/TDD: `StudioFoldersTest` se escribió junto al código, sin ejecución en rojo registrada aparte; la primera pasada dio 6/7 (un índice de orden mal supuesto en el propio test), corregido en la tarea · 2026-11-13.
 - Verificación (2026-11-13): `php artisan test --compact --filter=StudioFoldersTest` → 7/7 verde; focal `StudioBackendTest`+`StudioApiMcpTest`+`StudioCollaborationTest`+`RouteNamesTest` → 80/80 verde (con `StudioFoldersTest`); Pint OK. `npm run build` OK, `typecheck` OK, `test:unit` 636/636 (el E2E nuevo no usa `.first()`, que el cupo de `test-tooling` limita). Playwright (`E2E_PURGE=0 E2E_WORKERS=2`, `studio.spec.ts` + `workflow.spec.ts`) → 23/23 verde, con el E2E nuevo «Studio: folders are renamed…» (E2E-06: crea carpetas, renombra con teclado, mueve el diseño, borra con confirmación y comprueba que el diseño sigue). La verificación declarada `studio-boards.spec.ts` no cubre carpetas (es de la pizarra): el E2E de carpetas va en `studio.spec.ts`. No se lanzó el Pest completo.
@@ -1418,11 +1456,14 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 **Notas**: Tamaño M. La confirmación de borrado y el resto de diálogos de carpetas usan `StudioDialog` (el diálogo común del estudio, sin `confirm()` nativo); cuando D-04 cree `ConfirmDialog` se migrará allí.
 
+**Cierre (2026-11-13)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 3); Pest completo en solitario 4024 passed / 9 skipped / 0 failed; E2E completo de cierre de fase en paralelo: 672 passed y 2 rojos (contraste de la insignia de avisos, corregido con `bg-rose-700`, y un `ERR_NO_BUFFER_SPACE` de Windows del entorno), relanzados `workflow`+`pages` en los 3 tamaños: 116 passed / 0 failed. Migraciones de la fase aplicadas en el MySQL 8.4 de desarrollo con copia previa.
+
 ### T-34 — Opciones de publicación: portada LinkedIn, lugares IG, `place` FB, editor de `user_tags`
 
 - **Descripción**: Portada de vídeo en LinkedIn, búsqueda de lugares en Instagram, `place` en Facebook y editor web de `user_tags`.
 - **Changelog**: El compositor deja elegir un lugar para Instagram y Facebook (buscándolo o pegando su id), etiquetar usuarios en una imagen de Instagram pulsando sobre ella y poner portada a los vídeos de LinkedIn.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-13
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -1437,16 +1478,16 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 **Criterios de aceptación**
 - [x] El compositor permite elegir lugar y etiquetar usuarios (con fakes de la API)
 - [x] LinkedIn acepta portada de vídeo
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 - RED/TDD: `PublishOptionsTest` se escribió junto al código (portada de LinkedIn y `place` ya implementados al ejecutarlo por primera vez); la primera pasada dio 6/9 con dos fallos del propio test (`Http::fake` encadenado dos veces y la cuenta de LinkedIn sin activar en el servicio), corregidos en la tarea · 2026-11-13. `TDD n/a` para los componentes Vue: cubiertos por `composer-user-tags.test.mjs` (lógica pura) y el E2E.
 - Verificación (2026-11-13): `php artisan test --compact --filter=PublishOptionsTest` → 9/9 verde; focal `tests/Feature/Publishing` + `Connectors/LinkedIn` + `Connectors/Meta` + `Mcp` → 657/657 verde; Pint OK. `npm run build` OK, `typecheck` OK, `test:unit` 639/639 (con `composer-user-tags.test.mjs`). Playwright (`E2E_PURGE=0 E2E_WORKERS=2`): `publish-options.spec.ts` (nuevo, E2E-36: lugar con la búsqueda interceptada en el navegador, motivo y id a mano cuando Meta la restringe, `user_tags` pulsando sobre la imagen y guardado/recarga) 3/3 y `composer-presets` + `linkedin-pinterest` + `instagram-audio` 27/27 (los 3 proyectos). No se lanzó el Pest completo.
@@ -1456,11 +1497,14 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 **Notas**: Tamaño M. Verificación real = smoke del usuario (`location_id`/`user_tags`, LinkedIn).
 
+**Cierre (2026-11-13)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 3); Pest completo en solitario 4024 passed / 9 skipped / 0 failed; E2E completo de cierre de fase en paralelo: 672 passed y 2 rojos (contraste de la insignia de avisos, corregido con `bg-rose-700`, y un `ERR_NO_BUFFER_SPACE` de Windows del entorno), relanzados `workflow`+`pages` en los 3 tamaños: 116 passed / 0 failed. Migraciones de la fase aplicadas en el MySQL 8.4 de desarrollo con copia previa.
+
 ### T-35 — Estudio: PPTX, miniaturas por diseño y traducción de subtítulos
 
 - **Descripción**: Exportación PPTX, miniaturas generadas por diseño y traducción de subtítulos con el asistente de IA configurado. La transcripción automática (ASR) no entra (ver F-26).
 - **Changelog**: El estudio exporta un diseño a PowerPoint (una diapositiva por página), enseña una miniatura de cada diseño en el listado y traduce los subtítulos con el asistente de IA cuando está activado.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-13
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -1476,16 +1520,16 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [x] Un diseño se exporta a PPTX válido (abre con una librería de lectura en test)
 - [x] Cada diseño tiene miniatura actualizada
 - [x] La traducción de subtítulos usa `AiAssistant` y está desactivada sin clave
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 - RED/TDD: los tres ficheros de test se escribieron antes que el código que prueban, pero no se registró una ejecución en rojo aparte (faltaban las clases y rutas); la primera pasada ya con el código tuvo fallos de los propios tests (`SimpleXML` y atributos, tamaño mínimo de diapositiva, directorio de trabajo que exige `StudioChartFiles`, cuota que devolvía 500 por `PostValidationException` sin envolver), corregidos en la tarea · 2026-11-13.
 - Verificación (2026-11-13): `php artisan test --compact --filter=StudioPptxExportTest` → 3/3 verde · `--filter=StudioThumbnailsTest` → 5/5 verde · `--filter=StudioCaptionTranslationTest` → 16/16 verde; focal `tests/Feature/Studio` + `Mcp` + `Api` → 1030/1039 verde (9 omitidas ya existentes); Pint OK; migración `2026_12_24_090000` probada hacia arriba, abajo y arriba en un SQLite temporal (nunca el MySQL de desarrollo). `npm run build` OK, `typecheck` OK, `test:unit` 639/639. Playwright (`E2E_PURGE=0 E2E_WORKERS=2`): `studio-pptx-thumbnails.spec.ts` (nuevo, E2E-07) 9/9 (miniatura bajo demanda con Chromium real, invalidada al editar, PPTX descargado y validado con `python -m zipfile -t`, traducción apagada y propuesta aplicada con la IA simulada en el navegador) y `studio` + `studio-captions` + `studio-native-export` + `studio-boards` 28/28. No se lanzó el Pest completo.
@@ -1495,6 +1539,8 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 **Notas**: Tamaño M. Qué se puede hacer ya: PPTX, miniaturas y traducción (con fake de IA). Queda a la espera (U): proveedor de ASR para transcripción (F-26 [D]); abrir el PPTX en PowerPoint es el manual M-11. **A la espera (no bloquea la fase)**: Proveedor de ASR (decisión del usuario).
 
 ---
+
+**Cierre (2026-11-13)**: revisiones adversariales cerradas (ver «Revisión de dos lentes» de la Fase 3); Pest completo en solitario 4024 passed / 9 skipped / 0 failed; E2E completo de cierre de fase en paralelo: 672 passed y 2 rojos (contraste de la insignia de avisos, corregido con `bg-rose-700`, y un `ERR_NO_BUFFER_SPACE` de Windows del entorno), relanzados `workflow`+`pages` en los 3 tamaños: 116 passed / 0 failed. Migraciones de la fase aplicadas en el MySQL 8.4 de desarrollo con copia previa.
 
 ## Fase 4 — Refactor del backend
 

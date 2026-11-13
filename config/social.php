@@ -133,6 +133,15 @@ return [
     ],
 
     /*
+    | Aviso de caducidad de conexiones (T-23): dias de antelacion (coma-separados, de mayor a menor) con que se avisa una sola vez por umbral
+    | de que hay que reconectar una cuenta cuya caducidad el sistema no puede renovar (acceso a datos de Meta de 90 dias, token de LinkedIn
+    | sin refresh_token). El umbral mayor es tambien la ventana del «Reconecta antes de» de Conexiones. Hora de la pasada diaria en `expiry_notice_at`.
+    */
+    'expiry_notice_days' => array_values(array_filter(array_map('intval', explode(',', (string) env('SOCIAL_EXPIRY_NOTICE_DAYS', '7,1'))))),
+    'expiry_notice_at' => env('SOCIAL_EXPIRY_NOTICE_AT', '09:00'),
+    'expiry_notice_interval_hours' => 24, // la pasada es diaria; ver `ConnectionExpiry::intervalSeconds()`
+
+    /*
     | Threads (C-02, T1: conector propio). Hosts verificados en la documentacion de Meta el 2026-10-27 y configurables por si vuelven a
     | cambiar (la doc admite tambien graph.threads.net). Valores de T-54 en docs/referencia/decisiones-por-red.md. El plazo de procesado es el de `config/publishing.php` (`poll_max_minutes`).
     */
@@ -145,7 +154,7 @@ return [
         'enabled' => (bool) env('LINKEDIN_ENABLED', true),
         'auth_host' => env('LINKEDIN_AUTH_HOST', 'https://www.linkedin.com'),
         'api_host' => env('LINKEDIN_API_HOST', 'https://api.linkedin.com'),
-        'api_version' => env('LINKEDIN_API_VERSION', '202511'),
+        'api_version' => env('LINKEDIN_API_VERSION', '202610'),
         'scopes' => ['openid', 'profile', 'w_member_social'],
         'page_scopes' => ['w_organization_social', 'r_organization_social', 'rw_organization_admin'],
         // Community Management API (paginas): LinkedIn la aprueba aparte. Sin ella (por defecto) solo se pide el perfil y no se listan paginas.
@@ -153,8 +162,6 @@ return [
         // `r_member_social` (leer publicaciones/comentarios del perfil): LinkedIn solo lo da a apps aprobadas. Sin el no hay busqueda de
         // idempotencia ni primer comentario en perfiles personales.
         'member_read' => (bool) env('LINKEDIN_R_MEMBER_SOCIAL', false),
-        // Dias de antelacion con que la UI avisa «reconecta antes de» en cuentas cuyo token no se puede renovar.
-        'reconnect_notice_days' => (int) env('LINKEDIN_RECONNECT_NOTICE_DAYS', 7),
         'text_max' => 3000,
         'image_max_bytes' => 36152320,
         'video_max_bytes' => 500 * 1024 * 1024,
@@ -174,7 +181,12 @@ return [
         'description_max' => 800,
         'alt_max' => 500,
         'link_max' => 2048,
-        'upload_timeout' => (int) env('PINTEREST_UPLOAD_TIMEOUT', 60),
+        /* Segundos de UNA subida de video en streaming: dentro de los 110 s del job (el tope de `media_specs.pinterest_video` esta calculado para ello). */
+        'upload_timeout' => (int) env('PINTEREST_UPLOAD_TIMEOUT', 100),
+        /* Minimo (s) de subida para intentarla: con menos presupuesto en el paso se reprograma sin registrar un media nuevo. */
+        'upload_min_seconds' => 15,
+        /* Vigencia (min) de la URL prefirmada guardada para reutilizarla en un reintento: pasada, se registra otro media. */
+        'upload_url_ttl_minutes' => (int) env('PINTEREST_UPLOAD_URL_TTL', 20),
     ],
 
     'threads' => [
@@ -195,6 +207,13 @@ return [
     'tiktok' => [
         // video.publish solo es util tras la auditoria de TikTok (decision G1: borrador por defecto).
         'scopes' => ['user.info.basic', 'video.upload', 'video.publish'],
+
+        /*
+        | Scopes ADICIONALES que se piden al conectar (coma-separados), p. ej. `user.info.stats,video.list` para la analitica
+        | (decision G1). Solo ponerlos cuando TikTok los haya aprobado en la auditoria de la app, o el consentimiento falla;
+        | las cuentas ya conectadas hay que RECONECTARLAS para que el token los incluya. Se ignora lo que no sea un scope valido.
+        */
+        'extra_scopes' => array_values(array_filter(array_map('trim', explode(',', (string) env('TIKTOK_EXTRA_SCOPES', ''))), fn ($s) => preg_match('/^[a-z][a-z0-9_.]*$/D', $s) === 1)),
 
         /*
         | Dominio VERIFICADO en TikTok (URL prefix) que sirve la media por PULL_FROM_URL. Solo con esto se ofrece el tipo
@@ -297,7 +316,8 @@ return [
             // La serie de cuenta de Threads admite rango (desde 2024-04-13); se pide por tramos.
             'threads' => (int) env('SOCIAL_BACKFILL_DAYS_THREADS', 30),
             'linkedin' => 0,
-            'pinterest' => 0,
+            // Pinterest (T-21): `user_account/analytics` admite rango (<= 90 dias atras y de rango); se piden 30 y por tramos de 30.
+            'pinterest' => (int) env('SOCIAL_BACKFILL_DAYS_PINTEREST', 30),
         ],
         /* Presupuesto (s) de una pasada de backfill; si no acaba, el job se reencola y continua. */
         'backfill_budget_seconds' => (int) env('SOCIAL_BACKFILL_BUDGET', 80),
@@ -354,6 +374,21 @@ return [
         'posts_limit' => (int) env('SOCIAL_COMPETITORS_POSTS_LIMIT', 25),
         'posts_at' => env('SOCIAL_COMPETITORS_POSTS_AT', '13:30'),
         'max_per_brand' => (int) env('SOCIAL_COMPETITORS_MAX', 10),
+        /* YouTube (T-25): unidades de cuota/dia que pueden gastar los competidores (channels/playlistItems/videos.list = 1 ud cada una),
+           aparte del cupo global de `YouTubeQuota`, para no dejar sin cupo las subidas (~1.600 ud). */
+        'youtube_daily_units' => (int) env('SOCIAL_COMPETITORS_YOUTUBE_UNITS', 300),
+        /* Tope POR USUARIO dentro del global: un usuario no agota el cupo de los demas (~3 ud por competidor y dia: ~20 competidores). */
+        'youtube_user_daily_units' => (int) env('SOCIAL_COMPETITORS_YOUTUBE_USER_UNITS', 60),
+    ],
+
+    /*
+    | Series recurrentes (T-32). `recovery_days`: margen (1-7 dias) dentro del cual «Recuperar fechas perdidas» rehace una fecha que no se
+    | pudo generar mientras la serie fallaba; mas antiguas no se reconstruyen. `manual_reminder_minutes`: antelacion del recordatorio de
+    | un destino de publicacion manual (en la app y, con `notify_by_mail`, por correo).
+    */
+    'series' => [
+        'recovery_days' => max(1, min(7, (int) env('SOCIAL_SERIES_RECOVERY_DAYS', 2))),
+        'manual_reminder_minutes' => max(5, (int) env('SOCIAL_MANUAL_REMINDER_MINUTES', 60)),
     ],
 
     /*

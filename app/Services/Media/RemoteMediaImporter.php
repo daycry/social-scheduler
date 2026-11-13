@@ -3,6 +3,7 @@
 namespace App\Services\Media;
 
 use App\Models\MediaAsset;
+use App\Services\JobFailureNotifier;
 use App\Services\MediaStorage;
 use App\Services\MediaUploadService;
 use InvalidArgumentException;
@@ -46,7 +47,7 @@ class RemoteMediaImporter
             return $this->fail($asset, 'La descarga necesita demasiadas pasadas; inténtalo de nuevo más tarde o descarga el fichero y súbelo.');
         }
 
-        $passStarted = microtime(true);
+        $passStarted = $this->now();
 
         $disk = $this->storage->disk();
         $disk->makeDirectory(dirname($asset->path));
@@ -62,17 +63,19 @@ class RemoteMediaImporter
         $state['runs'] = ($state['runs'] ?? 0) + 1;
         $this->save($asset, $state);
 
-        $policy = function (?string $mime, ?int $total): int {
+        // Solo el export de Canva trae PDF a la biblioteca; por URL o Drive un PDF se rechaza.
+        $allowDocument = $this->allowsDocument($asset);
+        $policy = function (?string $mime, ?int $total) use ($allowDocument): int {
             try {
-                $kind = $this->uploads->kindFor((string) $mime);
-            } catch (InvalidArgumentException) {
-                throw new ImportFailedException('Tipo de fichero no admitido. Usa JPG, PNG, WebP, MP4 o MOV.');
+                $kind = $this->uploads->kindFor((string) $mime, allowDocument: $allowDocument);
+            } catch (InvalidArgumentException $e) {
+                throw new ImportFailedException($mime !== null && in_array($mime, (array) config('media.allowed_pdf_mimes'), true) ? $e->getMessage() : 'Tipo de fichero no admitido. Usa JPG, PNG, WebP, MP4 o MOV.');
             }
 
             $cap = (int) config("media.max_bytes.$kind");
 
             if ($total !== null && $total > $cap) {
-                throw new ImportFailedException('El fichero supera el tamaño máximo permitido para '.($kind === 'video' ? 'vídeos' : 'imágenes').'.');
+                throw new ImportFailedException('El fichero supera el tamaño máximo permitido para '.$this->uploads->kindNoun($kind).'.');
             }
 
             return $cap;
@@ -80,7 +83,7 @@ class RemoteMediaImporter
 
         // Se reserva tiempo al final del presupuesto para `finalize()` (tamano, tipo real, metadatos con ffprobe): sin ello la ultima
         // pasada podria agotar el timeout del job justo al terminar.
-        $deadline = microtime(true) + max(1, (int) config('media.import_budget_seconds', 80) - (int) config('media.import_finalize_reserve_seconds', 10));
+        $deadline = $this->now() + max(1, (int) config('media.import_budget_seconds', 80) - (int) config('media.import_finalize_reserve_seconds', 10));
 
         try {
             $pass = $source->fetch($sink, $offset, $state['validator'] ?? null, $policy, (int) max((array) config('media.max_bytes')), $deadline, $state['total'] ?? null);
@@ -95,7 +98,7 @@ class RemoteMediaImporter
             // sana no la mata: solo desplaza un poco el ritmo medio y el contador, y los cortes siguen siendo los de siempre.
             $state['passes'] = ($state['passes'] ?? 0) + 1;
             $state['failed_passes'] = ($state['failed_passes'] ?? 0) + 1;
-            $state['download_seconds'] = round(($state['download_seconds'] ?? 0) + (microtime(true) - $passStarted), 3);
+            $state['download_seconds'] = round(($state['download_seconds'] ?? 0) + ($this->now() - $passStarted), 3);
             $this->save($asset, $state);
             // Transitorio (red, 5xx): el job reintenta y reanuda desde el parcial. Se relanza SIN la excepcion original: los mensajes
             // de Guzzle/cURL llevan la URL completa (con su query, que puede ser un token) y acabarian en `failed_jobs` y en el log.
@@ -115,7 +118,7 @@ class RemoteMediaImporter
                 });
             }
 
-            $this->save($asset, ['bytes' => 0, 'total' => null, 'validator' => null, 'restarts' => ($state['restarts'] ?? 0) + 1, 'passes' => ($state['passes'] ?? 0) + 1, 'download_seconds' => round(($state['download_seconds'] ?? 0) + (microtime(true) - $passStarted), 3)] + $state);
+            $this->save($asset, ['bytes' => 0, 'total' => null, 'validator' => null, 'restarts' => ($state['restarts'] ?? 0) + 1, 'passes' => ($state['passes'] ?? 0) + 1, 'download_seconds' => round(($state['download_seconds'] ?? 0) + ($this->now() - $passStarted), 3)] + $state);
 
             return false;
         }
@@ -128,7 +131,7 @@ class RemoteMediaImporter
             'validator' => $state['validator'] ?? $pass->validator,
             'ranges' => ($state['ranges'] ?? false) || $pass->ranges,
             'passes' => ($state['passes'] ?? 0) + 1,
-            'download_seconds' => round(($state['download_seconds'] ?? 0) + (microtime(true) - $passStarted), 3),
+            'download_seconds' => round(($state['download_seconds'] ?? 0) + ($this->now() - $passStarted), 3),
             // Pasadas seguidas «pobres» (menos del ritmo minimo por pasada): con la cola reencolando sin espera, un remoto que suelta
             // 1 B por pasada (goteo) provocaba un bucle caliente que el contador de pasadas a 0 bytes no veia.
             'stalls' => $pass->complete || $pass->written >= (int) config('media.import_min_pass_bytes', 65536) ? 0 : ($state['stalls'] ?? 0) + 1,
@@ -139,7 +142,7 @@ class RemoteMediaImporter
         }
 
         if ($pass->mime !== null && $offset === 0) {
-            $kind = $this->uploads->kindFor($pass->mime);
+            $kind = $this->uploads->kindFor($pass->mime, allowDocument: $this->allowsDocument($asset));
             $asset->forceFill(['mime' => $pass->mime, 'kind' => $kind]);
             $state['mime'] = $pass->mime;
         }
@@ -205,10 +208,16 @@ class RemoteMediaImporter
         return ((int) ($state['bytes'] ?? 0)) / $seconds < (int) config('media.import_min_rate_bytes', 16 * 1024);
     }
 
+    /** Reloj de las pasadas (segundos con fraccion). Existe para que los tests simulen el paso del tiempo sin dormir ni depender de la carga de la maquina. */
+    protected function now(): float
+    {
+        return microtime(true);
+    }
+
     /** Ritmo maximo de reencolado (gap F5-3 N2): una pasada incompleta mas corta que el minimo espera el resto DENTRO del job (sin `delay`, que dejaba ~40 s muertos). */
     private function pace(float $passStarted): void
     {
-        $remaining = (float) config('media.import_min_pass_seconds', 1) - (microtime(true) - $passStarted);
+        $remaining = (float) config('media.import_min_pass_seconds', 1) - ($this->now() - $passStarted);
 
         if ($remaining > 0) {
             usleep((int) ($remaining * 1_000_000));
@@ -223,20 +232,21 @@ class RemoteMediaImporter
     private function finish(MediaAsset $asset, array $state, string $mime, int $bytes): bool
     {
         $partial = $asset->path;
-        $final = preg_replace('/\.(part|jpe?g|png|webp|mp4|mov)$/i', '', $partial).'.'.$this->uploads->extensionFor($mime);
+        $final = preg_replace('/\.(part|jpe?g|png|webp|mp4|mov|pdf)$/i', '', $partial).'.'.$this->uploads->extensionFor($mime);
         $disk = $this->storage->disk();
         $disk->move($partial, $final);
 
         $asset->forceFill([
             'path' => $final,
             'mime' => $mime,
-            'kind' => $this->uploads->kindFor($mime),
+            'kind' => $this->uploads->kindFor($mime, allowDocument: $this->allowsDocument($asset)),
             'declared_size' => $bytes,
             'import_state' => $state,
         ]);
 
         try {
-            $this->uploads->finalize($asset);
+            $result = $this->uploads->finalize($asset);
+            $result->status === MediaAsset::STATUS_INVALID ? app(JobFailureNotifier::class)->import($result) : app(JobFailureNotifier::class)->importDone($result);
         } catch (\Throwable $e) {
             if ($disk->exists($final)) {
                 $disk->move($final, $partial);
@@ -257,6 +267,11 @@ class RemoteMediaImporter
         return $real === $mime;
     }
 
+    private function allowsDocument(MediaAsset $asset): bool
+    {
+        return $asset->source === MediaAsset::SOURCE_CANVA;
+    }
+
     private function save(MediaAsset $asset, array $state): void
     {
         $asset->forceFill(['import_state' => $state])->save();
@@ -266,6 +281,7 @@ class RemoteMediaImporter
     {
         $this->storage->disk()->delete($asset->path);
         $this->uploads->invalidate($asset, $reason);
+        app(JobFailureNotifier::class)->import($asset);
 
         return true;
     }

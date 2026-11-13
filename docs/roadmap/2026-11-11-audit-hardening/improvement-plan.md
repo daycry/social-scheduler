@@ -39,12 +39,12 @@ generacion:
 
 | Métrica | Estimado | Real | Confianza |
 |--------|---------|------|-----------|
-| Tiempo humano | **798.0h** (665.0h base +20 %) | 0h | Media |
-| Tiempo IA (ejecución) | **201.1h** (+ 50.3h supervisión) | 0h | Baja (ratio no calibrado) |
-| Coste total | **39900 €** + tokens ⚠️ verificar | 0 € | Media |
-| Tokens IA | **31925k** (in 25140k / out 6785k) | 0 | Baja |
+| Tiempo humano | **874.8h** (729.0h base +20 %) | 0h | Media |
+| Tiempo IA (ejecución) | **220.3h** (+ 55.1h supervisión) | 0h | Baja (ratio no calibrado) |
+| Coste total | **43740 €** + tokens ⚠️ verificar | 0 € | Media |
+| Tokens IA | **34965k** (in 27540k / out 7425k) | 0 | Baja |
 | Multiplicador productividad | **×3.2** | — | — |
-| Tareas | **100** | 0 hechas | — |
+| Tareas | **108** | 0 hechas | — |
 
 > Todas las cifras son **estimadas** (sin medición previa; no hay muestras calibradas en `CALIBRATION.md`). El coste de tokens no se calcula: el precio no está confirmado (`⚠️ verificar`, usar la skill `rates-verify`).
 
@@ -59,10 +59,11 @@ generacion:
 | Fase 3 — Funciones incompletas | 16 | 118.0 | 4440k / 1190k |  5900 € + tokens ⚠️ |
 | Fase 4 — Refactor del backend | 15 | 90.0 | 3420k / 930k |  4500 € + tokens ⚠️ |
 | Fase 5 — Frontend | 18 | 119.0 | 4500k / 1215k |  5950 € + tokens ⚠️ |
+| Fase 5b — Unificación | 8 | 64.0 | 2400k / 640k |  3200 € + tokens ⚠️ |
 | Fase 6 — Operación y repositorio | 6 | 43.0 | 1620k / 435k |  2150 € + tokens ⚠️ |
 | Fase 7 — Funciones nuevas | 24 | 177.0 | 6660k / 1785k |  8850 € + tokens ⚠️ |
 | Fase 8 — QA integral y documentación | 2 | 11.0 | 420k / 115k |  550 € + tokens ⚠️ |
-| **Total** | **100** | **665.0h** | **25140k / 6785k** | **33250 € + tokens ⚠️** |
+| **Total** | **108** | **729.0h** | **27540k / 7425k** | **36450 € + tokens ⚠️** |
 
 ---
 
@@ -87,11 +88,11 @@ generacion:
 
 | Concepto | Cálculo | Importe |
 |----------|---------|---------|
-| Desarrollo (humano, base) | 665.0h × 50 €/h | 33250 € |
-| Margen de contingencia | +20 % sobre desarrollo base | 6650 € |
-| Tokens IA (input) | 25140k tok × precio ⚠️ | ⚠️ verificar |
-| Tokens IA (output) | 6785k tok × precio ⚠️ | ⚠️ verificar |
-| **Total estimado (con margen)** | | **39900 € + tokens ⚠️** |
+| Desarrollo (humano, base) | 729.0h × 50 €/h | 36450 € |
+| Margen de contingencia | +20 % sobre desarrollo base | 7290 € |
+| Tokens IA (input) | 27540k tok × precio ⚠️ | ⚠️ verificar |
+| Tokens IA (output) | 7425k tok × precio ⚠️ | ⚠️ verificar |
+| **Total estimado (con margen)** | | **43740 € + tokens ⚠️** |
 
 ---
 
@@ -106,10 +107,11 @@ Base: claude-opus-4-8 · precios por verificar.
 | Fase 3 | 4440k | 1190k | 5630k | ⚠️ verificar |
 | Fase 4 | 3420k | 930k | 4350k | ⚠️ verificar |
 | Fase 5 | 4500k | 1215k | 5715k | ⚠️ verificar |
+| Fase 5b | 2400k | 640k | 3040k | ⚠️ verificar |
 | Fase 6 | 1620k | 435k | 2055k | ⚠️ verificar |
 | Fase 7 | 6660k | 1785k | 8445k | ⚠️ verificar |
 | Fase 8 | 420k | 115k | 535k | ⚠️ verificar |
-| **Total** | **25140k** | **6785k** | **31925k** | **⚠️ verificar** |
+| **Total** | **27540k** | **7425k** | **34965k** | **⚠️ verificar** |
 
 **Método de estimación:** por tamaño de tarea: S = 120k in / 35k out; M = 300k in / 80k out (lectura de ficheros afectados + generación de código, tests y documentación + ronda de revisión adversarial). Incluye una vuelta de correcciones; no incluye reintentos por fallos de entorno.
 
@@ -119,14 +121,14 @@ Base: claude-opus-4-8 · precios por verificar.
 
 | KPI | Valor |
 |-----|-------|
-| Horas humanas estimadas | 798.0 h (665.0 h base +20 %) |
-| Horas IA (ejecución) | 201.1 h (167.6 h base +20 %) |
-| Supervisión humana | 50.3 h |
-| **Horas totales (IA + supervisión)** | **251.4 h** |
-| Horas ahorradas | 546.6 h |
+| Horas humanas estimadas | 874.8 h (729.0 h base +20 %) |
+| Horas IA (ejecución) | 220.3 h (183.6 h base +20 %) |
+| Supervisión humana | 55.1 h |
+| **Horas totales (IA + supervisión)** | **275.4 h** |
+| Horas ahorradas | 599.4 h |
 | **Ahorro** | **68 %** |
 | **Multiplicador de productividad** | **×3.2** |
-| FTE equivalentes | 3.42 |
+| FTE equivalentes | 3.75 |
 
 > Horas IA y supervisión son **supuestos**; la ejecución real incluye esperas de la batería E2E (serie, ~1,5 h por pasada completa hasta E-02), que no están en la estimación por tarea y que `T-QA` mide.
 
@@ -156,6 +158,7 @@ La auditoría integral de `feature/creative-social-suite` encontró 118 hallazgo
 | 3 — Funciones incompletas (B) | Aprovecha la red; completa lo que hoy está vacío o asimétrico | Pest + E2E de las funciones tocadas |
 | 4 — Refactor backend (C) | Sin cambio de comportamiento; después de B para no refactorizar dos veces | Pest y E2E en verde antes y después de cada tarea |
 | 5 — Frontend (D) | `D-13` (formato) primero; refactors grandes (D-11, D-12) al final | Build, typecheck, E2E antes y después |
+| 5b — Unificación (U) | Convierte estudio y parte social en una sola aplicación; necesita los componentes comunes de la Fase 5 (T-53, T-56, T-57, T-60) | Build, E2E de unificación (E2E-41..E2E-47) y a11y en verde |
 | 6 — Operación y repositorio | Cabeceras, rotación de claves, peso del repo, dependencias | Tests + doc verificada |
 | 7 — Funciones nuevas (F) | Por valor/esfuerzo: F-01..F-04, luego F-05..F-12 (+F-16), después el resto | E2E de cada función |
 | 8 — QA integral y documentación | Cierra con pasada completa y ficha de decisiones | `T-QA` en verde y ledger al 100 % |
@@ -270,6 +273,8 @@ La ficha de decisión de cada uno (opciones, coste y recomendación) se redacta 
 - [ ] Ningún refactor cambió comportamiento (Pest y E2E en verde antes y después)
 - [ ] La documentación de cada módulo tocado y el CHANGELOG están al día
 - [ ] Las decisiones pendientes están en `DECISIONES.md`
+- [ ] **Criterio transversal de unidad:** ninguna pantalla nueva o tocada puede introducir componentes, estilos, diálogos ni términos propios del estudio o de la parte social si ya existe uno común; la revisión adversarial lo trata como un gap (`audit-unificacion.md`)
+- [ ] `check-traceability.py` también comprueba U-01..U-25 contra `audit-unificacion.md`
 
 ---
 
@@ -425,11 +430,46 @@ Cada ID de `audit.md` aparece exactamente una vez. Comprobación automática: `p
 
 ---
 
+## Trazabilidad unificación → tarea
+
+Cada ID de `audit-unificacion.md` aparece exactamente una vez como dueño (columna Tarea). Las tareas que solo lo amplían lo declaran en `Cubre (unificación)` de `tasks.md`. Comprobación automática: el mismo `check-traceability.py`.
+
+| ID | Hallazgo | Tarea | Fase | Estado de cobertura |
+|---|---|---|---|---|
+| U-01 | «Estudio» es el primer módulo del menú, delante de Analítica y Planificación | T-103 | 5b | Implementable ya |
+| U-02 | «Plantillas», «Identidad» y «Papelera de diseños» nunca se marcan activas | T-103 | 5b | Implementable ya |
+| U-03 | Canva no está en el menú y al abrirlo cae en «Cuenta» | T-103 | 5b | Implementable ya |
+| U-04 | Estudio y editor sin `#header`: hero propio | T-103 | 5b | Implementable ya |
+| U-05 | El editor compensa el layout con `-m-3`; sin prop `fullBleed` | T-103 | 5b | Implementable ya |
+| U-06 | `studio/designs/{design}/edit` no fija la marca de la sesión | T-103 | 5b | Implementable ya |
+| U-07 | Dos colores de acento (`violet` frente a `indigo`); `btn-*` sobrescrito | T-102 | 5b | Implementable ya |
+| U-08 | Ocho bloques `<style>` y cinco estilos de botón propios del estudio | T-102 | 5b | Implementable ya |
+| U-09 | Etiquetas e inputs propios en lugar de `.field` | T-107 | 5b | Implementable ya |
+| U-10 | Tres patrones de diálogo (`StudioDialog`, `Modal`, `fixed inset-0`) | T-107 | 5b | Implementable ya |
+| U-11 | El estudio no usa `EmptyState`, `PrimaryButton`, paginador ni banner comunes | T-107 | 5b | Implementable ya |
+| U-12 | 88 colores hex fuera de los tokens | T-102 | 5b | Implementable ya |
+| U-13 | «Biblioteca» significa dos cosas | T-54 | 5 | Implementable ya |
+| U-14 | Mismos conceptos con nombres distintos; sin glosario | T-54 | 5 | Implementable ya |
+| U-15 | El post no guarda su diseño ni su exportación de origen | T-101 | 5b | Implementable ya |
+| U-16 | El compositor no elige archivos del estudio ni abre una imagen en él | T-106 | 5b | Implementable ya |
+| U-17 | Lo importado de Canva no aparece en «Recursos» | T-101 | 5b | Implementable ya |
+| U-18 | Dos pipelines de subida de medios (amplía T-53) | T-106 | 5b | Implementable ya |
+| U-19 | La identidad de marca solo existe dentro del estudio | T-104 | 5b | Implementable ya |
+| U-20 | Dos pilas de IA con estado y cuota separados; «Voz de la marca» sin uso | T-104 | 5b | Implementable ya |
+| U-21 | Avisos `studio_design_*` genéricos y sin enlace | T-23 | 3 | Implementable ya |
+| U-22 | Dos modelos de permisos; el colaborador de la marca no ve sus diseños | T-105 | 5b | Implementable ya |
+| U-23 | Tres estilos de paginación en API/MCP | T-28 | 3 | Implementable ya |
+| U-24 | Prefijos de abilities mezclados; archivos sin ability propia | T-108 | 5b | Implementable ya |
+| U-25 | El estudio más expuesto que el núcleo social; marca a veces en la query | T-29 | 3 | Implementable ya |
+
+---
+
 ## Changelog del plan
 
 | Fecha | Cambio | Autor |
 |-------|--------|-------|
 | 2026-11-11 | Creación del plan a partir de `audit.md` | planner |
+| 2026-11-12 | Se incorpora `audit-unificacion.md` (U-01..U-25): Fase 5b con T-101..T-108 (las que superaban una M se parten en 1/2 y 2/2), ampliación de T-17, T-23, T-28, T-29, T-53, T-54, T-56..T-60, T-62, T-63 y criterio transversal de unidad | planner |
 | 2026-11-11 | Se parte A-09/E-20/F-04: backend en fase 1 y UI (F-04) en fase 7; las L (B-09, C-05, D-11, D-12, D-14, F-23, F-25) se parten en tareas M con continuaciones sin ID propio | planner |
 
 ---

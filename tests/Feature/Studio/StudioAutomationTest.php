@@ -44,10 +44,10 @@ test('Studio automation: saving a template makes an independent editable copy wi
     $template['document']['pages'][0]['elements'][0]['text'] = 'Oferta {{producto}}';
     $this->patchJson('/studio/designs/'.$template['id'], ['revision' => 1, 'name' => 'Mi plantilla', 'document' => $template['document']])
         ->assertOk()->assertJsonPath('design.template_fields', ['producto']);
-    $this->getJson('/brands/'.$this->brand->id.'/studio/designs?templates=1')->assertOk()->assertJsonCount(1, 'designs.data');
+    $this->getJson('/brands/'.$this->brand->id.'/studio/designs?templates=1')->assertOk()->assertJsonCount(1, 'designs.designs');
     expect($this->source->fresh()->document)->toBe(automationDocument());
     $this->deleteJson('/studio/designs/'.$template['id'])->assertOk();
-    $this->getJson('/brands/'.$this->brand->id.'/studio/designs?templates=1')->assertJsonCount(0, 'designs.data');
+    $this->getJson('/brands/'.$this->brand->id.'/studio/designs?templates=1')->assertJsonCount(0, 'designs.designs');
 });
 
 test('Studio automation: instantiation substitutes fields literally and preserves template revision', function () {

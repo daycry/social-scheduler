@@ -11,6 +11,7 @@ use App\Connectors\Network;
 use App\Models\Brand;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Support\PermissionHelp;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 
@@ -25,26 +26,29 @@ class AdsService
 
     public function __construct(private readonly Ads $ads, private readonly SocialAccountService $accounts) {}
 
-    /** Instruccion que acompana a todo estado «no disponible». */
-    public const HOWTO = 'Activa el permiso ads_read en los casos de uso de la app de Meta (Marketing API) y vuelve a conectar tu cuenta de Meta.';
+    /** Instruccion (la misma que el inbox, `PermissionHelp`) que acompana a todo estado «no disponible» por permisos. */
+    public static function help(): string
+    {
+        return PermissionHelp::meta('Meta Ads', 'ads_read');
+    }
 
     /**
-     * @return array{available: bool, reason: ?string, message: ?string, ad_accounts: list<array<string, mixed>>, selected: ?array<string, mixed>, period: int, totals: ?array<string, mixed>, campaigns: list<array<string, mixed>>}
+     * @return array{available: bool, reason: ?string, message: ?string, help: ?string, ad_accounts: list<array<string, mixed>>, selected: ?array<string, mixed>, period: int, totals: ?array<string, mixed>, campaigns: list<array<string, mixed>>}
      */
     public function overview(User $user, ?Brand $brand, ?string $adAccountId = null, int $days = 30, ?array $range = null): array
     {
         $days = in_array($days, self::PERIODS, true) ? $days : 30;
-        $base = ['available' => false, 'reason' => null, 'message' => null, 'ad_accounts' => [], 'selected' => null, 'period' => $days, 'totals' => null, 'campaigns' => []];
+        $base = ['available' => false, 'reason' => null, 'message' => null, 'help' => null, 'ad_accounts' => [], 'selected' => null, 'period' => $days, 'totals' => null, 'campaigns' => []];
 
         if ($brand === null) {
             return ['reason' => 'sin_marca', 'message' => 'Crea una marca y conecta su cuenta de Meta para consultar los anuncios.'] + $base;
         }
         $source = $this->source($user, $brand);
         if ($source === null) {
-            return ['reason' => 'sin_permiso', 'message' => 'Meta Ads no está disponible. '.self::HOWTO] + $base;
+            return ['reason' => 'sin_permiso', 'message' => 'Meta Ads no está disponible. '.self::help(), 'help' => self::help()] + $base;
         }
         if (! $source->isActive()) {
-            return ['reason' => 'reconectar', 'message' => 'La cuenta de Meta necesita reconectarse. '.self::HOWTO] + $base;
+            return ['reason' => 'reconectar', 'message' => 'La cuenta de Meta necesita reconectarse. '.self::help(), 'help' => self::help()] + $base;
         }
 
         $token = (string) $source->refresh_token;
@@ -75,12 +79,12 @@ class AdsService
         } catch (ReconnectRequiredException $e) {
             $this->accounts->flagReconnection($source, $e->getMessage());
 
-            return ['available' => false, 'reason' => 'reconectar', 'message' => 'La cuenta de Meta necesita reconectarse. '.self::HOWTO] + $base;
+            return ['available' => false, 'reason' => 'reconectar', 'message' => 'La cuenta de Meta necesita reconectarse. '.self::help(), 'help' => self::help()] + $base;
         } catch (TransientPublishException) {
             return ['available' => false, 'reason' => 'transitorio', 'message' => 'Meta no responde ahora mismo. Inténtalo de nuevo en unos minutos.'] + $base;
         } catch (PermanentPublishException $e) {
             if ($e->errorCode === 'permisos') {
-                return ['available' => false, 'reason' => 'sin_permiso', 'message' => 'Meta rechazó la lectura de anuncios. '.self::HOWTO] + $base;
+                return ['available' => false, 'reason' => 'sin_permiso', 'message' => 'Meta rechazó la lectura de anuncios. '.self::help(), 'help' => self::help()] + $base;
             }
 
             return ['available' => false, 'reason' => 'error', 'message' => 'Meta rechazó la consulta de anuncios.'] + $base;

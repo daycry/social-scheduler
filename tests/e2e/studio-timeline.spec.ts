@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
-import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, stamp } from './helpers';
+import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, quietFor, seedComposerBrand, stamp } from './helpers';
 
 const browserErrors = new WeakMap<Page, string[]>();
 test.beforeEach(async ({ page }) => {
@@ -13,7 +13,7 @@ test.afterEach(async ({ page }) => {
     expect(browserErrors.get(page) ?? []).toEqual([]);
 });
 
-test('Studio timeline: edit windows, split, persist and run a common playhead without changing the document', async ({ page }, info) => {
+test('Studio timeline: edit windows, split, persist and run a common playhead without changing the document', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `studio-timeline-${stamp()}-${info.project.name}`);
@@ -50,7 +50,7 @@ test('Studio timeline: edit windows, split, persist and run a common playhead wi
         await expect.poll(async () => Number(await clock.inputValue())).toBeGreaterThan(2.6);
         await timeline.getByRole('button', { name: 'Pausar', exact: true }).click();
         const paused = Number(await clock.inputValue());
-        await page.waitForTimeout(150);
+        await quietFor(page, 150); // negativa: en pausa el reloj no avanza
         expect(Number(await clock.inputValue())).toBeCloseTo(paused, 2);
         expect((await read()).document).toEqual(before.document);
         await page.screenshot({ path: info.outputPath('timeline-editor.png'), fullPage: true });
@@ -60,7 +60,7 @@ test('Studio timeline: edit windows, split, persist and run a common playhead wi
     } finally { cleanComposerBrands(user.email); }
 });
 
-test('Studio timeline: an uploaded real video with an open source end can be split and previewed', async ({ page }, info) => {
+test('Studio timeline: an uploaded real video with an open source end can be split and previewed', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `studio-timeline-video-${stamp()}-${info.project.name}`);
@@ -98,7 +98,7 @@ test('Studio timeline: an uploaded real video with an open source end can be spl
     } finally { cleanComposerBrands(user.email); }
 });
 
-test('Studio timeline: splitting the second page uses local clip time and survives undo and redo', async ({ page }, info) => {
+test('Studio timeline: splitting the second page uses local clip time and survives undo and redo', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `studio-timeline-pages-${stamp()}-${info.project.name}`);
@@ -162,7 +162,7 @@ test('Studio timeline: buffering never consumes a short clip before playback sta
     } finally { cleanComposerBrands(user.email); }
 });
 
-test('Studio timeline: closing while media buffers cancels the pending playback', async ({ page }, info) => {
+test('Studio timeline: closing while media buffers cancels the pending playback', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `studio-timeline-cancel-${stamp()}-${info.project.name}`);
@@ -186,7 +186,7 @@ test('Studio timeline: closing while media buffers cancels the pending playback'
         await request;
         await page.getByRole('button', { name: 'Línea de tiempo', exact: true }).click();
         // Negative temporal assertion: wait beyond both possible 900ms range responses.
-        await page.waitForTimeout(2200);
+        await quietFor(page, 2200);
         await expect(timeline).toHaveCount(0);
         await expect(page.getByLabel('Previsualización de la línea de tiempo', { exact: true })).toBeHidden();
         await page.getByRole('button', { name: 'Línea de tiempo', exact: true }).click();

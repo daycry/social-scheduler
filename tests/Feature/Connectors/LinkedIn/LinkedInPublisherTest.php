@@ -66,7 +66,7 @@ test('publica texto como perfil con la Posts API, cabeceras de version y texto e
     expect($body['author'])->toBe('urn:li:person:abc123')->and($body['visibility'])->toBe('PUBLIC')->and($body['lifecycleState'])->toBe('PUBLISHED')
         ->and($body['commentary'])->toBe('Hola \(mundo\) #lanzamiento\_1 \@ana')->and($body)->not->toHaveKey('content')
         ->and($body['distribution']['feedDistribution'])->toBe('MAIN_FEED')->and($body['isReshareDisabledByAuthor'])->toBeFalse();
-    Http::assertSent(fn (Request $r) => $r->header('Authorization') === ['Bearer LI-TOKEN'] && $r->header('X-Restli-Protocol-Version') === ['2.0.0'] && $r->header('LinkedIn-Version') === ['202511']);
+    Http::assertSent(fn (Request $r) => $r->header('Authorization') === ['Bearer LI-TOKEN'] && $r->header('X-Restli-Protocol-Version') === ['2.0.0'] && $r->header('LinkedIn-Version') === [config('social.linkedin.api_version')]);
 });
 
 test('una imagen se sube desde el disco y se publica con su texto alternativo', function () {

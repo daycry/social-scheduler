@@ -7,6 +7,7 @@ use App\Enums\PostStatus;
 use App\Exceptions\PostValidationException;
 use App\Jobs\PostFirstComment;
 use App\Models\PostTarget;
+use App\Support\TextLength;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -17,6 +18,26 @@ use Illuminate\Support\Facades\DB;
 class FirstCommentService
 {
     /** Edita el texto de un comentario `fallido` antes de reintentar. */
+    /**
+     * Mensaje de error si el comentario supera el limite de su tipo, o null. Cuenta como el texto de esa red (`count`: caracteres,
+     * grafemas en Bluesky, regla de Threads) y respeta el tope de bytes cuando lo hay.
+     *
+     * @param  array<string, mixed>  $spec  `media_specs.types.*.first_comment`
+     */
+    public static function lengthError(string $text, array $spec, string $network): ?string
+    {
+        $max = (int) ($spec['max'] ?? 0);
+        $length = TextLength::count($text, (string) ($spec['count'] ?? TextLength::CHARS));
+        if ($max > 0 && $length > $max) {
+            return "El primer comentario admite como maximo $max caracteres en $network (tiene $length).";
+        }
+        if (isset($spec['max_bytes']) && strlen($text) > (int) $spec['max_bytes']) {
+            return "El primer comentario admite como maximo {$spec['max_bytes']} bytes en $network (tiene ".strlen($text).').';
+        }
+
+        return null;
+    }
+
     public function update(PostTarget $target, ?string $text): PostTarget
     {
         $text = $text !== null && trim($text) !== '' ? trim($text) : null;
@@ -25,9 +46,9 @@ class FirstCommentService
             throw new PostValidationException(['first_comment' => ['El primer comentario no puede quedar vacio.']]);
         }
 
-        $max = config("media_specs.types.{$target->content_type->value}.first_comment.max");
-        if ($max !== null && mb_strlen($text) > (int) $max) {
-            throw new PostValidationException(['first_comment' => ["El primer comentario admite como maximo $max caracteres en {$target->network->label()} (tiene ".mb_strlen($text).').']]);
+        $spec = (array) config("media_specs.types.{$target->content_type->value}.first_comment");
+        if ($spec !== [] && ($error = self::lengthError($text, $spec, $target->network->label())) !== null) {
+            throw new PostValidationException(['first_comment' => [$error]]);
         }
 
         return DB::transaction(function () use ($target, $text) {

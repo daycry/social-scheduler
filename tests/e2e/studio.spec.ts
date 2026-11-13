@@ -52,7 +52,7 @@ test('Studio: fractional exports round to 21 pixels and register PNG JPEG WebP i
     } finally { cleanComposerBrands(user.email); }
 });
 
-test('Studio: design persists, exports real PNG and starts a publication in its brand', async ({ page }, info) => {
+test('Studio: design persists, exports real PNG and starts a publication in its brand', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `studio-${stamp()}-${info.project.name}`);
@@ -193,5 +193,65 @@ test('Studio: a stale revision preserves local edits and can recover the server 
         await page.getByRole('button', { name: 'Recuperar versión guardada', exact: true }).click();
         await expect(page.getByTestId('studio-save-status')).toHaveText('Guardado');
         await expect(page.getByLabel('Nombre del diseño', { exact: true })).toHaveValue('Nombre desde otra sesión');
+    } finally { cleanComposerBrands(user.email); }
+});
+
+test('Studio: folders are renamed, designs move between them and deleting a folder keeps its designs', async ({ page }, info) => {
+    const user = e2eUser(info.project.name);
+    cleanComposerBrands(user.email);
+    const brand = seedComposerBrand(user.email, `studio-folders-${stamp()}-${info.project.name}`);
+    try {
+        await loginAs(page, user);
+        await page.goto(`/studio?brand_id=${brand.id}`);
+        await page.getByRole('button', { name: 'Nuevo diseño', exact: true }).click();
+        await page.getByRole('dialog', { name: 'Nuevo diseño' }).getByRole('button', { name: 'Crear diseño', exact: true }).click();
+        await expect(page.getByTestId('studio-save-status')).toBeVisible();
+        await page.goto(`/studio?brand_id=${brand.id}`);
+
+        for (const name of ['Lanzamientos', 'Archivo']) {
+            await page.getByRole('button', { name: 'Nueva carpeta', exact: true }).click();
+            await page.getByLabel('Nombre de la carpeta', { exact: true }).fill(name);
+            await page.getByRole('button', { name: 'Crear carpeta', exact: true }).click();
+            await expect(page.locator('#studio-folder-filter').locator('option', { hasText: name })).toHaveCount(1);
+        }
+
+        // Renombrar con el teclado: Enter en el botón abre el campo con el foco; Esc cancela solo el renombrado (el diálogo sigue abierto) y
+        // devuelve el foco al botón; guardar con Enter también lo devuelve.
+        await page.getByTestId('folders-manage').click();
+        const folders = page.getByRole('dialog', { name: 'Carpetas' });
+        const renameButton = folders.getByRole('button', { name: 'Renombrar la carpeta Lanzamientos' });
+        await renameButton.focus();
+        await page.keyboard.press('Enter');
+        await expect(folders.getByTestId('folder-rename-input')).toBeFocused();
+        await page.keyboard.press('Escape');
+        await expect(folders).toBeVisible();
+        await expect(folders.getByTestId('folder-rename-input')).toHaveCount(0);
+        await expect(renameButton).toBeFocused();
+        await page.keyboard.press('Enter');
+        await folders.getByTestId('folder-rename-input').fill('Campañas');
+        await page.keyboard.press('Enter');
+        await expect(folders.getByText('Campañas', { exact: true })).toBeVisible();
+        await expect(folders.getByRole('button', { name: 'Renombrar la carpeta Campañas' })).toBeFocused();
+        await page.keyboard.press('Escape');
+        await expect(folders).toBeHidden();
+
+        // Mover el diseño a la carpeta renombrada y verlo al filtrar por ella.
+        await page.locator('summary[aria-label^="Opciones de"]').click();
+        await page.getByTestId('design-move').click();
+        const move = page.getByRole('dialog', { name: 'Mover a carpeta' });
+        await move.getByTestId('move-target').selectOption({ label: 'Campañas' });
+        await move.getByTestId('move-confirm').click();
+        await page.locator('#studio-folder-filter').selectOption({ label: 'Campañas' });
+        await expect(page.locator('article')).toHaveCount(1);
+
+        // Borrar la carpeta pide confirmación, no pierde el diseño y vuelve a «Todas las carpetas».
+        await page.getByTestId('folders-manage').click();
+        await page.getByRole('dialog', { name: 'Carpetas' }).getByRole('button', { name: 'Borrar la carpeta Campañas' }).click();
+        const confirmation = page.getByRole('dialog', { name: 'Borrar carpeta' });
+        await expect(confirmation).toContainText('pasan a «Sin carpeta»');
+        await confirmation.getByTestId('folder-delete-confirm').click();
+        await expect(page.locator('#studio-folder-filter')).toHaveValue('');
+        await expect(page.locator('article')).toHaveCount(1);
+        await expect(page.locator('#studio-folder-filter').locator('option', { hasText: 'Campañas' })).toHaveCount(0);
     } finally { cleanComposerBrands(user.email); }
 });

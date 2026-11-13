@@ -14,7 +14,6 @@ use App\Support\CurrentBrand;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -33,23 +32,7 @@ class SmartLinkController extends Controller
 
         return Inertia::render('SmartLinks/Index', [
             'brand' => $brand ? ['id' => $brand->id, 'name' => $brand->name] : null,
-            'link' => $link ? [
-                'id' => $link->id,
-                'slug' => $link->slug,
-                'title' => $link->title,
-                'bio' => $link->bio,
-                'avatar_media_id' => $link->avatar_media_id,
-                'theme_color' => $link->theme_color,
-                'theme_mode' => $link->theme_mode,
-                'published' => $link->published,
-                'public_url' => $link->url(),
-                'blocks' => $link->blocks->map(fn ($b) => [
-                    'id' => $b->id, 'type' => $b->type, 'label' => $b->label, 'url' => $b->url, 'media_id' => $b->media_id, 'data' => $b->data,
-                    'visible_from' => $b->visible_from?->setTimezone($brand->timezone ?: 'UTC')->format('Y-m-d\TH:i'),
-                    'visible_until' => $b->visible_until?->setTimezone($brand->timezone ?: 'UTC')->format('Y-m-d\TH:i'),
-                    'visibility' => $b->visible_from && $b->visible_from > now() ? 'scheduled' : ($b->visible_until && $b->visible_until <= now() ? 'expired' : 'visible'),
-                ])->values(),
-            ] : null,
+            'link' => $link ? $this->links->present($link, $brand) : null,
             'stats' => $link ? $this->links->stats($link) : null,
             'subscribers' => $link ? SmartLinkSubscriber::query()->where('smart_link_id', $link->id)->orderByDesc('id')->limit(100)->get(['id', 'email', 'created_at'])->map(fn ($s) => ['id' => $s->id, 'email' => $s->email, 'at' => $s->created_at?->toIso8601String()])->values() : [],
             'images' => MediaAsset::query()->where('kind', MediaAsset::KIND_IMAGE)->where('status', MediaAsset::STATUS_READY)->latest()->limit(50)->get()->map(fn ($m) => $m->toPublicArray() + ['url' => $this->thumbUrl($m)])->values(),
@@ -68,33 +51,7 @@ class SmartLinkController extends Controller
             $current = SmartLink::query()->where('brand_id', (int) $request->input('brand_id'))->first();
         }
 
-        $data = $request->validate([
-            'brand_id' => ['required', 'integer'],
-            'slug' => ['required', 'string', 'regex:/^'.SmartLink::SLUG_PATTERN.'$/', Rule::unique('smart_links', 'slug')->ignore($current?->id)],
-            'title' => ['required', 'string', 'max:100'],
-            'bio' => ['nullable', 'string', 'max:300'],
-            'avatar_media_id' => ['nullable', 'integer'],
-            'theme_color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
-            'theme_mode' => ['nullable', 'in:light,dark'],
-            'published' => ['nullable', 'boolean'],
-            'blocks' => ['nullable', 'array', 'max:'.SmartLinkService::MAX_BLOCKS],
-            'blocks.*.id' => ['nullable', 'integer'],
-            'blocks.*.type' => ['required', 'in:'.implode(',', SmartLinkBlock::TYPES)],
-            'blocks.*.label' => ['nullable', 'string', 'max:100'],
-            'blocks.*.url' => ['nullable', 'string', 'max:2000'],
-            'blocks.*.media_id' => ['nullable', 'integer'],
-            'blocks.*.data' => ['nullable', 'array'],
-            'blocks.*.data.items' => ['nullable', 'array', 'max:8'],
-            'blocks.*.data.items.*.network' => ['nullable', 'string', 'max:20'],
-            'blocks.*.data.items.*.url' => ['nullable', 'string', 'max:2000'],
-            'blocks.*.data.cta' => ['nullable', 'string', 'max:30'],
-            'blocks.*.data.consent' => ['nullable', 'string', 'max:200'],
-            'blocks.*.data.count' => ['nullable', 'integer', 'min:1', 'max:50'],
-            'blocks.*.visible_from' => ['nullable', 'string', 'max:40'],
-            'blocks.*.visible_until' => ['nullable', 'string', 'max:40'],
-        ], [
-            'slug.regex' => 'Usa de 3 a 40 caracteres: minusculas, numeros y guiones (sin guion al principio ni al final).',
-        ]);
+        $data = $request->validate(['brand_id' => ['required', 'integer']] + SmartLinkService::rules($current?->id), SmartLinkService::MESSAGES);
 
         $brand = Brand::query()->findOrFail((int) $data['brand_id']); // UserScope: una marca ajena es 404
 

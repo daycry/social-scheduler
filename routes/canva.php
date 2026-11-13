@@ -22,6 +22,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('brands/{brand}/canva/designs/{design}', [CanvaController::class, 'showDesign'])->whereNumber('brand')->name('canva.designs.show');
         Route::post('brands/{brand}/canva/exports', [CanvaController::class, 'storeExport'])->whereNumber('brand')->name('canva.exports.store');
         Route::post('brands/{brand}/canva/uploads', [CanvaController::class, 'storeUpload'])->whereNumber('brand')->name('canva.uploads.store');
+        Route::get('brands/{brand}/canva/templates', [CanvaController::class, 'templates'])->whereNumber('brand')->name('canva.templates.index');
+        Route::get('brands/{brand}/canva/templates/{template}/dataset', [CanvaController::class, 'templateDataset'])->whereNumber('brand')->name('canva.templates.dataset');
+        Route::post('brands/{brand}/canva/autofills', [CanvaController::class, 'storeAutofill'])->whereNumber('brand')->name('canva.autofills.store');
         Route::get('brands/{brand}/canva/jobs/{job}', [CanvaController::class, 'showJob'])->whereNumber(['brand', 'job'])->name('canva.jobs.show');
     });
 });

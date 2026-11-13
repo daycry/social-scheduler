@@ -154,7 +154,7 @@ test('series: crear, ver, editar y cancelar por API y MCP con la misma forma que
     $strip = fn (array $s) => array_diff_key($s, ['id' => 1]);
 
     $w = $this->actingAs($this->owner)->postJson(route('workflow.series.store'), $input)->assertCreated()->json('series');
-    $x = wfApi($this->ownerKey, 'POST', '/api/v1/series', $input)->assertCreated()->json('series');
+    $x = wfApi($this->ownerKey, 'POST', '/api/v1/brands/'.$this->brand->id.'/series', $input)->assertCreated()->json('series');
     [$err, $m] = $this->callTool($this->ownerKey, 'manage_post_series', ['action' => 'create'] + $input);
     expect($err)->toBeFalse();
     $norm = fn (array $s) => array_diff_key($s, ['id' => 1, 'occurrences' => 1]);
@@ -197,7 +197,7 @@ test('la API de posts acepta requires_approval y manual y los devuelve en get_po
     $body = ['text' => 'T', 'schedule' => true, 'scheduled_at' => '2026-11-12T10:00', 'brand_id' => $this->brand->id, 'requires_approval' => true,
         'targets' => [['account_id' => $this->fb->id, 'content_type' => 'facebook_text', 'manual' => true]]];
 
-    $created = wfApi($this->ownerKey, 'POST', '/api/v1/posts', $body)->assertCreated()->json();
+    $created = wfApi($this->ownerKey, 'POST', '/api/v1/brands/'.$this->brand->id.'/posts', $body)->assertCreated()->json();
     expect($created['approval_status'])->toBe('pendiente')->and($created['status'])->toBe('borrador')->and($created['targets'][0]['manual'])->toBeTrue();
 
     [, $got] = $this->callTool($this->ownerKey, 'get_post', ['post_id' => $created['id']]);

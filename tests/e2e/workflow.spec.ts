@@ -45,7 +45,7 @@ async function newClient(browser: Browser, info: TestInfo): Promise<{ context: B
 
 const listUrl = () => `/calendar?view=list&brand_id=${brand.id}`;
 
-test('aprobar y rechazar con dos usuarios: invitación uniforme, decisión del aprobador y estado en el calendario', async ({ browser, page }, info) => {
+test('aprobar y rechazar con dos usuarios: invitación uniforme, decisión del aprobador y estado en el calendario', { tag: '@responsive' }, async ({ browser, page }, info) => {
     test.setTimeout(180_000);
     const owner = e2eUser(info.project.name);
     const guest = { email: `e2e-approver-${info.project.name}-${stamp()}@example.test`, name: 'e2e Aprobadora', password: GUEST_PASSWORD };
@@ -112,7 +112,7 @@ test('aprobar y rechazar con dos usuarios: invitación uniforme, decisión del a
     }
 });
 
-test('destino manual: el aviso trae el contenido y se marca como publicado con una URL https', async ({ page }, info) => {
+test('destino manual: el aviso trae el contenido y se marca como publicado con una URL https', { tag: '@responsive' }, async ({ page }, info) => {
     test.setTimeout(120_000);
     const owner = e2eUser(info.project.name);
     const [id] = seedPosts(owner.email, [{
@@ -125,7 +125,7 @@ test('destino manual: el aviso trae el contenido y se marca como publicado con u
 
     // El aviso llega a Avisos y lleva a la pantalla de publicación manual.
     await page.goto('/notifications');
-    await expect(page.getByText('Toca publicar a mano').first()).toBeVisible();
+    await expect(page.getByText('Toca publicar a mano').first()).toBeVisible(); // puede haber un aviso por cada destino manual
     await page.getByTestId('manual-notice-link').first().click();
     await page.waitForURL(new RegExp(`/posts/${id}/manual`));
     await expect(page.getByTestId('manual-text')).toHaveValue('e2e texto para copiar a mano');
@@ -148,7 +148,7 @@ test('destino manual: el aviso trae el contenido y se marca como publicado con u
     await expect(row.getByRole('link', { name: 'Ver' }).first()).toHaveAttribute('href', 'https://facebook.com/pagina/posts/42');
 });
 
-test('serie semanal: se crea desde la pantalla y las ocurrencias aparecen en el calendario sin duplicarse', async ({ page }, info) => {
+test('serie semanal: se crea desde la pantalla y las ocurrencias aparecen en el calendario sin duplicarse', { tag: '@responsive' }, async ({ page }, info) => {
     test.setTimeout(120_000);
     const owner = e2eUser(info.project.name);
     await loginAs(page, owner);
@@ -191,7 +191,39 @@ test('serie semanal: se crea desde la pantalla y las ocurrencias aparecen en el 
     await expect(page.getByTestId('series-badge')).toHaveCount(0);
 });
 
-test('lote: reprogramar y cancelar con un resultado parcial por elemento', async ({ page }, info) => {
+test('serie con aprobación: las ocurrencias nacen pendientes y las fechas perdidas se recuperan solo al pulsar el botón', async ({ page }, info) => {
+    test.setTimeout(120_000);
+    const owner = e2eUser(info.project.name);
+    await loginAs(page, owner);
+    await page.goto('/series');
+    await page.getByLabel('Marca', { exact: true }).selectOption({ label: brand.name });
+    await page.getByTestId('series-frequency').selectOption('diaria');
+    await page.getByTestId('series-time').fill('11:30');
+    await page.getByTestId('series-count').fill('3');
+    await page.getByText('e2e Facebook', { exact: false }).locator('input[type=checkbox]').check();
+    await page.getByTestId('series-text').fill('e2e serie con aprobacion');
+    await page.getByTestId('series-requires-approval').check();
+    await page.getByTestId('series-create').click();
+    await expect(page.getByTestId('series-message')).toContainText('Serie creada con');
+    await expect(page.getByText('con aprobación', { exact: false })).toBeVisible();
+
+    // La primera fecha puede haber pasado ya hoy: todas las que existen nacen pendientes de aprobación, sin programarse.
+    const counts = php(String.raw`$q = App\Models\Post::withoutUserScope()->where('brand_id', ${brand.id})->whereNotNull('series_id'); echo 'ALL:' . (clone $q)->count() . ' PENDING:' . (clone $q)->where('approval_status', 'pendiente')->where('status', 'borrador')->count();`);
+    const [, all, pending] = counts.match(/ALL:(\d+) PENDING:(\d+)/)!;
+    expect(Number(all)).toBeGreaterThan(0);
+    expect(pending).toBe(all);
+
+    // Una fecha reciente que no se generó (la serie «falló»): se ofrece recuperarla y solo se crea al pulsar.
+    php(String.raw`$s = App\Models\PostSeries::withoutUserScope()->where('brand_id', ${brand.id})->firstOrFail(); $s->forceFill(['created_at' => now()->subDays(3), 'starts_on' => now()->subDay()->format('Y-m-d'), 'time_local' => now()->subHour()->format('H:i')])->saveQuietly(); App\Models\PostSeriesOccurrence::where('series_id', $s->id)->whereDate('occurrence_date', '<=', now()->format('Y-m-d'))->delete();`);
+    await page.goto('/series');
+    const recover = page.getByTestId('series-recover');
+    await expect(recover).toBeVisible();
+    await recover.click();
+    await expect(page.getByTestId('series-message')).toContainText('Se han recuperado');
+    await expect(recover).toHaveCount(0);
+});
+
+test('lote: reprogramar y cancelar con un resultado parcial por elemento', { tag: '@responsive' }, async ({ page }, info) => {
     test.setTimeout(120_000);
     const owner = e2eUser(info.project.name);
     const [p1, p2, p3, done] = seedPosts(owner.email, [
@@ -226,7 +258,7 @@ test('lote: reprogramar y cancelar con un resultado parcial por elemento', async
     await expect(page.getByTestId(`row-${p3}`)).toContainText('Programada');
 });
 
-test('reintento: un destino con error vuelve a programarse una sola vez', async ({ page }, info) => {
+test('reintento: un destino con error vuelve a programarse una sola vez', { tag: '@responsive' }, async ({ page }, info) => {
     test.setTimeout(120_000);
     const owner = e2eUser(info.project.name);
     const [id] = seedPosts(owner.email, [{

@@ -6,7 +6,7 @@ const { createFrontend } = require('./http-server.cjs');
 // Playwright merges webServer.env with its parent environment. The PHP processes receive
 // only the explicit manifest, so inherited credentials and service settings cannot leak in.
 const env = JSON.parse(Buffer.from(process.env.E2E_GENERAL_ENV || '', 'base64').toString('utf8'));
-if (env.APP_ENV !== 'e2e' || env.APP_URL !== 'http://localhost:8080' || !env.E2E_GENERAL_RUN_ROOT) {
+if (env.APP_ENV !== 'e2e' || !/^http:\/\/localhost:\d+$/.test(env.APP_URL || '') || !env.E2E_GENERAL_RUN_ROOT) {
     throw new Error('Missing disposable general E2E environment manifest.');
 }
 require('./datasets/os-environment.cjs').applyTo(env);
@@ -22,7 +22,7 @@ reserve.listen(0, '127.0.0.1', () => {
         const php = spawn('php', ['-S', `127.0.0.1:${backendPort}`, '-t', 'public', 'tests/e2e/isolated/server.php'], { env, stdio: 'inherit', windowsHide: true });
         const frontend = createFrontend(path.resolve('public'), backendPort);
         require('./datasets/download-observer.cjs').attach(frontend, path.join(env.E2E_GENERAL_RUN_ROOT, 'dataset-downloads.jsonl'));
-        frontend.listen(8080, '127.0.0.1');
+        frontend.listen(Number(new URL(env.APP_URL).port), '127.0.0.1');
         let stopping = false;
         const stop = () => {
             if (stopping) return;

@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedHashtagHistory, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedHashtagHistory, animationsDone, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * Sugerencias de hashtags del compositor (C-04a, E2E-06): salen del histórico propio (sin IA), solo con 2 o más usos y ordenadas por
@@ -22,7 +22,7 @@ test.afterEach(async ({}, info) => {
     cleanComposerBrands(e2eUser(info.project.name).email);
 });
 
-test('E2E-06 · hashtags desde el histórico: ≥ 2 usos, por rendimiento, se insertan en el cursor y el contador los cuenta', async ({ page }) => {
+test('E2E-06 · hashtags desde el histórico: ≥ 2 usos, por rendimiento, se insertan en el cursor y el contador los cuenta', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/brands/${brand.id}/posts/create`);
     await settle(page);
@@ -52,7 +52,7 @@ test('E2E-06 · hashtags desde el histórico: ≥ 2 usos, por rendimiento, se in
 
     await settle(page);
     await page.mouse.move(0, 0);
-    await page.waitForTimeout(400);
+    await animationsDone(page);
     const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     const bad = axe.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
     expect(bad, JSON.stringify(bad.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target) })))).toEqual([]);
@@ -73,7 +73,7 @@ test('E2E-06 · hashtags desde el histórico: ≥ 2 usos, por rendimiento, se in
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-06 · sin histórico se explica y el menú sigue siendo utilizable', async ({ page }, info) => {
+test('E2E-06 · sin histórico se explica y el menú sigue siendo utilizable', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     const empty = seedComposerBrand(user.email, `ht-vacia-${stamp()}-${info.project.name}`);
     await page.goto(`/brands/${empty.id}/posts/create`);
@@ -86,7 +86,7 @@ test('E2E-06 · sin histórico se explica y el menú sigue siendo utilizable', a
     await expectNoOverflow(page);
 });
 
-test('E2E-06 · se avisa al superar el máximo de hashtags de Instagram', async ({ page }) => {
+test('E2E-06 · se avisa al superar el máximo de hashtags de Instagram', { tag: '@responsive' }, async ({ page }) => {
     await page.goto(`/brands/${brand.id}/posts/create`);
     await settle(page);
     await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();

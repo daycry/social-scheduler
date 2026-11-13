@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { cleanComposerBrands, cleanSavedTexts, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedSavedTexts, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { cleanComposerBrands, cleanSavedTexts, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedSavedTexts, animationsDone, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * Textos guardados (C-01a): página de ajustes (E2E-01) y menú del compositor (E2E-02). Usuarios `e2e-sec-*`, marcas `e2e-composer-*`
@@ -28,7 +28,7 @@ async function axeNow(page: Page, label: string) {
     await settle(page);
     await expect(page.locator('#nprogress')).toHaveCount(0);
     await page.mouse.move(0, 0);
-    await page.waitForTimeout(400);
+    await animationsDone(page);
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     const bad = results.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
     const detail = bad.map((v) => `${v.id} [${v.impact}] ${v.help}\n   ${v.nodes.slice(0, 3).map((n) => `${n.target.join(' ')} ${n.html.slice(0, 200)}`).join('\n   ')}`).join('\n');
@@ -48,7 +48,7 @@ async function guardar(page: Page, o: { kind?: string; brand?: string; title: st
     await expect(form.getByLabel('Título')).toHaveValue(''); // el formulario se vacía al guardar
 }
 
-test('E2E-01 · página «Textos guardados»: alta, edición, filtro por marca y borrado', async ({ page }) => {
+test('E2E-01 · página «Textos guardados»: alta, edición, filtro por marca y borrado', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     page.on('dialog', (d) => d.accept().catch(() => {}));
     await page.goto('/settings/saved-texts');
@@ -88,7 +88,7 @@ test('E2E-01 · página «Textos guardados»: alta, edición, filtro por marca y
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-02 · menú del compositor: solo los de la marca y los globales; inserta en el cursor', async ({ page }, info) => {
+test('E2E-02 · menú del compositor: solo los de la marca y los globales; inserta en el cursor', { tag: '@responsive' }, async ({ page }, info) => {
     const w = watch(page);
     seedSavedTexts(e2eUser(info.project.name).email, brand.id, `${stamp()}-${info.project.name}`);
     await page.goto(`/brands/${brand.id}/posts/create`);

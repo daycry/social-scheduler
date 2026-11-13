@@ -80,9 +80,10 @@ class InboxController extends Controller
             ]),
             // Estado por cuenta: «no disponible» cuando falta el permiso (hay que activarlo en la app de Meta y reconectar).
             'accounts' => $accounts->map(fn (SocialAccount $a) => [
-                'id' => $a->id, 'network' => $a->network->value, 'name' => $a->name,
+                'id' => $a->id, 'brand_id' => $a->brand_id, 'network' => $a->network->value, 'name' => $a->name,
                 'can_read' => $this->inbox->hasScopes($a), 'can_moderate' => $this->inbox->hasScopes($a, write: true),
                 'can_hide' => in_array($a->network->value, ['instagram', 'facebook'], true),
+                'missing_scopes' => $this->inbox->missingScopes($a), 'help' => $this->inbox->help($a),
                 'needs_reconnect' => ! $a->isActive(),
             ])->values(),
             'flash' => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error')],

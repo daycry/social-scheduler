@@ -9,6 +9,7 @@ use App\Connectors\Exceptions\ConnectorException;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
+use App\Connectors\Exceptions\ScopeMissingException;
 use App\Connectors\Exceptions\TransientPublishException;
 use App\Enums\FirstCommentStatus;
 use App\Enums\PostStatus;
@@ -16,6 +17,7 @@ use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Notifications\FirstCommentFailed;
+use App\Services\SocialAccountService;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -129,7 +131,14 @@ class PostFirstComment implements ShouldBeUnique, ShouldQueue
             $this->settle($target, FirstCommentStatus::Published, null, $id);
         } catch (CommentNotAllowedException $e) {
             $this->settle($target, FirstCommentStatus::NotAllowed, $e->getMessage());
-        } catch (ReconnectRequiredException|PermanentPublishException $e) {
+        } catch (ScopeMissingException $e) {
+            // Falta un permiso opcional (comentar): se pide reconectar pero la cuenta sigue publicando; no se marca.
+            $this->settle($target, FirstCommentStatus::Failed, $e->getMessage());
+        } catch (ReconnectRequiredException $e) {
+            // Flujo comun de reconexion: la cuenta queda marcada (aviso y bloqueo de lo programado) ademas de fallar el comentario.
+            app(SocialAccountService::class)->flagReconnection($account, $e->getMessage());
+            $this->settle($target, FirstCommentStatus::Failed, $e->getMessage());
+        } catch (PermanentPublishException $e) {
             $this->settle($target, FirstCommentStatus::Failed, $e->getMessage());
         } catch (TransientPublishException|QuotaExceededException|ConnectorException $e) {
             $this->retryLater($target, $e->getMessage());

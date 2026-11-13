@@ -41,7 +41,7 @@ class AddCommentNote extends SchedulerTool
             'body' => ['required', 'string', 'max:'.InboxCommentNote::BODY_MAX],
         ]);
         /** @var InboxComment $comment */
-        $comment = $this->owned(InboxComment::class, $user, $data['comment_id'], 'Comentario');
+        $comment = $this->owned(InboxComment::class, $user, $data['comment_id'], 'Comentario', masculine: true);
 
         // La auditoria registra la herramienta y el comentario, nunca el contenido de la nota.
         $note = app(InboxNoteService::class)->add($user, $comment, $data['body']);

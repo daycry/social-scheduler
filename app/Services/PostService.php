@@ -15,6 +15,7 @@ use App\Connectors\TikTok\TikTokPublisher;
 use App\Enums\ContentType;
 use App\Enums\PostStatus;
 use App\Exceptions\InvalidPostTransition;
+use App\Exceptions\PostStateConflict;
 use App\Exceptions\PostValidationException;
 use App\Http\Requests\PostRequest;
 use App\Jobs\DispatchDuePosts;
@@ -360,7 +361,7 @@ class PostService
 
             // Mover una ocurrencia a mano la saca de la serie: `reconcile()` no la devuelve a su fecha.
             $post->forceFill(['scheduled_at' => $at] + ($post->series_id !== null ? ['series_exception' => true] : []))->save();
-            PostTarget::withoutUserScope()->where('post_id', $post->id)->where('manual', true)->update(['manual_notified_at' => null]);
+            PostTarget::withoutUserScope()->where('post_id', $post->id)->where('manual', true)->update(['manual_notified_at' => null, 'manual_reminded_at' => null]);
             $targets->filter(fn (PostTarget $t) => $t->status === PostStatus::Failed)
                 ->each(function (PostTarget $t) use ($post, $oldScheduledAt) {
                     $this->transition($t, PostStatus::Scheduled, $this->freshAttempt($t, $this->effectiveTextOf($t, $post->text), $oldScheduledAt));
@@ -418,6 +419,11 @@ class PostService
      *
      * @return array{post: Post, retried: int, skipped: int}
      */
+    /** `error_code` de un destino al que le falta un archivo de su media (migracion T-06): no se reintenta hasta editar su media. */
+    public const MEDIA_MISSING = 'media_inexistente';
+
+    public const MEDIA_MISSING_RETRY = 'A un destino le falta un archivo de su media: editalo y vuelve a elegir la media antes de reintentar.';
+
     public function retryFailed(User $user, Post $post): array
     {
         $this->assertOwns($user, $post);
@@ -427,7 +433,8 @@ class PostService
 
         $retried = [];
         $skipped = 0;
-        DB::transaction(function () use ($post, &$retried, &$skipped) {
+        $blocked = 0;
+        DB::transaction(function () use ($post, &$retried, &$skipped, &$blocked) {
             $targets = PostTarget::withoutUserScope()->where('post_id', $post->id)->orderBy('id')->lockForUpdate()->get();
             $locked = Post::withoutUserScope()->lockForUpdate()->findOrFail($post->id);
             foreach ($targets as $target) {
@@ -436,7 +443,14 @@ class PostService
 
                     continue;
                 }
-                $this->applyTransition($target, PostStatus::Scheduled, $this->freshAttempt($target, $this->effectiveTextOf($target, $locked->text), $locked->scheduled_at) + ['manual_notified_at' => null]);
+                // Marcado por la migracion de T-06 (falta un archivo de su media): reintentarlo publicaria otra cosa; hay que editar la media.
+                if ($target->error_code === self::MEDIA_MISSING) {
+                    $blocked++;
+                    $skipped++;
+
+                    continue;
+                }
+                $this->applyTransition($target, PostStatus::Scheduled, $this->freshAttempt($target, $this->effectiveTextOf($target, $locked->text), $locked->scheduled_at) + ['manual_notified_at' => null, 'manual_reminded_at' => null]);
                 YouTubePublisher::forgetUploadSession($target->id);
                 $retried[] = $target->id;
             }
@@ -450,6 +464,10 @@ class PostService
                 });
             }
         });
+
+        if ($retried === [] && $blocked > 0) {
+            throw new PostValidationException(['media' => [self::MEDIA_MISSING_RETRY]]);
+        }
 
         return ['post' => $post->fresh(['targets', 'media']), 'retried' => count($retried), 'skipped' => $skipped];
     }
@@ -484,12 +502,119 @@ class PostService
         return $plan;
     }
 
+    /** @var list<int>|null ids de los posts que han pedido aprobacion dentro de una tanda (`collectApprovalRequests`) */
+    private ?array $approvalBatch = null;
+
+    /**
+     * Ejecuta `$run` sin avisar a los aprobadores post a post y devuelve los ids que han pedido aprobacion, para que el llamador emita UN
+     * aviso agrupado (una serie diaria no genera decenas de avisos de golpe). No se anida: dentro de otra tanda solo ejecuta.
+     *
+     * @return list<int>
+     */
+    public function collectApprovalRequests(callable $run): array
+    {
+        if ($this->approvalBatch !== null) {
+            $run();
+
+            return [];
+        }
+        $this->approvalBatch = [];
+        try {
+            $run();
+
+            return array_values(array_unique($this->approvalBatch));
+        } finally {
+            $this->approvalBatch = null;
+        }
+    }
+
+    /**
+     * Una ocurrencia de serie ya aprobada pasa a `programada` en su fecha SIN editarla (`update()` la sacaria de la serie). Idempotente;
+     * solo si la fecha sigue siendo futura y todos sus destinos estan en borrador. Devuelve si programo algo.
+     */
+    public function scheduleApprovedOccurrence(Post $post): bool
+    {
+        return DB::transaction(function () use ($post): bool {
+            $locked = Post::withoutUserScope()->lockForUpdate()->find($post->id);
+            if ($locked === null || $locked->series_id === null || ! $locked->isPublishable() || $locked->scheduled_at === null || $locked->scheduled_at->lte(now())) {
+                return false;
+            }
+
+            return $this->scheduleDraftTargets($locked);
+        });
+    }
+
+    /**
+     * Activar `requires_approval` en una serie retiene sus ocurrencias futuras aun no publicadas: sus destinos vuelven a borrador y la
+     * ocurrencia queda pendiente de aprobacion (nada la publica hasta que se apruebe). Devuelve si cambio algo.
+     */
+    public function holdForApproval(Post $post): bool
+    {
+        return DB::transaction(function () use ($post): bool {
+            $locked = Post::withoutUserScope()->lockForUpdate()->find($post->id);
+            if ($locked === null || $locked->approval_status !== null || $locked->scheduled_at === null || $locked->scheduled_at->lte(now())) {
+                return false;
+            }
+            $targets = PostTarget::withoutUserScope()->where('post_id', $locked->id)->orderBy('id')->lockForUpdate()->get();
+            if ($targets->contains(fn (PostTarget $t) => $t->status->isInFlight() || $t->status->isFinal())) {
+                return false; // ya salio o esta saliendo: no se retiene
+            }
+            foreach ($targets->where('status', PostStatus::Scheduled) as $target) {
+                $this->applyTransition($target, PostStatus::Draft, $this->freshAttempt($target, $this->effectiveTextOf($target, $locked->text), $locked->scheduled_at));
+            }
+            $locked->syncStatus();
+            $this->markApprovalPending($locked->fresh());
+
+            return true;
+        });
+    }
+
+    /** Desactivar `requires_approval`: las ocurrencias pendientes (no las rechazadas) dejan de necesitarla y se programan. */
+    public function releaseApproval(Post $post): bool
+    {
+        return DB::transaction(function () use ($post): bool {
+            $locked = Post::withoutUserScope()->lockForUpdate()->find($post->id);
+            if ($locked === null || $locked->approval_status !== Post::APPROVAL_PENDING) {
+                return false;
+            }
+            $locked->forceFill(['approval_status' => null, 'approval_comment' => null, 'approval_requested_at' => null, 'approval_decided_at' => null, 'approval_decided_by' => null, 'approval_signature' => null])->save();
+            if ($locked->scheduled_at !== null && $locked->scheduled_at->gt(now())) {
+                $this->scheduleDraftTargets($locked);
+            }
+
+            return true;
+        });
+    }
+
+    /** Pasa a `programada` los destinos en borrador del post (ya bloqueado) y recalcula su estado. */
+    private function scheduleDraftTargets(Post $locked): bool
+    {
+        $changed = false;
+        foreach (PostTarget::withoutUserScope()->where('post_id', $locked->id)->orderBy('id')->lockForUpdate()->get() as $target) {
+            if ($target->status === PostStatus::Draft) {
+                $this->applyTransition($target, PostStatus::Scheduled, $this->freshAttempt($target, $this->effectiveTextOf($target, $locked->text), $locked->scheduled_at) + ['manual_notified_at' => null, 'manual_reminded_at' => null]);
+                $changed = true;
+            }
+        }
+        if ($changed) {
+            $locked->syncStatus();
+        }
+
+        return $changed;
+    }
+
     private function markApprovalPending(Post $post, bool $edited = false): void
     {
         $post->forceFill([
             'approval_status' => Post::APPROVAL_PENDING, 'approval_comment' => null, 'approval_requested_at' => now(),
             'approval_decided_at' => null, 'approval_decided_by' => null, 'approval_signature' => $this->postSignature($post),
         ])->save();
+
+        if ($this->approvalBatch !== null) {
+            $this->approvalBatch[] = (int) $post->id; // el aviso lo emite quien abrio la tanda, agrupado
+
+            return;
+        }
 
         $brandName = (string) Brand::withoutUserScope()->whereKey($post->brand_id)->value('name');
         $message = $edited ? 'Una publicacion aprobada de «'.$brandName.'» se ha editado y vuelve a necesitar tu aprobacion.' : 'Hay una publicacion de «'.$brandName.'» que pide tu aprobacion.';
@@ -595,7 +720,7 @@ class PostService
 
         // Borrar/cancelar sí se permite sobre un `procesando` atascado cuya cuenta no esta activa (nadie lo va a sondear).
         if ($targets->contains(fn (PostTarget $t) => ($t->status->isInFlight() || $t->status->isFinal()) && ! ($allowOrphans && $this->isOrphanedProcessing($t)))) {
-            throw new PostValidationException(['post' => [$message]]);
+            throw new PostStateConflict($message);
         }
 
         return $targets->keyBy(fn (PostTarget $t) => $t->social_account_id.'|'.$t->content_type->value);
@@ -636,7 +761,7 @@ class PostService
      */
     public static function normalizeOptions(array $options): array
     {
-        $options = LinkedInPostOptions::normalize(InstagramPostOptions::normalize($options));
+        $options = LinkedInPostOptions::normalize(InstagramPostOptions::normalize(FacebookPostOptions::normalize($options)));
         foreach (self::BOOLEAN_OPTIONS as $key) {
             if (array_key_exists($key, $options) && $options[$key] !== null) {
                 $options[$key] = filter_var($options[$key], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $options[$key];
@@ -891,8 +1016,8 @@ class PostService
                     $errors[$key][] = "{$account->network->label()} no admite primer comentario en este tipo de contenido.";
                 } elseif ($account->network === Network::LinkedIn && ! LinkedInPublisher::canComment($account)) {
                     $errors[$key][] = (string) LinkedInPublisher::commentNote($account);
-                } elseif (mb_strlen($firstComment) > (int) $max) {
-                    $errors[$key][] = "El primer comentario admite como maximo $max caracteres en {$account->network->label()} (tiene ".mb_strlen($firstComment).').';
+                } elseif (($lengthError = FirstCommentService::lengthError($firstComment, (array) config("media_specs.types.{$type->value}.first_comment"), $account->network->label())) !== null) {
+                    $errors[$key][] = $lengthError;
                 }
             }
 
@@ -978,7 +1103,7 @@ class PostService
             $manual = (bool) ($t['manual'] ?? false);
             $rescheduled = $before !== null && ! $this->sameInstant($before['scheduled_at'] ?? null, $plan['scheduled_at'] ?? null);
             // El aviso manual se rearma si cambia la hora, el modo manual o el contenido: el usuario volvera a recibirlo.
-            $rearm = ($manual !== (bool) $current->manual || $rescheduled || $fresh) ? ['manual_notified_at' => null] : [];
+            $rearm = ($manual !== (bool) $current->manual || $rescheduled || $fresh) ? ['manual_notified_at' => null, 'manual_reminded_at' => null] : [];
             $attributes = ['options' => $t['options'] ?: null, 'text' => $t['text'], 'media' => $t['media'], 'manual' => $manual, 'first_comment' => $t['first_comment'] ?? null] + $rearm + ($fresh ? $this->freshAttempt($current, $oldText, $before['scheduled_at'] ?? null) : []);
             if (! $fresh) {
                 $attributes += $this->releaseBackoff($current, (bool) ($plan['publish_now'] ?? false));

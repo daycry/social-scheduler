@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, postMediaSection, seedComposerBrand, animationsDone, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * Buscador de GIFs de Giphy (C-04b, E2E-09). El servidor de pruebas no tiene `GIPHY_API_KEY`: sin clave el botón «GIF» no existe. Con clave se
@@ -26,7 +26,7 @@ async function axeNow(page: Page, label: string) {
     await settle(page);
     await expect(page.locator('#nprogress')).toHaveCount(0);
     await page.mouse.move(0, 0);
-    await page.waitForTimeout(400);
+    await animationsDone(page);
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     const bad = results.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
     const detail = bad.map((v) => `${v.id} [${v.impact}] ${v.help}\n   ${v.nodes.slice(0, 3).map((n) => `${n.target.join(' ')} ${n.html.slice(0, 200)}`).join('\n   ')}`).join('\n');
@@ -87,7 +87,7 @@ async function enableFakeGiphy(page: Page, seen: { queries: string[]; imported: 
 const newSeen = () => ({ queries: [] as string[], imported: null as string | null, external: [] as string[] });
 const catalog = (q: string) => ({ body: { results: q === 'xyz' ? [] : [gif(1, 'Gato saltando'), gif(2, 'Gato dormido'), gif(3, 'Gato curioso')], next_offset: null } });
 
-test('E2E-09 · GIF: sin GIPHY_API_KEY no hay botón «GIF» ni se pide nada a Giphy', async ({ page }, info) => {
+test('E2E-09 · GIF: sin GIPHY_API_KEY no hay botón «GIF» ni se pide nada a Giphy', { tag: '@responsive' }, async ({ page }, info) => {
     const giphy: string[] = [];
     page.on('request', (r) => {
         if (/giphy\.com|\/gifs(\?|$)/.test(r.url())) giphy.push(r.url());
@@ -105,7 +105,7 @@ test('E2E-09 · GIF: sin GIPHY_API_KEY no hay botón «GIF» ni se pide nada a G
     await axeNow(page, `compositor sin GIF (${info.project.name})`);
 });
 
-test('E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e importar el MP4 (axe y sin desborde)', async ({ page }, info) => {
+test('E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e importar el MP4 (axe y sin desborde)', { tag: '@responsive' }, async ({ page }, info) => {
     const w = watch(page);
     const seen = newSeen();
     await enableFakeGiphy(page, seen, catalog);
@@ -142,7 +142,7 @@ test('E2E-09 · GIF: buscar, ver «Powered by GIPHY», elegir con teclado e impo
     await page.keyboard.press('Enter');
 
     // Se importa el MP4 por el servidor, el modal se cierra y la media entra en el post.
-    await expect(page.getByText('1. giphy-gato1.mp4').first()).toBeVisible({ timeout: 20_000 });
+    await expect(postMediaSection(page).getByText('1. giphy-gato1.mp4')).toBeVisible({ timeout: 20_000 });
     expect(seen.imported).toBe(MP4);
     await expect(dialog).toBeHidden();
     await expect(button).toBeFocused();

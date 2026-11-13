@@ -179,17 +179,6 @@ test('un fichero que no es lo que dice ser (magic bytes) o que supera el tamano 
     expect($job['status'])->toBe('failed')->and(MediaAsset::withoutUserScope()->where('status', 'listo')->count())->toBe(0);
 });
 
-test('el PDF no entra en la biblioteca: se devuelve el enlace temporal de Canva y no se descarga', function () {
-    canvaExportFake([['job' => ['id' => 'job-1', 'status' => 'success', 'urls' => [str_replace('.png', '.pdf', CANVA_FILE)]]]]);
-
-    $res = $this->actingAs($this->user)->postJson(route('canva.exports.store', $this->brand), ['design_id' => 'DAF123abcde', 'format' => 'pdf'])->assertStatus(202);
-    $job = $this->actingAs($this->user)->getJson(route('canva.jobs.show', [$this->brand, $res->json('job.id')]))->json('job');
-
-    expect($job['status'])->toBe('ready')->and($job['download_urls'])->toHaveCount(1)->and($job['media'])->toBe([]);
-    Http::assertNotSent(fn (Request $r) => str_contains($r->url(), 'export-download'));
-    expect(MediaAsset::withoutUserScope()->count())->toBe(0);
-});
-
 test('el MP4 exportado entra como video con su origen', function () {
     canvaExportFake([['job' => ['id' => 'job-1', 'status' => 'success', 'urls' => ['https://export-download.canva.com/v/clip.mp4?sig=1']]]], "\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isom".str_repeat("\0", 64));
 

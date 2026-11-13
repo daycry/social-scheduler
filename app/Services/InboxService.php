@@ -6,6 +6,7 @@ use App\Connectors\Bluesky\BlueskyComments;
 use App\Connectors\Contracts\CommentSource;
 use App\Connectors\Exceptions\ConnectorException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
+use App\Connectors\Exceptions\ScopeMissingException;
 use App\Connectors\Exceptions\TransientPublishException;
 use App\Connectors\Google\YouTubeComments;
 use App\Connectors\Meta\Comments;
@@ -20,6 +21,8 @@ use App\Models\InboxSavedReply;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Support\CursorPage;
+use App\Support\PermissionHelp;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
@@ -55,6 +58,42 @@ class InboxService
     }
 
     /**
+     * Permisos de LECTURA que faltan a la cuenta (T-22), para decir exactamente cual activar. Vacio si no se conocen por permiso
+     * (YouTube) o si no falta ninguno.
+     *
+     * @return list<string>
+     */
+    public function missingScopes(SocialAccount $account): array
+    {
+        $needed = match ($account->network) {
+            Network::Instagram, Network::Facebook => Comments::READ_SCOPES[$account->network->value],
+            Network::Threads => ThreadsComments::READ_SCOPES,
+            default => [],
+        };
+
+        return array_values(array_diff($needed, (array) $account->scopes));
+    }
+
+    /** Instruccion clara (T-22) cuando la cuenta no puede leer: que activar, donde y que hacer despues. Null si puede leer. */
+    public function help(SocialAccount $account): ?string
+    {
+        if ($this->hasScopes($account)) {
+            return null;
+        }
+
+        $missing = $this->missingScopes($account);
+        $list = $missing === [] ? '' : ' ('.implode(', ', $missing).')';
+
+        return match ($account->network) {
+            Network::Facebook => PermissionHelp::meta('Facebook', 'pages_read_user_content'),
+            Network::Instagram => 'Falta el permiso de comentarios'.$list.': actívalo en los casos de uso de la app de Meta y reconecta la cuenta desde Conexiones.',
+            Network::Threads => 'Falta el permiso de respuestas'.$list.': reconecta la cuenta de Threads desde Conexiones aceptando los permisos de respuestas.',
+            Network::YouTube => 'Falta el permiso de comentarios (youtube.force-ssl): reconecta la cuenta de YouTube desde Conexiones aceptando ese permiso.',
+            default => 'Falta el permiso de comentarios: reconecta la cuenta desde Conexiones.',
+        };
+    }
+
+    /**
      * Cobertura del inbox por red (T-20): lo que se lee y responde y lo que queda fuera, con su motivo.
      *
      * @return list<array{network: string, label: string, read: bool, reply: bool, hide: bool, note: string}>
@@ -67,6 +106,8 @@ class InboxService
             ['network' => 'threads', 'label' => 'Threads', 'read' => true, 'reply' => true, 'hide' => false, 'note' => 'Respuestas a tus hilos (permisos threads_read_replies y threads_manage_replies).'],
             ['network' => 'bluesky', 'label' => 'Bluesky', 'read' => true, 'reply' => true, 'hide' => false, 'note' => 'Respuestas a tus publicaciones; lectura pública y respuesta con la contraseña de aplicación.'],
             ['network' => 'youtube', 'label' => 'YouTube', 'read' => true, 'reply' => true, 'hide' => false, 'note' => 'Comentarios de tus videos (permiso youtube.force-ssl); cada respuesta gasta 50 unidades del cupo diario.'],
+            ['network' => 'linkedin', 'label' => 'LinkedIn', 'read' => false, 'reply' => false, 'hide' => false, 'note' => 'Fuera por ahora: los comentarios exigen el permiso de Community Management de LinkedIn, que se aprueba aparte (se activará cuando LinkedIn lo conceda).'],
+            ['network' => 'pinterest', 'label' => 'Pinterest', 'read' => false, 'reply' => false, 'hide' => false, 'note' => 'Fuera: la API de Pinterest no permite leer ni responder los comentarios de los pines.'],
             ['network' => 'tiktok', 'label' => 'TikTok', 'read' => false, 'reply' => false, 'hide' => false, 'note' => 'Fuera: TikTok no ofrece una API pública de comentarios para terceros.'],
         ];
     }
@@ -216,6 +257,26 @@ class InboxService
             ->orderByDesc('commented_at')->orderByDesc('id');
     }
 
+    /**
+     * Pagina de comentarios (mas recientes primero por id) con el contrato de cursor comun, con sus notas y etiquetas: la usan la API v1 y el MCP.
+     * El texto y el autor los escribe un tercero: cada fila lleva `untrusted` y nunca debe leerse como instrucciones.
+     *
+     * @param  array<string, mixed>  $filters  los de `query()`
+     * @param  array<int, string>  $brandNames  nombre de cada marca por id
+     * @return array{comments: list<array<string, mixed>>, has_more: bool, next_cursor: ?string}
+     */
+    public function page(User $user, array $filters, mixed $limit, mixed $cursor, array $brandNames): array
+    {
+        [$rows, $page] = CursorPage::fetch($this->query($user, $filters)->with(['notes', 'labels'])->reorder('id', 'desc'), $limit, $cursor, 'comments:u'.$user->id.':b'.($filters['brand_id'] ?? 'all'));
+
+        return ['comments' => $rows->map(fn (InboxComment $c) => [
+            'id' => $c->id, 'network' => $c->network->value, 'brand_id' => $c->brand_id, 'brand_name' => $brandNames[$c->brand_id] ?? null, 'author' => $c->author_name, 'text' => $c->text,
+            'commented_at' => $c->commented_at?->toIso8601String(), 'read' => $c->read_at !== null, 'hidden' => $c->hidden, 'closed' => $c->closed_at !== null, 'assigned_user_id' => $c->assigned_user_id, 'labels' => $c->labels->pluck('label')->values()->all(),
+            'notes' => $c->notes->map(fn ($n) => ['id' => $n->id, 'body' => $n->body, 'created_at' => $n->created_at?->toIso8601String()])->values()->all(),
+            'untrusted' => true,
+        ])->values()->all()] + $page;
+    }
+
     public function unreadCount(User $user): int
     {
         return $this->query($user, ['unread' => true])->count();
@@ -322,6 +383,9 @@ class InboxService
     {
         try {
             return $work();
+        } catch (ScopeMissingException $e) {
+            // Permiso opcional: falla esta accion y se explica, sin marcar la cuenta (sigue publicando).
+            throw new PostValidationException(['account' => [$e->getMessage()]]);
         } catch (ReconnectRequiredException $e) {
             $this->accounts->flagReconnection($account, $e->getMessage());
             throw new PostValidationException(['account' => ['La cuenta necesita reconectarse.']]);

@@ -2,7 +2,7 @@
 
 Actualizado: 2026-11-10. Esta guía describe el código del árbol de trabajo; no acredita su despliegue. El editor, la API y MCP utilizan los mismos servicios de diseños, recursos y exportaciones por marca. Las pistas de audio se editan y mezclan durante el preview. La exportación estática permite elegir fotogramas por página; La interfaz, API y MCP incorporan MP4/GIF; la [QA integral local de T-07/T-11](../roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa3/report.md) está aceptada. Las pruebas locales no acreditan el despliegue en el VPS.
 
-Referencias: [OpenAPI](../api/creative-suite.openapi.yaml), [contrato completo del documento v1](../roadmap/2026-11-03-creative-social-suite/document-contract.md), [módulo MCP](../modulos/mcp.md), [despliegue general](../modulos/despliegue.md) y [desarrollo local](desarrollo-local.md).
+Referencias: [OpenAPI](../api/openapi.yaml), [contrato completo del documento v1](../roadmap/2026-11-03-creative-social-suite/document-contract.md), [módulo MCP](../modulos/mcp.md), [despliegue general](../modulos/despliegue.md) y [desarrollo local](desarrollo-local.md).
 
 ## Acceso y permisos
 
@@ -61,7 +61,7 @@ Estos son fotogramas locales de páginas. Las transiciones entre páginas y la m
 
 El audio del estudio utiliza tickets por marca (`design-audio` en API, `studio/audio` en web y `manage_studio_audio` en MCP). El ticket devuelve el modo de transferencia y `complete_url`; el archivo viaja por PUT binario local o por URLs de almacenamiento prefirmadas. Las URLs externas no reciben la sesión, el token Bearer ni el CSRF de la aplicación. Tras completar la transferencia, un503 de validación permite repetir complete conservando el ticket y las partes confirmadas, sin volver a subir bytes. El recurso solo aparece listo tras comprobar tamaño, contenido y duración; el catálogo social sigue excluyendo audio como adjunto aislado. Catálogo MCP del servidor: 57 herramientas (paginadas de 30 en 30).
 
-Las respuestas de crear/leer/actualizar un diseño son el objeto de diseño en el nivel superior: `.id`, `.document`, `.revision`. El listado devuelve el paginador en el nivel superior: `.data`, `.current_page`, `.last_page`, `.total`. Los listados de recursos y exportaciones usan `.assets` y `.exports` respectivamente.
+Las respuestas de crear/leer/actualizar un diseño son el objeto de diseño en el nivel superior: `.id`, `.document`, `.revision`. El listado devuelve `.designs` y el contrato de cursor común (`.has_more`, `.next_cursor`; ver la [guía de la API v1](api-v1.md)). Los listados de recursos y exportaciones usan `.assets` y `.exports` respectivamente.
 
 | Método y ruta, después de `/api/v1` | Permiso | Resultado |
 |---|---|---|
@@ -106,13 +106,13 @@ Las respuestas de crear/leer/actualizar un diseño son el objeto de diseño en e
 | `POST /design-exports/{export}/post` | `designs:write` + `posts:write` | 201, borrador de la marca con medios ready; solo text/targets, nunca programa. |
 | `GET /brands/{brand}/analytics` | `stats:read` | Métricas del mismo servicio que el dashboard. |
 
-El listado de diseños acepta `query` —búsqueda literal, también para `%` y `_`—, `folder_id`, `templates`, `archived` y `page`. `archived=true` lista únicamente archivados. Los booleanos de query admiten `true`/`false` y `1`/`0`.
+El listado de diseños acepta `query` —búsqueda literal, también para `%` y `_`—, `folder_id`, `templates`, `archived`, `limit` (1-100, 24 por defecto) y `cursor`. `archived=true` lista únicamente archivados. Los booleanos de query admiten `true`/`false` y `1`/`0`.
 
 ```bash
 curl --fail --get "$BASE/api/v1/brands/$BRAND_ID/designs" \
   -H "Authorization: Bearer $TOKEN" -H 'Accept: application/json' \
   --data-urlencode 'query=Campaña' --data-urlencode 'templates=false' \
-  --data-urlencode 'archived=false' --data-urlencode 'page=1'
+  --data-urlencode 'archived=false' --data-urlencode 'limit=24'
 ```
 
 ## Documento tipado y creación
@@ -180,7 +180,7 @@ curl --fail "$BASE/api/v1/designs/$DESIGN_ID" \
   -H "Authorization: Bearer $TOKEN" -H 'Accept: application/json' \
   --output design.json
 
-jq '{name,document,revision,is_template,folder_id}
+jq '{name,document,revision,is_template}
     | .document.pages[0].elements[0].text = "Nueva campaña"' \
   design.json > design-update.json
 
@@ -192,7 +192,7 @@ curl --fail -X PATCH "$BASE/api/v1/designs/$DESIGN_ID" \
 
 Si otra sesión ya guardó, devuelve HTTP `409` y conserva la versión del servidor. Vuelve a leer el diseño, compara y resuelve los cambios antes de reenviar; cambiar solamente el número de revisión podría sobrescribir trabajo ajeno. En MCP el resultado tiene `isError: true` y un mensaje que identifica el conflicto `409`.
 
-Duplicar crea una revisión 1 independiente. `folder_id: null` quita la carpeta. La copia y el archivado se pueden invocar así:
+Duplicar crea una revisión 1 independiente. La copia y el archivado se pueden invocar así:
 
 ```bash
 curl --fail -X POST "$BASE/api/v1/designs/$DESIGN_ID/duplicate" \
@@ -204,7 +204,7 @@ curl --fail -X POST "$BASE/api/v1/designs/$DESIGN_ID/restore" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-Las carpetas están aisladas por marca y usuario. Crear una devuelve `{"folder":{...}}`; el listado devuelve `{"folders":[...]}`. Asigna su ID mediante `folder_id` al crear o actualizar un diseño. Eliminar una carpeta quita esa asociación tanto en diseños activos como archivados, sin borrar documentos, revisiones o exportaciones; los números de revisión se conservan.
+Las carpetas están aisladas por marca y usuario. Crear una devuelve `{"folder":{...}}`; el listado devuelve `{"folders":[...]}`. Asigna su ID mediante `folder_id` al crear un diseño; actualizar un diseño ignora `folder_id` (guardar nunca cambia la carpeta) y para cambiarla se usa `PATCH /api/v1/designs/{id}/folder` con `folder_id` (o `null` para «Sin carpeta»). `PATCH /api/v1/design-folders/{id}` renombra. Eliminar una carpeta pasa sus diseños, activos y archivados, a «Sin carpeta» (la respuesta trae `designs_moved`), sin borrar documentos, revisiones o exportaciones; los números de revisión se conservan.
 
 ## Plantillas y automatización por marca
 
@@ -313,7 +313,7 @@ MP4 y GIF se solicitan por API/MCP y se procesan en la cola database/studio, des
 
 ## MCP: herramientas de diseño y flujo de trabajo
 
-El servidor registra 57 herramientas en total (incluidas las sociales). `tools/list` devuelve 30 en la primera página y un `nextCursor`; envía ese valor como `params.cursor` para obtener la siguiente. Acumula todas las páginas hasta que `nextCursor` no exista. Las herramientas de diseño quedan repartidas entre páginas; `get_stats` sigue siendo la herramienta de métricas existente.
+El servidor registra 64 herramientas en total (incluidas las sociales). `tools/list` devuelve 30 en la primera página y un `nextCursor`; envía ese valor como `params.cursor` para obtener la siguiente. Acumula todas las páginas hasta que `nextCursor` no exista. Las herramientas de diseño quedan repartidas entre páginas; `get_stats` sigue siendo la herramienta de métricas existente.
 
 ```bash
 curl --fail "$BASE/mcp" \
@@ -326,16 +326,16 @@ La siguiente llamada tiene la forma `{"jsonrpc":"2.0","id":2,"method":"tools/lis
 
 | Herramienta | Argumentos y resultado |
 |---|---|
-| `list_designs` | `brand` o `brand_id`; opcionales `query`, `folder_id`, `templates`, `archived`, `page`. Resúmenes paginados de 24. `designs:read`. |
+| `list_designs` | `brand` o `brand_id`; opcionales `query`, `folder_id`, `templates`, `archived`, `limit`, `cursor`. Resúmenes paginados por cursor (24 por defecto; `has_more` y `next_cursor`). `designs:read`. |
 | `get_design` | `design_id`, `exports_page` opcional. Documento completo, revisión, kit, recursos con `file_url` e historial `exports` de 50 por página con `exports_pagination`. `designs:read`. |
 | `create_design` | Marca, `name`, `document`, opcionales `folder_id`/`is_template`. Diseño con revisión 1. `designs:write`. |
-| `update_design` | `design_id`, `name`, `document`, `revision`, opcionales `folder_id`/`is_template`. Nueva revisión o conflicto 409. `designs:write`. |
+| `update_design` | `design_id`, `name`, `document`, `revision`, opcional `is_template` (la carpeta no se cambia al actualizar). Nueva revisión o conflicto 409. `designs:write`. |
 | `export_design` | `design_id`, `revision`, `format`, `pages`, opcionales `scale`/`quality`/`transparent`. MP4/GIF requieren transparencia false. `designs:write`. |
 | `manage_design_export` | `export_id`, `action`: get (designs:read), cancel/retry (designs:write), post (designs:write y posts:write). Devuelve progreso/descarga o borrador; no publica. |
 | `manage_brand_kit` | Marca; `kit` omitido consulta y, si está presente, actualiza sus campos. Requiere `designs:write` en ambos casos; `get_design` permite leer el kit con `designs:read`. |
 | `attach_design_asset` | Marca y `media_id` propio listo. Registra el recurso y devuelve sus metadatos. `designs:write`. |
 | `manage_design` | `design_id`, `action: duplicate\|archive\|restore`; `name` opcional para duplicar. Copia independiente o archivado/restauración conservando snapshots y exportaciones. `designs:write`. |
-| `manage_design_folder` | Marca y `action: list\|create\|delete`; `name` obligatorio al crear, `folder_id` al eliminar. `list` requiere `designs:read`; crear/eliminar, `designs:write`. Eliminar conserva los diseños sin asociación. |
+| `manage_design_folder` | Marca y `action: list\|create\|rename\|move\|delete`; `name` obligatorio al crear y renombrar, `folder_id` al renombrar y eliminar, `design_id` (y `folder_id`, vacío = «Sin carpeta») al mover. `list` requiere `designs:read`; el resto, `designs:write`. Eliminar pasa los diseños a «Sin carpeta». |
 
 Una llamada a una herramienta usa el mismo transporte JSON-RPC:
 
@@ -358,7 +358,7 @@ Flujo reproducible de las herramientas de diseño, adaptando los IDs a cada resp
 6. `get_design({"design_id":42})`. Conserva el documento y la revisión devueltos; modifica los elementos deseados.
 7. `update_design({"design_id":42,"name":"Campaña revisada","revision":1,"document":DOCUMENTO_EDITADO})`. Si devuelve 409, vuelve al paso 6 y resuelve el conflicto. Usa la nueva revisión devuelta si el guardado pasa.
 8. `export_design({"design_id":42,"revision":2,"format":"png","pages":["page_1"],"scale":1})`. Consulta periódicamente `get_design({"design_id":42})` y localiza el trabajo por su ID en `exports` hasta `ready`/`failed`. Descarga `download_url` únicamente cuando exista; no repitas `export_design` para hacer polling.
-9. `manage_design_folder({"brand_id":12,"action":"create","name":"Lanzamientos"})` devuelve el objeto de carpeta con su `id`. Consulta con `{"brand_id":12,"action":"list"}` y utiliza ese ID en `folder_id` de `create_design`/`update_design`; `list_designs` también puede filtrar por carpeta. `manage_design_folder({"brand_id":12,"action":"delete","folder_id":10})` solo acepta una carpeta de esa misma marca y conserva sus diseños sin asociación.
+9. `manage_design_folder({"brand_id":12,"action":"create","name":"Lanzamientos"})` devuelve el objeto de carpeta con su `id`. Consulta con `{"brand_id":12,"action":"list"}` y utiliza ese ID en `folder_id` de `create_design` o con la acción `move`; `list_designs` también puede filtrar por carpeta. `manage_design_folder({"brand_id":12,"action":"delete","folder_id":10})` solo acepta una carpeta de esa misma marca y pasa sus diseños a «Sin carpeta».
 10. `manage_design({"design_id":42,"action":"duplicate","name":"Variante"})` devuelve una copia con ID nuevo y revisión 1. `manage_design({"design_id":42,"action":"archive"})` archiva el original; `manage_design({"design_id":42,"action":"restore"})` lo restaura conservando sus revisiones y exportaciones. La restauración solo admite recursos del usuario, aunque estén archivados. Para volver a verlos antes de restaurar, usa `list_designs({"brand_id":12,"archived":true})`.
 
 Para continuar hacia publicación, PNG/JPEG/WebP aportan `exports[].media_ids`. La herramienta existente `create_post` consume esos IDs y valida los destinos; `schedule:false` crea un borrador. Los servicios de diseño/exportación no programan ni publican por sí solos.
@@ -387,9 +387,9 @@ python3 scripts/studio/setup-runtime.py --download-model
 python3 scripts/studio/setup-runtime.py --check
 ```
 
-El primer comando crea `storage/framework/studio-python`, instala las ocho versiones fijadas de `requirements-studio.txt` y descarga explícitamente el modelo BiRefNet general lite y su licencia MIT. El manifiesto `scripts/studio/background-model.json` fija origen, tamaño y SHA-256; un archivo parcial o incorrecto no sustituye al modelo previo. Los pesos ocupan 224.005.088 bytes y quedan fuera de Git. Sin `--download-model` solo se instala Python privado; la eliminación de fondo requiere también los pesos. `--check` es de solo lectura y devuelve error si faltan dependencias exactas, modelo o licencia. En Windows usa `python` en lugar de `python3`.
+El primer comando crea `storage/framework/studio-python`, instala las ocho versiones fijadas de `requirements-studio.txt` y descarga explícitamente el modelo IS-Net `isnet-general-use` (proyecto DIS de Xuebin Qin et al., publicado en las releases de rembg) y su licencia Apache-2.0 (`IS-Net-LICENSE.txt`, texto completo del repositorio xuebinqin/DIS, junto al modelo). Licencias de terceros: el modelo se redistribuye bajo Apache-2.0, sin modificar; el preproceso/postproceso de `process-image.py` está escrito para este proyecto a partir de la descripción pública del modelo, sin copiar código de rembg (MIT). El manifiesto `scripts/studio/background-model.json` fija origen, tamaño y SHA-256; un archivo parcial o incorrecto no sustituye al modelo previo. Los pesos ocupan 178.648.008 bytes y quedan fuera de Git. Sin `--download-model` solo se instala Python privado; la eliminación de fondo requiere también los pesos. `--check` es de solo lectura y devuelve error si faltan dependencias exactas, modelo o licencia. En Windows usa `python` en lugar de `python3`.
 
-El modelo se instala en `storage/app/private/studio-models/birefnet-general-lite.onnx`. `STUDIO_PYTHON_BINARY`, `STUDIO_BACKGROUND_MODEL_PATH` y `STUDIO_BACKGROUND_MODEL_SHA256` permiten configurar explícitamente otra ubicación; la comprobación del instalador corresponde a las rutas predeterminadas. Los procesos web y worker deben acceder al mismo entorno y los mismos archivos privados. No se descarga código ni pesos durante una petición. Fuentes: máximo 8 MiB por archivo y 32 MiB decodificados; normalización TTF/OTF/WOFF/WOFF2 mediante fontTools. Imágenes: PNG/JPEG/WebP estáticos, máximo 30 MiB y 16 millones de píxeles; inferencia CPU con cuatro hilos y timeout del proceso de 85 segundos. El proceso tiene un techo de memoria de 6 GiB, aplicado mediante Job Object en Windows o RLIMIT_AS en Linux, y CPU de 80 s en Linux; no se reservan 6 GiB al iniciar. La [prueba focal real del entrypoint con ese límite](../roadmap/2026-11-03-creative-social-suite/testing/t10/native-budget-resume/report.md) pasó en Windows (4/4 comprobaciones); la QA integrada posterior, Linux y el VPS siguen pendientes en T-10. Las pruebas anteriores sin límite no acreditan ese requisito. El servidor necesita capacidad suficiente por worker activo. El job usa `media`, timeout 110 s, inferior al worker 120 s y `retry_after` 180 s.
+El modelo se instala en `storage/app/private/studio-models/isnet-general-use.onnx`. `STUDIO_PYTHON_BINARY`, `STUDIO_BACKGROUND_MODEL_PATH` y `STUDIO_BACKGROUND_MODEL_SHA256` permiten configurar explícitamente otra ubicación; la comprobación del instalador corresponde a las rutas predeterminadas. Los procesos web y worker deben acceder al mismo entorno y los mismos archivos privados. No se descarga código ni pesos durante una petición. Fuentes: máximo 8 MiB por archivo y 32 MiB decodificados; normalización TTF/OTF/WOFF/WOFF2 mediante fontTools. Imágenes: PNG/JPEG/WebP estáticos, máximo 30 MiB y 16 millones de píxeles; inferencia CPU con cuatro hilos y timeout del proceso de 85 segundos. El proceso tiene un techo de memoria de 1,25 GiB, aplicado mediante Job Object en Windows o RLIMIT_DATA en Linux, y CPU de 80 s en Linux; no se reserva al iniciar. La [prueba focal real del entrypoint con ese límite](../roadmap/2026-11-03-creative-social-suite/testing/t10/native-budget-resume/report.md) pasó en Windows (4/4 comprobaciones); la QA integrada posterior, Linux y el VPS siguen pendientes en T-10. Las pruebas anteriores sin límite no acreditan ese requisito. El servidor necesita capacidad suficiente por worker activo. El job usa `media`, timeout 110 s, inferior al worker 120 s y `retry_after` 180 s.
 
 En el editor, **Tipografías de marca** permite subir, buscar, previsualizar, archivar/restaurar y eliminar fuentes sin referencias. El selector de texto y la identidad de marca utilizan los archivos de esa marca. `font_id` positivo en texto identifica el archivo, mientras `fontFamily` conserva su familia; `font_ids` en el kit se alinea con `fonts`. No inventes IDs ni uses una URL externa: `get_design` devuelve la metadata necesaria y el renderer recibe los bytes verificados. Una fuente archivada usada por un diseño continúa cargándose. Un archivo ausente o corrupto produce un error explícito.
 
@@ -476,12 +476,12 @@ La herramienta MCP dedicada `manage_design_captions` utiliza estas mismas operac
 
 Al exportar páginas, los runs contiguos conservan un único reloj fuente. Una página A de2s exportada sola conserva un cue1,8–1,95s entero aunque tuviera una transición original. En transiciones del resultado entre runs disjuntos, la fuente visual de subtítulos cambia en el punto medio del solapamiento para evitar duplicación o atenuación; el documento original permanece intacto.
 
-Este bloque manual no implementa reconocimiento de voz ni traducción: ambas capacidades permanecen en T-14 sobre el contrato de cues. La [QA integral local de T-11](../roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa3/report.md) está aceptada, incluidos los subtítulos manuales. Las pruebas locales no acreditan despliegue, workers del VPS ni publicación real en redes.
+Este bloque manual no implementa reconocimiento de voz: sigue pendiente de elegir proveedor. La traducción de subtítulos (T-35) usa el asistente de IA: acción `translate_captions` de `POST /brands/{brand}/ai-text` (`studio:ai`), que devuelve una propuesta sin guardar nada. La [QA integral local de T-11](../roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa3/report.md) está aceptada, incluidos los subtítulos manuales. Las pruebas locales no acreditan despliegue, workers del VPS ni publicación real en redes.
 
 
 ## Datasets por marca: API y MCP
 
-Las rutas están implementadas y aprobadas en la segunda revisión independiente. [QA26 intento2](../roadmap/2026-11-03-creative-social-suite/testing/t12/dataset-api-qa2/report.md) acepta el transporte HTTP/TCP local y MCP real con 13/13 casos, sin reintentos. El editor de tablas está aceptado por [QA27 intento3](../roadmap/2026-11-03-creative-social-suite/testing/t12/dataset-editor-qa3/report.md), con 15/15 casos en tres tamaños de pantalla y tres auditorías de accesibilidad sin violaciones ni comprobaciones incompletas. Los gráficos siguen pendientes. El [contrato OpenAPI](../api/creative-suite.openapi.yaml) describe las once operaciones bajo `/api/v1/brands/{brand}/datasets`. Las rutas web usan `/brands/{brand}/studio/datasets` con sesión verificada y CSRF. Todas comprueban usuario y marca: acceder desde otra marca devuelve 404 aunque ambas pertenezcan al mismo usuario.
+Las rutas están implementadas y aprobadas en la segunda revisión independiente. [QA26 intento2](../roadmap/2026-11-03-creative-social-suite/testing/t12/dataset-api-qa2/report.md) acepta el transporte HTTP/TCP local y MCP real con 13/13 casos, sin reintentos. El editor de tablas está aceptado por [QA27 intento3](../roadmap/2026-11-03-creative-social-suite/testing/t12/dataset-editor-qa3/report.md), con 15/15 casos en tres tamaños de pantalla y tres auditorías de accesibilidad sin violaciones ni comprobaciones incompletas. Los gráficos siguen pendientes. El [contrato OpenAPI](../api/openapi.yaml) describe las once operaciones bajo `/api/v1/brands/{brand}/datasets`. Las rutas web usan `/brands/{brand}/studio/datasets` con sesión verificada y CSRF. Todas comprueban usuario y marca: acceder desde otra marca devuelve 404 aunque ambas pertenezcan al mismo usuario.
 
 | Ruta relativa a la colección | Operación | Permiso API |
 |---|---|---|

@@ -235,6 +235,8 @@ function bskyLoopbackHits(): array
 test('manejador real: la peticion llega por la IP fijada (CURLOPT_RESOLVE) y un 302 no se sigue', function () {
     $log = $GLOBALS['bsky_loopback']['dir'].DIRECTORY_SEPARATOR.'hits.log';
     @unlink($log);
+    // Excepcion explicita a la guardia global de TestCase: este test habla con un servidor HTTP local (127.0.0.1) a proposito.
+    Http::allowStrayRequests();
     app()->instance(UrlGuard::class, new BskyLoopbackGuard($GLOBALS['bsky_loopback']['port']));
 
     // `pds.example.com` no existe: solo llega a 127.0.0.1 si el CURLOPT_RESOLVE se aplica de verdad.

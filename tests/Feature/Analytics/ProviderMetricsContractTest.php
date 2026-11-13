@@ -32,8 +32,8 @@ test('T-03 contract: every network declares its expected daily flows and none us
     }
 });
 
-test('T-03 contract: networks without a metrics reader report unsupported and null, never zero', function () {
-    foreach ([Network::LinkedIn, Network::Pinterest] as $network) {
+test('T-03 contract: networks without a metrics reader (LinkedIn, waiting for community_management) report unsupported and null, never zero', function () {
+    foreach ([Network::LinkedIn] as $network) {
         expect(app(ConnectorRegistry::class)->insightsFor($network))->toBeNull();
         SocialAccount::factory()->create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'network' => $network]);
     }

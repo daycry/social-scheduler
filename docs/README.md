@@ -9,7 +9,8 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Si quieres… | Lee |
 |---|---|
 | Diseñar contenido por marca y reutilizarlo en una publicación | [Estudio creativo](guias/estudio-creativo.md) |
-| Automatizar diseños, recursos y exportación desde API o MCP | [API v1 y MCP del estudio](guias/estudio-api-mcp.md) · [OpenAPI](api/creative-suite.openapi.yaml) |
+| Usar la API v1 (publicaciones, media, buzón, informes, SmartLinks, sitios) | [API v1](guias/api-v1.md) · [OpenAPI](api/openapi.yaml) |
+| Automatizar diseños, recursos y exportación desde API o MCP | [API v1 y MCP del estudio](guias/estudio-api-mcp.md) · [OpenAPI](api/openapi.yaml) |
 | Revisar cobertura, cálculos y recolección de métricas | [Auditoría de métricas](roadmap/2026-11-03-creative-social-suite/testing/metrics/audit-2026-11-03.md) |
 | Entender cómo encaja todo | [Arquitectura](arquitectura.md) y [Stack](stack.md) |
 | Saber qué se decidió por red (Meta, YouTube, TikTok, Bluesky, Threads, LinkedIn, Pinterest) | [Decisiones por red](referencia/decisiones-por-red.md) |

@@ -18,20 +18,23 @@ beforeEach(function () {
     config(['filesystems.media' => 'local', 'social.bluesky.image_max_bytes' => 2_000_000]);
 });
 
-/** Ruido aleatorio: no comprime, asi que un JPEG de calidad 100 de 1600x1600 pesa ~5 MB. */
+/**
+ * Ruido aleatorio: no comprime, asi que un JPEG de calidad 100 de 1600x1600 pesa ~5 MB. Se construye como un BMP de 24 bits con bytes
+ * aleatorios (0,09 s en vez de ~0,3 s con `imagesetpixel` pixel a pixel) y se guarda por (lado, calidad): se pedia ~15 veces por fichero.
+ */
 function noisyJpeg(int $side = 1600, int $quality = 100): string
 {
-    mt_srand(7);
-    $im = imagecreatetruecolor($side, $side);
-    for ($y = 0; $y < $side; $y++) {
-        for ($x = 0; $x < $side; $x++) {
-            imagesetpixel($im, $x, $y, (mt_rand(0, 255) << 16) | (mt_rand(0, 255) << 8) | mt_rand(0, 255));
-        }
-    }
-    ob_start();
-    imagejpeg($im, null, $quality);
+    static $cache = [];
 
-    return (string) ob_get_clean();
+    return $cache["$side-$quality"] ??= (function () use ($side, $quality): string {
+        $data = random_bytes((($side * 3 + 3) & ~3) * $side);
+        $header = 'BM'.pack('VvvV', 54 + strlen($data), 0, 0, 54).pack('VVVvvVVVVVV', 40, $side, $side, 1, 24, 0, strlen($data), 2835, 2835, 0, 0);
+        $im = imagecreatefromstring($header.$data);
+        ob_start();
+        imagejpeg($im, null, $quality);
+
+        return (string) ob_get_clean();
+    })();
 }
 
 function storedImage(string $bytes, string $mime = 'image/jpeg'): MediaAsset

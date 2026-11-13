@@ -5,6 +5,20 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Changed — API v1 y MCP, cambios incompatibles (`audit-hardening`, T-28/T-29)
+
+- `POST /api/v1/posts` pasa a `POST /api/v1/brands/{brand}/posts` y `POST /api/v1/series` a `POST /api/v1/brands/{brand}/series`: la marca va siempre en la ruta.
+- La paginación de posts, media, comentarios y diseños (API y MCP) es por cursor (`limit`, `cursor`, `has_more`, `next_cursor`); desaparecen `page`, `before_id` y `total`.
+- Un estado que no admite la operación (p. ej. borrar una publicación ya publicada) responde 409; 422 queda para errores de entrada.
+- Los límites de ritmo por ruta tienen ahora su propio contador y se configuran en `config/rate_limits.php`.
+- Un `PUT` del SmartLink sin `published` ya no lo publica.
+- Un único OpenAPI (`docs/api/openapi.yaml`) describe toda la API.
+
+### Added — opciones de publicación y estudio (`audit-hardening`, T-34/T-35)
+
+- **T-34 — Opciones de publicación: portada LinkedIn, lugares IG, `place` FB, editor de `user_tags`.** El compositor deja elegir un lugar para Instagram y Facebook (buscándolo o pegando su id), etiquetar usuarios en una imagen de Instagram pulsando sobre ella y poner portada a los vídeos de LinkedIn.
+- **T-35 — Estudio: PPTX, miniaturas por diseño y traducción de subtítulos.** El estudio exporta un diseño a PowerPoint (una diapositiva por página), enseña una miniatura de cada diseño en el listado y traduce los subtítulos con el asistente de IA cuando está activado.
+
 ### Added — iniciativa `creative-social-suite` (2026-11-03)
 
 - **T-01 — Inventario y evidencia de referencia** El inventario de funciones de referencia queda actualizado con el estado real de la aplicación: para cada función, si está cubierta, parcial o fuera, la tarea que la cubre y su prueba.

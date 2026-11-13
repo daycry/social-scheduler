@@ -8,6 +8,7 @@ use App\Models\Report;
 use App\Models\ReportSchedule;
 use App\Models\ReportTemplate;
 use App\Models\User;
+use App\Services\JobFailureNotifier;
 use App\Services\Reports\ReportBlocks;
 use App\Services\ReportService;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -83,6 +84,7 @@ class SendScheduledReport implements ShouldQueue
         if ($report->status !== Report::STATUS_READY) {
             RateLimiter::decrement($key, 86400, $reserved);
             $schedule->update(['last_run_at' => now(), 'last_error' => ReportService::GENERIC_ERROR]);
+            app(JobFailureNotifier::class)->report($schedule);
 
             return;
         }
@@ -102,5 +104,9 @@ class SendScheduledReport implements ShouldQueue
     {
         Log::error('report.schedule_failed', ['schedule_id' => $this->scheduleId, 'error' => $e->getMessage()]);
         ReportSchedule::withoutUserScope()->whereKey($this->scheduleId)->update(['last_run_at' => now(), 'last_error' => ReportService::GENERIC_ERROR]);
+
+        if ($schedule = ReportSchedule::withoutUserScope()->find($this->scheduleId)) {
+            app(JobFailureNotifier::class)->report($schedule);
+        }
     }
 }

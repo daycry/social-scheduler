@@ -5,11 +5,15 @@ namespace App\Http\Controllers;
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Contracts\CredentialConnector;
 use App\Connectors\Exceptions\ConnectorException;
+use App\Connectors\Meta\PlaceSearch;
+use App\Connectors\Meta\PlaceSearchUnavailable;
 use App\Connectors\Network;
+use App\Connectors\Pinterest\PinterestConnector;
 use App\Connectors\TikTok\TikTokPublisher;
 use App\Http\Controllers\OAuth\OAuthController;
 use App\Models\Brand;
 use App\Models\SocialAccount;
+use App\Services\ConnectionExpiry;
 use App\Services\SocialAccountService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
@@ -47,10 +51,13 @@ class ConnectionController extends Controller
                 'username' => $a->username,
                 'status' => $a->status,
                 'last_error' => $a->last_error,
+                'boards_count' => $a->network === Network::Pinterest ? count((array) ($a->meta['boards'] ?? [])) : null,
+                'boards_partial' => $a->network === Network::Pinterest ? (bool) ($a->meta['boards_partial'] ?? false) : null,
+                'boards_refreshed_at' => $a->network === Network::Pinterest ? ($a->meta['boards_refreshed_at'] ?? null) : null,
                 'direct_post' => $a->network === Network::TikTok && ($a->meta['direct_post'] ?? false) === true,
                 'token_expires_at' => $a->token_expires_at?->toIso8601String(),
-                // Aviso «reconecta antes de»: cuentas que no se pueden renovar (sin refresh_token) cuyo token caduca en pocos dias. No bloquea nada.
-                'reconnect_before' => $this->reconnectBefore($a),
+                // Aviso «reconecta antes de» (T-23): caducidad conocida que el sistema no renueva (acceso a datos de Meta, token de LinkedIn sin refresh_token) en pocos dias. No bloquea nada.
+                ...$this->expiryProps($a),
                 'data_access_expires_at' => $a->data_access_expires_at?->toIso8601String(),
                 'connected_at' => $a->connected_at?->toIso8601String(),
             ])->values(),
@@ -79,15 +86,12 @@ class ConnectionController extends Controller
         ]);
     }
 
-    private function reconnectBefore(SocialAccount $a): ?string
+    /** @return array{reconnect_before: ?string, reconnect_reason: ?string, reconnect_message: ?string} */
+    private function expiryProps(SocialAccount $a): array
     {
-        if ($a->network !== Network::LinkedIn || $a->status !== 'activa' || $a->token_expires_at === null || (string) $a->refresh_token !== '') {
-            return null;
-        }
+        $d = ConnectionExpiry::dueSoon($a);
 
-        return $a->token_expires_at->isFuture() && $a->token_expires_at->lte(now()->addDays((int) config('social.linkedin.reconnect_notice_days', 7)))
-            ? $a->token_expires_at->toIso8601String()
-            : null;
+        return ['reconnect_before' => $d['at'] ?? null, 'reconnect_reason' => $d['reason'] ?? null, 'reconnect_message' => $d ? ConnectionExpiry::message($a, $d['reason']) : null];
     }
 
     /** @return list<array{name: string, label: string, type: string, help?: string}> */
@@ -156,6 +160,28 @@ class ConnectionController extends Controller
             : 'Direct Post desactivado: los videos se enviaran como borrador a la bandeja de TikTok.');
     }
 
+    /** Vuelve a leer los tableros de una cuenta de Pinterest (paginados con `bookmark`) y guarda la lista para el compositor. */
+    public function refreshPinterestBoards(Brand $brand, SocialAccount $account, PinterestConnector $pinterest): RedirectResponse
+    {
+        $this->authorize('update', $brand);
+        $this->authorize('disconnect', $account);
+        abort_unless($account->brand_id === $brand->id && $account->network === Network::Pinterest, 404);
+
+        $back = redirect()->route('brands.connections.index', $brand);
+
+        try {
+            $boards = $pinterest->refreshBoards($account);
+        } catch (ConnectorException $e) {
+            return $back->with('error', 'No se pudieron actualizar los tableros: '.$e->getMessage());
+        }
+
+        if ((bool) ($account->fresh()->meta['boards_partial'] ?? false)) {
+            return $back->with('success', 'Tableros actualizados: '.count($boards).' (lista incompleta; si no ves tu tablero, indícalo por su id).');
+        }
+
+        return $back->with('success', count($boards) === 1 ? 'Tableros actualizados: 1 tablero.' : 'Tableros actualizados: '.count($boards).' tableros.');
+    }
+
     /**
      * Datos de la cuenta de TikTok para el compositor (Content Sharing Guidelines de TikTok): nombre del creador, visibilidades que
      * admite, interacciones que tiene desactivadas y duracion maxima. Se consultan al abrir el compositor, no se guardan.
@@ -185,6 +211,24 @@ class ConnectionController extends Controller
             'stitch_disabled' => (bool) ($info['stitch_disabled'] ?? false),
             'max_video_post_duration_sec' => isset($info['max_video_post_duration_sec']) ? (int) $info['max_video_post_duration_sec'] : null,
         ]);
+    }
+
+    /**
+     * Busca lugares de Meta para `location_id` (Instagram) y `place` (Facebook) desde el compositor. Con la busqueda restringida o sin
+     * permisos responde 422 con el motivo: el compositor deja pegar el id a mano.
+     */
+    public function places(Request $request, Brand $brand, SocialAccount $account, PlaceSearch $search): JsonResponse
+    {
+        $this->authorize('update', $brand);
+        $this->authorize('disconnect', $account);
+        abort_unless($account->brand_id === $brand->id && in_array($account->network, [Network::Instagram, Network::Facebook], true), 404);
+        $q = trim((string) $request->validate(['q' => ['required', 'string', 'min:2', 'max:100']])['q']);
+
+        try {
+            return response()->json(['places' => $search->search($account, $q)]);
+        } catch (PlaceSearchUnavailable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
     }
 
     public function destroy(Request $request, Brand $brand, SocialAccount $account): RedirectResponse

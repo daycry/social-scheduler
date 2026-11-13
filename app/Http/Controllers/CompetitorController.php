@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Connectors\Network;
 use App\Exceptions\PostValidationException;
 use App\Models\Brand;
 use App\Models\Competitor;
@@ -15,7 +16,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-/** Analytics · Competidores de Instagram (PA-08): anadir @usuario, ver la comparativa y dejar de seguir. */
+/** Analytics · Competidores (PA-08, T-25: Instagram, Bluesky y YouTube): anadir @usuario, ver la comparativa de la red elegida y dejar de seguir. */
 class CompetitorController extends Controller
 {
     use AuthorizesRequests;
@@ -25,19 +26,29 @@ class CompetitorController extends Controller
     public function index(Request $request): Response|RedirectResponse
     {
         $brand = CurrentBrand::resolve($request);
-        $q = $request->validate(['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d'], 'sort' => ['nullable', 'in:'.implode(',', CompetitorService::SORTS)], 'competitor' => ['nullable', 'integer']]);
+        $q = $request->validate(['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d'], 'sort' => ['nullable', 'in:'.implode(',', CompetitorService::SORTS)], 'competitor' => ['nullable', 'integer'], 'network' => ['nullable', 'in:'.$this->networkValues()]]);
+        $network = Network::tryFrom((string) ($q['network'] ?? '')) ?? Network::Instagram;
 
         try {
-            $comparison = $brand ? $this->competitors->comparison($request->user(), $brand, $q['from'] ?? null, $q['to'] ?? null, $q['sort'] ?? 'followers') : null;
+            $comparison = $brand ? $this->competitors->comparison($request->user(), $brand, $q['from'] ?? null, $q['to'] ?? null, $q['sort'] ?? 'followers', $network) : null;
         } catch (PostValidationException $e) {
-            return redirect()->route('competitors.index', ['brand_id' => $brand?->id])->withErrors($e->errors());
+            return redirect()->route('competitors.index', ['brand_id' => $brand?->id] + $this->networkQuery($network))->withErrors($e->errors());
         }
 
         $selected = $comparison && isset($q['competitor']) ? collect($comparison['competitors'])->firstWhere('id', (int) $q['competitor']) : null;
 
         return Inertia::render('Competitors/Index', [
             'brand' => $brand ? ['id' => $brand->id, 'name' => $brand->name] : null,
-            'has_instagram' => $brand ? $this->competitors->queryAccount($request->user()->id, $brand->id) !== null : false,
+            'network' => $network->value,
+            'has_account' => $brand ? $this->hasAccount($request->user()->id, $brand->id, $network) : false,
+            // Redes con fuente de competidores; `has_account` = hay una cuenta propia activa con la que consultar (Bluesky no la necesita).
+            'networks' => collect($this->competitors->networks())->map(fn (Network $n) => [
+                'value' => $n->value,
+                'label' => $n->label(),
+                'needs_account' => $this->competitors->source($n)->needsAccount(),
+                'copy' => $this->competitors->source($n)->copy(),
+                'has_account' => $brand ? $this->hasAccount($request->user()->id, $brand->id, $n) : false,
+            ])->values()->all(),
             'comparison' => $comparison,
             'sorts' => CompetitorService::SORTS,
             'selected' => $selected ? ['id' => $selected['id'], 'username' => $selected['username'], 'posts' => $this->competitors->topPosts($request->user(), Competitor::query()->findOrFail($selected['id']), $comparison['range']['from'], $comparison['range']['to'])] : null,
@@ -46,30 +57,50 @@ class CompetitorController extends Controller
         ]);
     }
 
+    /** ¿Se puede consultar en esa red? Bluesky es publico; Instagram y YouTube necesitan una cuenta propia activa de la marca. */
+    private function hasAccount(int $userId, int $brandId, Network $network): bool
+    {
+        return ! $this->competitors->source($network)->needsAccount() || $this->competitors->queryAccount($userId, $brandId, null, $network) !== null;
+    }
+
+    /** Instagram es la red por defecto: su URL no lleva `network` (se conservan los enlaces anteriores a T-25). @return array<string, string> */
+    private function networkQuery(Network $network): array
+    {
+        return $network === Network::Instagram ? [] : ['network' => $network->value];
+    }
+
+    /** Redes admitidas por la validacion: las que tienen fuente de competidores en esta instalacion. */
+    private function networkValues(): string
+    {
+        return implode(',', array_map(fn (Network $n) => $n->value, $this->competitors->networks()));
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
             'brand_id' => ['required', 'integer'],
-            'username' => ['required', 'string', 'max:31'],
+            'network' => ['nullable', 'in:'.$this->networkValues()],
+            'username' => ['required', 'string', 'max:300'],
         ]);
+        $network = Network::tryFrom((string) ($data['network'] ?? '')) ?? Network::Instagram;
         $brand = Brand::query()->findOrFail((int) $data['brand_id']); // UserScope: una marca ajena es 404
 
         try {
-            $competitor = $this->competitors->add($request->user(), $brand, $data['username']);
+            $competitor = $this->competitors->add($request->user(), $brand, $data['username'], $network);
         } catch (PostValidationException $e) {
             return back()->withErrors($e->errors())->withInput();
         }
 
-        return redirect()->route('competitors.index', ['brand_id' => $brand->id])->with('success', "Siguiendo a @{$competitor->username}.");
+        return redirect()->route('competitors.index', ['brand_id' => $brand->id] + $this->networkQuery($network))->with('success', "Siguiendo a @{$competitor->username}.");
     }
 
     public function destroy(Competitor $competitor): RedirectResponse
     {
         $this->authorize('delete', $competitor);
         $brandId = $competitor->brand_id;
-        $competitor->delete();
+        $this->competitors->remove($competitor);
 
-        return redirect()->route('competitors.index', ['brand_id' => $brandId])->with('success', 'Competidor eliminado.');
+        return redirect()->route('competitors.index', ['brand_id' => $brandId] + $this->networkQuery($competitor->network))->with('success', 'Competidor eliminado.');
     }
 
     /** «Actualizar publicaciones»: lee las ultimas publicaciones publicas del competidor (Business Discovery). */
@@ -89,12 +120,12 @@ class CompetitorController extends Controller
     /** Comparativa en CSV (rango y orden elegidos), con la neutralizacion de formulas de `CsvWriter`. */
     public function export(Request $request): StreamedResponse|RedirectResponse
     {
-        $q = $request->validate(['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d'], 'sort' => ['nullable', 'in:'.implode(',', CompetitorService::SORTS)]]);
+        $q = $request->validate(['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d'], 'sort' => ['nullable', 'in:'.implode(',', CompetitorService::SORTS)], 'network' => ['nullable', 'in:'.$this->networkValues()]]);
         $brand = CurrentBrand::resolve($request);
         abort_if($brand === null, 404);
 
         try {
-            $comparison = $this->competitors->comparison($request->user(), $brand, $q['from'] ?? null, $q['to'] ?? null, $q['sort'] ?? 'followers');
+            $comparison = $this->competitors->comparison($request->user(), $brand, $q['from'] ?? null, $q['to'] ?? null, $q['sort'] ?? 'followers', Network::tryFrom((string) ($q['network'] ?? '')) ?? Network::Instagram);
         } catch (PostValidationException $e) {
             return back()->withErrors($e->errors());
         }

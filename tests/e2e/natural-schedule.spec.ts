@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedExtraAccount, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedExtraAccount, animationsDone, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * Programar en lenguaje natural (C-04c, E2E-07): «Escribe cuándo» propone una fecha y unas redes y SOLO las aplica al confirmar.
@@ -55,7 +55,7 @@ async function axeNow(page: Page, label: string) {
     await settle(page);
     await expect(page.locator('#nprogress')).toHaveCount(0);
     await page.mouse.move(0, 0);
-    await page.waitForTimeout(400);
+    await animationsDone(page);
     const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     const bad = result.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
     expect(bad, `${label}: ${JSON.stringify(bad.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target) })))}`).toEqual([]);
@@ -66,7 +66,7 @@ const instagram = /^Instagram: e2e Instagram/;
 const facebook = /^Facebook: e2e Facebook/;
 const bluesky = /^Bluesky: e2e Bluesky/;
 
-test('E2E-07 · la propuesta se ve antes de aplicarse y al confirmar se rellenan fecha y redes', async ({ page }) => {
+test('E2E-07 · la propuesta se ve antes de aplicarse y al confirmar se rellenan fecha y redes', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     const calls = await fakeAi(page);
     await page.goto(`/brands/${brand.id}/posts/create`);
@@ -109,7 +109,7 @@ test('E2E-07 · la propuesta se ve antes de aplicarse y al confirmar se rellenan
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-07 · descartar la propuesta no cambia nada', async ({ page }) => {
+test('E2E-07 · descartar la propuesta no cambia nada', { tag: '@responsive' }, async ({ page }) => {
     await fakeAi(page);
     await page.goto(`/brands/${brand.id}/posts/create`);
     await settle(page);
@@ -126,7 +126,7 @@ test('E2E-07 · descartar la propuesta no cambia nada', async ({ page }) => {
     await expectNoOverflow(page);
 });
 
-test('E2E-07 · una red sin conectar se avisa y no se aplica; sin redes válidas solo cambia la fecha', async ({ page }) => {
+test('E2E-07 · una red sin conectar se avisa y no se aplica; sin redes válidas solo cambia la fecha', { tag: '@responsive' }, async ({ page }) => {
     await fakeAi(page, { body: { proposal: { ...proposal(), networks: [], ignored_networks: ['tiktok'] }, remaining: 4 } });
     await page.goto(`/brands/${brand.id}/posts/create`);
     await settle(page);
@@ -142,7 +142,7 @@ test('E2E-07 · una red sin conectar se avisa y no se aplica; sin redes válidas
     await expect(pill(page, instagram)).toHaveAttribute('aria-pressed', 'false');
 });
 
-test('E2E-07 · un error de la IA (fecha pasada, límite diario) se explica y no deja ninguna propuesta', async ({ page }) => {
+test('E2E-07 · un error de la IA (fecha pasada, límite diario) se explica y no deja ninguna propuesta', { tag: '@responsive' }, async ({ page }) => {
     await fakeAi(page, { status: 422, body: { message: 'La fecha propuesta ya ha pasado. Indica una fecha futura.', remaining: 3 } });
     await page.goto(`/brands/${brand.id}/posts/create`);
     await settle(page);

@@ -26,6 +26,8 @@ class DispatchDuePosts
 
         // Publicacion manual (T-19): avisa de los destinos manuales cuya hora ha llegado (idempotente).
         app(ManualPublishService::class)->notifyDue();
+        // ... y recuerda los que tocan pronto (T-32): una sola vez, con correo si el usuario lo activo.
+        app(ManualPublishService::class)->remindUpcoming();
 
         $dispatched = 0;
 

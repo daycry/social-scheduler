@@ -69,7 +69,7 @@ class BackfillMetrics implements ShouldBeUniqueUntilProcessing, ShouldQueue
 
         $total = min(Period::MAX_DAYS, max(0, (int) config('social.analytics.backfill_days.'.$account->network->value, 0)));
         $budget = max(1, (int) config('social.analytics.backfill_budget_seconds', 80));
-        $started = microtime(true);
+        $started = $this->clock();
         $slowest = 0.0;
         // The null-coalescing read also supports payloads queued before this property existed.
         $newest = ($this->throughDate ?? null) === null
@@ -81,11 +81,11 @@ class BackfillMetrics implements ShouldBeUniqueUntilProcessing, ShouldQueue
         $ok = $this->guarded($account, $accounts, function () use ($collector, $account, $total, $budget, $started, &$slowest, $newest, $range, &$next): void {
             while ($next < $total) {
                 // Sin presupuesto para otra unidad (contando la mas lenta ya vista): continua otra pasada.
-                if ($next > $this->offset && (microtime(true) - $started) + $slowest > $budget) {
+                if ($next > $this->offset && ($this->clock() - $started) + $slowest > $budget) {
                     return;
                 }
 
-                $t0 = microtime(true);
+                $t0 = $this->clock();
                 $day = $newest->subDays($next);
                 $span = $range !== null && $next >= self::RECENT_DAYS ? min($range->maxRangeDays($account), $total - $next) : 1;
 
@@ -96,12 +96,18 @@ class BackfillMetrics implements ShouldBeUniqueUntilProcessing, ShouldQueue
                 }
 
                 $next += max(1, $span);
-                $slowest = max($slowest, microtime(true) - $t0);
+                $slowest = max($slowest, $this->clock() - $t0);
             }
         });
 
         if ($ok && $next < $total) {
             self::dispatch($this->accountId, $next, $newest->format('Y-m-d'));
         }
+    }
+
+    /** Reloj del presupuesto (segundos con fraccion). Pasa por `now()` para que los tests lo avancen con `Carbon::setTestNow` en vez de dormir. */
+    private function clock(): float
+    {
+        return (float) now()->format('U.u');
     }
 }

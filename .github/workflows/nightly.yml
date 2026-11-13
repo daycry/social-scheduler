@@ -1,0 +1,159 @@
+name: Nightly E2E
+
+# E-01 / E-02. La bateria Playwright (~650 ejecuciones) es demasiado larga para cada PR: corre de noche, troceada con
+# --shard en una matriz (cada shard monta sus propios servidores php -S + SQLite + puerto libre, ver docs/guias/testing.md).
+# Tambien se puede lanzar a mano (workflow_dispatch). No es un check requerido de main.
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-e2e
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    if: github.repository == 'daycry/social-scheduler'
+    name: e2e (shard ${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    env:
+      E2E_WORKERS: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, pdo_mysql, pdo_sqlite, bcmath, gd
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: requirements-studio.txt
+      - name: ffmpeg/ffprobe for Studio audio and video
+        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+      - name: Private Studio font runtime
+        run: python scripts/studio/setup-runtime.py
+      - name: Composer cache (vendor)
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-vendor-php8.4-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-vendor-php8.4-
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate
+      - run: npm ci && npm run build
+      - name: Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: E2E (shard ${{ matrix.shard }}/4)
+        run: npx playwright test --shard=${{ matrix.shard }}/4
+      # results.json, informes y trazas/capturas de fallos viven bajo el runRoot de cada slot.
+      - name: Upload E2E evidence
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-evidence-shard-${{ matrix.shard }}
+          path: |
+            storage/framework/testing/t43/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # E-08. Camino nativo MP4/GIF (Node + FFmpeg + Chromium reales): 9 tests de Pest que sin STUDIO_AV_NATIVE_TEST=1 se omiten
+  # (StudioAvProcessTest:122, StudioAvPublicTest:158 x3, StudioAvQueueTest:439 y :485, x2 cada uno). Ver docs/guias/testing.md.
+  native-av:
+    if: github.repository == 'daycry/social-scheduler'
+    name: native AV (ffmpeg + chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      STUDIO_AV_NATIVE_TEST: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, pdo_mysql, pdo_sqlite, bcmath, gd
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: requirements-studio.txt
+      - name: ffmpeg/ffprobe
+        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+      - name: Private Studio font runtime
+        run: python scripts/studio/setup-runtime.py
+      - name: Composer cache (vendor)
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-vendor-php8.4-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-vendor-php8.4-
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate
+      # Los tests de render cargan public/build/studio-*.js (salida de `npm run build`).
+      - run: npm ci && npm run build
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Chromium cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      # Descarga solo si falta en la cache; con --with-deps instala siempre las librerias del sistema.
+      - name: Chromium
+        run: npx playwright install --with-deps chromium
+      # --compact imprime una linea JSON con passed/skipped; el paso falla si algun test queda omitido (el opt-in no llego).
+      - name: Native AV tests (Pest, --filter=StudioAv)
+        run: |
+          set -o pipefail
+          php artisan test --compact --filter=StudioAv 2>&1 | tee native-av-pest.log
+          if grep -Eq '"skipped":[1-9]' native-av-pest.log; then
+            echo "::error::Hay tests omitidos con STUDIO_AV_NATIVE_TEST=1"; exit 1
+          fi
+      # Sondeo opt-in de 51 MB de JSON tipado / 153 MB de sobre MCP; necesita un limite de memoria explicito (512 MB no basta).
+      - name: Large MCP dataset probe (51 MB)
+        env:
+          T12_DATASET_MCP_LARGE: '1'
+        run: php -d memory_limit=1G vendor/bin/pest --filter=test_mcp_large_escaped
+      # Experimental: test_av_linux.py exige un cgroup v2 delegado y acotado propiedad del usuario. Un servicio transitorio
+      # de systemd como `runner` con Delegate=yes lo da en teoria, pero no esta verificado en runners hospedados; por eso
+      # no bloquea (continue-on-error). Si pasa de forma estable, quita continue-on-error y la rama queda cubierta.
+      - name: Linux cgroup tests (experimental)
+        continue-on-error: true
+        run: |
+          sudo systemd-run --pipe --wait --collect --quiet \
+            --property=User="$(id -un)" --property=Delegate=yes --property=MemoryMax=3G \
+            --property=WorkingDirectory="$PWD" \
+            --setenv=STUDIO_AV_CGROUP_TEST=1 \
+            "$(command -v python)" -B -m unittest tests/studio_runtime/test_av_linux.py -v 2>&1 | tee native-av-cgroup.log
+      - name: Upload native AV evidence
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-av-evidence
+          path: |
+            native-av-*.log
+            storage/logs/
+            storage/framework/testing/
+          if-no-files-found: ignore
+          retention-days: 14

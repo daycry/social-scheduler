@@ -12,6 +12,7 @@ use App\Models\Studio\StudioAvLease;
 use App\Models\Studio\StudioAvStep;
 use App\Models\Studio\StudioAvWorkspace;
 use App\Models\User;
+use App\Services\JobFailureNotifier;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -657,6 +658,12 @@ class StudioAvState
         $progress = ['phase' => in_array($phase, ['asset', 'font'], true) ? 'snapshot' : $phase,
             'completed' => $completed, 'total' => $total, 'percent' => round(100 * $completed / $total, 2)];
         $export->fill($changes + ['render_state' => $state, 'render_progress' => $progress])->save();
+        if (($changes['status'] ?? null) === 'ready') {
+            DB::afterCommit(fn () => app(JobFailureNotifier::class)->exportDone($export));
+        }
+        if (($changes['status'] ?? null) === 'failed') {
+            DB::afterCommit(fn () => app(JobFailureNotifier::class)->export($export)); // tras confirmar la transaccion que cierra el export
+        }
     }
 
     private function canonical(array $value): array

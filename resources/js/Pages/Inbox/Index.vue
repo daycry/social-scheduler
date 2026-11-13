@@ -4,6 +4,7 @@ import InputError from '@/Components/InputError.vue';
 import NetworkIcon from '@/Components/NetworkIcon.vue';
 import CommentNotes from '@/Components/Inbox/CommentNotes.vue';
 import FeatureEmpty from '@/Components/FeatureEmpty.vue';
+import PermissionNotice from '@/Components/PermissionNotice.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
 
@@ -107,13 +108,7 @@ const fmt = (iso) => (iso ? new Intl.DateTimeFormat('es-ES', { dateStyle: 'mediu
             />
 
             <template v-else>
-                <div v-if="blocked.length" class="card border-amber-300 bg-amber-50 p-4 text-sm text-amber-900" role="alert" data-testid="inbox-unavailable">
-                    <p class="font-medium">No disponible para: {{ blocked.map((a) => a.name).join(', ') }}</p>
-                    <p class="mt-1">
-                        Falta el permiso de comentarios. Actívalo en los casos de uso de la app de Meta (<code>instagram_manage_comments</code>, <code>pages_read_user_content</code> y
-                        <code>pages_manage_engagement</code>; en Threads <code>threads_read_replies</code>; en YouTube <code>youtube.force-ssl</code>) y vuelve a conectar la cuenta.
-                    </p>
-                </div>
+                <PermissionNotice v-if="blocked.length" :title="`No disponible para: ${blocked.map((a) => a.name).join(', ')}`" :items="blocked.map((a) => ({ id: a.id, name: a.name, help: a.help, brand_id: a.brand_id }))" data-testid="inbox-unavailable" />
                 <p v-if="reconnect.length" class="text-sm text-amber-800" role="alert">Reconecta {{ reconnect.map((a) => a.name).join(', ') }} para seguir sincronizando.</p>
 
                 <div class="card flex flex-wrap items-center gap-3 p-4 text-sm">

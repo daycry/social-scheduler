@@ -1,0 +1,42 @@
+name: CI failure notice
+
+# A-02: la CI estuvo 6 dias en rojo en main sin que nadie lo viera. Cuando el workflow `CI` falla en main
+# se abre una issue (GitHub avisa por correo a quien vigila el repo) y se cierra sola cuando vuelve a verde.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  issues: write
+
+jobs:
+  notify:
+    if: github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open or close the CI-red issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          title="CI en rojo en main"
+          existing="$(gh issue list --state open --search "\"$title\" in:title" --json number,title --jq "[.[] | select(.title == \"$title\")][0].number // empty")"
+          case "$CONCLUSION" in
+            failure|cancelled|timed_out|startup_failure)
+              body="El workflow CI no ha terminado en verde en main (resultado: ${CONCLUSION}, commit ${SHA}). Ejecucion: ${RUN_URL}"
+              if [ -n "$existing" ]; then
+                gh issue comment "$existing" --body "$body"
+              else
+                gh issue create --title "$title" --body "$body"
+              fi
+              ;;
+            success)
+              if [ -n "$existing" ]; then
+                gh issue close "$existing" --comment "CI en verde de nuevo (commit ${SHA}). Ejecucion: ${RUN_URL}"
+              fi
+              ;;
+          esac

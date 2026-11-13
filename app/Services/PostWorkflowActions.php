@@ -90,8 +90,7 @@ class PostWorkflowActions
     /** @return array<string, mixed> */
     public function seriesIndex(User $user): array
     {
-        return ['series' => PostSeries::withoutUserScope()->where('user_id', $user->id)->orderByDesc('id')->limit(100)->get()
-            ->map(fn (PostSeries $s) => $this->series->present($s))->all()];
+        return ['series' => $this->series->presentMany(PostSeries::withoutUserScope()->where('user_id', $user->id)->orderByDesc('id')->limit(100)->get())];
     }
 
     /** @return array<string, mixed> */
@@ -122,6 +121,15 @@ class PostWorkflowActions
     public function seriesCancel(User $user, int $series): array
     {
         return ['series' => $this->series->present($this->series->cancel($user, $this->ownedSeries($user, $series)))];
+    }
+
+    /** @return array<string, mixed> */
+    public function seriesRecover(User $user, int $series): array
+    {
+        $model = $this->ownedSeries($user, $series);
+        $created = $this->series->recover($user, $model);
+
+        return ['recovered' => $created, 'series' => $this->series->present($model->fresh())];
     }
 
     /** @return array<string, mixed> */

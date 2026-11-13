@@ -39,7 +39,7 @@ const ready = (page: Page) => expect(page.getByRole('button', { name: 'Añadir t
 const status = (page: Page) => page.getByTestId('studio-save-status');
 const savedName = (page: Page, id: number) => page.evaluate(async designId => (await (await fetch(`/studio/designs/${designId}`, { headers: { Accept: 'application/json' } })).json()).design.name, id);
 
-test('Studio: dos usuarios comparten, comentan, editan a la vez, ven el 409 y se revoca el acceso', async ({ browser, page }, info) => {
+test('Studio: dos usuarios comparten, comentan, editan a la vez, ven el 409 y se revoca el acceso', { tag: '@responsive' }, async ({ browser, page }, info) => {
     test.setTimeout(240_000);
     const owner = e2eUser(info.project.name);
     cleanComposerBrands(owner.email);
@@ -131,7 +131,7 @@ test('Studio: dos usuarios comparten, comentan, editan a la vez, ven el 409 y se
         await expect(status(member.page)).toHaveText('Guardado');
         await page.getByLabel('Nombre del diseño').fill('Versión de la propietaria');
         await expect(status(page)).toHaveText('Conflicto de revisión');
-        await expect(page.getByRole('alert').first()).toContainText(`El diseño cambió en otra sesión (${guest.name})`);
+        await expect(page.getByRole('alert').filter({ hasText: `El diseño cambió en otra sesión (${guest.name})` })).toHaveCount(1);
         await expect(page.getByRole('button', { name: 'Guardar como copia' })).toBeVisible();
         await axeClean(page, '[role="alert"]');
         expect(await savedName(page, designId)).toBe('Versión de la invitada');

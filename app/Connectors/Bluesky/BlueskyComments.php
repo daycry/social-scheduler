@@ -3,7 +3,9 @@
 namespace App\Connectors\Bluesky;
 
 use App\Connectors\Contracts\CommentSource;
+use App\Connectors\Exceptions\CommentSearchInconclusiveException;
 use App\Connectors\Exceptions\PermanentPublishException;
+use App\Connectors\Meta\Comments;
 use App\Models\SocialAccount;
 use Carbon\CarbonImmutable;
 use Throwable;
@@ -69,12 +71,92 @@ class BlueskyComments implements CommentSource
             throw new PermanentPublishException('Bluesky no encuentra el comentario al que respondes.', 'no_encontrado');
         }
         $root = $parent['record']['reply']['root'] ?? ['uri' => $parent['uri'], 'cid' => $parent['cid']];
-        $record = [
+
+        return $this->createReply($account, $message, $root, ['uri' => $parent['uri'], 'cid' => $parent['cid']]);
+    }
+
+    /**
+     * Primer comentario: respuesta a una publicacion PROPIA. El CID del padre se lee del PDS de la cuenta (`getRecord`, consistente
+     * y sin esperar al indice del AppView, que puede ir por detras justo tras publicar) y el registro lleva `reply{root,parent}` con
+     * el post como raiz y padre. Reutiliza `createReply` de `reply()`.
+     */
+    public function create(SocialAccount $account, string $postUri, string $message): string
+    {
+        $this->assertUri($postUri);
+        [$repo, $collection, $rkey] = explode('/', substr($postUri, 5), 3);
+        $record = $this->client->getRecord(BlueskySession::pds($account), $repo, $collection, $rkey);
+        if (! is_array($record) || empty($record['cid'])) {
+            throw new PermanentPublishException('Bluesky no encuentra la publicacion a la que comentar.', 'no_encontrado');
+        }
+        $ref = ['uri' => $postUri, 'cid' => (string) $record['cid']];
+
+        return $this->createReply($account, $message, $ref, $ref);
+    }
+
+    /**
+     * Id (URI) de una respuesta PROPIA directa a la publicacion con ese texto (comparacion normalizada), o null. Lee el repositorio de
+     * la cuenta (`com.atproto.repo.listRecords`, lectura publica, sin indice de por medio) y filtra por `reply.parent` = el post; con el
+     * tope de `social.first_comment.find_pages` paginas. Si se agota con mas registros por leer, la busqueda es inconclusa.
+     *
+     * @throws CommentSearchInconclusiveException
+     */
+    public function findOwn(SocialAccount $account, string $postUri, string $text): ?string
+    {
+        $this->assertUri($postUri);
+        $wanted = Comments::canon($text);
+        $did = (string) ($account->meta['did'] ?? $account->external_id);
+        $pds = BlueskySession::pds($account);
+        $deadline = microtime(true) + (float) config('social.first_comment.find_budget_seconds', 80);
+        $cursor = null;
+        $more = false;
+
+        for ($page = 0, $max = max(1, (int) config('social.first_comment.find_pages', 3)); $page < $max; $page++) {
+            if ($page > 0 && microtime(true) + (float) config('social.http_timeout', 15) > $deadline) {
+                $more = true;
+                break;
+            }
+            $json = $this->client->get($pds, 'com.atproto.repo.listRecords', ['repo' => $did, 'collection' => self::COLLECTION, 'limit' => max(1, min(100, (int) config('social.first_comment.find_per_page', 100)))]
+                + ($cursor !== null ? ['cursor' => $cursor] : []));
+
+            foreach ((array) ($json['records'] ?? []) as $r) {
+                $value = (array) ($r['value'] ?? []);
+                if (($value['reply']['parent']['uri'] ?? null) === $postUri && Comments::canon((string) ($value['text'] ?? '')) === $wanted && ! empty($r['uri'])) {
+                    return (string) $r['uri'];
+                }
+            }
+
+            $cursor = isset($json['cursor']) && is_string($json['cursor']) && $json['cursor'] !== '' && ! empty($json['records']) ? $json['cursor'] : null;
+            $more = $cursor !== null;
+            if (! $more) {
+                return null; // fin del repositorio: concluyente
+            }
+        }
+
+        throw new CommentSearchInconclusiveException('No se pudo comprobar si el comentario ya existe: hay demasiadas publicaciones recientes para revisarlas todas. No se crea otro a ciegas: comprueba en la red si ya esta; si lo esta, pulsa «Ya esta publicado», y si no, «Publicar igualmente» (puede duplicarse si en realidad ya existe).', 'busqueda_inconclusa');
+    }
+
+    /**
+     * Crea el registro de respuesta en el PDS de la cuenta (con enlaces, etiquetas y menciones como en una publicacion normal).
+     *
+     * @param  array{uri: string, cid: string}  $root
+     * @param  array{uri: string, cid: string}  $parent
+     */
+    private function createReply(SocialAccount $account, string $message, array $root, array $parent): string
+    {
+        $facets = Facets::build($message, function (string $handle): ?string {
+            try {
+                return $this->client->resolveHandle($handle);
+            } catch (BlueskyException) {
+                return null;
+            }
+        });
+        $record = array_filter([
             '$type' => self::COLLECTION,
             'text' => $message,
             'createdAt' => now()->utc()->format('Y-m-d\TH:i:s.v\Z'),
+            'facets' => $facets ?: null,
             'reply' => ['root' => ['uri' => $root['uri'], 'cid' => $root['cid']], 'parent' => ['uri' => $parent['uri'], 'cid' => $parent['cid']]],
-        ];
+        ], fn ($v) => $v !== null);
         $did = (string) ($account->meta['did'] ?? $account->external_id);
         $created = $this->session->call($account, fn (string $token, string $pds) => $this->client->createRecord($pds, $token, $did, self::COLLECTION, $record));
 

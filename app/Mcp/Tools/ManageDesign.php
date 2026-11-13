@@ -43,7 +43,7 @@ class ManageDesign extends SchedulerTool
         $data = $request->validate(['action' => ['required', 'in:duplicate,archive,restore,template,instantiate,resize,variants,apply-kit'], 'design_id' => ['required', 'integer', 'min:1'], 'name' => ['nullable', 'string', 'max:255']]);
         $design = $data['action'] === 'restore'
             ? Design::withoutUserScope()->withTrashed()->where('user_id', $user->id)->findOrFail($data['design_id'])
-            : $this->owned(Design::class, $user, $data['design_id'], 'Diseño');
+            : $this->owned(Design::class, $user, $data['design_id'], 'Diseño', masculine: true);
         $studio = app(StudioService::class);
         if (in_array($data['action'], ['template', 'instantiate', 'resize', 'variants', 'apply-kit'], true)) {
             $payload = $request->all();

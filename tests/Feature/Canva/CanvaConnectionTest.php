@@ -180,7 +180,7 @@ test('las capacidades del plan activan o desactivan funciones y cada una desacti
         ->and($free['export']['available'])->toBeTrue()->and($free['export']['reason'])->toBeNull();
 
     $pro = collect(CanvaCapabilities::features(['export_png_transparency', 'brand_template'], config('services.canva.scopes')))->keyBy('key');
-    expect($pro['transparent_png']['available'])->toBeTrue()->and($pro['brand_templates']['available'])->toBeFalse()->and($pro['brand_templates']['reason'])->toContain('todavía no lo usa');
+    expect($pro['transparent_png']['available'])->toBeTrue()->and($pro['brand_templates']['available'])->toBeFalse()->and($pro['brand_templates']['reason'])->toContain('brandtemplate:meta:read'); // el plan lo permite pero la conexión no tiene los permisos
 
     $noAsset = collect(CanvaCapabilities::features([], ['design:meta:read', 'design:content:read']))->keyBy('key');
     expect($noAsset['send']['available'])->toBeFalse()->and($noAsset['send']['reason'])->toContain('asset:write')->and($noAsset['create']['available'])->toBeFalse();
@@ -247,7 +247,9 @@ test('un fallo de Canva se explica en español sin filtrar el cuerpo ni el token
 
 test('retorno desde Canva: correlation_state firmado y ligado a usuario y marca lleva al diseno; manipulado, ajeno o caducado no', function () {
     $designs = app(CanvaDesigns::class);
-    $jwt = fn (string $state, array $over = []) => 'h.'.rtrim(strtr(base64_encode(json_encode($over + ['type' => 'rti', 'aud' => 'OC-test-client', 'exp' => now()->addDay()->timestamp, 'correlation_state' => $state])), '+/', '-_'), '=').'.s';
+    $pair = canvaKeyPair();
+    canvaFakeKeys($pair);
+    $jwt = fn (string $state, array $over = []) => canvaSignedJwt($pair, $state, $over);
     $state = $designs->sign($this->user, $this->brand, 'DAF123abcde');
 
     expect(strlen($state))->toBeLessThanOrEqual(50);
@@ -269,6 +271,14 @@ test('retorno desde Canva: correlation_state firmado y ligado a usuario y marca 
     $this->actingAs($this->user)->get(route('canva.return', ['correlation_jwt' => 'basura']))->assertRedirect(route('brands.index'));
     $this->travel(4)->days();
     $this->actingAs($this->user)->get(route('canva.return', ['correlation_jwt' => $jwt($state, ['exp' => now()->addDay()->timestamp])]))->assertRedirect(route('brands.index'));
+});
+
+test('retorno desde Canva: un JWT con el estado correcto pero firmado con una clave que Canva no publica se rechaza', function () {
+    $state = app(CanvaDesigns::class)->sign($this->user, $this->brand, 'DAF123abcde');
+    canvaFakeKeys(canvaKeyPair('kid-1'));
+    $forged = canvaSignedJwt(canvaKeyPair('kid-1'), $state);
+
+    $this->actingAs($this->user)->get(route('canva.return', ['correlation_jwt' => $forged]))->assertRedirect(route('brands.index'))->assertSessionHas('error');
 });
 
 test('el PKCE genera verificadores validos y distintos en cada intento', function () {

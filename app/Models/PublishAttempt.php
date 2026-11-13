@@ -3,12 +3,19 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToUser;
+use App\Models\Concerns\PrunesByAge;
 use Illuminate\Database\Eloquent\Model;
 
 /** Historial de intentos de publicacion de un target (base de la tasa de exito, improvement-plan). */
 class PublishAttempt extends Model
 {
     use BelongsToUser;
+    use PrunesByAge;
+
+    protected static function retentionKey(): string
+    {
+        return 'publish_attempts_days';
+    }
 
     public const OUTCOME_STARTED = 'iniciado';
 

@@ -26,6 +26,8 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            // Correo ADEMAS del aviso en la app para fallos de trabajos asincronos y caducidad de conexiones (T-23).
+            'notify_by_mail' => ['sometimes', 'boolean'],
         ];
     }
 }

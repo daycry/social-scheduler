@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { cleanComposerBrands, cleanInstagramGridCache, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedInstagramGrid, settle, stamp, watch, type ComposerBrand, type GridSeed } from './helpers';
+import { cleanComposerBrands, cleanInstagramGridCache, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedInstagramGrid, animationsDone, settle, stamp, watch, type ComposerBrand, type GridSeed } from './helpers';
 
 /**
  * Cuadrícula de Instagram (C-02, E2E-05): usuarios `e2e-sec-*` y marcas `e2e-composer-*`. Lo publicado se siembra en la caché
@@ -30,14 +30,14 @@ async function axeNow(page: Page, label: string) {
     await settle(page);
     await expect(page.locator('#nprogress')).toHaveCount(0);
     await page.mouse.move(0, 0);
-    await page.waitForTimeout(400);
+    await animationsDone(page);
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     const bad = results.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
     const detail = bad.map((v) => `${v.id} [${v.impact}] ${v.help}\n   ${v.nodes.slice(0, 3).map((n) => `${n.target.join(' ')} ${n.html.slice(0, 200)}`).join('\n   ')}`).join('\n');
     expect(bad, `violaciones de accesibilidad en ${label}:\n${detail}`).toEqual([]);
 }
 
-test('E2E-05 · programadas arriba (la más tardía primero), publicadas debajo, sin la Story, sin desbordar y con axe limpio', async ({ page }, info) => {
+test('E2E-05 · programadas arriba (la más tardía primero), publicadas debajo, sin la Story, sin desbordar y con axe limpio', { tag: '@responsive' }, async ({ page }, info) => {
     const w = watch(page);
     // Las miniaturas de lo programado salen de medios sembrados que no existen en disco: se sirven con un PNG de 1x1.
     const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAwS2OUAAAAABJRU5ErkJggg==', 'base64');

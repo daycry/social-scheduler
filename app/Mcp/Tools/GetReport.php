@@ -5,6 +5,7 @@ namespace App\Mcp\Tools;
 use App\Mcp\Abilities;
 use App\Models\Report;
 use App\Models\User;
+use App\Services\ReportService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Attributes\Description;
@@ -34,23 +35,8 @@ class GetReport extends SchedulerTool
     protected function run(Request $request, User $user): array
     {
         /** @var Report $report */
-        $report = $this->owned(Report::class, $user, $request->get('report_id'), 'Informe');
-        $minutes = (int) config('reports.download_minutes', 5);
-        $brandName = $this->brandNames($user)[$report->brand_id] ?? null;
+        $report = $this->owned(Report::class, $user, $request->get('report_id'), 'Informe', masculine: true);
 
-        return [
-            'id' => $report->id,
-            'brand_id' => $report->brand_id,
-            'brand_name' => $brandName,
-            'format' => $report->format,
-            'status' => $report->status,
-            'from' => $report->from->format('Y-m-d'),
-            'to' => $report->to->format('Y-m-d'),
-            'blocks' => $report->blocks === null ? null : array_column($report->blocks, 'type'),
-            'size' => $report->size,
-            'error' => $report->error,
-            'download_url' => $report->isReady() ? $report->signedDownloadUrl() : null,
-            'download_expires_in_minutes' => $report->isReady() ? $minutes : null,
-        ];
+        return app(ReportService::class)->status($report, $this->brandNames($user)[$report->brand_id] ?? null);
     }
 }

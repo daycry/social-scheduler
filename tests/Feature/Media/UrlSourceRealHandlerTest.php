@@ -89,10 +89,10 @@ if ($path === '/chunk.jpg') {
     http_response_code(206); header("Content-Range: bytes $from-$to/$size"); echo substr($body, $from, $to - $from + 1); return;
 }
 if ($path === '/flaky.jpg' || $path === '/flaky-slow.jpg') {
-    // Alterna 503 y 206 (tramos de 700 B) contando peticiones en un fichero: las impares son 503 (la lenta tarda ~0,4 s en fallar).
+    // Alterna 503 y 206 (tramos de 700 B) contando peticiones en un fichero: las impares son 503.
     $counter = __DIR__.'/'.basename($path).'.count';
     $n = (int) @file_get_contents($counter) + 1; file_put_contents($counter, (string) $n);
-    if ($n % 2 === 1) { if ($path === '/flaky-slow.jpg') { usleep(400000); } http_response_code(503); echo 'ocupado'; return; }
+    if ($n % 2 === 1) { http_response_code(503); echo 'ocupado'; return; }
     $body = file_get_contents($file); $size = strlen($body);
     header('Content-Type: image/jpeg'); header('Accept-Ranges: bytes'); header('ETag: "v1"');
     $from = preg_match('/^bytes=(\d+)-$/', $_SERVER['HTTP_RANGE'] ?? '', $m) ? (int) $m[1] : 0;
@@ -147,12 +147,25 @@ afterAll(function () {
 });
 
 beforeEach(function () {
+    // Excepcion explicita a la guardia global de TestCase: este fichero habla con un servidor HTTP local (127.0.0.1) a proposito.
+    Http::allowStrayRequests();
     Storage::fake('local');
     config(['filesystems.media' => 'local']);
     $this->user = User::factory()->create();
     $this->port = $GLOBALS['loopback']['port'];
     app()->instance(UrlGuard::class, new LoopbackGuard($this->port));
 });
+
+/** Importador con reloj simulado: cada lectura avanza 0,1 s (determinista, sin dormir). Parte del reloj real para que el `deadline` de UrlSource siga valiendo. */
+class SteppedClockImporter extends RemoteMediaImporter
+{
+    private ?float $clock = null;
+
+    protected function now(): float
+    {
+        return $this->clock = ($this->clock ?? microtime(true)) + 0.1;
+    }
+}
 
 function loopbackImport(string $path): MediaAsset
 {
@@ -405,8 +418,12 @@ test('G2: una pasada que acaba en 503 suma su tiempo y su pasada; un 503 suelto 
 });
 
 test('G2: un remoto que intercala 503 lentos acaba cortado por ritmo, con el tiempo de los fallos contabilizado', function () {
-    // Escala reducida: gracia 1 s y ritmo minimo 100 KB/s; cada 503 tarda ~0,4 s sin aportar bytes y cada 206 trae 700 B.
-    config(['media.import_min_pass_bytes' => 1, 'media.import_min_pass_seconds' => 0, 'media.import_rate_grace_seconds' => 1, 'media.import_min_rate_bytes' => 100_000]);
+    // Escala reducida: gracia 1 s y ritmo minimo 2.500 B/s; cada 206 trae 700 B. Una pasada buena rinde 3.500 B/s (700 B en 0,2 s: por encima
+    // del minimo), pero con los 503 intercalados el ritmo medio cae a 1.750 B/s (700 B en 0,4 s): SOLO se corta si el tiempo de los fallos se suma. El servidor es real pero el RELOJ de las pasadas es
+    // simulado (cada lectura avanza 0,1 s, asi cada pasada dura 0,2 s): antes cada 503 dormia 0,4 s de verdad y el corte dependia
+    // de lo que tardase la maquina (la primera peticion lenta bastaba para cortar tras un solo 503).
+    app()->bind(RemoteMediaImporter::class, SteppedClockImporter::class);
+    config(['media.import_min_pass_bytes' => 1, 'media.import_min_pass_seconds' => 0, 'media.import_rate_grace_seconds' => 1, 'media.import_min_rate_bytes' => 2_500]);
     $source = new UrlSource(app(UrlGuard::class), 'http://cdn.example.com/flaky-slow.jpg');
     $asset = app(MediaUploadService::class)->beginImport($this->user, MediaAsset::SOURCE_URL, $source->reference(), $source->name());
     $importer = app(RemoteMediaImporter::class);

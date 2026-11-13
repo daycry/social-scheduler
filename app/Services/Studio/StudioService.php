@@ -10,7 +10,7 @@ use App\Models\Studio\DesignRevision;
 use App\Models\Studio\DesignShare;
 use App\Models\Studio\StudioFont;
 use App\Models\User;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use App\Support\CursorPage;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +21,12 @@ class StudioService
 {
     public function __construct(private readonly StudioDocument $documents, private readonly StudioAssets $assets, private readonly StudioCollab $collab) {}
 
-    public function designs(User $user, Brand $brand, array $filters = []): LengthAwarePaginator
+    /**
+     * Diseños de la marca (resumenes sin documento), los mas recientes primero por id (estable entre paginas aunque un diseno se edite), con el contrato de cursor comun (limit, cursor, has_more, next_cursor).
+     *
+     * @return array{designs: list<array<string, mixed>>, has_more: bool, next_cursor: ?string}
+     */
+    public function designs(User $user, Brand $brand, array $filters = []): array
     {
         $this->assets->assertBrand($user, $brand);
         $query = Design::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)
@@ -41,7 +46,9 @@ class StudioService
             $query->where('is_template', filter_var($filters['templates'], FILTER_VALIDATE_BOOLEAN));
         }
 
-        return $query->latest('updated_at')->latest('id')->paginate(24, ['*'], 'page', isset($filters['page']) ? (int) $filters['page'] : null)->withQueryString();
+        [$rows, $page] = CursorPage::fetch($query->latest('id'), $filters['limit'] ?? null, $filters['cursor'] ?? null, 'designs:u'.$user->id.':b'.$brand->id, 24);
+
+        return ['designs' => $rows->map->toArray()->values()->all()] + $page;
     }
 
     public function create(User $user, Brand $brand, array $data, ?array $kitReference = null): Design
@@ -70,15 +77,19 @@ class StudioService
         $user = $this->collab->authorize($actor, $design, 'edit');
         $current = $this->owned($user, $design);
         $data = $this->input($data, true);
+        // Guardar nunca cambia la carpeta (T-33): se mueve solo con su endpoint (`moveDesign`). Asi un guardado del editor con la carpeta con la
+        // que se abrio no deshace un «Mover a carpeta» hecho despues, ni falla (ni bloquea el guardado o la exportacion) con una carpeta ya borrada.
+        unset($data['folder_id']);
         if ($actor->id !== $user->id) {
-            // Carpeta y condición de plantilla son decisiones del propietario: un editor invitado no las cambia ni las ve.
-            unset($data['folder_id'], $data['is_template']);
+            unset($data['is_template']); // la condición de plantilla es decisión del propietario: un editor invitado no la cambia
         }
         $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($current->brand_id);
         $document = $this->documents->validate($user, $brand, $data['document']);
-        $folderId = $this->folderId($user, $brand, array_key_exists('folder_id', $data) ? $data['folder_id'] : $current->folder_id);
 
-        return DB::transaction(function () use ($user, $actor, $current, $data, $document, $folderId, $kitReference): Design {
+        // Autoguardado del editor: llega con `kit_revision` en cada PATCH, asi que ese campo no impide fundirlo (A-07).
+        $autosave = ($data['autosave'] ?? false) === true && $kitReference === null;
+
+        return DB::transaction(function () use ($user, $actor, $current, $data, $document, $kitReference, $autosave): Design {
             $locked = Design::withoutUserScope()->where('user_id', $user->id)->lockForUpdate()->findOrFail($current->id);
             if ($locked->revision !== (int) $data['revision']) {
                 $last = DesignRevision::withoutUserScope()->where('design_id', $locked->id)->where('revision', $locked->revision)->first();
@@ -90,15 +101,17 @@ class StudioService
             } elseif (isset($data['kit_revision'])) {
                 $snapshot = DesignRevision::withoutUserScope()->where('user_id', $user->id)
                     ->where('design_id', $locked->id)->where('revision', $data['kit_revision'])->first();
-                if ($snapshot === null) {
+                if ($snapshot !== null) {
+                    $locked->kit_reference = self::reference($snapshot->kit_reference);
+                } elseif (! $autosave) {
                     throw ValidationException::withMessages(['kit_revision' => ['Selecciona una revisión existente de este mismo diseño.']]);
                 }
-                $locked->kit_reference = self::reference($snapshot->kit_reference);
+                // Un autoguardado con una revisión de kit ya podada conserva el kit actual en lugar de fallar.
             }
             $locked->fill(['name' => trim($data['name']), 'document' => $document, 'revision' => $locked->revision + 1,
                 'width' => $document['width'], 'height' => $document['height'], 'page_count' => count($document['pages']),
-                'is_template' => $data['is_template'] ?? $locked->is_template, 'folder_id' => $folderId])->save();
-            $this->snapshot($locked, $actor->id);
+                'is_template' => $data['is_template'] ?? $locked->is_template])->save();
+            $this->snapshot($locked, $actor->id, $autosave, isset($data['kit_revision']) ? (int) $data['kit_revision'] : null);
 
             return $locked;
         });
@@ -186,7 +199,35 @@ class StudioService
     {
         $this->assets->assertBrand($user, $brand);
 
-        return DesignFolder::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->orderBy('name')->get();
+        $folders = DesignFolder::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->orderBy('name')->get();
+        $counts = Design::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->whereIn('folder_id', $folders->modelKeys())
+            ->selectRaw('folder_id, count(*) as total')->groupBy('folder_id')->pluck('total', 'folder_id');
+
+        return $folders->each(fn (DesignFolder $folder) => $folder->setAttribute('designs_count', (int) ($counts[$folder->id] ?? 0)));
+    }
+
+    /** Renombra una carpeta propia. Un id ajeno responde 404 como uno inexistente. */
+    public function renameFolder(User $user, DesignFolder $folder, string $name): DesignFolder
+    {
+        $owned = DesignFolder::withoutUserScope()->where('user_id', $user->id)->findOrFail($folder->id);
+        $name = trim($name);
+        Validator::make(['name' => $name], ['name' => ['required', 'string', 'max:255']])->validate();
+        $owned->forceFill(['name' => $name])->save();
+
+        return $owned;
+    }
+
+    /**
+     * Mueve un diseño propio a otra carpeta de SU marca (o a «Sin carpeta» con null). Es organizacion, no contenido: no crea revision ni
+     * pisa un autoguardado. Solo el propietario: un editor invitado recibe 404 igual que con un diseño ajeno.
+     */
+    public function moveDesign(User $user, Design $design, mixed $folderId): Design
+    {
+        $current = $this->owned($user, $design);
+        $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($current->brand_id);
+        $current->forceFill(['folder_id' => $this->folderId($user, $brand, $folderId)])->save();
+
+        return $current;
     }
 
     public function createFolder(User $user, Brand $brand, string $name): DesignFolder
@@ -198,12 +239,16 @@ class StudioService
         return DesignFolder::create(['user_id' => $user->id, 'brand_id' => $brand->id, 'name' => $name]);
     }
 
-    public function deleteFolder(User $user, DesignFolder $folder): void
+    /** Borra una carpeta propia. Sus diseños (activos, archivados y plantillas) NO se borran: pasan a «Sin carpeta». Devuelve cuantos. */
+    public function deleteFolder(User $user, DesignFolder $folder): int
     {
         $owned = DesignFolder::withoutUserScope()->where('user_id', $user->id)->findOrFail($folder->id);
-        DB::transaction(function () use ($owned): void {
-            Design::withoutUserScope()->withTrashed()->where('user_id', $owned->user_id)->where('folder_id', $owned->id)->update(['folder_id' => null]);
+
+        return DB::transaction(function () use ($owned): int {
+            $moved = Design::withoutUserScope()->withTrashed()->where('user_id', $owned->user_id)->where('folder_id', $owned->id)->update(['folder_id' => null]);
             $owned->delete();
+
+            return $moved;
         });
     }
 
@@ -278,8 +323,10 @@ class StudioService
         if ($updating) {
             $rules['revision'] = ['required', 'integer', 'min:1'];
             $rules['kit_revision'] = ['sometimes', 'integer', 'min:1'];
+            $rules['autosave'] = ['sometimes', 'boolean'];
         }
         $data = Validator::make($data, $rules)->validate();
+        $data['name'] = StudioDocument::cleanName($data['name']);
         if (trim($data['name']) === '') {
             throw ValidationException::withMessages(['name' => ['El nombre es obligatorio.']]);
         }
@@ -304,7 +351,7 @@ class StudioService
     {
         $owner = $this->collab->authorize($user, $design, 'view');
         $current = $this->owned($owner, $design, $design->trashed());
-        $rows = DesignRevision::withoutUserScope()->where('design_id', $current->id)->orderByDesc('revision')->limit(100)->get(['id', 'revision', 'name', 'author_id', 'created_at']);
+        $rows = DesignRevision::withoutUserScope()->where('design_id', $current->id)->whereNull('superseded_at')->orderByDesc('revision')->limit(100)->get(['id', 'revision', 'name', 'author_id', 'created_at']);
         $names = User::query()->whereIn('id', $rows->pluck('author_id')->filter()->unique())->pluck('name', 'id');
 
         return $rows->map(fn (DesignRevision $row) => ['revision' => $row->revision, 'name' => $row->name, 'author' => $row->author_id !== null ? ($names[$row->author_id] ?? null) : null,
@@ -327,12 +374,40 @@ class StudioService
         return $this->update($user, $design, $data);
     }
 
-    private function snapshot(Design $design, ?int $authorId = null): void
+    /**
+     * Guarda la revisión del diseño. Un autoguardado ($autosave) nace marcado y, si cabe en el intervalo mínimo
+     * (`studio.revisions.min_interval_seconds`), sustituye a la revisión de autoguardado anterior del mismo autor: la nueva
+     * fila hereda su fecha (la ventana no se desliza) y la anterior queda `superseded_at`. No se borra en el acto: otro cliente
+     * (colaborador o segunda pestaña) puede estar parado sobre ella y exportarla; sigue siendo base válida un paso más, no aparece en el
+     * historial y solo se conserva UNA sustituida por diseño y autor (la siguiente sustitución borra la anterior); la poda elimina la que
+     * quede pasado `retention.design_revisions.superseded_minutes`. Una revisión fijada por una exportación sin terminar no se sustituye.
+     * Nunca se sustituye un punto de control explícito, la revisión 1 ni la que el editor usa de referencia de kit (A-07).
+     */
+    private function snapshot(Design $design, ?int $authorId = null, bool $autosave = false, ?int $kitRevision = null): void
     {
         $ids = array_values(array_unique(array_merge(StudioFonts::idsFromDocument($design->document), array_filter($design->kit_reference['font_ids'] ?? [], fn ($id) => $id !== null))));
         $fonts = StudioFont::withoutUserScope()->where('user_id', $design->user_id)->where('brand_id', $design->brand_id)->whereIn('id', $ids)->lockForUpdate()->get();
         abort_unless($fonts->count() === count($ids), 422, 'Las tipografías deben pertenecer a esta marca.');
-        $revision = DesignRevision::create(['user_id' => $design->user_id, 'author_id' => $authorId ?? $design->user_id, 'design_id' => $design->id, 'revision' => $design->revision, 'name' => $design->name, 'document' => $design->document, 'kit_reference' => $design->kit_reference]);
+        $author = $authorId ?? $design->user_id;
+        $replace = null;
+        $interval = (int) config('studio.revisions.min_interval_seconds', 300);
+        if ($autosave && $interval > 0) {
+            $previous = DesignRevision::withoutUserScope()->where('design_id', $design->id)->where('revision', '<', $design->revision)->whereNull('superseded_at')->orderByDesc('revision')->first();
+            if ($previous !== null && $previous->autosave && $previous->revision > 1 && (int) $previous->author_id === (int) $author
+                && $previous->created_at !== null && $previous->created_at->gt(now()->subSeconds($interval))
+                && $previous->revision !== $kitRevision && ! DesignRevision::pinnedByExport($design->id, $previous->revision)) {
+                $replace = $previous;
+            }
+        }
+        $revision = DesignRevision::create(['user_id' => $design->user_id, 'author_id' => $author, 'design_id' => $design->id, 'revision' => $design->revision, 'name' => $design->name,
+            'document' => $design->document, 'kit_reference' => $design->kit_reference, 'autosave' => $autosave] + ($replace !== null ? ['created_at' => $replace->created_at] : []));
+        if ($replace !== null) {
+            $replace->forceFill(['superseded_at' => now()])->save();
+            // Tope: una sola sustituida por diseño y autor. La anterior (si no la fija una exportación) se borra con sus usos de tipografía.
+            DesignRevision::withoutUserScope()->where('design_id', $design->id)->where('author_id', $author)->whereNotNull('superseded_at')->where('id', '!=', $replace->id)
+                ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('studio_design_exports')->whereColumn('studio_design_exports.design_id', 'studio_design_revisions.design_id')
+                    ->whereColumn('studio_design_exports.revision', 'studio_design_revisions.revision')->where('studio_design_exports.status', '!=', 'ready'))->delete();
+        }
         foreach ($ids as $id) {
             DB::table('studio_font_usages')->insert(['user_id' => $design->user_id, 'font_id' => $id, 'revision_id' => $revision->id]);
         }

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, stamp, watch } from './helpers';
 
-test('Ads and reports retain the selected brand across navigation and report creation', async ({ page }, info) => {
+test('Ads and reports retain the selected brand across navigation and report creation', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const a = seedComposerBrand(user.email, `A-brand-context-${stamp()}`);

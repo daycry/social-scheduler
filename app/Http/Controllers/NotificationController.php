@@ -16,6 +16,8 @@ class NotificationController extends Controller
             'notifications' => $request->user()->notifications()->latest()->limit(100)->get()->map(fn ($n) => [
                 'id' => $n->id,
                 'type' => $n->data['type'] ?? 'info',
+                'title' => $n->data['title'] ?? null,
+                'count' => $n->data['count'] ?? null,
                 'message' => $n->data['message'] ?? '',
                 'network_label' => $n->data['network_label'] ?? ($n->data['network'] ?? null),
                 'account_name' => $n->data['account_name'] ?? null,

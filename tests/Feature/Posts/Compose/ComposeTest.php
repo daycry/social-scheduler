@@ -42,7 +42,7 @@ test('Compose: la pantalla ofrece cuentas, tipos por red y las limitaciones de l
             ->where('brand.timezone', 'Europe/Madrid')
             ->has('accounts', 2)
             ->has('contentTypes.instagram', 4)
-            ->has('contentTypes.facebook', 4)
+            ->has('contentTypes.facebook', 6)
             ->where('contentTypes.instagram.3.value', 'instagram_story')
             ->where('contentTypes.instagram.3.limitations.0', fn ($v) => str_contains($v, 'no admiten texto'))
             ->where('post', null));

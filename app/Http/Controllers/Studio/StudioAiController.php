@@ -7,6 +7,7 @@ use App\Models\Brand;
 use App\Models\Studio\Design;
 use App\Services\Studio\StudioAi;
 use App\Services\Studio\StudioAiText;
+use App\Services\Studio\StudioCaptions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -35,12 +36,12 @@ class StudioAiController extends Controller
         return response()->json(['job' => $ai->present($request->user(), $brand, $found, $request->routeIs('api.*'))]);
     }
 
-    public function text(Request $request, Brand $brand, StudioAiText $text): JsonResponse
+    public function text(Request $request, Brand $brand, StudioAiText $text, StudioCaptions $captions): JsonResponse
     {
         $user = $request->user();
         abort_unless((int) $brand->user_id === (int) $user->id, 404);
         $action = $request->input('action');
-        $allowed = ['action', 'brief', 'count', 'design_id', 'items', 'media_id'];
+        $allowed = ['action', 'brief', 'count', 'design_id', 'items', 'media_id', 'language', 'cues'];
         if (array_diff(array_keys($request->all()), $allowed) !== []) {
             throw ValidationException::withMessages(['request' => ['La petición contiene propiedades no compatibles.']]);
         }
@@ -49,6 +50,7 @@ class StudioAiController extends Controller
             'copy' => ['result' => $text->copy($user, $brand, (string) $request->input('brief', ''), (int) $request->input('count', 3))],
             'fill_template' => ['result' => $this->fill($request, $brand, $text)],
             'alt_text' => ['result' => ['alt' => $text->altText($user, $brand, (int) $request->input('media_id'))]],
+            'translate_captions' => ['result' => $captions->translate($user, $brand, (array) $request->input('cues', []), (string) $request->input('language', ''))],
             default => throw ValidationException::withMessages(['action' => ['Acción de texto no compatible.']]),
         });
     }

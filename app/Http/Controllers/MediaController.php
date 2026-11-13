@@ -5,13 +5,16 @@ namespace App\Http\Controllers;
 use App\Models\MediaAsset;
 use App\Services\Media\DriveFileSource;
 use App\Services\Media\UnsafeUrlException;
+use App\Services\MediaListing;
 use App\Services\MediaStorage;
 use App\Services\MediaUploadService;
 use App\Services\Studio\StudioAudioProbeUnavailable;
+use App\Support\CursorPage;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -25,14 +28,12 @@ class MediaController extends Controller
         private readonly MediaStorage $storage,
     ) {}
 
-    /** Media lista del usuario (para el selector del compositor). */
-    public function index(Request $request): JsonResponse
+    /** Media lista del usuario (selector del compositor y biblioteca), con el contrato de cursor comun de la API v1. */
+    public function index(Request $request, MediaListing $listing): JsonResponse
     {
-        return response()->json([
-            'media' => MediaAsset::query()->where('status', MediaAsset::STATUS_READY)
-                ->whereIn('kind', [MediaAsset::KIND_IMAGE, MediaAsset::KIND_VIDEO])
-                ->latest('id')->limit(100)->get()->map->toPublicArray()->values(),
-        ]);
+        $data = $request->validate(CursorPage::RULES + ['status' => ['nullable', Rule::in(MediaListing::STATUSES)], 'kind' => ['nullable', Rule::in(MediaListing::KINDS)]]);
+
+        return response()->json($listing->page($request->user(), $data['status'] ?? null, $data['limit'] ?? null, $data['cursor'] ?? null, web: true, kind: $data['kind'] ?? null));
     }
 
     /** Registra el asset y devuelve las URLs prefirmadas (single/multipart) o el modo local. */
@@ -106,32 +107,26 @@ class MediaController extends Controller
     public function upload(Request $request, MediaAsset $asset): JsonResponse
     {
         $this->authorize('update', $asset);
-        abort_if($asset->kind === MediaAsset::KIND_AUDIO, 404);
-        abort_if(isset($asset->import_state['studio_av']), 409, 'Este archivo pertenece a una exportación de Studio.');
-        abort_if($this->storage->isS3() || $asset->status !== MediaAsset::STATUS_PENDING, 409, 'La subida local no esta disponible.');
 
         $stream = $request->getContent(true);
-        $this->storage->disk()->writeStream($asset->path, $stream);
-        is_resource($stream) && fclose($stream);
+        try {
+            $asset = $this->uploads->receiveLocal($asset, $stream);
+        } finally {
+            is_resource($stream) && fclose($stream);
+        }
 
-        return response()->json(['asset' => $this->uploads->finalize($asset)->toPublicArray()]);
+        return response()->json(['asset' => $asset->toPublicArray()]);
     }
 
     /** Cierra la subida (multipart) y extrae los metadatos. */
     public function complete(Request $request, MediaAsset $asset): JsonResponse
     {
         $this->authorize('update', $asset);
-        abort_if($asset->kind === MediaAsset::KIND_AUDIO, 404);
-        abort_if(isset($asset->import_state['studio_av']), 409, 'Este archivo pertenece a una exportación de Studio.');
 
-        $data = $request->validate([
-            'parts' => ['sometimes', 'array', 'max:10000'],
-            'parts.*.number' => ['required_with:parts', 'integer', 'min:1', 'max:10000'],
-            'parts.*.etag' => ['required_with:parts', 'string', 'max:200'],
-        ]);
+        $data = $request->validate(MediaUploadService::COMPLETE_RULES);
 
         try {
-            $asset = $this->uploads->complete($asset, $data['parts'] ?? []);
+            $asset = $this->uploads->completeClientUpload($asset, $data['parts'] ?? []);
         } catch (InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -159,6 +154,22 @@ class MediaController extends Controller
             'Content-Type' => $asset->mime,
             'X-Content-Type-Options' => 'nosniff',
         ])->setPrivate()->setMaxAge(3600);
+    }
+
+    /** Descarga de un PDF de la biblioteca (T-27) como adjunto, solo para su dueño. Otro tipo de media no tiene descarga: se previsualiza o se publica. */
+    public function download(MediaAsset $asset): BinaryFileResponse|RedirectResponse
+    {
+        $this->authorize('view', $asset);
+        abort_unless($asset->isPdf() && $asset->isReady(), 404);
+
+        if ($this->storage->isS3()) {
+            return redirect()->away($asset->downloadUrl(30));
+        }
+
+        $disk = $this->storage->disk();
+        abort_unless($disk->exists($asset->path), 404);
+
+        return response()->download($disk->path($asset->path), $asset->original_name, ['Content-Type' => $asset->mime, 'X-Content-Type-Options' => 'nosniff'])->setPrivate();
     }
 
     public function destroy(MediaAsset $asset): JsonResponse

@@ -54,7 +54,7 @@ async function expectGuest(page: Page) {
 }
 
 test.describe('Login social · entrar', () => {
-    test('E2E-01 · Google sin 2FA: entra sin contraseña y deja la vinculación (CA-01, CA-02)', async ({ page }, info) => {
+    test('E2E-01 · Google sin 2FA: entra sin contraseña y deja la vinculación (CA-01, CA-02)', { tag: '@responsive' }, async ({ page }, info) => {
         const w = watch(page);
         setFakeSocial('google', { id: `g-${stamp()}`, email: user.email, email_verified: true, name: 'Persona E2E' });
 
@@ -110,7 +110,7 @@ test.describe('Login social · entrar', () => {
         await page.waitForURL(/\/dashboard/);
     });
 
-    test('E2E-03 · rechazos: email no verificado, sin cuenta, Facebook sin vincular y cancelar (CA-03, CA-04, CA-05, CA-09)', async ({ page }, info) => {
+    test('E2E-03 · rechazos: email no verificado, sin cuenta, Facebook sin vincular y cancelar (CA-03, CA-04, CA-05, CA-09)', { tag: '@responsive' }, async ({ page }, info) => {
         const start = async (provider: 'Google' | 'Facebook') => {
             await page.goto('/login');
             await page.getByRole('link', { name: `Continuar con ${provider}` }).click();
@@ -150,7 +150,7 @@ test.describe('Login social · entrar', () => {
 });
 
 test.describe('Cuentas vinculadas · perfil', () => {
-    test('E2E-04 · vincular Facebook pide la contraseña, vincula y lo muestra (CA-07)', async ({ page }, info) => {
+    test('E2E-04 · vincular Facebook pide la contraseña, vincula y lo muestra (CA-07)', { tag: '@responsive' }, async ({ page }, info) => {
         const w = watch(page);
         const id = `fb-${stamp()}`;
         setFakeSocial('facebook', { id, email: user.email, name: 'Persona FB' });

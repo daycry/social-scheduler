@@ -2,6 +2,7 @@
 
 namespace App\Connectors\Bluesky;
 
+use App\Connectors\Contracts\FirstCommenter;
 use App\Connectors\Contracts\Publisher;
 use App\Connectors\Contracts\StatusPoller;
 use App\Connectors\Data\PublishMedia;
@@ -30,7 +31,7 @@ use Throwable;
  * Toda llamada autenticada al PDS pasa por `BlueskySession::call`, que renueva la sesion si caduca. La `rkey` (una TID) se genera
  * y se persiste con `checkpoint()` ANTES de crear el registro: un reintento tras un timeout la reutiliza.
  */
-class BlueskyPublisher implements Publisher, StatusPoller
+class BlueskyPublisher implements FirstCommenter, Publisher, StatusPoller
 {
     public const COLLECTION = 'app.bsky.feed.post';
 
@@ -45,6 +46,27 @@ class BlueskyPublisher implements Publisher, StatusPoller
         private readonly BlueskySession $session,
         private readonly ImageDownscaler $downscaler,
     ) {}
+
+    /** Primer comentario: respuesta propia (`reply{root,parent}` = la publicacion), con la logica de `BlueskyComments`. */
+    public function comment(SocialAccount $account, string $externalId, string $text): string
+    {
+        try {
+            $id = (new BlueskyComments($this->client, $this->session))->create($account, $externalId, $text);
+
+            return $id !== '' ? $id : throw new PermanentPublishException('Bluesky no devolvio el id del comentario.', 'sin_id');
+        } catch (BlueskyException $e) {
+            throw BlueskyErrors::translate($e);
+        }
+    }
+
+    public function findOwnComment(SocialAccount $account, string $externalId, string $text): ?string
+    {
+        try {
+            return (new BlueskyComments($this->client, $this->session))->findOwn($account, $externalId, $text);
+        } catch (BlueskyException $e) {
+            throw BlueskyErrors::translate($e);
+        }
+    }
 
     public function publish(SocialAccount $account, PublishRequest $request): PublishResult
     {

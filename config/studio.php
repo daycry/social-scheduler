@@ -5,11 +5,19 @@ $python = base_path('storage/framework/studio-python/'.(PHP_OS_FAMILY === 'Windo
 return [
     'node' => env('STUDIO_NODE_BINARY', 'node'),
     'python' => env('STUDIO_PYTHON_BINARY', is_file($python) ? $python : (PHP_OS_FAMILY === 'Windows' ? 'python' : 'python3')),
+    // Ruta de Chromium para el renderizado (la leen los scripts Node por STUDIO_CHROMIUM_PATH); vacia = el de Playwright.
+    'chromium_path' => env('STUDIO_CHROMIUM_PATH'),
     'av' => [
         'queue' => 'studio',
         'lease_seconds' => 180,
         'disk' => ['snapshot' => 8 * 1024 ** 3, 'pcm' => 8 * 1024 ** 3, 'segment' => 8 * 1024 ** 3, 'output' => 8 * 1024 ** 3],
     ],
+    // Autoguardado (A-07): un autoguardado del mismo autor dentro de este intervalo (s) reescribe la revision reciente en vez de crear otra.
+    // Dias durante los que un export listo bloquea el borrado de su media (0 = nunca); los exports mas antiguos no la protegen.
+    'export_media_guard_days' => (int) env('STUDIO_EXPORT_MEDIA_GUARD_DAYS', 30),
+    // Miniaturas del listado (T-35): se renderizan bajo demanda por la cola `media` con el mismo Chromium de las exportaciones. `false` = sin miniaturas.
+    'thumbnails' => ['enabled' => (bool) env('STUDIO_THUMBNAILS', true)],
+    'revisions' => ['min_interval_seconds' => (int) env('STUDIO_REVISION_MIN_INTERVAL', 300)],
     'fonts' => [
         'disk' => env('STUDIO_FONT_DISK', 'local'),
         'max_bytes' => 8 * 1024 * 1024,
@@ -17,8 +25,8 @@ return [
         'probe_timeout' => 20,
     ],
     'images' => [
-        'model_path' => env('STUDIO_BACKGROUND_MODEL_PATH', storage_path('app/private/studio-models/birefnet-general-lite.onnx')),
-        'model_sha256' => env('STUDIO_BACKGROUND_MODEL_SHA256', '5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333'),
+        'model_path' => env('STUDIO_BACKGROUND_MODEL_PATH', storage_path('app/private/studio-models/isnet-general-use.onnx')),
+        'model_sha256' => env('STUDIO_BACKGROUND_MODEL_SHA256', '60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a'),
         'timeout' => 85,
         'max_pixels' => 16000000,
         'max_bytes' => 30 * 1024 * 1024,

@@ -5,7 +5,12 @@
     "scripts": {
         "build": "vite build && node scripts/studio/build.mjs",
         "dev": "vite",
-        "test:e2e": "playwright test"
+        "test:e2e": "playwright test",
+        "test:e2e:roadmap": "playwright test -c playwright.roadmap.config.ts",
+        "test:unit": "node scripts/test/run-node-tests.mjs unit",
+        "test:browser": "node scripts/test/run-node-tests.mjs browser",
+        "test:purge": "node scripts/test/purge-testing.mjs",
+        "typecheck": "tsc --noEmit -p tsconfig.json"
     },
     "devDependencies": {
         "@axe-core/playwright": "4.10.2",

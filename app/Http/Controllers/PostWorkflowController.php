@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\InvalidPostTransition;
+use App\Exceptions\PostStateConflict;
 use App\Exceptions\PostValidationException;
 use App\Services\AuditLog;
 use App\Services\PostWorkflowActions;
@@ -82,9 +83,15 @@ class PostWorkflowController extends Controller
         return $this->guard($request, 'get_series', null, fn () => $this->actions->seriesShow($request->user(), $series));
     }
 
-    public function seriesStore(Request $request): JsonResponse
+    /** En la API la marca va en la ruta (`brands/{brand}/series`) y manda sobre cualquier `brand_id` del cuerpo; la web la envia en el cuerpo. */
+    public function seriesStore(Request $request, ?int $brand = null): JsonResponse
     {
-        return $this->guard($request, 'create_series', null, fn () => $this->actions->seriesStore($request->user(), $request->all()), 201);
+        $input = $request->all();
+        if ($brand !== null) {
+            $input['brand_id'] = $brand;
+        }
+
+        return $this->guard($request, 'create_series', null, fn () => $this->actions->seriesStore($request->user(), $input), 201);
     }
 
     public function seriesUpdate(Request $request, int $series): JsonResponse
@@ -95,6 +102,11 @@ class PostWorkflowController extends Controller
     public function seriesCancel(Request $request, int $series): JsonResponse
     {
         return $this->guard($request, 'cancel_series', null, fn () => $this->actions->seriesCancel($request->user(), $series));
+    }
+
+    public function seriesRecover(Request $request, int $series): JsonResponse
+    {
+        return $this->guard($request, 'recover_series', null, fn () => $this->actions->seriesRecover($request->user(), $series));
     }
 
     public function collaborators(Request $request, int $brand): JsonResponse
@@ -121,6 +133,10 @@ class PostWorkflowController extends Controller
     {
         try {
             $result = $run();
+        } catch (PostStateConflict $e) {
+            $this->audit($request, $action, AuditLog::ERROR, $postId);
+
+            return response()->json(['message' => $e->getMessage()], 409);
         } catch (PostValidationException $e) {
             $this->audit($request, $action, AuditLog::ERROR, $postId);
 

@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Canva\CanvaJob;
 use App\Services\Canva\CanvaJobs;
+use App\Services\JobFailureNotifier;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Throwable;
@@ -46,5 +47,6 @@ class RunCanvaJob implements ShouldQueue
             return;
         }
         $job->forceFill(['status' => CanvaJob::FAILED, 'error_code' => 'job_failed', 'error' => 'No se pudo completar el trabajo con Canva. Inténtalo de nuevo más tarde.'])->save();
+        app(JobFailureNotifier::class)->canva($job);
     }
 }

@@ -42,19 +42,28 @@ class CollectCompetitorPosts implements ShouldBeUnique, ShouldQueue
     {
         if ($this->competitorId === null) {
             // Job sin usuario autenticado: opta explicitamente por salir del UserScope.
-            Competitor::withoutUserScope()->chunkById(200, function ($rows): void {
-                foreach ($rows as $competitor) {
-                    self::dispatch($competitor->id);
-                }
-            });
+            // Primero los que nunca tuvieron publicaciones y los que mas tiempo llevan sin actualizarse (reparto justo de la cuota).
+            $last = '(select max(updated_at) from competitor_posts where competitor_posts.competitor_id = competitors.id)';
+            Competitor::withoutUserScope()->orderByRaw("$last is not null")->orderByRaw($last)->orderBy('id')->pluck('id')
+                ->chunk(200)->each(function ($ids): void {
+                    foreach ($ids as $id) {
+                        self::dispatch($id);
+                    }
+                });
 
             return;
         }
 
         $competitor = Competitor::withoutUserScope()->find($this->competitorId);
-        $account = $competitor ? $competitors->queryAccount($competitor->user_id, $competitor->brand_id, $competitor->social_account_id) : null;
-        if (! $competitor || ! $account) {
+        if (! $competitor) {
             return;
+        }
+        if (! $competitors->available($competitor->network)) {
+            return; // red deshabilitada en esta instalacion: no se consulta
+        }
+        $account = $competitors->accountFor($competitor);
+        if ($account === null && $competitors->source($competitor->network)->needsAccount()) {
+            return; // sin cuenta propia activa en esa red no hay con que consultar
         }
 
         $this->guarded($account, $accounts, function () use ($competitors, $competitor): void {

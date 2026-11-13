@@ -24,7 +24,7 @@ test.afterEach(async ({}, info) => {
     cleanComposerBrands(e2eUser(info.project.name).email);
 });
 
-test('E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de periodo', async ({ page }) => {
+test('E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de periodo', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto('/dashboard');
     await settle(page);

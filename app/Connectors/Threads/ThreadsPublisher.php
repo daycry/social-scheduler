@@ -2,6 +2,7 @@
 
 namespace App\Connectors\Threads;
 
+use App\Connectors\Contracts\FirstCommenter;
 use App\Connectors\Contracts\Publisher;
 use App\Connectors\Contracts\StatusPoller;
 use App\Connectors\Data\PublishMedia;
@@ -30,7 +31,7 @@ use Illuminate\Support\Facades\Log;
  *
  * Estados del contenedor (documentados): IN_PROGRESS, FINISHED, ERROR, EXPIRED (24 h) y PUBLISHED, con `error_message`.
  */
-class ThreadsPublisher implements Publisher, StatusPoller
+class ThreadsPublisher implements FirstCommenter, Publisher, StatusPoller
 {
     /** Referencia mientras un carrusel aun crea/espera a sus hijos (el avance vive en `progress`). */
     private const BUILDING = 'carousel';
@@ -57,6 +58,17 @@ class ThreadsPublisher implements Publisher, StatusPoller
     ];
 
     public function __construct(private readonly ThreadsClient $client = new ThreadsClient) {}
+
+    /** Primer comentario: respuesta propia a la publicacion (`reply_to_id`), con la logica de `ThreadsComments`. */
+    public function comment(SocialAccount $account, string $externalId, string $text): string
+    {
+        return (new ThreadsComments($this->client))->create($account, $externalId, $text);
+    }
+
+    public function findOwnComment(SocialAccount $account, string $externalId, string $text): ?string
+    {
+        return (new ThreadsComments($this->client))->findOwn($account, $externalId, $text);
+    }
 
     public function publish(SocialAccount $account, PublishRequest $request): PublishResult
     {

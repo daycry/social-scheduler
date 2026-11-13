@@ -134,7 +134,7 @@ test('app:health succeeds when everything is fine', function () {
     $result = json_decode(Artisan::output(), true);
 
     expect($exit)->toBe(0)->and($result['ok'])->toBeTrue()
-        ->and(array_keys($result['checks']))->toBe(['database', 'queue', 'storage', 'scheduler']);
+        ->and(array_keys($result['checks']))->toBe(['database', 'queue', 'storage', 'scheduler', 'snapshots', 'config', 'linkedin_version']);
 });
 
 test('app:health fails without scheduler heartbeat unless skipped', function () {
@@ -252,13 +252,11 @@ test('scheduler registers the heartbeat every minute', function () {
     expect(Artisan::output())->toContain('health-heartbeat');
 });
 
-test('deploy script goes down before touching code, builds assets and gates on the manifest', function () {
+test('deploy script builds before going down and gates on the manifest', function () {
     $sh = file_get_contents(base_path('deploy/hestia/deploy.sh'));
 
-    expect(strpos($sh, '"$PHP_BIN artisan down'))->toBeLessThan(strpos($sh, '"git pull'))
-        ->and(strpos($sh, '"git pull'))->toBeLessThan(strpos($sh, '$COMPOSER_RUN install'));
-    expect($sh)->toContain('$NPM ci', '$NPM run build', 'public/build/manifest.json', 'trap on_failure ERR', 'PHP_BIN');
-    expect(strpos($sh, 'test -f $MANIFEST'))->toBeLessThan(strpos($sh, 'artisan migrate'));
+    // El orden de los pasos (compilar antes de `down`, volcado antes de migrate) lo cubre DeployScriptTest.
+    expect($sh)->toContain('$NPM ci', '$NPM run build', 'public/build/manifest.json', 'trap on_failure ERR', 'PHP_BIN', 'test -f "$stage/$MANIFEST"');
 });
 
 test('systemd unit is a template with recycling and restart policy', function () {

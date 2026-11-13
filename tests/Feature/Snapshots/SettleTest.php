@@ -229,7 +229,7 @@ it('Backfill por rango: el presupuesto se comprueba antes de cada unidad con la 
     {
         public function accountInsights(SocialAccount $account, CarbonInterface $day): array
         {
-            usleep(600_000);
+            Carbon::setTestNow(now()->addMilliseconds(600)); // el tiempo avanza en el reloj simulado, sin dormir
 
             return parent::accountInsights($account, $day);
         }

@@ -262,7 +262,7 @@ test('Inbox MCP: list_comments y reply_comment exigen su ability y respetan el a
 
     $other = User::factory()->create();
     [$err, $msg] = $this->callTool($this->mcpKey($other), 'reply_comment', ['comment_id' => $c2->id, 'text' => 'intruso']);
-    expect($err)->toBeTrue()->and($msg)->toContain('no encontrada');
+    expect($err)->toBeTrue()->and($msg)->toContain('Comentario no encontrado');
     [, $none] = $this->callTool($this->mcpKey($other), 'list_comments');
     expect($none['comments'])->toBe([]);
 });

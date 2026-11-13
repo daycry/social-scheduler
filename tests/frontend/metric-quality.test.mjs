@@ -19,6 +19,14 @@ test('missing, unsupported and still open periods have distinct meanings', () =>
     assert.equal(metricQuality(null), null);
 });
 
+test('la analitica de Pinterest no disponible por entorno o acceso tiene su propia explicacion', () => {
+    const sandbox = metricQuality({ status: 'unavailable_sandbox', expected_account_days: 5, observed_account_days: 0, missing_account_days: 5 });
+    assert.equal(sandbox.label, 'No disponible en el entorno de pruebas');
+    assert.equal(sandbox.warning, true);
+    assert.match(sandbox.detail, /Pinterest no ofrece analítica en el entorno de pruebas; conecta la app con acceso de producción/);
+    assert.match(metricQuality({ status: 'unavailable_access' }).detail, /acceso estándar/);
+});
+
 test('complete zero observations are not described as absent or as a guaranteed refresh', () => {
     const quality = metricQuality({ status: 'complete', observed_account_days: 6, expected_account_days: 6, missing_account_days: 0 }, { latest_data_date: '2026-11-02', latest_attempt_at: '2026-11-03T12:00:00Z', is_stale: false });
     assert.equal(quality.label, 'Cobertura completa');

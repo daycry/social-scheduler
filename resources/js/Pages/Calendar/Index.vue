@@ -230,7 +230,7 @@ const retry = async (item) => {
                     <span class="font-medium capitalize text-slate-800">{{ title }}</span>
                     <span class="text-xs text-slate-500">Zona horaria: {{ timezone }}</span>
 
-                    <div class="ml-auto flex flex-wrap items-center gap-2 text-sm">
+                    <div class="ml-auto flex min-w-0 max-w-full flex-wrap items-center gap-2 text-sm">
                         <ViewsMenu :views="views" :active-view="active_view" :filters="filters" :view="view" :date="date" />
                         <select :value="filters.brand_id ?? ''" class="field w-auto py-1.5" aria-label="Marca" @change="setFilter('brand_id', $event.target.value)">
                             <option value="">Todas las marcas</option>
@@ -379,6 +379,7 @@ const retry = async (item) => {
                                     <span v-if="sending.has(item.id)" role="status" class="ms-3 text-xs font-medium text-indigo-700">Enviando…</span>
                                     <button v-else-if="item.can_publish_now" type="button" class="link ms-3" :aria-label="`Publicar ahora la publicación ${item.id}`" @click="askPublishNow(item, $event)">Publicar ahora</button>
                                     <button v-if="item.can_retry" type="button" class="link ms-3" :disabled="retrying.has(item.id)" :aria-label="`Reintentar la publicación ${item.id}`" data-testid="retry" @click="retry(item)">Reintentar</button>
+                                    <span v-if="item.retry_blocked" class="ms-3 text-xs text-amber-700" data-testid="retry-blocked">{{ item.retry_blocked }}</span>
                                     <Link v-if="item.has_manual" :href="route('posts.manual.show', item.id)" class="link ms-3" :aria-label="`Abrir el aviso manual de la publicación ${item.id}`" data-testid="manual-link">Aviso manual</Link>
                                     <button type="button" class="link ms-3" :aria-label="`Guardar la publicación ${item.id} en la biblioteca`" @click="saveToLibrary(item)">Guardar en biblioteca</button>
                                 </td>

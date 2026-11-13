@@ -460,6 +460,96 @@
 - **Capturas esperadas**: estado inicial y resultado final de la acción principal
 - **Cubre tareas**: T-25
 
+### E2E-41 — Publicación → estudio → nueva exportación (U-15, U-16)
+- **Objetivo**: Un post conserva el vínculo con su diseño y se actualiza al volver a exportarlo
+- **Precondiciones**: app levantada en la URL local con la base SQLite de pruebas y datos de fábrica; proveedores simulados
+- **Pasos**:
+  1. Crear un diseño, exportarlo a una publicación y abrir el post
+  2. Pulsar «Editar en el Estudio», cambiar el diseño y exportar de nuevo
+  3. Volver al post
+  4. En el compositor abrir «Desde la biblioteca» y elegir una exportación del estudio
+- **Aserciones**:
+  - [ ] El post guarda su `design_export_id` y muestra «Editar en el Estudio»
+  - [ ] La publicación muestra la media de la nueva exportación
+  - [ ] El selector «Desde la biblioteca» lista las exportaciones del estudio
+- **Capturas esperadas**: estado inicial y resultado final de la acción principal
+- **Cubre tareas**: T-101, T-106
+
+### E2E-42 — Lo importado de Canva aparece en Recursos (U-17, U-18)
+- **Objetivo**: Lo importado de Canva y lo subido desde el compositor llegan a Recursos del estudio
+- **Precondiciones**: app levantada en la URL local con la base SQLite de pruebas y datos de fábrica; proveedores simulados
+- **Pasos**:
+  1. Importar un diseño de Canva (con fakes) y subir una imagen desde el compositor
+  2. Abrir un diseño del estudio y su panel de Recursos
+- **Aserciones**:
+  - [ ] Ambos archivos aparecen en Recursos sin duplicados
+  - [ ] Reimportar lo mismo no crea una segunda copia
+- **Capturas esperadas**: estado inicial y resultado final de la acción principal
+- **Cubre tareas**: T-101, T-106
+
+### E2E-43 — Sistema de diseño único (U-07..U-12)
+- **Objetivo**: Estudio y parte social comparten acento, botones y diálogos
+- **Precondiciones**: app levantada en la URL local con la base SQLite de pruebas y datos de fábrica; proveedores simulados
+- **Pasos**:
+  1. Abrir el estudio y la Planificación y comparar el color de acento de `btn-primary`
+  2. Abrir un diálogo del estudio y uno del compositor
+  3. Cerrarlos con Escape y comprobar el foco
+- **Aserciones**:
+  - [ ] El acento computado es el mismo en ambas partes
+  - [ ] Ambos diálogos son `<dialog>` del mismo componente y devuelven el foco
+  - [ ] No hay `violet-*` en el DOM renderizado
+- **Capturas esperadas**: estado inicial y resultado final de la acción principal
+- **Cubre tareas**: T-102, T-107
+
+### E2E-44 — Navegación: las tres entradas del estudio se marcan activas (U-01..U-03)
+- **Objetivo**: El lateral marca como activa la entrada correcta
+- **Precondiciones**: app levantada en la URL local con la base SQLite de pruebas y datos de fábrica; proveedores simulados
+- **Pasos**:
+  1. Abrir «Plantillas», «Identidad» y «Papelera de diseños» del estudio
+  2. Abrir «Canva»
+- **Aserciones**:
+  - [ ] Cada una de las tres entradas se marca activa (`aria-current`) al estar en su pantalla
+  - [ ] «Estudio» aparece después de Planificación
+  - [ ] «Canva» existe en el lateral y no deja «Cuenta» marcada
+- **Capturas esperadas**: estado inicial y resultado final de la acción principal
+- **Cubre tareas**: T-103
+
+### E2E-45 — La marca del selector coincide con la del diseño (U-04..U-06)
+- **Objetivo**: Abrir un diseño de otra marca alinea el selector
+- **Precondiciones**: app levantada en la URL local con la base SQLite de pruebas y datos de fábrica; proveedores simulados
+- **Pasos**:
+  1. Con la marca A activa, abrir `studio/designs/{design}/edit` de un diseño de la marca B
+  2. Mirar el selector de marca y la cabecera
+- **Aserciones**:
+  - [ ] El selector muestra la marca B
+  - [ ] El editor usa `#header` común y ocupa el ancho completo sin desbordar
+- **Capturas esperadas**: estado inicial y resultado final de la acción principal
+- **Cubre tareas**: T-103
+
+### E2E-46 — Identidad de marca y voz de la IA (U-19, U-20)
+- **Objetivo**: La identidad vive en la ficha de la marca y la voz llega a ambas IA
+- **Precondiciones**: app levantada en la URL local con la base SQLite de pruebas y datos de fábrica; proveedores simulados
+- **Pasos**:
+  1. Abrir la ficha de la marca y su pestaña «Identidad»
+  2. Pedir texto a la IA del compositor y a la del estudio (fake)
+- **Aserciones**:
+  - [ ] La pestaña «Identidad» edita el kit de marca
+  - [ ] Los dos prompts incluyen `guidelines` y `voice`
+- **Capturas esperadas**: estado inicial y resultado final de la acción principal
+- **Cubre tareas**: T-104
+
+### E2E-47 — Colaborador de la marca en el estudio (U-22)
+- **Objetivo**: El colaborador ve y trabaja los diseños según su rol
+- **Precondiciones**: app levantada en la URL local con la base SQLite de pruebas y datos de fábrica; proveedores simulados
+- **Pasos**:
+  1. Invitar a un colaborador a la marca y entrar como él
+  2. Abrir el estudio
+- **Aserciones**:
+  - [ ] Ve los diseños de esa marca con el alcance de su rol
+  - [ ] No ve los de otras marcas
+- **Capturas esperadas**: estado inicial y resultado final de la acción principal
+- **Cubre tareas**: T-105
+
 ## API (smoke de endpoints, los ejecuta `qa` con curl)
 
 ### API-01 — API v1 posts
@@ -472,7 +562,7 @@
 - **Método y ruta**: GET /api/v1/brands (relativa a la URL local, con API key de prueba)
 - **Status esperado**: 200
 - **Aserción sobre el body**: marcas del usuario; `GET` de otro usuario devuelve 404/403
-- **Cubre tareas**: T-29
+- **Cubre tareas**: T-29, T-108
 
 ### API-03 — Salud estricta
 - **Método y ruta**: GET /health?strict=1 (relativa a la URL local, con API key de prueba)
@@ -660,3 +750,11 @@
 | T-97 | E2E-35, M-08 |
 | T-98 | E2E-35, M-08 |
 | T-99 | E2E-39 |
+| T-101 | E2E-41, E2E-42 |
+| T-102 | E2E-43 |
+| T-103 | E2E-44, E2E-45 |
+| T-104 | E2E-46 |
+| T-105 | E2E-47 |
+| T-106 | E2E-41, E2E-42 |
+| T-107 | E2E-43 |
+| T-108 | API-02 |

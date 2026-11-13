@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Filesystem\AwsS3V3Adapter;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -41,6 +42,9 @@ class MediaAsset extends Model
 
     public const KIND_AUDIO = 'audio';
 
+    /** Documento PDF (T-27): se guarda, se ve y se descarga, pero NO es media publicable en redes. */
+    public const KIND_PDF = 'pdf';
+
     protected $fillable = [
         'disk', 'path', 'original_name', 'mime', 'kind', 'declared_size', 'size', 'width', 'height',
         'duration', 'fps', 'codec', 'audio_codec', 'status', 'upload_id', 'error', 'source', 'source_ref', 'import_state',
@@ -70,46 +74,83 @@ class MediaAsset extends Model
     }
 
     /**
-     * Media que un destino sin publicar usa en su lista propia (`post_targets.media`, ids y portadas): no esta en `post_media`, asi que
-     * `posts()` no la ve (T-17). Comparacion en PHP para no depender del dialecto JSON de MySQL o SQLite.
+     * Media que un destino sin publicar usa en su lista propia, como archivo o como portada (`post_target_media`, T-17/T-06): no esta en
+     * `post_media`, asi que `posts()` no la ve. Una sola consulta indexada, sin cargar filas.
      */
     public function usedByTargetMedia(): bool
     {
-        return PostTarget::withoutUserScope()->where('user_id', $this->user_id)->whereNotNull('media')
-            ->where('status', '!=', PostStatus::Published->value)->get(['id', 'media'])
-            ->contains(fn (PostTarget $t) => collect($t->media)->contains(fn ($m) => ($m['id'] ?? null) === $this->id || ($m['cover_id'] ?? null) === $this->id));
+        return DB::table('post_target_media as m')->join('post_targets as t', 't.id', '=', 'm.post_target_id')
+            ->where('t.status', '!=', PostStatus::Published->value)
+            ->where(fn ($q) => $q->where('m.media_asset_id', $this->id)->orWhere('m.cover_id', $this->id))->exists();
     }
 
     /**
-     * Media que una serie recurrente activa usa en su contenido (`post_series.payload`: media comun, y media y portada de cada destino): las
-     * ocurrencias futuras la necesitan aunque aun no existan como post. Comparacion en PHP por el mismo motivo que arriba.
+     * Media que una serie recurrente activa usa en su contenido (media comun, y media y portada de cada destino): las ocurrencias futuras la
+     * necesitan aunque aun no existan como post. `post_series_media` es el indice relacional que mantiene `PostSeries` (solo series activas).
      */
     public function usedBySeries(): bool
     {
-        return PostSeries::withoutUserScope()->where('user_id', $this->user_id)->where('status', PostSeries::ACTIVE)->get(['id', 'payload'])
-            ->contains(function (PostSeries $s) {
-                $payload = (array) $s->payload;
-                $ids = array_map('intval', (array) ($payload['media'] ?? []));
-                foreach ((array) ($payload['targets'] ?? []) as $t) {
-                    foreach ((array) ($t['media'] ?? []) as $m) {
-                        $ids[] = (int) ($m['id'] ?? 0);
-                        $ids[] = (int) ($m['cover_id'] ?? 0);
-                    }
-                }
-
-                return in_array($this->id, $ids, true);
-            });
+        return DB::table('post_series_media')->where('media_asset_id', $this->id)->exists();
     }
 
-    /** ¿La usa alguna publicacion (media comun o propia de un destino) o una serie recurrente activa? */
+    /** Media en la cola de una autolista (`autolist_item_media`, mantenida por `AutolistItem`). */
+    public function usedByAutolist(): bool
+    {
+        return DB::table('autolist_item_media')->where('media_asset_id', $this->id)->exists();
+    }
+
+    /**
+     * Media de un export de diseno listo y reciente (`studio_design_exports.media_ids`): su ventana la fija `studio.export_media_guard_days`
+     * (0 = no bloquea). Los exports historicos no impiden borrar. Una sola consulta filtrada por usuario, estado y fecha, sin cargar filas.
+     */
+    public function usedByExport(): bool
+    {
+        $days = (int) config('studio.export_media_guard_days', 30);
+        if ($days <= 0) {
+            return false;
+        }
+
+        return DB::table('studio_design_exports')->where('user_id', $this->user_id)->where('status', 'ready')
+            ->where('created_at', '>=', now()->subDays($days))->whereJsonContains('media_ids', $this->id)->exists();
+    }
+
+    /** ¿La usa alguna publicacion (media comun o propia de un destino), una serie recurrente activa, una autolista o un export reciente? */
     public function usedByPosts(): bool
     {
-        return $this->posts()->exists() || $this->usedByTargetMedia() || $this->usedBySeries();
+        return $this->usageReason() !== null;
+    }
+
+    /** Motivo legible por el que no se puede borrar (`null` = libre). El orden es el de la consulta: la mas barata primero. */
+    public function usageReason(): ?string
+    {
+        return match (true) {
+            $this->posts()->exists() || $this->usedByTargetMedia() => 'El archivo se usa en una publicacion; quitalo de ella antes de borrarlo.',
+            $this->usedBySeries() => 'El archivo se usa en una serie recurrente activa; quitalo de ella o cancela la serie antes de borrarlo.',
+            $this->usedByAutolist() => 'El archivo se usa en una autolista; quitalo de su cola antes de borrarlo.',
+            $this->usedByExport() => 'El archivo se usa en una exportacion reciente del estudio; espera a que pase la ventana de proteccion o elimina la exportacion.',
+            default => null,
+        };
+    }
+
+    /**
+     * Suelta las referencias de los destinos YA publicados (el historial no necesita el archivo; sin esto la FK restrict impediria borrarlo):
+     * quita la fila si es su archivo y deja la portada en null. Dos sentencias, sin recorrer filas.
+     */
+    public function releasePublishedTargetMedia(): void
+    {
+        $published = DB::table('post_targets')->where('status', PostStatus::Published->value)->select('id');
+        DB::table('post_target_media')->where('media_asset_id', $this->id)->whereIn('post_target_id', $published)->delete();
+        DB::table('post_target_media')->where('cover_id', $this->id)->whereIn('post_target_id', $published)->update(['cover_id' => null]);
     }
 
     public function isVideo(): bool
     {
         return $this->kind === self::KIND_VIDEO;
+    }
+
+    public function isPdf(): bool
+    {
+        return $this->kind === self::KIND_PDF;
     }
 
     /**
@@ -141,6 +182,17 @@ class MediaAsset extends Model
         );
     }
 
+    /** URL temporal firmada que fuerza la DESCARGA como adjunto (R2/S3 la sirve en linea si no se le pide `attachment`). */
+    public function downloadUrl(int $minutes = 30): string
+    {
+        $name = (string) preg_replace('/[\x00-\x1f"\\\\]/', '', (string) $this->original_name);
+
+        return Storage::disk($this->disk)->temporaryUrl($this->path, now()->addMinutes($minutes), [
+            'ResponseContentDisposition' => 'attachment; filename="'.$name.'"; filename*=UTF-8\'\''.rawurlencode($name),
+            'ResponseContentType' => $this->mime,
+        ]);
+    }
+
     /** Campos seguros para el navegador. */
     public function toPublicArray(): array
     {
@@ -166,7 +218,7 @@ class MediaAsset extends Model
             'runs' => $this->import_state['runs'] ?? null,
             // Para previsualizar la media ya guardada (post reabierto, creado por MCP, elegido de la biblioteca): solo para su dueño.
             'preview_url' => $this->previewable() ? route('media.file', $this, absolute: false) : null,
-        ];
+        ] + ($this->isPdf() ? ['download_url' => $this->previewable() ? route('media.download', $this, absolute: false) : null] : []); // solo un PDF se descarga como adjunto
     }
 
     /** @return array{provider: string, label: string, design_id: ?string, url: ?string, title: ?string}|null */

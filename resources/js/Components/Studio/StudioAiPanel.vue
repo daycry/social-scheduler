@@ -1,4 +1,5 @@
 <script setup>
+import AiNotConfigured from '@/Components/AiNotConfigured.vue';
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { studioRequest } from '@/Studio/api';
 
@@ -124,10 +125,9 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer); });
         <p v-if="loadError" role="alert" class="rounded-lg bg-red-50 p-3 text-xs text-red-800">{{ loadError }}</p>
 
         <template v-if="status">
-            <div v-if="!status.configured" data-testid="ai-unconfigured" class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-xs leading-relaxed text-slate-600">
-                <h3 class="mb-1 text-xs font-semibold text-slate-800">Imágenes con IA: no configurada</h3>
+            <AiNotConfigured v-if="!status.configured" data-testid="ai-unconfigured" title="Imágenes con IA: no configurada">
                 Para generar o editar imágenes, el administrador debe configurar la clave de OpenAI o de Google en el servidor. Mientras tanto no hay botones de generación.
-            </div>
+            </AiNotConfigured>
 
             <form v-else class="space-y-3" aria-label="Generar o editar imagen con IA" @submit.prevent="submit">
                 <h3 class="text-xs font-semibold text-slate-800">Imágenes con IA</h3>
@@ -181,7 +181,7 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer); });
 
             <div class="space-y-3 border-t border-slate-100 pt-4" aria-label="Textos con IA">
                 <h3 class="text-xs font-semibold text-slate-800">Textos con IA</h3>
-                <div v-if="!status.text.enabled" data-testid="ai-text-unconfigured" class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-xs leading-relaxed text-slate-600">Textos con IA: no configurado. Requiere activar el asistente con la clave de Claude en el servidor.</div>
+                <AiNotConfigured v-if="!status.text.enabled" data-testid="ai-text-unconfigured" />
                 <template v-else>
                     <p class="text-[10px] text-slate-500">Quedan {{ status.text.remaining }} peticiones hoy.</p>
                     <div>

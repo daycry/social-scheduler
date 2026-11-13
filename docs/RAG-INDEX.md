@@ -25,7 +25,7 @@
 | [modulos/calendario.md](modulos/calendario.md) | Calendario y reprogramación | `CalendarService`, `posts.reschedule` |
 | [modulos/analitica.md](modulos/analitica.md) | Snapshots diarios, backfill, dashboards | `CollectSnapshots`, `Days`, `Calculator`, zona Pacífico |
 | [modulos/informes.md](modulos/informes.md) | PDF/CSV, constructor de informes, envío programado y baja, descarga firmada | `ReportService`, `PdfRenderer`, DomPDF |
-| [modulos/mcp.md](modulos/mcp.md) | Servidor MCP (57 herramientas), API keys, abilities y conjuntos predefinidos | `SchedulerServer`, `msk_`, Sanctum |
+| [modulos/mcp.md](modulos/mcp.md) | Servidor MCP (64 herramientas), API keys, abilities y conjuntos predefinidos | `SchedulerServer`, `msk_`, Sanctum |
 | [modulos/planificacion-avanzada.md](modulos/planificacion-avanzada.md) | Mejores horas, biblioteca, papelera, autolistas | `BestTimesService`, `TrashService`, `AutolistService` |
 | [modulos/smartlinks.md](modulos/smartlinks.md) | Link in bio, SafeUrl, denuncia | `SmartLinkService`, `SafeUrl` |
 | [modulos/inbox.md](modulos/inbox.md) | Comentarios IG/FB/Threads/YouTube/Bluesky, triaje, presupuesto | `InboxService`, `Comments` |

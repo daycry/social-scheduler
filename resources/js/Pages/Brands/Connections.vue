@@ -6,7 +6,7 @@ import CredentialsForm from '@/Components/Connections/CredentialsForm.vue';
 import NetworkIcon from '@/Components/NetworkIcon.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps({
     brand: Object,
@@ -42,6 +42,15 @@ const disconnect = (account) => {
 
 const toggleDirectPost = (account, enabled) =>
     router.patch(route('brands.connections.direct-post', { brand: props.brand.id, account: account.id }), { enabled }, { preserveScroll: true });
+
+// Pinterest: vuelve a leer los tableros (paginados) por si se han creado otros desde la última lectura.
+const refreshingBoards = ref(null);
+const refreshBoards = (account) =>
+    router.post(route('brands.connections.pinterest-boards.refresh', { brand: props.brand.id, account: account.id }), {}, {
+        preserveScroll: true,
+        onStart: () => { refreshingBoards.value = account.id; },
+        onFinish: () => { refreshingBoards.value = null; },
+    });
 
 // Sin preselección: una cuenta de Meta puede gestionar muchas páginas/perfiles y solo se conecta lo que se marque.
 const selection = useForm({ keys: [] });
@@ -127,8 +136,17 @@ const discardPending = () => router.delete(route('brands.connections.pending.dis
                                         <span class="block text-slate-500">Requiere auditoría aprobada de TikTok. Desactivado: los vídeos se envían como borrador a tu bandeja y los terminas de publicar en la app.</span>
                                     </span>
                                 </label>
+                                <p v-if="a.network === 'pinterest' && a.status === 'activa'" class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600" :data-testid="`pinterest-boards-${a.id}`">
+                                    <span>{{ a.boards_count === 1 ? '1 tablero disponible' : `${a.boards_count ?? 0} tableros disponibles` }}</span>
+                                    <button type="button" class="link" :disabled="refreshingBoards === a.id" :aria-busy="refreshingBoards === a.id" @click="refreshBoards(a)">
+                                        {{ refreshingBoards === a.id ? 'Actualizando…' : 'Actualizar tableros' }}
+                                    </button>
+                                </p>
+                                <p v-if="a.network === 'pinterest' && a.boards_partial" class="mt-1 text-xs text-amber-700" role="status" :data-testid="`pinterest-boards-partial-${a.id}`">
+                                    Mostrando {{ a.boards_count }} tableros, pero hay más; si no ves tu tablero, indícalo por su id en el compositor.
+                                </p>
                                 <p v-if="a.reconnect_before && a.status === 'activa'" class="mt-1 text-xs text-amber-700" data-testid="reconnect-before" role="status">
-                                    Reconecta antes del {{ new Date(a.reconnect_before).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) }}: LinkedIn no permite renovar el acceso automáticamente. Mientras tanto sigue publicando.
+                                    Reconecta antes del {{ new Date(a.reconnect_before).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }) }}: {{ a.reconnect_message }} Mientras tanto sigue publicando.
                                 </p>
                                 <p v-if="a.status === 'requiere_reconexion'" class="mt-1 text-xs text-amber-700">
                                     Las publicaciones programadas se conservan, pero no se enviarán hasta que reconectes<template v-if="a.auth_kind === 'credentials'"> (pulsa «+ Conectar» con una app password nueva)</template>.

@@ -84,6 +84,7 @@ Los demás límites de tamaño y sondeo (`MEDIA_*`) no están en `.env.example`;
 | `META_OAUTH_METHOD` | `post` (secretos en el cuerpo) o `get` (en la query; último recurso). ⚠️ **Por confirmar**: no consta que se haya probado `get` con Meta real (M-02) |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Cliente web de Google Cloud. Consentimiento "En producción" para que el refresh token no caduque |
 | `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET` | App de TikTok (sandbox o producción) |
+| `TIKTOK_EXTRA_SCOPES` | vacío. Scopes extra coma-separados que se piden al conectar TikTok, p. ej. `user.info.stats,video.list` para la analítica. Solo con la aprobación de TikTok en su auditoría (si no, el consentimiento falla) y **hay que reconectar** las cuentas ya conectadas. Un scope no aprobado bloquea conectar y reconectar TODAS las cuentas de TikTok; para revertir, vacía la variable y ejecuta `php artisan config:cache` |
 | `TIKTOK_VERIFIED_DOMAIN` | Dominio verificado para fotos/carrusel; vacío = tipo no ofrecido. Ver [despliegue](../modulos/despliegue.md#tiktok-media-pública) |
 | `BLUESKY_ENABLED` | `true`. `false` retira Bluesky de Conexiones, compositor, filtros, MCP y reprogramación (sus cuentas se conservan). Se conecta con una app password cifrada: [guía](../guias/bluesky-app-password.md) |
 | `BLUESKY_IMAGE_MAX_BYTES`, `BLUESKY_VIDEO_MAX_BYTES` | `2000000` y `52428800` bytes. Topes de media; la foto mayor se recomprime y el vídeo mayor se rechaza al guardar |
@@ -98,11 +99,13 @@ Los demás límites de tamaño y sondeo (`MEDIA_*`) no están en `.env.example`;
 | `LINKEDIN_ENABLED` | `true`. `false` retira LinkedIn de Conexiones, compositor, filtros y MCP (las cuentas se conservan) |
 | `LINKEDIN_COMMUNITY_MANAGEMENT` | `false`. `true` pide los scopes de páginas (`w_organization_social`, `r_organization_social`, `rw_organization_admin`); solo con la Community Management API aprobada por LinkedIn. Sin él solo se conecta el perfil personal |
 | `LINKEDIN_R_MEMBER_SOCIAL` | `false`. `true` pide `r_member_social` (leer publicaciones y comentarios del perfil); solo apps aprobadas. Sin él, un perfil personal no tiene búsqueda de idempotencia ni primer comentario |
-| `LINKEDIN_AUTH_HOST`, `LINKEDIN_API_HOST`, `LINKEDIN_API_VERSION` | `https://www.linkedin.com`, `https://api.linkedin.com` y `202511` (versión mensual de la API REST; hay que subirla cuando LinkedIn retire la vigente) |
-| `LINKEDIN_RECONNECT_NOTICE_DAYS`, `LINKEDIN_UPLOAD_TIMEOUT` | `7` días de aviso «reconecta antes de» y `60` s por parte de subida de vídeo |
+| `LINKEDIN_AUTH_HOST`, `LINKEDIN_API_HOST`, `LINKEDIN_API_VERSION` | `https://www.linkedin.com`, `https://api.linkedin.com` y `202610` (versión mensual de la API REST; LinkedIn mantiene cada una unos 12 meses y `app:health` avisa a los 10; ver [guía](../guias/linkedin-pinterest.md)) |
+| `LINKEDIN_UPLOAD_TIMEOUT` | `60` s por parte de subida de vídeo |
+| `SOCIAL_EXPIRY_NOTICE_DAYS`, `SOCIAL_EXPIRY_NOTICE_AT` | `7,1` y `09:00` (T-23): días de antelación (coma-separados) con que se avisa una vez por umbral de la caducidad de una conexión que no se renueva sola (acceso a datos de Meta de 90 días, token de LinkedIn sin `refresh_token`) y hora de la pasada diaria. El umbral mayor es la ventana del «Reconecta antes de». |
 | `PINTEREST_APP_ID`, `PINTEREST_APP_SECRET` | ID y secreto de la app de Pinterest Developers (API v5). Sin `PINTEREST_APP_ID` la red no se ofrece |
 | `PINTEREST_ENABLED` | `true`. `false` retira Pinterest de la aplicación (las cuentas se conservan) |
-| `PINTEREST_AUTH_HOST`, `PINTEREST_API_HOST`, `PINTEREST_UPLOAD_TIMEOUT` | `https://www.pinterest.com`, `https://api.pinterest.com` y `60` s |
+| `PINTEREST_AUTH_HOST`, `PINTEREST_API_HOST`, `PINTEREST_UPLOAD_TIMEOUT`, `PINTEREST_UPLOAD_URL_TTL` | `https://www.pinterest.com`, `https://api.pinterest.com` , `100` s y `20` min (subida del vídeo en streaming, una petición dentro de los 110 s del job; el TTL es la vigencia de la URL prefirmada reutilizable en un reintento; el tope de vídeo es de 128 MB en `config/media_specs.php`) |
+| `CANVA_BRAND_TEMPLATES` | `false` con `true` se piden también los permisos `brandtemplate:meta:read` y `brandtemplate:content:read` (plantillas de marca y Autofill); la app de Canva Developers debe tenerlos activados y la cuenta, un plan que los incluya. Ver [Canva](../modulos/canva.md) |
 | `CANVA_CLIENT_ID`, `CANVA_CLIENT_SECRET` | Cliente de Canva Developers (OAuth 2.0 con PKCE). Sin ellos Canva aparece «no configurada». Ver [Canva](../modulos/canva.md) |
 | `OPENAI_API_KEY`, `GEMINI_API_KEY` | Claves de la IA del estudio. Cada proveedor solo se ofrece si tiene clave. Ver [IA del estudio](../modulos/estudio-ia.md) |
 | `STUDIO_AI_OPENAI_KEY`, `STUDIO_AI_GOOGLE_KEY` | Clave específica de la IA del estudio; si se define, manda sobre `OPENAI_API_KEY` / `GEMINI_API_KEY` |
@@ -162,6 +165,47 @@ Otros ajustes de `config/publishing.php` sin variable en `.env.example`: `PUBLIS
 
 **Aprobadas por el usuario el 2026-10-31 (T-41)**: las secciones actuales del informe (`cover`, `summary`, `networks`, `top_posts`, `notes`, en `config/reports.php`) y su diseño. No hay variable para la lista de secciones: se cambia en el fichero. La aprobación se refiere al PDF de muestra; la comprobación de métricas reales de M-03 sigue pendiente.
 
+## Salud y avisos
+
+| Variable | Defecto | Explicación |
+|---|---|---|
+| `HEALTH_QUEUE_MAX_AGE` | `600` | Segundos que puede esperar el job pendiente más viejo de una cola antes de avisar de «cola atrasada» |
+| `HEALTH_QUEUE_MAX_AGE_NATIVE` | `1800` | Igual para las colas `media` y `studio` |
+| `HEALTH_SNAPSHOTS_MAX_AGE_HOURS` | `36` | Horas sin snapshots nuevos tras las que `app:health` avisa (con cuentas conectadas) |
+| `HEALTH_LINKEDIN_VERSION_WARN_MONTHS`, `HEALTH_LINKEDIN_VERSION_RETIRED_MONTHS` | `10` y `12` | Meses de antigüedad de `LINKEDIN_API_VERSION` a partir de los cuales `app:health` avisa y la da por retirada |
+| `HEALTH_NATIVE` | `true` | Comprueba ffmpeg, ffprobe, Python, Chromium y el modelo (WARN); `false` lo desactiva |
+| `HEALTH_NATIVE_CACHE_SECONDS` | `300` | Segundos que se cachea `native` en `/health` (la CLI siempre comprueba) |
+| `HEALTH_ALERT_EMAIL` | vacío | Correo del administrador al que avisa un job fallido; vacío = sin aviso |
+| `HEALTH_ALERT_THROTTLE_MINUTES` | `60` | Intervalo mínimo entre dos avisos de job fallido |
+| `BACKUP_DIR` | `storage/backups` | Carpeta donde `deploy/backup/backup.sh` deja los respaldos y la marca `last-backup` |
+| `BACKUP_MAX_AGE_HOURS` | `26` | Horas tras las que `app:backup-verify` (y `app:health`) dan el último respaldo por viejo |
+| `BACKUP_HEALTH` | `false` | `true` añade el check `backup` (WARN) a `app:health`; actívalo cuando el cron de `backup.sh` exista |
+| `STUDIO_CHROMIUM_PATH` | vacío | Ruta de Chromium para el estudio (si no, el de Playwright) |
+
+Ver [despliegue](../modulos/despliegue.md#healthcheck) para `/health?strict=1`.
+
+## Retención y revisiones del estudio
+
+`model:prune` (programado a diario, 04:50) poda por lotes las tablas con retención de `config/retention.php`. Un plazo `0` desactiva la poda de esa tabla. `audit_logs` se conserva un año por defecto porque la pantalla de auditoría la mostrará.
+
+| Variable | Defecto | Explicación |
+|---|---|---|
+| `RETENTION_AUDIT_LOGS_DAYS` | `365` | Registro de auditoría |
+| `RETENTION_PUBLISH_ATTEMPTS_DAYS` | `365` | Intentos de publicación (base de la tasa de éxito) |
+| `RETENTION_NOTIFICATIONS_DAYS` | `90` | Notificaciones **leídas** |
+| `RETENTION_STUDIO_AI_JOBS_DAYS` | `90` | Trabajos de IA del estudio terminados |
+| `RETENTION_STUDIO_IMAGE_JOBS_DAYS` | `30` | Trabajos de imagen (quitar fondo) terminados |
+| `RETENTION_CANVA_JOBS_DAYS` | `90` | Trabajos de Canva terminados |
+| `RETENTION_STUDIO_EXPORTS_DAYS` | `30` | Exportaciones del estudio fallidas o canceladas (las listas conservan su fichero) |
+| `RETENTION_STUDIO_AV_STEPS_DAYS` | `14` | Pasos de espacios de trabajo de audio/vídeo caducados |
+| `RETENTION_REVISIONS_KEEP_LAST` | `50` | Revisiones más recientes que se conservan por diseño |
+| `RETENTION_REVISIONS_DAILY_DAYS` | `90` | Se conserva además la última revisión de cada día durante estos días |
+| `RETENTION_REVISIONS_SUPERSEDED_MINUTES` | `15` | Minutos que se conserva la revisión sustituida por un autoguardado (solo una por diseño y autor) antes de podarla |
+| `STUDIO_EXPORT_MEDIA_GUARD_DAYS` | `30` | Días durante los que un export listo del estudio impide borrar su media (0 = no bloquea) |
+| `STUDIO_REVISION_MIN_INTERVAL` | `300` | Segundos: un autoguardado del mismo autor dentro de este intervalo reescribe la revisión reciente (0 = una revisión por autoguardado) |
+
+La poda de revisiones borra también sus filas de `studio_font_usages`, de modo que una tipografía usada solo por historial podado vuelve a poder borrarse. Requiere MySQL 8 / MariaDB 10.2+ (funciones de ventana).
+
 ## Variables de MCP y analítica (fuera de `.env.example`)
 
 | Variable | Defecto | Explicación |
@@ -207,6 +251,7 @@ Variables nuevas, todas opcionales (valores por defecto en la segunda columna). 
 | `SOCIAL_INBOX_BUDGET_SECONDS` | `60` | Presupuesto de tiempo por pasada del job (< `timeout` 90 s); si no caben todas las publicaciones, el job se reencola con el desplazamiento |
 | `SOCIAL_BEST_TIMES_DAYS` / `_MIN_POSTS` / `_CACHE_MINUTES` | `90` / `10` / `10` | Ventana del mapa de calor, mínimo de publicaciones con métricas y caché corta (0 = sin caché) |
 | `SOCIAL_COMPETITORS_DAILY_AT` / `_MAX` | `13:00` / `10` | Hora UTC del snapshot diario de competidores y máximo por marca |
+| `SOCIAL_COMPETITORS_YOUTUBE_UNITS` / `_USER_UNITS` | `300` / `60` | Unidades de cuota de YouTube por día que pueden gastar los competidores en toda la instalación y cada usuario (T-25; ~3 ud por competidor y día: ~100 en total, ~20 por usuario) |
 | `SOCIAL_ADS_CACHE_MINUTES` | `10` | Caché de las respuestas de Meta Ads |
 | `AI_ASSISTANT_ENABLED` + `ANTHROPIC_API_KEY` | `false` / vacío | El asistente «Sugerir texto» solo existe si **ambas** están definidas |
 | `AI_ASSISTANT_DAILY_LIMIT` / `_GLOBAL_DAILY_LIMIT` | `20` / `200` | Sugerencias por usuario y día, y tope global diario entre todos los usuarios (0 = sin tope global) |

@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type BrowserContext, type Page, type TestInfo } from '@playwright/test';
-import { artisan, axeSeriousCritical, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { artisan, axeSeriousCritical, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, quietFor, seedComposerBrand, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * T-15 · Sitios: construir un sitio de 2 páginas con navegación y bloques (incluido uno interactivo), vista previa en
@@ -58,7 +58,7 @@ test.afterEach(async ({}, info) => {
     cleanMedia(email);
 });
 
-test('E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo publicado, proteger y revocar', async ({ page, browser }, info) => {
+test('E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo publicado, proteger y revocar', { tag: '@responsive' }, async ({ page, browser }, info) => {
     test.setTimeout(240_000);
     const w = watch(page);
     page.on('dialog', (d) => d.accept().catch(() => {}));
@@ -198,7 +198,7 @@ test('E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo 
     await pub.getByLabel('Mensaje').fill('Quiero más información');
     await expectNoOverflow(pub);
     await axeSeriousCritical(pub, 'Sitio público (contacto)');
-    await pub.waitForTimeout(2500); // tiempo mínimo anti-bot
+    await quietFor(pub, 2500); // el servidor rechaza envíos antes de 2 s desde que se pintó el formulario: no hay evento que esperar
     await pub.getByRole('button', { name: 'Enviar' }).click();
     await settle(pub);
     await expect(pub.getByRole('status')).toContainText('hemos recibido tu mensaje');
@@ -299,7 +299,7 @@ test('E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo 
     expect(w.errors, 'errores de consola en el editor').toEqual([]);
 });
 
-test('E2E-15b · Sitios: la lista y el editor son responsive y accesibles sin sitios ni bloques', async ({ page }) => {
+test('E2E-15b · Sitios: la lista y el editor son responsive y accesibles sin sitios ni bloques', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/sites?brand_id=${brand.id}`);
     await settle(page);
@@ -310,6 +310,6 @@ test('E2E-15b · Sitios: la lista y el editor son responsive y accesibles sin si
     await page.getByTestId('new-site-slug').fill('AB');
     await page.getByRole('button', { name: 'Crear sitio' }).click();
     await settle(page);
-    await expect(page.getByText(/Usa de 3 a 40 caracteres/).first()).toBeVisible();
+    await expect(page.getByLabel('Dirección', { exact: true })).toHaveAccessibleDescription(/Usa de 3 a 40 caracteres/);
     expect(w.errors).toEqual([]);
 });

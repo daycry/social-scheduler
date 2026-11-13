@@ -149,6 +149,12 @@ class ApprovalService
         });
         $post = $post->fresh();
 
+        // Una ocurrencia de serie aprobada sale en su fecha: se programa aqui, sin `update()` (que la sacaria de la serie).
+        if ($changed && $status === Post::APPROVAL_APPROVED && $post->series_id !== null) {
+            $this->posts->scheduleApprovedOccurrence($post);
+            $post = $post->fresh();
+        }
+
         if ($changed && (int) $post->user_id !== (int) $actor->id) {
             $owner = User::query()->find($post->user_id);
             $owner?->notify($this->notice(

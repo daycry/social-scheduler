@@ -196,23 +196,23 @@ const size = (b) => (b ? (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Ma
                 <template v-else>
                     <form class="space-y-4 card p-5" @submit.prevent="submit">
                         <div class="flex flex-wrap items-end gap-4">
-                            <label class="text-sm">
+                            <label class="min-w-0 max-w-full text-sm">
                                 <span class="block text-xs font-medium text-slate-600">Marca</span>
-                                <select v-model="form.brand_id" aria-label="Marca" class="field w-auto py-1.5">
+                                <select v-model="form.brand_id" aria-label="Marca" class="field w-auto max-w-full py-1.5">
                                     <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>
                                 </select>
                             </label>
-                            <label class="text-sm">
+                            <label class="min-w-0 max-w-full text-sm">
                                 <span class="block text-xs font-medium text-slate-600">Desde</span>
-                                <input v-model="form.from" type="date" class="field w-auto py-1.5" />
+                                <input v-model="form.from" type="date" class="field w-auto max-w-full py-1.5" />
                             </label>
-                            <label class="text-sm">
+                            <label class="min-w-0 max-w-full text-sm">
                                 <span class="block text-xs font-medium text-slate-600">Hasta</span>
-                                <input v-model="form.to" type="date" class="field w-auto py-1.5" />
+                                <input v-model="form.to" type="date" class="field w-auto max-w-full py-1.5" />
                             </label>
-                            <label class="text-sm">
+                            <label class="min-w-0 max-w-full text-sm">
                                 <span class="block text-xs font-medium text-slate-600">Comparar con</span>
-                                <select v-model="form.compare" class="field w-auto py-1.5">
+                                <select v-model="form.compare" class="field w-auto max-w-full py-1.5">
                                     <option value="none">Sin comparación</option>
                                     <option value="previous">Periodo anterior</option>
                                     <option value="year">Mismo periodo del año anterior</option>
@@ -249,9 +249,9 @@ const size = (b) => (b ? (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Ma
                             </ol>
                             <p v-if="blocks.length === 0" class="text-sm text-slate-600">Añade al menos un bloque.</p>
                             <div class="flex flex-wrap items-end gap-3">
-                                <label class="text-sm">
+                                <label class="min-w-0 max-w-full text-sm">
                                     <span class="block text-xs font-medium text-slate-600">Añadir bloque</span>
-                                    <select v-model="newType" class="field w-auto py-1.5" aria-label="Tipo de bloque">
+                                    <select v-model="newType" class="field w-auto max-w-full py-1.5" aria-label="Tipo de bloque">
                                         <option v-for="t in blockTypes" :key="t" :value="t">{{ label(t) }}</option>
                                     </select>
                                 </label>
@@ -264,9 +264,9 @@ const size = (b) => (b ? (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Ma
                         <fieldset class="space-y-2 rounded-lg border border-slate-200 p-4" data-templates>
                             <legend class="px-1 text-sm font-medium text-slate-800">Plantillas de esta marca</legend>
                             <div class="flex flex-wrap items-end gap-3">
-                                <label class="text-sm">
+                                <label class="min-w-0 max-w-full text-sm">
                                     <span class="block text-xs font-medium text-slate-600">Plantilla guardada</span>
-                                    <select v-model="templateId" class="field w-auto py-1.5" aria-label="Plantilla guardada">
+                                    <select v-model="templateId" class="field w-auto max-w-full py-1.5" aria-label="Plantilla guardada">
                                         <option value="">— Ninguna —</option>
                                         <option v-for="t in brandTemplates" :key="t.id" :value="t.id">{{ t.name }}</option>
                                     </select>
@@ -275,7 +275,7 @@ const size = (b) => (b ? (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Ma
                                 <SecondaryButton type="button" :disabled="!templateId" @click="deleteTemplate">Eliminar plantilla</SecondaryButton>
                             </div>
                             <div class="flex flex-wrap items-end gap-3">
-                                <label class="text-sm">
+                                <label class="min-w-0 max-w-full text-sm">
                                     <span class="block text-xs font-medium text-slate-600">Nombre de la plantilla</span>
                                     <input v-model="templateName" type="text" maxlength="80" class="field py-1.5" aria-label="Nombre de la plantilla" />
                                 </label>
@@ -329,16 +329,16 @@ const size = (b) => (b ? (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Ma
                         <h2 class="text-sm font-medium text-slate-800">Informes programados por email</h2>
                         <p v-if="brandTemplates.length === 0" class="text-sm text-slate-600">Guarda una plantilla de esta marca para poder programar su envío semanal o mensual.</p>
                         <form v-else class="flex flex-wrap items-end gap-3" @submit.prevent="createSchedule">
-                            <label class="text-sm">
+                            <label class="min-w-0 max-w-full text-sm">
                                 <span class="block text-xs font-medium text-slate-600">Plantilla a enviar</span>
-                                <select v-model="scheduleTemplate" class="field w-auto py-1.5" aria-label="Plantilla a enviar">
+                                <select v-model="scheduleTemplate" class="field w-auto max-w-full py-1.5" aria-label="Plantilla a enviar">
                                     <option value="">— Elige —</option>
                                     <option v-for="t in brandTemplates" :key="t.id" :value="t.id">{{ t.name }}</option>
                                 </select>
                             </label>
-                            <label class="text-sm">
+                            <label class="min-w-0 max-w-full text-sm">
                                 <span class="block text-xs font-medium text-slate-600">Frecuencia</span>
-                                <select v-model="scheduleForm.frequency" class="field w-auto py-1.5" aria-label="Frecuencia">
+                                <select v-model="scheduleForm.frequency" class="field w-auto max-w-full py-1.5" aria-label="Frecuencia">
                                     <option value="weekly">Semanal (lunes, semana anterior)</option>
                                     <option value="monthly">Mensual (día 1, mes anterior)</option>
                                 </select>

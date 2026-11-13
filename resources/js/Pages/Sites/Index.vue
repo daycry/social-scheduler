@@ -66,10 +66,10 @@ const accessLabel = (m) => ({ public: 'Público', password: 'Con contraseña', t
                             <label for="site-slug" class="block text-xs font-medium text-slate-600">Dirección</label>
                             <div class="flex items-stretch">
                                 <span class="inline-flex items-center rounded-l-md border border-r-0 border-slate-300 bg-slate-50 px-2 text-sm text-slate-600" aria-hidden="true">/s/</span>
-                                <input id="site-slug" v-model="form.slug" type="text" maxlength="40" required aria-describedby="site-slug-help" class="field !rounded-l-none" data-testid="new-site-slug" />
+                                <input id="site-slug" v-model="form.slug" type="text" maxlength="40" required aria-describedby="site-slug-help site-slug-error" :aria-invalid="form.errors.slug ? 'true' : undefined" class="field !rounded-l-none" data-testid="new-site-slug" />
                             </div>
                             <p id="site-slug-help" class="mt-1 text-xs text-slate-600">De 3 a 40 caracteres: minúsculas, números y guiones.</p>
-                            <InputError :message="form.errors.slug" />
+                            <InputError id="site-slug-error" :message="form.errors.slug" />
                         </div>
                     </div>
                     <InputError :message="form.errors.brand" />

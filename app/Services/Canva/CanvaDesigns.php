@@ -28,7 +28,7 @@ class CanvaDesigns
 
     private const STATE_TTL_DAYS = 3;
 
-    public function __construct(private readonly CanvaClient $client, private readonly CanvaConnections $connections) {}
+    public function __construct(private readonly CanvaClient $client, private readonly CanvaConnections $connections, private readonly CanvaJwks $jwks) {}
 
     /** @return array{items: list<array<string, mixed>>, continuation: ?string} */
     public function list(User $user, Brand $brand, CanvaConnection $connection, ?string $query, ?string $continuation): array
@@ -128,28 +128,16 @@ class CanvaDesigns
     }
 
     /**
-     * Valida la vuelta desde Canva: lee `correlation_jwt`, comprueba sus reclamaciones (audiencia, tipo `rti`, caducidad) y el `correlation_state`
-     * FIRMADO por esta app para ESTE usuario. Devuelve la marca (del usuario) y el diseño, o null si algo no cuadra.
-     *
-     * La firma del JWT de Canva (JWKS) no se verifica aqui: el vinculo de confianza es el `correlation_state` firmado y ligado a la sesion.
+     * Valida la vuelta desde Canva: verifica la FIRMA del `correlation_jwt` con las claves publicas de Canva (JWKS, RS256; `CanvaJwks` comprueba
+     * tambien audiencia y caducidad), exige el tipo `rti` y el `correlation_state` FIRMADO por esta app para ESTE usuario. Devuelve la marca
+     * (del usuario) y el diseño, o null si algo no cuadra (incluida una firma que no se puede verificar).
      *
      * @return array{brand: Brand, design_id: string}|null
      */
     public function resolveReturn(User $user, string $jwt): ?array
     {
-        $parts = explode('.', $jwt);
-        if (count($parts) !== 3 || strlen($jwt) > 4096) {
-            return null;
-        }
-        $claims = json_decode((string) base64_decode(strtr($parts[1], '-_', '+/'), true), true);
-        if (! is_array($claims) || ($claims['type'] ?? null) !== 'rti' || ! is_string($claims['correlation_state'] ?? null)) {
-            return null;
-        }
-        $aud = $claims['aud'] ?? null;
-        if (filled(config('services.canva.client_id')) && $aud !== null && $aud !== config('services.canva.client_id')) {
-            return null;
-        }
-        if (isset($claims['exp']) && (int) $claims['exp'] < now()->timestamp) {
+        $claims = $this->jwks->verify($jwt);
+        if ($claims === null || ($claims['type'] ?? null) !== 'rti' || ! is_string($claims['correlation_state'] ?? null)) {
             return null;
         }
 
@@ -179,7 +167,7 @@ class CanvaDesigns
         return rtrim(strtr(base64_encode(hash_hmac('sha256', 'canva-return|'.$userId.'|'.$prefix, (string) config('app.key'), true)), '+/', '-_'), '=');
     }
 
-    private static function canvaUrl(mixed $url): ?string
+    public static function canvaUrl(mixed $url): ?string
     {
         if (! is_string($url) || strlen($url) > 2000) {
             return null;

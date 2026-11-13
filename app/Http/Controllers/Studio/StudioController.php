@@ -19,7 +19,9 @@ use App\Services\Studio\StudioFrames;
 use App\Services\Studio\StudioRenderer;
 use App\Services\Studio\StudioService;
 use App\Services\Studio\StudioSharedFiles;
+use App\Services\Studio\StudioThumbnails;
 use App\Support\CurrentBrand;
+use App\Support\CursorPage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,7 +37,7 @@ class StudioController extends Controller
     {
         $brand = CurrentBrand::resolve($request);
         if ($brand === null) {
-            return Inertia::render('Studio/Index', ['brand' => null, 'designs' => ['data' => [], 'total' => 0, 'links' => []], 'kit' => null, 'assets' => [], 'folders' => [], 'filters' => [], 'shared' => $this->collab->sharedWith($request->user())]);
+            return Inertia::render('Studio/Index', ['brand' => null, 'designs' => ['designs' => [], 'has_more' => false, 'next_cursor' => null], 'kit' => null, 'assets' => [], 'folders' => [], 'filters' => [], 'shared' => $this->collab->sharedWith($request->user())]);
         }
 
         return $this->indexBrand($request, $brand);
@@ -44,8 +46,9 @@ class StudioController extends Controller
     public function indexBrand(Request $request, Brand $brand): Response|JsonResponse
     {
         $filters = $request->validate(['query' => ['nullable', 'string', 'max:120'], 'folder_id' => ['nullable', 'integer', 'min:1'],
-            'templates' => ['nullable', 'boolean'], 'archived' => ['nullable', 'boolean'], 'page' => ['nullable', 'integer', 'min:1']]);
-        $designs = $this->studio->designs($request->user(), $brand, $filters)->toArray();
+            'templates' => ['nullable', 'boolean'], 'archived' => ['nullable', 'boolean']] + CursorPage::RULES);
+        $designs = $this->studio->designs($request->user(), $brand, $filters);
+        $designs['designs'] = app(StudioThumbnails::class)->decorate($request->user(), $designs['designs']);
         $props = $this->brandProps($request, $brand) + ['designs' => $designs, 'filters' => $filters, 'shared' => $this->collab->sharedWith($request->user())];
 
         return $request->expectsJson() ? response()->json($props) : Inertia::render('Studio/Index', $props);
@@ -166,11 +169,24 @@ class StudioController extends Controller
         return response()->json(['folder' => $this->studio->createFolder($request->user(), $brand, $data['name'])], 201);
     }
 
+    public function updateFolder(Request $request, DesignFolder $folder): JsonResponse
+    {
+        $data = $request->validate(['name' => ['required', 'string', 'max:255']]);
+
+        return response()->json(['folder' => $this->studio->renameFolder($request->user(), $folder, $data['name'])]);
+    }
+
     public function destroyFolder(Request $request, DesignFolder $folder): JsonResponse
     {
-        $this->studio->deleteFolder($request->user(), $folder);
+        return response()->json(['deleted' => true, 'designs_moved' => $this->studio->deleteFolder($request->user(), $folder)]);
+    }
 
-        return response()->json(['deleted' => true]);
+    public function moveDesign(Request $request, Design $design): JsonResponse
+    {
+        $data = $request->validate(['folder_id' => ['present', 'nullable', 'integer', 'min:1']]);
+        $moved = $this->studio->moveDesign($request->user(), $design, $data['folder_id']);
+
+        return response()->json(['design' => ['id' => $moved->id, 'folder_id' => $moved->folder_id]]);
     }
 
     public function exports(Request $request, Design $design): JsonResponse

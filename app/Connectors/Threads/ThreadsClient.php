@@ -137,6 +137,12 @@ class ThreadsClient
         }
 
         if (in_array($code, [3, 10, 200, 299], true) || str_starts_with($message, '(#10)') || str_starts_with($message, '(#200)')) {
+            // Un rechazo de permisos puede ser de la CUENTA (el token no tiene el permiso: codigo 10, o 3/200/299 que nombran el permiso)
+            // o de UN objeto concreto (publicacion borrada, ajena o no visible). Solo el primero justifica retirar el scope y pedir reconectar.
+            if (self::aboutObject($code, $message)) {
+                return new PermanentPublishException('Threads no permite acceder a ese contenido ('.$message.').', 'permisos_objeto');
+            }
+
             return new PermanentPublishException('Faltan permisos en Threads para publicar ('.$message.'). Revisa los permisos concedidos y vuelve a conectar la cuenta.', 'permisos');
         }
 
@@ -145,6 +151,21 @@ class ThreadsClient
         }
 
         return new PermanentPublishException('Threads rechazo la publicacion: '.$message, 'rechazada');
+    }
+
+    /**
+     * ¿El rechazo de permisos se refiere a UN objeto (publicacion borrada, inexistente o de otra persona) y no a la cuenta? Por defecto
+     * es de la CUENTA (retira el scope y pide reconectar, el comportamiento seguro). Solo se da por «de objeto» con frases completas e
+     * inequivocas: palabras sueltas como «user», «post» o «content» aparecen tambien en errores de la cuenta («The user hasn't authorized
+     * the application…», «User does not have sufficient administrative permission…»).
+     */
+    private static function aboutObject(int $code, string $message): bool
+    {
+        if ($code === 10 || str_starts_with($message, '(#10)')) {
+            return false;
+        }
+
+        return preg_match('/(does not exist|doesn.t exist|no longer (exists|available)|(was|has been|been) (deleted|removed)|belongs to (another|a different|someone else)|owned by (another|a different|someone else))/i', $message) === 1;
     }
 
     /** @return array{0: int, 1: int, 2: string} codigo, subcodigo y mensaje legible. */

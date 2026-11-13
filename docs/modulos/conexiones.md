@@ -25,7 +25,7 @@ El contrato está segregado (`app/Connectors/Contracts/`):
 | TikTok | `app/Connectors/TikTok/TikTokConnector.php` |
 | Bluesky | `app/Connectors/Bluesky/{BlueskyConnector,BlueskySession,BlueskyClient,BlueskyPublisher,BlueskyInsights,Facets,Tid,BlueskyErrors}.php` |
 | LinkedIn | `app/Connectors/LinkedIn/{LinkedInConnector,LinkedInClient,LinkedInPublisher,LinkedInPostOptions}.php` ([guía](../guias/linkedin-pinterest.md)) |
-| Pinterest | `app/Connectors/Pinterest/{PinterestConnector,PinterestClient,PinterestPublisher,PinterestPostOptions}.php` ([guía](../guias/linkedin-pinterest.md)) |
+| Pinterest | `app/Connectors/Pinterest/{PinterestConnector,PinterestClient,PinterestPublisher,PinterestPostOptions,PinterestInsightsReader}.php` ([guía](../guias/linkedin-pinterest.md)) |
 | Threads | `app/Connectors/Threads/{ThreadsConnector,ThreadsClient,ThreadsPublisher,ThreadsInsights}.php`, `app/Connectors/Meta/GraphErrors.php` (tabla de códigos compartida con `GraphClient`) |
 | Controladores | `app/Http/Controllers/OAuth/OAuthController.php`, `CredentialConnectionController.php` |
 | Cuentas | `app/Models/SocialAccount.php`, `app/Services/SocialAccountService.php` |
@@ -71,15 +71,17 @@ Threads es un conector **propio** (`provider = threads`), no una red del proveed
 |---|---|---|
 | Meta | `business_management`, `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, `read_insights`, `instagram_basic`, `instagram_content_publish`, `instagram_manage_insights`, `instagram_manage_contents` | Páginas de portfolios vía `me/businesses` → `owned_pages`/`client_pages`. `debug_token` valida permisos y `data_access_expires_at`. Instagram solo si la Página tiene `instagram_business_account`. |
 | Google | `youtube`, `youtube.readonly`, `yt-analytics.readonly` | `access_type=offline` + `prompt=consent`; exige `refresh_token`. |
-| TikTok | `user.info.basic`, `video.upload`, `video.publish` | `video.upload` es obligatorio (modo borrador por defecto). `creator_info/query` se llama con cuerpo `{}` y es best-effort. |
+| TikTok | `user.info.basic`, `video.upload`, `video.publish` (+ `TIKTOK_EXTRA_SCOPES`, p. ej. `user.info.stats,video.list` para la analítica: solo con la aprobación de TikTok y reconectando la cuenta) | `video.upload` es obligatorio (modo borrador por defecto). `creator_info/query` se llama con cuerpo `{}` y es best-effort. |
 | Bluesky | — (app password; `scopes = ['atproto']`) | Sin OAuth: `CredentialConnector`. Sesión con refresco y recreación (ver arriba). |
 | LinkedIn | `openid`, `profile`, `w_member_social`; páginas (con `LINKEDIN_COMMUNITY_MANAGEMENT`): `w_organization_social`, `r_organization_social`, `rw_organization_admin`; `r_member_social` con `LINKEDIN_R_MEMBER_SOCIAL` | Perfil siempre; páginas solo con Community Management aprobado. Ver [guía](../guias/linkedin-pinterest.md). |
-| Pinterest | `boards:read`, `pins:read`, `pins:write`, `user_accounts:read` | API v5; tablero obligatorio en cada pin; acceso de prueba hasta la aprobación. Ver [guía](../guias/linkedin-pinterest.md). |
+| Pinterest | `boards:read`, `pins:read`, `pins:write`, `user_accounts:read` | API v5; tablero obligatorio en cada pin (los tableros se leen paginados con `bookmark` —tope de 500 y 10 s por petición, con aviso de lista incompleta— y se refrescan con «Actualizar tableros», `POST brands/{brand}/connections/{account}/pinterest-boards`); acceso de prueba hasta la aprobación; la analítica no existe en sandbox. Ver [guía](../guias/linkedin-pinterest.md). |
 | Threads | `threads_basic`, `threads_content_publish`, `threads_manage_insights` (`social.threads.scopes`) | OAuth en `threads.com` con el ID y el secreto **de Threads**; token largo de 60 días sin `refresh_token`; sin App Review solo publican los *testers* de la app. |
 
 ## Estados de cuenta y refresco
 
 `RefreshTokens` corre cada 30 min y renueva con margen: Meta 168 h, Google 1 h, TikTok 6 h, Bluesky 1 h, Threads 168 h, LinkedIn 168 h y Pinterest 72 h (`SOCIAL_REFRESH_MARGIN_*_HOURS`). LinkedIn sin `refresh_token` no se renueva: la UI avisa «reconecta antes de».
+
+**Caducidad conocida que no se renueva solo (T-23)**: `ConnectionExpiry` calcula la fecha de la conexión a reconectar: el **acceso a datos** (`data_access_expires_at`; Meta lo limita a 90 días desde el último inicio de sesión) en cualquier red que lo informe, la **caducidad del refresh token** (`refresh_expires_at`; LinkedIn a 1 año, Pinterest, TikTok) y el **token de LinkedIn sin `refresh_token`**. Los tokens que sí se refrescan solos (Threads, Pinterest, TikTok, Google…) no cuentan: si su renovación falla, `ReconnectRequired` avisa. Conexiones muestra «Reconecta antes del …» con el motivo (`reconnect_before`, `reconnect_reason`, `reconnect_message`) dentro de la ventana del umbral mayor, y el comando diario `connections:notify-expiry` (`ConnectionExpiryNotifier`) envía `ConnectionExpiring` (aviso en la app y, con la preferencia `notify_by_mail` del usuario, correo) a `SOCIAL_EXPIRY_NOTICE_DAYS` días (por defecto `7,1`) de la caducidad, una sola vez por umbral y fecha: al reconectar, la fecha cambia y el ciclo se reinicia. Ver [avisos](publicacion.md#avisos).
 
 - Fallo **permanente** (`invalid_grant`, 401, `data_access_expires_at` o `refresh_expires_at` vencidos): la cuenta pasa a `requiere_reconexion` al instante y se envía `ReconnectRequired`.
 - Fallo **transitorio** (5xx, red): se cuenta en `refresh_failures`; tras `SOCIAL_REFRESH_MAX_TRANSIENT_FAILURES` (12, ≈ 6 h) seguidos escala a `requiere_reconexion`.

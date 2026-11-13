@@ -30,7 +30,7 @@ class ExportDesign extends SchedulerTool
     public function schema(JsonSchema $schema): array
     {
         return ['design_id' => $schema->integer()->required(), 'revision' => $schema->integer()->min(1)->required(),
-            'format' => $schema->string()->enum(['png', 'jpeg', 'webp', 'svg', 'pdf', 'mp4', 'gif'])->required(),
+            'format' => $schema->string()->enum(['png', 'jpeg', 'webp', 'svg', 'pdf', 'pptx', 'mp4', 'gif'])->required(),
             'pages' => $schema->array()->items($schema->string())->required(), 'scale' => $schema->number()->min(0.1)->max(4),
             'frame_times' => $schema->array()->items($schema->object(['page_id' => $schema->string()->required(), 'time' => $schema->number()->min(0)->max(3600)->required()]))
                 ->description('Solo documento v2: segundos locales por página seleccionada, sin repetir; time menor que su duración. Páginas omitidas usan0.'),
@@ -41,7 +41,7 @@ class ExportDesign extends SchedulerTool
     {
         app(StudioFrames::class)->assertJsonList(request(), 'params.arguments.frame_times');
         $data = $request->validate(['design_id' => ['required', 'integer', 'min:1']]);
-        $export = app(StudioRenderer::class)->export($user, $this->owned(Design::class, $user, $data['design_id'], 'Diseño'), $request->all());
+        $export = app(StudioRenderer::class)->export($user, $this->owned(Design::class, $user, $data['design_id'], 'Diseño', masculine: true), $request->all());
 
         return app(StudioExports::class)->present($user, $export);
     }

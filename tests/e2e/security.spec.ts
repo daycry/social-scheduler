@@ -52,11 +52,11 @@ test.describe('2FA · doble factor (TOTP)', () => {
     });
     test.afterEach(() => resetSecurity(user.email));
 
-    test('2FA · activar con un TOTP real y recibir 8 códigos (E2E-01)', async ({ page }, info) => {
+    test('2FA · activar con un TOTP real y recibir 8 códigos (E2E-01)', { tag: '@responsive' }, async ({ page }, info) => {
         const w = watch(page);
         await loginAs(page, user);
         await page.goto('/profile');
-        await expect(page.getByText('El doble factor está desactivado')).toBeVisible();
+        await expect(page.getByText(/^El doble factor está desactivado/)).toBeVisible();
 
         // Activar pide la contraseña (password.confirm) y retoma el perfil.
         await page.getByRole('button', { name: 'Activar doble factor' }).click();
@@ -69,7 +69,7 @@ test.describe('2FA · doble factor (TOTP)', () => {
         const qr = page.getByRole('img', { name: /Código QR para configurar/ });
         await expect(qr).toBeVisible();
         await expect(qr).toHaveAttribute('alt', /clave de configuración/);
-        const secretNode = page.locator('code').filter({ hasText: /^[A-Z2-7]{16,}$/ }).first();
+        const secretNode = page.locator('code').filter({ hasText: /^[A-Z2-7]{16,}$/ });
         const secret = (await secretNode.innerText()).trim();
         expect(secret).toMatch(/^[A-Z2-7]{16,}$/);
         await expect(page.getByRole('button', { name: 'Copiar clave' })).toBeVisible();
@@ -98,12 +98,12 @@ test.describe('2FA · doble factor (TOTP)', () => {
         // Al recargar: 2FA activo y los códigos no vuelven a mostrarse.
         await page.reload();
         await expect(page.getByText(/El doble factor está\s+activado/)).toBeVisible();
-        await expect(page.getByText('Te quedan 8 códigos de recuperación')).toBeVisible();
+        await expect(page.getByText(/Te quedan 8 códigos de recuperación/)).toBeVisible();
         await expect(page.getByRole('heading', { name: 'Guarda tus códigos de recuperación' })).toHaveCount(0);
         expect(w.errors).toEqual([]);
     });
 
-    test('2FA · el login pide el reto, lo supera con el TOTP y rechaza su reutilización (E2E-02)', async ({ page }, info) => {
+    test('2FA · el login pide el reto, lo supera con el TOTP y rechaza su reutilización (E2E-02)', { tag: '@responsive' }, async ({ page }, info) => {
         const { secret } = enableTwoFactorDirect(user.email);
 
         // CA-04: tras la contraseña no se entra al panel.
@@ -161,7 +161,7 @@ test.describe('2FA · doble factor (TOTP)', () => {
         await expect(page).toHaveURL(/\/dashboard/);
         await confirmPassword(page, user.password);
         await page.goto('/profile');
-        await expect(page.getByText('Te quedan 6 códigos de recuperación')).toBeVisible();
+        await expect(page.getByText(/Te quedan 6 códigos de recuperación/)).toBeVisible();
         await page.getByRole('button', { name: 'Generar códigos nuevos' }).click();
         const list = page.getByRole('list', { name: 'Códigos de recuperación' }).getByRole('listitem');
         await expect(list).toHaveCount(8);
@@ -213,7 +213,7 @@ test.describe('2FA · doble factor (TOTP)', () => {
             await dialog.getByRole('button', { name: 'Desactivar', exact: true }).click();
         };
         const rejected = async (message: string | RegExp) => {
-            await expect(dialog.getByText(message).first()).toBeVisible();
+            await expect(dialog.getByText(message).first()).toBeVisible(); // primer error que coincide: contraseña y código pueden fallar a la vez
             await expect(dialog.getByLabel('Contraseña')).toBeFocused();
             await expect(dialog.getByLabel('Contraseña')).toHaveValue('');
         };
@@ -230,7 +230,7 @@ test.describe('2FA · doble factor (TOTP)', () => {
         await dialog.getByLabel('Contraseña').fill(user.password);
         await dialog.getByLabel('Código de verificación').fill(totp(secret));
         await dialog.getByRole('button', { name: 'Desactivar', exact: true }).click();
-        await expect(page.getByText('El doble factor está desactivado')).toBeVisible();
+        await expect(page.getByText(/^El doble factor está desactivado/)).toBeVisible();
         await shot(page, info, 'e2e-04-tarjeta-desactivada');
 
         // Y el siguiente login ya no pide código.
@@ -268,7 +268,7 @@ test.describe('passkey · alta, login y avisos', () => {
     });
     test.afterEach(() => resetSecurity(user.email));
 
-    test('passkey · alta, segunda passkey, duplicada y renombrado (E2E-05)', async ({ page, context }, info) => {
+    test('passkey · alta, segunda passkey, duplicada y renombrado (E2E-05)', { tag: '@responsive' }, async ({ page, context }, info) => {
         const w = watch(page);
         const portatil = await virtualAuthenticator(context, page);
         await loginAs(page, user);
@@ -290,7 +290,7 @@ test.describe('passkey · alta, login y avisos', () => {
         await addPasskey(page, 'Móvil', 'Añadir otra passkey');
         await expect(lista.getByRole('listitem')).toHaveCount(2);
         await expect(lista.getByText('Móvil', { exact: true })).toBeVisible();
-        await expect(lista.getByText(/Añadida el/).first()).toBeVisible();
+        await expect(lista.getByRole('listitem').filter({ hasText: 'Móvil' }).filter({ hasText: /Añadida el/ })).toBeVisible();
         expect(await movil.credentials()).toBe(1);
         await shot(page, info, 'e2e-05-dos-passkeys');
         await expectNoOverflow(page);
@@ -393,7 +393,7 @@ test.describe('passkey · alta, login y avisos', () => {
         await expect(page).toHaveURL(/\/dashboard/);
     });
 
-    test('passkey · sin WebAuthn no hay controles, sale el aviso y la contraseña funciona (E2E-07)', async ({ page }, info) => {
+    test('passkey · sin WebAuthn no hay controles, sale el aviso y la contraseña funciona (E2E-07)', { tag: '@responsive' }, async ({ page }, info) => {
         await page.addInitScript(() => {
             Object.defineProperty(window, 'PublicKeyCredential', { value: undefined, configurable: true });
         });
@@ -401,7 +401,7 @@ test.describe('passkey · alta, login y avisos', () => {
         // CA-20: /login sin botón y con aviso.
         await page.goto('/login');
         await expect(page.getByRole('button', { name: 'Entrar con passkey' })).toHaveCount(0);
-        await expect(page.getByText('Las passkeys requieren HTTPS')).toBeVisible();
+        await expect(page.getByText(/^Las passkeys requieren HTTPS/)).toBeVisible();
         await shot(page, info, 'e2e-07-login-con-aviso');
         await expectNoOverflow(page);
 
@@ -415,7 +415,7 @@ test.describe('passkey · alta, login y avisos', () => {
         await page.goto('/profile');
         await expect(page.getByRole('heading', { name: 'Passkeys', exact: true })).toHaveCount(0);
         await expect(page.getByRole('button', { name: /Añadir (otra )?passkey/ })).toHaveCount(0);
-        await expect(page.getByText('Las passkeys requieren HTTPS')).toBeVisible();
+        await expect(page.getByText(/^Las passkeys requieren HTTPS/)).toBeVisible();
         await shot(page, info, 'e2e-07-perfil-con-aviso');
         await expectNoOverflow(page);
     });

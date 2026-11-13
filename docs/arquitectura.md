@@ -30,7 +30,7 @@ Cada modelo del dominio se filtra con el global scope `app/Scopes/UserScope.php`
 
 ## Redes y tipos de contenido
 
-`App\Connectors\Network` define Instagram, Facebook, YouTube y TikTok. `App\Enums\ContentType` define los 13 tipos (`instagram_image`, `instagram_carousel`, `instagram_reel`, `instagram_story`, `facebook_text`, `facebook_photo`, `facebook_video`, `facebook_reel`, `youtube_video`, `youtube_short`, `tiktok_video`, `tiktok_photo`). `tiktok_photo` solo se ofrece con `TIKTOK_VERIFIED_DOMAIN` definido (`ContentType::isOffered()`).
+`App\Connectors\Network` define Instagram, Facebook, YouTube y TikTok. `App\Enums\ContentType` define los tipos de contenido (`instagram_image`, `instagram_carousel`, `instagram_reel`, `instagram_story`, `facebook_text`, `facebook_photo`, `facebook_video`, `facebook_reel`, `facebook_photos`, `facebook_story`, `youtube_video`, `youtube_short`, `tiktok_video`, `tiktok_photo`). `tiktok_photo` solo se ofrece con `TIKTOK_VERIFIED_DOMAIN` definido (`ContentType::isOffered()`).
 
 ## Estados de una publicación
 

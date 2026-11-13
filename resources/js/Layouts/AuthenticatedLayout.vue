@@ -85,7 +85,7 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
                         class="rounded-md px-3 py-1.5 text-sm font-medium transition hover:bg-white/10 hover:text-white"
                         :class="activeKey === m.key ? 'bg-white/10 text-white shadow-[inset_0_-2px_0_0_#818cf8]' : 'text-slate-300'"
                         :aria-current="activeKey === m.key ? 'page' : undefined"
-                    >{{ m.label }}<span v-if="m.badge" class="ms-1.5 rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white" data-testid="inbox-badge">{{ m.badge > 99 ? '99+' : m.badge }}</span></Link>
+                    >{{ m.label }}<span v-if="m.badge" class="ms-1.5 rounded-full bg-rose-700 px-1.5 py-0.5 text-[10px] font-bold text-white" data-testid="inbox-badge">{{ m.badge > 99 ? '99+' : m.badge }}</span></Link>
                 </nav>
 
                 <div class="ms-auto flex min-w-0 items-center gap-1 sm:gap-2">
@@ -124,7 +124,7 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
                     <!-- Avisos -->
                     <Link :href="route('notifications.index')" class="relative rounded-lg p-2 text-slate-300 hover:bg-white/10 hover:text-white" :aria-label="unread ? `Avisos, ${unread} sin leer` : 'Avisos'">
                         <Icon name="bell" class="h-5 w-5" />
-                        <span v-if="unread" class="absolute -end-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white" data-testid="unread-badge">{{ unread > 99 ? '99+' : unread }}</span>
+                        <span v-if="unread" class="absolute -end-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-700 px-1 text-[10px] font-bold text-white" data-testid="unread-badge">{{ unread > 99 ? '99+' : unread }}</span>
                     </Link>
 
                     <!-- Usuario -->
@@ -153,7 +153,7 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
             <div v-show="mobileOpen" class="border-t border-white/10 bg-night-800 px-3 pb-4 pt-2 lg:hidden" data-testid="mobile-menu">
                 <p class="px-2 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-300">Módulos</p>
                 <Link v-for="m in modules" :key="m.key" :href="m.href" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium" :class="activeKey === m.key ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5'">
-                    <Icon :name="m.icon" class="h-5 w-5" />{{ m.label }}<span v-if="m.badge" class="ms-auto rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">{{ m.badge > 99 ? '99+' : m.badge }}</span>
+                    <Icon :name="m.icon" class="h-5 w-5" />{{ m.label }}<span v-if="m.badge" class="ms-auto rounded-full bg-rose-700 px-1.5 py-0.5 text-[10px] font-bold text-white">{{ m.badge > 99 ? '99+' : m.badge }}</span>
                 </Link>
                 <p class="px-2 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-slate-300">{{ moduleTitle }}</p>
                 <Link v-for="i in sideItemsList" :key="i.key" :href="i.href" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm" :class="i.active ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5'">

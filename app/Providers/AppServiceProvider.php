@@ -2,12 +2,15 @@
 
 namespace App\Providers;
 
+use App\Connectors\Bluesky\BlueskyCompetitors;
 use App\Connectors\Bluesky\BlueskyConnector;
 use App\Connectors\Bluesky\BlueskyInsights;
 use App\Connectors\Bluesky\BlueskyPublisher;
+use App\Connectors\CompetitorSources;
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Google\Analytics as YouTubeAnalytics;
 use App\Connectors\Google\GoogleConnector;
+use App\Connectors\Google\YouTubeCompetitors;
 use App\Connectors\Google\YouTubePublisher;
 use App\Connectors\LinkedIn\LinkedInConnector;
 use App\Connectors\LinkedIn\LinkedInPublisher;
@@ -15,9 +18,11 @@ use App\Connectors\Meta\Facebook\FacebookPublisher;
 use App\Connectors\Meta\GraphClient;
 use App\Connectors\Meta\Insights as MetaInsights;
 use App\Connectors\Meta\Instagram\InstagramPublisher;
+use App\Connectors\Meta\InstagramCompetitors;
 use App\Connectors\Meta\MetaConnector;
 use App\Connectors\Network;
 use App\Connectors\Pinterest\PinterestConnector;
+use App\Connectors\Pinterest\PinterestInsightsReader;
 use App\Connectors\Pinterest\PinterestPublisher;
 use App\Connectors\Threads\ThreadsConnector;
 use App\Connectors\Threads\ThreadsInsights;
@@ -30,11 +35,17 @@ use App\Models\Brand;
 use App\Models\PersonalAccessToken;
 use App\Models\Report;
 use App\Models\User;
+use App\Notifications\QueueJobFailedAlert;
 use App\Services\Auth\Social\FakeSocialiteProvider;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Console\AboutCommand;
 use Illuminate\Http\Request;
+use Illuminate\Queue\Events\JobFailed;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
@@ -46,6 +57,7 @@ use Laravel\Sanctum\Sanctum;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\FacebookProvider;
 use Laravel\Socialite\Two\GoogleProvider;
+use Throwable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -57,6 +69,13 @@ class AppServiceProvider extends ServiceProvider
         // Passkeys (T-08): las rutas del paquete no se cargan; las propias (routes/auth.php) llaman a sus Actions
         // a traves de PasskeyGateway. Hay que ignorarlas antes de que arranque el provider del paquete.
         Passkeys::ignoreRoutes();
+
+        // Fuentes de competidores (T-25), una por red detras del contrato `CompetitorSource`.
+        $this->app->singleton(CompetitorSources::class, fn ($app) => new CompetitorSources([
+            $app->make(InstagramCompetitors::class),
+            $app->make(BlueskyCompetitors::class),
+            $app->make(YouTubeCompetitors::class),
+        ]));
 
         // Los conectores de cada proveedor se registran aqui (T-12 Meta, T-13 Google, T-14 TikTok).
         $this->app->singleton(ConnectorRegistry::class, function () {
@@ -95,7 +114,9 @@ class AppServiceProvider extends ServiceProvider
                 $registry->register($this->app->make(LinkedInConnector::class))->registerPublisher(Network::LinkedIn, $linkedin);
             }
             if (Network::Pinterest->isAvailable()) {
-                $registry->register($this->app->make(PinterestConnector::class))->registerPublisher(Network::Pinterest, $this->app->make(PinterestPublisher::class));
+                $registry->register($this->app->make(PinterestConnector::class))
+                    ->registerPublisher(Network::Pinterest, $this->app->make(PinterestPublisher::class))
+                    ->registerInsights(Network::Pinterest, $this->app->make(PinterestInsightsReader::class));
             }
 
             return $registry;
@@ -134,6 +155,24 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(PasskeyVerified::class, [AuditPasskeyEvents::class, 'verified']);
         Event::listen(PasskeyDeleted::class, [AuditPasskeyEvents::class, 'deleted']);
 
+        // Salud (A-09): un job que agota sus reintentos avisa por correo al administrador (HEALTH_ALERT_EMAIL), como mucho una vez
+        // por intervalo para no inundar. Un fallo del propio aviso nunca debe afectar al worker.
+        Queue::failing(function (JobFailed $event): void {
+            $email = (string) config('health.alert_email');
+            if ($email === '') {
+                return;
+            }
+            try {
+                $ttl = max(1, (int) config('health.alert_throttle_minutes', 60));
+                if (! Cache::add('health:failed-job-alert', 1, now()->addMinutes($ttl))) {
+                    return;
+                }
+                Notification::route('mail', $email)->notifyNow(new QueueJobFailedAlert($event->job->resolveName(), (string) $event->job->getQueue(), $event->exception::class));
+            } catch (Throwable $e) {
+                Log::warning('health.failed_job_alert_error', ['exception' => $e::class]);
+            }
+        });
+
         // Informes (M-9): los FK en cascada no disparan eventos de modelo; se borran antes los ficheros de la marca/usuario.
         Brand::deleting(fn (Brand $b) => Report::purgeFor('brand_id', $b->id));
         User::deleting(fn (User $u) => Report::purgeFor('user_id', $u->id));
@@ -165,6 +204,13 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('studio-link-view', fn (Request $request) => Limit::perMinute(60)->by('studio-link-view:'.$request->ip()));
         RateLimiter::for('giphy', fn (Request $request) => Limit::perMinute((int) config('social.giphy.per_user_per_minute', 20))
             ->by('giphy:'.($request->user()?->id ?? $request->ip())));
+
+        // Limites de las rutas por nombre (config/rate_limits.php): contador propio por usuario (o IP) y nombre, nunca compartido entre rutas.
+        // El valor se lee al pedir el limite (no al arrancar), asi que se puede ajustar con config() en pruebas y en tiempo de ejecucion.
+        foreach (array_keys((array) config('rate_limits.limits')) as $name) {
+            RateLimiter::for($name, fn (Request $request) => Limit::perMinute((int) (config('rate_limits.limits')[$name] ?? 60))
+                ->by($name.':'.($request->user()?->id ?? $request->ip())));
+        }
 
         RateLimiter::for('mcp', fn (Request $request) => Limit::perMinute((int) config('services.mcp.per_minute', 60))
             ->by('mcp:'.($request->user()?->currentAccessToken()?->id ?? $request->ip())));

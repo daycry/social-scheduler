@@ -3,9 +3,11 @@
 namespace App\Support;
 
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
 
@@ -29,7 +31,7 @@ class HealthCheck
      *
      * @return array{ok: bool, status: string, checks: array<string, array{ok: bool, detail: string, warn?: bool}>}
      */
-    public function run(bool $skipScheduler = false): array
+    public function run(bool $skipScheduler = false, bool $http = false): array
     {
         $checks = [
             'database' => $this->database(),
@@ -39,6 +41,21 @@ class HealthCheck
 
         if (! $skipScheduler) {
             $checks['scheduler'] = $this->scheduler();
+            $checks['snapshots'] = $this->snapshots();
+        }
+
+        $checks['config'] = $this->debug();
+
+        if (config('social.linkedin.enabled', true)) {
+            $checks['linkedin_version'] = $this->linkedinVersion();
+        }
+
+        if (config('backup.health', false)) {
+            $checks['backup'] = $this->backup();
+        }
+
+        if (config('health.native', true)) {
+            $checks['native'] = $this->nativeCached($http);
         }
 
         $down = collect($checks)->contains(fn ($c) => ! $c['ok']);
@@ -97,12 +114,211 @@ class HealthCheck
                 $pending, self::FAILED_WINDOW_HOURS, $failedRecent, $failedTotal, implode(',', config('queue.names')),
             );
 
-            return $failedRecent > 0
+            $late = $this->lateQueues();
+            if ($late !== []) {
+                $detail .= ' atrasadas='.implode(',', array_map(fn ($age, $queue) => "$queue:{$age}s", $late, array_keys($late)));
+            }
+
+            return $failedRecent > 0 || $late !== []
                 ? ['ok' => true, 'warn' => true, 'detail' => "AVISO: $detail"]
                 : ['ok' => true, 'detail' => $detail];
         } catch (Throwable $e) {
             return $this->failure('queue', $e);
         }
+    }
+
+    /**
+     * Antigüedad (s) del job pendiente más viejo de cada cola que supera su umbral (`health.queue_max_age`): señal de que
+     * no hay worker escuchando esa cola o va por detrás. Solo cuenta jobs ya disponibles y sin reservar.
+     *
+     * @return array<string, int> cola => segundos de espera
+     */
+    public function lateQueues(): array
+    {
+        $now = now()->timestamp;
+        $rows = DB::table(config('queue.connections.database.table', 'jobs'))
+            ->whereNull('reserved_at')->where('available_at', '<=', $now)
+            ->groupBy('queue')->selectRaw('queue, min(available_at) as oldest')->get();
+
+        $limits = (array) config('health.queue_max_age', []);
+        $late = [];
+        foreach ($rows as $row) {
+            $age = $now - (int) $row->oldest;
+            $limit = (int) ($limits[$row->queue] ?? $limits['default'] ?? 600);
+            if ($limit > 0 && $age > $limit) {
+                $late[(string) $row->queue] = $age;
+            }
+        }
+        ksort($late);
+
+        return $late;
+    }
+
+    /**
+     * `CollectSnapshots` es diario: sin ningún snapshot nuevo en `health.snapshots_max_age_hours` (y con cuentas conectadas)
+     * las métricas se están quedando viejas.
+     *
+     * @return array{ok: bool, detail: string, warn?: bool}
+     */
+    public function snapshots(): array
+    {
+        try {
+            // Mismas cuentas que recoge `CollectSnapshots` (activas) y con margen para la recien conectada: hasta la proxima
+            // pasada diaria (24 h) mas el umbral.
+            $limit = (int) config('health.snapshots_max_age_hours', 36);
+            $accounts = DB::table('social_accounts')->where('status', 'activa')->where('created_at', '<=', now()->subHours(24 + $limit));
+            if (! $accounts->exists()) {
+                return ['ok' => true, 'detail' => 'sin cuentas activas con antiguedad suficiente'];
+            }
+            $last = DB::table('account_snapshots')->max('collected_at');
+
+            if ($last === null) {
+                return ['ok' => true, 'warn' => true, 'detail' => 'AVISO: aun no hay snapshots de metricas'];
+            }
+            $hours = (int) floor(Carbon::parse($last)->diffInHours(now(), true));
+
+            return $limit > 0 && $hours > $limit
+                ? ['ok' => true, 'warn' => true, 'detail' => "AVISO: ultimo snapshot hace {$hours}h (limite {$limit}h)"]
+                : ['ok' => true, 'detail' => "ultimo snapshot hace {$hours}h"];
+        } catch (Throwable $e) {
+            return $this->failure('snapshots', $e);
+        }
+    }
+
+    /**
+     * Frescura del ultimo respaldo (A-03). Solo avisa (WARN): un respaldo viejo no tumba la app.
+     *
+     * @return array{ok: bool, detail: string, warn?: bool}
+     */
+    public function backup(): array
+    {
+        $r = app(BackupStatus::class)->check();
+
+        return $r['ok'] ? $r : ['ok' => true, 'warn' => true, 'detail' => 'AVISO: '.$r['detail']];
+    }
+
+    /**
+     * Binarios nativos que usan media y estudio. Faltar uno solo avisa (WARN): la app sigue sirviendo, pero esa función fallará.
+     *
+     * @return array{ok: bool, detail: string, warn?: bool}
+     */
+    public function native(?bool $console = null): array
+    {
+        $console ??= true;
+        $missing = [];
+        $found = [];
+        $binaries = ['ffmpeg' => [config('media.ffmpeg', 'ffmpeg'), '-version'], 'ffprobe' => [config('media.ffprobe', 'ffprobe'), '-version'], 'python' => [config('studio.python', 'python3'), '--version']];
+        foreach ($binaries as $name => [$binary, $flag]) {
+            if ($this->runs((string) $binary, $flag)) {
+                $found[] = $name;
+            } else {
+                $missing[] = $name;
+            }
+        }
+        $chromium = (string) config('studio.chromium_path', '');
+        if ($chromium !== '' ? is_file($chromium) : $this->playwrightChromium()) {
+            $found[] = 'chromium';
+        } elseif ($chromium === '' && ! $console) {
+            // Bajo PHP-FPM (clear_env) no hay HOME ni PLAYWRIGHT_BROWSERS_PATH: no se puede saber donde busca el renderizador
+            // (que corre en el worker). Sin STUDIO_CHROMIUM_PATH la comprobacion queda para `app:health` por CLI.
+        } else {
+            $missing[] = 'chromium';
+        }
+        if (is_file((string) config('studio.images.model_path'))) {
+            $found[] = 'modelo';
+        } else {
+            $missing[] = 'modelo';
+        }
+
+        return $missing === []
+            ? ['ok' => true, 'detail' => 'ok: '.implode(',', $found)]
+            : ['ok' => true, 'warn' => true, 'detail' => 'AVISO: faltan '.implode(',', $missing)];
+    }
+
+    /** HTTP: el resultado se cachea unos minutos para que cada sondeo de /health no lance procesos; la CLI siempre comprueba y lo refresca. */
+    private function nativeCached(bool $http): array
+    {
+        $ttl = max(0, (int) config('health.native_cache_seconds', 300));
+
+        // Una cache caida (p. ej. CACHE_STORE=database con la BD parada) no debe tumbar app:health: se ejecuta sin cache.
+        try {
+            if (! $http || $ttl === 0) {
+                $result = $this->native(! $http);
+                if ($ttl > 0) {
+                    Cache::put('health:native', $result, $ttl);
+                }
+
+                return $result;
+            }
+
+            return Cache::remember('health:native', $ttl, fn () => $this->native(false));
+        } catch (Throwable $e) {
+            Log::warning('health.native_cache_failed', ['exception' => $e::class]);
+
+            return $this->native(! $http);
+        }
+    }
+
+    private function runs(string $binary, string $flag): bool
+    {
+        try {
+            return Process::timeout(5)->run([$binary, $flag])->successful();
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    /** Chromium de Playwright en su carpeta de navegadores (PLAYWRIGHT_BROWSERS_PATH o la de por defecto del usuario). */
+    private function playwrightChromium(): bool
+    {
+        $home = (string) (getenv('HOME') ?: getenv('USERPROFILE') ?: '');
+        $roots = array_filter([(string) getenv('PLAYWRIGHT_BROWSERS_PATH'), $home !== '' ? $home.'/.cache/ms-playwright' : '', $home !== '' ? $home.'/AppData/Local/ms-playwright' : '']);
+        foreach ($roots as $root) {
+            if ((glob($root.'/chromium-*') ?: []) !== []) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * LinkedIn retira cada version mensual de su API (`Linkedin-Version`, AAAAMM) a los ~12 meses: una version vieja o retirada
+     * hace fallar todas las llamadas de LinkedIn de golpe. Avisa a partir de `health.linkedin_version_warn_months`.
+     *
+     * @return array{ok: bool, detail: string, warn?: bool}
+     */
+    public function linkedinVersion(?Carbon $now = null): array
+    {
+        $version = (string) config('social.linkedin.api_version');
+        if (! preg_match('/^(\d{4})(0[1-9]|1[0-2])$/D', $version, $m)) {
+            return ['ok' => true, 'warn' => true, 'detail' => "AVISO: LINKEDIN_API_VERSION='$version' no tiene formato AAAAMM"];
+        }
+
+        $now ??= now();
+        $age = ($now->year * 12 + $now->month) - ((int) $m[1] * 12 + (int) $m[2]);
+        $warn = (int) config('health.linkedin_version_warn_months', 10);
+        $retired = (int) config('health.linkedin_version_retired_months', 12);
+
+        if ($age < 0) {
+            return ['ok' => true, 'warn' => true, 'detail' => "AVISO: la version de LinkedIn $version es futura (aun no existe): revisa LINKEDIN_API_VERSION"];
+        }
+        if ($age >= $retired) {
+            return ['ok' => true, 'warn' => true, 'detail' => "AVISO: la version de LinkedIn $version (hace $age meses) esta retirada o a punto de estarlo: sube LINKEDIN_API_VERSION"];
+        }
+        if ($age >= $warn) {
+            return ['ok' => true, 'warn' => true, 'detail' => "AVISO: la version de LinkedIn $version tiene $age meses (LinkedIn la retira hacia los $retired): sube LINKEDIN_API_VERSION"];
+        }
+
+        return ['ok' => true, 'detail' => "version $version ($age meses)"];
+    }
+
+    /** @return array{ok: bool, detail: string, warn?: bool} */
+    public function debug(): array
+    {
+        return config('app.debug') && app()->environment('production')
+            ? ['ok' => true, 'warn' => true, 'detail' => 'AVISO: APP_DEBUG=true en produccion (expone trazas y variables)']
+            : ['ok' => true, 'detail' => 'debug='.(config('app.debug') ? 'true' : 'false')];
     }
 
     /**

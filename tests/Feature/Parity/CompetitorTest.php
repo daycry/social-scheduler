@@ -150,7 +150,7 @@ test('Competitors: comparativa con crecimiento a 7 y 30 dias y la cuenta propia'
 
     $this->actingAs($this->user)->get(route('competitors.index'))->assertOk()
         ->assertInertia(fn ($p) => $p->component('Competitors/Index')
-            ->where('has_instagram', true)
+            ->where('has_account', true)
             ->where('comparison.competitors.0.followers', 1000)
             ->where('comparison.competitors.0.growth_7d', 50)
             ->where('comparison.competitors.0.growth_30d', 100)

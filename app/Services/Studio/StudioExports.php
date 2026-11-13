@@ -108,6 +108,15 @@ class StudioExports
         $design = $this->studio->owned($user, $design);
         $snapshot = DesignRevision::withoutUserScope()->where('user_id', $user->id)->where('design_id', $design->id)->where('revision', $revision)->first();
         if (! $snapshot) {
+            // Una revisión anterior a la vigente que ya no existe se fusionó (autoguardado) o se podó: el diseño cambió desde que el
+            // cliente lo abrió, es un conflicto (409) y no un dato inválido. Una revisión inventada o futura sigue siendo 422.
+            if ($revision >= 1 && $revision < $design->revision) {
+                $last = DesignRevision::withoutUserScope()->where('design_id', $design->id)->where('revision', $design->revision)->first();
+                $by = $last?->author_id !== null ? User::query()->whereKey($last->author_id)->value('name') : null;
+
+                throw new StudioDesignConflict($design->revision, $by, 'El diseño ha cambiado desde que lo abriste');
+            }
+
             throw ValidationException::withMessages(['revision' => ['La revisión indicada no existe en este diseño.']]);
         }
 

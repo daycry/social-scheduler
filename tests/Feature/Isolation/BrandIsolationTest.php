@@ -75,7 +75,7 @@ test('policy denial is logged', function () {
     ))->once();
 });
 
-// Criterio «acceso denegado registrado»: el 404 del binding (UserScope) se loguea por la web real.
+// Criterio Â«acceso denegado registradoÂ»: el 404 del binding (UserScope) se loguea por la web real.
 test('cross-user web access returns 404 and logs access.denied with user and brand', function (string $method, string $route, array $data) {
     Log::spy();
 

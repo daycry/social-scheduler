@@ -98,6 +98,13 @@ class MediaUploadService
         ]];
     }
 
+    /** Reglas del cuerpo de `complete` (partes de un multipart), compartidas por la web y la API v1. */
+    public const COMPLETE_RULES = [
+        'parts' => ['sometimes', 'array', 'max:10000'],
+        'parts.*.number' => ['required_with:parts', 'integer', 'min:1', 'max:10000'],
+        'parts.*.etag' => ['required_with:parts', 'string', 'max:200'],
+    ];
+
     /** Importaciones remotas vivas (pendientes y recientes) que un usuario puede tener a la vez. */
     public const MAX_LIVE_IMPORTS = 3;
 
@@ -215,6 +222,39 @@ class MediaUploadService
         $asset->save();
 
         return $asset;
+    }
+
+    /**
+     * Recibe el binario de una subida local (disco local, solo mientras el asset esta pendiente) y lo finaliza. Lo comparten la web y la API v1.
+     *
+     * @param  resource  $stream
+     */
+    public function receiveLocal(MediaAsset $asset, $stream): MediaAsset
+    {
+        $this->assertGenericUpload($asset);
+        abort_if($this->storage->isS3() || $asset->status !== MediaAsset::STATUS_PENDING, 409, 'La subida local no esta disponible.');
+
+        $this->storage->disk()->writeStream($asset->path, $stream);
+
+        return $this->finalize($asset);
+    }
+
+    /**
+     * Cierra una subida desde un cliente (multipart o ya completa) comprobando que es media generica y no un audio o un render del Estudio.
+     *
+     * @param  list<array{number: int, etag: string}>  $parts
+     */
+    public function completeClientUpload(MediaAsset $asset, array $parts = []): MediaAsset
+    {
+        $this->assertGenericUpload($asset);
+
+        return $this->complete($asset, $parts);
+    }
+
+    private function assertGenericUpload(MediaAsset $asset): void
+    {
+        abort_if($asset->kind === MediaAsset::KIND_AUDIO, 404);
+        abort_if(isset($asset->import_state['studio_av']), 409, 'Este archivo pertenece a una exportación de Studio.');
     }
 
     /**
@@ -337,10 +377,11 @@ class MediaUploadService
                     return; // ya borrada por otra peticion
                 }
 
-                if ($locked->usedByPosts()) {
-                    throw new \DomainException('El archivo se usa en una publicacion; quitalo de ella antes de borrarlo.');
+                if (($reason = $locked->usageReason()) !== null) {
+                    throw new \DomainException($reason);
                 }
 
+                $locked->releasePublishedTargetMedia();
                 $locked->delete();
             });
         } catch (QueryException) {
@@ -449,10 +490,31 @@ class MediaUploadService
         return $asset;
     }
 
-    public function kindFor(string $mime, bool $allowAudio = false): string
+    /** Lo que el usuario ve en «el fichero supera el maximo para {tipo}». */
+    public function kindNoun(string $kind): string
+    {
+        return match ($kind) {
+            MediaAsset::KIND_VIDEO => 'vídeos',
+            MediaAsset::KIND_PDF => 'PDF',
+            default => 'imágenes',
+        };
+    }
+
+    /**
+     * Tipo de media de un MIME. El audio y el PDF solo se admiten por su cauce propio (`$allowAudio` para Studio, `$allowDocument` para el
+     * export de Canva): por cualquier otro, un PDF se rechaza explicando que no es media publicable.
+     */
+    public function kindFor(string $mime, bool $allowAudio = false, bool $allowDocument = false): string
     {
         if ($allowAudio && in_array($mime, (array) config('media.allowed_audio_mimes'), true)) {
             return MediaAsset::KIND_AUDIO;
+        }
+        if (in_array($mime, (array) config('media.allowed_pdf_mimes'), true)) {
+            if ($allowDocument) {
+                return MediaAsset::KIND_PDF;
+            }
+
+            throw new InvalidArgumentException('Los PDF no se pueden publicar en redes. Los exportados desde Canva se guardan en la página de Canva de la marca, donde puedes verlos y descargarlos.');
         }
         foreach ((array) config('media.allowed_mimes') as $kind => $mimes) {
             if (in_array($mime, $mimes, true)) {
@@ -475,6 +537,7 @@ class MediaUploadService
             'audio/mp4' => 'm4a',
             'audio/aac' => 'aac',
             'audio/ogg' => 'ogg',
+            'application/pdf' => 'pdf',
             default => 'mp4',
         };
     }

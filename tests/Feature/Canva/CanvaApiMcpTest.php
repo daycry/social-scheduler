@@ -106,3 +106,33 @@ test('MCP: send sube un recurso de la biblioteca como trabajo y los abilities ap
     expect($error)->toBeFalse()->and($result['job']['kind'])->toBe('upload')->and(CanvaJob::withoutUserScope()->where('media_id', $media->id)->exists())->toBeTrue();
     expect(array_keys(Abilities::all()))->toContain('canva:read', 'canva:write');
 });
+
+test('API: plantillas de marca con canva:read y Autofill con canva:write; sin la capacidad del plan responde 403 y no llama a Canva', function () {
+    $this->connection->forceFill(['scopes' => CANVA_BT_SCOPES, 'capabilities' => ['brand_template', 'autofill']])->save();
+    canvaBrandTemplateFakes();
+    $read = $this->mcpKey($this->user, ['canva:read']);
+    $write = $this->mcpKey($this->user, ['canva:write', 'canva:read']);
+
+    canvaApi($this, $read)->getJson($this->api.'/templates')->assertOk()->assertJsonPath('items.0.id', 'BT123abcdef');
+    canvaApi($this, $read)->getJson($this->api.'/templates/BT123abcdef/dataset')->assertOk()->assertJsonPath('fields.0.name', 'CITY');
+    canvaApi($this, $read)->postJson($this->api.'/autofills', ['brand_template_id' => 'BT123abcdef', 'fields' => ['CITY' => 'Sydney']])->assertForbidden();
+    $job = canvaApi($this, $write)->postJson($this->api.'/autofills', ['brand_template_id' => 'BT123abcdef', 'fields' => ['CITY' => 'Sydney']])->assertStatus(202)->json('job');
+    canvaApi($this, $write)->getJson($this->api.'/jobs/'.$job['id'])->assertOk()->assertJsonPath('job.status', 'ready')->assertJsonPath('job.design_id', 'DAFnew00001');
+
+    $this->connection->forceFill(['capabilities' => []])->save();
+    canvaApi($this, $read)->getJson($this->api.'/templates')->assertStatus(403)->assertJsonPath('code', 'capability_required');
+});
+
+test('MCP: manage_canva templates (lista y campos) y autofill con sus abilities', function () {
+    $this->connection->forceFill(['scopes' => CANVA_BT_SCOPES, 'capabilities' => ['brand_template', 'autofill']])->save();
+    canvaBrandTemplateFakes();
+    $key = $this->mcpKey($this->user, ['canva:read', 'canva:write']);
+
+    [$e1, $list] = $this->callTool($key, 'manage_canva', ['brand_id' => $this->brand->id, 'action' => 'templates']);
+    [$e2, $dataset] = $this->callTool($key, 'manage_canva', ['brand_id' => $this->brand->id, 'action' => 'templates', 'template_id' => 'BT123abcdef']);
+    [$e3, $autofill] = $this->callTool($key, 'manage_canva', ['brand_id' => $this->brand->id, 'action' => 'autofill', 'template_id' => 'BT123abcdef', 'fields' => ['CITY' => 'Sydney']]);
+    [$denied] = $this->callTool($this->mcpKey($this->user, ['canva:read']), 'manage_canva', ['brand_id' => $this->brand->id, 'action' => 'autofill', 'template_id' => 'BT123abcdef', 'fields' => ['CITY' => 'x']]);
+
+    expect([$e1, $e2, $e3])->toBe([false, false, false])->and($list['items'][0]['id'])->toBe('BT123abcdef')->and($dataset['fields'][0])->toMatchArray(['name' => 'CITY', 'supported' => true])
+        ->and($autofill['job']['kind'])->toBe('autofill')->and($denied)->toBeTrue();
+});

@@ -1,7 +1,9 @@
 """Installation must never publish a partial or unverified model."""
+import contextlib
 import hashlib
 import importlib.util
 import io
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -45,6 +47,17 @@ class ModelInstallationTest(unittest.TestCase):
             with patch('urllib.request.urlopen', side_effect=AssertionError('unexpected network')):
                 setup.install_model(target, self.spec(b'good model'))
             self.assertEqual(target.read_bytes(), b'good model')
+
+
+class PinnedManifestTest(unittest.TestCase):
+    def test_manifest_pins_the_isnet_model_and_its_apache_license(self):
+        spec = json.loads((ROOT / 'scripts/studio/background-model.json').read_text(encoding='utf-8'))
+        self.assertEqual(spec['name'], 'isnet-general-use')
+        self.assertEqual(spec['license'], 'Apache-2.0')
+        self.assertEqual(spec['bytes'], 178648008)
+        self.assertEqual(spec['sha256'], '60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a')
+        self.assertTrue(spec['url'].startswith('https://github.com/danielgatis/rembg/releases/download/'))
+        self.assertEqual(setup.MODEL.name, 'isnet-general-use.onnx')
 
 
 if __name__ == '__main__':

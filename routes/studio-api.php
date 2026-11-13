@@ -7,6 +7,7 @@ use App\Http\Middleware\RequireApiAbility;
 use Illuminate\Support\Facades\Route;
 
 require __DIR__.'/posts-api.php';
+require __DIR__.'/api.php';
 require __DIR__.'/post-workflow-api.php';
 require __DIR__.'/canva-api.php';
 require __DIR__.'/studio-captions-api.php';
@@ -14,7 +15,7 @@ require __DIR__.'/studio-collab-api.php';
 require __DIR__.'/studio-datasets-api.php';
 
 // The application loads this file with the stateless api middleware, without a second prefix.
-Route::prefix('api/v1')->name('api.')->middleware(['auth:sanctum', 'throttle:120,1'])->group(function () {
+Route::prefix('api/v1')->name('api.')->middleware(['auth:sanctum', 'throttle:api-v1'])->group(function () {
     Route::middleware(RequireApiAbility::class.':designs:read')->group(function () {
         Route::get('brands/{brand}/design-fonts', [StudioFontController::class, 'index'])->name('studio.fonts.index');
         Route::get('brands/{brand}/design-fonts/{font}', [StudioFontController::class, 'show'])->whereNumber('font')->name('studio.fonts.show');
@@ -44,6 +45,8 @@ Route::prefix('api/v1')->name('api.')->middleware(['auth:sanctum', 'throttle:120
         }
         Route::put('brands/{brand}/brand-kit', [StudioApiController::class, 'updateKit'])->name('studio.kit.update');
         Route::post('brands/{brand}/design-folders', [StudioApiController::class, 'storeFolder'])->name('studio.folders.store');
+        Route::patch('design-folders/{folder}', [StudioApiController::class, 'updateFolder'])->whereNumber('folder')->name('studio.folders.update');
+        Route::patch('designs/{design}/folder', [StudioApiController::class, 'moveDesign'])->whereNumber('design')->name('studio.designs.move');
         Route::delete('design-folders/{folder}', [StudioApiController::class, 'destroyFolder'])->whereNumber('folder')->name('studio.folders.destroy');
         Route::post('brands/{brand}/design-assets', [StudioApiController::class, 'attachAsset'])->name('studio.assets.store');
         Route::post('designs/{design}/exports', [StudioApiController::class, 'export'])->name('studio.exports.store');

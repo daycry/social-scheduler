@@ -3,6 +3,7 @@
 use App\Jobs\Studio\ProcessStudioImage;
 use App\Models\Brand;
 use App\Models\MediaAsset;
+use App\Models\Studio\StudioImageJob;
 use App\Models\User;
 use App\Services\Studio\StudioAssets;
 use App\Services\Studio\StudioImages;
@@ -216,4 +217,43 @@ test('Studio image jobs queue failure marks only inflight jobs with a safe error
     $job->forceFill(['status' => 'ready'])->save();
     (new ProcessStudioImage($job->id))->failed(new RuntimeException('private exception'));
     expect($job->fresh()->status)->toBe('ready');
+});
+
+test('Studio image jobs queued before a model change run with the current model, not the saved one', function () {
+    $created = $this->actingAs($this->user)->postJson($this->url, ['media_id' => $this->image->id, 'operation' => 'remove_background'])
+        ->assertAccepted()->json('job.id');
+    // El despliegue cambia de modelo con el trabajo ya encolado: el guardado apunta a un fichero que ya no existe.
+    StudioImageJob::withoutUserScope()->whereKey($created)->update(['model_path' => storage_path('framework/testing/modelo-anterior.onnx'), 'model_sha256' => str_repeat('a', 64)]);
+    $new = storage_path('framework/testing/image-job-test-nuevo.onnx');
+    file_put_contents($new, 'modelo-vigente');
+    config(['studio.images.model_path' => $new, 'studio.images.model_sha256' => hash_file('sha256', $new)]);
+    $seen = [];
+    Process::fake(function ($process) use (&$seen) {
+        $payload = json_decode($process->input, true);
+        $seen = [$payload['model'], $payload['model_sha256']];
+        $image = imagecreatetruecolor(512, 512);
+        imagealphablending($image, false);
+        imagesavealpha($image, true);
+        imagesetpixel($image, 0, 0, imagecolorallocatealpha($image, 0, 0, 0, 127));
+        imagepng($image, $payload['output']);
+        imagedestroy($image);
+
+        return Process::result(output: json_encode(['ok' => true, 'width' => 512, 'height' => 512, 'format' => 'png', 'model_sha256' => $payload['model_sha256']]));
+    });
+    app(StudioImages::class)->process($created);
+
+    expect($seen)->toBe([$new, hash_file('sha256', $new)]);
+    $this->actingAs($this->user)->getJson($this->url.'/'.$created)->assertOk()->assertJsonPath('job.status', 'ready')->assertJsonPath('job.model_sha256', hash_file('sha256', $new));
+    @unlink($new);
+});
+
+test('Studio image jobs fail with a clear error when the current model is not installed', function () {
+    $created = $this->actingAs($this->user)->postJson($this->url, ['media_id' => $this->image->id, 'operation' => 'remove_background'])
+        ->assertAccepted()->json('job.id');
+    config(['studio.images.model_path' => storage_path('framework/testing/no-existe.onnx')]);
+    Process::fake();
+    app(StudioImages::class)->process($created);
+
+    Process::assertNothingRan();
+    $this->actingAs($this->user)->getJson($this->url.'/'.$created)->assertOk()->assertJsonPath('job.status', 'failed')->assertJsonPath('job.error_code', 'model_unavailable');
 });

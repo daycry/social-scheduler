@@ -3,7 +3,8 @@ import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import InputLabel from '@/Components/InputLabel.vue';
 import { useComposerContext } from '@/Composables/useComposer';
-import { countChars, padForInsert } from '@/Composables/textCount';
+import { padForInsert } from '@/Composables/textCount';
+import { countText } from '@/Composables/textLength';
 
 /**
  * Primer comentario de un destino (C-01b): se publica como comentario propio justo después de la publicación. Solo en los tipos que
@@ -11,11 +12,12 @@ import { countChars, padForInsert } from '@/Composables/textCount';
  * En YouTube necesita el permiso `youtube.force-ssl`: sin él se desactiva y se pide reconectar el canal.
  */
 const props = defineProps({ account: { type: Object, required: true } });
-const { brand, editable, targetFor, firstCommentMax, registerField, unregisterField } = useComposerContext();
+const { brand, editable, targetFor, firstCommentMax, limits, registerField, unregisterField } = useComposerContext();
 
 const target = computed(() => targetFor(props.account.id));
 const max = computed(() => (target.value ? (firstCommentMax.value[target.value.content_type] ?? null) : null));
-const length = computed(() => countChars(target.value?.first_comment ?? ''));
+// Cuenta como el texto de esa red (grafemas en Bluesky, regla de Threads), igual que el servidor.
+const length = computed(() => countText(target.value?.first_comment ?? '', limits.value?.[target.value?.content_type]?.count));
 const over = computed(() => max.value !== null && length.value > max.value);
 const blocked = computed(() => props.account.can_comment === false);
 const area = ref(null);

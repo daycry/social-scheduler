@@ -138,7 +138,7 @@ test('ImportRemoteMedia: un tipo no admitido en la cabecera se rechaza antes de 
     $asset = startImport('https://cdn.example.com/x.bin');
 
     expect($asset->status)->toBe(MediaAsset::STATUS_INVALID)->and($asset->error)->toContain('no admitido');
-})->with(['text/html', 'application/pdf', 'image/svg+xml', 'application/octet-stream', 'image/gif', '']);
+})->with(['text/html', 'image/svg+xml', 'application/octet-stream', 'image/gif', '']);
 
 test('ImportRemoteMedia: un error 404 deja el asset invalido con el motivo', function () {
     Http::fake(['cdn.example.com/*' => Http::response('nada', 404)]);

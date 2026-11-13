@@ -10,6 +10,7 @@ use App\Jobs\RefreshPostMetrics;
 use App\Jobs\RefreshTokens;
 use App\Jobs\SyncInboxComments;
 use App\Support\HealthCheck;
+use App\Support\Retention;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
@@ -59,6 +60,9 @@ Schedule::command('posts:purge-trash')->dailyAt('04:30')->name('posts-purge-tras
 Schedule::job(new CollectCompetitorSnapshots)->dailyAt((string) config('social.competitors.daily_at', '13:00'))->name('collect-competitor-snapshots')->withoutOverlapping();
 Schedule::job(new CollectCompetitorPosts)->dailyAt((string) config('social.competitors.posts_at', '13:30'))->name('collect-competitor-posts')->withoutOverlapping();
 
+// Caducidad de conexiones (T-23): avisa N dias antes (Meta 90 dias, LinkedIn sin renovacion); una vez por umbral y fecha.
+Schedule::command('connections:notify-expiry')->dailyAt((string) config('social.expiry_notice_at', '09:00'))->name('notify-connection-expiry')->withoutOverlapping();
+
 // Autolistas (PA-09): genera las publicaciones programadas de los proximos dias (idempotente). Cola `poll`.
 Schedule::job(new GenerateAutolistPosts)->dailyAt((string) config('social.autolists.daily_at', '02:00'))->name('generate-autolist-posts')->withoutOverlapping();
 
@@ -70,3 +74,11 @@ Schedule::call(fn () => app(GenerateSeriesOccurrences::class)())->hourly()->name
 
 // Servidor OAuth del MCP (CA-31): clientes sin token vivo en 30 dias y codigos caducados.
 Schedule::command('mcp:oauth-prune')->dailyAt('04:40')->name('mcp-oauth-prune')->withoutOverlapping();
+
+// Retencion (A-08, config/retention.php): poda por lotes las tablas con MassPrunable (auditoria, intentos, trabajos del estudio y Canva,
+// revisiones del estudio) y las notificaciones leidas antiguas.
+Schedule::command('model:prune')->dailyAt('04:50')->name('model-prune')->withoutOverlapping();
+Schedule::call(fn () => Retention::pruneNotifications())->dailyAt('04:55')->name('notifications-prune')->withoutOverlapping();
+
+// Sonda de colas (A-09): un job de prueba por cola; si ningun worker lo coge, `app:health` ve la cola atrasada.
+Schedule::command('app:queue-probe')->everyFifteenMinutes()->name('queue-probe')->withoutOverlapping();

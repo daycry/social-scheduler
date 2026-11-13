@@ -33,7 +33,7 @@ const download = async (page: Page, path: string) => {
 };
 const layer = (page: Page, index: number) => page.getByTestId('studio-layer').nth(index).getByRole('button').first();
 
-test('Studio: whiteboard with a table, glued connectors and free drawing persists and exports PNG, SVG and PDF', async ({ page }, info) => {
+test('Studio: whiteboard with a table, glued connectors and free drawing persists and exports PNG, SVG and PDF', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `studio-board-${stamp()}-${info.project.name}`);
@@ -260,7 +260,7 @@ test('Studio: a chart bound to a saved table is inserted, saved, reopened and ex
     } finally { cleanComposerBrands(user.email); }
 });
 
-test('Studio: a chart bound to a saved table is exported on the server as SVG, PNG and PDF', async ({ page, browser }, info) => {
+test('Studio: a chart bound to a saved table is exported on the server as SVG, PNG and PDF', { tag: '@responsive' }, async ({ page, browser }, info) => {
     test.setTimeout(180_000);
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
@@ -330,7 +330,7 @@ test('Studio: a chart bound to a saved table is exported on the server as SVG, P
         const foreign = (await page.request.get(`/brands/${otherBrand.id}/studio/datasets/${dataset.data.dataset.id}/table`, { headers: { Accept: 'application/json' } })).status();
         expect(foreign).toBe(404);
         // Actor boundary: another user cannot queue a render of this design nor read its export.
-        const context = await browser.newContext({ baseURL: 'http://localhost:8080' });
+        const context = await browser.newContext({ baseURL: info.project.use.baseURL });
         try {
             const actor = await context.newPage();
             await loginAs(actor, e2eUser(info.project.name === 'desktop' ? 'mobile' : 'desktop'));

@@ -55,23 +55,30 @@ Los tests usan conectores simulados: no tocan las redes. Estructura de `tests/Fe
 
 ## Pruebas E2E (Playwright)
 
-La batería está en `tests/e2e` (proyectos `desktop`, `mobile` 375 px y `mobile-360`). Necesita `npm run build` y las credenciales del usuario demo (`DEMO_USER_*` en `.env`, sembrado con `php artisan db:seed --class=DemoSeeder`).
+La batería está en `tests/e2e` (proyectos `desktop`, `mobile` 375 px y `mobile-360`; los dos móviles solo ejecutan lo etiquetado `@responsive`, ver [testing](testing.md#e2e-en-paralelo-workers-shard-y-responsive)). Necesita `npm run build` y las credenciales del usuario demo (`DEMO_USER_*` en `.env`, sembrado con `php artisan db:seed --class=DemoSeeder`).
 
 ```bash
-npm run test:e2e                                  # arranca el servidor de pruebas y corre los 3 proyectos
+npm run test:e2e                                  # arranca un servidor por worker (2 por defecto) y corre los 3 proyectos
+E2E_WORKERS=4 npm run test:e2e                    # más workers (≈ 1,5 GB de RAM libre por worker)
+npx playwright test --shard=1/4                   # un cuarto de los ficheros (CI)
 npx playwright test tests/e2e/security.spec.ts    # solo 2FA y passkeys
-E2E_NO_SERVER=1 npm run test:e2e                  # el servidor ya está en marcha (ver abajo)
+E2E_PORT=18080 npm run test:e2e                   # fija el puerto del servidor del worker 0 (el resto, libres)
+npm run test:e2e:roadmap                          # la batería de T-43 (localhost:8081, E2E_ROADMAP_PORT)
 E2E_JSON_REPORT=ruta/results.json npm run test:e2e   # además escribe el informe json
 npx tsc --noEmit -p .                             # tipos de tests/e2e
+npm run test:unit                                 # tests de Node sin navegador
+npm run test:browser                              # tests de Node con Chromium
 ```
 
-**Servidor de pruebas.** Playwright lo lanza solo (`webServer` de `playwright.config.ts`) en `http://localhost:8080` con variables del proceso, sin tocar el `.env`:
+Los tests de Node y la purga de `storage/framework/testing` (se ejecuta sola al acabar la batería E2E; `E2E_PURGE=0` la desactiva) están en [testing](testing.md).
+
+**Servidor de pruebas.** Playwright lo lanza solo (`webServer` de `playwright.config.ts`) en `http://localhost:<puerto>` con variables del proceso, sin tocar el `.env`. Hay **un servidor, una SQLite y un `runRoot` (`run-general-<uuid>`) por worker** de Playwright (`E2E_WORKERS`, 2 por defecto, de 1 a 16; ver [testing](testing.md#e2e-en-paralelo-workers-shard-y-responsive)). El puerto del worker 0 es `E2E_PORT` si lo defines (entero entre 1024 y 65535); los demás, y el del worker 0 si no defines nada, son puertos libres que elige el SO al arrancar (ya no se intenta `8080`: dos ejecuciones simultáneas se lo disputaban); se fijan una vez (`E2E_SLOTS`) y los heredan los workers, `global-setup` comprueba antes de los tests que cada servidor es el de SU ejecución y SU slot, y cada worker lo vuelve a comprobar al arrancar. `APP_URL` y `WEBAUTHN_ORIGINS` salen de ese puerto; el RP ID es `localhost` siempre (no lleva puerto). Así la batería no falla porque un puerto esté ocupado:
 
 | Variable | Valor E2E | Por qué |
 |---|---|---|
-| `APP_URL` | `http://localhost:8080` | `McpGuard` acepta el `Origin` del navegador si es `APP_URL` (el E2E de API keys hace «Probar conexión») |
+| `APP_URL` | `http://localhost:<puerto>` | `McpGuard` acepta el `Origin` del navegador si es `APP_URL` (el E2E de API keys hace «Probar conexión») |
 | `WEBAUTHN_RP_ID` | `localhost` | WebAuthn no admite una IP como RP ID: por eso `localhost` y no `127.0.0.1` |
-| `WEBAUTHN_ORIGINS` | `http://localhost:8080` | origen exacto que firma el autenticador |
+| `WEBAUTHN_ORIGINS` | `http://localhost:<puerto>` | origen exacto que firma el autenticador |
 | `SESSION_SECURE_COOKIE` | `false` | la cookie de sesión viaja por http |
 | `TRUSTED_PROXIES` | vacío | sin proxies de confianza: anula el `*` que el `.env` pone para ngrok |
 | `MCP_OAUTH_REGISTER_GLOBAL_PER_HOUR` | `100000` | sube el tope GLOBAL de registros DCR del servidor E2E; la batería ya no lo reinicia |
@@ -80,7 +87,14 @@ npx tsc --noEmit -p .                             # tipos de tests/e2e
 
 **No corras la batería mientras pruebas con tráfico real por ngrok:** los tests reinician los contadores de DCR y `/oauth/token` de `127.0.0.1` y `::1` (el tráfico de ngrok puede llegar con esa IP), y borran solo la auditoría `oauth.*` sin usuario ligada a clientes `e2e-%`.
 
-`php artisan serve` descarta las variables del entorno cuando existe `.env` salvo con `--no-reload`, que es lo que usa el `webServer`. Para arrancarlo a mano (y usar `E2E_NO_SERVER=1`), con las mismas variables:
+**Ya no se puede apuntar la batería a un servidor arrancado a mano.** El arnés general (`tests/e2e/isolated/`) exige su propio servidor desechable: `E2E_NO_SERVER` y un `E2E_BASE_URL` distinto del suyo hacen que `runtime.ts` falle, y `global-setup` comprueba que el servidor que responde en el puerto es el de su ejecución. Para depurar un spec usa el servidor gestionado, con un puerto fijo si lo necesitas:
+
+```bash
+E2E_WORKERS=1 E2E_PORT=18080 npx playwright test tests/e2e/security.spec.ts --workers=1 --project=desktop --headed
+E2E_PURGE=0 npm run test:e2e   # sin purgar ejecuciones antiguas al terminar
+```
+
+Si solo quieres explorar a mano la app con el entorno E2E (sin Playwright), `php artisan serve` descarta las variables del entorno cuando existe `.env` salvo con `--no-reload`; arráncalo con las mismas variables, en el puerto que quieras (no lo usa la batería):
 
 ```bash
 MCP_OAUTH_REGISTER_GLOBAL_PER_HOUR=100000 APP_ENV=e2e GOOGLE_LOGIN_CLIENT_ID=e2e-google-id GOOGLE_LOGIN_CLIENT_SECRET=e2e-google-secret META_LOGIN_APP_ID=e2e-meta-id META_LOGIN_APP_SECRET=e2e-meta-secret APP_URL=http://localhost:8080 WEBAUTHN_RP_ID=localhost WEBAUTHN_ORIGINS=http://localhost:8080 SESSION_SECURE_COOKIE=false TRUSTED_PROXIES= php artisan serve --host=localhost --port=8080 --no-reload

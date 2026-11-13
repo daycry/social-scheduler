@@ -43,7 +43,7 @@ async function clickNav(page: Page, name: string, exact = false) {
     await page.getByRole('link', { name, exact }).and(page.locator(':visible')).first().click();
 }
 
-test('E2E-02 · vistas del calendario: guardar, aplicar desde otro filtro, renombrar y borrar', async ({ page }) => {
+test('E2E-02 · vistas del calendario: guardar, aplicar desde otro filtro, renombrar y borrar', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto('/calendar?view=list');
     await settle(page);
@@ -103,7 +103,7 @@ test('E2E-02 · vistas del calendario: guardar, aplicar desde otro filtro, renom
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-02 · la vista por defecto se aplica al abrir el calendario', async ({ page }) => {
+test('E2E-02 · la vista por defecto se aplica al abrir el calendario', { tag: '@responsive' }, async ({ page }) => {
     await page.goto('/calendar?view=list');
     await settle(page);
     await select(page, 'Red').selectOption('facebook');
@@ -127,7 +127,7 @@ test('E2E-02 · la vista por defecto se aplica al abrir el calendario', async ({
     await expectNoOverflow(page);
 });
 
-test('E2E-02 · la vista por defecto también se aplica al entrar por el menú (brand_id y view en el enlace)', async ({ page }) => {
+test('E2E-02 · la vista por defecto también se aplica al entrar por el menú (brand_id y view en el enlace)', { tag: '@responsive' }, async ({ page }) => {
     await page.goto('/calendar?view=list');
     await settle(page);
     await select(page, 'Red').selectOption('facebook');

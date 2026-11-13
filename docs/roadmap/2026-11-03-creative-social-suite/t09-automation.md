@@ -42,7 +42,7 @@ Las cinco operaciones requieren `revision` del origen. La web guarda primero los
 | Generar variantes | `POST /variants` | `201`, `{designs}` independientes. |
 | Aplicar kit | `POST /apply-kit` | `200`, `{design}` actualizado. |
 
-Los endpoints web equivalentes usan `/studio/designs/{design}`. Las respuestas existentes de API mantienen sus contratos; estas nuevas operaciones utilizan los envoltorios indicados. Un conflicto devuelve `409`, una entrada inválida `422`, y un diseño ajeno no se expone. El [OpenAPI](../../api/creative-suite.openapi.yaml) es la referencia de campos y límites.
+Los endpoints web equivalentes usan `/studio/designs/{design}`. Las respuestas existentes de API mantienen sus contratos; estas nuevas operaciones utilizan los envoltorios indicados. Un conflicto devuelve `409`, una entrada inválida `422`, y un diseño ajeno no se expone. El [OpenAPI](../../api/openapi.yaml) es la referencia de campos y límites.
 
 ## Verificación del cierre de T-09
 

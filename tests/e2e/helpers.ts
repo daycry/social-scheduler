@@ -5,7 +5,10 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { authFile, usersFile, startFile, fakeSocialFile, environment } from './isolated/runtime';
+import { authFile, usersFile, startFile, fakeSocialFile, environment, slots, slotIndex, type Slot } from './isolated/runtime';
+
+/** Slot (servidor + SQLite + runRoot) de ESTE proceso: el de su worker, o el 0 en el proceso principal. */
+const currentSlot: Slot = slots[slotIndex];
 
 export const READONLY = { email: 'e2e-sec-readonly@example.test', password: 'E2e-Readonly-Disposable-Aa1!' };
 export const AUTH_FILE = authFile;
@@ -61,9 +64,12 @@ export function watch(page: Page): Watch {
     return w;
 }
 
-/** Desbordamiento horizontal: el documento no debe ser más ancho que la ventana. */
+/**
+ * Desbordamiento horizontal: el documento no debe ser más ancho que la ventana. Se mide contra `clientWidth` y no contra
+ * `innerWidth`: en emulación móvil, un desbordamiento ensancha el viewport de diseño y `innerWidth` crece con él (medía siempre 0).
+ */
 export async function overflowX(page: Page): Promise<number> {
-    return page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - window.innerWidth);
+    return page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - document.documentElement.clientWidth);
 }
 
 export async function expectNoOverflow(page: Page) {
@@ -82,6 +88,36 @@ export async function login(page: Page, email = READONLY.email, password = READO
 export async function settle(page: Page) {
     await page.waitForLoadState('networkidle');
 }
+
+/**
+ * Espera a que terminen las animaciones y transiciones CSS en curso (por ejemplo la de un diálogo o el color de un botón tras mover el ratón),
+ * en vez de dormir un tiempo fijo. Se resuelve por el evento `finished` de cada animación; una animación cancelada cuenta como terminada.
+ */
+export async function animationsDone(page: Page) {
+    await page.evaluate(async () => {
+        // Dos fotogramas: una transición de Vue/CSS empieza en el siguiente repintado y aún no aparece en getAnimations().
+        await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+        for (let round = 0; round < 5; round++) {
+            // Las animaciones infinitas (spinners) nunca terminan: no son una transición que esperar.
+            const running = document.getAnimations().filter((a) => a.effect?.getComputedTiming().endTime !== Infinity);
+            if (running.length === 0) return;
+            await Promise.all(running.map((a) => a.finished.catch(() => undefined)));
+        }
+    });
+}
+
+/**
+ * Única excepción a "sin waitForTimeout" (la salvaguarda de tests/frontend/test-tooling.test.mjs solo admite este fichero).
+ * Para aserciones NEGATIVAS en el tiempo ("no se vuelve a enviar", "el vídeo sigue en pausa", "el sondeo se detiene"): no hay evento al que
+ * esperar porque lo que se comprueba es que NO ocurre nada durante una ventana. Dar `ms` mayor que el plazo máximo del comportamiento vigilado
+ * y decir en el sitio de la llamada cuál es.
+ */
+export async function quietFor(page: Page, ms: number) {
+    await page.waitForTimeout(ms);
+}
+
+/** Sección «Imágenes y vídeos» del compositor: la lista de media de la publicación, sin la previsualización por red que repite los nombres. */
+export const postMediaSection = (page: Page) => page.locator('section').filter({ has: page.getByRole('heading', { name: 'Imágenes y vídeos' }) });
 
 export const stamp = () => Date.now().toString(36);
 
@@ -111,10 +147,10 @@ export type E2eUser = { email: string; password: string; name: string };
 export const e2eEmail = (project: string) => `e2e-sec-${project}@example.test`;
 
 /** Ejecuta PHP en el contexto de la app (tinker) y devuelve su salida. Solo para preparar/limpiar datos `e2e-`. */
-export function artisan(code: string): string {
+export function artisan(code: string, env: Record<string, string> = environment): string {
     let out: string;
     try {
-        out = execFileSync('php', ['tests/e2e/isolated/cli.php', 'tinker', code], { env: environment, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+        out = execFileSync('php', ['tests/e2e/isolated/cli.php', 'tinker', code], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
     } catch (error) {
         const failure = error as { stdout?: string; stderr?: string };
         throw new Error(`Disposable E2E PHP failed: ${failure.stdout ?? ''}\n${failure.stderr ?? ''}`);
@@ -136,26 +172,27 @@ const cleanUserPhp = (email: string) =>
     `foreach (['127.0.0.1', '::1'] as $ip) { Illuminate\\Support\\Facades\\RateLimiter::clear(Illuminate\\Support\\Str::lower(${q(email)}) . '|' . $ip); }`;
 
 /** Crea los usuarios de seguridad y guarda sus credenciales en el directorio auth del run desechable. */
-export function createE2eUsers(): Record<string, E2eUser> {
+export function createE2eUsers(slot: Slot = currentSlot): Record<string, E2eUser> {
     const users: Record<string, E2eUser> = {};
     for (const project of E2E_PROJECTS) {
         const user = { email: e2eEmail(project), name: `e2e Seguridad ${project}`, password: `E2e-${crypto.randomBytes(9).toString('hex')}-Aa1!` };
         artisan(
             `$u = App\\Models\\User::firstOrNew(['email' => ${q(user.email)}]); ` +
                 `$u->forceFill(['name' => ${q(user.name)}, 'password' => Illuminate\\Support\\Facades\\Hash::make(${q(user.password)}), 'email_verified_at' => now()])->save();`,
+            slot.environment,
         );
-        resetSecurity(user.email);
+        resetSecurity(user.email, slot.environment);
         users[project] = user;
     }
-    fs.mkdirSync(path.dirname(E2E_USERS_FILE), { recursive: true });
-    fs.writeFileSync(E2E_USERS_FILE, JSON.stringify(users));
-    fs.writeFileSync(E2E_START_FILE, new Date().toISOString().slice(0, 19).replace('T', ' '));
-    clearFakeSocial();
+    fs.mkdirSync(path.dirname(slot.usersFile), { recursive: true });
+    fs.writeFileSync(slot.usersFile, JSON.stringify(users));
+    fs.writeFileSync(slot.startFile, new Date().toISOString().slice(0, 19).replace('T', ' '));
+    clearFakeSocial(slot);
     return users;
 }
 
 /** Borra los usuarios E2E (con ellos se van sus passkeys, marcas y sesiones asociadas por cascada). */
-export function deleteE2eUsers() {
+export function deleteE2eUsers(slot: Slot = currentSlot) {
     // La auditoria pone user_id a NULL al borrar el usuario: sus filas se borran antes para no dejar huerfanas.
     artisan(
         `$ids = App\\Models\\User::whereIn('email', [${[...E2E_PROJECTS.map(e2eEmail), READONLY.email].map(q).join(', ')}])->pluck('id'); ` +
@@ -163,6 +200,7 @@ export function deleteE2eUsers() {
             // Los tokens de Sanctum no tienen FK al usuario: se borran a mano (keys manuales y tokens OAuth de los tests).
             `Illuminate\\Support\\Facades\\DB::table('personal_access_tokens')->where('tokenable_type', App\\Models\\User::class)->whereIn('tokenable_id', $ids)->delete(); ` +
             `App\\Models\\User::whereIn('id', $ids)->get()->each->delete();`,
+        slot.environment,
     );
     // Auditoría sin usuario (user_id NULL): SOLO se borra la identificable como e2e, a partir de los ids de los clientes `e2e-%`
     // (registros DCR: `detail` = `client_id=<id>`), y se hace ANTES de borrar los clientes. Los rechazos del login social
@@ -171,11 +209,12 @@ export function deleteE2eUsers() {
     artisan(
         `$cid = App\\Models\\OAuthClient::where('name', 'like', 'e2e-%')->pluck('id'); ` +
             `Illuminate\\Support\\Facades\\DB::table('audit_logs')->whereNull('user_id')->where('action', 'like', 'oauth.%')->where(fn ($w) => $cid->each(fn ($id) => $w->orWhere('detail', 'like', 'client_id=' . $id . '%')))->whereIn('ip', ['127.0.0.1', '::1'])->when($cid->isEmpty(), fn ($q) => $q->whereRaw('1 = 0'))->delete();`,
+        slot.environment,
     );
-    deleteE2eOAuthClients();
-    fs.rmSync(E2E_START_FILE, { force: true });
-    clearFakeSocial();
-    fs.rmSync(E2E_USERS_FILE, { force: true });
+    deleteE2eOAuthClients(slot.environment);
+    fs.rmSync(slot.startFile, { force: true });
+    clearFakeSocial(slot);
+    fs.rmSync(slot.usersFile, { force: true });
 }
 
 export function e2eUser(project: string): E2eUser {
@@ -183,8 +222,17 @@ export function e2eUser(project: string): E2eUser {
 }
 
 /** Deja al usuario sin 2FA ni passkeys y sin bloqueos del reto (estado inicial de cada test). */
-export function resetSecurity(email: string) {
-    artisan(cleanUserPhp(email));
+export function resetSecurity(email: string, env: Record<string, string> = environment) {
+    artisan(cleanUserPhp(email), env);
+}
+
+/**
+ * Vacia los contadores de ritmo por ruta del usuario (`config/rate_limits.php`: uno por ruta y usuario). Cada worker tiene su propio limitador
+ * (cache de archivos del slot) pero sus tests reutilizan al mismo usuario E2E: sin esto, los de unos specs gastan el cupo de otros y
+ * aparece un 429 ajeno al test. Solo toca el servidor aislado; el limite de produccion no cambia.
+ */
+export function clearUserThrottle(email: string) {
+    artisan(String.raw`$u = App\Models\User::where('email', ${q(email)})->first(); if ($u) { App\Support\RouteLimits::forget($u->id); }`);
 }
 
 /** Libera el antirreplay del TOTP (`two_factor_last_used_at`) y el bloqueo del reto: para flujos que no prueban eso. */
@@ -344,8 +392,8 @@ export function setFakeSocial(provider: 'google' | 'facebook', identity: FakeIde
     fs.writeFileSync(FAKE_SOCIAL_FILE, JSON.stringify(all));
 }
 
-export function clearFakeSocial() {
-    fs.rmSync(FAKE_SOCIAL_FILE, { force: true });
+export function clearFakeSocial(slot: Slot = currentSlot) {
+    fs.rmSync(slot.fakeSocialFile, { force: true });
 }
 
 /** El callback social va limitado a 20/min por IP: se libera para que la batería no dependa del ritmo (la clave es el md5 del limitador). */
@@ -391,8 +439,8 @@ export function createExtraE2eUser(label: string): string {
 export const OAUTH_REDIRECT = 'http://127.0.0.1:53111/callback';
 
 /** Borra los clientes OAuth `e2e-*` (con ellos se van sus códigos; los tokens quedan sin cliente y se borran con el usuario). */
-export function deleteE2eOAuthClients() {
-    artisan(`App\\Models\\OAuthClient::where('name', 'like', 'e2e-%')->get()->each->delete();`);
+export function deleteE2eOAuthClients(env: Record<string, string> = environment) {
+    artisan(`App\\Models\\OAuthClient::where('name', 'like', 'e2e-%')->get()->each->delete();`, env);
 }
 
 /**
@@ -580,7 +628,7 @@ export async function axeSeriousCritical(page: Page, label: string) {
     await settle(page);
     await expect(page.locator('#nprogress')).toHaveCount(0); // barra transitoria de Inertia
     await page.mouse.move(0, 0);
-    await page.waitForTimeout(400); // fin de las transiciones de color
+    await animationsDone(page); // fin de las transiciones de color
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     const bad = results.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
     const detail = bad.map((v) => `${v.id} [${v.impact}] ${v.help}: ${v.nodes.slice(0, 3).map((n) => `${n.target.join(' ')} ${n.html.slice(0, 200)}`).join(' | ')}`).join(' // ');
@@ -845,5 +893,15 @@ export function seedCompetitors(brandId: number) {
             String.raw`$c = new App\Models\Competitor(['username' => $u, 'name' => 'E2E ' . $u]); $c->user_id = $b->user_id; $c->brand_id = $b->id; $c->save(); ` +
             String.raw`foreach ([[20, $a], [1, $z]] as [$ago, $f]) { App\Models\CompetitorSnapshot::withoutUserScope()->create(['user_id' => $b->user_id, 'competitor_id' => $c->id, 'date' => now('UTC')->subDays($ago)->toDateString(), 'followers_count' => $f, 'media_count' => 10]); } ` +
             String.raw`$p = new App\Models\CompetitorPost(['competitor_id' => $c->id, 'external_id' => $u . '-1', 'caption' => $caption, 'likes_count' => $likes, 'comments_count' => $comments, 'posted_at' => now()->subDays(3), 'permalink' => 'https://www.instagram.com/p/' . $u . '/']); $p->user_id = $b->user_id; $p->save(); }`,
+    );
+}
+
+/** T-25 · un competidor de Bluesky ya «recogido» (snapshots y una publicación), sin llamar a la red. */
+export function seedBlueskyCompetitor(brandId: number) {
+    artisan(
+        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
+            String.raw`$c = new App\Models\Competitor(['network' => 'bluesky', 'username' => 'rival_bsky.bsky.social', 'external_id' => 'did:plc:e2erivalbsky', 'name' => 'E2E Rival Bluesky']); $c->user_id = $b->user_id; $c->brand_id = $b->id; $c->save(); ` +
+            String.raw`foreach ([[20, 400], [1, 520]] as [$ago, $f]) { App\Models\CompetitorSnapshot::withoutUserScope()->create(['user_id' => $b->user_id, 'competitor_id' => $c->id, 'date' => now('UTC')->subDays($ago)->toDateString(), 'followers_count' => $f, 'media_count' => 12]); } ` +
+            String.raw`$p = new App\Models\CompetitorPost(['competitor_id' => $c->id, 'external_id' => '3ke2epost', 'caption' => 'e2e post bluesky', 'likes_count' => 9, 'comments_count' => 2, 'posted_at' => now()->subDays(2), 'permalink' => 'https://bsky.app/profile/rival_bsky.bsky.social/post/3ke2epost']); $p->user_id = $b->user_id; $p->save();`,
     );
 }

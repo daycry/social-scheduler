@@ -213,7 +213,6 @@ class StudioAvFiles
             if (is_resource($stream)) {
                 fclose($stream);
             }
-            $reader->close();
             $safe = $this->path($workspace, $relative.'.part', true);
             if (is_file($safe) && ! @unlink($safe)) {
                 throw new RuntimeException('La limpieza de la copia privada queda pendiente.');

@@ -30,7 +30,25 @@ class MediaProbe
             return app(StudioAudioProbe::class)->inspect($asset);
         }
 
+        if ($asset->isPdf()) {
+            return $this->pdf($asset);
+        }
+
         return $asset->isVideo() ? $this->video($asset) : $this->image($asset);
+    }
+
+    /** Un PDF se reconoce por sus bytes (`%PDF-` al principio), no por la extension ni por lo que declare quien lo sirve. */
+    private function pdf(MediaAsset $asset): array
+    {
+        $stream = $this->storage->disk()->readStream($asset->path);
+        $head = is_resource($stream) ? (string) fread($stream, 5) : '';
+        is_resource($stream) && fclose($stream);
+
+        if ($head !== '%PDF-') {
+            throw new RuntimeException('El fichero no es un PDF válido.');
+        }
+
+        return ['width' => null, 'height' => null, 'duration' => null, 'fps' => null, 'codec' => null, 'audio_codec' => null, 'mime' => 'application/pdf'];
     }
 
     private function image(MediaAsset $asset): array

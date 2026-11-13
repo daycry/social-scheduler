@@ -105,6 +105,32 @@ return [
             'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 1024 * $mb, 'min_duration' => 3, 'max_duration' => 90, 'min_fps' => 24, 'max_fps' => 60, 'min_width' => 540, 'min_height' => 960, 'aspect' => ['min' => 0.5, 'max' => 0.6]],
         ],
 
+        // Varias fotos en una publicacion: cada foto se sube con `published=false` y se publican juntas con `attached_media` en `/feed`.
+        // El tope de 10 fotos es conservador y SIN VERIFICAR en la documentacion oficial (que no lo declara).
+        'facebook_photos' => [
+            'label' => 'una publicacion de varias fotos de Facebook',
+            'media' => ['min' => 2, 'max' => 10, 'kinds' => ['image']],
+            'text' => ['max' => 63206, 'required' => false],
+            'first_comment' => ['max' => 8000],
+            'image' => ['mimes' => ['image/jpeg', 'image/png', 'image/webp'], 'max_bytes' => 10 * $mb],
+        ],
+        // Historias de Pagina (`/photo_stories` y `/video_stories`): sin texto ni primer comentario desde la API. Los limites son SIN VERIFICAR
+        // (la guia de Page Stories no se pudo leer): se usan los mismos que las historias de Instagram, mas conservadores que los de un reel.
+        'facebook_story_photo' => [
+            'label' => 'una historia de Facebook',
+            'media' => ['min' => 1, 'max' => 1, 'kinds' => ['image', 'video']],
+            'text' => ['max' => 2200, 'required' => false],
+            'image' => ['mimes' => ['image/jpeg', 'image/png'], 'max_bytes' => 8 * $mb, 'min_width' => 320, 'aspect' => ['min' => 0.1, 'max' => 10]],
+            'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 100 * $mb, 'min_duration' => 3, 'max_duration' => 60, 'min_fps' => 23, 'max_fps' => 60, 'aspect' => ['min' => 0.1, 'max' => 10]],
+        ],
+        'facebook_story_video' => [
+            'label' => 'una historia de Facebook',
+            'media' => ['min' => 1, 'max' => 1, 'kinds' => ['image', 'video']],
+            'text' => ['max' => 2200, 'required' => false],
+            'image' => ['mimes' => ['image/jpeg', 'image/png'], 'max_bytes' => 8 * $mb, 'min_width' => 320, 'aspect' => ['min' => 0.1, 'max' => 10]],
+            'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 100 * $mb, 'min_duration' => 3, 'max_duration' => 60, 'min_fps' => 23, 'max_fps' => 60, 'aspect' => ['min' => 0.1, 'max' => 10]],
+        ],
+
         // ---------------------------------------------------------------- YouTube
         'youtube_video' => [
             'label' => 'un video de YouTube',
@@ -146,12 +172,14 @@ return [
             'label' => 'una publicacion de Bluesky',
             'media' => ['min' => 0, 'max' => 4, 'kinds' => ['image']],
             'text' => ['max' => 300, 'max_bytes' => 3000, 'count' => 'graphemes', 'required' => false, 'required_without_media' => true],
+            'first_comment' => ['max' => 300, 'max_bytes' => 3000, 'count' => 'graphemes'], // respuesta propia al post (`reply{root,parent}`), mismo limite y conteo que el texto
             'image' => ['mimes' => ['image/jpeg', 'image/png', 'image/webp'], 'recompress_to_config' => 'social.bluesky.image_max_bytes'],
         ],
         'bluesky_video' => [
             'label' => 'un video de Bluesky',
             'media' => ['min' => 1, 'max' => 1, 'kinds' => ['video']],
             'text' => ['max' => 300, 'max_bytes' => 3000, 'count' => 'graphemes', 'required' => false],
+            'first_comment' => ['max' => 300, 'max_bytes' => 3000, 'count' => 'graphemes'],
             // MP4; hasta 3 min (limite de Bluesky; getUploadLimits puede ser menor y se comprueba al publicar).
             'video' => [
                 'mimes' => ['video/mp4'],
@@ -163,18 +191,20 @@ return [
 
         // ---------------------------------------------------------------- Threads
         // Verificado en la documentacion de Meta el 2026-10-27 (T-54, docs/referencia/decisiones-por-red.md): 500 caracteres y cada emoji
-        // cuenta sus bytes UTF-8 (`count` => threads). El carrusel admite de 2 a 20 elementos, imagenes y videos mezclados. Sin
-        // `first_comment` (responder exige `threads_manage_replies`, que no se pide) ni `max_hashtags` (Threads solo admite UNA etiqueta
+        // cuenta sus bytes UTF-8 (`count` => threads). El carrusel admite de 2 a 20 elementos, imagenes y videos mezclados. El primer
+        // comentario es una respuesta propia (`threads_manage_replies`, ya pedido). Sin `max_hashtags` (Threads solo admite UNA etiqueta
         // de tema por post, la primera valida; no bloquea).
         'threads_text' => [
             'label' => 'una publicacion de texto de Threads',
             'media' => ['min' => 0, 'max' => 0, 'kinds' => []],
             'text' => ['max' => 500, 'count' => 'threads', 'required' => true, 'advise_hashtags' => 1],
+            'first_comment' => ['max' => 500, 'count' => 'threads'], // respuesta propia (`reply_to_id`); exige threads_manage_replies
         ],
         'threads_image' => [
             'label' => 'una imagen de Threads',
             'media' => ['min' => 1, 'max' => 1, 'kinds' => ['image']],
             'text' => ['max' => 500, 'count' => 'threads', 'required' => false, 'advise_hashtags' => 1],
+            'first_comment' => ['max' => 500, 'count' => 'threads'], // respuesta propia (`reply_to_id`); exige threads_manage_replies
             // JPEG y PNG, 8 MB, relacion hasta 10:1; de 320 a 1440 px de ancho (la red reescala).
             'image' => ['mimes' => ['image/jpeg', 'image/png'], 'max_bytes' => 8 * $mb, 'aspect' => ['min' => 0.1, 'max' => 10]],
         ],
@@ -182,6 +212,7 @@ return [
             'label' => 'un video de Threads',
             'media' => ['min' => 1, 'max' => 1, 'kinds' => ['video']],
             'text' => ['max' => 500, 'count' => 'threads', 'required' => false, 'advise_hashtags' => 1],
+            'first_comment' => ['max' => 500, 'count' => 'threads'], // respuesta propia (`reply_to_id`); exige threads_manage_replies
             'video' => [
                 'mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 1024 * $mb, 'min_duration' => 0.1, 'max_duration' => 300,
                 'min_fps' => 23, 'max_fps' => 60, 'max_width' => 1920, 'aspect' => ['min' => 0.01, 'max' => 10], 'codecs' => ['h264', 'hevc'],
@@ -191,6 +222,7 @@ return [
             'label' => 'un carrusel de Threads',
             'media' => ['min' => 2, 'max' => 20, 'kinds' => ['image', 'video']],
             'text' => ['max' => 500, 'count' => 'threads', 'required' => false, 'advise_hashtags' => 1],
+            'first_comment' => ['max' => 500, 'count' => 'threads'], // respuesta propia (`reply_to_id`); exige threads_manage_replies
             'image' => ['mimes' => ['image/jpeg', 'image/png'], 'max_bytes' => 8 * $mb, 'aspect' => ['min' => 0.1, 'max' => 10]],
             'video' => [
                 'mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 1024 * $mb, 'min_duration' => 0.1, 'max_duration' => 300,
@@ -248,7 +280,8 @@ return [
             'label' => 'un pin de video de Pinterest',
             'media' => ['min' => 1, 'max' => 1, 'kinds' => ['video']],
             'text' => ['max' => 800, 'required' => false],
-            'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 2048 * $mb, 'min_duration' => 4, 'max_duration' => 900],
+            // Tope de esta instalacion (Pinterest admite hasta 2 GB): la subida es UNA peticion dentro del paso del job (85 s, con registro y comprobaciones); 128 MB caben a ~2,5 MB/s.
+            'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 128 * $mb, 'min_duration' => 4, 'max_duration' => 900],
         ],
     ],
 ];

@@ -50,7 +50,7 @@ class StudioImages
                 throw ValidationException::withMessages(['operation' => ['Ya hay diez imágenes pendientes. Espera a que terminen antes de iniciar otra.']]);
             }
             $job = StudioImageJob::create(['user_id' => $user->id, 'brand_id' => $brand->id, 'source_media_id' => $source->id,
-                'operation' => $data['operation'], 'status' => 'queued', 'model' => 'birefnet-general-lite', 'model_path' => $model,
+                'operation' => $data['operation'], 'status' => 'queued', 'model' => 'isnet-general-use', 'model_path' => $model,
                 'model_sha256' => $sha, 'input_sha256' => $inputSha]);
             ProcessStudioImage::dispatch($job->id)->afterCommit();
 
@@ -124,6 +124,19 @@ class StudioImages
             $code = 'source_changed';
             if (! hash_equals($job->input_sha256, hash_file('sha256', $input))) {
                 throw new \RuntimeException;
+            }
+            // Un trabajo encolado antes de cambiar de modelo guarda la ruta y el sha del modelo de entonces, que puede no existir ya: se
+            // resuelve SIEMPRE el modelo vigente de la config y se deja constancia en el trabajo.
+            $code = 'model_unavailable';
+            $model = (string) config('studio.images.model_path');
+            $sha = (string) config('studio.images.model_sha256');
+            if (! is_file($model) || preg_match('/^[a-f0-9]{64}$/D', $sha) !== 1) {
+                throw new \RuntimeException;
+            }
+            if ($job->model_path !== $model || $job->model_sha256 !== $sha) {
+                StudioImageJob::withoutUserScope()->whereKey($job->id)->update(['model_path' => $model, 'model_sha256' => $sha]);
+                $job->model_path = $model;
+                $job->model_sha256 = $sha;
             }
             $code = 'runtime_unavailable';
             $result = Process::path(base_path())->timeout((int) config('studio.images.timeout', 85))->input(json_encode([

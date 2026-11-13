@@ -6,27 +6,30 @@ import { runRoot } from '../isolated/runtime';
 import svgOracle from '../isolated/charts/svg-oracle.cjs';
 
 // DOM XML + native SVG transform matrices only. No chart geometry/render imports.
+// Tspan measured in the page: text, explicit x/y, CTM (6 numbers) and the effective font.
+type InkSpan = { text: string; x: number; y: number; matrix: number[]; font: string; fontReady: boolean; fontKerning?: string; letterSpacing?: string; wordSpacing?: string };
+
 export async function observeSvg(page: Page, xml: string, layer: any, table: any) {
     const observed = await page.evaluate(async source => {
         // Pure metric union: testable without a browser, never substitutes getBBox.
-        function measureSvgTextInk(context, spans, rootMatrix) {
-            const finiteMatrix = matrix => Array.isArray(matrix) && matrix.length === 6 && matrix.every(Number.isFinite);
+        function measureSvgTextInk(context: CanvasRenderingContext2D, spans: InkSpan[], rootMatrix: number[]) {
+            const finiteMatrix = (matrix: unknown) => Array.isArray(matrix) && matrix.length === 6 && (matrix as number[]).every(Number.isFinite);
             if (!context || typeof context.measureText !== 'function' || !finiteMatrix(rootMatrix)) throw Error('Finite Canvas ink context/CTM required');
             for (const span of spans) {
                 if (span.fontReady !== true || typeof span.font !== 'string' || !span.font) throw Error('Effective text font is not ready');
                 if (typeof span.text !== 'string' || !Number.isFinite(span.x) || !Number.isFinite(span.y) || !finiteMatrix(span.matrix)) throw Error('Finite tspan coordinates/CTM required');
             }
             context.textAlign = 'left'; context.textBaseline = 'alphabetic';
-            const points = [], fonts = [...new Set(spans.map(span => span.font))];
-            const project = (matrix, x, y) => ({ x: matrix[0] * x + matrix[2] * y + matrix[4], y: matrix[1] * x + matrix[3] * y + matrix[5] });
+            const points = [], fonts = [...new Set(spans.map((span: InkSpan) => span.font))];
+            const project = (matrix: number[], x: number, y: number) => ({ x: matrix[0] * x + matrix[2] * y + matrix[4], y: matrix[1] * x + matrix[3] * y + matrix[5] });
             for (const span of spans) {
                 if (!span.text.trim()) continue; // Spaces have advance but no drawn ink.
                 context.font = span.font;
-                if (span.fontKerning) context.fontKerning = span.fontKerning;
+                if (span.fontKerning) context.fontKerning = span.fontKerning as CanvasFontKerning;
                 if (span.letterSpacing) context.letterSpacing = span.letterSpacing;
                 if (span.wordSpacing) context.wordSpacing = span.wordSpacing;
                 const metrics = context.measureText(span.text);
-                const values = ['actualBoundingBoxLeft','actualBoundingBoxRight','actualBoundingBoxAscent','actualBoundingBoxDescent'].map(key => metrics[key]);
+                const values = ['actualBoundingBoxLeft','actualBoundingBoxRight','actualBoundingBoxAscent','actualBoundingBoxDescent'].map(key => metrics[key as keyof TextMetrics] as number);
                 if (!values.every(Number.isFinite)) throw Error('Finite actual Canvas TextMetrics ink required');
                 const [left, right, ascent, descent] = values;
                 const x0 = span.x - left, x1 = span.x + right, y0 = span.y - ascent, y1 = span.y + descent;
@@ -77,13 +80,13 @@ export async function observeSvg(page: Page, xml: string, layer: any, table: any
                 const spans = Array.from(shape.querySelectorAll('tspan')).map(s=>({text:s.textContent??'',x:Number(s.getAttribute('x')??0),y:Number(s.getAttribute('y')??0)}));
                 let ink;
                 if (shape.tagName === 'text') {
-                    const normalizeFamily = family => family.trim().replace(/^(['"])(.*)\1$/, '$2');
+                    const normalizeFamily = (family: string) => family.trim().replace(/^(['"])(.*)\1$/, '$2');
                     const positioned = Array.from(shape.querySelectorAll('tspan')).map(s => {
                         if (s.querySelector('tspan')) throw Error('Nested tspan ink positioning is unsupported');
                         const effective = getComputedStyle(s), font = `${effective.fontStyle} ${effective.fontWeight} ${effective.fontSize} ${effective.fontFamily}`;
                         const families = effective.fontFamily.split(',').map(normalizeFamily), privateFamilies = families.filter(family => /^StudioFont_/i.test(family));
-                        const fontReady = document.fonts.check(font,s.textContent||' ') && privateFamilies.every(family => Array.from(document.fonts).some(face => normalizeFamily(face.family) === family && face.status === 'loaded'));
-                        const coordinate = name => { const value=s.getAttribute(name);if(value===null||!value.trim()||/[\s,]/.test(value.trim()))throw Error('Single explicit tspan ink coordinate required');return Number(value); };
+                        const fontReady = document.fonts.check(font,s.textContent||' ') && privateFamilies.every(family => Array.from(document.fonts as unknown as Iterable<FontFace>).some(face => normalizeFamily(face.family) === family && face.status === 'loaded'));
+                        const coordinate = (name: string) => { const value=s.getAttribute(name);if(value===null||!value.trim()||/[\s,]/.test(value.trim()))throw Error('Single explicit tspan ink coordinate required');return Number(value); };
                         const ctm=(s as SVGGraphicsElement).getCTM();if(!ctm)throw Error('Tspan ink CTM unavailable');
                         return {text:s.textContent??'',x:coordinate('x'),y:coordinate('y'),matrix:[ctm.a,ctm.b,ctm.c,ctm.d,ctm.e,ctm.f],font,fontReady,fontKerning:effective.fontKerning,letterSpacing:effective.letterSpacing==='normal'?'0px':effective.letterSpacing,wordSpacing:effective.wordSpacing==='normal'?'0px':effective.wordSpacing};
                     });

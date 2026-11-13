@@ -43,7 +43,7 @@ class LinkedInConnector implements OAuthConnector, PerAccountRefreshMargin
 
     /**
      * Sin `refresh_token` no hay forma de renovar: la cuenta sigue publicando hasta que el token caduque de verdad (o LinkedIn responda 401)
-     * y solo entonces se marca `requiere_reconexion`. La UI avisa «reconecta antes de» unos dias antes (`reconnect_notice_days`).
+     * y solo entonces se marca `requiere_reconexion`. La UI y `connections:notify-expiry` avisan «reconecta antes de» unos dias antes (`social.expiry_notice_days`, ver `ConnectionExpiry`).
      */
     public function refreshMarginHoursFor(SocialAccount $account): int
     {

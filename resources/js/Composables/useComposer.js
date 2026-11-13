@@ -98,7 +98,7 @@ export function useComposer(props) {
         if (libraryState.value === 'loading' || libraryState.value === 'ready') return;
         libraryState.value = 'loading';
         try {
-            const response = await fetch(route('media.index'), { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+            const response = await fetch(route('media.index', { limit: 100 }), { credentials: 'same-origin', headers: { Accept: 'application/json' } });
             if (!response.ok) throw new Error(String(response.status));
             libraryItems.value = (await response.json()).media ?? [];
             libraryState.value = 'ready';
@@ -146,6 +146,7 @@ export function useComposer(props) {
             if (account?.network === 'youtube') ['category_id', 'tags'].forEach((k) => keep.add(k));
             if (account?.network === 'instagram' && ['instagram_image', 'instagram_reel', 'instagram_carousel'].includes(t.content_type)) keep.add('location_id');
             if (account?.network === 'instagram' && t.content_type === 'instagram_image') keep.add('user_tags');
+            if (account?.network === 'facebook' && ['facebook_text', 'facebook_photo', 'facebook_photos'].includes(t.content_type)) keep.add('place');
             if (account?.network === 'linkedin') ['linkedin_visibility', 'linkedin_disable_reshare'].forEach((k) => keep.add(k));
             if (account?.network === 'pinterest') ['pinterest_board_id', 'pinterest_title', 'pinterest_link'].forEach((k) => keep.add(k));
             for (const key of MANAGED_KEYS) {

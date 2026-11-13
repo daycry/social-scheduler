@@ -68,7 +68,7 @@ function tmcCreate(string $channel, array $payload): array
         return ['ok' => tmcWebErrors() === [], 'errors' => tmcWebErrors(), 'id' => Post::withoutUserScope()->latest('id')->value('id')];
     }
     if ($channel === 'api') {
-        $r = $t->withToken($t->key)->postJson('/api/v1/posts', ['brand_id' => $t->brand->id] + $payload);
+        $r = $t->withToken($t->key)->postJson('/api/v1/brands/'.$t->brand->id.'/posts', $payload);
 
         return ['ok' => $r->status() === 201, 'errors' => $r->json('errors') ?? [], 'id' => $r->json('id')];
     }
@@ -180,7 +180,7 @@ test('T-17 API: exige la ability, es solo del usuario de la key y valida la form
     tmcFresh();
 
     tmcFresh();
-    $this->withToken($readOnly)->postJson('/api/v1/posts', ['brand_id' => $this->brand->id] + tmcPayload())->assertForbidden();
+    $this->withToken($readOnly)->postJson('/api/v1/brands/'.$this->brand->id.'/posts', tmcPayload())->assertForbidden();
     tmcFresh();
     $this->withToken($readOnly)->getJson("/api/v1/posts/{$post->id}")->assertOk()->assertJsonPath('targets.0.media.0.alt', 'Tres');
     tmcFresh();
@@ -189,7 +189,7 @@ test('T-17 API: exige la ability, es solo del usuario de la key y valida la form
     $this->withToken($this->mcpKey($other))->putJson("/api/v1/posts/{$post->id}", tmcPayload())->assertNotFound();
     tmcFresh();
     $this->flushHeaders();
-    $this->postJson('/api/v1/posts', tmcPayload())->assertUnauthorized();
+    $this->postJson('/api/v1/brands/'.$this->brand->id.'/posts', tmcPayload())->assertUnauthorized();
     tmcFresh();
-    $this->withToken($this->key)->postJson('/api/v1/posts', ['brand_id' => $this->brand->id] + tmcPayload(['targets' => [0 => ['media' => [['id' => 'x']]]]]))->assertUnprocessable()->assertJsonValidationErrors(['targets.0.media.0.id']);
+    $this->withToken($this->key)->postJson('/api/v1/brands/'.$this->brand->id.'/posts', tmcPayload(['targets' => [0 => ['media' => [['id' => 'x']]]]]))->assertUnprocessable()->assertJsonValidationErrors(['targets.0.media.0.id']);
 });

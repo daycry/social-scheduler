@@ -32,7 +32,7 @@ Con la URL de ngrok de desarrollo ya registrada, añade estas **sin quitar** las
 - **Runtime del Estudio** (render, quitar fondo y MP4/GIF; detalle en la [guía del estudio](../guias/estudio-api-mcp.md) y en [Estudio](estudio.md)):
   - Node nativo y las dependencias JavaScript de ejecución (`playwright`, `fabric`, `pdf-lib`) en el host de los workers, con `npm run build` (genera `public/build/studio-renderer.js`).
   - **Chromium de Playwright** instalado en runtime (`npx playwright install --with-deps chromium`) y las fuentes del sistema que usen los diseños. `STUDIO_CHROMIUM_PATH` y `PLAYWRIGHT_BROWSERS_PATH` si se comparte la ubicación.
-  - **Python ≥ 3.12 con el modelo de quitar fondos**: `python3 scripts/studio/setup-runtime.py --download-model` y `--check` (modelo `birefnet-general-lite.onnx`, 224 MB, fuera de Git). `STUDIO_PYTHON_BINARY` si no se usa el entorno privado por defecto.
+  - **Python ≥ 3.12 con el modelo de quitar fondos**: `python3 scripts/studio/setup-runtime.py --download-model` y `--check` (modelo `isnet-general-use.onnx`, IS-Net de DIS, licencia Apache-2.0, 178 648 008 bytes ≈ 170 MiB, fuera de Git; el instalador verifica tamaño y SHA-256 y descarga también `IS-Net-LICENSE.txt`). `STUDIO_PYTHON_BINARY` si no se usa el entorno privado por defecto. **Memoria:** el modelo trabaja con entrada fija de 1024×1024 y, con la imagen máxima admitida (16 Mpx), llega a ~950 MiB de RSS en Linux (VmHWM 949 MiB, VmPeak 1264 MiB) y ~820 MiB de working set en Windows (797 MiB de commit); una foto de 512×512 queda en ~840 MiB (Linux) y ~690 MiB (Windows). Son activaciones reales, no reserva virtual. El proceso se acota a **1,25 GiB** (`RLIMIT_DATA` en Linux, Job Object en Windows; ~35 % de margen: 896 MiB ya no bastan en Linux), así que el servidor necesita **≥ 2 GiB de RAM libre** por cada quitada de fondo simultánea (un solo worker `studio` para esta cola). Si fijas `STUDIO_BACKGROUND_MODEL_PATH` o `STUDIO_BACKGROUND_MODEL_SHA256`, deben corresponder al modelo instalado (o quítalos). Sin el modelo, quitar fondo falla con `model_unavailable` y el resto del Estudio sigue funcionando. Un trabajo de quitar fondo guarda la ruta y el sha del modelo al crearse, pero al procesarlo se resuelve siempre el modelo vigente de la configuración (y se actualiza el trabajo); si el modelo vigente no está instalado, el trabajo falla con `model_unavailable` y su mensaje claro, sin ejecutar nada. La licencia del modelo se descarga de un commit fijo de `xuebinqin/DIS` (no de `main`), con el mismo sha-256 verificado.
   - **Worker `studio` (MP4/GIF)**: FFmpeg/ffprobe, y un kernel con **cgroupv2** (Linux ≥ 5.14, `cgroup.kill`) y una unidad systemd con `Delegate=yes`: ver [Worker de la cola studio](#worker-de-la-cola-studio-mp4-y-gif).
 - Almacenamiento de media: **disco local del servidor** (este despliegue, ver [Almacenamiento de media](#almacenamiento-de-media)) o un bucket R2 con CORS (`PUT`, `Content-Type`, exponer `ETag`).
 
@@ -46,7 +46,25 @@ Con la URL de ngrok de desarrollo ya registrada, añade estas **sin quitar** las
 6. Despliegues repetibles: `bash deploy/hestia/deploy.sh` (`--dry-run` lista pasos).
 7. Primer usuario por consola (el registro público está cerrado): ver [Primer usuario](#primer-usuario).
 
-`deploy.sh` ejecuta: `artisan down` → pull → composer → `npm ci && npm run build` (exige `public/build/manifest.json`) → migrate → caches → `queue:restart` → `up` → reinicio de `WORKER_UNITS` → smoke con `app:health --skip-scheduler`. Si falla antes de cambiar el código, la app vuelve a subir; si falla después, se queda en mantenimiento.
+`deploy.sh` ejecuta: fetch → comprobación de CI → compilar aparte (composer, `npm ci && npm run build`; exige `public/build/manifest.json`) → `artisan down` → volcado previo → código y cambio de vendor/build → migrate → caches → `queue:restart` → `up` → reinicio de `WORKER_UNITS` → smoke con `app:health --skip-scheduler`. Si falla antes de cambiar el código, la app vuelve a subir; si falla después, se queda en mantenimiento.
+
+## Cambios incompatibles de API y MCP (`audit-hardening`, T-28/T-29)
+
+Quien use la API v1 o el MCP con claves ya emitidas debe adaptar estos puntos (no hay alias de los formatos antiguos):
+
+- **La marca va en la ruta.** `POST /api/v1/posts` pasa a `POST /api/v1/brands/{brand}/posts` y `POST /api/v1/series` a `POST /api/v1/brands/{brand}/series`. `brand_id` ya no se acepta en el cuerpo.
+- **Paginación por cursor.** Los listados de posts, media, comentarios y diseños (API y MCP: `list_media`, `list_comments`, `list_designs`) usan `limit` y `cursor` y devuelven `has_more` y `next_cursor`; desaparecen `page`, `before_id`, `current_page`, `last_page` y `total`. El cursor es opaco y solo vale para el listado que lo emitió (otro da 422). Los diseños se ordenan por id (los más recientes primero), no por última edición. La colección de diseños pasa de `data` a `designs`.
+- **409 frente a 422.** Un estado que no admite la operación (borrar o publicar una publicación ya publicada, cancelar una que ya es borrador, borrar media en uso) responde 409; 422 queda para errores de entrada. El MCP lo marca con el prefijo `409:`.
+- **Límites de ritmo por ruta.** Cada ruta con límite propio tiene su contador (por usuario o IP) y sus valores viven en `config/rate_limits.php` (antes, un `throttle:N,1` numérico compartía contador con las demás rutas y el límite propio nunca actuaba). El tope conjunto de la API sigue siendo 120 por minuto y usuario (`api-v1`); si necesitas vaciar los contadores de un usuario, usa `App\Support\RouteLimits::forget($userId)`.
+- **SmartLink.** Un `PUT /brands/{brand}/smart-link` sin `published` ya no publica: uno nuevo queda sin publicar y uno existente conserva su estado.
+- **Alta y baja de competidores (T-30).** `manage_competitor` exige la ability nueva `competitors:write` (no basta `posts:write`; las claves `*` siguen valiendo, sin alias) y la baja necesita `confirm: true` porque borra el histórico. `manage_trash delete_forever` también exige `confirm: true`. Las claves existentes que no sean `*` deben añadir `competitors:write` para dar de alta o baja competidores.
+- **Nuevas abilities** `smartlinks:read` y `smartlinks:write`: las claves existentes no las tienen; añádelas donde haga falta.
+- **Carpeta de un diseño (T-33).** `update_design` (MCP) y la actualización de diseños de la API ya no cambian la carpeta: `folder_id` se ignora. Para mover un diseño se usa `PATCH /api/v1/designs/{design}/folder` o `manage_design_folder` con `action: move`.
+
+## Cambios de configuración
+
+- `LINKEDIN_RECONNECT_NOTICE_DAYS` desaparece; usa `SOCIAL_EXPIRY_NOTICE_DAYS` (días de antelación separados por comas, por defecto `7,1`; vale para todas las redes con caducidad conocida) y, si quieres otra hora, `SOCIAL_EXPIRY_NOTICE_AT`. Hay que ejecutar `php artisan migrate` (nueva columna `users.notify_by_mail`) y la tarea programada `connections:notify-expiry` ya va en el scheduler.
+- **Miniaturas del estudio (T-35).** Migración nueva `2026_12_24_090000_add_thumbnail_to_studio_designs` (dos columnas, reversible): ejecuta `php artisan migrate`. El listado encola `RenderStudioThumbnail` en la cola `studio` (la de MP4/GIF, con su worker y Chromium; no compite con las importaciones de `media`); `STUDIO_THUMBNAILS=false` desactiva las miniaturas si el servidor no tiene Chromium. La exportación a PPTX (`format: "pptx"`) usa esa misma cola y no necesita `ext-zip`. No hay cambios incompatibles.
 
 ## Primer usuario
 
@@ -137,11 +155,11 @@ Latencia máxima: una publicación sale con hasta 1 minuto de retraso y las mét
 
 **Cola `media` (importación por URL y Drive).** El cron 4 (`ss-media`) es obligatorio para que «Desde URL» y «Google Drive» avancen: sin él, las importaciones quedan «pendientes» y la interfaz avisa tras 3 minutos. `QUEUE_NAMES` debe incluir `media` si se define en `.env` (los `.env.example` ya lo traen) y `app:queue-probe` la sondea. Cada pasada del job dura hasta 80 s y se reencola sin espera, así que un worker de 280 s encadena unas tres; el resto lo recoge el cron siguiente. Variables de ajuste en [configuración](../referencia/configuracion.md); la guía de Google en [Google Cloud: Picker de Drive](../guias/google-cloud-picker-drive.md).
 
-Al actualizar no hay que tocar las tareas: `deploy.sh` ejecuta `queue:restart` y el siguiente arranque del cron ya usa el código nuevo (no hace falta `WORKER_UNITS`).
+Al actualizar no hay que tocar las tareas: `deploy.sh` ejecuta `queue:restart` y el siguiente arranque del cron ya usa el código nuevo. `WORKER_UNITS` solo hace falta para las unidades systemd instaladas (`scheduler-studio`, o `scheduler-worker@…` en la opción B).
 
 ### Opción B: systemd (procesos siempre vivos)
 
-Requiere root. Sustituye a las tareas 2, 3 y 4 (la 1, el scheduler, se mantiene). Ver `deploy/systemd/README.md`; si la app está en `public_html` y no en `app`, corrige `WorkingDirectory` y `ReadWritePaths` de la unidad.
+Requiere root. Sustituye a las tareas 2, 3 y 4 (la 1, el scheduler, se mantiene); `studio` va siempre por su unidad. Ver `deploy/systemd/README.md`; si la app está en `public_html` y no en `app`, corrige `WorkingDirectory` y `ReadWritePaths` de la unidad.
 
 Unidad plantilla `deploy/systemd/scheduler-worker@.service`; la instancia es la cola:
 
@@ -153,7 +171,7 @@ La cola `studio` (MP4/GIF) **no** usa esta plantilla: tiene su propia unidad, de
 
 Colas de las redes nuevas: **Bluesky** y **Threads** publican por `publish` (con sondeo del vídeo en `poll`), así que el worker de 120 s de `publish,poll` cubre la subida del vídeo de Bluesky (una petición de hasta 80 s dentro del paso de 85 s del job de 110 s) y el sondeo del contenedor de Threads; las métricas de ambas van por `metrics`. El buscador de GIFs importa el MP4 por `media` (cron/worker 4). Las redes añadidas después (LinkedIn y Pinterest) también publican por `publish` y su refresco de token va por `poll`. Para esas colas no hace falta ningún worker nuevo, pero el Estudio añade uno: el de la cola `studio`. `QUEUE_NAMES` por defecto es `publish,poll,metrics,reports,media,studio` (seis colas).
 
-Parámetros: `--tries=3 --timeout=120 --max-time=3600 --max-jobs=500`, `Restart=always`, sandboxing (`ProtectSystem=strict`, escribe solo en `storage/` y `bootstrap/cache`). **Plazos encadenados**: `$timeout` de cada job (hasta 110 s; 100 s en los jobs de Canva y de fases audiovisuales) < `--timeout` del worker (120 s) < `retry_after` de la cola (180 s, `DB_QUEUE_RETRY_AFTER`), y `TimeoutStopSec` de systemd (130 s) > `--timeout`. Si el job no fuera estrictamente menor que el worker, este lo mataría antes de que el job pudiera fallar limpiamente. Operación: `systemctl status scheduler-worker@publish`, `journalctl -u scheduler-worker@publish -f`. Al actualizar: `WORKER_UNITS="scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports scheduler-worker@media" bash deploy/hestia/deploy.sh`.
+Parámetros: `--tries=3 --timeout=120 --max-time=3600 --max-jobs=500`, `Restart=always`, sandboxing (`ProtectSystem=strict`, escribe solo en `storage/` y `bootstrap/cache`). **Plazos encadenados**: `$timeout` de cada job (hasta 110 s; 100 s en los jobs de Canva y de fases audiovisuales) < `--timeout` del worker (120 s) < `retry_after` de la cola (180 s, `DB_QUEUE_RETRY_AFTER`), y `TimeoutStopSec` de systemd (130 s) > `--timeout`. Si el job no fuera estrictamente menor que el worker, este lo mataría antes de que el job pudiera fallar limpiamente. Operación: `systemctl status scheduler-worker@publish`, `journalctl -u scheduler-worker@publish -f`. Al actualizar: `WORKER_UNITS="scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports scheduler-worker@media" bash deploy/hestia/deploy.sh`; con el worker de `studio` instalado, añade `scheduler-studio`.
 
 ### Worker de la cola studio (MP4 y GIF)
 
@@ -224,9 +242,39 @@ Si sigue en «no disponible», en este orden:
 
 ## Healthcheck
 
-- `php artisan app:health` (`--json`, `--skip-scheduler`): BD, cola, disco y latido del scheduler (falla si tiene más de 180 s).
-- `GET /health` con cabecera `X-Health-Token: <HEALTHCHECK_TOKEN>`: 200 (también degradado), 404 sin token. Limitado a 30/min. Configurar en UptimeRobot o Healthchecks.io cada 5 min.
+- `php artisan app:health` (`--json`, `--skip-scheduler`, `--strict`): BD, cola, disco, latido del scheduler (falla si tiene más de 180 s), snapshots, `config`, `linkedin_version` y `native`. Solo sale con exit 1 si algo está caído; los avisos (WARN) no lo tumban salvo con `--strict`.
+- **Cola atrasada:** `queue` informa `atrasadas=<cola>:<s>s` cuando el job pendiente más viejo (disponible y sin reservar) de una cola supera su umbral: 600 s (`HEALTH_QUEUE_MAX_AGE`) y 1800 s para `media` y `studio` (`HEALTH_QUEUE_MAX_AGE_NATIVE`). Indica que falta el worker de esa cola. `app:queue-probe` está programado cada 15 min, así que una cola sin worker acaba visible aunque no tenga tráfico.
+- **Snapshots:** avisa si hay cuentas **activas** (las que recoge `CollectSnapshots`) y el último snapshot tiene más de 36 h (`HEALTH_SNAPSHOTS_MAX_AGE_HOURS`); una cuenta recién conectada tiene un margen de 24 h más el umbral.
+- **`native` (WARN):** `ffmpeg`, `ffprobe`, Python del estudio, Chromium (`STUDIO_CHROMIUM_PATH` o el de Playwright) y el modelo de quitar fondo. Se apaga con `HEALTH_NATIVE=false`. Por HTTP (`/health`) el resultado se cachea 5 min (`HEALTH_NATIVE_CACHE_SECONDS`) para no lanzar procesos en cada sondeo, y Chromium solo se comprueba si `STUDIO_CHROMIUM_PATH` está definido (bajo PHP-FPM no hay `HOME` ni `PLAYWRIGHT_BROWSERS_PATH`); la comprobación completa es `php artisan app:health` por CLI.
+- **`config`:** avisa si `APP_DEBUG=true` con `APP_ENV=production`.
+- **`linkedin_version` (WARN):** avisa si `LINKEDIN_API_VERSION` (`AAAAMM`, por defecto `202610`) tiene 10 meses o más (`HEALTH_LINKEDIN_VERSION_WARN_MONTHS`), está retirada (12 meses, `HEALTH_LINKEDIN_VERSION_RETIRED_MONTHS`), es futura o no tiene formato válido. LinkedIn retira cada versión a los ~12 meses: súbela a una vigente y prueba a publicar. Solo corre con LinkedIn habilitado.
+- `GET /health` con cabecera `X-Health-Token: <HEALTHCHECK_TOKEN>`: 200 (también degradado), 404 sin token. Limitado a 30/min. Configurar en UptimeRobot o Healthchecks.io cada 5 min. Con **`/health?strict=1`** cualquier aviso (job fallido en 24 h, cola atrasada, snapshots viejos, binario ausente, debug en producción) devuelve 503: úsalo en un monitor que deba avisar de degradaciones; sin `strict` el contrato no cambia.
+- **Correo al fallar un job:** con `HEALTH_ALERT_EMAIL` definido, cada job que agota sus reintentos envía un correo con el nombre del job, la cola y la clase de la excepción (nunca el payload), como máximo uno cada `HEALTH_ALERT_THROTTLE_MINUTES` (60). Requiere el correo configurado (`MAIL_*`).
 - `/up`: solo prueba que PHP responde.
+
+## Despliegue sin parada larga
+
+Detalle en [`deploy/hestia/README.md`](../../deploy/hestia/README.md#6-despliegue-repetible-un-comando). `deploy.sh` comprueba con `gh` que el commit tiene el check `tests` en verde (`--force-unverified` para saltarlo), **compila en una carpeta aparte antes de `artisan down`**, hace el volcado previo (`backup.sh --db-only`), intercambia `vendor` y `public/build` con `mv` y migra; solo `down` -> `up` es mantenimiento. `deploy.sh rollback` (ensayable con `--dry-run`) vuelve a la revisión, `vendor` y build anteriores; la BD se restaura a mano desde el volcado previo.
+
+## Protección de `main` y CI
+
+La CI estuvo 6 días en rojo en `main` sin verse (A-02). Guía: [`deploy/github/README.md`](../../deploy/github/README.md).
+
+- `bash deploy/github/protect-main.sh` (lo ejecuta el usuario con permisos de administrador; `--dry-run` primero) deja `main` con PR obligatoria (también para administradores: `ENFORCE_ADMINS=true`; para un hotfix, `ENFORCE_ADMINS=false` o `--revert`), check requerido `tests` (se muestra como `CI / tests`: workflow `CI`, job agregador `tests`) y rama al día. Es idempotente, imprime lo que va a hacer y pide confirmación explícita; `--revert` la quita.
+- **Estructura de la CI (T-15).** `.github/workflows/ci.yml` corre solo en `pull_request` y en `push` a `main` (una ejecución por commit), con `concurrency` por rama/PR (cancela las obsoletas; en `main` no cancela) y `timeout-minutes` en cada job. Jobs en paralelo: `php` (Pint y Pest; caché de `vendor` por `composer.lock`), `node` (`npm run test:unit`, sin navegador, y `npm run build`), `node-browser` (`npm run test:browser` con Chromium cacheado), `typecheck` (`npm run typecheck`), `studio-runtime` (todos los `tests/studio_runtime/test_*.py`; los de cgroup, `test_av_linux.py`, se omiten solos porque exigen `STUDIO_AV_CGROUP_TEST=1` en un cgroup delegado), `openapi` (`@redocly/cli@2.77.0 lint --extends minimal` sobre `docs/api/openapi.yaml`), `audit` (`composer audit --locked` y `npm audit --omit=dev`) y el agregador **`tests`** (el check requerido). Fuera de la CI: `ledger-lint` (vive en el plugin de agentes, no en el repo). `.github/workflows/nightly.yml` (cron 02:17 UTC y `workflow_dispatch`) ejecuta el E2E en 4 shards con `--shard` y sube como artefacto `storage/framework/testing/t43/` si falla. Detalle en [`docs/guias/testing.md`](../guias/testing.md).
+- `.github/workflows/ci-failure-notify.yml` abre una issue «CI en rojo en main» cuando `CI` falla en un push a `main` y la cierra al volver a verde.
+- `deploy.sh` se niega a desplegar un commit sin CI verde (`--force-unverified` lo salta de forma explícita).
+
+## Copias de seguridad
+
+Guía completa (configuración, rotación, restauración y `APP_KEY`): [`deploy/backup/README.md`](../../deploy/backup/README.md).
+
+- **Qué se respalda:** `mysqldump` de la BD y `storage/app` (media y adjuntos con disco local), comprimidos y cifrados (AES-256, PBKDF2 600000 iteraciones, con HMAC verificado en la restauración) con una frase guardada fuera del repo. El `.env` y la `APP_KEY` **no** van en el respaldo: guárdalos en un gestor de secretos; sin la misma `APP_KEY`, los tokens y secretos 2FA restaurados son ilegibles.
+- **Destino externo (`BACKUP_DEST`):** ruta montada, `usuario@host:ruta` (rsync) o `rclone:remoto:ruta` (R2/S3). Cron diario del usuario del dominio con `bash deploy/backup/backup.sh`.
+- **Rotación:** 14 días locales (`BACKUP_KEEP_DAYS`); en remoto, regla de ciclo de vida del bucket (el script no borra en remoto).
+- **Restaurar:** `deploy/backup/restore.sh --db … --media …` sobre una BD vacía, con confirmación explícita; ensayado con una BD de prueba (`BackupVerifyTest`). La prueba contra MySQL real y el destino externo siguen pendientes (M-04).
+- **Frescura:** `php artisan app:backup-verify` (exit 1 con más de 26 h, `BACKUP_MAX_AGE_HOURS`) y, con `BACKUP_HEALTH=true`, el check `backup` de `app:health` (solo WARN).
+- `deploy.sh` reutiliza `backup.sh --db-only` antes de `migrate` (ver [Despliegue sin parada larga](../../deploy/hestia/README.md#6-despliegue-repetible-un-comando)).
 
 ## Almacenamiento de media
 

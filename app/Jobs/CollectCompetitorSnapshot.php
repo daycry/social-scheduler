@@ -2,7 +2,6 @@
 
 namespace App\Jobs;
 
-use App\Connectors\Meta\BusinessDiscovery;
 use App\Connectors\Meta\CompetitorNotFound;
 use App\Jobs\Concerns\GuardsInsightsErrors;
 use App\Models\Competitor;
@@ -14,9 +13,10 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 
 /**
- * Foto diaria de UN competidor (cola `metrics`, PA-08). Unico por competidor+dia y upsert por competidor+fecha:
+ * Foto diaria de UN competidor (cola `metrics`, PA-08, T-25: Instagram, Bluesky y YouTube). Unico por competidor+dia y upsert por competidor+fecha:
  * re-ejecutarlo es inocuo. Presupuesto: $timeout (90 s) < `--timeout` del worker (120 s) < `retry_after` (180 s).
- * Una cuenta que ya no existe o dejo de ser profesional se anota en `last_error` y NO se reintenta.
+ * Una cuenta que ya no existe o dejo de ser profesional se anota en `last_error` y NO se reintenta. La cuota agotada (YouTube 403
+ * `quotaExceeded`, 429) y los fallos transitorios se reintentan con la espera creciente de `GuardsInsightsErrors`.
  */
 class CollectCompetitorSnapshot implements ShouldBeUnique, ShouldQueue
 {
@@ -40,7 +40,7 @@ class CollectCompetitorSnapshot implements ShouldBeUnique, ShouldQueue
         return $this->competitorId.':'.$this->date;
     }
 
-    public function handle(BusinessDiscovery $discovery, CompetitorService $competitors, SocialAccountService $accounts): void
+    public function handle(CompetitorService $competitors, SocialAccountService $accounts): void
     {
         // Job sin usuario autenticado: opta explicitamente por salir del UserScope.
         $competitor = Competitor::withoutUserScope()->find($this->competitorId);
@@ -48,16 +48,22 @@ class CollectCompetitorSnapshot implements ShouldBeUnique, ShouldQueue
             return;
         }
 
-        $account = $competitors->queryAccount($competitor->user_id, $competitor->brand_id, $competitor->social_account_id);
-        if (! $account) {
-            $competitor->forceFill(['last_error' => 'Sin cuenta de Instagram activa para consultar.'])->save();
+        // Una red deshabilitada en esta instalacion no se consulta.
+        if (! $competitors->available($competitor->network)) {
+            return;
+        }
+
+        // Cada red lee con su fuente publica (Instagram y YouTube con el token de una cuenta propia; Bluesky sin cuenta).
+        $account = $competitors->accountFor($competitor);
+        if ($account === null && $competitors->source($competitor->network)->needsAccount()) {
+            $competitor->forceFill(['last_error' => "Sin cuenta de {$competitor->network->label()} activa para consultar."])->save();
 
             return;
         }
 
-        $this->guarded($account, $accounts, function () use ($discovery, $competitors, $competitor, $account): void {
+        $this->guarded($account, $accounts, function () use ($competitors, $competitor, $account): void {
             try {
-                $profile = $discovery->lookup($account, $competitor->username);
+                $profile = $competitors->fetchProfile($competitor, $account);
             } catch (CompetitorNotFound $e) {
                 $competitor->forceFill(['last_error' => mb_substr($e->getMessage(), 0, 200)])->save();
 

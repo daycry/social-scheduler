@@ -3,11 +3,13 @@
 namespace App\Services;
 
 use App\Enums\PostStatus;
+use App\Exceptions\PostStateConflict;
 use App\Exceptions\PostValidationException;
 use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -18,6 +20,36 @@ use Illuminate\Support\Facades\DB;
 class TrashService
 {
     public function __construct(private readonly PostService $posts) {}
+
+    /** Dias que una publicacion permanece en la papelera antes de purgarse. */
+    public const RETENTION_DAYS = 30;
+
+    /**
+     * Papelera del usuario, la mas reciente primero (orden total por id).
+     *
+     * @return Builder<Post>
+     */
+    public function query(User $user): Builder
+    {
+        return Post::withoutUserScope()->onlyTrashed()->where('user_id', $user->id)->with(['brand:id,name', 'targets'])->orderByDesc('deleted_at')->orderByDesc('id');
+    }
+
+    /**
+     * Fila de la papelera para la web y el MCP.
+     *
+     * @return array<string, mixed>
+     */
+    public function present(Post $p): array
+    {
+        return [
+            'id' => $p->id,
+            'brand' => $p->brand?->name,
+            'text' => $p->text,
+            'networks' => $p->targets->pluck('network')->map(fn ($n) => $n->value)->unique()->values()->all(),
+            'deleted_at' => $p->deleted_at?->toIso8601String(),
+            'days_left' => max(0, self::RETENTION_DAYS - (int) $p->deleted_at?->diffInDays(now())),
+        ];
+    }
 
     public function trash(User $user, Post $post): void
     {
@@ -100,7 +132,7 @@ class TrashService
         }
 
         if (! $post->trashed()) {
-            throw new PostValidationException(['post' => ['La publicacion no esta en la papelera.']]);
+            throw new PostStateConflict('La publicacion no esta en la papelera.');
         }
     }
 }

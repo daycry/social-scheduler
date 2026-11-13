@@ -23,7 +23,7 @@ const domainFlag = path.join(runRoot, 'tiktok-domain-on');
 test.beforeEach(() => fs.writeFileSync(domainFlag, 'fictitious verified domain'));
 test.afterEach(async ({}, info) => { fs.rmSync(domainFlag, { force: true }); cleanComposerBrands(e2eUser(info.project.name).email); });
 
-test('TikTok photo music: explicit choice persists and switching to video removes it', async ({ page }, info) => {
+test('TikTok photo music: explicit choice persists and switching to video removes it', { tag: '@responsive' }, async ({ page }, info) => {
         await page.route('**/tiktok-creator', route => route.fulfill({ json: { nickname: 'Fixture TikTok', privacy_level_options: ['SELF_ONLY'], comment_disabled: false, duet_disabled: false, stitch_disabled: false } }));
         await openPhoto(page, info.project.name);
         await settle(page);

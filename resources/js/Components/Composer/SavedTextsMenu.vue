@@ -56,7 +56,7 @@ const onTab = (e) => {
 </script>
 
 <template>
-    <div class="relative">
+    <div class="sm:relative">
         <button
             ref="button"
             type="button"
@@ -72,7 +72,7 @@ const onTab = (e) => {
             ref="root"
             role="dialog"
             aria-label="Textos guardados"
-            class="absolute left-0 top-full z-30 mt-1 w-[min(22rem,calc(100vw-1.5rem))] rounded-lg border border-slate-200 bg-white p-3 shadow-lg"
+            class="absolute inset-x-0 top-full z-30 mt-1 sm:inset-x-auto sm:left-0 sm:w-[22rem] sm:max-w-[calc(100vw-1.5rem)] rounded-lg border border-slate-200 bg-white p-3 shadow-lg"
             data-testid="saved-texts-menu"
             @keydown="onKeydown"
             @keydown.tab="onTab"

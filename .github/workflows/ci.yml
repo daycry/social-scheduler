@@ -1,16 +1,29 @@
 name: CI
 
+# E-15 / E-01. Una sola ejecucion por commit: push solo a main (las ramas se prueban por su pull_request) y las
+# ejecuciones obsoletas de una misma rama/PR se cancelan. En main NO se cancela nada: el grupo es POR COMMIT
+# (github.sha), porque con un grupo comun GitHub cancela igualmente el run *pendiente* del mismo grupo (cancel-in-progress
+# solo afecta al que esta en curso) y al fusionar varios PRs seguidos se perderia el del commit intermedio; ci-failure-notify.yml
+# lo daria por rojo y deploy.sh no lo veria en verde.
+# El check requerido de la proteccion de main (deploy/github/protect-main.sh, CHECK_CONTEXT=tests) es el job
+# agregador `tests` del final: pasa solo si pasan TODOS los demas jobs.
 on:
   push:
-    branches: [main, 'feature/**']
+    branches: [main]
   pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'push' && github.sha || github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
 
 jobs:
-  tests:
+  php:
+    name: php (Pint + Pest)
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     services:
       mysql:
         image: mysql:8.0
@@ -41,14 +54,182 @@ jobs:
         run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
       - name: Private Studio font runtime
         run: python scripts/studio/setup-runtime.py
+      - name: Composer cache (vendor)
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-vendor-php8.4-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-vendor-php8.4-
       - run: composer install --no-interaction --prefer-dist
       - run: cp .env.example .env && php artisan key:generate
+      # Pest renderiza vistas Inertia que leen el manifiesto de Vite: hace falta el build.
       - run: npm ci && npm run build
       - name: Pint
         run: vendor/bin/pint --test
       - name: Tests
         run: composer test
-      - name: Studio runtime contracts
-        run: storage/framework/studio-python/bin/python -m unittest discover -s tests/studio_runtime -p 'test_setup.py' -v
-      - name: Studio font parser and process budgets
-        run: storage/framework/studio-python/bin/python -m unittest discover -s tests/studio_runtime -p 'test_[fm]*.py' -v
+
+  node:
+    name: node (unit + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # Los tests de audio/video de tests/frontend generan y decodifican medios con ffmpeg (libx264).
+      - name: ffmpeg for the Studio audio and video tests
+        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+      # vite importa vendor/tightenco/ziggy: el build necesita las dependencias de Composer.
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, pdo_mysql, pdo_sqlite, bcmath, gd
+          coverage: none
+      - name: Composer cache (vendor)
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-vendor-php8.4-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-vendor-php8.4-
+      - run: composer install --no-interaction --prefer-dist --no-scripts
+      - run: npm ci
+      # tests/frontend/*.test.mjs (sin navegador) y tests/e2e/isolated/*.test.cjs, con `node --test --expose-gc`.
+      - name: Node unit tests
+        run: npm run test:unit
+      - name: Build
+        run: npm run build
+
+  node-browser:
+    name: node (browser)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: ffmpeg for the Studio audio and video tests
+        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+      # vite importa vendor/tightenco/ziggy: el build necesita las dependencias de Composer.
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, pdo_mysql, pdo_sqlite, bcmath, gd
+          coverage: none
+      - name: Composer cache (vendor)
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-vendor-php8.4-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-vendor-php8.4-
+      - run: composer install --no-interaction --prefer-dist --no-scripts
+      - run: npm ci
+      # Los tests de render cargan public/build/studio-*.js (salida de `npm run build`).
+      - run: npm run build
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Chromium cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      # Descarga solo si falta en la cache; con --with-deps instala siempre las librerias del sistema.
+      - name: Chromium
+        run: npx playwright install --with-deps chromium
+      # Los tests de tests/frontend que importan playwright (directa o transitivamente) los clasifica
+      # scripts/test/run-node-tests.mjs; npm run test:unit nunca lanza un navegador.
+      - name: Node browser tests
+        run: npm run test:browser
+
+  typecheck:
+    name: typecheck (tsc)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # tsc --noEmit sobre tests/e2e y las configs de Playwright (tsconfig.json; los .cjs/.mjs se infieren con allowJs, sin checkJs).
+      - name: Typecheck
+        run: npm run typecheck
+
+  studio-runtime:
+    name: studio runtime (python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: requirements-studio.txt
+      - name: Pinned background model cache
+        uses: actions/cache@v4
+        with:
+          path: storage/app/private/studio-models
+          key: studio-bg-model-${{ hashFiles('scripts/studio/background-model.json') }}
+      # Runtime privado + modelo de quitar fondo (IS-Net, Apache-2.0, ~170 MiB, SHA-256 fijado; la clave de cache depende del manifiesto): el modelo solo se descarga si falta en la cache.
+      - name: Private Studio runtime and pinned background model
+        run: python scripts/studio/setup-runtime.py --download-model
+      # Todos los test_*.py. test_av_linux.py (y el resto de lo que exige un cgroup v2 delegado y acotado) se omite solo:
+      # esta marcado con skipUnless(STUDIO_AV_CGROUP_TEST=1), que un runner hospedado no puede cumplir; en Windows
+      # test_av_limits.py tambien se omite. Se ve como `skipped=N` en el resumen de unittest.
+      - name: Studio runtime tests
+        run: storage/framework/studio-python/bin/python -m unittest discover -s tests/studio_runtime -p 'test_*.py' -v
+
+  openapi:
+    name: openapi (lint)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Version exacta fijada. `minimal` falla con errores estructurales del contrato (los `summary` que faltan son avisos).
+      - name: Lint docs/api/openapi.yaml
+        run: npx --yes @redocly/cli@2.77.0 lint --extends minimal docs/api/openapi.yaml
+
+  audit:
+    name: audit (composer + npm)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: composer audit
+        run: composer audit --locked
+      - name: npm audit (production)
+        run: npm audit --omit=dev
+
+  # Check requerido de main (`tests`): agrega el resultado de todos los jobs. Si se anade un job, anadelo a `needs`.
+  tests:
+    name: tests
+    needs: [php, node, node-browser, typecheck, studio-runtime, openapi, audit]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Todos los jobs en verde
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Resultados: $RESULTS"
+          for result in $RESULTS; do
+            [ "$result" = "success" ] || { echo "::error::Algun job de CI no termino en success ($result)"; exit 1; }
+          done

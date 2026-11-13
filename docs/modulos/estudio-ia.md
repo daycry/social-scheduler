@@ -39,7 +39,7 @@ Aparte de los proveedores de imagen, el asistente de texto (`AI_ASSISTANT_ENABLE
 
 ## API y MCP
 
-La ability **`studio:ai`** es independiente (`designs:write` no basta): `GET /api/v1/brands/{brand}/ai`, `POST/GET .../ai-image-jobs` y `POST .../ai-text`; en MCP, `generate_studio_image` (`status`, `start`, `get`). Contrato en el [OpenAPI](../api/creative-suite.openapi.yaml).
+La ability **`studio:ai`** es independiente (`designs:write` no basta): `GET /api/v1/brands/{brand}/ai`, `POST/GET .../ai-image-jobs` y `POST .../ai-text`; en MCP, `generate_studio_image` (`status`, `start`, `get`). Contrato en el [OpenAPI](../api/openapi.yaml).
 
 ## Seguridad
 

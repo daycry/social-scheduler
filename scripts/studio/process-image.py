@@ -14,6 +14,14 @@ class ProcessingFailure(Exception):
         self.code = code
 
 
+# IS-Net (isnet-general-use) at its fixed 1024x1024 input needs about 1 GiB. Measured with
+# the final script, a 16-megapixel JPEG (the largest accepted image): VmHWM 949 MiB / VmPeak 1264 MiB on Linux (the cap fails below
+# ~1 GiB: 896 MiB was not enough, 1024 MiB passed) and 818 MiB peak working set / 797 MiB peak commit on Windows; a 512x512 photo
+# peaks at 839 MiB (Linux) / 686 MiB (Windows). Activations, not a virtual reservation (the arena is off). 1.25 GiB leaves ~35 % over
+# the Linux resident peak and still stops a runaway process.
+MEMORY_LIMIT = 1280 * 1024**2
+
+
 def process(payload):
     if not isinstance(payload, dict) or set(payload) - {'input', 'output', 'model', 'model_sha256', 'max_pixels', 'max_bytes'}:
         raise ProcessingFailure('invalid_request')
@@ -66,16 +74,19 @@ def process(payload):
     options.log_severity_level = 3
     session = ort.InferenceSession(str(model), sess_options=options, providers=['CPUExecutionProvider'])
     inputs = session.get_inputs()
-    if len(inputs) != 1 or inputs[0].shape != [1, 3, 1024, 1024] or inputs[0].type != 'tensor(float)':
+    outputs = session.get_outputs()
+    if len(inputs) != 1 or inputs[0].shape != [1, 3, 1024, 1024] or inputs[0].type != 'tensor(float)' or not outputs or outputs[0].name != 'output_image':
         raise ProcessingFailure('model_incompatible')
+    # IS-Net (DIS) preprocessing: RGB in [0, 1] minus 0.5, std 1.0 (the reference DIS/IS-Net pipeline; rembg's `isnet-general-use`
+    # session uses the same constants). Only the first output (the final saliency map, already a sigmoid in [0, 1]) is requested;
+    # the other outputs are intermediate side maps and feature tensors that are not needed.
     image = original.convert('RGB').resize((1024, 1024), Image.Resampling.LANCZOS)
-    pixels = np.asarray(image, dtype=np.float32) / 255.0
-    pixels = (pixels - np.array([0.485, 0.456, 0.406], dtype=np.float32)) / np.array([0.229, 0.224, 0.225], dtype=np.float32)
+    pixels = np.asarray(image, dtype=np.float32) / 255.0 - 0.5
     tensor = np.transpose(pixels, (2, 0, 1))[None, ...]
-    prediction = session.run(None, {inputs[0].name: tensor})[0]
+    prediction = session.run([outputs[0].name], {inputs[0].name: tensor})[0]
     if prediction.shape != (1, 1, 1024, 1024) or not np.isfinite(prediction).all():
         raise ProcessingFailure('model_incompatible')
-    mask = 1.0 / (1.0 + np.exp(-np.clip(prediction[0, 0], -80.0, 80.0)))
+    mask = np.clip(prediction[0, 0], 0.0, 1.0)
     span = float(mask.max() - mask.min())
     if span > 1e-6:
         mask = (mask - mask.min()) / span
@@ -99,7 +110,7 @@ def main():
         limits = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(limits)
         try:
-            _memory_job = limits.limit_memory(6 * 1024**3, 80)
+            _memory_job = limits.limit_memory(MEMORY_LIMIT, 80, resident=True)
         except (OSError, RuntimeError, ValueError):
             raise ProcessingFailure('runtime_unavailable') from None
         # Bound BLAS pools before importing NumPy/ORT; the model uses four ORT threads.

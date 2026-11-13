@@ -77,22 +77,19 @@ class StudioService
         $user = $this->collab->authorize($actor, $design, 'edit');
         $current = $this->owned($user, $design);
         $data = $this->input($data, true);
+        // Guardar nunca cambia la carpeta (T-33): se mueve solo con su endpoint (`moveDesign`). Asi un guardado del editor con la carpeta con la
+        // que se abrio no deshace un «Mover a carpeta» hecho despues, ni falla (ni bloquea el guardado o la exportacion) con una carpeta ya borrada.
+        unset($data['folder_id']);
         if ($actor->id !== $user->id) {
-            // Carpeta y condición de plantilla son decisiones del propietario: un editor invitado no las cambia ni las ve.
-            unset($data['folder_id'], $data['is_template']);
-        }
-        if (($data['autosave'] ?? false) === true) {
-            // El autoguardado no mueve de carpeta: pisaria un «Mover a carpeta» hecho mientras el editor seguia abierto (o fallaria con una carpeta ya borrada).
-            unset($data['folder_id']);
+            unset($data['is_template']); // la condición de plantilla es decisión del propietario: un editor invitado no la cambia
         }
         $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($current->brand_id);
         $document = $this->documents->validate($user, $brand, $data['document']);
-        $folderId = $this->folderId($user, $brand, array_key_exists('folder_id', $data) ? $data['folder_id'] : $current->folder_id);
 
         // Autoguardado del editor: llega con `kit_revision` en cada PATCH, asi que ese campo no impide fundirlo (A-07).
         $autosave = ($data['autosave'] ?? false) === true && $kitReference === null;
 
-        return DB::transaction(function () use ($user, $actor, $current, $data, $document, $folderId, $kitReference, $autosave): Design {
+        return DB::transaction(function () use ($user, $actor, $current, $data, $document, $kitReference, $autosave): Design {
             $locked = Design::withoutUserScope()->where('user_id', $user->id)->lockForUpdate()->findOrFail($current->id);
             if ($locked->revision !== (int) $data['revision']) {
                 $last = DesignRevision::withoutUserScope()->where('design_id', $locked->id)->where('revision', $locked->revision)->first();
@@ -113,7 +110,7 @@ class StudioService
             }
             $locked->fill(['name' => trim($data['name']), 'document' => $document, 'revision' => $locked->revision + 1,
                 'width' => $document['width'], 'height' => $document['height'], 'page_count' => count($document['pages']),
-                'is_template' => $data['is_template'] ?? $locked->is_template, 'folder_id' => $folderId])->save();
+                'is_template' => $data['is_template'] ?? $locked->is_template])->save();
             $this->snapshot($locked, $actor->id, $autosave, isset($data['kit_revision']) ? (int) $data['kit_revision'] : null);
 
             return $locked;

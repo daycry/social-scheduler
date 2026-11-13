@@ -215,15 +215,25 @@ test('Studio: folders are renamed, designs move between them and deleting a fold
             await expect(page.locator('#studio-folder-filter').locator('option', { hasText: name })).toHaveCount(1);
         }
 
-        // Renombrar con el teclado: el botón recibe el foco y se activa con Enter; Esc cierra la edición.
+        // Renombrar con el teclado: Enter en el botón abre el campo con el foco; Esc cancela solo el renombrado (el diálogo sigue abierto) y
+        // devuelve el foco al botón; guardar con Enter también lo devuelve.
         await page.getByTestId('folders-manage').click();
         const folders = page.getByRole('dialog', { name: 'Carpetas' });
-        await folders.getByRole('button', { name: 'Renombrar la carpeta Lanzamientos' }).focus();
+        const renameButton = folders.getByRole('button', { name: 'Renombrar la carpeta Lanzamientos' });
+        await renameButton.focus();
+        await page.keyboard.press('Enter');
+        await expect(folders.getByTestId('folder-rename-input')).toBeFocused();
+        await page.keyboard.press('Escape');
+        await expect(folders).toBeVisible();
+        await expect(folders.getByTestId('folder-rename-input')).toHaveCount(0);
+        await expect(renameButton).toBeFocused();
         await page.keyboard.press('Enter');
         await folders.getByTestId('folder-rename-input').fill('Campañas');
         await page.keyboard.press('Enter');
         await expect(folders.getByText('Campañas', { exact: true })).toBeVisible();
+        await expect(folders.getByRole('button', { name: 'Renombrar la carpeta Campañas' })).toBeFocused();
         await page.keyboard.press('Escape');
+        await expect(folders).toBeHidden();
 
         // Mover el diseño a la carpeta renombrada y verlo al filtrar por ella.
         await page.locator('summary[aria-label^="Opciones de"]').click();

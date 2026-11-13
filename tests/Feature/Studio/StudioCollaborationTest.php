@@ -141,7 +141,8 @@ test('Colaboración: los comentarios de un enlace tienen límite propio', functi
 
 test('Colaboración: un editor invitado no cambia carpeta ni plantilla y no ve carpetas del propietario', function () {
     $folder = $this->actingAs($this->owner)->postJson('/brands/'.$this->brand->id.'/studio/folders', ['name' => 'Secreta'])->json('folder.id');
-    $this->patchJson($this->base, ['name' => 'Con carpeta', 'document' => collabDocument(), 'revision' => 1, 'folder_id' => $folder])->assertOk();
+    $this->patchJson($this->base, ['name' => 'Con carpeta', 'document' => collabDocument(), 'revision' => 1])->assertOk();
+    $this->patchJson($this->base.'/folder', ['folder_id' => $folder])->assertOk();
     collabShare($this, $this->editor, 'editor');
     collabAs($this, $this->editor);
     $res = $this->patchJson($this->base, ['name' => 'Del editor', 'document' => collabDocument('E'), 'revision' => 2, 'folder_id' => null, 'is_template' => true])->assertOk();

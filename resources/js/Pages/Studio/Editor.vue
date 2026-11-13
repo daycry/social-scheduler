@@ -406,7 +406,7 @@ async function saveNow(autosave = false, force = false) {
     pendingAutosave = autosave === true;
     pendingSave = (async () => {
         try {
-            const result = await studioRequest('PATCH', route('studio.designs.update', props.design.id), { name: saved.name.trim() || 'Diseño sin título', document: validateDocument(saved.document), revision: revision.value, is_template: saved.is_template, folder_id: props.design.folder_id, kit_revision: saved.kit_revision, autosave: autosave === true });
+            const result = await studioRequest('PATCH', route('studio.designs.update', props.design.id), { name: saved.name.trim() || 'Diseño sin título', document: validateDocument(saved.document), revision: revision.value, is_template: saved.is_template, kit_revision: saved.kit_revision, autosave: autosave === true });
             revision.value = result.design.revision;
             templateFields.value = result.design.template_fields ?? [];
             if (version === changeVersion) { dirty.value = false; status.value = 'Guardado'; }

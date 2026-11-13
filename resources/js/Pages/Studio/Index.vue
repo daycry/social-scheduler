@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Icon from '@/Components/Icon.vue';
@@ -127,13 +127,15 @@ const createFolder = async () => {
         folderOpen.value = false; newFolder.value = ''; router.reload({ only: ['folders'] });
     } catch (e) { error.value = e.message; } finally { busy.value = false; }
 };
-const startRename = folder => { renaming.value = folder.id; renameName.value = folder.name; error.value = ''; };
+const focusFolder = (id, selector) => nextTick(() => document.querySelector(`[data-testid="folder-${id}"] ${selector}`)?.focus());
+const startRename = folder => { renaming.value = folder.id; renameName.value = folder.name; error.value = ''; focusFolder(folder.id, '[data-testid="folder-rename-input"]'); };
+const cancelRename = folder => { renaming.value = null; focusFolder(folder.id, '[data-testid="folder-rename"]'); };
 const renameFolder = async folder => {
     if (!renameName.value.trim() || busy.value) return;
     busy.value = true; error.value = '';
     try {
         await studioRequest('PATCH', route('studio.folders.update', folder.id), { name: renameName.value.trim() });
-        renaming.value = null; router.reload({ only: ['folders'] });
+        renaming.value = null; router.reload({ only: ['folders'], onSuccess: () => focusFolder(folder.id, '[data-testid="folder-rename"]') });
     } catch (e) { error.value = e.message; } finally { busy.value = false; }
 };
 const askDelete = folder => { deleting.value = folder; error.value = ''; deleteOpen.value = true; };
@@ -243,9 +245,9 @@ const date = value => new Intl.DateTimeFormat('es', { day: 'numeric', month: 'sh
             <ul v-else class="space-y-2">
                 <li v-for="folder in folders" :key="folder.id" class="rounded-xl border border-slate-200 p-3" :data-testid="`folder-${folder.id}`">
                     <form v-if="renaming === folder.id" class="flex flex-wrap items-end gap-2" @submit.prevent="renameFolder(folder)">
-                        <label class="min-w-0 flex-1 text-sm font-medium">Nuevo nombre<input v-model="renameName" class="field mt-1" maxlength="255" required autofocus data-testid="folder-rename-input" @keydown.esc.stop="renaming = null" /></label>
+                        <label class="min-w-0 flex-1 text-sm font-medium">Nuevo nombre<input v-model="renameName" class="field mt-1" maxlength="255" required data-testid="folder-rename-input" @keydown.esc.prevent.stop="cancelRename(folder)" /></label>
                         <button type="submit" class="btn-primary px-3" :disabled="busy" data-testid="folder-rename-save">Guardar</button>
-                        <button type="button" class="btn-secondary px-3" @click="renaming = null">Cancelar</button>
+                        <button type="button" class="btn-secondary px-3" @click="cancelRename(folder)">Cancelar</button>
                     </form>
                     <div v-else class="flex flex-wrap items-center gap-2">
                         <span class="min-w-0 flex-1 truncate text-sm font-medium">{{ folder.name }}</span>

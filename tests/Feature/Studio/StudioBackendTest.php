@@ -84,11 +84,12 @@ test('Studio: searches literal percent and underscore characters and returns lig
     $this->getJson($this->createUrl.'?query='.urlencode('_'))->assertJsonCount(1, 'designs.designs');
 });
 
-test('Studio: an update can explicitly remove its folder association', function () {
+test('Studio: an update never changes the folder; only the move endpoint does', function () {
     $folder = $this->postJson('/brands/'.$this->brand->id.'/studio/folders', ['name' => 'Carpeta'])->json('folder');
     $design = $this->postJson($this->createUrl, ['name' => 'Con carpeta', 'document' => studioDocument(), 'folder_id' => $folder['id']])->json('design');
     $this->patchJson('/studio/designs/'.$design['id'], ['name' => 'Sin carpeta', 'document' => studioDocument(), 'revision' => 1, 'folder_id' => null])
-        ->assertOk()->assertJsonPath('design.folder_id', null);
+        ->assertOk()->assertJsonPath('design.folder_id', $folder['id']);
+    $this->patchJson('/studio/designs/'.$design['id'].'/folder', ['folder_id' => null])->assertOk()->assertJsonPath('design.folder_id', null);
 });
 
 test('Studio: private brands and designs are not visible or mutable to another user', function () {

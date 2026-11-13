@@ -129,3 +129,15 @@ test('MCP: rename y move comprueban marca, propietario y abilities', function ()
     [$stranger] = $this->callTool($this->mcpKey($this->stranger), 'manage_design_folder', ['action' => 'rename', 'brand_id' => $this->brand->id, 'folder_id' => $this->folderA->id, 'name' => 'x']);
     expect($wrongBrand)->toBeTrue()->and($foreign)->toBeTrue()->and($readOnly)->toBeTrue()->and($stranger)->toBeTrue();
 });
+
+test('guardar el diseño (con o sin autoguardado, con la carpeta vieja, borrada o ajena) nunca cambia la carpeta ni falla', function () {
+    $this->actingAs($this->user);
+    $this->patchJson(route('studio.designs.move', $this->design->id), ['folder_id' => $this->folderB->id])->assertOk();
+    $save = fn (int $revision, mixed $folder, bool $autosave) => $this->patchJson(route('studio.designs.update', $this->design->id), ['name' => 'Diseño', 'document' => StudioDocument::blank(), 'revision' => $revision, 'folder_id' => $folder, 'autosave' => $autosave]);
+
+    $save(1, $this->folderA->id, false)->assertOk()->assertJsonPath('design.folder_id', $this->folderB->id); // guardado manual con la carpeta vieja
+    $this->deleteJson(route('studio.folders.destroy', $this->folderB->id))->assertOk();
+    $save(2, $this->folderB->id, false)->assertOk()->assertJsonPath('design.folder_id', null); // carpeta ya borrada: ni bloquea ni la restaura
+    $save(3, $this->foreignFolder->id, false)->assertOk()->assertJsonPath('design.folder_id', null); // ni siquiera una ajena
+    expect($this->design->fresh()->revision)->toBe(4);
+});

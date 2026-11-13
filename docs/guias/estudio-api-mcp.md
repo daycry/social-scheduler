@@ -180,7 +180,7 @@ curl --fail "$BASE/api/v1/designs/$DESIGN_ID" \
   -H "Authorization: Bearer $TOKEN" -H 'Accept: application/json' \
   --output design.json
 
-jq '{name,document,revision,is_template,folder_id}
+jq '{name,document,revision,is_template}
     | .document.pages[0].elements[0].text = "Nueva campaña"' \
   design.json > design-update.json
 
@@ -192,7 +192,7 @@ curl --fail -X PATCH "$BASE/api/v1/designs/$DESIGN_ID" \
 
 Si otra sesión ya guardó, devuelve HTTP `409` y conserva la versión del servidor. Vuelve a leer el diseño, compara y resuelve los cambios antes de reenviar; cambiar solamente el número de revisión podría sobrescribir trabajo ajeno. En MCP el resultado tiene `isError: true` y un mensaje que identifica el conflicto `409`.
 
-Duplicar crea una revisión 1 independiente. `folder_id: null` quita la carpeta. La copia y el archivado se pueden invocar así:
+Duplicar crea una revisión 1 independiente. La copia y el archivado se pueden invocar así:
 
 ```bash
 curl --fail -X POST "$BASE/api/v1/designs/$DESIGN_ID/duplicate" \
@@ -204,7 +204,7 @@ curl --fail -X POST "$BASE/api/v1/designs/$DESIGN_ID/restore" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-Las carpetas están aisladas por marca y usuario. Crear una devuelve `{"folder":{...}}`; el listado devuelve `{"folders":[...]}`. Asigna su ID mediante `folder_id` al crear o actualizar un diseño. Eliminar una carpeta quita esa asociación tanto en diseños activos como archivados, sin borrar documentos, revisiones o exportaciones; los números de revisión se conservan.
+Las carpetas están aisladas por marca y usuario. Crear una devuelve `{"folder":{...}}`; el listado devuelve `{"folders":[...]}`. Asigna su ID mediante `folder_id` al crear un diseño; actualizar un diseño ignora `folder_id` (guardar nunca cambia la carpeta) y para cambiarla se usa `PATCH /api/v1/designs/{id}/folder` con `folder_id` (o `null` para «Sin carpeta»). `PATCH /api/v1/design-folders/{id}` renombra. Eliminar una carpeta pasa sus diseños, activos y archivados, a «Sin carpeta» (la respuesta trae `designs_moved`), sin borrar documentos, revisiones o exportaciones; los números de revisión se conservan.
 
 ## Plantillas y automatización por marca
 
@@ -329,13 +329,13 @@ La siguiente llamada tiene la forma `{"jsonrpc":"2.0","id":2,"method":"tools/lis
 | `list_designs` | `brand` o `brand_id`; opcionales `query`, `folder_id`, `templates`, `archived`, `limit`, `cursor`. Resúmenes paginados por cursor (24 por defecto; `has_more` y `next_cursor`). `designs:read`. |
 | `get_design` | `design_id`, `exports_page` opcional. Documento completo, revisión, kit, recursos con `file_url` e historial `exports` de 50 por página con `exports_pagination`. `designs:read`. |
 | `create_design` | Marca, `name`, `document`, opcionales `folder_id`/`is_template`. Diseño con revisión 1. `designs:write`. |
-| `update_design` | `design_id`, `name`, `document`, `revision`, opcionales `folder_id`/`is_template`. Nueva revisión o conflicto 409. `designs:write`. |
+| `update_design` | `design_id`, `name`, `document`, `revision`, opcional `is_template` (la carpeta no se cambia al actualizar). Nueva revisión o conflicto 409. `designs:write`. |
 | `export_design` | `design_id`, `revision`, `format`, `pages`, opcionales `scale`/`quality`/`transparent`. MP4/GIF requieren transparencia false. `designs:write`. |
 | `manage_design_export` | `export_id`, `action`: get (designs:read), cancel/retry (designs:write), post (designs:write y posts:write). Devuelve progreso/descarga o borrador; no publica. |
 | `manage_brand_kit` | Marca; `kit` omitido consulta y, si está presente, actualiza sus campos. Requiere `designs:write` en ambos casos; `get_design` permite leer el kit con `designs:read`. |
 | `attach_design_asset` | Marca y `media_id` propio listo. Registra el recurso y devuelve sus metadatos. `designs:write`. |
 | `manage_design` | `design_id`, `action: duplicate\|archive\|restore`; `name` opcional para duplicar. Copia independiente o archivado/restauración conservando snapshots y exportaciones. `designs:write`. |
-| `manage_design_folder` | Marca y `action: list\|create\|delete`; `name` obligatorio al crear, `folder_id` al eliminar. `list` requiere `designs:read`; crear/eliminar, `designs:write`. Eliminar conserva los diseños sin asociación. |
+| `manage_design_folder` | Marca y `action: list\|create\|rename\|move\|delete`; `name` obligatorio al crear y renombrar, `folder_id` al renombrar y eliminar, `design_id` (y `folder_id`, vacío = «Sin carpeta») al mover. `list` requiere `designs:read`; el resto, `designs:write`. Eliminar pasa los diseños a «Sin carpeta». |
 
 Una llamada a una herramienta usa el mismo transporte JSON-RPC:
 
@@ -358,7 +358,7 @@ Flujo reproducible de las herramientas de diseño, adaptando los IDs a cada resp
 6. `get_design({"design_id":42})`. Conserva el documento y la revisión devueltos; modifica los elementos deseados.
 7. `update_design({"design_id":42,"name":"Campaña revisada","revision":1,"document":DOCUMENTO_EDITADO})`. Si devuelve 409, vuelve al paso 6 y resuelve el conflicto. Usa la nueva revisión devuelta si el guardado pasa.
 8. `export_design({"design_id":42,"revision":2,"format":"png","pages":["page_1"],"scale":1})`. Consulta periódicamente `get_design({"design_id":42})` y localiza el trabajo por su ID en `exports` hasta `ready`/`failed`. Descarga `download_url` únicamente cuando exista; no repitas `export_design` para hacer polling.
-9. `manage_design_folder({"brand_id":12,"action":"create","name":"Lanzamientos"})` devuelve el objeto de carpeta con su `id`. Consulta con `{"brand_id":12,"action":"list"}` y utiliza ese ID en `folder_id` de `create_design`/`update_design`; `list_designs` también puede filtrar por carpeta. `manage_design_folder({"brand_id":12,"action":"delete","folder_id":10})` solo acepta una carpeta de esa misma marca y conserva sus diseños sin asociación.
+9. `manage_design_folder({"brand_id":12,"action":"create","name":"Lanzamientos"})` devuelve el objeto de carpeta con su `id`. Consulta con `{"brand_id":12,"action":"list"}` y utiliza ese ID en `folder_id` de `create_design` o con la acción `move`; `list_designs` también puede filtrar por carpeta. `manage_design_folder({"brand_id":12,"action":"delete","folder_id":10})` solo acepta una carpeta de esa misma marca y pasa sus diseños a «Sin carpeta».
 10. `manage_design({"design_id":42,"action":"duplicate","name":"Variante"})` devuelve una copia con ID nuevo y revisión 1. `manage_design({"design_id":42,"action":"archive"})` archiva el original; `manage_design({"design_id":42,"action":"restore"})` lo restaura conservando sus revisiones y exportaciones. La restauración solo admite recursos del usuario, aunque estén archivados. Para volver a verlos antes de restaurar, usa `list_designs({"brand_id":12,"archived":true})`.
 
 Para continuar hacia publicación, PNG/JPEG/WebP aportan `exports[].media_ids`. La herramienta existente `create_post` consume esos IDs y valida los destinos; `schedule:false` crea un borrador. Los servicios de diseño/exportación no programan ni publican por sí solos.

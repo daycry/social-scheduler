@@ -12,7 +12,7 @@ function mount() {
     const doc = blankDocument(320, 180); doc.schema_version = 2; doc.timeline = { fps: 30, audio_tracks: [] };
     const actions = [], downloads = [], hooks = [];
     const props = reactive({ document: doc, time: 0.5, duration: 5, disabled: false, fonts: [], kitFonts: [], apply: async op => { actions.push(op); } });
-    const vars = { ref, computed, watch, onBeforeUnmount: hook => hooks.push(hook), ...captions, downloadBlob: (...args) => downloads.push(args) };
+    const vars = { ref, computed, watch, onBeforeUnmount: hook => hooks.push(hook), ...captions, downloadBlob: (...args) => downloads.push(args), studioRequest: async () => ({}), AiNotConfigured: {} };
     const component = new Function(...Object.keys(vars), compiled)(...Object.values(vars));
     const scope = effectScope(), state = scope.run(() => component.setup(props, { expose() {}, emit() {} }));
     return { actions, downloads, props, state, close: () => { hooks.forEach(hook => hook()); scope.stop(); } };

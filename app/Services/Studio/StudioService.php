@@ -326,6 +326,7 @@ class StudioService
             $rules['autosave'] = ['sometimes', 'boolean'];
         }
         $data = Validator::make($data, $rules)->validate();
+        $data['name'] = StudioDocument::cleanName($data['name']);
         if (trim($data['name']) === '') {
             throw ValidationException::withMessages(['name' => ['El nombre es obligatorio.']]);
         }

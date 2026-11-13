@@ -14,8 +14,8 @@ final class StudioPptxExporter
 {
     public const EMU_PER_PIXEL = 9525;
 
-    /** Margen bajo las 56 pulgadas (51.206.400 EMU) que admite PowerPoint por lado. */
-    private const MAX_EMU = 50_000_000;
+    /** PowerPoint admite de 1 pulgada (914.400 EMU) a 56 pulgadas (51.206.400 EMU) por lado. */
+    private const MAX_EMU = 51_206_400;
 
     private const MIN_EMU = 914_400;
 
@@ -35,7 +35,8 @@ final class StudioPptxExporter
         if ($slides === [] || $width < 1 || $height < 1) {
             throw new StudioRenderFailure('No hay páginas que empaquetar en la presentación.');
         }
-        [$cx, $cy] = $this->slideSize($width, $height);
+        $layout = $this->slideBox($width, $height);
+        [$cx, $cy] = [$layout['sw'], $layout['sh']];
         $zip = new StudioZipWriter($target);
         try {
             $zip->addString('[Content_Types].xml', $this->contentTypes(count($slides)));
@@ -56,7 +57,7 @@ final class StudioPptxExporter
             $zip->addString('ppt/theme/theme1.xml', $this->theme());
             foreach ($slides as $i => $slide) {
                 $n = $i + 1;
-                $zip->addString("ppt/slides/slide$n.xml", $this->slide($n, $slide['name'], $cx, $cy));
+                $zip->addString("ppt/slides/slide$n.xml", $this->slide($n, $slide['name'], $layout));
                 $zip->addString("ppt/slides/_rels/slide$n.xml.rels", $this->rels([['rId1', 'slideLayout', '../slideLayouts/slideLayout1.xml'], ['rId2', 'image', "../media/image$n.png"]]));
                 $zip->addFile("ppt/media/image$n.png", $slide['path']);
             }
@@ -65,22 +66,28 @@ final class StudioPptxExporter
         }
     }
 
-    /** @return array{0: int, 1: int} */
-    private function slideSize(int $width, int $height): array
+    /**
+     * Diapositiva valida (cada lado entre 1 y 56 pulgadas) con la imagen a escala uniforme dentro: a su tamano (1 px = 9525 EMU), reducida si
+     * pasa del maximo y, si el diseno es muy estrecho para llegar al minimo, centrada con bandas (letterbox) en lugar de deformarla.
+     *
+     * @return array{sw: int, sh: int, x: int, y: int, w: int, h: int}
+     */
+    private function slideBox(int $width, int $height): array
     {
-        $cx = $width * self::EMU_PER_PIXEL;
-        $cy = $height * self::EMU_PER_PIXEL;
-        // Escala uniforme (la imagen no se deforma): hacia abajo si pasa del maximo de PowerPoint, hacia arriba si no llega a 1 pulgada.
-        $k = min(1, self::MAX_EMU / max($cx, $cy));
-        if (min($cx, $cy) * $k < self::MIN_EMU) {
-            $k = min(self::MAX_EMU / max($cx, $cy), self::MIN_EMU / min($cx, $cy));
-        }
+        $k = min(1, self::MAX_EMU / max($width, $height) / self::EMU_PER_PIXEL);
+        $w = max(1, (int) round($width * self::EMU_PER_PIXEL * $k));
+        $h = max(1, (int) round($height * self::EMU_PER_PIXEL * $k));
+        $sw = min(self::MAX_EMU, max(self::MIN_EMU, $w));
+        $sh = min(self::MAX_EMU, max(self::MIN_EMU, $h));
 
-        return [(int) round($cx * $k), (int) round($cy * $k)];
+        return ['sw' => $sw, 'sh' => $sh, 'x' => intdiv($sw - $w, 2), 'y' => intdiv($sh - $h, 2), 'w' => $w, 'h' => $h];
     }
 
+    /** Texto seguro para XML 1.0: sin caracteres de control (salvo tab, salto de linea y retorno) ni no-caracteres; un control suelto invalida el paquete. */
     private function esc(string $text): string
     {
+        $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F\x{FFFE}\x{FFFF}]/u', '', mb_scrub($text)) ?? '';
+
         return htmlspecialchars($text, ENT_XML1 | ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
@@ -144,13 +151,14 @@ final class StudioPptxExporter
         return $this->xml('<p:sldLayout xmlns:a="'.self::NS_A.'" xmlns:r="'.self::NS_R.'" xmlns:p="'.self::NS_P.'" type="blank" preserve="1"><p:cSld name="En blanco">'.$this->emptyTree().'</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>');
     }
 
-    private function slide(int $n, string $name, int $cx, int $cy): string
+    /** @param array{sw: int, sh: int, x: int, y: int, w: int, h: int} $box */
+    private function slide(int $n, string $name, array $box): string
     {
         $label = $this->esc(mb_substr($name !== '' ? $name : 'Página '.$n, 0, 120));
 
         return $this->xml('<p:sld xmlns:a="'.self::NS_A.'" xmlns:r="'.self::NS_R.'" xmlns:p="'.self::NS_P.'"><p:cSld name="'.$label.'">'.$this->emptyTree()
             .'<p:pic><p:nvPicPr><p:cNvPr id="2" name="Página '.$n.'" descr="'.$label.'"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="rId2"/><a:stretch><a:fillRect/></a:stretch></p:blipFill>'
-            .'<p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'.$cx.'" cy="'.$cy.'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>');
+            .'<p:spPr><a:xfrm><a:off x="'.$box['x'].'" y="'.$box['y'].'"/><a:ext cx="'.$box['w'].'" cy="'.$box['h'].'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>');
     }
 
     private function theme(): string

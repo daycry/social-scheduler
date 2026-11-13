@@ -7,7 +7,7 @@ use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
-/** Miniatura de un diseno (T-35): primera pagina reducida, por la cola `media`. Unico por diseno: varias visitas al listado no la duplican. */
+/** Miniatura de un diseno (T-35): primera pagina reducida, por la cola `studio` (baja prioridad). Unico por diseno: varias visitas al listado no la duplican. */
 class RenderStudioThumbnail implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
@@ -21,7 +21,8 @@ class RenderStudioThumbnail implements ShouldBeUnique, ShouldQueue
 
     public function __construct(public readonly int $designId)
     {
-        $this->onQueue('media');
+        // Cola `studio`: su propio worker (con Chromium), asi las miniaturas no compiten con las importaciones de `media`.
+        $this->onQueue('studio');
     }
 
     public function uniqueId(): string
@@ -32,5 +33,11 @@ class RenderStudioThumbnail implements ShouldBeUnique, ShouldQueue
     public function handle(StudioThumbnails $thumbnails): void
     {
         $thumbnails->generate($this->designId);
+    }
+
+    /** Un timeout o un kill del worker no pasa por el `catch` de `generate()`: aplaza esa revision igual. */
+    public function failed(?\Throwable $exception): void
+    {
+        app(StudioThumbnails::class)->markFailed($this->designId);
     }
 }

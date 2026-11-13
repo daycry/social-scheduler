@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Passkeys\Contracts\PasskeyUser;
 use Laravel\Passkeys\PasskeyAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
@@ -28,6 +29,12 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         static::deleting(function (self $user) {
             $user->tokens()->delete();
             $user->purgeMediaReferences();
+        });
+        // Los ficheros del estudio de la cuenta (miniaturas y exportaciones renderizadas) no cuelgan de ninguna FK: se borran con ella.
+        static::deleted(function (self $user) {
+            foreach (['studio-thumbnails', 'studio-exports'] as $directory) {
+                Storage::disk('local')->deleteDirectory($directory.'/'.$user->id);
+            }
         });
     }
 

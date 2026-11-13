@@ -43,7 +43,8 @@ function thumbRender(): void
 test('Miniaturas: listar un diseno sin miniatura la encola una vez y muestra el hueco, no una URL', function () {
     $rows = app(StudioThumbnails::class)->decorate($this->user, [['id' => $this->design->id, 'revision' => 1, 'deleted_at' => null]]);
     expect($rows[0]['thumbnail_url'])->toBeNull();
-    Queue::assertPushed(RenderStudioThumbnail::class, fn ($job) => $job->designId === $this->design->id && $job->queue === 'media');
+    // Cola `studio` (baja prioridad, su propio worker): una avalancha de miniaturas no retrasa las importaciones de la cola `media`.
+    Queue::assertPushed(RenderStudioThumbnail::class, fn ($job) => $job->designId === $this->design->id && $job->queue === 'studio');
 
     app(StudioThumbnails::class)->decorate($this->user, [['id' => $this->design->id, 'revision' => 1, 'deleted_at' => null]]);
     Queue::assertPushed(RenderStudioThumbnail::class, 1); // el trabajo es unico por diseno: otra visita no lo duplica
@@ -110,6 +111,47 @@ test('Miniaturas: un render que falla no deja miniatura, no rompe el listado y n
     $rows = app(StudioThumbnails::class)->decorate($this->user, [['id' => $this->design->id, 'revision' => 1, 'deleted_at' => null]]);
     expect($rows[0]['thumbnail_url'])->toBeNull();
     Queue::assertNothingPushed();
+});
+
+test('Miniaturas: cada fila dice su estado (lista, pendiente, aplazada o apagada) para que el listado solo sondee lo pendiente', function () {
+    $row = fn () => app(StudioThumbnails::class)->decorate($this->user, [['id' => $this->design->id, 'revision' => 1, 'deleted_at' => null]])[0]['thumbnail_status'];
+    expect($row())->toBe('pending');
+
+    Process::fake(['*' => Process::result(exitCode: 1)]);
+    (new RenderStudioThumbnail($this->design->id))->handle(app(StudioThumbnails::class));
+    expect($row())->toBe('failed');
+
+    Cache::flush();
+    thumbRender();
+    (new RenderStudioThumbnail($this->design->id))->handle(app(StudioThumbnails::class));
+    expect($row())->toBe('ready');
+
+    config(['studio.thumbnails.enabled' => false]);
+    $off = app(StudioThumbnails::class)->decorate($this->user, [['id' => $this->design->id, 'revision' => 2, 'deleted_at' => null], ['id' => $this->design->id, 'revision' => 3, 'deleted_at' => now()]]);
+    expect(array_column($off, 'thumbnail_status'))->toBe(['off', 'off']);
+});
+
+test('Miniaturas: si el worker mata el job por tiempo, failed() aplaza la revision igual que un fallo normal', function () {
+    $job = new RenderStudioThumbnail($this->design->id);
+    $job->failed(new Exception('timeout'));
+
+    Queue::fake();
+    $rows = app(StudioThumbnails::class)->decorate($this->user, [['id' => $this->design->id, 'revision' => 1, 'deleted_at' => null]]);
+    expect($rows[0]['thumbnail_status'])->toBe('failed');
+    Queue::assertNothingPushed();
+});
+
+test('Miniaturas: al borrar la cuenta se borran sus miniaturas y sus exportaciones del disco', function () {
+    $disk = Storage::disk('local');
+    $disk->put('studio-thumbnails/'.$this->user->id.'/1-r1.jpg', 'x');
+    $disk->put('studio-exports/'.$this->user->id.'/5/uuid/design.pptx', 'x');
+    $other = User::factory()->create();
+    $disk->put('studio-thumbnails/'.$other->id.'/1-r1.jpg', 'x');
+
+    $this->user->delete();
+
+    expect($disk->exists('studio-thumbnails/'.$this->user->id.'/1-r1.jpg'))->toBeFalse()->and($disk->exists('studio-exports/'.$this->user->id.'/5/uuid/design.pptx'))->toBeFalse()
+        ->and($disk->exists('studio-thumbnails/'.$other->id.'/1-r1.jpg'))->toBeTrue();
 });
 
 test('Miniaturas: el listado web trae la miniatura vigente y solo del propietario', function () {

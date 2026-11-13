@@ -64,7 +64,7 @@ Quien use la API v1 o el MCP con claves ya emitidas debe adaptar estos puntos (n
 ## Cambios de configuración
 
 - `LINKEDIN_RECONNECT_NOTICE_DAYS` desaparece; usa `SOCIAL_EXPIRY_NOTICE_DAYS` (días de antelación separados por comas, por defecto `7,1`; vale para todas las redes con caducidad conocida) y, si quieres otra hora, `SOCIAL_EXPIRY_NOTICE_AT`. Hay que ejecutar `php artisan migrate` (nueva columna `users.notify_by_mail`) y la tarea programada `connections:notify-expiry` ya va en el scheduler.
-- **Miniaturas del estudio (T-35).** Migración nueva `2026_12_24_090000_add_thumbnail_to_studio_designs` (dos columnas, reversible): ejecuta `php artisan migrate`. El listado encola `RenderStudioThumbnail` en la cola `media` y necesita el worker de `media` y Chromium (los mismos que las exportaciones); `STUDIO_THUMBNAILS=false` desactiva las miniaturas si el servidor no tiene Chromium. La exportación a PPTX (`format: "pptx"`) usa esa misma cola y no necesita `ext-zip`. No hay cambios incompatibles.
+- **Miniaturas del estudio (T-35).** Migración nueva `2026_12_24_090000_add_thumbnail_to_studio_designs` (dos columnas, reversible): ejecuta `php artisan migrate`. El listado encola `RenderStudioThumbnail` en la cola `studio` (la de MP4/GIF, con su worker y Chromium; no compite con las importaciones de `media`); `STUDIO_THUMBNAILS=false` desactiva las miniaturas si el servidor no tiene Chromium. La exportación a PPTX (`format: "pptx"`) usa esa misma cola y no necesita `ext-zip`. No hay cambios incompatibles.
 
 ## Primer usuario
 

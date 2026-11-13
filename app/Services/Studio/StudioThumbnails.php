@@ -17,7 +17,7 @@ use Illuminate\Support\Str;
  * Miniaturas del listado del estudio (T-35). La miniatura es la primera pagina del diseno reducida a `MAX_SIDE` px, en JPEG, guardada en el
  * disco `local` y cacheada por revision: `studio_designs.thumbnail_revision` dice que revision se renderizo y, si no coincide con la actual
  * (el diseno se edito), esta caducada. Editar o autoguardar NO renderiza nada (no bloquea el guardado): el listado, al verla caducada, encola
- * `RenderStudioThumbnail` en la cola `media` (bajo demanda, unico por diseno) y muestra el hueco hasta que esta lista. Un render fallido aplaza
+ * `RenderStudioThumbnail` en la cola `studio` (bajo demanda, unico por diseno) y muestra el hueco hasta que esta lista. Un render fallido aplaza
  * esa revision unos minutos para no insistir en cada visita. El render reutiliza el mismo Chromium de las exportaciones.
  */
 class StudioThumbnails
@@ -55,10 +55,16 @@ class StudioThumbnails
             $fresh = $current !== null && $current->thumbnail_path !== null && (int) $current->thumbnail_revision === (int) $row['revision'];
             $rows[$i]['thumbnail_url'] = $fresh
                 ? URL::temporarySignedRoute('studio.designs.thumbnail', $expires, ['design' => $row['id'], 'owner' => $user->id, 'v' => $row['revision']]) : null;
-            if (! $fresh && self::enabled() && ($row['deleted_at'] ?? null) === null && $queued < self::QUEUE_PER_LISTING && ! Cache::has($this->failedKey((int) $row['id'], (int) $row['revision']))) {
+            // ready | pending (en cola o por encolar: merece sondear) | failed (aplazada) | off (apagadas o en la papelera: no se sondea).
+            $status = 'ready';
+            if (! $fresh) {
+                $status = ! self::enabled() || ($row['deleted_at'] ?? null) !== null ? 'off' : (Cache::has($this->failedKey((int) $row['id'], (int) $row['revision'])) ? 'failed' : 'pending');
+            }
+            if ($status === 'pending' && $queued < self::QUEUE_PER_LISTING) {
                 RenderStudioThumbnail::dispatch((int) $row['id']);
                 $queued++;
             }
+            $rows[$i]['thumbnail_status'] = $status;
         }
 
         return $rows;
@@ -96,10 +102,19 @@ class StudioThumbnails
                 $disk->delete($previous);
             }
         } catch (\Throwable $e) {
-            Cache::put($this->failedKey($designId, $revision), true, now()->addMinutes(self::RETRY_AFTER_FAILURE_MINUTES));
+            $this->markFailed($designId);
             Log::warning('studio.thumbnail_failed', ['design' => $designId, 'error' => $e instanceof StudioRenderFailure ? $e->getMessage() : $e::class]);
         } finally {
             $disk->deleteDirectory($work);
+        }
+    }
+
+    /** Aplaza la revision actual del diseno unos minutos tras un fallo (render, timeout o kill del worker). */
+    public function markFailed(int $designId): void
+    {
+        $revision = DB::table('studio_designs')->where('id', $designId)->value('revision');
+        if ($revision !== null) {
+            Cache::put($this->failedKey($designId, (int) $revision), true, now()->addMinutes(self::RETRY_AFTER_FAILURE_MINUTES));
         }
     }
 

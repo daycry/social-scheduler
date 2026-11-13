@@ -14,6 +14,11 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 - Un `PUT` del SmartLink sin `published` ya no lo publica.
 - Un único OpenAPI (`docs/api/openapi.yaml`) describe toda la API.
 
+### Added — opciones de publicación y estudio (`audit-hardening`, T-34/T-35)
+
+- **T-34 — Opciones de publicación: portada LinkedIn, lugares IG, `place` FB, editor de `user_tags`.** El compositor deja elegir un lugar para Instagram y Facebook (buscándolo o pegando su id), etiquetar usuarios en una imagen de Instagram pulsando sobre ella y poner portada a los vídeos de LinkedIn.
+- **T-35 — Estudio: PPTX, miniaturas por diseño y traducción de subtítulos.** El estudio exporta un diseño a PowerPoint (una diapositiva por página), enseña una miniatura de cada diseño en el listado y traduce los subtítulos con el asistente de IA cuando está activado.
+
 ### Added — iniciativa `creative-social-suite` (2026-11-03)
 
 - **T-01 — Inventario y evidencia de referencia** El inventario de funciones de referencia queda actualizado con el estado real de la aplicación: para cada función, si está cubierta, parcial o fuera, la tarea que la cubre y su prueba.

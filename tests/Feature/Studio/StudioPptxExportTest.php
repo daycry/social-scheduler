@@ -100,6 +100,58 @@ test('PPTX: el exportador genera un paquete OOXML valido con una diapositiva por
     }
 });
 
+test('PPTX: los caracteres de control de un nombre no rompen el XML', function () {
+    $dir = Storage::disk('local')->path('pptx-ctrl');
+    Storage::disk('local')->makeDirectory('pptx-ctrl');
+    file_put_contents($dir.'/a.png', pptxPng(120, 80, 255));
+
+    app(StudioPptxExporter::class)->build($dir.'/out.pptx', [['path' => $dir.'/a.png', 'name' => "Port\x08ada\x0B\x00 \u{FFFE}uno\tdos\nlinea"]], 1200, 800, "Titulo\x1F con \x7F control");
+    $entries = pptxEntries(file_get_contents($dir.'/out.pptx'));
+
+    foreach (['ppt/slides/slide1.xml', 'docProps/core.xml'] as $name) {
+        $xml = new DOMDocument;
+        expect($xml->loadXML($entries[$name], LIBXML_NONET))->toBeTrue($name)->and(preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', $entries[$name]))->toBe(0);
+    }
+    expect($entries['ppt/slides/slide1.xml'])->toContain('Portada')->and($entries['docProps/core.xml'])->toContain('Titulo con  control');
+});
+
+test('PPTX: el nombre del diseno y de las paginas se guarda sin caracteres de control', function () {
+    $document = $this->document;
+    $document['pages'][0]['name'] = "Por\x08ta\x00da\n";
+    $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => "Mi\x0B dise\x1Fno\x7F", 'document' => $document]);
+
+    expect($design->name)->toBe('Mi diseno')->and($design->document['pages'][0]['name'])->toBe('Portada');
+    $updated = app(StudioService::class)->update($this->user, $design, ['name' => "Otro\x01", 'document' => $document, 'revision' => 1]);
+    expect($updated->name)->toBe('Otro')->and($updated->document['pages'][0]['name'])->toBe('Portada');
+});
+
+test('PPTX: un diseno muy alargado queda en una diapositiva valida con la imagen en letterbox', function (int $w, int $h) {
+    $dir = Storage::disk('local')->path('pptx-ratio');
+    Storage::disk('local')->makeDirectory('pptx-ratio');
+    file_put_contents($dir.'/a.png', pptxPng(4, 4, 128));
+
+    app(StudioPptxExporter::class)->build($dir.'/out.pptx', [['path' => $dir.'/a.png', 'name' => 'x']], $w, $h, 'Alargado');
+    $entries = pptxEntries(file_get_contents($dir.'/out.pptx'));
+    $size = simplexml_load_string($entries['ppt/presentation.xml'])->children('p', true)->sldSz->attributes();
+    $slide = simplexml_load_string($entries['ppt/slides/slide1.xml']);
+    $slide->registerXPathNamespace('a', 'http://schemas.openxmlformats.org/drawingml/2006/main');
+    $slide->registerXPathNamespace('p', 'http://schemas.openxmlformats.org/presentationml/2006/main');
+    $pic = $slide->xpath('//p:pic//a:xfrm')[0];
+    $off = $pic->children('a', true)->off->attributes();
+    $ext = $pic->children('a', true)->ext->attributes();
+
+    expect((int) $size['cx'])->toBeGreaterThanOrEqual(914400)->toBeLessThanOrEqual(51206400)
+        ->and((int) $size['cy'])->toBeGreaterThanOrEqual(914400)->toBeLessThanOrEqual(51206400);
+    // La imagen conserva la proporcion del diseno y cabe entera, centrada.
+    expect(abs(((int) $ext['cx'] / (int) $ext['cy']) - ($w / $h)) / ($w / $h))->toBeLessThan(0.001);
+    expect((int) $off['x'] + (int) $ext['cx'])->toBeLessThanOrEqual((int) $size['cx'])->and((int) $off['y'] + (int) $ext['cy'])->toBeLessThanOrEqual((int) $size['cy']);
+    expect(abs(((int) $off['x'] * 2 + (int) $ext['cx']) - (int) $size['cx']))->toBeLessThanOrEqual(2)->and(abs(((int) $off['y'] * 2 + (int) $ext['cy']) - (int) $size['cy']))->toBeLessThanOrEqual(2);
+})->with([
+    'alto y estrecho' => [100, 10000],
+    'ancho y bajo' => [10000, 100],
+    'enorme' => [16000, 16000],
+]);
+
 test('PPTX: una exportacion pptx se renderiza como PNG, se empaqueta, no crea media y se descarga', function () {
     $export = app(StudioRenderer::class)->export($this->user, $this->design, ['revision' => 1, 'format' => 'pptx', 'pages' => ['page_one', 'page_two']]);
     expect($export->format)->toBe('pptx')->and($export->status)->toBe('pending');

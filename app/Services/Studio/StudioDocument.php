@@ -47,6 +47,9 @@ class StudioDocument
             $this->keys($page, ['id', 'name', 'background', 'duration', 'elements', 'notes'], $path);
             $this->identifier($page['id'] ?? null, $path.'.id', $seen);
             $this->optionalString($page, 'name', 255, $path);
+            if (isset($page['name'])) {
+                $document['pages'][$i]['name'] = self::cleanName($page['name']);
+            }
             $this->optionalString($page, 'notes', 20000, $path);
             $this->ensure(array_key_exists('background', $page), $path.'.background', 'Indica el fondo de la página.');
             $this->paint($page['background'], $path.'.background');
@@ -397,6 +400,12 @@ class StudioDocument
         if (array_key_exists($key, $data)) {
             $this->number($data[$key], $min, $max, $path.'.'.$key);
         }
+    }
+
+    /** Nombre de una sola linea sin caracteres de control: acaban en XML (PPTX), cabeceras y nombres de fichero. */
+    public static function cleanName(string $name): string
+    {
+        return preg_replace('/[\x00-\x1F\x7F-\x9F]/u', '', mb_scrub($name)) ?? '';
     }
 
     private function optionalString(array $data, string $key, int $max, string $path): void

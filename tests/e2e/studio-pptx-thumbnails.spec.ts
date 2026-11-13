@@ -35,7 +35,7 @@ test('T-35 · listado: miniatura bajo demanda, caducada al editar y exportación
         // Sin miniatura: hueco con el nombre y el trabajo queda en la cola; con el worker, aparece la imagen.
         await page.goto(`/studio?brand_id=${brand.id}`);
         await expect(page.getByTestId('design-thumbnail-pending')).toHaveCount(1);
-        runQueue('media');
+        runQueue('studio');
         await page.reload();
         const thumbnail = page.getByTestId('design-thumbnail');
         await expect(thumbnail).toBeVisible();
@@ -47,7 +47,7 @@ test('T-35 · listado: miniatura bajo demanda, caducada al editar y exportación
         expect(edited.revision).toBe(design.revision + 1);
         await page.reload();
         await expect(page.getByTestId('design-thumbnail-pending')).toHaveCount(1);
-        runQueue('media');
+        runQueue('studio');
         await page.reload();
         await expect(page.getByTestId('design-thumbnail')).toBeVisible();
 

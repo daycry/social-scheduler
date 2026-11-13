@@ -49,7 +49,7 @@ const voice = ref(props.kit?.voice ?? '');
 const rows = computed(() => props.designs?.designs ?? []);
 const archived = computed(() => !!props.filters?.archived);
 // Miniaturas (T-35): se generan en segundo plano por la cola; mientras falten, se recarga el listado unas pocas veces (la caducada se regenera sola).
-const missingThumbnails = computed(() => !archived.value && rows.value.some(design => !design.thumbnail_url));
+const missingThumbnails = computed(() => rows.value.some(design => design.thumbnail_status === 'pending'));
 let thumbnailTimer = null, thumbnailTries = 0;
 const pollThumbnails = () => {
     thumbnailTimer = setTimeout(() => {

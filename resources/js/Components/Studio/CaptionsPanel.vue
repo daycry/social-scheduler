@@ -3,6 +3,7 @@ import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { CAPTION_LIMITS, compileCaptions, parseCaptionFile, encodeCaptionFile } from '@/Studio/captions';
 import { downloadBlob } from '@/Studio/exports';
 import { studioRequest } from '@/Studio/api';
+import AiNotConfigured from '@/Components/AiNotConfigured.vue';
 const props = defineProps({ document: Object, time: Number, duration: Number, apply: Function, disabled: Boolean, fonts: Array, kitFonts: Array, brandId: Number });
 const emit = defineEmits(['seek']);
 const error = ref(''), warnings = ref([]), saving = ref(false), selectedId = ref(''), query = ref(''), page = ref(1), mode = ref('append'), offset = ref(0);
@@ -144,15 +145,15 @@ function exportFile(format) {
         <div class="flex flex-wrap items-end gap-2"><label class="caption-label">Desplazar toda la pista (segundos)<input v-model.number="offset" type="number" step="0.001" :disabled="blocked" /></label><button type="button" class="caption-button" :disabled="blocked || !cues.length" @click="apply({ action: 'offset', seconds: offset })">Aplicar desplazamiento</button></div>
         <details class="rounded-lg border border-slate-100 p-2" data-testid="captions-translate" @toggle="$event.target.open && loadAiStatus()"><summary class="cursor-pointer text-xs font-medium">Traducir subtítulos con IA</summary>
             <div class="mt-3 space-y-2">
-                <p v-if="aiText && !aiText.enabled" data-testid="captions-translate-unconfigured" class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-xs leading-relaxed text-slate-600">Textos con IA: no configurado. Requiere activar el asistente con la clave de Claude en el servidor.</p>
+                <AiNotConfigured v-if="aiText && !aiText.enabled" data-testid="captions-translate-unconfigured" />
                 <template v-else-if="aiText">
-                    <p class="text-[11px] leading-relaxed text-slate-500">Al pulsar «Traducir con IA», el texto de los subtítulos se envía al asistente (sin correos, teléfonos ni enlaces) y consume tu cuota diaria. Revisa la propuesta antes de aplicarla.</p>
-                    <div class="flex flex-wrap items-end gap-2"><label class="caption-label min-w-0 flex-1">Idioma de destino<input v-model="language" list="caption-languages" maxlength="40" :disabled="blocked || translating" aria-label="Idioma de destino" /></label><datalist id="caption-languages"><option v-for="item in LANGUAGES" :key="item" :value="item" /></datalist><button type="button" class="caption-button" :disabled="blocked || translating || !canTranslate || language.trim().length < 2" @click="translate">{{ translating ? 'Traduciendo…' : 'Traducir con IA' }}</button></div>
+                    <p class="text-[11px] leading-relaxed text-slate-500">Al pulsar «Traducir con IA», el texto de los subtítulos se envía al asistente (sin correos, teléfonos ni enlaces, que se sustituyen por marcadores y se restauran después) y consume tu cuota diaria. Revisa la propuesta antes de aplicarla.</p>
+                    <div class="flex flex-wrap items-end gap-2"><label class="caption-label min-w-0 flex-1">Idioma de destino<input v-model="language" list="caption-languages" maxlength="40" :disabled="blocked || translating" aria-label="Idioma de destino" /></label><datalist id="caption-languages"><option v-for="item in LANGUAGES" :key="item" :value="item" /></datalist><button type="button" class="btn btn-secondary" :disabled="blocked || translating || !canTranslate || language.trim().length < 2" @click="translate">{{ translating ? 'Traduciendo…' : 'Traducir con IA' }}</button></div>
                     <p v-if="translateError" role="alert" class="rounded-lg bg-red-50 p-2 text-xs text-red-800">{{ translateError }}</p>
                     <div v-if="proposal" class="space-y-2" data-testid="captions-translation">
                         <p class="text-xs font-medium">Propuesta en {{ proposal.language }} ({{ proposal.cues.length }} subtítulos)</p>
-                        <ul class="max-h-40 space-y-1 overflow-y-auto text-xs"><li v-for="cue in proposal.cues.slice(0, 50)" :key="cue.id" class="rounded-lg border border-slate-100 p-2">{{ cue.text }}</li></ul>
-                        <div class="flex flex-wrap gap-2"><button type="button" class="caption-button" :disabled="blocked" @click="applyTranslation">Aplicar traducción (reemplaza los textos)</button><button type="button" class="caption-button" @click="exportTranslation('srt')">Descargar SRT traducido</button><button type="button" class="caption-button" @click="exportTranslation('vtt')">Descargar VTT traducido</button><button type="button" class="caption-button" @click="proposal = null">Descartar</button></div>
+                        <ul class="max-h-48 space-y-1 overflow-y-auto text-xs" aria-label="Propuesta de traducción, todos los subtítulos" tabindex="0"><li v-for="cue in proposal.cues" :key="cue.id" class="rounded-lg border border-slate-100 p-2">{{ cue.text }}</li></ul>
+                        <div class="flex flex-wrap gap-2"><button type="button" class="btn btn-secondary" :disabled="blocked" @click="applyTranslation">Aplicar traducción (reemplaza los textos)</button><button type="button" class="btn btn-secondary" @click="exportTranslation('srt')">Descargar SRT traducido</button><button type="button" class="btn btn-secondary" @click="exportTranslation('vtt')">Descargar VTT traducido</button><button type="button" class="btn btn-secondary" @click="proposal = null">Descartar</button></div>
                     </div>
                 </template>
                 <p v-else class="text-xs text-slate-500">Consultando el asistente…</p>

@@ -109,13 +109,21 @@ class AiAssistant
      *
      * @throws PostValidationException IA desactivada, limite diario o fallo del servicio (mensaje legible)
      */
-    public function complete(User $user, string $field, string $system, string|array $content, int $maxTokens = 800): string
+    public function complete(User $user, string $field, string $system, string|array $content, int $maxTokens = 800, ?\Closure $usable = null): string
     {
         if (! $this->enabled()) {
             throw new PostValidationException([$field => ['El asistente IA no está activado.']]);
         }
+        $keys = $this->consume($user, $field);
+        $text = $this->send($keys, $field, $system, $content, $maxTokens);
+        // Una respuesta cortada (tope de tokens) o que no es lo que se pidio no gasta cuota del usuario.
+        if ($usable !== null && ! $usable($text)) {
+            $this->refund($keys);
 
-        return $this->send($this->consume($user, $field), $field, $system, $content, $maxTokens);
+            throw new PostValidationException([$field => ['La respuesta del asistente llegó incompleta o no es válida; no se ha descontado de tu cuota. Inténtalo de nuevo con menos subtítulos.']]);
+        }
+
+        return $text;
     }
 
     /** @param array{0: string, 1: string} $keys */

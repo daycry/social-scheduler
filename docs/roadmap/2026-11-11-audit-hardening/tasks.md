@@ -1182,30 +1182,30 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 ### T-28 — API v1: posts y marcas (listar, borrar, cancelar, publicar)
 
 - **Descripción**: Primera mitad de la API v1: endpoints REST sobre `PostService`/`BrandService` (listar, borrar, cancelar, publicar ahora) y OpenAPI ampliada. B-09 se cuenta aquí; la tarea siguiente es continuación.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: La API v1 ya permite listar, ver, borrar, cancelar y publicar ya tus publicaciones y consultar tus marcas y cuentas, y los listados (posts, media, comentarios y diseños) comparten una paginación por cursor única (`limit`, `cursor`, `has_more`, `next_cursor`).
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-20
 - **Tipo**: backend
-- **Archivos**: `routes/posts-api.php`, `routes/api.php`, `app/Http/Controllers/Api/**`, `app/Http/Resources/**`, `docs/api/openapi.yaml`, `docs/api/**`
+- **Archivos**: `routes/posts-api.php`, `routes/api.php`, `routes/post-workflow-api.php`, `routes/studio-api.php`, `app/Http/Controllers/Api/**`, `app/Http/Controllers/MediaController.php`, `app/Http/Controllers/PostWorkflowController.php`, `app/Http/Controllers/Studio/StudioApiController.php`, `app/Http/Controllers/Studio/StudioController.php`, `app/Mcp/Tools/ListDesigns.php`, `app/Mcp/Tools/ListMedia.php`, `app/Mcp/Tools/ListComments.php`, `app/Services/MediaListing.php`, `app/Services/InboxService.php`, `app/Services/Studio/StudioService.php`, `app/Services/AccountPresenter.php`, `app/Mcp/Tools/ListAccounts.php`, `app/Support/CursorPage.php`, `resources/js/Pages/Studio/Index.vue`, `resources/js/Composables/useComposer.js`, `docs/api/openapi.yaml`, `docs/api/**`, `docs/guias/api-v1.md`, `docs/guias/estudio-api-mcp.md`, `docs/modulos/mcp.md`, `tests/Feature/Api/**`, `tests/Feature/**`, `.github/workflows/ci.yml`
 - **Cubre**: B-09
 - **Cubre (unificación)**: U-23
 - **Cubre (tests)**: API-01
 - **Verificación**: `php artisan test --compact --filter=ApiV1PostsTest` → verde · `npx @redocly/cli lint docs/api/openapi.yaml` → sin errores
 
 **Criterios de aceptación**
-- [ ] Los endpoints respetan abilities de API key y propiedad (acceso cruzado → 404/403)
-- [ ] La OpenAPI describe cada endpoint y pasa el lint
-- [ ] El listado de diseños y de posts usa el contrato de paginación por cursor único (mismo formato de `next_cursor`/`has_more`) que define esta tarea para `api/v1`
+- [x] Los endpoints respetan abilities de API key y propiedad (acceso cruzado → 404/403)
+- [x] La OpenAPI describe cada endpoint y pasa el lint
+- [x] El listado de diseños y de posts usa el contrato de paginación por cursor único (mismo formato de `next_cursor`/`has_more`) que define esta tarea para `api/v1`
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
@@ -1213,39 +1213,56 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 **Notas**: Tamaño M. B-09 es L: se parte en dos tareas.
 
+- RED/TDD: `RED: ApiV1PostsTest (rutas inexistentes: GET brands/{brand}/posts, DELETE posts/{post}, POST posts/{post}/cancel y publish → 404/405) y McpToolsTest list_media con cursor opaco (before_id ya no existe) · 2026-11-13`. Las pruebas se escribieron junto al código por endpoint; el primer rojo real fue el de rutas y el de `schedule` obligatorio en el contrato de crear.
+- Verificación (2026-11-13): `php artisan test --compact --filter=ApiV1PostsTest` → 10/10 verde; `npx @redocly/cli@2.77.0 lint --extends minimal docs/api/openapi.yaml` → válido, 0 errores (132 avisos `operation-summary` heredados, no bloquean); focal `tests/Feature/{Api,Mcp,Posts,Workflow,Canva,Inbox,Sites,Reports}` + `StudioApiMcpTest`, `StudioBackendTest`, `StudioAutomationTest` → 886 pasan, 0 fallos tras ajustar los tests de contrato; Pint OK; `npm run build` OK, `test:unit` 636/636, `typecheck` OK. Playwright `canva.spec.ts`, `studio.spec.ts`, `composer.spec.ts` y `media-import.spec.ts` → 102/102 en una sola ejecución (`E2E_PURGE=0 E2E_WORKERS=2`, sin otra ejecución en curso).
+- Contrato de paginación único (U-23, ver también T-29): `App\Support\CursorPage` (`limit` 1-100, `cursor` opaco, salida `has_more` y `next_cursor`; cursor inválido o de otro listado → 422; sin `page`, `before_id` ni `total`). Usado por: posts (`GET brands/{brand}/posts`), media (`MediaListing`, compartido por la web, API y MCP), comentarios del buzón (`InboxService::page`, compartido por API y MCP) y diseños (`StudioService::designs`, compartido por API, MCP y la pantalla del estudio). La colección lleva el nombre del recurso (`posts`, `media`, `comments`, `designs`). Migrados sin mantener los formatos antiguos: `list_media`, `list_comments`, `list_designs`, `GET /brands/{brand}/designs`, `GET /media` de la web (el selector del compositor y la página de Canva piden `limit=100`) y la página del estudio (botones «Siguiente» y «Primera página» en lugar de los números de página). Quedan fuera de esta migración, por no estar en el alcance de U-23, los listados con `page`/`per_page` de exportaciones, audio, tipografías, subtítulos y datasets.
+- Rutas cambiadas (U-25): `POST /api/v1/posts` → `POST /api/v1/brands/{brand}/posts` y `POST /api/v1/series` → `POST /api/v1/brands/{brand}/series` (la marca ya no va en el cuerpo; en series manda la de la ruta). Tests y documentación actualizados. `PostApiController` pasa a `app/Http/Controllers/Api/` y hereda de `ApiController` (traducción de errores y auditoría únicas).
+- Decisiones: (1) Abilities como el MCP (`brands:read`, `posts:read|write`). (2) Los errores de dominio de borrar y publicar un post ya publicado son 422 (mismo `PostValidationException` que usa el MCP), no 409; 409 queda para `InvalidPostTransition`. (3) Se crean presentadores compartidos (`AccountPresenter`) para no duplicar con el MCP.
+
+
 ### T-29 — API v1 (continuación): cuentas, media, inbox, informes, mejores horas, competidores, SmartLinks, sitios
 
 - **Descripción**: Segunda mitad de B-09: endpoints de cuentas, media, inbox, informes, mejores horas, competidores, SmartLinks y sitios, y cierre de la OpenAPI.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: La API v1 cubre ya la media (listar, subir e importar), el buzón de comentarios, los informes, las mejores horas, los competidores, los SmartLinks y los sitios, con un único OpenAPI y la marca siempre en la ruta.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-28
 - **Tipo**: backend
-- **Archivos**: `routes/api.php`, `app/Http/Controllers/Api/**`, `docs/api/openapi.yaml`
+- **Archivos**: `routes/api.php`, `app/Http/Controllers/Api/**`, `app/Http/Controllers/MediaController.php`, `app/Http/Controllers/SmartLinkController.php`, `app/Mcp/Abilities.php`, `app/Mcp/Tools/ManageSite.php`, `app/Mcp/Tools/GenerateReport.php`, `app/Mcp/Tools/GetReport.php`, `app/Mcp/Tools/CompareCompetitors.php`, `app/Services/ReportService.php`, `app/Services/CompetitorService.php`, `app/Services/SmartLinkService.php`, `app/Services/Sites/SiteService.php`, `app/Services/MediaListing.php`, `app/Services/Canva/CanvaIntegration.php`, `resources/js/Pages/Canva/Index.vue`, `docs/api/openapi.yaml`, `docs/api/creative-suite.openapi.yaml`, `docs/guias/api-v1.md`, `docs/modulos/mcp.md`, `docs/modulos/*.md`, `docs/guias/*.md`, `docs/README.md`, `tests/Feature/Api/**`, `tests/Feature/Canva/CanvaPdfLibraryTest.php`, `.github/workflows/ci.yml`
 - **Cubre**: — (continuación de la tarea anterior; el ID se cuenta allí)
 - **Cubre (unificación)**: U-25
 - **Cubre (tests)**: API-02
 - **Verificación**: `php artisan test --compact --filter=ApiV1ResourcesTest` → verde · `npx @redocly/cli lint docs/api/openapi.yaml` → sin errores
 
 **Criterios de aceptación**
-- [ ] Paridad de lectura con el MCP en los recursos listados
-- [ ] OpenAPI completa y con lint limpio
-- [ ] `ListMedia` y el resto de listados de `api/v1` siguen el contrato de cursor común; la marca va siempre en la ruta (no en la query) y hay un único OpenAPI para el núcleo social y la suite creativa
+- [x] Paridad de lectura con el MCP en los recursos listados
+- [x] OpenAPI completa y con lint limpio
+- [x] `ListMedia` y el resto de listados de `api/v1` siguen el contrato de cursor común; la marca va siempre en la ruta (no en la query) y hay un único OpenAPI para el núcleo social y la suite creativa
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Continuación de B-09 (ver tarea anterior).
+
+- RED/TDD: `RED: ApiV1ResourcesTest falló con 404 en todas las rutas nuevas (media, comments, reports, best-times, competitors, smart-link, sites) y, ya con las rutas, «Expecting [...] not to have key preview_url» (la web y la API compartían la forma) · 2026-11-13`.
+- Verificación (2026-11-13): `php artisan test --compact --filter=ApiV1ResourcesTest` → 12/12 verde; `npx @redocly/cli@2.77.0 lint --extends minimal docs/api/openapi.yaml` → válido, 0 errores; el resto (focal, Pint, build, `test:unit`, `typecheck`, Playwright) en T-28, que comparte ejecución. Un fallo aislado de `ReportCsvTest` salió solo al lanzar Pest a la vez que otra ejecución (disco `local` compartido) y no se repite en solitario (8/8).
+- Endpoints nuevos (todos con throttle de grupo 120/min y límites propios en lo sensible): `GET /media`, `GET /media/{asset}`, `POST /media`, `PUT /media/{asset}/upload`, `POST /media/{asset}/complete`, `POST /media/import-url`, `DELETE /media/{asset}` (mismo `MediaController` que la web), `GET /brands/{brand}/comments`, `POST /comments/{comment}/reply`, `POST /brands/{brand}/reports`, `GET /reports/{report}`, `GET /brands/{brand}/best-times`, `GET /brands/{brand}/competitors`, `GET|PUT /brands/{brand}/smart-link`, `GET /brands/{brand}/smart-link/stats`, `GET /brands/{brand}/sites`, `GET /sites/{site}`, `POST /sites/{site}/publish|unpublish`. Cuentas y marcas, en T-28.
+- Sin duplicar con el MCP ni la web (lógica extraída a servicios compartidos): `MediaListing`, `InboxService::page`, `AccountPresenter`, `ReportService::request/status`, `CompetitorService::summary`, `SiteService::present`, `SmartLinkService::rules/present` (la web de SmartLinks usa las mismas reglas y la misma forma). Abilities: las del MCP (`brands:read`, `posts:write` para subir e importar media, `inbox:*`, `reports:write` también para consultar un informe como `get_report`, `stats:read`, `sites:*`) y dos nuevas, `smartlinks:read` y `smartlinks:write`, declaradas en `Abilities.php`: entran solas en los presets `read` (la de lectura) y `all`; `publish` no incluye `smartlinks:write`.
+- U-25: la marca siempre en la ruta (ver T-28); un único OpenAPI: `docs/api/creative-suite.openapi.yaml` se fusiona en `docs/api/openapi.yaml` (renombrado con historial, título «Social Scheduler API v1», ahora describe también marcas, posts, media, buzón, informes, estadísticas, SmartLinks y sitios, con respuestas comunes 401/403/409/429); el viejo no existe. La CI (`ci.yml`, `@redocly/cli@2.77.0 lint --extends minimal`), `docs/guias/testing.md`, `docs/modulos/despliegue.md` y los enlaces de la documentación y de `StudioApiMcpTest` apuntan al nuevo. Guía nueva `docs/guias/api-v1.md`; `docs/modulos/mcp.md` (abilities, presets y contrato de cursor) y `docs/guias/estudio-api-mcp.md` actualizados.
+- Pruebas por endpoint (éxito, otro usuario, otra marca, ability ausente, validación): `tests/Feature/Api/ApiV1PostsTest.php` y `ApiV1ResourcesTest.php`.
+- **Gap 2 de la revisión de T-27, resuelto en T-28/T-29**: la lista de PDF de Canva estaba fija a 20 sin paginar y la biblioteca no mostraba PDF. Ahora `MediaListing` admite `kind` (`image`, `video`, `pdf`; sin él, solo lo publicable, así que el compositor sigue sin ver PDF), `GET /media?kind=pdf` (web y API) pagina con el cursor común y borrar sigue siendo `DELETE /media/{asset}`; el estado de Canva (`documents`) devuelve la primera página con `has_more`/`next_cursor` y la página de Canva carga más con «Ver más PDF». La acción de descarga de `MediaController` no se ha tocado. Test: `CanvaPdfLibraryTest` «con 25 PDF todos son accesibles» (cursor de 10 en 10, el compositor no los ve, se borra el más antiguo, `kind` inválido 422). Los hunks de `Canva/Index.vue` y de ese test entraron en el commit del agente de Canva (0d3fb35).
+- Límites declarados: no hay endpoint de la API para añadir notas a comentarios, gestionar competidores ni la edición de SmartLinks por bloques sueltos (solo reemplazo completo); la ruta `reports/{report}` usa `reports:write` igual que el MCP. Los listados con `page`/`per_page` del estudio (exportaciones, audio, tipografías, subtítulos, datasets) siguen con su paginación propia: U-23 acotaba diseños, media y comentarios.
+
 
 ### T-30 — MCP: SmartLinks, Ads, autolistas, competidores, ocultar comentarios, textos, presets y papelera
 

@@ -34,7 +34,7 @@ class StudioAvRegistrationState
                 throw ValidationException::withMessages(['export' => ['El render supera el tamaño admitido en la biblioteca.']]);
             }
             if ($workspace->media_id !== null) {
-                $media = MediaAsset::withoutUserScope()->where('user_id', $export->user_id)->findOrFail($workspace->media_id);
+                $media = MediaAsset::ownedBy($export->user_id)->findOrFail($workspace->media_id);
                 $this->assertRegistrationPin($workspace, $media, $result);
 
                 return $media;
@@ -97,7 +97,7 @@ class StudioAvRegistrationState
             if (! $current || $current->phase !== 'register') {
                 return false;
             }
-            $media = MediaAsset::withoutUserScope()->where('user_id', $export->user_id)->whereKey($workspace->media_id)->lockForUpdate()->firstOrFail();
+            $media = MediaAsset::ownedBy($export->user_id)->whereKey($workspace->media_id)->lockForUpdate()->firstOrFail();
             $this->assertRegistrationPin($workspace, $media, $this->registrationSource($export)->result);
             $journal = $this->checkpointJournal($media->import_state, $progress, $uploadId);
             $media->update(['import_state' => $journal, 'upload_id' => $uploadId]);

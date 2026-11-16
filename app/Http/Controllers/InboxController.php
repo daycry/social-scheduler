@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Connectors\Network;
 use App\Exceptions\PostValidationException;
 use App\Jobs\SyncInboxComments;
 use App\Models\InboxComment;
@@ -15,6 +16,7 @@ use App\Support\CurrentBrand;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -25,11 +27,17 @@ class InboxController extends Controller
 
     public function __construct(private readonly InboxService $inbox, private readonly InboxNoteService $notes) {}
 
+    /** @return list<string> Redes que el buzon lee (las que tienen `CommentSource` registrada). */
+    private function networkValues(): array
+    {
+        return array_map(fn (Network $n) => $n->value, $this->inbox->networks());
+    }
+
     public function index(Request $request): Response
     {
         $user = $request->user();
         $filters = $request->validate([
-            'network' => ['nullable', 'in:instagram,facebook,threads,bluesky,youtube'],
+            'network' => ['nullable', Rule::in($this->networkValues())],
             'status' => ['nullable', 'in:open,closed'],
             'assigned' => ['nullable', 'string', 'max:12', 'regex:/^(none|me|[0-9]+)$/'],
             'label' => ['nullable', 'string', 'max:40'],
@@ -45,7 +53,7 @@ class InboxController extends Controller
         $page = $query->with(['notes', 'labels', 'target' => fn ($q) => $q->select('id', 'post_id', 'external_url', 'text')->with(['post' => fn ($p) => $p->withTrashed()->select('id', 'text')]), 'account:id,name,username,network'])
             ->simplePaginate(30)->withQueryString();
 
-        $own = InboxComment::withoutUserScope()->where('user_id', $user->id)->where('is_own', true)
+        $own = InboxComment::ownedBy($user->id)->where('is_own', true)
             ->whereIn('parent_external_id', $page->pluck('external_id'))->orderBy('commented_at')->get()->groupBy('parent_external_id');
 
         $accounts = $this->inbox->accountsFor($user)->when($brand, fn ($c) => $c->where('brand_id', $brand->id));
@@ -54,10 +62,11 @@ class InboxController extends Controller
             'brand' => $brand ? ['id' => $brand->id, 'name' => $brand->name] : null,
             'filters' => ['status' => $filters['status'] ?? null, 'assigned' => $filters['assigned'] ?? null, 'label' => $filters['label'] ?? null, 'network' => $filters['network'] ?? null, 'unread' => (bool) ($filters['unread'] ?? false), 'hidden' => $filters['hidden'] ?? null, 'has_notes' => (bool) ($filters['has_notes'] ?? false)],
             'note_max' => InboxCommentNote::BODY_MAX,
+            'networks' => array_map(fn (Network $n) => ['value' => $n->value, 'label' => $n->label()], $this->inbox->networks()),
             'coverage' => $this->inbox->coverage(),
             'saved_replies' => $this->inbox->savedReplies($user)->map(fn ($r) => ['id' => $r->id, 'title' => $r->title, 'body' => $r->body])->values(),
             'assignees' => $brand ? $this->inbox->assignees($user, $brand->id)->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])->values() : [],
-            'labels' => InboxCommentLabel::withoutUserScope()->where('user_id', $user->id)->select('label')->distinct()->orderBy('label')->limit(50)->pluck('label'),
+            'labels' => InboxCommentLabel::ownedBy($user->id)->select('label')->distinct()->orderBy('label')->limit(50)->pluck('label'),
             'unread_count' => $this->inbox->unreadCount($user),
             'comments' => $page->through(fn (InboxComment $c) => [
                 'id' => $c->id,
@@ -108,7 +117,7 @@ class InboxController extends Controller
 
     public function readAll(Request $request): RedirectResponse
     {
-        $data = $request->validate(['network' => ['nullable', 'string', 'in:instagram,facebook,threads,bluesky,youtube']]);
+        $data = $request->validate(['network' => ['nullable', 'string', Rule::in($this->networkValues())]]);
         $brand = CurrentBrand::resolve($request);
         $n = $this->inbox->markAllRead($request->user(), array_filter(['network' => $data['network'] ?? null, 'brand_id' => $brand?->id]));
 

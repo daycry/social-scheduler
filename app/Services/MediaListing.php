@@ -31,7 +31,7 @@ class MediaListing
             throw new InvalidArgumentException('kind debe ser image, video o pdf.');
         }
 
-        $query = MediaAsset::withoutUserScope()->where('user_id', $user->id)->whereIn('kind', $kind === null ? [MediaAsset::KIND_IMAGE, MediaAsset::KIND_VIDEO] : [$kind]);
+        $query = MediaAsset::ownedBy($user->id)->whereIn('kind', $kind === null ? [MediaAsset::KIND_IMAGE, MediaAsset::KIND_VIDEO] : [$kind]);
         if ($status !== 'todos') {
             $query->where('status', $status);
         }

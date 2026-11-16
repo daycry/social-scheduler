@@ -50,7 +50,7 @@ class ManageSite extends SchedulerTool
         $sites = app(SiteService::class);
 
         if ($action === 'list') {
-            $query = Site::withoutUserScope()->where('user_id', $user->id)->orderBy('id');
+            $query = Site::ownedBy($user->id)->orderBy('id');
             if (filled($request->get('brand_id'))) {
                 $brand = $this->owned(Brand::class, $user, $request->get('brand_id'), 'Marca');
                 $query->where('brand_id', $brand->id);

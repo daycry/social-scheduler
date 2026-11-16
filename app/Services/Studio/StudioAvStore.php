@@ -57,7 +57,7 @@ class StudioAvStore
     public function workspace(DesignExport $export): StudioAvWorkspace
     {
         $state = $export->render_state;
-        $workspace = StudioAvWorkspace::withoutUserScope()->select(self::WORKSPACE_COLUMNS)->whereKey($state['allocation_id'])->where('export_id', $export->id)->where('user_id', $export->user_id)
+        $workspace = StudioAvWorkspace::ownedBy($export->user_id)->select(self::WORKSPACE_COLUMNS)->whereKey($state['allocation_id'])->where('export_id', $export->id)
             ->where('brand_id', $export->brand_id)->where('uuid', $state['workspace'])->lockForUpdate()->firstOrFail();
         if ($workspace->fingerprint !== ($state['fingerprint'] ?? null) || $this->fingerprint($export, $state['document_hash']) !== $workspace->fingerprint) {
             throw ValidationException::withMessages(['export' => ['La revisión u opciones cambiaron; inicia un trabajo nuevo.']]);
@@ -93,8 +93,8 @@ class StudioAvStore
 
     public function assertOwnership(DesignExport $export): void
     {
-        if (! User::whereKey($export->user_id)->exists() || ! Brand::withoutUserScope()->where('user_id', $export->user_id)->whereKey($export->brand_id)->exists()
-            || ! Design::withoutUserScope()->where('user_id', $export->user_id)->where('brand_id', $export->brand_id)->whereKey($export->design_id)->exists()) {
+        if (! User::whereKey($export->user_id)->exists() || ! Brand::ownedBy($export->user_id)->whereKey($export->brand_id)->exists()
+            || ! Design::ownedBy($export->user_id)->where('brand_id', $export->brand_id)->whereKey($export->design_id)->exists()) {
             throw (new ModelNotFoundException)->setModel(DesignExport::class, [$export->id]);
         }
     }
@@ -107,8 +107,8 @@ class StudioAvStore
 
     public function ownedLocked(User $user, DesignExport $export): DesignExport
     {
-        $current = DesignExport::withoutUserScope()->where('user_id', $user->id)->whereKey($export->id)->lockForUpdate()->firstOrFail();
-        if (! Brand::withoutUserScope()->where('user_id', $user->id)->whereKey($current->brand_id)->exists()) {
+        $current = DesignExport::ownedBy($user->id)->whereKey($export->id)->lockForUpdate()->firstOrFail();
+        if (! Brand::ownedBy($user->id)->whereKey($current->brand_id)->exists()) {
             throw (new ModelNotFoundException)->setModel(DesignExport::class, [$current->id]);
         }
         if (! in_array($current->format, ['mp4', 'gif'], true) || ! $current->render_state) {
@@ -122,7 +122,7 @@ class StudioAvStore
     {
         $this->assertOwnership($export);
 
-        return DesignRevision::withoutUserScope()->where('user_id', $export->user_id)->where('design_id', $export->design_id)
+        return DesignRevision::ownedBy($export->user_id)->where('design_id', $export->design_id)
             ->where('revision', $export->revision)->firstOrFail()->document;
     }
 

@@ -27,15 +27,15 @@ class ReportApiController extends ApiController
             'template_id' => ['nullable', 'integer'],
             'blocks' => ['nullable', 'array', 'max:'.ReportBlocks::MAX_BLOCKS],
         ]);
-        $template = isset($data['template_id']) ? (ReportTemplate::withoutUserScope()->where('user_id', $request->user()->id)->find($data['template_id']) ?? abort(404)) : null;
+        $template = isset($data['template_id']) ? (ReportTemplate::ownedBy($request->user()->id)->find($data['template_id']) ?? abort(404)) : null;
 
         return $this->respond($request, 'generate_report', 'report', null, fn () => $this->reports->request($request->user(), $brand, $data, $template), 202);
     }
 
     public function show(Request $request, int $report): JsonResponse
     {
-        $found = Report::withoutUserScope()->where('user_id', $request->user()->id)->find($report) ?? abort(404);
-        $brandName = Brand::withoutUserScope()->where('user_id', $request->user()->id)->whereKey($found->brand_id)->value('name');
+        $found = Report::ownedBy($request->user()->id)->find($report) ?? abort(404);
+        $brandName = Brand::ownedBy($request->user()->id)->whereKey($found->brand_id)->value('name');
 
         return $this->respond($request, 'get_report', 'report', $found->id, fn () => $this->reports->status($found, $brandName));
     }

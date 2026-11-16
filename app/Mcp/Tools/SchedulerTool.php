@@ -124,7 +124,7 @@ abstract class SchedulerTool extends Tool
     protected function owned(string $model, User $user, mixed $id, string $label, bool $masculine = false): Model
     {
         $id = is_numeric($id) ? (int) $id : null;
-        $found = $id === null ? null : $model::withoutUserScope()->where('user_id', $user->id)->find($id);
+        $found = $id === null ? null : $model::ownedBy($user->id)->find($id);
 
         if ($found !== null) {
             return $found;
@@ -154,7 +154,7 @@ abstract class SchedulerTool extends Tool
             return null;
         }
 
-        $matches = Brand::withoutUserScope()->where('user_id', $user->id)->get()
+        $matches = Brand::ownedBy($user->id)->get()
             ->filter(fn (Brand $b) => mb_strtolower(trim($b->name)) === mb_strtolower($name))->values();
 
         if ($matches->count() > 1) {
@@ -184,7 +184,7 @@ abstract class SchedulerTool extends Tool
      */
     protected function brandNames(User $user): array
     {
-        return Brand::withoutUserScope()->where('user_id', $user->id)->pluck('name', 'id')->all();
+        return Brand::ownedBy($user->id)->pluck('name', 'id')->all();
     }
 
     /** @return array<string, mixed> */

@@ -52,7 +52,7 @@ class CampaignController extends Controller
 
         return Inertia::render('Campaigns/Show', [
             'campaign' => $this->campaigns->toArray($campaign),
-            'brand' => Brand::withoutUserScope()->where('user_id', $request->user()->id)->find($campaign->brand_id)?->only(['id', 'name']),
+            'brand' => Brand::ownedBy($request->user()->id)->find($campaign->brand_id)?->only(['id', 'name']),
             'summary' => $summary,
         ]);
     }

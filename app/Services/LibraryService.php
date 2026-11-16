@@ -48,7 +48,7 @@ class LibraryService
             throw new PostValidationException(['brand' => ['La marca no pertenece al usuario.']]);
         }
 
-        $accounts = SocialAccount::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)
+        $accounts = SocialAccount::ownedBy($user->id)->where('brand_id', $brand->id)
             ->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)->get()->keyBy('id');
         $targets = [];
         foreach ((array) ($data['targets'] ?? []) as $t) {
@@ -76,14 +76,14 @@ class LibraryService
         if ($name === '' || mb_strlen($name) > 120) {
             throw new PostValidationException(['name' => ['El nombre es obligatorio (maximo 120 caracteres).']]);
         }
-        if ($campaignId !== null && ! Campaign::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->whereKey($campaignId)->exists()) {
+        if ($campaignId !== null && ! Campaign::ownedBy($user->id)->where('brand_id', $brand->id)->whereKey($campaignId)->exists()) {
             throw new PostValidationException(['campaign_id' => ['La campaña no existe en esta marca.']]);
         }
-        if (PostTemplate::withoutUserScope()->where('user_id', $user->id)->count() >= self::MAX_PER_USER) {
+        if (PostTemplate::ownedBy($user->id)->count() >= self::MAX_PER_USER) {
             throw new PostValidationException(['name' => ['Has alcanzado el maximo de plantillas.']]);
         }
 
-        app(MediaValidator::class)->assertPublishable(MediaAsset::withoutUserScope()->where('user_id', $user->id)->whereIn('id', $mediaIds)->get());
+        app(MediaValidator::class)->assertPublishable(MediaAsset::ownedBy($user->id)->whereIn('id', $mediaIds)->get());
 
         return DB::transaction(function () use ($user, $brand, $name, $text, $mediaIds, $targets, $campaignId) {
             $template = new PostTemplate(['name' => $name, 'text' => $text, 'targets' => $targets ?: null]);
@@ -93,7 +93,7 @@ class LibraryService
             $template->save();
 
             // Solo media del usuario, en orden.
-            $owned = MediaAsset::withoutUserScope()->where('user_id', $user->id)->whereIn('id', $mediaIds)->pluck('id')->all();
+            $owned = MediaAsset::ownedBy($user->id)->whereIn('id', $mediaIds)->pluck('id')->all();
             $ordered = array_values(array_filter(array_map('intval', $mediaIds), fn ($id) => in_array($id, $owned, true)));
             $template->media()->sync(collect(array_values(array_unique($ordered)))->mapWithKeys(fn ($id, $i) => [$id => ['position' => $i]])->all());
 
@@ -125,10 +125,10 @@ class LibraryService
             throw new PostValidationException(['template' => ['La plantilla no pertenece al usuario.']]);
         }
 
-        $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($template->brand_id);
+        $brand = Brand::ownedBy($user->id)->findOrFail($template->brand_id);
         $mediaIds = $template->media()->pluck('media_assets.id')->map(fn ($id) => (int) $id)->all();
 
-        $accounts = SocialAccount::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)
+        $accounts = SocialAccount::ownedBy($user->id)->where('brand_id', $brand->id)
             ->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)->get()->keyBy('id');
         $targets = [];
         foreach ((array) $template->targets as $t) {
@@ -143,7 +143,7 @@ class LibraryService
         // La campaña viaja con la plantilla (C-03). `PostService` rechaza asignar una campaña archivada, asi que una plantilla cuya
         // campaña se archivo despues sigue siendo usable: el borrador nace sin campaña y se avisa (nunca se desarchiva sola).
         if ($template->campaign_id !== null) {
-            $campaign = Campaign::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->find($template->campaign_id);
+            $campaign = Campaign::ownedBy($user->id)->where('brand_id', $brand->id)->find($template->campaign_id);
 
             if ($campaign !== null && ! $campaign->isArchived()) {
                 $data['campaign_id'] = $campaign->id;

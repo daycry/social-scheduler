@@ -132,14 +132,14 @@ class StudioAi
         return DB::transaction(function () use ($user, $brand, $provider, $payload, $fingerprint, $key, $source, $inputSha, $kind, $prompt): StudioAiJob {
             // La cuota es por usuario y proveedor: el candado es por usuario (no por marca) para que dos marcas no la superen a la vez.
             User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
-            if ($key !== null && ($existing = StudioAiJob::withoutUserScope()->where('user_id', $user->id)->where('idempotency_key', $key)->first())) {
+            if ($key !== null && ($existing = StudioAiJob::ownedBy($user->id)->where('idempotency_key', $key)->first())) {
                 if ($existing->fingerprint !== $fingerprint || (int) $existing->brand_id !== (int) $brand->id) {
                     throw ValidationException::withMessages(['idempotency_key' => ['Esa clave de idempotencia ya se usó con otra petición.']]);
                 }
 
                 return $existing;
             }
-            $active = StudioAiJob::withoutUserScope()->where('user_id', $user->id)->whereIn('status', ['queued', 'processing']);
+            $active = StudioAiJob::ownedBy($user->id)->whereIn('status', ['queued', 'processing']);
             if ($existing = (clone $active)->where('brand_id', $brand->id)->where('fingerprint', $fingerprint)->first()) {
                 return $existing;
             }
@@ -165,7 +165,7 @@ class StudioAi
     {
         $this->assets->assertBrand($user, $brand);
 
-        return StudioAiJob::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->findOrFail($id);
+        return StudioAiJob::ownedBy($user->id)->where('brand_id', $brand->id)->findOrFail($id);
     }
 
     public function present(User $user, Brand $brand, StudioAiJob $job, bool $api = false): array
@@ -204,7 +204,7 @@ class StudioAi
         $created = [];
         try {
             $user = User::findOrFail($job->user_id);
-            $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($job->brand_id);
+            $brand = Brand::ownedBy($user->id)->findOrFail($job->brand_id);
             $provider = $this->providers->get($job->provider);
             if (! $provider?->configured()) {
                 throw new AiProviderException('not_configured');

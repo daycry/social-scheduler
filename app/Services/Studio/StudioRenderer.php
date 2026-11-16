@@ -98,10 +98,10 @@ class StudioRenderer
     private function produce(DesignExport $export, string $directory, array &$createdMedia): void
     {
         $user = User::findOrFail($export->user_id);
-        $design = Design::withoutUserScope()->where('user_id', $user->id)->findOrFail($export->design_id);
+        $design = Design::ownedBy($user->id)->findOrFail($export->design_id);
         $revision = $this->exports->revision($user, $design, $export->revision);
         $times = array_column(app(StudioFrames::class)->validate($revision->document, $export->pages, $export->options['frame_times'] ?? []), 'time', 'page_id');
-        $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($export->brand_id);
+        $brand = Brand::ownedBy($user->id)->findOrFail($export->brand_id);
         // PPTX: Chromium renderiza cada pagina como PNG y `StudioPptxExporter` las empaqueta (sin crear media en la biblioteca).
         $manifest = $this->execute($user, $brand, $revision->document, $export->pages, $times, $export->format === 'pptx' ? 'png' : $export->format, $export->options, $directory);
         $files = $manifest['files'] ?? [];

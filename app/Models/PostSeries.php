@@ -66,7 +66,7 @@ class PostSeries extends Model
     /** @param  list<int>  $ids */
     private function assertMediaExists(array $ids): void
     {
-        $found = $ids === [] ? [] : MediaAsset::withoutUserScope()->where('user_id', $this->user_id)->whereIn('id', $ids)->pluck('id')->all();
+        $found = $ids === [] ? [] : MediaAsset::ownedBy($this->user_id)->whereIn('id', $ids)->pluck('id')->all();
         if (count($found) !== count($ids)) {
             throw new PostValidationException(['media' => ['Algun archivo de la serie no existe: '.implode(', ', array_diff($ids, $found)).'.']]);
         }

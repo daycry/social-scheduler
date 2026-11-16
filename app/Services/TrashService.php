@@ -31,7 +31,7 @@ class TrashService
      */
     public function query(User $user): Builder
     {
-        return Post::withoutUserScope()->onlyTrashed()->where('user_id', $user->id)->with(['brand:id,name', 'targets'])->orderByDesc('deleted_at')->orderByDesc('id');
+        return Post::ownedBy($user->id)->onlyTrashed()->with(['brand:id,name', 'targets'])->orderByDesc('deleted_at')->orderByDesc('id');
     }
 
     /**

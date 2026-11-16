@@ -76,7 +76,7 @@ class CanvaController extends Controller
 
             return redirect()->route('brands.index')->with('error', 'La sesión de conexión con Canva ha caducado o no es válida. Vuelve a intentarlo.');
         }
-        $brand = Brand::withoutUserScope()->where('user_id', $user->id)->find($attempt['brand_id']);
+        $brand = Brand::ownedBy($user->id)->find($attempt['brand_id']);
         abort_if($brand === null, 404);
         $back = fn (string $type, string $message): RedirectResponse => redirect()->route('canva.index', $brand)->with($type, $message);
 

@@ -82,8 +82,7 @@ class AnalyticsService
     {
         $this->assertOwns($user, $brand);
 
-        return SocialAccount::withoutUserScope()
-            ->where('user_id', $user->id)->where('brand_id', $brand->id)
+        return SocialAccount::ownedBy($user->id)->where('brand_id', $brand->id)
             ->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)
             ->get()
             ->groupBy(fn (SocialAccount $a) => $a->network->value)
@@ -103,7 +102,7 @@ class AnalyticsService
     public function summary(User $user, Brand $brand, Period $period, ?Period $compare = null): array
     {
         $networks = $this->connectedNetworks($user, $brand);
-        $coverageAccounts = SocialAccount::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)
+        $coverageAccounts = SocialAccount::ownedBy($user->id)->where('brand_id', $brand->id)
             ->get(['id', 'network', 'status']);
         $snapshots = null;
         $current = $this->networkSeries($user, $brand, $period, null, $snapshots);
@@ -173,8 +172,7 @@ class AnalyticsService
     {
         $this->assertOwns($user, $brand);
 
-        $coverageAccounts = SocialAccount::withoutUserScope()
-            ->where('user_id', $user->id)->where('brand_id', $brand->id)->where('network', $network->value)
+        $coverageAccounts = SocialAccount::ownedBy($user->id)->where('brand_id', $brand->id)->where('network', $network->value)
             ->orderBy('name')->get();
         $accounts = $coverageAccounts->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)->values();
 
@@ -344,7 +342,7 @@ class AnalyticsService
 
         return $query
             ->leftJoinSub(
-                PostMetricSnapshot::withoutUserScope()->where('user_id', $userId)->whereIn('post_target_id', $scope)->selectRaw('post_target_id, MAX(date) as last_date')->groupBy('post_target_id'),
+                PostMetricSnapshot::ownedBy($userId)->whereIn('post_target_id', $scope)->selectRaw('post_target_id, MAX(date) as last_date')->groupBy('post_target_id'),
                 'lm', 'lm.post_target_id', '=', 'post_targets.id',
             )
             ->leftJoin('post_metric_snapshots as pm', fn ($j) => $j->on('pm.post_target_id', '=', 'lm.post_target_id')->on('pm.date', '=', 'lm.last_date'));
@@ -368,8 +366,7 @@ class AnalyticsService
      */
     private function networkSeries(User $user, Brand $brand, Period $period, ?Network $only = null, ?Collection &$snapshots = null): array
     {
-        $rows = AccountSnapshot::withoutUserScope()
-            ->where('user_id', $user->id)->where('brand_id', $brand->id)
+        $rows = AccountSnapshot::ownedBy($user->id)->where('brand_id', $brand->id)
             ->when($only, fn ($q) => $q->where('network', $only->value))
             ->whereBetween('date', [$period->from->format('Y-m-d'), $period->to->format('Y-m-d')])
             ->get(['social_account_id', 'network', 'date', 'metrics', 'collected_at']);

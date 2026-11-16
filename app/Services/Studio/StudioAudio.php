@@ -91,7 +91,7 @@ class StudioAudio
     public function owned(User $user, Brand $brand, int $media): MediaAsset
     {
         $this->assets->assertBrand($user, $brand);
-        $link = StudioAsset::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)
+        $link = StudioAsset::ownedBy($user->id)->where('brand_id', $brand->id)
             ->where('media_asset_id', $media)->with('media')->firstOrFail();
         abort_unless($link->media && (int) $link->media->user_id === (int) $user->id && $link->media->kind === MediaAsset::KIND_AUDIO, 404);
 

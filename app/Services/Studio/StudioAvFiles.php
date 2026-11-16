@@ -148,7 +148,7 @@ class StudioAvFiles
             throw new RuntimeException('La fase no admite una copia de origen.');
         }
         $user = User::findOrFail($workspace->user_id);
-        $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($workspace->brand_id);
+        $brand = Brand::ownedBy($user->id)->findOrFail($workspace->brand_id);
         $source = $current->phase === 'asset'
             ? app(StudioAssets::class)->owned($user, $brand, $current->item)
             : app(StudioFonts::class)->owned($user, $brand, $current->item);
@@ -232,7 +232,7 @@ class StudioAvFiles
     {
         $current = StudioAvLease::findOrFail($lease->id);
         $workspace = StudioAvWorkspace::withoutUserScope()->select(['id', 'user_id', 'brand_id', 'export_id', 'uuid', 'fingerprint'])->findOrFail($current->workspace_id);
-        $export = DesignExport::withoutUserScope()->where('user_id', $workspace->user_id)->where('brand_id', $workspace->brand_id)->findOrFail($workspace->export_id);
+        $export = DesignExport::ownedBy($workspace->user_id)->where('brand_id', $workspace->brand_id)->findOrFail($workspace->export_id);
         $state = $export->render_state;
         if (($accepted ? $current->status !== 'accepted' : ($current->status !== 'running' || ! $current->expires_at->isFuture()
             || ! in_array($export->status, ['pending', 'processing'], true)
@@ -241,7 +241,7 @@ class StudioAvFiles
             || ($state['fingerprint'] ?? null) !== $workspace->fingerprint) {
             throw new RuntimeException('El intento audiovisual ya no está activo.');
         }
-        Design::withoutUserScope()->where('user_id', $workspace->user_id)->where('brand_id', $workspace->brand_id)->findOrFail($export->design_id);
+        Design::ownedBy($workspace->user_id)->where('brand_id', $workspace->brand_id)->findOrFail($export->design_id);
 
         return [$current, $workspace, $export];
     }

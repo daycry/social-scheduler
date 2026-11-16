@@ -34,7 +34,7 @@ class CalendarService
     {
         ['view' => $view, 'brands' => $brands, 'brand' => $brand, 'network' => $network, 'status' => $status, 'tz' => $tz, 'anchor' => $anchor, 'from' => $from, 'to' => $to] = $this->resolve($user, $filters);
 
-        $query = Post::withoutUserScope()->where('user_id', $user->id)
+        $query = Post::ownedBy($user->id)
             ->whereBetween('scheduled_at', [$from->utc(), $to->utc()->subSecond()])
             ->when($brand, fn ($q) => $q->where('brand_id', $brand->id))
             ->when($network, fn ($q) => $q->whereHas('targets', fn ($t) => $t->withoutGlobalScopes()->where('network', $network->value)))
@@ -48,7 +48,7 @@ class CalendarService
 
         // Borradores sin fecha: solo en la lista (no tienen hueco en el calendario).
         $undated = $view === 'list'
-            ? Post::withoutUserScope()->where('user_id', $user->id)->whereNull('scheduled_at')
+            ? Post::ownedBy($user->id)->whereNull('scheduled_at')
                 ->when($brand, fn ($q) => $q->where('brand_id', $brand->id))
                 ->with(['targets' => fn ($t) => $t->withoutGlobalScopes()->with(['account' => fn ($a) => $a->withoutGlobalScopes()]), 'brand' => fn ($b) => $b->withoutGlobalScopes()])
                 ->latest('id')->limit(100)->get()->map(fn (Post $p) => $this->item($p, $tz, $network))->values()
@@ -80,7 +80,7 @@ class CalendarService
     private function resolve(User $user, array $filters): array
     {
         $view = in_array($filters['view'] ?? null, self::VIEWS, true) ? $filters['view'] : 'week';
-        $brands = Brand::withoutUserScope()->where('user_id', $user->id)->orderBy('name')->get();
+        $brands = Brand::ownedBy($user->id)->orderBy('name')->get();
         $brand = null;
 
         if (! empty($filters['brand_id'])) {
@@ -115,14 +115,14 @@ class CalendarService
     {
         ['brand' => $brand, 'network' => $network, 'status' => $status, 'tz' => $tz, 'from' => $from, 'to' => $to] = $this->resolve($user, ['view' => 'list'] + $filters);
 
-        $dated = Post::withoutUserScope()->where('user_id', $user->id)
+        $dated = Post::ownedBy($user->id)
             ->whereBetween('scheduled_at', [$from->utc(), $to->utc()->subSecond()])
             ->when($brand, fn ($q) => $q->where('brand_id', $brand->id))
             ->when($network, fn ($q) => $q->whereHas('targets', fn ($t) => $t->withoutGlobalScopes()->where('network', $network->value)))
             ->when($status, fn ($q) => $q->whereHas('targets', fn ($t) => $t->withoutGlobalScopes()->where('status', $status->value)))
             ->when(! empty($filters['q']), fn ($q) => $q->where('text', 'like', '%'.addcslashes((string) $filters['q'], '%_\\').'%'))
             ->select('id');
-        $undated = Post::withoutUserScope()->where('user_id', $user->id)->whereNull('scheduled_at')
+        $undated = Post::ownedBy($user->id)->whereNull('scheduled_at')
             ->when($brand, fn ($q) => $q->where('brand_id', $brand->id))
             ->select('id');
 

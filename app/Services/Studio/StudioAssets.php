@@ -17,7 +17,7 @@ class StudioAssets
     public function attach(User $user, Brand $brand, int $mediaId): MediaAsset
     {
         $this->assertBrand($user, $brand);
-        $asset = MediaAsset::withoutUserScope()->where('user_id', $user->id)->findOrFail($mediaId);
+        $asset = MediaAsset::ownedBy($user->id)->findOrFail($mediaId);
         if (! $asset->isReady() || ! in_array($asset->kind, [MediaAsset::KIND_IMAGE, MediaAsset::KIND_VIDEO, MediaAsset::KIND_AUDIO], true)
             || ($asset->kind === MediaAsset::KIND_AUDIO && (! filled($asset->audio_codec) || ! is_finite((float) $asset->duration) || $asset->duration <= 0))) {
             throw ValidationException::withMessages(['media_id' => ['El archivo debe ser una imagen, vídeo o audio propio validado y listo.']]);
@@ -31,14 +31,14 @@ class StudioAssets
     {
         $this->assertBrand($user, $brand);
 
-        return StudioAsset::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->with('media')->latest('id')->get()
+        return StudioAsset::ownedBy($user->id)->where('brand_id', $brand->id)->with('media')->latest('id')->get()
             ->map(fn (StudioAsset $link) => $link->media)->filter(fn (?MediaAsset $m) => $m !== null && (int) $m->user_id === (int) $user->id && $m->isReady())->values();
     }
 
     public function owned(User $user, Brand $brand, int $mediaId): MediaAsset
     {
         $this->assertBrand($user, $brand);
-        $link = StudioAsset::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->where('media_asset_id', $mediaId)->with('media')->firstOrFail();
+        $link = StudioAsset::ownedBy($user->id)->where('brand_id', $brand->id)->where('media_asset_id', $mediaId)->with('media')->firstOrFail();
         abort_unless($link->media && (int) $link->media->user_id === (int) $user->id && $link->media->isReady(), 404);
 
         return $link->media;
@@ -52,7 +52,7 @@ class StudioAssets
         if ($ids === []) {
             return collect();
         }
-        $links = StudioAsset::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)
+        $links = StudioAsset::ownedBy($user->id)->where('brand_id', $brand->id)
             ->whereIn('media_asset_id', $ids)->with('media')->get();
         $media = $links->map(fn (StudioAsset $link) => $link->media)
             ->filter(fn (?MediaAsset $asset) => $asset !== null && (int) $asset->user_id === (int) $user->id && $asset->isReady())->keyBy('id');

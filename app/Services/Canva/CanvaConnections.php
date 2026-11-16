@@ -113,7 +113,7 @@ class CanvaConnections
 
     public function find(User $user, Brand $brand): ?CanvaConnection
     {
-        return CanvaConnection::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->first();
+        return CanvaConnection::ownedBy($user->id)->where('brand_id', $brand->id)->first();
     }
 
     public function disconnect(User $user, Brand $brand): bool

@@ -80,7 +80,7 @@ class AutolistService
      */
     public function query(User $user, ?int $brandId = null): Builder
     {
-        return Autolist::withoutUserScope()->where('user_id', $user->id)->when($brandId, fn (Builder $q) => $q->where('brand_id', $brandId))
+        return Autolist::ownedBy($user->id)->when($brandId, fn (Builder $q) => $q->where('brand_id', $brandId))
             ->with('items.template:id,name,text')->orderBy('name')->orderBy('id');
     }
 
@@ -142,7 +142,7 @@ class AutolistService
         if ($name === '' || mb_strlen($name) > 120) {
             throw new PostValidationException(['name' => ['El nombre es obligatorio (maximo 120 caracteres).']]);
         }
-        if (Autolist::withoutUserScope()->where('user_id', $user->id)->count() >= self::MAX_PER_USER) {
+        if (Autolist::ownedBy($user->id)->count() >= self::MAX_PER_USER) {
             throw new PostValidationException(['name' => ['Has alcanzado el maximo de autolistas.']]);
         }
 
@@ -173,14 +173,14 @@ class AutolistService
 
         $media = [];
         if ($templateId !== null) {
-            $exists = PostTemplate::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $autolist->brand_id)->whereKey($templateId)->exists();
+            $exists = PostTemplate::ownedBy($user->id)->where('brand_id', $autolist->brand_id)->whereKey($templateId)->exists();
             if (! $exists) {
                 throw new PostValidationException(['post_template_id' => ['La plantilla no existe en esta marca.']]);
             }
         } else {
             $text = $text !== null ? trim($text) : null;
             $ids = array_values(array_unique(array_map('intval', $mediaIds)));
-            $owned = $ids === [] ? collect() : MediaAsset::withoutUserScope()->where('user_id', $user->id)->whereIn('id', $ids)->get();
+            $owned = $ids === [] ? collect() : MediaAsset::ownedBy($user->id)->whereIn('id', $ids)->get();
             if ($owned->count() !== count($ids)) {
                 throw new PostValidationException(['media' => ['Algun archivo no existe.']]);
             }
@@ -212,7 +212,7 @@ class AutolistService
         $now ??= CarbonImmutable::now('UTC');
 
         $user = User::query()->find($autolist->user_id);
-        $brand = Brand::withoutUserScope()->where('user_id', $autolist->user_id)->find($autolist->brand_id);
+        $brand = Brand::ownedBy($autolist->user_id)->find($autolist->brand_id);
         if (! $autolist->active || ! $user || ! $brand) {
             return $result;
         }
@@ -416,7 +416,7 @@ class AutolistService
     private function postData(AutolistItem $item, Autolist $autolist, CarbonImmutable $at): array
     {
         $template = $item->post_template_id
-            ? PostTemplate::withoutUserScope()->where('user_id', $autolist->user_id)->with('media')->find($item->post_template_id)
+            ? PostTemplate::ownedBy($autolist->user_id)->with('media')->find($item->post_template_id)
             : null;
         $text = $template ? $template->text : $item->text;
         $media = $template ? $template->media->pluck('id')->map(fn ($id) => (int) $id)->all() : array_map('intval', (array) $item->media);
@@ -450,7 +450,7 @@ class AutolistService
         $out = [];
         $seen = [];
         foreach (array_values($targets) as $i => $t) {
-            $account = SocialAccount::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)
+            $account = SocialAccount::ownedBy($user->id)->where('brand_id', $brand->id)
                 ->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)->find((int) ($t['account_id'] ?? 0));
             $type = ContentType::tryFrom((string) ($t['content_type'] ?? ''));
             if (! $account || ! $type || $type->network() !== $account->network || ! $type->isOffered()) {

@@ -237,7 +237,7 @@ class AiAssistant
         }
 
         // Redes conectadas (cuenta activa) en la marca y ofrecidas por esta instalacion; el resto se avisa y no se aplica.
-        $connected = SocialAccount::withoutUserScope()->where('user_id', $brand->user_id)->where('brand_id', $brand->id)
+        $connected = SocialAccount::ownedBy($brand->user_id)->where('brand_id', $brand->id)
             ->where('status', SocialAccount::STATUS_ACTIVE)->pluck('network')
             ->map(fn ($n) => $n instanceof Network ? $n->value : (string) $n)->unique()->all();
 

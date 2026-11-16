@@ -39,14 +39,14 @@ class StudioImages
         $inputSha = $this->inputHash($source);
 
         return DB::transaction(function () use ($user, $brand, $source, $data, $model, $sha, $inputSha): StudioImageJob {
-            Brand::withoutUserScope()->where('user_id', $user->id)->lockForUpdate()->findOrFail($brand->id);
-            $existing = StudioImageJob::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)
+            Brand::ownedBy($user->id)->lockForUpdate()->findOrFail($brand->id);
+            $existing = StudioImageJob::ownedBy($user->id)->where('brand_id', $brand->id)
                 ->where('source_media_id', $source->id)->where('operation', $data['operation'])->where('model_sha256', $sha)
                 ->where('input_sha256', $inputSha)->whereIn('status', ['queued', 'processing'])->first();
             if ($existing) {
                 return $existing;
             }
-            if (StudioImageJob::withoutUserScope()->where('user_id', $user->id)->whereIn('status', ['queued', 'processing'])->count() >= 10) {
+            if (StudioImageJob::ownedBy($user->id)->whereIn('status', ['queued', 'processing'])->count() >= 10) {
                 throw ValidationException::withMessages(['operation' => ['Ya hay diez imágenes pendientes. Espera a que terminen antes de iniciar otra.']]);
             }
             $job = StudioImageJob::create(['user_id' => $user->id, 'brand_id' => $brand->id, 'source_media_id' => $source->id,
@@ -61,7 +61,7 @@ class StudioImages
     public function present(User $user, Brand $brand, StudioImageJob $job, bool $api = false): array
     {
         $this->assets->assertBrand($user, $brand);
-        $job = StudioImageJob::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->findOrFail($job->id);
+        $job = StudioImageJob::ownedBy($user->id)->where('brand_id', $brand->id)->findOrFail($job->id);
         $output = null;
         $effective = [];
         if ($job->status === 'ready') {
@@ -96,7 +96,7 @@ class StudioImages
         $code = 'processing_failed';
         try {
             $user = User::findOrFail($job->user_id);
-            $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($job->brand_id);
+            $brand = Brand::ownedBy($user->id)->findOrFail($job->brand_id);
             $code = 'source_unavailable';
             $source = $this->assets->owned($user, $brand, (int) $job->source_media_id);
             $disk->makeDirectory($directory);
@@ -168,9 +168,9 @@ class StudioImages
                 throw new \RuntimeException;
             }
             DB::transaction(function () use ($job, $user, $brand, $source, $output, $manifest, &$media, &$code): void {
-                Brand::withoutUserScope()->where('user_id', $user->id)->lockForUpdate()->findOrFail($brand->id);
-                $locked = StudioImageJob::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->where('status', 'processing')->lockForUpdate()->findOrFail($job->id);
-                $current = MediaAsset::withoutUserScope()->where('user_id', $user->id)->lockForUpdate()->findOrFail($source->id);
+                Brand::ownedBy($user->id)->lockForUpdate()->findOrFail($brand->id);
+                $locked = StudioImageJob::ownedBy($user->id)->where('brand_id', $brand->id)->where('status', 'processing')->lockForUpdate()->findOrFail($job->id);
+                $current = MediaAsset::ownedBy($user->id)->lockForUpdate()->findOrFail($source->id);
                 $this->assets->owned($user, $brand, $source->id);
                 $code = 'source_changed';
                 if (! hash_equals($job->input_sha256, $this->inputHash($current))) {

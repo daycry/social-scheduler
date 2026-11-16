@@ -53,14 +53,14 @@ class StudioExports
             throw ValidationException::withMessages(['scale' => ['La exportación supera el tamaño seguro de 64 megapíxeles y 16000 píxeles por lado.']]);
         }
         $mime = ['png' => 'image/png', 'jpeg' => 'image/jpeg', 'webp' => 'image/webp'][$data['format']];
-        $media = MediaAsset::withoutUserScope()->where('user_id', $user->id)->whereIn('id', $ids)->get()->keyBy('id');
+        $media = MediaAsset::ownedBy($user->id)->whereIn('id', $ids)->get()->keyBy('id');
         foreach ($ids as $id) {
             $asset = $media->get($id);
             if (! $asset || ! $asset->isReady() || $asset->kind !== 'image' || $asset->mime !== $mime || $asset->width !== $width || $asset->height !== $height) {
                 throw ValidationException::withMessages(['media_ids' => ['Cada archivo debe ser propio, estar listo y coincidir con el formato y dimensiones de la revisión exportada.']]);
             }
         }
-        $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($design->brand_id);
+        $brand = Brand::ownedBy($user->id)->findOrFail($design->brand_id);
 
         return DB::transaction(function () use ($user, $brand, $design, $data, $pages, $ids, $frameOptions): DesignExport {
             foreach ($ids as $id) {
@@ -77,13 +77,13 @@ class StudioExports
     {
         $design = $this->studio->owned($user, $design);
 
-        return DesignExport::withoutUserScope()->select(self::PUBLIC_COLUMNS)->where('user_id', $user->id)->where('design_id', $design->id)->latest('id')->get();
+        return DesignExport::ownedBy($user->id)->select(self::PUBLIC_COLUMNS)->where('design_id', $design->id)->latest('id')->get();
     }
 
     public function owned(User $user, DesignExport $export): DesignExport
     {
-        $current = DesignExport::withoutUserScope()->select(self::PUBLIC_COLUMNS)->where('user_id', $user->id)->findOrFail($export->id);
-        abort_unless(Brand::withoutUserScope()->where('user_id', $user->id)->whereKey($current->brand_id)->exists(), 404);
+        $current = DesignExport::ownedBy($user->id)->select(self::PUBLIC_COLUMNS)->findOrFail($export->id);
+        abort_unless(Brand::ownedBy($user->id)->whereKey($current->brand_id)->exists(), 404);
 
         return $current;
     }
@@ -93,7 +93,7 @@ class StudioExports
         $design = $this->studio->owned($user, $design);
         Validator::make(['page' => $page, 'per_page' => $perPage], ['page' => ['integer', 'min:1'], 'per_page' => ['integer', 'min:1', 'max:100']])->validate();
 
-        return DesignExport::withoutUserScope()->where('user_id', $user->id)->where('design_id', $design->id)
+        return DesignExport::ownedBy($user->id)->where('design_id', $design->id)
             ->latest('id')->paginate($perPage, self::PUBLIC_COLUMNS, 'page', $page);
     }
 
@@ -106,7 +106,7 @@ class StudioExports
     public function revision(User $user, Design $design, int $revision): DesignRevision
     {
         $design = $this->studio->owned($user, $design);
-        $snapshot = DesignRevision::withoutUserScope()->where('user_id', $user->id)->where('design_id', $design->id)->where('revision', $revision)->first();
+        $snapshot = DesignRevision::ownedBy($user->id)->where('design_id', $design->id)->where('revision', $revision)->first();
         if (! $snapshot) {
             // Una revisión anterior a la vigente que ya no existe se fusionó (autoguardado) o se podó: el diseño cambió desde que el
             // cliente lo abrió, es un conflicto (409) y no un dato inválido. Una revisión inventada o futura sigue siendo 422.
@@ -136,7 +136,7 @@ class StudioExports
         abort_if($exports->contains(fn (DesignExport $export) => (int) $export->user_id !== (int) $user->id), 404);
         $brands = $exports->pluck('brand_id')->unique()->values();
         if ($brands->isNotEmpty()) {
-            abort_unless(Brand::withoutUserScope()->where('user_id', $user->id)->whereIn('id', $brands)->count() === $brands->count(), 404);
+            abort_unless(Brand::ownedBy($user->id)->whereIn('id', $brands)->count() === $brands->count(), 404);
         }
 
         return $exports->map(fn (DesignExport $export) => $this->serialize($user, $export))->all();
@@ -160,7 +160,7 @@ class StudioExports
         if ($export->status !== 'ready' || empty($export->media_ids) || ! in_array($export->format, ['png', 'jpeg', 'webp', 'mp4', 'gif'], true)) {
             throw ValidationException::withMessages(['export' => ['La exportación todavía no contiene archivos publicables listos.']]);
         }
-        $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($export->brand_id);
+        $brand = Brand::ownedBy($user->id)->findOrFail($export->brand_id);
         foreach ($export->media_ids as $id) {
             $this->assets->owned($user, $brand, (int) $id);
         }

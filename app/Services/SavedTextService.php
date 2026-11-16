@@ -37,7 +37,7 @@ class SavedTextService
      */
     public function query(User $user, ?int $brandId = null): Builder
     {
-        return SavedText::withoutUserScope()->where('user_id', $user->id)->with('brand:id,name')
+        return SavedText::ownedBy($user->id)->with('brand:id,name')
             ->when($brandId, fn (Builder $q) => $q->where(fn ($w) => $w->whereNull('brand_id')->orWhere('brand_id', $brandId)))
             ->latest('id');
     }

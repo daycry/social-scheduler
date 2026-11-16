@@ -102,7 +102,7 @@ class StudioAvAcceptance
     {
         $mediaId = $result['media_id'] ?? null;
         $media = is_int($mediaId) && $workspace->media_id === $mediaId
-            ? MediaAsset::withoutUserScope()->where('user_id', $export->user_id)->whereKey($mediaId)->lockForUpdate()->first() : null;
+            ? MediaAsset::ownedBy($export->user_id)->whereKey($mediaId)->lockForUpdate()->first() : null;
         if (! $media) {
             throw ValidationException::withMessages(['export' => ['El recurso final no pertenece al trabajo.']]);
         }

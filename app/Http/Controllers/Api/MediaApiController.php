@@ -105,6 +105,6 @@ class MediaApiController extends ApiController
 
     private function owned(Request $request, int $asset): MediaAsset
     {
-        return MediaAsset::withoutUserScope()->where('user_id', $request->user()->id)->find($asset) ?? abort(404);
+        return MediaAsset::ownedBy($request->user()->id)->find($asset) ?? abort(404);
     }
 }

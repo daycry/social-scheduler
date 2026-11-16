@@ -51,7 +51,7 @@ class ProcessStudioImage extends SchedulerTool
         $brand = $this->brandFrom($request, $user);
         $images = app(StudioImages::class);
         $job = $data['action'] === 'start' ? $images->create($user, $brand, $data)
-            : StudioImageJob::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->findOrFail($data['job_id']);
+            : StudioImageJob::ownedBy($user->id)->where('brand_id', $brand->id)->findOrFail($data['job_id']);
 
         return ['job' => $images->present($user, $brand, $job, true)];
     }

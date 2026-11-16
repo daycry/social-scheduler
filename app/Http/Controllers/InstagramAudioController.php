@@ -14,7 +14,7 @@ class InstagramAudioController extends Controller
     public function __invoke(Request $request, Brand $brand, int $account, ?string $audio = null): JsonResponse
     {
         abort_unless($brand->user_id === $request->user()->id, 404);
-        $account = SocialAccount::withoutUserScope()->where('user_id', $request->user()->id)->where('brand_id', $brand->id)->findOrFail($account);
+        $account = SocialAccount::ownedBy($request->user()->id)->where('brand_id', $brand->id)->findOrFail($account);
         $data = $request->validate(['q' => ['nullable', 'string', 'max:200'], 'type' => ['nullable', 'in:all,music,original_sound'], 'cursor' => ['nullable', 'string', 'max:8192']]);
         try {
             $catalog = app(InstagramAudio::class);

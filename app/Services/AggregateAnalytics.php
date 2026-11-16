@@ -43,7 +43,7 @@ class AggregateAnalytics
     /** @return array<string, mixed> */
     private function compute(User $user, Period $period, ?Period $compare): array
     {
-        $brands = Brand::withoutUserScope()->where('user_id', $user->id)->orderBy('name')->orderBy('id')->get();
+        $brands = Brand::ownedBy($user->id)->orderBy('name')->orderBy('id')->get();
         $summaries = [];
 
         foreach ($brands as $brand) {

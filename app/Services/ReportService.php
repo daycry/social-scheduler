@@ -122,7 +122,7 @@ class ReportService
         $reports = DB::transaction(function () use ($user, $brand, $formats, $period, $compare, $max, $blocks, $scheduleId) {
             User::query()->whereKey($user->id)->lockForUpdate()->first(); // serializa las altas del mismo usuario
 
-            $active = Report::withoutUserScope()->where('user_id', $user->id)->active()->count();
+            $active = Report::ownedBy($user->id)->active()->count();
 
             if ($active + count($formats) > $max) {
                 throw new TooManyActiveReports;
@@ -170,7 +170,7 @@ class ReportService
 
         try {
             $user = User::findOrFail($report->user_id);
-            $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($report->brand_id);
+            $brand = Brand::ownedBy($user->id)->findOrFail($report->brand_id);
             $period = Period::make($report->from->format('Y-m-d'), $report->to->format('Y-m-d'));
             $data = $this->dataset($user, $brand, $period, $period->comparison($report->compare), $report->format === 'pdf' ? $report->blocks : null);
 
@@ -297,8 +297,7 @@ class ReportService
      */
     public function topPosts(User $user, Brand $brand, Period $period, int $limit): array
     {
-        $networkByAccount = SocialAccount::withoutUserScope()
-            ->where('user_id', $user->id)->where('brand_id', $brand->id)
+        $networkByAccount = SocialAccount::ownedBy($user->id)->where('brand_id', $brand->id)
             ->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)
             ->get(['id', 'network'])->mapWithKeys(fn (SocialAccount $a) => [$a->id => $a->network->value])->all();
 

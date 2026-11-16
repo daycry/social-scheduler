@@ -62,7 +62,7 @@ class CompetitorService
     /** Cuenta propia activa de la marca en esa red desde la que se consulta (la mas antigua; Instagram por defecto). */
     public function queryAccount(int $userId, int $brandId, ?int $preferredId = null, Network $network = Network::Instagram): ?SocialAccount
     {
-        $query = SocialAccount::withoutUserScope()->where('user_id', $userId)->where('brand_id', $brandId)
+        $query = SocialAccount::ownedBy($userId)->where('brand_id', $brandId)
             ->where('network', $network->value)->where('status', SocialAccount::STATUS_ACTIVE);
 
         if ($preferredId !== null && ($preferred = (clone $query)->find($preferredId))) {
@@ -113,7 +113,7 @@ class CompetitorService
             throw new PostValidationException(['username' => [$e->getMessage()]]);
         }
 
-        $query = Competitor::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id);
+        $query = Competitor::ownedBy($user->id)->where('brand_id', $brand->id);
         if ((clone $query)->where('network', $network->value)->where('username', $username)->exists()) {
             throw new PostValidationException(['username' => ['Ya sigues a esa cuenta.']]);
         }
@@ -127,7 +127,7 @@ class CompetitorService
         }
 
         // Una cuenta propia de la marca en esa red no es un competidor.
-        $own = SocialAccount::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->where('network', $network->value)->pluck('username')
+        $own = SocialAccount::ownedBy($user->id)->where('brand_id', $brand->id)->where('network', $network->value)->pluck('username')
             ->map(fn ($u) => ltrim(mb_strtolower((string) $u), '@'));
         if ($own->contains($username)) {
             throw new PostValidationException(['username' => ['Esa es tu propia cuenta.']]);
@@ -278,7 +278,7 @@ class CompetitorService
     {
         [$from, $to] = $this->range($from, $to);
 
-        return CompetitorPost::withoutUserScope()->where('user_id', $user->id)->where('competitor_id', $competitor->id)
+        return CompetitorPost::ownedBy($user->id)->where('competitor_id', $competitor->id)
             ->whereBetween('posted_at', [$from.' 00:00:00', $to.' 23:59:59'])->get()
             ->sortByDesc(fn (CompetitorPost $p) => $p->interactions() ?? -1)->take(max(1, min(25, $limit)))
             ->map(fn (CompetitorPost $p) => [
@@ -334,11 +334,11 @@ class CompetitorService
         $sort = in_array($sort, self::SORTS, true) ? $sort : 'followers';
         $since = min($from, now('UTC')->subDays(31)->toDateString());
 
-        $competitors = Competitor::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->where('network', $network->value)->orderBy('username')->get();
-        $snapshots = CompetitorSnapshot::withoutUserScope()->where('user_id', $user->id)
+        $competitors = Competitor::ownedBy($user->id)->where('brand_id', $brand->id)->where('network', $network->value)->orderBy('username')->get();
+        $snapshots = CompetitorSnapshot::ownedBy($user->id)
             ->whereIn('competitor_id', $competitors->pluck('id'))->where('date', '>=', $since)->where('date', '<=', $to)
             ->orderBy('date')->get()->groupBy('competitor_id');
-        $posts = CompetitorPost::withoutUserScope()->where('user_id', $user->id)->whereIn('competitor_id', $competitors->pluck('id'))
+        $posts = CompetitorPost::ownedBy($user->id)->whereIn('competitor_id', $competitors->pluck('id'))
             ->whereBetween('posted_at', [$from.' 00:00:00', $to.' 23:59:59'])->get()->groupBy('competitor_id');
 
         $rows = $competitors->map(function (Competitor $c) use ($snapshots, $posts, $from, $to) {
@@ -354,7 +354,7 @@ class CompetitorService
         $own = null;
         $account = $this->queryAccount($user->id, $brand->id, null, $network);
         if ($account) {
-            $series = AccountSnapshot::withoutUserScope()->where('user_id', $user->id)->where('social_account_id', $account->id)
+            $series = AccountSnapshot::ownedBy($user->id)->where('social_account_id', $account->id)
                 ->where('date', '>=', $since)->where('date', '<=', $to)->orderBy('date')->get()
                 ->map(fn ($s) => ['date' => substr((string) ($s->date instanceof \DateTimeInterface ? $s->date->format('Y-m-d') : $s->date), 0, 10), 'followers' => $s->metrics['followers'] ?? null, 'media' => $s->metrics['video_count'] ?? $s->metrics['post_count'] ?? null])->values();
             $own = ['username' => $account->username, 'name' => $account->name, 'posts_collected' => 0, 'avg_interactions' => null] + $this->growth($series) + $this->rangeStats($series, $from, $to);

@@ -38,7 +38,7 @@ class PostApiController extends ApiController
     {
         $brand = $this->ownedBrand($request, $brand);
         $filters = $request->validate(CursorPage::RULES + ['status' => ['nullable', Rule::enum(PostStatus::class)]]);
-        $query = Post::withoutUserScope()->where('user_id', $request->user()->id)->where('brand_id', $brand->id)
+        $query = Post::ownedBy($request->user()->id)->where('brand_id', $brand->id)
             ->when(isset($filters['status']), fn ($q) => $q->where('status', $filters['status']))
             ->with(['brand', 'campaign', 'targets', 'media'])->latest('id');
         [$rows, $page] = CursorPage::fetch($query, $filters['limit'] ?? null, $filters['cursor'] ?? null, 'posts:u'.$request->user()->id.':b'.$brand->id);

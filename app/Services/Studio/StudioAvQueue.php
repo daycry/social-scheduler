@@ -63,7 +63,7 @@ class StudioAvQueue
         }
         if (in_array($task['phase'], ['asset', 'font', 'normalize'], true)) {
             $user = User::findOrFail($export->user_id);
-            $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($export->brand_id);
+            $brand = Brand::ownedBy($user->id)->findOrFail($export->brand_id);
             $source = $task['phase'] === 'font' ? app(StudioFonts::class)->owned($user, $brand, $task['index'])
                 : app(StudioAssets::class)->owned($user, $brand, $task['index']);
             $bytes = $task['phase'] === 'normalize' ? (int) round($source->duration * 48000) * 8 : $source->size;

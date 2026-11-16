@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Connectors\Network;
 use App\Models\InboxComment;
 use App\Services\InboxService;
 use App\Support\CursorPage;
@@ -21,7 +22,7 @@ class InboxApiController extends ApiController
     {
         $brand = $this->ownedBrand($request, $brand);
         $f = $request->validate(CursorPage::RULES + [
-            'network' => ['nullable', Rule::in(['instagram', 'facebook', 'threads', 'bluesky', 'youtube'])],
+            'network' => ['nullable', Rule::in(array_map(fn (Network $n) => $n->value, $this->inbox->networks()))],
             'status' => ['nullable', Rule::in(['open', 'closed'])],
             'label' => ['nullable', 'string', 'max:50'],
             'assigned' => ['nullable', 'string', 'max:20'],
@@ -43,7 +44,7 @@ class InboxApiController extends ApiController
     public function reply(Request $request, int $comment): JsonResponse
     {
         $data = $request->validate(['text' => ['required', 'string', 'max:'.(int) config('social.inbox.reply_max_chars', 2200)]]);
-        $found = InboxComment::withoutUserScope()->where('user_id', $request->user()->id)->find($comment) ?? abort(404);
+        $found = InboxComment::ownedBy($request->user()->id)->find($comment) ?? abort(404);
 
         return $this->respond($request, 'reply_comment', 'inbox_comment', $found->id, function () use ($request, $found, $data) {
             $reply = $this->inbox->reply($request->user(), $found, $data['text']);

@@ -21,7 +21,7 @@ class StudioAvLifecycle
     {
         return DB::transaction(function () use ($user, $export) {
             $this->store->reserveSqliteWriter('studio_design_exports', $export->id);
-            $current = DesignExport::withoutUserScope()->where('user_id', $user->id)->whereKey($export->id)->lockForUpdate()->firstOrFail();
+            $current = DesignExport::ownedBy($user->id)->whereKey($export->id)->lockForUpdate()->firstOrFail();
             $document = $this->store->pinnedDocument($current);
             if (! in_array($current->format, ['mp4', 'gif'], true)) {
                 throw ValidationException::withMessages(['export' => ['Este trabajo no es una exportación audiovisual.']]);

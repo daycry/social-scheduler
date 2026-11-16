@@ -25,7 +25,7 @@ class StudioFonts
         $filters = Validator::make($filters, ['query' => ['sometimes', 'nullable', 'string', 'max:120'],
             'page' => ['sometimes', 'integer', 'min:1'], 'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'archived' => ['sometimes', 'boolean']])->validate();
-        $query = StudioFont::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->where('status', 'ready');
+        $query = StudioFont::ownedBy($user->id)->where('brand_id', $brand->id)->where('status', 'ready');
         ($filters['archived'] ?? false) ? $query->whereNotNull('archived_at') : $query->whereNull('archived_at');
         if (filled($filters['query'] ?? null)) {
             $term = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], trim($filters['query'])).'%';
@@ -91,7 +91,7 @@ class StudioFonts
     {
         $this->assertBrand($user, $brand);
 
-        return StudioFont::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->where('status', 'ready')->findOrFail($id);
+        return StudioFont::ownedBy($user->id)->where('brand_id', $brand->id)->where('status', 'ready')->findOrFail($id);
     }
 
     public function many(User $user, Brand $brand, array $ids): Collection
@@ -101,7 +101,7 @@ class StudioFonts
         if ($ids === []) {
             return collect();
         }
-        $fonts = StudioFont::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->where('status', 'ready')->whereIn('id', $ids)->get()->keyBy('id');
+        $fonts = StudioFont::ownedBy($user->id)->where('brand_id', $brand->id)->where('status', 'ready')->whereIn('id', $ids)->get()->keyBy('id');
         abort_unless($fonts->count() === count($ids), 404);
 
         return $fonts;
@@ -179,7 +179,7 @@ class StudioFonts
     {
         $this->assertBrand($user, $brand);
         DB::transaction(function () use ($user, $brand, $id): void {
-            $font = StudioFont::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->lockForUpdate()->findOrFail($id);
+            $font = StudioFont::ownedBy($user->id)->where('brand_id', $brand->id)->lockForUpdate()->findOrFail($id);
             abort_if(DB::table('studio_font_usages')->where('font_id', $id)->exists()
                 || DB::table('studio_brand_kit_fonts')->where('font_id', $id)->exists(), 409, 'Esta tipografía está en uso en un kit o en el historial de un diseño.');
             $font->delete();

@@ -61,7 +61,7 @@ class StudioAiController extends Controller
         if (! is_array($items) || ! array_is_list($items)) {
             throw ValidationException::withMessages(['items' => ['Escribe la lista de elementos.']]);
         }
-        $design = Design::withoutUserScope()->where('user_id', $request->user()->id)->where('brand_id', $brand->id)->findOrFail((int) $request->input('design_id'));
+        $design = Design::ownedBy($request->user()->id)->where('brand_id', $brand->id)->findOrFail((int) $request->input('design_id'));
 
         return $text->fillTemplate($request->user(), $design, $items);
     }

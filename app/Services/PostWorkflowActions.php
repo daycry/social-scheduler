@@ -90,7 +90,7 @@ class PostWorkflowActions
     /** @return array<string, mixed> */
     public function seriesIndex(User $user): array
     {
-        return ['series' => $this->series->presentMany(PostSeries::withoutUserScope()->where('user_id', $user->id)->orderByDesc('id')->limit(100)->get())];
+        return ['series' => $this->series->presentMany(PostSeries::ownedBy($user->id)->orderByDesc('id')->limit(100)->get())];
     }
 
     /** @return array<string, mixed> */
@@ -166,7 +166,7 @@ class PostWorkflowActions
 
     private function owned(User $user, int $post): Post
     {
-        $model = Post::withoutUserScope()->where('user_id', $user->id)->find($post);
+        $model = Post::ownedBy($user->id)->find($post);
         abort_if($model === null, 404);
 
         return $model;
@@ -174,7 +174,7 @@ class PostWorkflowActions
 
     private function ownedSeries(User $user, int $series): PostSeries
     {
-        $model = PostSeries::withoutUserScope()->where('user_id', $user->id)->find($series);
+        $model = PostSeries::ownedBy($user->id)->find($series);
         abort_if($model === null, 404);
 
         return $model;
@@ -182,7 +182,7 @@ class PostWorkflowActions
 
     private function ownedBrand(User $user, int $brand): Brand
     {
-        $model = Brand::withoutUserScope()->where('user_id', $user->id)->find($brand);
+        $model = Brand::ownedBy($user->id)->find($brand);
         abort_if($model === null, 404);
 
         return $model;

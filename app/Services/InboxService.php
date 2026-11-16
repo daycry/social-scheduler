@@ -129,7 +129,7 @@ class InboxService
     /** Cuentas del usuario que el buzon sabe leer (las de redes con fuente de comentarios). */
     public function accountsFor(User $user): Collection
     {
-        return SocialAccount::withoutUserScope()->where('user_id', $user->id)->whereIn('network', array_map(fn (Network $n) => $n->value, $this->networks()))
+        return SocialAccount::ownedBy($user->id)->whereIn('network', array_map(fn (Network $n) => $n->value, $this->networks()))
             ->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)->orderBy('network')->orderBy('name')->get();
     }
 
@@ -173,7 +173,7 @@ class InboxService
         }
 
         $max = $account->network === Network::YouTube ? (int) config('social.inbox.youtube_max_posts', 10) : (int) config('social.inbox.max_posts', 25);
-        $targets = PostTarget::withoutUserScope()->where('user_id', $account->user_id)->where('social_account_id', $account->id)
+        $targets = PostTarget::ownedBy($account->user_id)->where('social_account_id', $account->id)
             ->where('status', PostStatus::Published->value)->whereNotNull('external_id')
             ->where('published_at', '>=', now()->subDays((int) config('social.inbox.post_days', 30)))
             ->orderByDesc('published_at')->orderByDesc('id')->offset($offset)->limit(max(0, $max - $offset))->get();
@@ -257,7 +257,7 @@ class InboxService
      */
     public function query(User $user, array $filters = []): Builder
     {
-        return InboxComment::withoutUserScope()->where('user_id', $user->id)->where('is_own', false)
+        return InboxComment::ownedBy($user->id)->where('is_own', false)
             ->when(! empty($filters['network']), fn (Builder $q) => $q->where('network', $filters['network']))
             ->when(! empty($filters['brand_id']), fn (Builder $q) => $q->where('brand_id', $filters['brand_id']))
             ->when(! empty($filters['unread']), fn (Builder $q) => $q->whereNull('read_at'))
@@ -403,7 +403,7 @@ class InboxService
     /** Cuenta del comentario, activa y con el permiso de moderacion; si no, un error legible que dice que activar. */
     private function moderationAccount(InboxComment $comment): SocialAccount
     {
-        $account = SocialAccount::withoutUserScope()->where('user_id', $comment->user_id)->find($comment->social_account_id);
+        $account = SocialAccount::ownedBy($comment->user_id)->find($comment->social_account_id);
         if (! $account || ! $account->isActive()) {
             throw new PostValidationException(['account' => ['La cuenta necesita reconectarse.']]);
         }
@@ -524,7 +524,7 @@ class InboxService
             throw new PostValidationException(['ids' => ['Elige entre 1 y '.(int) config('social.inbox.batch_max', 100).' comentarios.']]);
         }
 
-        $mine = InboxComment::withoutUserScope()->where('user_id', $user->id)->whereIn('id', $ids);
+        $mine = InboxComment::ownedBy($user->id)->whereIn('id', $ids);
         $found = (clone $mine)->count();
         match ($action) {
             'read' => (clone $mine)->whereNull('read_at')->update(['read_at' => now()]),
@@ -541,7 +541,7 @@ class InboxService
     /** @return Collection<int, InboxSavedReply> */
     public function savedReplies(User $user): Collection
     {
-        return InboxSavedReply::withoutUserScope()->where('user_id', $user->id)->orderBy('title')->orderBy('id')->get();
+        return InboxSavedReply::ownedBy($user->id)->orderBy('title')->orderBy('id')->get();
     }
 
     public function saveReply(User $user, string $title, string $body): InboxSavedReply
@@ -555,7 +555,7 @@ class InboxService
         if ($body === '' || mb_strlen($body) > InboxSavedReply::BODY_MAX) {
             $errors['body'][] = 'El texto tiene de 1 a '.InboxSavedReply::BODY_MAX.' caracteres.';
         }
-        if (! $errors && InboxSavedReply::withoutUserScope()->where('user_id', $user->id)->count() >= (int) config('social.inbox.saved_replies_max', 30)) {
+        if (! $errors && InboxSavedReply::ownedBy($user->id)->count() >= (int) config('social.inbox.saved_replies_max', 30)) {
             $errors['title'][] = 'Máximo '.(int) config('social.inbox.saved_replies_max', 30).' respuestas guardadas.';
         }
         if ($errors) {
@@ -570,7 +570,7 @@ class InboxService
 
     public function deleteReply(User $user, int $id): void
     {
-        InboxSavedReply::withoutUserScope()->where('user_id', $user->id)->whereKey($id)->delete();
+        InboxSavedReply::ownedBy($user->id)->whereKey($id)->delete();
     }
 
     private function assertOwns(User $user, InboxComment $comment): void

@@ -33,7 +33,7 @@ class AutolistItem extends Model
             return;
         }
         $ids = array_values(array_unique(array_filter(array_map('intval', (array) $this->media))));
-        $found = $ids === [] ? [] : MediaAsset::withoutUserScope()->where('user_id', $this->user_id)->whereIn('id', $ids)->pluck('id')->all();
+        $found = $ids === [] ? [] : MediaAsset::ownedBy($this->user_id)->whereIn('id', $ids)->pluck('id')->all();
         if (count($found) !== count($ids)) {
             throw new PostValidationException(['media' => ['Algun archivo no existe: '.implode(', ', array_diff($ids, $found)).'.']]);
         }

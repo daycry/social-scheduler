@@ -86,7 +86,7 @@ class PublicSiteController extends Controller
     {
         $site = $this->find($slug);
         abort_unless($this->access->allows($request, $site) && in_array($media, $site->published['media'] ?? [], true), 404);
-        $asset = MediaAsset::withoutUserScope()->where('user_id', $site->user_id)->where('kind', MediaAsset::KIND_IMAGE)->find($media);
+        $asset = MediaAsset::ownedBy($site->user_id)->where('kind', MediaAsset::KIND_IMAGE)->find($media);
         abort_unless($asset && $asset->isReady(), 404);
 
         return self::stream($asset);

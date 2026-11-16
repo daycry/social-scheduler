@@ -161,7 +161,7 @@ class ReportController extends Controller
     {
         // Un enlace enviado por email lleva su programacion en la firma: si se pauso o se borro, deja de valer.
         if ($request->query('schedule') !== null) {
-            abort_unless(ReportSchedule::withoutUserScope()->whereKey((int) $request->query('schedule'))->where('user_id', $owner)->where('active', true)->exists(), 404);
+            abort_unless(ReportSchedule::ownedBy($owner)->whereKey((int) $request->query('schedule'))->where('active', true)->exists(), 404);
         }
 
         $model = Report::withoutUserScope()->find($report);

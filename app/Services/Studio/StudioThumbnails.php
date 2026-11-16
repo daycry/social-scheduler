@@ -86,7 +86,7 @@ class StudioThumbnails
         // Carpeta de trabajo con la forma que exige `StudioChartFiles` (`studio-exports/{usuario}/{n}/{uuid}`): aqui `{n}` es el diseno y la carpeta se borra al acabar.
         $work = 'studio-exports/'.$design->user_id.'/'.$design->id.'/'.Str::uuid();
         try {
-            $brand = Brand::withoutUserScope()->where('user_id', $design->user_id)->findOrFail($design->brand_id);
+            $brand = Brand::ownedBy($design->user_id)->findOrFail($design->brand_id);
             $user = User::findOrFail($design->user_id);
             $document = $design->document;
             $rendered = $this->renderer->previewPage($user, $brand, $document, (string) $document['pages'][0]['id'], self::MAX_SIDE, $work);

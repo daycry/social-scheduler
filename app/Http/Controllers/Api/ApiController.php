@@ -27,7 +27,7 @@ abstract class ApiController extends Controller
     /** La marca del usuario de la API key; una ajena responde igual que una inexistente. */
     protected function ownedBrand(Request $request, int $brand): Brand
     {
-        return Brand::withoutUserScope()->where('user_id', $request->user()->id)->find($brand) ?? abort(404);
+        return Brand::ownedBy($request->user()->id)->find($brand) ?? abort(404);
     }
 
     /**

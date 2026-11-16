@@ -24,7 +24,7 @@ class StudioAvProcess
             if (! in_array($lease->phase, ['plan', 'normalize', 'render', 'mix', 'assemble'], true)) {
                 throw new StudioAvProcessFailed('invalid_request');
             }
-            $document = DesignRevision::withoutUserScope()->where('user_id', $export->user_id)->where('design_id', $export->design_id)
+            $document = DesignRevision::ownedBy($export->user_id)->where('design_id', $export->design_id)
                 ->where('revision', $export->revision)->firstOrFail()->document;
             if (hash('sha256', json_encode($document, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION)) !== $export->render_state['document_hash']) {
                 throw new StudioAvProcessFailed('invalid_request');
@@ -97,11 +97,11 @@ class StudioAvProcess
         foreach ($document['timeline']['audio_tracks'] ?? [] as $track) {
             $ids[$track['asset_id']] = true;
         }
-        $links = StudioAsset::withoutUserScope()->where('user_id', $export->user_id)->where('brand_id', $export->brand_id)
+        $links = StudioAsset::ownedBy($export->user_id)->where('brand_id', $export->brand_id)
             ->whereIn('media_asset_id', array_keys($ids))->with('media')->get();
         $assets = $links->map(fn ($link) => $link->media)->filter(fn ($asset) => $asset && (int) $asset->user_id === (int) $export->user_id && $asset->status === MediaAsset::STATUS_READY)
             ->sortBy('id')->map(fn ($asset) => $asset->only(['id', 'kind', 'mime', 'width', 'height', 'duration', 'audio_codec', 'size', 'fps', 'status']) + ['file' => 'assets/'.$asset->id.'.bin'])->values()->all();
-        $fonts = StudioFont::withoutUserScope()->where('user_id', $export->user_id)->where('brand_id', $export->brand_id)->where('status', 'ready')
+        $fonts = StudioFont::ownedBy($export->user_id)->where('brand_id', $export->brand_id)->where('status', 'ready')
             ->whereIn('id', StudioFonts::idsFromDocument($document))->orderBy('id')->get()
             ->map(fn ($font) => $font->only(['id', 'family', 'format', 'mime', 'size', 'sha256', 'style', 'weight', 'status'])
                 + ['file' => 'fonts/'.$font->id.'.woff2', 'css_family' => 'StudioFont_'.$font->id.'_'.substr($font->sha256, 0, 16)])->all();

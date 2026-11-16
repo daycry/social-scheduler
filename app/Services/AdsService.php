@@ -98,7 +98,7 @@ class AdsService
     {
         abort_unless((int) $brand->user_id === (int) $user->id, 404);
 
-        return SocialAccount::withoutUserScope()->where('user_id', $user->id)
+        return SocialAccount::ownedBy($user->id)
             ->where('brand_id', $brand->id)
             ->whereIn('network', [Network::Facebook->value, Network::Instagram->value])
             ->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)

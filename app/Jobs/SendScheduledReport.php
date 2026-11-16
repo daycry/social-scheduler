@@ -46,10 +46,10 @@ class SendScheduledReport implements ShouldQueue
         }
 
         // Job sin sesion: la plantilla y la marca se leen del propietario de la programacion, no del usuario autenticado.
-        $template = ReportTemplate::withoutUserScope()->where('user_id', $schedule->user_id)->find($schedule->report_template_id);
+        $template = ReportTemplate::ownedBy($schedule->user_id)->find($schedule->report_template_id);
 
         $user = User::find($schedule->user_id);
-        $brand = Brand::withoutUserScope()->where('user_id', $schedule->user_id)->find($schedule->brand_id);
+        $brand = Brand::ownedBy($schedule->user_id)->find($schedule->brand_id);
 
         if (! $user || ! $brand || ! $template || (int) $template->brand_id !== (int) $brand->id) {
             $schedule->update(['active' => false, 'last_error' => 'La marca o la plantilla ya no existen.']);

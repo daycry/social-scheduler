@@ -182,7 +182,7 @@ class MediaUploadService
         return DB::transaction(function () use ($user, $source, $reference, $name) {
             User::query()->whereKey($user->id)->lockForUpdate()->value('id');
 
-            $live = MediaAsset::withoutUserScope()->where('user_id', $user->id)
+            $live = MediaAsset::ownedBy($user->id)
                 ->where('status', MediaAsset::STATUS_PENDING)->whereIn('source', [MediaAsset::SOURCE_URL, MediaAsset::SOURCE_DRIVE, MediaAsset::SOURCE_GIPHY])
                 ->where('created_at', '>', now()->subHours(6))->count();
 

@@ -46,7 +46,7 @@ final class StudioDatasets
         $current = $this->owned($userId, $brandId, $dataset);
         $number = $revision ?? $current->revision;
         abort_if($number < 1, 404);
-        $snapshot = StudioDatasetRevision::withoutUserScope()->where('user_id', $userId)->where('brand_id', $brandId)->where('dataset_id', $current->id)->where('revision', $number)->first();
+        $snapshot = StudioDatasetRevision::ownedBy($userId)->where('brand_id', $brandId)->where('dataset_id', $current->id)->where('revision', $number)->first();
         abort_unless($snapshot, 404);
         try {
             $prefix = 'studio-datasets/'.$userId.'/'.$brandId.'/';
@@ -113,7 +113,7 @@ final class StudioDatasets
     public function listing(int $userId, int $brandId, string $search = '', int $page = 1, int $perPage = 25): LengthAwarePaginator
     {
         $this->brand($userId, $brandId);
-        $query = StudioDataset::withoutUserScope()->where('user_id', $userId)->where('brand_id', $brandId)->whereNull('archived_at');
+        $query = StudioDataset::ownedBy($userId)->where('brand_id', $brandId)->whereNull('archived_at');
         if ($search !== '') {
             $literal = str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search);
             $query->whereRaw("name LIKE ? ESCAPE '!'", ['%'.$literal.'%']);
@@ -126,7 +126,7 @@ final class StudioDatasets
     {
         $current = $this->owned($userId, $brandId, $dataset);
 
-        $query = StudioDatasetRevision::withoutUserScope()->where('user_id', $userId)->where('brand_id', $brandId)->where('dataset_id', $current->id)->orderByDesc('revision');
+        $query = StudioDatasetRevision::ownedBy($userId)->where('brand_id', $brandId)->where('dataset_id', $current->id)->orderByDesc('revision');
 
         return $this->paginateMetadata($query, ['id', 'dataset_id', 'brand_id', 'revision', 'name', 'row_count', 'column_count', 'sha256', 'json_bytes', 'created_at'], $page, $perPage);
     }
@@ -157,7 +157,7 @@ final class StudioDatasets
     private function owned(int $userId, int $brandId, int|StudioDataset $dataset, bool $active = false, bool $lock = false): StudioDataset
     {
         $this->brand($userId, $brandId);
-        $query = StudioDataset::withoutUserScope()->where('user_id', $userId)->where('brand_id', $brandId)->whereKey($dataset instanceof StudioDataset ? $dataset->getKey() : $dataset);
+        $query = StudioDataset::ownedBy($userId)->where('brand_id', $brandId)->whereKey($dataset instanceof StudioDataset ? $dataset->getKey() : $dataset);
         if ($active) {
             $query->whereNull('archived_at');
         }
@@ -231,7 +231,7 @@ final class StudioDatasets
 
     private function brand(int $userId, int $brandId): void
     {
-        abort_unless(Brand::withoutUserScope()->where('user_id', $userId)->whereKey($brandId)->exists(), 404);
+        abort_unless(Brand::ownedBy($userId)->whereKey($brandId)->exists(), 404);
     }
 
     private function name(string $name): string

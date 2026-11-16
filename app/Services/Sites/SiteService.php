@@ -119,7 +119,7 @@ class SiteService
             throw new PostValidationException(['access' => ['Define una contraseña antes de publicar con acceso por contraseña.']]);
         }
         $ids = $this->mediaIds($pages);
-        $ready = $ids === [] ? [] : MediaAsset::withoutUserScope()->where('user_id', $user->id)->where('kind', MediaAsset::KIND_IMAGE)
+        $ready = $ids === [] ? [] : MediaAsset::ownedBy($user->id)->where('kind', MediaAsset::KIND_IMAGE)
             ->where('status', MediaAsset::STATUS_READY)->whereIn('id', $ids)->pluck('id')->all();
         if (array_diff($ids, $ready) !== []) {
             throw new PostValidationException(['pages' => ['Alguna imagen del sitio ya no está disponible. Revisa las imágenes antes de publicar.']]);

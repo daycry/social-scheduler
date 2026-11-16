@@ -299,7 +299,7 @@ class PostController extends Controller
             'editable' => ! $targets->contains(fn (PostTarget $t) => $t->status->isInFlight() || $t->status->isFinal()),
             'media' => $post->media()->get()->map->toPublicArray()->values(),
             // Archivos que usa la media propia de algun destino (y sus portadas): el cliente los resuelve por id para mostrarlos (T-17).
-            'target_media_assets' => MediaAsset::withoutUserScope()->where('user_id', $post->user_id)
+            'target_media_assets' => MediaAsset::ownedBy($post->user_id)
                 ->whereIn('id', $targets->flatMap(fn (PostTarget $t) => collect($t->media ?? [])->flatMap(fn ($m) => [$m['id'] ?? null, $m['cover_id'] ?? null]))->filter()->unique()->all())
                 ->get()->map->toPublicArray()->values(),
             'targets' => $targets->map(fn (PostTarget $t) => [

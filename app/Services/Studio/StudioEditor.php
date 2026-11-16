@@ -63,7 +63,7 @@ class StudioEditor
         $role = $this->collab->role($actor, $design);
         $user = $this->collab->authorize($actor, $design, 'view');
         $design = $this->studio->owned($user, $design);
-        $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($design->brand_id);
+        $brand = Brand::ownedBy($user->id)->findOrFail($design->brand_id);
         $history = $this->exports->paginated($user, $design, $exportsPage);
 
         $props = $this->brandProps($user, $brand);
@@ -100,7 +100,7 @@ class StudioEditor
         $role = $this->collab->role($actor, $design);
         $owner = $this->collab->authorize($actor, $design, 'view');
         $design = $this->studio->owned($owner, $design);
-        $brand = Brand::withoutUserScope()->where('user_id', $owner->id)->findOrFail($design->brand_id);
+        $brand = Brand::ownedBy($owner->id)->findOrFail($design->brand_id);
         $history = $this->exports->paginated($owner, $design, $exportsPage);
         $presented = $this->studio->present($actor, $design, true);
         $assets = $this->apiAssets($owner, $brand);

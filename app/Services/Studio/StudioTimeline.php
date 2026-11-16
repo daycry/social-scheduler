@@ -86,12 +86,12 @@ class StudioTimeline
             $document['timeline']['captions'] = app(StudioCaptionData::class)->validate($timeline['captions'], $total, array_keys($ids));
             $style = $document['timeline']['captions']['style'];
             if (isset($style['font_id'])) {
-                $font = StudioFont::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->where('status', 'ready')->find($style['font_id']);
+                $font = StudioFont::ownedBy($user->id)->where('brand_id', $brand->id)->where('status', 'ready')->find($style['font_id']);
                 $this->ensure($font !== null && (! isset($style['fontFamily']) || $style['fontFamily'] === $font->family), 'timeline.captions.style.font_id', 'La fuente o su familia no está disponible en esta marca.');
             }
         }
         if ($uses !== []) {
-            $links = StudioAsset::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)
+            $links = StudioAsset::ownedBy($user->id)->where('brand_id', $brand->id)
                 ->whereIn('media_asset_id', array_unique(array_column($uses, 0)))->with('media')->get()->keyBy('media_asset_id');
             foreach ($uses as [$id, $clip, $path, $audio]) {
                 $asset = $links->get($id)?->media;

@@ -157,7 +157,7 @@ class CanvaDesigns
         if (isset($claims['design_id']) && $claims['design_id'] !== $designId) {
             return null;
         }
-        $brand = Brand::withoutUserScope()->where('user_id', $user->id)->find((int) $brandId);
+        $brand = Brand::ownedBy($user->id)->find((int) $brandId);
 
         return $brand === null ? null : ['brand' => $brand, 'design_id' => $designId];
     }

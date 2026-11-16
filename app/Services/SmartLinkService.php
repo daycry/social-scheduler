@@ -126,13 +126,13 @@ class SmartLinkService
 
         $avatarId = $data['avatar_media_id'] ?? null;
         if ($avatarId !== null) {
-            $ok = MediaAsset::withoutUserScope()->where('user_id', $user->id)->where('kind', MediaAsset::KIND_IMAGE)->whereKey($avatarId)->exists();
+            $ok = MediaAsset::ownedBy($user->id)->where('kind', MediaAsset::KIND_IMAGE)->whereKey($avatarId)->exists();
             if (! $ok) {
                 $errors['avatar_media_id'][] = 'El avatar debe ser una imagen tuya.';
             }
         }
 
-        $existing = SmartLink::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->first();
+        $existing = SmartLink::ownedBy($user->id)->where('brand_id', $brand->id)->first();
         $slugTaken = SmartLink::withoutUserScope()->where('slug', $data['slug'])->when($existing, fn ($q) => $q->whereKeyNot($existing->id))->exists();
         if ($slugTaken) {
             $errors['slug'][] = 'Ese enlace ya está en uso.';
@@ -258,7 +258,7 @@ class SmartLinkService
                     $errors['url'][] = 'La URL debe empezar por http:// o https://.';
                 }
                 $mediaId = isset($b['media_id']) ? (int) $b['media_id'] : null;
-                $owned = $mediaId && MediaAsset::withoutUserScope()->where('user_id', $user->id)->where('kind', MediaAsset::KIND_IMAGE)->whereKey($mediaId)->exists();
+                $owned = $mediaId && MediaAsset::ownedBy($user->id)->where('kind', MediaAsset::KIND_IMAGE)->whereKey($mediaId)->exists();
                 if (! $owned) {
                     $errors['media_id'][] = 'Elige una imagen tuya.';
                 }
@@ -359,7 +359,7 @@ class SmartLinkService
      */
     public function recentPosts(SmartLink $link, int $count): array
     {
-        return PostTarget::withoutUserScope()->where('user_id', $link->user_id)->where('status', PostStatus::Published->value)->whereNotNull('external_url')
+        return PostTarget::ownedBy($link->user_id)->where('status', PostStatus::Published->value)->whereNotNull('external_url')
             ->whereHas('post', fn ($q) => $q->withoutGlobalScope(UserScope::class)->where('brand_id', $link->brand_id))
             ->with(['post' => fn ($q) => $q->withoutGlobalScope(UserScope::class)->select('id', 'text')])
             ->orderByDesc('published_at')->orderByDesc('id')->limit($count * 3)->get()

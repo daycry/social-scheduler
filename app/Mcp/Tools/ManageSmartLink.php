@@ -62,7 +62,7 @@ class ManageSmartLink extends SchedulerTool
         $action = $request->validate(['action' => ['required', 'in:get,save,stats']])['action'];
         $brand = $this->brandFrom($request, $user);
         $links = app(SmartLinkService::class);
-        $current = SmartLink::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->first();
+        $current = SmartLink::ownedBy($user->id)->where('brand_id', $brand->id)->first();
 
         if ($action === 'save') {
             $data = $request->validate(SmartLinkService::rules($current?->id), SmartLinkService::MESSAGES);

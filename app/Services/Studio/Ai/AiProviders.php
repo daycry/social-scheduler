@@ -43,7 +43,7 @@ class AiProviders
     /** Imagenes pedidas hoy a ese proveedor (los trabajos fallidos no consumen cuota). */
     public function used(User $user, string $provider): int
     {
-        return (int) StudioAiJob::withoutUserScope()->where('user_id', $user->id)->where('provider', $provider)
+        return (int) StudioAiJob::ownedBy($user->id)->where('provider', $provider)
             // Un fallo ambiguo (timeout tras enviar) puede haberse cobrado: no devuelve cuota. El resto de fallos si.
             ->where(fn ($q) => $q->where('status', '!=', 'failed')->orWhere('error_code', 'timeout_ambiguous'))
             ->where('created_at', '>=', now()->startOfDay())->sum('count');

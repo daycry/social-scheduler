@@ -36,7 +36,7 @@ class ComposerPresetService
         }
 
         $out = [];
-        foreach (ComposerPreset::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->get() as $preset) {
+        foreach (ComposerPreset::ownedBy($user->id)->where('brand_id', $brand->id)->get() as $preset) {
             $clean = $this->clean((string) $preset->network, (array) $preset->options);
 
             if ($clean !== []) {

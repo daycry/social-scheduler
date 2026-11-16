@@ -62,7 +62,7 @@ class PostPlanner
             return [];
         }
 
-        $campaign = Campaign::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->find($campaignId);
+        $campaign = Campaign::ownedBy($user->id)->where('brand_id', $brand->id)->find($campaignId);
         if ($campaign === null) {
             return ['campaign_id' => ['La campaña no existe en esta marca.']];
         }
@@ -191,7 +191,7 @@ class PostPlanner
         $label = $this->targetLabel($account);
         $errors = [];
         $ids = array_values(array_unique(array_filter(array_merge(array_column($own, 'id'), array_column($own, 'cover_id')))));
-        $found = MediaAsset::withoutUserScope()->where('user_id', $user->id)->whereIn('id', $ids)->get()->keyBy('id');
+        $found = MediaAsset::ownedBy($user->id)->whereIn('id', $ids)->get()->keyBy('id');
 
         $assets = [];
         $seen = [];
@@ -273,7 +273,7 @@ class PostPlanner
 
         // Media del usuario, lista, en el orden indicado.
         $ids = array_values(array_map('intval', (array) ($data['media'] ?? [])));
-        $found = MediaAsset::withoutUserScope()->where('user_id', $user->id)->whereIn('id', $ids)->get()->keyBy('id');
+        $found = MediaAsset::ownedBy($user->id)->whereIn('id', $ids)->get()->keyBy('id');
         $media = [];
         foreach ($ids as $id) {
             if (! $found->has($id)) {
@@ -293,8 +293,7 @@ class PostPlanner
         $seen = [];
         foreach ($rawTargets as $i => $raw) {
             $key = "targets.$i";
-            $account = SocialAccount::withoutUserScope()
-                ->where('user_id', $user->id)->where('brand_id', $brand->id)
+            $account = SocialAccount::ownedBy($user->id)->where('brand_id', $brand->id)
                 ->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)
                 ->find((int) ($raw['account_id'] ?? 0));
             $type = ContentType::tryFrom((string) ($raw['content_type'] ?? ''));

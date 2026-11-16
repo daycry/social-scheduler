@@ -29,7 +29,7 @@ class StudioService
     public function designs(User $user, Brand $brand, array $filters = []): array
     {
         $this->assets->assertBrand($user, $brand);
-        $query = Design::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)
+        $query = Design::ownedBy($user->id)->where('brand_id', $brand->id)
             ->select(['id', 'user_id', 'brand_id', 'folder_id', 'name', 'revision', 'is_template', 'width', 'height', 'page_count', 'created_at', 'updated_at', 'deleted_at']);
         if (filter_var($filters['archived'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
             $query->onlyTrashed();
@@ -83,14 +83,14 @@ class StudioService
         if ($actor->id !== $user->id) {
             unset($data['is_template']); // la condición de plantilla es decisión del propietario: un editor invitado no la cambia
         }
-        $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($current->brand_id);
+        $brand = Brand::ownedBy($user->id)->findOrFail($current->brand_id);
         $document = $this->documents->validate($user, $brand, $data['document']);
 
         // Autoguardado del editor: llega con `kit_revision` en cada PATCH, asi que ese campo no impide fundirlo (A-07).
         $autosave = ($data['autosave'] ?? false) === true && $kitReference === null;
 
         return DB::transaction(function () use ($user, $actor, $current, $data, $document, $kitReference, $autosave): Design {
-            $locked = Design::withoutUserScope()->where('user_id', $user->id)->lockForUpdate()->findOrFail($current->id);
+            $locked = Design::ownedBy($user->id)->lockForUpdate()->findOrFail($current->id);
             if ($locked->revision !== (int) $data['revision']) {
                 $last = DesignRevision::withoutUserScope()->where('design_id', $locked->id)->where('revision', $locked->revision)->first();
                 $by = $last?->author_id !== null ? User::query()->whereKey($last->author_id)->value('name') : null;
@@ -99,7 +99,7 @@ class StudioService
             if ($kitReference !== null) {
                 $locked->kit_reference = self::reference($kitReference);
             } elseif (isset($data['kit_revision'])) {
-                $snapshot = DesignRevision::withoutUserScope()->where('user_id', $user->id)
+                $snapshot = DesignRevision::ownedBy($user->id)
                     ->where('design_id', $locked->id)->where('revision', $data['kit_revision'])->first();
                 if ($snapshot !== null) {
                     $locked->kit_reference = self::reference($snapshot->kit_reference);
@@ -120,7 +120,7 @@ class StudioService
     public function duplicate(User $user, Design $design, ?string $name = null): Design
     {
         $source = $this->owned($user, $design);
-        $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($source->brand_id);
+        $brand = Brand::ownedBy($user->id)->findOrFail($source->brand_id);
 
         return $this->create($user, $brand, ['name' => $name ?? mb_substr($source->name, 0, 248).' (copia)', 'document' => $source->document,
             'folder_id' => $source->folder_id, 'is_template' => $source->is_template], $source->kit_reference ?? []);
@@ -134,7 +134,7 @@ class StudioService
     {
         $owner = $this->collab->authorize($actor, $design, 'edit');
         $source = $this->owned($owner, $design);
-        $brand = Brand::withoutUserScope()->where('user_id', $owner->id)->findOrFail($source->brand_id);
+        $brand = Brand::ownedBy($owner->id)->findOrFail($source->brand_id);
 
         return DB::transaction(function () use ($actor, $owner, $brand, $source, $data): Design {
             $copy = $this->create($owner, $brand, ['name' => trim((string) ($data['name'] ?? '')) !== '' ? $data['name'] : mb_substr($source->name, 0, 240).' (copia)',
@@ -162,12 +162,12 @@ class StudioService
 
     public function owned(User $user, Design $design, bool $withTrashed = false): Design
     {
-        $query = Design::withoutUserScope()->where('user_id', $user->id);
+        $query = Design::ownedBy($user->id);
         if ($withTrashed) {
             $query->withTrashed();
         }
         $current = $query->findOrFail($design->id);
-        abort_unless(Brand::withoutUserScope()->where('user_id', $user->id)->whereKey($current->brand_id)->exists(), 404);
+        abort_unless(Brand::ownedBy($user->id)->whereKey($current->brand_id)->exists(), 404);
 
         return $current;
     }
@@ -199,8 +199,8 @@ class StudioService
     {
         $this->assets->assertBrand($user, $brand);
 
-        $folders = DesignFolder::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->orderBy('name')->get();
-        $counts = Design::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->whereIn('folder_id', $folders->modelKeys())
+        $folders = DesignFolder::ownedBy($user->id)->where('brand_id', $brand->id)->orderBy('name')->get();
+        $counts = Design::ownedBy($user->id)->where('brand_id', $brand->id)->whereIn('folder_id', $folders->modelKeys())
             ->selectRaw('folder_id, count(*) as total')->groupBy('folder_id')->pluck('total', 'folder_id');
 
         return $folders->each(fn (DesignFolder $folder) => $folder->setAttribute('designs_count', (int) ($counts[$folder->id] ?? 0)));
@@ -209,7 +209,7 @@ class StudioService
     /** Renombra una carpeta propia. Un id ajeno responde 404 como uno inexistente. */
     public function renameFolder(User $user, DesignFolder $folder, string $name): DesignFolder
     {
-        $owned = DesignFolder::withoutUserScope()->where('user_id', $user->id)->findOrFail($folder->id);
+        $owned = DesignFolder::ownedBy($user->id)->findOrFail($folder->id);
         $name = trim($name);
         Validator::make(['name' => $name], ['name' => ['required', 'string', 'max:255']])->validate();
         $owned->forceFill(['name' => $name])->save();
@@ -224,7 +224,7 @@ class StudioService
     public function moveDesign(User $user, Design $design, mixed $folderId): Design
     {
         $current = $this->owned($user, $design);
-        $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($current->brand_id);
+        $brand = Brand::ownedBy($user->id)->findOrFail($current->brand_id);
         $current->forceFill(['folder_id' => $this->folderId($user, $brand, $folderId)])->save();
 
         return $current;
@@ -242,10 +242,10 @@ class StudioService
     /** Borra una carpeta propia. Sus diseños (activos, archivados y plantillas) NO se borran: pasan a «Sin carpeta». Devuelve cuantos. */
     public function deleteFolder(User $user, DesignFolder $folder): int
     {
-        $owned = DesignFolder::withoutUserScope()->where('user_id', $user->id)->findOrFail($folder->id);
+        $owned = DesignFolder::ownedBy($user->id)->findOrFail($folder->id);
 
         return DB::transaction(function () use ($owned): int {
-            $moved = Design::withoutUserScope()->withTrashed()->where('user_id', $owned->user_id)->where('folder_id', $owned->id)->update(['folder_id' => null]);
+            $moved = Design::ownedBy($owned->user_id)->withTrashed()->where('folder_id', $owned->id)->update(['folder_id' => null]);
             $owned->delete();
 
             return $moved;
@@ -255,7 +255,7 @@ class StudioService
     public function kit(User $user, Brand $brand): array
     {
         $this->assets->assertBrand($user, $brand);
-        $kit = BrandKit::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->first();
+        $kit = BrandKit::ownedBy($user->id)->where('brand_id', $brand->id)->first();
 
         return $kit?->only(['palette', 'fonts', 'font_ids', 'logos', 'guidelines', 'voice']) ?? ['palette' => ['#7c3aed', '#111827', '#ffffff'], 'fonts' => ['Arial'], 'logos' => [], 'guidelines' => '', 'voice' => ''];
     }
@@ -298,7 +298,7 @@ class StudioService
         }
         $ids = array_values(array_unique(array_filter($merged['font_ids'] ?? [], fn ($id) => $id !== null)));
         DB::transaction(function () use ($user, $brand, $merged, $ids): void {
-            $fonts = StudioFont::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->where('status', 'ready')->whereIn('id', $ids)->lockForUpdate()->get()->keyBy('id');
+            $fonts = StudioFont::ownedBy($user->id)->where('brand_id', $brand->id)->where('status', 'ready')->whereIn('id', $ids)->lockForUpdate()->get()->keyBy('id');
             if ($fonts->count() !== count($ids)) {
                 throw ValidationException::withMessages(['font_ids' => ['Las tipografías deben pertenecer a esta marca.']]);
             }
@@ -339,7 +339,7 @@ class StudioService
         if ($id === null || $id === '') {
             return null;
         }
-        if (! DesignFolder::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->whereKey($id)->exists()) {
+        if (! DesignFolder::ownedBy($user->id)->where('brand_id', $brand->id)->whereKey($id)->exists()) {
             throw ValidationException::withMessages(['folder_id' => ['La carpeta no pertenece a esta marca.']]);
         }
 
@@ -362,7 +362,7 @@ class StudioService
     public function restoreVersion(User $user, Design $design, int $version, mixed $expectedRevision): Design
     {
         $owner = $this->collab->authorize($user, $design, 'edit');
-        $snapshot = DesignRevision::withoutUserScope()->where('design_id', $design->id)->where('user_id', $owner->id)->where('revision', $version)->first();
+        $snapshot = DesignRevision::ownedBy($owner->id)->where('design_id', $design->id)->where('revision', $version)->first();
         if ($snapshot === null) {
             throw ValidationException::withMessages(['version' => ['La versión no existe en este diseño.']]);
         }
@@ -386,7 +386,7 @@ class StudioService
     private function snapshot(Design $design, ?int $authorId = null, bool $autosave = false, ?int $kitRevision = null): void
     {
         $ids = array_values(array_unique(array_merge(StudioFonts::idsFromDocument($design->document), array_filter($design->kit_reference['font_ids'] ?? [], fn ($id) => $id !== null))));
-        $fonts = StudioFont::withoutUserScope()->where('user_id', $design->user_id)->where('brand_id', $design->brand_id)->whereIn('id', $ids)->lockForUpdate()->get();
+        $fonts = StudioFont::ownedBy($design->user_id)->where('brand_id', $design->brand_id)->whereIn('id', $ids)->lockForUpdate()->get();
         abort_unless($fonts->count() === count($ids), 422, 'Las tipografías deben pertenecer a esta marca.');
         $author = $authorId ?? $design->user_id;
         $replace = null;

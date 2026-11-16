@@ -42,7 +42,7 @@ class CampaignAnalytics
      */
     public function summary(User $user, Campaign $campaign): array
     {
-        $postsQuery = fn () => Post::withoutUserScope()->where('user_id', $user->id)->where('campaign_id', $campaign->id);
+        $postsQuery = fn () => Post::ownedBy($user->id)->where('campaign_id', $campaign->id);
         $total = $postsQuery()->count();
         $timezone = Brand::withoutUserScope()->whereKey($campaign->brand_id)->value('timezone') ?: 'UTC';
 
@@ -150,10 +150,10 @@ class CampaignAnalytics
         $sums[] = "SUM(CASE WHEN $paired THEN $views END) as paired_views";
         $sums[] = "SUM(CASE WHEN $paired THEN $interactions END) as paired_interactions";
 
-        $targetIds = PostTarget::withoutUserScope()->select('id')->where('user_id', $user->id)
+        $targetIds = PostTarget::ownedBy($user->id)->select('id')
             ->where('status', PostStatus::Published->value)->whereIn('post_id', $postIds);
 
-        $rows = PostMetricSnapshot::withoutUserScope()->where('user_id', $user->id)->whereIn('post_target_id', $targetIds)
+        $rows = PostMetricSnapshot::ownedBy($user->id)->whereIn('post_target_id', $targetIds)
             ->selectRaw($grammar->wrap('date').', '.implode(', ', $sums))->groupBy('date')->orderBy('date')->toBase()->get();
 
         $num = fn ($v) => $v === null ? null : ((float) $v == (int) $v ? (int) $v : round((float) $v, 4));

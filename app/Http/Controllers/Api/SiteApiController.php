@@ -19,7 +19,7 @@ class SiteApiController extends ApiController
     {
         $brand = $this->ownedBrand($request, $brand);
 
-        return $this->respond($request, 'list_sites', 'brand', $brand->id, fn () => ['sites' => Site::withoutUserScope()->where('user_id', $request->user()->id)
+        return $this->respond($request, 'list_sites', 'brand', $brand->id, fn () => ['sites' => Site::ownedBy($request->user()->id)
             ->where('brand_id', $brand->id)->orderBy('id')->get()->map(fn (Site $s) => $this->sites->present($s))->all()]);
     }
 
@@ -46,6 +46,6 @@ class SiteApiController extends ApiController
 
     private function owned(Request $request, int $site): Site
     {
-        return Site::withoutUserScope()->where('user_id', $request->user()->id)->find($site) ?? abort(404);
+        return Site::ownedBy($request->user()->id)->find($site) ?? abort(404);
     }
 }

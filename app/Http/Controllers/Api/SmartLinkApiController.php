@@ -45,6 +45,6 @@ class SmartLinkApiController extends ApiController
 
     private function current(Request $request, int $brandId): ?SmartLink
     {
-        return SmartLink::withoutUserScope()->where('user_id', $request->user()->id)->where('brand_id', $brandId)->first();
+        return SmartLink::ownedBy($request->user()->id)->where('brand_id', $brandId)->first();
     }
 }

@@ -22,12 +22,12 @@ class CalendarViewService
     /** Vistas del usuario por nombre. */
     public function list(User $user): Collection
     {
-        return CalendarView::withoutUserScope()->where('user_id', $user->id)->orderBy('name')->get();
+        return CalendarView::ownedBy($user->id)->orderBy('name')->get();
     }
 
     public function default(User $user): ?CalendarView
     {
-        return CalendarView::withoutUserScope()->where('user_id', $user->id)->where('is_default', true)->first();
+        return CalendarView::ownedBy($user->id)->where('is_default', true)->first();
     }
 
     /** @param array{name: string, filters?: array<string, mixed>|null, is_default?: bool} $data */
@@ -81,7 +81,7 @@ class CalendarViewService
     public function filtersFor(User $user, CalendarView $view): array
     {
         $f = $this->clean($view->filters ?? []);
-        if (isset($f['brand_id']) && ! Brand::withoutUserScope()->where('user_id', $user->id)->whereKey($f['brand_id'])->exists()) {
+        if (isset($f['brand_id']) && ! Brand::ownedBy($user->id)->whereKey($f['brand_id'])->exists()) {
             unset($f['brand_id']);
         }
         if (isset($f['network']) && Network::tryFrom($f['network']) === null) {
@@ -125,7 +125,7 @@ class CalendarViewService
 
     private function clearDefault(User $user, ?int $except = null): void
     {
-        CalendarView::withoutUserScope()->where('user_id', $user->id)->where('is_default', true)
+        CalendarView::ownedBy($user->id)->where('is_default', true)
             ->when($except, fn ($q) => $q->where('id', '!=', $except))->update(['is_default' => false]);
     }
 }

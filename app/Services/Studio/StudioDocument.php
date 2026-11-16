@@ -60,7 +60,7 @@ class StudioDocument
             $document['pages'][$i]['elements'] = self::linkConnectors($page['elements']);
         }
         if ($needed !== []) {
-            $links = StudioAsset::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)
+            $links = StudioAsset::ownedBy($user->id)->where('brand_id', $brand->id)
                 ->whereIn('media_asset_id', array_keys($needed))->with('media')->get()->keyBy('media_asset_id');
             foreach ($needed as $id => $uses) {
                 $asset = $links->get($id)?->media;
@@ -86,7 +86,7 @@ class StudioDocument
         app(StudioCharts::class)->validate($user, $brand, $document);
         $fontIds = StudioFonts::idsFromDocument($document);
         if ($fontIds !== []) {
-            $fonts = StudioFont::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->where('status', 'ready')->whereIn('id', $fontIds)->get()->keyBy('id');
+            $fonts = StudioFont::ownedBy($user->id)->where('brand_id', $brand->id)->where('status', 'ready')->whereIn('id', $fontIds)->get()->keyBy('id');
             $this->ensure($fonts->count() === count($fontIds), 'document.font_id', 'La fuente no está disponible en esta marca.');
         }
 

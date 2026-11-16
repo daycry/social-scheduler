@@ -43,9 +43,9 @@ class StudioAutomation
         $data = $this->input($action, $data);
 
         return DB::transaction(function () use ($user, $source, $action, $data, $api): array {
-            $source = Design::withoutUserScope()->where('user_id', $user->id)->lockForUpdate()->findOrFail($source->id);
+            $source = Design::ownedBy($user->id)->lockForUpdate()->findOrFail($source->id);
             abort_if($source->revision !== (int) $data['revision'], 409, 'El diseño cambió en otra sesión. Guarda o recarga la versión actual antes de continuar.');
-            $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($source->brand_id);
+            $brand = Brand::ownedBy($user->id)->findOrFail($source->brand_id);
             $document = $this->documents->validate($user, $brand, $source->document);
             $reference = StudioService::reference($source->kit_reference);
             if ($action === 'instantiate') {

@@ -50,7 +50,7 @@ class SeriesService
         $rule = $this->validatedRule($data, null);
         $payload = $this->validatedPayload($user, $brand, $data, $rule['time_local']);
 
-        if (PostSeries::withoutUserScope()->where('user_id', $user->id)->where('status', PostSeries::ACTIVE)->count() >= self::MAX_ACTIVE_SERIES) {
+        if (PostSeries::ownedBy($user->id)->where('status', PostSeries::ACTIVE)->count() >= self::MAX_ACTIVE_SERIES) {
             throw new PostValidationException(['series' => ['Has alcanzado el maximo de series activas.']]);
         }
 

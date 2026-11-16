@@ -54,12 +54,12 @@ class ManageDesignFolder extends SchedulerTool
             return $studio->createFolder($user, $brand, $data['name'])->toArray();
         }
         if ($data['action'] === 'move') {
-            $design = Design::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->findOrFail($data['design_id']);
+            $design = Design::ownedBy($user->id)->where('brand_id', $brand->id)->findOrFail($data['design_id']);
             $moved = $studio->moveDesign($user, $design, $data['folder_id'] ?? null);
 
             return ['design_id' => $moved->id, 'folder_id' => $moved->folder_id];
         }
-        $folder = DesignFolder::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->findOrFail($data['folder_id']);
+        $folder = DesignFolder::ownedBy($user->id)->where('brand_id', $brand->id)->findOrFail($data['folder_id']);
         if ($data['action'] === 'rename') {
             return $studio->renameFolder($user, $folder, $data['name'])->toArray();
         }

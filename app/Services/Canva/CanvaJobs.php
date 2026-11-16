@@ -84,7 +84,7 @@ class CanvaJobs
         if (! CanvaCapabilities::allows('send', [], (array) $connection->scopes)) {
             throw new CanvaException((string) CanvaCapabilities::reason('send', [], (array) $connection->scopes), 403, 'scope_missing');
         }
-        $media = MediaAsset::withoutUserScope()->where('user_id', $user->id)->find($mediaId);
+        $media = MediaAsset::ownedBy($user->id)->find($mediaId);
         if ($media === null || ! $media->isReady() || ! in_array($media->kind, [MediaAsset::KIND_IMAGE, MediaAsset::KIND_VIDEO], true)) {
             throw new CanvaException('Elige una imagen o un vídeo listo de tu biblioteca.', 422, 'bad_media');
         }
@@ -169,7 +169,7 @@ class CanvaJobs
         if ($job === null || ! in_array($job->status, [CanvaJob::QUEUED, CanvaJob::PROCESSING], true)) {
             return false;
         }
-        $connection = CanvaConnection::withoutUserScope()->where('user_id', $job->user_id)->where('brand_id', $job->brand_id)->first();
+        $connection = CanvaConnection::ownedBy($job->user_id)->where('brand_id', $job->brand_id)->first();
         if ($connection === null || $connection->status !== 'active') {
             return $this->fail($job, 'not_connected', 'La conexión con Canva ya no está activa. Vuelve a conectar la cuenta.');
         }
@@ -212,7 +212,7 @@ class CanvaJobs
         $job = $this->settle($job);
         $media = [];
         foreach ((array) $job->output_media_ids as $id) {
-            $asset = MediaAsset::withoutUserScope()->where('user_id', $job->user_id)->find($id);
+            $asset = MediaAsset::ownedBy($job->user_id)->find($id);
             if ($asset !== null) {
                 $media[] = $asset->toPublicArray();
             }
@@ -228,20 +228,20 @@ class CanvaJobs
 
     public function find(User $user, Brand $brand, int $id): CanvaJob
     {
-        return CanvaJob::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->findOrFail($id);
+        return CanvaJob::ownedBy($user->id)->where('brand_id', $brand->id)->findOrFail($id);
     }
 
     /** @return list<CanvaJob> */
     public function recent(User $user, Brand $brand, int $limit = 15): array
     {
-        return CanvaJob::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->latest('id')->limit($limit)->get()->all();
+        return CanvaJob::ownedBy($user->id)->where('brand_id', $brand->id)->latest('id')->limit($limit)->get()->all();
     }
 
     /** @return array<string, mixed> */
     private function begin(CanvaJob $job, string $token): array
     {
         if ($job->kind === CanvaJob::KIND_UPLOAD) {
-            $media = MediaAsset::withoutUserScope()->where('user_id', $job->user_id)->find($job->media_id);
+            $media = MediaAsset::ownedBy($job->user_id)->find($job->media_id);
             $disk = $media === null ? null : Storage::disk($media->disk);
             if ($media === null || $disk === null || ! $disk->exists($media->path)) {
                 throw new CanvaException('El recurso ya no está en la biblioteca.', 404, 'bad_media');
@@ -300,7 +300,7 @@ class CanvaJobs
         // Idempotente: lo creado en un intento anterior se reutiliza (y se persiste tras cada recurso) para no duplicar ni dejar huerfanos.
         $ids = array_values((array) $job->output_media_ids);
         foreach ($urls as $i => $url) {
-            if (isset($ids[$i]) && ($existing = MediaAsset::withoutUserScope()->where('user_id', $job->user_id)->find($ids[$i])) !== null) {
+            if (isset($ids[$i]) && ($existing = MediaAsset::ownedBy($job->user_id)->find($ids[$i])) !== null) {
                 if ($existing->status === MediaAsset::STATUS_PENDING) {
                     dispatch(new ImportRemoteMedia($existing->id, $url)); // unico por recurso: no se duplica si ya estaba en cola
                 }
@@ -356,7 +356,7 @@ class CanvaJobs
         if ($job->status !== self::IMPORTING) {
             return $job;
         }
-        $assets = MediaAsset::withoutUserScope()->where('user_id', $job->user_id)->whereIn('id', (array) $job->output_media_ids)->get();
+        $assets = MediaAsset::ownedBy($job->user_id)->whereIn('id', (array) $job->output_media_ids)->get();
         if ($assets->contains('status', MediaAsset::STATUS_PENDING)) {
             return $job;
         }
@@ -398,7 +398,7 @@ class CanvaJobs
 
     private function assertRoom(User $user): void
     {
-        $active = CanvaJob::withoutUserScope()->where('user_id', $user->id)->whereIn('status', [CanvaJob::QUEUED, CanvaJob::PROCESSING, self::IMPORTING])
+        $active = CanvaJob::ownedBy($user->id)->whereIn('status', [CanvaJob::QUEUED, CanvaJob::PROCESSING, self::IMPORTING])
             ->where('created_at', '>', now()->subHour())->count();
         if ($active >= (int) config('services.canva.max_active_jobs', 3)) {
             throw new CanvaException('Ya tienes '.config('services.canva.max_active_jobs', 3).' trabajos de Canva en curso; espera a que terminen.', 429, 'too_many');

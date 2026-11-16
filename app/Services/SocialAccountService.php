@@ -31,8 +31,7 @@ class SocialAccountService
     {
         $this->assertOwns($user, $brand);
 
-        return SocialAccount::withoutUserScope()
-            ->where('user_id', $user->id)
+        return SocialAccount::ownedBy($user->id)
             ->where('brand_id', $brand->id)
             ->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)
             ->orderBy('network')->orderBy('name')
@@ -41,7 +40,7 @@ class SocialAccountService
 
     public function find(User $user, int|string $id): ?SocialAccount
     {
-        return SocialAccount::withoutUserScope()->where('user_id', $user->id)->find($id);
+        return SocialAccount::ownedBy($user->id)->find($id);
     }
 
     /** Crea o actualiza (por marca+red+id externo) y deja la cuenta `activa`. */

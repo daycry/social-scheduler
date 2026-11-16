@@ -46,13 +46,12 @@ class BestTimesService
         $min = (int) config('social.best_times.min_posts', 10);
         $tz = $brand->timezone ?: 'UTC';
 
-        $targets = PostTarget::withoutUserScope()
-            ->where('user_id', $user->id)
+        $targets = PostTarget::ownedBy($user->id)
             ->where('network', $network->value)
             ->where('status', PostStatus::Published->value)
             ->whereNotNull('published_at')
             ->where('published_at', '>=', now()->subDays($days))
-            ->whereIn('post_id', Post::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->select('id'))
+            ->whereIn('post_id', Post::ownedBy($user->id)->where('brand_id', $brand->id)->select('id'))
             ->get(['id', 'published_at'])
             ->keyBy('id');
 
@@ -60,7 +59,7 @@ class BestTimesService
         // Solo se traen las filas ganadoras (una por destino), no todo el historico de snapshots.
         $latest = [];
         foreach ($targets->keys()->chunk(500) as $ids) {
-            $newest = PostMetricSnapshot::withoutUserScope()->where('user_id', $user->id)->whereIn('post_target_id', $ids->all())
+            $newest = PostMetricSnapshot::ownedBy($user->id)->whereIn('post_target_id', $ids->all())
                 ->groupBy('post_target_id')->selectRaw('post_target_id, MAX(date) as max_date');
 
             PostMetricSnapshot::withoutUserScope()->from('post_metric_snapshots as s')

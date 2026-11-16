@@ -344,13 +344,13 @@ class SiteBlockNormalizer
         [$ids, $exportIds] = $this->referencedIds($pages);
         $exports = [];
         if ($exportIds !== []) {
-            foreach (DesignExport::withoutUserScope()->where('user_id', $user->id)->where('status', 'ready')->whereIn('id', array_unique($exportIds))->get() as $x) {
+            foreach (DesignExport::ownedBy($user->id)->where('status', 'ready')->whereIn('id', array_unique($exportIds))->get() as $x) {
                 $exports[$x->id] = ['brand_id' => $x->brand_id, 'media' => array_values((array) $x->media_ids)];
                 $ids = array_merge($ids, array_map('intval', (array) $x->media_ids));
             }
         }
         $ids = array_values(array_unique(array_filter($ids)));
-        $owned = $ids === [] ? [] : MediaAsset::withoutUserScope()->where('user_id', $user->id)->where('kind', MediaAsset::KIND_IMAGE)
+        $owned = $ids === [] ? [] : MediaAsset::ownedBy($user->id)->where('kind', MediaAsset::KIND_IMAGE)
             ->where('status', MediaAsset::STATUS_READY)->whereIn('id', $ids)->pluck('id')->all();
 
         return ['media' => array_fill_keys($owned, true), 'exports' => $exports];

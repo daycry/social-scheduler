@@ -8,7 +8,8 @@ Estudio crea diseños gráficos, tablas, presentaciones y vídeo por marca y los
 |---|---|
 | Rutas web | `routes/studio.php`, `studio-images.php`, `studio-audio.php`, `studio-captions.php`, `studio-collab.php`, `studio-datasets.php`, `studio-ai.php` |
 | Rutas API v1 | `routes/studio-api.php` y sus ficheros `*-api.php` ([OpenAPI](../api/openapi.yaml)) |
-| Servicios | `app/Services/Studio/` (`StudioService`, `StudioCollab`, `StudioRenderer`, `StudioAi`...) |
+| Validación | `app/Http/Requests/Studio/`: los FormRequests que comparten los controladores web y API (`ListDesignsRequest`, `FolderNameRequest`, `EditorRequest`...) |
+| Servicios | `app/Services/Studio/` (`StudioService`, `StudioEditor` con los datos con que se abre un diseño en web y API, `StudioCollab`, `StudioRenderer`, `StudioAi`...) |
 | Modelos | `app/Models/Studio/` |
 | Jobs | `app/Jobs/Studio/` (`RenderStudioDesign`, `ProcessStudioImage`, `RunStudioAiJob` en la cola `media`; `ProcessStudioAvPhase` en la cola `studio`) |
 | Configuración | `config/studio.php` |

@@ -6,8 +6,13 @@ use App\Connectors\Contracts\HidesComments;
 use App\Connectors\Network;
 use App\Mcp\Tools\ListComments;
 use App\Mcp\Tools\TriageComments;
+use App\Models\Brand;
 use App\Models\SocialAccount;
+use App\Models\User;
 use App\Services\InboxService;
+use Tests\Support\McpClient;
+
+uses(McpClient::class);
 
 /** T-43 · las redes del inbox y `can_hide` salen de las capacidades registradas, no de listas escritas a mano. */
 class FakeLinkedInComments implements CommentSource
@@ -61,4 +66,26 @@ test('las descripciones MCP del buzon se generan del registro y no se desincroni
 
     expect((new ListComments)->description())->toContain('Instagram, Facebook, Threads, Bluesky, YouTube y LinkedIn')
         ->and((new TriageComments)->description())->toContain('solo Instagram y Facebook');
+});
+
+test('una red nueva con CommentSource la aceptan los filtros web, marcar todo leido y la API v1, y la pagina la ofrece', function () {
+    app(ConnectorRegistry::class)->registerComments(Network::LinkedIn, new FakeLinkedInComments);
+    $user = User::factory()->create();
+    $brand = Brand::factory()->for($user)->create();
+
+    $this->actingAs($user)->get(route('inbox.index', ['network' => 'linkedin']))->assertOk()->assertSessionDoesntHaveErrors()
+        ->assertInertia(fn ($page) => $page->where('coverage', fn ($rows) => collect($rows)->contains(fn ($r) => $r['network'] === 'linkedin' && $r['read'] === true)));
+    $this->actingAs($user)->post(route('inbox.read-all'), ['network' => 'linkedin'])->assertSessionDoesntHaveErrors();
+
+    app('auth')->forgetGuards();
+    $this->withToken($this->mcpKey($user))->getJson('/api/v1/brands/'.$brand->id.'/comments?network=linkedin')->assertOk();
+    app('auth')->forgetGuards();
+    $this->withToken($this->mcpKey($user))->getJson('/api/v1/brands/'.$brand->id.'/comments?network=tiktok')->assertUnprocessable();
+});
+
+test('la pagina del buzon no escribe las redes en el desplegable: salen de la prop del servidor', function () {
+    $vue = file_get_contents(resource_path('js/Pages/Inbox/Index.vue'));
+
+    expect($vue)->not->toContain('<option value="instagram">')->and($vue)->not->toContain('<option value="youtube">')
+        ->and($vue)->toContain('v-for="n in networks"');
 });

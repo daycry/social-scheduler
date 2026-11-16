@@ -15,6 +15,7 @@ const props = defineProps({
     unread_count: Number,
     comments: Object,
     note_max: { type: Number, default: 2000 },
+    networks: { type: Array, default: () => [] },
     coverage: { type: Array, default: () => [] },
     saved_replies: { type: Array, default: () => [] },
     assignees: { type: Array, default: () => [] },
@@ -23,6 +24,10 @@ const props = defineProps({
     flash: Object,
 });
 
+const networkNames = computed(() => {
+    const labels = props.networks.map((n) => n.label);
+    return labels.length > 1 ? `${labels.slice(0, -1).join(', ')} o ${labels.at(-1)}` : (labels[0] ?? '');
+});
 const list = computed(() => props.comments?.data ?? []);
 const blocked = computed(() => props.accounts.filter((a) => !a.can_read));
 const reconnect = computed(() => props.accounts.filter((a) => a.needs_reconnect));
@@ -99,9 +104,9 @@ const fmt = (iso) => (iso ? new Intl.DateTimeFormat('es-ES', { dateStyle: 'mediu
             <FeatureEmpty
                 v-if="!brand || accounts.length === 0"
                 title="Inbox de comentarios"
-                description="Conecta una cuenta de Instagram, Facebook, Threads, Bluesky o YouTube para leer y responder los comentarios de tus publicaciones."
+                :description="`Conecta una cuenta de ${networkNames} para leer y responder los comentarios de tus publicaciones.`"
                 :cards="[
-                    { title: 'Un solo buzón', text: 'Comentarios de cinco redes juntos.', kind: 'inbox' },
+                    { title: 'Un solo buzón', text: `Comentarios de ${networks.length} redes juntos.`, kind: 'inbox' },
                     { title: 'Responde y modera', text: 'Contesta u oculta sin salir de la herramienta.', kind: 'report' },
                     { title: 'Filtra y ordena', text: 'Por red, no leídos, asignado y etiqueta.', kind: 'chart' },
                 ]"
@@ -116,11 +121,7 @@ const fmt = (iso) => (iso ? new Intl.DateTimeFormat('es-ES', { dateStyle: 'mediu
                         <span class="text-xs font-medium text-slate-500">Red</span>
                         <select class="field w-auto" data-testid="filter-network" :value="filters.network ?? ''" @change="setFilter({ network: $event.target.value || null })">
                             <option value="">Todas</option>
-                            <option value="instagram">Instagram</option>
-                            <option value="facebook">Facebook</option>
-                            <option value="threads">Threads</option>
-                            <option value="bluesky">Bluesky</option>
-                            <option value="youtube">YouTube</option>
+                            <option v-for="n in networks" :key="n.value" :value="n.value">{{ n.label }}</option>
                         </select>
                     </label>
                     <label class="flex items-center gap-2">

@@ -10,13 +10,17 @@ use App\Services\CompetitorService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use InvalidArgumentException;
 use Laravel\Mcp\Request;
-use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
 
 #[Name('manage_competitor')]
-#[Description('Alta y baja de competidores de una marca (la comparativa la da compare_competitors). action: add (brand o brand_id, username publico de la cuenta, network instagram por defecto, bluesky o youtube; consulta el perfil publico en la red y respeta el maximo de competidores por marca) o remove (competitor_id, el id que devuelve compare_competitors: deja de seguirlo y BORRA su historico, es IRREVERSIBLE desde aqui: exige confirm: true y la confirmacion humana explicita antes de llamarla). Ambas requieren competitors:write (posts:write no basta).')]
 class ManageCompetitor extends SchedulerTool
 {
+    /** Las redes admitidas salen de las fuentes de competidores disponibles, no de una lista. */
+    public function description(): string
+    {
+        return 'Alta y baja de competidores de una marca (la comparativa la da compare_competitors). action: add (brand o brand_id, username publico de la cuenta, network '.app(CompetitorService::class)->networksHelp().'; consulta el perfil publico en la red y respeta el maximo de competidores por marca) o remove (competitor_id, el id que devuelve compare_competitors: deja de seguirlo y BORRA su historico, es IRREVERSIBLE desde aqui: exige confirm: true y la confirmacion humana explicita antes de llamarla). Ambas requieren competitors:write (posts:write no basta).';
+    }
+
     protected function ability(): string
     {
         return Abilities::COMPETITORS_WRITE;

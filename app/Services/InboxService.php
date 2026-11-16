@@ -380,9 +380,21 @@ class InboxService
     }
 
     /** Redes que dejan ocultar, en lenguaje natural («Instagram y Facebook»). */
-    private function hideNetworksLabel(): string
+    public function hideNetworksLabel(): string
     {
-        $labels = array_map(fn (Network $n) => $n->label(), array_values(array_filter($this->networks(), $this->canHide(...))));
+        return $this->joinLabels(array_values(array_filter($this->networks(), $this->canHide(...))));
+    }
+
+    /** Redes del buzon en lenguaje natural («Instagram, Facebook, Threads, Bluesky y YouTube»): para textos de MCP y de la app. */
+    public function networksLabel(): string
+    {
+        return $this->joinLabels($this->networks());
+    }
+
+    /** @param  list<Network>  $networks */
+    private function joinLabels(array $networks): string
+    {
+        $labels = array_map(fn (Network $n) => $n->label(), $networks);
         $last = array_pop($labels);
 
         return $labels === [] ? (string) $last : implode(', ', $labels).' y '.$last;

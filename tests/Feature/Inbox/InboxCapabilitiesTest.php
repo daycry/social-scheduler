@@ -4,6 +4,8 @@ use App\Connectors\ConnectorRegistry;
 use App\Connectors\Contracts\CommentSource;
 use App\Connectors\Contracts\HidesComments;
 use App\Connectors\Network;
+use App\Mcp\Tools\ListComments;
+use App\Mcp\Tools\TriageComments;
 use App\Models\SocialAccount;
 use App\Services\InboxService;
 
@@ -49,4 +51,14 @@ test('una red nueva con CommentSource aparece en el inbox y en la cobertura sin 
         ->and($inbox->canHide(Network::LinkedIn))->toBeFalse()
         ->and($row['read'])->toBeTrue()->and($row['reply'])->toBeTrue()->and($row['hide'])->toBeFalse()
         ->and(collect($inbox->coverage())->where('network', 'linkedin'))->toHaveCount(1);
+});
+
+test('las descripciones MCP del buzon se generan del registro y no se desincronizan', function () {
+    expect((new TriageComments)->description())->toContain('solo Instagram y Facebook')
+        ->and((new ListComments)->description())->toContain('Instagram, Facebook, Threads, Bluesky y YouTube');
+
+    app(ConnectorRegistry::class)->registerComments(Network::LinkedIn, new FakeLinkedInComments);
+
+    expect((new ListComments)->description())->toContain('Instagram, Facebook, Threads, Bluesky, YouTube y LinkedIn')
+        ->and((new TriageComments)->description())->toContain('solo Instagram y Facebook');
 });

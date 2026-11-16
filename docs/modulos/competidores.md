@@ -22,7 +22,7 @@ El alta comprueba el usuario al momento. Cada día se guarda un snapshot (seguid
 - **Redes deshabilitadas**: `CompetitorSources::for()` exige `Network::isAvailable()`; con `BLUESKY_ENABLED=false` no se consulta ni en la pantalla, ni en los jobs ni en el MCP (`compare_competitors` valida `network` contra las redes con fuente).
 - **Datos**: `competitors.network` (por defecto `instagram`), `competitors.external_id` y `username` hasta 253 caracteres; único por marca + red + usuario. `competitor_posts.external_id` guarda el `rkey` de Bluesky o el id del video.
 - **UI**: chips de red con el componente común `Components/NetworkChips.vue` (el mismo del Dashboard móvil; flechas, Inicio y Fin mueven el foco); los textos por red salen de la fuente (`CompetitorSource::copy()`), formulario con el texto de cada red y la misma tabla, rango, ranking, CSV y publicaciones destacadas. Sin cuenta propia (Instagram o YouTube) se muestra el mismo estado vacío «Conecta … para comparar competidores».
-- **MCP**: `compare_competitors` admite `network` (`instagram` por defecto, `bluesky`, `youtube`). Los informes siguen usando Instagram.
+- **MCP**: `compare_competitors` admite `network` (`instagram` por defecto y el resto de fuentes de competidores disponibles; la descripción se genera de `CompetitorService::networks()`). Los informes siguen usando Instagram.
 
 ## Comparativa por rango, ranking y publicaciones (T-20)
 

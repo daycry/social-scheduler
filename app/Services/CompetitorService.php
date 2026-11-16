@@ -49,6 +49,16 @@ class CompetitorService
         return $this->sources->networks();
     }
 
+    /** Redes admitidas en lenguaje natural para las descripciones del MCP: «instagram por defecto, youtube o bluesky». */
+    public function networksHelp(): string
+    {
+        $default = Network::Instagram->value;
+        $others = array_values(array_diff(array_map(fn (Network $n) => $n->value, $this->networks()), [$default]));
+        $last = array_pop($others);
+
+        return $default.' por defecto'.($last === null ? '' : ', '.($others === [] ? '' : implode(', ', $others).' o ').$last);
+    }
+
     /** Cuenta propia activa de la marca en esa red desde la que se consulta (la mas antigua; Instagram por defecto). */
     public function queryAccount(int $userId, int $brandId, ?int $preferredId = null, Network $network = Network::Instagram): ?SocialAccount
     {

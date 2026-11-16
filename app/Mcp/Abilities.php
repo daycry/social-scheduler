@@ -2,6 +2,8 @@
 
 namespace App\Mcp;
 
+use App\Services\InboxService;
+
 /** Permisos (abilities de Sanctum) que se pueden dar a una API key del MCP. `*` = todos. */
 final class Abilities
 {
@@ -58,8 +60,8 @@ final class Abilities
             self::DESIGNS_READ => 'Leer diseños, recursos, kits y exportaciones de las marcas',
             self::DESIGNS_WRITE => 'Crear y editar diseños, kits y exportaciones de las marcas',
             self::REPORTS_WRITE => 'Generar informes PDF/CSV y consultar su estado',
-            self::INBOX_READ => 'Leer los comentarios recibidos en Instagram, Facebook, Threads, YouTube y Bluesky',
-            self::INBOX_WRITE => 'Responder a comentarios de Instagram, Facebook, Threads, YouTube y Bluesky y anadirles notas internas',
+            self::INBOX_READ => 'Leer los comentarios recibidos en '.app(InboxService::class)->networksLabel(),
+            self::INBOX_WRITE => 'Responder a comentarios de '.app(InboxService::class)->networksLabel().' y anadirles notas internas',
             self::SITES_READ => 'Leer los sitios publicados de las marcas y su URL',
             self::SITES_WRITE => 'Publicar y despublicar los sitios de las marcas',
             self::SMARTLINKS_READ => 'Leer el SmartLink de las marcas y sus estadisticas de visitas y clics',

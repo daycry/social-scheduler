@@ -147,7 +147,7 @@ La pantalla **API keys** y el consentimiento OAuth ofrecen tres conjuntos (`Abil
 | `get_ads` | solo lectura: cuentas publicitarias, campañas y métricas (`ad_account`, `days` 7/30/90); `available:false` con `reason` si falta Meta o `ads_read` | `stats:read` | `AdsService::overview` |
 | `manage_autolist` | `list`, `create`, `update` (`active`, `recycle`), `delete`, `add_item`, `remove_item`, `generate` | `posts:read` (`list`); el resto, `posts:write` | `AutolistService` |
 | `manage_competitor` | `add` (`username`, `network` instagram/bluesky/youtube), `remove` (`competitor_id` y `confirm: true`: borra el histórico, sin `confirm` no borra nada) | `competitors:write` | `CompetitorService` |
-| `triage_comments` | añade `hide` y `unhide` (sobre `comment_id`, solo Instagram y Facebook) | `inbox:write` | `InboxService::setHidden` |
+| `triage_comments` | añade `hide` y `unhide` (sobre `comment_id`, solo en las redes con capacidad `HidesComments`: hoy Instagram y Facebook; la descripción de la herramienta lo genera del registro) | `inbox:write` | `InboxService::setHidden` |
 | `manage_saved_texts` | `list` (con `brand` filtra: todas las marcas más esa), `create`, `update`, `delete` | `posts:read` (`list`); el resto, `posts:write` | `SavedTextService` |
 | `get_composer_presets` | solo lectura: `{red: {interruptor: bool}}` de la marca | `posts:read` | `ComposerPresetService::forBrand` |
 | `manage_trash` | `list`, `restore`, `delete_forever` (irreversible: exige `confirm: true` y confirmación humana, igual que `reply_comment`) | `posts:read` (`list`); el resto, `posts:write` | `TrashService` |

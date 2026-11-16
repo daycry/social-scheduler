@@ -8,7 +8,7 @@ use App\Services\InboxService;
 
 /** T-22 · cobertura del inbox (LinkedIn y Pinterest con su motivo) y ayuda explicita cuando faltan permisos de Meta. */
 test('la cobertura incluye LinkedIn y Pinterest como no disponibles, con su motivo', function () {
-    $rows = collect(InboxService::coverage())->keyBy('network');
+    $rows = collect(app(InboxService::class)->coverage())->keyBy('network');
 
     expect($rows)->toHaveKeys(['linkedin', 'pinterest'])
         ->and($rows['linkedin']['read'])->toBeFalse()->and($rows['linkedin']['note'])->toContain('Community Management')

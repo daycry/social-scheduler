@@ -160,12 +160,12 @@ test('YouTube: sin youtube.force-ssl no se sincroniza ni se responde y ocultar n
 });
 
 test('Cobertura: TikTok queda fuera con su motivo y el resto declara lectura y respuesta', function () {
-    $cov = collect(InboxService::coverage())->keyBy('network');
+    $cov = collect(app(InboxService::class)->coverage())->keyBy('network');
 
     expect($cov['tiktok']['read'])->toBeFalse()->and($cov['tiktok']['note'])->toContain('API pública')
         ->and($cov->only(['instagram', 'facebook', 'threads', 'bluesky', 'youtube'])->every(fn ($c) => $c['read'] && $c['reply']))->toBeTrue()
         ->and($cov['threads']['hide'])->toBeFalse()->and($cov['instagram']['note'])->toContain('mensajes directos');
-    expect(collect(InboxService::NETWORKS)->map->value->all())->not->toContain('tiktok');
+    expect(collect(app(InboxService::class)->networks())->map->value->all())->not->toContain('tiktok');
 });
 
 // ---------------------------------------------------------------------------------------------------------- triaje

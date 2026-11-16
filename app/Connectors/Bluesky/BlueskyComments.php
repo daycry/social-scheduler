@@ -25,6 +25,11 @@ class BlueskyComments implements CommentSource
         return true; // la app password concede lectura y escritura de publicaciones
     }
 
+    public function missingScopes(SocialAccount $account): array
+    {
+        return [];
+    }
+
     public function fetch(SocialAccount $account, string $postExternalId, ?float $deadline = null): array
     {
         $this->assertUri($postExternalId);

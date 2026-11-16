@@ -2,16 +2,14 @@
 
 namespace App\Services;
 
-use App\Connectors\Bluesky\BlueskyComments;
+use App\Connectors\ConnectorRegistry;
 use App\Connectors\Contracts\CommentSource;
+use App\Connectors\Contracts\HidesComments;
 use App\Connectors\Exceptions\ConnectorException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Connectors\Exceptions\ScopeMissingException;
 use App\Connectors\Exceptions\TransientPublishException;
-use App\Connectors\Google\YouTubeComments;
-use App\Connectors\Meta\Comments;
 use App\Connectors\Network;
-use App\Connectors\Threads\ThreadsComments;
 use App\Enums\PostStatus;
 use App\Exceptions\PostValidationException;
 use App\Models\BrandCollaborator;
@@ -27,6 +25,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 use Throwable;
 
 /**
@@ -35,26 +34,47 @@ use Throwable;
  */
 class InboxService
 {
-    /** Redes con API oficial de comentarios y conector. TikTok no la tiene para terceros; los mensajes directos de Meta exigen revision de la app. */
-    public const NETWORKS = [Network::Instagram, Network::Facebook, Network::Threads, Network::Bluesky, Network::YouTube];
+    /** Nota de cobertura por red (T-20, T-22): lo que se lee y responde, o el motivo de que quede fuera. Las capacidades salen del registro. */
+    private const COVERAGE_NOTES = [
+        'instagram' => 'Comentarios de publicaciones propias. Los mensajes directos requieren la revisión de la app de Meta.',
+        'facebook' => 'Comentarios de la Página. Los mensajes directos requieren la revisión de la app de Meta.',
+        'threads' => 'Respuestas a tus hilos (permisos threads_read_replies y threads_manage_replies).',
+        'bluesky' => 'Respuestas a tus publicaciones; lectura pública y respuesta con la contraseña de aplicación.',
+        'youtube' => 'Comentarios de tus videos (permiso youtube.force-ssl); cada respuesta gasta 50 unidades del cupo diario.',
+        'linkedin' => 'Fuera por ahora: los comentarios exigen el permiso de Community Management de LinkedIn, que se aprueba aparte (se activará cuando LinkedIn lo conceda).',
+        'pinterest' => 'Fuera: la API de Pinterest no permite leer ni responder los comentarios de los pines.',
+        'tiktok' => 'Fuera: TikTok no ofrece una API pública de comentarios para terceros.',
+    ];
 
-    public function __construct(private readonly Comments $comments, private readonly SocialAccountService $accounts) {}
+    public function __construct(private readonly ConnectorRegistry $connectors, private readonly SocialAccountService $accounts) {}
 
-    /** Conector de comentarios de las redes no-Meta (null = Instagram/Facebook, que usan `Comments`). */
-    private function source(Network $network): ?CommentSource
+    /**
+     * Redes que el buzon lee: las que tienen una `CommentSource` registrada (T-43). TikTok no tiene API publica de comentarios para
+     * terceros y los mensajes directos de Meta exigen revision de la app.
+     *
+     * @return list<Network>
+     */
+    public function networks(): array
     {
-        return match ($network) {
-            Network::Threads => app(ThreadsComments::class),
-            Network::Bluesky => app(BlueskyComments::class),
-            Network::YouTube => app(YouTubeComments::class),
-            default => null,
-        };
+        return $this->connectors->commentNetworks();
+    }
+
+    /** ¿Deja la red ocultar comentarios? Lo dice su fuente (`HidesComments`), no una lista. */
+    public function canHide(Network $network): bool
+    {
+        return $this->connectors->canHideComments($network);
+    }
+
+    /** Fuente de comentarios de la red; las cuentas del buzon siempre son de una red con fuente. */
+    private function source(Network $network): CommentSource
+    {
+        return $this->connectors->commentsFor($network) ?? throw new InvalidArgumentException('La red '.$network->value.' no tiene comentarios en el buzón.');
     }
 
     /** ¿Tiene la cuenta el permiso de leer (o moderar/responder con `$write`)? */
     public function hasScopes(SocialAccount $account, bool $write = false): bool
     {
-        return $this->source($account->network)?->hasScopes($account, $write) ?? Comments::hasScopes($account, $write);
+        return $this->connectors->commentsFor($account->network)?->hasScopes($account, $write) ?? false;
     }
 
     /**
@@ -65,13 +85,7 @@ class InboxService
      */
     public function missingScopes(SocialAccount $account): array
     {
-        $needed = match ($account->network) {
-            Network::Instagram, Network::Facebook => Comments::READ_SCOPES[$account->network->value],
-            Network::Threads => ThreadsComments::READ_SCOPES,
-            default => [],
-        };
-
-        return array_values(array_diff($needed, (array) $account->scopes));
+        return $this->connectors->commentsFor($account->network)?->missingScopes($account) ?? [];
     }
 
     /** Instruccion clara (T-22) cuando la cuenta no puede leer: que activar, donde y que hacer despues. Null si puede leer. */
@@ -94,36 +108,36 @@ class InboxService
     }
 
     /**
-     * Cobertura del inbox por red (T-20): lo que se lee y responde y lo que queda fuera, con su motivo.
+     * Cobertura del inbox por red (T-20): lo que se lee, responde y oculta (segun las capacidades registradas) y lo que queda fuera,
+     * con su motivo.
      *
      * @return list<array{network: string, label: string, read: bool, reply: bool, hide: bool, note: string}>
      */
-    public static function coverage(): array
+    public function coverage(): array
     {
-        return [
-            ['network' => 'instagram', 'label' => 'Instagram', 'read' => true, 'reply' => true, 'hide' => true, 'note' => 'Comentarios de publicaciones propias. Los mensajes directos requieren la revisión de la app de Meta.'],
-            ['network' => 'facebook', 'label' => 'Facebook', 'read' => true, 'reply' => true, 'hide' => true, 'note' => 'Comentarios de la Página. Los mensajes directos requieren la revisión de la app de Meta.'],
-            ['network' => 'threads', 'label' => 'Threads', 'read' => true, 'reply' => true, 'hide' => false, 'note' => 'Respuestas a tus hilos (permisos threads_read_replies y threads_manage_replies).'],
-            ['network' => 'bluesky', 'label' => 'Bluesky', 'read' => true, 'reply' => true, 'hide' => false, 'note' => 'Respuestas a tus publicaciones; lectura pública y respuesta con la contraseña de aplicación.'],
-            ['network' => 'youtube', 'label' => 'YouTube', 'read' => true, 'reply' => true, 'hide' => false, 'note' => 'Comentarios de tus videos (permiso youtube.force-ssl); cada respuesta gasta 50 unidades del cupo diario.'],
-            ['network' => 'linkedin', 'label' => 'LinkedIn', 'read' => false, 'reply' => false, 'hide' => false, 'note' => 'Fuera por ahora: los comentarios exigen el permiso de Community Management de LinkedIn, que se aprueba aparte (se activará cuando LinkedIn lo conceda).'],
-            ['network' => 'pinterest', 'label' => 'Pinterest', 'read' => false, 'reply' => false, 'hide' => false, 'note' => 'Fuera: la API de Pinterest no permite leer ni responder los comentarios de los pines.'],
-            ['network' => 'tiktok', 'label' => 'TikTok', 'read' => false, 'reply' => false, 'hide' => false, 'note' => 'Fuera: TikTok no ofrece una API pública de comentarios para terceros.'],
-        ];
+        $rows = [];
+        foreach ($this->networks() as $network) {
+            $rows[$network->value] = ['network' => $network->value, 'label' => $network->label(), 'read' => true, 'reply' => true, 'hide' => $this->canHide($network), 'note' => self::COVERAGE_NOTES[$network->value] ?? ''];
+        }
+        foreach (self::COVERAGE_NOTES as $value => $note) {
+            $rows[$value] ??= ['network' => $value, 'label' => Network::from($value)->label(), 'read' => false, 'reply' => false, 'hide' => false, 'note' => $note];
+        }
+
+        return array_values($rows);
     }
 
-    /** Cuentas del usuario que el buzon sabe leer (IG/FB). */
+    /** Cuentas del usuario que el buzon sabe leer (las de redes con fuente de comentarios). */
     public function accountsFor(User $user): Collection
     {
-        return SocialAccount::withoutUserScope()->where('user_id', $user->id)->whereIn('network', array_map(fn (Network $n) => $n->value, self::NETWORKS))
+        return SocialAccount::withoutUserScope()->where('user_id', $user->id)->whereIn('network', array_map(fn (Network $n) => $n->value, $this->networks()))
             ->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)->orderBy('network')->orderBy('name')->get();
     }
 
-    /** ¿Se puede sincronizar esta cuenta? Activa, IG/FB y con el permiso de lectura concedido. */
+    /** ¿Se puede sincronizar esta cuenta? Activa, de una red con fuente de comentarios y con el permiso de lectura concedido. */
     public function syncable(SocialAccount $account): bool
     {
         return $account->isActive()
-            && in_array($account->network, self::NETWORKS, true)
+            && in_array($account->network, $this->networks(), true)
             && $this->hasScopes($account);
     }
 
@@ -180,7 +194,7 @@ class InboxService
 
             try {
                 $deadline = $budgetSeconds >= PHP_FLOAT_MAX / 2 ? null : $started + $budgetSeconds;
-                $rows = ($this->source($account->network) ?? $this->comments)->fetch($account, (string) $target->external_id, $deadline);
+                $rows = $this->source($account->network)->fetch($account, (string) $target->external_id, $deadline);
             } catch (ReconnectRequiredException|TransientPublishException $e) {
                 throw $e;
             } catch (ConnectorException) {
@@ -313,7 +327,7 @@ class InboxService
         // YouTube solo admite respuestas a comentarios de primer nivel: responder a una respuesta cuelga del comentario raiz del hilo.
         $parentId = $comment->network === Network::YouTube ? ($comment->parent_external_id ?? $comment->external_id) : $comment->external_id;
 
-        $id = $this->call($account, fn () => ($this->source($account->network) ?? $this->comments)->reply($account, $parentId, $text));
+        $id = $this->call($account, fn () => $this->source($account->network)->reply($account, $parentId, $text));
 
         $comment->forceFill(['read_at' => $comment->read_at ?? now()])->save();
 
@@ -353,15 +367,25 @@ class InboxService
     public function setHidden(User $user, InboxComment $comment, bool $hidden): InboxComment
     {
         $this->assertOwns($user, $comment);
-        if ($this->source($comment->network) !== null) {
-            throw new PostValidationException(['account' => ['Ocultar comentarios solo está disponible en Instagram y Facebook.']]);
+        $source = $this->connectors->commentsFor($comment->network);
+        if (! $source instanceof HidesComments) {
+            throw new PostValidationException(['account' => ['Ocultar comentarios solo está disponible en '.$this->hideNetworksLabel().'.']]);
         }
         $account = $this->moderationAccount($comment);
 
-        $this->call($account, fn () => $this->comments->setHidden($account, $comment->external_id, $hidden));
+        $this->call($account, fn () => $source->setHidden($account, $comment->external_id, $hidden));
         $comment->forceFill(['hidden' => $hidden])->save();
 
         return $comment;
+    }
+
+    /** Redes que dejan ocultar, en lenguaje natural («Instagram y Facebook»). */
+    private function hideNetworksLabel(): string
+    {
+        $labels = array_map(fn (Network $n) => $n->label(), array_values(array_filter($this->networks(), $this->canHide(...))));
+        $last = array_pop($labels);
+
+        return $labels === [] ? (string) $last : implode(', ', $labels).' y '.$last;
     }
 
     /** Cuenta del comentario, activa y con el permiso de moderacion; si no, un error legible que dice que activar. */
@@ -372,7 +396,7 @@ class InboxService
             throw new PostValidationException(['account' => ['La cuenta necesita reconectarse.']]);
         }
         if (! $this->hasScopes($account, write: true)) {
-            throw new PostValidationException(['account' => [in_array($account->network, [Network::Instagram, Network::Facebook], true) ? 'Falta el permiso para moderar comentarios: actívalo en los casos de uso de la app de Meta y reconecta la cuenta.' : 'Falta el permiso para responder comentarios: reconecta la cuenta aceptando los permisos de respuestas.']]);
+            throw new PostValidationException(['account' => [$this->canHide($account->network) ? 'Falta el permiso para moderar comentarios: actívalo en los casos de uso de la app de Meta y reconecta la cuenta.' : 'Falta el permiso para responder comentarios: reconecta la cuenta aceptando los permisos de respuestas.']]);
         }
 
         return $account;

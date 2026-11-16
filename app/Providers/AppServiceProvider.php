@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Connectors\Bluesky\BlueskyComments;
 use App\Connectors\Bluesky\BlueskyCompetitors;
 use App\Connectors\Bluesky\BlueskyConnector;
 use App\Connectors\Bluesky\BlueskyInsights;
@@ -10,10 +11,12 @@ use App\Connectors\CompetitorSources;
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Google\Analytics as YouTubeAnalytics;
 use App\Connectors\Google\GoogleConnector;
+use App\Connectors\Google\YouTubeComments;
 use App\Connectors\Google\YouTubeCompetitors;
 use App\Connectors\Google\YouTubePublisher;
 use App\Connectors\LinkedIn\LinkedInConnector;
 use App\Connectors\LinkedIn\LinkedInPublisher;
+use App\Connectors\Meta\Comments;
 use App\Connectors\Meta\Facebook\FacebookPublisher;
 use App\Connectors\Meta\GraphClient;
 use App\Connectors\Meta\Insights as MetaInsights;
@@ -24,6 +27,7 @@ use App\Connectors\Network;
 use App\Connectors\Pinterest\PinterestConnector;
 use App\Connectors\Pinterest\PinterestInsightsReader;
 use App\Connectors\Pinterest\PinterestPublisher;
+use App\Connectors\Threads\ThreadsComments;
 use App\Connectors\Threads\ThreadsConnector;
 use App\Connectors\Threads\ThreadsInsights;
 use App\Connectors\Threads\ThreadsPublisher;
@@ -118,6 +122,14 @@ class AppServiceProvider extends ServiceProvider
                     ->registerPublisher(Network::Pinterest, $this->app->make(PinterestPublisher::class))
                     ->registerInsights(Network::Pinterest, $this->app->make(PinterestInsightsReader::class));
             }
+
+            // Comentarios del inbox (T-43): una fuente por red; Meta sirve a Instagram y Facebook y es la unica que oculta. El inbox, el MCP y la
+            // cobertura derivan sus redes y `can_hide` de este registro: una red nueva con `CommentSource` aparece sin tocar `InboxService`.
+            $meta = $this->app->make(Comments::class);
+            $registry->registerComments(Network::Instagram, $meta)->registerComments(Network::Facebook, $meta)
+                ->registerComments(Network::Threads, $this->app->make(ThreadsComments::class))
+                ->registerComments(Network::Bluesky, $this->app->make(BlueskyComments::class))
+                ->registerComments(Network::YouTube, $this->app->make(YouTubeComments::class));
 
             return $registry;
         });

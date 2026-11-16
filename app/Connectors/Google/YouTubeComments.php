@@ -40,6 +40,11 @@ class YouTubeComments implements CommentSource
         return self::canComment($account);
     }
 
+    public function missingScopes(SocialAccount $account): array
+    {
+        return [];
+    }
+
     public function fetch(SocialAccount $account, string $postExternalId, ?float $deadline = null): array
     {
         $out = [];

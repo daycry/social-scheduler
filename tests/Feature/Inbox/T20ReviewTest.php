@@ -90,12 +90,12 @@ test('1. YouTube: el despachador sincroniza cada cuenta de YouTube como mucho un
     $a = t20rYoutube($this, 1);
     Queue::fake();
 
-    (new SyncInboxComments)->handle();
-    (new SyncInboxComments)->handle();
+    (new SyncInboxComments)->handle(app(InboxService::class));
+    (new SyncInboxComments)->handle(app(InboxService::class));
     Queue::assertPushed(SyncAccountComments::class, 1);
 
     Carbon::setTestNow(now()->addMinutes(61));
-    (new SyncInboxComments)->handle();
+    (new SyncInboxComments)->handle(app(InboxService::class));
     Queue::assertPushed(SyncAccountComments::class, 2);
 });
 

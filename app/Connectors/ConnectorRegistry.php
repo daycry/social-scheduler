@@ -2,8 +2,10 @@
 
 namespace App\Connectors;
 
+use App\Connectors\Contracts\CommentSource;
 use App\Connectors\Contracts\Connector;
 use App\Connectors\Contracts\FirstCommenter;
+use App\Connectors\Contracts\HidesComments;
 use App\Connectors\Contracts\InsightsReader;
 use App\Connectors\Contracts\Publisher;
 use App\Connectors\Exceptions\ConnectorException;
@@ -18,6 +20,9 @@ class ConnectorRegistry
 
     /** @var array<string, InsightsReader> */
     private array $insights = [];
+
+    /** @var array<string, CommentSource> */
+    private array $comments = [];
 
     public function register(Connector $connector): static
     {
@@ -40,6 +45,35 @@ class ConnectorRegistry
         $this->insights[$network->value] = $reader;
 
         return $this;
+    }
+
+    /** Fuente de comentarios de una red para el inbox (T-43): Instagram/Facebook, Threads, Bluesky y YouTube; el orden de registro es el del inbox. */
+    public function registerComments(Network $network, CommentSource $source): static
+    {
+        $this->comments[$network->value] = $source;
+
+        return $this;
+    }
+
+    public function commentsFor(Network $network): ?CommentSource
+    {
+        return $this->comments[$network->value] ?? null;
+    }
+
+    /**
+     * Redes que el inbox lee: las que tienen una `CommentSource` registrada.
+     *
+     * @return list<Network>
+     */
+    public function commentNetworks(): array
+    {
+        return array_map(Network::from(...), array_keys($this->comments));
+    }
+
+    /** ¿Deja la red ocultar comentarios? Si su fuente implementa `HidesComments`. */
+    public function canHideComments(Network $network): bool
+    {
+        return ($this->comments[$network->value] ?? null) instanceof HidesComments;
     }
 
     public function insightsFor(Network $network): ?InsightsReader

@@ -218,13 +218,13 @@ test('Inbox: aislamiento (comentarios de otro usuario no se ven ni se tocan; el 
 
 test('Inbox: los jobs despachan por cuenta activa de IG/FB en la cola poll y los transitorios reintentan', function () {
     Queue::fake();
-    (new SyncInboxComments)->handle();
+    (new SyncInboxComments)->handle(app(InboxService::class));
     Queue::assertPushed(SyncAccountComments::class, 2);
     Queue::assertPushedOn('poll', SyncAccountComments::class);
 
     $tt = SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::TikTok]);
     Queue::fake();
-    (new SyncInboxComments($this->user->id))->handle();
+    (new SyncInboxComments($this->user->id))->handle(app(InboxService::class));
     Queue::assertPushed(SyncAccountComments::class, 2);
     expect($tt->id)->not->toBeNull();
 });

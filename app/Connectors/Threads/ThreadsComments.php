@@ -31,6 +31,11 @@ class ThreadsComments implements CommentSource
         return array_diff($write ? self::WRITE_SCOPES : self::READ_SCOPES, (array) $account->scopes) === [];
     }
 
+    public function missingScopes(SocialAccount $account): array
+    {
+        return array_values(array_diff(self::READ_SCOPES, (array) $account->scopes));
+    }
+
     public function fetch(SocialAccount $account, string $postExternalId, ?float $deadline = null): array
     {
         $this->assertId($postExternalId);

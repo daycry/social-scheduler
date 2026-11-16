@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools;
 
+use App\Connectors\Network;
 use App\Mcp\Abilities;
 use App\Models\User;
 use App\Services\InboxService;
@@ -30,7 +31,7 @@ class ListComments extends SchedulerTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'network' => $schema->string()->description('instagram, facebook, threads, bluesky o youtube'),
+            'network' => $schema->string()->description(implode(', ', array_map(fn (Network $n) => $n->value, app(InboxService::class)->networks()))),
             'status' => $schema->string()->description('open o closed'),
             'label' => $schema->string()->description('Solo los que llevan esta etiqueta'),
             'assigned' => $schema->string()->description('none (sin asignar), me o el id de un usuario'),
@@ -47,8 +48,10 @@ class ListComments extends SchedulerTool
         $network = $request->get('network');
         $brand = $this->brandFrom($request, $user, required: false);
 
-        return app(InboxService::class)->page($user, [
-            'network' => in_array($network, ['instagram', 'facebook', 'threads', 'bluesky', 'youtube'], true) ? $network : null,
+        $inbox = app(InboxService::class);
+
+        return $inbox->page($user, [
+            'network' => in_array($network, array_map(fn (Network $n) => $n->value, $inbox->networks()), true) ? $network : null,
             'status' => in_array($request->get('status'), ['open', 'closed'], true) ? $request->get('status') : null,
             'label' => is_string($request->get('label')) ? mb_strtolower(trim($request->get('label'))) : null,
             'assigned' => ($a = $request->get('assigned')) === 'me' ? $user->id : (($a === 'none' || is_numeric($a)) ? $a : null),

@@ -13,14 +13,14 @@ use Illuminate\Support\Facades\Process;
 
 class StudioAvProcess
 {
-    public function __construct(private readonly StudioAvState $state, private readonly StudioAvStorage $storage) {}
+    public function __construct(private readonly StudioAvLeases $leases, private readonly StudioAvStore $store, private readonly StudioAvStorage $storage) {}
 
     public function execute(StudioAvLease $lease, ?float $deadline = null): array
     {
         $deadline = min($deadline ?? microtime(true) + 85, microtime(true) + 85);
 
         return $this->storage->locked($lease->workspace_id, function (StudioAvWorkspace $workspace) use ($lease, $deadline) {
-            $export = $this->state->workingExport($lease);
+            $export = $this->leases->workingExport($lease);
             if (! in_array($lease->phase, ['plan', 'normalize', 'render', 'mix', 'assemble'], true)) {
                 throw new StudioAvProcessFailed('invalid_request');
             }
@@ -35,9 +35,9 @@ class StudioAvProcess
                 'options' => ['pageIds' => $export->pages, 'scale' => (float) ($export->options['scale'] ?? 1), 'quality' => (float) ($export->options['quality'] ?? 0.94)],
                 'audioSources' => [], 'segments' => []];
             if ($lease->phase === 'mix') {
-                $input['audioSources'] = $this->state->checkpoints($export, ['normalize'])->pluck('result')->values()->all();
+                $input['audioSources'] = $this->store->checkpoints($export, ['normalize'])->pluck('result')->values()->all();
             } elseif ($lease->phase === 'assemble') {
-                $results = $this->state->checkpoints($export, ['render', 'mix']);
+                $results = $this->store->checkpoints($export, ['render', 'mix']);
                 $plan = StudioAvWorkspace::withoutUserScope()->whereKey($workspace->id)->firstOrFail(['id', 'plan'])->plan;
                 for ($index = 0; $index < $plan['segmentCount']; $index++) {
                     $input['segments'][] = ['video' => $results->get('render:'.$index)?->result, 'audio' => $results->get('mix:'.$index)?->result];
@@ -45,7 +45,7 @@ class StudioAvProcess
             }
             $directory = $this->storage->manifest($workspace, $lease->id, $input);
             try {
-                $this->state->workingExport($lease);
+                $this->leases->workingExport($lease);
                 $budget = (int) floor(($deadline - microtime(true)) * 1000);
                 if ($budget < 100) {
                     throw new StudioAvProcessFailed('phase_timeout');
@@ -66,7 +66,7 @@ class StudioAvProcess
                     || ($memory['scope'] === 'job' && (($memory['kill_on_close'] ?? null) !== true || ($memory['breakaway'] ?? null) !== false))) {
                     throw new StudioAvProcessFailed('runtime_unavailable');
                 }
-                $this->state->workingExport($lease);
+                $this->leases->workingExport($lease);
                 if ($record->source_metadata === null) {
                     $record->update(['source_metadata' => $metadata]);
                 }

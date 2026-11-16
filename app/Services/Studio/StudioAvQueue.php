@@ -15,7 +15,7 @@ use Throwable;
 
 class StudioAvQueue
 {
-    public function __construct(private readonly StudioAvState $state) {}
+    public function __construct(private readonly StudioAvLeases $leases, private readonly StudioAvLifecycle $lifecycle, private readonly StudioAvStore $store) {}
 
     public function enqueue(int $exportId): bool
     {
@@ -27,11 +27,11 @@ class StudioAvQueue
         if ($old && $this->pending($old)) {
             return false;
         }
-        $task = $this->state->task($export);
+        $task = $this->store->task($export);
         if (! $task) {
             return false;
         }
-        $lease = $this->state->claim($exportId, $export->render_state['generation'], $this->bytes($export, $task), $export->render_state['position']);
+        $lease = $this->leases->claim($exportId, $export->render_state['generation'], $this->bytes($export, $task), $export->render_state['position']);
         if (! $lease) {
             return false;
         }
@@ -41,7 +41,7 @@ class StudioAvQueue
                 StudioAvLease::whereKey($lease->id)->update(['queue_job_id' => (int) $id]);
             }
         } catch (Throwable) {
-            $this->state->fail($lease, 'queue_unavailable');
+            $this->lifecycle->fail($lease, 'queue_unavailable');
 
             return false;
         }

@@ -9,11 +9,11 @@ use Throwable;
 
 class StudioAvControl
 {
-    public function __construct(private readonly StudioAvState $state, private readonly StudioAvStorage $storage, private readonly StudioAvQueue $queue) {}
+    public function __construct(private readonly StudioAvLifecycle $lifecycle, private readonly StudioAvStorage $storage, private readonly StudioAvQueue $queue) {}
 
     public function cancel(User $user, DesignExport $export): DesignExport
     {
-        $current = $this->state->cancel($user, $export);
+        $current = $this->lifecycle->cancel($user, $export);
         try {
             $this->storage->signalCancellation($current);
         } catch (Throwable) {
@@ -25,7 +25,7 @@ class StudioAvControl
 
     public function retry(User $user, DesignExport $export): DesignExport
     {
-        $current = $this->state->retry($user, $export);
+        $current = $this->lifecycle->retry($user, $export);
         DB::afterCommit(fn () => $this->queue->enqueue($current->id));
 
         return $current->refresh();

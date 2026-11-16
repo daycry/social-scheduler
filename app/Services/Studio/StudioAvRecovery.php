@@ -12,7 +12,7 @@ use Throwable;
 class StudioAvRecovery
 {
     public function __construct(private readonly StudioAvQueue $queue, private readonly StudioAvCleanup $cleanup,
-        private readonly StudioAvState $state, private readonly StudioAvRegistrationCleanup $registrationCleanup) {}
+        private readonly StudioAvLifecycle $lifecycle, private readonly StudioAvStore $store, private readonly StudioAvRegistrationCleanup $registrationCleanup) {}
 
     public function run(int $limit = 25): array
     {
@@ -112,14 +112,14 @@ class StudioAvRecovery
                         ->where('expires_at', '<=', now())->exists();
                 }
                 if ($ready) {
-                    foreach ($this->state->checkpoints($export, ['asset', 'font'], true) as $source) {
+                    foreach ($this->store->checkpoints($export, ['asset', 'font'], true) as $source) {
                         if (microtime(true) >= $deadline) {
                             $ready = false;
                             break;
                         }
                         app(StudioAvFiles::class)->publishSource($source);
                     }
-                    $ready = $ready && $this->state->checkpoints($export, ['asset', 'font'], true)->isEmpty();
+                    $ready = $ready && $this->store->checkpoints($export, ['asset', 'font'], true)->isEmpty();
                 }
                 if ($ready && $this->queue->enqueue($export->id)) {
                     $result['enqueued']++;
@@ -127,13 +127,13 @@ class StudioAvRecovery
                     $result['deferred']++;
                 }
             } catch (StudioAvCheckpointCorrupt) {
-                $this->state->failPosition($export->id, $export->render_state['generation'], $export->render_state['position'], 'phase_failed');
+                $this->lifecycle->failPosition($export->id, $export->render_state['generation'], $export->render_state['position'], 'phase_failed');
                 $result['deferred']++;
             } catch (ModelNotFoundException) {
-                $this->state->failPosition($export->id, $export->render_state['generation'], $export->render_state['position'], 'missing_resource');
+                $this->lifecycle->failPosition($export->id, $export->render_state['generation'], $export->render_state['position'], 'missing_resource');
                 $result['deferred']++;
             } catch (ValidationException) {
-                $this->state->failPosition($export->id, $export->render_state['generation'], $export->render_state['position'], 'output_budget');
+                $this->lifecycle->failPosition($export->id, $export->render_state['generation'], $export->render_state['position'], 'output_budget');
                 $result['deferred']++;
             } catch (Throwable) {
                 $result['deferred']++;

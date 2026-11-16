@@ -64,7 +64,7 @@ class StudioRenderer
             // Con la fila ya insertada la fusion y la poda ven la revision como fijada; si desaparecio entre la validacion y el insert, se revierte con el 409.
             $this->exports->revision($user, $design, (int) $data['revision']);
             if ($native) {
-                app(StudioAvState::class)->initialize($user, $export);
+                app(StudioAvLifecycle::class)->initialize($user, $export);
                 DB::afterCommit(fn () => app(StudioAvQueue::class)->enqueue($export->id));
             } else {
                 RenderStudioDesign::dispatch($export->id)->afterCommit();

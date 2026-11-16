@@ -15,7 +15,7 @@ class StudioAvTransfer
 {
     private const PART_BYTES = 16 * 1024 ** 2;
 
-    public function __construct(private readonly StudioAvState $state, private readonly StudioAvStorage $storage) {}
+    public function __construct(private readonly StudioAvLeases $leases, private readonly StudioAvRegistrationState $registration, private readonly StudioAvStore $store, private readonly StudioAvStorage $storage) {}
 
     public function run(StudioAvLease $lease, ?float $deadline = null): ?array
     {
@@ -23,8 +23,8 @@ class StudioAvTransfer
         $this->remaining($deadline);
 
         return $this->storage->locked($lease->workspace_id, function (StudioAvWorkspace $workspace) use ($lease, $deadline) {
-            $export = $this->state->workingExport($lease);
-            $source = $this->state->checkpoints($export, ['assemble'])->sole();
+            $export = $this->leases->workingExport($lease);
+            $source = $this->store->checkpoints($export, ['assemble'])->sole();
             $proof = $source->result;
             if (($proof['chunk_size'] ?? null) !== self::PART_BYTES || ! is_array($proof['chunk_sha256'] ?? null)
                 || ! array_is_list($proof['chunk_sha256']) || count($proof['chunk_sha256']) !== (int) ceil($proof['size'] / self::PART_BYTES)
@@ -36,12 +36,12 @@ class StudioAvTransfer
                     throw new StudioAvCheckpointCorrupt('El manifiesto de integridad está incompleto.');
                 }
             }
-            $media = $this->state->allocateRegistration($lease);
+            $media = $this->registration->allocateRegistration($lease);
             $disk = Storage::disk($media->disk);
             $location = $disk instanceof AwsS3V3Adapter
                 ? ['driver' => 's3', 'bucket' => $disk->getConfig()['bucket'], 'key' => $disk->path($media->path), 'endpoint' => (string) $disk->getClient()->getEndpoint()]
                 : ['driver' => 'local', 'root' => rtrim($disk->path(''), '/\\')];
-            $this->state->bindRegistrationLocation($lease, $location);
+            $this->registration->bindRegistrationLocation($lease, $location);
             if ($disk instanceof AwsS3V3Adapter) {
                 return $this->remote($lease, $workspace, $source, $media, $disk, $deadline);
             }
@@ -288,7 +288,7 @@ class StudioAvTransfer
     private function save(StudioAvLease $lease, MediaAsset $media, array $progress, ?string $uploadId = null, float $deadline = 0): void
     {
         $this->remaining($deadline);
-        if (! $this->state->checkpointRegistration($lease, $progress, $uploadId, $deadline)) {
+        if (! $this->registration->checkpointRegistration($lease, $progress, $uploadId, $deadline)) {
             throw (new ModelNotFoundException)->setModel(StudioAvLease::class, [$lease->id]);
         }
         $media->refresh();

@@ -9,9 +9,10 @@ use App\Models\Studio\DesignExport;
 use App\Models\Studio\StudioAsset;
 use App\Models\Studio\StudioAvLease;
 use App\Models\User;
+use App\Services\Studio\StudioAvLifecycle;
 use App\Services\Studio\StudioAvQueue;
-use App\Services\Studio\StudioAvState;
 use App\Services\Studio\StudioAvStorage;
+use App\Services\Studio\StudioAvStore;
 use App\Services\Studio\StudioExports;
 use App\Services\Studio\StudioService;
 use Illuminate\Support\Facades\Artisan;
@@ -48,7 +49,7 @@ beforeEach(function () {
         $export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $this->design->id,
             'revision' => 1, 'format' => 'mp4', 'pages' => ['one'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
 
-        return app(StudioAvState::class)->initialize($this->user, $export);
+        return app(StudioAvLifecycle::class)->initialize($this->user, $export);
     };
 });
 
@@ -149,7 +150,7 @@ test('AV public request crosses the actual database worker to native download an
     expect($export->refresh()->status)->toBe('ready', $export->error ?? '')->and($export->media_ids)->toHaveCount(1);
     $dto = app(StudioExports::class)->present($this->user, $export);
     $download = $this->get($dto['download_url'])->assertOk();
-    $hash = app(StudioAvState::class)->checkpoints($export, ['assemble'])->sole()->result['sha256'];
+    $hash = app(StudioAvStore::class)->checkpoints($export, ['assemble'])->sole()->result['sha256'];
     expect(hash('sha256', $download->streamedContent()))->toBe($hash);
     $draft = $this->postJson('/api/v1/design-exports/'.$export->id.'/post', ['text' => 'Native draft'], ($this->headers)())
         ->assertCreated()->assertJsonPath('post.status', 'borrador')->json('post.id');

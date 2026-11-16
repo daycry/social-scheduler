@@ -10,16 +10,16 @@ use Throwable;
 
 class StudioAvRunner
 {
-    public function __construct(private readonly StudioAvState $state, private readonly StudioAvQueue $queue,
+    public function __construct(private readonly StudioAvAcceptance $acceptance, private readonly StudioAvLeases $leases, private readonly StudioAvLifecycle $lifecycle, private readonly StudioAvStore $store, private readonly StudioAvQueue $queue,
         private readonly StudioAvFiles $files, private readonly StudioAvProcess $process, private readonly StudioAvTransfer $transfer) {}
 
     public function run(string $id, ?float $deadline = null): bool
     {
-        $lease = $this->state->begin($id);
+        $lease = $this->leases->begin($id);
         if (! $lease) {
             return false;
         }
-        $export = $this->state->workingExport($lease);
+        $export = $this->leases->workingExport($lease);
         $deadline = min($deadline ?? microtime(true) + 85, microtime(true) + 85);
         $advanced = false;
         $source = null;
@@ -30,7 +30,7 @@ class StudioAvRunner
             if ($lease->phase === 'register') {
                 $result = $this->transfer->run($lease, $deadline);
                 if ($result === null) {
-                    if (! $this->state->defer($lease)) {
+                    if (! $this->leases->defer($lease)) {
                         return false;
                     }
                     $this->queue->enqueue($export->id);
@@ -40,12 +40,12 @@ class StudioAvRunner
             } elseif (in_array($lease->phase, ['asset', 'font'], true)) {
                 $result = $this->files->snapshot($lease, $deadline);
             } elseif ($lease->phase === 'verify') {
-                $task = $this->state->task($export);
+                $task = $this->store->task($export);
                 $source = StudioAvLease::where('workspace_id', $lease->workspace_id)->findOrFail($task['source']);
                 try {
                     $result = $this->files->verify($source, $deadline);
                 } catch (StudioAvCheckpointCorrupt) {
-                    $this->state->rejectCheckpoint($lease);
+                    $this->acceptance->rejectCheckpoint($lease);
 
                     return false;
                 }
@@ -55,7 +55,7 @@ class StudioAvRunner
                     $this->files->inspect($lease, $result, $deadline);
                 }
             }
-            if (! $this->state->accept($lease, $result, $lease->category === 'none' ? 0 : $result['size'])) {
+            if (! $this->acceptance->accept($lease, $result, $lease->category === 'none' ? 0 : $result['size'])) {
                 return false;
             }
             $advanced = true;
@@ -68,7 +68,7 @@ class StudioAvRunner
             return true;
         } catch (StudioAvWorkspaceBusy $e) {
             if (! $advanced) {
-                $this->state->defer($lease);
+                $this->leases->defer($lease);
 
                 return false;
             }
@@ -87,9 +87,9 @@ class StudioAvRunner
             $code = 'phase_failed';
         }
         if ($advanced) {
-            $this->state->failPosition($export->id, $lease->generation, $export->render_state['position'] + 1, $code);
+            $this->lifecycle->failPosition($export->id, $lease->generation, $export->render_state['position'] + 1, $code);
         } else {
-            $this->state->fail($lease, $code);
+            $this->lifecycle->fail($lease, $code);
         }
 
         return false;

@@ -1549,22 +1549,22 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 ### T-36 — Instagram y Threads: `ContainerPublishFlow` común
 
 - **Descripción**: Extraer el flujo de contenedores (crear, esperar, publicar, contenedor fallido) a una clase común con ganchos por red; unificar el comportamiento ante contenedor fallido, que hoy diverge.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Instagram y Threads publican con el mismo flujo de contenedores; si el contenedor de Instagram falla o caduca, el destino queda fallido con un código que distingue la causa, como ya hacía Threads.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-24, T-34, T-15
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Support/ContainerPublishFlow.php`, `app/Connectors/Threads/ThreadsPublisher.php`, `app/Connectors/Meta/InstagramPublisher.php`, `tests/Feature/Connectors/**`, `docs/arquitectura.md`
+- **Archivos**: `app/Connectors/Support/ContainerPublishFlow.php`, `app/Connectors/Support/ContainerNetwork.php`, `app/Connectors/Meta/Instagram/InstagramContainers.php`, `app/Connectors/Meta/Instagram/InstagramPublisher.php`, `app/Connectors/Threads/ThreadsContainers.php`, `app/Connectors/Threads/ThreadsPublisher.php`, `tests/Feature/Connectors/Meta/Instagram/InstagramPublishTest.php`, `docs/modulos/publicacion.md`
 - **Cubre**: C-01
 - **Cubre (tests)**: E2E-38
 - **Verificación**: `php artisan test --compact --filter=InstagramPublisher` → verde · `php artisan test --compact --filter=ThreadsPublisher` → verde
 
 **Criterios de aceptación**
-- [ ] Los dos publishers delegan en `ContainerPublishFlow`
-- [ ] El comportamiento ante contenedor fallido es el mismo en ambos y queda documentado
+- [x] Los dos publishers delegan en `ContainerPublishFlow`
+- [x] El comportamiento ante contenedor fallido es el mismo en ambos y queda documentado
 - [ ] Los tests de conectores existentes pasan sin cambios
 - [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
@@ -1572,77 +1572,90 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+- Verificación (2026-11-16): Pest antes (focal: Connectors, Publishing, Inbox, Analytics, Instagram, FirstComment, Jobs): 1019/1019 · antes de cerrar la tarea: `php artisan test --compact --filter=InstagramPublisher` y `--filter=ThreadsPublisher` verdes; Pest focal tras T-36/T-37/T-38 1093/1093 (las 7 carpetas de la base más Connections y Competitors; la base de las 7 carpetas eran 1019; tests nuevos de Instagram, UploadPassBudget y YouTubeClient, y el de reloj de YouTube movido a UploadPassBudgetTest; ninguno retirado sin sustituto) (mismos tests que antes; un test de Instagram adaptado y +3 nuevos); Pint OK.
+- Decisiones: (1) `ContainerPublishFlow` (flujo: cuota, contenedor, estado, publicar, carrusel reanudable con `StepBudget`, `findPublished`) y la interfaz `ContainerNetwork` con los ganchos por red; `InstagramContainers` y `ThreadsContainers` llevan endpoints, parámetros, lectura del estado, mensajes de error, enlace y búsqueda (historias en Instagram). Los publishers solo validan (tipo, opciones, audio, tamaño del carrusel) y delegan. Se borró el código duplicado; sin puentes. (2) **Contenedor fallido, conducta unificada:** `ERROR`/`EXPIRED` (también un hijo de carrusel) lanzan `PermanentPublishException` con código `contenedor_error` o `contenedor_caducado` y el motivo traducido (la que ya tenía Threads). Antes Instagram devolvía `PublishResult::failed`, que los jobs convertían en el código genérico `rechazada`; ahora el destino queda con el código que distingue la causa. Es el único cambio de comportamiento y está declarado en el changelog. (3) Test de Instagram adaptado (`toThrow` con código) y dos nuevos (EXPIRED, hijo de carrusel en ERROR).
+- Pendiente (coordinador): revisión adversarial A+B(+C), Pest completo y Playwright de fase.
 
 **Notas**: Tamaño M. El contenedor fallido es el único cambio de comportamiento permitido y se declara en el changelog.
 
 ### T-37 — `UploadPassBudget` sobre `StepBudget` (TikTok y YouTube)
 
 - **Descripción**: Unificar el presupuesto de pasadas de subida duplicado entre TikTok y YouTube.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Sin cambios visibles: la subida por pasadas de TikTok y YouTube comparte un único presupuesto de tiempo.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-36
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Support/UploadPassBudget.php`, `app/Connectors/TikTok/TikTokPublisher.php`, `app/Connectors/YouTube/YouTubePublisher.php`
+- **Archivos**: `app/Connectors/Support/UploadPassBudget.php`, `app/Connectors/Support/StepBudget.php`, `app/Connectors/TikTok/TikTokPublisher.php`, `app/Connectors/Google/YouTubePublisher.php`, `tests/Feature/Connectors/Support/UploadPassBudgetTest.php`, `tests/Feature/Connectors/Google/Publish/YouTubePublishTest.php`, `docs/modulos/publicacion.md`
 - **Cubre**: C-02
 - **Cubre (tests)**: E2E-38
 - **Verificación**: `php artisan test --compact --filter=TikTokPublisher` → verde · `php artisan test --compact --filter=YouTubePublisher` → verde
 
 **Criterios de aceptación**
-- [ ] Ambos publishers usan `UploadPassBudget` y no queda código duplicado
-- [ ] Los tests de subida reanudable pasan sin cambios
+- [x] Ambos publishers usan `UploadPassBudget` y no queda código duplicado
+- [x] Los tests de subida reanudable pasan sin cambios
 - [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+- Verificación (2026-11-16): Pest antes (focal: Connectors, Publishing, Inbox, Analytics, Instagram, FirstComment, Jobs): 1019/1019 · `--filter=TikTokPublisher`/`YouTubePublisher` verdes; Pest focal 1093/1093 (las 7 carpetas de la base más Connections y Competitors; la base de las 7 carpetas eran 1019; tests nuevos de Instagram, UploadPassBudget y YouTubeClient, y el de reloj de YouTube movido a UploadPassBudgetTest; ninguno retirado sin sustituto); Pint OK.
+- Decisiones: `UploadPassBudget` (presupuesto blando `upload_budget_seconds` y marca dura `pass_seconds`, por red) se construye sobre `StepBudget` (nuevo `StepBudget::within()` para un presupuesto solo de tiempo). Se borraron `passStartedAt`, `budgetLeft`, `elapsed` y `callTimeout` de TikTok y YouTube. El test que fijaba `passStartedAt` por reflexión pasó a `UploadPassBudgetTest` (mismo comportamiento: tope propio, marca dura, borde de 1 s; ambas redes). **Pinterest no encaja**: sube de una vez con el `remaining()` de su `StepBudget`, sin pasadas por trozos ni marca dura propia.
+- Pendiente (coordinador): revisión adversarial A+B(+C), Pest completo y Playwright de fase.
 
 **Notas**: Tamaño S.
 
 ### T-38 — Partir `YouTubePublisher`: `YouTubeClient` y `YouTubeResumableUpload`
 
 - **Descripción**: Separar cliente HTTP/cuota, subida reanudable y comentarios del publisher de 930 líneas.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Sin cambios visibles: el conector de YouTube se reparte en cliente, subida reanudable, metadatos y comentarios.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-37
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/YouTube/YouTubePublisher.php`, `app/Connectors/YouTube/YouTubeClient.php`, `app/Connectors/YouTube/YouTubeResumableUpload.php`, `app/Connectors/YouTube/YouTubeComments.php`
+- **Archivos**: `app/Connectors/Google/YouTubePublisher.php`, `app/Connectors/Google/YouTubeClient.php`, `app/Connectors/Google/YouTubeResumableUpload.php`, `app/Connectors/Google/YouTubeVideoMetadata.php`, `app/Connectors/Google/YouTubeComments.php`, `tests/Feature/Connectors/Google/Publish/YouTubeClientTest.php`, `tests/Feature/Connectors/Google/Publish/YouTubePublishTest.php`, `tests/Feature/Publishing/PresetsReviewTest.php`, `tests/Feature/Publishing/YouTubeOptionsTest.php`, `docs/modulos/publicacion.md`
 - **Cubre**: C-03
 - **Cubre (tests)**: E2E-38
 - **Verificación**: `php artisan test --compact --filter=YouTube` → verde
 
 **Criterios de aceptación**
-- [ ] `YouTubePublisher` baja de 400 líneas
-- [ ] Cliente y subida son clases testeables por separado
+- [x] `YouTubePublisher` baja de 400 líneas
+- [x] Cliente y subida son clases testeables por separado
 - [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+- Verificación (2026-11-16): Pest antes (focal: Connectors, Publishing, Inbox, Analytics, Instagram, FirstComment, Jobs): 1019/1019 · `--filter=YouTube` verde; Pest focal 1093/1093 (las 7 carpetas de la base más Connections y Competitors; la base de las 7 carpetas eran 1019; tests nuevos de Instagram, UploadPassBudget y YouTubeClient, y el de reloj de YouTube movido a UploadPassBudgetTest; ninguno retirado sin sustituto); Pint OK. `YouTubePublisher`: 929 -> 229 líneas.
+- Decisiones: `YouTubeClient` (peticiones, errores de la API, cupo y reloj de la pasada), `YouTubeResumableUpload` (sesión, trozos, portada; la recuperación del video completo se inyecta como cierre), `YouTubeVideoMetadata` (validación, título, descripción, tags y tag opaco por destino) y `YouTubeComments` (primer comentario, búsqueda idempotente e inbox; ya no hace `new YouTubePublisher`). El publisher queda como fachada: `publish`/`poll`/`findPublished`, `comment`/`findOwnComment` delegados (contrato `FirstCommenter`) y `deleteVideo`. Constantes y estáticos movidos: `targetTag`/`tagsFor` -> `YouTubeVideoMetadata` (tests actualizados), `UPLOADING` -> `PublishResult::UPLOADING` (el alias del publisher se borró). **Se conservan en `YouTubePublisher` dos delegaciones de una línea, `canComment()` y `forgetUploadSession()`, porque las usan `PostController` y `PostService` (T-39 a T-41, de otro agente)**; cuando esos ficheros se actualicen, llamarán a `YouTubeComments::canComment` y `YouTubeResumableUpload::forgetSession` y las dos delegaciones se borran. Nota: `deleteVideo` solo lo llaman los tests (sin uso en `app/`).
+- Tests nuevos: `YouTubeClientTest` (errores de la API, cupo agotado, reloj de pasada, `resume` sin sesión, `forgetSession`, tag opaco).
+- Pendiente (coordinador): revisión adversarial A+B(+C), Pest completo y Playwright de fase.
 
 **Notas**: Tamaño M.
 

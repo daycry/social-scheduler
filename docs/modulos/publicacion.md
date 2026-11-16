@@ -110,7 +110,7 @@ Se ejecuta al inicio de cada pasada del despachador:
 
 ## Threads
 
-`ThreadsPublisher` (`Publisher` + `StatusPoller`) reproduce la máquina de estados de contenedor de Instagram **sin heredar de ella ni tocar `InstagramPublisher`** (opción T1). No cambia `PublishPostTarget` ni `PollPublishStatus`. La media la **descarga Threads** de una URL pública firmada (`MediaAsset::publicUrl()` vía `PublishRequestFactory`), igual que en Instagram, así que el worker de 120 s no sube nada.
+`ThreadsPublisher` (`Publisher` + `StatusPoller`) valida la petición y delega la máquina de estados de contenedor en `Support/ContainerPublishFlow`, la misma que usa `InstagramPublisher`. Lo propio de cada red (endpoints, parámetros, lectura del estado, búsqueda de la publicación) vive en un `ContainerNetwork`: `ThreadsContainers` e `InstagramContainers`. **Contenedor fallido, igual en las dos redes:** `ERROR`/`EXPIRED` (también en un hijo de carrusel) lanzan `PermanentPublishException` con el código `contenedor_error` o `contenedor_caducado` y el motivo traducido; antes Instagram devolvía un `failed` genérico (`rechazada`). No cambia `PublishPostTarget` ni `PollPublishStatus`. La media la **descarga Threads** de una URL pública firmada (`MediaAsset::publicUrl()` vía `PublishRequestFactory`), igual que en Instagram, así que el worker de 120 s no sube nada.
 
 | Tipo | Contenido | Límites verificados el 2026-10-27 (`config/media_specs.php`, valores de T-54) |
 |---|---|---|

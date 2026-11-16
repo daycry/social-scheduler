@@ -153,9 +153,27 @@ test('InstagramPublish: un contenedor en ERROR falla con el motivo traducido', f
     igBase($this->graph);
     $this->graph->on('GET', '#^9300$#', ['status_code' => 'ERROR', 'status' => 'Error: Media upload has failed with error code 2207026']);
 
-    $r = $this->ig->poll($this->account, igRequest(ContentType::InstagramReel, [igVideo()], reference: '9300'));
+    // Contenedor fallido: PermanentPublishException con codigo (igual que Threads), no un resultado `failed` generico.
+    expect(fn () => $this->ig->poll($this->account, igRequest(ContentType::InstagramReel, [igVideo()], reference: '9300')))
+        ->toThrow(fn (PermanentPublishException $e) => expect($e->errorCode)->toBe('contenedor_error')->and($e->getMessage())->toContain('formato del video no es admitido'));
+});
 
-    expect($r->isFailed())->toBeTrue()->and($r->message)->toContain('formato del video no es admitido');
+test('InstagramPublish: un contenedor EXPIRED falla con el codigo contenedor_caducado', function () {
+    igBase($this->graph);
+    $this->graph->on('GET', '#^9301$#', ['status_code' => 'EXPIRED']);
+
+    expect(fn () => $this->ig->poll($this->account, igRequest(ContentType::InstagramReel, [igVideo()], reference: '9301')))
+        ->toThrow(fn (PermanentPublishException $e) => expect($e->errorCode)->toBe('contenedor_caducado')->and($e->getMessage())->toContain('caduco'));
+});
+
+test('InstagramPublish: un hijo de carrusel en ERROR falla igual que un contenedor unico', function () {
+    igBase($this->graph);
+    $this->graph->on('GET', '#^c1$#', ['status_code' => 'ERROR', 'status' => 'Error: Media upload has failed with error code 2207052']);
+    $request = igRequest(ContentType::InstagramCarousel, [igImage(), igImage()], reference: 'carousel');
+    $request = new PublishRequest($request->targetId, $request->type, $request->text, $request->media, [], 'carousel', $request->since, ['children' => ['c1', 'c2'], 'ready' => []]);
+
+    expect(fn () => $this->ig->poll($this->account, $request))
+        ->toThrow(fn (PermanentPublishException $e) => expect($e->errorCode)->toBe('contenedor_error')->and($e->getMessage())->toContain('no pudo descargar'));
 });
 
 test('InstagramPublish: con el limite de 24 h agotado lanza cuota y no crea contenedores', function () {

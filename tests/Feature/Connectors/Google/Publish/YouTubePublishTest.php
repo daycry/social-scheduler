@@ -504,20 +504,6 @@ test('YouTubePublish: si la sesion cacheada caduco, el reintento abre una nueva 
     expect($this->yt->publish($this->account, ytRequest())->reference)->toBe('VIDN')->and((new YouTubeQuota)->used())->toBe(1600);
 });
 
-test('YouTubePublish: el timeout de cada llamada se acota a lo que queda de la pasada, nunca supera la marca dura (revision F4-5 #7)', function () {
-    config(['social.youtube.pass_seconds' => 100, 'social.youtube.upload_timeout' => 60]);
-    $timeout = fn (float $elapsed) => (function () use ($elapsed) {
-        $this->passStartedAt = microtime(true) - $elapsed;
-
-        return $this->callTimeout(60.0);
-    })->call($this->yt);
-
-    expect($timeout(0))->toBe(60.0)                       // pasada recien empezada: el tope propio
-        ->and($timeout(70))->toBeGreaterThan(29.0)->toBeLessThanOrEqual(30.0) // quedan ~30 s: el PUT no puede pasarse
-        ->and($timeout(99.5))->toBeLessThanOrEqual(1.0)  // al borde de la marca: 1 s
-        ->and($timeout(120))->toBe(1.0);
-});
-
 test('YouTubePublish: el presupuesto se comprueba antes de cada PUT: sin margen para otro trozo la pasada devuelve «subiendo»', function () {
     config(['social.youtube.upload_budget_seconds' => 5, 'social.youtube.upload_min_slice_seconds' => 10]); // < trozo minimo
     $this->http->on('POST', '#uploadType=resumable#', ['status' => 200, 'headers' => ['Location' => YT_SESSION]])

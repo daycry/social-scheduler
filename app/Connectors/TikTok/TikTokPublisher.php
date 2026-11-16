@@ -12,6 +12,7 @@ use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Connectors\Exceptions\TransientPublishException;
 use App\Connectors\Support\MediaChunkReader;
+use App\Connectors\Support\UploadPassBudget;
 use App\Enums\ContentType;
 use App\Models\SocialAccount;
 use Illuminate\Filesystem\AwsS3V3Adapter;
@@ -55,9 +56,6 @@ use Illuminate\Support\Facades\Storage;
  */
 class TikTokPublisher implements Publisher, StatusPoller
 {
-    /** Inicio de la pasada de subida en curso (acota el timeout HTTP a la marca dura). */
-    private ?float $passStartedAt = null;
-
     public const INBOX_NOTE = 'Enviado a la bandeja de TikTok: abre la app y termina de publicarlo desde tus borradores.';
 
     public const INBOX_UNCONFIRMED_NOTE = 'Enviado a la bandeja (TikTok no confirmo el estado); revisa tus borradores.';
@@ -89,6 +87,14 @@ class TikTokPublisher implements Publisher, StatusPoller
         'rate_limit_exceeded' => ['transient', 'TikTok limito temporalmente las peticiones.'],
         'internal_error' => ['transient', 'TikTok tuvo un error interno.'],
     ];
+
+    /** Reloj de la pasada de subida en curso (presupuesto blando y marca dura del timeout HTTP). */
+    private readonly UploadPassBudget $pass;
+
+    public function __construct()
+    {
+        $this->pass = new UploadPassBudget('tiktok');
+    }
 
     public function publish(SocialAccount $account, PublishRequest $request): PublishResult
     {
@@ -176,7 +182,7 @@ class TikTokPublisher implements Publisher, StatusPoller
         }
 
         $reader = MediaChunkReader::for($media);
-        $this->passStartedAt = microtime(true);
+        $this->pass->begin();
 
         try {
             if ($reader->size <= 0) {
@@ -187,7 +193,7 @@ class TikTokPublisher implements Publisher, StatusPoller
 
             return $this->uploadChunks($account, $request, $publishId, $progress, $media, $reader);
         } finally {
-            $this->passStartedAt = null;
+            $this->pass->end();
         }
     }
 
@@ -265,7 +271,7 @@ class TikTokPublisher implements Publisher, StatusPoller
         }
 
         $reader = MediaChunkReader::for($media);
-        $this->passStartedAt = microtime(true);
+        $this->pass->begin();
 
         try {
             if ($reader->size !== (int) ($progress['size'] ?? -1)) {
@@ -276,7 +282,7 @@ class TikTokPublisher implements Publisher, StatusPoller
 
             return $this->uploadChunks($account, $request, (string) $request->reference, $progress, $media, $reader);
         } finally {
-            $this->passStartedAt = null;
+            $this->pass->end();
         }
     }
 
@@ -313,14 +319,14 @@ class TikTokPublisher implements Publisher, StatusPoller
             }
 
             // Presupuesto comprobado ANTES de cada PUT (el primero de la pasada siempre se intenta: garantiza avance).
-            if (! $first && $this->budgetLeft() < (float) config('social.tiktok.upload_min_slice_seconds', 15)) {
+            if (! $first && $this->pass->budgetLeft() < (float) config('social.tiktok.upload_min_slice_seconds', 15)) {
                 return PublishResult::processing($publishId, [], $progress);
             }
             $first = false;
 
             $offset = $i * $chunk;
             $length = $i === $count - 1 ? $size - $offset : $chunk;
-            $body = $reader->stream($offset, $length, $this->callTimeout((float) config('social.tiktok.upload_timeout', 100)));
+            $body = $reader->stream($offset, $length, $this->pass->callTimeout((float) config('social.tiktok.upload_timeout', 100)));
 
             if ($body->getSize() !== $length) {
                 $body->close();
@@ -329,7 +335,7 @@ class TikTokPublisher implements Publisher, StatusPoller
             }
 
             try {
-                $response = Http::timeout($this->callTimeout((float) config('social.tiktok.upload_timeout', 100)))
+                $response = Http::timeout($this->pass->callTimeout((float) config('social.tiktok.upload_timeout', 100)))
                     ->withHeaders(['Content-Range' => 'bytes '.$offset.'-'.($offset + $length - 1).'/'.$size])
                     ->withBody($body, $media->mime)
                     ->put($url);
@@ -361,27 +367,6 @@ class TikTokPublisher implements Publisher, StatusPoller
 
         // Subida completa: empieza el procesado (y su plazo).
         return PublishResult::processing($publishId, [], ['phase' => 'processing', 'uploaded_at' => now()->timestamp]);
-    }
-
-    /** Segundos que quedan del presupuesto blando de subida de la pasada. */
-    private function budgetLeft(): float
-    {
-        return (float) config('social.tiktok.upload_budget_seconds', 80) - $this->elapsed();
-    }
-
-    private function elapsed(): float
-    {
-        return $this->passStartedAt === null ? 0.0 : microtime(true) - $this->passStartedAt;
-    }
-
-    /** Timeout HTTP acotado a lo que queda hasta la marca dura de la pasada (`pass_seconds` < `$timeout` 110 s del job). */
-    private function callTimeout(float $cap): float
-    {
-        if ($this->passStartedAt === null) {
-            return $cap;
-        }
-
-        return max(1.0, min($cap, (float) config('social.tiktok.pass_seconds', 100) - $this->elapsed()));
     }
 
     private function assertUploadHost(string $url): void
@@ -569,7 +554,7 @@ class TikTokPublisher implements Publisher, StatusPoller
     private function api(SocialAccount $account, string $path, ?array $body): array
     {
         try {
-            $response = Http::timeout($this->callTimeout((float) config('social.http_timeout', 15)))->acceptJson()
+            $response = Http::timeout($this->pass->callTimeout((float) config('social.http_timeout', 15)))->acceptJson()
                 ->withToken((string) $account->access_token)
                 ->withBody($body === null || $body === [] ? '{}' : json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 'application/json; charset=UTF-8')
                 ->post(self::API.$path);

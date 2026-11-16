@@ -18,6 +18,7 @@ use App\Connectors\Exceptions\ScopeMissingException;
 use App\Connectors\Exceptions\TransientPublishException;
 use App\Connectors\Meta\Comments;
 use App\Connectors\Support\MediaChunkReader;
+use App\Connectors\Support\UploadPassBudget;
 use App\Enums\ContentType;
 use App\Models\SocialAccount;
 use Illuminate\Http\Client\ConnectionException;
@@ -96,10 +97,13 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
         'uploadAborted' => 'porque la subida se aborto',
     ];
 
-    /** Inicio de la pasada en curso (para acotar el timeout HTTP a la marca dura). */
-    private ?float $passStartedAt = null;
+    /** Reloj de la pasada en curso (presupuesto blando y marca dura del timeout HTTP). */
+    private readonly UploadPassBudget $pass;
 
-    public function __construct(private readonly YouTubeQuota $quota = new YouTubeQuota) {}
+    public function __construct(private readonly YouTubeQuota $quota = new YouTubeQuota)
+    {
+        $this->pass = new UploadPassBudget('youtube');
+    }
 
     /** ¿El canal concedio el permiso de comentar? Sin el, solo se desactiva el primer comentario; publicar sigue igual. */
     public static function canComment(SocialAccount $account): bool
@@ -121,7 +125,7 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
         }
 
         $reader = MediaChunkReader::for($media);
-        $this->beginPass();
+        $this->pass->begin();
 
         try {
             if ($reader->size <= 0) {
@@ -147,7 +151,7 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
 
             return $this->upload($account, $request, $session, $media, $reader, 0);
         } finally {
-            $this->passStartedAt = null;
+            $this->pass->end();
         }
     }
 
@@ -503,12 +507,12 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
 
         $media = $this->videoOf($request);
         $reader = MediaChunkReader::for($media);
-        $this->beginPass();
+        $this->pass->begin();
 
         try {
             return $this->continueUpload($account, $request, $session, $media, $reader);
         } finally {
-            $this->passStartedAt = null;
+            $this->pass->end();
         }
     }
 
@@ -528,7 +532,7 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
         $recoveries = 0;
 
         while (true) {
-            $data = $reader->chunk($offset, min($chunkBytes, $size - $offset), $this->callTimeout((float) config('social.youtube.upload_timeout', 60)));
+            $data = $reader->chunk($offset, min($chunkBytes, $size - $offset), $this->pass->callTimeout((float) config('social.youtube.upload_timeout', 60)));
 
             if ($data === '') {
                 throw new TransientPublishException('No se pudo leer el video del almacenamiento.', 'lectura_media');
@@ -583,7 +587,7 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
             }
 
             // Presupuesto comprobado ANTES de cada PUT: sin margen para otro trozo, el sondeo continua desde lo que Google tenga.
-            if ($this->budgetLeft() < (float) config('social.youtube.upload_min_slice_seconds', 10)) {
+            if ($this->pass->budgetLeft() < (float) config('social.youtube.upload_min_slice_seconds', 10)) {
                 return PublishResult::processing(self::UPLOADING);
             }
         }
@@ -597,36 +601,10 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
         return max($unit, intdiv((int) config('social.youtube.chunk_bytes', 8 * 1024 * 1024), $unit) * $unit);
     }
 
-    private function beginPass(): void
-    {
-        $this->passStartedAt = microtime(true);
-    }
-
-    /** Segundos que quedan del presupuesto blando de subida de la pasada. */
-    private function budgetLeft(): float
-    {
-        return (float) config('social.youtube.upload_budget_seconds', 80) - $this->elapsed();
-    }
-
-    private function elapsed(): float
-    {
-        return $this->passStartedAt === null ? 0.0 : microtime(true) - $this->passStartedAt;
-    }
-
-    /** Timeout HTTP de una llamada: el tope propio, acotado a lo que queda hasta la marca dura de la pasada (minimo 1 s). */
-    private function callTimeout(float $cap): float
-    {
-        if ($this->passStartedAt === null) {
-            return $cap;
-        }
-
-        return max(1.0, min($cap, (float) config('social.youtube.pass_seconds', 100) - $this->elapsed()));
-    }
-
     /** `PUT` de un trozo (o consulta de estado con cuerpo vacio y `Content-Range: bytes * / total`). */
     private function put(SocialAccount $account, string $session, string $data, string $mime, string $range): Response
     {
-        return Http::timeout($this->callTimeout((float) config('social.youtube.upload_timeout', 60)))
+        return Http::timeout($this->pass->callTimeout((float) config('social.youtube.upload_timeout', 60)))
             ->withToken((string) $account->access_token)
             ->withoutRedirecting()
             ->withHeaders(['Content-Range' => $range])
@@ -703,7 +681,7 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
                 throw new \RuntimeException('portada vacia');
             }
             $this->quota->charge((int) config('social.youtube.thumbnail_cost', 50));
-            $response = Http::timeout($this->callTimeout((float) config('social.youtube.upload_timeout', 60)))
+            $response = Http::timeout($this->pass->callTimeout((float) config('social.youtube.upload_timeout', 60)))
                 ->withToken((string) $account->access_token)
                 ->withBody($bytes, $cover->mime)
                 ->post(self::THUMBNAIL_UPLOAD.'?videoId='.rawurlencode($videoId).'&uploadType=media');
@@ -747,7 +725,7 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
     /** @param \Closure(PendingRequest): Response $call */
     private function send(SocialAccount $account, \Closure $call, bool $json = true): Response
     {
-        $http = Http::timeout($this->callTimeout((float) config('social.http_timeout', 15)))->acceptJson()->withToken((string) $account->access_token);
+        $http = Http::timeout($this->pass->callTimeout((float) config('social.http_timeout', 15)))->acceptJson()->withToken((string) $account->access_token);
 
         try {
             return $call($json ? $http->asJson() : $http);

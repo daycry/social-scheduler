@@ -3,25 +3,29 @@
 namespace App\Http\Controllers\Studio;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Studio\AttachAssetRequest;
+use App\Http\Requests\Studio\DuplicateDesignRequest;
+use App\Http\Requests\Studio\EditorRequest;
+use App\Http\Requests\Studio\FolderNameRequest;
+use App\Http\Requests\Studio\ListDesignsRequest;
+use App\Http\Requests\Studio\ListExportsRequest;
+use App\Http\Requests\Studio\MoveDesignRequest;
 use App\Models\Brand;
 use App\Models\Studio\Design;
 use App\Models\Studio\DesignExport;
 use App\Models\Studio\DesignFolder;
-use App\Models\User;
-use App\Services\Studio\Ai\AiProviders;
 use App\Services\Studio\StudioAssets;
 use App\Services\Studio\StudioAutomation;
 use App\Services\Studio\StudioAvControl;
 use App\Services\Studio\StudioCollab;
+use App\Services\Studio\StudioEditor;
 use App\Services\Studio\StudioExports;
-use App\Services\Studio\StudioFonts;
 use App\Services\Studio\StudioFrames;
 use App\Services\Studio\StudioRenderer;
 use App\Services\Studio\StudioService;
 use App\Services\Studio\StudioSharedFiles;
 use App\Services\Studio\StudioThumbnails;
 use App\Support\CurrentBrand;
-use App\Support\CursorPage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,9 +35,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StudioController extends Controller
 {
-    public function __construct(private readonly StudioService $studio, private readonly StudioAssets $assets, private readonly StudioExports $exports, private readonly StudioCollab $collab, private readonly StudioSharedFiles $shared) {}
+    public function __construct(private readonly StudioService $studio, private readonly StudioAssets $assets, private readonly StudioExports $exports, private readonly StudioCollab $collab, private readonly StudioSharedFiles $shared, private readonly StudioEditor $editor) {}
 
-    public function index(Request $request): Response|JsonResponse
+    public function index(ListDesignsRequest $request): Response|JsonResponse
     {
         $brand = CurrentBrand::resolve($request);
         if ($brand === null) {
@@ -43,13 +47,12 @@ class StudioController extends Controller
         return $this->indexBrand($request, $brand);
     }
 
-    public function indexBrand(Request $request, Brand $brand): Response|JsonResponse
+    public function indexBrand(ListDesignsRequest $request, Brand $brand): Response|JsonResponse
     {
-        $filters = $request->validate(['query' => ['nullable', 'string', 'max:120'], 'folder_id' => ['nullable', 'integer', 'min:1'],
-            'templates' => ['nullable', 'boolean'], 'archived' => ['nullable', 'boolean']] + CursorPage::RULES);
+        $filters = $request->validated();
         $designs = $this->studio->designs($request->user(), $brand, $filters);
         $designs['designs'] = app(StudioThumbnails::class)->decorate($request->user(), $designs['designs']);
-        $props = $this->brandProps($request, $brand) + ['designs' => $designs, 'filters' => $filters, 'shared' => $this->collab->sharedWith($request->user())];
+        $props = $this->editor->brandProps($request->user(), $brand) + ['designs' => $designs, 'filters' => $filters, 'shared' => $this->collab->sharedWith($request->user())];
 
         return $request->expectsJson() ? response()->json($props) : Inertia::render('Studio/Index', $props);
     }
@@ -62,14 +65,14 @@ class StudioController extends Controller
             : redirect()->route('studio.designs.edit', $design)->with('success', 'Diseño creado.');
     }
 
-    public function show(Request $request, Design $design): JsonResponse
+    public function show(EditorRequest $request, Design $design): JsonResponse
     {
-        return response()->json($this->editorProps($request, $design));
+        return response()->json($this->editor->web($request->user(), $design, $request->exportsPage()));
     }
 
-    public function edit(Request $request, Design $design): Response
+    public function edit(EditorRequest $request, Design $design): Response
     {
-        $props = $this->editorProps($request, $design);
+        $props = $this->editor->web($request->user(), $design, $request->exportsPage());
 
         // Lectores y comentaristas revisan el diseño sin el editor: no pueden modificar nada, y el servidor lo impide igualmente.
         return Inertia::render($props['access']['can_edit'] ? 'Studio/Editor' : 'Studio/Review', $props);
@@ -106,10 +109,9 @@ class StudioController extends Controller
         return $request->expectsJson() ? response()->json(['archived' => true]) : redirect()->route('studio.index', ['brand_id' => $design->brand_id]);
     }
 
-    public function duplicate(Request $request, Design $design): JsonResponse|RedirectResponse
+    public function duplicate(DuplicateDesignRequest $request, Design $design): JsonResponse|RedirectResponse
     {
-        $data = $request->validate(['name' => ['nullable', 'string', 'max:255']]);
-        $copy = $this->studio->duplicate($request->user(), $design, $data['name'] ?? null);
+        $copy = $this->studio->duplicate($request->user(), $design, $request->validated('name'));
 
         return $request->expectsJson() ? response()->json(['design' => $this->studio->present($request->user(), $copy)], 201)
             : redirect()->route('studio.designs.edit', $copy);
@@ -144,10 +146,9 @@ class StudioController extends Controller
         return response()->json(['assets' => $this->assets->list($request->user(), $brand)->map(fn ($asset) => $this->assets->present($brand, $asset))->all()]);
     }
 
-    public function attachAsset(Request $request, Brand $brand): JsonResponse
+    public function attachAsset(AttachAssetRequest $request, Brand $brand): JsonResponse
     {
-        $data = $request->validate(['media_id' => ['required', 'integer', 'min:1']]);
-        $asset = $this->assets->attach($request->user(), $brand, (int) $data['media_id']);
+        $asset = $this->assets->attach($request->user(), $brand, (int) $request->validated('media_id'));
 
         return response()->json(['asset' => $this->assets->present($brand, $asset)], 201);
     }
@@ -162,18 +163,14 @@ class StudioController extends Controller
         return response()->json(['folders' => $this->studio->folders($request->user(), $brand)]);
     }
 
-    public function storeFolder(Request $request, Brand $brand): JsonResponse
+    public function storeFolder(FolderNameRequest $request, Brand $brand): JsonResponse
     {
-        $data = $request->validate(['name' => ['required', 'string', 'max:255']]);
-
-        return response()->json(['folder' => $this->studio->createFolder($request->user(), $brand, $data['name'])], 201);
+        return response()->json(['folder' => $this->studio->createFolder($request->user(), $brand, $request->validated('name'))], 201);
     }
 
-    public function updateFolder(Request $request, DesignFolder $folder): JsonResponse
+    public function updateFolder(FolderNameRequest $request, DesignFolder $folder): JsonResponse
     {
-        $data = $request->validate(['name' => ['required', 'string', 'max:255']]);
-
-        return response()->json(['folder' => $this->studio->renameFolder($request->user(), $folder, $data['name'])]);
+        return response()->json(['folder' => $this->studio->renameFolder($request->user(), $folder, $request->validated('name'))]);
     }
 
     public function destroyFolder(Request $request, DesignFolder $folder): JsonResponse
@@ -181,17 +178,16 @@ class StudioController extends Controller
         return response()->json(['deleted' => true, 'designs_moved' => $this->studio->deleteFolder($request->user(), $folder)]);
     }
 
-    public function moveDesign(Request $request, Design $design): JsonResponse
+    public function moveDesign(MoveDesignRequest $request, Design $design): JsonResponse
     {
-        $data = $request->validate(['folder_id' => ['present', 'nullable', 'integer', 'min:1']]);
-        $moved = $this->studio->moveDesign($request->user(), $design, $data['folder_id']);
+        $moved = $this->studio->moveDesign($request->user(), $design, $request->validated('folder_id'));
 
         return response()->json(['design' => ['id' => $moved->id, 'folder_id' => $moved->folder_id]]);
     }
 
-    public function exports(Request $request, Design $design): JsonResponse
+    public function exports(ListExportsRequest $request, Design $design): JsonResponse
     {
-        $data = $request->validate(['page' => ['nullable', 'integer', 'min:1'], 'per_page' => ['nullable', 'integer', 'min:1', 'max:100']]);
+        $data = $request->validated();
         $history = $this->exports->paginated($request->user(), $design, (int) ($data['page'] ?? 1), (int) ($data['per_page'] ?? 50));
 
         return response()->json(['exports' => $this->exports->presentMany($request->user(), $history->getCollection()), 'pagination' => $this->exports->pageMetadata($history)]);
@@ -238,55 +234,5 @@ class StudioController extends Controller
 
         return $request->expectsJson() ? response()->json(['post' => ['id' => $post->id, 'status' => $post->status->value, 'edit_url' => route('posts.edit', $post, absolute: false)]], 201)
             : redirect()->route('posts.edit', $post);
-    }
-
-    private function brandProps(Request $request, Brand $brand, ?User $user = null): array
-    {
-        $user ??= $request->user();
-        $this->assets->assertBrand($user, $brand);
-        $kit = $this->studio->kit($user, $brand);
-        $fonts = app(StudioFonts::class);
-        $kitFonts = $fonts->many($user, $brand, array_values(array_filter($kit['font_ids'] ?? [])))
-            ->map(fn ($font) => $fonts->present($font))->values()->all();
-
-        return ['brand' => $brand->only(['id', 'name', 'timezone']), 'kit' => $kit,
-            'assets' => $this->assets->list($user, $brand)->map(fn ($asset) => $this->assets->present($brand, $asset))->all(),
-            'folders' => $this->studio->folders($user, $brand),
-            'fonts' => collect(array_merge($fonts->listing($user, $brand)['fonts'], $kitFonts))->unique('id')->values()->all()];
-    }
-
-    private function editorProps(Request $request, Design $design): array
-    {
-        $data = $request->validate(['exports_page' => ['nullable', 'integer', 'min:1']]);
-        $actor = $request->user();
-        $role = $this->collab->role($actor, $design);
-        $user = $this->collab->authorize($actor, $design, 'view');
-        $design = $this->studio->owned($user, $design);
-        $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($design->brand_id);
-        $history = $this->exports->paginated($user, $design, (int) ($data['exports_page'] ?? 1));
-
-        $props = $this->brandProps($request, $brand, $user);
-        $fonts = app(StudioFonts::class);
-        $ids = array_values(array_filter($this->studio->kit($user, $brand)['font_ids'] ?? []));
-        $needed = array_merge($fonts->neededFor($user, $brand, $design->document), $fonts->many($user, $brand, $ids)->map(fn ($font) => $fonts->present($font))->values()->all());
-        $props['fonts'] = collect(array_merge($props['fonts'], $needed))->unique('id')->values()->all();
-        $presented = $this->studio->present($actor, $design);
-        $access = $this->collab->summary($role, $design);
-
-        if ($role !== 'owner') {
-            $routes = ['asset' => fn (int $id) => route('studio.shared.asset', ['design' => $design->id, 'media' => $id], false), 'font' => fn (int $id) => route('studio.shared.font', ['design' => $design->id, 'font' => $id], false)];
-            $rewritten = $this->shared->rewrite($design, $role, $props['assets'], $props['fonts'], $routes);
-            $props['assets'] = $rewritten['assets'];
-            $props['fonts'] = $role === 'editor' ? $rewritten['fonts'] : array_values(array_filter($rewritten['fonts'], fn (array $font) => in_array($font['id'], StudioFonts::idsFromDocument($design->document), true)));
-            $presented['fonts'] = $this->shared->rewrite($design, $role, [], $presented['fonts'], $routes)['fonts'];
-            $props['folders'] = [];
-            // Lectores y comentaristas no necesitan la paleta ni las tipografías del kit para ver el diseño.
-            $props['kit'] = ['palette' => $role === 'editor' ? $props['kit']['palette'] : [], 'fonts' => $role === 'editor' ? $props['kit']['fonts'] : [], 'font_ids' => $role === 'editor' ? ($props['kit']['font_ids'] ?? []) : [], 'logos' => [], 'guidelines' => '', 'voice' => ''];
-            $history = null;
-        }
-
-        return $props + ['design' => $presented, 'access' => $access, 'ai_configured' => $role === 'owner' && app(AiProviders::class)->anyConfigured(),
-            'exports' => $history ? $this->exports->presentMany($user, $history->getCollection()) : [],
-            'exports_pagination' => $history ? $this->exports->pageMetadata($history) : ['current_page' => 1, 'last_page' => 1, 'per_page' => 50, 'total' => 0, 'has_more' => false]];
     }
 }

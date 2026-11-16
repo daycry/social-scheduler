@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — Instagram publishing (`audit-hardening`, T-36)
+
+- An Instagram container that ends in error or expires now fails the post with a code that states the cause (`contenedor_error`, `contenedor_caducado`) instead of the generic `rechazada`, the same as Threads.
+
 ### Changed — API v1 and MCP, breaking changes (`audit-hardening`, T-28/T-29)
 
 - `POST /api/v1/posts` becomes `POST /api/v1/brands/{brand}/posts` and `POST /api/v1/series` becomes `POST /api/v1/brands/{brand}/series`: the brand is always in the path.

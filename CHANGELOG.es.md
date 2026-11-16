@@ -5,6 +5,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Changed — publicación en Instagram (`audit-hardening`, T-36)
+
+- Un contenedor de Instagram que termina en error o caduca deja la publicación fallida con un código que indica la causa (`contenedor_error`, `contenedor_caducado`) en vez del genérico `rechazada`, igual que Threads.
+
 ### Changed — API v1 y MCP, cambios incompatibles (`audit-hardening`, T-28/T-29)
 
 - `POST /api/v1/posts` pasa a `POST /api/v1/brands/{brand}/posts` y `POST /api/v1/series` a `POST /api/v1/brands/{brand}/series`: la marca va siempre en la ruta.

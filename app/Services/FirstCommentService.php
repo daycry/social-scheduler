@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Acciones del usuario sobre el primer comentario de un destino YA publicado (C-01b, A1). Es la unica edicion admitida en un
- * destino `publicada` y no pasa por `PostService::lockEditableTargets()`: solo toca columnas del comentario, nunca `text`,
+ * destino `publicada` y no pasa por `PostTransitions::lockEditable()`: solo toca columnas del comentario, nunca `text`,
  * `status` ni los intentos de publicacion.
  */
 class FirstCommentService

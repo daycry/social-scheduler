@@ -10,6 +10,7 @@ use App\Models\Brand;
 use App\Models\Post;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Services\Posts\PostTransitions;
 use App\Services\PostService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
@@ -78,7 +79,7 @@ test('N2: «Publicar ahora» respeta los limites de ritmo de la red igual que la
     $result = $this->service->publishNow($this->user, Post::withoutUserScope()->find($post->id));
 
     expect($target->fresh()->next_attempt_at->equalTo($retry))->toBeTrue()->and($target->fresh()->error_code)->toBe($code)
-        ->and(PostService::pausedTargets($result))->toBe(1);
+        ->and(PostTransitions::pausedTargets($result))->toBe(1);
     Queue::assertNotPushed(PublishPostTarget::class);
 })->with(['cuota', 'rate_limit', 'youtube_limite_ritmo', 'rate_limit_exceeded']);
 

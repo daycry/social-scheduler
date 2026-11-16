@@ -24,6 +24,7 @@ use App\Services\ComposerPresetService;
 use App\Services\Media\DriveFileSource;
 use App\Services\Media\GiphyClient;
 use App\Services\MediaValidator;
+use App\Services\Posts\PostTransitions;
 use App\Services\PostService;
 use App\Services\SavedTextService;
 use App\Services\SocialAccountService;
@@ -165,7 +166,7 @@ class PostController extends Controller
     /** Mensaje honesto: si algun destino sigue en pausa por cuota, no se promete «unos segundos». */
     private function publishingMessage(Post $post): string
     {
-        return PostService::pausedTargets($post) > 0 ? self::PAUSED_MESSAGE : self::PUBLISHING_MESSAGE;
+        return PostTransitions::pausedTargets($post) > 0 ? self::PAUSED_MESSAGE : self::PUBLISHING_MESSAGE;
     }
 
     /** Validacion en vivo del formulario (sin guardar): errores de media y limites por red. */

@@ -10,7 +10,7 @@ Cada red de una publicación puede llevar su propia media, en su propio orden y 
 | `targets[].media` ausente o `null` | El destino **hereda** la media común |
 | `targets[].media` = lista de `{id, alt, cover_id}` | Media **propia** del destino, en ese orden (puede ser vacía) |
 
-`App\Support\TargetMedia` es la única función que resuelve la media efectiva; la leen `PostService`, `PublishRequestFactory` y `PostPresenter`. La respuesta de la API incluye por destino `media` (lo guardado) y `effective_media` (lo que se publica).
+`App\Support\TargetMedia` es la única función que resuelve la media efectiva; la leen `PostPlanner`, `PublishRequestFactory` y `PostPresenter`. La respuesta de la API incluye por destino `media` (lo guardado) y `effective_media` (lo que se publica).
 
 ## Almacenamiento y borrado
 
@@ -32,7 +32,7 @@ Borrar un archivo usado por un destino sin publicar, por una portada, por una se
 
 ## Validación
 
-`PostService::plan()` valida la media **efectiva** de cada destino con `MediaValidator` (tipos, número, duración, tamaño) y el error nombra el destino. También rechaza archivos ajenos, inexistentes o repetidos, `alt` en vídeo o en redes que no lo publican (hasta 1000 caracteres) y `cover_id` que no sea una imagen lista de un vídeo. Cambiar la media de un destino reinicia solo ese destino.
+`PostPlanner::plan()` valida la media **efectiva** de cada destino con `MediaValidator` (tipos, número, duración, tamaño) y el error nombra el destino. También rechaza archivos ajenos, inexistentes o repetidos, `alt` en vídeo o en redes que no lo publican (hasta 1000 caracteres) y `cover_id` que no sea una imagen lista de un vídeo. Cambiar la media de un destino reinicia solo ese destino.
 
 ## Qué red admite qué
 

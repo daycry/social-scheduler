@@ -18,7 +18,7 @@ Navegador ──PUT prefirmado──► Cloudflare R2 (media)       Workers syst
 | Capa | Ruta | Responsabilidad |
 |---|---|---|
 | Controladores / Inertia | `app/Http/Controllers/`, `resources/js/Pages/` | Web: marcas, conexiones, compositor, calendario, dashboards, informes, API keys |
-| Servicios | `app/Services/` | Lógica única compartida por web y MCP (`PostService`, `CalendarService`, `AnalyticsService`, `ReportService`…) |
+| Servicios | `app/Services/` | Lógica única compartida por web y MCP (`PostService` como fachada sobre `Services/Posts`, `CalendarService`, `AnalyticsService`, `ReportService`…) |
 | Conectores | `app/Connectors/{Meta,Google,TikTok}/` | OAuth, publicación, sondeo e insights por red, tras los contratos de `app/Connectors/Contracts/` |
 | Jobs | `app/Jobs/` | Publicar, sondear, refrescar tokens, snapshots, informes |
 | MCP | `app/Mcp/`, `routes/ai.php` | 25 herramientas sobre los mismos servicios |

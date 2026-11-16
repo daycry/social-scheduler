@@ -3,12 +3,14 @@
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Data\PublishMedia;
 use App\Connectors\Data\PublishRequest;
+use App\Connectors\Data\PublishResult;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Connectors\Exceptions\TransientPublishException;
 use App\Connectors\Google\YouTubePublisher;
 use App\Connectors\Google\YouTubeQuota;
+use App\Connectors\Google\YouTubeVideoMetadata;
 use App\Connectors\Network;
 use App\Enums\ContentType;
 use App\Enums\PostStatus;
@@ -253,12 +255,12 @@ test('YouTubePublish: sin presupuesto de tiempo la subida se corta y el sondeo l
         ));
 
     $first = $this->yt->publish($this->account, ytRequest());
-    expect($first->isProcessing())->toBeTrue()->and($first->reference)->toBe(YouTubePublisher::UPLOADING);
+    expect($first->isProcessing())->toBeTrue()->and($first->reference)->toBe(PublishResult::UPLOADING);
 
-    $second = $this->yt->poll($this->account, ytRequest(reference: YouTubePublisher::UPLOADING));
-    expect($second->reference)->toBe(YouTubePublisher::UPLOADING);
+    $second = $this->yt->poll($this->account, ytRequest(reference: PublishResult::UPLOADING));
+    expect($second->reference)->toBe(PublishResult::UPLOADING);
 
-    $third = $this->yt->poll($this->account, ytRequest(reference: YouTubePublisher::UPLOADING));
+    $third = $this->yt->poll($this->account, ytRequest(reference: PublishResult::UPLOADING));
     expect($third->reference)->toBe('VID3');
     expect(Cache::get('youtube:upload:77'))->toBeNull();
     // Cada pasada sigue leyendo por trozos: nada supera un trozo.
@@ -266,7 +268,7 @@ test('YouTubePublish: sin presupuesto de tiempo la subida se corta y el sondeo l
 });
 
 test('YouTubePublish: si se pierde la sesion guardada el sondeo falla con motivo claro', function () {
-    expect(fn () => $this->yt->poll($this->account, ytRequest(reference: YouTubePublisher::UPLOADING)))->toThrow(PermanentPublishException::class, 'sesion de subida');
+    expect(fn () => $this->yt->poll($this->account, ytRequest(reference: PublishResult::UPLOADING)))->toThrow(PermanentPublishException::class, 'sesion de subida');
 });
 
 test('YouTubePublish: findPublished localiza SU video por el tag del destino (no por titulo) y no inventa uno (revision F4-5 #4)', function () {
@@ -275,8 +277,8 @@ test('YouTubePublish: findPublished localiza SU video por el tag del destino (no
         ['snippet' => ['title' => 'Mi titulo', 'publishedAt' => '2026-10-01T11:59:00Z', 'resourceId' => ['videoId' => 'OLD']]],     // anterior a `since`
         ['snippet' => ['title' => 'Mi titulo', 'publishedAt' => '2026-11-01T11:59:30Z', 'resourceId' => ['videoId' => 'VID9']]],
     ]]])->on('GET', '#youtube/v3/videos\?part=snippet&id=#', ['json' => ['items' => [
-        ['id' => 'AJENO', 'snippet' => ['tags' => [YouTubePublisher::targetTag(12)]]],
-        ['id' => 'VID9', 'snippet' => ['tags' => ['otro', YouTubePublisher::targetTag(77)]]],
+        ['id' => 'AJENO', 'snippet' => ['tags' => [YouTubeVideoMetadata::targetTag(12)]]],
+        ['id' => 'VID9', 'snippet' => ['tags' => ['otro', YouTubeVideoMetadata::targetTag(77)]]],
     ]]])->on('GET', '#youtube/v3/videos\?part=status#', ['json' => ['items' => [['status' => ['uploadStatus' => 'processed']]]]]);
 
     $found = $this->yt->findPublished($this->account, ytRequest());
@@ -414,11 +416,11 @@ test('YouTubePublish N7: la sesion marca el video con un tag OPACO por destino q
     $this->yt->publish($this->account, ytRequest());
 
     $tags = $this->http->callsTo('POST', '#uploadType=resumable#')[0]['json']['snippet']['tags'];
-    expect($tags)->toBe([YouTubePublisher::targetTag(77)])
+    expect($tags)->toBe([YouTubeVideoMetadata::targetTag(77)])
         ->and($tags[0])->toMatch('/^ss-[0-9a-f]{16}$/')->not->toBe('ss-77')
-        ->and(YouTubePublisher::targetTag(77))->not->toBe(YouTubePublisher::targetTag(78));
+        ->and(YouTubeVideoMetadata::targetTag(77))->not->toBe(YouTubeVideoMetadata::targetTag(78));
     config(['app.key' => 'base64:'.base64_encode(str_repeat('z', 32))]);
-    expect(YouTubePublisher::targetTag(77))->not->toBe($tags[0]); // depende de APP_KEY: no se deduce del id
+    expect(YouTubeVideoMetadata::targetTag(77))->not->toBe($tags[0]); // depende de APP_KEY: no se deduce del id
 });
 
 test('YouTubePublish N5: la idempotencia pagina las subidas desde `since` con tope de paginas (revision F4-5 i2 N5)', function () {
@@ -428,7 +430,7 @@ test('YouTubePublish N5: la idempotencia pagina las subidas desde `since` con to
         ['json' => ['nextPageToken' => 'P3', 'items' => [$item('B1', '2026-11-01T11:59:30Z'), $item('MIO', '2026-11-01T11:59:20Z')]]],
     ))->on('GET', '#youtube/v3/videos\?part=snippet&id=#', FakeHttp::seq(
         ['json' => ['items' => [['id' => 'A1', 'snippet' => ['tags' => []]], ['id' => 'A2', 'snippet' => ['tags' => []]]]]],
-        ['json' => ['items' => [['id' => 'B1', 'snippet' => ['tags' => []]], ['id' => 'MIO', 'snippet' => ['tags' => [YouTubePublisher::targetTag(77)]]]]]],
+        ['json' => ['items' => [['id' => 'B1', 'snippet' => ['tags' => []]], ['id' => 'MIO', 'snippet' => ['tags' => [YouTubeVideoMetadata::targetTag(77)]]]]]],
     ))->on('GET', '#youtube/v3/videos\?part=status#', ['json' => ['items' => [['status' => ['uploadStatus' => 'processed']]]]]);
 
     expect($this->yt->findPublished($this->account, ytRequest())->externalId)->toBe('MIO');
@@ -462,7 +464,7 @@ test('YouTubePublish: la consulta de offset con 200/201 toma el id del cuerpo, s
             ['status' => 201, 'json' => ['id' => 'VIDQ', 'status' => ['uploadStatus' => 'uploaded']]], // sondeo: la consulta ya devuelve el video
         ));
     $saved = [];
-    $req = new PublishRequest(77, ContentType::YouTubeVideo, 'Mi titulo', [ytMedia()], [], YouTubePublisher::UPLOADING, now()->subMinutes(5), [], function ($ref) use (&$saved) {
+    $req = new PublishRequest(77, ContentType::YouTubeVideo, 'Mi titulo', [ytMedia()], [], PublishResult::UPLOADING, now()->subMinutes(5), [], function ($ref) use (&$saved) {
         $saved[] = $ref;
     });
 
@@ -511,7 +513,7 @@ test('YouTubePublish: el presupuesto se comprueba antes de cada PUT: sin margen 
 
     $r = $this->yt->publish($this->account, ytRequest());
 
-    expect($r->reference)->toBe(YouTubePublisher::UPLOADING)->and($this->http->callsTo('PUT', '#upload_id=SESS1$#'))->toHaveCount(1);
+    expect($r->reference)->toBe(PublishResult::UPLOADING)->and($this->http->callsTo('PUT', '#upload_id=SESS1$#'))->toHaveCount(1);
 });
 
 test('YouTubePublish: chunk_bytes se redondea a multiplo de 256 KiB (revision F4-5 #17)', function () {

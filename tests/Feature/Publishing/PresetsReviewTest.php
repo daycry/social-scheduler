@@ -4,6 +4,7 @@ use App\Connectors\Data\PublishMedia;
 use App\Connectors\Data\PublishRequest;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Google\YouTubePublisher;
+use App\Connectors\Google\YouTubeVideoMetadata;
 use App\Connectors\Network;
 use App\Connectors\TikTok\TikTokPublisher;
 use App\Enums\ContentType;
@@ -209,9 +210,9 @@ test('PresetsReview: sin visibilidad pedida y sin SELF_ONLY usa la mas restricti
 // --- Extra: tags de YouTube sin saltos de linea ni caracteres de control ---
 
 test('PresetsReview: los tags de YouTube no llevan saltos de linea ni caracteres de control y el marcador sigue primero', function () {
-    $tags = YouTubePublisher::tagsFor(77, ["uno\ndos", "tres\r\ncuatro", "cin\x00co\x07", "\n\t", 'normal']);
+    $tags = YouTubeVideoMetadata::tagsFor(77, ["uno\ndos", "tres\r\ncuatro", "cin\x00co\x07", "\n\t", 'normal']);
 
-    expect($tags[0])->toBe(YouTubePublisher::targetTag(77))
+    expect($tags[0])->toBe(YouTubeVideoMetadata::targetTag(77))
         ->and(array_slice($tags, 1))->toBe(['uno dos', 'tres cuatro', 'cin co', 'normal']);
     foreach ($tags as $tag) {
         expect(preg_match('/[\x00-\x1F\x7F]/', $tag))->toBe(0);

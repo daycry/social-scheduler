@@ -2,7 +2,7 @@
 
 namespace App\Services\Posts;
 
-use App\Connectors\Google\YouTubePublisher;
+use App\Connectors\Google\YouTubeResumableUpload;
 use App\Connectors\LinkedIn\LinkedInPostOptions;
 use App\Connectors\LinkedIn\LinkedInPublisher;
 use App\Connectors\Meta\Facebook\FacebookPostOptions;
@@ -452,7 +452,7 @@ class PostPlanner
             }
             if ($fresh) {
                 $attributes = $this->transitions->keepRatePause($current, $attributes);
-                YouTubePublisher::forgetUploadSession($current->id);
+                YouTubeResumableUpload::forgetSession($current->id);
             }
 
             if ($current->status === $plan['status']) {

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Connectors\Google\YouTubePublisher;
+use App\Connectors\Google\YouTubeComments;
 use App\Connectors\LinkedIn\LinkedInPostOptions;
 use App\Connectors\LinkedIn\LinkedInPublisher;
 use App\Connectors\Meta\Instagram\InstagramAudio;
@@ -220,7 +220,7 @@ class PostController extends Controller
                 'direct_post' => $a->network === Network::TikTok && ($a->meta['direct_post'] ?? false) === true,
                 // Primer comentario (C-01b): YouTube lo necesita el permiso `youtube.force-ssl`; sin el, el canal debe reconectarse.
                 'can_comment' => match ($a->network) {
-                    Network::YouTube => YouTubePublisher::canComment($a),
+                    Network::YouTube => YouTubeComments::canComment($a),
                     Network::LinkedIn => LinkedInPublisher::canComment($a),
                     default => true,
                 },

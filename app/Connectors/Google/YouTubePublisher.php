@@ -11,7 +11,6 @@ use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\PublishException;
 use App\Enums\ContentType;
 use App\Models\SocialAccount;
-use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -64,18 +63,6 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
     {
         $this->upload = new YouTubeResumableUpload($client, fn (SocialAccount $account, PublishRequest $request) => $this->findPublished($account, $request));
         $this->comments = new YouTubeComments($client);
-    }
-
-    /** ¿El canal concedio el permiso de comentar? (ver `YouTubeComments::canComment`) */
-    public static function canComment(SocialAccount $account): bool
-    {
-        return YouTubeComments::canComment($account);
-    }
-
-    /** Olvida la sesion de subida reanudable cacheada de un destino (al empezar de cero tras un error). */
-    public static function forgetUploadSession(int $targetId): void
-    {
-        YouTubeResumableUpload::forgetSession($targetId);
     }
 
     public function publish(SocialAccount $account, PublishRequest $request): PublishResult
@@ -204,22 +191,6 @@ class YouTubePublisher implements FirstCommenter, Publisher, StatusPoller
     public function findOwnComment(SocialAccount $account, string $externalId, string $text): ?string
     {
         return $this->comments->findOwn($account, $externalId, $text);
-    }
-
-    /** Borra un video del canal (scope `youtube`; `youtube.upload` no lo permite). `false` si ya no existia. */
-    public function deleteVideo(SocialAccount $account, string $videoId): bool
-    {
-        $response = $this->client->send($account, fn (PendingRequest $http) => $http->delete(YouTubeClient::API.'/videos?'.http_build_query(['id' => $videoId])), false);
-
-        if ($response->status() === 204) {
-            return true;
-        }
-
-        if ($response->status() === 404) {
-            return false;
-        }
-
-        throw $this->client->exceptionFor($response);
     }
 
     private function watchUrl(string $id, ContentType $type): string

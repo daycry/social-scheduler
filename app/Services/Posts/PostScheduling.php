@@ -2,7 +2,7 @@
 
 namespace App\Services\Posts;
 
-use App\Connectors\Google\YouTubePublisher;
+use App\Connectors\Google\YouTubeResumableUpload;
 use App\Enums\PostStatus;
 use App\Exceptions\PostValidationException;
 use App\Jobs\DispatchDuePosts;
@@ -38,7 +38,7 @@ class PostScheduling
                 if ($target->status !== PostStatus::Draft) {
                     // Al volver a borrador el estado residual del intento anterior se descarta (el contenido puede cambiar).
                     $this->transitions->apply($target, PostStatus::Draft, $this->transitions->freshAttempt($target, $this->transitions->effectiveText($target, $post->text), $post->scheduled_at));
-                    YouTubePublisher::forgetUploadSession($target->id);
+                    YouTubeResumableUpload::forgetSession($target->id);
                 }
             }
             $post->syncStatus();
@@ -77,7 +77,7 @@ class PostScheduling
             $targets->filter(fn (PostTarget $t) => $t->status === PostStatus::Failed)
                 ->each(function (PostTarget $t) use ($post, $oldScheduledAt) {
                     $this->transitions->transition($t, PostStatus::Scheduled, $this->transitions->freshAttempt($t, $this->transitions->effectiveText($t, $post->text), $oldScheduledAt));
-                    YouTubePublisher::forgetUploadSession($t->id); // la sesion de subida del intento anterior no se reutiliza
+                    YouTubeResumableUpload::forgetSession($t->id); // la sesion de subida del intento anterior no se reutiliza
                 });
             $post->syncStatus();
         });
@@ -98,7 +98,7 @@ class PostScheduling
                     $this->transitions->apply($target, PostStatus::Failed, ['error_code' => 'cuenta_no_disponible', 'error_message' => 'Enviada a la papelera: la cuenta ya no estaba disponible.']);
                 } elseif ($target->status === PostStatus::Scheduled) {
                     $this->transitions->apply($target, PostStatus::Draft, $this->transitions->freshAttempt($target, $this->transitions->effectiveText($target, $post->text), $post->scheduled_at));
-                    YouTubePublisher::forgetUploadSession($target->id);
+                    YouTubeResumableUpload::forgetSession($target->id);
                 }
             }
             $post->syncStatus();
@@ -139,7 +139,7 @@ class PostScheduling
                     continue;
                 }
                 $this->transitions->apply($target, PostStatus::Scheduled, $this->transitions->freshAttempt($target, $this->transitions->effectiveText($target, $locked->text), $locked->scheduled_at) + ['manual_notified_at' => null, 'manual_reminded_at' => null]);
-                YouTubePublisher::forgetUploadSession($target->id);
+                YouTubeResumableUpload::forgetSession($target->id);
                 $retried[] = $target->id;
             }
             if ($retried !== []) {

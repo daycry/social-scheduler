@@ -299,14 +299,6 @@ test('YouTubePublish: si la consulta de idempotencia falla, no se bloquea (null)
     expect($this->yt->findPublished($this->account, ytRequest(reference: 'VID1'))->isProcessing())->toBeTrue();
 });
 
-test('YouTubePublish: borrar un video usa el scope youtube y distingue borrado, inexistente y error', function () {
-    $this->http->on('DELETE', '#youtube/v3/videos\?#', FakeHttp::seq(['status' => 204], ['status' => 404], ['status' => 403, 'json' => ['error' => ['message' => 'x']]]));
-
-    expect($this->yt->deleteVideo($this->account, 'VID1'))->toBeTrue()->and($this->yt->deleteVideo($this->account, 'VID1'))->toBeFalse();
-    expect(fn () => $this->yt->deleteVideo($this->account, 'VID1'))->toThrow(PermanentPublishException::class);
-    expect($this->http->callsTo('DELETE', '#videos#')[0]['url'])->toContain('id=VID1');
-});
-
 test('YouTubePublish: sin video o con tipo ajeno falla de forma permanente', function () {
     $noMedia = new PublishRequest(1, ContentType::YouTubeVideo, 'x', [], [], null, now());
     expect(fn () => $this->yt->publish($this->account, $noMedia))->toThrow(PermanentPublishException::class, 'video');

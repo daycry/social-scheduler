@@ -288,8 +288,33 @@ class StudioRenderer
      */
     private function execute(User $user, Brand $brand, array $document, array $pageIds, array $times, string $format, array $options, string $directory): array
     {
-        $frames = app(StudioFrames::class);
         $disk = Storage::disk('local');
+        [$sampledPages, $assetIds, $fontIds] = $this->sampleReferences($document, $pageIds, $times);
+        $chartFiles = app(StudioChartFiles::class)->materialize($user, $brand, ['pages' => $sampledPages], $directory);
+        $bytes = 0;
+        $assets = $this->inlineAssets($user, $brand, $assetIds, $bytes);
+        $fonts = $this->inlineFonts($user, $brand, $fontIds, $bytes);
+        $disk->makeDirectory($directory);
+        $input = ['document' => $document, 'assets' => $assets, 'fonts' => $fonts, 'brandId' => (int) $brand->id, 'chartFiles' => $chartFiles,
+            'format' => $format, 'pageIds' => $pageIds] + $options;
+        $result = Process::path(base_path())->timeout(100)->input(json_encode($input, JSON_THROW_ON_ERROR))->run([
+            config('studio.node', 'node'), base_path('scripts/studio/render.mjs'), $disk->path($directory),
+        ]);
+        if (! $result->successful()) {
+            throw new StudioRenderFailure('El renderizador no pudo completar el archivo. Comprueba Node, Chromium y npm run build en el servidor.');
+        }
+
+        return json_decode($result->output(), true, 32, JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * Elementos de las paginas pedidas (muestreados en su instante si el documento es animado) y los ids de recursos y fuentes que citan.
+     *
+     * @return array{0: list<array{elements: array<int, mixed>}>, 1: array<int, true>, 2: array<int, true>} paginas muestreadas, ids de recursos e ids de fuentes
+     */
+    private function sampleReferences(array $document, array $pageIds, array $times): array
+    {
+        $frames = app(StudioFrames::class);
         $assetIds = [];
         $fontIds = [];
         if (! empty($document['timeline']['captions']['cues']) && isset($document['timeline']['captions']['style']['font_id'])) {
@@ -321,9 +346,19 @@ class StudioRenderer
                 $sampledPages[] = ['elements' => $elements];
             }
         }
-        $chartFiles = app(StudioChartFiles::class)->materialize($user, $brand, ['pages' => $sampledPages], $directory);
+
+        return [$sampledPages, $assetIds, $fontIds];
+    }
+
+    /**
+     * Recursos del diseno incrustados como `data:` para el renderizador; `$bytes` acumula el tope de 64 MB compartido con las fuentes.
+     *
+     * @param  array<int, true>  $assetIds
+     * @return list<array<string, mixed>>
+     */
+    private function inlineAssets(User $user, Brand $brand, array $assetIds, int &$bytes): array
+    {
         $assets = [];
-        $bytes = 0;
         foreach ($this->assets->many($user, $brand, array_keys($assetIds)) as $asset) {
             $source = Storage::disk($asset->disk);
             $size = $source->size($asset->path);
@@ -337,6 +372,18 @@ class StudioRenderer
             }
             $assets[] = $asset->only(['id', 'kind', 'mime', 'width', 'height', 'duration']) + ['preview_url' => 'data:'.$asset->mime.';base64,'.base64_encode($content)];
         }
+
+        return $assets;
+    }
+
+    /**
+     * Fuentes privadas del diseno verificadas (tamano, firma WOFF2 y hash) e incrustadas; comparten el tope de bytes con los recursos.
+     *
+     * @param  array<int, true>  $fontIds
+     * @return list<array<string, mixed>>
+     */
+    private function inlineFonts(User $user, Brand $brand, array $fontIds, int &$bytes): array
+    {
         $fonts = [];
         foreach ($this->fonts->many($user, $brand, array_keys($fontIds)) as $font) {
             $source = Storage::disk($font->disk);
@@ -353,17 +400,7 @@ class StudioRenderer
             $metadata['file_url'] = 'data:font/woff2;base64,'.base64_encode($content);
             $fonts[] = $metadata;
         }
-        $disk->makeDirectory($directory);
-        $input = ['document' => $document, 'assets' => $assets, 'fonts' => $fonts, 'brandId' => (int) $brand->id, 'chartFiles' => $chartFiles,
-            'format' => $format, 'pageIds' => $pageIds] + $options;
-        $result = Process::path(base_path())->timeout(100)->input(json_encode($input, JSON_THROW_ON_ERROR))->run([
-            config('studio.node', 'node'), base_path('scripts/studio/render.mjs'), $disk->path($directory),
-        ]);
-        if (! $result->successful()) {
-            throw new StudioRenderFailure('El renderizador no pudo completar el archivo. Comprueba Node, Chromium y npm run build en el servidor.');
-        }
-        $manifest = json_decode($result->output(), true, 32, JSON_THROW_ON_ERROR);
 
-        return $manifest;
+        return $fonts;
     }
 }

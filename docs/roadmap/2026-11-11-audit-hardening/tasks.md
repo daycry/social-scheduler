@@ -1775,66 +1775,77 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 ### T-42 — Partir `SiteService`, `StudioAvState`, `StudioRenderer::render` y `RemoteMediaImporter::run`
 
 - **Descripción**: Extraer `SiteBlockNormalizer`, `SiteAccess` y `SitePublicInteractions` y partir `render` y `run` por fases.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Sin cambios visibles: los sitios, la importación remota de medios y el render del estudio se reorganizan en piezas más pequeñas; el enlace de acceso y los mensajes de los sitios siguen igual.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-41
 - **Tipo**: backend
-- **Archivos**: `app/Services/Sites/SiteService.php`, `app/Services/Sites/SiteBlockNormalizer.php`, `app/Services/Sites/SiteAccess.php`, `app/Services/Sites/SitePublicInteractions.php`, `app/Services/Studio/StudioAvState.php`, `app/Services/Studio/StudioRenderer.php`, `app/Services/Media/RemoteMediaImporter.php`
+- **Archivos**: `app/Services/Sites/SiteService.php`, `app/Services/Sites/SiteBlockNormalizer.php`, `app/Services/Sites/SiteAccess.php`, `app/Services/Sites/SitePublicInteractions.php`, `app/Services/Studio/StudioAvState.php`, `app/Services/Studio/StudioRenderer.php`, `app/Services/Media/RemoteMediaImporter.php`, `app/Http/Controllers/PublicSiteController.php`, `app/Http/Controllers/SiteController.php`, `app/Services/Sites/SiteRenderer.php`, `tests/Feature/Sites/SiteTest.php`, `docs/modulos/sitios.md`
 - **Cubre**: C-06
 - **Cubre (tests)**: E2E-38
 - **Verificación**: `php artisan test --compact --filter=Site` → verde · `php artisan test --compact --filter=StudioRenderer` → verde
 
 **Criterios de aceptación**
-- [ ] Ningún método supera 60 líneas en los ficheros citados
-- [ ] Sitios públicos y render del estudio sin diferencias observables
+- [x] Ningún método supera 60 líneas en los ficheros citados
+- [x] Sitios públicos y render del estudio sin diferencias observables
 - [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+- Implementación (2026-11-16, commits `3543754`, `RemoteMediaImporter`, `StudioRenderer` x2 y `72ad22b`): **`SiteService`** 676 -> 240 líneas en cuatro piezas: `SiteBlockNormalizer` (páginas, bloques y medios del borrador; un normalizador privado por tipo de bloque; ahora aloja `MAX_PAGES`, `MAX_BLOCKS`, `BLOCK_TYPES` y `PAGE_SLUG`), `SiteAccess` (ya existía con la cookie y los limitadores del visitante; ahora también la gestión del propietario: `updateAccess`, `createToken`, `revokeToken`, `revokeAllAccess`, `findToken`, `MAX_TOKENS`; deja de depender de `SiteService`), `SitePublicInteractions` (visitas, estadísticas, mensajes con tope FIFO, encuestas, `MAX_MESSAGES`) y `SiteService` (alta, borrador, publicación, tema). Sin alias ni puentes: `SiteController`, `PublicSiteController`, `SiteRenderer` y `SiteTest` usan la clase nueva (`SiteController` pasa a inyectar las tres). La comprobación de propiedad (`abort_unless` 404) es una línea repetida en `SiteAccess` y `SitePublicInteractions` para no acoplarlas.
+- **`RemoteMediaImporter::run`** 143 -> 25 líneas: `guard` (cortes previos), `openPartial` (parcial + latido), `fetchPass` (pasada; las excepciones de dominio suben a `run`), `sizePolicy`, `restartFromZero` y `settle` (estado, tipo, sniff, cierre o nueva pasada). El orden de efectos y el estado guardado no cambian.
+- **`StudioRenderer::render`** 178 -> 14 líneas: `produce` (carga y fases), `storeFiles`, `importImage`, `packageDownload` (`zipWithExtension`/`zipWithPython`) y `abandon` (el fallo, con la limpieza de lo creado). `execute` (80 líneas) también se parte: `sampleReferences`, `inlineAssets`, `inlineFonts` (el tope de 64 MB sigue compartido por referencia).
+- **`StudioAvState`** (sin cambios de clase): ningún método pasa de 60 líneas (`accept` 75 -> por fases con `acceptPlan`/`acceptVerification`/`acceptRegistration`/`assertCheckpointFile`; `checkpointRegistration` 86 -> `checkpointJournal` y `runCheckpoint`; el resto ya estaba por debajo). **Pendiente:** el fichero sigue en ~860 líneas y ~51 métodos: la partición en clases (registro, claim/lease, tareas) no se hizo porque comparten helpers privados transaccionales (`activeLease`, `saveState`, `reserveSqliteWriter`) y cada movimiento exige reordenar la semántica de bloqueo; siguiente paso propuesto: `StudioAvRegistrationState` con `allocateRegistration`, `bindRegistrationLocation`, `checkpointRegistration`, `registrationSource` y `assertRegistrationPin`, con `activeLease` y `saveState` expuestos desde el núcleo.
+- Verificación (2026-11-16): Pest antes (HEAD `487d0ac`, `Sites Studio Media Inbox Mcp Connectors Parity`): 2102 tests, 2093 passed, 9 skipped, 0 failed. Después (T-42 + T-43): 2104 tests (+2 nuevos de T-43), 2095 passed, 9 skipped, 0 failed; una primera pasada detectó un tipo de retorno mal puesto (`acceptVerification` devolvía un id de texto como `int`), corregido. Pint OK. Playwright no se lanza (lo hace el coordinador).
+- Pendiente (coordinador): revisión adversarial A+B(+C), Pest completo y Playwright serial.
 
 **Notas**: Tamaño M.
 
 ### T-43 — Inbox: Meta como `CommentSource` y capacidad `HidesComments`
 
 - **Descripción**: Meta pasa a implementar `CommentSource` y `HidesComments`; las listas de redes y `can_hide` se derivan de las capacidades en lugar de escribirse en 6 sitios.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Sin cambios visibles: las redes del buzón de comentarios y qué cuentas pueden ocultar comentarios se deciden en un solo sitio, y una red nueva con comentarios aparece en el buzón sin más cambios.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-22, T-42
 - **Tipo**: backend
-- **Archivos**: `app/Services/InboxService.php`, `app/Http/Controllers/InboxController.php`, `app/Mcp/Tools/ListComments.php`, `app/Connectors/Meta/Comments.php`, `app/Connectors/Contracts/HidesComments.php`
+- **Archivos**: `app/Services/InboxService.php`, `app/Http/Controllers/InboxController.php`, `app/Mcp/Tools/ListComments.php`, `app/Connectors/Meta/Comments.php`, `app/Connectors/Contracts/HidesComments.php`, `app/Connectors/Contracts/CommentSource.php`, `app/Connectors/ConnectorRegistry.php`, `app/Providers/AppServiceProvider.php`, `app/Jobs/SyncInboxComments.php`, `app/Connectors/Threads/ThreadsComments.php`, `app/Connectors/Bluesky/BlueskyComments.php`, `app/Connectors/Google/YouTubeComments.php`, `tests/Feature/Inbox/InboxCapabilitiesTest.php`, `tests/Feature/Inbox/InboxCoverageTest.php`, `tests/Feature/Inbox/InboxProvidersTest.php`, `tests/Feature/Inbox/T20ReviewTest.php`, `tests/Feature/Parity/InboxTest.php`, `tests/e2e/isolated/bootstrap.php`, `tests/e2e/roadmap/bootstrap.php`, `docs/modulos/inbox.md`
 - **Cubre**: C-07
 - **Cubre (tests)**: E2E-38
 - **Verificación**: `php artisan test --compact --filter=Inbox` → verde
 
 **Criterios de aceptación**
-- [ ] Una red nueva con `CommentSource` aparece en el inbox sin editar `InboxService`
-- [ ] `can_hide` se deriva de la capacidad
+- [x] Una red nueva con `CommentSource` aparece en el inbox sin editar `InboxService`
+- [x] `can_hide` se deriva de la capacidad
 - [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
+
+- Implementación (2026-11-16, commit `7bc347f`): `Meta\Comments` implementa `CommentSource` y la nueva capacidad `Contracts\HidesComments` (`setHidden`); `hasScopes` deja de ser estático. `CommentSource` gana `missingScopes` (las cuatro fuentes la implementan; antes era un `match` por red en `InboxService`). `ConnectorRegistry::registerComments/commentsFor/commentNetworks/canHideComments` es la única fuente: `AppServiceProvider` registra Instagram+Facebook (misma instancia de Meta), Threads, Bluesky y YouTube de forma incondicional (como la antigua constante, para no cambiar quién se sincroniza cuando una red está apagada). Se borran `InboxService::NETWORKS`, `source()` con `match`, la lista instagram/facebook de `can_hide` (comentarios y cuentas en `InboxController`), la de `ListComments` (filtro y descripción) y la de `moderationAccount`/`setHidden`; `coverage()` es de instancia y deriva read/reply/hide del registro (las notas por red siguen en una tabla de texto). `SyncInboxComments::handle` recibe `InboxService` y los bootstraps e2e (`isolated` y `roadmap`, que sustituyen el registro) registran las cinco fuentes. Tests: se actualizan los usos de `coverage()`, `NETWORKS` y `handle()` y se añade `InboxCapabilitiesTest` (red nueva sin tocar `InboxService`, `can_hide` por capacidad). LinkedIn y Pinterest (T-22) siguen en la cobertura como fuera; `hide`/`unhide` de `triage_comments` (T-30) se rechazan con el mismo mensaje, ahora construido con las redes que ocultan. Queda fija la frase «solo Instagram y Facebook» en la descripción estática del atributo de `TriageComments` (los atributos no admiten expresiones).
+- Verificación (2026-11-16): `php artisan test --compact tests/Feature/Inbox tests/Feature/Parity tests/Feature/Mcp tests/Feature/Connectors tests/Feature/Connections tests/Feature/FirstComment tests/Feature/Api` 1273/1273; el comparativo antes/después de las siete carpetas está en T-42 (2102 -> 2104, solo los 2 tests nuevos). Pint OK.
+- Pendiente (coordinador): revisión adversarial A+B(+C), Pest completo y Playwright serial (`inbox-triage`, `inbox-notes`).
 
 **Notas**: Tamaño M.
 

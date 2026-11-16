@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\MediaAsset;
 use App\Models\Site;
 use App\Services\Sites\SiteAccess;
+use App\Services\Sites\SitePublicInteractions;
 use App\Services\Sites\SiteRenderer;
-use App\Services\Sites\SiteService;
 use App\Support\SiteView;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,7 +28,7 @@ use Throwable;
  */
 class PublicSiteController extends Controller
 {
-    public function __construct(private readonly SiteService $sites, private readonly SiteAccess $access, private readonly SiteRenderer $renderer) {}
+    public function __construct(private readonly SitePublicInteractions $interactions, private readonly SiteAccess $access, private readonly SiteRenderer $renderer) {}
 
     public function show(Request $request, string $slug, ?string $page = null): Response|RedirectResponse
     {
@@ -57,7 +57,7 @@ class PublicSiteController extends Controller
         abort_unless($response, 404);
 
         $current = $page === null ? $doc['pages'][0] : collect($doc['pages'])->firstWhere('slug', $page);
-        $this->sites->recordVisit($site, $current['key']);
+        $this->interactions->recordVisit($site, $current['key']);
 
         return $response;
     }
@@ -133,7 +133,7 @@ class PublicSiteController extends Controller
 
         $age = SiteView::tokenAge($site, $block['key'], (string) $request->input('ts', ''));
         $ok = $age !== null && $age >= 2 && $age <= 7200
-            && $this->sites->addMessage($site, $page['key'], $block['key'], (string) $request->input('name', ''), (string) $request->input('email', ''), (string) $request->input('message', ''));
+            && $this->interactions->addMessage($site, $page['key'], $block['key'], (string) $request->input('name', ''), (string) $request->input('email', ''), (string) $request->input('message', ''));
 
         return redirect($back.'?sent='.($ok ? '1' : '0').'#contacto');
     }
@@ -148,7 +148,7 @@ class PublicSiteController extends Controller
         // Un voto por bloque y hora y cliente (IPv6 por /64): `Cache::add` reserva de forma atomica y solo gana la primera peticion.
         $option = $request->input('option');
         if (is_numeric($option) && (int) $option >= 0 && (int) $option < count($block['options']) && Cache::add($this->access->limiterKey($request, $site, 'vote-'.$block['key']), 1, 3600)) {
-            $this->sites->vote($site, $block, (int) $option);
+            $this->interactions->vote($site, $block, (int) $option);
         }
 
         return redirect($this->pageUrl($site, $page).'?voted='.$block['key'].'#p-'.$block['key']);

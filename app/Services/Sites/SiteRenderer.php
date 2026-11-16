@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
  */
 class SiteRenderer
 {
-    public function __construct(private readonly SiteService $sites) {}
+    public function __construct(private readonly SitePublicInteractions $interactions) {}
 
     /**
      * @param  array<string, mixed>  $doc  instantanea (publica) o borrador + tema (vista previa)
@@ -32,7 +32,7 @@ class SiteRenderer
         $polls = [];
         foreach ($page['blocks'] as $b) {
             if ($b['type'] === 'poll') {
-                $polls[$b['key']] = $this->sites->pollResults($site, $b);
+                $polls[$b['key']] = $this->interactions->pollResults($site, $b);
             }
         }
         $state = [

@@ -7,7 +7,7 @@ Cada marca construye una web de varias páginas con el tema de su kit de marca y
 | Pieza | Dónde |
 |---|---|
 | Rutas | `routes/sites.php` (constructor con sesión; públicas sin sesión, cookies de Laravel ni CSRF) |
-| Servicios | `app/Services/Sites/{SiteService,SiteAccess,SiteRenderer}.php` |
+| Servicios | `app/Services/Sites/{SiteService,SiteBlockNormalizer,SiteAccess,SitePublicInteractions,SiteRenderer}.php` |
 | Controladores | `SiteController` (constructor), `PublicSiteController` (público) |
 | Vistas | `resources/js/Pages/Sites/{Index,Edit}.vue`, `resources/views/sites/` |
 | MCP | `manage_site` (`list`, `get_url`, `publish`, `unpublish`) con `sites:read` y `sites:write` |

@@ -8,6 +8,9 @@ use App\Models\MediaAsset;
 use App\Models\Site;
 use App\Models\SiteToken;
 use App\Models\Studio\DesignExport;
+use App\Services\Sites\SiteAccess;
+use App\Services\Sites\SiteBlockNormalizer;
+use App\Services\Sites\SitePublicInteractions;
 use App\Services\Sites\SiteRenderer;
 use App\Services\Sites\SiteService;
 use App\Support\CurrentBrand;
@@ -22,7 +25,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 /** Sitios · gestion (T-15): lista, constructor del borrador, vista previa, publicacion, acceso y analitica. Solo el propietario. */
 class SiteController extends Controller
 {
-    public function __construct(private readonly SiteService $sites, private readonly SiteRenderer $renderer) {}
+    public function __construct(private readonly SiteService $sites, private readonly SiteAccess $access, private readonly SitePublicInteractions $interactions, private readonly SiteRenderer $renderer) {}
 
     public function index(Request $request): InertiaResponse
     {
@@ -73,21 +76,21 @@ class SiteController extends Controller
                 'last_used_at' => $t->last_used_at?->toIso8601String(), 'state' => $t->revoked_at ? 'revoked' : ($t->expires_at && $t->expires_at->isPast() ? 'expired' : 'active'),
             ])->values(),
             'new_token' => $request->session()->get('site_token'),
-            'stats' => $this->sites->stats($site),
+            'stats' => $this->interactions->stats($site),
             'messages' => $messages->map(fn ($m) => ['id' => $m->id, 'name' => $m->name, 'email' => $m->email, 'message' => $m->message, 'created_at' => $m->created_at, 'unread' => $m->read_at === null])->values(),
             'messages_meta' => ['page' => $messages->currentPage(), 'last' => $messages->lastPage(), 'total' => $messages->total(), 'unread' => $unread],
             'images' => MediaAsset::query()->where('kind', MediaAsset::KIND_IMAGE)->where('status', MediaAsset::STATUS_READY)->latest()->limit(100)->get()
                 ->map(fn (MediaAsset $m) => ['id' => $m->id, 'name' => $m->original_name, 'url' => route('sites.preview-media', ['site' => $site->id, 'media' => $m->id], false)])->values(),
             'exports' => DesignExport::query()->where('brand_id', $brand->id)->where('status', 'ready')->latest('id')->limit(50)->with('design')->get()
                 ->map(fn (DesignExport $x) => ['id' => $x->id, 'label' => ($x->design?->name ?? 'Diseño').' · revisión '.$x->revision, 'pages' => count((array) $x->media_ids)])->values(),
-            'limits' => ['pages' => SiteService::MAX_PAGES, 'blocks' => SiteService::MAX_BLOCKS],
+            'limits' => ['pages' => SiteBlockNormalizer::MAX_PAGES, 'blocks' => SiteBlockNormalizer::MAX_BLOCKS],
             'flash' => ['success' => $request->session()->get('success')],
         ]);
     }
 
     public function update(Request $request, Site $site): RedirectResponse
     {
-        $request->validate(['title' => ['required', 'string', 'max:100'], 'slug' => ['required', 'string', 'max:40'], 'pages' => ['required', 'array', 'max:'.SiteService::MAX_PAGES]]);
+        $request->validate(['title' => ['required', 'string', 'max:100'], 'slug' => ['required', 'string', 'max:40'], 'pages' => ['required', 'array', 'max:'.SiteBlockNormalizer::MAX_PAGES]]);
 
         try {
             $this->sites->saveDraft($request->user(), $site, $request->all());
@@ -121,7 +124,7 @@ class SiteController extends Controller
         $data = $request->validate(['access_mode' => ['required', 'in:'.implode(',', Site::ACCESS_MODES)], 'password' => ['nullable', 'string', 'max:128'], 'noindex' => ['nullable', 'boolean']]);
 
         try {
-            $this->sites->updateAccess($request->user(), $site, $data['access_mode'], $data['password'] ?? null, (bool) ($data['noindex'] ?? false));
+            $this->access->updateAccess($request->user(), $site, $data['access_mode'], $data['password'] ?? null, (bool) ($data['noindex'] ?? false));
         } catch (PostValidationException $e) {
             return back()->withErrors($e->errors());
         }
@@ -134,7 +137,7 @@ class SiteController extends Controller
         $data = $request->validate(['label' => ['required', 'string', 'max:60'], 'days' => ['nullable', 'integer', 'min:1', 'max:365']]);
 
         try {
-            [, $plain] = $this->sites->createToken($request->user(), $site, $data['label'], isset($data['days']) ? (int) $data['days'] : null);
+            [, $plain] = $this->access->createToken($request->user(), $site, $data['label'], isset($data['days']) ? (int) $data['days'] : null);
         } catch (PostValidationException $e) {
             return back()->withErrors($e->errors());
         }
@@ -144,21 +147,21 @@ class SiteController extends Controller
 
     public function destroyToken(Request $request, Site $site, SiteToken $token): RedirectResponse
     {
-        $this->sites->revokeToken($request->user(), $site, $token);
+        $this->access->revokeToken($request->user(), $site, $token);
 
         return back()->with('success', 'Enlace revocado: deja de funcionar al instante.');
     }
 
     public function revokeAll(Request $request, Site $site): RedirectResponse
     {
-        $this->sites->revokeAllAccess($request->user(), $site);
+        $this->access->revokeAllAccess($request->user(), $site);
 
         return back()->with('success', 'Acceso revocado: se cerraron todas las sesiones y se revocaron todos los enlaces.');
     }
 
     public function clearMessages(Request $request, Site $site): RedirectResponse
     {
-        $n = $this->sites->clearMessages($request->user(), $site, $request->boolean('only_read'));
+        $n = $this->interactions->clearMessages($request->user(), $site, $request->boolean('only_read'));
 
         return back()->with('success', $n.' '.($n === 1 ? 'mensaje eliminado.' : 'mensajes eliminados.'));
     }

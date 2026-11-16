@@ -9,6 +9,7 @@ use App\Models\Studio\Design;
 use App\Models\Studio\DesignExport;
 use App\Models\User;
 use App\Services\Sites\SiteAccess;
+use App\Services\Sites\SitePublicInteractions;
 use App\Services\Sites\SiteService;
 use App\Services\SmartLinkService;
 use App\Support\SafeUrl;
@@ -31,6 +32,8 @@ beforeEach(function () {
     $this->user = User::factory()->create();
     $this->brand = Brand::factory()->for($this->user)->create(['name' => 'Mi marca']);
     $this->svc = app(SiteService::class);
+    $this->access = app(SiteAccess::class);
+    $this->interactions = app(SitePublicInteractions::class);
     Storage::fake('media');
 });
 
@@ -143,7 +146,7 @@ test('la pagina publica lleva CSP estricta, cabeceras de seguridad, navegacion y
 
 test('noindex opcional: meta y cabecera', function () {
     $site = siteMk($this);
-    $this->svc->updateAccess($this->user, $site, 'public', null, true);
+    $this->access->updateAccess($this->user, $site, 'public', null, true);
     $this->svc->publish($this->user, $site->refresh());
     $r = $this->get('/s/mi-sitio')->assertOk()->assertSee('<meta name="robots" content="noindex, nofollow">', false);
     expect($r->headers->get('X-Robots-Tag'))->toContain('noindex');
@@ -151,9 +154,9 @@ test('noindex opcional: meta y cabecera', function () {
 
 test('acceso con contraseña: hash, cookie firmada, y cierre de sesiones al cambiarla', function () {
     $site = siteMk($this);
-    expect(fn () => $this->svc->updateAccess($this->user, $site, 'password', null, false))->toThrow(PostValidationException::class);
-    expect(fn () => $this->svc->updateAccess($this->user, $site, 'password', 'corta', false))->toThrow(PostValidationException::class);
-    $this->svc->updateAccess($this->user, $site, 'password', 'una-clave-larga', false);
+    expect(fn () => $this->access->updateAccess($this->user, $site, 'password', null, false))->toThrow(PostValidationException::class);
+    expect(fn () => $this->access->updateAccess($this->user, $site, 'password', 'corta', false))->toThrow(PostValidationException::class);
+    $this->access->updateAccess($this->user, $site, 'password', 'una-clave-larga', false);
     $site->refresh();
     expect($site->password_hash)->not->toContain('una-clave-larga');
     $this->svc->publish($this->user, $site);
@@ -168,13 +171,13 @@ test('acceso con contraseña: hash, cookie firmada, y cierre de sesiones al camb
     $this->withUnencryptedCookie($cookie->getName(), $cookie->getValue())->get('/s/mi-sitio')->assertOk()->assertSee('Mi sitio');
     $this->withUnencryptedCookie($cookie->getName(), strrev($cookie->getValue()))->get('/s/mi-sitio')->assertStatus(401);
 
-    $this->svc->updateAccess($this->user, $site->refresh(), 'password', 'otra-clave-larga', false);
+    $this->access->updateAccess($this->user, $site->refresh(), 'password', 'otra-clave-larga', false);
     $this->withUnencryptedCookie($cookie->getName(), $cookie->getValue())->get('/s/mi-sitio')->assertStatus(401);
 });
 
 test('la contraseña tiene rate limit sin guardar la IP', function () {
     $site = siteMk($this);
-    $this->svc->updateAccess($this->user, $site, 'password', 'una-clave-larga', false);
+    $this->access->updateAccess($this->user, $site, 'password', 'una-clave-larga', false);
     $this->svc->publish($this->user, $site->refresh());
     foreach (range(1, 5) as $i) {
         $this->post('/s/mi-sitio/_access', ['password' => 'mala'])->assertStatus(401);
@@ -185,9 +188,9 @@ test('la contraseña tiene rate limit sin guardar la IP', function () {
 
 test('acceso por token: hash, canje por cookie sin el token en la URL, caducidad y revocacion inmediata', function () {
     $site = siteMk($this);
-    $this->svc->updateAccess($this->user, $site, 'token', null, false);
+    $this->access->updateAccess($this->user, $site, 'token', null, false);
     $this->svc->publish($this->user, $site->refresh());
-    [$token, $plain] = $this->svc->createToken($this->user, $site, 'Cliente', 7);
+    [$token, $plain] = $this->access->createToken($this->user, $site, 'Cliente', 7);
     expect(SiteToken::first()->token_hash)->toBe(hash('sha256', $plain))->and(json_encode(SiteToken::first()))->not->toContain($plain);
 
     $this->get('/s/mi-sitio')->assertStatus(403)->assertDontSee('Mi sitio');
@@ -205,19 +208,19 @@ test('acceso por token: hash, canje por cookie sin el token en la URL, caducidad
     Carbon::setTestNow('2026-11-10 12:00:00');
     $with()->get('/s/mi-sitio')->assertOk();
 
-    $this->svc->revokeToken($this->user, $site, $token); // efecto inmediato sobre la sesion ya emitida y sobre el enlace
+    $this->access->revokeToken($this->user, $site, $token); // efecto inmediato sobre la sesion ya emitida y sobre el enlace
     $with()->get('/s/mi-sitio')->assertStatus(403);
     $this->get('/s/mi-sitio?t='.$plain)->assertStatus(403);
 });
 
 test('revocar todo el acceso cierra sesiones y enlaces', function () {
     $site = siteMk($this);
-    $this->svc->updateAccess($this->user, $site, 'token', null, false);
+    $this->access->updateAccess($this->user, $site, 'token', null, false);
     $this->svc->publish($this->user, $site->refresh());
-    [, $plain] = $this->svc->createToken($this->user, $site, 'A', null);
+    [, $plain] = $this->access->createToken($this->user, $site, 'A', null);
     $cookie = $this->get('/s/mi-sitio?t='.$plain)->headers->getCookies()[0];
     $this->withUnencryptedCookie($cookie->getName(), $cookie->getValue())->get('/s/mi-sitio')->assertOk();
-    $this->svc->revokeAllAccess($this->user, $site->refresh());
+    $this->access->revokeAllAccess($this->user, $site->refresh());
     $this->withUnencryptedCookie($cookie->getName(), $cookie->getValue())->get('/s/mi-sitio')->assertStatus(403);
     expect(SiteToken::whereNull('revoked_at')->count())->toBe(0);
 });
@@ -273,7 +276,7 @@ test('la analitica cuenta visitas por pagina y dia sin IP ni agente', function (
     $this->get('/s/mi-sitio');
     $this->get('/s/mi-sitio/contacto');
     $this->get('/s/mi-sitio/inexistente');
-    $stats = $this->svc->stats($site);
+    $stats = $this->interactions->stats($site);
     expect($stats['total'])->toBe(3)->and($stats['by_page'])->toBe(['aaaaaaa1' => 2, 'bbbbbbb2' => 1]);
     expect(array_keys((array) DB::table('site_visits')->first()))->toBe(['id', 'site_id', 'page_key', 'date', 'count']);
 });
@@ -337,8 +340,8 @@ test('gestion: aislamiento por usuario, vista previa del borrador y publicar/des
 
 test('MCP: manage_site lista, devuelve la URL, publica y despublica con sus abilities y sin ver sitios ajenos', function () {
     $site = siteMk($this);
-    $this->svc->updateAccess($this->user, $site, 'token', null, false);
-    [, $plain] = $this->svc->createToken($this->user, $site, 'A', null);
+    $this->access->updateAccess($this->user, $site, 'token', null, false);
+    [, $plain] = $this->access->createToken($this->user, $site, 'A', null);
     $reader = $this->mcpKey($this->user, ['sites:read']);
     $writer = $this->mcpKey($this->user, ['sites:read', 'sites:write']);
     $alien = Site::withoutUserScope()->create(['user_id' => User::factory()->create()->id, 'brand_id' => Brand::factory()->create()->id, 'slug' => 'ajeno', 'title' => 'x', 'draft' => ['pages' => []]]);
@@ -359,9 +362,9 @@ test('MCP: manage_site lista, devuelve la URL, publica y despublica con sus abil
 
 test('revision: cambiar el slug del borrador no rompe lo publicado; al republicar la direccion antigua redirige con 301 y queda reservada', function () {
     $site = siteMk($this, 'promo');
-    $this->svc->updateAccess($this->user, $site, 'token', null, false);
+    $this->access->updateAccess($this->user, $site, 'token', null, false);
     $this->svc->publish($this->user, $site->refresh());
-    [, $plain] = $this->svc->createToken($this->user, $site, 'A', null);
+    [, $plain] = $this->access->createToken($this->user, $site, 'A', null);
 
     siteSave($this, $site->refresh(), sitePages([['type' => 'heading', 'text' => 'Hola', 'level' => 2]]), ['slug' => 'nuevo']);
     $this->get('/s/promo?t='.$plain)->assertRedirect('/s/promo'); // sigue vivo, con su token
@@ -387,19 +390,19 @@ test('revision: el formulario nunca se bloquea al llegar al tope (FIFO), avisa u
     $site = siteMk($this);
     siteSave($this, $site, sitePages([['type' => 'contact', 'title' => 'C']]));
     $this->svc->publish($this->user, $site->refresh());
-    $rows = collect(range(1, SiteService::MAX_MESSAGES))->map(fn ($i) => ['site_id' => $site->id, 'page_key' => 'aaaaaaa1', 'block_key' => 'x', 'name' => "n$i", 'email' => 'a@example.com', 'message' => "m$i", 'created_at' => now()]);
+    $rows = collect(range(1, SitePublicInteractions::MAX_MESSAGES))->map(fn ($i) => ['site_id' => $site->id, 'page_key' => 'aaaaaaa1', 'block_key' => 'x', 'name' => "n$i", 'email' => 'a@example.com', 'message' => "m$i", 'created_at' => now()]);
     $rows->chunk(100)->each(fn ($c) => DB::table('site_messages')->insert($c->all()));
 
-    expect($this->svc->addMessage($site, 'aaaaaaa1', 'x', 'Nuevo', 'b@example.com', 'ultimo'))->toBeTrue()
-        ->and($this->svc->addMessage($site, 'aaaaaaa1', 'x', 'Nuevo2', 'b@example.com', 'ultimo2'))->toBeTrue();
-    expect(DB::table('site_messages')->count())->toBe(SiteService::MAX_MESSAGES)->and(DB::table('site_messages')->where('name', 'n1')->exists())->toBeFalse()
+    expect($this->interactions->addMessage($site, 'aaaaaaa1', 'x', 'Nuevo', 'b@example.com', 'ultimo'))->toBeTrue()
+        ->and($this->interactions->addMessage($site, 'aaaaaaa1', 'x', 'Nuevo2', 'b@example.com', 'ultimo2'))->toBeTrue();
+    expect(DB::table('site_messages')->count())->toBe(SitePublicInteractions::MAX_MESSAGES)->and(DB::table('site_messages')->where('name', 'n1')->exists())->toBeFalse()
         ->and(DB::table('site_messages')->where('name', 'Nuevo2')->exists())->toBeTrue();
     expect($this->user->notifications()->count())->toBe(1); // una sola vez
 
     $props = $this->actingAs($this->user)->get(route('sites.edit', $site))->assertOk()->viewData('page')['props'];
     expect($props['messages'])->toHaveCount(20)->and($props['messages_meta']['last'])->toBe(25);
     $this->actingAs($this->user)->delete(route('sites.messages.clear', $site), ['only_read' => true])->assertRedirect();
-    expect(DB::table('site_messages')->count())->toBe(SiteService::MAX_MESSAGES - 20);
+    expect(DB::table('site_messages')->count())->toBe(SitePublicInteractions::MAX_MESSAGES - 20);
     $this->actingAs($this->user)->delete(route('sites.messages.clear', $site))->assertRedirect();
     expect(DB::table('site_messages')->count())->toBe(0);
 });
@@ -414,7 +417,7 @@ test('revision: limites por sitio y por /64 de IPv6; voto y contrasena reservan 
     $this->withServerVariables(['REMOTE_ADDR' => '2001:db8:1:2::1'])->post("/s/mi-sitio/_vote/aaaaaaa1/$poll", ['option' => 0]);
     $this->withServerVariables(['REMOTE_ADDR' => '2001:db8:1:2:ffff::9'])->post("/s/mi-sitio/_vote/aaaaaaa1/$poll", ['option' => 0]); // mismo /64
     $this->withServerVariables(['REMOTE_ADDR' => '2001:db8:1:3::1'])->post("/s/mi-sitio/_vote/aaaaaaa1/$poll", ['option' => 1]); // otro /64
-    expect($this->svc->pollResults($site, $blocks[0]))->toBe([1, 1]);
+    expect($this->interactions->pollResults($site, $blocks[0]))->toBe([1, 1]);
 
     foreach (range(1, 30) as $i) {
         RateLimiter::hit('site-contact-all:'.$site->id, 3600); // el sitio ya agoto su cupo por hora
@@ -424,7 +427,7 @@ test('revision: limites por sitio y por /64 de IPv6; voto y contrasena reservan 
         ->assertRedirect('/s/mi-sitio?sent=0#contacto');
     expect(DB::table('site_messages')->count())->toBe(0);
 
-    $this->svc->updateAccess($this->user, $site, 'password', 'una-clave-larga', false);
+    $this->access->updateAccess($this->user, $site, 'password', 'una-clave-larga', false);
     foreach (range(1, 50) as $i) {
         RateLimiter::hit('site-pw-all:'.$site->id, 900);
     }

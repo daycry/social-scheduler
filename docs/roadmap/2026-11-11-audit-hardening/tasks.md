@@ -1690,6 +1690,11 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
 
+- Implementación (2026-11-16, commit `dcd4bd3` + docs `eb54893`): 7 FormRequests compartidos en `app/Http/Requests/Studio/` (`ListDesignsRequest` + `ListDesignsApiRequest` que solo añade «true»/«false» como texto en la query, `DuplicateDesignRequest`, `FolderNameRequest`, `MoveDesignRequest`, `AttachAssetRequest`, `ListExportsRequest`, `EditorRequest`); la orquestación de `edit`/`show` pasa a `StudioEditor` (`web()`, `api()`, `brandProps()`, `apiAssets()`). `StudioController` 292 → 238 líneas, `StudioApiController` 226 → 190; no queda ningún `$request->validate(` con reglas duplicadas entre ambos. Sin alias ni métodos puente: se borraron `editorProps`, `brandProps` y `assetData` de los controladores.
+- Decisiones: (1) `StudioEditor` es una clase nueva y no más líneas en `StudioService` (ya 415) — por eso se añade a `Archivos`. (2) Único matiz de comportamiento: `GET studio` (web, `index`) ahora valida los filtros también cuando el usuario no tiene marca (antes devolvía el listado vacío sin validar); con filtros válidos nada cambia.
+- Verificación (2026-11-16): Pest antes (línea base de los refactors, `Posts Workflow Publishing Mcp Api Studio Parity Calendar Campaigns FirstComment Library Media`, HEAD `f40a583`): 2096 tests, 2087 passed, 9 skipped, 0 failed. Después de T-39: `Studio Api Mcp Parity Ui` → 1241 tests, 1232 passed, 9 skipped, 0 failed (una primera pasada dio 6 errores en `StudioAvRetirementTest` por solaparse con el Pest de otro agente; el fichero en solitario pasa 16/16 y la segunda pasada completa es verde). Pint OK. Sin Pest completo ni Playwright (los lanza el coordinador).
+- Pendiente (coordinador): revisión adversarial A+B(+C), Pest completo y Playwright serial.
+
 **Notas**: Tamaño M.
 
 ### T-40 — `PostService` (1/2): extraer `PostPlanner` y `PostSignature`
@@ -1703,11 +1708,6 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-39
 - **Tipo**: backend
-- Implementación (2026-11-16, commit `dcd4bd3` + docs `eb54893`): 7 FormRequests compartidos en `app/Http/Requests/Studio/` (`ListDesignsRequest` + `ListDesignsApiRequest` que solo añade «true»/«false» como texto en la query, `DuplicateDesignRequest`, `FolderNameRequest`, `MoveDesignRequest`, `AttachAssetRequest`, `ListExportsRequest`, `EditorRequest`); la orquestación de `edit`/`show` pasa a `StudioEditor` (`web()`, `api()`, `brandProps()`, `apiAssets()`). `StudioController` 292 → 238 líneas, `StudioApiController` 226 → 190; no queda ningún `$request->validate(` con reglas duplicadas entre ambos. Sin alias ni métodos puente: se borraron `editorProps`, `brandProps` y `assetData` de los controladores.
-- Decisiones: (1) `StudioEditor` es una clase nueva y no más líneas en `StudioService` (ya 415) — por eso se añade a `Archivos`. (2) Único matiz de comportamiento: `GET studio` (web, `index`) ahora valida los filtros también cuando el usuario no tiene marca (antes devolvía el listado vacío sin validar); con filtros válidos nada cambia.
-- Verificación (2026-11-16): Pest antes (línea base de los refactors, `Posts Workflow Publishing Mcp Api Studio Parity Calendar Campaigns FirstComment Library Media`, HEAD `f40a583`): 2096 tests, 2087 passed, 9 skipped, 0 failed. Después de T-39: `Studio Api Mcp Parity Ui` → 1241 tests, 1232 passed, 9 skipped, 0 failed (una primera pasada dio 6 errores en `StudioAvRetirementTest` por solaparse con el Pest de otro agente; el fichero en solitario pasa 16/16 y la segunda pasada completa es verde). Pint OK. Sin Pest completo ni Playwright (los lanza el coordinador).
-- Pendiente (coordinador): revisión adversarial A+B(+C), Pest completo y Playwright serial.
-
 - **Archivos**: `app/Services/PostService.php`, `app/Services/Posts/PostPlanner.php`, `app/Services/Posts/PostSignature.php`, `app/Services/Posts/PostTransitions.php`, `app/Services/Posts/PostApproval.php`, `app/Http/Controllers/PostController.php`, `app/Http/Requests/PostRequest.php`, `app/Services/CalendarService.php`, `app/Services/FirstCommentService.php`, `app/Services/LibraryService.php`, `tests/Feature/Posts/PostPlannerSignatureTest.php`, `tests/Feature/Publishing/RevisionFase2Intento2Test.php`, `docs/arquitectura.md`, `docs/modulos/publicacion.md`, `docs/modulos/media-por-destino.md`
 - **Cubre**: C-05
 - **Cubre (tests)**: E2E-38
@@ -1728,6 +1728,10 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
 
+- Implementación (2026-11-16, commit `9bb7925`, junto con T-41): `PostPlanner` (`plan`, `fill`, `optionErrors`, `effectiveTargetMedia`, `campaignErrors`, `normalizeOptions`, `normalizeNotes`, `parseWhen`, `dataFromPost`) y `PostSignature` (`ofPost`, `ofPlan`) extraídos con el código movido tal cual. Para evitar una dependencia circular (`fill` y las operaciones de ciclo de vida comparten la máquina de estados) se añade `PostTransitions` (`transition`, `apply`, `lockEditable`, `freshAttempt`, `releaseBackoff`, `keepRatePause`, `pausedTargets`); y la aprobación vive en `PostApproval` porque `create`/`update` la necesitan sin depender de `PostScheduling`. Tests propios: `PostPlannerSignatureTest` (7).
+- API pública de `PostService` intacta (mismos métodos y firmas). Movidos con sus usos actualizados (sin puente): `pausedTargets` → `PostTransitions` (`PostController`, test), `MEDIA_MISSING`/`MEDIA_MISSING_RETRY` → `PostScheduling` (`CalendarService`), `normalizeOptions` → `PostPlanner` (sin usos externos); referencias en comentarios y docs actualizadas.
+- Pendiente (coordinador): revisión adversarial A+B(+C), Pest completo y Playwright serial.
+
 **Notas**: Tamaño M. C-05 es L: se parte en dos.
 
 ### T-41 — `PostService` (2/2): extraer `PostScheduling`
@@ -1741,10 +1745,6 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-40
 - **Tipo**: backend
-- Implementación (2026-11-16, commit `9bb7925`, junto con T-41): `PostPlanner` (`plan`, `fill`, `optionErrors`, `effectiveTargetMedia`, `campaignErrors`, `normalizeOptions`, `normalizeNotes`, `parseWhen`, `dataFromPost`) y `PostSignature` (`ofPost`, `ofPlan`) extraídos con el código movido tal cual. Para evitar una dependencia circular (`fill` y las operaciones de ciclo de vida comparten la máquina de estados) se añade `PostTransitions` (`transition`, `apply`, `lockEditable`, `freshAttempt`, `releaseBackoff`, `keepRatePause`, `pausedTargets`); y la aprobación vive en `PostApproval` porque `create`/`update` la necesitan sin depender de `PostScheduling`. Tests propios: `PostPlannerSignatureTest` (7).
-- API pública de `PostService` intacta (mismos métodos y firmas). Movidos con sus usos actualizados (sin puente): `pausedTargets` → `PostTransitions` (`PostController`, test), `MEDIA_MISSING`/`MEDIA_MISSING_RETRY` → `PostScheduling` (`CalendarService`), `normalizeOptions` → `PostPlanner` (sin usos externos); referencias en comentarios y docs actualizadas.
-- Pendiente (coordinador): revisión adversarial A+B(+C), Pest completo y Playwright serial.
-
 - **Archivos**: `app/Services/PostService.php`, `app/Services/Posts/PostScheduling.php`, `app/Services/Posts/PostPlanner.php`, `app/Services/Posts/PostTransitions.php`, `app/Services/Posts/PostApproval.php`
 - **Cubre**: — (continuación de la tarea anterior; el ID se cuenta allí)
 - **Cubre (tests)**: E2E-38
@@ -1765,6 +1765,11 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
 
+- Implementación (2026-11-16, commit `9bb7925`, junto con T-40): `PostScheduling` (`unschedule`, `reschedule`, `delete`, `retryFailed`, `MEDIA_MISSING*`) recibe el `Post` ya verificado: la comprobación de propiedad (`assertOwns`) queda en la fachada, una sola vez. `schedule` y `publishNow` se quedan en `PostService` porque son `update()` con otros datos (`PostPlanner::dataFromPost`) y moverlos obligaba a que `PostScheduling` dependiera de `PostService`. La retención de ocurrencias de series (T-32: `holdForApproval`, `releaseApproval`, `scheduleApprovedOccurrence`, `collectApprovalRequests`) está en `PostApproval` con el código sin tocar; `publishNow`/`schedule` siguen rechazando una ocurrencia retenida por `PostApproval::applyRules`, y `retryFailed` por `isPublishable()`.
+- `PostService` 1220 → 335 líneas (< 400); controladores, API y MCP sin cambios salvo los dos usos de estáticos movidos (T-40).
+- Verificación (2026-11-16): Pest antes (HEAD `f40a583`, `Posts Workflow Publishing Mcp Api Studio Parity Calendar Campaigns FirstComment Library Media`): 2096 tests, 2087 passed, 9 skipped, 0 failed. Después: 2103 tests (+7 nuevos), 2084 passed, 9 skipped, 10 errores TODOS en `PresetsReviewTest` y `YouTubeOptionsTest` (`Class "YouTubePublisher" not found`: ficheros que el otro agente tenía a medias en T-38, ajenos a esta tarea); el resto idéntico a la línea base. Una primera pasada detectó un `use` olvidado en `CalendarService` (fallaban 2 tests de calendario y media), corregido. Pint OK.
+- Pendiente (coordinador): revisión adversarial A+B(+C), Pest completo y Playwright serial.
+
 **Notas**: Tamaño M. Continuación de C-05.
 
 ### T-42 — Partir `SiteService`, `StudioAvState`, `StudioRenderer::render` y `RemoteMediaImporter::run`
@@ -1778,11 +1783,6 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-41
 - **Tipo**: backend
-- Implementación (2026-11-16, commit `9bb7925`, junto con T-40): `PostScheduling` (`unschedule`, `reschedule`, `delete`, `retryFailed`, `MEDIA_MISSING*`) recibe el `Post` ya verificado: la comprobación de propiedad (`assertOwns`) queda en la fachada, una sola vez. `schedule` y `publishNow` se quedan en `PostService` porque son `update()` con otros datos (`PostPlanner::dataFromPost`) y moverlos obligaba a que `PostScheduling` dependiera de `PostService`. La retención de ocurrencias de series (T-32: `holdForApproval`, `releaseApproval`, `scheduleApprovedOccurrence`, `collectApprovalRequests`) está en `PostApproval` con el código sin tocar; `publishNow`/`schedule` siguen rechazando una ocurrencia retenida por `PostApproval::applyRules`, y `retryFailed` por `isPublishable()`.
-- `PostService` 1220 → 335 líneas (< 400); controladores, API y MCP sin cambios salvo los dos usos de estáticos movidos (T-40).
-- Verificación (2026-11-16): Pest antes (HEAD `f40a583`, `Posts Workflow Publishing Mcp Api Studio Parity Calendar Campaigns FirstComment Library Media`): 2096 tests, 2087 passed, 9 skipped, 0 failed. Después: 2103 tests (+7 nuevos), 2084 passed, 9 skipped, 10 errores TODOS en `PresetsReviewTest` y `YouTubeOptionsTest` (`Class "YouTubePublisher" not found`: ficheros que el otro agente tenía a medias en T-38, ajenos a esta tarea); el resto idéntico a la línea base. Una primera pasada detectó un `use` olvidado en `CalendarService` (fallaban 2 tests de calendario y media), corregido. Pint OK.
-- Pendiente (coordinador): revisión adversarial A+B(+C), Pest completo y Playwright serial.
-
 - **Archivos**: `app/Services/Sites/SiteService.php`, `app/Services/Sites/SiteBlockNormalizer.php`, `app/Services/Sites/SiteAccess.php`, `app/Services/Sites/SitePublicInteractions.php`, `app/Services/Studio/StudioAvState.php`, `app/Services/Studio/StudioRenderer.php`, `app/Services/Media/RemoteMediaImporter.php`
 - **Cubre**: C-06
 - **Cubre (tests)**: E2E-38

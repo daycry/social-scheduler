@@ -156,20 +156,7 @@ class StudioAvState
             }
             $media = MediaAsset::withoutUserScope()->where('user_id', $export->user_id)->whereKey($workspace->media_id)->lockForUpdate()->firstOrFail();
             $this->assertRegistrationPin($workspace, $media, $this->registrationSource($export)->result);
-            $allowed = ['stage', 'bytes', 'verified_bytes', 'complete', 'parts', 'object_etag'];
-            if (array_diff(array_keys($progress), $allowed) !== []) {
-                throw ValidationException::withMessages(['export' => ['El progreso no puede cambiar la identidad de la transferencia.']]);
-            }
-            $journal = array_replace($media->import_state, $progress);
-            if (! is_int($journal['bytes']) || ! is_int($journal['verified_bytes']) || ! is_bool($journal['complete'])
-                || $journal['bytes'] < $media->import_state['bytes'] || $journal['bytes'] > $journal['total']
-                || $journal['verified_bytes'] < $media->import_state['verified_bytes'] || $journal['verified_bytes'] > $journal['bytes']
-                || ! in_array($journal['stage'] ?? 'allocated', ['allocated', 'creating', 'copying', 'completing', 'verifying', 'done'], true)
-                || ! is_array($journal['parts']) || ! array_is_list($journal['parts']) || count($journal['parts']) > 512
-                || ($journal['complete'] && ($journal['bytes'] !== $journal['total'] || $journal['verified_bytes'] !== $journal['total']))
-                || strlen(json_encode($journal, JSON_THROW_ON_ERROR)) > 256 * 1024 || ($uploadId !== null && (strlen($uploadId) > 1024 || $uploadId === ''))) {
-                throw ValidationException::withMessages(['export' => ['El progreso de la transferencia no es válido.']]);
-            }
+            $journal = $this->checkpointJournal($media->import_state, $progress, $uploadId);
             $media->update(['import_state' => $journal, 'upload_id' => $uploadId]);
             $receipt = $workspace->media_receipt;
             $receipt['upload_id'] = $uploadId;
@@ -180,6 +167,88 @@ class StudioAvState
 
             return true;
         };
+
+        return $this->runCheckpoint($checkpoint, $deadline);
+    }
+
+    private function registrationSource(DesignExport $export): StudioAvLease
+    {
+        $sources = $this->checkpoints($export, ['assemble']);
+        if ($sources->count() !== 1) {
+            throw ValidationException::withMessages(['export' => ['Falta un único render final aceptado.']]);
+        }
+        $source = $sources->first();
+        $result = $source->result;
+        $plan = StudioAvWorkspace::withoutUserScope()->findOrFail($source->workspace_id)->plan;
+        $mp4 = $export->format === 'mp4';
+        $width = $plan['render']['paddedWidth'] ?? null;
+        $height = $plan['render']['paddedHeight'] ?? null;
+        if (! is_int($result['size'] ?? null) || $result['size'] < 1 || $result['size'] !== $source->actual_bytes
+            || preg_match('/^[a-f0-9]{64}$/D', $result['sha256'] ?? '') !== 1
+            || ($result['file'] ?? null) !== 'outputs/'.$source->id.'/project.'.$export->format || ($result['namespace'] ?? null) !== $source->id
+            || ! is_int($width) || ! is_int($height) || $width < 1 || $height < 1
+            || ($result['width'] ?? null) !== $width || ($result['height'] ?? null) !== $height
+            || ($result['fps'] ?? null) !== ($plan['fps'] ?? null) || ($result['frameCount'] ?? null) !== ($plan['frameCount'] ?? null)
+            || ! is_numeric($result['duration'] ?? null) || ! is_finite((float) $result['duration'])
+            || abs($result['duration'] - $plan['duration']) > ($mp4 ? 1 / $plan['fps'] : 0.011)
+            || ($result['videoCodec'] ?? null) !== ($mp4 ? 'h264' : 'gif')
+            || ($result['audioCodec'] ?? null) !== ($mp4 && ($plan['audioAssetIds'] ?? []) !== [] ? 'aac' : null)) {
+            throw ValidationException::withMessages(['export' => ['Los metadatos finales no coinciden con el plan aceptado.']]);
+        }
+
+        return $source;
+    }
+
+    private function assertRegistrationPin(StudioAvWorkspace $workspace, MediaAsset $media, array $result): void
+    {
+        if ($workspace->media_retiring) {
+            throw new StudioAvWorkspaceBusy('La copia anterior todavía se está retirando.');
+        }
+        $journal = $media->import_state;
+        $mp4 = $result['videoCodec'] === 'h264';
+        if ($media->status !== MediaAsset::STATUS_PENDING || ($journal['studio_av'] ?? null) !== $workspace->uuid
+            || ($journal['sha256'] ?? null) !== $result['sha256'] || ($journal['total'] ?? null) !== $result['size']
+            || $media->declared_size !== $result['size'] || $media->disk !== ($journal['disk'] ?? null)
+            || $media->path !== 'media/'.$workspace->user_id.'/studio-'.$workspace->uuid.($mp4 ? '.mp4' : '.gif')
+            || $media->mime !== ($mp4 ? 'video/mp4' : 'image/gif') || $media->kind !== ($mp4 ? MediaAsset::KIND_VIDEO : MediaAsset::KIND_IMAGE)
+            || $result['size'] > (int) config('media.max_bytes.'.$media->kind, 0)) {
+            throw ValidationException::withMessages(['export' => ['La transferencia no pertenece al render final pendiente.']]);
+        }
+    }
+
+    /**
+     * Diario de la transferencia tras aplicar el progreso: solo avanza (nunca retrocede ni cambia la identidad) y respeta los topes.
+     *
+     * @param  array<string, mixed>  $current
+     * @param  array<string, mixed>  $progress
+     * @return array<string, mixed>
+     */
+    private function checkpointJournal(array $current, array $progress, ?string $uploadId): array
+    {
+        $allowed = ['stage', 'bytes', 'verified_bytes', 'complete', 'parts', 'object_etag'];
+        if (array_diff(array_keys($progress), $allowed) !== []) {
+            throw ValidationException::withMessages(['export' => ['El progreso no puede cambiar la identidad de la transferencia.']]);
+        }
+        $journal = array_replace($current, $progress);
+        if (! is_int($journal['bytes']) || ! is_int($journal['verified_bytes']) || ! is_bool($journal['complete'])
+            || $journal['bytes'] < $current['bytes'] || $journal['bytes'] > $journal['total']
+            || $journal['verified_bytes'] < $current['verified_bytes'] || $journal['verified_bytes'] > $journal['bytes']
+            || ! in_array($journal['stage'] ?? 'allocated', ['allocated', 'creating', 'copying', 'completing', 'verifying', 'done'], true)
+            || ! is_array($journal['parts']) || ! array_is_list($journal['parts']) || count($journal['parts']) > 512
+            || ($journal['complete'] && ($journal['bytes'] !== $journal['total'] || $journal['verified_bytes'] !== $journal['total']))
+            || strlen(json_encode($journal, JSON_THROW_ON_ERROR)) > 256 * 1024 || ($uploadId !== null && (strlen($uploadId) > 1024 || $uploadId === ''))) {
+            throw ValidationException::withMessages(['export' => ['El progreso de la transferencia no es válido.']]);
+        }
+
+        return $journal;
+    }
+
+    /**
+     * Ejecuta el checkpoint en una transaccion. En SQLite con plazo, el `busy_timeout` se acota al tiempo que queda (tambien para el COMMIT)
+     * y un bloqueo ocupado pasado el plazo se traduce en `phase_timeout`.
+     */
+    private function runCheckpoint(\Closure $checkpoint, ?float $deadline): bool
+    {
         $connection = DB::connection();
         $busyTimeout = null;
         try {
@@ -227,51 +296,6 @@ class StudioAvState
             if ($busyTimeout !== null) {
                 $connection->statement('PRAGMA busy_timeout = '.$busyTimeout);
             }
-        }
-    }
-
-    private function registrationSource(DesignExport $export): StudioAvLease
-    {
-        $sources = $this->checkpoints($export, ['assemble']);
-        if ($sources->count() !== 1) {
-            throw ValidationException::withMessages(['export' => ['Falta un único render final aceptado.']]);
-        }
-        $source = $sources->first();
-        $result = $source->result;
-        $plan = StudioAvWorkspace::withoutUserScope()->findOrFail($source->workspace_id)->plan;
-        $mp4 = $export->format === 'mp4';
-        $width = $plan['render']['paddedWidth'] ?? null;
-        $height = $plan['render']['paddedHeight'] ?? null;
-        if (! is_int($result['size'] ?? null) || $result['size'] < 1 || $result['size'] !== $source->actual_bytes
-            || preg_match('/^[a-f0-9]{64}$/D', $result['sha256'] ?? '') !== 1
-            || ($result['file'] ?? null) !== 'outputs/'.$source->id.'/project.'.$export->format || ($result['namespace'] ?? null) !== $source->id
-            || ! is_int($width) || ! is_int($height) || $width < 1 || $height < 1
-            || ($result['width'] ?? null) !== $width || ($result['height'] ?? null) !== $height
-            || ($result['fps'] ?? null) !== ($plan['fps'] ?? null) || ($result['frameCount'] ?? null) !== ($plan['frameCount'] ?? null)
-            || ! is_numeric($result['duration'] ?? null) || ! is_finite((float) $result['duration'])
-            || abs($result['duration'] - $plan['duration']) > ($mp4 ? 1 / $plan['fps'] : 0.011)
-            || ($result['videoCodec'] ?? null) !== ($mp4 ? 'h264' : 'gif')
-            || ($result['audioCodec'] ?? null) !== ($mp4 && ($plan['audioAssetIds'] ?? []) !== [] ? 'aac' : null)) {
-            throw ValidationException::withMessages(['export' => ['Los metadatos finales no coinciden con el plan aceptado.']]);
-        }
-
-        return $source;
-    }
-
-    private function assertRegistrationPin(StudioAvWorkspace $workspace, MediaAsset $media, array $result): void
-    {
-        if ($workspace->media_retiring) {
-            throw new StudioAvWorkspaceBusy('La copia anterior todavía se está retirando.');
-        }
-        $journal = $media->import_state;
-        $mp4 = $result['videoCodec'] === 'h264';
-        if ($media->status !== MediaAsset::STATUS_PENDING || ($journal['studio_av'] ?? null) !== $workspace->uuid
-            || ($journal['sha256'] ?? null) !== $result['sha256'] || ($journal['total'] ?? null) !== $result['size']
-            || $media->declared_size !== $result['size'] || $media->disk !== ($journal['disk'] ?? null)
-            || $media->path !== 'media/'.$workspace->user_id.'/studio-'.$workspace->uuid.($mp4 ? '.mp4' : '.gif')
-            || $media->mime !== ($mp4 ? 'video/mp4' : 'image/gif') || $media->kind !== ($mp4 ? MediaAsset::KIND_VIDEO : MediaAsset::KIND_IMAGE)
-            || $result['size'] > (int) config('media.max_bytes.'.$media->kind, 0)) {
-            throw ValidationException::withMessages(['export' => ['La transferencia no pertenece al render final pendiente.']]);
         }
     }
 
@@ -437,56 +461,13 @@ class StudioAvState
                 throw ValidationException::withMessages(['export' => ['El resultado no coincide con su reserva de disco.']]);
             }
             if ($current->phase === 'plan') {
-                $tasks = $this->tasks($export, $result, $workspace);
-                $this->installSteps($workspace, $state['generation'], $tasks);
-                $state['total'] = count($tasks);
-                $workspace->update(['plan' => $result]);
+                $state['total'] = $this->acceptPlan($export, $workspace, $result);
             } elseif ($current->phase === 'verify') {
-                $task = $step->descriptor();
-                $source = StudioAvLease::where('workspace_id', $workspace->id)->whereKey($task['source'])->where('status', 'accepted')->first();
-                if (! $source || $source->phase !== $task['target_phase'] || $source->item !== $task['target_index'] || $this->canonical($source->result) !== $this->canonical($result)) {
-                    throw ValidationException::withMessages(['export' => ['La verificación no coincide con el checkpoint aceptado.']]);
-                }
-                $resultLease = $source->id;
+                $resultLease = $this->acceptVerification($workspace, $step, $result);
             } elseif ($current->phase === 'register') {
-                $mediaId = $result['media_id'] ?? null;
-                $media = is_int($mediaId) && $workspace->media_id === $mediaId
-                    ? MediaAsset::withoutUserScope()->where('user_id', $export->user_id)->whereKey($mediaId)->lockForUpdate()->first() : null;
-                if (! $media) {
-                    throw ValidationException::withMessages(['export' => ['El recurso final no pertenece al trabajo.']]);
-                }
-                $source = $this->registrationSource($export);
-                $output = $source->result;
-                $this->assertRegistrationPin($workspace, $media, $output);
-                $journal = $media->import_state;
-                if (($journal['complete'] ?? null) !== true || ($journal['bytes'] ?? null) !== $output['size']
-                    || ($journal['verified_bytes'] ?? null) !== $output['size']) {
-                    throw ValidationException::withMessages(['export' => ['La transferencia final aún no está verificada.']]);
-                }
-                $media->forceFill(['status' => MediaAsset::STATUS_READY, 'size' => $output['size'], 'width' => $output['width'],
-                    'height' => $output['height'], 'duration' => $output['duration'], 'fps' => $output['fps'],
-                    'codec' => $output['videoCodec'], 'audio_codec' => $output['audioCodec'], 'upload_id' => null, 'error' => null])->save();
-                StudioAsset::withoutUserScope()->firstOrCreate(['brand_id' => $export->brand_id, 'media_asset_id' => $mediaId], ['user_id' => $export->user_id]);
-                $export->media_ids = [$mediaId];
-                $receipt = $workspace->media_receipt;
-                $receipt['state'] = 'published';
-                $receipt['upload_id'] = null;
-                $workspace->update(['media_reserved_bytes' => 0, 'media_receipt' => $receipt]);
-                $export->disk = 'local';
-                $export->path = 'studio-exports/'.$export->user_id.'/'.$export->id.'/'.$workspace->uuid.'/'.$output['file'];
+                $this->acceptRegistration($export, $workspace, $result);
             } else {
-                $expected = match ($current->phase) {
-                    'asset' => "imports/{$current->id}/asset-{$current->item}.bin",
-                    'font' => "imports/{$current->id}/font-{$current->item}.woff2",
-                    'normalize' => "audio-sources/{$current->id}/{$current->item}.pcm",
-                    'render' => sprintf('segments/%s/video-%06d.%s', $current->id, $current->item, $export->format),
-                    'mix' => sprintf('segments/%s/audio-%06d.wav', $current->id, $current->item),
-                    'assemble' => "outputs/{$current->id}/project.{$export->format}",
-                    default => null,
-                };
-                if ($expected === null || ($result['file'] ?? null) !== $expected || ($result['namespace'] ?? null) !== $current->id || preg_match('/^[a-f0-9]{64}$/D', $result['sha256'] ?? '') !== 1) {
-                    throw ValidationException::withMessages(['export' => ['El checkpoint no coincide con su fase y lease.']]);
-                }
+                $this->assertCheckpointFile($current, $export, $result);
             }
             $current->update(['status' => 'accepted', 'result' => $result, 'actual_bytes' => $bytes]);
             $step->update(['result_lease_id' => $resultLease]);
@@ -496,6 +477,75 @@ class StudioAvState
 
             return true;
         });
+    }
+
+    /** Fase `plan`: instala los pasos del plan y devuelve cuantos son. */
+    private function acceptPlan(DesignExport $export, StudioAvWorkspace $workspace, array $result): int
+    {
+        $tasks = $this->tasks($export, $result, $workspace);
+        $this->installSteps($workspace, $export->render_state['generation'], $tasks);
+        $workspace->update(['plan' => $result]);
+
+        return count($tasks);
+    }
+
+    /** Fase `verify`: el resultado debe coincidir con el checkpoint ya aceptado; devuelve el lease de origen. */
+    private function acceptVerification(StudioAvWorkspace $workspace, StudioAvStep $step, array $result): string
+    {
+        $task = $step->descriptor();
+        $source = StudioAvLease::where('workspace_id', $workspace->id)->whereKey($task['source'])->where('status', 'accepted')->first();
+        if (! $source || $source->phase !== $task['target_phase'] || $source->item !== $task['target_index'] || $this->canonical($source->result) !== $this->canonical($result)) {
+            throw ValidationException::withMessages(['export' => ['La verificación no coincide con el checkpoint aceptado.']]);
+        }
+
+        return $source->id;
+    }
+
+    /** Fase `register`: publica el recurso final (ya verificado) y deja el export apuntando a el. */
+    private function acceptRegistration(DesignExport $export, StudioAvWorkspace $workspace, array $result): void
+    {
+        $mediaId = $result['media_id'] ?? null;
+        $media = is_int($mediaId) && $workspace->media_id === $mediaId
+            ? MediaAsset::withoutUserScope()->where('user_id', $export->user_id)->whereKey($mediaId)->lockForUpdate()->first() : null;
+        if (! $media) {
+            throw ValidationException::withMessages(['export' => ['El recurso final no pertenece al trabajo.']]);
+        }
+        $source = $this->registrationSource($export);
+        $output = $source->result;
+        $this->assertRegistrationPin($workspace, $media, $output);
+        $journal = $media->import_state;
+        if (($journal['complete'] ?? null) !== true || ($journal['bytes'] ?? null) !== $output['size']
+            || ($journal['verified_bytes'] ?? null) !== $output['size']) {
+            throw ValidationException::withMessages(['export' => ['La transferencia final aún no está verificada.']]);
+        }
+        $media->forceFill(['status' => MediaAsset::STATUS_READY, 'size' => $output['size'], 'width' => $output['width'],
+            'height' => $output['height'], 'duration' => $output['duration'], 'fps' => $output['fps'],
+            'codec' => $output['videoCodec'], 'audio_codec' => $output['audioCodec'], 'upload_id' => null, 'error' => null])->save();
+        StudioAsset::withoutUserScope()->firstOrCreate(['brand_id' => $export->brand_id, 'media_asset_id' => $mediaId], ['user_id' => $export->user_id]);
+        $export->media_ids = [$mediaId];
+        $receipt = $workspace->media_receipt;
+        $receipt['state'] = 'published';
+        $receipt['upload_id'] = null;
+        $workspace->update(['media_reserved_bytes' => 0, 'media_receipt' => $receipt]);
+        $export->disk = 'local';
+        $export->path = 'studio-exports/'.$export->user_id.'/'.$export->id.'/'.$workspace->uuid.'/'.$output['file'];
+    }
+
+    /** Fases de fichero (`asset`, `font`, `normalize`, `render`, `mix`, `assemble`): el checkpoint debe ser el fichero esperado de su lease. */
+    private function assertCheckpointFile(StudioAvLease $current, DesignExport $export, array $result): void
+    {
+        $expected = match ($current->phase) {
+            'asset' => "imports/{$current->id}/asset-{$current->item}.bin",
+            'font' => "imports/{$current->id}/font-{$current->item}.woff2",
+            'normalize' => "audio-sources/{$current->id}/{$current->item}.pcm",
+            'render' => sprintf('segments/%s/video-%06d.%s', $current->id, $current->item, $export->format),
+            'mix' => sprintf('segments/%s/audio-%06d.wav', $current->id, $current->item),
+            'assemble' => "outputs/{$current->id}/project.{$export->format}",
+            default => null,
+        };
+        if ($expected === null || ($result['file'] ?? null) !== $expected || ($result['namespace'] ?? null) !== $current->id || preg_match('/^[a-f0-9]{64}$/D', $result['sha256'] ?? '') !== 1) {
+            throw ValidationException::withMessages(['export' => ['El checkpoint no coincide con su fase y lease.']]);
+        }
     }
 
     public function cancel(User $user, DesignExport $export): DesignExport

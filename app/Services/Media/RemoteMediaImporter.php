@@ -26,6 +26,39 @@ class RemoteMediaImporter
 
     public function run(MediaAsset $asset, RemoteSource $source): bool
     {
+        if (($early = $this->guard($asset)) !== null) {
+            return $early;
+        }
+
+        $passStarted = $this->now();
+        [$sink, $absolute, $offset, $state] = $this->openPartial($asset);
+
+        try {
+            $pass = $this->fetchPass($asset, $source, $sink, $offset, $state, $passStarted);
+        } catch (ImportFailedException|UnsafeUrlException $e) {
+            fclose($sink);
+
+            return $this->fail($asset, $e->getMessage());
+        }
+
+        if ($pass->restart) {
+            return $this->restartFromZero($asset, $pass, $sink, $state, $passStarted);
+        }
+
+        fclose($sink);
+
+        return $this->settle($asset, $pass, $offset, $absolute, $passStarted, $state);
+    }
+
+    /**
+     * Cortes previos a descargar: asset ya resuelto (`true`), almacenamiento no local, ritmo medio o numero de pasadas excedidos.
+     * Acotan el reencolado SIN espera (gap F5-2 #1, CWE-400/834) sin matar importaciones grandes legitimas (gap F5-3 N1): no hay
+     * tope de edad desde `created_at` (incluiria la espera en cola y el reparto del worker); el corte es por RITMO MEDIO sobre el
+     * tiempo de descarga EFECTIVO (suma de lo que duraron las pasadas) y por un numero de pasadas derivado del tamano esperado.
+     * `null` si la pasada puede seguir.
+     */
+    private function guard(MediaAsset $asset): ?bool
+    {
         if ($asset->status !== MediaAsset::STATUS_PENDING) {
             return true;
         }
@@ -34,21 +67,27 @@ class RemoteMediaImporter
             return $this->fail($asset, 'La importación remota necesita el almacenamiento local; descarga el fichero y súbelo.');
         }
 
-        // Acotan el reencolado SIN espera (gap F5-2 #1, CWE-400/834) sin matar importaciones grandes legitimas (gap F5-3 N1): no hay
-        // tope de edad desde `created_at` (incluiria la espera en cola y el reparto del worker); el corte es por RITMO MEDIO sobre el
-        // tiempo de descarga EFECTIVO (suma de lo que duraron las pasadas) y por un numero de pasadas derivado del tamano esperado.
-        $state0 = (array) $asset->import_state;
+        $state = (array) $asset->import_state;
 
-        if ($this->tooSlow($state0)) {
+        if ($this->tooSlow($state)) {
             return $this->fail($asset, 'La descarga es demasiado lenta; inténtalo de nuevo más tarde o descarga el fichero y súbelo.');
         }
 
-        if ((int) ($state0['passes'] ?? 0) >= $this->maxPasses($state0['total'] ?? null)) {
+        if ((int) ($state['passes'] ?? 0) >= $this->maxPasses($state['total'] ?? null)) {
             return $this->fail($asset, 'La descarga necesita demasiadas pasadas; inténtalo de nuevo más tarde o descarga el fichero y súbelo.');
         }
 
-        $passStarted = $this->now();
+        return null;
+    }
 
+    /**
+     * Abre el parcial en disco y deja el latido (gap F5-2 #3): la pasada deja constancia de que el worker ha empezado, para que la UI
+     * distinga una cola parada (0 pasadas empezadas) de una pasada larga que aun no ha traido el primer byte.
+     *
+     * @return array{0: resource, 1: string, 2: int, 3: array<string, mixed>} gestor, ruta absoluta, bytes ya descargados y estado
+     */
+    private function openPartial(MediaAsset $asset): array
+    {
         $disk = $this->storage->disk();
         $disk->makeDirectory(dirname($asset->path));
         $absolute = $disk->path($asset->path);
@@ -58,14 +97,53 @@ class RemoteMediaImporter
         $offset = (int) filesize($absolute);
         $state = (array) $asset->import_state;
 
-        // Latido (gap F5-2 #3): la pasada deja constancia de que el worker ha empezado, para que la UI distinga una cola parada
-        // (0 pasadas empezadas) de una pasada larga que aun no ha traido el primer byte.
         $state['runs'] = ($state['runs'] ?? 0) + 1;
         $this->save($asset, $state);
 
-        // Solo el export de Canva trae PDF a la biblioteca; por URL o Drive un PDF se rechaza.
-        $allowDocument = $this->allowsDocument($asset);
-        $policy = function (?string $mime, ?int $total) use ($allowDocument): int {
+        return [$sink, $absolute, $offset, $state];
+    }
+
+    /**
+     * Una pasada contra el remoto. Las excepciones de dominio (`ImportFailedException`, `UnsafeUrlException`) suben tal cual (las
+     * resuelve `run()`); cualquier otra es transitoria.
+     *
+     * @param  resource  $sink
+     * @param  array<string, mixed>  $state
+     */
+    private function fetchPass(MediaAsset $asset, RemoteSource $source, $sink, int $offset, array $state, float $passStarted): RemotePass
+    {
+        // Se reserva tiempo al final del presupuesto para `finalize()` (tamano, tipo real, metadatos con ffprobe): sin ello la ultima
+        // pasada podria agotar el timeout del job justo al terminar.
+        $deadline = $this->now() + max(1, (int) config('media.import_budget_seconds', 80) - (int) config('media.import_finalize_reserve_seconds', 10));
+
+        try {
+            return $source->fetch($sink, $offset, $state['validator'] ?? null, $this->sizePolicy($this->allowsDocument($asset)), (int) max((array) config('media.max_bytes')), $deadline, $state['total'] ?? null);
+        } catch (ImportFailedException|UnsafeUrlException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            fclose($sink);
+            // Gap G2: la pasada fallida cuenta. Suma su duracion y una pasada ANTES de relanzar, para que el ritmo medio y el tope de
+            // pasadas vean tambien a un remoto que intercala 5xx lentos (no basta con el latido `runs`). Un 5xx suelto en una descarga
+            // sana no la mata: solo desplaza un poco el ritmo medio y el contador, y los cortes siguen siendo los de siempre.
+            $state['passes'] = ($state['passes'] ?? 0) + 1;
+            $state['failed_passes'] = ($state['failed_passes'] ?? 0) + 1;
+            $state['download_seconds'] = round(($state['download_seconds'] ?? 0) + ($this->now() - $passStarted), 3);
+            $this->save($asset, $state);
+            // Transitorio (red, 5xx): el job reintenta y reanuda desde el parcial. Se relanza SIN la excepcion original: los mensajes
+            // de Guzzle/cURL llevan la URL completa (con su query, que puede ser un token) y acabarian en `failed_jobs` y en el log.
+            throw new \RuntimeException(preg_replace('#https?://\S+#i', '[url]', $e->getMessage()) ?: class_basename($e));
+        }
+    }
+
+    /**
+     * Politica que aplica la fuente al ver las cabeceras: tipo admitido y tamano maximo por tipo. Solo el export de Canva trae PDF a
+     * la biblioteca; por URL o Drive un PDF se rechaza.
+     *
+     * @return \Closure(?string, ?int): int
+     */
+    private function sizePolicy(bool $allowDocument): \Closure
+    {
+        return function (?string $mime, ?int $total) use ($allowDocument): int {
             try {
                 $kind = $this->uploads->kindFor((string) $mime, allowDocument: $allowDocument);
             } catch (InvalidArgumentException $e) {
@@ -80,50 +158,39 @@ class RemoteMediaImporter
 
             return $cap;
         };
+    }
 
-        // Se reserva tiempo al final del presupuesto para `finalize()` (tamano, tipo real, metadatos con ffprobe): sin ello la ultima
-        // pasada podria agotar el timeout del job justo al terminar.
-        $deadline = $this->now() + max(1, (int) config('media.import_budget_seconds', 80) - (int) config('media.import_finalize_reserve_seconds', 10));
-
-        try {
-            $pass = $source->fetch($sink, $offset, $state['validator'] ?? null, $policy, (int) max((array) config('media.max_bytes')), $deadline, $state['total'] ?? null);
-        } catch (ImportFailedException|UnsafeUrlException $e) {
-            fclose($sink);
-
-            return $this->fail($asset, $e->getMessage());
-        } catch (\Throwable $e) {
-            fclose($sink);
-            // Gap G2: la pasada fallida cuenta. Suma su duracion y una pasada ANTES de relanzar, para que el ritmo medio y el tope de
-            // pasadas vean tambien a un remoto que intercala 5xx lentos (no basta con el latido `runs`). Un 5xx suelto en una descarga
-            // sana no la mata: solo desplaza un poco el ritmo medio y el contador, y los cortes siguen siendo los de siempre.
-            $state['passes'] = ($state['passes'] ?? 0) + 1;
-            $state['failed_passes'] = ($state['failed_passes'] ?? 0) + 1;
-            $state['download_seconds'] = round(($state['download_seconds'] ?? 0) + ($this->now() - $passStarted), 3);
-            $this->save($asset, $state);
-            // Transitorio (red, 5xx): el job reintenta y reanuda desde el parcial. Se relanza SIN la excepcion original: los mensajes
-            // de Guzzle/cURL llevan la URL completa (con su query, que puede ser un token) y acabarian en `failed_jobs` y en el log.
-            throw new \RuntimeException(preg_replace('#https?://\S+#i', '[url]', $e->getMessage()) ?: class_basename($e));
-        }
-
-        if ($pass->restart) {
-            // El remoto ignoro `Range` o cambio: se descarta el parcial y se empieza de cero UNA vez.
-            ftruncate($sink, 0);
-            fclose($sink);
-
-            if (($state['restarts'] ?? 0) >= 1) {
-                return $this->fail($asset, match ($pass->restartReason) {
-                    RangeIgnored::IGNORED => 'El servidor no permite descargas por partes; descárgalo y súbelo.',
-                    RangeIgnored::CHANGED => 'El fichero remoto cambia durante la descarga; inténtalo de nuevo más tarde.',
-                    default => 'El servidor remoto no permite reanudar la descarga o el fichero cambia mientras se descarga; descárgalo y súbelo.',
-                });
-            }
-
-            $this->save($asset, ['bytes' => 0, 'total' => null, 'validator' => null, 'restarts' => ($state['restarts'] ?? 0) + 1, 'passes' => ($state['passes'] ?? 0) + 1, 'download_seconds' => round(($state['download_seconds'] ?? 0) + ($this->now() - $passStarted), 3)] + $state);
-
-            return false;
-        }
-
+    /**
+     * El remoto ignoro `Range` o cambio: se descarta el parcial y se empieza de cero UNA vez.
+     *
+     * @param  resource  $sink
+     * @param  array<string, mixed>  $state
+     */
+    private function restartFromZero(MediaAsset $asset, RemotePass $pass, $sink, array $state, float $passStarted): bool
+    {
+        ftruncate($sink, 0);
         fclose($sink);
+
+        if (($state['restarts'] ?? 0) >= 1) {
+            return $this->fail($asset, match ($pass->restartReason) {
+                RangeIgnored::IGNORED => 'El servidor no permite descargas por partes; descárgalo y súbelo.',
+                RangeIgnored::CHANGED => 'El fichero remoto cambia durante la descarga; inténtalo de nuevo más tarde.',
+                default => 'El servidor remoto no permite reanudar la descarga o el fichero cambia mientras se descarga; descárgalo y súbelo.',
+            });
+        }
+
+        $this->save($asset, ['bytes' => 0, 'total' => null, 'validator' => null, 'restarts' => ($state['restarts'] ?? 0) + 1, 'passes' => ($state['passes'] ?? 0) + 1, 'download_seconds' => round(($state['download_seconds'] ?? 0) + ($this->now() - $passStarted), 3)] + $state);
+
+        return false;
+    }
+
+    /**
+     * Recoge lo que trajo la pasada: estado, tipo, comprobacion del contenido y, segun el caso, cierra el asset o pide otra pasada.
+     *
+     * @param  array<string, mixed>  $state
+     */
+    private function settle(MediaAsset $asset, RemotePass $pass, int $offset, string $absolute, float $passStarted, array $state): bool
+    {
         $bytes = $offset + $pass->written;
         $state = array_replace($state, [
             'bytes' => $bytes,

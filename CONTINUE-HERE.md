@@ -3,7 +3,7 @@
 - Proyecto: `C:\laragon\www\metricool`, rama existente `feature/audit-hardening`.
 - Ledger actual: `docs/roadmap/2026-11-11-audit-hardening/tasks.md` (manda sobre los resúmenes).
 - **81/108 cerradas (T-82 incluida). T-81 cerrada e integrada el 2026-11-20** (rojo R60 resuelto, nits R2 aplicados, R3 aprobado sin gaps; evidencias en `testing/t81/`). Migraciones pendientes aplicadas en la MySQL de desarrollo con copia `storage/backups/pre-migrate-20261120-133549.sql`.
-- Próximo: T-83 y restantes. M-07 completada por el usuario el 2026-11-20 (claves VAPID de desarrollo en `.env`, HTTPS por ngrok).
+- Próximo: **T-83 (importación CSV) a medias, SIN commitear** (pausa del usuario el 2026-11-20): el implementador se detuvo dejando `app/Services/Posts/PostCsvImport.php`, `app/Http/Controllers/PostImportController.php`, `config/post_import.php`, `tests/Feature/Posts/PostCsvImportTest.php` y cambios en `config/rate_limits.php` y `routes/web.php`. Faltan la página `Posts/Import.vue`, el CSV de ejemplo, el E2E-22, la documentación y la revisión. Revisar el estado de esos ficheros antes de seguir. Después, T-84 y el resto.
 - La copia aislada no tiene `.env`: para Pest en `.cache/t8x-physical` hace falta `APP_KEY` efímera por proceso y `storage/framework/{views,cache/data,sessions}`.
 - Una sola ejecución Playwright a la vez; nunca modificar su copia física mientras ejecuta. Sin Docker/proveedores reales, `.env` privado, producción ni usuario 28. Commit y push a `feature/audit-hardening` al cerrar cada tarea (pedido por el usuario el 2026-11-20); merges del usuario. Conservar cambios existentes del workspace.
 

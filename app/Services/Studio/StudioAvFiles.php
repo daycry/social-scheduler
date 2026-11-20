@@ -16,6 +16,12 @@ use RuntimeException;
 
 class StudioAvFiles
 {
+    public function __construct(
+        private readonly StudioAvStorage $storage,
+        private readonly StudioAssets $assets,
+        private readonly StudioFonts $fonts,
+    ) {}
+
     public function inspect(StudioAvLease $lease, array $result, ?float $deadline = null): array
     {
         return $this->locked($lease, fn () => $this->inspectResult($lease, $result, min($deadline ?? microtime(true) + 85, microtime(true) + 85)));
@@ -97,7 +103,7 @@ class StudioAvFiles
         if (microtime(true) >= $deadline) {
             throw new StudioAvProcessFailed('phase_timeout');
         }
-        $path = app(StudioAvStorage::class)->checkedPath($workspace, $relative);
+        $path = $this->storage->checkedPath($workspace, $relative);
         $stream = @fopen($path, 'rb');
         if ($stream === false) {
             if (! file_exists($path)) {
@@ -150,8 +156,8 @@ class StudioAvFiles
         $user = User::findOrFail($workspace->user_id);
         $brand = Brand::ownedBy($user->id)->findOrFail($workspace->brand_id);
         $source = $current->phase === 'asset'
-            ? app(StudioAssets::class)->owned($user, $brand, $current->item)
-            : app(StudioFonts::class)->owned($user, $brand, $current->item);
+            ? $this->assets->owned($user, $brand, $current->item)
+            : $this->fonts->owned($user, $brand, $current->item);
         $pinned = StudioAvLease::where('workspace_id', $workspace->id)->where('category', 'snapshot')
             ->where('phase', $current->phase)->where('item', $current->item)->whereIn('status', ['accepted', 'invalid', 'released'])
             ->whereNotNull('result')->orderBy('created_at')->orderBy('id')->first(['result'])?->result;
@@ -224,7 +230,7 @@ class StudioAvFiles
     {
         $current = StudioAvLease::findOrFail($lease->id);
 
-        return app(StudioAvStorage::class)->locked($current->workspace_id, $callback);
+        return $this->storage->locked($current->workspace_id, $callback);
     }
 
     /** Reread journal identity; no caller-supplied path or model attributes are trusted. */

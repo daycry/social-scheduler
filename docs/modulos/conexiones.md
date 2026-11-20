@@ -34,6 +34,8 @@ El contrato está segregado (`app/Connectors/Contracts/`):
 
 ## Flujo
 
+`OAuthStateStore` guarda y consume cada intento bajo un candado de caché. La conexión social identifica el conjunto de intentos por usuario, sesión y proveedor, y conserva hasta diez intentos válidos simultáneos durante 30 minutos.
+
 1. El usuario pulsa **Conectar** en la marca: `POST brands/{brand}/connections/{provider}/connect`. Es POST con CSRF porque iniciar OAuth cambia el estado de la sesión.
 2. La red redirige a `GET connections/{provider}/callback` (`provider` ∈ `meta`, `google`, `tiktok`, `threads`, `linkedin`, `pinterest`).
 3. El conector canjea el código, lista las cuentas candidatas y, si hay varias, el usuario elige (`brands.connections.select`).

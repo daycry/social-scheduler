@@ -1,0 +1,120 @@
+{
+  "duration_api_ms": 194447,
+  "stop_reason": "end_turn",
+  "session_id": "f0dc2ce2-0242-4179-a01d-fca50a4a8aad",
+  "total_cost_usd": 1.4876680000000002,
+  "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 136605,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 19741,
+    "output_tokens_details": {
+      "thinking_tokens": 14731
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 136605,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 19741,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 136605,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 136605
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 19741,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 136605,
+      "webSearchRequests": 0,
+      "costUSD": 1.4876680000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 14731,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 136605,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 1,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "# Revisión T79 · intento 2/3 · estática\n\n## Veredicto\n\n**El código es aceptable en revisión estática. La aceptación final queda condicionada a los gates.**\n\n- Los cinco hallazgos de R1 (F1–F5) están corregidos. También el borde nuevo de LinkedIn con refresh vacío cifrado.\n- La corrección es coherente con el contrato y con la aclaración de F4 conforme a T23.\n- No quedan hallazgos *Critical* ni *Important*.\n- El cierre depende de los gates globales de PHP, MySQL y navegador sobre el diff congelado (SHA `70d9a2f3…`, 30 ficheros). Siguen en ejecución. No se atribuyen resultados anteriores (4385/9) a este diff.\n- Los 47/248 focales, Node 789, TS 0, build y Pint se toman como evidencia parcial válida, no como gate global.\n\n## Reevaluación de R1\n\n| ID | Estado | Verificación estática |\n|---|---|---|\n| F1 | **Cerrado** | `GoalService.php:72-75` usa `whereNot`. `DatabaseRule::whereNot` (vendor:121-134) genera `'!desconectada'`, que el verificador interpreta como `!=`. La conservación del id previo exige igualdad exacta con `$current->social_account_id` (l. 69-71) y mantiene `user_id` y `brand_id`. Una referencia ajena o corrupta sigue dando 422. Lo cubren los tests `GoalsTest:127-151` y E2E. |\n| F2 | **Cerrado** | `GoalObservations.php:54-58` toma `min(ayer_marca, Days::closed(red))` con la misma referencia que `CollectSnapshots.php:42`. Auckland o Sydney a las 13:15 UTC da el 17-nov. Los Ángeles a las 02:00 UTC da el 16-nov. Ambas fechas usan la misma cohorte y no hay retroceso a snapshots antiguos. |\n| F3 | **Cerrado** | `EvaluateGoals.php:38-44` captura `Throwable` por objetivo y registra solo el id y la clase. Un objetivo envenenado ya no bloquea a otros propietarios (`GoalScheduleTest:59-83`). |\n| F4 | **Cerrado según la aclaración** | `knownDeadline` comparte `candidates()` con `deadline`. Los accesos autorrenovables de Google y TikTok no avisan. `deadline` mantiene su semántica para T23: ordenar y luego filtrar equivale a filtrar y luego ordenar. |\n| F4b | **Cerrado** | `GoalObservations.php:32` proyecta `refresh_token` solo para LinkedIn mediante `CASE`. El cast `encrypted` descifra `''`, igual que T23. No se carga `access_token` y no hay secretos en el payload ni en los logs. |\n| F5 | **Cerrado** | La clave de caída es `drop:{period}:{ruleHash}`, de 80 caracteres, por debajo de 100. `json_encode` del umbral `float` es estable. |\n| Calidad | **Cerrado** | `GOALS_MAIL_QUEUE` es independiente. `GOALS_QUEUE` hereda `SOCIAL_ANALYTICS_QUEUE` (la clave real, `config/social.php:262`). El mapa de títulos es equivalente al ternario anterior. Se han añadido `aria-invalid`, `describedby`, `labelledby` y nombres accesibles por objetivo. La caducidad visible ya no muestra días fraccionarios. |\n| Migraciones separadas | Nit opcional | Se acepta la respuesta. No se reabre. |\n\n## A. Aceptación\n\nFuncionalmente cumple el contrato:\n- objetivos propios;\n- hito, caída y caducidad conocida que requiere reconectar;\n- dato ausente distinto de 0;\n- misma cohorte en dos fechas cerradas;\n- aviso in-app atómico y único;\n- correo opcional sin promesa de outbox ni de exactly-once;\n- `Goals/Index.vue` incluido en `tsconfig.frontend.json` con DTO en `goals.d.ts`.\n\n**Pendiente:** PHP global, MySQL y navegador sobre el diff final. T79 sigue sin integrar.\n\n## B. Corrección: hallazgos nuevos o residuales\n\n### N1 — Minor — `app/Jobs/EvaluateGoals.php:42-44`\n\n**Problema.** Un fallo transitorio pierde el periodo de caída sin reintento.\n- Al capturar `Throwable`, el job nunca falla.\n- Un deadlock agotado (3 intentos de `DB::transaction`) o una caída momentánea de la base de datos en un objetivo de caída solo deja un `warning`.\n- Al día siguiente se evalúa P+1, así que P no se vuelve a evaluar nunca.\n- Además, un fallo sistemático no aparece en `failed_jobs` ni en las sondas. Por ejemplo, todos los objetivos fallando por una columna o configuración rota en MySQL.\n\n**Escenario.** Hay un deadlock en el objetivo 7 a las 13:15. La caída real de ese día no se avisa y el job figura como correcto.\n\n**Corrección sugerida, opcional y no contractual.** Seguir procesando todo el lote y, si hubo `Throwable` distintos de `OwnershipException`, lanzar al final una excepción resumen. El reintento es seguro porque la deduplicación es idempotente, y el objetivo envenenado ya no bloquea a los demás.\n\n### N2 — Minor — `app/Services/ConnectionExpiry.php:36` + `docs/modulos/analitica.md:119`\n\n**Problema.** `knownDeadline` devuelve el **primer candidato aunque esté vencido**, incluso si existe otro futuro.\n\n**Escenario.** Una cuenta activa tiene un `refresh_expires_at` antiguo que no se actualizó (dato rancio) y un `data_access_expires_at` real dentro de 5 días.\n- El objetivo avisa una vez de que la credencial caducó el día X y queda deduplicado.\n- El plazo futuro, que sí es accionable, no se avisa nunca mientras persista el valor rancio.\n\n**Hecho que falta.** Si algún flujo de refresco deja fechas vencidas en cuentas `activa`. El fixture `Threads past` de T23 sugiere que el estado es posible.\n\n**Opción.** Preferir el primer candidato futuro y recurrir al vencido más reciente solo si no hay ninguno futuro.\n\n### N3 — Minor (precisión de documentación y UX) — `ConnectionExpiry.php:42-44`, `GoalObservations.php:30`, `Index.vue:381-383`, `docs/modulos/analitica.md:119`\n\n**Problema.** Una cuenta en `requiere_reconexion` produce `candidates() = []`. El objetivo de caducidad muestra «Sin datos suficientes» justo en el estado más accionable.\n\n**Discrepancia con la documentación.** La documentación afirma que «una fecha ya vencida sigue siendo conocida». Eso solo es cierto mientras la cuenta siga `activa`.\n- Esto es coherente con T23, que avisa aparte con `reconnect_required`, así que **no es defecto de contrato**.\n- Pero el texto de la documentación y de la UI es engañoso.\n\n**Hecho que falta.** Si el refresco o la publicación pasan LinkedIn a `requiere_reconexion` al vencer. En ese caso, el valor negativo del test `GoalAlertTest:274` es efímero en producción.\n\n**Corrección.** Matizar la documentación y mostrar «Cuenta pendiente de reconexión» en lugar de «Sin datos».\n\n### N4 — Minor (documentación) — `app/Services/GoalService.php:69-75` frente a `docs/modulos/analitica.md:115`\n\n**Problema.** La documentación y R2 dicen que se conserva la cuenta desconectada «al renombrar o pausar». En realidad, `keepingAccount` permite **cualquier** cambio: tipo, métrica o umbral.\n\n**Escenario.** Se convierte a `token_expiry` una regla sobre una cuenta desconectada. Se guarda y queda permanentemente desconocida.\n\nNo es inseguro, porque la propiedad y la marca se validan siempre. Basta con alinear el texto o restringir el cambio de tipo. Ambas son decisiones de política.\n\n### Notas sin defecto\n\n- **`GoalEvaluator.php:40`.** `'…con '.$value['current']` muestra floats sin formato. Funciona correctamente.\n- **Valor en el payload.** `payload['value']` llega como `int` o `float` según `json_encode`, sin `JSON_PRESERVE_ZERO_FRACTION`. El test se corrigió con razón. Los consumidores JS no se ven afectados.\n\n## C. Seguridad\n\nSin hallazgos.\n- Se carga `refresh_token` solo para LinkedIn y solo en memoria. El atributo está oculto y no hay serialización ni logs del valor. El log de excepciones registra solo la clase.\n- La regla `exists` conserva `user_id` y `brand_id` también en la rama de conservación. Una referencia importada ajena da 422 y su nombre no se expone (`GoalsTest:70-83`).\n- `Notifications/Index.vue`: `DYNAMIC_TITLES[n.type]` con claves de prototipo es teórico. `type` lo controla el servidor y `WORKFLOW` ya tenía el mismo patrón.\n\n## D. Rendimiento\n\nSin cambios respecto a R1. Se aceptan las observaciones opcionales de escala y de ausencia de poda, ya documentadas.\n\nEl `CASE` del token añade una columna por consulta y es despreciable. N1, si se adopta, triplicaría el coste solo en ejecuciones con fallos.\n\n## E. Calidad\n\n### N5 — Minor (UX) — `app/Services/Goals/GoalEvaluator.php:56`\n\n**Problema.** El mensaje de caducidad usa ISO-8601 en UTC, por ejemplo `2026-11-20T08:00:00+00:00`, en el aviso y en el asunto del correo.\n\nT23 (`ConnectionExpiryNotifier.php:67`) formatea en la zona de la marca y en español (`D [de] MMMM [de] YYYY`). Conviene reutilizar ese formato para mantener la coherencia.\n\n### N6 — Minor (UX) — `resources/js/Pages/Goals/Index.vue:66`\n\n`ruleDescription` para caída no indica la métrica. Una caída de seguidores y una de engagement se ven idénticas («Caída superior al 25%»). Basta con añadir `· {{ metrics[goal.metric] }}`.\n\n### N7 — Nit — `Index.vue:49-56`\n\n**Problema.** La caducidad visible se reconstruye a partir de `last_value`, que es `decimal(20,4)` días, con una precisión de unos 9 s. Además, se formatea en la zona del navegador, no en la de la marca.\n\n**Escenario.** Para una marca de Madrid vista desde otro huso, la hora mostrada difiere de la del aviso.\n\n**Opción.** Exponer `expires_at` en el DTO. Es opcional.\n\n### N8 — Nit (robustez E2E) — `tests/e2e/goals.spec.ts:36`\n\n**Problema.** La prueba siembra en `Days::closed(instagram)`, pero el evaluador usa `min(ayer_marca, cerrado_red)`.\n\n**Escenario.** Si `seedComposerBrand` usa una zona al oeste de Los Ángeles (Honolulu), entre las 08:00 y las 10:00 UTC el periodo evaluado es D-2 y la prueba falla de forma intermitente.\n\n**Hecho que falta.** La zona del fixture. Con UTC o Europa no ocurre.\n\n**Corrección.** Sembrar el periodo que calcula `GoalObservations`.\n\n### N9 — Nit — `tests/e2e/goals.spec.ts:104-133`\n\nEl tercer E2E no usa `watch(page)` ni comprueba `errors.errors`, a diferencia de los otros dos.\n\n## Política opcional (no defecto)\n\n- **Latencia de YouTube.** El engagement de YouTube suele llegar incompleto el primer día y se completa con `settle_days`. El evaluador no reevalúa días ya pasados, así que las reglas de engagement con YouTube en la cohorte quedarán casi siempre como desconocidas. Cumple «ausente ≠ 0» y lo admite la documentación («no se buscan fechas antiguas»). Conviene mencionarlo de forma explícita.\n- **Sin reintento por diseño.** Que un fallo transitorio no reintente (N1) es una decisión aceptable si se documenta.\n- **Política de R1 sin cambios.** El agregado bloqueado por redes sin métrica, la recreación del objetivo y el correo perdido al encolar.\n\n## Hechos que faltan\n\n1. Si el refresco o la publicación cambian LinkedIn a `requiere_reconexion` al vencer el token (N3).\n2. Si pueden quedar fechas de expiración vencidas en cuentas `activa` (N2).\n3. La zona horaria de la marca que crea `seedComposerBrand` (N8).\n4. El resultado de los gates globales de PHP, MySQL y navegador sobre el SHA congelado.\n\n## Tests sugeridos (no bloqueantes)\n\n- Lote con un `QueryException` simulado en un objetivo de caída, para documentar o fijar el comportamiento de N1.\n- `knownDeadline` con un candidato vencido y otro futuro (N2).\n- Objetivo de caducidad sobre una cuenta `requiere_reconexion`, para fijar el texto mostrado (N3).\n\n## Resumen\n\n| Severidad | Número |\n|---|---|\n| Critical | 0 |\n| Important | 0 |\n| Minor | 6 (N1–N6) |\n| Nit | 3 (N7–N9) |\n\n**Decisión.** Se puede aceptar en cuanto los gates globales de PHP, MySQL y navegador pasen sobre `70d9a2f3…`. N1–N9 pueden quedar como seguimiento sin bloquear la integración.",
+  "ttft_ms": 149324,
+  "type": "result",
+  "duration_ms": 194556,
+  "uuid": "c9be8254-5139-4764-bc63-bbe6f049ea08",
+  "ttft_stream_ms": 1497,
+  "time_to_request_ms": 106,
+  "first_content_frame_ms": 1497,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "model_usage_since_last_result": {
+    "claude-opus-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 19741,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 136605,
+      "webSearchRequests": 0,
+      "costUSD": 1.4876680000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 14731,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 136605,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "credential_expires_at": "2026-12-13T13:54:13.42Z"
+}

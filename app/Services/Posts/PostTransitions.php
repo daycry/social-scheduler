@@ -21,6 +21,8 @@ use Illuminate\Support\Facades\DB;
  */
 class PostTransitions
 {
+    public function __construct(private readonly PublishRequestFactory $publishRequests) {}
+
     /** Estado de un destino que empieza un intento NUEVO (tras un error o una edicion): nada del intento anterior sobrevive. */
     private const FRESH_ATTEMPT = [
         'external_id' => null, 'external_url' => null, 'external_reference' => null, 'attempts' => 0,
@@ -132,7 +134,7 @@ class PostTransitions
                 'text' => $oldText,
                 // Ventana desde la hora programada Y el primer intento del destino (la fecha pudo moverse despues de un intento ambiguo):
                 // la misma que usa `PublishRequestFactory::make()`, no solo la fecha vieja (revision F2 i2, N1).
-                'since' => app(PublishRequestFactory::class)->searchWindowStart($target, $oldScheduledAt)?->toIso8601String(),
+                'since' => $this->publishRequests->searchWindowStart($target, $oldScheduledAt)?->toIso8601String(),
             ], fn ($v) => $v !== null) + ['pending' => true];
         }
 

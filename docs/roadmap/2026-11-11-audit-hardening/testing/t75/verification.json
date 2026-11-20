@@ -1,0 +1,142 @@
+{
+  "task": "T-75",
+  "date": "2026-11-17",
+  "status": "verified_and_integrated",
+  "source_files": 1729,
+  "source_hashes": "source-hashes.json",
+  "source_hashes_verified_after_browser": true,
+  "playwright": {
+    "stats": {
+      "startTime": "2026-11-17T23:19:37.160Z",
+      "duration": 71806.26400000001,
+      "expected": 13,
+      "skipped": 2,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "qa_gate_observed": "VERDE",
+    "report": "C:\\laragon\\www\\metricool\\.cache\\t67-ci\\metricool\\storage\\framework\\testing\\t43\\run-general-fbb0ab8f-1a37-4e8e-9b6d-955d93a8489d\\results.json",
+    "sha256": "480f998a4c82a9054eed5b1ccf927369aa376bdee03dde7b58601b69e70ffdf0"
+  },
+  "pest": {
+    "tests": 4303,
+    "passed": 4294,
+    "skipped": 9,
+    "assertions": 28843,
+    "duration_ms": 349692,
+    "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t75-r32-pest-full.log"
+  },
+  "node": {
+    "passed": 778,
+    "failed": 0,
+    "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t75-r31-node.log"
+  },
+  "mysql": {
+    "version": "8.4.3",
+    "focal_passed": 32,
+    "assertions": 241,
+    "measurement_rows": 60000,
+    "visible_rows": 20000,
+    "queries": 6,
+    "elapsed_ms": 23.62,
+    "plans": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t75-r5-mysql-query-plans.json",
+    "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t75-r8-mysql-pest.log"
+  },
+  "typecheck": {
+    "errors": 0,
+    "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t75-r31-typecheck.log"
+  },
+  "review": {
+    "model": "claude-opus-5-5",
+    "status": "accepted_no_open_findings",
+    "blocker": null,
+    "receipt": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t75-r3-opus55.json",
+    "effort": "high",
+    "receipt_sha256": "6f75eab3cb57e2b5229dee73ba11a6ebd2c528709b31a885f852a8691cd01863",
+    "important_found": 1,
+    "minor_found": 5,
+    "code_quality": "acceptable_without_conditions",
+    "critical_open": 0,
+    "important_open": 0,
+    "minor_open": 0,
+    "text_only_N01": "Applied the reviewers exact proposed collaborator sentence."
+  },
+  "limits": [
+    "Integrated in main working tree; no commit or push performed.",
+    "Historical audit entries remain personal; brand attribution requires verified operation context.",
+    "Browser tests use disposable data and simulated providers.",
+    "Local MySQL timing is a measurement, not a capacity guarantee."
+  ],
+  "migration_recovery": {
+    "database": "MySQL 8.4.3 disposable",
+    "rollback": true,
+    "reapply": true,
+    "rows_preserved": 1,
+    "historical_brand_null": true,
+    "indexes_restored": true,
+    "foreign_key_null_on_delete": true,
+    "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t75-r6-rollback.log"
+  },
+  "prior_runtime_before_review_fixes": {
+    "playwright": {
+      "stats": {
+        "startTime": "2026-11-17T22:06:18.429Z",
+        "duration": 68552.696,
+        "expected": 13,
+        "skipped": 2,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "qa_gate_observed": "VERDE",
+      "report": "C:\\laragon\\www\\metricool\\.cache\\t67-ci\\metricool\\storage\\framework\\testing\\t43\\run-general-28df4944-e5fe-4698-8c9f-0667e643674b\\results.json",
+      "sha256": "de6c40bd1020bd383a560d4c6f3e6c8cd60006e136c8ec0825ef46fc7284d858"
+    },
+    "pest": {
+      "tests": 4296,
+      "passed": 4287,
+      "skipped": 9,
+      "assertions": 28817,
+      "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t75-r18-pest-full.log"
+    },
+    "node": {
+      "passed": 778,
+      "failed": 0,
+      "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t75-r24-node-final.log"
+    },
+    "source_files": 1729
+  },
+  "pest_focal": {
+    "passed": 32,
+    "assertions": 241,
+    "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t75-r30-review-green.log"
+  },
+  "performance_sparse": {
+    "rows": 60000,
+    "visible": 50,
+    "placement": "oldest",
+    "unfiltered_ms": 18.96,
+    "rare_action_ms": 3.27,
+    "queries_per_request": 6,
+    "artifact": "sparse-query-plans.json",
+    "page_index_range_rows": [
+      50,
+      50
+    ],
+    "page_deduplicated_rows": 50
+  },
+  "closed_local_date": "2026-11-18",
+  "post_qa_text_only_changes": [
+    {
+      "path": "docs/usuario/actividad.md",
+      "before": "9f70a90e21ac5e4c60abe92c2228fc24857a5b410f7001acc5d2136e6cf24fa8",
+      "after": "9c3db2c298dfad2902626466333b7adc81676c155af8d3f0ba292db0bc4d05e3"
+    }
+  ],
+  "runtime_and_config_sources_unchanged_after_browser": 1728,
+  "integration": {
+    "files": 21,
+    "exact_candidate_bytes": true,
+    "reverse_patch_check": true,
+    "commit_or_push": false
+  }
+}

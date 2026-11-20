@@ -7,6 +7,7 @@ use App\Models\Site;
 use App\Models\SiteToken;
 use App\Models\User;
 use App\Services\SmartLinkService;
+use App\Support\Ownership;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -139,7 +140,7 @@ class SiteAccess
     /** Modo de acceso, contrasena (hash) y noindex. Cambiar el modo o la contrasena cierra todas las sesiones de acceso emitidas. */
     public function updateAccess(User $user, Site $site, string $mode, ?string $password, bool $noindex): Site
     {
-        abort_unless($site->user_id === $user->id, 404);
+        Ownership::assert($site, $user);
         if (! in_array($mode, Site::ACCESS_MODES, true)) {
             throw new PostValidationException(['access_mode' => ['Modo de acceso no válido.']]);
         }
@@ -164,7 +165,7 @@ class SiteAccess
     /** @return array{0: SiteToken, 1: string} el texto claro solo existe en esta respuesta. */
     public function createToken(User $user, Site $site, string $label, ?int $days): array
     {
-        abort_unless($site->user_id === $user->id, 404);
+        Ownership::assert($site, $user);
         $label = SmartLinkService::clean($label, 60);
         if ($label === '') {
             throw new PostValidationException(['label' => ['Pon un nombre al enlace.']]);
@@ -184,15 +185,15 @@ class SiteAccess
     /** Revoca un enlace: sus sesiones dejan de valer en la siguiente peticion (la sesion comprueba el token). */
     public function revokeToken(User $user, Site $site, SiteToken $token): void
     {
-        abort_unless($site->user_id === $user->id, 404);
-        abort_unless($token->site_id === $site->id, 404);
+        Ownership::assert($site, $user);
+        Ownership::ensure($token->site_id === $site->id);
         $token->forceFill(['revoked_at' => $token->revoked_at ?? now()])->save();
     }
 
     /** Cierra todo acceso concedido (sesiones por contrasena y por enlace) y revoca todos los enlaces. */
     public function revokeAllAccess(User $user, Site $site): void
     {
-        abort_unless($site->user_id === $user->id, 404);
+        Ownership::assert($site, $user);
         DB::transaction(function () use ($site) {
             SiteToken::query()->where('site_id', $site->id)->whereNull('revoked_at')->update(['revoked_at' => now()]);
             $site->forceFill(['access_version' => $site->access_version + 1])->save();

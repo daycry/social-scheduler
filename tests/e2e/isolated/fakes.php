@@ -10,6 +10,26 @@ use Firebase\JWT\JWT;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 
+/** Receptor virtual de E2E, activado únicamente por el bootstrap aislado con bandera propia. */
+function generalFakeWebhooks(string $root): void
+{
+    Http::fake(['https://hooks.example.test/*' => function (Request $request) use ($root) {
+        $header = $request->header('X-SocialScheduler-Signature')[0] ?? '';
+        $matches = [];
+        $format = preg_match('/\At=(\d+),v1=([a-f0-9]{64})\z/D', $header, $matches) === 1;
+        $body = json_decode($request->body(), true);
+        $valid = $format && abs(now()->timestamp - (int) $matches[1]) <= 300
+            && hash_equals(hash_hmac('sha256', $matches[1].'.'.$request->body(), 'e2e-webhook-signing-key-0123456789abcdef'), $matches[2])
+            && is_array($body) && isset($body['id'], $body['event'], $body['occurred_at']);
+        file_put_contents($root.'/webhook-receiver.ndjson', json_encode([
+            'event_id' => is_array($body) ? ($body['id'] ?? null) : null,
+            'signature_valid' => $valid, 'body_sha256' => hash('sha256', $request->body()),
+        ], JSON_THROW_ON_ERROR)."\n", FILE_APPEND | LOCK_EX);
+
+        return Http::response('', $valid ? 204 : 401);
+    }]);
+}
+
 /** Keep the real credential-form contract while ensuring connection and refresh cannot contact a PDS. */
 class GeneralBlueskyConnector extends BlueskyConnector
 {

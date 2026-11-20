@@ -11,6 +11,7 @@ use App\Models\Post;
 use App\Models\PostTemplate;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -21,12 +22,12 @@ class LibraryService
 {
     public const MAX_PER_USER = 500;
 
-    public function __construct(private readonly PostService $posts) {}
+    public function __construct(private readonly PostService $posts, private readonly MediaValidator $mediaValidator) {}
 
     /** Guarda lo que hay en una publicacion (aunque este en la papelera o publicada: es solo una copia). */
     public function saveFromPost(User $user, Post $post, string $name): PostTemplate
     {
-        if ($post->user_id !== $user->id) {
+        if (! Ownership::matches($post, $user)) {
             throw new PostValidationException(['post' => ['La publicacion no pertenece al usuario.']]);
         }
 
@@ -44,7 +45,7 @@ class LibraryService
      */
     public function saveFromComposer(User $user, Brand $brand, string $name, array $data): PostTemplate
     {
-        if ($brand->user_id !== $user->id) {
+        if (! Ownership::matches($brand, $user)) {
             throw new PostValidationException(['brand' => ['La marca no pertenece al usuario.']]);
         }
 
@@ -68,7 +69,7 @@ class LibraryService
      */
     public function store(User $user, Brand $brand, string $name, ?string $text, array $mediaIds = [], array $targets = [], ?int $campaignId = null): PostTemplate
     {
-        if ($brand->user_id !== $user->id) {
+        if (! Ownership::matches($brand, $user)) {
             throw new PostValidationException(['brand' => ['La marca no pertenece al usuario.']]);
         }
 
@@ -83,7 +84,7 @@ class LibraryService
             throw new PostValidationException(['name' => ['Has alcanzado el maximo de plantillas.']]);
         }
 
-        app(MediaValidator::class)->assertPublishable(MediaAsset::ownedBy($user->id)->whereIn('id', $mediaIds)->get());
+        $this->mediaValidator->assertPublishable(MediaAsset::ownedBy($user->id)->whereIn('id', $mediaIds)->get());
 
         return DB::transaction(function () use ($user, $brand, $name, $text, $mediaIds, $targets, $campaignId) {
             $template = new PostTemplate(['name' => $name, 'text' => $text, 'targets' => $targets ?: null]);
@@ -121,7 +122,7 @@ class LibraryService
     {
         $notice = null;
 
-        if ($template->user_id !== $user->id) {
+        if (! Ownership::matches($template, $user)) {
             throw new PostValidationException(['template' => ['La plantilla no pertenece al usuario.']]);
         }
 

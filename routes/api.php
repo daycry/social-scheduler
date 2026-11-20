@@ -14,11 +14,11 @@ use Illuminate\Support\Facades\Route;
 // mismas abilities que el MCP. Se carga desde routes/studio-api.php (middleware `api`, sin segundo prefijo). La marca siempre va en la ruta.
 Route::prefix('api/v1')->name('api.')->middleware(['auth:sanctum', 'throttle:api-v1'])->group(function () {
     // Media del usuario (no es de una marca): el mismo controlador que la web; el binario se sube con `upload` (disco local) o directo a R2.
-    Route::middleware(RequireApiAbility::class.':'.Abilities::BRANDS_READ)->group(function () {
+    Route::middleware(RequireApiAbility::class.':'.Abilities::MEDIA_READ)->group(function () {
         Route::get('media', [MediaApiController::class, 'index'])->name('media.index');
         Route::get('media/{asset}', [MediaApiController::class, 'show'])->whereNumber('asset')->name('media.show');
     });
-    Route::middleware(RequireApiAbility::class.':'.Abilities::POSTS_WRITE)->group(function () {
+    Route::middleware(RequireApiAbility::class.':'.Abilities::MEDIA_WRITE)->group(function () {
         Route::post('media', [MediaApiController::class, 'store'])->middleware('throttle:api.media.store')->name('media.store');
         Route::post('media/import-url', [MediaApiController::class, 'importUrl'])->middleware('throttle:api.media.import-url')->name('media.import-url');
         Route::put('media/{asset}/upload', [MediaApiController::class, 'upload'])->whereNumber('asset')->name('media.upload');

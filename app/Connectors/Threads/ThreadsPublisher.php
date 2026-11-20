@@ -15,7 +15,7 @@ use App\Models\SocialAccount;
 /**
  * Publicacion en Threads: valida la peticion (tipo, texto, tamano del carrusel) y delega el flujo de contenedores
  * (`POST /{user}/threads` -> espera de `status` -> `POST /{user}/threads_publish`, carrusel reanudable, idempotencia) en
- * `ContainerPublishFlow` con los ganchos de `ThreadsContainers`, sin heredar de `InstagramPublisher`.
+ * `ContainerPublishFlow` con los ganchos de `ThreadsContainers`.
  * Tipos: texto, imagen, video y carrusel.
  */
 class ThreadsPublisher implements FirstCommenter, Publisher, StatusPoller

@@ -19,6 +19,11 @@ export class StudioDocumentError extends Error {
     }
 }
 
+export function containsVideo(elements) {
+    return Array.isArray(elements) && elements.some(element => element?.type === 'video'
+        || (element?.type === 'group' && containsVideo(element.elements)));
+}
+
 export function newId(prefix = 'element') {
     const uuid = globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}_${(++sequence).toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
     return `${prefix.slice(0, 20)}_${uuid}`;

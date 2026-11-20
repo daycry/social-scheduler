@@ -59,6 +59,13 @@ test('E2E-20a · cobertura por red, filtro por red y por estado', { tag: '@respo
     await expect(rows(page)).toHaveCount(3);
     await expectNoOverflow(page);
     await axeSeriousCritical(page, 'Inbox ampliado (estado)');
+
+    await page.goto(`/inbox?brand_id=${brand.id}&hidden=1`);
+    const hidden = page.getByRole('checkbox', { name: 'Solo ocultos' });
+    await expect(hidden).toBeChecked();
+    await expect(rows(page)).toHaveCount(0);
+    await hidden.uncheck();
+    await expect(rows(page)).toHaveCount(4);
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
@@ -137,6 +144,7 @@ test('E2E-20c · lote (leer y cerrar) y respuestas guardadas', { tag: '@responsi
     await axeSeriousCritical(page, 'Inbox ampliado (respuesta guardada)');
 
     await page.getByRole('button', { name: /Eliminar la respuesta guardada Gracias/ }).click();
+    await page.getByTestId('confirm-dialog').getByRole('button', { name: 'Eliminar respuesta' }).click();
     await settle(page);
     await expect(page.getByTestId('saved-item')).toHaveCount(0);
     expect(w.errors, w.errors.join('\n')).toEqual([]);

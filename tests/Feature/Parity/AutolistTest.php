@@ -59,7 +59,7 @@ test('Autolistas: genera programadas en la hora local de la marca usando PostSer
     $res = $this->svc->generate($list, 7);
 
     expect($res)->toBe(['created' => 2, 'skipped' => 0]);
-    $posts = Post::withoutUserScope()->orderBy('scheduled_at')->get();
+    $posts = Post::withoutUserScope()->with(['targets', 'media'])->orderBy('scheduled_at')->get();
     expect($posts)->toHaveCount(2)
         // Martes 3-nov 10:00 Madrid (CET, UTC+1) = 09:00 UTC; jueves 5-nov 18:30 = 17:30 UTC.
         ->and($posts[0]->scheduled_at->utc()->format('Y-m-d H:i'))->toBe('2026-11-03 09:00')

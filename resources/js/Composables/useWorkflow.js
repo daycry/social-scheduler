@@ -1,22 +1,26 @@
+import { HttpError, sessionFetch } from '../lib/http.js';
+
+/** @typedef {{ message?: string, errors?: Record<string, string | string[]> }} WorkflowErrorData */
+/** @typedef {{ ok: false, status: number, data: WorkflowErrorData | null, error?: HttpError }} WorkflowFailure */
+/**
+ * @template T
+ * @typedef {{ ok: true, status: number, data: T | null } | WorkflowFailure} WorkflowResult
+ */
+
 /**
  * Peticiones JSON del flujo de publicación (T-19) con la sesión web: aprobar, rechazar, marcar publicado, reintentar, lotes, series
- * y colaboradores. Devuelve `{ ok, status, data }` sin lanzar: la pantalla decide cómo mostrar el error.
+ * y colaboradores. Devuelve el estado y los datos de la respuesta, si los hay, sin lanzar.
+ * @template [T=unknown]
+ * @param {string} method
+ * @param {string} url
+ * @param {unknown} [body]
+ * @param {HeadersInit} [headers]
+ * @returns {Promise<WorkflowResult<T>>}
  */
 export async function workflowRequest(method, url, body = null, headers = {}) {
-    const token = decodeURIComponent((document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '');
     try {
-        const response = await fetch(url, {
-            method,
-            credentials: 'same-origin',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-XSRF-TOKEN': token,
-                ...headers,
-            },
-            body: body === null ? undefined : JSON.stringify(body),
-        });
+        const response = await sessionFetch(method, url, { json: body === null ? undefined : body, headers });
+        /** @type {unknown} */
         let data = null;
         try {
             data = await response.json();
@@ -24,13 +28,22 @@ export async function workflowRequest(method, url, body = null, headers = {}) {
             data = null;
         }
 
-        return { ok: response.ok, status: response.status, data };
+        if (!response.ok) {
+            const failure = /** @type {WorkflowErrorData | null} */ (data);
+            const error = new HttpError(failure?.message ?? 'No se pudo completar la acción.', response.status, failure);
+            return { ok: false, status: response.status, data: failure, error };
+        }
+        return { ok: true, status: response.status, data: /** @type {T | null} */ (data) };
     } catch {
         return { ok: false, status: 0, data: { message: 'No se pudo conectar. Inténtalo de nuevo.' } };
     }
 }
 
-/** Primer mensaje legible de una respuesta de error (422 con `errors`, o `message`). */
+/**
+ * Primer mensaje legible de una respuesta de error (422 con `errors`, o `message`).
+ * @param {WorkflowFailure | null | undefined} result
+ * @param {string} [fallback]
+ */
 export function workflowError(result, fallback = 'No se pudo completar la acción.') {
     const errors = result?.data?.errors;
     if (errors) {

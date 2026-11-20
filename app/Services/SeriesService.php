@@ -12,6 +12,7 @@ use App\Models\PostSeriesOccurrence;
 use App\Models\User;
 use App\Notifications\PostWorkflowActivity;
 use App\Notifications\SeriesGenerationFailed;
+use App\Support\Ownership;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Arr;
@@ -41,12 +42,15 @@ class SeriesService
     /** Margen entre pulsar «Recuperar fechas perdidas» y la hora a la que sale la primera ocurrencia recuperada. */
     public const RECOVERY_DELAY_MINUTES = 10;
 
-    public function __construct(private readonly PostService $posts) {}
+    public function __construct(
+        private readonly PostService $posts,
+        private readonly BrandCollaboration $collaboration,
+    ) {}
 
     /** @param array<string, mixed> $data */
     public function create(User $user, Brand $brand, array $data): PostSeries
     {
-        abort_unless((int) $brand->user_id === (int) $user->id, 404);
+        Ownership::assert($brand, $user);
         $rule = $this->validatedRule($data, null);
         $payload = $this->validatedPayload($user, $brand, $data, $rule['time_local']);
 
@@ -129,7 +133,7 @@ class SeriesService
         $brand = Brand::withoutUserScope()->find($series->brand_id);
         $count = count($postIds);
         $message = $count.($count === 1 ? ' publicacion' : ' publicaciones').' de la serie de «'.$brand?->name.'» pendientes de aprobacion.';
-        foreach (app(BrandCollaboration::class)->approvers((int) $series->brand_id) as $approver) {
+        foreach ($this->collaboration->approvers((int) $series->brand_id) as $approver) {
             $approver->notify(new PostWorkflowActivity('approval_requested', null, $series->brand_id, (string) $brand?->name, $message, (string) ($series->payload['text'] ?? '')));
         }
     }
@@ -426,7 +430,7 @@ class SeriesService
 
     private function assertOwns(User $user, PostSeries $series): void
     {
-        abort_unless((int) $series->user_id === (int) $user->id, 404);
+        Ownership::assert($series, $user);
     }
 
     /** @return array<string, mixed> */

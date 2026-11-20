@@ -92,39 +92,328 @@ watch(()=>props.fonts,()=>{invalidate();disposeScene();timer=setTimeout(refreshP
 onBeforeUnmount(()=>{disposed=true;invalidate();invalidateData();disposeScene();dataTable.value=null;});
 </script>
 <template>
- <StudioDialog :model-value="modelValue" title="Diseñar gráfico" wide @update:model-value="close">
-  <div class="space-y-5 min-w-0">
-   <nav class="flex gap-2 rounded-xl bg-slate-100 p-1" aria-label="Pasos del gráfico"><button type="button" class="chart-tab" :aria-pressed="tab==='data'" @click="tab='data'">1 · Datos</button><button type="button" class="chart-tab" :aria-pressed="tab==='style'" @click="tab='style'">2 · Estilo</button></nav>
-   <template v-if="draft">
-    <section v-show="tab==='data'" class="space-y-4" aria-label="Datos del gráfico">
-     <div class="rounded-xl border border-violet-200 bg-violet-50 p-4"><p class="text-sm font-semibold">Tabla {{ draft.binding.dataset.id }} · Revisión {{ draft.binding.dataset.revision }} fija</p><p class="mt-1 break-all font-mono text-[10px]">SHA-256 {{ draft.binding.dataset.sha256 }}</p><button type="button" class="chart-button mt-3" @click="emit('choose-data',copy(draft))">Elegir otra revisión guardada</button><p class="mt-2 text-xs text-slate-600">La revisión sólo cambia al elegirla y aplicar el gráfico. Puedes deshacer ese cambio.</p></div>
-     <button type="button" class="chart-button" :disabled="dataBusy" @click="viewData">Ver datos del gráfico</button>
-     <p v-if="!columns.length" class="text-sm text-slate-600">Abre «Ver datos del gráfico» para cargar las columnas de esta revisión histórica.</p>
-     <label class="chart-label">Tipo de gráfico<select v-model="draft.options.kind" class="field"><option v-for="[value,label] in kinds" :key="value" :value="value">{{ label }}</option></select></label>
-     <label class="chart-label">Categoría<select v-model="draft.binding.category_column" class="field"><option v-if="missingCategory" :value="draft.binding.category_column" disabled>{{ draft.binding.category_column }} · No disponible en esta revisión</option><option v-for="c in columns" :key="c.id" :value="c.id">{{ c.label }}</option></select></label>
-     <p v-if="missingCategory" role="status" class="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">La categoría {{ draft.binding.category_column }} no está disponible en esta revisión. Elige su nueva columna en el selector de categoría.</p>
-     <section v-if="unavailableSeries.length" class="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-3" aria-label="Series que necesitan asignación"><p class="text-sm text-amber-900">Estas columnas no están disponibles como series numéricas en esta revisión. Retíralas y elige sus sustitutas entre las series de abajo. El estilo se conserva.</p><div v-for="id in unavailableSeries" :key="id" class="flex flex-wrap items-center justify-between gap-2 text-sm"><span class="break-all">{{ id }} · No disponible como serie numérica</span><button type="button" class="chart-button" :aria-label="`Retirar serie ${id}`" @click="toggleSeries(id,false)">Retirar serie {{ id }}</button></div></section>
-     <fieldset class="rounded-xl border border-slate-200 p-3"><legend class="px-1 text-sm font-semibold">Series numéricas · entre 1 y 12</legend><label v-for="c in numericColumns" :key="c.id" class="flex gap-2 py-2 text-sm"><input type="checkbox" :checked="draft.binding.series_columns.includes(c.id)" :disabled="c.id===draft.binding.category_column && !draft.binding.series_columns.includes(c.id)" @change="toggleSeries(c.id,$event.target.checked)" />{{ c.label }}</label><p v-if="!numericColumns.length" class="text-sm">Sin columnas numéricas: conviértelas a Número en el editor de datos y guarda una revisión.</p></fieldset>
-     <label class="chart-label">Precisión<select v-model="draft.binding.precision" class="field"><option value="safe">Segura · rechazar pérdida de precisión</option><option value="approximate">Aproximada · acepto aproximar números</option></select></label>
-    </section>
-    <section v-show="tab==='style'" class="space-y-4" aria-label="Estilo del gráfico">
-     <fieldset class="chart-fieldset"><legend>Texto y tipografía</legend><label v-for="[field,label] in [['title','Título'],['subtitle','Subtítulo'],['source','Fuente de datos'],['x_title','Título del eje X'],['y_title','Título del eje Y']]" :key="field" class="chart-label">{{label}}<input v-model="draft.style[field]" maxlength="512" class="field" /></label>
-      <label class="chart-label">Tipografía<select :value="fontValue" class="field" @change="chooseFont($event.target.value)"><optgroup label="Locales y kit"><option v-for="family in families" :key="family" :value="`local:${family}`">{{family}}</option></optgroup><optgroup label="Archivos de marca"><option v-for="font in fonts.filter(f=>f.status==='ready'&&(!f.archived_at||f.id===draft.style.font_id))" :key="font.id" :value="`font:${font.id}`">{{font.name}} · {{font.family}}</option></optgroup></select></label>
-      <label class="chart-label">Tamaño de letra<input v-model.number="draft.style.fontSize" type="number" min="8" max="72" class="field" /></label><label class="chart-label">Peso<select v-model="draft.style.fontWeight" class="field"><option value="normal">Normal</option><option value="bold">Negrita</option></select></label><label class="chart-label">Estilo<select v-model="draft.style.fontStyle" class="field"><option value="normal">Normal</option><option value="italic">Cursiva</option></select></label>
-     </fieldset>
-     <fieldset class="chart-fieldset"><legend>Colores</legend><label class="chart-label">Paleta propia · hex separados por comas<input v-model="paletteText" class="field font-mono" placeholder="#7c3aed, #10b98188" /></label><button type="button" class="chart-button" :disabled="!kit?.palette?.length" @click="draft.options.palette=[...kit.palette]">Usar paleta del kit</button><label v-for="[field,label] in [['text_color','Color del texto'],['axis_color','Color de ejes'],['grid_color','Color de rejilla'],['background','Fondo']]" :key="field" class="chart-label">{{label}}<input v-model="draft.style[field]" class="field font-mono" placeholder="#11223388" /></label><p class="text-xs text-slate-500">Se conserva la transparencia de los colores hexadecimales.</p></fieldset>
-     <fieldset class="chart-fieldset"><legend>Ejes, leyenda y etiquetas</legend><label v-for="[field,label] in [['legend','Mostrar leyenda'],['show_grid','Mostrar rejilla'],['show_axis','Mostrar ejes'],['category_labels','Mostrar categorías']]" :key="field" class="flex items-center gap-2 text-sm"><input v-model="draft.style[field]" type="checkbox" />{{label}}</label><label class="chart-label">Posición de leyenda<select v-model="draft.style.legend_position" class="field"><option value="bottom">Abajo</option><option value="right">Derecha</option></select></label><label class="chart-label">Etiquetas de valores<select v-model="draft.style.value_labels" class="field"><option value="none">Ocultas</option><option value="raw">Valor original</option><option value="percentage">Porcentaje · sólo proporcionales</option></select></label><label class="chart-label">Posición de etiquetas<select v-model="draft.style.label_position" class="field"><option value="outside">Fuera</option><option value="inside">Dentro</option></select></label><label class="chart-label">Límite visual de categoría<input v-model.number="draft.style.category_label_limit" type="number" min="1" max="80" class="field" /></label></fieldset>
-     <fieldset class="chart-fieldset"><legend>Rango y separación</legend><label v-for="[field,label] in [['domain_min','Mínimo del dominio'],['domain_max','Máximo del dominio']]" :key="field" class="chart-label">{{label}} · vacío = automático<input :value="draft.options[field]" type="number" step="any" class="field" @input="draft.options[field]=$event.target.value===''?null:Number($event.target.value)" /></label><label class="chart-label">Número de marcas del eje<input v-model.number="draft.options.tick_count" type="number" min="2" max="21" class="field" /></label><label v-for="[field,label] in [['band_gap','Separación de categorías'],['series_gap','Separación de series']]" :key="field" class="chart-label">{{label}}<input v-model.number="draft.options[field]" type="number" min="0" max="0.9" step="0.05" class="field" /></label></fieldset>
-    </section>
-    <section class="rounded-xl border border-slate-200 bg-slate-50 p-3" aria-label="Vista previa del gráfico"><p v-if="previewBusy" role="status" class="text-sm">Preparando vista previa…</p><img v-if="previewUrl" :src="previewUrl" alt="Vista previa del gráfico con los datos guardados" class="w-full rounded-lg" /><p v-else class="py-8 text-center text-sm text-slate-500">La vista previa aparecerá al validar los datos.</p><ul v-if="warnings.length" class="mt-2 space-y-1 text-xs text-amber-800"><li v-for="(warning,index) in warnings" :key="index">{{warningLabel(warning)}}</li></ul></section>
-    <section v-if="dataOpen && dataTable" class="space-y-3 bg-white" aria-label="Tabla accesible del gráfico"><h3 class="font-semibold">Datos originales de la revisión {{draft.binding.dataset.revision}}</h3><div class="max-h-80 overflow-auto rounded-xl border" role="region" aria-label="Datos originales del gráfico" tabindex="0"><table class="w-full text-left text-xs"><caption class="sr-only">Categorías y series seleccionadas, tipos y valores originales</caption><thead><tr><th scope="col" class="p-2">Fila</th><th v-for="c in displayedColumns" :key="c.id" scope="col" class="p-2">{{c.label}}</th></tr></thead><tbody><tr v-for="row in displayedRows" :key="row.id"><th scope="row" class="p-2">{{row.id}}</th><td v-for="c in displayedColumns" :key="c.id" class="p-2 whitespace-pre-wrap">{{c.index < 0 ? 'Columna no disponible en esta revisión' : cellLabel(row.values[c.index])}}</td></tr></tbody><tfoot v-if="dataTable.rows.length===0"><tr><td :colspan="displayedColumns.length+1" class="p-2">Esta revisión no contiene filas.</td></tr></tfoot></table></div><nav class="flex flex-wrap gap-3 text-xs" aria-label="Páginas de datos del gráfico"><button type="button" class="chart-button" :disabled="dataPage===0" @click="dataPage--">Anterior</button><span role="status">Página {{dataPage+1}} de {{Math.max(1,Math.ceil(dataTable.rows.length/50))}} · {{dataTable.rows.length}} filas</span><button type="button" class="chart-button" :disabled="(dataPage+1)*50>=dataTable.rows.length" @click="dataPage++">Siguiente</button></nav></section>
-   </template>
-   <p v-if="error || configuration.error" role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-800">{{error || configuration.error}}</p>
-   <footer class="sticky bottom-0 flex flex-wrap justify-end gap-2 border-t bg-white py-3"><button type="button" class="chart-button" @click="close">Cancelar</button><button type="button" class="rounded-lg bg-violet-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40" :disabled="!canApply" @click="apply">{{chart?'Aplicar gráfico':'Insertar gráfico'}}</button></footer>
-  </div>
- </StudioDialog>
+    <StudioDialog :model-value="modelValue" title="Diseñar gráfico" wide @update:model-value="close">
+        <div class="space-y-5 min-w-0">
+            <nav class="flex gap-2 rounded-xl bg-slate-100 p-1" aria-label="Pasos del gráfico"
+                ><button type="button" class="btn-secondary flex-1 px-3 text-xs aria-pressed:border-violet-300 aria-pressed:text-violet-700" :aria-pressed="tab==='data'" @click="tab='data'"
+                    >1 · Datos</button
+                ><button type="button" class="btn-secondary flex-1 px-3 text-xs aria-pressed:border-violet-300 aria-pressed:text-violet-700" :aria-pressed="tab==='style'" @click="tab='style'"
+                    >2 · Estilo</button
+                ></nav
+            >
+            <template v-if="draft">
+                <section v-show="tab==='data'" class="space-y-4" aria-label="Datos del gráfico">
+                    <div class="rounded-xl border border-violet-200 bg-violet-50 p-4"
+                        ><p class="text-sm font-semibold"
+                            >Tabla {{ draft.binding.dataset.id }} · Revisión
+                            {{ draft.binding.dataset.revision }} fija</p
+                        ><p class="mt-1 break-all font-mono text-[10px]">SHA-256 {{ draft.binding.dataset.sha256 }}</p
+                        ><button type="button" class="btn-secondary px-3 text-xs mt-3" @click="emit('choose-data',copy(draft))"
+                            >Elegir otra revisión guardada</button
+                        ><p class="mt-2 text-xs text-slate-600"
+                            >La revisión sólo cambia al elegirla y aplicar el gráfico. Puedes deshacer ese cambio.</p
+                        ></div
+                    >
+                    <button type="button" class="btn-secondary px-3 text-xs" :disabled="dataBusy" @click="viewData"
+                        >Ver datos del gráfico</button
+                    >
+                    <p v-if="!columns.length" class="text-sm text-slate-600"
+                        >Abre «Ver datos del gráfico» para cargar las columnas de esta revisión histórica.</p
+                    >
+                    <label class="block text-sm font-medium"
+                        >Tipo de gráfico<select v-model="draft.options.kind" class="field appearance-auto bg-none mt-1.5 block"
+                            ><option
+                                v-for="[value,label] in kinds"
+                                :key="value"
+                                :value="value"
+                                >{{ label }}</option
+                            ></select
+                        ></label
+                    >
+                    <label class="block text-sm font-medium"
+                        >Categoría<select v-model="draft.binding.category_column" class="field appearance-auto bg-none mt-1.5 block"
+                            ><option v-if="missingCategory" :value="draft.binding.category_column" disabled
+                                >{{ draft.binding.category_column }} · No disponible en esta revisión</option
+                            ><option v-for="c in columns" :key="c.id" :value="c.id">{{ c.label }}</option></select
+                        ></label
+                    >
+                    <p v-if="missingCategory" role="status" class="rounded-lg bg-amber-50 p-3 text-sm text-amber-900"
+                        >La categoría {{ draft.binding.category_column }} no está disponible en esta revisión. Elige su
+                        nueva columna en el selector de categoría.</p
+                    >
+                    <section
+                        v-if="unavailableSeries.length"
+                        class="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-3"
+                        aria-label="Series que necesitan asignación"
+                        ><p class="text-sm text-amber-900"
+                            >Estas columnas no están disponibles como series numéricas en esta revisión. Retíralas y
+                            elige sus sustitutas entre las series de abajo. El estilo se conserva.</p
+                        ><div
+                            v-for="id in unavailableSeries"
+                            :key="id"
+                            class="flex flex-wrap items-center justify-between gap-2 text-sm"
+                            ><span class="break-all">{{ id }} · No disponible como serie numérica</span
+                            ><button
+                                type="button"
+                                class="btn-secondary px-3 text-xs"
+                                :aria-label="`Retirar serie ${id}`"
+                                @click="toggleSeries(id,false)"
+                                >Retirar serie {{ id }}</button
+                            ></div
+                        ></section
+                    >
+                    <fieldset class="rounded-xl border border-slate-200 p-3"
+                        ><legend class="px-1 text-sm font-semibold">Series numéricas · entre 1 y 12</legend
+                        ><label v-for="c in numericColumns" :key="c.id" class="flex gap-2 py-2 text-sm"
+                            ><input
+                                type="checkbox"
+                                :checked="draft.binding.series_columns.includes(c.id)"
+                                :disabled="c.id===draft.binding.category_column && !draft.binding.series_columns.includes(c.id)"
+                                @change="toggleSeries(c.id,$event.target.checked)"
+                            />{{ c.label }}</label
+                        ><p v-if="!numericColumns.length" class="text-sm"
+                            >Sin columnas numéricas: conviértelas a Número en el editor de datos y guarda una
+                            revisión.</p
+                        ></fieldset
+                    >
+                    <label class="block text-sm font-medium"
+                        >Precisión<select v-model="draft.binding.precision" class="field appearance-auto bg-none mt-1.5 block"
+                            ><option value="safe">Segura · rechazar pérdida de precisión</option
+                            ><option value="approximate">Aproximada · acepto aproximar números</option></select
+                        ></label
+                    >
+                </section>
+                <section v-show="tab==='style'" class="space-y-4" aria-label="Estilo del gráfico">
+                    <fieldset class="grid min-w-0 gap-4 rounded-xl border border-slate-200 p-4"
+                        ><legend class="px-1.5 text-sm font-semibold">Texto y tipografía</legend
+                        ><label
+                            v-for="[field,label] in [['title','Título'],['subtitle','Subtítulo'],['source','Fuente de datos'],['x_title','Título del eje X'],['y_title','Título del eje Y']]"
+                            :key="field"
+                            class="block text-sm font-medium"
+                            >{{label}}<input v-model="draft.style[field]" maxlength="512" class="field mt-1.5 block"
+                        /></label>
+                        <label class="block text-sm font-medium"
+                            >Tipografía<select
+                                :value="fontValue"
+                                class="field appearance-auto bg-none mt-1.5 block"
+                                @change="chooseFont($event.target.value)"
+                                ><optgroup label="Locales y kit"
+                                    ><option
+                                        v-for="family in families"
+                                        :key="family"
+                                        :value="`local:${family}`"
+                                        >{{family}}</option
+                                    ></optgroup
+                                ><optgroup label="Archivos de marca"
+                                    ><option
+                                        v-for="font in fonts.filter(f=>f.status==='ready'&&(!f.archived_at||f.id===draft.style.font_id))"
+                                        :key="font.id"
+                                        :value="`font:${font.id}`"
+                                        >{{font.name}} · {{font.family}}</option
+                                    ></optgroup
+                                ></select
+                            ></label
+                        >
+                        <label class="block text-sm font-medium"
+                            >Tamaño de letra<input
+                                v-model.number="draft.style.fontSize"
+                                type="number"
+                                min="8"
+                                max="72"
+                                class="field mt-1.5 block" /></label
+                        ><label class="block text-sm font-medium"
+                            >Peso<select v-model="draft.style.fontWeight" class="field appearance-auto bg-none mt-1.5 block"
+                                ><option value="normal">Normal</option
+                                ><option value="bold">Negrita</option></select
+                            ></label
+                        ><label class="block text-sm font-medium"
+                            >Estilo<select v-model="draft.style.fontStyle" class="field appearance-auto bg-none mt-1.5 block"
+                                ><option value="normal">Normal</option
+                                ><option value="italic">Cursiva</option></select
+                            ></label
+                        >
+                    </fieldset>
+                    <fieldset class="grid min-w-0 gap-4 rounded-xl border border-slate-200 p-4"
+                        ><legend class="px-1.5 text-sm font-semibold">Colores</legend
+                        ><label class="block text-sm font-medium"
+                            >Paleta propia · hex separados por comas<input
+                                v-model="paletteText"
+                                class="field font-mono"
+                                placeholder="#7c3aed, #10b98188" /></label
+                        ><button
+                            type="button"
+                            class="btn-secondary px-3 text-xs"
+                            :disabled="!kit?.palette?.length"
+                            @click="draft.options.palette=[...kit.palette]"
+                            >Usar paleta del kit</button
+                        ><label
+                            v-for="[field,label] in [['text_color','Color del texto'],['axis_color','Color de ejes'],['grid_color','Color de rejilla'],['background','Fondo']]"
+                            :key="field"
+                            class="block text-sm font-medium"
+                            >{{label
+                            }}<input
+                                v-model="draft.style[field]"
+                                class="field font-mono"
+                                placeholder="#11223388" /></label
+                        ><p class="text-xs text-slate-500"
+                            >Se conserva la transparencia de los colores hexadecimales.</p
+                        ></fieldset
+                    >
+                    <fieldset class="grid min-w-0 gap-4 rounded-xl border border-slate-200 p-4"
+                        ><legend class="px-1.5 text-sm font-semibold">Ejes, leyenda y etiquetas</legend
+                        ><label
+                            v-for="[field,label] in [['legend','Mostrar leyenda'],['show_grid','Mostrar rejilla'],['show_axis','Mostrar ejes'],['category_labels','Mostrar categorías']]"
+                            :key="field"
+                            class="flex items-center gap-2 text-sm"
+                            ><input v-model="draft.style[field]" type="checkbox" />{{label}}</label
+                        ><label class="block text-sm font-medium"
+                            >Posición de leyenda<select v-model="draft.style.legend_position" class="field appearance-auto bg-none mt-1.5 block"
+                                ><option value="bottom">Abajo</option
+                                ><option value="right">Derecha</option></select
+                            ></label
+                        ><label class="block text-sm font-medium"
+                            >Etiquetas de valores<select v-model="draft.style.value_labels" class="field appearance-auto bg-none mt-1.5 block"
+                                ><option value="none">Ocultas</option
+                                ><option value="raw">Valor original</option
+                                ><option value="percentage">Porcentaje · sólo proporcionales</option></select
+                            ></label
+                        ><label class="block text-sm font-medium"
+                            >Posición de etiquetas<select
+                                v-model="draft.style.label_position"
+                                class="field appearance-auto bg-none mt-1.5 block"
+                                ><option value="outside">Fuera</option
+                                ><option value="inside">Dentro</option></select
+                            ></label
+                        ><label class="block text-sm font-medium"
+                            >Límite visual de categoría<input
+                                v-model.number="draft.style.category_label_limit"
+                                type="number"
+                                min="1"
+                                max="80"
+                                class="field mt-1.5 block" /></label
+                    ></fieldset>
+                    <fieldset class="grid min-w-0 gap-4 rounded-xl border border-slate-200 p-4"
+                        ><legend class="px-1.5 text-sm font-semibold">Rango y separación</legend
+                        ><label
+                            v-for="[field,label] in [['domain_min','Mínimo del dominio'],['domain_max','Máximo del dominio']]"
+                            :key="field"
+                            class="block text-sm font-medium"
+                            >{{label}} · vacío = automático<input
+                                :value="draft.options[field]"
+                                type="number"
+                                step="any"
+                                class="field mt-1.5 block"
+                                @input="draft.options[field]=$event.target.value===''?null:Number($event.target.value)" /></label
+                        ><label class="block text-sm font-medium"
+                            >Número de marcas del eje<input
+                                v-model.number="draft.options.tick_count"
+                                type="number"
+                                min="2"
+                                max="21"
+                                class="field mt-1.5 block" /></label
+                        ><label
+                            v-for="[field,label] in [['band_gap','Separación de categorías'],['series_gap','Separación de series']]"
+                            :key="field"
+                            class="block text-sm font-medium"
+                            >{{label
+                            }}<input
+                                v-model.number="draft.options[field]"
+                                type="number"
+                                min="0"
+                                max="0.9"
+                                step="0.05"
+                                class="field mt-1.5 block" /></label
+                    ></fieldset>
+                </section>
+                <section
+                    class="rounded-xl border border-slate-200 bg-slate-50 p-3"
+                    aria-label="Vista previa del gráfico"
+                    ><p v-if="previewBusy" role="status" class="text-sm">Preparando vista previa…</p
+                    ><img
+                        v-if="previewUrl"
+                        :src="previewUrl"
+                        alt="Vista previa del gráfico con los datos guardados"
+                        class="w-full rounded-lg"
+                    /><p v-else class="py-8 text-center text-sm text-slate-500"
+                        >La vista previa aparecerá al validar los datos.</p
+                    ><ul v-if="warnings.length" class="mt-2 space-y-1 text-xs text-amber-800"
+                        ><li v-for="(warning,index) in warnings" :key="index">{{warningLabel(warning)}}</li></ul
+                    ></section
+                >
+                <section
+                    v-if="dataOpen && dataTable"
+                    class="space-y-3 bg-white"
+                    aria-label="Tabla accesible del gráfico"
+                    ><h3 class="font-semibold">Datos originales de la revisión {{draft.binding.dataset.revision}}</h3
+                    ><div
+                        class="max-h-80 overflow-auto rounded-xl border"
+                        role="region"
+                        aria-label="Datos originales del gráfico"
+                        tabindex="0"
+                        ><table class="w-full text-left text-xs"
+                            ><caption class="sr-only"
+                                >Categorías y series seleccionadas, tipos y valores originales</caption
+                            ><thead
+                                ><tr
+                                    ><th scope="col" class="p-2">Fila</th
+                                    ><th
+                                        v-for="c in displayedColumns"
+                                        :key="c.id"
+                                        scope="col"
+                                        class="p-2"
+                                        >{{c.label}}</th
+                                    ></tr
+                                ></thead
+                            ><tbody
+                                ><tr v-for="row in displayedRows" :key="row.id"
+                                    ><th scope="row" class="p-2">{{row.id}}</th
+                                    ><td
+                                        v-for="c in displayedColumns"
+                                        :key="c.id"
+                                        class="p-2 whitespace-pre-wrap"
+                                        >{{c.index < 0 ? 'Columna no disponible en esta revisión' : cellLabel(row.values[c.index])}}</td
+                                    ></tr
+                                ></tbody
+                            ><tfoot v-if="dataTable.rows.length===0"
+                                ><tr
+                                    ><td :colspan="displayedColumns.length+1" class="p-2"
+                                        >Esta revisión no contiene filas.</td
+                                    ></tr
+                                ></tfoot
+                            ></table
+                        ></div
+                    ><nav class="flex flex-wrap gap-3 text-xs" aria-label="Páginas de datos del gráfico"
+                        ><button type="button" class="btn-secondary px-3 text-xs" :disabled="dataPage===0" @click="dataPage--"
+                            >Anterior</button
+                        ><span role="status"
+                            >Página {{dataPage+1}} de {{Math.max(1,Math.ceil(dataTable.rows.length/50))}} ·
+                            {{dataTable.rows.length}} filas</span
+                        ><button
+                            type="button"
+                            class="btn-secondary px-3 text-xs"
+                            :disabled="(dataPage+1)*50>=dataTable.rows.length"
+                            @click="dataPage++"
+                            >Siguiente</button
+                        ></nav
+                    ></section
+                >
+            </template>
+            <p
+                v-if="error || configuration.error"
+                role="alert"
+                class="rounded-xl bg-red-50 p-3 text-sm text-red-800"
+                >{{error || configuration.error}}</p
+            >
+            <footer class="sticky bottom-0 flex flex-wrap justify-end gap-2 border-t bg-white py-3"
+                ><button type="button" class="btn-secondary px-3 text-xs" @click="close">Cancelar</button
+                ><button
+                    type="button"
+                    class="btn-primary bg-violet-700 transition-none hover:bg-violet-600 disabled:opacity-40"
+                    :disabled="!canApply"
+                    @click="apply"
+                    >{{chart?'Aplicar gráfico':'Insertar gráfico'}}</button
+                ></footer
+            >
+        </div>
+    </StudioDialog>
 </template>
-<style scoped>
-select.field{appearance:auto;-webkit-appearance:auto;background-image:none}
-.chart-label{display:block;font-size:.8rem;font-weight:500}.chart-label .field{display:block;width:100%;margin-top:.35rem}.chart-fieldset{display:grid;gap:1rem;border:1px solid #e2e8f0;border-radius:.75rem;padding:1rem;min-width:0}.chart-fieldset legend{font-size:.85rem;font-weight:600;padding:0 .3rem}.chart-button,.chart-tab{border:1px solid #e2e8f0;border-radius:.5rem;padding:.55rem .8rem;font-size:.75rem;background:white}.chart-tab{flex:1}.chart-tab[aria-pressed=true]{color:#6d28d9;border-color:#c4b5fd}.chart-button:disabled{opacity:.4}
-</style>

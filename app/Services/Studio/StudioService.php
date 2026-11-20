@@ -3,6 +3,7 @@
 namespace App\Services\Studio;
 
 use App\Models\Brand;
+use App\Models\MediaAsset;
 use App\Models\Studio\BrandKit;
 use App\Models\Studio\Design;
 use App\Models\Studio\DesignFolder;
@@ -11,6 +12,7 @@ use App\Models\Studio\DesignShare;
 use App\Models\Studio\StudioFont;
 use App\Models\User;
 use App\Support\CursorPage;
+use App\Support\Ownership;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -19,14 +21,14 @@ use Illuminate\Validation\ValidationException;
 
 class StudioService
 {
-    public function __construct(private readonly StudioDocument $documents, private readonly StudioAssets $assets, private readonly StudioCollab $collab) {}
+    public function __construct(private readonly StudioDocument $documents, private readonly StudioAssets $assets, private readonly StudioCollab $collab, private readonly StudioFonts $fonts) {}
 
     /**
      * Diseños de la marca (resumenes sin documento), los mas recientes primero por id (estable entre paginas aunque un diseno se edite), con el contrato de cursor comun (limit, cursor, has_more, next_cursor).
      *
-     * @return array{designs: list<array<string, mixed>>, has_more: bool, next_cursor: ?string}
+     * @return array{designs: list<array<string, mixed>>, has_more: bool, next_cursor: ?string, total?: int}
      */
-    public function designs(User $user, Brand $brand, array $filters = []): array
+    public function designs(User $user, Brand $brand, array $filters = [], bool $withTotal = false): array
     {
         $this->assets->assertBrand($user, $brand);
         $query = Design::ownedBy($user->id)->where('brand_id', $brand->id)
@@ -36,7 +38,7 @@ class StudioService
         }
         if (isset($filters['query']) && trim((string) $filters['query']) !== '') {
             $term = mb_substr(trim((string) $filters['query']), 0, 120);
-            $query->whereRaw("name LIKE ? ESCAPE '!'", ['%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $term).'%']);
+            $query->whereLikeEscaped('name', $term);
         }
         if (isset($filters['folder_id'])) {
             $this->folderId($user, $brand, $filters['folder_id']);
@@ -46,7 +48,7 @@ class StudioService
             $query->where('is_template', filter_var($filters['templates'], FILTER_VALIDATE_BOOLEAN));
         }
 
-        [$rows, $page] = CursorPage::fetch($query->latest('id'), $filters['limit'] ?? null, $filters['cursor'] ?? null, 'designs:u'.$user->id.':b'.$brand->id, 24);
+        [$rows, $page] = CursorPage::fetch($query->latest('id'), $filters['limit'] ?? null, $filters['cursor'] ?? null, 'designs:u'.$user->id.':b'.$brand->id, 24, $withTotal);
 
         return ['designs' => $rows->map->toArray()->values()->all()] + $page;
     }
@@ -68,6 +70,32 @@ class StudioService
             $this->snapshot($design);
 
             return $design;
+        });
+    }
+
+    public function createFromImage(User $user, Brand $brand, int $mediaId): Design
+    {
+        $this->assets->assertBrand($user, $brand);
+
+        return DB::transaction(function () use ($user, $brand, $mediaId): Design {
+            $image = MediaAsset::ownedBy($user->id)->lockForUpdate()->findOrFail($mediaId);
+            if (! $image->isReady() || $image->kind !== MediaAsset::KIND_IMAGE || $image->width < 1 || $image->height < 1) {
+                throw ValidationException::withMessages(['media_id' => ['Elige una imagen validada y lista.']]);
+            }
+            $this->assets->attach($user, $brand, $image->id);
+
+            $scale = min(1, StudioDocument::MAX_DIMENSION / max($image->width, $image->height));
+            $width = max(1, (int) round($scale * $image->width));
+            $height = max(1, (int) round($scale * $image->height));
+            $document = StudioDocument::blank(max(StudioDocument::MIN_DIMENSION, $width), max(StudioDocument::MIN_DIMENSION, $height));
+            $document['pages'][0]['elements'][] = [
+                'id' => 'source_image', 'type' => 'image', 'asset_id' => $image->id,
+                'x' => ($document['width'] - $width) / 2, 'y' => ($document['height'] - $height) / 2,
+                'width' => $width, 'height' => $height,
+            ];
+            $name = trim(StudioDocument::cleanName($image->original_name)) ?: 'Imagen de la biblioteca';
+
+            return $this->create($user, $brand, ['name' => $name, 'document' => $document]);
         });
     }
 
@@ -167,7 +195,7 @@ class StudioService
             $query->withTrashed();
         }
         $current = $query->findOrFail($design->id);
-        abort_unless(Brand::ownedBy($user->id)->whereKey($current->brand_id)->exists(), 404);
+        Ownership::ensure(Brand::ownedBy($user->id)->whereKey($current->brand_id)->exists());
 
         return $current;
     }
@@ -186,7 +214,7 @@ class StudioService
             $data['folder_id'] = null;
         }
 
-        return $data + ['role' => $role, 'template_fields' => StudioAutomation::fields($current->document), 'fonts' => app(StudioFonts::class)->neededFor($user, Brand::withoutUserScope()->findOrFail($current->brand_id), $current->document, $api)];
+        return $data + ['role' => $role, 'template_fields' => StudioAutomation::fields($current->document), 'fonts' => $this->fonts->neededFor($user, Brand::withoutUserScope()->findOrFail($current->brand_id), $current->document, $api)];
     }
 
     /** Preserve legacy meaning without recapturing a newer brand kit or serializing an empty list. */

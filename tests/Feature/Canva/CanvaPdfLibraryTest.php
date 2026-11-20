@@ -9,6 +9,7 @@ use App\Services\AutolistService;
 use App\Services\LibraryService;
 use App\Services\MediaStorage;
 use App\Services\MediaValidator;
+use App\Services\Studio\StudioAssets;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Http;
@@ -63,6 +64,7 @@ test('el PDF exportado entra en la biblioteca como media de tipo pdf, con origen
         ->and($asset->origin)->toMatchArray(['provider' => 'canva', 'design_id' => 'DAF123abcde'])
         ->and($asset->width)->toBeNull()->and($asset->size)->toBe(strlen(canvaPdfBytes()));
     Storage::disk('local')->assertExists($asset->path);
+    expect(app(StudioAssets::class)->list($this->user, $this->brand))->toBeEmpty();
     expect(str_starts_with(Storage::disk('local')->get($asset->path), '%PDF-'))->toBeTrue()->and($asset->path)->toEndWith('.pdf');
 });
 

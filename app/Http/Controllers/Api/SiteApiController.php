@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Site;
+use App\Services\AuditLog;
 use App\Services\Sites\SiteService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,7 +14,10 @@ use Illuminate\Http\Request;
  */
 class SiteApiController extends ApiController
 {
-    public function __construct(private readonly SiteService $sites) {}
+    public function __construct(AuditLog $auditLog, private readonly SiteService $sites)
+    {
+        parent::__construct($auditLog);
+    }
 
     public function index(Request $request, int $brand): JsonResponse
     {

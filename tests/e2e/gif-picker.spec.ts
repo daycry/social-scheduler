@@ -184,3 +184,35 @@ test('E2E-09 · GIF: Esc cierra el modal y devuelve el foco; sin resultados y er
     await expect(page.getByText('Todavía no has añadido archivos')).toBeVisible();
     expect(seen.imported).toBeNull();
 });
+
+test('T-56 · cerrar el selector GIF aborta una búsqueda que todavía estaba en curso', { tag: '@responsive' }, async ({ page }) => {
+    const seen = newSeen();
+    await enableFakeGiphy(page, seen, catalog);
+    let release: () => void = () => {};
+    const pending = new Promise<void>(resolve => { release = resolve; });
+    const pendingSearch = (url: URL) => url.pathname.endsWith('/gifs') && url.searchParams.get('q') === 'qa-abort';
+    await page.route(pendingSearch, async route => {
+        await pending;
+        // El servidor no provoca el aborto que se verifica abajo.
+        await route.fulfill({ json: { results: [] } }).catch(() => {});
+    });
+    try {
+        await page.goto(`/brands/${brand.id}/posts/create`);
+        await settle(page);
+        const button = page.getByTestId('media-import-gif');
+        await button.click();
+        await expect(page.getByTestId('gif-result')).toHaveCount(3);
+        const search = page.getByLabel('Buscar GIFs');
+        const waiting = page.waitForRequest(request => pendingSearch(new URL(request.url())));
+        await search.fill('qa-abort');
+        await search.press('Enter');
+        const request = await waiting;
+        const aborted = page.waitForEvent('requestfailed', pendingRequest => pendingRequest === request);
+        await search.press('Escape');
+        await expect(page.getByTestId('gif-picker')).toHaveCount(0);
+        await expect(button).toBeFocused();
+        expect((await aborted).failure()?.errorText).toBe('net::ERR_ABORTED');
+    } finally {
+        release();
+    }
+});

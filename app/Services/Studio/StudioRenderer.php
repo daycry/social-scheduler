@@ -7,11 +7,8 @@ use App\Models\Brand;
 use App\Models\MediaAsset;
 use App\Models\Studio\Design;
 use App\Models\Studio\DesignExport;
-use App\Models\Studio\DesignRevision;
 use App\Models\User;
 use App\Services\JobFailureNotifier;
-use App\Services\MediaUploadService;
-use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
@@ -22,7 +19,17 @@ use Illuminate\Validation\ValidationException;
 
 class StudioRenderer
 {
-    public function __construct(private readonly StudioService $studio, private readonly StudioExports $exports, private readonly StudioAssets $assets, private readonly StudioFonts $fonts) {}
+    public function __construct(
+        private readonly StudioService $studio,
+        private readonly StudioExports $exports,
+        private readonly StudioAssets $assets,
+        private readonly StudioFrames $frames,
+        private readonly StudioAvLifecycle $av,
+        private readonly StudioAvQueue $avQueue,
+        private readonly StudioExportFiles $files,
+        private readonly StudioRenderResources $resources,
+        private readonly JobFailureNotifier $notifier,
+    ) {}
 
     public function export(User $user, Design $design, array $data): DesignExport
     {
@@ -45,7 +52,7 @@ class StudioRenderer
         if (! array_is_list($data['pages']) || array_diff($data['pages'], array_column($revision->document['pages'], 'id')) !== []) {
             throw ValidationException::withMessages(['pages' => ['Selecciona páginas existentes en la revisión indicada.']]);
         }
-        $frameTimes = app(StudioFrames::class)->validate($revision->document, $data['pages'], $data['frame_times'] ?? []);
+        $frameTimes = $this->frames->validate($revision->document, $data['pages'], $data['frame_times'] ?? []);
         $frameOptions = array_key_exists('frame_times', $data) ? ['frame_times' => $frameTimes] : [];
         $scale = (float) ($data['scale'] ?? 1);
         $width = (int) round($revision->document['width'] * $scale);
@@ -64,8 +71,8 @@ class StudioRenderer
             // Con la fila ya insertada la fusion y la poda ven la revision como fijada; si desaparecio entre la validacion y el insert, se revierte con el 409.
             $this->exports->revision($user, $design, (int) $data['revision']);
             if ($native) {
-                app(StudioAvLifecycle::class)->initialize($user, $export);
-                DB::afterCommit(fn () => app(StudioAvQueue::class)->enqueue($export->id));
+                $this->av->initialize($user, $export);
+                DB::afterCommit(fn () => $this->avQueue->enqueue($export->id));
             } else {
                 RenderStudioDesign::dispatch($export->id)->afterCommit();
             }
@@ -100,7 +107,7 @@ class StudioRenderer
         $user = User::findOrFail($export->user_id);
         $design = Design::ownedBy($user->id)->findOrFail($export->design_id);
         $revision = $this->exports->revision($user, $design, $export->revision);
-        $times = array_column(app(StudioFrames::class)->validate($revision->document, $export->pages, $export->options['frame_times'] ?? []), 'time', 'page_id');
+        $times = array_column($this->frames->validate($revision->document, $export->pages, $export->options['frame_times'] ?? []), 'time', 'page_id');
         $brand = Brand::ownedBy($user->id)->findOrFail($export->brand_id);
         // PPTX: Chromium renderiza cada pagina como PNG y `StudioPptxExporter` las empaqueta (sin crear media en la biblioteca).
         $manifest = $this->execute($user, $brand, $revision->document, $export->pages, $times, $export->format === 'pptx' ? 'png' : $export->format, $export->options, $directory);
@@ -109,135 +116,16 @@ class StudioRenderer
             throw new StudioRenderFailure('El renderizador devolvió un número de archivos incorrecto.');
         }
 
-        [$paths, $mediaIds] = $this->storeFiles($export, $user, $revision, $files, $directory, $createdMedia);
-        $download = $this->packageDownload($export, $revision, $paths, $directory);
+        [$paths, $mediaIds] = $this->files->storeFiles($export, $user, $revision, $files, $directory, $createdMedia);
+        $download = $this->files->packageDownload($export, $revision, $paths, $directory);
 
         DB::transaction(function () use ($user, $brand, $mediaIds, $export, $download): void {
             foreach ($mediaIds as $id) {
                 $this->assets->attach($user, $brand, $id);
             }
             $export->forceFill(['status' => 'ready', 'disk' => 'local', 'path' => $download, 'media_ids' => $mediaIds, 'error' => null])->save();
-            DB::afterCommit(fn () => app(JobFailureNotifier::class)->exportDone($export));
+            DB::afterCommit(fn () => $this->notifier->exportDone($export));
         });
-    }
-
-    /**
-     * Valida cada fichero generado y, en los formatos de imagen, lo guarda como media de la biblioteca.
-     *
-     * @param  list<array<string, mixed>>  $files
-     * @param  list<MediaAsset>  $createdMedia
-     * @return array{0: list<string>, 1: list<int>} rutas relativas del disco `local` e ids de media creados
-     */
-    private function storeFiles(DesignExport $export, User $user, DesignRevision $revision, array $files, string $directory, array &$createdMedia): array
-    {
-        $disk = Storage::disk('local');
-        $extension = ['png' => 'png', 'jpeg' => 'jpg', 'webp' => 'webp', 'svg' => 'svg', 'pdf' => 'pdf', 'pptx' => 'png'][$export->format];
-        $paths = [];
-        $mediaIds = [];
-        foreach ($files as $index => $file) {
-            $name = sprintf('page-%03d.%s', $index + 1, $extension);
-            if (($file['name'] ?? null) !== $name) {
-                throw new StudioRenderFailure('Nombre de archivo de render no válido.');
-            }
-            $path = $directory.'/'.$name;
-            if (! $disk->exists($path) || $disk->size($path) < 1 || $disk->size($path) > 64000000) {
-                throw new StudioRenderFailure('El archivo generado falta o supera el tamaño permitido.');
-            }
-            $paths[] = $path;
-            if (in_array($export->format, ['png', 'jpeg', 'webp'], true)) {
-                $mediaIds[] = $this->importImage($export, $user, $revision, $path, $name, $extension, $createdMedia);
-            }
-        }
-
-        return [$paths, $mediaIds];
-    }
-
-    /**
-     * Sube una imagen renderizada a la biblioteca y comprueba que tiene las dimensiones de la revision.
-     *
-     * @param  list<MediaAsset>  $createdMedia
-     */
-    private function importImage(DesignExport $export, User $user, DesignRevision $revision, string $path, string $name, string $extension, array &$createdMedia): int
-    {
-        $disk = Storage::disk('local');
-        $mime = ['png' => 'image/png', 'jpeg' => 'image/jpeg', 'webp' => 'image/webp'][$export->format];
-        // A server-generated object is written directly, without opening an unused S3 multipart session.
-        $media = new MediaAsset(['disk' => config('filesystems.media', 'local'), 'path' => 'media/'.$user->id.'/'.Str::lower((string) Str::ulid()).'.'.$extension,
-            'original_name' => Str::limit($revision->name.'-'.$name, 200, ''), 'mime' => $mime, 'kind' => 'image',
-            'declared_size' => $disk->size($path), 'status' => MediaAsset::STATUS_PENDING]);
-        $media->user_id = $user->id;
-        $media->save();
-        $createdMedia[] = $media;
-        $stream = $disk->readStream($path);
-        try {
-            if (! is_resource($stream) || ! Storage::disk($media->disk)->put($media->path, $stream)) {
-                throw new StudioRenderFailure('No se pudo guardar la imagen renderizada.');
-            }
-        } finally {
-            if (is_resource($stream)) {
-                fclose($stream);
-            }
-        }
-        $media = app(MediaUploadService::class)->finalize($media);
-        $scale = (float) ($export->options['scale'] ?? 1);
-        if (! $media->isReady() || $media->width !== (int) round($revision->document['width'] * $scale) || $media->height !== (int) round($revision->document['height'] * $scale)) {
-            throw new StudioRenderFailure('La imagen generada no coincide con el formato y las dimensiones de la revisión.');
-        }
-
-        return $media->id;
-    }
-
-    /** Fichero que se sirve: la pagina suelta, el PPTX (y se borran las imagenes intermedias) o el ZIP de varias paginas. */
-    private function packageDownload(DesignExport $export, DesignRevision $revision, array $paths, string $directory): string
-    {
-        $disk = Storage::disk('local');
-        if ($export->format === 'pptx') {
-            $pageNames = array_column($revision->document['pages'], 'name', 'id');
-            $download = $directory.'/design.pptx';
-            app(StudioPptxExporter::class)->build($disk->path($download), array_map(fn (string $path, string $id) => ['path' => $disk->path($path), 'name' => $pageNames[$id] ?? ''], $paths, $export->pages),
-                (int) $revision->document['width'], (int) $revision->document['height'], $revision->name);
-            // Solo queda el PPTX: las imagenes intermedias no se sirven y se borran.
-            $disk->delete($paths);
-
-            return $download;
-        }
-        if (count($paths) > 1) {
-            $download = $directory.'/pages.zip';
-            class_exists(\ZipArchive::class) ? $this->zipWithExtension($disk->path($download), $disk, $paths) : $this->zipWithPython($disk, $download, $directory, $paths);
-
-            return $download;
-        }
-
-        return $paths[0];
-    }
-
-    /** @param  list<string>  $paths */
-    private function zipWithExtension(string $target, Filesystem $disk, array $paths): void
-    {
-        $zip = new \ZipArchive;
-        if ($zip->open($target, \ZipArchive::CREATE | \ZipArchive::EXCL) !== true) {
-            throw new StudioRenderFailure('No se pudo crear el archivo de páginas.');
-        }
-        try {
-            foreach ($paths as $path) {
-                $zip->addFile($disk->path($path), basename($path));
-            }
-        } finally {
-            $zip->close();
-        }
-    }
-
-    /** @param  list<string>  $paths */
-    private function zipWithPython(Filesystem $disk, string $download, string $directory, array $paths): void
-    {
-        try {
-            $archive = Process::path(base_path())->timeout(30)->run([config('studio.python', 'python3'), '-I', base_path('scripts/studio/archive.py'), $disk->path($directory), ...array_map('basename', $paths)]);
-        } catch (\Throwable $e) {
-            throw new StudioRenderFailure('El empaquetador de páginas no está disponible. Configura Python o la extensión ZIP de PHP.');
-        }
-        if (! $archive->successful() || ! $disk->exists($download)) {
-            throw new StudioRenderFailure('No se pudo empaquetar el archivo de páginas. Revisa Python y los límites de almacenamiento.');
-        }
     }
 
     /**
@@ -248,15 +136,8 @@ class StudioRenderer
     private function abandon(DesignExport $export, \Throwable $e, array $createdMedia, string $directory): void
     {
         $export->forceFill(['status' => 'failed', 'error' => $e instanceof StudioRenderFailure ? Str::limit($e->getMessage(), 350) : 'No se pudo renderizar esta revisión. Revisa sus recursos y la configuración del renderizador.'])->save();
-        app(JobFailureNotifier::class)->export($export);
-        foreach ($createdMedia as $media) {
-            try {
-                app(MediaUploadService::class)->delete($media);
-            } catch (\Throwable) { /* Preserve any object concurrently attached to a real post. */
-            }
-        }
-        // Only the unique directory created for this attempt is removed; never a caller-supplied path.
-        Storage::disk('local')->deleteDirectory($directory);
+        $this->notifier->export($export);
+        $this->files->discard($createdMedia, $directory);
     }
 
     /**
@@ -265,7 +146,7 @@ class StudioRenderer
      */
     public function previewPage(User $user, Brand $brand, array $document, string $pageId, int $maxSide, string $directory): string
     {
-        $times = array_column(app(StudioFrames::class)->validate($document, [$pageId], []), 'time', 'page_id');
+        $times = array_column($this->frames->validate($document, [$pageId], []), 'time', 'page_id');
         $scale = max(0.1, round(min(1, $maxSide / max((int) $document['width'], (int) $document['height'])), 4));
         Storage::disk('local')->makeDirectory($directory);
         $manifest = $this->execute($user, $brand, $document, [$pageId], $times, 'jpeg', ['scale' => $scale, 'quality' => 0.82, 'transparent' => false], $directory);
@@ -289,11 +170,7 @@ class StudioRenderer
     private function execute(User $user, Brand $brand, array $document, array $pageIds, array $times, string $format, array $options, string $directory): array
     {
         $disk = Storage::disk('local');
-        [$sampledPages, $assetIds, $fontIds] = $this->sampleReferences($document, $pageIds, $times);
-        $chartFiles = app(StudioChartFiles::class)->materialize($user, $brand, ['pages' => $sampledPages], $directory);
-        $bytes = 0;
-        $assets = $this->inlineAssets($user, $brand, $assetIds, $bytes);
-        $fonts = $this->inlineFonts($user, $brand, $fontIds, $bytes);
+        ['assets' => $assets, 'fonts' => $fonts, 'chartFiles' => $chartFiles] = $this->resources->prepare($user, $brand, $document, $pageIds, $times, $directory);
         $disk->makeDirectory($directory);
         $input = ['document' => $document, 'assets' => $assets, 'fonts' => $fonts, 'brandId' => (int) $brand->id, 'chartFiles' => $chartFiles,
             'format' => $format, 'pageIds' => $pageIds] + $options;
@@ -305,102 +182,5 @@ class StudioRenderer
         }
 
         return json_decode($result->output(), true, 32, JSON_THROW_ON_ERROR);
-    }
-
-    /**
-     * Elementos de las paginas pedidas (muestreados en su instante si el documento es animado) y los ids de recursos y fuentes que citan.
-     *
-     * @return array{0: list<array{elements: array<int, mixed>}>, 1: array<int, true>, 2: array<int, true>} paginas muestreadas, ids de recursos e ids de fuentes
-     */
-    private function sampleReferences(array $document, array $pageIds, array $times): array
-    {
-        $frames = app(StudioFrames::class);
-        $assetIds = [];
-        $fontIds = [];
-        if (! empty($document['timeline']['captions']['cues']) && isset($document['timeline']['captions']['style']['font_id'])) {
-            $fontIds[(int) $document['timeline']['captions']['style']['font_id']] = true;
-        }
-        $walk = function (array $elements) use (&$walk, &$assetIds, &$fontIds): void {
-            foreach ($elements as $element) {
-                if ($element['type'] === 'text' && isset($element['font_id'])) {
-                    $fontIds[(int) $element['font_id']] = true;
-                }
-                if ($element['type'] === 'chart' && isset($element['chart']['style']['font_id'])) {
-                    $fontIds[(int) $element['chart']['style']['font_id']] = true;
-                }
-                if (isset($element['asset_id'])) {
-                    $assetIds[(int) $element['asset_id']] = true;
-                }
-                if ($element['type'] === 'group') {
-                    $walk($element['elements']);
-                }
-            }
-        };
-        $sampledPages = [];
-        foreach ($document['pages'] as $page) {
-            if (in_array($page['id'], $pageIds, true)) {
-                $elements = ($document['schema_version'] ?? 1) === 2
-                    ? $frames->elements($page['elements'], $times[$page['id']] ?? 0, $page['duration'])
-                    : $page['elements'];
-                $walk($elements);
-                $sampledPages[] = ['elements' => $elements];
-            }
-        }
-
-        return [$sampledPages, $assetIds, $fontIds];
-    }
-
-    /**
-     * Recursos del diseno incrustados como `data:` para el renderizador; `$bytes` acumula el tope de 64 MB compartido con las fuentes.
-     *
-     * @param  array<int, true>  $assetIds
-     * @return list<array<string, mixed>>
-     */
-    private function inlineAssets(User $user, Brand $brand, array $assetIds, int &$bytes): array
-    {
-        $assets = [];
-        foreach ($this->assets->many($user, $brand, array_keys($assetIds)) as $asset) {
-            $source = Storage::disk($asset->disk);
-            $size = $source->size($asset->path);
-            $bytes += $size;
-            if ($bytes > 64000000) {
-                throw new StudioRenderFailure('Los recursos del trabajo superan 64 MB. Reduce su tamaño.');
-            }
-            $content = $source->get($asset->path);
-            if (! is_string($content) || strlen($content) !== $size) {
-                throw new StudioRenderFailure('No se pudo leer un recurso del diseño.');
-            }
-            $assets[] = $asset->only(['id', 'kind', 'mime', 'width', 'height', 'duration']) + ['preview_url' => 'data:'.$asset->mime.';base64,'.base64_encode($content)];
-        }
-
-        return $assets;
-    }
-
-    /**
-     * Fuentes privadas del diseno verificadas (tamano, firma WOFF2 y hash) e incrustadas; comparten el tope de bytes con los recursos.
-     *
-     * @param  array<int, true>  $fontIds
-     * @return list<array<string, mixed>>
-     */
-    private function inlineFonts(User $user, Brand $brand, array $fontIds, int &$bytes): array
-    {
-        $fonts = [];
-        foreach ($this->fonts->many($user, $brand, array_keys($fontIds)) as $font) {
-            $source = Storage::disk($font->disk);
-            $size = $source->size($font->path);
-            $bytes += $size;
-            if ($size !== $font->size || $size > 8 * 1024 * 1024 || $bytes > 64000000) {
-                throw new StudioRenderFailure('Las fuentes o los recursos del trabajo superan su tamaño permitido.');
-            }
-            $content = $source->get($font->path);
-            if (! is_string($content) || strlen($content) !== $size || substr($content, 0, 4) !== 'wOF2' || ! hash_equals($font->sha256, hash('sha256', $content))) {
-                throw new StudioRenderFailure('No se pudo verificar una fuente privada del diseño.');
-            }
-            $metadata = $this->fonts->present($font);
-            $metadata['file_url'] = 'data:font/woff2;base64,'.base64_encode($content);
-            $fonts[] = $metadata;
-        }
-
-        return $fonts;
     }
 }

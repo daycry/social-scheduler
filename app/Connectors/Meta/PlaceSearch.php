@@ -18,7 +18,7 @@ final class PlaceSearch
 {
     public const LIMIT = 10;
 
-    public function __construct(private readonly GraphClient $graph = new GraphClient) {}
+    public function __construct(private readonly GraphClient $graph) {}
 
     /**
      * @return list<array{id: string, name: string, detail: ?string}>

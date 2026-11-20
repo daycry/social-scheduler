@@ -18,9 +18,11 @@ use App\Services\Reports\PdfRenderer;
 use App\Services\Reports\ReportBlocks;
 use App\Services\Reports\TooManyActiveReports;
 use App\Support\CsvWriter;
+use App\Support\Ownership;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -52,14 +54,15 @@ class ReportService
      * @param  array{format?: mixed, from?: mixed, to?: mixed, compare?: mixed, blocks?: mixed}  $input
      * @return array<string, mixed>
      *
-     * @throws InvalidArgumentException rango, comparacion, formato o bloques no validos
+     * @throws ValidationException periodo no válido
+     * @throws InvalidArgumentException comparacion, formato o bloques no validos
      * @throws TooManyActiveReports
      */
-    public function request(User $user, Brand $brand, array $input, ?ReportTemplate $template = null): array
+    public function request(User $user, Brand $brand, array $input, ?ReportTemplate $template = null, ?Period $period = null): array
     {
-        $period = Period::make($input['from'] ?? null, $input['to'] ?? null, $brand->timezone);
+        $period ??= Period::fromInput($input, $brand->timezone);
         $compare = (string) (($input['compare'] ?? null) ?: 'none');
-        $period->comparison($compare); // rango de comparacion invalido: error de validacion, no informe fallido
+        $period->inputComparison($compare); // Valida el rango antes de encolar el informe.
 
         if ($template !== null && ($input['blocks'] ?? null) !== null) {
             throw new InvalidArgumentException('Usa template_id o blocks, no ambos.');
@@ -141,7 +144,7 @@ class ReportService
     /** Crea el registro pendiente (la generacion la hace el job `GenerateReport` en la cola `reports`). */
     public function create(User $user, Brand $brand, string $format, Period $period, string $compare = 'none', ?array $blocks = null, ?int $scheduleId = null): Report
     {
-        if ($brand->user_id !== $user->id) {
+        if (! Ownership::matches($brand, $user)) {
             throw new InvalidArgumentException('La marca no pertenece al usuario.');
         }
 

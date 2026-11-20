@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Studio;
 
+use App\Exceptions\OwnershipException;
 use App\Models\Brand;
 use App\Models\User;
 use App\Services\Studio\StudioCharts;
@@ -9,8 +10,10 @@ use App\Services\Studio\StudioDatasets;
 use App\Services\Studio\StudioDocument;
 use App\Services\Studio\StudioFonts;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -140,8 +143,9 @@ final class StudioChartsTest extends TestCase
             $this->assertSame($status, $error->status);
         } catch (ModelNotFoundException $error) {
             $this->assertSame(404, $status);
-        } catch (HttpException $error) {
-            $this->assertSame($status, $error->getStatusCode());
+        } catch (HttpException|OwnershipException $error) {
+            $response = app(ExceptionHandler::class)->render(Request::create('/'), $error);
+            $this->assertSame($status, $response->getStatusCode());
         }
     }
 

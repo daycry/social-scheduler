@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-// Aditiva (T-19): colaboradores invitados por marca con rol (hoy solo `aprobador`). Revocables; una fila por marca y usuario.
+// Aditiva (T-19): colaboradores invitados por marca con rol (hoy solo `approver`). Revocables; una fila por marca y usuario.
 return new class extends Migration
 {
     public function up(): void
@@ -14,7 +14,7 @@ return new class extends Migration
             $table->foreignId('brand_id')->constrained()->cascadeOnDelete();
             $table->foreignId('owner_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->string('role', 20)->default('aprobador');
+            $table->string('role', 20)->default('approver');
             $table->timestamps();
 
             $table->unique(['brand_id', 'user_id']);

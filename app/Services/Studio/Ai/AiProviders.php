@@ -4,10 +4,13 @@ namespace App\Services\Studio\Ai;
 
 use App\Models\Studio\StudioAiJob;
 use App\Models\User;
+use App\Services\Media\UrlGuard;
 
 /** Proveedores de imagen configurados (OpenAI, Google) y su cuota diaria por usuario. Una clave vacia deja el proveedor «no configurado». */
 class AiProviders
 {
+    public function __construct(private readonly UrlGuard $guard) {}
+
     /** @var array<string, class-string<AbstractImageProvider>> */
     private const CLASSES = ['openai' => OpenAiImages::class, 'google' => GoogleImages::class];
 
@@ -17,7 +20,7 @@ class AiProviders
         $providers = [];
         foreach (self::CLASSES as $id => $class) {
             $config = (array) config('studio.ai.providers.'.$id, []);
-            $providers[$id] = new $class((string) ($config['key'] ?? ''), $config);
+            $providers[$id] = new $class((string) ($config['key'] ?? ''), $config, $this->guard);
         }
 
         return $providers;

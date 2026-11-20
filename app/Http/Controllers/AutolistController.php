@@ -40,7 +40,6 @@ class AutolistController extends Controller
             ])->values(),
             'templates' => $brand ? PostTemplate::query()->where('brand_id', $brand->id)->orderBy('name')->limit(200)->get(['id', 'name'])->map(fn ($t) => ['id' => $t->id, 'name' => $t->name])->values() : [],
             'autolists' => $lists->map(fn (Autolist $l) => $this->autolists->present($l))->values(),
-            'flash' => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error')],
         ]);
     }
 

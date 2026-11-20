@@ -29,32 +29,21 @@ const verificationLinkSent = computed(
         <p class="mb-6 mt-1 text-sm text-slate-600">Un último paso antes de entrar.</p>
 
         <div class="mb-4 text-sm text-slate-600">
-            ¡Gracias por registrarte! Antes de empezar, verifica tu correo electrónico pulsando el enlace que te acabamos de enviar. Si no lo has recibido, te enviamos otro encantados.
+            ¡Gracias por registrarte! Antes de empezar, verifica tu correo electrónico pulsando el enlace que te
+            acabamos de enviar. Si no lo has recibido, te enviamos otro encantados.
         </div>
 
-        <div
-            class="mb-4 text-sm font-medium text-emerald-700"
-            v-if="verificationLinkSent"
-        >
+        <div class="mb-4 text-sm font-medium text-emerald-700" v-if="verificationLinkSent">
             Te hemos enviado un nuevo enlace de verificación al correo con el que te registraste.
         </div>
 
         <form @submit.prevent="submit">
             <div class="mt-4 flex items-center justify-between">
-                <PrimaryButton
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
+                <PrimaryButton :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
                     Reenviar correo de verificación
                 </PrimaryButton>
 
-                <Link
-                    :href="route('logout')"
-                    method="post"
-                    as="button"
-                    class="link text-sm"
-                    >Salir</Link
-                >
+                <Link :href="route('logout')" method="post" as="button" class="link text-sm">Salir</Link>
             </div>
         </form>
     </GuestLayout>

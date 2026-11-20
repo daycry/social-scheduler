@@ -622,7 +622,7 @@
 - **Qué revisar**: Instalar la PWA y recibir un push
 - **Por qué no se automatiza**: Requiere VAPID, HTTPS y dispositivos reales
 - **Criterio de aceptación**:
-  - [ ] Push recibido y revocable
+  - [x] Push recibido y revocable (2026-11-20, el usuario en su dispositivo vía HTTPS/ngrok con claves VAPID de desarrollo: instalación, permiso, recepción, apertura de Avisos, revocación manual y revocación al cerrar sesión)
 - **Cubre tareas**: T-81
 
 ### M-08 — Revisión visual del modo oscuro (F-25)

@@ -53,7 +53,7 @@ class ImportRemoteMedia implements ShouldBeEncrypted, ShouldBeUniqueUntilProcess
         return [30, 120];
     }
 
-    public function handle(RemoteMediaImporter $importer): void
+    public function handle(RemoteMediaImporter $importer, UrlGuard $guard): void
     {
         $asset = MediaAsset::withoutUserScope()->find($this->assetId);
 
@@ -61,7 +61,7 @@ class ImportRemoteMedia implements ShouldBeEncrypted, ShouldBeUniqueUntilProcess
             return;
         }
 
-        if (! $importer->run($asset, $this->sourceFor($asset))) {
+        if (! $importer->run($asset, $this->sourceFor($asset, $guard))) {
             dispatch(new static($this->assetId, $this->reference, $this->token)); // sin argumentos variadicos: el token no iria en claro en una traza
         }
     }
@@ -74,18 +74,19 @@ class ImportRemoteMedia implements ShouldBeEncrypted, ShouldBeUniqueUntilProcess
             return;
         }
 
+        // Laravel llama a failed() sin inyectar las dependencias del trabajo.
         app(MediaStorage::class)->disk()->delete($asset->path);
         app(MediaUploadService::class)->invalidate($asset, 'No se pudo descargar el fichero; inténtalo de nuevo más tarde.');
         app(JobFailureNotifier::class)->import($asset);
     }
 
-    private function sourceFor(MediaAsset $asset): RemoteSource
+    private function sourceFor(MediaAsset $asset, UrlGuard $guard): RemoteSource
     {
         return match ($asset->source) {
-            MediaAsset::SOURCE_URL => new UrlSource(app(UrlGuard::class), $this->reference),
-            MediaAsset::SOURCE_GIPHY => new GiphySource(app(UrlGuard::class), $this->reference),
-            MediaAsset::SOURCE_CANVA => new CanvaSource(app(UrlGuard::class), $this->reference),
-            MediaAsset::SOURCE_DRIVE => new DriveFileSource(app(UrlGuard::class), $this->reference, (string) $this->token),
+            MediaAsset::SOURCE_URL => new UrlSource($guard, $this->reference),
+            MediaAsset::SOURCE_GIPHY => new GiphySource($guard, $this->reference),
+            MediaAsset::SOURCE_CANVA => new CanvaSource($guard, $this->reference),
+            MediaAsset::SOURCE_DRIVE => new DriveFileSource($guard, $this->reference, (string) $this->token),
             default => throw new \LogicException("Origen de importacion desconocido: {$asset->source}"),
         };
     }

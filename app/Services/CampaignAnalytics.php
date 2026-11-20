@@ -73,7 +73,7 @@ class CampaignAnalytics
      */
     private function targets(User $user, Builder $postIds)
     {
-        return AnalyticsService::withLatestSnapshot(PostTarget::withoutUserScope()->where('post_targets.user_id', $user->id)->whereIn('post_targets.post_id', $postIds), $user->id)
+        return AnalyticsService::withLatestSnapshot(PostTarget::ownedBy($user)->whereIn('post_targets.post_id', $postIds), $user->id)
             ->select('post_targets.id', 'post_targets.post_id', 'post_targets.network', 'post_targets.content_type', 'post_targets.status', 'post_targets.published_at', 'post_targets.external_url', 'pm.metrics as latest_metrics')
             ->orderBy('post_targets.id')->toBase()->get();
     }

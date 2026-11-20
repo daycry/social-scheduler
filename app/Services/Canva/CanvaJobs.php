@@ -46,6 +46,7 @@ class CanvaJobs
         private readonly CanvaConnections $connections,
         private readonly MediaUploadService $uploads,
         private readonly CanvaBrandTemplates $templates,
+        private readonly JobFailureNotifier $notifier,
     ) {}
 
     /** @param  array{transparent?: bool, title?: ?string}  $options */
@@ -335,7 +336,7 @@ class CanvaJobs
         }
         $title = Str::limit((string) ($design['title'] ?? ''), 255, '');
         $job->forceFill(['status' => CanvaJob::READY, 'design_id' => $id, 'title' => $title !== '' ? $title : $job->title])->save();
-        app(JobFailureNotifier::class)->canvaDone($job);
+        $this->notifier->canvaDone($job);
 
         return false;
     }
@@ -345,7 +346,7 @@ class CanvaJobs
     {
         $id = $remote['asset']['id'] ?? null;
         $job->forceFill(['status' => CanvaJob::READY, 'canva_asset_id' => is_string($id) ? Str::limit($id, 80, '') : null])->save();
-        app(JobFailureNotifier::class)->canvaDone($job);
+        $this->notifier->canvaDone($job);
 
         return false;
     }
@@ -363,10 +364,10 @@ class CanvaJobs
         $bad = $assets->firstWhere('status', MediaAsset::STATUS_INVALID);
         if ($assets->count() < count((array) $job->output_media_ids) || $bad !== null) {
             $job->forceFill(['status' => CanvaJob::FAILED, 'error_code' => 'import_failed', 'error' => Str::limit((string) ($bad?->error ?: 'No se pudo guardar el fichero exportado en la biblioteca.'), 500, '')])->save();
-            app(JobFailureNotifier::class)->canva($job);
+            $this->notifier->canva($job);
         } else {
             $job->forceFill(['status' => CanvaJob::READY])->save();
-            app(JobFailureNotifier::class)->canvaDone($job);
+            $this->notifier->canvaDone($job);
         }
 
         return $job;
@@ -391,7 +392,7 @@ class CanvaJobs
     private function fail(CanvaJob $job, string $code, string $message): bool
     {
         $job->forceFill(['status' => CanvaJob::FAILED, 'error_code' => Str::limit($code, 40, ''), 'error' => Str::limit($message, 500, '')])->save();
-        app(JobFailureNotifier::class)->canva($job);
+        $this->notifier->canva($job);
 
         return false;
     }

@@ -21,6 +21,8 @@ Reprogramar arrastrando solo se permite mientras el destino sea `borrador` o `pr
 
 **Indicador de nota (CA-28).** `CalendarService::item()` envía `has_notes` (verdadero si las notas internas del post no están vacías) y la semana, el mes y la lista muestran junto a la publicación una insignia con el texto accesible «Nota» (el icono es decorativo; el `title` dice «Esta publicación tiene notas internas»). El contenido de las notas no viaja al calendario, solo el indicador.
 
+`CalendarToolbar` reúne la navegación, el cambio de vista, los filtros y el enlace CSV. `useCalendarPublishNow` conserva la confirmación y el seguimiento del estado de un envío inmediato.
+
 ## Cuadrícula de Instagram (C-02)
 
 Vista de solo lectura del perfil de una cuenta de Instagram: `GET instagram/grid` (`instagram.grid`, `?brand_id=&account_id=`), `InstagramGridController`, `GridService` y `Pages/Instagram/Grid.vue`; la entrada «Cuadrícula» está en el módulo Planificación de `resources/js/navigation.js`. Un `account_id` de otro usuario responde 404; una cuenta propia de otra marca cae a la primera de la marca actual.

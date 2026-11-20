@@ -82,7 +82,7 @@ function approverSig(Post $post): string
 
 test('aprobar una ocurrencia la programa en su fecha sin sacarla de la serie y rechazarla no la publica', function () {
     $approver = User::factory()->create();
-    BrandCollaborator::query()->create(['brand_id' => $this->brand->id, 'owner_id' => $this->user->id, 'user_id' => $approver->id, 'role' => 'aprobador']);
+    BrandCollaborator::query()->create(['brand_id' => $this->brand->id, 'owner_id' => $this->user->id, 'user_id' => $approver->id, 'role' => BrandCollaborator::ROLE_APPROVER]);
     $series = app(SeriesService::class)->create($this->user, $this->brand, approvalSeriesInput(['requires_approval' => true]));
     [$a, $b] = [seriesPosts($series)[0], seriesPosts($series)[1]];
 
@@ -126,7 +126,7 @@ test('activar la aprobacion en una serie con ocurrencias ya programadas las reti
 
 test('con aprobacion, una serie genera un unico aviso por tanda a los aprobadores', function () {
     $approver = User::factory()->create();
-    BrandCollaborator::query()->create(['brand_id' => $this->brand->id, 'owner_id' => $this->user->id, 'user_id' => $approver->id, 'role' => 'aprobador']);
+    BrandCollaborator::query()->create(['brand_id' => $this->brand->id, 'owner_id' => $this->user->id, 'user_id' => $approver->id, 'role' => BrandCollaborator::ROLE_APPROVER]);
     $series = app(SeriesService::class)->create($this->user, $this->brand, approvalSeriesInput(['requires_approval' => true, 'max_occurrences' => null]));
 
     expect(seriesPosts($series)->count())->toBeGreaterThan(30);

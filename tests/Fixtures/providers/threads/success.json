@@ -1,0 +1,11 @@
+{
+  "source": "https://www.postman.com/meta/threads/request/34203612-c940a17f-e719-4b5b-9d28-7390bc658fb7",
+  "method": "POST",
+  "host": "graph.threads.com",
+  "path": "/v1.0/17841400000000001/threads_publish",
+  "status": 200,
+  "headers": {},
+  "body": {
+    "id": "100000000000004"
+  }
+}

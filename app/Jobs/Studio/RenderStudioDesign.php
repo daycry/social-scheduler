@@ -18,7 +18,7 @@ class RenderStudioDesign implements ShouldQueue
 
     public function __construct(public readonly int $exportId)
     {
-        $this->onQueue('media');
+        $this->onQueue((string) config('queue.studio_render', 'studio-render'));
     }
 
     public function handle(StudioRenderer $renderer): void

@@ -13,13 +13,13 @@ use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('list_media')]
-#[Description('Lista la media del usuario (por defecto solo la ya validada, status=listo; paginado por cursor: limit hasta 100 y cursor = el next_cursor de la pagina anterior; has_more/next_cursor indican si hay mas). Con status=pendiente se ven las importaciones en curso (bytes y total = progreso), con status=invalido las fallidas (error = motivo) y con status=todos cualquiera. Solo la media «listo» se usa por id en create_post/update_post; el agente no sube binarios por MCP.')]
+#[Description('Lista la media del usuario (por defecto solo la ya validada, status=listo; paginado por cursor: limit hasta 100 y cursor = el next_cursor de la pagina anterior; has_more/next_cursor indican si hay mas). Con status=pendiente se ven las importaciones en curso (bytes y total = progreso), con status=invalido las fallidas (error = motivo) y con status=todos cualquiera. Solo la media «listo» se usa por id en create_post/update_post; el agente no sube binarios por MCP. Requiere media:read.')]
 #[IsReadOnly]
 class ListMedia extends SchedulerTool
 {
     protected function ability(): string
     {
-        return Abilities::BRANDS_READ;
+        return Abilities::MEDIA_READ;
     }
 
     protected function resource(): ?string

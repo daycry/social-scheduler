@@ -28,6 +28,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\FakeHttp;
+use Tests\Support\FixtureRecorder;
 
 const YT_CHANNEL = 'UCabcdefghij0123456789';
 const YT_SESSION = 'https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&upload_id=SESS1';
@@ -90,7 +91,8 @@ test('YouTubePublish: sube en trozos reanudables leidos en streaming y deja el v
     ]);
     // Streaming: ninguna peticion lleva mas que un trozo (el video de 600 KiB nunca viaja ni se carga entero).
     expect(max(array_column($puts, 'body_length')))->toBeLessThanOrEqual(YT_CHUNK)->and(array_sum(array_column($puts, 'body_length')))->toBe(YT_SIZE);
-});
+    FixtureRecorder::assertRecorded('youtube/success');
+})->group('provider-contracts');
 
 test('YouTubePublish: la sesion pide part=snippet,status con la longitud y la visibilidad pedidas (public no se fuerza a privado)', function (?string $asked, string $sent) {
     ytHappyUpload($this->http);
@@ -199,7 +201,8 @@ test('YouTubePublish: si la API dice quotaExceeded se marca el dia agotado y se 
 
     expect(fn () => $this->yt->publish($this->account, ytRequest()))->toThrow(QuotaExceededException::class);
     expect((new YouTubeQuota)->used())->toBe(10000);
-});
+    FixtureRecorder::assertRecorded('youtube/error');
+})->group('provider-contracts');
 
 test('YouTubePublish: errores de la API se clasifican (credenciales, permisos, contenido, 5xx, red)', function (array|Throwable $response, string $class) {
     $this->http->on('POST', '#uploadType=resumable#', $response);
@@ -466,6 +469,35 @@ test('YouTubePublish: la consulta de offset con 200/201 toma el id del cuerpo, s
     expect($r->isProcessing())->toBeTrue()->and($r->reference)->toBe('VIDQ')->and($saved)->toBe(['VIDQ']); // ID guardado en el acto (checkpoint)
     expect($this->http->callsTo('GET', '#playlistItems#'))->toBe([]); // ni se mira la playlist
     expect(Cache::get('youtube:upload:77'))->toBeNull();
+});
+
+test('YouTubePublish: recupera la referencia del destino desde la lista si el offset ya finalizado no trae ID', function () {
+    Cache::put('youtube:upload:77', YT_SESSION, now()->addDays(3));
+    $this->http->on('PUT', '#upload_id=SESS1$#', ['status' => 200, 'json' => []])
+        ->on('GET', '#youtube/v3/playlistItems\?#', ['json' => ['items' => [
+            ['snippet' => ['publishedAt' => '2026-11-01T11:59:30Z', 'resourceId' => ['videoId' => 'RECOVERED']]],
+        ]]])
+        ->on('GET', '#youtube/v3/videos\?part=snippet&id=RECOVERED$#', ['json' => ['items' => [
+            ['id' => 'RECOVERED', 'snippet' => ['tags' => [YouTubeVideoMetadata::targetTag(77)]]],
+        ]]])
+        ->on('GET', '#youtube/v3/videos\?part=status#', ['json' => ['items' => [
+            ['status' => ['uploadStatus' => 'processed']],
+        ]]]);
+
+    $saved = [];
+    $request = new PublishRequest(77, ContentType::YouTubeShort, 'Mi titulo', [ytMedia()], [], PublishResult::UPLOADING, now()->subMinutes(5), [], function ($reference) use (&$saved) {
+        $saved[] = $reference;
+    });
+
+    $result = $this->yt->poll($this->account, $request);
+
+    expect($result->isPublished())->toBeTrue()
+        ->and($result->externalId)->toBe('RECOVERED')
+        ->and($result->url)->toBe('https://www.youtube.com/shorts/RECOVERED')
+        ->and($saved)->toBe(['RECOVERED'])
+        ->and(Cache::get('youtube:upload:77'))->toBeNull();
+    expect($this->http->callsTo('PUT', '#upload_id=SESS1$#'))->toHaveCount(1);
+    expect($this->http->callsTo('POST', '#uploadType=resumable#'))->toBe([]);
 });
 
 test('YouTubePublish: un reintento de publish reutiliza la sesion cacheada: no abre otra ni vuelve a cobrar cuota (revision F4-5 #5)', function () {

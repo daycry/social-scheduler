@@ -197,7 +197,17 @@ class ContainerPublishFlow
         $request->checkpoint($parent, $progress);
 
         // 4) Estado del padre y, si esta listo, publicar.
-        $result = $this->advance($account, new PublishRequest($request->targetId, $request->type, $request->text, $request->media, $request->options, $parent, $request->since, $progress, null), $parent, $budget);
+        $parentRequest = new PublishRequest(
+            targetId: $request->targetId,
+            type: $request->type,
+            text: $request->text,
+            media: $request->media,
+            options: $request->options,
+            reference: $parent,
+            since: $request->since,
+            progress: $progress,
+        );
+        $result = $this->advance($account, $parentRequest, $parent, $budget);
 
         return $result->isProcessing() ? PublishResult::processing($parent, [], $progress) : $result;
     }

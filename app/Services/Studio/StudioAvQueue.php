@@ -15,7 +15,13 @@ use Throwable;
 
 class StudioAvQueue
 {
-    public function __construct(private readonly StudioAvLeases $leases, private readonly StudioAvLifecycle $lifecycle, private readonly StudioAvStore $store) {}
+    public function __construct(
+        private readonly StudioAvLeases $leases,
+        private readonly StudioAvLifecycle $lifecycle,
+        private readonly StudioAvStore $store,
+        private readonly StudioFonts $fonts,
+        private readonly StudioAssets $assets,
+    ) {}
 
     public function enqueue(int $exportId): bool
     {
@@ -64,8 +70,8 @@ class StudioAvQueue
         if (in_array($task['phase'], ['asset', 'font', 'normalize'], true)) {
             $user = User::findOrFail($export->user_id);
             $brand = Brand::ownedBy($user->id)->findOrFail($export->brand_id);
-            $source = $task['phase'] === 'font' ? app(StudioFonts::class)->owned($user, $brand, $task['index'])
-                : app(StudioAssets::class)->owned($user, $brand, $task['index']);
+            $source = $task['phase'] === 'font' ? $this->fonts->owned($user, $brand, $task['index'])
+                : $this->assets->owned($user, $brand, $task['index']);
             $bytes = $task['phase'] === 'normalize' ? (int) round($source->duration * 48000) * 8 : $source->size;
             if (! is_int($bytes) || $bytes < 1 || $bytes > ($task['phase'] === 'normalize' ? 8 : 2) * 1024 ** 3) {
                 throw ValidationException::withMessages(['export' => ['El origen supera el presupuesto de esta fase.']]);

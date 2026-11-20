@@ -10,6 +10,7 @@ use App\Models\SmartLink;
 use App\Models\User;
 use App\Services\SmartLinkService;
 use App\Services\Studio\StudioService;
+use App\Support\Ownership;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
@@ -27,11 +28,11 @@ class SiteService
 {
     public const MAX_SITES_PER_BRAND = 5;
 
-    public function __construct(private readonly SiteBlockNormalizer $normalizer) {}
+    public function __construct(private readonly SiteBlockNormalizer $normalizer, private readonly StudioService $studio) {}
 
     public function create(User $user, Brand $brand, string $title, string $slug): Site
     {
-        if ($brand->user_id !== $user->id) {
+        if (! Ownership::matches($brand, $user)) {
             throw new PostValidationException(['brand' => ['La marca no pertenece al usuario.']]);
         }
         if (Site::withoutUserScope()->where('brand_id', $brand->id)->count() >= self::MAX_SITES_PER_BRAND) {
@@ -166,7 +167,7 @@ class SiteService
         $font = null;
         if ($site->theme_source === 'kit') {
             try {
-                $kit = app(StudioService::class)->kit($user, $site->brand()->firstOrFail());
+                $kit = $this->studio->kit($user, $site->brand()->firstOrFail());
             } catch (\Throwable) {
                 $kit = [];
             }
@@ -223,7 +224,7 @@ class SiteService
 
     private function own(User $user, Site $site): void
     {
-        abort_unless($site->user_id === $user->id, 404);
+        Ownership::assert($site, $user);
     }
 
     private function assertSlug(string $slug, ?int $ignore): void

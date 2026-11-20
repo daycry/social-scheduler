@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { ref } from 'vue';
+import { useStudioSave } from '../../resources/js/Studio/composables/useStudioSave.js';
 import { exportFailure } from '../../resources/js/Studio/export-conflict.js';
 
 // A 409 while exporting or using the design in a post means the design moved on since it was opened: the editor opens the
@@ -25,5 +27,16 @@ test('the dialogs and the editor route the conflict to the existing conflict dia
     }
     const editor = read('../../resources/js/Pages/Studio/Editor.vue');
     assert.match(editor, /@conflict="onExportConflict"/);
-    assert.match(editor, /function onExportConflict\(/);
+    const error = ref('');
+    let open = true;
+    const save = useStudioSave({
+        initialDesign: { revision: 2 },
+        error,
+        closeExport: () => { open = false; },
+    });
+    save.onExportConflict('El diseño ha cambiado.');
+    assert.equal(save.conflict.value, true);
+    assert.equal(save.status.value, 'Conflicto de revisión');
+    assert.equal(error.value, 'El diseño ha cambiado.');
+    assert.equal(open, false);
 });

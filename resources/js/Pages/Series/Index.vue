@@ -6,6 +6,10 @@ import { workflowError, workflowRequest } from '@/Composables/useWorkflow';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
+import { useConfirm } from '@/Composables/useConfirm';
+
+const ask = useConfirm();
+
 /**
  * Series recurrentes (T-19): diaria, semanal con días elegidos o mensual, con fin por fecha o por número de veces. Cada ocurrencia es una
  * publicación normal que aparece en el calendario; editarla la saca de la serie y cancelar la serie borra las futuras pendientes.
@@ -70,7 +74,12 @@ const create = async () => {
     else error.value = workflowError(result);
 };
 const cancel = async (s) => {
-    if (busy.value || !confirm('¿Cancelar la serie? Se borrarán las publicaciones futuras pendientes.')) return;
+    if (busy.value || !(await ask({
+        message: '¿Cancelar la serie? Se borrarán las publicaciones futuras pendientes.',
+        confirmLabel: 'Cancelar serie',
+        cancelLabel: 'Mantener serie',
+    }))) return;
+    if (busy.value) return;
     busy.value = true;
     const result = await workflowRequest('DELETE', route('workflow.series.cancel', s.id));
     busy.value = false;
@@ -112,8 +121,20 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
         </template>
 
         <div class="max-w-4xl space-y-6">
-            <p v-if="message" class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" role="status" data-testid="series-message">{{ message }}</p>
-            <p v-if="error" class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert" data-testid="series-error">{{ error }}</p>
+            <p
+                v-if="message"
+                class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"
+                role="status"
+                data-testid="series-message"
+                >{{ message }}</p
+            >
+            <p
+                v-if="error"
+                class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+                role="alert"
+                data-testid="series-error"
+                >{{ error }}</p
+            >
 
             <section v-if="brands.length" class="card p-4" aria-labelledby="new-series">
                 <h2 id="new-series" class="text-base font-semibold text-slate-900">Nueva serie</h2>
@@ -126,7 +147,12 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
                     </div>
                     <div>
                         <label for="s-freq" class="block text-sm font-medium text-slate-800">Frecuencia</label>
-                        <select id="s-freq" v-model="form.frequency" class="field w-full" data-testid="series-frequency">
+                        <select
+                            id="s-freq"
+                            v-model="form.frequency"
+                            class="field w-full"
+                            data-testid="series-frequency"
+                        >
                             <option value="diaria">Diaria</option>
                             <option value="semanal">Semanal</option>
                             <option value="mensual">Mensual</option>
@@ -136,63 +162,144 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
                         <legend class="text-sm font-medium text-slate-800">Días de la semana</legend>
                         <div class="mt-1 flex flex-wrap gap-3">
                             <label v-for="d in DAYS" :key="d[0]" class="inline-flex items-center gap-1 text-sm">
-                                <input type="checkbox" class="h-4 w-4 rounded border-slate-400 text-indigo-600" :checked="form.weekdays.includes(d[0])" :data-testid="`weekday-${d[0]}`" @change="toggleDay(d[0])" />{{ d[1] }}
+                                <input
+                                    type="checkbox"
+                                    class="h-4 w-4 rounded border-slate-400 text-indigo-600"
+                                    :checked="form.weekdays.includes(d[0])"
+                                    :data-testid="`weekday-${d[0]}`"
+                                    @change="toggleDay(d[0])"
+                                />{{ d[1] }}
                             </label>
                         </div>
                     </fieldset>
                     <div>
-                        <label for="s-time" class="block text-sm font-medium text-slate-800">Hora (zona de la marca{{ brand ? `: ${brand.timezone}` : '' }})</label>
-                        <input id="s-time" v-model="form.time_local" type="time" class="field w-full" required data-testid="series-time" />
+                        <label for="s-time" class="block text-sm font-medium text-slate-800"
+                            >Hora (zona de la marca{{ brand ? `: ${brand.timezone}` : '' }})</label
+                        >
+                        <input
+                            id="s-time"
+                            v-model="form.time_local"
+                            type="time"
+                            class="field w-full"
+                            required
+                            data-testid="series-time"
+                        />
                     </div>
                     <div>
                         <label for="s-start" class="block text-sm font-medium text-slate-800">Primer día</label>
-                        <input id="s-start" v-model="form.starts_on" type="date" class="field w-full" required data-testid="series-start" />
+                        <input
+                            id="s-start"
+                            v-model="form.starts_on"
+                            type="date"
+                            class="field w-full"
+                            required
+                            data-testid="series-start"
+                        />
                     </div>
                     <fieldset class="sm:col-span-2">
                         <legend class="text-sm font-medium text-slate-800">Fin</legend>
                         <div class="mt-1 flex flex-wrap items-center gap-4 text-sm">
-                            <label class="inline-flex items-center gap-1"><input v-model="form.end_mode" type="radio" value="count" />Tras</label>
+                            <label class="inline-flex items-center gap-1"
+                                ><input v-model="form.end_mode" type="radio" value="count" />Tras</label
+                            >
                             <label class="sr-only" for="s-count">Número de veces</label>
-                            <input id="s-count" v-model="form.max_occurrences" type="number" min="1" max="366" class="field w-24" :disabled="form.end_mode !== 'count'" data-testid="series-count" />
+                            <input
+                                id="s-count"
+                                v-model="form.max_occurrences"
+                                type="number"
+                                min="1"
+                                max="366"
+                                class="field w-24"
+                                :disabled="form.end_mode !== 'count'"
+                                data-testid="series-count"
+                            />
                             <span>veces</span>
-                            <label class="inline-flex items-center gap-1"><input v-model="form.end_mode" type="radio" value="date" />El día</label>
+                            <label class="inline-flex items-center gap-1"
+                                ><input v-model="form.end_mode" type="radio" value="date" />El día</label
+                            >
                             <label class="sr-only" for="s-end">Fecha de fin</label>
-                            <input id="s-end" v-model="form.ends_on" type="date" class="field w-auto" :disabled="form.end_mode !== 'date'" />
-                            <label class="inline-flex items-center gap-1"><input v-model="form.end_mode" type="radio" value="none" />Sin fin</label>
+                            <input
+                                id="s-end"
+                                v-model="form.ends_on"
+                                type="date"
+                                class="field w-auto"
+                                :disabled="form.end_mode !== 'date'"
+                            />
+                            <label class="inline-flex items-center gap-1"
+                                ><input v-model="form.end_mode" type="radio" value="none" />Sin fin</label
+                            >
                         </div>
                     </fieldset>
                     <fieldset class="sm:col-span-2">
                         <legend class="text-sm font-medium text-slate-800">Cuentas de destino</legend>
-                        <p v-if="!brand?.accounts.length" class="text-xs text-slate-600">Esta marca no tiene cuentas conectadas.</p>
-                        <div v-for="a in brand?.accounts ?? []" :key="a.id" class="mt-1 flex flex-wrap items-center gap-2 text-sm">
+                        <p v-if="!brand?.accounts.length" class="text-xs text-slate-600"
+                            >Esta marca no tiene cuentas conectadas.</p
+                        >
+                        <div
+                            v-for="a in brand?.accounts ?? []"
+                            :key="a.id"
+                            class="mt-1 flex flex-wrap items-center gap-2 text-sm"
+                        >
                             <label class="inline-flex items-center gap-1">
-                                <input type="checkbox" class="h-4 w-4 rounded border-slate-400 text-indigo-600" :checked="a.id in form.targets" :data-testid="`series-account-${a.id}`" @change="toggleAccount(a, $event.target.checked)" />
+                                <input
+                                    type="checkbox"
+                                    class="h-4 w-4 rounded border-slate-400 text-indigo-600"
+                                    :checked="a.id in form.targets"
+                                    :data-testid="`series-account-${a.id}`"
+                                    @change="toggleAccount(a, $event.target.checked)"
+                                />
                                 {{ a.network_label }} · {{ a.name }}
                             </label>
                             <template v-if="a.id in form.targets">
                                 <label class="sr-only" :for="`s-type-${a.id}`">Tipo de contenido de {{ a.name }}</label>
                                 <select :id="`s-type-${a.id}`" v-model="form.targets[a.id]" class="field w-auto py-1">
-                                    <option v-for="t in a.content_types" :key="t.value" :value="t.value">{{ t.label }}</option>
+                                    <option
+                                        v-for="t in a.content_types"
+                                        :key="t.value"
+                                        :value="t.value"
+                                        >{{ t.label }}</option
+                                    >
                                 </select>
                             </template>
                         </div>
                     </fieldset>
                     <div class="sm:col-span-2">
                         <label for="s-text" class="block text-sm font-medium text-slate-800">Texto</label>
-                        <textarea id="s-text" v-model="form.text" rows="3" class="field w-full" data-testid="series-text"></textarea>
+                        <textarea
+                            id="s-text"
+                            v-model="form.text"
+                            rows="3"
+                            class="field w-full"
+                            data-testid="series-text"
+                        ></textarea>
                     </div>
                     <div class="sm:col-span-2">
                         <label class="inline-flex items-center gap-2 text-sm text-slate-800">
-                            <input v-model="form.requires_approval" type="checkbox" class="h-4 w-4 rounded border-slate-400 text-indigo-600" data-testid="series-requires-approval" />
+                            <input
+                                v-model="form.requires_approval"
+                                type="checkbox"
+                                class="h-4 w-4 rounded border-slate-400 text-indigo-600"
+                                data-testid="series-requires-approval"
+                            />
                             Cada publicación necesita aprobación antes de salir
                         </label>
                     </div>
                     <div class="sm:col-span-2">
-                        <button type="submit" class="btn btn-primary" :disabled="busy || Object.keys(form.targets).length === 0" data-testid="series-create">Crear serie</button>
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                            :disabled="busy || Object.keys(form.targets).length === 0"
+                            data-testid="series-create"
+                            >Crear serie</button
+                        >
                     </div>
                 </form>
             </section>
-            <EmptyState v-else title="Necesitas una marca" description="Crea una marca y conecta una cuenta para programar series.">
+            <EmptyState
+                v-else
+                title="Necesitas una marca"
+                description="Crea una marca y conecta una cuenta para programar series."
+            >
                 <Link :href="route('brands.index')" class="btn-primary">Ir a marcas</Link>
             </EmptyState>
 
@@ -203,40 +310,115 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
                     <li v-for="s in series" :key="s.id" class="card p-4" :data-testid="`series-${s.id}`">
                         <div class="flex flex-wrap items-center gap-2">
                             <StatusBadge :status="s.status" :label="s.status === 'activa' ? 'Activa' : 'Cancelada'" />
-                            <span class="text-sm font-medium text-slate-900">{{ freq(s) }} a las {{ s.time_local }}</span>
-                            <span class="text-xs text-slate-600">desde {{ s.starts_on }} · {{ ends(s) }} · {{ s.generated }} generadas<template v-if="s.requires_approval"> · con aprobación</template></span>
+                            <span class="text-sm font-medium text-slate-900"
+                                >{{ freq(s) }} a las {{ s.time_local }}</span
+                            >
+                            <span class="text-xs text-slate-600"
+                                >desde {{ s.starts_on }} · {{ ends(s) }} · {{ s.generated }} generadas<template
+                                    v-if="s.requires_approval"
+                                >
+                                    · con aprobación</template
+                                ></span
+                            >
                         </div>
-                        <p v-if="s.last_error" class="mt-2 rounded-lg border border-red-200 bg-red-50 p-2 text-sm text-red-800" role="alert" :data-testid="`series-last-error-${s.id}`">
-                            No se han podido generar publicaciones: {{ s.last_error }} Las fechas que pasen mientras tanto no se recuperan solas; al corregirlo, la serie sigue desde la próxima fecha.
+                        <p
+                            v-if="s.last_error"
+                            class="mt-2 rounded-lg border border-red-200 bg-red-50 p-2 text-sm text-red-800"
+                            role="alert"
+                            :data-testid="`series-last-error-${s.id}`"
+                        >
+                            No se han podido generar publicaciones: {{ s.last_error }} Las fechas que pasen mientras
+                            tanto no se recuperan solas; al corregirlo, la serie sigue desde la próxima fecha.
                         </p>
-                        <div v-if="s.status === 'activa' && s.recoverable > 0" class="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2 text-sm text-amber-900" :data-testid="`series-recover-${s.id}`">
-                            <p>Hay {{ s.recoverable }} {{ s.recoverable === 1 ? 'fecha reciente que no se generó' : 'fechas recientes que no se generaron' }}. Solo se recuperan las de los últimos días; las más antiguas no se reconstruyen.</p>
-                            <button type="button" class="btn btn-secondary mt-1 px-3 py-1 text-sm" :disabled="busy" data-testid="series-recover" @click="recover(s)">Recuperar fechas perdidas</button>
+                        <div
+                            v-if="s.status === 'activa' && s.recoverable > 0"
+                            class="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2 text-sm text-amber-900"
+                            :data-testid="`series-recover-${s.id}`"
+                        >
+                            <p
+                                >Hay {{ s.recoverable }}
+                                {{ s.recoverable === 1 ? 'fecha reciente que no se generó' : 'fechas recientes que no se generaron'
+                                }}. Solo se recuperan las de los últimos días; las más antiguas no se reconstruyen.</p
+                            >
+                            <button
+                                type="button"
+                                class="btn btn-secondary mt-1 px-3 py-1 text-sm"
+                                :disabled="busy"
+                                data-testid="series-recover"
+                                @click="recover(s)"
+                                >Recuperar fechas perdidas</button
+                            >
                         </div>
                         <p class="mt-1 line-clamp-2 text-sm text-slate-800">{{ s.text || '(sin texto)' }}</p>
                         <ul class="mt-2 flex flex-wrap gap-1.5">
-                            <li v-for="o in s.occurrences.slice(0, 12)" :key="o.date" class="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-xs">
-                                <Link v-if="o.post_id && o.status !== 'eliminada'" :href="route('posts.edit', o.post_id)" class="link">{{ o.date }}</Link><span v-else>{{ o.date }}</span>
+                            <li
+                                v-for="o in s.occurrences.slice(0, 12)"
+                                :key="o.date"
+                                class="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-xs"
+                            >
+                                <Link
+                                    v-if="o.post_id && o.status !== 'eliminada'"
+                                    :href="route('posts.edit', o.post_id)"
+                                    class="link"
+                                    >{{ o.date }}</Link><span v-else>{{ o.date }}</span>
                                 <span v-if="o.edited" class="text-amber-800"> · editada</span>
                             </li>
                         </ul>
                         <div v-if="s.status === 'activa'" class="mt-3 flex flex-wrap gap-2">
-                            <button type="button" class="btn btn-secondary px-3 py-1 text-sm" @click="startEdit(s)">Editar serie</button>
-                            <button type="button" class="btn btn-secondary px-3 py-1 text-sm" data-testid="series-cancel" :aria-label="`Cancelar la serie ${s.id}`" @click="cancel(s)">Cancelar serie</button>
+                            <button type="button" class="btn btn-secondary px-3 py-1 text-sm" @click="startEdit(s)"
+                                >Editar serie</button
+                            >
+                            <button
+                                type="button"
+                                class="btn btn-secondary px-3 py-1 text-sm"
+                                data-testid="series-cancel"
+                                :aria-label="`Cancelar la serie ${s.id}`"
+                                @click="cancel(s)"
+                                >Cancelar serie</button
+                            >
                         </div>
                         <form v-if="editing === s.id" class="mt-3 space-y-2" @submit.prevent="saveEdit(s)">
-                            <label :for="`e-text-${s.id}`" class="block text-sm font-medium text-slate-800">Texto de las próximas ocurrencias</label>
-                            <textarea :id="`e-text-${s.id}`" v-model="edit.text" rows="3" class="field w-full"></textarea>
+                            <label :for="`e-text-${s.id}`" class="block text-sm font-medium text-slate-800"
+                                >Texto de las próximas ocurrencias</label
+                            >
+                            <textarea
+                                :id="`e-text-${s.id}`"
+                                v-model="edit.text"
+                                rows="3"
+                                class="field w-full"
+                            ></textarea>
                             <label :for="`e-time-${s.id}`" class="block text-sm font-medium text-slate-800">Hora</label>
-                            <input :id="`e-time-${s.id}`" v-model="edit.time_local" type="time" class="field w-auto" required />
+                            <input
+                                :id="`e-time-${s.id}`"
+                                v-model="edit.time_local"
+                                type="time"
+                                class="field w-auto"
+                                required
+                            />
                             <label class="inline-flex items-center gap-2 text-sm text-slate-800">
-                                <input v-model="edit.requires_approval" type="checkbox" class="h-4 w-4 rounded border-slate-400 text-indigo-600" :data-testid="`series-edit-approval-${s.id}`" />
+                                <input
+                                    v-model="edit.requires_approval"
+                                    type="checkbox"
+                                    class="h-4 w-4 rounded border-slate-400 text-indigo-600"
+                                    :data-testid="`series-edit-approval-${s.id}`"
+                                />
                                 Cada publicación necesita aprobación antes de salir
                             </label>
-                            <p class="text-xs text-slate-600">Las ocurrencias que hayas editado a mano no cambian su texto u hora. Al activar la aprobación, las próximas publicaciones pendientes de salir pasan a pendientes de aprobar; al desactivarla, las pendientes se programan.</p>
+                            <p class="text-xs text-slate-600"
+                                >Las ocurrencias que hayas editado a mano no cambian su texto u hora. Al activar la
+                                aprobación, las próximas publicaciones pendientes de salir pasan a pendientes de
+                                aprobar; al desactivarla, las pendientes se programan.</p
+                            >
                             <div class="flex gap-2">
-                                <button type="submit" class="btn btn-primary px-3 py-1 text-sm" :disabled="busy">Guardar</button>
-                                <button type="button" class="btn btn-secondary px-3 py-1 text-sm" @click="editing = null">Cerrar</button>
+                                <button type="submit" class="btn btn-primary px-3 py-1 text-sm" :disabled="busy"
+                                    >Guardar</button
+                                >
+                                <button
+                                    type="button"
+                                    class="btn btn-secondary px-3 py-1 text-sm"
+                                    @click="editing = null"
+                                    >Cerrar</button
+                                >
                             </div>
                         </form>
                     </li>

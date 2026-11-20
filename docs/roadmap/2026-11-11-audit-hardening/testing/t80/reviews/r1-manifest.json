@@ -1,0 +1,157 @@
+{
+  "model": "claude-opus-5-5",
+  "effort": "high",
+  "packet_sha256": "21d18ed8a9c66d6e9a65ea55d3d14d2c2558e21b5620942268ea7c944c9c5bdf",
+  "patch_sha256": "ba22374b883de08b1727022addc88c235504680c24bc2c03caf9c40f80c4f0d1",
+  "source_manifest_sha256": "043ab42bebedfa9b495880fa869c8ca296d5a38d912e6c5dc92d09f68b39f81e",
+  "files": [
+    {
+      "path": ".env.example",
+      "sha256": "834af3fe12b2bfdc5c8e469ff4808f6a071850d5a03d5c9f51ab7eba57eb329b"
+    },
+    {
+      "path": ".env.production.example",
+      "sha256": "9f240879a86ec97e8af295fd83ef0b049274c3c257fadab89a7bebea88b6ddbb"
+    },
+    {
+      "path": "CHANGELOG.es.md",
+      "sha256": "5673a389358cf704c535a0a9c77a0e4106f8c30b218d1fe856a77bdf83e7df0c"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "3cd8a57a5040217a8c93f8f65987d5afa0323dc5ce22c73d9ae82804ed7c309f"
+    },
+    {
+      "path": "app/Console/Commands/ReencryptSecrets.php",
+      "sha256": "b68088eb0f97d91a2eb514020015e82ac1afd3a33488556c789ec1772907445a"
+    },
+    {
+      "path": "app/Events/OutboundDomainEvent.php",
+      "sha256": "446fb73320af7804c754665f22ffb8e0cfc7416686e253e7919780208b17c3ae"
+    },
+    {
+      "path": "app/Http/Controllers/WebhookController.php",
+      "sha256": "4b35a7f8df542dd396f2ab1ac4b1d56327d7ca27d6dd54cec76428e8e78909e8"
+    },
+    {
+      "path": "app/Jobs/DeliverWebhook.php",
+      "sha256": "d4df89fb5c68cca48afd4b870ecaa177392dd131d1b3c04278ee2ea558fd8c36"
+    },
+    {
+      "path": "app/Jobs/DispatchPendingWebhooks.php",
+      "sha256": "13ce8b78b868b401eb549068920805d4644cc0e830401eeea1672ca88a46030f"
+    },
+    {
+      "path": "app/Models/Webhook.php",
+      "sha256": "a61795f2267fe56f895a37bfe90193e560123061dc8d7b44a3cc3da5981f0fd2"
+    },
+    {
+      "path": "app/Models/WebhookDelivery.php",
+      "sha256": "44bf8e5f0d2fb37bf4f5486fb8678334e2ccf2f48bc1f2614ea3555a3fcd4877"
+    },
+    {
+      "path": "app/Models/WebhookEvent.php",
+      "sha256": "c2bfc94963dd0df778b36f92489e88786302877fc4135641574991ca6432f708"
+    },
+    {
+      "path": "app/Observers/WebhookDomainObserver.php",
+      "sha256": "40b24a199b61b2bc60ecafe374a9353b3f3402fad461431925d0ccc2ea898798"
+    },
+    {
+      "path": "app/Providers/WebhookServiceProvider.php",
+      "sha256": "a666e3a269c493f5ba640b7bb7ed5f15cccfd0f19cfe20788565e0f0f318486a"
+    },
+    {
+      "path": "app/Services/InboxService.php",
+      "sha256": "bdfdd3a96aab199486c6f8c2dcfdae25aa6911483f83431c9afeb76de883dcb3"
+    },
+    {
+      "path": "app/Services/Webhooks/WebhookDeliveryRunner.php",
+      "sha256": "3770c1d9dd6ed27ae64b18266e41ea6016fa8c3a8ce863047ba589e949f8e164"
+    },
+    {
+      "path": "app/Services/Webhooks/WebhookDispatcher.php",
+      "sha256": "e13fb3dd425a52acac387aedd32dcccb6206d364818f3def2176df42e83b62f1"
+    },
+    {
+      "path": "app/Services/Webhooks/WebhookSubscriptions.php",
+      "sha256": "8385a61117aa63d838d9c1610c26bc49ceb246a6a8b6b2e4cf08ed9f140ee412"
+    },
+    {
+      "path": "app/Services/Webhooks/WebhookTransport.php",
+      "sha256": "3d462689eb1bb5e16b693f41c80ed4ec6e010b44ca81ec6c9badcb86089e3c86"
+    },
+    {
+      "path": "bootstrap/providers.php",
+      "sha256": "a5d46bbe7cd8c3e348b980fb8719f5e55b718b56ccc3335a21bebc88b812431d"
+    },
+    {
+      "path": "config/webhooks.php",
+      "sha256": "5fbc567897467eec86454d1c2a844f78f23869113f14a33f478d9012de81909d"
+    },
+    {
+      "path": "database/migrations/2026_11_18_092000_create_webhooks_table.php",
+      "sha256": "42d9634b578dea9ac69747aa95d10f91a0213b926612f3a21b6c6b0c89f12fe1"
+    },
+    {
+      "path": "database/migrations/2026_11_18_092100_create_webhook_events_and_deliveries.php",
+      "sha256": "f202f98e3f4a7b181a72ece57c10197e44ddde52e755e85b15a8bbe6238379ed"
+    },
+    {
+      "path": "docs/README.md",
+      "sha256": "941de50b9cd438d46de2a1249316a992b8a36172561e1447c9ce17cf25f054fb"
+    },
+    {
+      "path": "docs/api/webhooks.md",
+      "sha256": "bb2a68d2fe9c331a46cf16982571f1dc1e96e38de75013c03847839bff4d6b77"
+    },
+    {
+      "path": "resources/js/Layouts/AuthenticatedLayout.vue",
+      "sha256": "87f137a0ca1c710be0854e559d5d6d8234c25056a2e722e290e7604cf26b70fb"
+    },
+    {
+      "path": "resources/js/Pages/Webhooks/Index.vue",
+      "sha256": "a2729e17a5e51832e611cca26bd4f35942f757c7f04313155e2d807394714ad6"
+    },
+    {
+      "path": "resources/js/types/webhooks.d.ts",
+      "sha256": "ba6979c91cdac7190b4722b076faa4756432cd0133af061f540e5cf0b9e6ff7b"
+    },
+    {
+      "path": "routes/console.php",
+      "sha256": "c3e9699e0769520c6070f938221aed861a7928116cd6d903b7f62775eaf07763"
+    },
+    {
+      "path": "routes/web.php",
+      "sha256": "da616632a61f3fd272d80ec63613c5a3aa5412c8ff5bcf634de7a86972a2dbcb"
+    },
+    {
+      "path": "tests/Feature/Webhooks/WebhookDeliveryTest.php",
+      "sha256": "ae60e221e36fb13eb08b4355c6c91da9ea73d93ddad7494e4d4293ccd410ccd4"
+    },
+    {
+      "path": "tests/Feature/Webhooks/WebhookDomainTest.php",
+      "sha256": "89f696794d140884ce126de4a462827eaae4b851813d40608163edf0f9c40176"
+    },
+    {
+      "path": "tests/Feature/Webhooks/WebhookSsrfTest.php",
+      "sha256": "6bd4352895efc2ab9dbd98e2b49b0be0ae2cd30d3aca1ef6e9cdff4b5528a97f"
+    },
+    {
+      "path": "tests/e2e/isolated/bootstrap.php",
+      "sha256": "4379213276dde4f3292b5294ef1ffd86dc3f182bab87bf258a5db5904da8c2cf"
+    },
+    {
+      "path": "tests/e2e/isolated/fakes.php",
+      "sha256": "df8fb0322f6a21cf0fa1128f1cbc74653f9de5547d3100e258a064dfb38c8ced"
+    },
+    {
+      "path": "tests/e2e/webhooks.spec.ts",
+      "sha256": "776df8409320f5f9859b22e1e8ff943292f79021390753549b5204265e725f31"
+    },
+    {
+      "path": "tsconfig.frontend.json",
+      "sha256": "768ed8d46c268859bfb961337023051c841651637cbfe6f3c9f9332261256d77"
+    }
+  ]
+}

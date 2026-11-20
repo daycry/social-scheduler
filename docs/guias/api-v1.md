@@ -18,8 +18,8 @@ Una sola API REST bajo `/api/v1`, un solo contrato ([OpenAPI](../api/openapi.yam
 | `POST /brands/{brand}/posts` | `posts:write` | Mismo contrato que el compositor y `create_post`. |
 | `GET/PUT/PATCH/DELETE /posts/{post}` | `posts:read` / `posts:write` | Borrar solo si no está publicada ni en vuelo. |
 | `POST /posts/{post}/cancel`, `POST /posts/{post}/publish` | `posts:write` | Cancelar la programación (vuelve a borrador) y publicar ya (202). |
-| `GET /media`, `GET /media/{asset}` | `brands:read` | Cursor; `status` (`listo` por defecto) y `kind` (`image`, `video`, `pdf`; sin él, solo lo publicable). |
-| `POST /media`, `PUT /media/{asset}/upload`, `POST /media/{asset}/complete`, `POST /media/import-url`, `DELETE /media/{asset}` | `posts:write` | Subida en dos pasos (con disco local el binario va a `upload.url`) o importación por URL pública. No devuelve URLs de sesión web; borrar responde `{id, deleted}`. |
+| `GET /media`, `GET /media/{asset}` | `media:read` | Cursor; `status` (`listo` por defecto) y `kind` (`image`, `video`, `pdf`; sin él, solo lo publicable). |
+| `POST /media`, `PUT /media/{asset}/upload`, `POST /media/{asset}/complete`, `POST /media/import-url`, `DELETE /media/{asset}` | `media:write` | Subida en dos pasos (con disco local el binario va a `upload.url`) o importación por URL pública. No devuelve URLs de sesión web; borrar responde `{id, deleted}`. |
 | `GET /brands/{brand}/comments` | `inbox:read` | Cursor; filtros `network`, `status`, `label`, `assigned`, `unread`. El texto y el autor son de terceros (`untrusted`). |
 | `POST /comments/{comment}/reply` | `inbox:write` | Publica en la red; irreversible. |
 | `POST /brands/{brand}/reports`, `GET /reports/{report}` | `reports:write` | Se encola (202) y se consulta; la descarga es una URL firmada que caduca. |

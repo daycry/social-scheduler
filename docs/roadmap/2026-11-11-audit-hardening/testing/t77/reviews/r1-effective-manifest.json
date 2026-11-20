@@ -1,0 +1,69 @@
+{
+  "model": "claude-opus-5-5",
+  "effort": "high",
+  "packet_sha256": "eecfb26348c26b2d177a6c98c1c4b4851d85e4481356cedb757b05398b33b010",
+  "patch_sha256": "b09c8a32898bcd6296422c3a37f3c093a242b5b0909ac16c7bc98fbb49da702a",
+  "files": [
+    {
+      "path": "CHANGELOG.es.md",
+      "sha256": "01446e595d2e6426851bb8ba9d9ce8216f22038b2684914c517b004490030a7d"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "e5c3ab8f54bf7552e9bd84c3abd06feec221572ecf138ac7e85ca98bfcf17730"
+    },
+    {
+      "path": "app/Http/Controllers/PostController.php",
+      "sha256": "2da1cbf01bb5a7f1b362741851c876fb53e1e804432e3b55e14e0f9f365dd81a"
+    },
+    {
+      "path": "app/Services/Posts/PostDuplicator.php",
+      "sha256": "1905908fced47b3d00e9f0e0af15eb2d46aba61da39a3fbe1dda1bef34464247"
+    },
+    {
+      "path": "docs/README.md",
+      "sha256": "bbf25eb22fdacb6b44ce7402e909c18f3345041721b9f94b6397482cfdf11b77"
+    },
+    {
+      "path": "docs/usuario/duplicar.md",
+      "sha256": "e494672e1315ebffdb28ef38f760a07801fda84d682e9ecfdd2447117ef5a38d"
+    },
+    {
+      "path": "docs/usuario/guia-de-usuario.md",
+      "sha256": "16f7c0ae9f9379cd5cd3596727378f0f61dfc29abab6cf840a196308a7e42237"
+    },
+    {
+      "path": "resources/js/Components/Composer/DuplicatePost.vue",
+      "sha256": "a70c5213c45f0cbce8ec6203cc8881d0c375ee82bcc86f054c67b75bbaa11f50"
+    },
+    {
+      "path": "resources/js/Pages/Posts/Compose.vue",
+      "sha256": "5e3474b2201295c992ffea6b7e1ed9f5cd995a31d4a2b96ed6f9b5ccf5cc0d61"
+    },
+    {
+      "path": "routes/web.php",
+      "sha256": "c4894dfb1412b04ff6611208029386e1718f6e89d48feae0864d81f3b72b0e5b"
+    },
+    {
+      "path": "tests/Feature/Connectors/Google/Publish/YouTubeClientTest.php",
+      "sha256": "0d3a8368785617a34b658304a9121df0d2deaecb9efd353cf609b62722443b46"
+    },
+    {
+      "path": "tests/Feature/Library/LibraryTargetTextTest.php",
+      "sha256": "c8788209aba14ace88e090417de5a8e7e5a05155dc4aba899dbc88889adbe6a9"
+    },
+    {
+      "path": "tests/Feature/Posts/DuplicatePostTest.php",
+      "sha256": "321f6e4fec625682ad6ebfe5f84d4cbdf92aa8a12b27a56c2da53aa68fbb82d5"
+    },
+    {
+      "path": "tests/e2e/duplicate-post.spec.ts",
+      "sha256": "ead5c73c793a07e042406426d65303104114a518702b5d748cd09de0ab68838a"
+    },
+    {
+      "path": "tsconfig.frontend.json",
+      "sha256": "76bcdc1d1ec8a41e2c0569ff4ff5f965bbc3a4b2214b8581b0cce08a9ff3f36c"
+    }
+  ],
+  "source_manifest_sha256": "27f5549f810d2283d9a2c861c91587cc4dafcd500270cb844343114de468b954"
+}

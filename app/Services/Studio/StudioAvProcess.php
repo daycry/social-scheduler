@@ -9,6 +9,7 @@ use App\Models\Studio\StudioAsset;
 use App\Models\Studio\StudioAvLease;
 use App\Models\Studio\StudioAvWorkspace;
 use App\Models\Studio\StudioFont;
+use App\Support\Ownership;
 use Illuminate\Support\Facades\Process;
 
 class StudioAvProcess
@@ -45,37 +46,44 @@ class StudioAvProcess
             }
             $directory = $this->storage->manifest($workspace, $lease->id, $input);
             try {
-                $this->leases->workingExport($lease);
-                $budget = (int) floor(($deadline - microtime(true)) * 1000);
-                if ($budget < 100) {
-                    throw new StudioAvProcessFailed('phase_timeout');
-                }
-                $process = Process::path(base_path())->timeout(min(92, (int) ceil($budget / 1000) + 6))
-                    ->env(['STUDIO_NODE_BINARY' => config('studio.node', 'node'), 'STUDIO_AV_BUDGET_MS' => (string) $budget])
-                    ->run([config('studio.python'), base_path('scripts/studio/av-runtime.py'), $directory, $lease->id, $lease->phase, (string) $lease->item]);
-                $raw = $process->output();
-                $output = strlen($raw) <= 8 * 1024 ** 2 ? json_decode($raw, true) : null;
-                if (! $process->successful() || ($output['ok'] ?? null) !== true) {
-                    $code = $output['error_code'] ?? '';
-                    throw new StudioAvProcessFailed(in_array($code, ['phase_timeout', 'runtime_unavailable', 'missing_resource', 'plan_budget', 'output_budget', 'phase_cancelled'], true) ? $code : 'phase_failed');
-                }
-                $memory = $output['memory'] ?? [];
-                if (($output['namespace'] ?? null) !== $lease->id || ($output['phase'] ?? null) !== $lease->phase || ($output['index'] ?? null) !== $lease->item
-                    || ! is_array($output['result'] ?? null) || ! is_int($memory['limit'] ?? null) || $memory['limit'] < 1 || $memory['limit'] > 3 * 1024 ** 3
-                    || ! in_array($memory['scope'] ?? null, ['job', 'cgroup'], true)
-                    || ($memory['scope'] === 'job' && (($memory['kill_on_close'] ?? null) !== true || ($memory['breakaway'] ?? null) !== false))) {
-                    throw new StudioAvProcessFailed('runtime_unavailable');
-                }
+                $result = $this->runRuntimePhase($lease, $directory, $deadline);
                 $this->leases->workingExport($lease);
                 if ($record->source_metadata === null) {
                     $record->update(['source_metadata' => $metadata]);
                 }
 
-                return $output['result'] + ['runtime_memory' => array_intersect_key($memory, array_flip(['scope', 'limit', 'peak_commit', 'kill_on_close', 'breakaway']))];
+                return $result;
             } finally {
                 $this->storage->removeManifest($workspace, $lease->id);
             }
         });
+    }
+
+    private function runRuntimePhase(StudioAvLease $lease, string $directory, float $deadline): array
+    {
+        $this->leases->workingExport($lease);
+        $budget = (int) floor(($deadline - microtime(true)) * 1000);
+        if ($budget < 100) {
+            throw new StudioAvProcessFailed('phase_timeout');
+        }
+        $process = Process::path(base_path())->timeout(min(92, (int) ceil($budget / 1000) + 6))
+            ->env(['STUDIO_NODE_BINARY' => config('studio.node', 'node'), 'STUDIO_AV_BUDGET_MS' => (string) $budget])
+            ->run([config('studio.python'), base_path('scripts/studio/av-runtime.py'), $directory, $lease->id, $lease->phase, (string) $lease->item]);
+        $raw = $process->output();
+        $output = strlen($raw) <= 8 * 1024 ** 2 ? json_decode($raw, true) : null;
+        if (! $process->successful() || ($output['ok'] ?? null) !== true) {
+            $code = $output['error_code'] ?? '';
+            throw new StudioAvProcessFailed(in_array($code, ['phase_timeout', 'runtime_unavailable', 'missing_resource', 'plan_budget', 'output_budget', 'phase_cancelled'], true) ? $code : 'phase_failed');
+        }
+        $memory = $output['memory'] ?? [];
+        if (($output['namespace'] ?? null) !== $lease->id || ($output['phase'] ?? null) !== $lease->phase || ($output['index'] ?? null) !== $lease->item
+            || ! is_array($output['result'] ?? null) || ! is_int($memory['limit'] ?? null) || $memory['limit'] < 1 || $memory['limit'] > 3 * 1024 ** 3
+            || ! in_array($memory['scope'] ?? null, ['job', 'cgroup'], true)
+            || ($memory['scope'] === 'job' && (($memory['kill_on_close'] ?? null) !== true || ($memory['breakaway'] ?? null) !== false))) {
+            throw new StudioAvProcessFailed('runtime_unavailable');
+        }
+
+        return $output['result'] + ['runtime_memory' => array_intersect_key($memory, array_flip(['scope', 'limit', 'peak_commit', 'kill_on_close', 'breakaway']))];
     }
 
     private function metadata(DesignExport $export, array $document): array
@@ -99,7 +107,7 @@ class StudioAvProcess
         }
         $links = StudioAsset::ownedBy($export->user_id)->where('brand_id', $export->brand_id)
             ->whereIn('media_asset_id', array_keys($ids))->with('media')->get();
-        $assets = $links->map(fn ($link) => $link->media)->filter(fn ($asset) => $asset && (int) $asset->user_id === (int) $export->user_id && $asset->status === MediaAsset::STATUS_READY)
+        $assets = $links->map(fn ($link) => $link->media)->filter(fn ($asset) => Ownership::matches($asset, $export->user_id) && $asset->status === MediaAsset::STATUS_READY)
             ->sortBy('id')->map(fn ($asset) => $asset->only(['id', 'kind', 'mime', 'width', 'height', 'duration', 'audio_codec', 'size', 'fps', 'status']) + ['file' => 'assets/'.$asset->id.'.bin'])->values()->all();
         $fonts = StudioFont::ownedBy($export->user_id)->where('brand_id', $export->brand_id)->where('status', 'ready')
             ->whereIn('id', StudioFonts::idsFromDocument($document))->orderBy('id')->get()

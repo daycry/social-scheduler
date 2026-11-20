@@ -9,6 +9,7 @@ use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -31,7 +32,7 @@ class TrashService
      */
     public function query(User $user): Builder
     {
-        return Post::ownedBy($user->id)->onlyTrashed()->with(['brand:id,name', 'targets'])->orderByDesc('deleted_at')->orderByDesc('id');
+        return Post::ownedBy($user->id)->onlyTrashed()->with(['brand:id,name,timezone', 'targets'])->orderByDesc('deleted_at')->orderByDesc('id');
     }
 
     /**
@@ -127,7 +128,7 @@ class TrashService
 
     private function assertTrashed(User $user, Post $post): void
     {
-        if ($post->user_id !== $user->id) {
+        if (! Ownership::matches($post, $user)) {
             throw new PostValidationException(['post' => ['La publicacion no pertenece al usuario.']]);
         }
 

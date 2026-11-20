@@ -1,0 +1,120 @@
+{
+  "duration_api_ms": 207175,
+  "stop_reason": "end_turn",
+  "session_id": "f1f3d965-84ee-41f0-ab05-68b28e65b4d8",
+  "total_cost_usd": 1.651668,
+  "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 155000,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 20583,
+    "output_tokens_details": {
+      "thinking_tokens": 15122
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 155000,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 20583,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 155000,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 155000
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 20583,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 155000,
+      "webSearchRequests": 0,
+      "costUSD": 1.651668,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 15122,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 155000,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 1,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "# Revisión adversarial T-81, intento 2 de 3 (estática)\n\n## Veredicto\n\n**Aprobable para integración local.** No quedan hallazgos Critical ni Important abiertos contra el contrato aprobado.\n\n- Los tres Important de R1 están corregidos con evidencia RED/GREEN coherente con el parche.\n- Los Minor de R1 están corregidos o rechazados con una justificación aceptable.\n- Solo encuentro un Minor nuevo condicionado a un hecho, más nits y políticas opcionales. Ninguno bloquea.\n- M-07 (claves VAPID reales, HTTPS de producción y recepción en dispositivos) sigue a la espera del usuario como política aprobada. No se sustituye por mocks y no bloquea la implementación local.\n- El QA final ya está completo, así que no pido repetir gates.\n\n## Reevaluación de R1\n\n| ID | Estado | Evidencia en el parche |\n|---|---|---|\n| **I-1** cookie, renovación y colisión | **Cerrado** | Ver detalle 1 |\n| **I-2** DELETE primero y timeouts | **Cerrado** | Ver detalle 2 |\n| **I-3** worker estático | **Cerrado por construcción** | Ver detalle 3 |\n| **M-1** DNS rechazado sin reintento | **Aceptado como política documentada** | `docs/usuario/pwa.md:27` lo declara explícitamente. Mantiene UrlGuard y el mensaje único (CWE-204). R1 lo calificó Minor y pidió el test diferencial solo si se cambiaba la clasificación. No se reabre. |\n| **M-2** | **Cerrado** | `pwa.md:17` cita `app:reencrypt`, que coincide con `ReencryptSecrets.php:14`. |\n| **M-3** | **Cerrado** | Ver detalle 4 |\n| **M-4** deadlock | **Cerrado** | `PushSubscriptions.php:51-72` con `DB::transaction(..., 3)`. No hay HTTP dentro de la transacción y la ValidationException no se reintenta. Reproducido en MySQL 8.4.3: RED con 1213 y GREEN en 5 rondas con 2 dueños. |\n| **M-5** | **Cerrado** | Ver detalle 5 |\n| **M-6** y base64url | **Aceptado como opción** | La justificación es suficiente: máximo 20 dispositivos, ningún cuello de botella medido y se evita estado obsoleto. Es optimización, no defecto. |\n| **Listeners duplicados** | **Cerrado** | Ver detalle 6 |\n| Nits de R1 | **Cerrados** | El CNF se borra en `PushSubscriptionTest.php:82` y en `push.spec.ts:129`. El aviso de worker está en `.env*.example`. |\n\n**Detalle por hallazgo:**\n\n1. **I-1.**\n   - `PushSubscriptionController.php:65-68` usa `Cookie::forever` con Secure según la petición, HttpOnly y Lax. Hay un único helper.\n   - La renovación está en `:26-29`, solo si la fila es propia.\n   - La colisión entre dueños es ahora una `ValidationException` (`PushSubscriptions.php:55-57`), sin transferir la fila y sin `old_input`.\n   - Tests: `PushSubscriptionTest.php:51-74` y `:129-144`.\n2. **I-2.**\n   - `Notifications.vue:45-54`: `router.delete` sale sin esperar ninguna API Push. La cancelación en el navegador va en `onSuccess`, sin devolver la promesa a Inertia, y `busy` se libera en `onFinish`.\n   - `push.js:56-71` limita cada operación con limpieza del timer. El permiso queda fuera del límite (`:21`), que es correcto.\n   - Node `push-client.test.mjs:80-89` y E2E con `unsubscribe` infinito (`push.spec.ts:52-55` y `:119-126`).\n3. **I-3.**\n   - `public/sw.js` es estático, sin ruta ni controlador.\n   - El E2E comprueba 200, `javascript` y que no hay Set-Cookie (`push.spec.ts:7-10`).\n   - La comprobación en Nginx/Hestia real queda documentada como tarea del operador dentro de M-07 (`pwa.md:31`).\n4. **M-3.** Las cuatro coberturas están:\n   - No transferencia: `:63-74`.\n   - Sin `old_input`: `:146-154`.\n   - Almacén caído al cerrar sesión: `:156-174`.\n   - Listener que ignora no verificado, desactivado y `mail`: `:176-195`.\n   - El matcher exacto `once()` destapó además el defecto real de los listeners duplicados.\n5. **M-5.**\n   - Se eliminó `content_encoding` de la migración.\n   - `last_attempted_at` está documentado como marca técnica (`SendPushNotification.php:50-51` y `pwa.md:29`).\n   - La UI dice \"Última suscripción\" (`Notifications.vue:116`).\n   - El payload es `{}` (`WebPushSender.php:34`) y el worker ya no usa `data.url`.\n   - `composer.json:6` vuelve a su formato original.\n6. **Listeners duplicados.**\n   - `PushServiceProvider.php:19-24` ya no registra listeners a mano.\n   - El descubrimiento queda confirmado por el framework: `Application.php:251`, `ApplicationBuilder.php:97-113` y `EventServiceProvider.php:136-139` con el alias `AppEventServiceProvider`.\n   - Los dos listeners tienen `handle` tipado. `event:cache` está documentado (`pwa.md:31`) y verificado con la caché real de eventos.\n\n## A. Aceptación\n\nLos criterios del ledger se cumplen:\n- **Instalable sin caché privada.** El manifiesto válido sigue igual que en R1. El worker no tiene `fetch` ni almacenamiento, según `service-worker.test.mjs:44-57`.\n- **Suscripciones.** Se guardan cifradas y se pueden revocar.\n- **PushSender falso.** Unitario en `:245-301` y E2E con `GeneralFakePushSender`.\n- **Revisión.** Sin Critical ni Important abiertos tras esta revisión.\n- **Pest, Playwright y documentación.** Según el QA final aportado.\n\nLímites declarados correctamente:\n- best-effort sin outbox;\n- deduplicación solo inmediata;\n- no \"exactly once\";\n- identificación del dispositivo dependiente de la cookie;\n- M-07 pendiente.\n\n## B. Corrección\n\n- **Job.** El lock por fila, la relectura de `last_notification_id`, el rollback en Retry y la eliminación por 404/410 no cambian respecto a R1, que ya los aceptó.\n- **Transporte.**\n  - `ConnectionException` no es PSR `ClientExceptionInterface`, así que sale de `WebPush::flush` (`WebPush.php:182-187`) y se captura como Retry (`WebPushSender.php:43-44`). Es correcto.\n  - `UnsafeUrlException` da Rejected, como dice la política documentada.\n- **Alta.** El orden de locks User → suscripción se mantiene. No hay ciclo con el job, que solo bloquea la suscripción, ni con el logout o el DELETE, que solo borran la suscripción.\n- **Validación.** La `ValidationException` dentro de la transacción hace rollback y no se reintenta, porque no es un error de concurrencia.\n- **Cookie.**\n  - El id está autoincremental también en SQLite (`$table->id()`), así que no se reutiliza.\n  - El logout filtra por `ownedBy`.\n  - La destrucción solo olvida la cookie si coincide con el dispositivo borrado (`Controller:58-60`).\n\n## C. Seguridad\n\nSin cambios negativos:\n- **SSRF.** Validación al alta y al envío, IP fijada, sin proxy ni redirecciones.\n- **Fugas.** Endpoint y claves no aparecen en props, logs, job ni `old_input`.\n- **Colisión.**\n  - El mensaje es genérico.\n  - Para aprovechar la colisión como oráculo haría falta poseer el endpoint y las claves de otra persona, que son en sí una capacidad secreta. No es un oráculo útil.\n- **Cookie.** Va cifrada por EncryptCookies y siempre se filtra por dueño.\n- **Worker.**\n  - No lee el payload y navega solo a `/notifications` del propio origen.\n  - La CSP aportada permite `worker-src 'self'` y `default-src 'self'`, lo que cubre el manifiesto.\n\n## D. Rendimiento\n\n- Correcto a escala personal: fan-out de 20 dispositivos como máximo y validación OpenSSL por llamada aceptada.\n- Que `/sw.js` sea estático elimina la sesión y el PHP en cada comprobación de actualización.\n- La renovación de la cookie en `index` es despreciable.\n\n## E. Calidad\n\n- La separación de responsabilidades que valoró R1 se mantiene.\n- Los comentarios de concurrencia (`PushSubscriptions.php:50` y `SendPushNotification.php:50-51`) son precisos.\n- Los tests son deterministas: reloj del sandbox con watchdog externo y matcher de log exacto.\n- Solo quedan los nits de abajo.\n\n---\n\n## Hallazgos accionables\n\n### N-1 · Minor (condicional; falta un hecho) · `resources/js/Pages/Profile/Notifications.vue:31` y `:48-50`\n\n**Problema.** Los mensajes se escriben en `messages`, que es estado local del componente, desde callbacks que se ejecutan después de que Inertia haya aplicado la nueva página:\n- `onError` en la activación;\n- el `catch` de `revokeBrowserPush` en la revocación, que puede llegar hasta unos 12 s después (4 operaciones de 3 s).\n\nSi la visita no preserva el estado, el adaptador de Vue vuelve a montar la página y esos mensajes van a una instancia ya desmontada.\n\n**Escenario A (colisión).**\n1. La usuaria B pulsa Activar en un navegador cuya suscripción sigue vinculada a A.\n2. El servidor responde 302 con `errors.endpoint`.\n3. `onError` escribe en el ref antiguo.\n4. B ve la página sin ningún mensaje y no sabe que tiene que restablecer el permiso.\n\nEsto vacía el \"error manejable\" que exigía I-1. El test PHP (`:70-72`) solo comprueba la sesión, y no hay E2E del mensaje visible.\n\n**Escenario B (revocación).** El aviso \"Revisa también el permiso de este navegador\" no se muestra nunca.\n\n**Hecho que falta.** La versión de `@inertiajs/vue3` y si, con `router.post`/`router.delete` sin la opción `preserveState`, la página se vuelve a montar. Por defecto la clave del componente cambia cuando `preserveState` es falso.\n\n**Corrección propuesta.**\n- Pasar `preserveState: true` en las dos visitas. Las props, incluida `subscriptions`, se siguen actualizando.\n- Alternativa: pintar `usePage().props.errors`.\n\n**Test.** Un E2E de colisión que compruebe que `role=\"alert\"` contiene el texto genérico.\n\n### N-2 · Nit · `routes/web.php:220`\n\nQueda un comentario huérfano, \"Public, static worker…\", sin ninguna ruta debajo. Despista a quien lea el fichero de rutas. Conviene eliminarlo o moverlo a `public/sw.js`, que ya tiene el suyo.\n\n### N-3 · Nit (accesibilidad) · `Notifications.vue:119-121`\n\nCon varios dispositivos hay N botones con el mismo nombre accesible, \"Revocar\". En navegación por lista de controles no se distinguen. Propuesta: `:aria-label=\"\\`Revocar ${device.device_name}\\`\"`. axe no lo marca como serious; es una mejora.\n\n### N-4 · Nit (cierre del ledger) · bloque \"Archivos\" de T-81\n\nLista ficheros que no existen en el parche:\n- `app/Jobs/DeliverPushSubscription.php`\n- `resources/js/Pages/Profile/Edit.vue`\n- `resources/js/pwa/**`\n\nAdemás duplica `PushServiceProvider.php` y `bootstrap/providers.php`. Conviene ajustarlo al cerrar para que el inventario coincida con los 40 archivos congelados.\n\n---\n\n## Políticas opcionales (no son defectos del contrato)\n\n1. **Timeout de `pushManager.subscribe` (`push.js:36-38`).**\n   - En el primer alta en móvil con red lenta, el registro con FCM o APNs puede superar 3 s.\n   - El usuario vería \"no ha respondido a tiempo\", aunque el siguiente intento se recupera porque `getSubscription()` ya devuelve la suscripción creada.\n   - Se podría usar unos 10 s solo para `subscribe`.\n2. **Recuperación automática ante colisión.** El cliente podría hacer `unsubscribe()` y volver a suscribir, lo que da un endpoint nuevo sin transferir la fila. Ahora la recuperación es manual (restablecer el permiso) y está documentada en `pwa.md:11`.\n3. **Sesión expirada sin Logout.** La cookie de A persiste y el siguiente usuario en ese navegador recibe la colisión. Es coherente con la regla aprobada de no transferir y está cubierto por la documentación.\n4. **Poda de suscripciones inactivas** (por `last_seen_at`), dentro de la política de retención.\n5. Se mantienen las políticas que R1 consideró opcionales:\n   - HTTPS público en lugar de allowlist de hosts;\n   - sin poda de rechazos 401/403;\n   - `failed_jobs` con alerta de salud;\n   - plugin `php-http/discovery` permitido;\n   - `openWindow` siempre en ventana nueva.\n\n## Hechos que faltan\n\n- Comportamiento de remontaje de Inertia con estas visitas (decide N-1).\n- **Fuera del alcance de T-81, solo como observación:** si `WebhookServiceProvider` de T-80 registra a mano listeners que viven en `app/Listeners`. Sería la misma clase de duplicación que se acaba de corregir aquí. No bloquea T-81.\n- `innodb_lock_wait_timeout` de producción. Sigue sin aportarse y no se inventa; la espera máxima de unos 20 s del job lo hace no crítico.\n\n## Resumen por eje\n\n| Eje | Estado | Bloqueantes |\n|---|---|---|\n| A Aceptación | Cumple; M-07 a la espera del usuario como política | — |\n| B Corrección | Correcta en MySQL y SQLite; deadlock M-4 resuelto | — (N-1 condicional, Minor) |\n| C Seguridad | Sin fugas; SSRF interno cerrado; worker sin `fetch` | — |\n| D Rendimiento | Adecuado a escala personal | — |\n| E Calidad | Buena; nits N-2 a N-4 | — |\n\n**Decisión:** aprobado. Recomiendo resolver N-1 (`preserveState: true` y un E2E del mensaje de colisión) y los nits en la misma iteración si es barato, pero ninguno bloquea el cierre. M-07 continúa pendiente del usuario sin sustituirse por simulaciones.",
+  "ttft_ms": 159881,
+  "type": "result",
+  "duration_ms": 207458,
+  "uuid": "48240299-66f4-4e4b-97f5-1e2357182b84",
+  "ttft_stream_ms": 3922,
+  "time_to_request_ms": 277,
+  "first_content_frame_ms": 3923,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "model_usage_since_last_result": {
+    "claude-opus-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 20583,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 155000,
+      "webSearchRequests": 0,
+      "costUSD": 1.651668,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 15122,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 155000,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "credential_expires_at": "2026-12-13T13:54:13.42Z"
+}

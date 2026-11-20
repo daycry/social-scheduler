@@ -73,7 +73,16 @@ const onTab = (e) => {
         @keydown.tab="onTab"
     >
         <label class="block text-xs font-medium text-slate-600" for="emoji-search">Buscar emoji</label>
-        <input id="emoji-search" ref="searchInput" v-model="query" type="search" autocomplete="off" @keydown.enter.prevent class="field mt-1" placeholder="Por ejemplo: fuego, tarta, gracias" />
+        <input
+            id="emoji-search"
+            ref="searchInput"
+            v-model="query"
+            type="search"
+            autocomplete="off"
+            @keydown.enter.prevent
+            class="field mt-1"
+            placeholder="Por ejemplo: fuego, tarta, gracias"
+        />
 
         <div v-if="!results" class="mt-2 flex flex-wrap gap-1" role="group" aria-label="Categorías de emoji">
             <button
@@ -86,7 +95,8 @@ const onTab = (e) => {
                 class="rounded px-2 py-1 text-lg leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 :class="category === c.id ? 'bg-indigo-100' : 'hover:bg-slate-100'"
                 @click="category = c.id"
-            ><span aria-hidden="true">{{ c.icon }}</span></button>
+                ><span aria-hidden="true">{{ c.icon }}</span></button
+            >
         </div>
         <p v-if="!results" class="mt-2 text-xs font-medium text-slate-600">{{ current.label }}</p>
 
@@ -98,13 +108,17 @@ const onTab = (e) => {
                     :title="e.name"
                     class="flex h-9 w-9 items-center justify-center rounded text-xl leading-none hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     @click="pick(e.char)"
-                ><span aria-hidden="true">{{ e.char }}</span></button>
+                    ><span aria-hidden="true">{{ e.char }}</span></button
+                >
             </li>
         </ul>
-        <p v-if="results && !results.length" class="mt-2 text-sm text-slate-600" role="status">No hay emojis con ese nombre.</p>
+        <p v-if="results && !results.length" class="mt-2 text-sm text-slate-600" role="status"
+            >No hay emojis con ese nombre.</p
+        >
 
         <p class="mt-2 border-t border-slate-100 pt-2 text-xs text-slate-600">
-            Para ver todos los emojis, en Windows pulsa <kbd class="rounded border border-slate-300 px-1">Win</kbd> + <kbd class="rounded border border-slate-300 px-1">.</kbd>
+            Para ver todos los emojis, en Windows pulsa <kbd class="rounded border border-slate-300 px-1">Win</kbd> +
+            <kbd class="rounded border border-slate-300 px-1">.</kbd>
         </p>
     </div>
 </template>

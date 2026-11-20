@@ -111,7 +111,7 @@ class StudioAvLifecycle
     {
         return DB::transaction(function () use ($lease, $code) {
             $this->store->reserveSqliteWriter('studio_av_leases', $lease->id);
-            [$export, , $current] = $this->store->activeLease($lease, false);
+            [$export, , $current] = $this->store->activeLeaseForFailure($lease);
             if (! $current) {
                 return false;
             }

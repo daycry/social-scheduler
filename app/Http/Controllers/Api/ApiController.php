@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Exceptions\InvalidPostTransition;
+use App\Exceptions\OwnershipException;
 use App\Exceptions\PostStateConflict;
 use App\Exceptions\PostValidationException;
 use App\Http\Controllers\Controller;
@@ -16,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use WeakMap;
 
 /**
  * Base de los controladores REST de `api/v1`: marca del usuario con 404 uniforme, y una sola traduccion de los errores de dominio a JSON
@@ -24,10 +26,23 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
  */
 abstract class ApiController extends Controller
 {
+    /** @var WeakMap<Request, array<int, true>> Contexto ligado a la petición, incluso con controladores reutilizados. */
+    private WeakMap $auditBrands;
+
+    public function __construct(private readonly AuditLog $auditLog)
+    {
+        $this->auditBrands = new WeakMap;
+    }
+
     /** La marca del usuario de la API key; una ajena responde igual que una inexistente. */
     protected function ownedBrand(Request $request, int $brand): Brand
     {
-        return Brand::ownedBy($request->user()->id)->find($brand) ?? abort(404);
+        $found = Brand::ownedBy($request->user()->id)->find($brand) ?? abort(404);
+        $brands = $this->auditBrands[$request] ?? [];
+        $brands[$found->id] = true;
+        $this->auditBrands[$request] = $brands;
+
+        return $found;
     }
 
     /**
@@ -64,8 +79,9 @@ abstract class ApiController extends Controller
             $this->audit($request, $action, AuditLog::ERROR, $resource, $id);
 
             return response()->json(['message' => $e->getMessage(), 'errors' => ['request' => [$e->getMessage()]]], 422);
-        } catch (HttpExceptionInterface $e) {
-            $this->audit($request, $action, $e->getStatusCode() === 404 ? AuditLog::DENIED : AuditLog::ERROR, $resource, $id);
+        } catch (HttpExceptionInterface|OwnershipException $e) {
+            $outcome = $e instanceof OwnershipException || $e->getStatusCode() === 404 ? AuditLog::DENIED : AuditLog::ERROR;
+            $this->audit($request, $action, $outcome, $resource, $id);
 
             throw $e;
         }
@@ -74,8 +90,10 @@ abstract class ApiController extends Controller
         return response()->json($result, $status);
     }
 
-    protected function audit(Request $request, string $action, string $outcome, ?string $resource, int|string|null $id): void
+    protected function audit(Request $request, string $action, string $outcome, ?string $resource, int|string|null $id, ?int $brandId = null): void
     {
-        app(AuditLog::class)->record($request->user(), $action, $outcome, $resource, $id, null, 'api');
+        $brands = $this->auditBrands[$request] ?? [];
+        $verifiedBrand = count($brands) === 1 ? array_key_first($brands) : null;
+        $this->auditLog->record($request->user(), $action, $outcome, $resource, $id, null, 'api', brandId: $brandId ?? $verifiedBrand);
     }
 }

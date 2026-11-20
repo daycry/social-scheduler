@@ -30,7 +30,9 @@ const go = (patch) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="text-xl font-bold text-slate-900">Meta Ads{{ brand ? ` · ${brand.name}` : '' }} (solo lectura)</h1>
+            <h1 class="text-xl font-bold text-slate-900"
+                >Meta Ads{{ brand ? ` · ${brand.name}` : '' }} (solo lectura)</h1
+            >
         </template>
 
         <div class="space-y-5">
@@ -43,19 +45,31 @@ const go = (patch) => {
 
             <template v-else>
                 <p v-if="o.message" class="card p-5 text-sm text-slate-700">{{ o.message }}</p>
-                <p v-if="brand" class="text-xs text-slate-500">Cuentas publicitarias accesibles mediante la conexión Meta de {{ brand.name }}.</p>
+                <p v-if="brand" class="text-xs text-slate-500"
+                    >Cuentas publicitarias accesibles mediante la conexión Meta de {{ brand.name }}.</p
+                >
 
                 <div v-if="o.selected" class="card flex flex-wrap items-center gap-4 p-4 text-sm">
                     <label class="flex items-center gap-2">
                         <NetworkIcon network="facebook" size="sm" />
                         <span class="text-xs font-medium text-slate-500">Cuenta publicitaria</span>
-                        <select class="field w-auto" :value="o.selected.id" @change="go({ ad_account: $event.target.value })">
-                            <option v-for="a in o.ad_accounts" :key="a.id" :value="a.id">{{ a.name }} ({{ a.id }})</option>
+                        <select
+                            class="field w-auto"
+                            :value="o.selected.id"
+                            @change="go({ ad_account: $event.target.value })"
+                        >
+                            <option v-for="a in o.ad_accounts" :key="a.id" :value="a.id"
+                                >{{ a.name }} ({{ a.id }})</option
+                            >
                         </select>
                     </label>
                     <label class="flex items-center gap-2">
                         <span class="text-xs font-medium text-slate-500">Periodo</span>
-                        <select class="field w-auto" :value="o.period" @change="go({ days: Number($event.target.value) })">
+                        <select
+                            class="field w-auto"
+                            :value="o.period"
+                            @change="go({ days: Number($event.target.value) })"
+                        >
                             <option v-for="p in periods" :key="p" :value="p">Últimos {{ p }} días</option>
                         </select>
                     </label>
@@ -64,21 +78,40 @@ const go = (patch) => {
                 <div v-if="o.selected" class="grid gap-4 md:grid-cols-3 xl:grid-cols-5" data-testid="ads-kpis">
                     <section class="card p-5">
                         <h2 class="text-sm font-medium text-slate-500">Gasto</h2>
-                        <p class="mt-0.5 text-3xl font-semibold tabular-nums text-slate-900">{{ money(o.totals?.spend) }}</p>
+                        <p
+                            class="mt-0.5 text-3xl font-semibold tabular-nums text-slate-900"
+                            >{{ money(o.totals?.spend) }}</p
+                        >
                     </section>
-                    <KpiCard label="Impresiones" :total="o.totals?.impressions ?? null" :available="o.totals?.impressions != null" />
+                    <KpiCard
+                        label="Impresiones"
+                        :total="o.totals?.impressions ?? null"
+                        :available="o.totals?.impressions != null"
+                    />
                     <KpiCard label="Clics" :total="o.totals?.clicks ?? null" :available="o.totals?.clicks != null" />
                     <section class="card p-5">
                         <h2 class="text-sm font-medium text-slate-500">CTR</h2>
-                        <p class="mt-0.5 text-3xl font-semibold tabular-nums text-slate-900">{{ pct(o.totals?.ctr) }}</p>
+                        <p
+                            class="mt-0.5 text-3xl font-semibold tabular-nums text-slate-900"
+                            >{{ pct(o.totals?.ctr) }}</p
+                        >
                     </section>
                     <section class="card p-5">
                         <h2 class="text-sm font-medium text-slate-500">CPC</h2>
-                        <p class="mt-0.5 text-3xl font-semibold tabular-nums text-slate-900">{{ money(o.totals?.cpc) }}</p>
+                        <p
+                            class="mt-0.5 text-3xl font-semibold tabular-nums text-slate-900"
+                            >{{ money(o.totals?.cpc) }}</p
+                        >
                     </section>
                 </div>
 
-                <section v-if="o.selected" class="card overflow-x-auto" tabindex="0" role="region" aria-label="Campañas">
+                <section
+                    v-if="o.selected"
+                    class="card overflow-x-auto"
+                    tabindex="0"
+                    role="region"
+                    aria-label="Campañas"
+                >
                     <table class="w-full text-left text-sm">
                         <caption class="sr-only">Campañas y métricas del periodo</caption>
                         <thead class="border-b text-xs text-slate-500">
@@ -94,10 +127,19 @@ const go = (patch) => {
                         </thead>
                         <tbody class="divide-y">
                             <tr v-if="o.campaigns.length === 0">
-                                <td colspan="7" class="px-5 py-4 text-slate-500">Esta cuenta publicitaria no tiene campañas.</td>
+                                <td colspan="7" class="px-5 py-4 text-slate-500"
+                                    >Esta cuenta publicitaria no tiene campañas.</td
+                                >
                             </tr>
                             <tr v-for="c in o.campaigns" :key="c.id">
-                                <td class="px-5 py-3 font-medium text-slate-900">{{ c.name }}<span v-if="c.objective" class="block text-xs font-normal text-slate-500">{{ c.objective }}</span></td>
+                                <td class="px-5 py-3 font-medium text-slate-900"
+                                    >{{ c.name
+                                    }}<span
+                                        v-if="c.objective"
+                                        class="block text-xs font-normal text-slate-500"
+                                        >{{ c.objective }}</span
+                                    ></td
+                                >
                                 <td class="px-3 py-3">{{ c.status ?? '—' }}</td>
                                 <td class="px-3 py-3 text-right tabular-nums">{{ money(c.insights?.spend) }}</td>
                                 <td class="px-3 py-3 text-right tabular-nums">{{ num(c.insights?.impressions) }}</td>

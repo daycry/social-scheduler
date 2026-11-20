@@ -40,7 +40,12 @@ class StudioAi
         'watercolor' => 'Acuarela con texturas de papel.',
     ];
 
-    public function __construct(private readonly StudioAssets $assets, private readonly AiProviders $providers) {}
+    public function __construct(
+        private readonly StudioAssets $assets,
+        private readonly AiProviders $providers,
+        private readonly JobFailureNotifier $notifier,
+        private readonly MediaUploadService $media,
+    ) {}
 
     /** Estado de la funcion para la UI y la API: nunca incluye claves. */
     public function status(User $user): array
@@ -218,7 +223,7 @@ class StudioAi
             $done = StudioAiJob::withoutUserScope()->whereKey($id)->where('status', 'processing')
                 ->update(['status' => 'ready', 'output_media_ids' => json_encode(array_map(fn (MediaAsset $m) => $m->id, $created)), 'error_code' => null, 'error' => null]);
             if ($done === 1) {
-                app(JobFailureNotifier::class)->aiDone(StudioAiJob::withoutUserScope()->findOrFail($id));
+                $this->notifier->aiDone(StudioAiJob::withoutUserScope()->findOrFail($id));
             }
             if ($done !== 1) {
                 // Otro proceso (failed() del worker) ya cerro el trabajo como error: no dejar recursos huerfanos.
@@ -233,7 +238,7 @@ class StudioAi
             $closed = StudioAiJob::withoutUserScope()->whereKey($id)->where('status', 'processing')
                 ->update(['status' => 'failed', 'error_code' => $code, 'error' => $e instanceof AiProviderException ? $e->getMessage() : self::errorMessage($code)]);
             if ($closed === 1) {
-                app(JobFailureNotifier::class)->ai(StudioAiJob::withoutUserScope()->findOrFail($id));
+                $this->notifier->ai(StudioAiJob::withoutUserScope()->findOrFail($id));
             }
         }
     }
@@ -244,7 +249,7 @@ class StudioAi
         foreach ($media as $item) {
             try {
                 StudioAsset::withoutUserScope()->where('media_asset_id', $item->id)->delete();
-                app(MediaUploadService::class)->delete($item);
+                $this->media->delete($item);
             } catch (\Throwable) { // Conserva lo que ya use una publicacion.
             }
         }
@@ -338,14 +343,14 @@ class StudioAi
             if (! Storage::disk($media->disk)->put($media->path, $bytes)) {
                 throw new \RuntimeException('No se pudo guardar la imagen.');
             }
-            $media = app(MediaUploadService::class)->finalize($media);
+            $media = $this->media->finalize($media);
             if (! $media->isReady()) {
                 throw new \RuntimeException('La imagen no superó la validación.');
             }
             $this->assets->attach($user, $brand, $media->id);
         } catch (\Throwable $e) {
             try {
-                app(MediaUploadService::class)->delete($media);
+                $this->media->delete($media);
             } catch (\Throwable) {
             }
 

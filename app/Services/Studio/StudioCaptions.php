@@ -18,7 +18,7 @@ class StudioCaptions
 
     public const TRANSLATE_MAX_CHARS = 12000;
 
-    public function __construct(private readonly StudioService $studio, private readonly StudioExports $exports, private readonly StudioCaptionCodec $codec, private readonly AiAssistant $ai, private readonly StudioAssets $assets) {}
+    public function __construct(private readonly StudioService $studio, private readonly StudioExports $exports, private readonly StudioCaptionCodec $codec, private readonly AiAssistant $ai, private readonly StudioAssets $assets, private readonly StudioCaptionData $captionData) {}
 
     public function get(User $user, Design $design, array $filters = []): array
     {
@@ -64,7 +64,7 @@ class StudioCaptions
                 $parsed = $this->codec->parse($data['text'], $data['format']);
                 $warnings = $parsed['warnings'];
                 $append = ($data['mode'] ?? 'append') === 'append';
-                $ids = app(StudioCaptionData::class)->reservedIds($document, $append);
+                $ids = $this->captionData->reservedIds($document, $append);
                 $index = 1;
                 foreach ($parsed['cues'] as &$cue) {
                     while (isset($ids[$cue['id']])) {

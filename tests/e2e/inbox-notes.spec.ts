@@ -54,6 +54,9 @@ test('E2E-01 · notas del inbox: alta, insignia, filtro y borrado', { tag: '@res
 
     // Borrado: la insignia desaparece y, con el filtro activo, ya no hay nada que mostrar.
     await page.getByTestId('comment-note-delete').click();
+    const confirmation = page.getByRole('alertdialog', { name: 'Confirmar acción' });
+    await expect(confirmation.getByText('¿Eliminar esta nota interna?', { exact: true })).toBeVisible();
+    await confirmation.getByRole('button', { name: 'Eliminar nota', exact: true }).click();
     await settle(page);
     await expect(page.getByTestId('comment-note')).toHaveCount(0);
     await expect(page.getByTestId('note-badge')).toHaveCount(0);

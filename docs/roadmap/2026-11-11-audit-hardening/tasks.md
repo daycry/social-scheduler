@@ -21,7 +21,7 @@ estado: en-progreso
 
 | | |
 |---|---|
-| **Estado** | borrador |
+| **Estado** | en-progreso |
 | **Fecha** | 2026-11-11 |
 | **Plan** | [`improvement-plan.md`](./improvement-plan.md) |
 | **Diseño** | n/a |
@@ -33,6 +33,8 @@ estado: en-progreso
 
 > **Método por tarea:** implementador → revisor adversarial A+B(+C) → correcciones → Pest y Playwright de los specs afectados (**una sola ejecución de Playwright a la vez y nunca con cambios de código en paralelo**, lección GOT-005) → documentación actualizada → cierre en este ledger. Las tareas se ejecutan **en el orden de este fichero**. Restricciones permanentes: sin Docker, sin proveedores reales ni red externa en las pruebas, no editar `.env`, no tocar los datos del usuario 28, los merges los hace el usuario. Las tareas que dependen del usuario o de un tercero **no bloquean la fase**: lo implementable se cierra y lo pendiente queda en `A la espera`.
 
+> **Calidad del código:** Claude Code con Opus 5.5 también evalúa la legibilidad, la robustez, la complejidad, la duplicación, la separación de responsabilidades y el coste de mantener el cambio. El revisor cita el fichero y la línea, explica el impacto y propone una corrección concreta para cada defecto. Las preferencias de estilo se registran como sugerencias. En cambios documentales, se revisa la claridad y la correspondencia con el código.
+
 ---
 
 ## Resumen de progreso
@@ -42,13 +44,13 @@ estado: en-progreso
 | Fase 1 — Riesgo inmediato | 11 | 11 | 100% | 0 / 63.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3055k |
 | Fase 2 — CI y red de tests | 8 | 8 | 100% | 0 / 44.0h | 0 / 11.2h | 0 / 2.8h | 0 / 2140k |
 | Fase 3 — Funciones incompletas | 16 | 16 | 100% | 0 / 118.0h | 0 / 29.6h | 0 / 7.4h | 0 / 5630k |
-| Fase 4 — Refactor del backend | 0 | 15 | 0% | 0 / 90.0h | 0 / 22.8h | 0 / 5.7h | 0 / 4350k |
-| Fase 5 — Frontend | 0 | 18 | 0% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
-| Fase 5b — Unificación | 0 | 8 | 0% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
-| Fase 6 — Operación y repositorio | 0 | 6 | 0% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
-| Fase 7 — Funciones nuevas | 0 | 24 | 0% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
+| Fase 4 — Refactor del backend | 15 | 15 | 100% | 0 / 90.0h | 0 / 22.8h | 0 / 5.7h | 0 / 4350k |
+| Fase 5 — Frontend | 15 | 18 | 83% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
+| Fase 5b — Unificación | 4 | 8 | 50% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
+| Fase 6 — Operación y repositorio | 4 | 6 | 67% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
+| Fase 7 — Funciones nuevas | 7 | 24 | 29% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **35** | **108** | **32%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
+| **TOTAL** | **80** | **108** | **74%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -1550,14 +1552,15 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 - **Descripción**: Extraer el flujo de contenedores (crear, esperar, publicar, contenedor fallido) a una clase común con ganchos por red; unificar el comportamiento ante contenedor fallido, que hoy diverge.
 - **Changelog**: Instagram y Threads publican con el mismo flujo de contenedores; si el contenedor de Instagram falla o caduca, el destino queda fallido con un código que distingue la causa, como ya hacía Threads.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-17
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-24, T-34, T-15
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Support/ContainerPublishFlow.php`, `app/Connectors/Support/ContainerNetwork.php`, `app/Connectors/Meta/Instagram/InstagramContainers.php`, `app/Connectors/Meta/Instagram/InstagramPublisher.php`, `app/Connectors/Threads/ThreadsContainers.php`, `app/Connectors/Threads/ThreadsPublisher.php`, `tests/Feature/Connectors/Meta/Instagram/InstagramPublishTest.php`, `docs/modulos/publicacion.md`
+- **Archivos**: `app/Connectors/Support/ContainerPublishFlow.php`, `app/Connectors/Support/ContainerNetwork.php`, `app/Connectors/Meta/Instagram/InstagramContainers.php`, `app/Connectors/Meta/Instagram/InstagramPublisher.php`, `app/Connectors/Threads/ThreadsContainers.php`, `app/Connectors/Threads/ThreadsPublisher.php`, `tests/Feature/Connectors/Meta/Instagram/InstagramPublishTest.php`, `tests/Feature/Connectors/Meta/Instagram/InstagramAudioPublishTest.php`, `docs/modulos/publicacion.md`, `CHANGELOG.md`, `CHANGELOG.es.md`
 - **Cubre**: C-01
 - **Cubre (tests)**: E2E-38
 - **Verificación**: `php artisan test --compact --filter='InstagramPublish|ThreadsPublisher'` → verde
@@ -1565,37 +1568,43 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 **Criterios de aceptación**
 - [x] Los dos publishers delegan en `ContainerPublishFlow`
 - [x] El comportamiento ante contenedor fallido es el mismo en ambos y queda documentado
-- [ ] Los tests de conectores existentes pasan sin cambios
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Los tests de conectores existentes pasan. La única adaptación es la aserción del contenedor `ERROR` de Instagram, por el cambio de conducta declarado.
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
-- Verificación (2026-11-16): Pest antes (focal: Connectors, Publishing, Inbox, Analytics, Instagram, FirstComment, Jobs): 1019/1019 · antes de cerrar la tarea: `--filter='InstagramPublish|ThreadsPublisher'` verde (56 tests, 2026-11-16, filtro corregido: el anterior no seleccionaba ninguno); Pest focal tras T-36/T-37/T-38 1093/1093 (las 7 carpetas de la base más Connections y Competitors; la base de las 7 carpetas eran 1019; tests nuevos de Instagram, UploadPassBudget y YouTubeClient, y el de reloj de YouTube movido a UploadPassBudgetTest; ninguno retirado sin sustituto) (mismos tests que antes; un test de Instagram adaptado y +3 nuevos); Pint OK.
+- Verificación (2026-11-16): base focal de siete carpetas, 1019/1019. El filtro propio de T-36 `InstagramPublish|ThreadsPublisher` pasó 56 pruebas. T-36 adaptó una aserción y añadió dos escenarios de Instagram, `EXPIRED` en el contenedor e hijo de carrusel en `ERROR`. El resultado de 1093/1093 tras T-36, T-37 y T-38 corresponde al conjunto ampliado con Connections y Competitors y a las pruebas de las tres tareas. Pint pasó.
 - Decisiones: (1) `ContainerPublishFlow` (flujo: cuota, contenedor, estado, publicar, carrusel reanudable con `StepBudget`, `findPublished`) y la interfaz `ContainerNetwork` con los ganchos por red; `InstagramContainers` y `ThreadsContainers` llevan endpoints, parámetros, lectura del estado, mensajes de error, enlace y búsqueda (historias en Instagram). Los publishers solo validan (tipo, opciones, audio, tamaño del carrusel) y delegan. Se borró el código duplicado; sin puentes. (2) **Contenedor fallido, conducta unificada:** `ERROR`/`EXPIRED` (también un hijo de carrusel) lanzan `PermanentPublishException` con código `contenedor_error` o `contenedor_caducado` y el motivo traducido (la que ya tenía Threads). Antes Instagram devolvía `PublishResult::failed`, que los jobs convertían en el código genérico `rechazada`; ahora el destino queda con el código que distingue la causa. Es el único cambio de comportamiento y está declarado en el changelog. (3) Test de Instagram adaptado (`toThrow` con código) y dos nuevos (EXPIRED, hijo de carrusel en ERROR).
-- Pendiente (coordinador): revisión adversarial A+B(+C), Pest completo y Playwright de fase.
+- Evidencia adicional del 16 de noviembre: el diff de tests de T-36 conserva el caso previo de error de Instagram con la aserción adaptada al nuevo contrato y añade los casos de caducidad e hijo de carrusel. La suite de Threads conserva sus tests. La comparación E2E-38 y las pruebas de integración están enlazadas al final del ledger.
+- Revisión de aceptación y calidad, intento 1 (2026-11-17). Claude Code devolvió dos informes con `claude-opus-5-5`. Se verificó que `PublishRequest::budget()` memoiza `StepBudget`, así que el gasto de la validación de audio sigue disponible al entrar en `ContainerPublishFlow`. La comparación con `1a2c7c3` dio cero diferencias en las seis clases y el test original de T-36. La búsqueda de `rechazada` encontró usos como código de salida, pero el reintento del calendario y de `PostScheduling` solo excluye `MEDIA_MISSING`. `freshAttempt()` limpia la referencia de la publicación anterior. Se aclaró la excepción de tests y se movió el contrato de contenedores a una sección común de Instagram y Threads. Queda pendiente cubrir los códigos de error persistidos por los jobs con una prueba de regresión y revisar las correcciones. Informes en `%TEMP%/metricool-t36-opus55-a-r1.json` y `%TEMP%/metricool-t36-opus55-b-r1.json`.
+
+- Correcciones aplicadas el 17 de noviembre. Los jobs persisten `contenedor_error` y `contenedor_caducado` en cuatro casos, al publicar y al sondear, con el proveedor simulado. La prueba de audio comprueba que el mismo presupuesto frena el sondeo. Se dieron nombres a los argumentos al crear la solicitud para el padre del carrusel. El filtro inicial pasó 7 pruebas y 32 aserciones. Pendiente la segunda revisión del diff final y verificación de fase.
+
+- Segunda revisión: `claude-opus-5-5` no detectó Critical ni Important en el diff corregido. El noveno argumento anterior era el checkpoint opcional, con valor `null`, y `advance()` sigue recibiendo el `StepBudget` explícito. Los 6 casos de Threads y los 3 de media por destino del informe serial pasaron. Informe de revisión en `%TEMP%/metricool-t36-opus55-r2.json` y de navegador en `storage/framework/testing/t43/run-general-7bfa8463-7586-46b5-ad17-37eba2354e82/results.json`. Pest completo serial del 17 de noviembre: 4125 aprobados, 9 omitidos y 26 333 aserciones, sin fallos. Informe en `%TEMP%/metricool-review-php-full.log`. Se conserva la comparación E2E-38 de 10/10 antes y después.
 
 **Notas**: Tamaño M. El contenedor fallido es el único cambio de comportamiento permitido y se declara en el changelog.
 
 ### T-37 — `UploadPassBudget` sobre `StepBudget` (TikTok y YouTube)
 
 - **Descripción**: Unificar el presupuesto de pasadas de subida duplicado entre TikTok y YouTube.
-- **Changelog**: Sin cambios visibles: la subida por pasadas de TikTok y YouTube comparte un único presupuesto de tiempo.
-- **Estado**: en-revision
+- **Changelog**: TikTok y YouTube comparten el presupuesto de las subidas por pasadas. Con un margen mínimo de cero, se aplaza el siguiente trozo si la pasada agotó su tiempo.
+- **Estado**: completado
+- **Cerrada**: 2026-11-17
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-36
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Support/UploadPassBudget.php`, `app/Connectors/Support/StepBudget.php`, `app/Connectors/TikTok/TikTokPublisher.php`, `app/Connectors/Google/YouTubePublisher.php`, `tests/Feature/Connectors/Support/UploadPassBudgetTest.php`, `tests/Feature/Connectors/Google/Publish/YouTubePublishTest.php`, `docs/modulos/publicacion.md`
+- **Archivos**: `app/Connectors/Support/UploadPassBudget.php`, `app/Connectors/Support/StepBudget.php`, `app/Connectors/TikTok/TikTokPublisher.php`, `app/Connectors/Google/YouTubePublisher.php`, `app/Connectors/Google/YouTubeClient.php`, `app/Connectors/Google/YouTubeResumableUpload.php`, `tests/Feature/Connectors/Support/UploadPassBudgetTest.php`, `tests/Feature/Connectors/Google/Publish/YouTubePublishTest.php`, `docs/modulos/publicacion.md`, `CHANGELOG.md`, `CHANGELOG.es.md`
 - **Cubre**: C-02
 - **Cubre (tests)**: E2E-38
 - **Verificación**: `php artisan test --compact --filter='TikTokPublish|YouTubePublish'` → verde
@@ -1603,36 +1612,43 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 **Criterios de aceptación**
 - [x] Ambos publishers usan `UploadPassBudget` y no queda código duplicado
 - [x] Los tests de subida reanudable pasan sin cambios
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Pest y E2E en verde antes y después. Con margen mínimo de cero, la pasada agotada aplaza el siguiente trozo.
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 - Verificación (2026-11-16): Pest antes (focal: Connectors, Publishing, Inbox, Analytics, Instagram, FirstComment, Jobs): 1019/1019 · `--filter='TikTokPublish|YouTubePublish'` verde (83 tests, 2026-11-16, filtro corregido: el anterior no seleccionaba ninguno); Pest focal 1093/1093 (las 7 carpetas de la base más Connections y Competitors; la base de las 7 carpetas eran 1019; tests nuevos de Instagram, UploadPassBudget y YouTubeClient, y el de reloj de YouTube movido a UploadPassBudgetTest; ninguno retirado sin sustituto); Pint OK.
 - Decisiones: `UploadPassBudget` (presupuesto blando `upload_budget_seconds` y marca dura `pass_seconds`, por red) se construye sobre `StepBudget` (nuevo `StepBudget::within()` para un presupuesto solo de tiempo). Se borraron `passStartedAt`, `budgetLeft`, `elapsed` y `callTimeout` de TikTok y YouTube. El test que fijaba `passStartedAt` por reflexión pasó a `UploadPassBudgetTest` (mismo comportamiento: tope propio, marca dura, borde de 1 s; ambas redes). **Pinterest no encaja**: sube de una vez con el `remaining()` de su `StepBudget`, sin pasadas por trozos ni marca dura propia.
 - Pendiente (coordinador): revisión adversarial A+B(+C), Pest completo y Playwright de fase.
+
+- Revisión de aceptación y calidad (2026-11-17). Opus 5.5 señaló dos riesgos en la extracción posterior de YouTube. El código actual confirma que `YouTubeClient` conserva `UploadPassBudget`, y que `YouTubeResumableUpload` inicia y termina esa misma instancia. La búsqueda de usos de la API retirada no encontró llamadas en aplicación, rutas, comandos, scripts ni pruebas. Se conservan como pendientes la cobertura del timeout en el cliente, la regla de corte todavía repetida entre redes y el caso de margen mínimo configurado en cero. Informe en `%TEMP%/metricool-t37-opus55-r1.json`.
+
+- Seguimiento del 17 de noviembre. El mínimo se evalúa en `UploadPassBudget` con las claves tipadas de cada red. Conserva el primer trozo y evita empezar otro si el tiempo llegó a cero, incluso cuando el mínimo configurado es cero. Pint y el filtro combinado de conectores e importación pasaron (184 pruebas y 722 aserciones). Opus 5.5 verificó aceptación y calidad del diff aplicado sin Critical ni Important y pidió cubrir el valor por defecto sin clave. Se añadió la comparación con 12 segundos restantes y pasó con 15 s para TikTok y 10 s para YouTube. Informe en `%TEMP%/metricool-t37-t38-applied-opus55.json`.
+
+- Playwright serial de E2E-38 y flujos afectados: 24 aprobados, cero fallos y cero flaky. Se cotejaron los 10 casos de E2E-38 aprobados en ambas ejecuciones por fichero, título y proyecto. Pest completo posterior pasó 4129 pruebas, 9 omitidas y 26 355 aserciones, en `%TEMP%/metricool-t37-t42-pest-full-final.log`. Informe en `storage/framework/testing/t43/run-general-ec6954ac-bb10-44e3-b1c5-1457c4b962e7/results.json`.
 
 **Notas**: Tamaño S.
 
 ### T-38 — Partir `YouTubePublisher`: `YouTubeClient` y `YouTubeResumableUpload`
 
 - **Descripción**: Separar cliente HTTP/cuota, subida reanudable y comentarios del publisher de 930 líneas.
-- **Changelog**: Sin cambios visibles: el conector de YouTube se reparte en cliente, subida reanudable, metadatos y comentarios.
-- **Estado**: en-revision
+- **Changelog**: Sin cambios visibles: el conector de YouTube se reparte en cliente, subida reanudable, sondeo y recuperación, metadatos y comentarios.
+- **Estado**: completado
+- **Cerrada**: 2026-11-17
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-37
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Google/YouTubePublisher.php`, `app/Connectors/Google/YouTubeClient.php`, `app/Connectors/Google/YouTubeResumableUpload.php`, `app/Connectors/Google/YouTubeVideoMetadata.php`, `app/Connectors/Google/YouTubeComments.php`, `tests/Feature/Connectors/Google/Publish/YouTubeClientTest.php`, `tests/Feature/Connectors/Google/Publish/YouTubePublishTest.php`, `tests/Feature/Publishing/PresetsReviewTest.php`, `tests/Feature/Publishing/YouTubeOptionsTest.php`, `docs/modulos/publicacion.md`
+- **Archivos**: `app/Connectors/Google/YouTubePublisher.php`, `app/Connectors/Google/YouTubeClient.php`, `app/Connectors/Google/YouTubeResumableUpload.php`, `app/Connectors/Google/YouTubeVideoStatus.php`, `app/Connectors/Google/YouTubeVideoMetadata.php`, `app/Connectors/Google/YouTubeComments.php`, `tests/Feature/Connectors/Google/Publish/YouTubeClientTest.php`, `tests/Feature/Connectors/Google/Publish/YouTubePublishTest.php`, `tests/Feature/Publishing/PresetsReviewTest.php`, `tests/Feature/Publishing/YouTubeOptionsTest.php`, `docs/modulos/publicacion.md`
 - **Cubre**: C-03
 - **Cubre (tests)**: E2E-38
 - **Verificación**: `php artisan test --compact --filter=YouTube` → verde
@@ -1640,22 +1656,28 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 **Criterios de aceptación**
 - [x] `YouTubePublisher` baja de 400 líneas
 - [x] Cliente y subida son clases testeables por separado
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 - Verificación (2026-11-16): Pest antes (focal: Connectors, Publishing, Inbox, Analytics, Instagram, FirstComment, Jobs): 1019/1019 · `--filter=YouTube` verde; Pest focal 1093/1093 (las 7 carpetas de la base más Connections y Competitors; la base de las 7 carpetas eran 1019; tests nuevos de Instagram, UploadPassBudget y YouTubeClient, y el de reloj de YouTube movido a UploadPassBudgetTest; ninguno retirado sin sustituto); Pint OK. `YouTubePublisher`: 929 -> 229 líneas.
 - Decisiones: `YouTubeClient` (peticiones, errores de la API, cupo y reloj de la pasada), `YouTubeResumableUpload` (sesión, trozos, portada; la recuperación del video completo se inyecta como cierre), `YouTubeVideoMetadata` (validación, título, descripción, tags y tag opaco por destino) y `YouTubeComments` (primer comentario, búsqueda idempotente e inbox; ya no hace `new YouTubePublisher`). El publisher queda como fachada: `publish`/`poll`/`findPublished`, `comment`/`findOwnComment` delegados (contrato `FirstCommenter`). Constantes y estáticos movidos: `targetTag`/`tagsFor` -> `YouTubeVideoMetadata` (tests actualizados), `UPLOADING` -> `PublishResult::UPLOADING` (el alias del publisher se borró). `canComment()` y `forgetUploadSession()` ya no existen en el publisher: `PostController` llama a `YouTubeComments::canComment` y `PostPlanner`/`PostScheduling` a `YouTubeResumableUpload::forgetSession` (sin puentes). `deleteVideo` se borró con su test: no tenía ningún uso en `app/` ni lo prevén el ledger ni la documentación.
 - Tests nuevos: `YouTubeClientTest` (errores de la API, cupo agotado, reloj de pasada, `resume` sin sesión, `forgetSession`, tag opaco).
 - Pendiente (coordinador): revisión adversarial A+B(+C), Pest completo y Playwright de fase.
+
+- Revisión de aceptación y calidad (2026-11-17). Opus 5.5 identificó el acoplamiento de recuperación de subidas al publicador mediante un cierre y la falta de una prueba de transferencia directa. El cierre recibe una referencia nula en `uploadedOrFail()`, por lo que la llamada actual trata la búsqueda por etiqueta y no retoma de nuevo la misma sesión. Persiste la dependencia circular de responsabilidades señalada por el revisor. Se cotejó `missingScopes()` con `CommentSource` y `InboxService::help()`: el contrato de YouTube admite `[]` y la ayuda indica el permiso específico. El ledger actual registra la eliminación del método sin llamadas `deleteVideo` y el contraste E2E-38. Informe en `%TEMP%/metricool-t38-opus55-r1.json`.
+
+- Seguimiento del 17 de noviembre. `YouTubeVideoStatus` sondea y recupera por tag con el mismo cliente. El publicador y la subida dependen de él y se elimina el callback de vuelta a la fachada. El caso de offset finalizado sin ID pasó antes y después: recupera un Short por tag, guarda su ID y borra la sesión sin reiniciarla. El reloj se congela en el `beforeEach` de la suite. Opus 5.5 verificó aceptación y calidad del diff aplicado sin Critical ni Important. Pint verde y 184 pruebas focales con T-37 e importación. Informe en `%TEMP%/metricool-t37-t38-applied-opus55.json`.
+
+- Playwright serial de E2E-38 y flujos afectados: 24 aprobados, cero fallos y cero flaky. Se cotejaron los 10 casos de E2E-38 aprobados en ambas ejecuciones por fichero, título y proyecto. Pest completo posterior pasó 4129 pruebas, 9 omitidas y 26 355 aserciones, en `%TEMP%/metricool-t37-t42-pest-full-final.log`. Informe en `storage/framework/testing/t43/run-general-ec6954ac-bb10-44e3-b1c5-1457c4b962e7/results.json`.
 
 **Notas**: Tamaño M.
 
@@ -1663,14 +1685,15 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 - **Descripción**: Unificar validación y orquestación de los controladores web y API del estudio en FormRequests compartidos y métodos del servicio.
 - **Changelog**: Sin cambios visibles: el estudio web y su API validan con las mismas reglas y abren un diseño con la misma lógica, así que dejan de poder divergir.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-17
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-15
 - **Tipo**: backend
-- **Archivos**: `app/Http/Controllers/Studio/StudioController.php`, `app/Http/Controllers/Studio/StudioApiController.php`, `app/Http/Requests/Studio/**`, `app/Services/Studio/StudioService.php`, `app/Services/Studio/StudioEditor.php`, `docs/modulos/estudio.md`
+- **Archivos**: `app/Http/Controllers/Studio/StudioController.php`, `app/Http/Controllers/Studio/StudioApiController.php`, `app/Http/Requests/Studio/**`, `app/Services/Studio/StudioService.php`, `app/Services/Studio/StudioEditor.php`, `tests/Feature/Studio/StudioBackendTest.php`, `tests/e2e/studio-collab.spec.ts`, `docs/modulos/estudio.md`, `routes/studio-ai-api.php`
 - **Cubre**: C-04
 - **Cubre (tests)**: E2E-38
 - **Verificación**: `php artisan test --compact --filter=Studio` → verde
@@ -1678,22 +1701,30 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 **Criterios de aceptación**
 - [x] No hay reglas de validación duplicadas entre controlador web y API
 - [x] Respuestas y códigos de error idénticos a los previos
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 - Implementación (2026-11-16, commit `dcd4bd3` + docs `eb54893`): 7 FormRequests compartidos en `app/Http/Requests/Studio/` (`ListDesignsRequest` + `ListDesignsApiRequest` que solo añade «true»/«false» como texto en la query, `DuplicateDesignRequest`, `FolderNameRequest`, `MoveDesignRequest`, `AttachAssetRequest`, `ListExportsRequest`, `EditorRequest`); la orquestación de `edit`/`show` pasa a `StudioEditor` (`web()`, `api()`, `brandProps()`, `apiAssets()`). `StudioController` 292 → 238 líneas, `StudioApiController` 226 → 190; no queda ningún `$request->validate(` con reglas duplicadas entre ambos. Sin alias ni métodos puente: se borraron `editorProps`, `brandProps` y `assetData` de los controladores.
 - Decisiones: (1) `StudioEditor` es una clase nueva y no más líneas en `StudioService` (ya 415) — por eso se añade a `Archivos`. (2) Único matiz de comportamiento: `GET studio` (web, `index`) ahora valida los filtros también cuando el usuario no tiene marca (antes devolvía el listado vacío sin validar); con filtros válidos nada cambia.
 - Verificación (2026-11-16): Pest antes (línea base de los refactors, `Posts Workflow Publishing Mcp Api Studio Parity Calendar Campaigns FirstComment Library Media`, HEAD `f40a583`): 2096 tests, 2087 passed, 9 skipped, 0 failed. Después de T-39: `Studio Api Mcp Parity Ui` → 1241 tests, 1232 passed, 9 skipped, 0 failed (una primera pasada dio 6 errores en `StudioAvRetirementTest` por solaparse con el Pest de otro agente; el fichero en solitario pasa 16/16 y la segunda pasada completa es verde). Pint OK. Sin Pest completo ni Playwright (los lanza el coordinador).
 - Pendiente (coordinador): revisión adversarial A+B(+C), Pest completo y Playwright serial.
+
+- Revisión de aceptación y calidad (2026-11-17). Opus 5.5 confirmó un cambio respecto al criterio de conservar respuestas: el `FormRequest` valida antes de devolver el listado vacío de `GET /studio` cuando el usuario carece de marca. Hay que restaurar la respuesta anterior y añadir una regresión que preserve las reglas compartidas. El riesgo posterior de `ownedBy()` queda contrastado con `BelongsToUser::scopeOwnedBy()`, que retira `UserScope` y cualifica `user_id`. En la revisión del flujo de apertura se señaló la duplicación del preámbulo de autorización en `StudioEditor`. Informe en `%TEMP%/metricool-t39-opus55-r1.json`.
+
+- RED del 17 de noviembre: el nuevo caso de `/studio?folder_id=abc` sin marca esperaba HTTP 200 y recibió 302. GREEN: `ListDesignsRequest` aplica las reglas compartidas en las rutas con marca y conserva la portada vacía sin marca. Se verifica 200 sin marca y 422 con marca. En conjunto con las regresiones de Instagram y `PostService` pasaron 11 pruebas y 57 aserciones.
+
+- Segunda revisión: Opus 5.5 aprobó el arreglo sin Critical ni Important. Pest ampliado de Instagram, Threads, Estudio, firma, aprobaciones y despliegue dio 193/193 y Pint verde. En la prueba serial posterior de colaboración apareció un fallo de contraste en escritorio al medir «Crear enlace» inmediatamente después de compartir. La traza muestra que estaba habilitado y con color efectivo de contraste 2,73. La transición de opacidad del botón al finalizar la operación es la hipótesis a verificar. Se preparó un ajuste que comprueba opacidad `1` antes de ejecutar Axe, conservando todas sus reglas.
+
+- La pasada serial terminó 21/22. Las dos variantes móviles de colaboración y el caso de carpetas pasaron. Se aplicó la espera del estilo final al test de colaboración. La repetición posterior pasó en los tres tamaños, en `storage/framework/testing/t43/run-general-f4fe3d79-75be-4cd4-ab5a-ad176493e0c2/results.json`. La revisión de ese ajuste confirmó que varias acciones comparten el mismo estado de carga. Opus 5.5 confirmó que la aparición de la fila precede al fin del estado de carga. El test espera a que se habiliten los controles, luego a que terminen las transiciones de opacidad del diálogo y ejecuta Axe con las mismas reglas y alcance. El informe `%TEMP%/metricool-t39-collab-scope-final-opus55.json` confirma la aceptación y calidad del ajuste sin Critical ni Important. La repetición serial pasó 6/6 (dos por anchura), sin fallos ni flaky y con `qa-gate.py` VERDE. Informe en `storage/framework/testing/t43/run-general-f0916f63-4bbd-47f8-85f2-25d27054d09c/results.json`. Pest completo pasó 4125 pruebas, con 9 omitidas y 26 333 aserciones, en `%TEMP%/metricool-review-php-full.log`.
 
 **Notas**: Tamaño M.
 
@@ -1701,7 +1732,8 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 - **Descripción**: Primera mitad de C-05: sacar de `PostService` la planificación (`plan`, 142 líneas) y la firma de posts; `PostService` delega como fachada. C-05 se cuenta aquí.
 - **Changelog**: Sin cambios visibles: la lógica de planificar y de la huella de una publicación vive en clases propias con tests, lo que hace más seguro tocarla.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-17
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -1716,21 +1748,27 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 **Criterios de aceptación**
 - [x] `PostPlanner` y `PostSignature` existen con tests propios
 - [x] API pública de `PostService` intacta
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 - Implementación (2026-11-16, commit `9bb7925`, junto con T-41): `PostPlanner` (`plan`, `fill`, `optionErrors`, `effectiveTargetMedia`, `campaignErrors`, `normalizeOptions`, `normalizeNotes`, `parseWhen`, `dataFromPost`) y `PostSignature` (`ofPost`, `ofPlan`) extraídos con el código movido tal cual. Para evitar una dependencia circular (`fill` y las operaciones de ciclo de vida comparten la máquina de estados) se añade `PostTransitions` (`transition`, `apply`, `lockEditable`, `freshAttempt`, `releaseBackoff`, `keepRatePause`, `pausedTargets`); y la aprobación vive en `PostApproval` porque `create`/`update` la necesitan sin depender de `PostScheduling`. Tests propios: `PostPlannerSignatureTest` (7).
 - API pública de `PostService` intacta (mismos métodos y firmas). Movidos con sus usos actualizados (sin puente): `pausedTargets` → `PostTransitions` (`PostController`, test), `MEDIA_MISSING`/`MEDIA_MISSING_RETRY` → `PostScheduling` (`CalendarService`), `normalizeOptions` → `PostPlanner` (sin usos externos); referencias en comentarios y docs actualizadas.
 - Pendiente (coordinador): revisión adversarial A+B(+C), Pest completo y Playwright serial.
+
+- Revisión de aceptación y calidad (2026-11-17). Opus 5.5 confirmó que se retiraron miembros públicos de `PostService`, aunque el ledger pedía conservar su API. Queda pendiente devolver los métodos y constantes en la fachada y añadir cobertura de invariancia de la firma de publicación. El riesgo de la tanda de aprobaciones se acotó al revisar los usos actuales: `SeriesService` abre la tanda y procesa sus ocurrencias mediante la misma propiedad `$posts`. No se encontró ninguna resolución directa de `app(PostApproval::class)` en esos recorridos. Informe conjunto con T-41 en `%TEMP%/metricool-t40-t41-opus55-r1.json`.
+
+- RED del 17 de noviembre: la nueva prueba de la fachada obtuvo «Call to undefined method PostService::normalizeOptions()». GREEN: la fachada vuelve a exponer ambos métodos y constantes, con delegación a las clases extraídas. El test de firma verifica orden de destinos, orden de claves y sensibilidad a opciones, primer comentario y publicación manual. La pasada focal conjunta fue de 11/11 y Pint verde.
+
+- Claude Code (`claude-opus-5-5`) aprobó la API de la fachada y la cobertura de la firma en la segunda ronda. La tercera confirmó el alcance de `ownedBy()` sin hallazgos Critical ni Important abiertos. Informe en `%TEMP%/metricool-t40-t41-opus55-r3.json`. Los nueve flujos de `workflow.spec.ts` pasaron en las tres anchuras (informe de T-41). Pest completo serial del 17 de noviembre: 4125 aprobados, 9 omitidos y 26 333 aserciones, sin fallos. Informe en `%TEMP%/metricool-review-php-full.log`. Se conserva la comparación E2E-38 de 10/10 antes y después.
 
 **Notas**: Tamaño M. C-05 es L: se parte en dos.
 
@@ -1738,7 +1776,8 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 - **Descripción**: Segunda mitad de C-05: extraer la lógica de programación y dejar `PostService` como fachada < 400 líneas.
 - **Changelog**: Sin cambios visibles: devolver a borrador, reprogramar, borrar y reintentar publicaciones pasa a una clase propia y PostService queda como fachada fina.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-17
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -1753,22 +1792,30 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 **Criterios de aceptación**
 - [x] `PostService` < 400 líneas
 - [x] Sin cambios en controladores, API ni MCP que lo consumen
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 - Implementación (2026-11-16, commit `9bb7925`, junto con T-40): `PostScheduling` (`unschedule`, `reschedule`, `delete`, `retryFailed`, `MEDIA_MISSING*`) recibe el `Post` ya verificado: la comprobación de propiedad (`assertOwns`) queda en la fachada, una sola vez. `schedule` y `publishNow` se quedan en `PostService` porque son `update()` con otros datos (`PostPlanner::dataFromPost`) y moverlos obligaba a que `PostScheduling` dependiera de `PostService`. La retención de ocurrencias de series (T-32: `holdForApproval`, `releaseApproval`, `scheduleApprovedOccurrence`, `collectApprovalRequests`) está en `PostApproval` con el código sin tocar; `publishNow`/`schedule` siguen rechazando una ocurrencia retenida por `PostApproval::applyRules`, y `retryFailed` por `isPublishable()`.
 - `PostService` 1220 → 335 líneas (< 400); controladores, API y MCP sin cambios salvo los dos usos de estáticos movidos (T-40).
 - Verificación (2026-11-16): Pest antes (HEAD `f40a583`, `Posts Workflow Publishing Mcp Api Studio Parity Calendar Campaigns FirstComment Library Media`): 2096 tests, 2087 passed, 9 skipped, 0 failed. Después: 2103 tests (+7 nuevos), 2084 passed, 9 skipped, 10 errores TODOS en `PresetsReviewTest` y `YouTubeOptionsTest` (`Class "YouTubePublisher" not found`: ficheros que el otro agente tenía a medias en T-38, ajenos a esta tarea); el resto idéntico a la línea base. Una primera pasada detectó un `use` olvidado en `CalendarService` (fallaban 2 tests de calendario y media), corregido. Pint OK.
 - Pendiente (coordinador): revisión adversarial A+B(+C), Pest completo y Playwright serial.
+
+- Revisión de aceptación y calidad (2026-11-17). Opus 5.5 señaló que `PostController` cambió de superficie al llamar a `PostTransitions::pausedTargets()`. Al restaurar la fachada se recuperará el punto de llamada original. El filtro `ownedBy()` cualifica la columna y la prueba de la fachada debe conservar el recuento y los estados. Informe conjunto con T-40 en `%TEMP%/metricool-t40-t41-opus55-r1.json`.
+
+- Corrección del 17 de noviembre: `PostController` vuelve a invocar `PostService::pausedTargets()` y `CalendarService` vuelve a leer las constantes de la fachada pública. Las implementaciones extraídas conservan la lógica. Pendiente nueva revisión de la corrección.
+
+- Tercera revisión conjunta T-40/T-41: Opus 5.5 comprobó en el trait real que `ownedBy()` quita solo `UserScope`, cualifica `post_targets.user_id` y usa la clave del usuario. Cerró el Important condicionado de la segunda revisión. Informe en `%TEMP%/metricool-t40-t41-opus55-r3.json`. La extracción no cambia los puntos de entrada de controladores, API ni MCP. `PostService` quedó en 354 líneas y la segunda y la tercera revisión confirmaron el arreglo.
+
+- Navegador: los nueve casos de `workflow.spec.ts` pasaron. Incluyen serie semanal, reprogramación por lote y reintento, en las tres anchuras. Informe en `storage/framework/testing/t43/run-general-7bfa8463-7586-46b5-ad17-37eba2354e82/results.json`. Pest completo serial del 17 de noviembre: 4125 aprobados, 9 omitidos y 26 333 aserciones, sin fallos. Informe en `%TEMP%/metricool-review-php-full.log`. Se conserva la comparación E2E-38 de 10/10 antes y después.
 
 **Notas**: Tamaño M. Continuación de C-05.
 
@@ -1776,32 +1823,33 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 - **Descripción**: Extraer `SiteBlockNormalizer`, `SiteAccess` y `SitePublicInteractions` y partir `render` y `run` por fases.
 - **Changelog**: Sin cambios visibles: los sitios, la importación remota de medios y el render del estudio se reorganizan en piezas más pequeñas; el enlace de acceso y los mensajes de los sitios siguen igual.
-- **Estado**: en-revision
+- **Estado**: completado
+- **Cerrada**: 2026-11-17
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-41
 - **Tipo**: backend
-- **Archivos**: `app/Services/Sites/SiteService.php`, `app/Services/Sites/SiteBlockNormalizer.php`, `app/Services/Sites/SiteAccess.php`, `app/Services/Sites/SitePublicInteractions.php`, `app/Services/Studio/StudioAvState.php`, `app/Services/Studio/StudioRenderer.php`, `app/Services/Media/RemoteMediaImporter.php`, `app/Http/Controllers/PublicSiteController.php`, `app/Http/Controllers/SiteController.php`, `app/Services/Sites/SiteRenderer.php`, `tests/Feature/Sites/SiteTest.php`, `docs/modulos/sitios.md`, `app/Services/Studio/StudioAvState.php` (borrado), `app/Services/Studio/StudioAvStore.php`, `app/Services/Studio/StudioAvLifecycle.php`, `app/Services/Studio/StudioAvLeases.php`, `app/Services/Studio/StudioAvAcceptance.php`, `app/Services/Studio/StudioAvRegistrationState.php`, `app/Services/Studio/StudioAvControl.php`, `app/Services/Studio/StudioAvProcess.php`, `app/Services/Studio/StudioAvQueue.php`, `app/Services/Studio/StudioAvRecovery.php`, `app/Services/Studio/StudioAvRunner.php`, `app/Services/Studio/StudioAvTransfer.php`, `app/Jobs/Studio/ProcessStudioAvPhase.php`, `tests/Feature/Studio/StudioAv*Test.php`
+- **Archivos**: `app/Services/Sites/SiteService.php`, `app/Services/Sites/SiteBlockNormalizer.php`, `app/Services/Sites/SiteAccess.php`, `app/Services/Sites/SitePublicInteractions.php`, `app/Services/Studio/StudioRenderer.php`, `app/Services/Media/RemoteMediaImporter.php`, `app/Http/Controllers/PublicSiteController.php`, `app/Http/Controllers/SiteController.php`, `app/Services/Sites/SiteRenderer.php`, `tests/Feature/Sites/SiteTest.php`, `docs/modulos/sitios.md`, `docs/modulos/estudio.md`, `docs/modulos/media.md`, `tests/Feature/Media/ImportRemoteMediaTest.php`, `app/Services/Studio/StudioAvState.php` (borrado), `app/Services/Studio/StudioAvStore.php`, `app/Services/Studio/StudioAvLifecycle.php`, `app/Services/Studio/StudioAvLeases.php`, `app/Services/Studio/StudioAvAcceptance.php`, `app/Services/Studio/StudioAvRegistrationState.php`, `app/Services/Studio/StudioAvControl.php`, `app/Services/Studio/StudioAvProcess.php`, `app/Services/Studio/StudioAvQueue.php`, `app/Services/Studio/StudioAvRecovery.php`, `app/Services/Studio/StudioAvRunner.php`, `app/Services/Studio/StudioAvTransfer.php`, `app/Jobs/Studio/ProcessStudioAvPhase.php`, `tests/Feature/Studio/StudioAv*Test.php`
 - **Cubre**: C-06
 - **Cubre (tests)**: E2E-38
-- **Verificación**: `php artisan test --compact --filter=Site` → verde · `php artisan test --compact --filter=StudioRenderer` → verde
+- **Verificación**: `php artisan test --compact --filter=Site` → verde · `php artisan test --compact --filter=StudioRenderer` → verde · `php artisan test --compact --filter=ImportRemoteMedia` → verde · `STUDIO_AV_NATIVE_TEST=1 php artisan test --compact --filter=StudioAv` → verde
 
 **Criterios de aceptación**
 - [x] Ningún método supera 60 líneas en los ficheros citados
 - [x] Sitios públicos y render del estudio sin diferencias observables
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 - Implementación (2026-11-16, commits `3543754`, `RemoteMediaImporter`, `StudioRenderer` x2 y `72ad22b`): **`SiteService`** 676 -> 240 líneas en cuatro piezas: `SiteBlockNormalizer` (páginas, bloques y medios del borrador; un normalizador privado por tipo de bloque; ahora aloja `MAX_PAGES`, `MAX_BLOCKS`, `BLOCK_TYPES` y `PAGE_SLUG`), `SiteAccess` (ya existía con la cookie y los limitadores del visitante; ahora también la gestión del propietario: `updateAccess`, `createToken`, `revokeToken`, `revokeAllAccess`, `findToken`, `MAX_TOKENS`; deja de depender de `SiteService`), `SitePublicInteractions` (visitas, estadísticas, mensajes con tope FIFO, encuestas, `MAX_MESSAGES`) y `SiteService` (alta, borrador, publicación, tema). Sin alias ni puentes: `SiteController`, `PublicSiteController`, `SiteRenderer` y `SiteTest` usan la clase nueva (`SiteController` pasa a inyectar las tres). La comprobación de propiedad (`abort_unless` 404) es una línea repetida en `SiteAccess` y `SitePublicInteractions` para no acoplarlas.
 - **`RemoteMediaImporter::run`** 143 -> 25 líneas: `guard` (cortes previos), `openPartial` (parcial + latido), `fetchPass` (pasada; las excepciones de dominio suben a `run`), `sizePolicy`, `restartFromZero` y `settle` (estado, tipo, sniff, cierre o nueva pasada). El orden de efectos y el estado guardado no cambian.
@@ -1810,13 +1858,19 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - Verificación (2026-11-16): Pest antes (HEAD `487d0ac`, `Sites Studio Media Inbox Mcp Connectors Parity`): 2102 tests, 2093 passed, 9 skipped, 0 failed. Después (T-42 + T-43, con la partición de `StudioAvState` y los textos MCP): 2105 tests (+3 nuevos de T-43), 2096 passed, 9 skipped, 0 failed; una primera pasada detectó un tipo de retorno mal puesto (`acceptVerification` devolvía un id de texto como `int`), corregido. Pint OK. Playwright no se lanza (lo hace el coordinador).
 - Pendiente (coordinador): revisión adversarial A+B(+C), Pest completo y Playwright serial.
 
+- Revisión de aceptación y calidad (2026-11-17). Claude Code Opus 5.5 devolvió cuatro informes para sitios, importación, render estático y audiovisual. El recuento con el parser PHP confirma 195 métodos y cinco por encima de 60 líneas: `StudioAvRecovery::run` (131), `StudioAvTransfer::remote` (110), `StudioAvRunner::run` (81), `StudioAvTransfer::local` (65) y `StudioAvProcess::execute` (62). Quedan pendientes la partición de esos métodos, las invariantes de transacción de `StudioAvStore`, la contabilidad duplicada de reserva en el render audiovisual y el control del ciclo de vida del archivo parcial de `RemoteMediaImporter` y la clasificación de los fallos internos al resolver la política de origen. Las sustituciones `ownedBy()` son posteriores y pertenecen a T-44. El alcance y la cualificación de `user_id` constan en `BelongsToUser::scopeOwnedBy()`. Informes en `%TEMP%/metricool-t42-*-opus55-r1.json` y medición en `%TEMP%/metricool-t42-method-length.json`.
+
+- Correcciones del 17 de noviembre. La medición posterior de PHP-Parser dio 211 métodos y ninguno de más de 60 líneas. `StudioAvStore` exige una transacción para sus operaciones de bloqueo y escritura, explicita el uso para fallos y comparte la contabilidad del disco después de bloquear el workspace. En importación remota, el RED contabilizó una pasada de más al fallar la lectura del origen. La base anterior a `81d056d` preparaba esa política antes de la petición. El GREEN conserva el latido y el contador previo, cierra el parcial en `finally` y mantiene las fases de descarga, reinicio y cierre. Pint verde y 184 pruebas focales con T-37 y T-38. Opus 5.5 aprobó el importador sin Critical ni Important, informe `%TEMP%/metricool-t42-importer-applied-opus55.json`. La primera suite nativa detectó que el worker pasa un objeto con solo el ID al registrar un fallo. Se mantuvo el contrato `object` en los dos puntos de entrada. Pest nativo exacto en Windows: 204 aprobados, 1411 aserciones, cero fallos ni omisiones, incluida la entrega duplicada del job y la comprobación de media pública con otro usuario autenticado. La revisión final de Opus confirmó el contrato. Se comprobaron sus dos condiciones restantes en el código: ambos llamadores de `lockRegistrationLease` abren `DB::transaction` y `config/studio.php` declara los cuatro límites como enteros. Informe `%TEMP%/metricool-t42-final-contracts-opus55.json`.
+
+- Playwright serial de E2E-38 y flujos afectados: 24 aprobados, cero fallos y cero flaky. Se cotejaron los 10 casos de E2E-38 aprobados en ambas ejecuciones por fichero, título y proyecto. Pest completo posterior pasó 4129 pruebas, 9 omitidas y 26 355 aserciones, en `%TEMP%/metricool-t37-t42-pest-full-final.log`. Informe en `storage/framework/testing/t43/run-general-ec6954ac-bb10-44e3-b1c5-1457c4b962e7/results.json`.
+
 **Notas**: Tamaño M.
 
 ### T-43 — Inbox: Meta como `CommentSource` y capacidad `HidesComments`
 
 - **Descripción**: Meta pasa a implementar `CommentSource` y `HidesComments`; las listas de redes y `can_hide` se derivan de las capacidades en lugar de escribirse en 6 sitios.
 - **Changelog**: Sin cambios visibles: las redes del buzón de comentarios y qué cuentas pueden ocultar comentarios se deciden en un solo sitio, y una red nueva con comentarios aparece en el buzón sin más cambios.
-- **Estado**: en-revision
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -1831,29 +1885,31 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 **Criterios de aceptación**
 - [x] Una red nueva con `CommentSource` aparece en el inbox sin editar `InboxService`
 - [x] `can_hide` se deriva de la capacidad
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 - Implementación (2026-11-16, commit `7bc347f`): `Meta\Comments` implementa `CommentSource` y la nueva capacidad `Contracts\HidesComments` (`setHidden`); `hasScopes` deja de ser estático. `CommentSource` gana `missingScopes` (las cuatro fuentes la implementan; antes era un `match` por red en `InboxService`). `ConnectorRegistry::registerComments/commentsFor/commentNetworks/canHideComments` es la única fuente: `AppServiceProvider` registra Instagram+Facebook (misma instancia de Meta), Threads, Bluesky y YouTube de forma incondicional (como la antigua constante, para no cambiar quién se sincroniza cuando una red está apagada). Se borran `InboxService::NETWORKS`, `source()` con `match`, la lista instagram/facebook de `can_hide` (comentarios y cuentas en `InboxController`), la de `ListComments` (filtro y descripción) y la de `moderationAccount`/`setHidden`; `coverage()` es de instancia y deriva read/reply/hide del registro (las notas por red siguen en una tabla de texto). `SyncInboxComments::handle` recibe `InboxService` y los bootstraps e2e (`isolated` y `roadmap`, que sustituyen el registro) registran las cinco fuentes. Tests: se actualizan los usos de `coverage()`, `NETWORKS` y `handle()` y se añade `InboxCapabilitiesTest` (red nueva sin tocar `InboxService`, `can_hide` por capacidad). LinkedIn y Pinterest (T-22) siguen en la cobertura como fuera; `hide`/`unhide` de `triage_comments` (T-30) se rechazan con el mismo mensaje, ahora construido con las redes que ocultan. Textos MCP (commit `74c22e1`): `TriageComments` y `ListComments` sustituyen el atributo `#[Description]` por `description()` generado con `InboxService::hideNetworksLabel()` y `networksLabel()`; `Abilities` (`inbox:read`/`inbox:write`) y las instrucciones de `SchedulerServer` (marcadores `{inbox_networks}` y `{hide_networks}` rellenados en `boot()`) hacen lo mismo; `CompareCompetitors` y `ManageCompetitor` generan «instagram por defecto, ...» con `CompetitorService::networksHelp()` (el orden pasa a ser el del catálogo). Test nuevo: las descripciones cambian al registrar una red.
 - Verificación (2026-11-16): `php artisan test --compact tests/Feature/Inbox tests/Feature/Parity tests/Feature/Mcp tests/Feature/Connectors tests/Feature/Connections tests/Feature/FirstComment tests/Feature/Api` 1273/1273; el comparativo antes/después de las siete carpetas está en T-42 (2102 -> 2105, solo los 3 tests nuevos). Pint OK.
-- Pendiente (coordinador): revisión adversarial A+B(+C), Pest completo y Playwright serial (`inbox-triage`, `inbox-notes`).
+- RED: `InboxCapabilitiesTest` recibió la nota «Fuera por ahora» al registrar la fuente de LinkedIn · 2026-11-16.
+- La cobertura muestra las notas de redes fuera de alcance solo mientras carecen de fuente. La prueba de alta de LinkedIn comprueba que la nota desaparece en cuanto se registra la fuente.
+- Cierre. Pest y Playwright pasaron en la comparación documentada al final del ledger.
 
 **Notas**: Tamaño M.
 
 ### T-44 — Scope `ownedBy()` y migración mecánica de `withoutUserScope()`
 
 - **Descripción**: Añadir `ownedBy($userId)` en `BelongsToUser` y migrar los 198 usos de `withoutUserScope()` seguidos de `where('user_id')`.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las consultas con un propietario explícito usan `ownedBy()`, que conserva el filtro por usuario aunque la sesión corresponda a otra cuenta o no exista.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -1866,220 +1922,336 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Verificación**: `php artisan test --compact --filter=OwnershipScopeTest` → verde · `grep -rn "withoutUserScope()->where('user_id'" app | wc -l` → 0
 
 **Criterios de aceptación**
-- [ ] No quedan `withoutUserScope()->where('user_id'…)` en `app/`
-- [ ] Ningún usuario ve datos de otro (tests de acceso cruzado)
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] No quedan `withoutUserScope()->where('user_id'…)` en `app/`
+- [x] Ningún usuario ve datos de otro (tests de acceso cruzado)
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Migración mecánica: máxima atención a fugas entre usuarios; la revisión adversarial B se centra en ello. No tocar datos del usuario 28.
+
+- El commit `e37848d` añadió el scope y migró las consultas sin calificador. La revisión detectó cuatro consultas pendientes con la columna cualificada. Calendario, analítica, campañas y listado de audio usan ahora `ownedBy()` para limitar el modelo base. El listado de audio conserva el filtro independiente del propietario de `studio_assets`.
+- RED: al ampliar el guard para columnas cualificadas, `OwnershipScopeTest` detectó los filtros de calendario, analítica y campañas · 2026-11-16.
+- GREEN (2026-11-16): `OwnershipScopeTest`, `InboxCapabilitiesTest`, `StudioChartFilesTest` y `StudioDatasetsTest` pasaron 33/33 (228 aserciones). La arquitectura describe el scope explícito.
+- Cierre. Pest y Playwright pasaron en la comparación documentada al final del ledger.
+
 
 ### T-45 — Propiedad unificada: Policies o `Ownership::assert()`
 
 - **Descripción**: Una sola forma de comprobar propiedad (Policies o `Ownership::assert()` con excepción de dominio) en lugar de tres.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las Policies, los servicios y los controladores comparten la comprobación de propiedad y conservan los errores y la auditoría de cada canal.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-44
 - **Tipo**: backend
-- **Archivos**: `app/Policies/**`, `app/Support/Ownership.php`, `app/Http/Controllers/**`, `app/Services/LibraryService.php`, `app/Exceptions/OwnershipException.php`
+- **Archivos**: `app/Policies/**`, `app/Support/Ownership.php`, `app/Http/Controllers/**`, `app/Services/**`, `app/Exceptions/OwnershipException.php`, `app/Mcp/Tools/SchedulerTool.php`, `bootstrap/app.php`, `tests/Feature/Studio/StudioAudioTest.php`, `tests/Feature/Studio/StudioImageJobsTest.php`, `tests/Feature/Studio/StudioChartFilesTest.php`, `tests/Feature/Studio/StudioChartsTest.php`, `tests/Feature/Studio/StudioDatasetsTest.php`, `tests/Feature/Workflow/WorkflowParityTest.php`, `docs/arquitectura.md`
 - **Cubre**: C-08
 - **Cubre (tests)**: E2E-38
 - **Verificación**: `php artisan test --compact --filter=Security` → verde · `php artisan test --compact --filter=Ownership` → verde
 
 **Criterios de aceptación**
-- [ ] Las 87 comprobaciones manuales y los `abort()` de servicios usan la misma vía
-- [ ] Las respuestas de error (403/404) no cambian
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Las 87 comprobaciones manuales y los `abort()` de servicios usan la misma vía
+- [x] Las respuestas de error (403/404) no cambian
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M.
+
+- RED: `StudioAudioTest` falló porque MCP devolvía un error interno para un recurso vinculado de otro tipo · 2026-11-16.
+- RED: `WorkflowParityTest` recibió el 404 esperado por API, pero faltaba la entrada `denied` al intentar aprobar un post ajeno · 2026-11-16.
+- RED: `StudioImageJobsTest` recibió 404 para un trabajo con salida pendiente, donde debía recibir 200 con `output_removed` · 2026-11-16.
+- GREEN (2026-11-16): 4 casos focalizados de esas tres pruebas en verde. El adaptador MCP conserva el error de recurso inexistente, los controladores de API auditan la denegación y los trabajos de imagen siguen presentando la salida no disponible.
+- La primera pasada completa de Pest terminó con 4053 correctas, 9 omitidas y 3 errores en pruebas de gráficos y datasets. Las pruebas llamaban directamente al servicio y esperaban una excepción HTTP. Ahora ejercitan el manejador real de Laravel y siguen comprobando el estado HTTP resultante. Pasada focalizada tras el ajuste, 33/33 (228 aserciones).
+- La segunda pasada completa detectó la misma suposición en `StudioChartsTest`, el último error entre las 4065 pruebas. Tras adaptar esa prueba al manejador real, los tres archivos de gráficos y datasets pasaron 37/37 (231 aserciones).
+- Pest completo sobre el código revisado, 2026-11-16. `php artisan test --compact` pasó con 4056 pruebas correctas, 9 omitidas y 25 821 aserciones. La base previa a T-44 tenía en verde el job Pint + Pest. [CI de `a6d6d8c`](https://github.com/daycry/social-scheduler/actions/runs/43863342910).
+- Cierre. Pest y Playwright pasaron en la comparación documentada al final del ledger.
+
 
 ### T-46 — Sin E/S dentro de transacciones (imágenes y tipografías)
 
 - **Descripción**: Subir a almacenamiento fuera de la transacción (`lockForUpdate`) y borrar ficheros en `afterCommit`.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El Estudio libera las filas de base de datos durante las operaciones de almacenamiento y conserva el archivo tipográfico si se revierte su borrado.
+- **Estado**: completado
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-45
 - **Tipo**: backend
-- **Archivos**: `app/Services/Studio/StudioImages.php`, `app/Services/Studio/StudioFonts.php`
+- **Archivos**: `app/Services/Studio/StudioImages.php`, `app/Services/Studio/StudioFonts.php`, `app/Services/MediaUploadService.php`, `app/Jobs/Studio/DeleteStudioFontFile.php`, `tests/Feature/Studio/StudioImageJobsTest.php`, `tests/Feature/Studio/StudioFontsTest.php`, `docs/modulos/estudio.md`
 - **Cubre**: C-10
 - **Cubre (tests)**: E2E-38
-- **Verificación**: `php artisan test --compact --filter=StudioImages` → verde · `php artisan test --compact --filter=StudioFonts` → verde
+- **Verificación**: `php artisan test --compact --filter="StudioImageJobsTest|StudioImageExifTest|StudioFontsTest"` → verde · Playwright serial de `studio-imaging.spec.ts` → verde
 
 **Criterios de aceptación**
-- [ ] Ninguna subida ocurre con un lock de BD abierto
-- [ ] Un rollback no borra el fichero
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Ninguna subida ocurre con un lock de BD abierto
+- [x] Un rollback no borra el fichero
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño S.
+
+- RED: `StudioImageJobsTest` observó la subida en el nivel 2 de transacción, cuando debía mantenerse en el nivel 1 del harness de Pest · 2026-11-16.
+- RED: `StudioFontsTest` encontró el fichero borrado antes del commit externo tanto en el caso de commit como en el de rollback · 2026-11-16.
+- GREEN: 41 pruebas focalizadas pasaron. Una prueba adicional forzó el rollback del registro de imagen y comprobó que solo se eliminó su objeto preparado.
+- RED: al fallar el almacenamiento tras el commit, el endpoint de tipografías devolvía 500 si el adaptador lanzaba y omitía la limpieza si devolvía `false` · 2026-11-16.
+- RED: invocar el worker de imágenes dentro de una transacción externa iniciaba el trabajo antes del commit y cambiaba el estado de `queued` a `failed` en la prueba · 2026-11-16.
+- GREEN: 46/46 casos focalizados tras las correcciones de Claude. Incluyen fallo del adaptador por excepción y por `false`, rollback del registro de la imagen, fallo posterior al commit y transacción externa abortada.
+- QA de cierre, 2026-11-16. Pest completo, 4063 correctas, 9 omitidas y 25 857 aserciones. La base T-45 pasó con 4056 correctas y 9 omitidas.
+- Playwright serial, 6/6 en la base y 6/6 tras T-46. Se cotejaron títulos y proyectos de `studio-imaging.spec.ts` en escritorio, móvil de 375 px y móvil de 360 px. `qa-gate.py` VERDE. Informe actual en `storage/framework/testing/t43/run-general-106e952e-5dea-4e20-a879-92618695ca10/results.json`.
+- Tras la matriz E2E se añadió únicamente la prueba de cambio de metadatos del origen durante la subida. El registro falló con `source_changed`, conservó el original y eliminó la salida preparada. Verificación final de los tres archivos de pruebas declarados, 47/47 y 281 aserciones. Pint y `git diff --check` en verde.
+
 
 ### T-47 — `Period::fromInput()` y caché del panel por marca
 
 - **Descripción**: Un único `Period::fromInput()` que lanza `ValidationException` (11 usos, 3 formas de error) y `Cache::flexible` con versión por marca para el panel.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Los errores de fecha y rango indican un campo coherente en web, API y MCP. El panel reutiliza los snapshots de la marca y los vuelve a leer tras la recogida.
+- **Estado**: completado
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-46
 - **Tipo**: backend
-- **Archivos**: `app/Support/Period.php`, `app/Http/Controllers/AnalyticsApiController.php`, `app/Http/Controllers/ExportController.php`, `app/Mcp/Tools/GetStats.php`, `app/Http/Controllers/DashboardController.php`
+- **Archivos**: `app/Analytics/Period.php`, `app/Analytics/DashboardSnapshotCache.php`, `app/Analytics/SnapshotCollector.php`, `app/Services/AnalyticsService.php`, `app/Services/ReportService.php`, `app/Http/Controllers/AnalyticsApiController.php`, `app/Http/Controllers/ExportController.php`, `app/Http/Controllers/ReportController.php`, `app/Http/Controllers/Api/ReportApiController.php`, `app/Http/Controllers/DashboardController.php`, `app/Mcp/Tools/GetStats.php`, `resources/js/Pages/Dashboard/Partials/PeriodFilter.vue`, `tests/Feature/Dashboard/*Test.php`, `tests/Feature/Reports/AnalyticsCsvTest.php`, `tests/e2e/all-brands.spec.ts`, `docs/modulos/analitica.md`, `CHANGELOG.md`, `CHANGELOG.es.md`
 - **Cubre**: C-11, C-12
 - **Cubre (tests)**: E2E-38
 - **Verificación**: `php artisan test --compact --filter=Period` → verde · `php artisan test --compact --filter=DashboardCache` → verde
 
 **Criterios de aceptación**
-- [ ] Un periodo inválido responde igual en web, API y MCP
-- [ ] El panel usa caché y se invalida al llegar nuevos snapshots
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Un periodo inválido responde igual en web, API y MCP
+- [x] El panel usa caché y se invalida al llegar nuevos snapshots
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño S. Sin cambio de comportamiento salvo errores de periodo uniformes, declarado en el changelog.
 
+- RED: `PeriodInputTest` recibió 422 sin `errors.from` al enviar al panel un rango invertido · 2026-11-16.
+- RED: `DashboardCacheTest` detectó una segunda lectura de `account_snapshots` al visitar la misma marca y período · 2026-11-16.
+- GREEN: Pest focal de Dashboard, Analytics, Reports y MCP Stats pasó con 132 pruebas. Se comprobaron ambas pantallas por marca, aislamiento de versiones, rollback y recogida por rango.
+- Base Playwright previa. `all-brands.spec.ts` y `report-builder.spec.ts` pasaron 6/6 en escritorio, 375 y 360 px.
+- RED: Playwright no encontró el aviso al invertir el rango desde el selector · 2026-11-16. El parcial muestra el error de campo y conserva las fechas inválidas hasta corregirlas. GREEN en escritorio.
+- La caché guarda cálculos diarios por marca. Las publicaciones, los snapshots por publicación y sus KPIs SQL siguen consultándose en directo. La versión rota tras confirmar datos de cuenta que afectan al panel. El recolector invalida una vez al salir de un lote, incluso al fallar después de alguna escritura.
+- Medición local con caché database en SQLite en memoria, 12 cuentas, 8784 filas y 366 días más comparación. Mediana de cinco lecturas en ms, sin caché / caché fría / caché caliente. Resumen 3166,59 / 3159,48 / 1,86. Red 1017,85 / 1010,40 / 2,32. Entrada máxima de 282 009 bytes. Los resultados fueron idénticos en los tres modos.
+- Tras las correcciones, 134 pruebas de Dashboard, Analytics, Reports y MCP Stats pasaron. La pasada focal de Dashboard con TTL y fallo parcial de histórico pasó 23/23. Build frontend, TypeScript y Pint en verde.
+- Los GET directos al panel y al CSV conservan un 422 visible. La navegación Inertia usa errores de campo. Las llamadas JSON y las herramientas MCP comparten los errores de rango y de fecha del parser.
+- QA de cierre, 2026-11-16. Pest completo, 4075 correctas, 9 omitidas y 26 110 aserciones. La suite previa de T-46 pasó con 4063 correctas y 9 omitidas y su regresión adicional pasó en la batería focal.
+- Verificación declarada. Pest con `--filter=Period`: 28/28. Con `--filter=DashboardCache`: 6/6.
+- Playwright serial. Los mismos seis escenarios de analítica e informes pasaron antes y después, cotejados por fichero, título y proyecto. También pasaron los tres casos nuevos de error de fecha en el selector. `qa-gate.py` VERDE con 9/9. Informe en `storage/framework/testing/t43/run-general-046f2a44-7262-4f4f-b728-96c4d36e6176/results.json`.
+
+
 ### T-48 — `preventLazyLoading` y convención de fechas de migraciones
 
-- **Descripción**: Activar `preventLazyLoading` fuera de producción con tests de recuento de consultas en estudio y sitios; convención con test (o `schema:dump`) para las 27 migraciones con fecha futura.
-- **Changelog**:
-- **Estado**: borrador
+- **Descripción**: Activar `preventLazyLoading` fuera de producción con tests de recuento de consultas en estudio y sitios; convención con test (o `schema:dump`) para las migraciones históricas con fecha futura.
+- **Estado**: completado
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-47
 - **Tipo**: backend
-- **Archivos**: `app/Providers/AppServiceProvider.php`, `database/migrations/**`, `tests/Feature/Database/MigrationDatesTest.php`, `tests/Feature/Studio/QueryCountTest.php`
+- **Archivos**: `app/Providers/AppServiceProvider.php`, `app/Services/ManualPublishService.php`, `tests/Feature/Workflow/ManualPublishTest.php`, `database/migrations/**`, `tests/Feature/Database/MigrationDatesTest.php`, `tests/Feature/Studio/QueryCountTest.php`, `tests/Feature/Library/LibraryTargetTextTest.php`, `tests/Feature/Posts/Compose/TargetTextTest.php`, `tests/Feature/Parity/AutolistTest.php`, `tests/Feature/Workflow/SeriesTest.php`, `docs/modulos/estudio.md`, `docs/modulos/sitios.md`, `docs/modulos/despliegue.md`
 - **Cubre**: C-13, C-14
 - **Cubre (tests)**: E2E-38
 - **Verificación**: `php artisan test --compact --filter=QueryCountTest` → verde · `php artisan test --compact --filter=MigrationDatesTest` → verde
 
 **Criterios de aceptación**
-- [ ] Los tests no producen lazy loading no deseado
-- [ ] Un test falla si una migración nueva tiene fecha posterior a hoy
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Los tests no producen lazy loading no deseado
+- [x] Un test falla si una migración nueva tiene fecha posterior a hoy
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño S. No renombrar migraciones ya aplicadas en el VPS: solo test hacia delante o `schema:dump` documentado.
+
+- RED: `QueryCountTest` recuperó dos marcas y la consulta implícita de la relación `user` no lanzó `LazyLoadingViolationException` · 2026-11-16.
+- RED: `MigrationDatesTest` detectó 30 nombres preexistentes con fecha posterior a 2026-11-16 UTC · 2026-11-16.
+- Playwright anterior al cambio. Estudio y Sitios pasaron 13/13 en escritorio, 375 y 360 px. Informe en `storage/framework/testing/t43/run-general-f45a3c6d-a0d4-4072-bce7-26b3f24f191c/results.json`.
+- Arranque de la aplicación con `APP_ENV=local`, `testing` y `e2e`: la detección está activa. Arranque con `APP_ENV=production`: está desactivada.
+- El primer Pest completo con la protección activa detectó cinco cargas implícitas en aserciones. Las pruebas de biblioteca, textos por destino, autolistas y series cargan explícitamente las relaciones que verifican.
+- GREEN: 46 pruebas focales y 372 aserciones. Pint en verde en los siete archivos PHP de T-48.
+- Prueba de regresión del control de fechas. La migración temporal `2099_01_01_000000_t48_future_date_probe.php` fue el único nombre rechazado. Se retiró el archivo y la prueba volvió a pasar.
+- Primer reintento pospuesto. Claude Code devolvió HTTP 429 (`usage_limit_reached`) en A, B y D antes de procesar el diff. El CLI indica reinicio a las 20:30, hora de Madrid, el 2026-11-16. El selector no activa C.
+- Pest completo anterior (T-47): 4075 correctas, 9 omitidas y 26 110 aserciones. Pest completo con T-48: 4079 correctas, 9 omitidas y 26 166 aserciones.
+- Playwright posterior al cambio. Pasaron los mismos 13 escenarios de Estudio y Sitios y 10 ejecuciones adicionales de publicación, planificación, inbox e informes (E2E-38). Un trabajador después de Pest. `qa-gate.py` VERDE, 23/23, sin reintentos. Informe en `storage/framework/testing/t43/run-general-604d50bc-91d6-4655-af79-525de369e2c2/results.json`.
+- El diff de partida se aisló en `%TEMP%/metricool-t48-review-ready.txt`. Claude Code revisó la corrección en la segunda ronda A+B+D.
+- RED de revisión: `ManualPublishTest` reprodujo HTTP 500 por carga implícita de `PostTarget::post` con dos destinos manuales · 2026-11-16.
+- GREEN de revisión: 20 pruebas focales y 234 aserciones. Pint en verde para los archivos PHP corregidos. Se verificó con Artisan y SQLite en memoria el fallo sin volcado, la instalación con un esquema SQL de prueba y la actualización al aplicar primero la dependencia por ruta.
+- Cierre 2026-11-16. Pest completo tras la revisión: 4080 correctas, 9 omitidas y 26 185 aserciones. Verificación declarada por separado: `QueryCountTest` 3/3 y `MigrationDatesTest` 1/1.
+- Playwright se ejecutó después de Pest, en un solo trabajador. Pasaron los 23 casos de la primera validación y tres ejecuciones de publicación manual en escritorio, 375 y 360 px. `qa-gate.py` VERDE, 26/26. Informe en `storage/framework/testing/t43/run-general-e8ff9f4e-203c-452a-a9c7-8c2268248694/results.json`.
+- Claude Code cerró los hallazgos Critical/Important en la segunda ronda. Se confirmó que el código de QA coincide con el revisado y que el árbol de migraciones carece de cambios.
 
 ### T-49 — Config de límites de ritmo y colas
 
 - **Descripción**: Mover los ~25 límites de ritmo a `config/rate_limits.php`, usar `reports.timeout`, colas por config, `retry_after` 180 y cola propia para IA/render.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Activa el worker de `studio-render` antes de actualizar para procesar IA, imágenes y exportaciones estáticas. Redis espera al menos 180 segundos antes de volver a entregar un trabajo.
+- **Estado**: completado
+- **Cerrada**: 2026-11-17
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-48
 - **Tipo**: backend
-- **Archivos**: `config/rate_limits.php`, `config/reports.php`, `config/queue.php`, `app/Providers/AppServiceProvider.php`, `app/Jobs/Studio/*.php`, `docs/modulos/despliegue.md`
+- **Archivos**: `CHANGELOG.md`, `CHANGELOG.es.md`, `.env.example`, `.env.production.example`, `app/Console/Commands/QueueProbe.php`, `app/Jobs/GenerateReport.php`, `app/Jobs/SendScheduledReport.php`, `app/Jobs/Studio/DeleteStudioFontFile.php`, `app/Jobs/Studio/ProcessStudioImage.php`, `app/Jobs/Studio/RenderStudioDesign.php`, `app/Jobs/Studio/RenderStudioThumbnail.php`, `app/Jobs/Studio/RunStudioAiJob.php`, `app/Providers/AppServiceProvider.php`, `config/queue.php`, `config/rate_limits.php`, `config/reports.php`, `config/studio.php`, `deploy/hestia/README.md`, `deploy/systemd/README.md`, `deploy/systemd/scheduler-worker@.service`, `docs/guias/desarrollo-local.md`, `docs/modulos/despliegue.md`, `docs/modulos/estudio-ia.md`, `docs/modulos/estudio.md`, `docs/referencia/configuracion.md`, `tests/Feature/Deploy/DeployQueuesDocTest.php`, `tests/Feature/Infra/InfraTest.php`, `tests/Feature/Studio/StudioThumbnailsTest.php`, `tests/Feature/Infra/RateLimitConfigTest.php`, `tests/Feature/Infra/QueueConfigTest.php`, `tests/e2e/studio-captions.spec.ts`, `tests/e2e/studio-pptx-thumbnails.spec.ts`, `.github/workflows/nightly.yml`
 - **Cubre**: C-15, C-16
 - **Cubre (tests)**: E2E-38
 - **Verificación**: `php artisan test --compact --filter=RateLimitConfigTest` → verde · `php artisan test --compact --filter=QueueConfigTest` → verde
 
 **Criterios de aceptación**
-- [ ] Los límites tienen los mismos valores por defecto que antes
-- [ ] `retry_after` de redis ≥ timeout de job + margen
-- [ ] IA y render usan cola propia documentada (y en `deploy/*`)
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Los límites tienen los mismos valores por defecto que antes
+- [x] `retry_after` de redis ≥ timeout de job + margen
+- [x] IA y render usan cola propia documentada (y en `deploy/*`)
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño S. Si se crea una cola nueva, actualizar `deploy/hestia` y `deploy/systemd` (A-06).
+
+- RED: el límite de studio-ai ignoró el cambio de 6 a 3; Redis reservaba 90 s, los informes ignoraban el timeout configurado y el render seguía en media.
+- Playwright base serial: 22/22 en escritorio, 375 y 360 px. Informe en `storage/framework/testing/t43/run-general-397142b5-7a70-4f15-9bb8-8c52ced5ae19/results.json`.
+- Base Pest anterior (T-48): 4080 correctas y 9 omitidas.
+- GREEN inicial: 184 pruebas focales y 985 aserciones. Pint en verde.
+- RED de revisión: la miniatura compartía la cola de IA, la clave de 2FA no se preservaba y los informes aceptaban 0 y 200 s como timeout.
+- GREEN de revisión: 188 pruebas y 995 aserciones. Pint y control de alcance en verde.
+- Sonda de arranque real con `STUDIO_RENDER_QUEUE` vacía. RED: el job apuntaba a una cola vacía. GREEN: el job y la lista por defecto resuelven `studio-render` desde una clave común.
+- Claude Code confirmó `claude-opus-5-5` en todas las lentes. La última ronda no dejó hallazgos Critical/Important.
+- Cierre original 2026-11-16. Pest completo: 4110 correctas, 9 omitidas y 26 271 aserciones. Verificación por separado: `RateLimitConfigTest` 24/24 y `QueueConfigTest` 6/6.
+- Playwright serial: los mismos 22 casos pasaron antes y después. `qa-gate.py` VERDE (22/22). Informe en `storage/framework/testing/t43/run-general-5dfc8a3d-11e9-49b9-bd06-213b0520547c/results.json`.
+- La validación usa el mismo código revisado por Opus. El worker se comprobó en SQLite mediante la sonda de colas. Las instrucciones de Hestia y systemd indican el paso que corresponde ejecutar al desplegar.
+
+**Reapertura del 16 de noviembre**. La batería E2E-39 de T-51 reprodujo dos fallos de la migración de colas que la ejecución focal anterior no cubrió. `studio-captions.spec.ts` obtuvo MP4/GIF en `ready` y SVG en `pending` tras drenar `studio,media`. `studio-pptx-thumbnails.spec.ts` obtuvo «En cola» tras drenar `media`. Ambos trabajos estáticos usan `queue.studio_render`. Las trazas locales están en los artefactos del run de T-51. Se preparó y se verificó con `git apply --check` un parche para que los escenarios lean la cola configurada, además de sustituir la ruta absoluta de PyMuPDF del test de subtítulos por Poppler y declararlo en el job E2E nocturno. Poppler rasterizó un PDF real del mismo run en Windows. El parche `t49-e2e-studio-render-fix-preview.patch` queda junto al manifiesto de T-51.
+
+La batería completa terminó con 678 aprobados, 2 omitidos y 4 fallos. Al caso de subtítulos de escritorio se sumó el caso de PPTX en escritorio, 375 y 360 px. El 16 de noviembre se aplicó la corrección en los dos specs y en `.github/workflows/nightly.yml`. La repetición de los 16 casos de ambos specs se lanzó en serie con informe en `storage/framework/testing/t43/run-general-0920cd1d-5f81-42c8-b241-d4397f8fb731/results.json`.
+
+Los 16 casos pasaron. Se extrajo la comprobación de dimensiones y píxeles compartida por PNG y PDF y se documentó `pdftoppm` en la guía de desarrollo. Con el diff final, una repetición serial de los cuatro fallos originales dio 4/4 y `npm run typecheck` salió en verde. `qa-gate.py` verde en ambas ejecuciones. Se cotejaron los cuatro casos por archivo, título y proyecto. Informe final en `storage/framework/testing/t43/run-general-0baae66a-89cf-4e96-8167-15796dcd21f9/results.json`. La revisión de aceptación y calidad del diff final queda preparada en `%TEMP%/metricool-t49-queue-followup-review.txt` para Claude Code Opus 5.5.
+
+Revisión de la reapertura (2026-11-17). Claude Code Opus 5.5 confirmó la corrección de la cola de render y la portabilidad de Poppler. El cotejo con el código completo confirmó que `config/queue.php` asigna `studio-render` cuando la variable falta o está vacía, y que el test de PPTX descarga el ZIP, comprueba la integridad y verifica las dos diapositivas. El test de subtítulos puede leer `studio.av.queue` para su parte audiovisual y comprobar la firma de PNG y el fondo negro en PNG y PDF. Se conserva el veredicto pendiente de los ajustes, su verificación y la revisión del diff final. Informe en `%TEMP%/metricool-t49-queue-followup-opus55-review.json`.
+
+La comprobación con las colas configuradas y la firma PNG pasó 4/4, con PPTX en escritorio y los dos tamaños móviles, render nativo y `qa-gate.py` verde. Informe en `storage/framework/testing/t43/run-general-8a4dcac0-c1a1-48f9-8ac8-7ac2e815ee01/results.json`. La reevaluación aprobó esos cambios y señaló que RGB descarta el alfa. La aserción de opacidad queda pendiente de probar con RGBA. Informe en `%TEMP%/metricool-t49-queue-r2-opus55-review.json`.
+
+Se aplicó la comprobación RGBA. El test exige el primer píxel negro opaco y alfa 255 en todos los píxeles del PNG y del PDF rasterizado. La repetición serial terminó 4/4 y `qa-gate.py` VERDE en `storage/framework/testing/t43/run-general-f4fe3d79-75be-4cd4-ab5a-ad176493e0c2/results.json`. El caso de subtítulos confirmó las colas configuradas, Poppler disponible y el PDF a 160 × 120 px. Claude Code (`claude-opus-5-5`) verificó aceptación y calidad del código de la reapertura, con el hallazgo de alfa resuelto y sin Critical ni Important abiertos. Informe en `%TEMP%/metricool-t49-queue-r3-opus55.json`. Se combinan el Pest completo del cierre original y las pruebas locales posteriores de los dos specs. La ejecución nocturna remota sigue pendiente.
 
 ### T-50 — Inyección por constructor y utilidades duplicadas
 
 - **Descripción**: Sustituir `app(X::class)`/`new` en constructores por inyección y extraer `DailyCounter`, macro `whereLikeEscaped` y `OAuthStateStore`.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Refactor interno de la resolución de dependencias, el contador de visitas y votos, el escape de búsquedas y el estado OAuth.
+- **Estado**: completado
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-49
 - **Tipo**: backend
-- **Archivos**: `app/**/*.php`, `app/Support/DailyCounter.php`, `app/Support/OAuthStateStore.php`, `app/Providers/AppServiceProvider.php`
+- **Archivos**: `app/**/*.php`, `app/Support/DailyCounter.php`, `app/Support/OAuthStateStore.php`, `app/Providers/AppServiceProvider.php`, `tests/Feature/Infra/DailyCounterTest.php`, `tests/Feature/Infra/EscapedLikeTest.php`, `tests/Feature/Auth/OAuthStateStoreTest.php`, `tests/Feature/Studio/StudioChartRendererTest.php`, `docs/modulos/sitios.md`, `docs/modulos/smartlinks.md`, `docs/modulos/estudio.md`, `docs/modulos/conexiones.md`, `docs/modulos/canva.md`
 - **Cubre**: C-17, C-18
 - **Cubre (tests)**: E2E-38
 - **Verificación**: `php artisan test --compact --filter=OAuth` → verde · `php artisan test --compact --filter=DailyCounter` → verde
 
 **Criterios de aceptación**
-- [ ] Los usos de `app(X::class)` bajan a los justificados
-- [ ] Contador diario, escape LIKE y estado OAuth tienen una sola implementación
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Los usos de `app(X::class)` bajan a los justificados
+- [x] Contador diario, escape LIKE y estado OAuth tienen una sola implementación
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño S.
+
+- RED · 2026-11-16: `DailyCounterTest` y `OAuthStateStoreTest` fallaron porque faltaban ambos servicios. `EscapedLikeTest` esperaba dos coincidencias literales y recibió ninguna.
+- Base Pest anterior (T-49): 4110 correctas, 9 omitidas. Playwright base serial: 25/25. Informe en `storage/framework/testing/t43/run-general-0b23b14a-0d62-4914-9acd-6617b0751c85/results.json`.
+- GREEN inicial: 648 pruebas focales y 4179 aserciones. Pint en verde.
+- Censo literal `app(X::class)` en `app`: 212 → 193. `MediaUploadService` 11 → 0, `StudioAi` 5 → 0, `StudioCharts` 2 → 0 y `StudioService` 1 → 0. El análisis de tokens en constructores encontró 0 llamadas a `app()` y redujo `new` de 36 a 33. Se conservaron los constructores de valor local y las firmas con llamadas directas existentes.
+- La búsqueda de instancias directas y subclases de las clases modificadas no dio resultados. Se resolvieron las 11 clases modificadas desde el contenedor local. `LIKE ? ESCAPE` queda en un punto de registro y los dos flujos OAuth usan el mismo almacén de intentos con candado.
+- RED de revisión: con una FK ausente, el contador nuevo propagaba `QueryException`. El contador compartido restaura el reintento anterior. También se añadió la colisión determinista, la caducidad lógica con caché vigente y el caso de propietario del verificador.
+- GREEN de revisión: 651 pruebas focales y 4187 aserciones. Pint en verde.
+- Claude Code ejecutó A+B+C con `claude-opus-5-5` en la primera ronda. La segunda recibió HTTP 429 (`usage_limit_reached`) antes de procesar el diff corregido. El CLI indicó reinicio el 2026-11-17 a la 01:30, hora de Madrid.
+- Diff corregido para el reintento de Opus en `%TEMP%/metricool-t50-review-r2.txt`. La huella de los archivos revisables está en `%TEMP%/metricool-t50-review-r2-sha256.txt`.
+- QA del diff corregido: Pest completo 4116 correctas, 9 omitidas y 26 285 aserciones. Filtros declarados por separado: `OAuth` 211/211 y `DailyCounter` 3/3.
+- Playwright serial: se cotejaron los mismos 25 escenarios antes y después. `qa-gate.py` VERDE, 25/25. Informe en `storage/framework/testing/t43/run-general-82586fb2-75ae-40a8-9470-4975bb5f6a85/results.json`.
+- Los SHA-256 del diff preparado para la segunda revisión coinciden con los archivos que pasaron QA.
+- Segunda revisión, 2026-11-17. Claude Code Opus 5.5 confirmó las correcciones de primera ronda y la revisión de calidad, sin defectos Critical o Important en el diff revisado. Señaló el contrato implícito de `OAuthStateStore::remember()`, una rama Social OAuth sin test, el nombre del contador compartido por votos y la dependencia de comillas de SQLite en una prueba. El informe quedó en `%TEMP%/metricool-t50-r2-opus55-review.json`. El inventario estático de `%TEMP%/metricool-t50-app-census.json` localizó los 193 `app(X::class)` con fichero, línea y método: MCP 91, servicios 53, jobs 23, HTTP 21, conectores 4 y soporte 1. En el nuevo inventario, Opus 5.5 distinguió las resoluciones del framework en `failed()` y los callbacks que esperan al commit de los servicios que se pueden inyectar. Se prepararon correcciones para las dependencias de renderizado, validación, subtítulos y notificación de Canva, y para el contrato de los intentos OAuth. Pendiente aplicar, probar y justificar el inventario residual. Informe `%TEMP%/metricool-t50-inventory-opus55.json`. El siguiente intento recibió el límite de cinco horas de Claude Code. El CLI indica reinicio a las 06:30 del 17 de noviembre, hora de Madrid. Las comprobaciones locales pueden avanzar y la revisión del diff final sigue pendiente.
+
+- Seguimiento aplicado. RED OAuth: cuatro entradas mal formadas llegaron a la caché en lugar de lanzar `InvalidArgumentException`. El almacén comprueba propietario y fecha de emisión antes del candado, y el test comprueba el estado en claro cuando el hash coincide. El contador usa las comillas de la gramática del driver en el test de colisión. Se inyectaron `StudioFrames`, `StudioCaptionData`, `MediaValidator` y el notificador de Canva en los servicios que los consumen. La resolución de `UrlGuard` se comparte entre las ramas de la importación. GREEN de Pest focal: 559 pruebas y 2661 aserciones. El inventario posterior de PHP-Parser pasó de 193 a 174 llamadas (MCP 91, servicios 37, HTTP 21, jobs 20, conectores 4, soporte 1). Informe `%TEMP%/metricool-t50-app-census-r3.json`. Playwright serial pasó 31/31, con cero fallos y cero flaky. El cotejo confirmó los 25 casos de la línea base y los seis de subtítulos por fichero, título y proyecto. Pest completo pasó 4134 pruebas, 9 omitidas y 26 365 aserciones, en `%TEMP%/metricool-t50-r3-pest-full.log`. Informe en `storage/framework/testing/t43/run-general-acd736a2-dc3d-4c62-9845-3f6029bdc628/results.json`. La revisión final de aceptación y calidad de Opus sigue pendiente. Los archivos del seguimiento conservan las 14 huellas registradas antes de QA. El inventario por llamada acredita 76 resoluciones MCP tras comprobar el permiso, 9 callbacks de fallo de cola, 4 resoluciones posteriores al commit y 1 propiedad perezosa de Inertia. Los 10 usos en metadatos MCP consultan capacidades de los conectores registrados mediante InboxService::networks(), InboxService::hideNetworksLabel() y CompetitorService::networksHelp(). Quedan 74 llamadas para confirmar individualmente. Evidencia en `%TEMP%/metricool-t50-census-audit-r3.json` y paquete exacto en `%TEMP%/metricool-t50-r3-review-ready.txt`.
+
+El siguiente candidato aislado inyecta por constructor siete clases más en controladores, trabajos y servicios. El AST pasa de 174 a 164 resoluciones literales y quedan 64 por verificar individualmente. El contenedor local resolvió las siete clases y Pint pasó. La primera repetición mostró que un doble anónimo de `MediaProbe` seguía llamando a su constructor anterior. El barrido de subclases encontró los dos dobles y se adaptaron conservando el almacenamiento y los casos de prueba. Los ficheros de medios pasaron 39/39. Pest focal ampliado pasó 157 pruebas, con una omisión y 2.024 aserciones. El parche `%TEMP%/metricool-t50-di-r5-preview.patch` se comprobó contra el checkout. Inventario en `%TEMP%/metricool-t50-di-r5-audit.json` y paquete de revisión en `%TEMP%/metricool-t50-di-r5-review-ready.txt`. Pendientes aplicar el candidato y completar su revisión y QA en la rama.
+
+Claude Code Opus 5.5, ronda 5, validó la compatibilidad de OAuth y la calidad del candidato en lectura. El scheduler resuelve ambos trabajos desde el contenedor. El siguiente candidato inyecta el notificador del importador, la colaboración en aprobaciones y series, y el guard en el trabajo de importación. Pasaron los mismos 109 casos antes y después, con 471 aserciones. Pint pasó en los cuatro ficheros de producción. El censo registra 159 llamadas, cinco menos, con 59 por decidir y 10 en metadatos MCP. En la ronda 6, Opus pidió probar la inyección real de `handle`. El recorrido URL pasa por `dispatchSync` y las tres pruebas Drive pasan ahora por `Container::call`. Las cinco clases se resolvieron en el contenedor, incluidas las dos del scheduler. Las dependencias nuevas carecen de constructor y estado mutable. Pasaron de nuevo 109 pruebas y 471 aserciones. Parche en `%TEMP%/metricool-t50-di-r7-followup.patch` e inventario en `%TEMP%/metricool-t50-di-r6-audit.json`. Pendientes inventario y QA integrada.
+
+R8 reaplica en copia aislada los seguimientos de inyección de R5 y R7 sobre la rama actual. Al resolver dos conflictos se conserva la asociación de exportaciones con publicaciones de T-101 y la vinculación de importaciones de Canva a Recursos. `php -l` pasó en los dos archivos adaptados y `git apply --check --whitespace=error` en los 15 archivos. Candidato `%TEMP%/metricool-t50-r8-rebase.patch`. Pendientes formato, QA y recuento de llamadas restantes.
+
+R9 se integró tras el visto bueno de aceptación parcial y calidad de Claude Code Opus 5.5. El nuevo seguimiento inyecta `CanvaStudioResources` y conserva el enlace transaccional. Las dos invocaciones directas nuevas del test de Canva se resolvieron por el contenedor. El censo AST baja de 175 a 159. En la copia pasaron 1.607 pruebas con 9 omitidas y 10.873 aserciones, más 192 pruebas específicas de Workflow y primeros comentarios ejecutadas aparte. En la rama pasaron Pint y 582 pruebas con 2.919 aserciones. Quedan el inventario residual y Playwright. Evidencias `%TEMP%/metricool-t50-r9-main-pest.log`, `%TEMP%/metricool-t50-r9-candidate-census.json` y `%TEMP%/metricool-t50-r10-evidencia-opus55.json`.
+
+R13 integró la inyección por método en los dos controladores Studio tras la aprobación de Claude Code Opus 5.5 en conformidad, corrección y mantenibilidad. El censo AST bajó de 159 a 147, con doce llamadas eliminadas. Se verificó el árbol exacto con el parche inverso, route:list --path=studio, 758 pruebas Studio y 6.230 aserciones, con nueve pruebas nativas AV de activación explícita fuera de esa ejecución. Pint pasó antes y después de aplicar el parche. La resolución adelantada en rutas concretas construye un servicio con dependencias por constructor, sin trabajo de renderizado en el constructor. Quedan el inventario residual y Playwright. Evidencia %TEMP%/metricool-t50-r13-studio-opus55.json.
+
+R14 integró la inyección en handle de PollPublishStatus, PostFirstComment y SendScheduledReport tras la aprobación de Claude Code Opus 5.5 en aceptación parcial, corrección y calidad. Se conservan los constructores serializables y las resoluciones de failed(), que Laravel invoca con la excepción. El censo AST de rama confirma 143 llamadas, cuatro menos que R13. En la copia pasaron 369 pruebas y 2.854 aserciones. Pint pasó en la copia y la rama. Evidencias %TEMP%/metricool-t50-r14-jobs-opus55.json, %TEMP%/metricool-t50-r14-jobs-pest.log y %TEMP%/metricool-t50-r14-main-census.json.
+
+R16 integró ocho resoluciones adicionales en PasskeyGateway, la configuración TOTP del perfil, la auditoría de flujos y la descarga de informes. Opus 5.5 aprobó aceptación y calidad del lote tras comprobar la resolución transitoria y el caso que inyecta StorePasskey. Las mismas pruebas Auth, Profile, Workflow y Reports pasaron 391/3.770 antes y 392/3.772 después. Pint pasó en la rama y el censo AST de rama confirma 135 resoluciones. Quedan la clasificación residual y la verificación completa. Evidencia %TEMP%/metricool-t50-r16-final-opus55.json.
+
+R18 integró diez resoluciones de los servicios de Studio. Opus 5.5 comprobó la ausencia de ciclos, el alcance transitorio y la exclusión por flock, que sigue siendo externa a la instancia. El contenedor aislado resolvió dos instancias distintas de cada una de las siete clases comprobadas. Pasaron 182 pruebas y 1.049 aserciones, con ocho pruebas AV nativas de activación explícita omitidas en la selección. Pint y el censo de rama confirman el parche y 125 resoluciones. Sigue pendiente el gate final de AV, el inventario residual y la revisión global. Evidencias %TEMP%/metricool-t50-r18-proof-opus55.json, %TEMP%/metricool-t50-r17-av-pest.log y %TEMP%/metricool-t50-r18-main-census.json.
+
+R19 integró cinco resoluciones en StudioDocument, SiteService, PostTransitions y HealthCheck. Opus 5.5 aprobó el lote al confirmar que el helper y HealthCheck usan now() y que no quedan constructores directos en producción. La sonda independiente del kit siguió ejecutándose con 3.000 elementos. La regresión amplia pasó 1.091 pruebas con nueve opt-in AV y un error por una plantilla CI ausente en la copia. Se restauró ese archivo versionado y HealthCheck más BackupVerify pasaron 27 pruebas y 117 aserciones, con reloj fijo para el caso de 900 s. Pint y el censo de rama confirman 120 resoluciones. Sigue pendiente la verificación global de T-50. Evidencias %TEMP%/metricool-t50-r19-quality-opus55.json, %TEMP%/metricool-t50-r19-exact-pest.log y %TEMP%/metricool-t50-r19-backup-retry.log.
 
 ---
 
@@ -2087,111 +2259,180 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 **Estado**: borrador · **Estimado**: 119.0h · **Real**: — · **Coste est.**: 5950 € (base) + tokens ⚠️ verificar · **Tokens est.**: 5715k
 
+Seguimiento aislado de T-50. Se inyectó AuditLog en la base REST y los controladores que declaran constructor, en el flujo de publicación y en la descarga de informes. El trabajo de informes recibe el notificador en `handle()` y conserva la resolución en `failed()`, donde el framework no inyecta servicios. Pint pasó y los mismos 185 casos de API, informes y workflow pasaron antes y después con 2.677 aserciones. El censo bajó de 159 a 155 y deja 55 por decidir individualmente, además de 10 de metadatos MCP. Candidato `%TEMP%/metricool-t50-di-r8-audit-followup.patch`, inventario `%TEMP%/metricool-t50-di-r8-audit.json`. Quedan revisión de Opus y QA sobre el checkout.
+
+R20 integró tres resoluciones en las entradas de login y publicación. El caso de `Timebox` conserva el intervalo, y el job recibe sus dependencias al ejecutar `handle` sin cambiar su carga serializada. Verificados el único llamador productivo del login y la ausencia de un binding contextual de PostTransitions. Pasaron Pint y 501 pruebas de Auth, Publishing y Workflow con 2.759 aserciones. Opus 5.5 aprobó aceptación y calidad, y el censo de rama quedó en 117 resoluciones. Evidencias `%TEMP%/metricool-t50-r20-final-opus55.json`, `%TEMP%/metricool-t50-r20-focal.log` y `%TEMP%/metricool-t50-r20-main-census.json`.
+
+R23 integró la separación de `StudioRenderer`, `StudioRenderResources` y `StudioExportFiles`. Opus 5.5 aprobó calidad y aceptación, y se fortaleció la comprobación de limpieza del intento con un tamaño de imagen incorrecto. Pasaron 758 pruebas de Estudio antes de reforzar la prueba, 26 focales con 576 aserciones después y 15/15 recorridos seriales de gráficos, fotogramas y PowerPoint. La batería AV real opt-in pasó otras 58 pruebas con 475 aserciones. R25 integró auditoría de los controladores REST, el servicio de renovación de cuenta de Bluesky y el guard de imágenes en la factoría de IA. Se descartó capturar el guard de `BlueskyClient`: la primera propuesta rompió la sustitución entre llamadas y dobles parciales. Opus condicionó el visto bueno a la composición. La sonda del contenedor instanció los ocho controladores con auditoría y confirmó que no hay ciclo de Bluesky ni bindings persistentes de los servicios afectados. R25 pasó 500 pruebas focales con 3.406 aserciones y bajó a 108 resoluciones. La suite amplia anterior encontró dos casos de integración de T-105/T-108 pendientes de nueva verificación. Evidencias `%TEMP%/metricool-t50-r22-renderer-opus55.json`, `%TEMP%/metricool-t50-r22-renderer-browser.log`, `%TEMP%/metricool-t50-r23-native-av.log`, `%TEMP%/metricool-t50-r25-quality-opus55.json` y `%TEMP%/metricool-t50-r25-focal.log`.
+
+Cierre R26. La repetición global integrada tras R25 pasó 4.259 pruebas, 9 omitidas de activación explícita y 28.304 aserciones. E2E-38 pasó 13/13 seriales sin flaky con publicación, planificación, bandeja e informes. Opus señaló que los cuatro callbacks de commit podían capturar sus dependencias. R26 las inyectó sin mover `DB::afterCommit`, eliminó una resolución duplicada de metadatos y pasó la batería exacta de render, AV nativo activado y MCP con 383 pruebas y 2.774 aserciones. La primera pasada usó una prueba copiada antes del cambio de constructor de la cola y se repitió con la suite de la rama. Opus 5.5 aprobó aceptación y calidad sin Critical ni Important. Pint, el parche inverso y el foco de integración (25 pruebas y 180 aserciones, 3 AV de activación explícita omitidas) quedaron verdes. El censo final queda en 103 resoluciones: 80 acciones bajo guardia MCP, 1 auditoría de la guardia, 9 metadatos dependientes de las capacidades registradas, 9 callbacks `failed()` invocados por Laravel, 1 prop perezosa de Inertia, 1 acceso estático al registro de redes y 2 resoluciones de la guardia sustituible de Bluesky. Evidencias `%TEMP%/metricool-t50-r25-main-full.log`, `%TEMP%/metricool-t50-r25-e2e38-browser.log`, `%TEMP%/metricool-t50-r26-exact-native.log`, `%TEMP%/metricool-t50-r26-exact-opus55.json` y `%TEMP%/metricool-t50-r26-main-census.json`.
+
 ### T-51 — Prettier y ESLint con `--check` en CI
 
 - **Descripción**: Añadir Prettier y `eslint-plugin-vue`, formatear las plantillas de una línea y exigir `--check` en CI.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: CI comprueba que los componentes Vue cumplen ESLint y Prettier. La guía de desarrollo documenta los mismos comandos para ejecutarlos en local.
+- **Estado**: completado
+- **Cerrada**: 2026-11-17
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-50
 - **Tipo**: frontend
-- **Archivos**: `package.json`, `.prettierrc`, `.eslintrc.cjs`, `.github/workflows/ci.yml`, `resources/js/**/*.vue`
+- **Archivos**: `package.json`, `package-lock.json`, `.prettierrc`, `eslint.config.cjs`, `eslint-suppressions.json`, `.github/workflows/ci.yml`, `resources/js/**/*.vue`, `docs/guias/desarrollo-local.md`
 - **Cubre**: D-13
 - **Cubre (tests)**: E2E-39
 - **Verificación**: `npm run lint` → 0 errores · `npm run build` → build correcto
 
 **Criterios de aceptación**
-- [ ] `npm run lint` y `npm run format:check` pasan
-- [ ] El formateo es el único cambio del diff de `.vue`
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] `npm run lint` y `npm run format:check` pasan
+- [x] El diff de `.vue` se limita al formato y a tres espacios representados como `&#32;` que conservan el mismo texto renderizado.
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño S. Se hace antes de los refactors D para que sus diffs sean legibles. Una sola tarea de formateo masivo: revisar que no cambie comportamiento (E2E antes/después).
+
+**Línea base previa al formateo (2026-11-16)**. Build correcto sobre `d7cd4da` con los cambios locales de la fase 4. Playwright general finalizó los 684 casos con un worker en escritorio, móvil de 375 px y móvil de 360 px. Resultado en rojo, con 678 aprobados, 2 omitidos y 4 fallos por la migración de colas de T-49. El informe está en `storage/framework/testing/t43/run-general-5241b51c-1719-412f-97c7-9f8bd6eac48c/results.json`, junto a `source-sha256.txt` y `vite-manifest.json` que identifican el código y el build probados. Log en `%TEMP%/metricool-t51-baseline-playwright.log`.
+
+Los cuatro casos pasaron después de reparar el test de T-49, con las mismas huellas del código de aplicación y del build de Vite. Se inició la batería completa en serie para establecer una línea base en verde con la corrección. Informe en `storage/framework/testing/t43/run-general-dfc6da00-4cab-4d9a-b241-5555f2390543/results.json` y seguimiento en `%TEMP%/metricool-t51-corrected-baseline.log`.
+
+La repetición terminó con 681 aprobados, 2 omitidos y un `net::ERR_NO_BUFFER_SPACE` al navegar al login local en el caso de escritorio «Presets: validation opens a collapsed global panel and focuses its date field». La traza sitúa el fallo en `loginAs`, antes de abrir el compositor. El mismo caso pasó tanto en el informe completo anterior como en su repetición individual posterior, con informe en `storage/framework/testing/t43/run-general-15f210db-48b0-46a5-9cdc-0c0a9a55db1b/results.json`. Se conservan ambos resultados originales.
+
+Se guardaron las firmas de los 145 componentes `.vue` en `vue-sfc-baseline.json` dentro de ese mismo directorio. `vue-parity.cjs compare` los compara por separado en plantilla compilada, script y estilos. Los controles verifican que el comparador admite un cambio de formato y detecta cambios en una expresión de plantilla y en una ruta de importación. Cada diferencia se puede localizar por archivo y bloque antes de repetir E2E-39.
+
+**Ensayo en memoria de T-51 (2026-11-16)**. Con Prettier 3.10.1, espacios sensibles en plantillas y formateo de lenguajes embebidos desactivado, se preservó el espacio sencillo con `&#32;` en tres separadores de calendario, inbox y sitios que el formateador habría eliminado. Las firmas de plantilla compilada, script y estilos coinciden en los 145 componentes al normalizar el fin de línea de los comentarios JS. Prettier acepta los 145 resultados tras dos pasadas. ESLint 10.15.0 y `eslint-plugin-vue` 10.12.1 con `flat/essential` dieron cero diagnósticos en el ensayo. Se probó la convención de nombres de páginas de Inertia, cinco nombres de componentes existentes y dos supresiones de `vue/no-dupe-keys` acotadas a un caso por archivo. Un control con un duplicado adicional hizo fallar esa regla. Evidencia en `t51-format-preview-validated.json` dentro del directorio de la línea base. El ensayo sigue pendiente de aplicar al repositorio y de revisar con Claude Code Opus 5.5.
+
+Se usará `eslint.config.cjs` porque ESLint 10 utiliza configuración plana. Una copia aislada de los manifiestos admitió las cuatro dependencias de desarrollo del ensayo, incluido `vue-eslint-parser` 10.4.2. El lock de prueba añadió 78 entradas y conservó la versión y el hash de integridad de las 344 entradas existentes. Evidencia en `t51-package-lock-preview.json`.
+
+El diff binario previo de los archivos de T-51 quedó guardado como `t51-preexisting-changes.patch` en el mismo directorio. Identifica el cambio previo de `PeriodFilter.vue` que debe excluir del diff atribuido a T-51. Se cotejaron las 145 huellas Vue con el manifiesto del inicio de Playwright.
+
+**Parche verificado en copia aislada**. Se materializaron los 145 componentes con firmas iguales, los comandos npm y el paso de CI. `npm run lint` y `npm run format:check` pasaron en esa copia. La prueba de integración del parche en otra copia identificó un ajuste solo de CRLF a LF en `AiNotConfigured.vue`. `npm run format` corrigió ese ajuste y volvió a pasar los dos controles. `git apply --check` aceptó el parche sobre el árbol del proyecto. Está en `storage/framework/testing/t43/run-general-dfc6da00-4cab-4d9a-b241-5555f2390543/t51-format-reviewable.patch`.
+
+En la copia aislada, `npm ci` instaló las versiones fijadas por el parche y conservó la huella de `package-lock.json`. Los dos comandos de CI pasaron con esa instalación limpia. npm avisó del script del complemento opcional `canvas` de Fabric. Una sonda con la resolución de módulos de Fabric encontró que la extensión nativa de `canvas` tampoco está presente en la instalación anterior. Log en `%TEMP%/metricool-t51-clean-install.log`.
+
+**Aplicación del 17 de noviembre**. Parche aplicado tras la línea base de navegador y su repetición focal. `npm ci`, `npm run format`, `npm run lint`, `npm run format:check`, `npm run build` y `npm run typecheck` salieron con código 0 en el checkout. Los 145 `.vue` aplicados coinciden byte a byte con la copia contrastada. Se documentaron los comandos en la guía de desarrollo. Pest completo y E2E-39 de la versión formateada se ejecutan en serie. Queda pendiente la revisión de aceptación y calidad con Claude Code Opus 5.5.
+
+El CSS global conserva su nombre con hash en el manifiesto de Vite. Los otros dos CSS generados corresponden a `Editor` y `StudioDatasetsDialog`. Se compararon con los assets del build histórico de `f40a583`, tras comprobar que ambos archivos fuente históricos coinciden con los del inicio de T-51. Los dos CSS coinciden al normalizar los identificadores `data-v-*` de Vue.
+
+Pest completo pasó con 4116 pruebas, 9 omitidas y 26.285 aserciones. Tras Pest comenzó E2E-39 sobre el código formateado con un worker. Informe en `storage/framework/testing/t43/run-general-b2ccf9bf-71f0-4fa2-b688-ce6ab8f98263/results.json` y seguimiento en `%TEMP%/metricool-t51-after.log`.
+
+Se recalcularon las firmas de los 145 componentes sobre el código aplicado contra la copia previa. El inventario por fichero está junto al informe en `t51-applied-parity.json`. El control de alcance de la fase con base `f40a583` clasificó 412 rutas y dio cero fuera de alcance y cero avisos. El paquete inicial de revisión `%TEMP%/metricool-t51-quality-review.txt` recoge las pruebas, la configuración y los tres cambios de representación del espacio. El diff completo queda disponible en el parche de T-51.
+
+Opus 5.5 revisó la aplicación el 17 de noviembre (`%TEMP%/metricool-t51-opus55-r1.json`). Se explicitó en el criterio la equivalencia de los tres espacios y se documentó su representación en la guía de desarrollo. Las dos supresiones de `vue/no-dupe-keys` toleran una coincidencia cada una. En `CaptionsPanel.vue`, la función local `apply()` gestiona la operación y llama al callback del editor mediante `props.apply()`. En `StudioAiPanel.vue`, la variable local `active` indica trabajos en curso y el prop `props.active` dispara la carga al abrir el panel. Se mantienen los nombres durante este cambio de formato. La batería posterior y la revisión con el inventario completo siguen pendientes.
+
+E2E-39 posterior en verde (17 de noviembre): 682 aprobados, 2 omitidos, 0 fallos, 0 flaky y 0 interrupciones. Se cotejaron los 684 identificadores y sus estados con el informe de la base y el reintento exacto previo al formateo. El informe bruto de la base conserva el fallo de transporte. La segunda revisión se lanzó con el diff íntegro, el manifiesto de 145 componentes (`t51-parity-complete.json`) y los resultados finales.
+
+**Cierre del 17 de noviembre**. La segunda revisión detectó que el lock conservaba el nombre de la carpeta de preparación. Se restauró `metricool`. La tercera revisión con `claude-opus-5-5` confirmó aceptación y calidad sin Critical ni Important pendientes. Se cotejó la huella previa de `PeriodFilter.vue` y el job Node 22 con los requisitos de ESLint. Tras el ajuste de metadatos, `npm ci --offline` en una copia limpia conservó el lock, y `lint`, `format:check` y `typecheck` pasaron en el checkout. El resultado remoto de CI se comprueba al publicar. Informes en `%TEMP%/metricool-t51-opus55-r2.json` y `%TEMP%/metricool-t51-opus55-r3.json`.
 
 ### T-52 — Carga diferida de pdf-lib y de los ocho diálogos del editor
 
 - **Descripción**: `await import('pdf-lib')` y `defineAsyncComponent` para los diálogos del editor; mover `downloadBlob`.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El editor carga sus diálogos al abrirlos y descarga la biblioteca de PDF al exportar en ese formato.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-51
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Pages/Studio/Editor.vue`, `resources/js/Studio/exports.js`, `resources/js/Components/Studio/ExportDialog.vue`, `resources/js/Components/Studio/CaptionsPanel.vue`
+- **Archivos**: `resources/js/Pages/Studio/Editor.vue`, `resources/js/Studio/exports.js`, `resources/js/Components/Studio/ExportDialog.vue`, `resources/js/Components/Studio/CaptionsPanel.vue`, `resources/js/Components/Studio/StudioFontsDialog.vue`, `resources/js/Components/Studio/VariantsDialog.vue`, `resources/js/Studio/download.js`, `app/Providers/AppServiceProvider.php`, `tests/e2e/studio.spec.ts`, `tests/frontend/studio-charts-dialog.test.mjs`, `docs/modulos/estudio.md`, `CHANGELOG.md`, `CHANGELOG.es.md`
 - **Cubre**: D-01, D-02
 - **Cubre (tests)**: E2E-07
 - **Verificación**: `npm run build` → build correcto y chunk de `Editor` reducido (anotar antes/después) · `npx playwright test tests/e2e/studio-captions.spec.ts --workers=1` → verde
 
 **Criterios de aceptación**
 - [ ] El chunk inicial del editor baja ≥ 1 MB (medir con `vite build`)
-- [ ] Los diálogos y exportaciones siguen funcionando
+- [x] Los diálogos y exportaciones siguen funcionando
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño S.
+
+**Medición previa de T-52 (2026-11-16)**. El manifiesto del build de T-51 identifica `Editor-BwkWPbGP.js` con 212.444 B minificados y 63.764 B gzip. La clausura transitiva de imports estáticos de la ruta, descontando los chunks que también carga `app.js`, suma 1.131.218 B minificados y 399.244 B gzip. La descarga en frío con `app.js` suma 1.438.786 B y 503.830 B gzip. El chunk de exportación pesa 430.119 B y el de canvas pesa 327.272 B. Se guardaron la descomposición, los hashes y el método de medición en `t52-vite-baseline.json` y `t52-vite-measure.cjs` dentro del directorio de la línea base de T-51.
+
+El umbral de reducción de 1 MB supera el tamaño del chunk `Editor` por sí solo. Aplicado al grafo de la ruta dejaría un máximo de 131.218 B, por debajo del tamaño del canvas que usa el editor al abrirse. La medición posterior deberá comprobar el ahorro real y el momento de carga de cada recurso. Mantener cubierta la acción directa `exporter.publish()` además de la apertura normal de exportación, porque esa acción también debe esperar a que se cargue el diálogo.
+
+**Revisión preliminar T-52 (2026-11-17).** Claude Code Opus 5.5 confirmó que el render inicial necesita el canvas de 327.272 B y que desplazar las dependencias del PDF y los diálogos no puede por sí solo reducir el grafo inicial en 1 MB. La revisión pidió comprobar la inicialización en la primera apertura, el foco y los errores de carga. El criterio conserva su valor original y se medirán tanto el manifiesto como las peticiones reales. Informe en `%TEMP%/metricool-t52-preview-opus55.json`.
+
+**Ensayo de compilación T-52 (2026-11-17).** Se compiló el mismo árbol de frontend dos veces en una copia aislada con las dependencias del lockfile. El chunk del editor bajó de 212.444 a 140.699 B (71.745 B). Su grafo estático propio pasó de 1.131.218 a 563.136 B (568.082 B; 220.790 B gzip). La suma con los chunks compartidos de la app pasó de 1.438.786 a 872.658 B. El manifiesto deja las ocho entradas de diálogos y la de `pdf-lib` fuera del grafo estático. Pasan Vite y ESLint focal con las supresiones vigentes. La descarga real y el comportamiento de la primera apertura se comprueban tras aplicar en el checkout. El criterio de 1 MB sigue abierto. Informes en `%TEMP%/metricool-t52-scratch-before.json` y `%TEMP%/metricool-t52-scratch-after.json`.
+
+**Regresión T-52.** RED: la prueba de formatos detectó que el manifiesto anterior carecía de una entrada independiente para `ExportDialog.vue`. Informe en `storage/framework/testing/t43/run-general-c42d4b49-07a4-4a99-b65a-edd54a21deb9/results.json`. Aplicada la carga diferida en el checkout. Se añadió un recorrido en frío de «Usar en publicación», una comprobación de la primera lectura de tipografías y una comprobación de los recursos que solicita Chromium. Un primer pase de Node detectó que el arnés de gráficos debía cargar el componente asíncrono simulado. Tras adaptar ese arnés y quitar la reexportación interna de `downloadBlob`, pasaron sus 40 casos focales. La primera pasada de Node terminó con 639/639 tras la corrección del arnés. La primera pasada serial de navegador dio 16/20. Chromium mostró que la precarga global de Laravel recorría los imports dinámicos y solicitaba los ocho diálogos y `pdf-lib` antes de usarlos. También falló la devolución de foco a «Presentar» en las tres anchuras. Se retiró la precarga global y el botón conserva el foco durante la carga con `aria-busy`. La repetición del foco pasó en escritorio, 375 y 360 px. El primer cotejo de red también contaba tres diálogos importados por el listado visitado antes del editor. Se acotó la medición a un documento de editor recién cargado, sin cambios en sus aserciones de recursos ni de formatos. El build final separa 568.055 B minificados del grafo estático propio; Node pasó 639/639. Chromium confirmó el caso en frío: cero solicitudes de los ocho diálogos o de `pdf-lib` al abrir el editor, dos chunks de modal al exportar raster y `pdf-lib` al generar el PDF válido. Informe y adjunto en `storage/framework/testing/t43/run-general-771761db-188a-46cd-a44e-4376011804b7/results.json`. La batería serial amplia pasó 20/20, sin casos omitidos ni flaky y con qa-gate verde. Informe en `storage/framework/testing/t43/run-general-27d416bb-4159-493d-a45d-049a83d67e55/results.json`. Pest completo pasó 4.134 pruebas, con 9 omitidas y 26.365 aserciones; informe en `%TEMP%/metricool-t52-pest-full.log`. Revisión final de Opus pendiente. Informe de los fallos en `storage/framework/testing/t43/run-general-5f960402-7e44-40b7-8973-bdd4566d5d02/results.json`.
+
+
+
+**Revisión del árbol actual (2026-11-17).** Claude Code Opus 5.5 revisó la implementación tras extraer los composables de T-63. RED: la prueba Vue `an unrelated editor panel error does not cancel a pending publish` esperaba una publicación pendiente y recibía `false`. Se acotó la captura al subárbol de exportación mediante las instancias públicas de Vue. También se manejan los rechazos de `publish()` y el fallo al descargar el generador PDF. El documento, sus páginas y los tiempos se validan antes de pedir ese chunk. Se conservan la causa técnica y un mensaje de usuario en español. La segunda revisión pidió cubrir los descendientes del diálogo, el nombre real del componente y el orden de validación del PDF. RED adicional en esos dos escenarios y GREEN 6/6. Revisión R3 y prueba de navegador R4 aceptadas estáticamente, con recibos `%TEMP%/metricool-t52-load-r3-opus55.json` y `%TEMP%/metricool-t52-load-r4-opus55.json`. Aplicado en el checkout. Node completo del candidato pasó 775/775, con typecheck, ESLint focal y Vite en verde. La repetición focal pasó 14/14 en serie, incluidos Inbox, presentación con medios nativos y los fallos de chunk del diálogo y del PDF en los tres tamaños. Recibo `%TEMP%/metricool-t68-r15-corrected-cases-browser.log`, con qa-gate verde. La medición del árbol actual deja el grafo estático propio en 580.895 B frente a 1.131.218 B de la línea base, con un ahorro de 550.323 B. Los ocho diálogos y pdf-lib siguen fuera del grafo estático. Recibo `%TEMP%/metricool-t52-post-t68-r15-measurement.json`. El criterio de ahorro de 1 MB sigue abierto.
 
 ### T-53 — `http.js` único con error tipado y cancelación
 
 - **Descripción**: Sustituir las once copias de lector XSRF + `fetch` (cuatro con regex sin anclar) por un cliente único con error tipado y cancelación.
 - **Changelog**:
-- **Estado**: borrador
+- **Estado**: completado
+- **Cerrada**: 2026-11-17
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-52
 - **Tipo**: frontend
-- **Archivos**: `resources/js/lib/http.js`, `resources/js/Studio/api.js`, `resources/js/composables/useWorkflow.js`, `resources/js/Components/AiSuggest.vue`, `tests/frontend/http.test.mjs`
+- **Archivos**: `resources/js/lib/http.js`, `resources/js/Studio/{api,audio-api,dataset-client}.js`, `resources/js/Composables/{useWorkflow,useLiveValidation}.js`, `resources/js/Components/{AiSuggest,MediaUploader}.vue`, `resources/js/Components/Composer/{MediaSection,ScheduleSection}.vue`, `resources/js/Components/Studio/StudioFontsDialog.vue`, `resources/js/Pages/Reports/Index.vue`, `tests/frontend/{http,studio-dataset-client,live-validation}.test.mjs`, `docs/guias/desarrollo-local.md`
 - **Cubre**: D-03
 - **Cubre (unificación)**: U-18
 - **Cubre (tests)**: E2E-39
 - **Verificación**: `npm run test:unit` → pasa (incluye `http.test.mjs`) · `grep -rn "XSRF-TOKEN" resources/js | wc -l` → 1
 
 **Criterios de aceptación**
-- [ ] No quedan lectores de cookie XSRF duplicados
-- [ ] Los errores HTTP llegan como objeto tipado a la UI
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] `http.js` expone un único `uploadMedia()` (con progreso y cancelación) que sustituye a `Studio/api.js:22-40`, `MediaSection.vue` y `MediaUploader.vue`; `grep -rn "FormData" resources/js | wc -l` no crece
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] No quedan lectores de cookie XSRF duplicados
+- [x] Los errores HTTP llegan como objeto tipado a la UI
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] `http.js` expone un único `uploadMedia()` (con progreso y cancelación) que sustituye a `Studio/api.js:22-40`, `MediaSection.vue` y `MediaUploader.vue`; `grep -rn "FormData" resources/js | wc -l` no crece
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M.
+
+**Preparación T-53 (2026-11-17).** En una copia aislada, el cliente y sus consumidores pasaron 19 pruebas focales. RED: cancelar durante la lectura del cuerpo producía una resolución sin error en lugar de conservar la cancelación. Se conservan los errores de lectura y se admite un cuerpo de error sin JSON. Queda un lector XSRF en la copia y tres usos de FormData como antes. La línea base previa pasó 40/40 en Playwright serial, con qa-gate verde. Informe en `storage/framework/testing/t43/run-general-33ccdf0f-90ad-4490-9fa5-657823fb0df8/results.json`. RED en el checkout: el test falló con ERR_MODULE_NOT_FOUND antes de aplicar el cliente. GREEN focal: 19/19. El inventario del checkout confirma un lector XSRF y los mismos tres usos de FormData. ESLint, Prettier, TypeScript y el build pasaron. Node completo pasó 648/648. La comparación posterior pasó 40/40, con qa-gate verde. Coinciden los 40 casos por fichero, título y proyecto. Informe en `storage/framework/testing/t43/run-general-9a07d956-052d-4bfa-9676-20338f4e6f48/results.json`. Pest completo pasó 4.134 pruebas, con 9 omitidas y 26.365 aserciones. En una copia aislada, tres pruebas adicionales mostraron que una respuesta de tablas con JSON nulo perdía el estado HTTP, que leer el cuerpo de un error podía consumir la cancelación y que el compositor solo cancelaba la validación anterior tras el debounce. El seguimiento deja la comprobación de estado en el cliente común y cancela al cambiar el formulario. Pasaron 22 pruebas focales en la copia. Se aplicó el seguimiento tras Pest. Se confirmaron los tres fallos RED antes de corregir el código y las 22 pruebas focales volvieron a pasar en el checkout. La verificación final del seguimiento pasó ESLint, Prettier, TypeScript, Vite y 651/651 pruebas de Node. Playwright pasó 40/40 sin omitidas ni flaky, con qa-gate verde. Coinciden los casos antes y después por fichero, título y proyecto en `storage/framework/testing/t43/run-general-3b674f89-16d9-4df7-a284-78cb173056ca/results.json`. Pest final pasó 4.134 pruebas, con 9 omitidas y 26.365 aserciones. Coinciden las 15 huellas del candidato. Evidencia en `%TEMP%/metricool-t53-final-parity.json` y paquete de revisión en `%TEMP%/metricool-t53-final-review-with-followup.txt`. Queda pendiente la revisión de aceptación y calidad con Opus 5.5.
+
+**Revisión de dos lentes — intento 1 con Claude Code Opus 5.5 (2026-11-17).** El revisor solicitó conservar el tipo HTTP histórico de Studio, probar los reintentos de audio y revisar la lectura del cuerpo y el mensaje de validación. Verificado en el código que el reintento ya depende de HTTP 503 o TypeError. Se conservó la clase StudioApiError para peticiones y subidas de Studio, el detalle de campos y la cancelación de lectura en audio local. La segunda revisión comprobó que el cliente de tablas también usaba StudioApiError. Se restauró ese contrato y se verificaron el estado, el cuerpo nulo y la cancelación con la suite focal en copia aislada. Parche validado con git apply --check. Recibo en `%TEMP%/metricool-t53-r1-claude-opus55.json`. Pendientes integración y regresión en la rama.
+
+**Revisión de dos lentes — intentos 2 a 4 con Claude Code Opus 5.5 (2026-11-17).** El parche acumulado conserva el tipo de error histórico de Studio, los campos de validación en todas las fases, la causa y la cancelación. El selector impide dos cargas en el mismo ciclo y descarta la resolución tras un desmontaje. Los controladores consumidos en modo JSON y el middleware de autenticación se cotejaron con el rechazo de redirecciones. La cuarta revisión lo considera aceptable condicionado a comprobar los constructores y repetir la regresión completa. El inventario de la rama y del parche verificó que los cinco llamadores originales no pasan un mapa de errores y que los dos usos del tercer argumento en el candidato pasan el cuerpo. CI usa Node 22. ESLint y Prettier del componente pasaron, y 27/27 pruebas focales pasaron en la copia aislada. Recibo `%TEMP%/metricool-t53-r4-claude-opus55.json`, parche `%TEMP%/metricool-t53-claude-r4-fix.patch` y validación preparada `%TEMP%/metricool-t53-review-r4-checkout-validation.ps1`. Pendientes integración, Node completo, Pest y Playwright con cotejo de los 40 casos.
+
+La regresión de T-53 R4 está en espera del proceso Playwright PID 3696 de la línea base de T-56. El ejecutor comprobará que exista su informe, aplicará los tests antes que el parche y ejecutará la regresión en la rama.
+
+T-53 R4 aplicada al checkout después del cierre de Playwright de T-56. RED: 7 fallos de 27 pruebas focales antes de aplicar el código. GREEN: 27/27 tras aplicar el código, ESLint, Prettier, TypeScript, Vite y 669/669 pruebas Node. La regresión Playwright está en curso antes de Pest y del cotejo de huellas.
+
+**Cierre T-53 (2026-11-17).** Claude Code Opus 5.5 verificó aceptación y calidad en la cuarta revisión y consideró el cambio aceptable sujeto a regresión. Se comprobaron los constructores de StudioApiError y las ocho huellas del parche aplicado. En el checkout se confirmaron siete fallos antes de aplicar la corrección y pasaron 27/27 pruebas focales tras aplicarla. Pasaron ESLint, Prettier, TypeScript, Vite y 669/669 pruebas Node. Playwright pasó 40/40 sin omitidas ni flaky, con qa-gate verde y coincidencia exacta de los 40 casos frente a la línea base. Informe en `storage/framework/testing/t43/run-general-6974ce94-0872-4a45-8586-722d22854474/results.json`. Pest pasó 4.137 pruebas, con 9 omitidas y 26.449 aserciones. El inventario final conserva un lector de cookie y tres usos de FormData. La guía de desarrollo describe los errores tipados, la sesión y el flujo de subida.
 
 ### T-54 — Hora de la marca en todas las pantallas y repaso de textos
 
 - **Descripción**: `format.js` global con la zona de la marca (seis pantallas usan hoy la del navegador) y repaso de ortografía y terminología (correo/Email, «dejara», «¿»).
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: La interfaz muestra fechas y horas en la zona de la marca y distingue las plantillas de publicación, las plantillas de diseño y la biblioteca de archivos.
+- **Estado**: completado
+- **Cerrada**: 2026-11-17
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
@@ -2205,60 +2446,82 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Verificación**: `npm run test:unit` → pasa (test de `format.js` con zonas distintas) · `npx playwright test tests/e2e/pages.spec.ts --workers=1` → verde
 
 **Criterios de aceptación**
-- [ ] Las seis pantallas muestran la hora de la marca
-- [ ] Sin erratas listadas y terminología uniforme
-- [ ] «Biblioteca» designa solo los archivos; las plantillas de publicación se llaman «Plantillas de publicación» (`navigation.js:47`, `LibraryController.php:18`, `ExportDialog.vue:87`, `Canva/Index.vue:225`)
-- [ ] Existe `docs/knowledge/glossary.md` con un término único por concepto (recursos/media, plantillas, papelera, identidad de marca frente a `brand-kit`) y la UI, `lang/**` y los textos del estudio y del compositor lo respetan
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Las seis pantallas muestran la hora de la marca
+- [x] Sin erratas listadas y terminología uniforme
+- [x] «Biblioteca» designa solo los archivos; las plantillas de publicación se llaman «Plantillas de publicación» (`navigation.js:47`, `LibraryController.php:18`, `ExportDialog.vue:87`, `Canva/Index.vue:225`)
+- [x] Existe `docs/knowledge/glossary.md` con un término único por concepto (recursos/media, plantillas, papelera, identidad de marca frente a `brand-kit`) y la UI, `lang/**` y los textos del estudio y del compositor lo respetan
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño S.
+
+**Preparación T-54 (2026-11-17).** En una copia aislada se comprobaron cuatro casos del formateador común, incluido el cambio de día y el salto de horario de verano. El borrador usa la zona de la publicación en la papelera y prepara una prueba de navegador con seis pantallas y una marca en Auckland. RED en el checkout: el test de Node falló por el módulo ausente y Chromium mostró el comentario a las 21:30 del día 17 en lugar de las 09:30 del día 18 en Auckland. Informe en `storage/framework/testing/t43/run-general-c64d25d7-1ac0-4634-8f35-96dc7953a944/results.json`. Se aplicaron los cambios de formato y textos, con ambas entradas de changelog, el glosario y la documentación de planificación e informes. Node focal pasó 4/4. Los controles de formato y tipos y el build del checkout pasaron. Node pasó 655/655 y Pint pasó en todos los PHP tocados. Chromium verificó las seis pantallas con Auckland, comprobó que la papelera usa la marca de cada fila y validó los textos de confirmación de claves e informes. qa-gate verde. Informe en `storage/framework/testing/t43/run-general-a03e414b-b850-4bba-974d-4dc496e055c9/results.json`. La regresión amplia pasó 210 pruebas, con 2 omitidas por diseño (navegación del escritorio en móvil), cero fallos y qa-gate verde. Informe en `storage/framework/testing/t43/run-general-c5f3c84b-dce2-4b43-a297-a694cb596c18/results.json`. Pest pasó 4.134 pruebas, con 9 omitidas y 26.365 aserciones. RED focal: el diálogo de guardar plantillas conservaba el nombre antiguo. Con el título «Guardar como plantilla», el mismo recorrido pasó en escritorio y en las dos anchuras móviles. Informe en `storage/framework/testing/t43/run-general-0f871ba3-6692-4d2b-91f1-0aea5033b22b/results.json`. `lang/es/validation.php` ya emplea «correo electrónico». Sigue pendiente la revisión de aceptación y calidad de Opus 5.5.
+
+**Revisión de dos lentes — intento 1 con Claude Code Opus 5.5 (2026-11-17).** El revisor señaló la zona ausente, la duplicación de formateadores y la cobertura de marcas distintas. Comprobado que CurrentBrand resuelve una marca del usuario si existe, Inbox la aplica a la consulta, StudioEditor::brandProps entrega timezone, brandSchedules filtra los envíos de Informes y ConnectionExpiry entrega un instante ISO. El borrador restablece la zona local cuando no hay marca, conserva UTC para zonas inválidas y comparte el formateador por zona. RED reprodujo el cambio a UTC y el conjunto focal pasó 4/4 después. Se amplió E2E-11 con Inbox sin parámetro, Estudio y dos filas de papelera en zonas distintas. Parche validado con git apply --check. Recibo en `%TEMP%/metricool-t54-r1-claude-opus55.json`. Pendientes aplicar y ejecutar el navegador en serie, y segunda revisión.
+
+**Verificación de T-54 tras Opus 5.5 (2026-11-17).** Se añadió cobertura de caché por zona y de dos diseños compartidos por un propietario de prueba. La papelera verifica Madrid y Auckland con la misma sesión y la sección Estudio cubre diseños propios y compartidos. E2E-11 pasó las siete pantallas en Chromium. Design solo protege id contra asignación masiva, por lo que los updated_at se guardan desde la fixture. Node focal 5/5, Node completo, ESLint, Prettier, TypeScript y Vite verdes. En la regresión amplia pasaron 220 de los 225 casos, con dos omisiones previstas del shell de escritorio. Los únicos tres fallos eran el recorrido SmartLinks que aún omitía el diálogo de T-57. Se actualizó ese test sin cambiar la aplicación y pasaron sus tres casos en una segunda ejecución serial, con qa-gate verde y cotejo de identidades. El conjunto verifica 223 casos y dos omisiones previstas. Pest completo en ejecución. Recibo `%TEMP%/metricool-t54-r3-claude-opus55.json` y cotejo `%TEMP%/metricool-t54-review-r2-combined-browser.json`.
+
+**Cierre T-54 (2026-11-17).** La revisión final de aceptación y calidad con Claude Code Opus 5.5 consideró correcto el código, sujeto a comprobar el timestamp de la fixture y repetir las pruebas. Design solo excluye id de la asignación masiva y E2E-11 verificó fechas distintas de UTC y de la marca seleccionada en los listados. Se comprobó el borrado en cascada del usuario aislado. Las siete huellas del seguimiento coinciden. Pasaron 670/670 Node. Playwright verificó 223 casos y dos omisiones previstas entre los informes `storage/framework/testing/t43/run-general-e16af69d-9ca0-4c5f-a2ca-15cde6c05f58/results.json` y `storage/framework/testing/t43/run-general-7aff87fc-3d00-4e33-884f-1a3484ffbe73/results.json`. Pest pasó 4.137 pruebas, con 9 omitidas y 26.449 aserciones. Quedan registrados en la guía, el glosario y ambos changelogs la zona de marca y los nombres de las plantillas.
 
 ### T-55 — `usePolling` y `useAiStatus`
 
 - **Descripción**: Sondeo con tope, backoff y pausa con pestaña oculta; `ai.status` pedido una vez y `call()` compartido.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Informes y Canva pausan su actualización en segundo plano y permiten reanudarla al llegar al límite. El compositor comparte el estado y la cuota de la IA.
+- **Estado**: completado
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-53
 - **Tipo**: frontend
-- **Archivos**: `resources/js/composables/usePolling.js`, `resources/js/composables/useAiStatus.js`, `resources/js/Pages/Reports/Index.vue`, `resources/js/Pages/Canva/Index.vue`, `resources/js/Components/AiSuggest.vue`, `resources/js/Components/ScheduleSection.vue`
+- **Archivos**: `resources/js/composables/usePolling.js`, `resources/js/composables/useAiStatus.js`, `resources/js/Pages/Reports/Index.vue`, `resources/js/Pages/Canva/Index.vue`, `resources/js/Components/AiSuggest.vue`, `resources/js/Components/ScheduleSection.vue`, `resources/js/Composables/useAiStatus.js`, `resources/js/Composables/usePolling.js`
 - **Cubre**: D-08, D-16
 - **Cubre (tests)**: E2E-13
 - **Verificación**: `npm run test:unit` → pasa (tests de `usePolling`) · `npx playwright test tests/e2e/canva.spec.ts --workers=1` → verde
 
 **Criterios de aceptación**
-- [ ] Reports y Canva no sondean sin fin ni se solapan
-- [ ] `ai.status` se pide una sola vez por pantalla
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Reports y Canva no sondean sin fin ni se solapan
+- [x] `ai.status` se pide una sola vez por pantalla
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño S.
+
+**Preparación T-55 (2026-11-17).** En una copia aislada se integraron el sondeo común y el estado de IA por compositor. Los cinco casos focales pasan, incluido el RED que comprobó que ocultar la pestaña no cancelaba una petición en vuelo. ESLint, formato, tipos y build pasaron. La batería integrada de Node pasó 660/660. La propuesta deja 40 consultas por ciclo de informes y 30 por ciclo de Canva, con vuelta a consulta manual. Se prepararon dos comprobaciones de navegador para el estado de IA y el tope de informes. RED en el checkout: el compositor pidió el estado dos veces y los informes hicieron una consulta con la pestaña oculta. Informe en `storage/framework/testing/t43/run-general-af1cb89f-728a-4978-901f-441024b01145/results.json`. Se aplicaron ambos composables, la integración en Canva e Informes y el estado común del compositor. Lint, formato, tipos, build y 660 pruebas de Node pasaron. El navegador confirma una petición de estado y cero consultas con la pestaña oculta, pausa simulada mediante visibilitychange. Tras mostrarla, detuvo el sondeo de informes en la consulta 40 y mostró «Volver a consultar». qa-gate verde en `storage/framework/testing/t43/run-general-d3e305ac-e404-4612-bbcf-e65303e1e7d0/results.json`. Playwright aprobó los 30 casos de Canva, Informes, barra del editor y programación por lenguaje natural, con cero fallos u omitidos y qa-gate verde. Informe en `storage/framework/testing/t43/run-general-e0cf4280-2b8f-49b0-bda7-1d8060aa3cca/results.json`. Pest aprobó 4.134 pruebas, con 9 omitidas y 26.365 aserciones. Pendiente revisión de Opus 5.5.
+
+La primera solicitud a Claude Code Opus 5.5 no devolvió resultado. El cliente rechazó el segundo intento con el motivo reasoning_extraction. Una tercera solicitud para el mismo diff produjo un informe de aceptación y calidad con el modelo solicitado.
+
+**Revisión de dos lentes — informe de Claude Code Opus 5.5 (2026-11-17).** Confirmó la pausa, la exclusión de solicitudes simultáneas, los límites y la consulta compartida de IA. Detectó que una pausa consumía el último intento y que se montaba la región de estado con el mensaje ya escrito. El análisis del checkout verificó que el AbortSignal de Canva y useAiStatus llega a fetch. RED reprodujo el consumo de intentos al ocultar la pestaña y la solicitud obsoleta al reiniciar. El ajuste conserva el presupuesto al abortar y mantiene montada la región de estado de Canva e Informes. Pasaron 5/5 pruebas focales en copia aislada, ESLint y Prettier. Recibo `%TEMP%/metricool-t55-r3-claude-opus55.json` y parche `%TEMP%/metricool-t55-claude-r3-fix.patch`. Pendientes aplicación, regresión y cotejo de la corrección.
+
+**Revisión de seguimiento T-55 (2026-11-17).** Opus 5.5 no identificó defectos bloqueantes en el control del presupuesto ni en las regiones vivas. Se reforzaron los tiempos de espera en los tests y se documentó que el sondeo debe resolver tras el aborto. Pasaron 5/5 focales en la copia. Recibo `%TEMP%/metricool-t55-r4-claude-opus55.json`. Parche `%TEMP%/metricool-t55-claude-r4-fix.patch` y ejecución preparada en `%TEMP%/metricool-t55-review-r4-checkout-validation.ps1` para después de T-54.
+
+T-55 aplicada al checkout tras cerrar T-54. El ejecutor reprodujo el RED de los tests de sondeo, aplicó el ajuste y pasó las pruebas focales. ESLint, Prettier, TypeScript y Vite verdes. Sigue en curso su verificación amplia.
+
+La primera regresión serial pasó 74/77. En los tres tamaños falló el selector genérico de `status` al encontrar también la región de sondeo. Se filtró por «Plantilla guardada.», literal de `ReportTemplateController`, conservando el rol. Opus 5.5 revisó el ajuste. La segunda regresión pasó 77/77 con cero omisiones y cero flaky. Informe en `storage/framework/testing/t43/run-general-68cdeed6-938e-4dd5-b127-901144d79add/results.json`. Pasaron 7 pruebas focales y 672 de Node, además de ESLint, Prettier, TypeScript y Vite. Pest completo se ejecutó a continuación.
+
+Cierre verificado de T-55. Pest completo pasó 4.137 pruebas, con 9 omitidas y 26.449 aserciones. `qa-gate.py` dio VERDE para los 77 casos. Las cinco huellas coinciden tras la ejecución. La revisión de Claude Code Opus 5.5 incluyó la calidad del código y del selector, además del contrato de cancelación, presupuesto y regiones vivas. La pausa durante una petición activa y la reanudación conservando el presupuesto están cubiertas por Node. El refuerzo de ese recorrido en el navegador se incorpora a T-59 al cambiar los campos solicitados por el sondeo. La verificación manual M-12 se mantiene en T-56/T-60.
 
 ### T-56 — `BaseDialog` sobre `<dialog>` nativo
 
 - **Descripción**: Un único componente de diálogo con trampa de foco completa que sustituya los cuatro patrones actuales.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Los diálogos modales usan el mismo componente nativo para el foco de entrada, la navegación con Tab y la devolución del foco.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -2272,96 +2535,183 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Verificación**: `npx playwright test tests/e2e/a11y.spec.ts --workers=1` → verde
 
 **Criterios de aceptación**
-- [ ] `UtmModal` atrapa el foco y cierra con Escape
-- [ ] Los cuatro patrones usan `BaseDialog`
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] `BaseDialog` parte de `StudioDialog` (`<dialog>` nativo); no quedan `fixed inset-0` a mano ni `Modal.vue` paralelo, y las pantallas del estudio lo usan
+- [x] `UtmModal` atrapa el foco y cierra con Escape
+- [x] Los cuatro patrones usan `BaseDialog`
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] `BaseDialog` parte de `StudioDialog` (`<dialog>` nativo); no quedan `fixed inset-0` a mano ni `Modal.vue` paralelo, y las pantallas del estudio lo usan
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M.
 
+**Preparación T-56 (2026-11-17).** La copia aislada integra el diálogo nativo común para el perfil, el compositor, el calendario y el Estudio, incluidas la presentación y la confirmación anidada de tablas. Se adaptaron los arneses de montaje de Vue al extraer el diálogo. Pasaron 71 pruebas focales y, al combinar con T-55, 660 de Node, lint, formato, tipos y build. El caso UTM comprueba la capa modal nativa y la vuelta de Tab en ambos sentidos. Se aplicó al checkout. RED real: el UTM anterior no era un elemento `dialog:modal` (`storage/framework/testing/t43/run-general-1fd1dd9d-04e4-46cb-81b1-0fa5f7ed8b01/results.json`). GREEN UTM 3/3 con cierre y Tab en ambas direcciones, en `storage/framework/testing/t43/run-general-6a0a31b2-0042-4e90-a5ac-307802785b5e/results.json`. Pasaron lint, formato, tipos, build y 660 pruebas de Node. La única apertura modal nativa está en BaseDialog. La regresión amplia está en marcha. Detectó que Escape deja abierto el selector de GIF con el campo de búsqueda relleno y que no se recupera el foco del botón «Añadir audio» en Instagram. Se preparó el manejo de Escape para que se procese antes de que el campo de búsqueda lo consuma. El ajuste `%TEMP%/metricool-t56-search-escape-preview.patch` pasó 23 pruebas de Node en la copia y queda pendiente de aplicar y repetir los dos recorridos de navegador. Pendientes Pest final y revisión de aceptación y calidad con Opus 5.5.
+
+La primera regresión de navegador terminó con 245 casos correctos, uno omitido y los dos fallos de Escape ya identificados. Informe en `storage/framework/testing/t43/run-general-b54d7238-fcc6-4b26-a235-b9f2a2345dc2/results.json`. Tras terminar la ejecución se aplicó el ajuste en `BaseDialog.vue`. Pasaron lint, formato, tipos, build y 660 pruebas unitarias. La repetición focal pasó 9/9 con `qa-gate` verde. Incluyó GIF, audio de Instagram, UTM y el retorno de foco al cerrar el diálogo anidado de tablas, además de cancelar el audio pendiente de la presentación. Informe en `storage/framework/testing/t43/run-general-5f17e631-d2e3-4584-827a-289ac7c4d71f/results.json`. La regresión amplia final pasó 248/248 en los tres tamaños, con `qa-gate` verde y sin omitidos ni flaky. Informe en `storage/framework/testing/t43/run-general-9c8234ab-b132-4257-aaaf-b78a7e3605f2/results.json`. Pest completo empezó después. Se compiló una copia del código inmediatamente anterior a T-56 para cotejar el mismo alcance de navegador. El cotejo y M-12 siguen pendientes.
+
+Pest terminó con 4.134 aprobadas, 9 omitidas y 26.365 aserciones. Informe en `%TEMP%/metricool-t56-pest-full.log`. Se actualizó la documentación del editor de Studio y los dos registros de cambios. La revisión de aceptación y calidad con Opus 5.5 queda preparada en `%TEMP%/metricool-t56-review-ready.txt`.
+
+Se inició el cotejo anterior a T-56 tras la verificación focal de T-58. La copia recompilada ejecuta los mismos 248 casos de Playwright en serie. Su informe se cotejará por fichero, suite, título y proyecto con el informe final de T-56.
+
+La copia de la línea base anterior detectó dependencias locales ausentes. El cargador tipográfico devolvió HTTP 503 y la extracción de fondo HTTP 422. El enlace de node_modules también cambió la clave de pdf-lib en el manifiesto de Vite. Se comprobó la sonda con el entorno Python de Studio y una tipografía de prueba. Se preparó una repetición serial con el modelo local fijado por SHA-256, el entorno Python y una copia física de node_modules. Pendiente el cotejo de los 248 casos y M-12.
+
+La primera línea base terminó con 240/248. Las ocho incidencias corresponden a tipografías e inferencia sin sus dependencias locales y a la clave de pdf-lib. La repetición de los 248 casos arrancó en serie con las dependencias corregidas. La revisión de Claude Code Opus 5.5 encontró un cierre nativo que no sincronizaba el componente padre, búsquedas de GIF activas tras cerrar y un salto de foco en casos límite de tabulación. RED confirmó los dos primeros problemas. GREEN 2/2 en una copia aislada con devolución de foco, notificación del cierre y cancelación e invalidación de respuestas GIF tardías. Parche parcial `%TEMP%/metricool-t56-claude-r1-partial.patch`, recibo `%TEMP%/metricool-t56-r1-claude-opus55.json`. Pendientes tabulación y otros hallazgos, aplicación, regresión y M-12.
+
+El parche de seguimiento abordó la tabulación desde elementos con foco programático, los radios sin selección, los controles ocultos y el cierre accidental desde la barra del diálogo. Se aplica el bloqueo de desplazamiento de fondo a todos los diálogos nativos. Se reprodujeron cuatro fallos adicionales y pasaron 6/6 pruebas unitarias del seguimiento. Los nuevos recorridos en navegador cubren el cierre nativo, el ciclo de tabulación con radios y el aborto de GIF. El cotejo anterior en serie ya superó las pruebas de escritorio de tipografías, eliminación de fondo y exportación PDF. Parche listo en `%TEMP%/metricool-t56-claude-r1-fix.patch`, segunda revisión enviada. Quedan resultados del navegador, integración y M-12.
+
+La preparación de T-56 anterior al seguimiento alcanzó 248/248 en Playwright y qa-gate verde en ambos lados. Coincidieron los 248 casos por fichero, suite, título y navegador en `%TEMP%/metricool-t56-before-after-parity.json`. La revisión 2 identificó que el cierre nativo debe respetar el veto del padre y la revisión 3 identificó una doble solicitud de cierre, pérdida de foco al reabrir tras el veto y resultados anteriores de GIF visibles bajo una consulta abortada. El seguimiento los corrige y pasó 10/10 pruebas foco. Parches y recibos en `%TEMP%/metricool-t56-claude-r3-fix.patch` y `%TEMP%/metricool-t56-r3-claude-opus55.json`. Cuarta revisión enviada. El cotejo de 248 pertenece al candidato anterior al seguimiento y aún no verifica los recorridos nuevos ni M-12.
+
+La cuarta revisión confirmó las tres correcciones y no encontró un defecto bloqueante. Señaló dos casos menores a ajustar antes del navegador: distinguir la última consulta enviada del texto aún sin enviar en GIF y no usar el elemento que tenía foco como indicador de que el diálogo fue abierto. Recibo en `%TEMP%/metricool-t56-r4-claude-opus55.json`. Las pruebas seriales sobre el seguimiento y M-12 siguen pendientes.
+
+**Ajustes T-56 tras la cuarta y quinta revisiones (2026-11-17).** Se reprodujo el cierre sin elemento invocador, el envío involuntario de texto y el catálogo sin reintento tras un fallo. La identidad del diálogo se rastrea por elemento, el selector solo reintenta búsquedas enviadas y recupera un catálogo fallido al volver a abrir. Pasaron 13/13 focales en la copia aislada. Parche `%TEMP%/metricool-t56-claude-r5-fix.patch` y recibo `%TEMP%/metricool-t56-r5-claude-opus55.json`. Pendientes Playwright en la rama, cotejo y M-12.
+
+El ajuste quedó aplicado tras verificar las huellas de T-55. Pasaron las 13 pruebas focales, ESLint, Prettier, TypeScript y Vite. La primera pasada de Node detectó que al nuevo recorrido del selector GIF le faltaba `@responsive`. Se etiquetó y la salvaguarda pasó 17/17. El cotejo de navegador espera seis casos nuevos, los recorridos de GIF y compositor en los tres tamaños, además de los 248 de la línea base. La comprobación manual M-12 con lector de pantalla sigue pendiente. Node pasó 685/685 con la etiqueta corregida. El foco Playwright pasó 9/9 sin omisiones ni reintentos en escritorio, 375 px y 360 px. Informe en `storage/framework/testing/t43/run-general-39b5c95b-fdc0-423b-a165-5e473c8d0496/results.json`. Los 12 specs de regresión están en marcha.
+
+Regresión T-56 en curso. El recorrido de escritorio de doble factor agotó la espera del campo después de que la sesión cambiara al panel. Se revisó la traza y se preparó un ajuste de prueba que comprueba el vaciado mientras sigue visible el reto. La repetición serial del fichero y Pest esperan al resultado completo. El ejecutor exige que el resto de los 254 casos coincida con los 248 originales y los seis nuevos antes de aplicar el ajuste. La comprobación manual M-12 queda pendiente.
+
+El fichero afectado pasó 16/16 en la repetición serial, con informe `storage/framework/testing/t43/run-general-e0ea130e-2c1d-409b-86bd-723f5c02b0d6/results.json`. Se contrastaron las identidades y estados finales de los 248 casos originales y de los seis nuevos. La primera pasada conserva 253 verdes y un fallo. El cotejo combinado deja 254 verificados y cero pendientes automatizados de navegador, en `%TEMP%/metricool-t56-review-r6-parity.json`. Pest final pasó 4.137 pruebas, con 9 omitidas y 26.449 aserciones, los mismos resultados que la base T-55. Las huellas se comprobaron antes de aplicar T-57. La comprobación manual M-12 y la revisión final de seguimiento quedan pendientes.
+
 ### T-57 — `ConfirmDialog` y `useConfirm()` en lugar de 25 `confirm()`
 
 - **Descripción**: Sustituir todas las llamadas a `confirm()` nativo por un diálogo accesible.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las acciones destructivas comparten un diálogo accesible con foco inicial en «Cancelar» y cancelación con Escape.
+- **Estado**: completado
+- **Cerrada**: 2026-11-17
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-56
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Components/ConfirmDialog.vue`, `resources/js/composables/useConfirm.js`, `resources/js/Pages/Brands/Index.vue`, `resources/js/Pages/Sites/Edit.vue`, `resources/js/Pages/Studio/Index.vue`
+- **Archivos**: `resources/js/Components/ConfirmDialog.vue`, `resources/js/composables/useConfirm.js`, `resources/js/Pages/Brands/Index.vue`, `resources/js/Pages/Sites/Edit.vue`, `resources/js/Pages/Studio/Index.vue`, `resources/js/app.js`
 - **Cubre**: D-04
 - **Cubre (unificación)**: U-11
 - **Cubre (tests)**: E2E-08
 - **Verificación**: `grep -rnE "(^|[^.])confirm\(" resources/js | grep -v useConfirm | wc -l` → 0 · `npx playwright test tests/e2e/pages.spec.ts --workers=1` → verde
 
 **Criterios de aceptación**
-- [ ] `grep -rn "confirm(" resources/js` → solo `useConfirm`
-- [ ] Cada acción destructiva pide confirmación y se puede cancelar
-- [ ] Las confirmaciones del estudio usan `ConfirmDialog`/`useConfirm()` común, sin diálogos propios
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] `grep -rn "confirm(" resources/js` → solo `useConfirm`
+- [x] Cada acción destructiva pide confirmación y se puede cancelar
+- [x] Las confirmaciones del estudio usan `ConfirmDialog`/`useConfirm()` común, sin diálogos propios
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Los specs que aceptaban el diálogo nativo (`page.on('dialog')`) se adaptan.
+
+**Preparación T-57 (2026-11-17).** En la copia aislada, las confirmaciones nativas se sustituyeron por un diálogo común. El estado impide sustituir una pregunta abierta, cancela al desmontar la vista y se reutiliza para descartar cambios de tablas. Se prepararon recorridos con teclado para borrar una marca y un sitio y archivar un diseño. Pasaron los tipos, la compilación y 663 pruebas de Node. La búsqueda de llamadas nativas quedó vacía en la copia. El parche `%TEMP%/metricool-t57-confirm-preview.patch` queda pendiente de aplicar al checkout y probar en navegador.
+
+**Verificación focal T-57.** RED de navegador: los dos casos de E2E-08 fallaron porque faltaba el diálogo compartido tras pulsar «Eliminar» en marca y sitio. Informe en `storage/framework/testing/t43/run-general-9828bcd1-d9e9-47bd-88a3-a7e005ba0353/results.json`. Se aplicó el cambio en el checkout. GREEN: 6/6 casos en los tres tamaños, con cancelación, devolución de foco, borrado confirmado y archivo de un diseño. Informe en `storage/framework/testing/t43/run-general-e6a3d4a1-a163-4bbe-b38c-04671fe5b9b7/results.json`. Pasaron lint, formato, tipos, build y 663 pruebas de Node. El barrido del checkout no encontró confirmaciones nativas. Se actualizaron las pruebas de desconexión y revocación de la batería de roadmap. Pendientes la regresión amplia, Pest y la revisión de aceptación y calidad.
+
+Las dos pruebas de la batería de roadmap pasaron en los tres tamaños, 6/6 sin omitidos ni flaky, con `qa-gate` verde. Informe en `storage/framework/testing/t43/run-confirm-71a686d1-bb0c-4d3e-8afd-e8cbddd7bd41/results.json`. Después se inició la regresión serial de 217 casos de los módulos afectados.
+
+Regresión amplia T-57 completada. Playwright aprobó 215 casos, omitió los dos recorridos de navegación exclusiva de escritorio en los proyectos móviles y no registró fallos ni flaky. `qa-gate` dio verde. Informe en `storage/framework/testing/t43/run-general-ffb51d52-d7c6-49e8-b81b-f5fa00306082/results.json`. Pest completo se inició al terminar Playwright.
+
+Pest pasó 4.134 pruebas, con 9 omitidas y 26.365 aserciones. Informe en `%TEMP%/metricool-t57-pest-full.log`. La revisión de aceptación y calidad sigue pendiente. El paquete `%TEMP%/metricool-t57-review-ready.txt` incluye las pruebas añadidas y los ajustes del roadmap. Se guardaron las 47 huellas del checkout antes de empezar T-58.
+
+**Revisión de dos lentes — intento 1 con Claude Code Opus 5.5 (2026-11-17).** Confirmó la resolución única y la limpieza de la confirmación común. Identificó que StudioCollabPanel pide confirmación dentro de run y puede borrar el feedback previo al cancelar. También señaló acciones que resuelven su destino tras esperar la confirmación y pueden usar las props de otra marca o sitio si Inertia conserva el componente. Se cotejaron ambas estructuras en la rama. Quedan corregir los hallazgos, cubrir el cambio de contexto y repetir la revisión de aceptación y calidad. Recibo en `%TEMP%/metricool-t57-r1-claude-opus55.json`.
+
+**Seguimiento a las revisiones 1 y 2 de T-57 (2026-11-17).** Cuatro pruebas reprodujeron pérdida de avisos, una operación sobre otro diseño u otra marca y campos de lote ajenos a la acción confirmada. Los destinos se toman antes de preguntar, el panel no pierde avisos al cancelar y un rechazo tardío de un diseño no se muestra en el siguiente. Se eliminó AbortSignal.any y se asociaron los eventos de cierre a la pregunta correspondiente. La segunda revisión validó estos ajustes y pidió etiquetas concretas y migrar la confirmación de «Publicar igualmente». El parche incluye ambas correcciones, pruebas para todos los destinos señalados, descarte de tablas al desmontar y Escape en la confirmación anidada de carpetas. Pasaron 45/45 pruebas focales en una copia aislada. Parche `%TEMP%/metricool-t57-claude-r2-fix.patch`, recibo de revisión 2 `%TEMP%/metricool-t57-r2-claude-opus55.json`. Quedan tercera revisión, integración y QA amplia.
+
+**Revisión 4 de T-57 (2026-11-17).** Claude Code Opus 5.5 considera el código apto para la regresión y no identificó bloqueantes. Las últimas correcciones invalidan la confirmación al salir y volver al mismo diseño y vuelven a verificar el estado del primer comentario antes de publicar. Dos pruebas RED confirmaron esos casos. Las 47 focales pasan en la copia aislada y ESLint revisó los 24 Vue del ajuste previo. El parche definitivo incluye las dos entradas de changelog y las pruebas de cancelación y foco. Recibo `%TEMP%/metricool-t57-r4-claude-opus55.json` y parche `%TEMP%/metricool-t57-claude-r3-fix.patch`. Pendientes aplicación, navegador de cancelación y foco, y regresión completa.
+
+Se concretaron las etiquetas opcionales señaladas por el revisor, se actualizó el selector de SmartLinks y se adaptó el parche a T-54. Pasaron 47/47 focales en la copia. El parche `%TEMP%/metricool-t57-postreview-fix.patch` queda para aplicar tras los seguimientos anteriores.
+
+Se ajustaron los finales de línea del hunk de SmartLinks a los del fichero tras T-54. La aserción conserva «Eliminar suscriptor». Parche `%TEMP%/metricool-t57-postreview-integrated.patch` comprobado contra el checkout. Pendientes aplicación y QA serial.
+
+La cadena aislada posterior a T-56 conservó la documentación de diálogos y añadió la guía de confirmaciones. El parche preparado para el checkout es `%TEMP%/metricool-t57-postreview-after-t56.patch` y se aplicó en la copia sin conflictos. El ejecutor comprobó el cotejo, Pest y las huellas de T-56 y aplicó el ajuste. Pasaron 47 pruebas focales y 704 de Node, además de ESLint, Prettier, TypeScript y Vite. La validación de T-57 sigue con el foco de Playwright, 13 specs de regresión, los dos recorridos afectados de roadmap y Pest, en serie.
+
+La prueba focal final de T-57 pasó 9/9 en escritorio y las dos anchuras móviles. Informe en `storage/framework/testing/t43/run-general-77bb7907-6703-4ae2-9783-99088865ef6f/results.json`. En marcha la regresión serial de 218 casos.
+
+La regresión encontró un localizador ambiguo en la prueba de foco de carpetas. El diálogo contiene un botón de borrado por carpeta y ambos coinciden con `folder-delete`. El parche de prueba `%TEMP%/metricool-t57-studio-delete-focus-preview.patch` reutiliza el botón «Borrar la carpeta Campañas» para abrir la confirmación, comprobar el foco al cancelar y abrirla de nuevo. La siguiente ejecución verificará el spec completo de Studio, los recorridos del roadmap y Pest cuando termine la sesión actual. El ejecutor se detiene si la regresión inicial registra algún fallo adicional.
+
+La regresión inicial terminó con 215 aprobados, dos omitidos previstos para la navegación de escritorio y un fallo en el localizador de carpetas. Tras aplicar el parche de prueba, `studio.spec.ts` pasó 7/7, incluida la devolución de foco al botón de «Campañas», y los dos recorridos del roadmap pasaron 6/6 en los tres tamaños. Ambos informes tienen cero fallos y cero flaky. Informes en `storage/framework/testing/t43/run-general-7d637e65-bc34-4578-aa9a-d8a444ad3f13/results.json`, `storage/framework/testing/t43/run-general-96b9a041-9610-4d83-9a41-635770863098/results.json` y `storage/framework/testing/t43/run-confirm-f0e36314-592a-4bce-9547-e72f998d8c2e/results.json`. Pest completo se inició después.
+
+**Cierre T-57 (2026-11-17).** Claude Code confirmó el modelo `claude-opus-5-5` y aprobó la aceptación y calidad sin bloqueantes. Se concretaron las siete etiquetas señaladas y se corrigió la selección del botón de carpeta en el test. El barrido de llamadas nativas quedó vacío. Pest pasó 4.137 pruebas, con 9 omitidas y 26.449 aserciones. La guía y ambos changelogs incluyen el patrón de confirmación. Se registra la sugerencia opcional de asociar los handlers de `ConfirmDialog` al render de cada pregunta. La revisión la calificó de preventiva porque Vue descarta los eventos de componentes desmontados. Los estados de confirmación tienen guardia por id y la devolución de foco se verificó en navegador. Resultado en `%TEMP%/metricool-t57-r4-recheck-pest.log` y huellas previas a T-58 en `%TEMP%/metricool-t57-r4-recheck-hashes.json`.
 
 ### T-58 — Flash global en `HandleInertiaRequests` y banner único
 
 - **Descripción**: Un solo estilo de flash compartido por Inertia con banner global; recuperar errores que se pierden y mensajes que nunca se ven.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Los avisos del sitio comparten un banner que anuncia acciones de Studio y API keys y conserva los errores de validación visibles.
+- **Estado**: completado
+- **Cerrada**: 2026-11-17
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-57
 - **Tipo**: frontend
-- **Archivos**: `app/Http/Middleware/HandleInertiaRequests.php`, `resources/js/Layouts/AuthenticatedLayout.vue`, `resources/js/Components/FlashBanner.vue`, `app/Http/Controllers/Studio/StudioController.php`, `app/Http/Controllers/ApiKeyController.php`
+- **Archivos**: `app/Http/Middleware/HandleInertiaRequests.php`, `resources/js/Layouts/AuthenticatedLayout.vue`, `resources/js/Components/FlashBanner.vue`, `app/Http/Controllers/Studio/StudioController.php`, `app/Http/Controllers/ApiKeyController.php`, `resources/js/Composables/useStudioCreation.js`
 - **Cubre**: D-06
 - **Cubre (unificación)**: U-21
 - **Cubre (tests)**: E2E-09
 - **Verificación**: `php artisan test --compact --filter=FlashSharedPropsTest` → verde · `npx playwright test tests/e2e/pages.spec.ts --workers=1` → verde
 
 **Criterios de aceptación**
-- [ ] Los mensajes de `StudioController` y `ApiKeyController` se muestran
-- [ ] No quedan flashes por página con estilos distintos
-- [ ] El banner único de flash/aviso se usa también en `Studio/Index.vue` y `Editor.vue` (sin banners propios del estudio)
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Los mensajes de `StudioController` y `ApiKeyController` se muestran
+- [x] No quedan flashes por página con estilos distintos
+- [x] El banner único de flash/aviso se usa también en `Studio/Index.vue` y `Editor.vue` (sin banners propios del estudio)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M.
+
+**Preparación T-58 (2026-11-17).** El candidato aislado comparte los avisos de Inertia en los dos layouts autenticados y conserva `publishing_post_id` para el calendario. Studio usa el mismo componente dentro del diálogo cuando falla la validación y en el editor al crear el diseño. El secreto de la API key conserva su prop de una sola consulta. Pasaron formato, lint, tipos, build, sintaxis PHP y 718 pruebas de Node con `--expose-gc`. `FlashSharedPropsTest` pasó 3/3 con 84 aserciones en un Laravel aislado que usa SQLite en memoria y su propio almacenamiento. El parche `%TEMP%/metricool-t58-flash-preview.patch` se comprobó contra la copia de T-57. Pendientes aplicar en orden, repetir Pest en la rama, ejecutar Playwright y revisar aceptación y calidad con Claude Code Opus 5.5.
+
+Contraste con el backend del checkout de T-57 en una instalación aislada. RED: `FlashSharedPropsTest` falló 3/3 al verificar `flash.success`, que no existía en ninguna de las tres respuestas. GREEN: al aplicar únicamente el diff PHP de T-58, los mismos casos pasaron 3/3 con 84 aserciones. Informes en `%TEMP%/metricool-t58-pest-preview-red.log` y `%TEMP%/metricool-t58-pest-preview-green.log`. La validación serial en el checkout queda preparada en `%TEMP%/metricool-t58-checkout-validation.ps1`.
+
+T-58 aplicada y verificada en el checkout. RED: los dos recorridos de navegador no encontraban los avisos «API key creada» y «Diseño guardado». Informe en `storage/framework/testing/t43/run-general-1de5c9b8-bb0b-41a0-8874-829cfc4d3cb7/results.json`. GREEN: Playwright 6/6 con `qa-gate` verde en los tres tamaños y Pest focal 3/3 con 84 aserciones. Informe en `storage/framework/testing/t43/run-general-f3a88622-7b85-4e49-bfe0-7e8d520050b1/results.json`. Pasaron lint, formato, tipos, build y 663 pruebas de Node. El único `flash` de servidor está en el middleware y Studio usa `FlashBanner` dentro y fuera de sus diálogos. Pendientes regresión amplia, Pest completo y revisión de aceptación y calidad.
+
+**Revisión del núcleo de T-58 con Claude Code Opus 5.5 (2026-11-17).** Las dos primeras invocaciones quedaron sin respuesta. La tercera devolvió hallazgos sobre el manejo de fallos HTTP y de red al crear un diseño, errores de diálogos que reaparecen en la página y regiones de estado que se montan con texto ya presente. El inventario de Vue mostró que los avisos globales se renderizan en los layouts y que Calendario consulta flash.error para liberar la tarjeta. Identidad de marca abre un StudioDialog. La revisión de los cambios restantes de consumidores y las pruebas amplias siguen pendientes. Recibo `%TEMP%/metricool-t58-r3-claude-opus55.json`.
+
+**Seguimiento T-58 (2026-11-17).** La creación vuelve a usar el transporte JSON tipado y pasa el aviso del servidor al layout mediante el flash de Inertia. El JSON no pone un aviso en la sesión de otras pestañas. Tres pruebas Node y cuatro Pest aisladas con 88 aserciones pasaron. Se prepararon regiones vivas persistentes y pruebas de navegador para 422, 403 y 500. La cuarta revisión detectó que se puede crear un segundo diseño mientras navega el editor y que el fallo de esa navegación puede ocultar el resultado de la primera creación. También queda ajustar el montaje del aviso de plantilla. Recibo `%TEMP%/metricool-t58-r4-claude-opus55.json` y candidato `%TEMP%/metricool-t58-claude-r3-fix.patch`. No aplicado.
+
+El siguiente candidato de T-58 conserva el diseño creado mientras navega y permite reintentar solo la apertura, incluso al cancelarse antes de iniciar la visita. Se reprodujo la reentrada y pasaron 5/5 pruebas Node en la copia. El aviso de plantilla se monta antes de que aparezca el resultado. Parche `%TEMP%/metricool-t58-claude-r4-fix.patch`, nueva revisión enviada. Sigue pendiente la aceptación en navegador.
+
+La ronda 5 de Opus detectó dos vías para duplicar al reabrir el diálogo o pulsar otra plantilla. El ajuste guarda el enlace y separa «Abrir diseño» de «Crear otro diseño». Tras la ronda 6 se conservaron las regiones vivas y el foco, y se restablecieron nombre y dimensiones. La carpeta sigue el filtro activo. El RED reprodujo el fallo del reinicio y después pasaron 6/6. Playwright interrumpe un GET iniciado y reintenta sin otro POST. Pendientes revisión y navegador. Parche `%TEMP%/metricool-t58-claude-r6-fix.patch`. La ronda 7 quedó sin informe por el filtro reasoning_extraction de Claude Code. Se envió una revisión de seguimiento con el mismo modelo y fragmentos exactos del controlador, el diálogo y su prueba. Opus respondió en la ronda 8. El botón para reabrir está en la cabecera de Studio. El RED reprodujo que fallar al abrir el editor no mostraba aviso. El ajuste conserva el diseño guardado, muestra un aviso junto a «Abrir diseño» y limpia el error al reintentar. Node pasó 6/6. El E2E verifica que desaparece el diálogo guardado. Parche `%TEMP%/metricool-t58-claude-r8-fix.patch`. Pendientes nueva revisión y validación del navegador.
+
+La ronda 9 de Claude Code Opus 5.5 detectó que el E2E interceptaba una excepción que el componente no gestionaba. Ahora el listener de Inertia solo trata un error de transporte del GET exacto y se retira al finalizar la visita. Las pruebas Node reprodujeron el fallo y pasaron 6/6 tras el ajuste. Playwright separa validación y reapertura y comprueba que no hay errores sin capturar. El parche `%TEMP%/metricool-t58-claude-r9-after-t57.patch` preserva la confirmación «Revocar API key» de T-57. La ronda 10 recibió el límite de uso de Claude Code con reinicio a las 11:30, hora de Madrid.
+
+El ejecutor de T-58 queda en cola y comprueba los tres informes, Pest y las huellas de T-57 antes de aplicar su parche. Se preparó una adaptación de dos aserciones de `studio-timeline.spec.ts` para comprobar que no hay mensajes de error mientras las regiones vivas vacías permanecen montadas. El spec se añade a la regresión de T-58. Parche `%TEMP%/metricool-t58-timeline-alerts-preview.patch`.
+
+El ejecutor validó el cotejo de T-57 y aplicó los dos parches de T-58. Pasaron las seis pruebas Node focales, 710 de la suite Node, ESLint, Prettier, TypeScript, Vite y 4 pruebas Pest con 88 aserciones. Playwright pasó 9/9 casos de avisos de API keys, errores anunciados al crear un diseño y reapertura sin otro POST, en los tres tamaños. Informe en `storage/framework/testing/t43/run-general-d59dad01-3c62-4ab7-8b63-6b14957e3d0c/results.json`. La regresión amplia y Pest completo siguen en serie.
+
+La regresión amplia terminó con 281 aprobados, dos omisiones previstas y cero fallos o flaky. Pest completo pasó 4.138 pruebas, con 9 omitidas y 26.453 aserciones. El ejecutor de T-59 cotejó las huellas de esta versión antes de aplicar la paginación. Informe de navegador en `storage/framework/testing/t43/run-general-2c5fde50-a48d-4427-9a1c-959beb49c11b/results.json` y Pest en `%TEMP%/metricool-t58-r9-followup-pest.log`. Sigue pendiente la revisión de seguimiento con Opus 5.5.
+
+Opus 5.5 R10 revisó la aceptación y la calidad de T-58 en `%TEMP%/metricool-t58-r10-resume1130-opus55.json`. Se comprobó que el Inertia instalado llama a `finish()` en `finally` y que los consumidores del banner usan `dismissible-error`. RED: la prueba del GET del editor omitía capturar `ETIMEDOUT`. El candidato aislado normaliza la URL del GET, trata los timeouts de esa visita, limita el aviso a la apertura efectiva del editor y descarta respuestas de creación de otra marca. Pasaron siete casos focales. Quedan los demás hallazgos, verificación en navegador y nueva revisión.
+
+La creación y la reapertura se extrajeron a `useStudioCreation`. Siete pruebas ejecutan el composable real, incluido el orden de desmontaje antes del aviso de éxito. RED de navegador: un 409 dejaba el diálogo de plantilla abierto y tapaba la recuperación. La corrección pasó 12 casos sin fallos en `C:/Users/daycr/AppData/Local/Temp/metricool-t58-r11-exact-e307debd-a9ae-476c-a4ec-c9f16f5ac415/storage/framework/testing/t43/run-general-fad8e5e9-e4f7-4ca8-900e-f9c4972ebe8e/results.json`. Node completo pasó 717. Opus 5.5 R11 validó el flujo principal y pidió compatibilidad sin `URL.canParse`; R12 ajustó la normalización y la baja del listener en la copia aislada y pasó siete casos. Quedan regresión y revisión del último parche.
+
+Claude Code Opus 5.5 aceptó la funcionalidad y la calidad del código en R14. R12 confirmó 141 E2E aprobados, dos omisiones previstas y qa-gate verde tras restaurar Python, el modelo local y las dependencias físicas de Vite. R13 corrigió el doble anuncio. RED de R14: al activar una acción ajena, el aviso cambiaba a «Abriendo el editor…» después de un fallo. R14 separa el progreso de apertura y devuelve el foco en el listado de plantillas. Pasaron 719 pruebas de Node, ESLint, TypeScript, Vite, 25 pruebas Pest de flash y paginación con 592 aserciones y 21 E2E seriales en tres tamaños con qa-gate verde. El caso de plantilla verifica un único POST y confirma el éxito una vez en el editor. La revisión comprobada está en %TEMP%/metricool-t58-r14-final-opus55.json y las huellas de los seis archivos integrados coinciden con el candidato. Informe de navegador en C:/Users/daycr/AppData/Local/Temp/metricool-t58-r11-exact-e307debd-a9ae-476c-a4ec-c9f16f5ac415/storage/framework/testing/t43/run-general-72fb7b1f-dceb-43c4-a664-e908d637ea49/results.json.
 
 ### T-59 — Paginación común en papelera, biblioteca, avisos e informes
 
 - **Descripción**: Paginación común: ninguna lista se corta en silencio (papelera y biblioteca 200, avisos 100, informes 20).
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: La papelera, las plantillas de publicación, los avisos, los informes y los diseños muestran un total y permiten recorrer todo el listado.
+- **Estado**: completado
+- **Cerrada**: 2026-11-17
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -2375,34 +2725,60 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Verificación**: `php artisan test --compact --filter=PaginationListsTest` → verde
 
 **Criterios de aceptación**
-- [ ] Cada lista pagina y muestra el total
-- [ ] Con más de 200 elementos se alcanzan todos
-- [ ] La paginación común de papelera, biblioteca, avisos e informes se usa también en `Studio/Index.vue` y sigue el contrato de cursor único de T-28
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Cada lista pagina y muestra el total
+- [x] Con más de 200 elementos se alcanzan todos
+- [x] La paginación común de papelera, biblioteca, avisos e informes se usa también en `Studio/Index.vue` y sigue el contrato de cursor único de T-28
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M.
+
+**Preparación T-59 (2026-11-17).** RED: los cinco casos de `PaginationListsTest` fallaron porque no existía `pagination.total` o `designs.total` en `%TEMP%/metricool-t59-pest-red.log`. GREEN: 5/5 y 241 aserciones con el cursor de T-28, totales de la consulta filtrada y orden estable por identificador en caso de empate. El componente `Pagination.vue` se usa en papelera, plantillas, avisos, informes y Studio. Pasaron Pint, formato, lint, tipos, build y Node 663/663. Pest focal ampliado pasó 98/98 y 1.015 aserciones en el Laravel aislado. El parche `%TEMP%/metricool-t59-pagination-preview.patch` se comprobó contra la copia de T-58. Pendientes aplicar en orden, verificar E2E-10 con 250 filas por lista y pasar la revisión de Claude Code Opus 5.5.
+
+**Revisión T-59 con Opus 5.5 (2026-11-17).** Se reprodujo un COUNT innecesario al consultar estados de informes y que una plantilla sin fecha desaparecía con el cursor. El seguimiento usa el identificador en biblioteca, orden explícito en avisos y enlaces que no conservan editores obsoletos. Pasaron seis pruebas Pest aisladas con 283 aserciones. Se comprobó que el cursor antiguo de avisos responde 422. El recuento diferido todavía requiere mantener los enlaces sincronizados durante el sondeo de informes, hallazgo de la segunda revisión. Pendiente también E2E de 250 filas y controles de avisos, informes y Studio. Recibos `%TEMP%/metricool-t59-r1-claude-opus55.json`, `%TEMP%/metricool-t59-r2-claude-opus55.json` y parche incremental `%TEMP%/metricool-t59-claude-r1-fix.patch`.
+
+El sondeo pide juntos filas, cursor y total. Node falla si se omite paginación. Pest comprueba un COUNT por recarga y el total 23 en la segunda página. Opus confirmó que el cursor pagina sobre un clon. El ajuste defensivo valida estructura y dirección conservando el formato. SQLite pasó 82 pruebas de API, MCP, Studio, informes y listas con 1.276 aserciones. Se prepararon dos recorridos para altas durante el sondeo y pausa al ocultar a mitad de ciclo. La ronda 5 pidió preservar valores escalares y nulos de los cursores existentes, verificar el eco del cursor de entrada y observar peticiones durante la pausa y al reanudar. El nuevo caso de navegador observa la red al ocultar, antes del intervalo de reanudación y tras agotar el presupuesto. Pest focal posterior pasó 8/8 con 343 aserciones. Parches `%TEMP%/metricool-t59-claude-r5-fix.patch` y `%TEMP%/metricool-t59-report-polling-browser.patch`. Pendientes revisión de seguimiento, navegador y MySQL. Opus, ronda 6, señaló riesgos de compatibilidad del formato para valores de orden largos, tipado en otros motores y precisión temporal en el E2E. Falta cotejarlos con los órdenes efectivos de los listados y completar QA.
+
+Se cotejaron los órdenes de los listados. Todos usan id o fecha e id, sin valores de texto libre. La validación preserva el formato del cursor, aplica las reglas de clave y fecha del modelo y exige UUID para avisos. Pest SQLite pasó 82 pruebas y 1.337 aserciones, con recorrido completo de 23 informes y prueba del cursor en otro listado. El E2E preparado verifica el cursor durante el sondeo de la segunda página y los primeros intervalos en un reloj pausado. Parches `%TEMP%/metricool-t59-pagination-after-t58.patch`, `%TEMP%/metricool-t59-claude-r6-fix.patch` y `%TEMP%/metricool-t59-report-polling-browser.patch`. La ronda 7 recibió el límite de Claude Code. Sigue pendiente el navegador.
+
+MySQL 8.4.3 pasó `PaginationListsTest` y `CursorOrderTest` en el candidato aislado: 8 pruebas y 400 aserciones. Se verificaron las 83 tablas de la base desechable y se detuvo la instancia. Resultado en `%TEMP%/metricool-t59-mysql-pest.log`.
+
+Se adaptó el final de línea del hunk de Studio al estado actual de T-58. Los tres cambios de paginación se combinaron en 22 archivos y pasaron `git apply --check --whitespace=error` contra el checkout. El ejecutor espera que terminen Playwright y Pest de T-58, comprueba sus informes y huellas y aplica `%TEMP%/metricool-t59-after-t58-r9-combined.patch`. Ejecutará el recorrido de las 250 filas, los cursores de avisos, informes y Studio, y la prueba de pausa del sondeo, antes de la regresión amplia. La ronda de seguimiento de Opus permanece pendiente.
+
+Tras cotejar T-58 se aplicó el parche al checkout. Se ajustó el selector de la primera fila de informes para comprobar explícitamente el orden, con el cupo de localizadores del proyecto intacto. Pasaron Pint, ESLint, Prettier, TypeScript, Vite, 711 pruebas de Node y las 8 pruebas focales de Pest con 400 aserciones. Playwright focal y la regresión amplia se ejecutan en serie. Resultados de la integración en `%TEMP%/metricool-t59-t58r9-*.log`.
+
+Playwright focal pasó 7/7 sin omitidos ni flaky. Las 250 filas de papelera y biblioteca se recorrieron completas en tres tamaños. Pasaron los tres recorridos de avisos, informes y Studio y el caso del límite de sondeo. Informe en `storage/framework/testing/t43/run-general-2532e892-dd0a-47c4-8d1c-dc099d514b6a/results.json`. La regresión amplia está en marcha. Material exacto de revisión en `%TEMP%/metricool-t59-opus55-r7-exact-review.txt`.
+
+La regresión amplia terminó con 266 aprobados, dos omisiones previstas y cero fallos o flaky. Informe en `storage/framework/testing/t43/run-general-c8363321-188e-4368-8408-ed33acd41cf1/results.json`. Pest completo empezó después. El ejecutor de T-60 espera ese resultado y añade primero las capturas iniciales y finales de papelera y biblioteca que pide E2E-10. Aplicará el parche de prueba `%TEMP%/metricool-t59-250-captures-preview.patch`, comprobará tipos y repetirá los tres tamaños. T-60 espera también que el informe contenga las doce capturas.
+
+Pest completo pasó con 4.144 aprobados, 9 omitidos y 26.845 aserciones. E2E-10 pasó en los tres tamaños y se comprobaron las doce capturas iniciales y finales de papelera y biblioteca en el informe `storage/framework/testing/t43/run-general-54e952b4-9a9e-4a75-9ff5-1732b708bf6c/results.json`. Pendiente la revisión final de aceptación y calidad con Claude Code Opus 5.5.
+
+Opus 5.5 emitió la revisión R7 de T-59 en `%TEMP%/metricool-t59-r7-resume1130-opus55.json`. Por verificar con los contratos instalados el tratamiento de cursores de API y MCP, las páginas vacías después de eliminar registros y el flujo de generar informes desde páginas posteriores. La tarea sigue en revisión.
+
+Se integró R9 de T-59 en siete archivos con huellas iguales al candidato probado. Los cursores cualificados pasan, las páginas que se vacían regresan al inicio y generar informes conserva el límite y la marca. Pasaron 21 pruebas focales, 436 de regresión SQLite, 60 en MySQL 8.4.3, seis E2E focales y 126 de regresión de navegador con dos omisiones previstas en `C:/Users/daycr/AppData/Local/Temp/metricool-t59-r8-de840d99-446a-4338-b2b4-25f3f197e60c/storage/framework/testing/t43/run-general-311ee62d-4cdf-401d-80d4-c04170e8a99f/results.json`. Pest completo pasó 4.159 pruebas con nueve omitidas y 26.957 aserciones. Opus 5.5 R9 retiró el hallazgo sobre la estructura del cursor tras cotejar el Laravel instalado y cinco casos 422. Revisados los controladores: las acciones exitosas de papelera y plantillas redirigen directamente a la primera página con el aviso. El cierre de T-59 sigue ligado al de T-58.
+
+Cerrada tras T-58. El seguimiento conjunto R14 volvió a verificar E2E-10 en los tres tamaños con cursores caducados, 250 filas, totales y generación de informes. El cierre usa la aceptación de Claude Code Opus 5.5 R9 sobre funcionalidad y calidad, las huellas aplicadas y las verificaciones SQLite, MySQL y de navegador registradas arriba.
 
 ### T-60 — Formularios accesibles y patrón de pestañas
 
 - **Descripción**: `aria-describedby`/`aria-invalid` vía `FormField` en los 80 `InputError`; pestañas con flechas y `tabpanel` según el patrón de `NetworkTabs`.
 - **Changelog**:
-- **Estado**: borrador
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-59
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Components/InputError.vue`, `resources/js/Components/FormField.vue`, `resources/js/Pages/Calendar/Index.vue`, `resources/js/Components/Studio/StudioCollabPanel.vue`, `resources/js/Pages/ApiKeys/Index.vue`, `resources/js/Components/NetworkTabs.vue`
+- **Archivos**: `resources/js/Components/InputError.vue`, `resources/js/Components/FormField.vue`, `resources/js/Pages/Calendar/Index.vue`, `resources/js/Components/Studio/StudioCollabPanel.vue`, `resources/js/Pages/ApiKeys/Index.vue`, `resources/js/Components/NetworkTabs.vue`, `resources/js/Composables/useTabs.js`
 - **Cubre**: D-10, D-17
 - **Cubre (unificación)**: U-09, U-11
 - **Cubre (tests)**: E2E-12, M-12
@@ -2426,11 +2802,35 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 **Notas**: Tamaño M.
 
+**Preparación T-60 (2026-11-17).** RED: `form-and-tabs-accessibility.test.mjs` detectó que el campo de correo de acceso carecía de `aria-invalid` y que las pestañas de instalación MCP carecían de `tabindex` rotativo. Informe en `%TEMP%/metricool-t60-node-red.log`. GREEN: ambos casos de renderizado pasaron y se añadió una comprobación de navegación circular, foco, activación y pestañas anidadas en el manejador común. El candidato aislado usa `FormField` en 53 puntos, comparte la navegación entre Calendario, MCP, colaboración y compositor, y aplica los controles y componentes comunes en Studio. Quedan 29 llamadas directas a `InputError` por revisar según su asociación al campo, al grupo de campos o al formulario completo. Pasaron 666 pruebas de Node, lint, formato, tipos y build. El parche parcial `%TEMP%/metricool-t60-a11y-partial-preview.patch` se comprobó contra la copia de T-59. Pendientes completar la migración, ejecutar E2E-12, pasar la revisión de Opus 5.5 y obtener la evidencia manual M-12.
+
+La segunda pasada del candidato aislado retiró las 29 llamadas directas restantes. El único uso de `InputError` queda dentro de `FormField`; hay 96 usos de `FormField` porque se separaron mensajes de campos que antes se mostraban juntos. Los errores de grupos y formularios se muestran en su ámbito y las etiquetas quedan separadas de los mensajes de validación. Pasaron lint, formato, tipos, build y 666 pruebas de Node. El parche `%TEMP%/metricool-t60-a11y-preview.patch` se comprobó contra la copia de T-59. La integración en el checkout, E2E-12, M-12 y la revisión de Opus 5.5 siguen pendientes.
+
+Claude Code Opus 5.5 revisó el núcleo de formularios y pestañas y cuatro integraciones. Se reprodujeron dos fallos con renderizado Vue. Tras el ajuste, los cinco tests pasan: las pestañas de colaboración eligen Comentarios si la solicitada no existe, el compositor enlaza Texto común si se retira la red activa y el grupo de permisos muestra los errores de índices posteriores. La copia integrada conserva el reintento de Studio al usar PrimaryButton y EmptyState. Parches `%TEMP%/metricool-t60-a11y-after-t59.patch` y `%TEMP%/metricool-t60-claude-r1-followup.patch`. La ronda 2 recibió el límite de Claude Code. Siguen pendientes las integraciones restantes de la revisión, navegador y M-12.
+
+Se cotejó `openTargetText`. Cambia la selección sin mover el foco y el E2E existente del compositor ya comprueba foco con flechas, Inicio y Fin. Las búsquedas de `recovery-error`, `tab-read` y `panel-read` no encontraron dependencias en E2E. RED: los dos casos de renderizado detectaron que el panel de MCP no tenía una parada de Tab y que la primera casilla de permisos no describía el error del grupo. El candidato hace enfocables los paneles y vincula el error a la primera casilla. La prueba de navegador preparada comprueba que Tab entra en el panel de MCP. El renderizado focal pasó 5/5. Se ajustó el montaje de cinco pruebas anteriores de confirmaciones al nuevo composable. En la copia integrada posterior a T-59 pasaron las 716 pruebas de Node, ESLint, Prettier, TypeScript y Vite. El parche `%TEMP%/metricool-t60-after-t59-r9-combined.patch` pasó `git apply --check --whitespace=error` sobre esa base. Quedan Opus 5.5 para las integraciones restantes, navegador y M-12.
+
+El parche también pasó el cotejo en lectura contra T-59 ya integrada en el checkout. El ejecutor de T-60 espera la regresión, Pest y las huellas de T-59 antes de aplicarlo y ejecutar `a11y.spec.ts` y la regresión serial. La ronda de revisión se preparó por grupos que cubren los 43 archivos.
+
+En el checkout, E2E-12 pasó los nueve casos focales y la regresión pasó con 379 aprobados, dos omisiones previstas, cero fallos y cero flaky en `C:/laragon/www/metricool/storage/framework/testing/t43/run-general-f2d12ef9-1f75-4110-84aa-b2e4eb8daa6c/results.json`. Pest pasó 4.144 pruebas con nueve omisiones y 26.845 aserciones. Quedan la revisión de aceptación y calidad con Opus 5.5 y M-12 con lector de pantalla.
+
+Claude Code Opus 5.5 devolvió tres hallazgos de aceptación reproducibles en T-60. El diálogo de eliminación de cuenta no asociaba su etiqueta de contraseña, OAuth perdía el error de un permiso posterior al primero y SmartLinks reutilizaba el identificador del primer bloque al reordenar el segundo. Playwright R3 reprodujo los tres en una copia aislada. R3 corrige las claves locales de SmartLinks, asocia los errores de OAuth al grupo, da al diálogo de cuenta su propio identificador y conserva la región viva de InputError. Compilación verde y segunda ejecución serial en curso. La revisión parcial de listados sigue abierta junto con los hallazgos de formularios, informes y Studio.
+
+El candidato R3 pasó los nueve recorridos de perfil, OAuth y SmartLinks en los tres tamaños. En R4 se reprodujo un segundo destinatario inválido que quedaba sin mensaje. El helper de errores de grupo se comparte entre informes, OAuth y API keys. El seguimiento pasó seis recorridos de informes y consentimiento con descarga de PDF real en el entorno local. Queda abordar la asociación de los errores de bloques y los hallazgos de las revisiones de Studio e informes. El candidato sigue aislado.
+
+R5 unió los errores de URL a sus controles en Sitios y SmartLinks y añadió pruebas sobre el HTML renderizado. Volvió a presentar el error general de bloques junto al título de la sección de Sitios. Las siete pruebas SSR pasaron. El candidato reaplicado a la base actual conserva las confirmaciones de T-57, el anuncio y los cursores de informes de T-55/T-59 y las pruebas de foco de pestañas. Quedan la comprobación serial del candidato exacto, la revisión de Opus y M-12.
+
+El candidato R5 ajustado a la rama actual pasó 721 pruebas de Node, TypeScript, ESLint y Vite. Los 27 recorridos seriales de navegador pasaron sin omisiones ni fallos en los tres tamaños. Se comprobó la descripción accesible del campo de URL inválida en Sitios y SmartLinks. Los dos paquetes exactos R5 se enviaron a Claude Code Opus 5.5 y la tarea sigue en revisión.
+
+R6 corrige el foco al recibir errores en OAuth, claves API, informes, Sitios y SmartLinks. Pasaron 721 pruebas de Node y 30 recorridos de navegador con qa-gate verde. R7 cambia los grupos a destinos de foco explícitos, contempla el foco al mover o eliminar bloques y añade pruebas del cambio de página al corregir un sitio. Pasaron 722 pruebas de Node, ESLint, TypeScript y Vite. La regresión de navegador R7 está en curso. M-12 con lector de pantalla sigue pendiente.
+
+R7 de Claude Code Opus 5.5 aprobó la aceptación automatizable y la calidad del código en las dos revisiones. Se verificaron 24 recorridos de formularios, pestañas y Sitios y se repitieron los seis de SmartLinks tras corregir el selector del botón Quitar. Se integraron los 15 archivos en la rama, incluidos los grupos enfocados y el arnés de Vite sin observador de archivos. Pasaron 735 pruebas de Node en la rama conjunta con T-61. M-12 con lector de pantalla sigue abierto.
+
 ### T-61 — Limpieza menor del frontend
 
 - **Descripción**: `compileTimeline()` una vez y `some()` en lugar de `JSON.stringify`, `loading="lazy"` en 14 imágenes, rutas de datasets con Ziggy y borrado de código y dependencias muertas.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: La cronología reutiliza el plan compilado y las rutas de tablas funcionan también al instalar la aplicación en un subdirectorio.
+- **Estado**: completado
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
@@ -2443,131 +2843,177 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Verificación**: `npm ls --depth=0` → sin `extraneous` · `npm run build` → build correcto
 
 **Criterios de aceptación**
-- [ ] `compileTimeline()` se calcula una vez por cambio
-- [ ] Sin `NavLink`/`ResponsiveNavLink`/`concurrently`/`dotenv`/`react` sobrantes
-- [ ] `npm ls` sin extraneous
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] `compileTimeline()` se calcula una vez por cambio
+- [x] Sin `NavLink`/`ResponsiveNavLink`/`concurrently`/`dotenv`/`react` sobrantes
+- [x] `npm ls` sin extraneous
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño S.
+
+**Preparación T-61 (2026-11-17).** RED: la prueba del editor contó dos compilaciones en la misma lectura de la línea de tiempo, y la prueba del cliente de tablas recibió una URL literal en vez de la ruta nombrada. Informe en `%TEMP%/metricool-t61-node-red.log`. GREEN: 16/16 pruebas focales, incluida la detección de vídeo dentro de grupos anidados. El candidato aislado reutiliza el plan compilado para las lecturas y al dividir clips, usa las rutas web de Ziggy, añade `loading="lazy"` a 14 imágenes y retira `NavLink`, `ResponsiveNavLink` y `dotenv`. Pasaron lint, formato, tipos, build y 669 pruebas de Node. El parche `%TEMP%/metricool-t61-frontend-cleanup-preview.patch` se comprobó contra la copia de T-60.
+
+`concurrently` tiene un consumidor activo. El `DevCommand` de Laravel lo ejecuta en Windows al lanzar `composer dev`. En Linux y macOS ese comando utiliza Multiplex, que depende de React. En Windows, npm 12.0.2 dejó React como `extraneous` incluso tras `npm ci` y `npm prune`. Después de retirar únicamente esa carpeta del árbol aislado de Windows, `npm ls --depth=0` quedó sin sobrantes y `concurrently --version` devolvió 10.0.6. El lockfile conserva React para Multiplex. Se documentó la diferencia entre plataformas. Pendientes aplicar al checkout, verificar E2E-07 y Pest, y pasar la revisión de Opus 5.5.
+
+Tras la revisión de Claude Code Opus 5.5 se verificaron los métodos y URI de las nueve rutas con el Ziggy que genera Laravel. Pest de tablas pasó 48 casos, con una omisión y 410 aserciones. CI instala Composer antes de Node y el barrido de consumidores confirmó que la suite no importa dotenv. El seguimiento explica la ausencia de rutas en el cliente, permite grupos heredados sin hijos y evita dividir si la página no existe en el plan. Se conserva StudioApiError de T-53 al adoptar Ziggy. Node pasó 17/17 con el código integrado en la copia. Parches `%TEMP%/metricool-t61-cleanup-after-t60.patch` y `%TEMP%/metricool-t61-postreview-after-t60.patch`. Se aplicó la cadena T-57 a T-61 y se compilaron diez Vue en la copia aislada. La ronda 2 recibió el límite de Claude Code. Pendientes la revisión de seguimiento y la comprobación en navegador, incluida la carga de imágenes.
+
+Se verificó el parche combinado de 22 archivos sobre el candidato actualizado de T-60. Con dependencias físicas en la copia aislada de Windows, `npm ls --depth=0` quedó limpio. Pasaron ESLint, Prettier, TypeScript, Vite y las 720 pruebas de Node. Parche `%TEMP%/metricool-t61-after-t60-r9-combined.patch` y paquete exacto de revisión `%TEMP%/metricool-t61-opus55-r2-exact-review.txt`. Quedan aplicación y verificación de comportamiento antes y después en el checkout.
+
+La revisión exacta R2 de Claude Code Opus 5.5 se recibió en %TEMP%/metricool-t61-r2-followups-opus55.json. Se contrastaron los nombres de las nueve operaciones del cliente con el registro real de rutas y la presencia de @routes en Blade. RED focal al lanzar antes de devolver una promesa. R3 devuelve rechazos para las peticiones asíncronas, resuelve Ziggy al usarlo y avisa si se intenta dividir un clip cuya página ya no existe. La detección de vídeo queda en el módulo de documentos y conserva compatibilidad con grupos heredados sin hijos. Pasaron 17 pruebas focales. Quedan la revisión R3 y la regresión antes y después, incluida la selección de imágenes para carga diferida.
+
+R4 reprodujo con Ziggy real la pérdida del prefijo al instalar en un subdirectorio. Se pide la ruta absoluta y se usa su ruta local y consulta, manteniendo las peticiones en el origen de la aplicación. Pasaron 18 pruebas focales, 726 de Node, ESLint, TypeScript, Vite y la comprobación del árbol npm. Hay 14 imágenes con carga diferida, ocho añadidas y seis preexistentes. Las imágenes visibles al abrir la página y las ya controladas por su carga se tratan según su componente. Los 21 E2E de compositor, tablas y cronología pasaron tanto en la línea base como en R4, en escritorio y en dos anchos móviles. Evidencias en `%TEMP%/metricool-t61-r4-*`. Pendientes la revisión exacta de Claude Code Opus 5.5 y el cierre de T-60.
+
+Claude Code Opus 5.5 R4 aprobó la aceptación y la calidad de T-61 tras revisar el diff exacto, incluido Ziggy con prefijo y las pruebas de cronología. Recibo en `%TEMP%/metricool-t61-r4-exact-opus55.json`. Pendiente de cierre de T-60 y reaplicación del parche sobre esa versión.
+
+**Cierre T-61 R4.** Claude Code Opus 5.5 aprobó aceptación y calidad. Se verificaron las rutas con Ziggy y el registro real de Laravel. La rama de trabajo incluye la implementación automatizada de T-60 y preserva la exportación desde el diseño y el compositor. Pasaron 735 pruebas de Node, 89 de Pest con una omisión y 780 aserciones, ESLint, TypeScript y Vite. La comparación aislada dio los mismos 21 E2E antes y después. La repetición integrada reveló que la prueba de cambio de marca cerraba el diálogo mientras empezaba a leer las tablas nuevas. Se esperó a su respuesta real sin relajar la detección de abortos, y el caso pasó en los tres tamaños con qa-gate verde. Se comprobó `npm ls --depth=0` sin extraneous después de apartar las dos copias locales sobrantes de dotenv y React. Las evidencias están en `%TEMP%/metricool-t61-r4-*` y `%TEMP%/metricool-t60-t61-main-*`.
 
 ### T-62 — `Editor.vue` (1/2): composables de guardado, historial y reproducción
 
 - **Descripción**: Primera mitad de D-11: extraer `useStudioSave`, `useStudioHistory` y `useTimelinePlayback`. D-11 se cuenta aquí.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El editor de Estudio usa todo el ancho disponible. Al salir, se cancelan los autoguardados pendientes.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-61, T-33
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Pages/Studio/Editor.vue`, `resources/js/Studio/composables/useStudioSave.js`, `resources/js/Studio/composables/useStudioHistory.js`, `resources/js/Studio/composables/useTimelinePlayback.js`
+- **Archivos**: `resources/js/Pages/Studio/Editor.vue`, `resources/js/Studio/composables/useStudioSave.js`, `resources/js/Studio/composables/useStudioHistory.js`, `resources/js/Studio/composables/useTimelinePlayback.js`, `resources/js/Studio/composables/useTimelineEditing.js`
 - **Cubre**: D-11
 - **Cubre (unificación)**: U-05, U-10
 - **Cubre (tests)**: E2E-07
 - **Verificación**: `npx playwright test tests/e2e/studio-boards.spec.ts tests/e2e/studio-captions.spec.ts --workers=1` → verde
 
 **Criterios de aceptación**
-- [ ] `Editor.vue` pierde al menos 50 declaraciones de nivel superior
-- [ ] Los specs del estudio pasan antes y después
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] `Editor.vue` usa la prop `fullBleed` del layout (sin `-m-3` ni `max-w-[1500px]` inertes) y abre sus diálogos con `BaseDialog`
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] `Editor.vue` pierde al menos 50 declaraciones de nivel superior
+- [x] Los specs del estudio pasan antes y después
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] `Editor.vue` usa la prop `fullBleed` del layout (sin `-m-3` ni `max-w-[1500px]` inertes) y abre sus diálogos con `BaseDialog`
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. D-11 es L: dos tareas. Ejecutar los E2E del estudio antes de empezar para fijar la línea base.
+
+**Línea base T-62 (2026-11-17).** El AST de `Editor.vue` en el candidato de T-61 tiene 133 declaradores de variables y 66 funciones de nivel superior, 199 declaraciones de implementación. Se cuentan por separado 21 imports. Con el mismo método, el objetivo de reducción deja un máximo de 149 declaraciones de implementación. Informe en `%TEMP%/metricool-t62-editor-count-before.json`. El arnés del editor pasó 8/8 en esa copia. Los casos nuevos prueban que el guardado manual respeta una revisión tras el autoguardado, que un 409 conserva el borrador sin volver a enviarlo y que deshacer mantiene los metadatos y selecciona una página existente. RED: la prueba de layout falló porque el editor no solicita `fullBleed` en `AuthenticatedLayout`. Informes en `%TEMP%/metricool-t62-editor-node-before.log` y `%TEMP%/metricool-t62-layout-node-red.log`. El parche de pruebas `%TEMP%/metricool-t62-editor-baseline-tests.patch` se comprobó contra la copia de T-61. La extracción queda pendiente de la línea base de navegador.
+
+Se aplicó el parche de pruebas de T-62 sobre el Editor ya encadenado con T-57 a T-61 en una copia aislada. Node pasó ocho comprobaciones, incluidas las de contrato del candidato anterior, y falló solo la de `fullBleed`, que sigue siendo el RED esperado. Informe `%TEMP%/metricool-t62-integrated-baseline-red.log`. La línea base E2E sigue pendiente antes de la extracción.
+
+Al repetir el recuento sobre el candidato actualizado de T-61 se midieron 134 declaradores de variables y 66 funciones de nivel superior. El máximo con la misma métrica es 150 tras quitar al menos 50. Se añadieron dos pruebas al arnés existente: cerrar la línea de tiempo durante la primera búsqueda detiene la reproducción y la espera de carga se descuenta del reloj antes de programar o cancelar el siguiente fotograma. La línea base Node quedó en 10 aprobadas y solo el RED esperado de `fullBleed`. Evidencias `%TEMP%/metricool-t62-exact-t61-editor-count.json` y `%TEMP%/metricool-t62-exact-t61-node-baseline.log`. El parche `%TEMP%/metricool-t62-after-t61-baseline-tests.patch` pasó `git apply --check --whitespace=error`. La extracción sigue pendiente de los E2E de línea base.
+
+R1 preparó una copia con T-60, T-61, T-101 y T-106. RED: el arnés del editor volvió a fallar solo por la prop de layout ausente. El editor usa el ancho disponible del layout, y las funciones de guardado, historial y cronología se extraen a cuatro composables. El AST en la rama integrada baja de 199 a 149 declaraciones. Pasaron 15 casos focales y 741 pruebas de Node, ESLint, TypeScript y Vite. La línea base tuvo 735 pruebas PHP, nueve omisiones y 5.910 aserciones, y 27 recorridos de navegador. El caso nativo de subtítulos se repitió en la rama antes del refactor para usar la tipografía privada y una ruta de artefactos compatible con Poppler en Windows. Este caso también pasó. Siguen en curso la regresión exacta del candidato y las revisiones de aceptación y calidad con Claude Code Opus 5.5. Evidencias en `%TEMP%/metricool-t62-*`.
+
+Revisión de aceptación y calidad con Claude Code Opus 5.5, R2: aprobada. R1 detectó que, al desmontar el editor, un autoguardado en cola podía enviar un segundo PATCH después del guardado pendiente. RED verificado con dos peticiones donde debía haber una. R2 cancela el temporizador y desactiva el envío y el procesamiento de respuestas tras el desmontaje. La revisión final pidió confirmar que deshacer y rehacer invalidan la vista previa. `applySnapshot` llama a `reloadCanvas`, que invalida la vista previa antes de cargar el documento. El AST de la rama pasa de 199 a 149 declaraciones. Verificación final: 28/28 recorridos seriales de Playwright y qa-gate verde, 742 pruebas Node, ESLint, TypeScript y Vite. En el candidato, Pest pasó 776 pruebas con 9 omitidas y 6.280 aserciones. El parche final se aplicó en la rama y allí pasaron las 42 pruebas focales de Node. Evidencias `%TEMP%/metricool-t62-r2-cierre-opus55.json`, `%TEMP%/metricool-t62-r2-final-browser.log` y `%TEMP%/metricool-t62-r2-main-node.log`.
 
 ### T-63 — `Editor.vue` (2/2): presentación, gráficos y `EditorToolbar`
 
 - **Descripción**: Segunda mitad de D-11: `usePresentation`, `useChartFlow` y `EditorToolbar`; `Editor.vue` queda con < 40 declaraciones.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Estudio conserva las cargas pendientes y los reintentos de audio. El editor detiene el guardado al cambiar de diseño o marca.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-62
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Pages/Studio/Editor.vue`, `resources/js/Studio/composables/usePresentation.js`, `resources/js/Studio/composables/useChartFlow.js`, `resources/js/Components/Studio/EditorToolbar.vue`
+- **Archivos**: `resources/js/Pages/Studio/Editor.vue`, `resources/js/Studio/composables/usePresentation.js`, `resources/js/Studio/composables/useChartFlow.js`, `resources/js/Components/Studio/EditorToolbar.vue` También `useEditorCanvas`, `useEditorDialogs`, `useEditorLibrary`, `useEditorDesignOperations`, `useStudioSave`, `PresentationDialog` y `StudioChartsDialog`., `resources/js/Studio/composables/useEditorCanvas.js`, `resources/js/Studio/composables/useEditorDesignOperations.js`, `resources/js/Studio/composables/useEditorDialogs.js`, `resources/js/Studio/composables/useEditorLibrary.js`
 - **Cubre**: — (continuación de la tarea anterior; el ID se cuenta allí)
 - **Cubre (unificación)**: U-09, U-10
 - **Cubre (tests)**: E2E-07
 - **Verificación**: `npx playwright test --grep studio --workers=1` → verde
 
 **Criterios de aceptación**
-- [ ] `Editor.vue` < 40 declaraciones de nivel superior
-- [ ] Todos los specs `studio-*` pasan antes y después
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Los diálogos de presentación y gráficos extraídos usan `BaseDialog` y `.field`, sin bloques `<style>` ni botones propios
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] `Editor.vue` < 40 declaraciones de nivel superior
+- [x] Todos los specs `studio-*` pasan antes y después
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Los diálogos de presentación y gráficos extraídos usan `BaseDialog` y `.field`, sin bloques `<style>` ni botones propios
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Continuación de D-11.
+
+Línea base de T-63 iniciada en la copia exacta del cierre de T-62. Playwright descubrió 109 recorridos `studio-*` y ejecuta con un worker. Se observó un HTTP 422 en la inferencia de fondo de la copia. Falta el modelo local en la ruta que usa el spec. El original de la rama conserva el SHA-256 que exige el spec. Se repetirá el recorrido con ese modelo al terminar la primera ejecución. Evidencia `%TEMP%/metricool-t63-r1-baseline-browser.log`.
+
+La línea base terminó con 106/109 recorridos. Los tres de inferencia dieron HTTP 422 por faltar el modelo en la copia. Tras habilitar el fichero nativo con la huella exigida, los tres pasaron en una repetición serial y qa-gate dio verde. Pest de línea base: 758 pruebas, nueve omitidas y 6.230 aserciones.
+
+RED: `studio-editor-structure.test.mjs` contó 149 declaraciones y falló el límite inferior a 40. El candidato R2 cuenta 37 (26 declaradores y 11 funciones). Se extrajeron la presentación, los gráficos, el lienzo, los recursos, las operaciones de diseño y los diálogos, además de `EditorToolbar`. RED: desmontar antes de que se inicializara el lienzo registraba `beforeunload`, `keydown` y el guard de Inertia tarde. El caso pasa tras comprobar la vigencia del montaje.
+
+La primera revisión de Opus 5.5 y los 11 casos focales detectaron mejoras de cobertura y una incidencia de contraste al habilitar «Insertar gráfico». Se separó la reproducción del lienzo de la presentación, se trasladó la caché de gráficos a su composable y se añadieron casos de Unicode, cambio de marca, descarte del lienzo tardío y cancelación de reproducción. La comprobación axe volvió a pasar sin relajar la auditoría. Pasaron 45 casos focales. El parche `%TEMP%/metricool-t63-r2-candidate.patch` pasa `git apply --check --whitespace=error`. El candidato y la revisión final de aceptación y calidad siguen abiertos hasta completar los 109 recorridos. Resultados en `%TEMP%/metricool-t63-r1-*` y `%TEMP%/metricool-t63-r2-*`.
+
+R3 reprodujo un PATCH al diseño nuevo al reutilizar la instancia. El editor fija su contexto, bloquea guardados y operaciones cuando cambia y espera a liberar lienzo y previa antes de cerrar los recursos de gráficos. La revisión R3 de Opus 5.5 aprobó la estática. `StudioService::update` confirma que `kit_revision` es una revisión del propio diseño que conserva el kit. Pest de base y candidato pasó 758 pruebas con 9 omitidas y 6.230 aserciones. La regresión R3 pasó 106 de 109. Los tres recorridos de audio de presentación fallaron porque seleccionar un archivo mientras el lienzo estaba ocupado descartaba la selección.
+
+R6 encola las selecciones por marca y generación, procesa vídeo y audio por orden y conserva los tickets reintentables. Opus 5.5 aprobó aceptación estática y calidad en R5, y R6 añadió la prueba de dos tickets y el borrado de aviso de espera al cambiar contexto. Pasaron 761 pruebas de Node, ESLint, TypeScript y Vite. Los tres recorridos de audio fallidos pasaron sobre R6, con qa-gate verde. Sigue en curso la regresión completa exacta. Parche `%TEMP%/metricool-t63-r6-final.patch` y resultados `%TEMP%/metricool-t63-r6-*`.
+
+R6 exacta obtuvo 106/109. En móvil, un recorrido se detuvo antes de abrir el editor con un error de socket. En móvil de 360 px, otro agotó el tiempo durante el sembrado de tablas y el tercero no llegó a la URL del editor desde el listado. Los mismos casos pasaron en dos repeticiones focales seriales sobre R6 (1/1 y 2/2, qa-gate verde). Opus 5.5 aprobó el código y pidió conservar ambos resultados, completar la documentación y acreditar el gate completo. R7 añadió un RED sobre errores tardíos del lienzo y corrigió dos accesos de pincel tras liberar el adaptador. Pasaron 28 pruebas focales y Vite. La guía y los changelogs EN/ES recogen los cambios visibles. Sigue en curso la regresión completa de R7. Evidencias %TEMP%/metricool-t63-r6-final-evidencia-opus55.json, %TEMP%/metricool-t63-r7-quality-opus55.json y %TEMP%/metricool-t63-r7-exact-browser.log.
+
+Cerrada con el visto bueno final de Claude Code Opus 5.5 en aceptación y calidad, cero Critical y cero Important. R7 completó 109 recorridos Studio en una sola ejecución serial (escritorio, móvil y 360 px), sin fallos ni casos inestables, con qa-gate VERDE. R8 solo corrigió la documentación y los changelogs. Sus secciones de runtime y pruebas son idénticas a R7 byte por byte. Se aplicó el parche exacto y se confirmó el inverso. La rama cuenta 39 declaraciones (27 declaradores y 12 funciones) y pasó 56 pruebas focales. Se conservaron las pruebas Pest de base y candidato y los resultados anteriores con sus incidencias registradas. Evidencias %TEMP%/metricool-t63-r8-cierre-opus55.json, %TEMP%/metricool-t63-r8-main-ast.json y %TEMP%/metricool-t63-r8-main-focal-node.log.
 
 ### T-64 — Refactor de `Sites/Edit` y `SmartLinks/Index`
 
 - **Descripción**: Primera tercera parte de D-12: subcomponentes y composables por función en Sitios y SmartLinks. D-12 se cuenta aquí.
 - **Changelog**:
-- **Estado**: borrador
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-63
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Pages/Sites/Edit.vue`, `resources/js/Pages/SmartLinks/Index.vue`, `resources/js/Components/Sites/**`, `resources/js/Components/SmartLinks/**`
+- **Archivos**: `resources/js/Pages/Sites/Edit.vue`, `resources/js/Pages/SmartLinks/Index.vue`, `resources/js/Components/Sites/**`, `resources/js/Components/SmartLinks/**`, `resources/js/Composables/useSitePreview.js`
 - **Cubre**: D-12
 - **Cubre (tests)**: E2E-14
 - **Verificación**: `npx playwright test tests/e2e/sites.spec.ts tests/e2e/smartlinks-blocks.spec.ts --workers=1` → verde
 
 **Criterios de aceptación**
-- [ ] Cada página queda en < 300 líneas de script
-- [ ] `sites.spec.ts` y `smartlinks-blocks.spec.ts` verdes antes y después
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Cada página queda en < 300 líneas de script
+- [x] `sites.spec.ts` y `smartlinks-blocks.spec.ts` verdes antes y después
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. D-12 es L: tres tareas.
+
+Línea base de Pest en la rama: 46 pruebas de Sitios y SmartLinks con 528 aserciones. Se inicia la línea base E2E en la rama antes de aplicar el candidato de refactor. Resultados %TEMP%/metricool-t64-baseline-pest.log y %TEMP%/metricool-t64-baseline-browser.log.
+
+Cerrada tras la revisión final de aceptación y calidad de Claude Code Opus 5.5, sin Critical ni Important. Sitios y SmartLinks quedaron en 144 y 120 líneas de script. Pest pasó las mismas 46 pruebas con 528 aserciones antes y después. Playwright pasó los mismos 12 recorridos en escritorio, móvil y 360 px en la base y el candidato, ambos con qa-gate VERDE. El nuevo test de vista previa verifica selección y revisión del borrador guardado, fallback y cambio de tamaño sin recalcular la URL. Vite, ESLint y el test Node focal pasaron. Se aplicó el parche exacto y el test y ESLint volvieron a pasar en la rama. Guías de Sitios y SmartLinks actualizadas. Evidencias %TEMP%/metricool-t64-r2-final-opus55.json, %TEMP%/metricool-t64-baseline-browser.log y %TEMP%/metricool-t64-r2-candidate-browser.log.
 
 ### T-65 — Refactor de `Reports/Index` y `Calendar/Index`
 
 - **Descripción**: Segunda parte de D-12: subcomponentes y composables en Informes y Calendario.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Cambiar de marca cancela la vista previa del informe anterior. El buscador del calendario tiene un nombre accesible.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -2580,120 +3026,149 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Verificación**: `npx playwright test tests/e2e/report-builder.spec.ts tests/e2e/calendar-views.spec.ts --workers=1` → verde
 
 **Criterios de aceptación**
-- [ ] Cada página queda en < 300 líneas de script
-- [ ] `report-builder.spec.ts` y `calendar-views.spec.ts` verdes antes y después
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Cada página queda en < 300 líneas de script
+- [x] `report-builder.spec.ts` y `calendar-views.spec.ts` verdes antes y después
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Continuación de D-12.
+
+Línea base Pest sobre la rama con T-64 cerrada: 106 pruebas y 2.304 aserciones de Calendar, Reports y CalendarViewsPage. El candidato está en copia aislada. Queda ejecutar la línea base serial de Playwright antes de integrar sus cambios. Evidencia %TEMP%/metricool-t65-baseline-pest.log.
+
+Playwright base pasó 13/13 recorridos Report Builder y Calendar Views con qa-gate VERDE. Opus 5.5 detectó una respuesta tardía de vista previa al cambiar de marca. RED: el test observó la marca 10 tras pasar a la 20. R2 aborta la petición anterior y verifica la identidad de la activa antes de publicar los datos, los errores o el estado de carga. Verde Node, Vite, ESLint y TypeScript. Opus cerró el Important en código. Quedan el navegador y la revisión final del candidato. Evidencias %TEMP%/metricool-t65-baseline-browser.log, %TEMP%/metricool-t65-r2-preview-red.log y %TEMP%/metricool-t65-r2-preview-quality-opus55.json.
+
+Cierre R3. Los scripts de Informes y Calendario quedaron en 161 y 139 líneas entre etiquetas. R2 perdió la llamada entre el formulario y el sondeo que se había trasladado al componente de informes recientes. El navegador lo reprodujo en los tres perfiles. R3 conecta el reinicio tras un envío válido y se recompiló tras detectar que una repetición servía el JS anterior. Pasaron 16/16 recorridos con qa-gate VERDE y sin flaky, incluidos los 13 de la línea base y la cancelación real en tres perfiles. La regresión de Pest conservó las 106 pruebas y 2.304 aserciones. Claude Code `claude-opus-5-5` aprobó aceptación y calidad con cero Critical e Important. La rama verificó el parche exacto, ESLint y la prueba Node de respuesta antigua. Evidencias `%TEMP%/metricool-t65-r3-rebuilt-browser.log`, `%TEMP%/metricool-t65-r3-candidate-pest.log` y `%TEMP%/metricool-t65-r3-final-opus55.json`.
 
 ### T-66 — Refactor de `useComposer.js`
 
 - **Descripción**: Tercera parte de D-12: partir `useComposer.js` en composables por función sin cambiar su API pública.
 - **Changelog**:
-- **Estado**: borrador
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-65
 - **Tipo**: frontend
-- **Archivos**: `resources/js/composables/useComposer.js`, `resources/js/composables/composer/**`
+- **Archivos**: `resources/js/composables/useComposer.js`, `resources/js/composables/composer/**`, `resources/js/Composables/composer/useComposerCampaigns.js`, `resources/js/Composables/composer/useComposerMedia.js`
 - **Cubre**: — (continuación de la tarea anterior; el ID se cuenta allí)
 - **Cubre (tests)**: E2E-14
 - **Verificación**: `npx playwright test tests/e2e/composer.spec.ts tests/e2e/composer-presets.spec.ts --workers=1` → verde
 
 **Criterios de aceptación**
-- [ ] `useComposer.js` < 400 líneas
-- [ ] `composer.spec.ts` y `composer-presets.spec.ts` verdes antes y después
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] `useComposer.js` < 400 líneas
+- [x] `composer.spec.ts` y `composer-presets.spec.ts` verdes antes y después
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Continuación de D-12. El compositor es la pantalla más crítica: revisión adversarial B reforzada.
+
+Línea base Pest de Publishing y Workflow verde con 275 pruebas y 1.387 aserciones. Línea base de navegador en curso. El candidato aislado tiene 361 líneas y conserva las 84 claves y las dos exportaciones del módulo comprobadas por AST. Opus R1 señaló el contrato de reactividad de las entradas y la falta de pruebas focales. El candidato usa refs coherentes, preserva `post` y `brand` como valores computados desde props y pasa cuatro pruebas Node de archivos y campañas. Quedan la regresión de navegador antes y después y el visto bueno final.
+
+Cierre R2. Playwright pasó 75/75 con `composer.spec.ts` y `composer-presets.spec.ts` antes y después, en tres perfiles, con qa-gate VERDE y sin flaky. Pest mantuvo 275 pruebas y 1.387 aserciones. Vite compiló el candidato exacto. Opus 5.5 aprobó cumplimiento y calidad sin Critical ni Important. La integración verificó 361 líneas en `useComposer.js` y cuatro pruebas Node de archivos y campañas. Evidencias `%TEMP%/metricool-t66-baseline-browser.log`, `%TEMP%/metricool-t66-r2-candidate-browser.log`, `%TEMP%/metricool-t66-r2-pest.log` y `%TEMP%/metricool-t66-r2-final-opus55.json`.
 
 ### T-67 — Tipos (1/2): JSDoc + `checkJs` en lib y composables
 
 - **Descripción**: Primera mitad de D-14: `checkJs` y `vue-tsc` en CI, JSDoc en `lib/` y composables; tipos generados desde PHP donde sea viable. D-14 se cuenta aquí.
 - **Changelog**:
-- **Estado**: borrador
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-66
 - **Tipo**: frontend
-- **Archivos**: `jsconfig.json`, `tsconfig.json`, `package.json`, `resources/js/lib/**`, `resources/js/composables/**`
+- **Archivos**: `jsconfig.json`, `tsconfig.json`, `package.json`, `resources/js/lib/**`, `resources/js/composables/**`, `resources/js/Composables/useStudioAssetLinks.js`
 - **Cubre**: D-14
 - **Cubre (tests)**: E2E-39
 - **Verificación**: `npm run typecheck` → 0 errores · `npm run build` → build correcto
 
 **Criterios de aceptación**
-- [ ] `npm run typecheck` pasa y está en CI
-- [ ] Sin cambio de comportamiento
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] `npm run typecheck` pasa y está en CI
+- [x] Sin cambio de comportamiento
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. D-14 es L: dos tareas (progresivo).
+
+Cierre R2. `npm run typecheck` comprueba Playwright con tsc, genera los tipos de rutas reales con Ziggy y ejecuta `vue-tsc` con `checkJs` en lib, cuatro composables y `FormField.vue`. TypeScript 6.0.3 queda fijado para compatibilidad con `vue-tsc` 3.3.14. La prueba negativa de una ruta inventada produjo TS2769. El job conserva el check requerido y se reprodujo en una copia limpia sin `.env` con Composer de producción, `npm ci` y `typecheck`. Preparada la ejecución del job en GitHub al publicar la rama. El AST de los módulos anotados se conservó salvo el ajuste del manejador de teclado, que admite `KeyboardEvent` y distingue por identidad. La rama instaló y verificó los dos compiladores. Pasaron build, nueve pruebas Node, 106 Pest con 2.304 aserciones y 16/16 recorridos Playwright seriales en los tres perfiles con qa-gate VERDE. Claude Code `claude-opus-5-5` aprobó aceptación y calidad sin Critical ni Important. Evidencias `%TEMP%/metricool-t67-r2-final-opus55.json`, `%TEMP%/metricool-t67-r2-views-pest.log`, `%TEMP%/metricool-t67-r2-candidate-browser.log` y `%TEMP%/metricool-t67-ziggy-red.log`.
 
 ### T-68 — Tipos (2/2): props de componentes y páginas principales
 
 - **Descripción**: Segunda mitad de D-14: forma tipada de las props (de 250 sin forma) en componentes comunes y páginas principales.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Props de componentes comunes y páginas principales tipadas y verificadas. El filtro «Solo ocultos» refleja correctamente el estado de la URL.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-67
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Components/**`, `resources/js/Pages/**`, `tsconfig.json`
+- **Archivos**: `resources/js/Components/**`, `resources/js/Pages/**`, `tsconfig.json`, `tsconfig.frontend.json`, `resources/js/types/**`, `resources/js/Layouts/AuthenticatedLayout.vue`, `resources/js/navigation.js`, `resources/js/Composables/useCalendarPublishNow.js`, `resources/js/Composables/useConfirm.js`, `resources/js/Composables/useNetworks.js`, `resources/js/Composables/useReportPreview.js`, `resources/js/Composables/useWorkflow.js`, `app/Http/Controllers/InboxController.php`, `tests/Feature/Calendar/CalendarTest.php`, `tests/Feature/Dashboard/AllBrandsPageTest.php`, `tests/Feature/Dashboard/DashboardTest.php`, `tests/Feature/Posts/Compose/ComposeTest.php`, `tests/Feature/Reports/ReportBuilderTest.php`, `tests/Feature/Reports/ReportsTest.php`, `tests/Feature/Studio/StudioBackendTest.php`, `tests/Feature/Ui/InboxNotesPageTest.php`, `tests/e2e/inbox-notes.spec.ts`, `tests/e2e/inbox-triage.spec.ts`, `tests/e2e/studio-presentation-media.spec.ts`, `tests/frontend/confirm-consumers.test.mjs`, `tests/frontend/report-pagination-polling.test.mjs`, `tests/frontend/studio-presentation-unmount.test.mjs`, `docs/guias/desarrollo-local.md`, `docs/guias/testing.md`, `docs/modulos/inbox.md`, `CHANGELOG.md`, `CHANGELOG.es.md`, `docs/roadmap/2026-11-11-audit-hardening/testing/t68/**`
 - **Cubre**: — (continuación de la tarea anterior; el ID se cuenta allí)
 - **Cubre (tests)**: E2E-39
 - **Verificación**: `npm run typecheck` → 0 errores
 
 **Criterios de aceptación**
-- [ ] Las props de los componentes comunes tienen tipo
-- [ ] `npm run typecheck` sigue en 0 errores
-- [ ] Sin cambio de comportamiento: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Las props de los componentes comunes tienen tipo
+- [x] `npm run typecheck` sigue en 0 errores
+- [x] Sin cambio de comportamiento: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Continuación de D-14.
+
+**Avance de T-68 (2026-11-17).** Aplicados dos incrementos revisados por Claude Code Opus 5.5 con criterios de aceptación y calidad de código. El primero añade tipado estricto a componentes comunes, el shell, Informes, Calendario, las tres vistas de Analítica e Inbox. El segundo tipa las declaraciones de props del Compositor y el listado de Estudio. Sus plantillas y dependencias aún quedan fuera de la comprobación. Las declaraciones del segundo incremento conservan los constructores y valores por defecto originales, verificados al comparar sus AST y compilarlas con Vue.
+
+**Verificación local.** El primer incremento pasó `npm run typecheck` con la secuencia de CI, Composer sin dependencias de desarrollo y `npm ci`, regenerando las declaraciones Ziggy. Pasaron 91 Pest con 1.314 aserciones, 32 Node, ESLint focal, Prettier, Pint y Vite. RED de Inbox en Pest y Chromium al cargar `hidden=1`. La corrección de «Solo ocultos» pasó con los otros escenarios de Inbox y Analítica, 15/15 en los tres tamaños. La línea base de Playwright pasó 283 casos con dos omisiones previstas. La confirmación exacta del primer incremento quedó en `%TEMP%/metricool-t68-main-pages-r5-opus55.json`.
+
+El segundo incremento pasó `npm run typecheck`, 109 Pest con 916 aserciones con el runtime nativo de tipografías, Pint, ESLint focal y Vite. La prueba temporal de una clave de prop mal escrita falló con TS2353 y pasó tras restaurar el descriptor. Vue en desarrollo aceptó los arrays vacíos reales de Laravel y rechazó un número en los mismos tres descriptores. Revisión de cierre de los ajustes en `%TEMP%/metricool-t68-composer-studio-r10-opus55.json`. Se mantiene el formato anterior de `Studio/Index.vue`, que ya daba aviso global de Prettier.
+
+**Regresión integral en curso.** El primer ensayo de E2E-39 sobre el incremento R5 se detuvo tras llegar al caso 415. Se conservaron sus fallos y evidencias en `%TEMP%/metricool-t68-candidate-e2e39-r5-browser.log`. Los dos recorridos que fallaron tenían el diálogo de confirmación de notas sin aceptar y una observación de dibujo anterior al desmontaje de Inertia. Se corrigieron y pasaron la revisión de Claude y la repetición serial focal de 14/14 con qa-gate verde.
+
+**Seguimiento de la regresión (2026-11-17).** Pest completo del checkout aislado pasó 4.262 pruebas, con 9 omisiones y 28.601 aserciones. Node completo detectó tres pruebas de confirmación que todavía buscaban handlers de Sitios y SmartLinks en sus páginas, pese a la extracción de T-64. Se trasladaron los casos a los componentes reales manteniendo las aserciones, y se añadieron comprobaciones de espera y cancelación. Revisión de Opus R12 aceptada y 18/18 casos focales. La corrección de cancelación multimedia conserva la prohibición de reproducir durante la navegación y mide los dibujos después del desmontaje comprobado, antes de liberar la respuesta retenida. RED/GREEN con el bloque real de prueba y 9 tests focales, revisión R14 aceptada. Ambos arreglos están aplicados. Node completo final pasó 778/778 y el checkout principal pasó las dos comprobaciones TypeScript y 27 pruebas Node focales.
+
+Se ha iniciado la repetición completa en serie sobre el árbol final congelado de `.cache/t105-r1-c88e73`. Sus 1.702 archivos de código coinciden con el checkout y sus hashes están en `%TEMP%/metricool-t68-r16-source-hashes.json`. Log `%TEMP%/metricool-t68-r16-e2e39-final-browser.log`, directorio del informe en `%TEMP%/metricool-t68-r16-e2e39-final-browser-root.txt`. Mantener una sola ejecución y evitar cambios en esa copia hasta que termine. Comprobar el informe real, corregir los fallos y cotejar los hashes antes de cerrar T-68. GitHub ejecutará su CI al publicar.
+
+
+**Cierre verificado — 2026-11-17.** Repetición integral R16 finalizada: **765 passed, 2 skipped previstos, 0 failed, 0 flaky; qa-gate VERDE**. Ambas omisiones son el shell lateral de escritorio en los dos móviles. Los 1.702 hashes vuelven a coincidir con la copia congelada y el checkout. Typecheck final regenerando Ziggy: 0 errores. Pest completo 4.262/9 con 28.601 aserciones y Node 778/778 ya registrados. La corrección deliberada de «Solo ocultos» sigue documentada; se conserva el alcance declarado de los descriptores de Compositor y Studio.
+
+Revisiones de aceptación y calidad de Claude Code Opus 5.5 conservadas, sin Critical/Important abiertos, con metadatos y hashes en el [informe de cierre](testing/t68/report.md). Son revisiones estáticas; los tests los ejecutó el implementador. No se afirma una ejecución de GitHub Actions ni se cierran puertas manuales de otras tareas.
 
 ---
 
@@ -2706,42 +3181,68 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 ### T-101 — Puentes de datos (1/2): diseño → publicación y Canva → Recursos
 
 - **Descripción**: Que lo que se crea en el estudio y lo que se importa de Canva viva en el mismo sitio que la parte social: el post recuerda su diseño y su exportación de origen, y lo importado de Canva entra como `StudioAsset`.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Reexportar desde Estudio actualiza la publicación de origen y conserva adjuntos independientes. Las imágenes y vídeos importados de Canva se vinculan a Recursos de la marca.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-06, T-53
 - **Tipo**: backend + frontend
-- **Archivos**: `database/migrations/*_add_design_export_id_to_post_target_media.php`, `app/Models/PostTargetMedia.php`, `app/Jobs/CanvaJobs.php`, `app/Models/StudioAsset.php`, `resources/js/Components/Studio/ExportDialog.vue`, `resources/js/Components/Composer/MediaSection.vue`, `tests/Feature/StudioBridgeTest.php`, `tests/e2e/unification.spec.ts`
+- **Archivos**: `database/migrations/2026_11_17_122200_add_studio_export_provenance_to_posts_and_target_media.php`, `app/Models/PostTargetMedia.php`, `app/Jobs/CanvaJobs.php`, `app/Models/StudioAsset.php`, `resources/js/Components/Studio/ExportDialog.vue`, `resources/js/Components/Composer/MediaSection.vue`, `tests/Feature/Studio/StudioBridgeTest.php`, `tests/e2e/unification.spec.ts`
 - **Cubre**: U-15, U-17
 - **Cubre (tests)**: E2E-41, E2E-42
 - **Verificación**: `php artisan test --compact --filter=StudioBridge` → pasa · `npx playwright test tests/e2e/unification.spec.ts --workers=1 -g "puentes"` → verde
 
 **Criterios de aceptación**
-- [ ] `post_target_media.design_export_id` existe con FK (`nullOnDelete`) y se rellena al crear el post desde `ExportDialog.vue:83-86`
-- [ ] En el post aparece el botón «Editar en el Estudio», que abre el diseño de origen con la marca del post
-- [ ] Tras una nueva exportación del diseño, el post de origen queda con la media actualizada (mientras no esté publicado) y avisa si ya lo está
-- [ ] Un archivo importado de Canva aparece como `StudioAsset` en «Recursos» del estudio, sin duplicarse al reimportar (`CanvaJobs.php`, `StudioAssets.php:34`)
-- [ ] Sin cambios en el flujo existente de publicación: Pest y E2E en verde antes y después
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] `post_target_media.design_export_id` existe con FK (`nullOnDelete`) y se rellena al crear el post desde `ExportDialog.vue:83-86`
+- [x] En el post aparece el botón «Editar en el Estudio», que abre el diseño de origen con la marca del post
+- [x] Tras una nueva exportación del diseño, el post de origen queda con la media actualizada (mientras no esté publicado) y avisa si ya lo está
+- [x] Un archivo importado de Canva aparece como `StudioAsset` en «Recursos» del estudio, sin duplicarse al reimportar (`CanvaJobs.php`, `StudioAssets.php:34`)
+- [x] Sin cambios en el flujo existente de publicación: Pest y E2E en verde antes y después
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Migración y modelo con FK a la exportación del diseño
-- [ ] Rellenar `design_export_id` al exportar a una publicación
-- [ ] Botón «Editar en el Estudio» y re-sincronización de la media tras una nueva exportación
-- [ ] Enlazar la importación de Canva como `StudioAsset` (idempotente)
-- [ ] Pest y E2E «publicación → estudio → nueva exportación» y «Canva → Recursos»
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Migración y modelo con FK a la exportación del diseño
+- [x] Rellenar `design_export_id` al exportar a una publicación
+- [x] Botón «Editar en el Estudio» y re-sincronización de la media tras una nueva exportación
+- [x] Enlazar la importación de Canva como `StudioAsset` (idempotente)
+- [x] Pest y E2E «publicación → estudio → nueva exportación» y «Canva → Recursos»
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Depende de T-06 (referencias de media con FK) y T-53 (cliente HTTP único). Continúa en T-106.
+
+**Procedencia de exportación (2026-11-17).** RED: tres casos de `StudioBridgeTest` fallaron porque faltaba `design_export_id` en el borrador y sus adjuntos. La verificación del enlace falló por ausencia de `post.studio_origin_url`. Un caso posterior detectó que al forzar otra marca se seguía atribuyendo el adjunto a la exportación anterior. Se añadieron FK anulables en `posts` y `post_target_media`. El borrador creado sin destinos conserva la referencia y los destinos reciben la procedencia solo si su archivo pertenece a la exportación del mismo usuario y marca. El enlace del compositor abre el diseño accesible en esa marca. Borrar la exportación anula la referencia y conserva la media. Los seis casos pasaron en SQLite con 62 aserciones y se compilaron los dos Vue modificados. Parche parcial `%TEMP%/metricool-t101-provenance-preview.patch` comprobado en lectura contra el checkout. Quedan la actualización de media al reexportar, el puente desde Canva, la prueba de navegador y la revisión de aceptación y calidad con Opus 5.5.
+
+La primera pasada amplia de la copia devolvió 16 fallos de `StudioFontsTest` porque el Python predeterminado carecía de `fontTools`. La repetición con el intérprete tipográfico del checkout, configurado solo para el proceso, pasó Estudio, publicaciones y flujos con 1.010 aprobados, 9 omitidos y 7.562 aserciones. Informe `%TEMP%/metricool-t101-provenance-final-expanded.log`.
+
+En MySQL 8.4.3, la versión final del candidato pasó las seis pruebas con 62 aserciones y se comprobó la base desechable de 83 tablas antes de detener la instancia. Material para la revisión parcial en `%TEMP%/metricool-t101-provenance-review-r1.txt` y resultado MySQL en `%TEMP%/metricool-t101-mysql-pest.log`.
+
+**Canva → Recursos (2026-11-17).** RED: la prueba del flujo de exportación obtuvo dos archivos en la biblioteca y ninguno en Recursos. El candidato aislado vincula las imágenes y los vídeos validados a la marca de origen. La clave única combina diseño, página y contenido, de modo que conserva páginas distintas con los mismos bytes y reutiliza cada recurso al repetir la importación. Un caso de recuperación reproduce un fallo al crear el vínculo y comprueba que el siguiente intento concluye con el archivo y el recurso listos. Los PDF siguen en la biblioteca. Pint verde y 174 pruebas con 941 aserciones tanto en SQLite como en MySQL 8.4.3. El parche `%TEMP%/metricool-t101-canva-resource-preview.patch` pasó `git apply --check --whitespace=error`. Revisión preparada en `%TEMP%/metricool-t101-canva-resource-opus55-review.txt`. La prueba de reexportación sigue en RED: la ruta devolvió un segundo borrador. Quedan corregir ese flujo y pasar E2E-41/42 y Opus 5.5.
+
+**Candidato integrado de T-101.** Reexportar actualiza la publicación de origen, conserva adjuntos independientes, estados de destino y programación, y avisa si ya está publicada o en vuelo. SQLite pasó 1.184 pruebas y MySQL 180 focales. Node pasó 717. Los seis casos focales de navegador pasaron sin flaky y se verificaron las doce capturas en `C:/Users/daycr/AppData/Local/Temp/metricool-t101-exact-54af417e-161c-4450-90c4-7c9193f6bb14/storage/framework/testing/t43/run-general-cea3a553-5b1e-4090-89f5-86dca10e1350/results.json`. El candidato exacto de 28 archivos se mantiene aislado. Están en curso la regresión de navegador y la revisión de aceptación y calidad con Opus 5.5.
+
+La regresión de T-101 pasó 83 casos con qa-gate verde. Opus 5.5 R1 devolvió hallazgos de aceptación y calidad. En el candidato R2 se calcula el hash local antes de la transacción, se abre el diseño con un aviso si el enlace del post caducó, y se conserva una fecha vencida que todavía está en cola. El borrador se crea con su procedencia antes de guardar los destinos, eliminando la actualización posterior de los adjuntos. Se comprobó la protección de un post con un destino publicado y otro programado. Pasaron 182 casos de puente y Canva, 302 casos de publicaciones y flujo tras corregir la fecha, y 15 casos de puente después del refactor de creación. Quedan el resto de hallazgos, navegador y revisión exacta de R2.
+
+Candidato R2 tras integrar T-58 y T-59. Se conserva el texto alternativo al reordenar páginas y se evita reutilizarlo al sustituirlas. Una portada de vídeo combinado permanece intacta cuando no hay correspondencia entre páginas. Los recursos de Canva vinculados mantienen la protección de borrado de Estudio y muestran el motivo. Se verificó por separado que se puede borrar un duplicado sin vínculo y que conserva el recurso original. Pasaron 1.340 pruebas de la regresión SQLite con runtime local de Studio, nueve omisiones y 9.523 aserciones. MySQL 8.4.3 pasó 200 pruebas y 1.171 aserciones en una base desechable. E2E-41 y E2E-42 pasaron en los tres tamaños con qa-gate verde, incluidos la publicación ya enviada, el aviso y la deduplicación. El paquete de aceptación y calidad R2 está en revisión de Claude Code Opus 5.5.
+
+La primera revisión R2 conjunta se interrumpió por el filtro del proveedor. Las dos revisiones de seguimiento en Claude Code Opus 5.5 sí se recibieron. Ambas confirmaron los criterios por lectura del diff y solicitaron cambios de calidad. En R3 la inspección del archivo ocurre fuera de la transacción y la persistencia del archivo listo y su vínculo continúan siendo atómicas. El RED comprobó el nivel de transacción durante la inspección. También se hizo explícito el modo de preservar estados del planificador y se documentó la posición de página en la deduplicación. Pasaron 57 pruebas focales con 467 aserciones. Queda resolver el uso de la procedencia de los adjuntos al reemplazarlos y remitir el paquete de pruebas junto con el siguiente diff.
+
+R3 usa la procedencia persistida de la media propia del destino. Dos pruebas RED/GREEN comprueban que se conserva un adjunto independiente aunque comparta archivo con otra fila vinculada o con la próxima exportación. También se rechazan los campos de edición junto a post_id y se verificó la importación de un MP4 H.264 con ffprobe real. Pasaron 169 pruebas focales, 203 en MySQL 8.4.3 y 1.198 aserciones, 720 de Node, ESLint, TypeScript, Vite, seis E2E focales y la regresión de 92 E2E sin omitidos ni fallos. La revisión R3 de Canva confirma la aceptación con condiciones y pide reforzar la deduplicación de vídeo y la limpieza de fixtures. R4 preparado en una copia de cuatro archivos, pendiente de pruebas y cotejo.
+
+El Pest completo R3 pasó 4.182 pruebas con nueve omisiones y un fallo de T-48 por las fechas futuras de las dos migraciones nuevas. R4 usa fechas válidas y conserva la FK de la media propia para el esquema nuevo y el que ya tiene post_target_media. Un SQLite desechable verificó actualización, rollback, reaplicación y la acción SET NULL de la FK. Pasaron 62 pruebas SQLite focales incluidas fechas y reimportación nativa de MP4. Una ejecución simultánea de MySQL y Pest compartió el disco temporal de fixtures y faltó un .part en una prueba. La repetición confirmó su propio LARAVEL_STORAGE_PATH y pasó 204 pruebas en MySQL 8.4.3 con 1.203 aserciones. El Pest completo R4 y el navegador focal siguen en curso. La revisión de Opus 5.5 incluye las migraciones y los seguimientos de Canva.
+
+R4 completó Pest con 4.183 pruebas, nueve omisiones y 27.211 aserciones, y nueve recorridos focales de navegador. La revisión de Claude Code Opus 5.5 de Canva y migraciones se recibió con el modelo verificado. R5 hace explícita la condición de disponibilidad del archivo, comprueba la deduplicación de MP4 con ffprobe y mantiene el significado de la consulta de uso por publicaciones. Pasaron 170 pruebas focales con 901 aserciones.
+
+La revisión de publicaciones de Opus 5.5 detectó que la procedencia de la lista común se infería por ID y que se desplazaban los adjuntos intercalados. R6 guarda la procedencia por fila en las dos listas y permite retirar y volver a adjuntar un mismo archivo como independiente, incluso en el mismo guardado. El RED del carrusel en el flujo normal reveló una colisión de posiciones al intercalar archivos. La escritura de las filas ordenadas dentro de la transacción conserva la procedencia y evita esa colisión. Pasaron 58 pruebas focales con 563 aserciones y 720 de Node. Evidencias en `%TEMP%/metricool-t101-r6-*`. El parche R6 pasó la comprobación de aplicación. Pendientes el navegador y la revisión exactos de R6.
+
+**Cierre T-101 R8.** Claude Code Opus 5.5 aprobó aceptación y calidad del backend, la interfaz y la integración Canva. Se corrigió la pérdida de procedencia al volver a personalizar un destino que acababa de restablecerse a la lista común. Si la publicación ya salió, el usuario puede crear otro borrador con la exportación guardada y el foco se mueve a esa acción. Se verificaron una selección parcial de páginas y la reapertura de la aprobación de una publicación programada sin perder su fecha. En la rama de trabajo pasaron 184 pruebas de Pest con 1.345 aserciones. MySQL 8.4.3 aislado pasó 213 pruebas y 1.287 aserciones, además del rollback y la reaplicación de las dos migraciones. En escritorio y dos tamaños móviles se comprobó reexportar a la misma publicación, recuperar el borrador tras el aviso, conservar la procedencia al restablecer un destino y actualizar con GIF renderizado localmente. La regresión R6 pasó 1.058 pruebas PHP y los tres recorridos de Canva pasaron en cada tamaño. La importación remota sigue usando almacenamiento local y el smoke con Canva real se verifica aparte en CS-M-01. Evidencias en `%TEMP%/metricool-t101-r8-*` y `%TEMP%/metricool-t106-r4-reattach-and-native-browser.log`.
 
 ### T-102 — Sistema de diseño único (1/2): acento, botones y estilos
 
@@ -2864,8 +3365,8 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 ### T-105 — Permisos y abilities unificados (1/2): roles de marca con acceso al estudio
 
 - **Descripción**: Un solo modelo de permisos: el colaborador de la marca ve y trabaja los diseños de esa marca según su rol, y las claves de rol dejan de mezclar idiomas.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Los colaboradores de marca con rol aprobador pueden ver los diseños de su marca y decidir sobre las revisiones solicitadas desde Aprobaciones. La clave de rol en la API y MCP pasa a `approver`.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -2878,64 +3379,92 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Verificación**: `php artisan test --compact --filter=BrandRolesStudio` → pasa
 
 **Criterios de aceptación**
-- [ ] El colaborador de la marca ve los diseños de esa marca en el estudio con el alcance de su rol (`BrandCollaborator.php:15` frente a `StudioCollab.php:24-28`)
-- [ ] La aprobación de diseños usa las `approvals` existentes, sin un flujo paralelo
-- [ ] Las claves de rol (`StudioAssets.php:142`) están en un solo idioma; una migración de datos convierte las existentes y el código no conserva las claves antiguas (sin alias)
-- [ ] Los tests de T-17 y los nuevos pasan; un colaborador sin rol no accede
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] El colaborador de la marca ve los diseños de esa marca en el estudio con el alcance de su rol (`BrandCollaborator.php:15` frente a `StudioCollab.php:24-28`)
+- [x] La aprobación de diseños usa las `approvals` existentes, sin un flujo paralelo
+- [x] Las claves de rol (`StudioAssets.php:142`) están en un solo idioma; una migración de datos convierte las existentes y el código no conserva las claves antiguas (sin alias)
+- [x] Los tests de T-17 y los nuevos pasan; un colaborador sin rol no accede
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Definir la matriz rol de marca → acceso al estudio
-- [ ] Aplicarla en Policies/`Ownership::assert()`
-- [ ] Unificar claves de rol con migración de datos (sin alias)
-- [ ] Aprobación de diseños vía `approvals`
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Definir la matriz rol de marca → acceso al estudio
+- [x] Aplicarla en Policies/`Ownership::assert()`
+- [x] Unificar claves de rol con migración de datos (sin alias)
+- [x] Aprobación de diseños vía `approvals`
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Depende de T-17 (tests de permisos) y T-45 (propiedad unificada). Continúa en T-108.
+
+Candidato aislado R3. RED: el Estudio ocultaba diseños de marca invitada y la solicitud de aprobación del propietario devolvía 404. R3 conserva los permisos de propietario que ya aplica ApprovalService a publicaciones, añade aprobación de la revisión solicitada en esa misma bandeja, registra avisos con StudioDesignActivity y conserva el comentario de revisiones anteriores. Pasaron seis casos focales con 122 aserciones y la comprobación del enum MCP con 31 aserciones. OpenAPI es válido. La comparación específica del cuerpo HTTP confirma el cambio intencional y rompedor de aprobador a approver, con 422 de la clave anterior y 202 de la nueva. La primera revisión de Opus 5.5 dejó observaciones que se están volviendo a verificar. Quedan la regresión, E2E-47 y la revisión del parche final. Evidencias %TEMP%/metricool-t105-r2-candidato-opus55.json, %TEMP%/metricool-t105-r3-rest-contract.log y %TEMP%/metricool-t105-r3-mcp-schema.log.
+
+E2E-47 y la regresión focal Workflow R4 pasaron 19/19, con qa-gate VERDE en los tres perfiles. Opus 5.5 R4 cerró los tres Important de la revisión estática y mantuvo pendiente la regresión del árbol final. R5 reutiliza el scope de aprobador, preserva los cambios de T-63 y confirma el aislamiento de los avisos durante las pruebas. Pasaron 20 pruebas y 177 aserciones. MySQL 8.4.3 de pruebas confirmó en una ejecución independiente la fila y el default en ambas direcciones. Evidencias %TEMP%/metricool-t105-r4-workflow-browser.log, %TEMP%/metricool-t105-r4-quality-opus55.json y %TEMP%/metricool-t105-r3-mysql-migration.log.
+
+R5 pasó la regresión Pest Studio, Workflow, Inbox y MCP con 1.240 pruebas, 9 omitidas AV opt-in y 9.602 aserciones. Playwright R5 completo sigue en curso. Opus 5.5 encontró una desalineación de avisos con un owner_id incoherente. RED: el destinatario recibió una notificación que no debía recibir. R6 aplica owner_id al consultar destinatarios de solicitudes de diseños y prueba la lectura MCP del aprobador antes y después de revocarla. Verde 129 pruebas y 1.022 aserciones en la copia R6. El código de publicaciones conserva su comportamiento. Evidencias %TEMP%/metricool-t105-r5-regression-pest.log, %TEMP%/metricool-t105-r6-red.log y %TEMP%/metricool-t105-r6-focal-pest.log.
+
+Cierre R10. La regresión R5 de Estudio y Workflow pasó 128/128 recorridos. R7 conservó acciones de comentarista para el aprobador sobre hilos propios y pasó 22/22 recorridos focales. R9 pasó 1.242 pruebas Pest, 9 omitidas AV opt-in, 9.638 aserciones y 6/6 recorridos E2E-47 y colaboración en tres perfiles, con qa-gate VERDE y sin flaky. R10 solo reforzó las aserciones de borrado de comentarios. El aprobador recibe 403 al borrar directamente una respuesta ajena, y la respuesta se conserva. Borrar un hilo propio elimina su contenido, como en el rol comentarista. Claude Code `claude-opus-5-5` aprobó aceptación y calidad en R10 con cero Critical e Important. La integración pasó Pint y 153 pruebas focales con 1.582 aserciones. Evidencias `%TEMP%/metricool-t105-r9-full-pest.log`, `%TEMP%/metricool-t105-r9-final-focal-browser.log`, `%TEMP%/metricool-t105-r10-main-focal.log` y `%TEMP%/metricool-t105-r10-final-opus55.json`.
+
+Verificación adicional de fechas. `MigrationDatesTest` detectó dos nombres futuros que solo existían en la rama de trabajo, sin historial Git. Se usó la fecha UTC del 17 de noviembre, y la migración histórica de creación conserva su nombre permitido por la prueba (regla de fecha por día). Una instalación nueva crea la tabla con el default `approver`; una existente se normaliza con una migración reversible. Opus 5.5 aprobó el ajuste de calidad condicionado a verificar la excepción de fecha y documentar las copias con los nombres provisionales. Las copias desechables que llegaron a ejecutarlos requieren una base desechable nueva antes de volver a probar. SQLite pasó 157 pruebas conjuntas y 1.631 aserciones, y la rama verificó 23 casos y 211 aserciones. MySQL 8.4.3 confirmó una instalación nueva, y la sonda de datos históricos verificó rol y default en ambas direcciones. Evidencias `%TEMP%/metricool-t105-dates-final-opus55.json`, `%TEMP%/metricool-t105-dates-main-pest.log` y `%TEMP%/metricool-t105-dates-mysql-migration.log`.
+
+El primer Pest global detectó un falso positivo de la comprobación estática sobre la exclusión de diseños propios. R2 distingue los operadores de exclusión de una selección del propietario y cubre cinco formas de consulta. StudioCollab conservó su consulta. Opus 5.5 verificó calidad y aceptación del seguimiento. Evidencia `%TEMP%/metricool-t105-t108-followup-r2-opus55.json`.
 
 ### T-106 — Puentes de datos (2/2): biblioteca en el compositor y subida única
 
 - **Descripción**: El compositor y el estudio comparten archivos: el compositor elige desde la biblioteca del estudio y abre una imagen en el estudio; una sola subida de medios para ambos.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Los archivos subidos en el compositor se pueden reutilizar en Recursos. Abrir una imagen en Estudio conserva el borrador abierto.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-101, T-53
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Components/Composer/MediaSection.vue`, `resources/js/Components/MediaUploader.vue`, `resources/js/Pages/Library/Index.vue`, `resources/js/Studio/api.js`, `resources/js/lib/http.js`, `tests/e2e/unification.spec.ts`
+- **Archivos**: `resources/js/Components/Composer/MediaSection.vue`, `resources/js/Components/MediaUploader.vue`, `resources/js/Pages/Library/Index.vue`, `resources/js/Studio/api.js`, `resources/js/lib/http.js`, `tests/e2e/unification.spec.ts`, `resources/js/Studio/export-jobs.js`
 - **Cubre**: U-16, U-18
 - **Cubre (tests)**: E2E-41, E2E-42
 - **Verificación**: `npx playwright test tests/e2e/unification.spec.ts --workers=1 -g "biblioteca"` → verde · `npm run test:unit` → pasa
 
 **Criterios de aceptación**
-- [ ] `MediaSection.vue` ofrece «Desde la biblioteca» con los archivos y exportaciones del estudio
-- [ ] Desde una imagen del compositor o de `Library/Index.vue` se puede «Abrir en el Estudio»
-- [ ] `MediaSection.vue`, `MediaUploader.vue` y el estudio suben con el único `uploadMedia()` de `http.js` (T-53); no queda otro pipeline
-- [ ] Un E2E sube un archivo desde el compositor y lo ve en Recursos
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] `MediaSection.vue` ofrece «Desde la biblioteca» con los archivos y exportaciones del estudio
+- [x] Desde una imagen del compositor o de `Library/Index.vue` se puede «Abrir en el Estudio»
+- [x] `MediaSection.vue`, `MediaUploader.vue` y el estudio suben con el único `uploadMedia()` de `http.js` (T-53); no queda otro pipeline
+- [x] Un E2E sube un archivo desde el compositor y lo ve en Recursos
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Selector «Desde la biblioteca» en el compositor
-- [ ] «Abrir en el Estudio» en compositor y biblioteca
-- [ ] Migrar las subidas a `uploadMedia()`
-- [ ] E2E de subida y de apertura
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Selector «Desde la biblioteca» en el compositor
+- [x] «Abrir en el Estudio» en compositor y biblioteca
+- [x] Migrar las subidas a `uploadMedia()`
+- [x] E2E de subida y de apertura
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Continuación de T-101.
+
+**Candidato aislado de T-106.** RED: el compositor subía el archivo sin vincularlo a Recursos. El flujo comparte `uploadMedia` y la vinculación de Estudio. Un fallo de enlace permite reintentar con el mismo ID. El selector consulta la marca y añade imágenes, vídeos y exportaciones a la publicación. **Abrir en el Estudio**, desde el compositor y la biblioteca, crea el diseño con la misma imagen y abre una pestaña nueva para conservar el borrador abierto. Pasaron los 719 casos de Node, lint, formato, tipos y los dos casos focales de Pest con 26 aserciones. Preparados E2E-41/42 y el parche de 21 archivos `%TEMP%/metricool-t106-complete-r1.patch`. Quedan la regresión PHP, el navegador y Claude Code Opus 5.5.
+
+Pasaron 937 pruebas de Estudio, biblioteca y publicaciones con nueve omisiones previstas y 7.076 aserciones. En el candidato aislado pasaron los seis casos de navegador con qa-gate verde, incluida la apertura desde ambas superficies y la conservación del borrador del compositor. Informe en `C:/Users/daycr/AppData/Local/Temp/metricool-t106-draft-98594849-cc74-426f-aaf0-96304eedca23/storage/framework/testing/t43/run-general-536533af-b6e2-4e38-9b7d-646e069a1eef/results.json`. Pendientes la revisión de Opus 5.5 y la integración sobre T-101 tras sus correcciones.
+
+Seguimiento R2 de Opus 5.5. El error de un formulario nativo de imagen abre el Estudio de la marca en la pestaña nueva con su aviso. Pasaron cuatro pruebas de entrada y 46 aserciones, incluida una imagen panorámica centrada y la ausencia de un enlace público. Un 422 definitivo conserva el adjunto subido y retira el reintento de vínculo, con RED/GREEN en Node. También se ajustaron el nombre accesible, el foco al reintentar la biblioteca y la vista previa de los adjuntos. Pasaron 720 pruebas de Node y TypeScript en la copia de T-106. Pendientes rehacer el parche sobre el T-101 actualizado, pasar los recorridos de navegador exactos y solicitar el veredicto de Opus sobre R2.
+
+Opus 5.5 devolvió observaciones en la revisión parcial R2. El siguiente paquete debe incluir el cableado de Compose y EditorToolbar, los recorridos de navegador y la recuperación al vincular recursos. Sigue pendiente comprobar el foco de la pestaña original y que un vínculo lento no bloquee el compositor.
+
+R3 separa la vinculación a Recursos del estado de subida del compositor. RED: mientras el POST de vínculo seguía pendiente el control de subida seguía ocupado. GREEN: se liberó el compositor y los reintentos por 408, 419, 429 y 503 reutilizan el archivo. Se conserva un mensaje por archivo y la petición se limita a un plazo. Tras combinar el candidato con T-101 R3 pasaron 44 pruebas Pest con 478 aserciones, Node, ESLint, TypeScript y Vite. El recorrido exacto de navegador pasó en los tres tamaños simulando un primer 503, manteniendo habilitado el control de subida y volviendo a elegir el archivo en la biblioteca y abrirlo en otra pestaña. La revisión R3 de apertura y vínculo se ha remitido a Claude Code Opus 5.5.
+
+Las dos revisiones R3 de Claude Code Opus 5.5 devolvieron hallazgos de aceptación y calidad. R4 reutiliza una clave de idempotencia al abrir la imagen y distingue un vínculo reintentable de una sesión caducada. RED: dos peticiones con la misma clave creaban dos diseños. GREEN: el controlador reutiliza el diseño creado y la apertura de una imagen ajena o ausente conserva el aviso, con nueve pruebas y 73 aserciones. RED/GREEN de desmontaje del cargador con siete pruebas de Node. Los tres recorridos R4 de navegador verificaron el aviso en una pestaña nueva al elegir una imagen que ya no existe, la conservación del borrador y la reapertura del archivo válido. En escritorio comprobaron también el foco tras cerrar la pestaña. El ensayo corrigió la expectativa de URL al confirmar que la lista de la marca usa /studio/designs. Evidencias en `%TEMP%/metricool-t106-r4-*`. Quedan la verificación conjunta con T-101 R6 y la revisión exacta.
+
+R5 sustituye la transacción exterior de idempotencia por una reserva visible y una transacción de creación y respuesta. RED: una reserva activa devolvía 409 en el navegador nativo sin aviso. GREEN: 27 pruebas y 156 aserciones de apertura e idempotencia. Los tres tamaños pasaron el recorrido de foco de un vínculo tras 503 y sesión caducada, con foco en el aviso y después en el cargador. El recorrido quitar, readjuntar y reexportar preservó el adjunto independiente en los tres tamaños. Se verificó la repetición del vínculo por la ruta real sobre el mismo archivo ya vinculado. Quedan la revisión de Opus 5.5 sobre R5 y su integración final.
+
+**Cierre T-106 R5.** Claude Code Opus 5.5 aprobó aceptación y calidad en las revisiones de apertura y vínculo. El doble envío reutiliza un diseño activo. Si la clave apunta a un diseño en la papelera, abre otro desde el mismo archivo. Una reserva activa da un aviso en la pestaña nueva y el vínculo que ya empezó puede terminar aunque se cierre el compositor. Los nueve recorridos finales en escritorio y dos tamaños móviles verificaron la subida, la repetición real del vínculo, la biblioteca, la apertura y los avisos, con qa-gate verde. En la rama de trabajo pasaron 71 pruebas de Pest con 548 aserciones, 727 pruebas de Node, ESLint, TypeScript y Pint en los archivos PHP afectados. Se mantuvo el foco al cerrar la pestaña de error en el perfil de escritorio y se comprobó la recuperación del foco del vínculo en los tres perfiles. Evidencias en `%TEMP%/metricool-t106-r5-*`.
 
 ### T-107 — Sistema de diseño único (2/2): diálogos, campos y componentes comunes en el estudio
 
@@ -2977,8 +3506,8 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 ### T-108 — Permisos y abilities unificados (2/2): `media:*` y `designs:ai`
 
 - **Descripción**: Prefijos de abilities coherentes: los archivos tienen `media:read`/`media:write` y la IA del estudio pasa de `studio:ai` a `designs:ai`. Sin alias: una migración de datos reescribe las abilities guardadas en las API keys existentes y el nombre antiguo deja de existir en el código.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: REST y MCP separan los permisos de archivos en `media:read` y `media:write`. La migración conserva el acceso de las claves existentes y renombra el permiso de IA a `designs:ai`.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -2991,25 +3520,31 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Verificación**: `php artisan test --compact --filter=ApiAbilities` → pasa
 
 **Criterios de aceptación**
-- [ ] Existen `media:read` y `media:write` y `ListMedia`/`ImportMediaFromUrl` los exigen (`Abilities.php:19-39`)
-- [ ] `studio:ai` pasa a `designs:ai`; un grep de `studio:ai` en `app/`, `config/`, `resources/`, `tests/` y `docs/` (salvo roadmap) da 0
-- [ ] Las claves de API existentes no pierden acceso: una migración de datos reescribe sus abilities, con test de la migración
-- [ ] La documentación de abilities lista el nuevo conjunto
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Existen `media:read` y `media:write` y `ListMedia`/`ImportMediaFromUrl` los exigen (`Abilities.php:19-39`)
+- [x] `studio:ai` pasa a `designs:ai`; un grep de `studio:ai` en `app/`, `config/`, `resources/`, `tests/` y `docs/` (salvo roadmap) da 0
+- [x] Las claves de API existentes no pierden acceso: una migración de datos reescribe sus abilities, con test de la migración
+- [x] La documentación de abilities lista el nuevo conjunto
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Añadir `media:*` y exigirlas
-- [ ] Renombrar `studio:ai` a `designs:ai` con migración de datos (sin alias)
-- [ ] Test de la migración y documentación (nota de despliegue: las abilities se renombran)
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Añadir `media:*` y exigirlas
+- [x] Renombrar `studio:ai` a `designs:ai` con migración de datos (sin alias)
+- [x] Test de la migración y documentación (nota de despliegue: las abilities se renombran)
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Continuación de T-105.
+
+RED: `ApiAbilitiesTest` comprobó que una clave limitada a marcas y publicaciones seguía obteniendo HTTP 200 en lectura de medios, donde los permisos separados exigen 403. El candidato aislado conserva los permisos históricos con una migración que también incluye los códigos OAuth pendientes. Evidencia `%TEMP%/metricool-t108-red.log`.
+
+Cierre R6. Claude Code `claude-opus-5-5` detectó la ampliación indebida de permisos tras rollback y reupgrade en R2. La frontera persistente por tabla conserva las claves configuradas con permisos separados y migra las emitidas mientras vuelve a estar instalada la versión anterior. Las pruebas demuestran los tres periodos y canjean un código OAuth real de la base desechable. OpenAPI válido. El censo de aplicación, rutas, tests, seeds y docs sin roadmap no encontró nombres antiguos en las rutas activas. Playwright R5 pasó 6/6 seriales, QA VERDE, tras actualizar el selector obsoleto de revocación. La última revisión aprobó aceptación y calidad al corregir un comentario con codificación mixta. R6 verifica UTF-8 y los mismos tokens PHP de ejecución. La rama pasó Pint, TypeScript y 386 pruebas Pest con 2.962 aserciones. MySQL 8.4.3 desechable: 24 pruebas y 255 aserciones en la batería conjunta de migraciones, 1 omitida por DDL transaccional. Evidencias `%TEMP%/metricool-t108-r5-final-opus55.json`, `%TEMP%/metricool-t108-r5-preset-browser.log`, `%TEMP%/metricool-t108-r6-main-pest.log` y `%TEMP%/metricool-t105-dates-mysql-migration-feature.log`.
+
+El Pest global detectó un fixture de catálogo de audio que aún pedía `brands:read` para `list_media`. Se actualizó a `media:read`, con el caso de denegación de las capacidades anteriores en `ApiAbilitiesTest`. El seguimiento de T-105/T-108 pasó 88 pruebas y 1.051 aserciones. Opus 5.5 y Pint aprobaron el parche de pruebas. Evidencia `%TEMP%/metricool-t105-t108-followup-r2-pest.log`.
 
 ---
 
@@ -3020,41 +3555,49 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 ### T-69 — Seguridad HTTP: HSTS, CSP en `Report-Only` y Permissions-Policy
 
 - **Descripción**: HSTS, `Permissions-Policy` y CSP en modo `Report-Only` con nonce de Vite, con endpoint de informes y plan para pasarla a estricta.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: La aplicación puede emitir HSTS por HTTPS y recoge informes de su política de contenido sin bloquear la navegación.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-11
 - **Tipo**: devops
-- **Archivos**: `deploy/hestia/nginx-overrides.conf`, `app/Http/Middleware/SecurityHeaders.php`, `config/security.php`, `docs/modulos/despliegue.md`
+- **Archivos**: `deploy/hestia/nginx-overrides.conf`, `app/Http/Middleware/SecurityHeaders.php`, `config/security.php`, `docs/modulos/despliegue.md`, `config/logging.php`, `resources/views/app.blade.php`
 - **Cubre**: E-05
 - **Cubre (tests)**: E2E-39, M-06
 - **Verificación**: `php artisan test --compact --filter=SecurityHeadersTest` → verde · `npx playwright test tests/e2e/security.spec.ts --workers=1` → verde
 
 **Criterios de aceptación**
-- [ ] Las cabeceras se envían solo en producción/HTTPS
+- [x] Las cabeceras se envían solo en producción/HTTPS
 - [ ] La CSP `Report-Only` recoge violaciones sin romper ninguna pantalla
-- [ ] Documentado el paso a CSP estricta
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Documentado el paso a CSP estricta
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
 - [ ] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Qué se puede hacer ya: middleware, config y nginx. Queda a la espera (U): activar HSTS y pasar a CSP estricta tras observar informes reales en el VPS. **A la espera (no bloquea la fase)**: HSTS y CSP estricta tras observar informes en el VPS (usuario).
 
+- RED: `SecurityHeadersTest` falló porque faltaban HSTS y el receptor CSP. El seguimiento reprodujo que el nonce vacío persistía en Vite y que faltaba la revocación con `max-age=0`. La sonda con `LOG_LEVEL=warning` mostró que el receptor devolvía 204 sin registrar el informe en el canal general. Resultados `%TEMP%/metricool-t69-red.log`, `%TEMP%/metricool-t69-hsts-nonce-red.log` y `%TEMP%/metricool-t69-report-log-red.log`, del 2026-11-17.
+- El candidato limita las cabeceras nuevas a producción por HTTPS y conserva las políticas propias. Vite y Ziggy usan el mismo nonce, con restauración de la instancia previa tras la petición. El receptor acepta informes antiguos y modernos, limita tamaño, lote y frecuencia y registra directiva y origen o tipo en un canal dedicado. HSTS se deja sin definir y admite revocación explícita con cero. La guía describe el paso a una política aplicada y la vuelta a observación.
+- Pasaron Pint y 142 pruebas Pest con 1.060 aserciones en la copia aislada. `nginx -t` fue correcto. En Nginx y PHP locales por TLS, la página devolvió 200 con el nonce tanto en la cabecera como en el HTML, el receptor devolvió 204 y registró el informe saneado con `LOG_LEVEL=warning`, y Nginx devolvió 413 para 17 kB. Se detuvieron los dos procesos. Evidencia en `%TEMP%/metricool-t69-expanded-green.log`, `%TEMP%/metricool-t69-nginx-test.log` y `%TEMP%/metricool-t69-tls-smoke.log`. Parche `%TEMP%/metricool-t69-headers-preview.patch` validado sin escritura en el checkout. Pendientes integración, QA de navegador, revisión Opus 5.5 y verificación M-06 en el VPS.
+
+Se integró R2 tras la aprobación local de aceptación y calidad con Claude Code Opus 5.5. Se añadió un presupuesto de informes agregado junto al límite por IP, se rechazaron booleanos y edades HSTS fuera de rango con revocación explícita en cero, y se verificó el apagado de la observación. La sonda TLS local R2 comprobó 200/204/413, nonce compartido y registro saneado. La rama pasó 76 pruebas y 315 aserciones, más Pint. La política sigue en observación. Quedan el recorrido general de navegador y M-06 en el VPS real. Evidencias `%TEMP%/metricool-t69-r2-saneamiento-opus55.json`, `%TEMP%/metricool-t69-r2-tls-smoke.log` y `%TEMP%/metricool-t69-r2-main-pest.log`.
+
+Playwright de seguridad sobre la rama pasó 16/16 recorridos en una ejecución serial, con qa-gate VERDE. Incluye TOTP y Passkeys en 375 y 360 px y escritorio. La suite usa entorno testing. La comprobación HTTPS local de R2 acredita HSTS y CSP en condiciones de producción de la copia. Sigue pendiente M-06 en el VPS. Evidencia %TEMP%/metricool-t69-main-security-browser.log.
+
 ### T-70 — Rotación de `APP_KEY` y comando `app:reencrypt`
 
 - **Descripción**: Documentar la rotación de `APP_KEY` (tokens de redes y Canva) y añadir `app:reencrypt` que recifra con la clave nueva con verificación previa y vuelta atrás.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El comando `app:reencrypt` simula y recifra los secretos persistidos tras rotar la clave de aplicación.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -3067,60 +3610,70 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Verificación**: `php artisan test --compact --filter=ReencryptSecretsTest` → verde
 
 **Criterios de aceptación**
-- [ ] `app:reencrypt --dry-run` informa cuántos registros recifraría
-- [ ] Tras recifrar, todos los tokens se descifran con la clave nueva (test con fábricas)
-- [ ] Procedimiento y copia previa documentados
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] `app:reencrypt --dry-run` informa cuántos registros recifraría
+- [x] Tras recifrar, todos los tokens se descifran con la clave nueva (test con fábricas)
+- [x] Procedimiento y copia previa documentados
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Nunca ejecutar contra los datos del usuario 28 desde el plan; solo contra BD de pruebas. No editar `.env`.
+
+- RED: las tres pruebas de `ReencryptSecretsTest` fallaron porque no existía `app:reencrypt` el 2026-11-17. Resultados en `%TEMP%/metricool-t70-red.log`.
+- La simulación cuenta filas sin escribir. La ejecución recifra tokens de redes y Canva, la credencial de Bluesky y TOTP. Preserva el cifrado actual en filas ya migradas y revierte la transacción si encuentra un secreto ilegible. Se documentaron la copia previa, la verificación posterior y la vuelta a la clave anterior.
+- Pasaron 80 pruebas de SQLite y 505 aserciones con los recorridos vecinos de TOTP y Canva. En MySQL 8.4.3, las tres pruebas de recifrado pasaron con 23 aserciones. Se verificaron las 83 tablas de la base desechable y se detuvo la instancia. Logs `%TEMP%/metricool-t70-expanded-green.log` y `%TEMP%/metricool-t70-mysql-pest.log`. Parche `%TEMP%/metricool-t70-reencrypt-preview.patch` validado con `git apply --check --whitespace=error`. Pendientes aplicación, revisión Opus 5.5 de aceptación y calidad y QA de integración.
+
+Revisión de aceptación y calidad con Claude Code Opus 5.5, R2: aprobada. La prueba de inventario confirma los seis casts persistidos en la conexión predeterminada y el encrypter configurado. También se verifica que ninguna fila se modifica si faltan claves anteriores. Los códigos de recuperación TOTP son hashes y las cargas temporales siguen cubiertas por la retención operativa de claves previas. La guía describe la ventana de mantenimiento, la caché de configuración y la reversión. En la rama pasaron 82 pruebas SQLite y 517 aserciones. En MySQL 8.4.3 desechable pasaron las cinco pruebas y 35 aserciones. Playwright no aplica al comando CLI. Evidencias `%TEMP%/metricool-t70-r2-main-pest.log`, `%TEMP%/metricool-t70-r2-mysql-pest.log` y `%TEMP%/metricool-t70-r2-cierre-opus55.json`.
 
 ### T-71 — Peso de `docs/roadmap` y archivo del ledger
 
 - **Descripción**: Ignorar `**/testing/**/{results.json,*.zip,raw/*.xml}`, tratar evidencias como artefactos y archivar el ledger de 795 KB de la suite creativa sin perder trazabilidad.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El índice del roadmap enlaza el historial completo de la suite creativa y separa la evidencia de ejecución en artefactos.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-10
 - **Tipo**: docs
-- **Archivos**: `.gitignore`, `docs/roadmap/README.md`, `docs/roadmap/2026-11-03-creative-social-suite/tasks.md`, `scripts/roadmap/archive-ledger.mjs`
+- **Archivos**: `.gitignore`, `docs/roadmap/README.md`, `docs/roadmap/2026-11-03-creative-social-suite/tasks.md`, `scripts/roadmap/archive-ledger.mjs`, `.gitattributes`, `docs/roadmap/2026-11-03-creative-social-suite/tasks.archive.md`
 - **Cubre**: E-13
 - **Cubre (tests)**: —
 - **Verificación**: `git check-ignore -v docs/roadmap/x/testing/y/results.json` → regla coincidente · lectura: `docs/roadmap/README.md` enlaza el ledger archivado
 
 **Criterios de aceptación**
-- [ ] `.gitignore` cubre `testing/` a cualquier nivel
-- [ ] El ledger archivado mantiene enlaces desde el índice
-- [ ] `ledger-lint` sigue dando 0 sobre los ledgers vivos
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] `.gitignore` cubre `testing/` a cualquier nivel
+- [x] El ledger archivado mantiene enlaces desde el índice
+- [x] `ledger-lint` sigue dando 0 sobre los ledgers vivos
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. No borrar evidencia: se mueve o se enlaza como artefacto. No se hace commit desde el plan (lo hace el usuario).
+
+Candidato aislado T-71. La copia histórica conserva los 795.156 bytes y su SHA-256. El ledger activo queda en 125.702 bytes y conserva las 23 tareas, estados, criterios, changelog y enlaces directos al historial. El archivador publica el original antes de reemplazar el ledger, rechaza tareas abiertas y archivos en conflicto, y permite reanudar si el original ya está archivado. Pasaron las dos pruebas Node. Las reglas de Git cubren JSON de resultados, ZIP y XML de raw en rutas anidadas y conservan los informes Markdown. Los 11 ledgers devolvieron cero incoherencias con ledger-lint. La copia histórica conserva las rutas y los artefactos previos. Parche `%TEMP%/metricool-t71-archive-preview.patch`. Pendientes revisión de Opus 5.5 y aplicación.
+
+Revisión de aceptación y calidad con Claude Code Opus 5.5, R3: aprobada. R2 precisó el alcance del changelog que conserva el resumen, mejoró el diagnóstico al invocar el script desde otro directorio y evitó aceptar un archivo distinto que aparezca durante la operación. Se aplicó el archivado en la rama. El original de 795.156 bytes conserva SHA-256 `68f11dad901976a5f47ece0143fe13cde3db4f4be6587d255ff96f942da9698b`. El índice activo enlaza el archivo, mantiene las 23 tareas e incluye la misma huella. Una segunda ejecución devolvió `already-archived`. Pasaron las tres pruebas Node del archivador. `ledger-lint` devolvió cero incoherencias en 14 ledgers activos. Los XML y el JSON que cita el manifiesto de T-09 ya están versionados. `git check-ignore` confirmó el alcance de las reglas anidadas y `git check-attr` la preservación de bytes. Pest y Playwright no aplican al archivador documental. Revisiones `%TEMP%/metricool-t71-r2-archivo-opus55.json` y `%TEMP%/metricool-t71-r3-evidencia-opus55.json`.
 
 ### T-72 — Dependencias: webauthn-lib declarada y plan de versiones mayores
 
 - **Descripción**: Declarar `web-auth/webauthn-lib` (hoy usada sin declarar), revisar `laravel/mcp` y `laravel/passkeys` fijadas y redactar el plan para Inertia 2→3 y Tailwind 3→4 (sin ejecutarlas).
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: WebAuthn figura como dependencia directa y se documenta la secuencia de las próximas migraciones de dependencias.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -3133,27 +3686,31 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Verificación**: `composer validate --strict` → válido · `php artisan test --compact --filter=Passkey` → verde
 
 **Criterios de aceptación**
-- [ ] `composer.json` declara `web-auth/webauthn-lib`
-- [ ] `composer validate` y Pest en verde
-- [ ] El plan de mayores lista riesgos, orden y esfuerzo
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] `composer.json` declara `web-auth/webauthn-lib`
+- [x] `composer validate` y Pest en verde
+- [x] El plan de mayores lista riesgos, orden y esfuerzo
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Las migraciones mayores quedan fuera: solo plan.
+
+Inventario y candidato de T-72. `webauthn-lib` se declara directamente con `~5.3.0`, dentro del intervalo que exige Passkeys. Composer cambió solo la huella del lockfile y conservó los 163 paquetes. Pasaron `composer validate --strict`, `check-platform-reqs --lock` y 77 pruebas de Passkeys con 558 aserciones en la copia aislada, sobre la referencia instalada y bloqueada 5.3.9. Se conservan las restricciones de MCP y Passkeys. La [guía de dependencias](../../guias/dependencias.md) documenta versiones, riesgos, orden y esfuerzo de Inertia 3 y Tailwind 4 a partir de sus guías oficiales. Candidato `%TEMP%/metricool-t72-webauthn-preview.patch`. Pendientes aplicación, navegador y Opus 5.5.
+
+Revisión de aceptación y calidad con Claude Code Opus 5.5, R4: aprobada con la condición de verificar el flujo de navegador. En la rama, Composer pasó `validate --strict` y `check-platform-reqs --lock`. Las versiones y metadatos de los 163 paquetes coinciden con HEAD. Únicamente cambió la huella del lockfile. El filtro Passkey pasó 77 pruebas y 558 aserciones. Playwright pasó los ocho recorridos seriales de alta, acceso, revocación y alternativa con contraseña, con qa-gate verde. La guía registra la secuencia, el esfuerzo, las comprobaciones de resolución y los riesgos de Inertia, Tailwind, MCP y Passkeys. No se ejecutó ninguna migración mayor. Evidencias `%TEMP%/metricool-t72-r4-plan-opus55.json` y `%TEMP%/metricool-t72-main-passkeys-browser.log`.
 
 ### T-73 — Documentación coherente: latido y docroot de Hestia
 
 - **Descripción**: Unificar latido (600 s frente a 180 s) y docroot de Hestia en la doc de despliegue.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: La guía de despliegue distingue el umbral del chequeo de latido del TTL de la caché y explica cómo verificar las rutas antes de instalar el cron.
+- **Estado**: en-revision
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
@@ -3163,17 +3720,17 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Archivos**: `docs/modulos/despliegue.md`, `deploy/hestia/README.md`
 - **Cubre**: E-18
 - **Cubre (tests)**: M-06
-- **Verificación**: `grep -nE "600 ?s|180 ?s" docs/modulos/despliegue.md deploy/hestia/README.md` → un único valor coherente
+- **Verificación**: `rg -n 'latido|180 s|600 s' docs/modulos/despliegue.md deploy/hestia/README.md` → el umbral de 180 s coincide con `HealthCheck::HEARTBEAT_MAX_AGE`; los 600 s describen el TTL de caché o la antigüedad de cola, según el contexto. M-06 confirma el docroot efectivo y la raíz del checkout en el VPS.
 
 **Criterios de aceptación**
-- [ ] Ningún valor contradictorio de latido o docroot entre los dos documentos
-- [ ] Los valores coinciden con `config/*` y el código
+- [x] Ningún valor contradictorio de latido o docroot entre los dos documentos
+- [x] Los valores coinciden con `config/*` y el código
 - [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
 - [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
+- [x] Implementar (implementer)
 - [ ] Revisión adversarial A+B(+C)
 - [ ] Corregir hallazgos de la revisión
 - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
@@ -3181,11 +3738,19 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 
 **Notas**: Tamaño S. Qué se puede hacer ya: unificar con el código. Queda a la espera (V/U): verificar el docroot en el VPS real. **A la espera (no bloquea la fase)**: Verificar el docroot en el VPS (usuario).
 
+- TDD n/a: documentación. Se distinguieron los 180 s de antigüedad máxima de los 600 s de expiración de caché y se separaron la raíz de Artisan (`app/`) y el docroot (`app/public/`).
+- Verificación local: ambas guías usan las cinco órdenes de Artisan desde `app/`. La sonda de `HealthCheck::scheduler()` aceptó un latido de 180 s, rechazó uno de 181 s y rechazó la ausencia de latido.
+- Revisión Opus 5.5 del 17 de noviembre: detectó que la ruta del cron parecía verificada en producción y que el comando de verificación no distinguía umbral y TTL. Se sustituyó la ruta literal del cron por un marcador, se aclararon los dos valores y se recuperó el diagnóstico del log. La verificación en el VPS sigue en M-06. Informe en `%TEMP%/metricool-t73-opus55-r1.json`.
+- Segunda revisión: Opus 5.5 confirmó que se resolvieron los dos hallazgos iniciales. Señaló la falta de una instrucción explícita sobre desactivar el cron 5 al activar `studio-render` con systemd. Se añadió esa instrucción y se aclararon los plazos de los workers. Informe en `%TEMP%/metricool-t73-opus55-r2.json`.
+- Tercera revisión: Opus 5.5 aprobó la documentación sin Critical ni Important. La sonda local cotejó el umbral de 180 s, el TTL de 600 s y los cinco marcadores del cron con el código. Pest ampliado, incluidos los tests de despliegue y latido, pasó 193/193. La ruta y el docroot reales quedan a la espera de la verificación M-06 en el VPS. Informe en `%TEMP%/metricool-t73-opus55-r3.json`.
+- `DeployQueuesDocTest|InfraTest` pasó 34/34 y 114 aserciones. La verificación de navegador que corresponde a este cambio documental es M-06 en el VPS.
+- Diff para Opus preparado en `%TEMP%/metricool-t73-review-r1.txt`.
+
 ### T-74 — Fixtures grabados por red y test de contrato
 
 - **Descripción**: Fixtures por red (respuestas representativas, sin secretos) y tests de contrato que comparen los fakes con ellas.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las pruebas de publicación verifican respuestas de éxito y de error de las ocho redes con ejemplos sintéticos y sin peticiones reales.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
@@ -3195,260 +3760,551 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Archivos**: `tests/Fixtures/**`, `tests/Support/FixtureRecorder.php`, `tests/Feature/Contracts/**`
 - **Cubre**: E-19
 - **Cubre (tests)**: —
-- **Verificación**: `php artisan test --compact --filter=ContractFixturesTest` → verde · `grep -rniE "(access_token|bearer [a-z0-9]{20,})" tests/Fixtures | wc -l` → 0
+- **Verificación**: `php artisan test --compact --group=provider-contracts` incluye `ContractFixturesTest` y los fakes de los publicadores. `rg -ni '(access_token|bearer [a-z0-9]{20,})' tests/Fixtures` debe devolver cero coincidencias.
 
 **Criterios de aceptación**
-- [ ] Cada red principal tiene fixtures de éxito y error
-- [ ] Los fakes manuales se validan contra los fixtures
-- [ ] Ningún fixture contiene tokens ni datos personales
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Cada red principal tiene fixtures de éxito y error
+- [x] Los fakes manuales se validan contra los fixtures
+- [x] Ningún fixture contiene tokens ni datos personales
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Los fixtures se construyen a partir de la documentación oficial y de los fakes actuales: sin llamadas de red.
+
+- RED: `ContractFixturesTest` falló porque faltaba la respuesta de éxito de Facebook. El test del fake de LinkedIn falló porque el JSON de error 403 omitía `status`. Resultados en `%TEMP%/metricool-t74-red.log` y `%TEMP%/metricool-t74-fake-red.log` del 2026-11-17.
+- El candidato contiene 16 ejemplos redactados a partir de fuentes oficiales, dos por cada red. Las pruebas de los publicadores cotejan los intercambios HTTP registrados con los ejemplos mediante método, host, ruta, estado, cabeceras y campos JSON. Se conservan las comprobaciones del resultado de publicación y del tipo de excepción.
+- En la copia aislada pasaron 9 pruebas del inventario, 62 de contrato con 494 aserciones y 629 del conjunto de conectores con 3.220 aserciones. La búsqueda de marcadores de credenciales no dio coincidencias en `tests/Fixtures`. El parche `%TEMP%/metricool-t74-provider-contracts-preview.patch` pasó `git apply --check --whitespace=error`. Pendientes aplicación en el checkout, revisión de aceptación y calidad con Claude Code Opus 5.5 y QA de integración. Paquete de revisión en `%TEMP%/metricool-t74-provider-contracts-review-r1.txt`.
+
+Revisión de aceptación y calidad con Claude Code Opus 5.5, R4: aprobada sobre el diff R3. Los contratos validan ruta exacta, consulta requerida, patrones de cabeceras y códigos de protocolo. Cada ejemplo se comprueba en un caso dedicado. RED: al retirar la comprobación de `facebook/error`, el inventario detectó la referencia ausente. Se restauró la comprobación y se sustituyó el identificador de Facebook por uno sintético. Una búsqueda en los 27 archivos de la tarea confirmó que el antiguo identificador no aparece. Los documentos históricos y pruebas ajenas al cambio conservan sus datos. En la rama pasaron 26 casos de contrato con 578 aserciones, 631 casos de conectores y contratos con 3.350 aserciones y Pint. La búsqueda de credenciales devolvió cero coincidencias. `Tests\TestCase` bloquea las peticiones HTTP sin fake. Playwright no aplica a estos cambios de tests PHP y documentación. Evidencias `%TEMP%/metricool-t74-r3-main-contracts.log`, `%TEMP%/metricool-t74-r3-main-connectors.log`, `%TEMP%/metricool-t74-r3-main-pint.log` y `%TEMP%/metricool-t74-r4-evidencia-opus55.json`.
 
 ---
 
 ## Fase 7 — Funciones nuevas
 
-**Estado**: borrador · **Estimado**: 177.0h · **Real**: — · **Coste est.**: 8850 € (base) + tokens ⚠️ verificar · **Tokens est.**: 8445k
+**Estado**: en-progreso · **Estimado**: 177.0h · **Real**: — · **Coste est.**: 8850 € (base) + tokens ⚠️ verificar · **Tokens est.**: 8445k
 
 ### T-75 — Registro de actividad visible
 
 - **Descripción**: Pantalla con el `AuditLog` ya guardado: filtros por marca, usuario, acción y fecha, paginada y solo del propio usuario/marcas.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El historial de actividad permite consultar las acciones registradas con filtros, paginación y retención, sin exponer datos privados ni atribuir referencias ambiguas a una marca.
+- **Estado**: completado
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-68, T-04
 - **Tipo**: fullstack
-- **Archivos**: `app/Http/Controllers/ActivityController.php`, `app/Services/AuditLog.php`, `resources/js/Pages/Activity/Index.vue`, `routes/web.php`, `resources/js/navigation.js`, `docs/usuario/actividad.md`
+- **Archivos**: `app/Http/Controllers/ActivityController.php`, `app/Services/AuditLog.php`, `resources/js/Pages/Activity/Index.vue`, `routes/web.php`, `resources/js/navigation.js`, `docs/usuario/actividad.md`, `database/migrations/2026_11_17_193000_add_brand_to_audit_logs.php`, `resources/js/types/activity.d.ts`, `resources/js/Layouts/AuthenticatedLayout.vue`, `tsconfig.frontend.json`, `tests/Feature/Activity/ActivityLogTest.php`, `tests/e2e/activity.spec.ts`, `tests/e2e/helpers.ts`, `app/Mcp/Tools/SchedulerTool.php`, `app/Mcp/Tools/GetCalendar.php`, `app/Http/Controllers/Api/ApiController.php`, `app/Http/Controllers/Api/PostApiController.php`, `docs/README.md`, `docs/usuario/guia-de-usuario.md`, `CHANGELOG.md`, `CHANGELOG.es.md`, `docs/roadmap/2026-11-11-audit-hardening/testing/t75/**`
 - **Cubre**: F-01
 - **Cubre (tests)**: E2E-15
-- **Verificación**: `php artisan test --compact --filter=ActivityLogTest` → verde
+- **Verificación**: Pest completo 4294 passed / 9 skipped / 28843 assertions; SQLite y MySQL focales 32/241; Node 778/778; tipado, estilo y build verdes; Playwright serial 13 passed / 2 skipped / 0 failed / 0 flaky, qa-gate VERDE; Opus 5.5 R3 aprueba calidad sin condiciones. Evidencia en `testing/t75/report.md` y `verification.json`.
 
 **Criterios de aceptación**
-- [ ] Un usuario ve únicamente su actividad y la de sus marcas
-- [ ] Filtros y paginación funcionan
-- [ ] La retención de A-08 se refleja en la UI
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Un usuario ve únicamente su actividad y la de sus marcas
+- [x] Filtros y paginación funcionan
+- [x] La retención de A-08 se refleja en la UI
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño S.
+
+**Preparación aislada — 2026-11-17 (no cierre; dependencia T-68 pendiente)**
+
+- Candidato en `.cache/t75-candidate/source`; pruebas en `.cache/t67-ci/metricool`. No integrado en el árbol principal ni en la copia congelada de Playwright de T-68.
+- RED: `ActivityLogTest::Activity: an authenticated user can open an empty audit history` devolvió 404 en vez de 200 antes de habilitar la ruta; `%TEMP%/metricool-t75-r1-red.log`. Otros criterios añadidos sobre el borrador son cobertura posterior y no se presentan como ciclos TDD completos.
+- RED: filtros `brand_id=0` y `user_id=0` devolvían 200 en vez de 422; corregidos con `min:1`. Pest focal 16/16; tipado estricto y ESLint verdes.
+- Revisión de dos lentes — intento 1, Claude Code CLI real `claude-opus-5-5`, incluyendo A/B/C/D y calidad del código: `%TEMP%/metricool-t75-r1-opus55.json`. Detectó atribución entre propietarios por referencias ambiguas, ordenación sin fecha, actualizaciones por fila y tipo incorrecto del selector de usuarios.
+- Hallazgo de aislamiento reproducido antes del fix: dos pruebas fallan por `brand_id=1` cuando se esperaba `null` (registro nuevo y backfill); `%TEMP%/metricool-t75-r5-opus-findings-red.log`. La asociación ahora exige el mismo propietario para cualquier resultado; se eliminó el parámetro opcional no utilizado para forzar la marca. Actualización histórica agrupada por marca dentro de cada bloque de 500.
+- RED: historial insertado fuera de orden cronológico devolvía `[3,2,1]` en vez de `[1,3,2]`; `%TEMP%/metricool-t75-r7-order-red.log`. Corregido con orden total `created_at DESC, id DESC`, compatible con los índices y cursor existentes.
+- Pest focal actual: 18 passed, 201 assertions en SQLite (`%TEMP%/metricool-t75-r8-order-green.log`). MySQL aislado, contraste de consultas, segunda revisión Opus y navegador aún pendientes; los criterios de aceptación permanecen abiertos.
+
+**Segunda comprobación del contexto — 2026-11-17**
+
+- El análisis posterior confirmó que incluso una referencia del mismo propietario podía apuntar a otra marca. RED con MCP real: `get_calendar` sobre marca 1 terminaba atribuido a marca 2 por una colisión de ids (`%TEMP%/metricool-t75-r12-same-owner-red.log`). Claude propuso capturar el contexto verificado en la propia operación (`%TEMP%/metricool-t75-r1-reference-followup-opus55.json`).
+- Se descartó por completo el helper `AuditResource` y el backfill del primer borrador. La migración final solo incorpora el esquema y los índices: el historial anterior sigue siendo personal. MCP recoge las marcas cargadas por `owned()`/`brandFrom()`, reinicia el contexto en cada llamada y exige una sola marca. La API aporta el contexto de la marca de la ruta o del modelo leído. `AuditLog` vuelve a comprobar que pertenece al actor, y los rechazos quedan personales. Las llamadas sin contexto siguen personales; pantalla y guía lo explican. No se cambian las referencias históricas ni el comportamiento de las herramientas.
+- Se añadieron pruebas de reutilización de instancia, varias marcas, contexto ausente, rechazo, integridad entre propietarios, REST real y fechas independientes. Pest final focal: **25 passed, 215 assertions** en SQLite y MySQL 8.4.3 aislado; `%TEMP%/metricool-t75-r15-sanitized-green.log` y `%TEMP%/metricool-t75-r5-mysql-pest.log`.
+- Las opciones y totales ahora usan rangos disjuntos e índices de cobertura; se rechazó una alternativa de unión de filas completas porque empeoraba la medida. Con 60.000 registros y 20.000 visibles, la consulta final hizo seis consultas y tardó 23,62 ms frente a 140,64 ms del borrador inicial en esta instancia local. Planes reales en `%TEMP%/metricool-t75-r5-mysql-query-plans.json`; no es una garantía de rendimiento para otros volúmenes.
+- Las dos comprobaciones TypeScript, Pint y ESLint focal pasaron. Node completo detectó cuatro `.first()` en el spec nuevo: se sustituyeron por localizadores únicos tras comprobar el tamaño del listado, sin ampliar el cupo. Repetición completa **778/778** (`%TEMP%/metricool-t75-r17-node-unit.log`). Build del candidato verde; repetir tras el último ajuste visual antes de congelar para navegador.
+- La segunda revisión preparada no llegó a ejecutarse: Claude Code devolvió **“You've hit your 5-hour limit · resets 12am (Europe/Madrid)”**. Conservar el recibo `%TEMP%/metricool-t75-r2-opus55.json` como intento fallido, sin presentarlo como veredicto. Reintentar con el mismo modelo tras restablecerse la cuota, sobre el paquete actualizado. No se sustituye el revisor ni se cierra T-75. Sigue pendiente el navegador, serial y después de terminar la ejecución T-68 en curso.
+
+**Verificación final de ejecución — 2026-11-17 (revisión pendiente)**
+
+- T-68 ya está completada. T-75 sigue aislada, sin integrar ni cerrar hasta disponer del veredicto final real de Claude Opus 5.5, incluyendo calidad del código.
+- Pest completo: **4287 passed, 9 skipped, 28817 assertions** (%TEMP%/metricool-t75-r18-pest-full.log). Node final: **778/778** (%TEMP%/metricool-t75-r24-node-final.log); tipado estricto y build final verdes.
+- La primera copia de CI no incluía Tailwind/PostCSS; se restauraron las configuraciones reales. La ejecución siguiente detectó con axe una región de tabla desplazable sin foco. Corregida con región etiquetada, tabindex y foco visible; el E2E comprueba ArrowRight y desplazamiento real.
+- Navegador final: **13 passed, 2 skipped, 0 failed, 0 flaky**, qa-gate VERDE; las omisiones son el sidebar de escritorio en móvil. %TEMP%/metricool-t75-r23-screen-browser.log. SHA-256 de los **1729 archivos de código/configuración** verificados después del navegador y Node: ninguna diferencia.
+- Evidencia durable: testing/t75/preflight.md, verification.json y source-hashes.json. La cuota de Claude se restablece el 18 de noviembre a las 00:00 de Madrid; el recibo de cuota no es una revisión aprobada.
+
+**Cierre verificado — 2026-11-18**
+
+Opus 5.5 R3 confirmó resueltos Q-01..Q-05 y D-01, sin defectos Critical/Important y con calidad aceptable sin condiciones. N-01 (Minor de redacción) se corrigió literalmente con su texto; TDD n/a: prosa. La integración de 21 archivos coincide byte por byte con el candidato final y pasa git apply --reverse --check. Solo esa frase cambió después del QA; los 1728 archivos de ejecución/configuración permanecen idénticos. No hubo commit ni push. Evidencia durable en testing/t75/report.md, verification.json, source-hashes.json y reviews/.
 
 ### T-76 — Mejor hora en un clic (compositor y calendario)
 
 - **Descripción**: Botón «mejor hora» que rellena la fecha con la sugerencia de `BestTimesService` para la cuenta/marca.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Propuesta de fecha futura con métricas reales desde compositor y calendario; explica la falta de datos y conserva cambios del usuario.
+- **Estado**: completado
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-75
 - **Tipo**: fullstack
-- **Archivos**: `app/Services/BestTimesService.php`, `resources/js/Components/ScheduleSection.vue`, `resources/js/Pages/Calendar/Index.vue`, `docs/usuario/planificar.md`
+- **Archivos**: `CHANGELOG.es.md`, `CHANGELOG.md`, `app/Http/Controllers/BestTimesController.php`, `app/Http/Controllers/PostController.php`, `app/Services/BestTimesService.php`, `app/Support/LocalDateTime.php`, `docs/README.md`, `docs/usuario/guia-de-usuario.md`, `docs/usuario/planificar.md`, `resources/js/Components/BestTimeSuggestion.vue`, `resources/js/Components/Composer/ScheduleSection.vue`, `resources/js/Composables/useBestTimeSuggestion.js`, `resources/js/Composables/useComposer.js`, `resources/js/Pages/Calendar/Index.vue`, `resources/js/Pages/Posts/Compose.vue`, `resources/js/Pages/Posts/compose-props.js`, `resources/js/types/best-time.d.ts`, `resources/js/types/compose.d.ts`, `routes/parity.php`, `tests/Feature/Parity/BestTimeSuggestionTest.php`, `tests/e2e/best-time-suggestion.spec.ts`, `tests/frontend/best-time-component.test.mjs`, `tests/frontend/best-time-suggestion.test.mjs`, `docs/roadmap/2026-11-11-audit-hardening/testing/t76/**`
 - **Cubre**: F-02
 - **Cubre (tests)**: E2E-16
 - **Verificación**: `php artisan test --compact --filter=BestTimeSuggestionTest` → verde
 
 **Criterios de aceptación**
-- [ ] El botón propone una fecha futura según los datos disponibles
-- [ ] Sin datos suficientes, explica por qué y no inventa
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] El botón propone una fecha futura según los datos disponibles
+- [x] Sin datos suficientes, explica por qué y no inventa
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño S.
+
+
+**Preparación aislada — 2026-11-17 (dependencia T-75 pendiente)**
+
+- Candidato en .cache/t76-candidate/source, probado en .cache/t76-physical con instalación física de Composer y ReflectionClass(Tests\\TestCase) dentro de esa copia. Se descartó una copia heredada que cargaba el autoloader principal; su fallo de arranque no cuenta como RED. Ningún código de T-76 se ha integrado en el checkout ni en las copias de T-68/T-75.
+- RED: propuesta con historial y ausencia de datos recibían 404 en vez de 200 (%TEMP%/metricool-t76-r2-red.log). El endpoint de sesión verifica propiedad y red; BestTimesService::suggest() reutiliza las métricas reales. Sin mínimo de datos conserva el motivo y devuelve fecha nula.
+- RED de DST: PHP normalizaba la franja inexistente de 02:00 a 03:00 y elegía la franja duplicada del cambio de otoño (%TEMP%/metricool-t76-r4-dst-red.log). Se comprueban los instantes con las transiciones reales y solo se eligen horas locales únicas. Se conservan offsets fraccionarios y se excluye el instante actual.
+- GREEN: 15 passed, 89 assertions entre los casos nuevos y BestTimesTest, Pint verde (%TEMP%/metricool-t76-r5-dst-green.log). Pendientes interfaz de compositor/calendario, documentación, Node/E2E, regresión y revisión real de Claude Opus 5.5 tras restablecerse la cuota. Criterios de aceptación abiertos.
+
+**Interfaz y protección de la propuesta — 2026-11-17 (sin cierre)**
+
+- Compositor y calendario comparten un componente y un composable tipados: selección de red, estado accesible, motivo sin datos, cancelación, reintento y descarte de respuestas tardías. Una respuesta no reemplaza una fecha modificada durante la consulta ni se aplica a otra marca/red. Siete casos ejecutan Vue real y un fetch que ignora abort para demostrar las carreras; verdes. Node completo **785/785** (%TEMP%/metricool-t76-r20-node-full.log). La primera copia carecía de dos guías que los tests leen; completadas sin modificar los tests.
+- El calendario abre un compositor nuevo con una propuesta; no guarda ni publica. El servidor valida que la fecha del enlace sea futura y localmente única; editar un borrador ignora ese parámetro. LocalDateTime centraliza la comprobación de horas inexistentes/duplicadas para evitar duplicación entre controlador y servicio.
+- RED adicional: un identificador numérico demasiado grande causaba 500; el parámetro de ruta se recibe como string y los casos inexistentes devuelven 404. Pest focal integrado **45 passed, 392 assertions**, incluidos ComposeTest y BestTimesTest (%TEMP%/metricool-t76-r16-integrated-focal.log). El MySQL inicial fue 17/92; falta repetir la versión integrada.
+- RED E2E antes de la interfaz: botón ausente (%TEMP%/metricool-t76-r14-button-red-browser.log). El primer recorrido integrado pasó los seis casos de compositor; los tres de calendario fallaron porque brand_id de la URL es string y la lista contiene números. Se corrigió la comparación tras reproducirlo en los tres tamaños (%TEMP%/metricool-t76-r21-ui-green-browser.log). Se repite con axe también en el calendario.
+- Tipado estricto y build tras la corrección verdes (%TEMP%/metricool-t76-r22-calendar-typecheck.log y metricool-t76-r22-calendar-build.log). Documentación candidata preparada. Continúan pendientes regresión completa y revisión real Opus 5.5 de aceptación, corrección, seguridad, rendimiento y calidad; no se cierra ni integra antes de T-75.
+
+**Regresión completa — 2026-11-17 (revisión y navegador ampliado pendientes)**
+
+- Pest completo: **4281 passed, 9 skipped, 28685 assertions** (%TEMP%/metricool-t76-r25-pest-full.log). El primer intento completo falló por archivos de despliegue, plantillas de entorno y contrato OpenAPI ausentes en la copia; se restauraron los archivos versionables y se repitió sin modificar las pruebas ni copiar un .env privado.
+- Node final **785/785**, ESLint y Prettier focales verdes. Los nueve E2E-16 pasaron sin omisiones y qa-gate VERDE (%TEMP%/metricool-t76-r23-calendar-green-browser.log). Se está ejecutando una regresión ampliada de seis specs con 1758 archivos congelados, incluyendo configuraciones y scripts de despliegue.
+- Scope-check con base HEAD: **0 fuera de alcance, 0 avisos**, reglas originales con caché de consultas repetidas de directorio. Ledger-lint: **0 incoherencias**; conserva avisos por Changelog vacío de tareas aún abiertas. Evidencia durable: testing/t76/preflight.md, verification.json y source-hashes.json. La revisión final real de Opus 5.5 y la dependencia T-75 siguen abiertas.
+
+**Navegador ampliado final — 2026-11-18**
+
+Los seis specs afectados terminaron con **108 passed, 0 skipped, 0 failed, 0 flaky**, qa-gate VERDE (%TEMP%/metricool-t76-r28-regression-browser.log). Los 1758 SHA-256 coincidieron después de finalizar. La revisión real de Claude Code Opus 5.5 con esfuerzo alto y calidad del código empezó a las 00:06:51 de Madrid; aún no se declara ningún veredicto ni cierre. T-75 sigue pendiente de cotejar sus correcciones.
+
+**Correcciones de la revisión real y verificación conjunta — 2026-11-18**
+
+T-75 ya está integrada y cerrada. La copia T-76 incorpora sus 17 archivos no compartidos y conserva las cuatro guías/changelogs que unen ambas tareas. Los scripts y plantillas de Compose y ScheduleSection, y useComposer.js, siguen fuera del programa estricto de T-68; se comprueban el componente compartido, el composable, su DTO y los descriptores de props. Las pruebas de navegador cubren las conexiones del compositor.
+
+- Opus 5.5 R1 real, esfuerzo alto: dos Important (B1 y Q1), seis Minor. Veredicto en testing/t76/reviews/r1-opus55.md; recibo %TEMP%/metricool-t76-r1-opus55.json. La llamada tardó unos 21 minutos y terminó correctamente; no se sustituyó el modelo.
+- B1 reproducido: cinco GET normales devolvían 302, y el navegador con Referer del mismo enlace caducado falló con ERR_TOO_MANY_REDIRECTS (%TEMP%/metricool-t76-r33-review-red.log y r34-expired-red-browser.log). Ahora se abre el compositor, se omite la propuesta inválida y se muestra un aviso no bloqueante. Se mantiene el parser único y no se cambia la validación de guardar/programar.
+- Q1: tres datasets ejercitan media, muestras y cercanía, con fecha actual en mitad de semana para que el orden de la matriz no falsee el empate. Se ejecutaron tres mutantes temporales: omitir cada prioridad hizo fallar exclusivamente su dataset. Algoritmo original restaurado con SHA-256 idéntico; no se presenta como TDD de una implementación ya existente.
+- B2: template agrupa correctamente el enlace y el widget; v-else vuelve a corresponder a createHref. B3: el cliente también ignora la propuesta si ya existe post. Q4: calendario sin filtro exige elegir red; una red filtrada cuenta como elección explícita.
+- Q3: dos tests montan el setup y ciclo de vida reales del SFC sobre un renderer mínimo de Vue para valores por defecto, conservación, sustitución y elección obligatoria. La plantilla real queda cubierta en Playwright, incluido un caso nuevo de varias redes. El primer renderer carecía de parentNode: su error de montaje no cuenta como RED; r35b sí reprodujo una única elección implícita incorrecta.
+- Hallazgo adicional del implementador: cambiar y después vaciar una fecha podía hacerla parecer intacta. RED real r31, corregido con revisión de cambios síncrona; ocho casos del composable verdes. No se atribuye este hallazgo a Claude.
+- Q2: Prettier exacto sobre los doce archivos frontend modificados, lista en %TEMP%/metricool-t76-r38-prettier-files.json; check r39 verde. La config real tiene embeddedLanguageFormatting=off; no se confunde el chequeo de plantilla con formateo automático del script SFC. También se formatearon los JS modificados. Sin excepciones al gate responsive: los seis casos se agrupan en un describe con etiqueta real @responsive, que el detector reconoce tras Prettier.
+- Q5: retirada la marca de borrador de la guía; el cierre exige T-75 integrada y verificación conjunta. Focal conjunto **81 passed, 700 assertions**; Node completo **788/788**, TypeScript, ESLint, Prettier, Pint y build verdes. El navegador ampliado de seis casos por tres proyectos está ejecutándose; todavía no se declara final.
+- Una sonda adicional con NUL embebido reprodujo ValueError del parser nativo. Se ha preparado un caso para reproducir el efecto sobre el GET tras finalizar el navegador congelado. Pendiente resolverlo y repetir QA final/cotejo de Opus antes del cierre.
+
+**Cotejo R2/R3 real y correcciones menores — 2026-11-18 (QA final pendiente)**
+
+Opus 5.5 R2 aceptó B1/Q1 y los seis Minor originales, con calidad del código PASS. Señaló N1 (margen mínimo sugerido), N2 (aviso confuso tras preserveState), N3 (estado de éxito obsoleto) y una duda V1 sobre zona horaria. R3 real, mismo modelo y esfuerzo alto, acepta el rebate de N1 como política opcional fuera del contrato, sin deuda aceptada; confirma N2/N3 corregidos y cierra V1 con fuentes y pruebas Europe/Madrid/fallback UTC. No quedan Critical/Important confirmados. Veredictos íntegros en testing/t76/reviews/.
+
+- N2: texto neutral sobre la fecha del enlace. N3: marcador de fecha aplicada conserva el anuncio durante el feedback diferido del padre y lo borra tras una edición manual posterior. RED real r46: se esperaba estado vacío pero seguía «Fecha propuesta»; GREEN r47 y Node completo **789/789**. No se oculta el motivo sin datos.
+- V1: CalendarService incluye timezone en cada marca, y servicio/widget coinciden en fallback UTC. Dos pruebas adicionales comprueban el payload real Europe/Madrid y el fallback. SQLite y MySQL 8.4.3 focales **84 passed, 731 assertions**; Prettier/ESLint/Pint/tipado/build verdes. Los E2E nuevos comprueban explícitamente Europe/Madrid y limpiar la fecha en el date picker real.
+- La regresión conjunta anterior terminó con Pest **4318 passed, 9 skipped, 29008 assertions** y navegador serial **120 passed, 0 skipped/failed/flaky**, qa-gate VERDE, 1766 huellas intactas después. Esa ejecución precede solo los últimos N2/N3/tests/docs; se está repitiendo QA final.
+- R3 detectó Q-N2a Minor válido: la afirmación anterior de «texto exacto» era incorrecta; los tests comprobaban fragmentos. Se refuerzan literalmente ambas ramas HTTP y el E2E con el texto exacto propuesto por Claude, sin cambiar producción. Se verificará que rechazan la frase anterior. No cuenta como un nuevo ciclo de implementación ni se declara verde sin ejecución.
+- La tercera llamada terminó con recibo real correcto y tools vacías. El lanzador falló al leer su propio archivo de salida aún abierto; se cerró el stream y recuperó el recibo final ya emitido, sin repetir ni sustituir la revisión.
+
+**Cierre verificado — 2026-11-18**: R3 real Opus 5.5, aceptación y calidad aprobadas; Q-N2a reforzado literalmente, seis casos rojos ante el mutante temporal y vuelta a verde. Pest4320/9,29025 assertions; focal SQLite/MySQL84/731; Node789/789; navegador final18/18, qa-gate VERDE. 1766 huellas y23 archivos integrados exactos; reversión comprobada. Evidencia: testing/t76/report.md y verification.json. Las notas anteriores conservan la historia, no describen el estado final.
 
 ### T-77 — Duplicar post (borrador u otra marca)
 
 - **Descripción**: Acción «Duplicar» que crea un borrador con los mismos textos y media (en la misma u otra marca), sin copiar métricas ni estados.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Duplicación de publicaciones guardadas como borradores independientes entre marcas propias, con destinos compatibles e historial reiniciado.
+- **Estado**: completado
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-76
 - **Tipo**: fullstack
-- **Archivos**: `app/Services/PostService.php`, `app/Services/LibraryService.php`, `app/Http/Controllers/PostController.php`, `resources/js/Pages/Posts/**`, `routes/web.php`, `docs/usuario/duplicar.md`
+- **Archivos**: `app/Services/PostService.php`, `app/Services/LibraryService.php`, `app/Services/Posts/PostDuplicator.php`, `app/Services/Posts/DuplicatePostResult.php`, `app/Services/Posts/PostPlanner.php`, `app/Http/Controllers/PostController.php`, `resources/js/Pages/Posts/**`, `resources/js/Components/Composer/DuplicatePost.vue`, `tsconfig.frontend.json`, `routes/web.php`, `docs/usuario/duplicar.md`, `docs/usuario/guia-de-usuario.md`, `docs/README.md`, `CHANGELOG.md`, `CHANGELOG.es.md`, `tests/Feature/Posts/DuplicatePostTest.php`, `tests/Feature/Mcp/Tools/McpOptionsTest.php`, `tests/Feature/Publishing/PresetsReviewTest.php`, `tests/Feature/Publishing/TikTokOptionsTest.php`, `tests/Feature/Library/LibraryTargetTextTest.php`, `tests/Feature/Connectors/Google/Publish/YouTubeClientTest.php`, `tests/e2e/duplicate-post.spec.ts`, `docs/roadmap/2026-11-11-audit-hardening/testing/t77/**`
 - **Cubre**: F-03
 - **Cubre (tests)**: E2E-17
 - **Verificación**: `php artisan test --compact --filter=DuplicatePostTest` → verde
 
 **Criterios de aceptación**
-- [ ] El duplicado es un borrador independiente
-- [ ] Entre marcas solo se copia lo permitido por las redes de destino
-- [ ] Respeta propiedad y colaboradores
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] El duplicado es un borrador independiente
+- [x] Entre marcas solo se copia lo permitido por las redes de destino
+- [x] Respeta propiedad y colaboradores
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño S.
+
+**Preparación de pruebas aislada — 2026-11-17 (dependencia T-76 pendiente)**
+
+Se prepararon tres pruebas de aceptación en .cache/t77-candidate/source: duplicar una publicación publicada conservando contenido y media como borrador independiente sin métricas ni estado de publicación; copiar entre marcas propias únicamente a cuentas compatibles; impedir que un extraño o un colaborador con rol de aprobador copie contenido ajeno. Aún no se han ejecutado y no se declaran RED ni GREEN. No hay implementación de T-77 ni cambios en el checkout o la copia congelada de T-76.
+
+**RED inicial verificado — 2026-11-18 (sin implementación ni cierre)**
+
+Los tres casos se ejecutaron en la copia aislada de T-75 ya cerrada (.cache/t67-ci/metricool), con autoloader comprobado dentro de la copia y SQLite en memoria. Dos fallaron por 404 en lugar de la redirección esperada; el caso de rechazo ajeno pasó. Registro %TEMP%/metricool-t77-r1-red.log: 3 tests, 1 passed, 2 failed, 6 assertions. Se conserva como preparación TDD: no existe código de producción de T-77 y no se tocó la copia congelada de Playwright de T-76.
+
+**Implementación aislada tras T-76 — 2026-11-18 (sin revisión ni cierre)**
+
+- T-76 ya cerrada; se superpusieron sus 23 archivos exactos en la copia de ejecución física .cache/t67-ci/metricool. El candidato T-77 vive en .cache/t77-candidate/source. No se reutiliza la copia congelada de T-76 ni se toca la base privada.
+- RED: DuplicatePostTest, dos casos positivos devolvían 404; repetido tras integrar T-76 (%TEMP%/metricool-t77-r2-baseline-red.log). GREEN inicial 3/37. PostDuplicator reconstruye un borrador a través de PostPlanner::dataFromPost y PostService::create, evitando replicar filas/estado o usar la biblioteca como intermediario. Controlador fino; propiedad de origen, marca de origen/destino y destinos explícitamente comprobada.
+- RED: LinkedIn CONNECTIONS no es válido en una página de empresa; el primer fixture no habilitaba la red y después heredaba media de foto. Corregido el fixture, r4b reproduce exclusivamente la incompatibilidad de visibilidad. El validador canónico omite solo destinos inválidos, conserva los compatibles y avisa; errores del contenido común no se ocultan. R4 también reproduce aviso ausente con destino ambiguo.
+- RED: dos cuentas de origen para una cuenta de destino elegían arbitrariamente una; y un tablero Pinterest de origen viajaba a otra cuenta (%TEMP%/metricool-t77-r6-account-bindings-red.log, r6b-board-red.log). Sin correspondencia inequívoca no se elige; los tableros se eligen de nuevo en otra marca. GREEN 7/54.
+- RED: TikTok heredaba privacy_level de otra publicación (%TEMP%/metricool-t77-r9-privacy-red.log). Se exige elegirlo de nuevo. GREEN final focal **9 passed, 71 assertions**, incluye media propia/alt, primer comentario independiente, limpieza de referencias/progreso/errores y ausencia de métricas. Esta última cobertura confirma reglas existentes del creador, no se presenta como implementación TDD nueva.
+- RED de navegador real: faltaba Duplicar en ambos recorridos de escritorio (%TEMP%/metricool-t77-r8b-ui-red-browser.log). El lanzamiento r8 usó un cwd erróneo y devolvió No tests found; no cuenta como RED y no llegó a ejecutar estos casos. R8b usa el checkout aislado correcto. Interfaz candidata con diálogo accesible, marca de destino, prevención de doble envío y bloqueo explícito ante cambios sin guardar. El componente nuevo entra en tipado estricto; el compositor heredado conserva su límite declarado.
+- Pendientes formato/tipado/build, regresión completa, navegador serial, revisión real de Claude Opus 5.5 con calidad del código, correcciones y documentación final. No se declara implementación integrada ni tarea cerrada.
+
+**QA y cuota del revisor — 2026-11-18 (sin cierre)**
+
+- Componente nuevo con label for/id explícito tras RED real de selector en los tres anchos. Navegador focal final **6 passed, 0 skipped/failed/flaky**, qa-gate VERDE (r15). Node **789/789**, TS, ESLint, Prettier, Pint y build verdes.
+- Catorce tests propios y regresiones de compositor/biblioteca: **53 passed, 442 assertions** tanto SQLite como MySQL 8.4.3 desechable. El primer MySQL falló dos tests antiguos de biblioteca por orden de claves JSON. Se normalizan solo claves de cada objeto con ksort, conservando orden de destinos y tipos estrictos; archivo declarado y sin modificar biblioteca productiva.
+- Pest completo r20: **4333 passed, 9 skipped, 1 failed**, 29115 assertions. El único fallo es un test antiguo que prohibía «77» dentro de un HMAC. Se reprodujo de forma determinista con clave de prueba youtube-opacity-fixture-41: ss-a177bb707d90ca7d (r21 RED). La prueba ahora exige formato, estabilidad por destino, destinos distintos, marcador prioritario y cambio al variar la clave secreta; no prohíbe coincidencias de dígitos. YouTubeClientTest **9/18** verde (r22). Solo cambia el test, no producción. Se repite la suite completa r24.
+- La revisión preparada de Opus 5.5 no llegó a empezar: Claude Code devolvió límite de cinco horas, reinicio a las 05:00 Europe/Madrid, cero tokens de entrada/salida y coste cero. Recibo real en testing/t77/reviews/r1-quota-receipt.json. No hay veredicto ni se sustituye el modelo. La tarea queda abierta; se reintentará tras restablecerse. Se preparan tareas posteriores en copias independientes mientras tanto.
+
+**QA final confirmado — 2026-11-18 (revisión aún no iniciada)**
+
+Pest completo r24: **4334 passed,9skipped,29118assertions**. Navegador ampliado r26: **90 passed,0skipped/failed/flaky**,qa-gate VERDE, duplicación/compositor/mejor-hora en los tres tamaños. Las **1771 huellas** coinciden al finalizar. Candidato15archivos, sin integrar. Evidencia durable testing/t77/report.md,verification.json,source-hashes.json y recibo de cuota rechazado en reviews/. Estado en-revision únicamente por espera del revisor solicitado; no existe un veredicto. No se cierra ni se sustituye Claude Opus5.5.
+
+**Revisión real de Opus5.5 — intento1 efectivo, 2026-11-18**
+
+ClaudeCode real, modelo confirmado claude-opus-5-5, tools/MCPvacíos y contexto estático completo. Recibo e informe íntegros en testing/t77/reviews/r1-effective-*,r1-report.md.0Critical/0Important confirmados, B1condicional sobre opciones ligadas a cuentas; Minor B2aviso, B3dirtytrasguardar, E1resultado porreferencia, E2claves de error, E3prefiltro duplicado, E4keysVue, E5errorbag, E8prueba de métricas originales. Se corrigen hallazgos, no se cierra por veredicto condicional.
+
+RED r28: catálogo de audioInstagram viajaba a cuenta distinta, errorcomún usaba bagglobal y erroranidado targets.0.media abortabaen vez de omitir destino. Se prepara DTOresultado, aviso neutro en controlador, errorbagduplicate, parser del namespace en PostPlanner y validador como única fuente, clavesVue porcampo, descripciónARIA de bloqueo y pruebas de reactivación/métrica fuente. El audio debe reelegirse al cambiar de cuenta sin consultar proveedores; resto del catálogo de opciones se documentará para cerrar B1con evidencia ante el revisor. T81 queda en su propio RED de límites/consentimiento; sin integrar.
+
+**Revisión real Opus 5.5 R2 — 2026-11-18:** R1 cerrado incluido catálogo B1. Nuevo Important B4: el valor por defecto SELF_ONLY invalidaba borradores patrocinados tras reiniciar privacidad TikTok, omitiendo el destino. RED r36: 22 casos,20passed,1failure y1error: borrador patrocinado rechazado y destino TikTok inexistente. Se conserva la divulgación y se difiere elegir privacidad hasta programar; SELF_ONLY sigue prohibido. Regresiones de borrador, programación privada/sin elección/pública y duplicación con/sin patrocinio. Minor E9/E10 corregidos (artículos y orden documental), E11 paréntesis; E12 onSuccess se conserva como defensa sin defecto. Suite global anterior4337/9,29135assertions no se atribuye a este arreglo. Pendiente R3 y QA final.
+
+**Gate global tras R3 — 2026-11-18 (no cierre):** r39 detecta3tests antiguos que equiparaban privacidad vacía a SELF_ONLY: McpOptionsTest, PresetsReviewTest y TikTokOptionsTest;4339passed/3failed/9skipped. R3 ya había advertido exactamente esta expectativa antigua, incompatible con el contrato de borrador pendiente. Se actualizan para mantener rechazo de SELF_ONLY explícito y añadir comprobaciones de privacidad pendiente/diferencia con programación. No se elimina cobertura ni se toca producción: casos MCP conservan normalización0/1 y bloqueo al programar. El navegador actual permanece congelado sin tocar su árbol; las pruebas actualizadas solo están en candidato. Pendiente ejecución focal y global finales, más integración.
+
+**Cierre verificado — 2026-11-18:** revisión real Opus5.5 R3 aprobada A/B/C/D/calidad, sin gaps abiertos. PHP4343/9,29164assertions; focal SQLite/MySQL92/605; Node789,TS0,style/buildverdes; navegador90/90sin omisiones/fallos/flaky,qaVERDE.1772huellas y20archivos integrados byte-exactos, parche reversible. El último ajuste solo normaliza claves objeto de un test MCP; focales finales conservan listas/tipos/valores estrictos. testing/t77/report.md y verification.json. Las notas anteriores son historia; este es el estado final.
 
 ### T-78 — Estado del sistema en la UI (colas, cron, tokens y cuotas)
 
 - **Descripción**: Pantalla de administración sobre `AppHealth`, `QueueProbe` y `QuotaPolicy`: estado de colas y cron, caducidad de tokens y cuotas por red. Depende de A-09.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Pantalla administrativa con estado canónico de salud, sondas por cola y caducidades/cupos con fecha y procedencia, sin credenciales.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-05, T-77
 - **Tipo**: fullstack
-- **Archivos**: `app/Http/Controllers/SystemStatusController.php`, `app/Support/HealthCheck.php`, `app/Services/QuotaPolicy.php`, `resources/js/Pages/System/Index.vue`, `routes/web.php`, `docs/modulos/despliegue.md`
+- **Archivos**: `app/Http/Controllers/SystemStatusController.php`, `app/Services/SystemStatus.php`, `app/Support/SystemAccess.php`, `app/Support/HealthCheck.php`, `app/Services/QuotaPolicy.php`, `app/Jobs/QueueProbeJob.php`, `app/Http/Middleware/HandleInertiaRequests.php`, `config/health.php`, `resources/js/Pages/System/Index.vue`, `resources/js/types/system-status.d.ts`, `resources/js/types/shell.d.ts`, `resources/js/Layouts/AuthenticatedLayout.vue`, `tsconfig.frontend.json`, `routes/web.php`, `.env.example`, `.env.production.example`, `docs/modulos/despliegue.md`, `docs/README.md`, `CHANGELOG.md`, `CHANGELOG.es.md`, `tests/Feature/System/SystemStatusTest.php`, `tests/e2e/system-status.spec.ts`, `tests/e2e/isolated/runtime.ts`, `docs/roadmap/2026-11-11-audit-hardening/testing/t78/**`
 - **Cubre**: F-04
 - **Cubre (tests)**: E2E-01
 - **Verificación**: `php artisan test --compact --filter=SystemStatusTest` → verde
 
 **Criterios de aceptación**
-- [ ] La pantalla refleja el mismo estado que `app:health`
-- [ ] Solo la ven los administradores
-- [ ] Cuotas y caducidades se muestran con su fecha
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] La pantalla refleja el mismo estado que `app:health`
+- [x] Solo la ven los administradores
+- [x] Cuotas y caducidades se muestran con su fecha
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. El grupo A-09 + E-20 + F-04 de la auditoría se partió: backend en la fase 1, UI aquí.
+
+**Preparación aislada durante la cuota de Claude — 2026-11-18 (T-77 pendiente de revisión)**
+
+- Candidato .cache/t78-candidate/source; ejecución en .cache/t76-physical, cuya evidencia T-76 ya está archivada e integrada. Se superpuso el candidato estable T-77; no se toca la copia donde corre su regresión. Ningún archivo T-78 se integra en main.
+- RED: cuatro casos devolvían404, incluidos estado canónico/fechas y rechazo de usuarios ordinarios/lista vacía (%TEMP%/metricool-t78-r1-red.log). SystemAccess exige correo verificado en lista de servidor SYSTEM_ADMIN_EMAILS; vacío no promueve a nadie. No existe un rol administrativo editable ni se añade mass assignment a User.
+- SystemStatus reutiliza HealthCheck::run(false,true), con la caché nativa HTTP existente; lee agregados por red con proyección explícita sin credenciales. El contador local de YouTube muestra fecha de lectura y reinicio; otras cuotas sin dato remoto quedan null con fecha desconocida. No se fabrican cupos ni se llaman proveedores.
+- R2 pasó ambos rechazos y falló los positivos por componente ausente (RED real de interfaz). Página administrativa inicial tipada, fechas UTC y procedencia local/desconocida de cuotas. GREEN r3 **4 passed,52assertions**. No hay todavía evidencia de navegador, tipado/build, sondas por cola, resiliencia, navegación, revisión ni cierre; siguen pendientes.
+
+**Sondas, permisos y degradación verificados — 2026-11-18 (sin revisión ni cierre)**
+
+- RED r4: faltaba report.queues. QueueProbeJob conserva su marca por id y registra además la última prueba procesada por cola durante24h; la consulta no encola pruebas. GET distingue sin sonda, sonda procesada y caché ilegible. RED r8 y GREEN r9 verifican que un fallo de caché no se presenta como ausencia de trabajadores.
+- RED r6: excepciones de lectura de cuota/token impedían devolver el informe. Las observaciones auxiliares fallidas quedan desconocidas, con disponibilidad explícita y sin mensajes privados; HealthCheck conserva su resultado. No se fabrican ceros ni fechas recientes. GREEN r7.
+- RED r10: faltaba el permiso de navegación. Menú y servicio comparten SystemAccess; normaliza lista válida y exige verificación. La prueba de cambiar el perfil a un correo autorizado demuestra que email_verified_at se borra y sigue sin acceso. Configuración vacía y entradas inválidas permanecen cerradas. No se toca .env; solo las dos plantillas públicas.
+- PHP propio **11passed/129assertions**; combinado con salud/scheduler **26passed/187assertions**. Node **789/789**, TS estricto de la página nueva, ESLint, Prettier, Pint y build verdes (r16). Se declara la caché nativa HTTP en la página y la diferencia entre cuotas sociales desconocidas y contador local de YouTube.
+- E2E preparado con operador ficticio autorizado explícitamente solo en el runtime de base desechable, sin heredar la lista del host. El worker observado se simula mediante handle directo: no demuestra un worker nativo real. Primer navegador de escritorio r17 en ejecución, todavía sin resultado. Pendientes MySQL, PHP completo, navegador final, Opus5.5 real y dependencia T77.
+
+**QA final confirmado — 2026-11-18 (revisión y T77 pendientes)**
+
+La primera suite completa r19 detectó un catálogo frontend de redes duplicado (4344passed/9skipped/1failed). Se sustituyó por network_labels del enum canónico de servidor, conservando intacta la regla NetworkCoverageTest. R20:17/152 verde y Node/tipado/estilo/build verdes. Pest completo final r22: **4345passed,9skipped,29247assertions**. MySQL final r2 y SQLite con salud/scheduler **26/187**. Navegador estado+actividad r23: **9passed,0skipped/failed/flaky**,qa-gate VERDE;1779huellas idénticas al terminar. Evidencia durable testing/t78/report.md y verification.json.
+
+Candidato21archivos, sin integrar ni cerrar. ModoHTTP de HealthCheck y su caché nativa explícitos en UI/docs. En-revision significa espera del modelo solicitado: no existe todavía revisión de Claude Opus5.5 ni hallazgos declarados. Primero ha de cerrarse T77, después revisar este candidato contra el padre vigente y repetir cualquier QA afectado.
+
+**Revisión real Opus5.5 R1/R2 — 2026-11-18 (sin cierre)**
+
+R1:0Critical/Important, menores y datos faltantes. Se confirman orden global no estable en MySQL (RED r4: youtube/instagram/facebook frente a orden esperado) y pluralización incorrecta visible. Orden explícito, singular/plural, mapahealthStates y runtime.ts con solo1línea funcional; grupoENVreunido. Se añaden SQLprojection porDBlisten (prohíbe columnas cifradas; EXISTS deHealthCheck no materializa), TTLindividual10min/última24h, desconectadas yedadcachenativo. La primera aserciónSQL confundía SELECTEXISTScon carga decolumnas: error deltest, corregido, noREDdeproducción.
+
+Mutantesr38selectaccess_token yTTL600fallan en1caso cadauno; SHArestauradaexacta. GREENr39:91/567conAuthSocial+EmailVerification; MySQLr5:30/200. Node789/789,TS0,estilo/buildr37verdes. Se excluye runtime heredado dePrettierwholefile para conservar el diffmínimo pedido; resto del ámbito formateado.
+
+Fuentescierran B1UTCfijo,B2comandocolasidénticas/onQueue,B3sinSoftDeletes,C1login socialnunca verifica/creaUseryautovinculaciónGoogleexigecorreo remoto+localverificados; elúnico altaverificación esEmailVerificationRequestsigned/auth/throttle. R2real aprueba A/B/C/D/calidad sinCritical/Important; soloT6dato sobre paralelismo: fullyParallelfalse ycada worker tieneSQLite/cache/server propio; esteQAusa workers1. Se aportaráconfigcompleta.
+
+El navegador r42 queda12passed/3failed: eltestañadidoasumíaInstagram1pero lafixturebaseya traeotra cuenta; no es fallo delproducto. r34 tampoco aislaba por sí solo la pluralización y no debe interpretarse como RED exclusivo de esa regla. Se corrige fixture sin cambiarproducción: cuentaInstagramglobal real yuna red sincuentasprevias para probar singular más suavisodefecha, sincontaminardatosdeotroorigen. Pendiente r44browser,globalr41yR3final. Recibos/veredictos íntegros reviews/r1*,r2*.
+
+**Cierre verificado — 2026-11-18:** Opus5.5R3real A/B/C/D/calidad aprobado, sin gaps. Gate finaldel spec:Node789,tsc/vuetsc0yPrettierverdesr47; ESLintAPIconfirmaTSfueraámbito,no seatribuye lintfalso. PHP4358/9,29306assertions; SQLite91/567incluyeAuthSocial/EmailVerify,MySQL30/200;browser15/15qaVERDEsinomisiones/fallos/flaky.1780huellas,21archivosintegradosbyte-exactos,parchereversible. Informe testing/t78/report.md; las notas anteriores son historia.
 
 ### T-79 — Objetivos y alertas (seguidores, engagement, caídas, token)
 
 - **Descripción**: Objetivos por marca/cuenta evaluados a diario sobre `AccountSnapshot`; alertas por notificación (y correo opcional) ante hito, caída o token próximo a caducar.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Objetivos por marca/cuenta con evaluación diaria de hitos, caídas y caducidades conocidas; avisos deduplicados y correo opcional sujeto a preferencias.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-78
 - **Tipo**: fullstack
-- **Archivos**: `app/Models/Goal.php`, `app/Services/GoalService.php`, `app/Jobs/EvaluateGoals.php`, `app/Notifications/GoalAlert.php`, `resources/js/Pages/Goals/Index.vue`, `database/migrations/*_create_goals_table.php`, `docs/modulos/analitica.md`
+- **Archivos**: `app/Models/Goal.php`, `app/Models/GoalAlertEvent.php`, `app/Services/GoalService.php`, `app/Services/Goals/**`, `app/Services/ConnectionExpiry.php`, `app/Http/Controllers/GoalController.php`, `app/Jobs/EvaluateGoals.php`, `config/goals.php`, `.env.example`, `.env.production.example`, `docs/referencia/configuracion.md`, `app/Notifications/GoalAlert.php`, `resources/js/Pages/Goals/Index.vue`, `resources/js/Pages/Notifications/Index.vue`, `resources/js/Layouts/AuthenticatedLayout.vue`, `resources/js/types/goals.d.ts`, `tsconfig.frontend.json`, `routes/web.php`, `routes/console.php`, `database/migrations/*_create_goals_table.php`, `database/migrations/*_add_evaluation_to_goals_and_create_goal_alerts.php`, `docs/modulos/analitica.md`, `docs/README.md`, `CHANGELOG.md`, `CHANGELOG.es.md`, `tests/Feature/Goals/**`, `tests/e2e/goals.spec.ts`, `docs/roadmap/2026-11-11-audit-hardening/testing/t79/**`
 - **Cubre**: F-05
 - **Cubre (tests)**: E2E-18
 - **Verificación**: `php artisan test --compact --filter=GoalsTest` → verde · `php artisan test --compact --filter=GoalAlertTest` → verde
 
 **Criterios de aceptación**
-- [ ] Se crean, editan y borran objetivos
-- [ ] Una caída superior al umbral genera una sola alerta por periodo
-- [ ] `null` = no disponible no cuenta como 0
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Se crean, editan y borran objetivos
+- [x] Una caída superior al umbral genera una sola alerta por periodo
+- [x] `null` = no disponible no cuenta como 0
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M.
+
+**Preparación aislada durante la cuota de Claude — 2026-11-18 (dependencias sin cerrar)**
+
+- Nueva ejecución física .cache/t79-physical:1779fuentes del padre verificadas y dependencias físicas copiadas, ReflectionClass(Tests\TestCase) y require.resolve(vue) dentro de esa raíz; sin .env. Candidato .cache/t79-candidate/source. T77/T78 permanecen sin integrar mientras falta su revisión real; esta preparación tampoco se integra.
+- RED GoalsTest:3casos404 en creación/validación antes de implementar (r1). CRUD explícito por usuario, validación central de marca/cuenta, sin atribuir user_id del cliente, y listado por cursor canónico. FK de cuenta con cascade al objetivo: una cuenta borrada no convierte su objetivo en uno de toda la marca. GREEN inicial3/32.
+- RED r3: una referencia importada inconsistente filtraba el nombre de una cuenta ajena. La relación del listado también se restringe al usuario y marca del objetivo, sin cambiar ni relajar el test. GREEN r4 **4passed/49assertions**. El contrato HTTP de ese caso omite solo la comprobación de existencia de plantilla durante esta fase; el navegador verificará la página real cuando esté implementada.
+- Pendientes evaluación diaria sobre snapshots, idempotencia por periodo, null desconocido, notificaciones, interfaz, documentación, QA completo y revisión real Opus5.5 de aceptación/corrección/seguridad/rendimiento/calidad. No se cierra ni se afirma ningún resultado de alertas.
+
+**Evaluación y alertas en preparación — 2026-11-18 (sin cierre)**
+
+- RED r5: faltaba GoalService::evaluate. Evaluador separado de CRUD y lecturas de métricas; lee días cerrados y la misma cohorte de cuentas en ambos días. Evento único y notificación in-app se guardan en una transacción bajo lock del objetivo, con índice único(goal_id,period_key). Milestone se deduplica por regla/cuenta, caída por día de métricas. GREEN inicial7/67.
+- Cobertura real: caída estrictamente mayor, igualdad no dispara, baseline0 es indefinido, current0 sí es pérdida real, null/ausencia de una cuenta invalida el agregado y no aporta0, milestone no se repite al día siguiente y otra caída en otro periodo sí avisa.
+- RED r7: engagement devolvía null. Se calcula con Calculator::engagementRate sobre suma de interacciones y vistas de pares completos, no media de porcentajes;100/1100=9.09% discrimina contra media5%. GREEN13/83.
+- RED r9: caducidad conocida no alertaba. Se selecciona la fecha más temprana de acceso/renovación/acceso a datos sin seleccionar credenciales; fecha desconocida no se convierte en vencida, y una misma cuenta/plazo no repite al día siguiente. GREEN15/95, sin proveedores.
+- RED r11: faltaba correo opcional. El aviso in-app permanece inmediato/transaccional y único; mail se encola por separado, afterCommit, en poll con reintentos habituales. Requiere opt-in del objetivo, preferencia global y correo verificado; vuelve a comprobar preferencias/objetivo al enviar y no duplica el canal database. R12 detectó un acceso incorrecto al formato que devuelve QueueFake::pushed en el test; se corrigió el harness (no se cuenta como defecto productivo ni otro RED).
+- Pendientes scheduler, interfaz y flujo de aviso real de la UI, validaciones ampliadas, rendimiento/concurrencia, MySQL, regresión y revisión de Claude. No se ha ejecutado SMTP ni worker nativo por estas pruebas.
+
+**Correo y scheduler verdes — 2026-11-18 (sin cierre)**
+
+Correo opcional r12b:19tests/111assertions verdes. R13 reprodujo ausencia del evento programado (ambos escenarios fallaban antes de registrar el job). EvaluateGoals se programa05:15 por defecto, con withoutOverlapping y job único, usa metrics y lotes100, opera sin Auth y respeta propiedad. Handler invocado dos veces conserva un solo aviso. R14 módulo completo **21passed/120assertions**. Se simulan scheduler/cola/handler, no se afirma un worker nativo ni entrega SMTP.
+
+Las caducidades se deduplican por cuenta/plazo; los hitos por regla/cuenta; las caídas por fecha del último día cerrado de la marca. Se conserva explícitamente el mismo conjunto de cuentas al comparar ambos días, evitando falsas caídas por datos parciales. Pendientes UI/E2E, pruebas de concurrencia, MySQL, regresión final y Opus5.5 real.
+
+**Interfaz y defensas verificadas en preparación — 2026-11-18 (sin cierre)**
+
+- RED r15c: faltaba el enlace Objetivos en dos escenarios desktop; el primer arranque fallido r15 no cuenta como RED (faltaba public/index.php en la copia). Se restauraron ocho recursos públicos versionados y dos guías leídas por Node; sus hashes se incluyen en el suplemento del runtime, sin copiar .env, build ajeno ni almacenamiento.
+- La página nueva está incluida en el programa estricto de Vue/TypeScript. Ofrece formulario, marca/cuenta, edición con foco, confirmación al eliminar y bloqueo de acciones durante guardado. Avisos presenta el título real de goal_alert y el enlace Ver objetivos.
+- RED r16: faltaba pagination.cursor al pasar de página. Corregida la respuesta del listado con el estado de filtros; el cursor no cruza marcas. GREEN r18:22passed/151assertions.
+- RED r21: cambiar de seguidores a engagement conservaba last_value1200 y el nombre admitía CRLF. Se limpia la observación al cambiar campos de la regla y se rechazan caracteres de control. Renombrar conserva el valor evaluado; un nombre solo con espacios ya estaba rechazado y no se atribuye como nuevo RED. GREEN r22/r23:25passed/160assertions.
+- Node inicial r19:787passed/2fail por dos guías no copiadas, sin defecto productivo. Tras restaurarlas:789/789, tipado0, ESLint/Prettier/Pint/build verdes r23. El primer navegador implementado r20:1passed/1fail por selector Avisos ambiguo (tres enlaces); corregido el selector del menú, sin cambiar la aplicación para satisfacerlo. Sigue pendiente el resultado final de navegador y revisión real.
+
+**Regresión r27 y correcciones — 2026-11-18 (sin cierre)**
+
+PHP completo4369passed/9skipped/3fail: las dos migraciones nuevas violaban la prohibición de fechas futuras y el detector de workers no entendía la expresión anidada de cola del job. Migraciones renombradas a2026_11_18_091000/091100; configuración resuelve GOALS_QUEUE o SOCIAL_ANALYTICS_QUEUE (metrics) y el job usa esa clave con un fallback simple. No se modifica ni exceptúa ningún gate. La recogida diaria real configurada es12:00 (el fallback03:30 del comentario del scheduler era antiguo): RED r29 prueba que evaluar05:15 ocurría antes; se cambia el valor predeterminado a13:15, plantillas públicas y docs coherentes. GREEN r30:32passed/199assertions incluyendoGoals,MigrationDates yDeployQueuesDoc. Pendiente repetición completa.
+
+**QA final preparada — 2026-11-18 (sin revisión ni cierre)**
+
+PHP completo4372passed/9skipped/29419assertions (r31); Node789; tipado0 y estilo/build r30 verdes. Navegador r33 serial21passed/0skip/fail/flaky, qa-gateVERDE, objetivos+avisos+actividad+sistema en tres proyectos. MySQL final r3:27passed/172assertions, rollback/up dirigido por Artisan y cinco rondas con dos procesos sincronizados: un evento y un aviso por ronda.1808huellas comprobadas tras navegador/MySQL. Capturas desktop y360px examinadas, sin recortes ni texto corrupto observado.
+
+Evidencia durable en testing/t79/report.md,verification.json,source-hashes.json,qa-gate.json y logs/probe. Candidato29archivos NO integrado. T77/T78 siguen pendientes de revisión real; T79 también espera Claude Code Opus5.5 de aceptación/corrección/seguridad/rendimiento/calidad tras la cuota conocida. No hay veredicto inventado ni cierre por QA solamente.
+
+**Rebase de padres — 2026-11-18 (sin revisión/cierre):** copiaT79 actualizada conT77cerradoyT78R2producciónaprobada, manteniendo29archivospropios. ElprimermergedechangelogfallóporLFfrenteaCRLF; no se escribieronmarcadoresnicambiosparciales. Se interrumpióelQA r35iniciadoantesdeconfirmarmerge, yno se atribuyeresultado. Nuevo rebase calcula todaslasfusionesenmemoria trasnormalizarEOL, comprueba1808fuentesanterioresy soloescribe cuando todaspasan:20rutasheredadasactualizadas,1809huellasr34. Fullr36enprogreso;sin integrar.
+
+**Opus5.5 real R1 — 2026-11-18 (tarea abierta):**0Critical; F1/F3Importantconfirmados, F2periodocondicional yF4riesgosemánticodealertas. FirmaLaravel13DatabaseRulewhere sigue2argumentos: where(status,!=,desconectada) estaba malusado y aceptaba cuenta desconectada. Se preparanregresiones. CollectSnapshots usaDays::closed porred (noUTCsimple); se ajustará periodoalúltimodíacerradoenmarca yredesparaevitaradelantarsealcolector. Se aislarán excepcionesporobjetivoyse revisará caducidadautorenovable conelselectorT23existente,conservandoplazosdesconocidos/caducadossin0falso. F5dedupdropreglamodificada ymenoresdeaccesibilidad/colas/calidad entranenfix. Reciboyveredictocompletoreviews/r1*. QAprevioalfix:PHP4385/9,29478assertions,MySQL27/172y5rondas2procesosnativos1evento/1aviso,rollback/upcorrecto,Node789,TS0,style/buildr37verdes. Browserr38 **15/15** cubregooals/activity/system: el argumento notifications.spec.ts noexisteyPlaywrightloignoró; no seatribuye coberturaalcentrodeavisos. La bateríafinal usarálarutarealnotifications-unified.spec.ts(21casosprevios). Sin integración.
+
+**Cierre verificado — 2026-11-18:** Opus5.5 R3 real aprueba A/B/C/D/calidad; F1–F5 y N1–N9 resueltos o política aceptada. Dos Nit de UI aplicados literalmente con RED real r60 y GREEN final. PHP4402/9,29556aserciones; SQLite/MySQL51/286;5rondas2procesos1evento/1aviso yrollback/up. Node789,TS0,estilo/buildverdes. Navegador27/27 y focal final12/12 tras solo posición de captura, sinomisiones/fallos/flaky,qaVERDE.1809huellas y30archivos integrados byte-exactos,parche reversible. Sin cambiosPHP tras R3/global; solo GoalsVue/spec. Evidencia testing/t79/report.md y verification.json.
 
 ### T-80 — Webhooks salientes firmados y eventos de dominio
 
 - **Descripción**: Eventos de dominio (publicado, fallido, comentario nuevo…) entregados a URLs del usuario con firma HMAC, reintentos con backoff y `UrlGuard` contra SSRF.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Receptores HTTPS propios con eventos de publicación e inbox, firmas HMAC, reintentos, recuperación de cola y estado visible; secreto cifrado y privado.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-79
 - **Tipo**: fullstack
-- **Archivos**: `app/Models/Webhook.php`, `app/Services/Webhooks/WebhookDispatcher.php`, `app/Jobs/DeliverWebhook.php`, `app/Support/UrlGuard.php`, `resources/js/Pages/Webhooks/Index.vue`, `database/migrations/*_create_webhooks_table.php`, `docs/api/webhooks.md`
+- **Archivos**: `app/Models/Webhook.php`, `app/Console/Commands/ReencryptSecrets.php`, `app/Models/WebhookDelivery.php`, `app/Models/WebhookEvent.php`, `app/Services/Webhooks/**`, `app/Jobs/DeliverWebhook.php`, `app/Jobs/DispatchPendingWebhooks.php`, `routes/console.php`, `app/Services/Media/UrlGuard.php`, `app/Events/OutboundDomainEvent.php`, `app/Observers/WebhookDomainObserver.php`, `app/Providers/WebhookServiceProvider.php`, `bootstrap/providers.php`, `app/Http/Controllers/WebhookController.php`, `routes/web.php`, `config/webhooks.php`, `.env.example`, `.env.production.example`, `resources/js/Pages/Webhooks/Index.vue`, `resources/js/types/webhooks.d.ts`, `resources/js/Layouts/AuthenticatedLayout.vue`, `tsconfig.frontend.json`, `database/migrations/*_create_webhooks_table.php`, `database/migrations/*_create_webhook_events_and_deliveries.php`, `app/Services/InboxService.php`, `docs/api/webhooks.md`, `docs/README.md`, `CHANGELOG.md`, `CHANGELOG.es.md`, `tests/Feature/Webhooks/**`, `tests/e2e/webhooks.spec.ts`, `tests/e2e/isolated/bootstrap.php`, `tests/e2e/isolated/fakes.php`, `docs/roadmap/2026-11-11-audit-hardening/testing/t80/**`
 - **Cubre**: F-06
 - **Cubre (tests)**: E2E-19
 - **Verificación**: `php artisan test --compact --filter=WebhookDeliveryTest` → verde · `php artisan test --compact --filter=WebhookSsrfTest` → verde
 
 **Criterios de aceptación**
-- [ ] Cada entrega lleva firma HMAC verificable y marca de tiempo
-- [ ] `UrlGuard` bloquea IP privadas y redirecciones
-- [ ] Los reintentos se agotan y se registran
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Cada entrega lleva firma HMAC verificable y marca de tiempo
+- [x] `UrlGuard` bloquea IP privadas y redirecciones
+- [x] Los reintentos se agotan y se registran
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Sin red real: `Http::fake`.
+
+**Preparación aislada — 2026-11-18 (sin revisión ni integración)**
+
+Copia física .cache/t80-physical con1808fuentes del padre T79 comprobadas y dependencias físicas propias. T77/T78/T79 siguen abiertos; se prepara este candidato sin integrarlo. El guard SSRF existente es app/Services/Media/UrlGuard.php: se reutiliza su validación DNS, fijación de IP y bloqueo de proxy/redirecciones, sin duplicarlo en app/Support. El receptor de prueba será virtual mediante Http::fake y DNS inyectado público; una dirección privada real sigue rechazada. No red, proveedores ni configuración privada.
+
+**RED/GREEN inicial — 2026-11-18 (sin cierre)**
+
+RED r1: endpoint de alta inexistente404. CRUD con propietario explícito y secreto cifrado/oculto, URL y secreto inmutables, listado cursor y desactivación; GREEN r2:1/18. Ocho escenarios SSRF reutilizan el guard existente (privadas, metadata, literal numérico, IPv6 embebido, DNS mixto/vacío y HTTP sinTLS) y ya pasan; son cobertura de defensas reutilizadas, no se atribuye un nuevo RED. RED r3: transición real a publicada no encolaba DeliverWebhook (0en vez de1). Se prepara outbox y adaptación de eventos con payload permitido, sin conectores ni red. Transporte, backoff, recuperación y UI siguen pendientes; no se integra.
+
+**Transporte y robustez en preparación — 2026-11-18 (sin cierre)**
+
+RED r5: transporte pendiente; firma sobre timestamp.cuerpo de bytes persistidos, cabeceras HMAC/event/id, HTTPS con DNS fijado, sin proxy ni redirecciones y respuesta en streaming cerrada. GREEN r6:11/68. RED r7: faltaba registro/backoff para503, redirección y DNS privado al entregar. GREEN r8:14/118: cinco intentos,60/300/900/3600s, bloqueo de3xx y revalidación, sin guardar cuerpo remoto. RED r9: secreto filtrado en _old_input y fallo de post con cuenta borrada sin evento; corregidos sin falsear guards, GREEN r10:16/124. RED r11: no había barrido programado tras caída de cola; now outbox conserva evento y barrido cada minuto recupera la entrega, GREEN r12:17/129. El PendingDispatch instalado ya libera su lock único al fallar la cola; no se añade otro desbloqueo redundante.
+
+RED r13: fallo de evento dejaba comentario insertado y el siguiente sync ya no lo emitía. Guardado del comentario y outbox unidos con DB::transaction; retry real vuelve a generar evento. GREEN con Inbox38/291. RED r15: altas ilimitadas y sin throttle. Límite20por usuario (lock de usuario para altas simultáneas) y30cambios/minuto por actor, configurables; presupuesto ajeno no se consume. GREEN r16:21/150. RED r17UI: los dos escenarios desktop no encontraban Webhooks. RED r18: faltaba estado de última entrega en props; DTO permitido y relación latestOfMany cargada en lote por usuario, GREEN r19:21/169. Interfaz y receptor virtual en curso; aún faltan QA final/documentación/revisión real.
+
+**Interfaz y observación — 2026-11-18 (sin cierre)**
+
+Nueva página tipada estrictamente, generación criptográfica local del secreto y ocultación tras guardar, edición/pausa, confirmación de borrado y estado de última entrega. Receptor virtual E2E solo mediante bandera en el bootstrap propio ya protegido por APP_ENV=e2e/APP_URLlocal, DNS ficticio público y Http::fake; verifica HMAC y deja recibo sin cuerpo/secreto. No se modifica UrlGuard ni se ofrece bypass de URL privada. Node789/789. TS detectó preserveScroll inválido en router.reload (la API ya preserva scroll); eliminado, tipado/estilo/build r21 verdes. Navegador r22 completó firma válida/publicación/CRUD, pero el guard de consola detectó pattern HTML inválido bajo flagv y otro selector alert ambiguo. Se escapa el guion y se da nombre al formulario para localizar su propio error; r24 en ejecución, sin afirmar todavía verde.
+
+**Concurrencia SQLite reproducida y corregida — 2026-11-18 (sin cierre)**
+
+R24:6E2E/0skip/fail/flaky, qa-gateVERDE en3anchos; el receptor virtual recibió firma válida de una publicación completada por PublishPostTarget/T43Publisher, también rechazo privado yCRUD. Defensas añadidas sin inventar nuevosRED: job adelantado no consume intento/backoff, pausa/desuscripción cancela sinHTTP, error de conexión no guarda texto privado,401termina y failed() no pisa estado entregado, replay del mismo evento conserva una entrega y marca ajena no genera fanout. SQLite/MySQL8.4.3 inicial27/193.
+
+RED r26: cinco rondas de dos procesos PHP sincronizados contra SQLiteDEFERRED emitían2HTTPsimulados pero confirmaban1intento. FOR UPDATE no bloquea la escritura en SQLite. RED r27 en CI: el receptor fake veía attempts0 antes deHTTP. Se persiste el intento dentro de la transacción ANTES del envío, tomando el lock de escritura SQLite; el competidor falla de forma recuperable antes de tocar HTTP. GREEN r28:27/194 y cinco rondas con1petición/1intento/entregada cada una, incluido reintento posterior al lock perdido. Los scripts y recibos se archivarán con QA; no es un worker nativo ni HTTPexterno. Docs explican repetición ambigua con id estable, sin prometer recepción ni entrega exactamente una vez. Regresión final completa iniciada; revisión real Opus5.5 sigue pendiente.
+
+**Regresión de recifrado — 2026-11-18 (sin cierre)**
+
+R30 PHPcompleto4398passed/9skipped/1fail: el inventario canónico de app:reencrypt no incluía el nuevo cast Webhook.secret. RED r32 verifica la rotación real de ese secreto: dry-run no contaba1. Se incorpora webhooks.secret al comando productivo (sin tocar ni exceptuar el detector), con simulación que no cambia el cifrado, recifrado con APP_PREVIOUS_KEYS y repetición idempotente. Se ampliará la evidencia final al repetir QA; este hallazgo no se oculta bajo el verde anterior del módulo.
+
+**QA final preparada — 2026-11-18 (sin revisión ni cierre)**
+
+PHPcompleto4400passed/9skipped/29625assertions r34. SQLite y MySQL módulo+recifrado33/240; Node789, TS0, estilo/build verdes. Navegador ampliado39/39 en3proyectos y focal final6/6 tras corrección solo de captura, ambosqa-gateVERDE.1831huellas verificadas después. Evidencia durable testing/t80/report.md,verification.json,source-hashes.json,qa-gate*.json y logs/probe. Candidato37archivos NO integrado ni revisado; faltan Opus5.5 real (incluida calidad), aprobación de padres y cualquier rebase/corrección. No cierre por QA.
+
+**Revisión Opus 5.5 — intento 1, correcciones en curso (2026-11-18):** informe íntegro en testing/t80/reviews/r1-report.md, incluidas ambas partes del stream nativo. I-1 atomicidad ya existente, confirmada por regresión; I-2 producción MySQL y coste SQLite documentados; I-3 DNS y presupuesto de reintentos corregidos. Calidad: runner separado en preparación/elegibilidad/transporte/clasificación, casts, validación/límite compartidos, menos consultas sin suscriptores, nombres accesibles y cleanup de aislamiento. RED r47: DNS TX2≠1 y Worker5≠6peticiones; GREEN r48. r46 tuvo además dos errores de fixture, que no se cuentan como RED funcional. RED r49 browser: falta Editar Receptor e2e. Módulo nuevo41/279 SQLite; QA global/revisión2 finales pendientes. Sin cierre ni integración.
+
+**Cierre verificado — 2026-11-18:** Opus5.5 R3 real, aceptación/corrección/seguridad/rendimiento/calidad. I-1..I-4 y M-1..M-11 resueltos o políticas opcionales documentadas y aceptadas. N-2 aplicado al helper y44/293finales. Tras R3/global solo fixturePHP ydocs, sin cambio productivo. DNS fuera del lock, sin caducidad por espera en cola, maxExceptions3+CountCrashesAsExceptions nativos; RED/GREEN real r58/r59. PHP4441/9,29815aserciones; SQLite/MySQL44/293,5rondas2procesos1HTTP/1attempt yrollback/up. Node789,TS0,estilo/buildverdes. Navegador45/45 amplio antes de solo metadatos del job y6/6 final,qaVERDE,sinfallos/skip/flaky.1832huellas y37archivos integrados byte-exactos,parche reversible. Evidencia testing/t80/report.md y verification.json.
 
 ### T-81 — PWA instalable y notificaciones push
 
 - **Descripción**: Manifiesto, service worker, suscripciones y envío de push con claves VAPID configurables; sin claves la función queda desactivada con explicación.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Manifiesto y worker sin caché privada, consentimiento explícito, suscripciones cifradas y revocables, y avisos push genéricos con VAPID configurable.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-80
 - **Tipo**: fullstack
-- **Archivos**: `public/manifest.webmanifest`, `resources/js/sw.js`, `app/Services/Push/PushSender.php`, `app/Models/PushSubscription.php`, `resources/js/Pages/Profile/Notifications.vue`, `config/push.php`, `docs/usuario/pwa.md`
+- **Archivos**: `public/manifest.webmanifest`, `public/sw.js`, `app/Http/Controllers/PushSubscriptionController.php`, `app/Services/Push/**`, `app/Providers/PushServiceProvider.php`, `app/Listeners/RevokePushOnLogout.php`, `app/Listeners/QueuePushNotification.php`, `app/Jobs/SendPushNotification.php`, `app/Models/PushSubscription.php`, `app/Console/Commands/ReencryptSecrets.php`, `bootstrap/providers.php`, `routes/web.php`, `resources/js/Pages/Profile/Notifications.vue`, `resources/js/app.js`, `resources/js/lib/push.js`, `resources/js/Layouts/AuthenticatedLayout.vue`, `resources/js/types/push.d.ts`, `resources/views/app.blade.php`, `tsconfig.frontend.json`, `composer.json`, `composer.lock`, `config/push.php`, `.env.example`, `.env.production.example`, `database/migrations/*_create_push_subscriptions_table.php`, `docs/usuario/pwa.md`, `docs/README.md`, `CHANGELOG.md`, `CHANGELOG.es.md`, `tests/Feature/Push/**`, `tests/frontend/service-worker.test.mjs`, `tests/frontend/push-client.test.mjs`, `tests/e2e/push.spec.ts`, `tests/e2e/isolated/**`, `docs/roadmap/2026-11-11-audit-hardening/testing/t81/**`, `app/Services/Media/DiscardedBody.php`, `app/Services/Media/UrlGuard.php`, `app/Services/Webhooks/WebhookTransport.php`, `tests/Unit/UrlGuardTest.php`, `tests/Feature/Webhooks/WebhookDeliveryTest.php`
 - **Cubre**: F-07
 - **Cubre (tests)**: E2E-20, M-07
 - **Verificación**: `php artisan test --compact --filter=PushSubscriptionTest` → verde · `npm run build` → build correcto
 
 **Criterios de aceptación**
-- [ ] La app es instalable (manifiesto válido) y el service worker no cachea datos de usuario
-- [ ] Las suscripciones se guardan y se pueden revocar
-- [ ] El envío se prueba con un `PushSender` falso
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] La app es instalable (manifiesto válido) y el service worker no cachea datos de usuario
+- [x] Las suscripciones se guardan y se pueden revocar
+- [x] El envío se prueba con un `PushSender` falso
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Qué se puede hacer ya: todo salvo el envío real. Queda a la espera (U): generar claves VAPID, HTTPS en producción y probar en dispositivos (M-07). **A la espera (no bloquea la fase)**: Claves VAPID y HTTPS en producción (usuario).
+
+**Preparación aislada — 2026-11-18 (sin integración ni revisión)**
+
+Copia física .cache/t81-physical con1831fuentes del padre T80 y dependencias propias. Se incorpora también la corrección de recifrado del padre mientras termina su regresión. T77/T78/T79/T80 no están aprobadas/integradas; este candidato queda separado. Se consultan fuentes primarias Web Push PHP y MDN para suscripción y gesto del usuario; no se envía push real ni se crean claves del servidor privado. M07 (claves/HTTPS/dispositivos reales) seguirá explícitamente a la espera, sin sustituirlo por simulaciones.
+
+**Primer RED/GREEN y dependencias — 2026-11-18 (sin cierre)**
+
+RED r1: manifiesto ausente, GETsw.js404 y ajustes404. GREEN r2:3/37 con manifiesto estático/iconos, worker público no-store y estado desactivado por falta de claves. No hay todavía registro cliente ni aceptación de instalación. Dos pruebas Node del worker verifican ausencia de fetch/storage privado, texto genérico sin leer payload privado y navegación siempre al inbox local (cobertura adicional, no nuevoRED).
+
+Se instala minishlink/web-push11.0.0 en la copia física con plugins/scripts desactivados; no se generan claves del servidor privado. Composer detectó aviso ya presente en phpseclib4.0.2 del padre; se contrasta GHSA-w3p9-g4p2-h3rr y actualiza ese paquete previo a4.0.3; el lock también sube paragonie/constant_time_encoding de3.1.3 a3.1.4 como parche de la resolución. Audit de instalación termina sin avisos. Composer.json/lock del candidato conservan plugin-allowlist anterior y ^11.0. Todo sigue sin integrar ni revisar.
+
+La primera fixture OpenSSL falló por config Windows antes de alcanzar el endpoint y NO cuenta comoRED. Config mínima en storage propio y private_key_bits2048 permiten crear ECprime256v1 de prueba; r3c alcanza404 real de alta. GREEN r4:4/59 con alta/revocación propia, ciphertext y DTO sin endpoint/claves. Clave pública de navegador validada como puntoP256 real; auth16bytes, base64url canónico y guardHTTPS. Nuevo cast de endpoint/keys añadido también al inventario de recifrado. Persisten pendientes consentimiento cliente, límites, envíoPushSender/nativo offline, revocación de sesión, interfaz, QA completo, docs, Opus5.5 y M07real. No se afirma envío push ni instalación aceptada.
+
+**Consentimiento y cola inicial — 2026-11-18 (implementación aún incompleta)**
+
+RED r5: límite por propietario, presupuesto por minuto y revocación al cerrar sesión no existían (3fallos). GREEN r6:7/74 tras contador bajo lock de usuario, throttle y cookie cifrada/HttpOnly/SameSite del dispositivo; Logout revoca solo el dispositivo del usuario del evento, conserva otros y no impide cerrar sesión por caída del almacén. RED r7: NotificationSent(database) no encolaba Push; GREEN r8:8/85 con listener tras commit y job de identificadores sin texto privado/endpoint/claves. El handler de envío todavía no existe: no se declara entrega ni prueba del PushSender. Este candidato sigue aislado, con revisión/QA/UI/docs pendientes.
+
+**Envío simulado y adaptador criptográfico — 2026-11-18 (sin QA global/revisión/UI)**
+
+RED r9/r10: faltaban resultado/handler,10errores; GREEN r11:18/112 con PushSender falso, eliminación404/410, reintento acotado, rechazo permanente y relectura de consentimiento/owner/verificación/notificación no leída. RED r12: contrato PushSender sin binding; r13 ya firma VAPID/cifra aes128gcm nativos con HTTPfake pero SDK trataba302como éxito. GREEN r14 tras exigir2xx:24/166. RED r15: config VAPID malformada se anunciaba disponible; otros2errores eran fixtures (coordenada EC corta sin padding y captura de opciones mal instalada), no defectos de producción. GREEN r16:27/205, clavesbase64url canónicas/P256pareja real validada con OpenSSL, DNS revalidado y privado rechazado, opcionesIPfijada/proxyvacío/noredirección/stream/timeout10/3 comprobadas. Audit Composer r17 sobre lock de esta copia:0advisories/0abandoned, no atribuido a main ni padre T80.
+
+El adaptador usa minishlink/web-push11 vía PSR18 con UrlGuard existente; cuerpo genérico, respuesta remota cerrada sin leer ni registrar endpoint, texto o claves. Jobs solo identificadores. La transacción bloquea dispositivo y escribe antes del HTTP también en SQLite; idempotencia local del último notification_id y uniqueJob, sin promesa de entrega exactamente una vez frente a caída después de HTTP. Cola push es complemento best-effort: un fallo al encolarla no cancela el aviso in-app; no se afirma outbox durable. Se documentará esta limitación. Falta cliente/UI, pruebas seriales y globales, revisión Opus5.5 y M07real.
+
+**Cliente y UI inicial — 2026-11-18 (sin revisión/cierre)**
+
+El primer browser r18 falló en login por faltar build de la copia nueva: no esREDfuncional. Tras build, r18c alcanzaeltestyconfirmaausenciarealdepágina. REDNode r19:4tests cliente conarchivoausente. GREEN r20/r23:27PHP/205assertions y4Node; consentimiento directo desdegesto antesdelprimerawait,registroestático sinpedirpermiso,revocacióndeactual. NuevoajusteNotificationsenstrictcheckJs/DTO,listaowner,sinendpoints/keys,nombres/fechas yconfirmaciónderevocación. r22 Nodecompleto795/795,TS0,Pint/ESLint/Prettier/buildverdes; browserr24 **3/3** accesibilidad/overflow/sinclaves en3anchos, qaVERDE. El test de activación+PushSenderfalso está escrito pero todavía NOejecutado; no se afirmaaceptacióndeeseflujo. Documentación candidata pwa.md,envpúblicos,changelogs; faltafixtureaislada deenviador yregistroend-to-end,QAglobal,rebasedepadre,Opus5.5 yM07real.
+
+**Rebase a padres cerrados — 2026-11-18 (sin revisión ni integración):** T77/T78/T79/T80 ya están cerradas e integradas con Opus5.5. Rebase atómico de53rutas heredadas,41archivos propios y1858huellas; se conservan las dependencias/claves ficticias/suscripciones del candidato. El primer intento del script falló al evaluar un fallback de archivo nuevo antes de escribir nada; se corrigió solo ese script y después se verificó contra todas las huellas del padre cerrado. MóduloPush+recifrado32/244 SQLite, padresfinales. Preparando nuevos tipos/estilo/Node/build y QA global antes de Opus. El informe inicial4427/9 corresponde a padres anteriores, no a esta versión. M07 real sigue pendiente.
+
+**Revisión nativa Opus5.5 — intento1 en curso (2026-11-18):** paquete inmutable41archivos/1858fuentes contra T80cerrada; aceptación,corrección,seguridad,rendimiento y calidad explícita. Push+recifrado32/244 tantoSQLitecomoMySQL8.4.3propio90tablas,Node795,TS0,Pint/ESLint/Prettier/buildverdes. GlobalPHP r38 y navegadoramplio39casos r39 en curso; no se atribuye QA de padres antiguos. Sin cierre ni integración; M07claves/HTTPS/dispositivo real sigue pendiente.
+
+**Opus5.5 R1 y correcciones — 2026-11-18 (sin cierre):** informe íntegro de dos fragmentos en testing/t81/reviews/r1-report.md. I1cookie30d y colisión404, I2promesas que bloqueaban DELETE, I3ruta dinámicaSW bajoNginx. RED r41: estáticoausente,cookie≤1año,colisión404; GREEN r46:3/18. RED Node r42: ready/unsubscribe nuncaresueltos (2fallos); GREEN r44:6/6. RED browser r43:sw.jscreaba cookies yunsubscribeinfinitoimpedíarevocar (2fallos desktop). Cookieforeverrenovada alverajustespropios; colisión422genéricasintransferencia; DELETEservidorprimero yoperacionesPushManageracotadas3s. Workerúnicocanónico public/sw.js, sincontrolador/rutaLaravel; se eliminaron solo2archivos nuevos de copias propias, nunca de main. R47Node797,tipo/estilo/buildverdes, browserGREENpendiente trasnuevoBundle.
+
+CoberturaM3extra descubre registrodoble deListeners por autodetección+PushServiceProvider. R49 confirma dos warnings idénticos pese al matcher exacto; no se rebaja la exigencia. FrameworkApplication251 withEvents yEventServiceProvider41 discoverytrue. Se retira registro manual, conserva autodetección tipada; GREENr50móduloPush+recifrado40/291. El error inicial de matcher r48 se afinó antes de confirmar la causa. Migración elimina content_encoding muerto; payloadmínimo {}, texto/navegaciónsoloSW; marcaSQLite last_attempted_at documentada como técnica/rollback, etiquetaÚltimasuscripción, cleanupCNF. QA global4468/9/30023 ybrowser39/39 corresponden a R1 antes de estas correcciones y deben repetirse. M07 real sigue pendiente.
+
+**Concurrencia y caché de eventos — 2026-11-18:** M4reproducido realmente en MySQL8.4.3 propio: r3,5rondas2procesos, en cada una 1213deadlock ysolo1suscripción. Alta sin HTTP dentro deTX permite reintento transaccional3veces; r4GREEN5rondas crean2suscripciones/2dueños cadauna. Scripts/rawlogs TEMP se archivarán con cierre. Módulo40/291MySQL ySQLite. EventoCache: primerprobeWindowsusóAPP_EVENTS_CACHEabsoluto no admitido como tal pornormalizeCachePath yfallótempnam antesdecachear; noes fallo deproducto. R54ruta relativa propia: event:cache y40/291conlistenerscacheados verdes. Composervalidateestricto y auditdel lock0avisos/0abandoned. R55Node797,TS0,Pint/ESLint/Prettier/buildverdes. R56congela40archivos/1857fuentes, elimina2archivosnuevospropios y añadepublic/sw.js; globalPHP r57 ybrowseramplio39r58 en curso sobreesaversión. No cierre/integración/revisión2 todavía.
+
+**QA de correcciones y Opus R2 — 2026-11-18:** globalPHP4476passed/9skipped/30070aserciones, módulo40/291SQLite/MySQL final90tablas yrollback/upeditado, Node797 ytipos/estilo/buildverdes; navegador39/39serialsinfallos/skip/flaky,qaVERDE, incluidoSWpúblico200/javascript/sinSet-Cookie yDELETEconunsubscribequenotermina. Huellas40archivos/1857fuentes, sin integrar. Opus5.5R2real en curso con todaslaspruebas finalizadas antes de enviar el paquete ycalidadexplícita. Aclaraciones documentales separadas del paquete inmutable: rutas auth/verified, sin afirmar middlewareMFAadicional; notificaciones decanalBDusan stringdatabase, otras sonmail-only;6paquetesnuevosincluyeSDK+5transitivos. M07realpendiente.
+
+**Pausa solicitada por el usuario — 2026-11-18:** T80 cerrada e integrada, total79/108. T81 sigue en-revision, sin integrar ni cerrar. Opus5.5 R2 real aprueba integración local sin Critical/Important; informe completo en testing/t81/reviews/r2-report.md. Quedan N1condicional (mensajes/estadoInertia) y nits N2comentariohuérfano,N3nombresRevocar,N4inventario. El código instalado Inertia2.3.29 confirma preserveState:true por defecto en post/delete (TEMPmetricool-t81-r60-inertia-preserve.txt). Se ha añadido cobertura de colisión visible y se ha extraído fixture E2E compartida; todavía NO se han aplicado preserveStateexplícito,aria-label ni otros nits. R60 desktop esperaba1RED por nombre accesible y obtuvo2fallos: falta Revocar Navegador e2e y no aparece rolealert en el caso nuevo de colisión. La segunda causa está SIN INVESTIGAR; puede ser fixture o implementación, no se atribuye todavía a Inertia. No cerrar con ese rojo. Log TEMPmetricool-t81-r60-review-nits-red-browser.log; copia de spec en candidato y físico, sin formatear/verificar tras esa modificación.
+
+Última versión completa verde:40archivos/1857huellas r56, PHP4476/9/30070, Node797, módulo40/291SQLite/MySQL yconeventcache,39/39browser,5rondasnativasMySQL2procesos/2altas,rollback/up,Composer0avisos. Esa QA es anterior SOLO al nuevo spec R60; código productivo aún coincide con R2. M07realVAPID/HTTPS/dispositivos pendiente. Reanudar revisando el rojo nuevo, resolver nits, pasar QA afectado y usar Opus5.5 para revisión final antes de integrar T81; luego T82 y resto del roadmap. Sin commit/push/merge.
+
+**Cierre — 2026-11-20:** el segundo rojo de R60 era del test: `getByRole('alert')` chocaba en modo estricto con las dos regiones `alert` vacías del layout (r61); el aviso sí se mostraba. El localizador se limita a la región «Activar avisos push». El E2E nuevo destapó un defecto real de a11y (`<ul role="alert">` dejaba los `<li>` huérfanos, axe serious): ahora `<div role="alert"><ul>`. Nits R2 aplicados: N-1 `preserveState: true` explícito en alta y revocación (Inertia 2.3.29 remonta sin la opción), N-2 comentario huérfano de `routes/web.php` borrado, N-3 `aria-label` «Revocar <dispositivo>», N-4 inventario `Archivos` = 40 ficheros congelados. QA: push E2E 9/9 en tres anchos con axe (r63), Node 8/8 + typecheck + build (r64), Pest Push 35/35·252 (r64). Revisión R3 de contexto fresco (A+B+C+calidad) sobre `reviews/r3-delta.patch`: aprobado sin gaps. Integrado en el árbol principal (40 ficheros, `composer install` con `minishlink/web-push`), Push+recifrado 40/291 en principal y migraciones pendientes aplicadas en MySQL 8.4.3 de desarrollo con copia `storage/backups/pre-migrate-20261120-133549.sql`. **A la espera del usuario (no bloquea):** M-07 real (claves VAPID, HTTPS, dispositivos).
+
+**M-07 en dispositivo real — 2026-11-20 (con permiso del usuario, cuenta 28):** claves VAPID de desarrollo generadas en el `.env` (copia previa `storage/backups/env-before-push-20261120-135734.bak`), HTTPS por ngrok; instalación, permiso y alta reales correctos. El primer envío real se quedó en reintento: `PushHttpClient` pedía `stream => true` sobre el cliente de `UrlGuard`, y Guzzle pasa entonces al manejador de streams, que rechaza la opción `curl` (IP fijada) antes de conectar; los tests no lo veían porque `Http::fake` no elige manejador. Mismo defecto en `WebhookTransport` (T-80). Corrección: `UrlGuard::deliveryClient()` con `sink` `DiscardedBody` (la respuesta se descarta sin leerla ni bufferizarla; el tiempo máximo de 10 s acota la descarga), usado por push y webhooks; tests de opciones actualizados y regresión nueva en `tests/Unit/UrlGuardTest.php` por el manejador real contra 127.0.0.1 cerrado (con la combinación antigua lanza `InvalidArgumentException` del manejador de streams). UrlGuard + Push + Webhooks 193/744. Reenvío real aceptado por FCM (`last_sent_at` registrado). **M-07 completada por el usuario (2026-11-20):** notificación recibida, al pulsarla abre Avisos, Revocar la quita (suscripción 1 borrada) y cerrar sesión revoca el dispositivo actual (suscripción 2 borrada, comprobado en BD). Probado en un dispositivo; producción necesitará sus propias claves VAPID y HTTPS del VPS.
 
 ### T-82 — Adaptar contenido entre redes con IA y alt text en el compositor
 
@@ -4416,3 +5272,202 @@ T-34 sin gaps. En T-35, 1 Important, 5 Minor y 3 extras corregidos, cada uno con
 | E3 | Extra | CHANGELOG | Entradas de T-34 y T-35 en `[Unreleased]` (en y es) con el campo `Changelog` del ledger | `CHANGELOG.md` y `CHANGELOG.es.md` |
 
 Verificación (2026-11-13): Pest focal `tests/Feature/Studio` + `Ai` + `ProfileTest` + `Mcp` + `Deploy` + `Infra` 1173/1182 verde (9 omitidas ya existentes); Pint OK. `npm run build` OK, `typecheck` OK, `test:unit` 639/639 (el test de `CaptionsPanel` necesitó inyectar `AiNotConfigured` y `studioRequest`). Playwright (`E2E_PURGE=0 E2E_WORKERS=2`): `studio-pptx-thumbnails` + `studio-captions` verdes (la primera pasada, con `studio-ai`, dio 22 verdes y 3 rojos de `studio-ai` por un import olvidado de `AiNotConfigured` en `StudioAiPanel`, corregido) y `studio-ai` 9/9 tras el arreglo. No se lanzó el Pest completo.
+
+## Revisión de dos lentes — intento 1: Fase 4 (T-43, T-44, T-45) — tres hallazgos
+
+Lentes A+B+D sobre el incremento desde `a6d6d8c`. El selector automático activó rendimiento por rutas de informes, lotes y MCP. La comprobación previa dio cero archivos fuera de alcance.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| A1 | Important | La cobertura mostraba LinkedIn como disponible y también incluía la nota «Fuera por ahora» al registrar la fuente | T-43 | Aplicar las notas de indisponibilidad únicamente a redes sin fuente | `InboxCapabilitiesTest`, rojo y verde |
+| A2 | Important | Quedaban cuatro filtros cualificados del propietario en consultas con `withoutUserScope()` | T-44 | Migrar a `ownedBy()` y ampliar el guard para columnas cualificadas | `OwnershipScopeTest`, rojo y verde. Las cuatro consultas conservan la cualificación y el listado de audio conserva el filtro del vínculo |
+| A3 | Important | Studio AV y la búsqueda de datasets mantenían comprobaciones de propiedad separadas | T-45 | Usar `Ownership::matches()` y `Ownership::assert()` respectivamente | Revisión de ambos sitios y pruebas HTTP de gráficos y datasets |
+
+## Revisión de dos lentes — intento 2: Fase 4 (T-43, T-44, T-45) — correcciones verificadas
+
+Lentes A+B+D. A y B confirmaron las correcciones de sus hallazgos. El barrido de consultas y `git diff --check a6d6d8c` pasaron. D confirmó que las cuatro consultas conservan los filtros, los joins y la paginación donde aplicaba. La pasada focalizada de Pest terminó con 33 pruebas correctas. El resultado de QA completo se anota en las tareas.
+
+QA comparativa de T-43 a T-45, 2026-11-16. Playwright ejecutó los mismos 71 escenarios de los nueve specs seleccionados en escritorio, móvil de 375 px y móvil de 360 px, con un worker. En la base `3b8a68e` pasaron 65 en la primera pasada. Los seis de tipografías y recorte de fondos pasaron al repetirlos con el mismo entorno Python y modelo del Estudio. Los 71 pasaron en la versión actual y `qa-gate.py` dio VERDE. Se cotejaron los casos por archivo, título y proyecto. Pest completo sobre la versión actual pasó con 4056 correctas, 9 omitidas y 25 821 aserciones.
+
+## Revisión de dos lentes — intento 1: Fase 4 (T-46) — dos hallazgos Important
+
+Claude Code ejecutó sesiones de solo lectura con Claude Sonnet 5.5 para las lentes A+B+D. La puerta de alcance no detectó archivos fuera del plan.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| A1 | Important | Faltaba cobertura del fallo al registrar la imagen y de la excepción posterior al commit | T-46 | Añadir ambas regresiones | Pest comprueba que el rollback borra el objeto preparado y que el commit conserva el objeto registrado |
+| B1 | Important | Un fallo de almacenamiento tras el commit de tipografía devolvía 500 y dejaba la limpieza pendiente | T-46 | Mantener 204 y reintentar en la cola `media` | Pruebas con excepción y retorno `false`, verificación del job y borrado al recuperar el almacenamiento |
+
+## Revisión de dos lentes — intento 2: Fase 4 (T-46) — correcciones verificadas
+
+Claude Sonnet 5.5, lentes A+B+D. Las lentes cerraron A1 y B1. A dejó un Important condicional sobre la revalidación del origen al mover el hash fuera del lock. D confirmó que el procesamiento, los sondeos y el fallback de limpieza quedan fuera de las transacciones de registro y borrado.
+
+## Revisión de dos lentes — intento 3: Fase 4 (T-46) — sin Critical ni Important abiertos
+
+Claude Sonnet 5.5, revisión focal de A con el código de la sonda y de la subida. El procesador usa una copia cuyos bytes coinciden con el SHA-256 del trabajo. El worker vuelve a cotejar el hash del archivo de origen antes de la transacción y comprueba la identidad de su fila bajo lock. El lock SQL no controla una escritura directa al mismo objeto entre el último hash y el commit. Claude clasificó ese intervalo como un límite menor entre sistemas. Verificó el import de `InvalidArgumentException`, la conservación del MIME y las rutas UUID independientes por alta de tipografía. Ambos accesos al disco de imágenes resuelven `filesystems.media`.
+
+Si fallan el disco y el transporte de cola, se reportan ambos errores. Se conserva el 204 de un borrado de fila ya confirmado. La cola `media` permite recuperar fallos transitorios cuando acepta el job.
+
+## Revisión de dos lentes — intento 1: Fase 4 (T-47) — contrato, cobertura y rendimiento
+
+Claude Code ejecutó las lentes A+B+D con Claude Sonnet 5.5 sobre el diff aislado de T-47. La puerta de alcance dio cero archivos fuera del plan.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| A1 | Critical señalado | Faltaba la protección de errores de comparación antes del API y el encolado de informes | T-47 | Validar el rango comparativo por la misma excepción de campo antes de renderizar o encolar | `Period::inputComparison()` y pruebas de informes y métricas |
+| B1 | Important | Un enlace directo con fechas inválidas podía redirigir sin enseñar el error | T-47 | Mantener 422 en GET directo y mostrar errores de campo en navegación Inertia | Peticiones JSON, GET directo y Playwright del selector |
+| B2 | Important | Un informe API podía buscar la plantilla antes de validar fechas | T-47 | Validar el período antes de consultar la plantilla | El servicio recibe el período ya validado y MCP conserva el parser común |
+| A2 | Important | Faltaba cobertura de los informes, de fechas obligatorias y de varias rutas de panel y MCP | T-47 | Probar la pareja campo y mensaje en once rutas y llamadas, y fechas obligatorias en analytics API | `PeriodInputTest` |
+| D1 | Important | La caché de filas volvía a hidratar y calcular todo en cada hit | T-47 | Cachear los cálculos diarios y mantener el detalle de cuentas y publicaciones en vivo | Medición local con 8784 filas y regresiones de caché caliente |
+| D2 | Important | El recolector invalidaba también cuando el upsert repetía el mismo contenido y la misma captura | T-47 | Invalidar solo si cambian los datos que lee el panel o si el snapshot es nuevo | Caso de rollback, recogida histórica parcial y versión por marca |
+
+## Revisión de dos lentes — intento 2: Fase 4 (T-47) — sin Critical ni Important abiertos
+
+Claude Sonnet 5.5 revisó las correcciones con las lentes A+B+D. Se cerraron los hallazgos de comparación, formatos HTTP e Inertia, precedencia en la API de informes, alcance de validación, invalidación y rendimiento. La búsqueda de llamadores de `ReportService::request()` solo encontró el controlador API y `generate_report`, cubiertos por las pruebas. La búsqueda de escrituras de `account_snapshots` encontró el recolector. La clave incorpora el estado actual de cada cuenta y el último día cerrado.
+
+El primer cálculo tras rotar la versión puede repetirse en peticiones simultáneas del mismo propietario. El refresco de una entrada existente lo coordina `Cache::flexible`. Las pruebas demostraron persistencia del acierto en la marca ajena y consistencia en rollback o lote parcial.
+
+## Revisión de dos lentes — intento 1: Fase 4 (T-48) — hallazgos corregidos
+
+Claude Code ejecutó A+B+D con Claude Sonnet 5.5 sobre el diff aislado. La puerta de alcance dio cero archivos fuera del plan. El 429 previo ocurrió antes de que Claude procesara el diff.
+
+| # | Grado | Hallazgo | Resolución | Evidencia |
+|---|---|---|---|---|
+| A1/B1 | Important | Una migración de hoy puede ordenarse antes de una dependencia histórica futura | Documentar volcado por conexión para bases nuevas y aplicación previa por ruta de dependencias pendientes en bases existentes | En una sonda Artisan con SQLite en memoria, el orden por nombre falló y las dos vías documentadas pasaron |
+| B2 | Important señalado | Faltaba evidencia de Pest y Playwright tras activar la protección | Descartado con los informes existentes y el cotejo de los 13 escenarios comunes. Se relanzó la verificación completa tras las correcciones | 4075 pruebas en la base de T-47, 4079 con T-48 y 23/23 en Playwright antes de esta revisión |
+| D1 | Important | La prueba de Estudio tenía las miniaturas desactivadas | Activarlas con caché en memoria y simular la cola de renderizado. Cubrir miniaturas listas y pendientes y sitios publicados y borradores | `QueryCountTest` comprueba el recuento y el encolado |
+| B3/D2 | Important confirmado | La búsqueda de llamadores destapó un 500 con dos destinos manuales y texto vinculado | Reutilizar la publicación ya autorizada al resolver el texto de cada destino | `ManualPublishTest` reprodujo `LazyLoadingViolationException` y pasó con textos propios y vinculados |
+| B4 | Minor | El formato permitía horas imposibles | Comprobar HHMMSS y fecha UTC | La sonda con hora inválida y la sonda con fecha futura fueron rechazadas |
+
+## Revisión de dos lentes — intento 2: Fase 4 (T-48) — sin Critical ni Important abiertos
+
+Claude Sonnet 5.5 comprobó las correcciones con A+B+D. Confirmó el procedimiento de dependencias históricas, el recuento con estados de miniaturas y sitios y la reparación del contenido manual. Laravel tiene UTC fijo en `config/app.php`. Los listados ordenan por id, así que las filas de los fixtures conservan su posición. `TargetMedia::effective()` lee el atributo `media` del destino, cuyo accesor usa `mediaItems`. `PostTarget` precarga esa relación por defecto, también cuando el destino tiene media propia. La documentación indica que el CLI `sqlite3` se requiere al generar el volcado de SQLite.
+
+## Revisión de dos lentes — intento 1: Fase 4 (T-49) — hallazgos corregidos
+
+Claude Opus 5.5 ejecutó A+B+C+D sobre el diff aislado. Alcance verificado.
+
+| Hallazgo | Gravedad | Resolución | Evidencia |
+|---|---|---|---|
+| Miniaturas en la misma FIFO que las peticiones de IA y los renderizados estáticos | Important | Conservar `studio` como cola de miniaturas por defecto y usar `studio-render` para IA, imágenes y exportaciones estáticas | `QueueConfigTest`, `StudioThumbnailsTest` y las guías de Hestia y systemd |
+| Cambios operativos sin changelog | Important | Añadir entradas EN y ES y documentar cuándo activar el nuevo worker | `CHANGELOG.md`, `CHANGELOG.es.md` y el ledger |
+| Supuesto atasco invisible si el .env antiguo omite la cola | Important señalado | Descartado. `HealthCheck::lateQueues()` agrupa todas las colas de la tabla de trabajos. `QueueProbe` añade la cola de render | Prueba SQLite inserta un trabajo atrasado en `studio-render` y comprueba el aviso con una lista antigua |
+| Reinicio del contador de 2FA y posibles colisiones | Minor | Conservar el prefijo histórico y probar nombres únicos | `RateLimitConfigTest` verifica la clave, los valores y las ventanas |
+| Timeout de informes fuera del presupuesto | Minor | Acotar los informes nuevos entre 1 y 110 s | `QueueConfigTest` verifica el valor anterior, un ajuste válido y ambos extremos |
+
+## Revisión de dos lentes — intento 2: Fase 4 (T-49) — correcciones verificadas
+
+Opus 5.5 verificó A+B+C+D. No quedaron Critical ni Important. La lente D encontró que un valor vacío de `STUDIO_RENDER_QUEUE` dejaba los trabajos sin el nombre esperado. Las otras observaciones se comprobaron en el código. PPTX usa `RenderStudioDesign` y conserva el worker de exportación estática. Las claves de los límites son obligatorias en la configuración versionada.
+
+## Revisión de dos lentes — intento 3: Fase 4 (T-49) — sin Critical ni Important abiertos
+
+Opus 5.5 verificó la corrección de la cola vacía con A+B+D. La configuración normaliza el nombre una vez y lo comparte con los jobs y la sonda. El alcance defensivo de la lente C se cerró en el intento 2 y el último delta solo cambia la resolución de la cola. El caso vacío se verificó mediante un arranque local controlado.
+
+## Revisión de dos lentes — intento 1: Fase 4 (T-50) — correcciones pendientes de segunda revisión
+
+Claude Code ejecutó A+B+C con Claude Opus 5.5 sobre el diff aislado. La puerta de alcance dio cero archivos fuera del plan.
+
+| Hallazgo | Gravedad | Corrección o evidencia |
+|---|---|---|
+| Llamadores directos y posibles ciclos tras introducir dependencias | Important señalado | La búsqueda de construcciones directas y subclases no encontró coincidencias en app, tests, database ni routes. El contenedor resolvió las 11 clases tras arrancar Laravel. |
+| Se estrechó la excepción reintentada en el contador público | Important confirmado | Restaurar `QueryException` y recrear la consulta para reintentar. La prueba de colisión inserta la fila entre la actualización y el alta. La prueba de FK confirma que se conserva el comportamiento anterior al desaparecer el padre. |
+| Faltaba comprobar el censo y las implementaciones unificadas | Important señalado | Inventario 212 → 193 usos literales de `app(X::class)` y 36 → 33 construcciones con `new` dentro de constructores. La macro LIKE queda en un único punto y ambos consumidores de estado usan el mismo candado. |
+| Caducidad lógica y propietarios de intentos OAuth incompletos | Minor | Pruebas con la entrada aún en caché, máximo de intentos y propietario distinto. Cada flujo indica si comprueba el estado en bruto de su esquema histórico. |
+
+El reintento de A+B+C sobre el diff corregido se pospuso por la cuota. Este resultado no constituye una segunda revisión.
+
+## Verificación focal de T-36 a T-42 para retomar la revisión
+
+El 16 de noviembre se ejecutaron en serie los filtros declarados sobre el checkout actual. Cada fila corresponde a su propio filtro.
+
+| Tarea | Filtro | Resultado |
+|---|---|---|
+| T-36 | `InstagramPublish\|ThreadsPublisher` | 56 correctas |
+| T-37 | `TikTokPublish\|YouTubePublish` | 83 correctas |
+| T-38 | `YouTube` | 143 correctas |
+| T-39 | `Studio` | 727 correctas, 9 omitidas |
+| T-40 y T-41 | `Post` | 409 correctas |
+| T-42 | `Site` y `StudioRenderer` | 27 y 9 correctas |
+
+Se prepararon los diffs de revisión con el criterio de calidad del código. Opus 5.5 sigue pendiente. Los resultados focales quedan disponibles en `%TEMP%/metricool-phase4-verification.json`.
+
+## Integración adicional para T-36 a T-42
+
+- Playwright serial sobre el checkout actual, 18/18. Incluye publicación simulada con media por destino, avance de importación, conexión y filtro de Threads, carpetas de Estudio, publicación manual, series con aprobación y reprogramación por lote. `qa-gate.py` verde. Informe en `storage/framework/testing/t43/run-general-362367db-63f9-46a7-81cf-d8e2302185b3/results.json`.
+- Exportación audiovisual nativa para T-42, 1/1 en escritorio sobre Windows. El navegador ejercitó el orden de páginas, historial, cancelación, reintento y descarga real de MP4 y GIF antes de crear el borrador de marca. `qa-gate.py` verde. Informe en `storage/framework/testing/t43/run-general-3545ac03-1264-443c-b704-3e46acb5f21d/results.json`.
+- E2E-38, 10/10 antes y después de la fase 4. Se compiló y probó `f40a583` en una copia aislada y se cotejaron fichero, título y proyecto Playwright con el informe actual de T-50. Pasaron publicación desde el compositor, planificación semanal, notas del inbox y generación de informes. `qa-gate.py` verde. Informes en `storage/framework/testing/t43/phase4-baseline-f40a583/results.json` y `storage/framework/testing/t43/run-general-82586fb2-75ae-40a8-9470-4975bb5f6a85/results.json`.
+- La revisión de aceptación y calidad con Opus 5.5 sigue pendiente. El CLI confirmó HTTP 429 el 16 de noviembre, con reinicio previsto a las 01:30 del 17 de noviembre, hora de Madrid.
+
+## Regularización de alcance documental — 2026-11-17
+
+La puerta de alcance sobre HEAD encontró veinte rutas existentes sin declaración literal: mayúsculas de Composables, módulos ya extraídos, el montaje de ConfirmDialog, auxiliares de exportación, configuración CSP, la ruta de IA y el archivo del ledger anterior con su regla de bytes. Se añadieron las rutas exactas a sus tareas, sin modificar implementación ni estados y sin introducir exclusiones de producción. La base HEAD corresponde al inicio del trabajo no confirmado de esta iniciativa; el merge-base con main incluye miles de evidencias y código de iniciativas anteriores ya confirmadas. Las copias desechables .cache se excluyen solo localmente mediante .git/info/exclude. El script de alcance se ejecuta con caché de consultas repetidas os.path.isdir durante la lectura de un árbol inmóvil, conservando sus reglas originales.
+
+## Revisión de dos lentes — intento 2: Fase 7 (T-75) — hallazgos reproducidos y corregidos
+
+Claude Code CLI real, modelo claude-opus-5-5, esfuerzo alto, 2026-11-18. Lentes A+B+C+D y calidad del código. Recibo %TEMP%/metricool-t75-r2-retry1-opus55.json, copia del veredicto en testing/t75/reviews/metricool-t75-r2-opus55.md. Confirmó resueltos los hallazgos críticos anteriores; detectó un Important y cinco Minor. Ningún cierre hasta repetir QA y cotejar el parche corregido.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| Q-01 | Important | Encabezado Acción con U+FFFD | T-75 | Corregido el carácter y añadido localizador exacto de columnheader | RED real de navegador, 1 fallo por encabezado ausente: metricool-t75-r29-header-red-browser.log. Pendiente repetición final |
+| Q-02 | Minor | Contexto mutable de API entre peticiones y varias marcas | T-75 | WeakMap ligada a cada Request, conjunto de marcas y atribución solo si hay una | RED [1,1,2] frente a [1,null,null]; GREEN 32/241. No se reinicia ciegamente respond(): hay adaptadores que validan la marca antes de llamarlo |
+| Q-03 | Minor | MCP omite contexto en errores HTTP verificados | T-75 | Paso uniforme de brandId; el registrador central sigue quitándolo en DENIED | Tres RED para 403/409/429, GREEN incluyendo 404 personal |
+| Q-04 | Minor | DDL en prueba con transacción y comprobación histórica débil | T-75 | Fixtures con brand_id nulo; se verifica visibilidad personal y ausencia al filtrar marca | GREEN; down/up verificado aparte en MySQL desechable, con índices y FK restaurados |
+| Q-05 | Minor | Faltan llamadas reales get_post y marca por nombre | T-75 | Pruebas de REST y MCP real añadidas | Incluidas en 32 pruebas verdes. Cobertura posterior declarada; no se presenta como RED |
+| D-01 | Minor | Rendimiento con visibilidad dispersa no medido | T-75 | Medición adicional, sin cambiar consultas al no observar degradación | EXPLAIN ANALYZE: 50 visibles entre 60000, situadas al final; dos rangos de 50 entradas, deduplicadas a 50 filas; no recorre toda la tabla. Seis consultas: 18,96 ms sin filtro y 3,27 ms con acción rara. Datos locales, no garantía de capacidad |
+
+También se aclaró en la guía el alcance de las acciones de colaboradores y se limpió el comentario residual de la migración. Node final 778/778, tipado estricto, ESLint, Prettier, Pint y build verdes tras las correcciones. Pest completo, MySQL focal y navegador se repiten sobre el nuevo candidato antes del siguiente veredicto.
+
+## Revisión de dos lentes — intento 3: Fase 7 (T-75) — aprobada y cerrada
+
+Claude Code CLI real claude-opus-5-5, esfuerzo alto, 2026-11-18. Lentes A+B+C+D y calidad. Recibo %TEMP%/metricool-t75-r3-opus55.json y copia durable en testing/t75/reviews/metricool-t75-r3-opus55.md. Confirmó todos los hallazgos de R2 resueltos; código aceptable sin condiciones, sin Critical/Important.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| N-01 | Minor | La frase de colaboradores sugería una atribución que no existe | T-75 | Aplicada literalmente la frase propuesta: quedan personales y no aparecen en el historial del propietario | docs/usuario/actividad.md; cambio solo de prosa, sin código ejecutable |
+
+Pest 4294/9, 28843 assertions; MySQL y SQLite focales 32/241; Node 778/778; Playwright 13/2, 0 failed/flaky, qa-gate VERDE. Veintiún archivos integrados exactamente; reversión del parche comprobada. T-75 completada, T-76 en-progreso; resumen 74/108.
+
+## Revisión de dos lentes — intento 1: Fase 7 (T-76) — correcciones verificadas; cotejo pendiente
+
+Claude Code CLI real claude-opus-5-5, esfuerzo alto, 2026-11-18. Lentes A+B+C+D y calidad del código. Recibo %TEMP%/metricool-t76-r1-opus55.json y copia durable testing/t76/reviews/r1-opus55.md. Dos Important y seis Minor. La segunda revisión real se está ejecutando sobre el candidato corregido; no se declara aprobada.
+
+| # | Grado | Gap | Tarea | Corrección | Evidencia |
+|---|---|---|---|---|---|
+| B1 | Important | Un enlace caducado provoca redirecciones del GET del compositor | T-76 | Prefill inválido produce 200, valor nulo y aviso no bloqueante; guardar conserva su validación | Cinco GET RED 302; navegador RED ERR_TOO_MANY_REDIRECTS; 18 E2E verdes, incluido enlace caducado |
+| Q1 | Important | Media, muestras y cercanía sin cobertura discriminante | T-76 | Tres datasets independientes, con fecha en mitad de semana | Tres mutantes temporales: cada prioridad omitida falla solo su dataset. Original restaurado por SHA256 |
+| B2 | Minor | v-else del calendario ligado al widget | T-76 | Grupo template v-if=createHref y alternativa adyacente | Tipado y recorridos de calendario verdes |
+| B3 | Minor | Prefill de edición dependía solo del servidor | T-76 | Condicional explícito según presencia de post también en el cliente | Node y regresión de crear/editar en curso; servidor conserva su prueba de edición |
+| Q2 | Minor | Evidencia de Prettier ambigua | T-76 | Lista exacta de 12 archivos frontend formateados y comprobados; scripts SFC distinguidos por embeddedLanguageFormatting=off | r38-prettier-files.json y r39-prettier-check.log; sin excepciones nuevas |
+| Q3 | Minor | Estado del SFC y varias redes sin pruebas específicas | T-76 | Dos tests montan setup/ciclo real de Vue; E2E de varias redes | 10 tests de componente/composable; 18 E2E verdes. Límites de tipado y renderer mínimo declarados |
+| Q4 | Minor | Catálogo del calendario elige una red implícita | T-76 | Elección obligatoria sin filtro; filtro de red ya cuenta como elección explícita | RED del componente y GREEN; E2E dedicado en los tres proyectos |
+| Q5 | Minor | Borrador en la guía y dependencia sin integrar | T-76 | Retirado el marcador; T-75 ya cerrada e integrada antes de probar ambas juntas | 82/714 en SQLite y MySQL; T-75 report.md; regresión completa conjunta |
+| SELF-01 | Important | Editar y volver a vaciar la fecha permite sobrescribir la decisión final | T-76 | Revisión síncrona de cambios además de igualdad | RED r31, GREEN ocho casos del composable |
+| SELF-02 | Important | NUL embebido en una propuesta lanza ValueError y devuelve 500 | T-76 | Parser captura Exception o ValueError como entrada inválida | RED real HTTP500 r41; GREEN r42. No se atribuye a Claude |
+
+Verificación actual: 82 passed / 714 assertions en SQLite y MySQL 8.4.3, con 1766 hashes antes/después de MySQL; 788/788 Node; tipado, estilo y build verdes. Pest completo conjunto: 4318 passed / 9 skipped / 29008 assertions (r44). Playwright final de siete specs sigue en ejecución serial sobre el mismo código. El cotejo de Opus R2 incluye todos los cambios y debe finalizar antes del cierre.
+
+## Revisión de dos lentes — intento 2: Fase 7 (T-76) — correcciones aprobadas, seguimiento menor
+
+Opus 5.5 real: A condicional al QA y V1; B/C/D/calidad PASS. N1 margen sugerido, N2 aviso, N3 estado; V1 duda no confirmada. Ver r2-opus55.md. Sin nuevos Critical/Important confirmados.
+
+## Revisión de dos lentes — intento 3: Fase 7 (T-76) — aprobada y cerrada
+
+A+B+C+D y calidad mediante Claude Code Opus5.5 real, esfuerzo alto, revisión estática. N1 rebatido con contrato/evidencia y aceptado como política opcional sin deuda; N2/N3 corregidos; V1 cerrado con payload Europe/Madrid, fallback UTC y navegador. Q-N2a Minor final corregido literalmente: HTTP y E2E exigen texto exacto; seis casos rechazan la frase anterior en mutante temporal y pasan tras restaurar producción. No hay gaps abiertos. Recibo durable r3-receipt.json y veredicto r3-opus55.md.
+
+QA final: Pest4320/9,29025 assertions; SQLite y MySQL84/731; Node789/789;18 E2E sin omisiones/fallos/flaky,qa-gate VERDE; tipado/estilo/build verdes. El completo PHP precede solo el refuerzo literal de tests; la producción es idéntica y focales finales cubren ese refuerzo. 1766 huellas idénticas tras QA y en main,23 archivos integrados byte-exactos,parche reversible. Total75/108;T77 en-progreso.
+
+## Revisión de dos lentes — intento 3: Fase 7 (T-77) — aprobada y cerrada
+
+ClaudeCodeOpus5.5 real con A/B/C/D y calidad. R1 opciones/DTO/errorbag/avisos y R2 TikTok patrocinado corregidos. R3 sin Critical/Important; B5/B6 respondidos con fuentes, E13/E14 aplicados; onSuccess defensivo aceptado. Gates finales e integración exacta documentados en testing/t77. Total76/108.
+
+## Revisión de dos lentes — intento 3: Fase 7 (T-78) — aprobada y cerrada
+
+ClaudeCodeOpus5.5real apruebaaceptación/corrección/seguridad/rendimiento/calidad, T6cerrado conaislamientoreal porworker. ÚltimogateNode/tipos/formato delspecfinal verificadoposteriormente sin cambiosdecódigo. QAeintegraciónexacta entesting/t78. Total77/108;T79 siguecandidatoenverificación,nointegrado.
+
+## Revisión de dos lentes — intento 3: Fase 7 (T-79) — aprobada y cerrada
+
+ClaudeCodeOpus5.5 real con aceptación,corrección,seguridad,rendimiento ycalidad. F1/F2/F3/F4/F5 corregidos; N1–N9 cerrados, selección de vencido respaldada por el flujo real de reconexión. Q1/Q2 opcionales aplicados literalmente y probados. QA y huellas finales entesting/t79. Total78/108. T80 continúa en copia aislada, sin integrar.
+
+## Revisión de dos lentes — intento 3: Fase 7 (T-80) — aprobada y cerrada
+
+ClaudeCodeOpus5.5 real: aceptación,corrección,seguridad,rendimiento y calidad del código. QA,recibos nativos e integración exacta en testing/t80. Total79/108. T81 continúa en preparación aislada.

@@ -26,7 +26,7 @@ beforeEach(function () {
     $this->other = User::factory()->create();
     $this->brand = Brand::factory()->for($this->owner)->create(['timezone' => 'UTC']);
     $this->fb = SocialAccount::factory()->for($this->owner)->create(['brand_id' => $this->brand->id, 'network' => Network::Facebook]);
-    BrandCollaborator::query()->create(['brand_id' => $this->brand->id, 'owner_id' => $this->owner->id, 'user_id' => $this->approver->id, 'role' => 'aprobador']);
+    BrandCollaborator::query()->create(['brand_id' => $this->brand->id, 'owner_id' => $this->owner->id, 'user_id' => $this->approver->id, 'role' => BrandCollaborator::ROLE_APPROVER]);
     $this->ownerKey = $this->mcpKey($this->owner);
 });
 

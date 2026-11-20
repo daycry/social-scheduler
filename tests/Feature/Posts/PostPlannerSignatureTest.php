@@ -102,3 +102,34 @@ test('PostSignature::ofPlan coincide con ofPost del post que deja ese plan', fun
 
     expect($this->signature->ofPlan($this->planner->plan($this->user, $this->brand, $data)))->toBe($this->signature->ofPost($post));
 });
+
+test('PostService conserva la fachada pública de opciones, pausas y media ausente', function () {
+    $post = app(PostService::class)->create($this->user, $this->brand, plannerData());
+
+    expect(PostService::normalizeOptions(['made_for_kids' => '1']))->toBe(['made_for_kids' => true])
+        ->and(PostService::pausedTargets($post))->toBe(0)
+        ->and(PostService::MEDIA_MISSING)->toBe('media_inexistente')
+        ->and(PostService::MEDIA_MISSING_RETRY)->not->toBeEmpty();
+});
+
+test('PostSignature conserva la huella al reordenar destinos y claves y la cambia al alterar contenido', function () {
+    $second = SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::Facebook]);
+    $plan = $this->planner->plan($this->user, $this->brand, plannerData(['targets' => [
+        ['account_id' => $this->fb->id, 'content_type' => 'facebook_text'],
+        ['account_id' => $second->id, 'content_type' => 'facebook_text'],
+    ]]));
+    $options = ['made_for_kids' => true, 'disable_duet' => false];
+    $plan['targets'][0]['options'] = $options;
+    $signature = $this->signature->ofPlan($plan);
+
+    $reordered = $plan;
+    $reordered['targets'][0]['options'] = array_reverse($options, preserve_keys: true);
+    $reordered['targets'] = array_reverse($reordered['targets']);
+    expect($this->signature->ofPlan($reordered))->toBe($signature);
+
+    foreach (['options' => [], 'first_comment' => 'Comentario nuevo', 'manual' => true] as $field => $value) {
+        $changed = $plan;
+        $changed['targets'][0][$field] = $value;
+        expect($this->signature->ofPlan($changed))->not->toBe($signature);
+    }
+});

@@ -17,7 +17,10 @@ class MediaProbe
 {
     private const FRAGMENTED_TOO_BIG = 1001;
 
-    public function __construct(private readonly MediaStorage $storage) {}
+    public function __construct(
+        private readonly MediaStorage $storage,
+        private readonly StudioAudioProbe $audio,
+    ) {}
 
     /**
      * @return array{width: ?int, height: ?int, duration: ?float, fps: ?float, codec: ?string, audio_codec: ?string, mime: ?string}
@@ -27,7 +30,7 @@ class MediaProbe
     public function inspect(MediaAsset $asset): array
     {
         if ($asset->kind === MediaAsset::KIND_AUDIO) {
-            return app(StudioAudioProbe::class)->inspect($asset);
+            return $this->audio->inspect($asset);
         }
 
         if ($asset->isPdf()) {

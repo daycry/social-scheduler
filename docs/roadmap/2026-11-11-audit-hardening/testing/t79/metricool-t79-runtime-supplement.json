@@ -1,0 +1,42 @@
+[
+  {
+    "path": "public/.htaccess",
+    "sha256": "b7e379c77639fd56144947dbae84c84eb466d9c686ea81f2f013ae85421da923"
+  },
+  {
+    "path": "public/apple-touch-icon.png",
+    "sha256": "c4658183eea1332cea9f381f1c67b4a6ad567abd2aca9c87682c440e486593a0"
+  },
+  {
+    "path": "public/favicon.ico",
+    "sha256": "dcf8f236007b1128da47a69898e7dfe6382bd84d82ff48b4d53587cde22d05a1"
+  },
+  {
+    "path": "public/favicon.svg",
+    "sha256": "cee43472609ba6ac43932ad447e10eb7d10148e023baaad82e5631611a8a82f8"
+  },
+  {
+    "path": "public/icon-192.png",
+    "sha256": "fdb90068376f7e4f8f49573101dd07628576a8d93661c89908c054b3b693e165"
+  },
+  {
+    "path": "public/icon-512.png",
+    "sha256": "328b1d9787e520c43ba4118205cb2eefb2fe4a0977c32a0e5a8af311b0bde355"
+  },
+  {
+    "path": "public/index.php",
+    "sha256": "eba77cba39695b6bd091fe5211d481f7ebb2ce2d8d26230b5a609465d0a4aff9"
+  },
+  {
+    "path": "public/robots.txt",
+    "sha256": "e5c4b84484ee4216e9373be99380320c25dd94805f99f0a805846f087636553f"
+  },
+  {
+    "path": "docs/guias/pruebas-t43.md",
+    "sha256": "5bf5b4fe3ae15a51a33a29734b9334acf14e85d3cabab49659cc40de994d35d0"
+  },
+  {
+    "path": "docs/guias/desarrollo-local.md",
+    "sha256": "07b315f91de6b0c9e4299f8b0cda12703b56b84aec41a7fe4ab5547b54d92fec"
+  }
+]

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Studio\DesignExport;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -17,6 +18,11 @@ class PostTargetMedia extends Model
     protected function casts(): array
     {
         return ['position' => 'integer'];
+    }
+
+    public function designExport(): BelongsTo
+    {
+        return $this->belongsTo(DesignExport::class);
     }
 
     public function target(): BelongsTo

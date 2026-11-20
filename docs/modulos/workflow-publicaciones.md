@@ -17,7 +17,9 @@ Reglas: pedir aprobación devuelve a borrador una publicación programada; una p
 
 ## Colaboradores de marca
 
-Solo el propietario invita aprobadores por email (`POST /brands/{brand}/collaborators`, `manage_brand_collaborators`). Invitar y retirar exigen la ability **`posts:approve`** (quien decide los pendientes de la marca; `posts:write` no basta); listar sigue pidiendo `posts:read`. La respuesta es siempre la misma (202), exista o no la cuenta; hay un máximo de 20 por marca y 10 invitaciones por minuto. El rol único es `aprobador`. Se revoca con `DELETE /brands/{brand}/collaborators/{collaborator}`.
+Solo el propietario invita aprobadores por email (`POST /brands/{brand}/collaborators`, `manage_brand_collaborators`). Invitar y retirar exigen la ability **`posts:approve`** (quien decide los pendientes de la marca; `posts:write` no basta); listar sigue pidiendo `posts:read`. La respuesta es siempre la misma (202), exista o no la cuenta; hay un máximo de 20 por marca y 10 invitaciones por minuto. El identificador del rol es `approver`. Los clientes HTTP y MCP deben enviar esta clave en las invitaciones nuevas.
+Para desplegar el cambio, pausa el tráfico y los workers mientras cambias el código y aplicas la migración. Reactívalos
+cuando ambas versiones usen la clave nueva. Se revoca con `DELETE /brands/{brand}/collaborators/{collaborator}`.
 
 ## Publicación manual
 

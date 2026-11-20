@@ -11,10 +11,15 @@ use App\Services\SeriesService;
  */
 class GenerateSeriesOccurrences
 {
+    public function __construct(
+        private readonly IdempotencyService $idempotency,
+        private readonly SeriesService $series,
+    ) {}
+
     public function __invoke(): int
     {
-        app(IdempotencyService::class)->prune();
+        $this->idempotency->prune();
 
-        return app(SeriesService::class)->generateAll();
+        return $this->series->generateAll();
     }
 }

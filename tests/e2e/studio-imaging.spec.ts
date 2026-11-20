@@ -177,6 +177,7 @@ test('Studio imaging: real private font upload, preview, search, kit, archive an
         const expectedDeletion = isolation.expectHttp(policies.get(page)!, 'DELETE', `/brands/${brand.id}/studio/fonts/${font.id}`, 409);
         const deletion = page.waitForResponse(response => new URL(response.url()).pathname.endsWith(`/studio/fonts/${font.id}`) && response.request().method() === 'DELETE');
         await library.getByRole('button', { name: `Eliminar tipografía ${font.name}`, exact: true }).click();
+        await page.getByTestId('confirm-dialog').getByRole('button', { name: 'Eliminar tipografía' }).click();
         expect((await deletion).status()).toBe(409); expectedDeletion.asserted = true;
         await expect(library.getByRole('button', { name: `Eliminar tipografía ${font.name}`, exact: true })).toBeDisabled();
         await expect(library.getByText(/Esta fuente sigue en uso/)).toBeVisible();

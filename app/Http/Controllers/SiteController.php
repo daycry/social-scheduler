@@ -36,7 +36,6 @@ class SiteController extends Controller
             'brand' => $brand ? ['id' => $brand->id, 'name' => $brand->name] : null,
             'sites' => $sites->map(fn (Site $s) => $this->summary($s))->values(),
             'max_sites' => SiteService::MAX_SITES_PER_BRAND,
-            'flash' => ['success' => $request->session()->get('success')],
         ]);
     }
 
@@ -84,7 +83,6 @@ class SiteController extends Controller
             'exports' => DesignExport::query()->where('brand_id', $brand->id)->where('status', 'ready')->latest('id')->limit(50)->with('design')->get()
                 ->map(fn (DesignExport $x) => ['id' => $x->id, 'label' => ($x->design?->name ?? 'Diseño').' · revisión '.$x->revision, 'pages' => count((array) $x->media_ids)])->values(),
             'limits' => ['pages' => SiteBlockNormalizer::MAX_PAGES, 'blocks' => SiteBlockNormalizer::MAX_BLOCKS],
-            'flash' => ['success' => $request->session()->get('success')],
         ]);
     }
 

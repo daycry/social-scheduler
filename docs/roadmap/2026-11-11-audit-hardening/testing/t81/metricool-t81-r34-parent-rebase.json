@@ -1,0 +1,214 @@
+[
+  {
+    "parent": "t77",
+    "path": "CHANGELOG.es.md"
+  },
+  {
+    "parent": "t77",
+    "path": "CHANGELOG.md"
+  },
+  {
+    "parent": "t77",
+    "path": "tests/e2e/duplicate-post.spec.ts"
+  },
+  {
+    "parent": "t77",
+    "path": "tests/Feature/Posts/DuplicatePostTest.php"
+  },
+  {
+    "parent": "t77",
+    "path": "tests/Feature/Publishing/PresetsReviewTest.php"
+  },
+  {
+    "parent": "t77",
+    "path": "tests/Feature/Publishing/TikTokOptionsTest.php"
+  },
+  {
+    "parent": "t77",
+    "path": "tests/Feature/Mcp/Tools/McpOptionsTest.php"
+  },
+  {
+    "parent": "t77",
+    "path": "resources/js/Components/Composer/DuplicatePost.vue"
+  },
+  {
+    "parent": "t77",
+    "path": "docs/usuario/duplicar.md"
+  },
+  {
+    "parent": "t77",
+    "path": "app/Services/Posts/DuplicatePostResult.php"
+  },
+  {
+    "parent": "t77",
+    "path": "app/Services/Posts/PostDuplicator.php"
+  },
+  {
+    "parent": "t77",
+    "path": "app/Services/Posts/PostPlanner.php"
+  },
+  {
+    "parent": "t77",
+    "path": "app/Http/Controllers/PostController.php"
+  },
+  {
+    "parent": "t78",
+    "path": ".env.example"
+  },
+  {
+    "parent": "t78",
+    "path": ".env.production.example"
+  },
+  {
+    "parent": "t78",
+    "path": "tests/e2e/system-status.spec.ts"
+  },
+  {
+    "parent": "t78",
+    "path": "tests/Feature/System/SystemStatusTest.php"
+  },
+  {
+    "parent": "t78",
+    "path": "tests/e2e/isolated/runtime.ts"
+  },
+  {
+    "parent": "t78",
+    "path": "resources/js/Pages/System/Index.vue"
+  },
+  {
+    "parent": "t78",
+    "path": "app/Services/SystemStatus.php"
+  },
+  {
+    "parent": "t79",
+    "path": ".env.example"
+  },
+  {
+    "parent": "t79",
+    "path": ".env.production.example"
+  },
+  {
+    "parent": "t79",
+    "path": "config/goals.php"
+  },
+  {
+    "parent": "t79",
+    "path": "tests/e2e/goals.spec.ts"
+  },
+  {
+    "parent": "t79",
+    "path": "tests/Feature/Goals/GoalAlertTest.php"
+  },
+  {
+    "parent": "t79",
+    "path": "tests/Feature/Goals/GoalScheduleTest.php"
+  },
+  {
+    "parent": "t79",
+    "path": "tests/Feature/Goals/GoalsTest.php"
+  },
+  {
+    "parent": "t79",
+    "path": "resources/js/types/goals.d.ts"
+  },
+  {
+    "parent": "t79",
+    "path": "resources/js/Pages/Goals/Index.vue"
+  },
+  {
+    "parent": "t79",
+    "path": "resources/js/Pages/Notifications/Index.vue"
+  },
+  {
+    "parent": "t79",
+    "path": "docs/modulos/analitica.md"
+  },
+  {
+    "parent": "t79",
+    "path": "docs/referencia/configuracion.md"
+  },
+  {
+    "parent": "t79",
+    "path": "database/migrations/2026_11_18_091100_add_evaluation_to_goals_and_create_goal_alerts.php"
+  },
+  {
+    "parent": "t79",
+    "path": "app/Jobs/EvaluateGoals.php"
+  },
+  {
+    "parent": "t79",
+    "path": "app/Models/Goal.php"
+  },
+  {
+    "parent": "t79",
+    "path": "app/Notifications/GoalAlert.php"
+  },
+  {
+    "parent": "t79",
+    "path": "app/Services/ConnectionExpiry.php"
+  },
+  {
+    "parent": "t79",
+    "path": "app/Services/GoalService.php"
+  },
+  {
+    "parent": "t79",
+    "path": "app/Services/Goals/GoalEvaluator.php"
+  },
+  {
+    "parent": "t79",
+    "path": "app/Services/Goals/GoalObservations.php"
+  },
+  {
+    "parent": "t79",
+    "path": "app/Http/Controllers/GoalController.php"
+  },
+  {
+    "parent": "t80",
+    "path": "tests/e2e/webhooks.spec.ts"
+  },
+  {
+    "parent": "t80",
+    "path": "tests/Feature/Webhooks/WebhookDeliveryTest.php"
+  },
+  {
+    "parent": "t80",
+    "path": "resources/js/Pages/Webhooks/Index.vue"
+  },
+  {
+    "parent": "t80",
+    "path": "docs/api/webhooks.md"
+  },
+  {
+    "parent": "t80",
+    "path": "app/Jobs/DeliverWebhook.php"
+  },
+  {
+    "parent": "t80",
+    "path": "app/Models/Webhook.php"
+  },
+  {
+    "parent": "t80",
+    "path": "app/Models/WebhookEvent.php"
+  },
+  {
+    "parent": "t80",
+    "path": "app/Observers/WebhookDomainObserver.php"
+  },
+  {
+    "parent": "t80",
+    "path": "app/Services/Webhooks/WebhookDeliveryRunner.php"
+  },
+  {
+    "parent": "t80",
+    "path": "app/Services/Webhooks/WebhookSubscriptions.php"
+  },
+  {
+    "parent": "t80",
+    "path": "app/Services/Webhooks/WebhookTransport.php"
+  },
+  {
+    "parent": "t80",
+    "path": "app/Http/Controllers/WebhookController.php"
+  }
+]

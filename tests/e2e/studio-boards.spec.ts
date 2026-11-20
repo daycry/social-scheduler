@@ -40,6 +40,8 @@ test('Studio: whiteboard with a table, glued connectors and free drawing persist
     try {
         await loginAs(page, user);
         await page.goto(`/studio?brand_id=${brand.id}`);
+        const content = page.locator('main#contenido');
+        await expect(content).toHaveCSS('max-width', '1280px');
         await page.getByRole('button', { name: /^Pizarra/ }).click();
         const creation = page.getByRole('dialog', { name: 'Nuevo diseño' });
         await expect(creation.getByLabel('Ancho', { exact: true })).toHaveValue('3200');
@@ -47,6 +49,10 @@ test('Studio: whiteboard with a table, glued connectors and free drawing persist
         await creation.getByRole('button', { name: 'Crear diseño', exact: true }).click();
         await expect(page).toHaveURL(/\/studio\/designs\/\d+\/edit$/);
         await expect(page.getByRole('button', { name: 'Añadir tabla', exact: true })).toBeEnabled();
+        await expect(content).toHaveCSS('max-width', 'none');
+        const diff = await content.evaluate(element => Math.abs(element.getBoundingClientRect().width
+            - element.parentElement!.getBoundingClientRect().width));
+        expect(diff).toBeLessThan(1);
 
         // Table: edit a cell, grow it by one row and one column.
         await page.getByRole('button', { name: 'Añadir tabla', exact: true }).click();

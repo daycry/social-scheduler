@@ -1,8 +1,8 @@
 <script setup>
+import FormField from '@/Components/FormField.vue';
 import DangerButton from '@/Components/DangerButton.vue';
-import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
-import Modal from '@/Components/Modal.vue';
+import BaseDialog from '@/Components/BaseDialog.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -119,19 +119,34 @@ const downloadCodes = () => {
             <h2 class="text-lg font-medium text-slate-900">Doble factor de autenticación</h2>
 
             <p class="mt-1 text-sm text-slate-600">
-                Añade un segundo paso al entrar: además de la contraseña, un código temporal de una app como Google Authenticator, Authy o 1Password.
+                Añade un segundo paso al entrar: además de la contraseña, un código temporal de una app como Google
+                Authenticator, Authy o 1Password.
             </p>
         </header>
 
         <!-- Códigos de recuperación recién generados: solo se muestran esta vez. -->
-        <div v-if="recoveryCodes" class="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4" role="region" aria-labelledby="recovery-title">
+        <div
+            v-if="recoveryCodes"
+            class="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4"
+            role="region"
+            aria-labelledby="recovery-title"
+        >
             <h3 id="recovery-title" class="text-sm font-semibold text-amber-900">Guarda tus códigos de recuperación</h3>
             <p class="mt-1 text-sm text-amber-900">
-                Cada código sirve una sola vez si pierdes el móvil. No volverán a mostrarse: guárdalos ahora en un lugar seguro.
+                Cada código sirve una sola vez si pierdes el móvil. No volverán a mostrarse: guárdalos ahora en un lugar
+                seguro.
             </p>
 
-            <ul class="mt-3 grid grid-cols-1 gap-2 font-mono text-sm text-slate-900 sm:grid-cols-2" aria-label="Códigos de recuperación">
-                <li v-for="code in recoveryCodes" :key="code" class="break-all rounded bg-white px-3 py-1.5">{{ code }}</li>
+            <ul
+                class="mt-3 grid grid-cols-1 gap-2 font-mono text-sm text-slate-900 sm:grid-cols-2"
+                aria-label="Códigos de recuperación"
+            >
+                <li
+                    v-for="code in recoveryCodes"
+                    :key="code"
+                    class="break-all rounded bg-white px-3 py-1.5"
+                    >{{ code }}</li
+                >
             </ul>
 
             <div class="mt-4 flex flex-wrap gap-3">
@@ -146,7 +161,9 @@ const downloadCodes = () => {
         <!-- Estado: desactivado -->
         <div v-if="!twoFactor.enabled && !twoFactor.pending" class="mt-6">
             <p class="text-sm text-slate-700">El doble factor está <strong>desactivado</strong>.</p>
-            <PrimaryButton class="mt-4" :disabled="enableForm.processing" @click="enable">Activar doble factor</PrimaryButton>
+            <PrimaryButton class="mt-4" :disabled="enableForm.processing" @click="enable"
+                >Activar doble factor</PrimaryButton
+            >
         </div>
 
         <!-- Estado: pendiente de confirmar -->
@@ -169,7 +186,10 @@ const downloadCodes = () => {
                 <div>
                     <p class="text-sm text-slate-600">Clave de configuración</p>
                     <div class="mt-1 flex flex-wrap items-center gap-3">
-                        <code class="break-all rounded bg-slate-100 px-2 py-1 font-mono text-sm text-slate-900">{{ setup.secret }}</code>
+                        <code
+                            class="break-all rounded bg-slate-100 px-2 py-1 font-mono text-sm text-slate-900"
+                            >{{ setup.secret }}</code
+                        >
                         <SecondaryButton @click="copy(setup.secret, 'secret')">Copiar clave</SecondaryButton>
                     </div>
                     <p class="mt-1 text-sm text-emerald-700" role="status" aria-live="polite">
@@ -178,36 +198,35 @@ const downloadCodes = () => {
                 </div>
             </template>
             <p v-else-if="twoFactor.setupLocked" class="text-sm text-slate-700" role="status">
-                Tienes una activación a medias. Por seguridad, la clave solo se muestra tras confirmar tu contraseña: si ya la
-                añadiste a tu app, escribe el código; si no, pulsa «Generar otro QR».
+                Tienes una activación a medias. Por seguridad, la clave solo se muestra tras confirmar tu contraseña: si
+                ya la añadiste a tu app, escribe el código; si no, pulsa «Generar otro QR».
             </p>
 
             <form class="space-y-3" @submit.prevent="confirm" novalidate>
                 <div>
-                    <InputLabel for="tf_code" value="Código de verificación" />
-                    <TextInput
-                        id="tf_code"
-                        ref="confirmInput"
-                        v-model="confirmForm.code"
-                        type="text"
-                        inputmode="numeric"
-                        pattern="[0-9]*"
-                        maxlength="8"
-                        autocomplete="one-time-code"
-                        class="mt-1 block w-full max-w-xs tracking-widest"
-                        required
-                        :aria-invalid="confirmForm.errors.code ? 'true' : undefined"
-                        aria-describedby="tf_code_error"
-                    />
-                    <div id="tf_code_error" aria-live="polite">
-                        <InputError class="mt-2" :message="confirmForm.errors.code" />
-                    </div>
+                    <FormField id="tf_code" :error="confirmForm.errors.code" error-class="mt-2" v-slot="{ control }">
+                        <InputLabel for="tf_code" value="Código de verificación" />
+                        <TextInput
+                            v-bind="control"
+                            ref="confirmInput"
+                            v-model="confirmForm.code"
+                            type="text"
+                            inputmode="numeric"
+                            pattern="[0-9]*"
+                            maxlength="8"
+                            autocomplete="one-time-code"
+                            class="mt-1 block w-full max-w-xs tracking-widest"
+                            required
+                        />
+                    </FormField>
                 </div>
 
                 <div class="flex flex-wrap gap-3">
                     <PrimaryButton :disabled="confirmForm.processing">Confirmar y activar</PrimaryButton>
                     <SecondaryButton :disabled="enableForm.processing" @click="enable">Generar otro QR</SecondaryButton>
-                    <SecondaryButton :disabled="cancelForm.processing" @click="cancelSetup">Cancelar activación</SecondaryButton>
+                    <SecondaryButton :disabled="cancelForm.processing" @click="cancelSetup"
+                        >Cancelar activación</SecondaryButton
+                    >
                 </div>
             </form>
         </div>
@@ -215,66 +234,96 @@ const downloadCodes = () => {
         <!-- Estado: activo -->
         <div v-else class="mt-6">
             <p class="text-sm text-slate-700">
-                El doble factor está <strong class="text-emerald-700">activado</strong>.
-                Te quedan <strong>{{ twoFactor.recoveryRemaining }}</strong>
+                El doble factor está <strong class="text-emerald-700">activado</strong>. Te quedan
+                <strong>{{ twoFactor.recoveryRemaining }}</strong>
                 {{ twoFactor.recoveryRemaining === 1 ? 'código de recuperación' : 'códigos de recuperación' }}.
             </p>
             <div class="mt-4 flex flex-wrap gap-3">
-                <SecondaryButton :disabled="regenerateForm.processing" @click="regenerate">Generar códigos nuevos</SecondaryButton>
+                <SecondaryButton :disabled="regenerateForm.processing" @click="regenerate"
+                    >Generar códigos nuevos</SecondaryButton
+                >
                 <DangerButton @click="openDisable">Desactivar doble factor</DangerButton>
             </div>
         </div>
 
-        <Modal :show="confirmingDisable" @close="closeDisable">
+        <BaseDialog
+            v-if="confirmingDisable"
+            open
+            close-on-backdrop
+            class="dialog-panel max-w-2xl"
+            aria-label="Desactivar el doble factor"
+            @close="closeDisable"
+        >
             <form class="p-6" @submit.prevent="disable" novalidate>
                 <h2 class="text-lg font-medium text-slate-900">Desactivar el doble factor</h2>
-                <p class="mt-1 text-sm text-slate-600">Para confirmarlo, escribe tu contraseña y un código de tu app (o uno de recuperación).</p>
+                <p class="mt-1 text-sm text-slate-600"
+                    >Para confirmarlo, escribe tu contraseña y un código de tu app (o uno de recuperación).</p
+                >
 
                 <div class="mt-6">
-                    <InputLabel for="tf_disable_password" value="Contraseña" />
-                    <TextInput
+                    <FormField
                         id="tf_disable_password"
-                        ref="disablePasswordInput"
-                        v-model="disableForm.password"
-                        type="password"
-                        autocomplete="current-password"
-                        class="mt-1 block w-full"
-                        required
-                    />
-                    <InputError :message="disableForm.errors.password" class="mt-2" />
+                        :error="disableForm.errors.password"
+                        error-class="mt-2"
+                        v-slot="{ control }"
+                    >
+                        <InputLabel for="tf_disable_password" value="Contraseña" />
+                        <TextInput
+                            v-bind="control"
+                            ref="disablePasswordInput"
+                            data-dialog-initial-focus
+                            v-model="disableForm.password"
+                            type="password"
+                            autocomplete="current-password"
+                            class="mt-1 block w-full"
+                            required
+                        />
+                    </FormField>
                 </div>
 
                 <div v-if="!disableWithRecovery" class="mt-4">
-                    <InputLabel for="tf_disable_code" value="Código de verificación" />
-                    <TextInput
+                    <FormField
                         id="tf_disable_code"
-                        ref="disableCodeInput"
-                        v-model="disableForm.code"
-                        type="text"
-                        inputmode="numeric"
-                        pattern="[0-9]*"
-                        maxlength="8"
-                        autocomplete="one-time-code"
-                        class="mt-1 block w-full tracking-widest"
-                        required
-                    />
-                    <div aria-live="polite"><InputError :message="disableForm.errors.code" class="mt-2" /></div>
+                        :error="disableForm.errors.code"
+                        error-class="mt-2"
+                        v-slot="{ control }"
+                    >
+                        <InputLabel for="tf_disable_code" value="Código de verificación" />
+                        <TextInput
+                            v-bind="control"
+                            ref="disableCodeInput"
+                            v-model="disableForm.code"
+                            type="text"
+                            inputmode="numeric"
+                            pattern="[0-9]*"
+                            maxlength="8"
+                            autocomplete="one-time-code"
+                            class="mt-1 block w-full tracking-widest"
+                            required
+                        />
+                    </FormField>
                 </div>
                 <div v-else class="mt-4">
-                    <InputLabel for="tf_disable_recovery" value="Código de recuperación" />
-                    <TextInput
+                    <FormField
                         id="tf_disable_recovery"
-                        ref="disableRecoveryInput"
-                        v-model="disableForm.recovery_code"
-                        type="text"
-                        maxlength="32"
-                        autocomplete="off"
-                        autocapitalize="none"
-                        spellcheck="false"
-                        class="mt-1 block w-full"
-                        required
-                    />
-                    <div aria-live="polite"><InputError :message="disableForm.errors.recovery_code" class="mt-2" /></div>
+                        :error="disableForm.errors.recovery_code"
+                        error-class="mt-2"
+                        v-slot="{ control }"
+                    >
+                        <InputLabel for="tf_disable_recovery" value="Código de recuperación" />
+                        <TextInput
+                            v-bind="control"
+                            ref="disableRecoveryInput"
+                            v-model="disableForm.recovery_code"
+                            type="text"
+                            maxlength="32"
+                            autocomplete="off"
+                            autocapitalize="none"
+                            spellcheck="false"
+                            class="mt-1 block w-full"
+                            required
+                        />
+                    </FormField>
                 </div>
 
                 <button type="button" class="link mt-3 text-sm" @click="toggleDisableMode">
@@ -283,9 +332,14 @@ const downloadCodes = () => {
 
                 <div class="mt-6 flex justify-end gap-3">
                     <SecondaryButton @click="closeDisable">Cancelar</SecondaryButton>
-                    <DangerButton type="submit" :class="{ 'opacity-25': disableForm.processing }" :disabled="disableForm.processing">Desactivar</DangerButton>
+                    <DangerButton
+                        type="submit"
+                        :class="{ 'opacity-25': disableForm.processing }"
+                        :disabled="disableForm.processing"
+                        >Desactivar</DangerButton
+                    >
                 </div>
             </form>
-        </Modal>
+        </BaseDialog>
     </section>
 </template>

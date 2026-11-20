@@ -57,6 +57,15 @@ class PostTarget extends Model
     /** Media propia escrita y aun no volcada a `post_target_media` (se vuelca al guardar); `false` = nada pendiente. */
     private array|false|null $pendingMedia = false;
 
+    /** @var array<int, int>|null */
+    private ?array $pendingMediaProvenance = null;
+
+    /** @param  array<int, int>  $exportByMediaId */
+    public function setMediaProvenance(array $exportByMediaId): void
+    {
+        $this->pendingMediaProvenance = $exportByMediaId;
+    }
+
     protected $with = ['mediaItems'];
 
     protected $hidden = ['mediaItems', 'has_own_media'];
@@ -103,19 +112,29 @@ class PostTarget extends Model
     /** Vuelca la media propia pendiente a `post_target_media` (sustituye la lista entera, en una transaccion). */
     private function flushMedia(): void
     {
+        $provenance = $this->pendingMediaProvenance;
+        $this->pendingMediaProvenance = null;
         if ($this->pendingMedia === false) {
             return;
         }
         $list = $this->pendingMedia ?? [];
         $this->pendingMedia = false;
 
-        DB::transaction(function () use ($list) {
-            PostTargetMedia::query()->where('post_target_id', $this->id)->delete();
-            if ($list !== []) {
-                PostTargetMedia::query()->insert(array_map(fn (array $m, int $i) => [
-                    'post_target_id' => $this->id, 'media_asset_id' => $m['id'], 'cover_id' => $m['cover_id'], 'alt' => $m['alt'], 'position' => $i,
-                ], $list, array_keys($list)));
+        DB::transaction(function () use ($list, $provenance) {
+            $items = PostTargetMedia::query()->where('post_target_id', $this->id);
+            if ($list === []) {
+                $items->delete();
+
+                return;
             }
+
+            $exportByMediaId = $provenance ?? (clone $items)->whereNotNull('design_export_id')
+                ->pluck('design_export_id', 'media_asset_id')->all();
+            $items->delete();
+            PostTargetMedia::query()->insert(array_map(fn (array $m, int $i) => [
+                'post_target_id' => $this->id, 'media_asset_id' => $m['id'], 'cover_id' => $m['cover_id'], 'alt' => $m['alt'], 'position' => $i,
+                'design_export_id' => $exportByMediaId[$m['id']] ?? null,
+            ], $list, array_keys($list)));
         });
         $this->unsetRelation('mediaItems');
         $this->load('mediaItems');

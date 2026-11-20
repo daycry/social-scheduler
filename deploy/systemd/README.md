@@ -3,7 +3,7 @@
 ## Workers systemd
 
 `scheduler-worker@.service` es una unidad plantilla: la instancia es la cola que atiende
-(`publish`, `poll`, `metrics`, `reports`, `media`; `studio` tiene su propia unidad, ver abajo). Parametros: `--max-time=3600 --max-jobs=500` (el worker se recicla
+(`publish`, `poll`, `metrics`, `reports`, `media` y `studio-render`). `studio` tiene su propia unidad para MP4, GIF y miniaturas. Parametros: `--max-time=3600 --max-jobs=500` (el worker se recicla
 solo para evitar fugas de memoria), `Restart=always`, `RestartSec=5`. La unidad va sandboxeada
 (`NoNewPrivileges`, `PrivateTmp`, `ProtectSystem=strict`, `ProtectHome=read-only`): solo escribe en `storage/` y `bootstrap/cache`
 (`ReadWritePaths=`). El PHP CLI se fija con `Environment=PHP_BIN=` (mismo valor que `PHP_BIN` en `deploy.sh`).
@@ -17,11 +17,13 @@ sudo sed -i 's#USUARIO#<usuario hestia>#g; s#DOMINIO#<dominio>#g; s#PHP_BIN=php#
 sudo systemctl edit --full scheduler-worker@.service   # revisar
 systemd-analyze verify /etc/systemd/system/scheduler-worker@.service   # sin errores
 sudo systemctl daemon-reload
-sudo systemctl enable --now scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports scheduler-worker@media
+sudo systemctl enable --now scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports scheduler-worker@media scheduler-worker@studio-render
 ```
 
 Con varios workers sobre la misma cola, exigir MariaDB >= 10.6 / MySQL >= 8.0 (`SKIP LOCKED`);
 `php artisan app:health` lo indica. Con una version anterior, un solo worker por cola.
+
+`scheduler-worker@studio-render` procesa IA, imágenes y exportaciones estáticas. Activa el worker antes de desplegar y conserva los workers `media` y `studio` para los trabajos que ya están encolados. Si configuras `STUDIO_RENDER_QUEUE`, usa ese nombre para la instancia y para `QUEUE_NAMES`.
 
 Para exportaciones estáticas con varias páginas, Studio utiliza PHP `ZipArchive` cuando está disponible. Si falta, el empaquetado usa `scripts/studio/archive.py` con el Python configurado por `STUDIO_PYTHON_BINARY` y su biblioteca estándar: no requiere instalar el modelo de imágenes ni sus paquetes. El fallback escribe ZIP64 por bloques, valida archivos del directorio privado y conserva los límites del renderer. Debe poder ejecutarse ese Python desde el proceso PHP; los fallos de empaquetado conservan la exportación en error y no entregan un ZIP parcial. Las pruebas locales no sustituyen la comprobación del VPS a cargo del usuario.
 
@@ -70,6 +72,7 @@ mkdir -p -m 700 ~/.cache/sched
 * * * * * cd /home/USUARIO/web/DOMINIO/app && flock -n $HOME/.cache/sched/publish.lock php artisan queue:work database --queue=publish,poll --stop-when-empty --max-time=55 --timeout=120 --tries=3 >> /dev/null 2>&1
 */5 * * * * cd /home/USUARIO/web/DOMINIO/app && flock -n $HOME/.cache/sched/metrics.lock php artisan queue:work database --queue=metrics,reports --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /dev/null 2>&1
 * * * * * cd /home/USUARIO/web/DOMINIO/app && flock -n $HOME/.cache/sched/media.lock php artisan queue:work database --queue=media --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /dev/null 2>&1
+* * * * * cd /home/USUARIO/web/DOMINIO/app && flock -n $HOME/.cache/sched/studio-render.lock php artisan queue:work database --queue=studio-render --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /dev/null 2>&1
 ```
 
 Latencia maxima de publicacion = 1 minuto. Es suficiente para el uso personal, pero preferible usar systemd. En cron, usar la ruta absoluta del PHP deseado en lugar de `php`.

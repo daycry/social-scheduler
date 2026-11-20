@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { artisan, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, stamp } from './helpers';
+import { artisan, cleanCanvaMedia, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, stamp } from './helpers';
 import { runRoot } from './isolated/runtime';
 
 // T-16. Canva FALSO dentro del servidor desechable: con la bandera `canva-on` el bootstrap E2E define credenciales ficticias y atiende
@@ -21,7 +21,7 @@ test.afterEach(({}, info) => {
     fs.rmSync(flagPro, { force: true });
     fs.rmSync(flagTemplates, { force: true });
     const email = e2eUser(info.project.name).email;
-    artisan(String.raw`$u = App\Models\User::where('email', '${email}')->first(); if ($u) { App\Models\MediaAsset::withoutUserScope()->where('user_id', $u->id)->where('source', 'canva')->get()->each(fn ($m) => app(App\Services\MediaUploadService::class)->delete($m)); foreach (['canva', 'canva-connect'] as $limiter) { Illuminate\Support\Facades\RateLimiter::clear(md5($limiter . $limiter . ':' . $u->id)); } }`);
+    cleanCanvaMedia(email);
     cleanComposerBrands(email);
 });
 
@@ -191,8 +191,8 @@ test('Canva: conectar (OAuth simulado), plan, listar y buscar, crear, retorno fi
     await expectNoOverflow(page);
 
     // 8. Desconectar borra las credenciales.
-    page.once('dialog', dialog => dialog.accept());
     await page.getByRole('button', { name: 'Desconectar', exact: true }).click();
+    await page.getByTestId('confirm-dialog').getByRole('button', { name: 'Desconectar Canva' }).click();
     await expect(page.getByTestId('canva-disconnected')).toBeVisible();
     expect(artisan(String.raw`echo 'CONN:' . App\Models\Canva\CanvaConnection::withoutUserScope()->where('brand_id', ${brand.id})->count();`)).toContain('CONN:0');
     await axeClean(page);

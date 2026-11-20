@@ -39,7 +39,7 @@ class ConnectionController extends Controller
         $pending = OAuthController::pending($request, $brand);
 
         return Inertia::render('Brands/Connections', [
-            'brand' => $brand->only(['id', 'name']),
+            'brand' => $brand->only(['id', 'name', 'timezone']),
             // Lista explicita de campos: los tokens nunca llegan al navegador.
             'accounts' => $this->accounts->listForBrand($request->user(), $brand)->map(fn (SocialAccount $a) => [
                 'id' => $a->id,
@@ -79,10 +79,6 @@ class ConnectionController extends Controller
                 'provider' => $pending['provider'],
                 'candidates' => array_map(fn ($c) => $c->toPublicArray(), $pending['candidates']),
             ] : null,
-            'flash' => [
-                'success' => $request->session()->get('success'),
-                'error' => $request->session()->get('error'),
-            ],
         ]);
     }
 

@@ -35,8 +35,7 @@ class YouTubeResumableUpload
 
     private const THUMBNAIL_UPLOAD = 'https://www.googleapis.com/upload/youtube/v3/thumbnails/set';
 
-    /** @param \Closure(SocialAccount, PublishRequest): ?PublishResult $findUploaded */
-    public function __construct(private readonly YouTubeClient $client, private readonly \Closure $findUploaded) {}
+    public function __construct(private readonly YouTubeClient $client, private readonly YouTubeVideoStatus $status) {}
 
     /** Olvida la sesion de subida reanudable cacheada de un destino (al empezar de cero tras un error). */
     public static function forgetSession(int $targetId): void
@@ -204,7 +203,7 @@ class YouTubeResumableUpload
             }
 
             // Presupuesto comprobado ANTES de cada PUT: sin margen para otro trozo, el sondeo continua desde lo que Google tenga.
-            if ($pass->budgetLeft() < (float) config('social.youtube.upload_min_slice_seconds', 10)) {
+            if (! $pass->canStartChunk()) {
                 return PublishResult::processing(PublishResult::UPLOADING);
             }
         }
@@ -311,7 +310,7 @@ class YouTubeResumableUpload
     /** La sesion esta completa pero no tenemos el recurso: se recupera por la lista de subidas del canal. */
     private function uploadedOrFail(SocialAccount $account, PublishRequest $request): PublishResult
     {
-        $found = ($this->findUploaded)($account, new PublishRequest($request->targetId, $request->type, $request->text, $request->media, $request->options, null, $request->since));
+        $found = $this->status->findByTarget($account, $request);
 
         if ($found === null) {
             throw new TransientPublishException('YouTube recibio el video pero aun no lo muestra; se comprobara en el siguiente intento.', 'subida_sin_confirmar');

@@ -3,6 +3,8 @@
 use App\Jobs\ImportRemoteMedia;
 use App\Models\MediaAsset;
 use App\Models\User;
+use App\Services\Canva\CanvaStudioResources;
+use App\Services\JobFailureNotifier;
 use App\Services\Media\RemoteMediaImporter;
 use App\Services\Media\RemotePass;
 use App\Services\Media\RemoteSource;
@@ -333,7 +335,7 @@ test('ImportRemoteMedia: un fallo transitorio (503) reintenta y, agotados los in
     $asset = app(MediaUploadService::class)->beginImport($this->user, 'url', $source->reference(), $source->name());
     $job = new ImportRemoteMedia($asset->id, 'https://cdn.example.com/a.jpg');
 
-    expect(fn () => $job->handle(app(RemoteMediaImporter::class)))->toThrow(RuntimeException::class, '503');
+    expect(fn () => $job->handle(app(RemoteMediaImporter::class), app(UrlGuard::class)))->toThrow(RuntimeException::class, '503');
     expect($asset->fresh()->status)->toBe(MediaAsset::STATUS_PENDING); // aun puede reintentarse
 
     $job->failed(new RuntimeException('x'));
@@ -356,8 +358,8 @@ test('ImportRemoteMedia: un asset que ya no esta pendiente o no existe no se toc
     Http::fake();
     $ready = MediaAsset::factory()->create(['user_id' => $this->user->id, 'source' => 'url']);
 
-    (new ImportRemoteMedia($ready->id, 'https://cdn.example.com/a.jpg'))->handle(app(RemoteMediaImporter::class));
-    (new ImportRemoteMedia(999999, 'https://cdn.example.com/a.jpg'))->handle(app(RemoteMediaImporter::class));
+    (new ImportRemoteMedia($ready->id, 'https://cdn.example.com/a.jpg'))->handle(app(RemoteMediaImporter::class), app(UrlGuard::class));
+    (new ImportRemoteMedia(999999, 'https://cdn.example.com/a.jpg'))->handle(app(RemoteMediaImporter::class), app(UrlGuard::class));
 
     Http::assertNothingSent();
     expect($ready->fresh()->status)->toBe(MediaAsset::STATUS_READY);
@@ -379,7 +381,7 @@ test('ImportRemoteMedia (revision): un fallo de red no filtra la URL con su toke
     $asset = app(MediaUploadService::class)->beginImport($this->user, 'url', $source->reference(), $source->name());
 
     try {
-        (new ImportRemoteMedia($asset->id, 'https://cdn.example.com/a.jpg?token=SECRETO'))->handle(app(RemoteMediaImporter::class));
+        (new ImportRemoteMedia($asset->id, 'https://cdn.example.com/a.jpg?token=SECRETO'))->handle(app(RemoteMediaImporter::class), app(UrlGuard::class));
         $this->fail('Debia lanzar');
     } catch (Throwable $e) {
         expect($e->getMessage())->not->toContain('SECRETO')->and($e->getPrevious())->toBeNull();
@@ -459,7 +461,7 @@ test('ImportRemoteMedia (revision): la reanudacion de un asset ya renombrado no 
     Storage::disk('local')->put($asset->path, $body);
     Http::fake(['cdn.example.com/*' => Http::response('', 416, ['Content-Range' => "bytes */$n"])]);
 
-    (new ImportRemoteMedia($asset->id, 'https://cdn.example.com/a.jpg'))->handle(app(RemoteMediaImporter::class));
+    (new ImportRemoteMedia($asset->id, 'https://cdn.example.com/a.jpg'))->handle(app(RemoteMediaImporter::class), app(UrlGuard::class));
 
     $fresh = $asset->fresh();
     expect($fresh->status)->toBe(MediaAsset::STATUS_READY)->and($fresh->path)->toBe('media/'.$this->user->id.'/ya.jpg');
@@ -471,7 +473,12 @@ test('ImportRemoteMedia (revision): si finalize() revienta, el fichero vuelve a 
     Http::fake(['cdn.example.com/*' => Http::response($body, 200, jpegHeaders(strlen($body)))]);
     $uploads = Mockery::mock(MediaUploadService::class)->makePartial();
     $uploads->shouldReceive('finalize')->andThrow(new RuntimeException('ffprobe se colgo'));
-    $importer = new RemoteMediaImporter(app(MediaStorage::class), $uploads);
+    $importer = new RemoteMediaImporter(
+        app(MediaStorage::class),
+        $uploads,
+        app(JobFailureNotifier::class),
+        app(CanvaStudioResources::class),
+    );
     $source = new UrlSource(app(UrlGuard::class), 'https://cdn.example.com/a.jpg');
     $asset = app(MediaUploadService::class)->beginImport($this->user, 'url', $source->reference(), $source->name());
     $partial = $asset->path;
@@ -480,6 +487,31 @@ test('ImportRemoteMedia (revision): si finalize() revienta, el fichero vuelve a 
 
     expect(MediaAsset::withoutUserScope()->find($asset->id)->path)->toBe($partial)
         ->and(Storage::disk('local')->allFiles('media'))->toBe([$partial]);
+});
+
+test('ImportRemoteMedia: un fallo interno al resolver el origen no consume una pasada remota', function () {
+    $source = Mockery::mock(RemoteSource::class);
+    $source->shouldNotReceive('fetch');
+    $asset = app(MediaUploadService::class)->beginImport($this->user, MediaAsset::SOURCE_URL, 'https://cdn.example.com/a.jpg', 'a.jpg');
+    $unreadableSource = new class extends MediaAsset
+    {
+        protected $table = 'media_assets';
+
+        public function getSourceAttribute(): never
+        {
+            throw new RuntimeException('No se pudo resolver el origen.');
+        }
+    };
+    $pending = $unreadableSource->newFromBuilder($asset->getAttributes());
+
+    expect(fn () => app(RemoteMediaImporter::class)->run($pending, $source))
+        ->toThrow(RuntimeException::class, 'No se pudo resolver el origen.');
+
+    $state = $asset->fresh()->import_state;
+    expect($state['runs'])->toBe(1)
+        ->and($state['passes'] ?? 0)->toBe(0)
+        ->and($state['failed_passes'] ?? 0)->toBe(0)
+        ->and($state['download_seconds'] ?? 0)->toEqual(0);
 });
 
 test('ImportRemoteMedia (revision): el presupuesto de la pasada reserva tiempo para finalize()', function () {
@@ -501,7 +533,7 @@ test('ImportRemoteMedia (revision): el job se reencola sin espera', function () 
     $source = new UrlSource(app(UrlGuard::class), 'https://cdn.example.com/a.jpg');
     $asset = app(MediaUploadService::class)->beginImport($this->user, 'url', $source->reference(), $source->name());
 
-    (new ImportRemoteMedia($asset->id, 'https://cdn.example.com/a.jpg'))->handle(app(RemoteMediaImporter::class));
+    (new ImportRemoteMedia($asset->id, 'https://cdn.example.com/a.jpg'))->handle(app(RemoteMediaImporter::class), app(UrlGuard::class));
 
     Queue::assertPushed(ImportRemoteMedia::class, fn ($job) => $job->delay === null);
 });

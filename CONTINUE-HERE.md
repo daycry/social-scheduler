@@ -1,3 +1,16 @@
+# Punto de reanudación — 2026-11-20
+
+- Proyecto: `C:\laragon\www\metricool`, rama existente `feature/audit-hardening`.
+- Ledger actual: `docs/roadmap/2026-11-11-audit-hardening/tasks.md` (manda sobre los resúmenes).
+- **80/108 cerradas. T-81 cerrada e integrada el 2026-11-20** (rojo R60 resuelto, nits R2 aplicados, R3 aprobado sin gaps; evidencias en `testing/t81/`). Migraciones pendientes aplicadas en la MySQL de desarrollo con copia `storage/backups/pre-migrate-20261120-133549.sql`.
+- Próximo: T-82 y restantes. M07 real (VAPID/HTTPS/dispositivos) sigue a la espera del usuario.
+- La copia aislada no tiene `.env`: para Pest en `.cache/t8x-physical` hace falta `APP_KEY` efímera por proceso y `storage/framework/{views,cache/data,sessions}`.
+- Una sola ejecución Playwright a la vez; nunca modificar su copia física mientras ejecuta. Sin Docker/proveedores reales, `.env` privado, producción ni usuario 28. Sin commit/push/merge; merges del usuario. Conservar cambios existentes del workspace.
+
+---
+
+## Resumen histórico anterior (2026-11-10)
+
 # Continuar la suite social y creativa
 
 Actualizado: 2026-11-10. El [ledger canónico](docs/roadmap/2026-11-03-creative-social-suite/tasks.md) manda sobre este resumen.

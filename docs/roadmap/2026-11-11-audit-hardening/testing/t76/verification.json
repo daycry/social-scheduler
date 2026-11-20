@@ -1,0 +1,232 @@
+{
+  "task": "T-76",
+  "date": "2026-11-18",
+  "status": "completed",
+  "source_files": 1766,
+  "source_hashes": "source-hashes.json",
+  "node": {
+    "passed": 789,
+    "failed": 0,
+    "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t76-r48-node-full.log"
+  },
+  "pest_focal": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 84,
+    "passed": 84,
+    "assertions": 731,
+    "duration_ms": 6127,
+    "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t76-r52-notice-green.log"
+  },
+  "mysql_focal": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 84,
+    "passed": 84,
+    "assertions": 731,
+    "duration_ms": 11678,
+    "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t76-r5-mysql-pest.log",
+    "version": "8.4.3",
+    "disposable": true,
+    "source_verified_unchanged_before_and_after": true
+  },
+  "typecheck": {
+    "errors": 0,
+    "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t76-r48-typecheck.log",
+    "boundary": "Shared widget, suggestion composable, DTO and prop descriptors are checked. Compose/ScheduleSection/useComposer scripts and composer template bindings remain outside T68 strict scope."
+  },
+  "review": {
+    "model": "claude-opus-5-5",
+    "status": "r3_approved_QN2a_exact_literal_test_fix_verified",
+    "effort": "high",
+    "started_local": "2026-11-18T00:06:51+01:00",
+    "receipt": "C:\\laragon\\www\\metricool\\docs\\roadmap\\2026-11-11-audit-hardening\\testing\\t76\\reviews\\r3-receipt.json",
+    "important_found": 2,
+    "minor_found": 6,
+    "receipt_sha256": "7ad323303ad6e0c126f35d52f0ff85233142fa1f4e7e39084ef87529d1f98e92",
+    "critical_open": 0,
+    "confirmed_important_open": 0,
+    "minor_open": 0,
+    "dispositions": {
+      "N1": "rebuttal accepted: optional product policy, not defect or accepted debt",
+      "N2": "neutral wording fixed",
+      "N3": "status marker fixed; real Node RED/GREEN and browser clear-date proof",
+      "V1": "closed by actual timezone payload/fallback and Europe/Madrid browser proof",
+      "Q-N2a": "literal exact HTTP and browser assertions per reviewer; six cases reject temporary old-wording mutant, then84/731 green on SQLite and MySQL"
+    },
+    "post_review_only_test_changes": [
+      "tests/Feature/Parity/BestTimeSuggestionTest.php",
+      "tests/e2e/best-time-suggestion.spec.ts"
+    ],
+    "static_only": true
+  },
+  "limits": [
+    "Provider calls simulated; databases disposable; no actual publication.",
+    "Strict scope includes shared widget, composable, DTO and prop descriptors; legacy composer scripts/template bindings remain outside T68 strict scope.",
+    "The complete4320/9 PHP run preceded only the exact notice assertion strengthening; final84/731 focal reruns on SQLite and MySQL verify those tests with unchanged production bytes.",
+    "Broad120-browser regression preceded final neutral notice/status marker; final18-browser regression covers all changed paths.",
+    "Mounted setup tests use actual Vue compiler/setup/lifecycle with a minimal renderer; real template/accessibility tested in browser."
+  ],
+  "pest": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 4329,
+    "passed": 4320,
+    "assertions": 29025,
+    "duration_ms": 350819,
+    "skipped": 9,
+    "raw": [
+      "{\"peak_php_bytes\":446693376,\"memory_limit\":\"512M\"}",
+      "allocator_peak_bytes=492830720"
+    ],
+    "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t76-r50-final-full.log",
+    "before_only_exact_notice_assertion_strengthening": true
+  },
+  "eslint": {
+    "errors": 0,
+    "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t76-r48-eslint.log"
+  },
+  "scope": {
+    "base": "HEAD",
+    "exit_code": 0,
+    "outside": 0,
+    "warnings": 0,
+    "report": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t76-scope-check-final.json",
+    "directory_lookup_cache": true
+  },
+  "playwright_initial": {
+    "stats": {
+      "startTime": "2026-11-17T22:36:50.601Z",
+      "duration": 57381.350999999995,
+      "expected": 9,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "qa_gate_observed": "VERDE",
+    "report": "C:\\laragon\\www\\metricool\\.cache\\t76-physical\\storage\\framework\\testing\\t43\\run-general-51d5b2c2-fc56-458f-8cc2-8f62f3941893\\results.json",
+    "sha256": "403014ae7bbb940b46cbbcaaa0089f4aafd75b432ba2efa6c22c974d5c6a0204"
+  },
+  "source_hashes_verified_after_browser": true,
+  "previous_runtime_before_review_fixes": {
+    "playwright": {
+      "stats": {
+        "startTime": "2026-11-17T22:53:07.955Z",
+        "duration": 696943.986,
+        "expected": 108,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "qa_gate_observed": "VERDE",
+      "report": "C:\\laragon\\www\\metricool\\.cache\\t76-physical\\storage\\framework\\testing\\t43\\run-general-f02f4f49-e98a-47ae-a503-7cb60dd80709\\results.json",
+      "sha256": "db2a3a49ecbcca23998159bb2eb60892ecc54f75cdfdf95749fcf40577d20c8a"
+    },
+    "pest": {
+      "tests": 4290,
+      "passed": 4281,
+      "skipped": 9,
+      "assertions": 28685,
+      "duration_ms": 345509,
+      "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t76-r25-pest-full.log"
+    },
+    "node": {
+      "passed": 785,
+      "failed": 0,
+      "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t76-r27-node-final.log"
+    },
+    "source_files": 1758
+  },
+  "playwright_preflight": {
+    "stats": {
+      "startTime": "2026-11-17T23:46:39.398Z",
+      "duration": 107442.64199999999,
+      "expected": 18,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "qa_gate_observed": "VERDE",
+    "report": "C:\\laragon\\www\\metricool\\.cache\\t76-physical\\storage\\framework\\testing\\t43\\run-general-e7471f64-cbe9-40f6-b3d6-e77ac6dc4bca\\results.json",
+    "sha256": "cbfc6522343aeeb1aa90b2ec60ba0db7949e2f296679a602bbe828ab8837c2cb",
+    "before_final_null_byte_parser_guard": true
+  },
+  "prettier": {
+    "files": [
+      "resources/js/Components/BestTimeSuggestion.vue",
+      "resources/js/Components/Composer/ScheduleSection.vue",
+      "resources/js/Composables/useBestTimeSuggestion.js",
+      "resources/js/Composables/useComposer.js",
+      "resources/js/Pages/Calendar/Index.vue",
+      "resources/js/Pages/Posts/compose-props.js",
+      "resources/js/Pages/Posts/Compose.vue",
+      "resources/js/types/best-time.d.ts",
+      "resources/js/types/compose.d.ts",
+      "tests/e2e/best-time-suggestion.spec.ts",
+      "tests/frontend/best-time-component.test.mjs",
+      "tests/frontend/best-time-suggestion.test.mjs"
+    ],
+    "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t76-r52-prettier-check.log",
+    "embeddedLanguageFormatting": "off",
+    "exact_changed_frontend_file_list": true
+  },
+  "combined_with_T75": true,
+  "ranking_mutations": {
+    "removed_average": "only average dataset failed",
+    "removed_sample_count": "only count dataset failed",
+    "removed_nearest": "only proximity dataset failed",
+    "algorithm_restored_sha256": "09b20d95d39cff9fce7d23e594d8909f58790462491700bded4970485cb42e50"
+  },
+  "additional_implementer_findings": [
+    "Manual date changed and restored while pending: real RED; synchronous revision guard, eight hook cases green.",
+    "Embedded NUL passed to PHP date parser: real HTTP500 RED; ValueError handled, ordinary GET renders notice."
+  ],
+  "playwright_previous_before_fixes": {
+    "stats": {
+      "startTime": "2026-11-17T22:53:07.955Z",
+      "duration": 696943.986,
+      "expected": 108,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "qa_gate_observed": "VERDE",
+    "report": "C:\\laragon\\www\\metricool\\.cache\\t76-physical\\storage\\framework\\testing\\t43\\run-general-f02f4f49-e98a-47ae-a503-7cb60dd80709\\results.json",
+    "sha256": "db2a3a49ecbcca23998159bb2eb60892ecc54f75cdfdf95749fcf40577d20c8a"
+  },
+  "playwright": {
+    "stats": {
+      "startTime": "2026-11-18T00:37:05.089Z",
+      "duration": 114052.57,
+      "expected": 18,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "qa_gate_observed": "VERDE",
+    "report": "C:\\laragon\\www\\metricool\\.cache\\t76-physical\\storage\\framework\\testing\\t43\\run-general-74f42181-74c3-4101-b4b0-cd0b19e60aa5\\results.json",
+    "sha256": "f5a11ab7aa7c9de26dec47e0ac59a03c7a0febe39dfb6fa18bb12b1a482f4a0c"
+  },
+  "integrated_files": 23,
+  "integrated_byte_exact": true,
+  "reverse_patch_check": true,
+  "playwright_broader_before_final_notice_and_status_adjustments": {
+    "stats": {
+      "startTime": "2026-11-18T00:01:18.570Z",
+      "duration": 763709.199,
+      "expected": 120,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "qa_gate_observed": "VERDE",
+    "report": "C:\\laragon\\www\\metricool\\.cache\\t76-physical\\storage\\framework\\testing\\t43\\run-general-4dea236a-21fd-4ec1-9ce3-1182c9d86326\\results.json",
+    "sha256": "97ef3e8dac44189ca05a04978fee3f435c705fa94b34a524697625b1e00cbc15"
+  },
+  "pint": {
+    "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t76-r52-pint.log"
+  },
+  "build": {
+    "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t76-r48-build.log"
+  }
+}

@@ -142,15 +142,16 @@ test('E2E-04 · con envío previo posible: «Ya está publicado» no llama a la 
     const status = page.getByTestId('first-comment-status');
     await expect(status.getByRole('button', { name: 'Ya está publicado' })).toBeVisible();
 
-    // Publicar igualmente: segundo clic con aviso de duplicado; Cancelar no cambia nada.
-    await status.getByRole('button', { name: 'Publicar igualmente' }).click();
-    const force = status.getByTestId('first-comment-force');
+    const publishAnyway = status.getByRole('button', { name: 'Publicar igualmente' });
+    await publishAnyway.click();
+    const force = page.getByRole('alertdialog', { name: 'Posible comentario duplicado' });
     await expect(force).toContainText('quedará duplicado');
-    await expect(force.getByRole('button', { name: 'Sí, publicar igualmente' })).toBeFocused();
+    await expect(force.getByRole('button', { name: 'Cancelar' })).toBeFocused();
     await expectNoOverflow(page);
     await axeNow(page, 'confirmación de Publicar igualmente');
     await force.getByRole('button', { name: 'Cancelar' }).click();
     await expect(force).toHaveCount(0);
+    await expect(publishAnyway).toBeFocused();
     expect(firstCommentOf(seeded.targetId)).toMatchObject({ status: 'fallido' });
 
     // Ya está publicado: queda Comentado sin más botones.

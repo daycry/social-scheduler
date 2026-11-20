@@ -1,0 +1,89 @@
+{
+  "task": "T-77",
+  "status": "completed",
+  "date": "2026-11-18",
+  "candidate_files": 20,
+  "source_files": 1772,
+  "integrated_byte_exact": true,
+  "reverse_patch_check": true,
+  "source_verified_after_qa_and_integration": true,
+  "pest": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 4352,
+    "passed": 4343,
+    "assertions": 29164,
+    "duration_ms": 379721,
+    "skipped": 9,
+    "raw": [
+      "{\"peak_php_bytes\":461373440,\"memory_limit\":\"512M\"}",
+      "allocator_peak_bytes=494927872"
+    ]
+  },
+  "pest_after_reviewed_production_and_contract_test_alignment": true,
+  "only_post_full_change": [
+    "tests/Feature/Mcp/Tools/McpOptionsTest.php"
+  ],
+  "sqlite_focal": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 92,
+    "passed": 92,
+    "assertions": 605,
+    "duration_ms": 3767
+  },
+  "mysql_focal": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 92,
+    "passed": 92,
+    "assertions": 605,
+    "duration_ms": 13070,
+    "version": "8.4.3",
+    "disposable": true
+  },
+  "node": {
+    "passed": 789,
+    "failed": 0,
+    "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t77-r38-node-full.log"
+  },
+  "typecheck": {
+    "errors": 0,
+    "new_component_strict": true
+  },
+  "style_build": "r38 passed, final test-only Pint r43/r45/r46 passed",
+  "playwright": {
+    "stats": {
+      "startTime": "2026-11-18T04:29:46.883Z",
+      "duration": 588906.424,
+      "expected": 90,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "qa_gate": "VERDE",
+    "report": "C:\\laragon\\www\\metricool\\.cache\\t67-ci\\metricool\\storage\\framework\\testing\\t43\\run-general-e4f056bb-3375-400d-8a53-5ee6d36078b6\\results.json",
+    "sha256": "a8dcf459c7c7c48e9047287cd281046498f77c860fcfd50ec13e5969409619b9",
+    "before_only_test_and_changelog_changes": true
+  },
+  "review": {
+    "requested_model": "claude-opus-5-5",
+    "actual_model": "claude-opus-5-5",
+    "effort": "high",
+    "includes_code_quality": true,
+    "status": "r3_approved_critical_important_zero",
+    "critical_open": 0,
+    "important_open": 0,
+    "minor_open": 0,
+    "static_only": true,
+    "receipt": "reviews/r3-opus55.json",
+    "responses": "reviews/r3-responses.md",
+    "post_review_changes": "E13 test dataset; 3 existing old-contract expectations explicitly anticipated by R3; object-key normalization for MySQL; EN/ES changelog wording. Production byte-exact with R3."
+  },
+  "limits": [
+    "Providers simulated; databases disposable; no real publication, native queue-worker or production acceptance.",
+    "The complete4343+ PHP run precedes only top-level JSON object-key normalization in one MCP test; final92-case SQLite/MySQL focal runs verify it without relaxing list order, values or types.",
+    "Browser90 and reviewed production match; only test/changelog refinements followed. Legacy composer strict-typing boundary remains as declared in T68.",
+    "No commit, push, merge, private env or user28 changes."
+  ]
+}

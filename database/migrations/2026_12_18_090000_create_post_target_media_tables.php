@@ -25,6 +25,8 @@ return new class extends Migration
             $table->foreignId('post_target_id')->constrained()->cascadeOnDelete();
             $table->foreignId('media_asset_id')->constrained()->restrictOnDelete();
             $table->foreignId('cover_id')->nullable()->constrained('media_assets')->restrictOnDelete();
+            // T-101 ya modifica instalaciones que tenían esta tabla.
+            $table->foreignId('design_export_id')->nullable()->constrained('studio_design_exports')->nullOnDelete();
             $table->text('alt')->nullable();
             $table->unsignedSmallInteger('position')->default(0);
 

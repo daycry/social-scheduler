@@ -25,6 +25,7 @@ function pendingJob(string $queue, int $ageSeconds, ?int $reservedAt = null): vo
 }
 
 test('the oldest pending job per queue past its threshold degrades health and names the queue', function () {
+    $this->freezeTime();
     pendingJob('publish', 30);
     pendingJob('publish', 900);
     pendingJob('media', 900);          // tolera 1800 s

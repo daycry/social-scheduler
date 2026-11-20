@@ -54,7 +54,9 @@ class ApiKeyController extends Controller
         $audit->record($request->user(), 'api_key.created', AuditLog::OK, 'api_key', $token->accessToken->id, null, 'web');
 
         // La tabla de tokens conserva solo el hash; el flash tambien se cifra aunque SESSION_ENCRYPT=false.
-        return redirect()->route('api-keys.index')->with('new_key', Crypt::encryptString($token->plainTextToken));
+        return redirect()->route('api-keys.index')
+            ->with('new_key', Crypt::encryptString($token->plainTextToken))
+            ->with('success', 'API key creada.');
     }
 
     public function destroy(Request $request, int $key, AuditLog $audit): RedirectResponse

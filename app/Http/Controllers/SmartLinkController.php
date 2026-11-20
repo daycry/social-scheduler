@@ -39,7 +39,6 @@ class SmartLinkController extends Controller
             'defaults' => ['theme_color' => '#4f46e5', 'theme_mode' => 'light', 'max_blocks' => SmartLinkService::MAX_BLOCKS, 'timezone' => $brand?->timezone ?: 'UTC'],
             'block_types' => SmartLinkBlock::TYPES,
             'social_networks' => SmartLinkBlock::SOCIAL_NETWORKS,
-            'flash' => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error')],
         ]);
     }
 

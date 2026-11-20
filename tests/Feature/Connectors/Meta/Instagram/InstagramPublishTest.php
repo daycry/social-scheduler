@@ -22,6 +22,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\FakeGraph;
+use Tests\Support\FixtureRecorder;
 
 const IG_ID = '17841400000000001';
 
@@ -74,7 +75,8 @@ test('InstagramPublish: una imagen crea el contenedor, espera FINISHED y publica
         expect($call['authorization'])->toBe('Bearer page-token-xyz')->and($call['url'])->not->toContain('access_token');
     }
     expect($this->graph->callsTo('POST', '#/media_publish$#')[0]['params'])->toMatchArray(['creation_id' => '9001']);
-});
+    FixtureRecorder::assertRecorded('instagram/success');
+})->group('provider-contracts');
 
 test('InstagramPublish: si el contenedor aun se procesa queda en proceso y el sondeo lo publica', function () {
     igBase($this->graph);
@@ -214,11 +216,22 @@ test('InstagramPublish: los errores de Graph se mapean a transitorios o permanen
     'descarga lenta (2207003)' => [fn () => FakeGraph::error(2207003, 'Timeout', 2207003), TransientPublishException::class, 'descarga_lenta'],
     'rate limit (4)' => [fn () => FakeGraph::error(4, 'Application request limit reached'), TransientPublishException::class, 'rate_limit'],
     'media no lista (9007)' => [fn () => FakeGraph::error(9007, 'Media ID is not available'), TransientPublishException::class, 'media_no_lista'],
-    'sin permiso (10)' => [fn () => FakeGraph::error(10, '(#10) permission denied'), PermanentPublishException::class, 'permisos'],
     'servidor (500)' => [fn () => FakeGraph::error(2, 'Service temporarily unavailable', null, 500), TransientPublishException::class, 'meta_no_disponible'],
     'cuerpo rechazado (100)' => [fn () => FakeGraph::error(100, 'Invalid parameter'), PermanentPublishException::class, 'rechazada'],
     'timeout de red' => [fn () => new ConnectionException('cURL error 28'), TransientPublishException::class, 'red'],
 ]);
+
+test('contrato de error de instagram', function () {
+    igBase($this->graph);
+    $this->graph->on('POST', '#^'.IG_ID.'/media$#', FakeGraph::error(10, '(#10) permission denied'));
+
+    expect(fn () => $this->ig->publish($this->account, igRequest(ContentType::InstagramImage, [igImage()])))
+        ->toThrow(function (PermanentPublishException $error): void {
+            expect($error->errorCode)->toBe('permisos');
+        });
+
+    FixtureRecorder::assertRecorded('instagram/error');
+})->group('provider-contracts');
 
 test('InstagramPublish: findPublished reconoce una publicacion ya hecha por su texto y hora, y no inventa duplicados', function () {
     $this->graph->on('GET', '#^'.IG_ID.'/media$#', ['data' => [
@@ -300,3 +313,45 @@ test('InstagramPublish: de extremo a extremo un reel pasa por procesando y acaba
     expect($target->fresh()->status)->toBe(PostStatus::Published)->and($target->fresh()->external_id)->toBe('18700');
     expect($this->graph->callsTo('POST', '#/media$#'))->toHaveCount(1);
 });
+
+test('InstagramPublish: el job guarda el código específico de un contenedor fallido', function (string $status, string $code, bool $poll) {
+    Storage::fake('local');
+    config(['filesystems.media' => 'local']);
+    $asset = MediaAsset::factory()->video()->for($this->user)->create();
+    Storage::disk('local')->put($asset->path, 'x');
+    $this->app->instance(ConnectorRegistry::class, (new ConnectorRegistry)->registerPublisher(Network::Instagram, $this->ig));
+
+    $post = Post::factory()->create([
+        'brand_id' => $this->brand->id, 'user_id' => $this->user->id,
+        'text' => 'Reel', 'scheduled_at' => now()->subMinute(), 'status' => PostStatus::Scheduled,
+    ]);
+    $post->media()->attach($asset->id, ['position' => 0]);
+    $target = PostTarget::factory()->create([
+        'post_id' => $post->id, 'user_id' => $this->user->id,
+        'social_account_id' => $this->account->id, 'content_type' => ContentType::InstagramReel,
+    ]);
+
+    $failure = ['status_code' => $status];
+    $processing = ['status_code' => 'IN_PROGRESS'];
+    igBase($this->graph);
+    $this->graph->on('POST', '#^'.IG_ID.'/media$#', ['id' => '9800'])
+        ->on('GET', '#^9800$#', $poll ? FakeGraph::seq($processing, $processing, $failure) : $failure);
+
+    app(DispatchDuePosts::class)();
+    if ($poll) {
+        expect($target->fresh()->status)->toBe(PostStatus::Processing);
+        Carbon::setTestNow(now()->addSeconds(31));
+        app(DispatchDuePosts::class)();
+    }
+
+    $target->refresh();
+    expect($target->status)->toBe(PostStatus::Failed)
+        ->and($target->error_code)->toBe($code)
+        ->and($target->error_message)->not->toBeEmpty()
+        ->and($this->graph->callsTo('POST', '#/media_publish$#'))->toBeEmpty();
+})->with([
+    'ERROR al publicar' => ['ERROR', 'contenedor_error', false],
+    'EXPIRED al publicar' => ['EXPIRED', 'contenedor_caducado', false],
+    'ERROR al sondear' => ['ERROR', 'contenedor_error', true],
+    'EXPIRED al sondear' => ['EXPIRED', 'contenedor_caducado', true],
+]);

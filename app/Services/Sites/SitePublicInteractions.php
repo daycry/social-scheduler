@@ -6,8 +6,9 @@ use App\Models\Site;
 use App\Models\User;
 use App\Notifications\SiteMessagesFull;
 use App\Services\SmartLinkService;
+use App\Support\DailyCounter;
+use App\Support\Ownership;
 use App\Support\SiteRichText;
-use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -18,10 +19,12 @@ class SitePublicInteractions
 {
     public const MAX_MESSAGES = 500;
 
+    public function __construct(private readonly DailyCounter $counter) {}
+
     public function recordVisit(Site $site, string $pageKey): void
     {
         $key = ['site_id' => $site->id, 'page_key' => $pageKey, 'date' => now('UTC')->toDateString()];
-        $this->increment('site_visits', $key);
+        $this->counter->increment('site_visits', $key);
     }
 
     /** @return array{total: int, by_page: array<string, int>, daily: list<array{date: string, views: int}>} */
@@ -54,7 +57,7 @@ class SitePublicInteractions
     /** Borra todos los mensajes (o solo los leidos) y rearma el aviso de tope. */
     public function clearMessages(User $user, Site $site, bool $onlyRead): int
     {
-        abort_unless($site->user_id === $user->id, 404);
+        Ownership::assert($site, $user);
         $n = DB::table('site_messages')->where('site_id', $site->id)->when($onlyRead, fn ($q) => $q->whereNotNull('read_at'))->delete();
         DB::table('sites')->where('id', $site->id)->update(['messages_full_notified_at' => null]);
 
@@ -71,7 +74,7 @@ class SitePublicInteractions
         if ($option < 0 || $option >= count($block['options'] ?? [])) {
             return false;
         }
-        $this->increment('site_poll_votes', ['site_id' => $site->id, 'block_key' => $block['key'], 'options_hash' => self::optionsHash($block['options']), 'option_index' => $option]);
+        $this->counter->increment('site_poll_votes', ['site_id' => $site->id, 'block_key' => $block['key'], 'options_hash' => self::optionsHash($block['options']), 'option_index' => $option]);
 
         return true;
     }
@@ -95,19 +98,6 @@ class SitePublicInteractions
         DB::table('site_messages')->where('site_id', $site->id)->where('id', '<=', $cut)->delete();
         if (DB::table('sites')->where('id', $site->id)->whereNull('messages_full_notified_at')->update(['messages_full_notified_at' => now()]) > 0) {
             Site::withoutUserScope()->find($site->id)?->user?->notify(new SiteMessagesFull($site->id, $site->title, self::MAX_MESSAGES));
-        }
-    }
-
-    /** Contador por clave: sube si existe; si no, lo crea (y si otra peticion lo creo antes, sube). */
-    private function increment(string $table, array $key): void
-    {
-        if (DB::table($table)->where($key)->increment('count') > 0) {
-            return;
-        }
-        try {
-            DB::table($table)->insert($key + ['count' => 1]);
-        } catch (QueryException) {
-            DB::table($table)->where($key)->increment('count');
         }
     }
 }

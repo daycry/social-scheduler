@@ -56,11 +56,11 @@ function deployDoc(string $path): string
 /** Una cola aparece como `--queue=<q>` (o en una lista `--queue=a,<q>`). */
 function mentionsQueueWorker(string $doc, string $queue): bool
 {
-    return (bool) preg_match('/--queue=(?:[a-z_]+,)*'.preg_quote($queue, '/').'(?![a-z_])/', $doc);
+    return (bool) preg_match('/--queue=(?:[a-z_-]+,)*'.preg_quote($queue, '/').'(?![a-z_-])/', $doc);
 }
 
 test('el codigo usa las colas esperadas (el escaner no es vacuo)', function () {
-    expect(queuesUsedByApp())->toContain('publish', 'poll', 'metrics', 'reports', 'media', 'studio');
+    expect(queuesUsedByApp())->toContain('publish', 'poll', 'metrics', 'reports', 'media', 'studio', 'studio-render');
 });
 
 test('cada cola usada por el codigo tiene un worker documentado en Hestia', function () {

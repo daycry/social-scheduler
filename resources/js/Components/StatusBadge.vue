@@ -4,6 +4,7 @@ import { computed } from 'vue';
 /** Insignia de estado de publicación / cuenta con color semántico. */
 const props = defineProps({ status: { type: String, required: true }, label: { type: String, default: null } });
 
+/** @type {Partial<Record<string, string>>} */
 const STYLES = {
     borrador: 'bg-slate-100 text-slate-700 ring-slate-200',
     programada: 'bg-sky-50 text-sky-800 ring-sky-200',
@@ -20,5 +21,9 @@ const text = computed(() => props.label ?? props.status.replaceAll('_', ' '));
 </script>
 
 <template>
-    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ring-1 ring-inset" :class="classes">{{ text }}</span>
+    <span
+        class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ring-1 ring-inset"
+        :class="classes"
+        >{{ text }}</span
+    >
 </template>

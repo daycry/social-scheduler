@@ -14,6 +14,7 @@ use App\Models\Post;
 use App\Models\PostTemplate;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Support\Ownership;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
@@ -37,7 +38,7 @@ class AutolistService
     /** Margen minimo (min) entre ahora y una franja generada. */
     private const LEAD_MINUTES = 5;
 
-    public function __construct(private readonly PostService $posts) {}
+    public function __construct(private readonly PostService $posts, private readonly MediaValidator $mediaValidator) {}
 
     /**
      * Reglas de validacion del alta (sin la marca): las comparten la web y el MCP.
@@ -135,7 +136,7 @@ class AutolistService
      */
     public function create(User $user, Brand $brand, string $name, array $targets, array $slots, bool $recycle = false): Autolist
     {
-        if ($brand->user_id !== $user->id) {
+        if (! Ownership::matches($brand, $user)) {
             throw new PostValidationException(['brand' => ['La marca no pertenece al usuario.']]);
         }
         $name = trim($name);
@@ -164,7 +165,7 @@ class AutolistService
      */
     public function addItem(User $user, Autolist $autolist, ?int $templateId, ?string $text, array $mediaIds = []): AutolistItem
     {
-        if ($autolist->user_id !== $user->id) {
+        if (! Ownership::matches($autolist, $user)) {
             throw new PostValidationException(['autolist' => ['La autolista no pertenece al usuario.']]);
         }
         if (AutolistItem::withoutUserScope()->where('autolist_id', $autolist->id)->count() >= self::MAX_ITEMS) {
@@ -184,7 +185,7 @@ class AutolistService
             if ($owned->count() !== count($ids)) {
                 throw new PostValidationException(['media' => ['Algun archivo no existe.']]);
             }
-            app(MediaValidator::class)->assertPublishable($owned);
+            $this->mediaValidator->assertPublishable($owned);
             $media = $ids;
             if (($text === null || $text === '') && $media === []) {
                 throw new PostValidationException(['text' => ['Escribe un texto, elige archivos o una plantilla.']]);

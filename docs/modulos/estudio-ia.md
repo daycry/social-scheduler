@@ -31,7 +31,7 @@ Un 429 transitorio o un 5xx se reintenta (hasta 3 intentos con esperas de 2 y 6 
 
 ## Cola y plazos
 
-Los trabajos (`RunStudioAiJob`) van en la cola **`media`**, por lo que necesitan su worker. Plazos encadenados: `$timeout` del job 110 s < `--timeout` del worker 120 s < `retry_after` 180 s. Dentro del job, el presupuesto de llamadas al proveedor es `STUDIO_AI_BUDGET` (100 s) y una llamada dura como máximo `STUDIO_AI_TIMEOUT` (90 s). Estados: en cola, en curso, listo y error.
+Los trabajos (`RunStudioAiJob`) van en la cola **`studio-render`**, por lo que necesitan su worker. Plazos encadenados: `$timeout` del job 110 s < `--timeout` del worker 120 s < `retry_after` 180 s. Dentro del job, el presupuesto de llamadas al proveedor es `STUDIO_AI_BUDGET` (100 s) y una llamada dura como máximo `STUDIO_AI_TIMEOUT` (90 s). Estados: en cola, en curso, listo y error.
 
 ## Texto con Claude
 
@@ -39,7 +39,7 @@ Aparte de los proveedores de imagen, el asistente de texto (`AI_ASSISTANT_ENABLE
 
 ## API y MCP
 
-La ability **`studio:ai`** es independiente (`designs:write` no basta): `GET /api/v1/brands/{brand}/ai`, `POST/GET .../ai-image-jobs` y `POST .../ai-text`; en MCP, `generate_studio_image` (`status`, `start`, `get`). Contrato en el [OpenAPI](../api/openapi.yaml).
+La ability **`designs:ai`** es independiente (`designs:write` no basta): `GET /api/v1/brands/{brand}/ai`, `POST/GET .../ai-image-jobs` y `POST .../ai-text`; en MCP, `generate_studio_image` (`status`, `start`, `get`). Contrato en el [OpenAPI](../api/openapi.yaml).
 
 ## Seguridad
 

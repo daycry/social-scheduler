@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\SmartLink;
+use App\Services\AuditLog;
 use App\Services\SmartLinkService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -10,7 +11,10 @@ use Illuminate\Http\Request;
 /** SmartLink de la marca en la API v1: el mismo servicio, reglas y forma que la pagina de la web (uno por marca). */
 class SmartLinkApiController extends ApiController
 {
-    public function __construct(private readonly SmartLinkService $links) {}
+    public function __construct(AuditLog $auditLog, private readonly SmartLinkService $links)
+    {
+        parent::__construct($auditLog);
+    }
 
     public function show(Request $request, int $brand): JsonResponse
     {

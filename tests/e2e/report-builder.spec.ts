@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { errors, expect, test, type Page } from '@playwright/test';
 import fs from 'node:fs';
 import { artisan, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, settle, stamp, watch } from './helpers';
 
@@ -58,13 +58,24 @@ test('Report builder: blocks, template, PDF download, schedule and brand isolati
         // Save the template and restore it after a reload.
         await page.getByLabel('Nombre de la plantilla').fill(tplName);
         await page.getByRole('button', { name: 'Guardar plantilla', exact: true }).click();
-        await expect(page.getByRole('status')).toContainText('Plantilla guardada');
+        await expect(page.getByRole('status').filter({ hasText: 'Plantilla guardada.' })).toBeVisible();
         await page.reload();
         expect(await order(page)).toEqual(['kpis', 'evolution', 'top_posts']);
         await page.getByLabel('Plantilla guardada').selectOption({ label: tplName });
         await page.getByRole('button', { name: 'Cargar plantilla', exact: true }).click();
         expect(await order(page)).toEqual(['text', 'kpis', 'evolution', 'top_posts', 'competitors', 'ads']);
         await expect(page.getByLabel('Texto del bloque 1')).toHaveValue(note);
+
+        await page.route('**/reports', async route => {
+            const data = route.request().postDataJSON();
+            await route.continue({ postData: JSON.stringify({ ...data, formats: ['pdf', 'e2e.invalid'] }) });
+        }, { times: 1 });
+        await page.getByRole('button', { name: 'Generar informe', exact: true }).click();
+        const formats = page.getByRole('group', { name: 'Formato', exact: true });
+        await expect(formats).toBeFocused();
+        await expect(formats).toHaveAccessibleDescription(/format|válid/i);
+        await expect(formats.locator('input[type=checkbox][aria-describedby]')).toHaveCount(0);
+        await expect(page.locator('[data-report]')).toHaveCount(0);
 
         // Generate the PDF only; the disposable server has no worker, so run the queued job as the worker would.
         await page.getByLabel('CSV', { exact: true }).uncheck();
@@ -83,9 +94,12 @@ test('Report builder: blocks, template, PDF download, schedule and brand isolati
 
         // Schedule a weekly email; invalid recipients are rejected, valid ones listed.
         await page.getByLabel('Plantilla a enviar').selectOption({ label: tplName });
-        await page.getByLabel('Destinatarios').fill('no-es-un-email');
+        const recipients = page.getByLabel('Destinatarios');
+        await recipients.fill('cliente@example.com, no-es-un-email');
         await page.getByRole('button', { name: 'Programar informe', exact: true }).click();
-        await expect(page.locator('[data-schedules]')).toContainText(/email|correo|valid/i);
+        await expect(recipients).toHaveAttribute('aria-invalid', 'true');
+        await expect(recipients).toBeFocused();
+        await expect(recipients).toHaveAccessibleDescription(/email|correo|válid/i);
         await expect(page.locator('[data-schedule]')).toHaveCount(0);
         await page.getByLabel('Plantilla a enviar').selectOption({ label: tplName });
         await page.getByLabel('Destinatarios').fill('Cliente@example.com, equipo@example.com');
@@ -112,6 +126,80 @@ test('Report builder: blocks, template, PDF download, schedule and brand isolati
         expect(errors.errors).toEqual([]);
     } finally {
         artisan(`App\\Models\\ReportTemplate::withoutUserScope()->where('name', 'like', 'e2e-plantilla-%')->get()->each->delete();`);
+        cleanComposerBrands(user.email);
+    }
+});
+
+test('E2E-13 · informes pausa las consultas ocultas y alcanza el tope', async ({ page }, info) => {
+    const user = e2eUser(info.project.name);
+    const brand = seedComposerBrand(user.email, `e2e-report-poll-${stamp()}`);
+    const isPoll = (headers: Record<string, string>) =>
+        headers['x-inertia-partial-data']?.split(',').sort().join(',') === 'pagination,polling,reports';
+    let polls = 0;
+
+    try {
+        artisan(String.raw`
+            $brand = App\Models\Brand::withoutUserScope()->findOrFail(${brand.id});
+            App\Models\Report::factory()->create(['brand_id' => $brand->id, 'user_id' => $brand->user_id, 'status' => App\Models\Report::STATUS_PENDING]);
+        `);
+        await loginAs(page, user);
+        await page.addInitScript(() => {
+            Object.defineProperty(document, 'hidden', {
+                configurable: true,
+                get: () => document.documentElement?.dataset.testVisibility !== 'visible',
+            });
+            Object.defineProperty(document, 'visibilityState', {
+                configurable: true,
+                get: () => document.hidden ? 'hidden' : 'visible',
+            });
+        });
+        const setVisibility = (visibility: 'visible' | 'hidden') => page.evaluate(state => {
+            document.documentElement.dataset.testVisibility = state;
+            document.dispatchEvent(new Event('visibilitychange'));
+        }, visibility);
+        page.on('request', request => {
+            if (isPoll(request.headers())) polls++;
+        });
+
+        const expectNoPollDuring = async (milliseconds: number) => {
+            const requestObserved = page.waitForRequest(request => isPoll(request.headers()), { timeout: 750 })
+                .then(() => true, error => {
+                    if (error instanceof errors.TimeoutError) return false;
+                    throw error;
+                });
+            await page.clock.fastForward(milliseconds);
+            expect(await requestObserved).toBe(false);
+        };
+        const start = new Date();
+        await page.clock.install({ time: start });
+        await page.clock.pauseAt(new Date(start.getTime() + 60_000));
+        await page.goto(`/reports?brand_id=${brand.id}`);
+        await expect(page.getByText('En cola', { exact: true })).toBeVisible();
+        await expectNoPollDuring(60_000);
+        await setVisibility('visible');
+
+        const backoff = [4_000, 8_000, 16_000, 30_000];
+        for (let attempt = 0; attempt < 40; attempt++) {
+            const delay = backoff[attempt];
+            // Pin the initial steps and the first capped interval before running the rest of the budget.
+            if (delay) await expectNoPollDuring(delay - 200);
+            const nextPoll = page.waitForResponse(response => isPoll(response.request().headers()));
+            await page.clock.fastForward(delay ? 400 : 30_100);
+            expect(await (await nextPoll).finished()).toBeNull();
+            await page.clock.runFor(30);
+            expect(polls).toBe(attempt + 1);
+            if (attempt === 0) {
+                await setVisibility('hidden');
+                await expectNoPollDuring(60_000);
+                // The 8 s interval is measured from resuming, rather than from the last completed request.
+                await setVisibility('visible');
+            }
+        }
+
+        await expect(page.getByRole('button', { name: 'Volver a consultar' })).toBeVisible();
+        await expectNoPollDuring(60_000);
+        expect(polls).toBe(40);
+    } finally {
         cleanComposerBrands(user.email);
     }
 });

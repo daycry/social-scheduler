@@ -61,7 +61,7 @@ test('aprobar y rechazar con dos usuarios: invitación uniforme, decisión del a
         // 1. La propietaria invita: la respuesta es la misma exista o no la cuenta.
         await page.goto('/approvals');
         const card = page.getByTestId(`brand-${brand.id}`);
-        const MESSAGE = 'Si existe una cuenta con ese email, podra aprobar las publicaciones de esta marca.';
+        const MESSAGE = 'Si existe una cuenta con ese correo, podrá aprobar las publicaciones de esta marca.';
         await card.getByTestId('invite-email').fill('nadie@example.test');
         await card.getByTestId('invite-send').click();
         await expect(page.getByTestId('approvals-message')).toHaveText(MESSAGE);
@@ -184,8 +184,8 @@ test('serie semanal: se crea desde la pantalla y las ocurrencias aparecen en el 
 
     // Cancelar la serie borra las futuras pendientes.
     await page.goto('/series');
-    page.once('dialog', (d) => d.accept());
     await page.getByTestId('series-cancel').first().click();
+    await page.getByTestId('confirm-dialog').getByRole('button', { name: 'Cancelar serie' }).click();
     await expect(page.getByTestId('series-message')).toContainText('Serie cancelada');
     await page.goto(listUrl());
     await expect(page.getByTestId('series-badge')).toHaveCount(0);

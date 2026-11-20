@@ -26,7 +26,11 @@ Navegador ──PUT prefirmado──► Cloudflare R2 (media)       Workers syst
 
 ## Aislamiento por usuario
 
-Cada modelo del dominio se filtra con el global scope `app/Scopes/UserScope.php`; las Policies (`app/Policies/`) autorizan cada acción. Un recurso ajeno devuelve 404. Los jobs y el scheduler, que no tienen usuario autenticado, usan `withoutUserScope()` de forma explícita (ejemplo: `DispatchDuePosts`). Los accesos entre usuarios se registran con `app/Support/CrossUserAccessLogger.php`. Hay pruebas en `tests/Feature/Isolation/`.
+Los modelos con `BelongsToUser` usan `UserScope` para filtrar por el usuario autenticado. Para consultar los recursos de un usuario explícito, usa `ownedBy($user)`. Los procesos globales, como `DispatchDuePosts`, usan `withoutUserScope()` cuando necesitan recorrer recursos de varios usuarios.
+
+Para comprobar un modelo ya cargado, `Ownership::assert()` lanza `OwnershipException`. Web y API la traducen a 404 y MCP devuelve su error de recurso inexistente. `Ownership::matches()` permite conservar el contrato de cada operación, incluidos los errores de validación y las denegaciones de las Policies. Las Policies y los servicios aplican los permisos por rol, como los de un aprobador invitado.
+
+`CrossUserAccessLogger` registra los accesos cruzados que detecta el enlace de modelos a rutas. Las pruebas de aislamiento y de consultas por propietario están en `tests/Feature/Isolation/` y `tests/Feature/Security/OwnershipScopeTest.php`.
 
 ## Redes y tipos de contenido
 

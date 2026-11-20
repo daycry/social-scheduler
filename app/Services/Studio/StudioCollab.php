@@ -2,12 +2,14 @@
 
 namespace App\Services\Studio;
 
+use App\Models\BrandCollaborator;
 use App\Models\Studio\Design;
 use App\Models\Studio\DesignComment;
 use App\Models\Studio\DesignLink;
 use App\Models\Studio\DesignShare;
 use App\Models\User;
 use App\Notifications\StudioDesignActivity;
+use App\Support\Ownership;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -25,9 +27,9 @@ class StudioCollab
 
     public const LINK_ROLES = ['reader', 'commenter'];
 
-    public const LABELS = ['owner' => 'Propietario', 'editor' => 'Editor', 'commenter' => 'Comentarista', 'reader' => 'Lector'];
+    public const LABELS = ['owner' => 'Propietario', 'editor' => 'Editor', 'commenter' => 'Comentarista', 'reader' => 'Lector', BrandCollaborator::ROLE_APPROVER => 'Aprobador'];
 
-    private const RANK = ['reader' => 1, 'commenter' => 2, 'editor' => 3, 'owner' => 4];
+    private const RANK = ['reader' => 1, 'commenter' => 2, BrandCollaborator::ROLE_APPROVER => 2, 'editor' => 3, 'owner' => 4];
 
     private const NEEDS = ['view' => 1, 'comment' => 2, 'edit' => 3, 'manage' => 4];
 
@@ -39,34 +41,58 @@ class StudioCollab
 
     public const MAX_COMMENTS = 2000;
 
-    public const SHARE_MESSAGE = 'Si existe una cuenta con ese email, tendrá acceso a este diseño.';
+    public const SHARE_MESSAGE = 'Si existe una cuenta con ese correo, tendrá acceso a este diseño.';
 
     public function role(User $user, Design $design): ?string
     {
-        if ((int) $design->user_id === (int) $user->id) {
-            return 'owner';
+        return $this->grant($user, $design)['role'];
+    }
+
+    /** @return array{role: ?string, can_approve: bool} */
+    private function grant(User $user, Design $design): array
+    {
+        if (Ownership::matches($design, $user)) {
+            return ['role' => 'owner', 'can_approve' => true];
         }
         if ($design->trashed()) {
-            return null;
+            return ['role' => null, 'can_approve' => false];
         }
 
-        return DesignShare::query()->where('design_id', $design->id)->where('user_id', $user->id)->value('role');
+        $sharedRole = DesignShare::query()->where('design_id', $design->id)->where('user_id', $user->id)->value('role');
+        $approver = BrandCollaborator::query()->approverFor($user->id)
+            ->where('brand_id', $design->brand_id)->where('owner_id', $design->user_id)->exists();
+
+        return ['role' => $this->effectiveRole($sharedRole, $approver), 'can_approve' => $approver];
+    }
+
+    private function effectiveRole(?string $sharedRole, bool $approver): ?string
+    {
+        $rank = in_array($sharedRole, self::ROLES, true) ? self::RANK[$sharedRole] : 0;
+        if ($approver && $rank <= self::RANK[BrandCollaborator::ROLE_APPROVER]) {
+            return BrandCollaborator::ROLE_APPROVER;
+        }
+
+        return $rank > 0 ? $sharedRole : null;
     }
 
     /** Devuelve el propietario del diseño (con el que se opera su marca y sus recursos) o aborta con 404/403. */
     public function authorize(User $user, Design $design, string $ability): User
     {
-        $role = $this->role($user, $design);
+        $access = $this->grant($user, $design);
+        $role = $access['role'];
         abort_if($role === null, 404);
-        abort_if(self::RANK[$role] < self::NEEDS[$ability], 403, 'Tu rol en este diseño no permite esta acción.');
+        $allowed = $ability === 'approve' ? $access['can_approve'] : self::RANK[$role] >= self::NEEDS[$ability];
+        abort_unless($allowed, 403, 'Tu rol en este diseño no permite esta acción.');
 
         return $role === 'owner' ? $user : User::query()->findOrFail($design->user_id);
     }
 
-    /** @return array{role: string, role_label: string, is_owner: bool, can_edit: bool, can_comment: bool, owner_name: string} */
+    /** @return array{role: string, role_label: string, is_owner: bool, can_edit: bool, can_comment: bool, can_approve: bool, owner_name: string} */
     public function access(User $user, Design $design): array
     {
-        return $this->summary($this->role($user, $design) ?? 'reader', $design);
+        $access = $this->grant($user, $design);
+
+        return $this->summary($access['role'] ?? 'reader', $design) + ['can_approve' => $access['can_approve']];
     }
 
     public function summary(string $role, Design $design): array
@@ -144,13 +170,31 @@ class StudioCollab
     /** Diseños que otros usuarios han compartido con este usuario (no archivados), del más reciente al más antiguo. */
     public function sharedWith(User $user): array
     {
-        return DesignShare::query()->where('studio_design_shares.user_id', $user->id)
-            ->join('studio_designs', 'studio_designs.id', '=', 'studio_design_shares.design_id')->whereNull('studio_designs.deleted_at')
+        $brandGrants = BrandCollaborator::query()->approverFor($user->id)->select(['id', 'brand_id', 'owner_id']);
+
+        return Design::withoutUserScope()
+            ->where('studio_designs.user_id', '!=', $user->id)
+            ->leftJoin('studio_design_shares', fn ($join) => $join
+                ->on('studio_design_shares.design_id', '=', 'studio_designs.id')
+                ->where('studio_design_shares.user_id', $user->id)
+                ->whereIn('studio_design_shares.role', self::ROLES))
+            ->leftJoinSub($brandGrants, 'brand_grants', fn ($join) => $join
+                ->on('brand_grants.brand_id', '=', 'studio_designs.brand_id')
+                ->on('brand_grants.owner_id', '=', 'studio_designs.user_id'))
+            ->where(fn ($query) => $query->whereNotNull('studio_design_shares.id')->orWhereNotNull('brand_grants.id'))
             ->join('users', 'users.id', '=', 'studio_designs.user_id')
-            ->orderByDesc('studio_designs.updated_at')->limit(100)
-            ->get(['studio_designs.id', 'studio_designs.name', 'studio_designs.page_count', 'studio_designs.updated_at', 'studio_design_shares.role', 'users.name as owner_name'])
-            ->map(fn ($row) => ['id' => (int) $row->id, 'name' => $row->name, 'page_count' => (int) $row->page_count, 'role' => $row->role, 'role_label' => self::LABELS[$row->role],
-                'owner_name' => $row->owner_name, 'updated_at' => Carbon::parse($row->updated_at)->toIso8601String()])->all();
+            ->leftJoin('brands', 'brands.id', '=', 'studio_designs.brand_id')
+            ->orderByDesc('studio_designs.updated_at')->orderByDesc('studio_designs.id')->limit(100)
+            ->get(['studio_designs.id', 'studio_designs.name', 'studio_designs.page_count', 'studio_designs.updated_at',
+                'studio_design_shares.role as shared_role', 'brand_grants.id as membership_id',
+                'users.name as owner_name', 'brands.timezone'])
+            ->map(function ($row) {
+                $role = $this->effectiveRole($row->shared_role, $row->membership_id !== null);
+
+                return ['id' => (int) $row->id, 'name' => $row->name, 'page_count' => (int) $row->page_count,
+                    'role' => $role, 'role_label' => self::LABELS[$role], 'owner_name' => $row->owner_name,
+                    'timezone' => $row->timezone, 'updated_at' => Carbon::parse($row->updated_at)->toIso8601String()];
+            })->all();
     }
 
     // ---- Enlaces ------------------------------------------------------------------------------------------------
@@ -253,7 +297,7 @@ class StudioCollab
                 throw ValidationException::withMessages(['parent_id' => ['El comentario al que respondes no existe en este diseño.']]);
             }
             if ($parent->parent_id !== null) {
-                $parent = DesignComment::query()->find($parent->parent_id) ?? $parent;
+                $parent = DesignComment::query()->where('design_id', $design->id)->find($parent->parent_id) ?? $parent;
             }
         }
         $pageId = $parent?->page_id ?? ($data['page_id'] ?? null);
@@ -273,14 +317,26 @@ class StudioCollab
         return $comment;
     }
 
+    // Los editores pueden cerrar hilos de otros. Solo el propietario puede iniciar el borrado de un comentario ajeno.
+    public function mayResolveThread(string $role, int $actorId, int $authorId): bool
+    {
+        $rank = self::RANK[$role] ?? 0;
+
+        return $rank >= 3 || ($rank >= 2 && $actorId === $authorId);
+    }
+
+    public function mayDeleteComment(string $role, int $actorId, int $authorId): bool
+    {
+        return $role === 'owner' || ((self::RANK[$role] ?? 0) >= 2 && $actorId === $authorId);
+    }
+
     public function setResolved(User $actor, Design $design, int $commentId, bool $resolved): DesignComment
     {
         $role = $this->role($actor, $design);
         abort_if($role === null, 404);
         $comment = DesignComment::query()->where('design_id', $design->id)->findOrFail($commentId);
-        $root = $comment->parent_id === null ? $comment : DesignComment::query()->findOrFail($comment->parent_id);
-        $allowed = self::RANK[$role] >= 3 || ($role === 'commenter' && (int) $root->author_id === (int) $actor->id);
-        abort_unless($allowed, 403, 'Tu rol en este diseño no permite resolver este hilo.');
+        $root = $comment->parent_id === null ? $comment : DesignComment::query()->where('design_id', $design->id)->findOrFail($comment->parent_id);
+        abort_unless($this->mayResolveThread($role, (int) $actor->id, (int) $root->author_id), 403, 'Tu rol en este diseño no permite resolver este hilo.');
         $root->update(['resolved_at' => $resolved ? now() : null, 'resolved_by' => $resolved ? $actor->id : null]);
 
         return $root;
@@ -291,7 +347,7 @@ class StudioCollab
         $role = $this->role($actor, $design);
         abort_if($role === null, 404);
         $comment = DesignComment::query()->where('design_id', $design->id)->findOrFail($commentId);
-        abort_unless($role === 'owner' || (self::RANK[$role] >= 2 && (int) $comment->author_id === (int) $actor->id), 403, 'Solo puedes borrar tus propios comentarios.');
+        abort_unless($this->mayDeleteComment($role, (int) $actor->id, (int) $comment->author_id), 403, 'Solo puedes borrar tus propios comentarios.');
         DB::transaction(function () use ($comment): void {
             DesignComment::query()->where('parent_id', $comment->id)->delete();
             $comment->delete();

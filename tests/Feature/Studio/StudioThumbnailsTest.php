@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 
-// T-35: miniatura por diseno. Se genera bajo demanda al listar (por la cola `media`), se cachea por revision y se invalida al editar.
+// T-35: miniatura por diseno. Se genera bajo demanda al listar (cola `studio`), se cachea por revision y se invalida al editar.
 
 beforeEach(function () {
     config(['studio.thumbnails.enabled' => true]);
@@ -43,7 +43,7 @@ function thumbRender(): void
 test('Miniaturas: listar un diseno sin miniatura la encola una vez y muestra el hueco, no una URL', function () {
     $rows = app(StudioThumbnails::class)->decorate($this->user, [['id' => $this->design->id, 'revision' => 1, 'deleted_at' => null]]);
     expect($rows[0]['thumbnail_url'])->toBeNull();
-    // Cola `studio` (baja prioridad, su propio worker): una avalancha de miniaturas no retrasa las importaciones de la cola `media`.
+    // Una avalancha de miniaturas no retrasa las exportaciones estáticas ni la IA.
     Queue::assertPushed(RenderStudioThumbnail::class, fn ($job) => $job->designId === $this->design->id && $job->queue === 'studio');
 
     app(StudioThumbnails::class)->decorate($this->user, [['id' => $this->design->id, 'revision' => 1, 'deleted_at' => null]]);

@@ -11,12 +11,15 @@ use App\Models\Brand;
 use App\Models\Campaign;
 use App\Models\Post;
 use App\Models\PostTarget;
+use App\Models\Studio\DesignExport;
 use App\Models\User;
 use App\Services\Posts\PostApproval;
+use App\Services\Posts\PostMediaProvenance;
 use App\Services\Posts\PostPlanner;
 use App\Services\Posts\PostScheduling;
 use App\Services\Posts\PostSignature;
 use App\Services\Posts\PostTransitions;
+use App\Support\Ownership;
 use Carbon\CarbonInterface;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -41,6 +44,24 @@ use Illuminate\Support\Facades\DB;
  */
 class PostService
 {
+    public const MEDIA_MISSING = PostScheduling::MEDIA_MISSING;
+
+    public const MEDIA_MISSING_RETRY = PostScheduling::MEDIA_MISSING_RETRY;
+
+    /** @param  array<string, mixed>  $options
+     * @return array<string, mixed>
+     */
+    public static function normalizeOptions(array $options): array
+    {
+        return PostPlanner::normalizeOptions($options);
+    }
+
+    /** Destinos programados que la publicación inmediata deja en pausa. */
+    public static function pausedTargets(Post $post): int
+    {
+        return PostTransitions::pausedTargets($post);
+    }
+
     public function __construct(
         private readonly PostPlanner $planner,
         private readonly PostApproval $approval,
@@ -57,7 +78,7 @@ class PostService
      */
     public function validate(User $user, Brand $brand, array $data): array
     {
-        if ($brand->user_id !== $user->id) {
+        if (! Ownership::matches($brand, $user)) {
             return ['brand' => ['La marca no pertenece al usuario.']];
         }
 
@@ -71,10 +92,14 @@ class PostService
     }
 
     /** @param array<string, mixed> $data */
-    public function create(User $user, Brand $brand, array $data): Post
+    public function create(User $user, Brand $brand, array $data, ?DesignExport $sourceExport = null): Post
     {
-        if ($brand->user_id !== $user->id) {
+        if (! Ownership::matches($brand, $user)) {
             throw new PostValidationException(['brand' => ['La marca no pertenece al usuario.']]);
+        }
+
+        if ($sourceExport !== null && (! Ownership::matches($sourceExport, $user) || (int) $sourceExport->brand_id !== $brand->id)) {
+            throw new PostValidationException(['export' => ['La exportación no pertenece a la marca.']]);
         }
 
         // Con aprobacion requerida (T-19) el post nace como borrador pendiente: nunca se programa antes de aprobarse.
@@ -85,19 +110,23 @@ class PostService
         }
         $plan = $this->planner->plan($user, $brand, $data);
 
-        return DB::transaction(function () use ($user, $brand, $plan, $requiresApproval) {
+        return DB::transaction(function () use ($user, $brand, $plan, $requiresApproval, $sourceExport) {
             $post = new Post(['text' => $plan['text'], 'scheduled_at' => $plan['scheduled_at']]);
             if ($plan['notes'] !== false) {
                 $post->notes = $plan['notes'];
             }
             $post->user_id = $user->id;
             $post->brand_id = $brand->id;
+            if ($sourceExport !== null) {
+                $post->designExport()->associate($sourceExport);
+            }
             if ($plan['campaign_id'] !== false) {
                 $post->campaign_id = $plan['campaign_id'];
             }
             $this->saveOrFailCampaign($post);
 
-            $this->planner->fill($post, $plan);
+            $provenance = $sourceExport === null ? null : new PostMediaProvenance($sourceExport, array_map('intval', $sourceExport->media_ids ?? []));
+            $this->planner->fill($post, $plan, provenance: $provenance);
             if ($requiresApproval) {
                 $this->approval->markPending($post);
             }
@@ -114,15 +143,22 @@ class PostService
      *
      * @param  array<string, mixed>  $data
      */
-    public function update(User $user, Post $post, array $data): Post
+    public function update(User $user, Post $post, array $data, ?PostMediaProvenance $provenance = null): Post
     {
         $this->assertOwns($user, $post);
 
         $brand = Brand::withoutUserScope()->findOrFail($post->brand_id);
-        $plan = $this->planner->plan($user, $brand, $data, $post->campaign_id);
+        if ($provenance !== null && (! Ownership::matches($provenance->export, $user) || (int) $provenance->export->brand_id !== $brand->id)) {
+            throw new PostValidationException(['export' => ['La exportación no pertenece a la marca.']]);
+        }
+        $plan = $this->planner->plan($user, $brand, $data, $post->campaign_id,
+            keepScheduledAt: $provenance !== null ? $post->scheduled_at : null,
+        );
         $plan = $this->approval->applyRules($post, $plan);
+        // Una reexportación solo cambia adjuntos. Un cambio que invalida la aprobación sí vuelve a borrador.
+        $keepStatuses = $provenance !== null && ! ($plan['reset_approval'] ?? false);
 
-        return DB::transaction(function () use ($post, $plan) {
+        return DB::transaction(function () use ($post, $plan, $keepStatuses, $provenance) {
             // Bloquea los destinos ANTES de decidir: el claim de `PublishPostTarget` toma el mismo lock, asi que o
             // gana el claim (aqui se ve `publicando` y se rechaza) o ganamos nosotros (el claim ve el estado nuevo).
             $existing = $this->transitions->lockEditable($post);
@@ -138,8 +174,11 @@ class PostService
             if ($plan['campaign_id'] !== false) {
                 $post->campaign_id = $plan['campaign_id']; // por post entero (D3): no cuenta como «contenido cambiado»
             }
+            if ($provenance !== null) {
+                $post->designExport()->associate($provenance->export);
+            }
             $this->saveOrFailCampaign($post);
-            $this->planner->fill($post, $plan, $existing, $before);
+            $this->planner->fill($post, $plan, $existing, $before, preserveTargetStatuses: $keepStatuses, provenance: $provenance);
             if ($plan['reset_approval'] ?? false) {
                 $this->approval->markPending($post, true);
             }
@@ -328,7 +367,7 @@ class PostService
 
     private function assertOwns(User $user, Post $post): void
     {
-        if ($post->user_id !== $user->id) {
+        if (! Ownership::matches($post, $user)) {
             throw new PostValidationException(['post' => ['La publicacion no pertenece al usuario.']]);
         }
     }

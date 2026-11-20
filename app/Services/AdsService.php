@@ -11,6 +11,7 @@ use App\Connectors\Network;
 use App\Models\Brand;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Support\Ownership;
 use App\Support\PermissionHelp;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
@@ -96,7 +97,7 @@ class AdsService
     /** Conexión Meta propia de esta marca con `ads_read` y token de usuario (la más reciente). */
     public function source(User $user, Brand $brand): ?SocialAccount
     {
-        abort_unless((int) $brand->user_id === (int) $user->id, 404);
+        Ownership::assert($brand, $user);
 
         return SocialAccount::ownedBy($user->id)
             ->where('brand_id', $brand->id)

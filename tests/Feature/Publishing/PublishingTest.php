@@ -17,9 +17,6 @@ use App\Models\PublishAttempt;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Notifications\ReconnectRequired;
-use App\Services\PublishOutcomes;
-use App\Services\PublishRequestFactory;
-use App\Services\SocialAccountService;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Support\Carbon;
@@ -208,14 +205,14 @@ test('Publishing: un destino colgado en publicando se recupera consultando antes
 test('Publishing: un destino en publicando reciente (otro worker en vuelo) no se toca', function () {
     $target = dueTarget(targetAttrs: ['status' => PostStatus::Publishing, 'attempts' => 1, 'started_at' => now()->subMinute()]);
 
-    (new PublishPostTarget($target->id))->handle(app(ConnectorRegistry::class), app(PublishOutcomes::class), app(PublishRequestFactory::class), app(SocialAccountService::class));
+    app()->call([new PublishPostTarget($target->id), 'handle']);
 
     expect($this->publisher->publishCalls)->toBe(0)->and($target->fresh()->status)->toBe(PostStatus::Publishing);
 });
 
 test('Publishing: dos ejecuciones simultaneas del mismo destino publican una sola vez', function () {
     $target = dueTarget();
-    $run = fn () => (new PublishPostTarget($target->id))->handle(app(ConnectorRegistry::class), app(PublishOutcomes::class), app(PublishRequestFactory::class), app(SocialAccountService::class));
+    $run = fn () => app()->call([new PublishPostTarget($target->id), 'handle']);
 
     $run();
     $run();
@@ -227,7 +224,7 @@ test('Publishing: si se reprograma a futuro mientras estaba en cola, el job no p
     $target = dueTarget();
     $target->post->update(['scheduled_at' => now()->addDay()]);
 
-    (new PublishPostTarget($target->id))->handle(app(ConnectorRegistry::class), app(PublishOutcomes::class), app(PublishRequestFactory::class), app(SocialAccountService::class));
+    app()->call([new PublishPostTarget($target->id), 'handle']);
 
     expect($this->publisher->publishCalls)->toBe(0)->and($target->fresh()->status)->toBe(PostStatus::Scheduled);
 });

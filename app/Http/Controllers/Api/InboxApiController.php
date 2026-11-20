@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Connectors\Network;
 use App\Models\InboxComment;
+use App\Services\AuditLog;
 use App\Services\InboxService;
 use App\Support\CursorPage;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +17,10 @@ use Illuminate\Validation\Rule;
  */
 class InboxApiController extends ApiController
 {
-    public function __construct(private readonly InboxService $inbox) {}
+    public function __construct(AuditLog $auditLog, private readonly InboxService $inbox)
+    {
+        parent::__construct($auditLog);
+    }
 
     public function index(Request $request, int $brand): JsonResponse
     {

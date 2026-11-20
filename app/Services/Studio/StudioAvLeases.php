@@ -76,14 +76,8 @@ class StudioAvLeases
             if ($bytes < 0 || ($category === 'none' ? $bytes !== 0 : $bytes < 1)) {
                 throw ValidationException::withMessages(['export' => ['La fase necesita una reserva de disco válida.']]);
             }
-            if ($category !== 'none') {
-                $limit = config('studio.av.disk.'.$category, 8 * 1024 ** 3);
-                $used = (int) StudioAvLease::where('workspace_id', $workspace->id)->where('category', $category)->where('status', '!=', 'released')
-                    ->sum(DB::raw('COALESCE(actual_bytes, reserved_bytes)'));
-                $used += $category === 'output' ? $workspace->media_reserved_bytes : 0;
-                if (! is_int($limit) || $limit < 1 || $limit > 8 * 1024 ** 3 || $bytes > $limit - $used) {
-                    throw ValidationException::withMessages(['export' => ['El trabajo supera su presupuesto de almacenamiento; limpia o reduce los recursos antes de reintentar.']]);
-                }
+            if ($category !== 'none' && ! $this->store->canReserveBytes($workspace, $category, $bytes)) {
+                throw ValidationException::withMessages(['export' => ['El trabajo supera su presupuesto de almacenamiento; limpia o reduce los recursos antes de reintentar.']]);
             }
             $lease = StudioAvLease::create(['id' => (string) Str::uuid(), 'workspace_id' => $workspace->id, 'generation' => $generation,
                 'phase' => $task['phase'], 'item' => $task['index'], 'category' => $category, 'reserved_bytes' => $bytes, 'expires_at' => now()->addSeconds(180)]);

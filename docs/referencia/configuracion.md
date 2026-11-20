@@ -38,7 +38,9 @@ Leyenda: ⚠️ **Por confirmar** marca una decisión por defecto que el usuario
 | `DB_CONNECTION` ... `DB_PASSWORD` | `mysql`, `127.0.0.1`, `3306`, `metricool`, `root` | MariaDB >= 10.6 / MySQL >= 8.0 |
 | `QUEUE_CONNECTION` | `database` | Sin Redis |
 | `DB_QUEUE_RETRY_AFTER` | `180` | Debe superar el `--timeout` del worker (120 s) |
-| `QUEUE_NAMES` | `publish,poll,metrics,reports,media,studio` | Colas vigiladas por `app:queue-probe` y `app:health`; `media` es la de las importaciones, exportaciones estáticas, IA y Canva, y `studio` la de MP4/GIF (worker propio) |
+| `QUEUE_NAMES` | `publish,poll,metrics,reports,media,studio,studio-render` | Colas vigiladas por `app:queue-probe` y `app:health`. `media` procesa importaciones y Canva. `studio` procesa MP4, GIF y miniaturas |
+| `STUDIO_RENDER_QUEUE` | `studio-render` | Cola de IA, imágenes y render estático. Vacío usa el valor por defecto. Si se cambia, configura su worker y actualiza `QUEUE_NAMES` |
+| `REDIS_QUEUE_RETRY_AFTER` | `180` | Segundos antes de que Redis vuelva a entregar un job reservado. El mínimo es 180 |
 | `GOOGLE_PICKER_API_KEY` | vacío | Clave de API restringida por referrer; vacía = sin botón «Google Drive» (también sin `GOOGLE_PICKER_APP_ID`) ([guía](../guias/google-cloud-picker-drive.md)) |
 | `GOOGLE_PICKER_APP_ID` | vacío | Número de proyecto de Google Cloud para el Picker; **obligatorio** con `drive.file` (sin él no hay botón ni endpoint) |
 | `GIPHY_API_KEY` | vacío | Clave *beta* de Giphy (100 llamadas/hora); vacía = sin botón «GIF» en el compositor. La usa solo el servidor ([medios](../modulos/media.md#buscador-de-gifs-de-giphy-c-04b)) |
@@ -257,3 +259,13 @@ Variables nuevas, todas opcionales (valores por defecto en la segunda columna). 
 | `AI_ASSISTANT_DAILY_LIMIT` / `_GLOBAL_DAILY_LIMIT` | `20` / `200` | Sugerencias por usuario y día, y tope global diario entre todos los usuarios (0 = sin tope global) |
 | `AI_ASSISTANT_MODEL` / `_MAX_TOKENS` / `_TIMEOUT` | `claude-sonnet-5-5` / `600` / `30` | Modelo y límites de la llamada a la Messages API |
 | `AI_ASSISTANT_SCHEDULE_MAX_DAYS` | `365` | «Escribe cuándo»: la fecha propuesta no puede quedar a más de estos días |
+
+## Objetivos y alertas (T-79)
+
+| Variable | Por defecto | Efecto |
+|---|---|---|
+| `GOALS_DAILY_AT` | `13:15` | Hora diaria en la zona del scheduler para evaluar snapshots de días cerrados. Requiere scheduler activo |
+| `GOALS_QUEUE` | cola de analítica (`metrics`) | Cola del evaluador |
+| `GOALS_MAIL_QUEUE` | `poll` | Cola independiente del correo opcional |
+
+[Reglas, datos ausentes y deduplicación](../modulos/analitica.md#objetivos-y-alertas-t-79). El correo necesita el consentimiento del objetivo, la preferencia global y una dirección verificada.

@@ -1,16 +1,19 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { computed, onMounted, ref } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import PdfAsset from '@/Components/PdfAsset.vue';
 import InfoNote from '@/Components/InfoNote.vue';
+import { usePolling } from '@/Composables/usePolling';
 import { studioRequest } from '@/Studio/api';
 
-const props = defineProps({ brand: Object, canva: Object, focus: { type: String, default: null }, flash: Object });
-const page = usePage();
-const flash = computed(() => props.flash ?? page.props.flash ?? {});
+import { useConfirm } from '@/Composables/useConfirm';
+
+const ask = useConfirm();
+
+const props = defineProps({ brand: Object, canva: Object, focus: { type: String, default: null } });
 
 const STATUS = { queued: 'En cola', processing: 'Canva está trabajando…', importing: 'Guardando en la biblioteca…', ready: 'Listo', failed: 'Con error' };
 const JOB_KIND = { export: 'Exportar', upload: 'Enviar a Canva', autofill: 'Rellenar plantilla' };
@@ -51,7 +54,6 @@ const transparent = ref({});
 const library = ref([]);
 const sendId = ref('');
 const busy = ref(false);
-let timer = null;
 
 const formatOf = id => exportFormat.value[id] ?? 'png';
 const hasPdf = computed(() => documents.value.length > 0 || jobs.value.some(j => j.media?.some(m => m.kind === 'pdf')));
@@ -86,7 +88,6 @@ function track(job) {
     const i = jobs.value.findIndex(j => j.id === job.id);
     if (i >= 0) jobs.value[i] = job; else jobs.value.unshift(job);
     if (job.status === 'ready') { linkDesign(job); if (job.media?.some(m => m.kind === 'pdf')) loadDocuments(); }
-    schedule();
 }
 
 /** Enlace fresco «Abrir en Canva» del diseño que ha creado Autofill (los de Canva son temporales). */
@@ -114,7 +115,7 @@ async function moreDocuments() {
 }
 
 async function removeDocument(doc) {
-    if (!confirm(`¿Eliminar «${doc.name}» de la biblioteca?`)) return;
+    if (!(await ask({ message: `¿Eliminar «${doc.name}» de la biblioteca?`, confirmLabel: 'Eliminar documento' }))) return;
     error.value = '';
     try { await studioRequest('DELETE', route('media.destroy', doc.id)); documents.value = documents.value.filter(d => d.id !== doc.id); } catch (e) { fail(e); }
 }
@@ -143,6 +144,7 @@ async function startAutofill() {
     try {
         const data = await studioRequest('POST', route('canva.autofills.store', props.brand.id), { brand_template_id: template.value.id, fields: fieldValues.value, title: autofillTitle.value.trim() || undefined });
         track(data.job);
+        restartPolling();
         notice.value = `Rellenando «${template.value.title}» en Canva.`;
     } catch (e) { fail(e); } finally { busy.value = false; }
 }
@@ -155,6 +157,7 @@ async function startExport(design) {
             design_id: design.id, format, title: design.title, transparent: format === 'png' && !!transparent.value[design.id] || undefined,
         });
         track(data.job);
+        restartPolling();
         notice.value = `Exportación de «${design.title}» en marcha.`;
     } catch (e) { fail(e); } finally { busy.value = false; }
 }
@@ -169,26 +172,34 @@ async function sendToCanva() {
     try {
         const data = await studioRequest('POST', route('canva.uploads.store', props.brand.id), { media_id: Number(sendId.value) });
         track(data.job);
+        restartPolling();
         notice.value = 'Recurso enviándose a Canva.';
     } catch (e) { fail(e); } finally { busy.value = false; }
 }
 
-async function refreshJobs() {
+async function refreshJobs(signal) {
     for (const job of jobs.value.filter(j => ['queued', 'processing', 'importing'].includes(j.status))) {
-        try { track((await studioRequest('GET', route('canva.jobs.show', [props.brand.id, job.id]))).job); } catch { /* se reintenta en el siguiente ciclo */ }
+        if (signal.aborted) return;
+        try {
+            const data = await studioRequest('GET', route('canva.jobs.show', [props.brand.id, job.id]), undefined, { signal });
+            if (!signal.aborted) track(data.job);
+        } catch {
+            // Volver a consultar el trabajo en el próximo ciclo.
+        }
     }
 }
 
-function schedule() {
-    if (timer || !active.value) return;
-    timer = setInterval(async () => {
-        await refreshJobs();
-        if (!active.value) { clearInterval(timer); timer = null; }
-    }, 3000);
-}
+const { exhausted: pollingExhausted, restart: restartPolling } = usePolling(
+    () => connected.value && active.value,
+    refreshJobs,
+    { initialDelay: 3000, maxDelay: 15000, maxAttempts: 30 },
+);
 
 const connect = () => router.post(route('canva.connect', props.brand.id));
-const disconnect = () => { if (confirm('¿Desconectar Canva de esta marca? Se borrarán las credenciales guardadas.')) router.delete(route('canva.disconnect', props.brand.id)); };
+const disconnect = async () => {
+    const target = route('canva.disconnect', props.brand.id);
+    if (await ask({ message: '¿Desconectar Canva de esta marca? Se borrarán las credenciales guardadas.', confirmLabel: 'Desconectar Canva' })) router.delete(target);
+};
 
 onMounted(() => {
     if (connected.value) {
@@ -196,10 +207,8 @@ onMounted(() => {
         if (features.value.send?.available) loadLibrary();
         if (features.value.brand_templates?.available) loadTemplates();
         jobs.value.forEach(linkDesign);
-        schedule();
     }
 });
-onBeforeUnmount(() => { if (timer) clearInterval(timer); });
 </script>
 
 <template>
@@ -209,27 +218,44 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer); });
         <template #header>
             <div class="flex items-center justify-between">
                 <h1 class="text-xl font-bold text-slate-900">Canva · {{ brand.name }}</h1>
-                <Link :href="route('brands.connections.index', brand.id)" class="link text-sm">Conexiones de la marca</Link>
+                <Link :href="route('brands.connections.index', brand.id)" class="link text-sm"
+                    >Conexiones de la marca</Link
+                >
             </div>
         </template>
 
         <div class="max-w-4xl space-y-5">
-            <p v-if="flash.success" class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" role="status">{{ flash.success }}</p>
-            <p v-if="flash.error" class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">{{ flash.error }}</p>
-
             <section v-if="!canva.configured" class="card space-y-2 p-6" data-testid="canva-unconfigured">
                 <h2 class="font-semibold text-slate-900">Canva: no configurada</h2>
-                <p class="text-sm text-slate-700">Esta instalación no tiene las credenciales de la app de Canva, así que la integración no está disponible. Quien administre el servidor puede activarla registrando la app en Canva Developers y definiendo <code>CANVA_CLIENT_ID</code> y <code>CANVA_CLIENT_SECRET</code>.</p>
+                <p class="text-sm text-slate-700"
+                    >Esta instalación no tiene las credenciales de la app de Canva, así que la integración no está
+                    disponible. Quien administre el servidor puede activarla registrando la app en Canva Developers y
+                    definiendo <code>CANVA_CLIENT_ID</code> y <code>CANVA_CLIENT_SECRET</code>.</p
+                >
             </section>
 
             <section v-else-if="!connected" class="card space-y-3 p-6" data-testid="canva-disconnected">
-                <h2 class="font-semibold text-slate-900">{{ canva.status === 'expired' ? 'La conexión con Canva ha caducado' : 'Conecta tu cuenta de Canva' }}</h2>
-                <p class="text-sm text-slate-700">Autoriza a esta marca a ver tus diseños de Canva, exportarlos a la biblioteca y enviarle recursos. Nunca compra nada ni publica por ti: todo lo que importas queda en la biblioteca para que decidas qué hacer.</p>
-                <PrimaryButton type="button" @click="connect">{{ canva.status === 'expired' ? 'Reconectar con Canva' : 'Conectar con Canva' }}</PrimaryButton>
+                <h2
+                    class="font-semibold text-slate-900"
+                    >{{ canva.status === 'expired' ? 'La conexión con Canva ha caducado' : 'Conecta tu cuenta de Canva' }}</h2
+                >
+                <p class="text-sm text-slate-700"
+                    >Autoriza a esta marca a ver tus diseños de Canva, exportarlos a la biblioteca y enviarle recursos.
+                    Nunca compra nada ni publica por ti: todo lo que importas queda en la biblioteca para que decidas
+                    qué hacer.</p
+                >
+                <PrimaryButton
+                    type="button"
+                    @click="connect"
+                    >{{ canva.status === 'expired' ? 'Reconectar con Canva' : 'Conectar con Canva' }}</PrimaryButton
+                >
             </section>
 
             <template v-else>
-                <section class="card flex flex-wrap items-center justify-between gap-3 p-6" data-testid="canva-connected">
+                <section
+                    class="card flex flex-wrap items-center justify-between gap-3 p-6"
+                    data-testid="canva-connected"
+                >
                     <div>
                         <h2 class="font-semibold text-slate-900">Canva conectado</h2>
                         <p class="text-sm text-slate-700">Cuenta: {{ canva.name ?? 'sin nombre visible' }}</p>
@@ -237,15 +263,43 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer); });
                     <SecondaryButton type="button" @click="disconnect">Desconectar</SecondaryButton>
                 </section>
 
-                <p v-if="focus" class="rounded-lg border border-violet-200 bg-violet-50 p-3 text-sm text-violet-900" role="status" data-testid="canva-returned">Has vuelto de Canva. Tu diseño aparece resaltado más abajo: ya puedes exportarlo a la biblioteca.</p>
-                <p v-if="error" class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert" data-testid="canva-error">{{ error }}</p>
-                <p v-if="notice" class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" role="status" data-testid="canva-notice">{{ notice }}</p>
+                <p
+                    v-if="focus"
+                    class="rounded-lg border border-violet-200 bg-violet-50 p-3 text-sm text-violet-900"
+                    role="status"
+                    data-testid="canva-returned"
+                    >Has vuelto de Canva. Tu diseño aparece resaltado más abajo: ya puedes exportarlo a la
+                    biblioteca.</p
+                >
+                <p
+                    v-if="error"
+                    class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+                    role="alert"
+                    data-testid="canva-error"
+                    >{{ error }}</p
+                >
+                <p
+                    v-if="notice"
+                    class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"
+                    role="status"
+                    data-testid="canva-notice"
+                    >{{ notice }}</p
+                >
 
                 <section class="card space-y-2 p-6" aria-labelledby="canva-plan">
                     <h2 id="canva-plan" class="font-semibold text-slate-900">Qué permite tu plan de Canva</h2>
-                    <p v-if="!canva.capabilities_known" class="text-xs text-amber-700">No se han podido consultar las capacidades de tu plan; las funciones que las necesitan aparecen desactivadas.</p>
+                    <p v-if="!canva.capabilities_known" class="text-xs text-amber-700"
+                        >No se han podido consultar las capacidades de tu plan; las funciones que las necesitan aparecen
+                        desactivadas.</p
+                    >
                     <ul class="divide-y divide-slate-100 text-sm">
-                        <li v-for="f in canva.features" :key="f.key" class="flex flex-wrap items-baseline justify-between gap-2 py-2" :data-testid="`canva-feature-${f.key}`" :data-available="f.available">
+                        <li
+                            v-for="f in canva.features"
+                            :key="f.key"
+                            class="flex flex-wrap items-baseline justify-between gap-2 py-2"
+                            :data-testid="`canva-feature-${f.key}`"
+                            :data-available="f.available"
+                        >
                             <span :class="f.available ? 'text-slate-900' : 'text-slate-500'">{{ f.label }}</span>
                             <span v-if="f.available" class="text-xs font-medium text-emerald-700">Disponible</span>
                             <span v-else class="max-w-md text-xs text-slate-600">No disponible: {{ f.reason }}</span>
@@ -256,88 +310,222 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer); });
                 <section class="card space-y-3 p-6" aria-labelledby="canva-create">
                     <h2 id="canva-create" class="font-semibold text-slate-900">Crear en Canva</h2>
                     <form class="flex flex-wrap items-end gap-3" @submit.prevent="createDesign">
-                        <label class="text-sm font-medium text-slate-900">Formato
-                            <select v-model="createFormat" data-testid="canva-create-format" class="field mt-1 block" :disabled="!features.create?.available">
-                                <option v-for="f in canva.formats" :key="f.key" :value="f.key">{{ f.label }} · {{ f.width }}×{{ f.height }}</option>
+                        <label class="text-sm font-medium text-slate-900"
+                            >Formato
+                            <select
+                                v-model="createFormat"
+                                data-testid="canva-create-format"
+                                class="field mt-1 block"
+                                :disabled="!features.create?.available"
+                            >
+                                <option v-for="f in canva.formats" :key="f.key" :value="f.key"
+                                    >{{ f.label }} · {{ f.width }}×{{ f.height }}</option
+                                >
                             </select>
                         </label>
-                        <label class="min-w-0 flex-1 basis-48 text-sm font-medium text-slate-900">Título (opcional)
-                            <input v-model="createTitle" class="field mt-1 w-full" maxlength="255" :disabled="!features.create?.available">
+                        <label class="min-w-0 flex-1 basis-48 text-sm font-medium text-slate-900"
+                            >Título (opcional)
+                            <input
+                                v-model="createTitle"
+                                class="field mt-1 w-full"
+                                maxlength="255"
+                                :disabled="!features.create?.available"
+                            />
                         </label>
-                        <PrimaryButton type="submit" :disabled="busy || !features.create?.available">Crear en Canva</PrimaryButton>
+                        <PrimaryButton type="submit" :disabled="busy || !features.create?.available"
+                            >Crear en Canva</PrimaryButton
+                        >
                     </form>
-                    <p v-if="!features.create?.available" class="text-xs text-slate-600">{{ features.create?.reason }}</p>
+                    <p
+                        v-if="!features.create?.available"
+                        class="text-xs text-slate-600"
+                        >{{ features.create?.reason }}</p
+                    >
                     <p v-if="created" class="text-sm text-slate-800" data-testid="canva-created">
                         Diseño creado: «{{ created.title }}».
-                        <a v-if="created.open_url" :href="created.open_url" target="_blank" rel="noopener noreferrer" class="link font-medium">Abrir en Canva (pestaña nueva)</a>
+                        <a
+                            v-if="created.open_url"
+                            :href="created.open_url"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="link font-medium"
+                            >Abrir en Canva (pestaña nueva)</a
+                        >
                     </p>
                 </section>
 
                 <section class="card space-y-3 p-6" aria-labelledby="canva-designs">
                     <h2 id="canva-designs" class="font-semibold text-slate-900">Tus diseños de Canva</h2>
                     <form class="flex flex-wrap items-end gap-2" role="search" @submit.prevent="loadDesigns()">
-                        <label class="min-w-0 flex-1 basis-56 text-sm font-medium text-slate-900">Buscar
-                            <input v-model="query" type="search" class="field mt-1 w-full" maxlength="255" placeholder="Nombre del diseño">
+                        <label class="min-w-0 flex-1 basis-56 text-sm font-medium text-slate-900"
+                            >Buscar
+                            <input
+                                v-model="query"
+                                type="search"
+                                class="field mt-1 w-full"
+                                maxlength="255"
+                                placeholder="Nombre del diseño"
+                            />
                         </label>
                         <SecondaryButton type="submit" :disabled="loading">Buscar</SecondaryButton>
                     </form>
                     <p v-if="loading" class="text-sm text-slate-600" role="status">Cargando diseños…</p>
-                    <p v-else-if="loaded && !designs.length" class="text-sm text-slate-600" data-testid="canva-no-designs">No hay diseños que coincidan.</p>
+                    <p
+                        v-else-if="loaded && !designs.length"
+                        class="text-sm text-slate-600"
+                        data-testid="canva-no-designs"
+                        >No hay diseños que coincidan.</p
+                    >
                     <ul class="space-y-3">
-                        <li v-for="d in designs" :key="d.id" class="rounded-lg border p-3 text-sm" :class="d.id === focus ? 'border-violet-500 bg-violet-50' : 'border-slate-200'" :data-testid="`canva-design-${d.id}`">
+                        <li
+                            v-for="d in designs"
+                            :key="d.id"
+                            class="rounded-lg border p-3 text-sm"
+                            :class="d.id === focus ? 'border-violet-500 bg-violet-50' : 'border-slate-200'"
+                            :data-testid="`canva-design-${d.id}`"
+                        >
                             <div class="flex flex-wrap items-center justify-between gap-3">
                                 <div class="min-w-0">
                                     <p class="break-words font-medium text-slate-900">{{ d.title }}</p>
-                                    <a v-if="d.open_url" :href="d.open_url" target="_blank" rel="noopener noreferrer" class="link text-xs">Abrir en Canva (pestaña nueva)</a>
+                                    <a
+                                        v-if="d.open_url"
+                                        :href="d.open_url"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="link text-xs"
+                                        >Abrir en Canva (pestaña nueva)</a
+                                    >
                                 </div>
                                 <form class="flex flex-wrap items-end gap-2" @submit.prevent="startExport(d)">
-                                    <label class="text-xs font-medium text-slate-700">Formato de {{ d.title }}
-                                        <select class="field mt-1 block" :value="formatOf(d.id)" :disabled="!features.export?.available" @change="exportFormat[d.id] = $event.target.value">
-                                            <option v-for="f in EXPORT_FORMATS" :key="f.value" :value="f.value">{{ f.label }}</option>
+                                    <label class="text-xs font-medium text-slate-700"
+                                        >Formato de {{ d.title }}
+                                        <select
+                                            class="field mt-1 block"
+                                            :value="formatOf(d.id)"
+                                            :disabled="!features.export?.available"
+                                            @change="exportFormat[d.id] = $event.target.value"
+                                        >
+                                            <option
+                                                v-for="f in EXPORT_FORMATS"
+                                                :key="f.value"
+                                                :value="f.value"
+                                                >{{ f.label }}</option
+                                            >
                                         </select>
                                     </label>
-                                    <label v-if="formatOf(d.id) === 'png'" class="flex items-center gap-1 text-xs text-slate-700">
-                                        <input v-model="transparent[d.id]" type="checkbox" :disabled="!features.transparent_png?.available" :aria-label="`Fondo transparente de ${d.title}`">
+                                    <label
+                                        v-if="formatOf(d.id) === 'png'"
+                                        class="flex items-center gap-1 text-xs text-slate-700"
+                                    >
+                                        <input
+                                            v-model="transparent[d.id]"
+                                            type="checkbox"
+                                            :disabled="!features.transparent_png?.available"
+                                            :aria-label="`Fondo transparente de ${d.title}`"
+                                        />
                                         Fondo transparente
-                                        <span v-if="!features.transparent_png?.available" class="text-slate-500">(no disponible en tu plan)</span>
+                                        <span v-if="!features.transparent_png?.available" class="text-slate-500"
+                                            >(no disponible en tu plan)</span
+                                        >
                                     </label>
-                                    <SecondaryButton type="submit" :disabled="busy || !features.export?.available">Exportar a la biblioteca</SecondaryButton>
+                                    <SecondaryButton type="submit" :disabled="busy || !features.export?.available"
+                                        >Exportar a la biblioteca</SecondaryButton
+                                    >
                                 </form>
                             </div>
                         </li>
                     </ul>
-                    <SecondaryButton v-if="continuation" type="button" :disabled="loading" @click="loadDesigns(true)">Cargar más</SecondaryButton>
+                    <SecondaryButton v-if="continuation" type="button" :disabled="loading" @click="loadDesigns(true)"
+                        >Cargar más</SecondaryButton
+                    >
                 </section>
 
-                <section v-if="features.brand_templates?.available" class="card space-y-3 p-6" aria-labelledby="canva-templates" data-testid="canva-templates">
+                <section
+                    v-if="features.brand_templates?.available"
+                    class="card space-y-3 p-6"
+                    aria-labelledby="canva-templates"
+                    data-testid="canva-templates"
+                >
                     <h2 id="canva-templates" class="font-semibold text-slate-900">Plantillas de marca (Autofill)</h2>
-                    <p class="text-xs text-slate-600">Elige una plantilla de tu marca en Canva y rellena sus campos de texto: Canva crea un diseño nuevo que puedes abrir y exportar.</p>
+                    <p class="text-xs text-slate-600"
+                        >Elige una plantilla de tu marca en Canva y rellena sus campos de texto: Canva crea un diseño
+                        nuevo que puedes abrir y exportar.</p
+                    >
                     <form class="flex flex-wrap items-end gap-2" role="search" @submit.prevent="loadTemplates()">
-                        <label class="min-w-0 flex-1 basis-56 text-sm font-medium text-slate-900">Buscar plantilla
-                            <input v-model="templateQuery" type="search" class="field mt-1 w-full" maxlength="255" placeholder="Nombre de la plantilla">
+                        <label class="min-w-0 flex-1 basis-56 text-sm font-medium text-slate-900"
+                            >Buscar plantilla
+                            <input
+                                v-model="templateQuery"
+                                type="search"
+                                class="field mt-1 w-full"
+                                maxlength="255"
+                                placeholder="Nombre de la plantilla"
+                            />
                         </label>
                         <SecondaryButton type="submit" :disabled="templatesLoading">Buscar plantillas</SecondaryButton>
                     </form>
-                    <p v-if="templatesLoaded && !templates.length" class="text-sm text-slate-600" data-testid="canva-no-templates">No hay plantillas de marca que coincidan.</p>
+                    <p
+                        v-if="templatesLoaded && !templates.length"
+                        class="text-sm text-slate-600"
+                        data-testid="canva-no-templates"
+                        >No hay plantillas de marca que coincidan.</p
+                    >
                     <ul class="space-y-2">
-                        <li v-for="t in templates" :key="t.id" class="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 text-sm" :class="template?.id === t.id ? 'border-violet-500 bg-violet-50' : 'border-slate-200'" :data-testid="`canva-template-${t.id}`">
+                        <li
+                            v-for="t in templates"
+                            :key="t.id"
+                            class="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 text-sm"
+                            :class="template?.id === t.id ? 'border-violet-500 bg-violet-50' : 'border-slate-200'"
+                            :data-testid="`canva-template-${t.id}`"
+                        >
                             <span class="min-w-0 break-words font-medium text-slate-900">{{ t.title }}</span>
-                            <SecondaryButton type="button" :disabled="!features.autofill?.available" :aria-label="`Rellenar ${t.title}`" @click="pickTemplate(t)">Rellenar</SecondaryButton>
+                            <SecondaryButton
+                                type="button"
+                                :disabled="!features.autofill?.available"
+                                :aria-label="`Rellenar ${t.title}`"
+                                @click="pickTemplate(t)"
+                                >Rellenar</SecondaryButton
+                            >
                         </li>
                     </ul>
-                    <SecondaryButton v-if="templatesContinuation" type="button" :disabled="templatesLoading" @click="loadTemplates(true)">Cargar más plantillas</SecondaryButton>
-                    <p v-if="!features.autofill?.available" class="text-xs text-slate-600" data-testid="canva-autofill-unavailable">Autofill no disponible: {{ features.autofill?.reason }}</p>
-                    <form v-if="template && features.autofill?.available" class="space-y-3 border-t border-slate-100 pt-3" data-testid="canva-autofill-form" @submit.prevent="startAutofill">
+                    <SecondaryButton
+                        v-if="templatesContinuation"
+                        type="button"
+                        :disabled="templatesLoading"
+                        @click="loadTemplates(true)"
+                        >Cargar más plantillas</SecondaryButton
+                    >
+                    <p
+                        v-if="!features.autofill?.available"
+                        class="text-xs text-slate-600"
+                        data-testid="canva-autofill-unavailable"
+                        >Autofill no disponible: {{ features.autofill?.reason }}</p
+                    >
+                    <form
+                        v-if="template && features.autofill?.available"
+                        class="space-y-3 border-t border-slate-100 pt-3"
+                        data-testid="canva-autofill-form"
+                        @submit.prevent="startAutofill"
+                    >
                         <h3 class="text-sm font-semibold text-slate-900">Campos de «{{ template.title }}»</h3>
-                        <p v-if="!textFields.length" class="text-xs text-slate-600">Esta plantilla no tiene campos de texto que rellenar desde aquí.</p>
-                        <label v-for="f in textFields" :key="f.name" class="block text-sm font-medium text-slate-900">{{ f.name }}
-                            <input v-model="fieldValues[f.name]" class="field mt-1 w-full" maxlength="2000">
+                        <p v-if="!textFields.length" class="text-xs text-slate-600"
+                            >Esta plantilla no tiene campos de texto que rellenar desde aquí.</p
+                        >
+                        <label v-for="f in textFields" :key="f.name" class="block text-sm font-medium text-slate-900"
+                            >{{ f.name }}
+                            <input v-model="fieldValues[f.name]" class="field mt-1 w-full" maxlength="2000" />
                         </label>
-                        <p v-if="otherFields.length" class="text-xs text-slate-600" data-testid="canva-autofill-skipped">Se conserva el valor de la plantilla en los campos que no son de texto: {{ otherFields.map(f => `${f.name} (${f.type})`).join(', ') }}.</p>
-                        <label class="block text-sm font-medium text-slate-900">Título del diseño (opcional)
-                            <input v-model="autofillTitle" class="field mt-1 w-full" maxlength="255">
+                        <p v-if="otherFields.length" class="text-xs text-slate-600" data-testid="canva-autofill-skipped"
+                            >Se conserva el valor de la plantilla en los campos que no son de texto:
+                            {{ otherFields.map(f => `${f.name} (${f.type})`).join(', ') }}.</p
+                        >
+                        <label class="block text-sm font-medium text-slate-900"
+                            >Título del diseño (opcional)
+                            <input v-model="autofillTitle" class="field mt-1 w-full" maxlength="255" />
                         </label>
-                        <PrimaryButton type="submit" :disabled="busy || !textFields.length">Crear diseño en Canva</PrimaryButton>
+                        <PrimaryButton type="submit" :disabled="busy || !textFields.length"
+                            >Crear diseño en Canva</PrimaryButton
+                        >
                     </form>
                 </section>
 
@@ -345,7 +533,8 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer); });
                     <h2 id="canva-send" class="font-semibold text-slate-900">Enviar a Canva</h2>
                     <p v-if="!features.send?.available" class="text-xs text-slate-600">{{ features.send?.reason }}</p>
                     <form v-else class="flex flex-wrap items-end gap-2" @submit.prevent="sendToCanva">
-                        <label class="min-w-0 flex-1 basis-56 text-sm font-medium text-slate-900">Recurso de la biblioteca
+                        <label class="min-w-0 flex-1 basis-56 text-sm font-medium text-slate-900"
+                            >Recurso de la biblioteca
                             <select v-model="sendId" class="field mt-1 w-full">
                                 <option value="">Elige un recurso…</option>
                                 <option v-for="m in library" :key="m.id" :value="m.id">{{ m.name }}</option>
@@ -357,35 +546,97 @@ onBeforeUnmount(() => { if (timer) clearInterval(timer); });
 
                 <section class="card space-y-3 p-6" aria-labelledby="canva-jobs">
                     <h2 id="canva-jobs" class="font-semibold text-slate-900">Trabajos recientes</h2>
+                    <div :class="pollingExhausted ? 'flex flex-wrap items-center gap-2' : 'sr-only'">
+                        <p
+                            role="status"
+                            class="text-sm text-slate-600"
+                            >{{ pollingExhausted ? 'Todavía hay trabajos pendientes.' : '' }}</p
+                        >
+                        <SecondaryButton v-if="pollingExhausted" type="button" @click="restartPolling"
+                            >Volver a consultar</SecondaryButton
+                        >
+                    </div>
                     <p v-if="!jobs.length" class="text-sm text-slate-600">Todavía no has exportado ni enviado nada.</p>
                     <ul class="space-y-2">
-                        <li v-for="j in jobs" :key="j.id" class="rounded-lg border border-slate-200 p-3 text-sm" :data-testid="`canva-job-${j.id}`" :data-status="j.status">
-                            <p class="font-medium text-slate-900">{{ JOB_KIND[j.kind] ?? j.kind }}: {{ j.title || j.design_id }} <span v-if="j.format" class="uppercase text-slate-500">{{ j.format }}</span></p>
-                            <p role="status" :class="j.status === 'failed' ? 'text-red-700' : 'text-slate-700'">{{ STATUS[j.status] ?? j.status }}<template v-if="j.status === 'failed' && j.error">: {{ j.error }}</template></p>
+                        <li
+                            v-for="j in jobs"
+                            :key="j.id"
+                            class="rounded-lg border border-slate-200 p-3 text-sm"
+                            :data-testid="`canva-job-${j.id}`"
+                            :data-status="j.status"
+                        >
+                            <p class="font-medium text-slate-900"
+                                >{{ JOB_KIND[j.kind] ?? j.kind }}: {{ j.title || j.design_id }}
+                                <span v-if="j.format" class="uppercase text-slate-500">{{ j.format }}</span></p
+                            >
+                            <p role="status" :class="j.status === 'failed' ? 'text-red-700' : 'text-slate-700'"
+                                >{{ STATUS[j.status] ?? j.status
+                                }}<template v-if="j.status === 'failed' && j.error">: {{ j.error }}</template></p
+                            >
                             <ul v-if="j.media?.length" class="mt-1 space-y-1">
                                 <template v-for="m in j.media" :key="m.id">
-                                    <li v-if="m.kind === 'pdf'" data-testid="canva-imported"><PdfAsset :asset="m" /></li>
+                                    <li v-if="m.kind === 'pdf'" data-testid="canva-imported"
+                                        ><PdfAsset :asset="m"
+                                    /></li>
                                     <li v-else data-testid="canva-imported">
                                         {{ m.name }} <span class="text-slate-500">({{ m.width }}×{{ m.height }})</span>
-                                        <a v-if="m.origin?.url" :href="m.origin.url" target="_blank" rel="noopener noreferrer" class="link ml-2 text-xs" data-testid="canva-origin">Origen: Canva</a>
+                                        <a
+                                            v-if="m.origin?.url"
+                                            :href="m.origin.url"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="link ml-2 text-xs"
+                                            data-testid="canva-origin"
+                                            >Origen: Canva</a
+                                        >
                                     </li>
                                 </template>
                             </ul>
                             <p v-if="j.kind === 'autofill' && j.status === 'ready' && designLinks[j.id]" class="mt-1">
-                                <a :href="designLinks[j.id]" target="_blank" rel="noopener noreferrer" class="link text-xs" data-testid="canva-autofill-open">Abrir el diseño en Canva (pestaña nueva)</a>
+                                <a
+                                    :href="designLinks[j.id]"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="link text-xs"
+                                    data-testid="canva-autofill-open"
+                                    >Abrir el diseño en Canva (pestaña nueva)</a
+                                >
                             </p>
-                            <p v-if="j.canva_asset_id && j.status === 'ready'" class="mt-1 text-xs text-slate-600">Ya está en tu biblioteca de Canva.</p>
+                            <p v-if="j.canva_asset_id && j.status === 'ready'" class="mt-1 text-xs text-slate-600"
+                                >Ya está en tu biblioteca de Canva.</p
+                            >
                         </li>
                     </ul>
                 </section>
 
-                <section v-if="hasPdf" class="card space-y-3 p-6" aria-labelledby="canva-documents" data-testid="canva-documents">
+                <section
+                    v-if="hasPdf"
+                    class="card space-y-3 p-6"
+                    aria-labelledby="canva-documents"
+                    data-testid="canva-documents"
+                >
                     <h2 id="canva-documents" class="font-semibold text-slate-900">Documentos PDF</h2>
-                    <InfoNote title="Los PDF no se publican en redes">Los PDF se guardan para verlos y descargarlos; no se pueden adjuntar a una publicación. Para publicar, exporta el diseño como PNG, JPG o MP4.</InfoNote>
+                    <InfoNote title="Los PDF no se publican en redes"
+                        >Los PDF se guardan para verlos y descargarlos; no se pueden adjuntar a una publicación. Para
+                        publicar, exporta el diseño como PNG, JPG o MP4.</InfoNote
+                    >
                     <ul class="space-y-3">
-                        <li v-for="d in documents" :key="d.id" class="rounded-lg border border-slate-200 p-3 text-sm" :data-testid="`canva-document-${d.id}`"><PdfAsset :asset="d" removable @remove="removeDocument" /></li>
+                        <li
+                            v-for="d in documents"
+                            :key="d.id"
+                            class="rounded-lg border border-slate-200 p-3 text-sm"
+                            :data-testid="`canva-document-${d.id}`"
+                            ><PdfAsset :asset="d" removable @remove="removeDocument"
+                        /></li>
                     </ul>
-                    <button v-if="documentsCursor" type="button" class="btn-secondary px-3" data-testid="canva-documents-more" @click="moreDocuments">Ver más PDF</button>
+                    <button
+                        v-if="documentsCursor"
+                        type="button"
+                        class="btn-secondary px-3"
+                        data-testid="canva-documents-more"
+                        @click="moreDocuments"
+                        >Ver más PDF</button
+                    >
                 </section>
             </template>
         </div>

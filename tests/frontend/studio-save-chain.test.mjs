@@ -20,9 +20,11 @@ test('nothing is sent when there is nothing new to persist', () => {
     assert.equal(nextSave({ requested: false, inflight: false, dirty: false }).send, false);
 });
 
-test('the editor uses the helper in both chained saves and tracks the in-flight origin', () => {
-    const source = readFileSync(new URL('../../resources/js/Pages/Studio/Editor.vue', import.meta.url), 'utf8');
-    assert.match(source, /from '@\/Studio\/save-chain'/);
-    assert.equal((source.match(/nextSave\(/g) ?? []).length, 2);
-    assert.match(source, /pendingAutosave = autosave === true/);
+test('the editor uses the save composable, which preserves both save origins', () => {
+    const editor = readFileSync(new URL('../../resources/js/Pages/Studio/Editor.vue', import.meta.url), 'utf8');
+    const saves = readFileSync(new URL('../../resources/js/Studio/composables/useStudioSave.js', import.meta.url), 'utf8');
+    assert.match(editor, /useStudioSave\(\{/);
+    assert.match(saves, /from '..\/save-chain\.js'/);
+    assert.equal((saves.match(/nextSave\(/g) ?? []).length, 2);
+    assert.match(saves, /pendingAutosave = autosave === true/);
 });

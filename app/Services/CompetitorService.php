@@ -18,6 +18,7 @@ use App\Models\CompetitorPost;
 use App\Models\CompetitorSnapshot;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -98,7 +99,7 @@ class CompetitorService
 
     public function add(User $user, Brand $brand, string $username, Network $network = Network::Instagram): Competitor
     {
-        if ($brand->user_id !== $user->id) {
+        if (! Ownership::matches($brand, $user)) {
             throw new PostValidationException(['brand' => ['La marca no pertenece al usuario.']]);
         }
         if (! $this->sources->has($network)) {
@@ -239,7 +240,7 @@ class CompetitorService
     /** Actualiza con tope de uso (una vez cada 10 minutos por competidor) y traduce los errores de la red a mensajes legibles. */
     public function refreshPostsFor(User $user, Competitor $competitor): int
     {
-        if ($competitor->user_id !== $user->id) {
+        if (! Ownership::matches($competitor, $user)) {
             throw new PostValidationException(['competitor' => ['El competidor no pertenece al usuario.']]);
         }
 

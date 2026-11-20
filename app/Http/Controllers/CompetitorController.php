@@ -38,7 +38,7 @@ class CompetitorController extends Controller
         $selected = $comparison && isset($q['competitor']) ? collect($comparison['competitors'])->firstWhere('id', (int) $q['competitor']) : null;
 
         return Inertia::render('Competitors/Index', [
-            'brand' => $brand ? ['id' => $brand->id, 'name' => $brand->name] : null,
+            'brand' => $brand?->only(['id', 'name', 'timezone']),
             'network' => $network->value,
             'has_account' => $brand ? $this->hasAccount($request->user()->id, $brand->id, $network) : false,
             // Redes con fuente de competidores; `has_account` = hay una cuenta propia activa con la que consultar (Bluesky no la necesita).
@@ -53,7 +53,6 @@ class CompetitorController extends Controller
             'sorts' => CompetitorService::SORTS,
             'selected' => $selected ? ['id' => $selected['id'], 'username' => $selected['username'], 'posts' => $this->competitors->topPosts($request->user(), Competitor::query()->findOrFail($selected['id']), $comparison['range']['from'], $comparison['range']['to'])] : null,
             'max' => (int) config('social.competitors.max_per_brand', 10),
-            'flash' => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error')],
         ]);
     }
 

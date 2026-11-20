@@ -138,7 +138,11 @@ test('E2E-02 · contadores por red y tope de hashtags', { tag: '@responsive' }, 
 test('E2E-03 · barra del editor: emoji en el cursor, IA y media con teclado', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     // El asistente IA es opcional en el servidor: se simula su estado para poder probar el botón (sin llamar a ningún proveedor).
-    await page.route('**/ai/status', (route) => route.fulfill({ json: { enabled: true, remaining: 5 } }));
+    let statusRequests = 0;
+    await page.route('**/ai/status', (route) => {
+        statusRequests++;
+        return route.fulfill({ json: { enabled: true, remaining: 5 } });
+    });
     await open(page);
     await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
 
@@ -187,6 +191,9 @@ test('E2E-03 · barra del editor: emoji en el cursor, IA y media con teclado', {
     const chooser = page.waitForEvent('filechooser');
     await page.keyboard.press('Space'); // el teclado activa el control: se abre el selector de archivos
     expect(await chooser).toBeTruthy();
+
+    await expect(page.getByLabel('Escribe cuándo', { exact: true })).toBeVisible();
+    expect(statusRequests).toBe(1);
 
     await axeNow(page, 'compositor con barra del editor');
     await expectNoOverflow(page);
@@ -376,18 +383,18 @@ test('E2E-04 · panel único de errores, botón dividido con teclado y selector 
     await items.filter({ hasText: 'Instagram' }).first().getByRole('button', { name: /Ir al control/ }).click();
     await expect(page.getByRole('button', { name: /^Instagram: e2e Instagram/ })).toBeFocused();
 
-    // Con errores: Programar y Publicar ahora deshabilitados; Guardar borrador y Guardar en biblioteca, habilitados.
+    // Con errores: Programar y Publicar ahora deshabilitados; Guardar borrador y Guardar como plantilla, habilitados.
     await expect(page.getByRole('button', { name: 'Programar' })).toBeDisabled();
     await menuToggle(page).focus();
     await expect(menuToggle(page)).toHaveAttribute('aria-haspopup', 'menu');
     await page.keyboard.press('ArrowDown');
     await expect(menuItem(page, 'Guardar borrador')).toBeFocused();
     await page.keyboard.press('ArrowDown');
-    await expect(menuItem(page, 'Guardar en biblioteca')).toBeFocused();
+    await expect(menuItem(page, 'Guardar como plantilla')).toBeFocused();
     await page.keyboard.press('ArrowDown'); // Publicar ahora está deshabilitado: las flechas dan la vuelta
     await expect(menuItem(page, 'Guardar borrador')).toBeFocused();
     await expect(menuItem(page, 'Publicar ahora')).toBeDisabled();
-    await expect(menuItem(page, 'Guardar en biblioteca')).toBeEnabled();
+    await expect(menuItem(page, 'Guardar como plantilla')).toBeEnabled();
     await axeNow(page, 'menú del botón dividido abierto');
     await page.keyboard.press('Escape');
     await expect(page.getByRole('menu')).toBeHidden();
@@ -569,7 +576,7 @@ test('E2E-06 · Publicar ahora desde el calendario y la lista: confirmación acc
     expect(w.errors).toEqual([]);
 });
 
-test('E2E-07 · Guardar en biblioteca sin guardar el post: crea la plantilla y no crea ninguna publicación', { tag: '@responsive' }, async ({ page }) => {
+test('E2E-07 · Guardar como plantilla sin guardar el post: crea la plantilla y no crea ninguna publicación', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     page.on('dialog', (d) => d.accept().catch(() => {})); // beforeunload al salir con el formulario sin guardar
     await open(page);
@@ -578,8 +585,8 @@ test('E2E-07 · Guardar en biblioteca sin guardar el post: crea la plantilla y n
     await page.getByLabel('Texto', { exact: true }).fill('e2e texto de plantilla sin guardar');
 
     await abrirMenu(page);
-    await menuItem(page, 'Guardar en biblioteca').click();
-    const dialogo = page.getByRole('dialog', { name: 'Guardar en la biblioteca' });
+    await menuItem(page, 'Guardar como plantilla').click();
+    const dialogo = page.getByRole('dialog', { name: 'Guardar como plantilla' });
     await expect(dialogo).toBeVisible();
     await expect(dialogo.getByLabel('Nombre de la plantilla')).toBeFocused();
     await page.screenshot({ path: 'test-results/composer-guardar-biblioteca.png' });
@@ -589,7 +596,7 @@ test('E2E-07 · Guardar en biblioteca sin guardar el post: crea la plantilla y n
 
     // Sigue en el compositor (sin guardar), con el aviso, y no hay ningún post.
     await expect(dialogo).toHaveCount(0);
-    await expect(page.getByText('Guardado en la biblioteca.')).toBeVisible();
+    await expect(page.getByText('Plantilla guardada.')).toBeVisible();
     await expect(page).toHaveURL(/posts\/create$/);
     await expect(page.getByLabel('Texto', { exact: true })).toHaveValue('e2e texto de plantilla sin guardar');
 
@@ -659,7 +666,7 @@ test('E2E-04 · si en la zona de la marca no queda ninguna franja hoy, el día d
     expect(w.errors).toEqual([]);
 });
 
-test('E2E-05 · con una subida de media en curso se deshabilitan Programar, Guardar borrador, Publicar ahora y Guardar en biblioteca', async ({ page }) => {
+test('E2E-05 · con una subida de media en curso se deshabilitan Programar, Guardar borrador, Publicar ahora y Guardar como plantilla', async ({ page }) => {
     const w = watch(page);
     await open(page);
     await page.getByRole('button', { name: /^Facebook: e2e Facebook/ }).click();
@@ -675,7 +682,7 @@ test('E2E-05 · con una subida de media en curso se deshabilitan Programar, Guar
     await expect(page.getByRole('button', { name: 'Programar' })).toBeDisabled();
     await abrirMenu(page);
     await expect(menuItem(page, 'Publicar ahora')).toBeDisabled();
-    await expect(menuItem(page, 'Guardar en biblioteca')).toBeDisabled();
+    await expect(menuItem(page, 'Guardar como plantilla')).toBeDisabled();
     // Guardar borrador tampoco guardaria nada con la subida a medias (revision F2 i2, N3): se deshabilita y se avisa.
     await expect(menuItem(page, 'Guardar borrador')).toBeDisabled();
     await expect(page.getByTestId('uploading-note')).toHaveText('Espera a que termine la subida.');
@@ -685,7 +692,7 @@ test('E2E-05 · con una subida de media en curso se deshabilitan Programar, Guar
     await expect(page.getByRole('button', { name: 'Programar' })).toBeEnabled();
     await abrirMenu(page);
     await expect(menuItem(page, 'Publicar ahora')).toBeEnabled();
-    await expect(menuItem(page, 'Guardar en biblioteca')).toBeEnabled();
+    await expect(menuItem(page, 'Guardar como plantilla')).toBeEnabled();
     expect(w.errors.filter((e) => !/422/.test(e))).toEqual([]);
 });
 
@@ -1038,6 +1045,44 @@ test('E2E-10 · notas internas: se guardan en un post ya publicado, el calendari
     expect(w.errors).toEqual([]);
 });
 
+test('T-56 · diálogo nativo conserva el ciclo de foco y sincroniza el cierre del navegador', { tag: '@responsive' }, async ({ page }) => {
+    const w = watch(page);
+    await open(page);
+    await page.getByRole('button', { name: /^Instagram: e2e Instagram/ }).click();
+    const invoker = page.getByRole('button', { name: /Enlace con UTM/ });
+    const pageOverflow = await page.evaluate(() => getComputedStyle(document.body).overflow);
+    await invoker.click();
+    const modal = page.getByTestId('utm-modal');
+    const initial = modal.getByLabel(/Dirección \(URL\)/);
+    await expect(initial).toBeFocused();
+    expect(await page.evaluate(() => getComputedStyle(document.body).overflow)).toBe('hidden');
+
+    // Controles temporales para verificar el componente común con radios sin seleccionar.
+    await modal.evaluate(element => {
+        const group = document.createElement('fieldset');
+        for (const id of ['first-radio', 'last-radio']) {
+            const option = Object.assign(document.createElement('input'), { id, name: 'qa-choice', type: 'radio' });
+            group.append(option);
+        }
+        element.append(group);
+    });
+    await page.keyboard.press('Shift+Tab');
+    await expect(modal.locator('#last-radio')).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(initial).toBeFocused();
+
+    await modal.evaluate(element => (element as HTMLDialogElement).close());
+    await expect(modal).toHaveCount(0);
+    await expect(invoker).toBeFocused();
+    await invoker.click();
+    await expect(page.getByTestId('utm-modal')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(modal).toHaveCount(0);
+    await expect(invoker).toBeFocused();
+    expect(await page.evaluate(() => getComputedStyle(document.body).overflow)).toBe(pageOverflow);
+    expect(w.errors).toEqual([]);
+});
+
 test('E2E-11 · generador de UTM: inserta en el cursor, codifica, rechaza URLs peligrosas y Limpiar vacía', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await open(page);
@@ -1051,6 +1096,11 @@ test('E2E-11 · generador de UTM: inserta en el cursor, codifica, rechaza URLs p
     await abrir.click();
     const modal = page.getByRole('dialog', { name: 'Generar enlace con UTM' });
     await expect(modal).toBeVisible();
+    await expect(modal.getByLabel(/Dirección \(URL\)/)).toBeFocused();
+    expect(await modal.evaluate(element => element.matches('dialog:modal'))).toBe(true);
+    await page.keyboard.press('Shift+Tab');
+    await expect(modal.getByRole('button', { name: 'Cancelar' })).toBeFocused();
+    await page.keyboard.press('Tab');
     await expect(modal.getByLabel(/Dirección \(URL\)/)).toBeFocused();
     await axeNow(page, 'generador de UTM abierto');
     await expectNoOverflow(page);

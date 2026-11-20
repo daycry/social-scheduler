@@ -1,9 +1,10 @@
+import { confirmKey, createConfirmState, useConfirm } from '../../resources/js/Composables/useConfirm.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { parse, compileScript, compileTemplate } from '@vue/compiler-sfc';
 import * as realCore from '../../resources/js/Studio/dataset-table.js';
-import { computed, ref, shallowRef, watch, reactive, nextTick, effectScope } from 'vue';
+import { computed, createApp, ref, shallowRef, watch, reactive, nextTick, effectScope } from 'vue';
 
 const blank = () => ({ columns: [{ id: 'c1', label: 'Columna 1' }], rows: [{ id: 'r1', values: [''] }] });
 const fakeCore = {
@@ -24,10 +25,12 @@ function mount(client = {}, initial = {}, core = fakeCore) {
     const fakeWindow = { addEventListener: (name, fn) => windowListeners.set(name, fn), removeEventListener: name => windowListeners.delete(name) };
     const props = reactive({ modelValue: true, brandId: 3, brandName: 'Marca A', ...initial }), hooks = [], emitted = [];
     const defaults = { list: async () => ({ datasets: [], pagination: { current_page: 1, last_page: 1, total: 0 } }), ...client };
-    const factory = new Function('computed', 'nextTick', 'onBeforeUnmount', 'ref', 'shallowRef', 'watch', 'createDatasetClient', 'tableCore', 'downloadStudioBlob', 'window', compiled);
-    const component = factory(computed, nextTick, fn => hooks.push(fn), ref, shallowRef, watch, () => defaults, core, (...args) => downloads.push(args), fakeWindow);
+    const confirmation = createConfirmState();
+    const app = createApp({}).provide(confirmKey, confirmation);
+    const factory = new Function('computed', 'nextTick', 'onBeforeUnmount', 'ref', 'shallowRef', 'watch', 'createDatasetClient', 'tableCore', 'downloadStudioBlob', 'window', 'BaseDialog', 'useConfirm', compiled);
+    const component = factory(computed, nextTick, fn => hooks.push(fn), ref, shallowRef, watch, () => defaults, core, (...args) => downloads.push(args), fakeWindow, {}, () => app.runWithContext(useConfirm));
     const scope = effectScope(); const state = scope.run(() => component.setup(props, { expose() {}, emit: (...args) => emitted.push(args) }));
-    return { state, props, emitted, downloads, windowListeners, close() { hooks.forEach(hook => hook()); scope.stop(); } };
+    return { state, props, emitted, downloads, windowListeners, confirmation, close() { hooks.forEach(hook => hook()); scope.stop(); } };
 }
 const flush = async () => { await nextTick(); await new Promise(resolve => setImmediate(resolve)); };
 
@@ -52,11 +55,35 @@ test('dialog close asks to discard dirty data and cancellation retains the draft
     const panel = mount();
     try {
         panel.state.newTable(); const original = panel.state.table.value;
-        panel.state.requestClose(); assert.ok(panel.state.pendingDiscard.value); assert.equal(panel.emitted.length, 0);
-        panel.state.cancelDiscard(); assert.equal(panel.state.pendingDiscard.value, null); assert.equal(panel.state.table.value, original);
-        panel.state.requestClose(); panel.state.confirmDiscard();
+        const cancelled = panel.state.requestClose();
+        assert.ok(panel.confirmation.pending.value);
+        assert.equal(panel.emitted.length, 0);
+        panel.confirmation.answer(false);
+        await cancelled;
+        assert.equal(panel.confirmation.pending.value, null);
+        assert.equal(panel.state.table.value, original);
+
+        const confirmed = panel.state.requestClose();
+        panel.confirmation.answer(true);
+        await confirmed;
         assert.deepEqual(panel.emitted, [['update:modelValue', false]]);
     } finally { panel.close(); }
+});
+
+
+test('unmount cancels a pending dataset discard and leaves later confirmations independent', async () => {
+    const panel = mount();
+    panel.state.newTable();
+    const pending = panel.state.requestClose();
+    assert.ok(panel.confirmation.pending.value);
+    panel.close();
+    await pending;
+    assert.equal(panel.confirmation.pending.value, null);
+    assert.deepEqual(panel.emitted, []);
+
+    const next = panel.confirmation.ask('Otra pregunta');
+    panel.confirmation.pending.value.accept();
+    assert.equal(await next, true);
 });
 
 test('dialog selection aborts the old table and refuses a late result after creating a new draft', async () => {
@@ -195,7 +222,7 @@ test('dialog treats unapplied cell input as dirty and refuses to save a draft th
     try {
         await panel.state.selectDataset({ id: 7, name: 'Datos', revision: 2 }); panel.state.openCell('r1', 'c1');
         panel.state.cellDraft.value = 'Texto pendiente'; assert.equal(panel.state.dirty.value, true);
-        panel.state.requestClose(); assert.ok(panel.state.pendingDiscard.value); panel.state.cancelDiscard();
+        panel.state.requestClose(); assert.ok(panel.confirmation.pending.value); panel.confirmation.answer(false);
         await panel.state.saveTable(); assert.equal(saves, 0); assert.match(panel.state.error.value, /celda/i); assert.equal(panel.state.cellDraft.value, 'Texto pendiente');
     } finally { panel.close(); }
 });
@@ -204,7 +231,7 @@ test('dialog stages a header without losing it on close or saving the previous h
     const panel = await loadedPanel([['10']]);
     try {
         panel.state.stageColumnLabel('c1', 'Nuevo encabezado'); assert.equal(panel.state.dirty.value, true);
-        panel.state.requestClose(); assert.ok(panel.state.pendingDiscard.value); panel.state.cancelDiscard();
+        panel.state.requestClose(); assert.ok(panel.confirmation.pending.value); panel.confirmation.answer(false);
         assert.equal(panel.state.columnDrafts.value.c1, 'Nuevo encabezado');
         await panel.state.saveTable(); assert.match(panel.state.error.value, /encabezado/i);
         panel.state.renameColumn('c1', 'Nuevo encabezado'); assert.equal(panel.state.columnDrafts.value.c1, undefined); assert.equal(panel.state.table.value.columns[0].label, 'Nuevo encabezado');
@@ -296,7 +323,7 @@ test('dialog save invalidates a rendered dirty cache after an applied cell edit 
         assert.equal(panel.state.dirty.value, false, 'saving the same name must invalidate the cached dirty state');
         panel.state.undoTable('undo'); assert.equal(panel.state.dirty.value, true);
         panel.state.undoTable('redo'); assert.equal(panel.state.dirty.value, false);
-        panel.state.requestClose(); assert.equal(panel.state.pendingDiscard.value, null);
+        panel.state.requestClose(); assert.equal(panel.confirmation.pending.value, null);
         assert.deepEqual(panel.emitted.at(-1), ['update:modelValue', false]);
     } finally { panel.close(); }
 });

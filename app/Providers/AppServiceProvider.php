@@ -42,6 +42,8 @@ use App\Models\User;
 use App\Notifications\QueueJobFailedAlert;
 use App\Services\Auth\Social\FakeSocialiteProvider;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Console\AboutCommand;
 use Illuminate\Http\Request;
 use Illuminate\Queue\Events\JobFailed;
@@ -51,7 +53,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Passkeys\Events\PasskeyDeleted;
 use Laravel\Passkeys\Events\PasskeyRegistered;
@@ -140,7 +141,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Vite::prefetch(concurrency: 3);
+        Model::preventLazyLoading(! $this->app->isProduction());
+
+        Builder::macro('whereLikeEscaped', function (string $column, string $text, string $boolean = 'and'): Builder {
+            $column = $this->getGrammar()->wrap($column);
+            $literal = strtr($text, ['!' => '!!', '%' => '!%', '_' => '!_']);
+
+            return $this->whereRaw("{$column} LIKE ? ESCAPE '!'", ['%'.$literal.'%'], $boolean);
+        });
 
         // Login social (ADR-004): drivers con las credenciales PROPIAS del login (services.*_login), distintas de las de los conectores.
         Socialite::extend('google-login', fn () => Socialite::buildProvider(GoogleProvider::class, (array) config('services.google_login')));
@@ -189,58 +197,39 @@ class AppServiceProvider extends ServiceProvider
         Brand::deleting(fn (Brand $b) => Report::purgeFor('brand_id', $b->id));
         User::deleting(fn (User $u) => Report::purgeFor('user_id', $u->id));
 
-        // MCP (T-28/T-30): limite por API key (tras autenticar) y por IP (antes, contra adivinacion de keys).
-        // «Publicar ahora»: 30/min por usuario compartido entre posts.publish-now y las rutas del compositor (store/update) cuando
-        // llevan `publish_now`; guardar un borrador o programar normal no gasta ese cupo.
-        RateLimiter::for('publish-now', fn (Request $request) => $request->boolean('publish_now') || $request->routeIs('posts.publish-now')
-            ? Limit::perMinute(30)->by('publish-now:'.($request->user()?->id ?? $request->ip()))
-            : Limit::none());
-        // Estudio: crear enlaces públicos de un diseño (10/min por usuario) y abrirlos o comentar sin sesión (60/min por IP).
-        // Constructor de informes (T-21): cada grupo con su propia cuenta por usuario (un `throttle:N,1` anonimo comparte cubo entre rutas).
-        RateLimiter::for('report-builder', fn (Request $request) => Limit::perMinute(30)->by('report-builder:'.($request->user()?->id ?? $request->ip())));
-        RateLimiter::for('report-schedules', fn (Request $request) => Limit::perMinute(10)->by('report-schedules:'.($request->user()?->id ?? $request->ip())));
-
-        // IA creativa del estudio (T-14): cada llamada puede costar dinero al proveedor; limite por usuario ademas de la cuota diaria.
-        RateLimiter::for('studio-ai', fn (Request $request) => Limit::perMinute(6)->by('studio-ai:'.($request->user()?->id ?? $request->ip())));
-        // Canva (T-16): llamadas a la API de Canva por usuario; conectar/retorno mas estricto.
-        RateLimiter::for('canva', fn (Request $request) => Limit::perMinute(30)->by('canva:'.($request->user()?->id ?? $request->ip())));
-        RateLimiter::for('canva-connect', fn (Request $request) => Limit::perMinute(10)->by('canva-connect:'.($request->user()?->id ?? $request->ip())));
-        RateLimiter::for('studio-ai-text', fn (Request $request) => Limit::perMinute(12)->by('studio-ai-text:'.($request->user()?->id ?? $request->ip())));
-        RateLimiter::for('studio-links', fn (Request $request) => Limit::perMinute(10)->by('studio-links:'.($request->user()?->id ?? $request->ip())));
-        // Colaboradores de marca (T-19): invitaciones 10/min por usuario; lotes de publicaciones 10/min por usuario.
-        RateLimiter::for('brand-collaborators', fn (Request $request) => Limit::perMinute(10)->by('brand-collaborators:'.($request->user()?->id ?? $request->ip())));
-        RateLimiter::for('post-batches', fn (Request $request) => Limit::perMinute(10)->by('post-batches:'.($request->user()?->id ?? $request->ip())));
-        RateLimiter::for('studio-shares', fn (Request $request) => Limit::perMinute(10)->by('studio-shares:'.($request->user()?->id ?? $request->ip())));
-        RateLimiter::for('studio-copies', fn (Request $request) => Limit::perMinute(10)->by('studio-copies:'.($request->user()?->id ?? $request->ip())));
-        RateLimiter::for('studio-link-comments', fn (Request $request) => Limit::perMinute(10)->by('studio-link-comments:'.hash('sha256', (string) $request->route('token'))));
-        RateLimiter::for('studio-link-view', fn (Request $request) => Limit::perMinute(60)->by('studio-link-view:'.$request->ip()));
-        RateLimiter::for('giphy', fn (Request $request) => Limit::perMinute((int) config('social.giphy.per_user_per_minute', 20))
-            ->by('giphy:'.($request->user()?->id ?? $request->ip())));
-
-        // Limites de las rutas por nombre (config/rate_limits.php): contador propio por usuario (o IP) y nombre, nunca compartido entre rutas.
-        // El valor se lee al pedir el limite (no al arrancar), asi que se puede ajustar con config() en pruebas y en tiempo de ejecucion.
-        foreach (array_keys((array) config('rate_limits.limits')) as $name) {
-            RateLimiter::for($name, fn (Request $request) => Limit::perMinute((int) (config('rate_limits.limits')[$name] ?? 60))
-                ->by($name.':'.($request->user()?->id ?? $request->ip())));
+        // Las rutas por nombre y los grupos comparten el criterio usuario/IP, con un contador por nombre.
+        foreach (['groups', 'limits'] as $section) {
+            foreach ((array) config("rate_limits.{$section}") as $name => $default) {
+                RateLimiter::for($name, fn (Request $request) => Limit::perMinute((int) (config("rate_limits.{$section}")[$name] ?? $default))
+                    ->by($name.':'.($request->user()?->id ?? $request->ip())));
+            }
         }
 
+        foreach ((array) config('rate_limits.per_ip') as $name => $default) {
+            RateLimiter::for($name, fn (Request $request) => Limit::perMinute((int) config("rate_limits.per_ip.{$name}", $default))
+                ->by($name.':'.$request->ip()));
+        }
+
+        // Guardar o programar sin publicar ahora no consume el cupo.
+        RateLimiter::for('publish-now', fn (Request $request) => $request->boolean('publish_now') || $request->routeIs('posts.publish-now')
+            ? Limit::perMinute((int) config('rate_limits.publish_now'))->by('publish-now:'.($request->user()?->id ?? $request->ip()))
+            : Limit::none());
+        RateLimiter::for('studio-link-comments', fn (Request $request) => Limit::perMinute((int) config('rate_limits.studio_link_comments'))
+            ->by('studio-link-comments:'.hash('sha256', (string) $request->route('token'))));
+        RateLimiter::for('mcp-oauth-register', fn (Request $request) => Limit::perHour((int) config('rate_limits.mcp_oauth_register'))
+            ->by('mcp-oauth-register:'.self::ipKey($request->ip())));
+        RateLimiter::for('two-factor-manage', fn (Request $request) => Limit::perMinute((int) config('rate_limits.two_factor_manage'))
+            ->by('2fa-manage:'.($request->user()?->id ?? $request->ip())));
+
+        // Los límites que ya tienen configuración de dominio conservan sus claves y variables de entorno.
+        RateLimiter::for('giphy', fn (Request $request) => Limit::perMinute((int) config('social.giphy.per_user_per_minute', 20))
+            ->by('giphy:'.($request->user()?->id ?? $request->ip())));
         RateLimiter::for('mcp', fn (Request $request) => Limit::perMinute((int) config('services.mcp.per_minute', 60))
             ->by('mcp:'.($request->user()?->currentAccessToken()?->id ?? $request->ip())));
-        // Gestion del 2FA: contador propio por usuario (el `throttle:10,1` anonimo comparte clave con otras rutas).
-        RateLimiter::for('two-factor-manage', fn (Request $request) => Limit::perMinute(10)->by('2fa-manage:'.($request->user()?->id ?? $request->ip())));
-        // Login con passkey (guest), por IP y con contadores separados: el envio de la assertion (10/min, CA-21) y el GET de
-        // opciones (30/min: el autofill lo pide en cada carga de Login y no debe gastar el cupo del envio).
-        RateLimiter::for('passkey-login', fn (Request $request) => Limit::perMinute(10)->by('passkey-login:'.$request->ip()));
-        RateLimiter::for('passkey-login-options', fn (Request $request) => Limit::perMinute(30)->by('passkey-login-options:'.$request->ip()));
-        // Gestion de passkeys (perfil): contador propio por usuario, no compartido con el 2FA ni con el login.
-        RateLimiter::for('passkey-manage', fn (Request $request) => Limit::perMinute(20)->by('passkey-manage:'.($request->user()?->id ?? $request->ip())));
-        // Callback del login social (ADR-004), por IP: 20/min.
-        RateLimiter::for('social-login', fn (Request $request) => Limit::perMinute(20)->by('social-login:'.$request->ip()));
-        // Servidor OAuth del MCP (ADR-004): DCR abierto a Internet, 10/h por IP; token endpoint, 30/min por IP.
-        RateLimiter::for('mcp-oauth-register', fn (Request $request) => Limit::perHour(10)->by('mcp-oauth-register:'.self::ipKey($request->ip())));
-        // Consentimiento OAuth: 30/min por usuario.
-        RateLimiter::for('mcp-oauth-authorize', fn (Request $request) => Limit::perMinute(30)->by('mcp-oauth-authorize:'.($request->user()?->id ?? $request->ip())));
-        RateLimiter::for('mcp-oauth-token', fn (Request $request) => Limit::perMinute(30)->by('mcp-oauth-token:'.$request->ip()));
+        RateLimiter::for('csp-report', fn (Request $request) => [
+            Limit::perMinute(30)->by('ip:'.$request->ip()),
+            Limit::perMinute((int) config('security.csp_report_global_per_minute'))->by('global'),
+        ]);
         RateLimiter::for('mcp-ip', fn (Request $request) => Limit::perMinute((int) config('services.mcp.per_minute_ip', 120))->by('mcp-ip:'.$request->ip()));
     }
 

@@ -1,0 +1,120 @@
+{
+  "duration_api_ms": 84798,
+  "stop_reason": "end_turn",
+  "session_id": "0cbb07ff-5e0e-4101-8fc5-01115342333f",
+  "total_cost_usd": 1.157144,
+  "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 123672,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 8388,
+    "output_tokens_details": {
+      "thinking_tokens": 4640
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 123672,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 8388,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 123672,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 123672
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 8388,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 123672,
+      "webSearchRequests": 0,
+      "costUSD": 1.157144,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4640,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 123672,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 1,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "# Revisión independiente T78, intento 3 de 3 (estática)\n\n## Veredicto\n\n**Aprobable. Integrable en cuanto se confirme un gate.** No hay hallazgos Critical, Important ni Minor nuevos contra el contrato. T‑6 queda cerrado: con la configuración aportada, el escenario de concurrencia no puede darse. El ajuste de la fixture posterior a R2 es correcto. La producción es idéntica a la revisada en R2 (`SystemStatus.php`, `SystemAccess.php`, `QueueProbeJob.php`, `Index.vue`, rutas y middleware), así que no reabro A–E de producción.\n\nQueda una sola condición de proceso: falta atribuir los gates de lint, formato y tipos al spec E2E final (apartado «Gates»).\n\n## Reevaluación de T‑6 (R2)\n\n| Escenario R2 | Estado | Base |\n|---|---|---|\n| 1. Proyectos `@responsive` en paralelo sobre el mismo slot | **No aplica, cerrado** | Ver detalle 1 |\n| 2. Otras specs que encolan jobs o cargan cuota entre `:49` y `:88` | **No aplica, cerrado** | Ver detalle 2 |\n| `operator.email` compartido y `cleanComposerBrands` cruzado | **No aplica, cerrado** | Ver detalle 3 |\n| Modo `serial` adicional | **No necesario** | El describe ya se ejecuta en orden dentro de un worker (`fullyParallel: false`). Añadirlo sería redundante. Acepto la decisión del autor. |\n\n**Detalle 1 (proyectos en paralelo).**\n- `playwright.config.ts:18-19` fija `fullyParallel: false` y `workers: workerCount`.\n- `runtime.ts:134-141` asigna el slot por `TEST_PARALLEL_INDEX`. Cada slot tiene su propia SQLite (`:97`), caché `file` y `LARAVEL_STORAGE_PATH` (`:96-98`) y su propio `php -S` (`playwright.config.ts:23-29`).\n- Playwright garantiza que `parallelIndex` es único entre los workers vivos. Un worker reiniciado hereda el índice, pero solo cuando el anterior ya ha terminado. Por tanto, dos proyectos pueden ejecutarse a la vez, pero nunca en el mismo slot.\n- `verifyRunIdentitySync` (`:20-26`, `:149`) impide que un worker use el servidor de otro slot o de otra ejecución.\n\n**Detalle 2 (otras specs).** Dentro de un slot solo corre un test a la vez. Los contadores `jobs` y de cuota YouTube solo los modifica el propio test entre la lectura y la navegación.\n\n**Detalle 3 (operador compartido).**\n- Otro slot implica otra BD.\n- En el mismo slot, la ejecución es secuencial y el `afterEach` borra la marca (`helpers.ts:610-621`) y, con ella, sus cuentas. Eso incluye la cuenta `$single` creada con `brand_id = $b->id`.\n\n## Verificación del ajuste de fixture (posterior a R2)\n\nDiagnóstico del fallo de r42: el test suponía «Instagram · 1 cuenta», pero el estado acumulado del slot ya incluía otra cuenta de Instagram. Es coherente con el diseño global del agregado, que no filtra por usuario, y no indica ningún defecto de producción.\n\nLa nueva fixture (`system-status.spec.ts:34-48`, `:64-73`) es correcta:\n\n- **Recuento de Instagram derivado del estado real.**\n  - Se calcula con el mismo filtro que `SystemStatus.php:105` (`status != desconectada`, sin scope de usuario).\n  - Se lee en el mismo slot y antes de la navegación, sin escritores concurrentes. El título esperado coincide, por tanto, con el que renderiza `Index.vue:121-124`.\n- **Singular determinista.**\n  - `$single` es la primera red sin cuentas activas en el slot. Si no existe ninguna, la fixture lanza una excepción que `artisan()` detecta (`helpers.ts:160`), así que falla de forma explícita.\n  - La cuenta se crea con la factoría, que por defecto produce cuentas activas según el contrato documentado de `seedComposerBrand` (`helpers.ts:488`), y con `token_expires_at = null`.\n  - Esa tarjeta tiene exactamente `1 cuenta` y `1 cuenta sin fecha…`. La aserción está acotada al `listitem` de esa tarjeta (`:70-73`), sin depender de otros contadores globales.\n- **Recuento `UNKNOWN`.** `count(Network::cases()) - 1` cuenta las tarjetas `not_recorded`, que son todas salvo YouTube (`SystemStatus.php:39-56`). No depende del estado de la BD.\n- **Cuota y `jobs`.** Se leen antes de la navegación y no hay concurrencia en el slot, así que las igualdades exactas son estables.\n- **Extracción de datos.** El regex `STATE:(\\{.*?\\})` es seguro: el JSON es plano y sin llaves anidadas.\n\nNo se relaja ninguna aserción. El paso de un literal a un valor derivado es lo correcto para un agregado global por diseño.\n\n### Observación no bloqueante (política de pruebas opcional, no defecto)\n\n**Ubicación:** `tests/e2e/system-status.spec.ts:64-69`.\n\nLa forma plural del título de Instagram se comprueba con la misma condición ternaria que la vista. El ejercicio de la rama `cuentas` depende de que el seeder del slot deje otra cuenta de Instagram, como indica el autor. Si un slot arrancara con 0 cuentas de Instagram residuales, el test seguiría en verde, pero solo cubriría el singular, sin avisar.\n\nEn la práctica, el seeder determinista y el r44 en verde en tres anchos indican que el plural sí se ejerció. Si se quisiera que esa cobertura fallara de forma explícita bastaría con `expect(state.instagram).toBeGreaterThan(1)`. Es opcional y no bloquea: B‑6 ya se aceptó en R2 con su RED r34.\n\n## A–E (producción)\n\nNo hay diff productivo desde R2, así que mantengo las valoraciones de R2 sin reabrir decisiones aceptadas:\n- allowlist de servidor;\n- estado global;\n- YouTube como contador local;\n- sonda de almacenamiento en el GET;\n- B‑5;\n- E‑1;\n- espacio de configuración `health`.\n\n| Área | Valoración |\n|---|---|\n| A. Aceptación | Cumple. Responsividad y a11y quedan ahora acreditadas por el browser r44 (`expectNoOverflow` + `axeSeriousCritical` en 3 anchos). |\n| B. Corrección | Sin defectos. La fixture nueva es correcta (ver arriba). |\n| C. Seguridad | Sin hallazgos. C‑1 sigue cerrado. El E2E fija `SYSTEM_ADMIN_EMAILS` solo en el entorno del slot (`runtime.ts:91`). |\n| D. Rendimiento | Sin cambios; correcto. |\n| E. Calidad | T‑1 a T‑6 resueltos o cerrados. Queda la observación opcional anterior. |\n\n## Gates: atribución al estado final\n\n| Gate | Ejecución | ¿Cubre el diff final? |\n|---|---|---|\n| PHP global 4358/9, 29306 aserciones | r41 | **Sí.** Lo posterior solo toca un `.ts` E2E, que PHP no carga. |\n| MySQL 8.4.3, 30/200 | r5 | **Sí,** según el autor. Producción PHP sin cambios desde entonces. |\n| SQLite focal 91/567 (incluye AuthSocial y EmailVerification) | r39 | **Sí.** |\n| Browser 15/15 sin fallos, omisiones ni flaky | r44, tras el ajuste | **Sí.** Ejecuta el spec final. |\n| Node 789, TS 0, Pint, ESLint, Prettier, build | **r37** | **No acreditado para `system-status.spec.ts`**. Ver hecho faltante. |\n\n**Hecho faltante (condición de cierre, proceso; no es defecto de código).**\n\n- **Ubicación:** `tests/e2e/system-status.spec.ts` (versión final).\n- **Problema:** r37 es anterior a R2, que ya lo citaba, y al ajuste posterior a r42. Playwright transpila el TS sin comprobar tipos, así que el r44 no sustituye a vue-tsc, ESLint ni Prettier.\n- **Escenario concreto:** el nuevo `as { single: string; instagram: number }`, el formato de las líneas 64-73 o la guarda de `tests/frontend/test-tooling.test.mjs` sobre los specs E2E podrían fallar en CI aunque el browser esté en verde.\n- **Qué hace falta:**\n  1. confirmar si `tests/e2e/**` está dentro del alcance de ESLint, Prettier, `tsc` o la suite Node;\n  2. si lo está, adjuntar una pasada de esos gates sobre el SHA final.\n- Si `tests/e2e` está fuera de su alcance, el punto se cierra sin reejecutar. Producción (`Index.vue`, `.d.ts`, `runtime.ts`) no ha cambiado desde r37, así que su verificación sigue siendo válida.\n\nNo cierro este gate por opinión estática. Es el único elemento pendiente para integrar.\n\n## Decisiones no reabiertas\n\nSin evidencia nueva, se mantiene todo lo aceptado en R1 y R2. La negativa a añadir `mode: 'serial'` es correcta y no la considero un déficit.\n\n## Resultado\n\n| Área | Valoración final |\n|---|---|\n| A. Aceptación | Cumple. Browser final 15/15 atribuido. |\n| B. Corrección | Sin defectos. T‑6 cerrado; la fixture post‑R2 es correcta. |\n| C. Seguridad | Sin hallazgos. |\n| D. Rendimiento | Correcto. |\n| E. Calidad | Sin defectos. Una observación opcional sobre la cobertura determinista del plural. |\n\n**Recomendación:** apto para integrar los 21 archivos en cuanto se acredite que `system-status.spec.ts` pasa ESLint, Prettier y la comprobación de tipos y la suite Node, o se confirme que están fuera de su alcance. No se requiere ningún cambio de código.",
+  "ttft_ms": 49898,
+  "type": "result",
+  "duration_ms": 84922,
+  "uuid": "47bbf303-0508-4361-8ad2-d4709cbe3e4f",
+  "ttft_stream_ms": 1236,
+  "time_to_request_ms": 122,
+  "first_content_frame_ms": 1236,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "model_usage_since_last_result": {
+    "claude-opus-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 8388,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 123672,
+      "webSearchRequests": 0,
+      "costUSD": 1.157144,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4640,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 123672,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "credential_expires_at": "2026-12-13T13:54:13.42Z"
+}

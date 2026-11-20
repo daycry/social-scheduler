@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\Canva\CanvaConnection;
 use App\Models\Canva\CanvaJob;
 use App\Models\User;
+use App\Support\OAuthStateStore;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +24,7 @@ class CanvaConnections
 
     private const MAX_ATTEMPTS = 10;
 
-    public function __construct(private readonly CanvaClient $client) {}
+    public function __construct(private readonly CanvaClient $client, private readonly OAuthStateStore $states) {}
 
     /** Inicia un intento y devuelve la URL de autorizacion de Canva. */
     public function start(User $user, Brand $brand, string $redirectUri): string
@@ -32,13 +33,12 @@ class CanvaConnections
         $state = Str::random(40);
         $pkce = CanvaClient::pkce();
         $key = $this->key($user);
-        Cache::lock($key.'.lock', 5)->block(5, function () use ($key, $state, $pkce, $brand, $user): void {
-            $attempts = array_filter((array) Cache::get($key, []), fn ($a) => is_array($a) && ($a['issued_at'] ?? 0) > now()->timestamp - self::ATTEMPT_TTL);
-            $attempts[hash('sha256', $state)] = [
-                'brand_id' => $brand->id, 'user_id' => $user->id, 'issued_at' => now()->timestamp, 'verifier' => Crypt::encryptString($pkce['verifier']),
-            ];
-            Cache::put($key, array_slice($attempts, -self::MAX_ATTEMPTS, null, true), self::ATTEMPT_TTL);
-        });
+        $this->states->remember($key, $state, [
+            'brand_id' => $brand->id,
+            'user_id' => $user->id,
+            'issued_at' => now()->timestamp,
+            'verifier' => Crypt::encryptString($pkce['verifier']),
+        ], self::ATTEMPT_TTL, self::MAX_ATTEMPTS);
 
         return $this->client->authorizationUrl($state, $pkce['challenge'], $redirectUri);
     }
@@ -50,26 +50,12 @@ class CanvaConnections
      */
     public function take(User $user, string $state): ?array
     {
-        if ($state === '' || strlen($state) > 128) {
-            return null;
-        }
-        $key = $this->key($user);
+        $attempt = $this->states->consume($this->key($user), $state, $user->id, self::ATTEMPT_TTL, verifyStoredState: false);
 
-        return Cache::lock($key.'.lock', 5)->block(5, function () use ($key, $state, $user): ?array {
-            $attempts = (array) Cache::get($key, []);
-            $hash = hash('sha256', $state);
-            $attempt = $attempts[$hash] ?? null;
-            if (! is_array($attempt)) {
-                return null;
-            }
-            unset($attempts[$hash]);
-            Cache::put($key, $attempts, self::ATTEMPT_TTL);
-            if (($attempt['user_id'] ?? null) !== $user->id || ($attempt['issued_at'] ?? 0) <= now()->timestamp - self::ATTEMPT_TTL) {
-                return null;
-            }
-
-            return ['brand_id' => (int) $attempt['brand_id'], 'verifier' => Crypt::decryptString($attempt['verifier'])];
-        });
+        return $attempt === null ? null : [
+            'brand_id' => (int) $attempt['brand_id'],
+            'verifier' => Crypt::decryptString($attempt['verifier']),
+        ];
     }
 
     /** Canjea el codigo y guarda (o sustituye) la conexion de la marca; consulta tambien el perfil y las capacidades del plan. */

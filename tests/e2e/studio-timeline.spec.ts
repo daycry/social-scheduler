@@ -93,7 +93,7 @@ test('Studio timeline: an uploaded real video with an open source end can be spl
         expect(saved.pages[0].elements[1].sourceOffset).toBe(1);
         expect(saved.pages[0].elements[1].trimEnd).toBeNull();
         await page.screenshot({ path: info.outputPath('timeline-video.png'), fullPage: true });
-        await expect(page.getByRole('alert')).toHaveCount(0);
+        await expect(page.getByRole('alert').filter({ hasText: /\S/ })).toHaveCount(0);
         await expectNoOverflow(page);
     } finally { cleanComposerBrands(user.email); }
 });
@@ -158,7 +158,7 @@ test('Studio timeline: buffering never consumes a short clip before playback sta
         expect(Number(await clock.inputValue())).toBeLessThan(0.4);
         await expect(timeline.getByRole('button', { name: 'Reproducir', exact: true })).toBeVisible();
         await expect(clock).toHaveValue('0.5');
-        await expect(page.getByRole('alert')).toHaveCount(0);
+        await expect(page.getByRole('alert').filter({ hasText: /\S/ })).toHaveCount(0);
     } finally { cleanComposerBrands(user.email); }
 });
 

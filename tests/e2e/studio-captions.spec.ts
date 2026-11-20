@@ -26,6 +26,36 @@ async function captionPreviewCoverage(page: Page) {
     });
 }
 
+function drainCaptionExportQueues() {
+    artisan("Illuminate\\Support\\Facades\\Artisan::call('queue:work',[" +
+        "'connection'=>'database','--queue'=>implode(',', [config('studio.av.queue'), config('queue.studio_render')])," +
+        "'--stop-when-empty'=>true,'--tries'=>1,'--timeout'=>100,'--sleep'=>0]);");
+}
+
+function assertCaptionImage(png: Buffer) {
+    // A PNG starts with its eight-byte signature and a 13-byte IHDR chunk.
+    expect(png.length).toBeGreaterThanOrEqual(33);
+    expect(png.subarray(0, 16).toString('hex')).toBe('89504e470d0a1a0a0000000d49484452');
+    // PNG's IHDR stores the dimensions as big-endian integers.
+    const width = png.readUInt32BE(16);
+    const height = png.readUInt32BE(20);
+    expect(width).toBe(160);
+    expect(height).toBe(120);
+
+    const rgba = execFileSync('ffmpeg', ['-v', 'error', '-i', 'pipe:0', '-pix_fmt', 'rgba', '-f', 'rawvideo', 'pipe:1'], { input: png, timeout: 15000 });
+    expect(rgba.length).toBe(width * height * 4);
+    expect([...rgba.subarray(0, 4)]).toEqual([0, 0, 0, 255]);
+    let whites = 0;
+    let nonOpaquePixels = 0;
+    for (let i = 0; i < rgba.length; i += 4) {
+        if (rgba[i] > 200 && rgba[i + 1] > 200 && rgba[i + 2] > 200) whites++;
+        if (rgba[i + 3] !== 255) nonOpaquePixels++;
+    }
+    expect(whites).toBeGreaterThan(40);
+    expect(nonOpaquePixels).toBe(0);
+    return { width, height, whites };
+}
+
 test('Studio captions UI: import edit style offset delete undo reopen and download SRT VTT with clear file errors', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name); cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `captions-ui-${stamp()}-${info.project.name}`), errors: string[] = [];
@@ -105,7 +135,7 @@ test('Studio captions render: private font pinned MP4 GIF and SVG retain opaque 
             outputs.push(result);
         }
         await call(page, 'PATCH', `/studio/designs/${design.id}/captions`, { action: 'clear', revision: 1 });
-        artisan("Illuminate\\Support\\Facades\\Artisan::call('queue:work',['connection'=>'database','--queue'=>'studio,media','--stop-when-empty'=>true,'--tries'=>1,'--timeout'=>100,'--sleep'=>0]);");
+        drainCaptionExportQueues();
         const measurements: any[] = [];
         for (const result of outputs) {
             const current = (await call(page, 'GET', `/studio/exports/${result.id}`)).export;
@@ -123,18 +153,17 @@ test('Studio captions render: private font pinned MP4 GIF and SVG retain opaque 
                 expect(files).toHaveLength(2);
                 for (const [index, encoded] of files.entries()) {
                     const bytes = Buffer.from(encoded, 'base64'); fs.writeFileSync(info.outputPath(`caption-frame-${index}.png`), bytes);
-                    const rgb = execFileSync('ffmpeg', ['-v', 'error', '-i', 'pipe:0', '-pix_fmt', 'rgb24', '-f', 'rawvideo', 'pipe:1'], { input: bytes, timeout: 15000 });
-                    expect(rgb.length).toBe(160 * 120 * 3);
-                    let whites = 0; for (let i = 0; i < rgb.length; i += 3) if (rgb[i] > 200 && rgb[i + 1] > 200 && rgb[i + 2] > 200) whites++;
-                    expect(whites).toBeGreaterThan(40); measurements.push({ format: 'png', page: index, whites });
+                    const { whites } = assertCaptionImage(bytes);
+                    measurements.push({ format: 'png', page: index, whites });
                 }
                 continue;
             }
             if (result.format === 'pdf') {
-                const code = "import sys,json; sys.path.insert(0,'C:/laragon/www/metricool/storage/framework/testing/t43-pdf-tools'); import fitz; d=fitz.open(sys.argv[1]); a=[]\nfor p in d:\n x=p.get_pixmap(matrix=fitz.Matrix(96/72,96/72),alpha=False); b=x.samples; a.append({'width':x.width,'height':x.height,'whites':sum(1 for i in range(0,len(b),3) if b[i]>200 and b[i+1]>200 and b[i+2]>200)})\nprint(json.dumps(a))";
-                const pixels = JSON.parse(execFileSync('python', ['-c', code, filename], { encoding: 'utf8', timeout: 15000 }));
-                expect(pixels).toHaveLength(2);
-                for (const pixelsPage of pixels) { expect(pixelsPage.width).toBe(160); expect(pixelsPage.height).toBe(120); expect(pixelsPage.whites).toBeGreaterThan(40); }
+                const prefix = info.outputPath('captions-pdf-page');
+                execFileSync('pdftoppm', ['-r', '96', '-png', filename, prefix], { timeout: 15000 });
+                const pages = fs.readdirSync(info.outputDir).filter((name) => /^captions-pdf-page-\d+\.png$/.test(name)).sort();
+                expect(pages).toHaveLength(2);
+                const pixels = pages.map((name) => assertCaptionImage(fs.readFileSync(info.outputPath(name))));
                 measurements.push({ format: 'pdf', pages: pixels }); continue;
             }
             const probe = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-count_frames', '-show_streams', '-of', 'json', filename], { encoding: 'utf8', timeout: 15000 }));
@@ -179,7 +208,7 @@ test('Studio captions render: private font pinned MP4 GIF and SVG retain opaque 
             // Change live source after enqueue: every downloaded artifact must retain the pinned cue.
             await call(page, 'PATCH', `/studio/designs/${contrast.id}/captions`, { action: 'clear', revision: original.revision });
             const cleared = await stored(page, contrast.id);
-            artisan("Illuminate\\Support\\Facades\\Artisan::call('queue:work',['connection'=>'database','--queue'=>'studio,media','--stop-when-empty'=>true,'--tries'=>1,'--timeout'=>100,'--sleep'=>0]);");
+            drainCaptionExportQueues();
             const sample: any = { outlined, preview, outputs: [] };
             for (const exported of exports) {
                 const current = (await call(page, 'GET', `/studio/exports/${exported.id}`)).export;
@@ -233,7 +262,7 @@ test('Studio captions render: private font pinned MP4 GIF and SVG retain opaque 
             const response = page.waitForResponse(response => response.url().endsWith(`/studio/designs/${selectionDesign.id}/render`) && response.request().method() === 'POST');
             await dialog.getByRole('button', { name: 'Preparar MP4', exact: true }).click();
             const exported = (await (await response).json()).export; expect(exported.pages).toEqual(ids);
-            artisan("Illuminate\\Support\\Facades\\Artisan::call('queue:work',['connection'=>'database','--queue'=>'studio','--stop-when-empty'=>true,'--tries'=>1,'--timeout'=>100,'--sleep'=>0]);");
+            artisan("Illuminate\\Support\\Facades\\Artisan::call('queue:work',['connection'=>'database','--queue'=>config('studio.av.queue'),'--stop-when-empty'=>true,'--tries'=>1,'--timeout'=>100,'--sleep'=>0]);");
             const current = (await call(page, 'GET', `/studio/exports/${exported.id}`)).export; expect(current.status).toBe('ready');
             const path = info.outputPath(`captions-selection-${ids.join('-')}.mp4`); fs.writeFileSync(path, await (await page.request.get(current.download_url)).body());
             const raw = execFileSync('ffmpeg', ['-v', 'error', '-i', path, '-pix_fmt', 'rgb24', '-f', 'rawvideo', 'pipe:1'], { timeout: 20000, maxBuffer: 8 * 1024 * 1024 });

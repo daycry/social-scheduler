@@ -45,7 +45,13 @@ test('Calendar: la semana muestra cada publicacion en su fecha y hora local con 
         ->assertInertia(fn (Assert $page) => $page
             ->component('Calendar/Index')
             ->where('view', 'week')->where('from', '2026-11-02')->where('to', '2026-11-08')->where('timezone', 'Europe/Madrid')
-            ->has('items', 2)
+            ->has('items', 2, fn (Assert $item) => $item
+                ->hasAll(['id', 'brand_id', 'brand_name', 'text', 'has_notes', 'status', 'status_label', 'scheduled_at',
+                    'local_date', 'local_time', 'local_datetime', 'editable', 'can_publish_now', 'approval_status',
+                    'approval_signature', 'series_id', 'can_retry', 'retry_blocked', 'has_manual', 'manual_pending', 'targets'])
+                ->has('targets', 1, fn (Assert $target) => $target->hasAll(['network', 'network_label', 'account_name',
+                    'content_type', 'content_label', 'status', 'status_label', 'error_message', 'status_note', 'external_url',
+                    'manual', 'manual_pending'])))
             ->where('items.0.id', $mon->id)->where('items.0.local_date', '2026-11-02')->where('items.0.local_time', '09:30')
             ->where('items.0.status', 'programada')->where('items.0.editable', true)
             ->where('items.0.targets.0.network', 'instagram')->where('items.0.targets.0.status', 'programada')
@@ -95,6 +101,8 @@ test('Calendar: la lista muestra el estado por red, borradores sin fecha, busque
     $get = fn (array $q = []) => $this->actingAs($this->user)->get(route('calendar.index', $q + ['view' => 'list', 'date' => '2026-11-01']));
 
     $get()->assertInertia(fn (Assert $p) => $p->has('items', 2)->has('undated', 1)->where('undated.0.text', 'Idea sin fecha')
+        ->where('undated.0.scheduled_at', null)->where('undated.0.local_date', null)
+        ->where('undated.0.local_time', null)->where('undated.0.local_datetime', null)
         ->where('items.0.targets.0.status', 'fallida')->where('items.0.targets.0.error_message', 'Instagram rechazo el video')
         ->where('items.0.editable', true));
     $get(['q' => 'otono'])->assertInertia(fn (Assert $p) => $p->has('items', 1)->where('items.0.id', $ok->id));

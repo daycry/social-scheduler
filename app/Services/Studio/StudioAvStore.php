@@ -15,14 +15,28 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use LogicException;
 
-/** Primitivas transaccionales compartidas del estado audiovisual privado: serializar al escritor SQLite, resolver el arrendamiento activo y su espacio de trabajo, guardar el estado y progreso del export y leer los checkpoints aceptados. */
+/**
+ * Primitivas de estado privado del render audiovisual.
+ *
+ * Los llamadores abren una transacción y reservan el escritor SQLite antes de leer
+ * el estado que van a mutar. La verificación de lease y generación precede a las escrituras.
+ *
+ * @internal
+ */
 class StudioAvStore
 {
+    private const MAX_DISK_BYTES = 8 * 1024 ** 3;
+
     public const WORKSPACE_COLUMNS = ['id', 'user_id', 'brand_id', 'export_id', 'uuid', 'fingerprint', 'media_id', 'media_reserved_bytes', 'media_receipt', 'media_retiring', 'active_until', 'created_at', 'updated_at'];
+
+    public function __construct(private readonly JobFailureNotifier $notifier) {}
 
     public function reserveSqliteWriter(string $table, int|string $id): void
     {
+        $this->requireTransaction();
+
         if (DB::connection()->getDriverName() === 'sqlite') {
             // Reserve the writer before reading fenced state; SQLite cannot wait
             // safely when upgrading a shared reader against another session writer.
@@ -30,8 +44,25 @@ class StudioAvStore
         }
     }
 
-    public function activeLease(object $lease, bool $requireOwner = true): array
+    /** @return array{?DesignExport, ?StudioAvWorkspace, ?StudioAvLease} */
+    public function activeLease(object $lease): array
     {
+        return $this->lockActiveLease($lease, true);
+    }
+
+    /**
+     * Permite registrar el fallo de un lease vigente tras desaparecer el propietario o el diseño.
+     *
+     * @return array{?DesignExport, ?StudioAvWorkspace, ?StudioAvLease}
+     */
+    public function activeLeaseForFailure(object $lease): array
+    {
+        return $this->lockActiveLease($lease, false);
+    }
+
+    private function lockActiveLease(object $lease, bool $requireOwner): array
+    {
+        $this->requireTransaction();
         $existing = StudioAvLease::find($lease->id);
         $allocation = $existing ? StudioAvWorkspace::withoutUserScope()->select(self::WORKSPACE_COLUMNS)->find($existing->workspace_id) : null;
         $export = $allocation ? DesignExport::withoutUserScope()->whereKey($allocation->export_id)->lockForUpdate()->first() : null;
@@ -56,6 +87,8 @@ class StudioAvStore
 
     public function workspace(DesignExport $export): StudioAvWorkspace
     {
+        $this->requireTransaction();
+
         $state = $export->render_state;
         $workspace = StudioAvWorkspace::ownedBy($export->user_id)->select(self::WORKSPACE_COLUMNS)->whereKey($state['allocation_id'])->where('export_id', $export->id)
             ->where('brand_id', $export->brand_id)->where('uuid', $state['workspace'])->lockForUpdate()->firstOrFail();
@@ -74,6 +107,8 @@ class StudioAvStore
 
     public function saveState(DesignExport $export, array $state, array $changes = []): void
     {
+        $this->requireTransaction();
+
         $total = max(1, $state['total']);
         $completed = min($total, $state['position']);
         $phase = match ($changes['status'] ?? $export->status) {
@@ -84,11 +119,29 @@ class StudioAvStore
             'completed' => $completed, 'total' => $total, 'percent' => round(100 * $completed / $total, 2)];
         $export->fill($changes + ['render_state' => $state, 'render_progress' => $progress])->save();
         if (($changes['status'] ?? null) === 'ready') {
-            DB::afterCommit(fn () => app(JobFailureNotifier::class)->exportDone($export));
+            DB::afterCommit(fn () => $this->notifier->exportDone($export));
         }
         if (($changes['status'] ?? null) === 'failed') {
-            DB::afterCommit(fn () => app(JobFailureNotifier::class)->export($export)); // tras confirmar la transaccion que cierra el export
+            DB::afterCommit(fn () => $this->notifier->export($export)); // tras confirmar la transaccion que cierra el export
         }
+    }
+
+    /** Comprueba el presupuesto una vez bloqueado el workspace y dentro de la transacción que registra la reserva. */
+    public function canReserveBytes(StudioAvWorkspace $workspace, string $category, int $bytes): bool
+    {
+        $this->requireTransaction();
+        $limit = config('studio.av.disk.'.$category, self::MAX_DISK_BYTES);
+        if (! is_int($limit) || $limit < 1 || $limit > self::MAX_DISK_BYTES) {
+            return false;
+        }
+
+        $used = (int) StudioAvLease::where('workspace_id', $workspace->id)->where('category', $category)->where('status', '!=', 'released')
+            ->sum(DB::raw('COALESCE(actual_bytes, reserved_bytes)'));
+        if ($category === 'output') {
+            $used += $workspace->media_reserved_bytes;
+        }
+
+        return $bytes <= $limit - $used;
     }
 
     public function assertOwnership(DesignExport $export): void
@@ -107,6 +160,8 @@ class StudioAvStore
 
     public function ownedLocked(User $user, DesignExport $export): DesignExport
     {
+        $this->requireTransaction();
+
         $current = DesignExport::ownedBy($user->id)->whereKey($export->id)->lockForUpdate()->firstOrFail();
         if (! Brand::ownedBy($user->id)->whereKey($current->brand_id)->exists()) {
             throw (new ModelNotFoundException)->setModel(DesignExport::class, [$current->id]);
@@ -168,5 +223,12 @@ class StudioAvStore
     public function task(DesignExport $export): ?array
     {
         return $export->render_state ? $this->step($export->render_state)?->descriptor() : null;
+    }
+
+    private function requireTransaction(): void
+    {
+        if (DB::transactionLevel() === 0) {
+            throw new LogicException('El estado audiovisual requiere una transacción de base de datos.');
+        }
     }
 }

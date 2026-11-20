@@ -119,7 +119,18 @@ it('Reports builder: la vista previa usa solo datos de la marca elegida (competi
     });
 
     $payload = fn (Brand $b) => ['brand_id' => $b->id, 'from' => '2026-10-01', 'to' => '2026-10-31', 'blocks' => [['type' => 'competitors'], ['type' => 'ads']]];
-    $a = $this->actingAs($this->user)->postJson(route('reports.preview'), $payload($this->brand))->assertOk()->json();
+    $a = $this->actingAs($this->user)->postJson(route('reports.preview'), $payload($this->brand))->assertOk()
+        ->assertJsonStructure([
+            'brand' => ['id', 'name'],
+            'period' => ['from', 'to'],
+            'cards' => [['key', 'label', 'total']],
+            'timeline' => ['label', 'granularity', 'points'],
+            'networks' => [['label', 'posts']],
+            'blocks' => [
+                ['type', 'title', 'data' => ['own', 'competitors' => [['username', 'followers_end']]]],
+                ['type', 'title', 'data' => ['available', 'account', 'campaigns' => [['name']]]],
+            ],
+        ])->json();
     $b = $this->postJson(route('reports.preview'), $payload($this->other))->assertOk()->json();
 
     expect($a['brand']['name'])->toBe('Marca A')->and($a['blocks'][0]['data']['competitors'][0]['username'])->toBe('rival_a')->and($a['blocks'][1]['data']['account'])->toBe('Cuenta A')

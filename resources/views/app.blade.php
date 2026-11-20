@@ -14,9 +14,11 @@
         <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
         <link rel="icon" href="/favicon.ico" sizes="48x48">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        <link rel="manifest" href="/manifest.webmanifest">
+        <meta name="theme-color" content="#0f172a">
 
         <!-- Scripts -->
-        @routes
+        @routes(nonce: Vite::cspNonce())
         @vite(['resources/js/app.js', "resources/js/Pages/{$page['component']}.vue"])
         @inertiaHead
     </head>

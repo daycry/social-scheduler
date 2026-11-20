@@ -104,14 +104,21 @@ test('E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo 
     await page.getByLabel('Opción 2 de la encuesta 9', { exact: true }).fill('No');
 
     // Reordenar: el título sube/baja (no cambia el contenido) y un video con host falso se rechaza en el servidor.
-    await page.getByRole('button', { name: 'Bajar bloque 1' }).click();
+    await page.getByRole('button', { name: 'Bajar bloque 1', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Bajar bloque 2', exact: true })).toBeFocused();
     await expect(page.getByLabel('Texto del bloque 2', { exact: true }).first()).toHaveValue('Bienvenida al sitio E2E');
     await page.getByRole('button', { name: 'Subir bloque 2' }).click();
     await expect(page.getByLabel('Texto del bloque 1', { exact: true }).first()).toHaveValue('Bienvenida al sitio E2E');
     await expectNoOverflow(page);
+    await page.getByTestId('page-tab-1').click();
+    await expect(page.getByTestId('page-title')).toHaveValue('Contacto');
     await page.getByTestId('save-draft').click();
     await settle(page);
     await expect(page.getByText('Usa la URL de un video de YouTube')).toBeVisible();
+    const invalidUrl = page.getByLabel('URL del video 6', { exact: true });
+    await expect(invalidUrl).toHaveAttribute('aria-invalid', 'true');
+    await expect(invalidUrl).toBeFocused();
+    await expect(invalidUrl).toHaveAccessibleDescription(/Usa la URL de un video de YouTube/);
     await page.getByLabel('URL del video 6', { exact: true }).fill('https://youtu.be/dQw4w9WgXcQ');
     await expectNoOverflow(page);
     await axeSeriousCritical(page, 'Sitios (editor con bloques)');
@@ -271,6 +278,7 @@ test('E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo 
     await expect(viaToken.getByRole('heading', { level: 1, name: 'Contacto' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Revocar el enlace Cliente E2E' }).click();
+    await page.getByTestId('confirm-dialog').getByRole('button', { name: 'Revocar enlace' }).click();
     await settle(page);
     await expect(page.getByTestId('token-list')).toContainText('Revocado');
     const denied = await viaToken.reload();

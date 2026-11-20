@@ -278,3 +278,21 @@ test('Studio: export registration rejects another owner, wrong format and wrong 
     }
     expect(DesignExport::withoutUserScope()->count())->toBe(0);
 });
+
+test('Studio index preserves the empty listing when a user without a brand has an invalid filter', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/studio?folder_id=abc')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->component('Studio/Index')
+            ->where('brand', null)->where('kit', null)->where('filters', [])
+            ->has('designs.designs', 0)->where('designs.total', 0)
+            ->where('designs.has_more', false)->where('designs.next_cursor', null)
+            ->has('assets', 0)->has('folders', 0)->has('shared', 0)->missing('fonts'));
+});
+
+test('Studio index still validates the filters for a user with a brand', function () {
+    $this->actingAs($this->user)
+        ->getJson('/studio?folder_id=abc')
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('folder_id');
+});

@@ -27,6 +27,7 @@ use App\Support\TargetMedia;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Arr;
 use Throwable;
 
 /**
@@ -36,7 +37,16 @@ use Throwable;
  */
 class PostPlanner
 {
+    private const TARGET_ERROR_PREFIX = 'targets.';
+
     public function __construct(private readonly MediaValidator $validator, private readonly PostTransitions $transitions) {}
+
+    /** Índice del namespace de errores por destino, incluidos sus campos anidados. Null indica contenido común. */
+    public static function targetErrorIndex(string $field): ?int
+    {
+        return (str_starts_with($field, self::TARGET_ERROR_PREFIX)
+            && preg_match('/\A(\d+)(?:\.|\z)/D', substr($field, strlen(self::TARGET_ERROR_PREFIX)), $match) === 1) ? (int) $match[1] : null;
+    }
 
     /**
      * Datos de `create/update` que reconstruyen lo que ya hay en el post (texto, media y destinos con sus opciones).
@@ -44,12 +54,12 @@ class PostPlanner
      * @param  array<string, mixed>  $overrides
      * @return array<string, mixed>
      */
-    public function dataFromPost(Post $post, array $overrides): array
+    public function dataFromPost(Post $post, array $overrides, ?Collection $targets = null): array
     {
         return $overrides + [
             'text' => $post->text,
             'media' => $post->media()->pluck('media_assets.id')->all(),
-            'targets' => $post->targets()->get()->map(fn (PostTarget $t) => [
+            'targets' => ($targets ?? $post->targets()->get())->values()->map(fn (PostTarget $t) => [
                 'account_id' => $t->social_account_id, 'content_type' => $t->content_type->value, 'options' => $t->options ?? [], 'text' => $t->text, 'first_comment' => $t->first_comment, 'media' => $t->media, 'manual' => $t->manual,
             ])->all(),
         ];
@@ -161,8 +171,8 @@ class PostPlanner
             }
         }
 
-        // Exigencia de TikTok para el contenido de marca (colaboracion de pago): no puede ser privado.
-        if ($asked('brand_content_toggle') && $direct && in_array($options['privacy_level'] ?? 'SELF_ONLY', ['SELF_ONLY', null, ''], true)) {
+        // El borrador puede esperar a que se elija visibilidad; una elección privada no admite contenido de marca.
+        if ($asked('brand_content_toggle') && $direct && ($options['privacy_level'] ?? null) === 'SELF_ONLY') {
             $errors[] = 'El contenido de marca (colaboracion de pago) no puede ser privado: elige otra visibilidad en TikTok.';
         }
 
@@ -246,7 +256,7 @@ class PostPlanner
      * @param  array<string, mixed>  $data
      * @return array{text: ?string, scheduled_at: ?CarbonImmutable, status: PostStatus, publish_now: bool, media: list<MediaAsset>, targets: list<array{account: SocialAccount, type: ContentType, options: array, text: ?string, first_comment: ?string}>}
      */
-    public function plan(User $user, Brand $brand, array $data, ?int $currentCampaignId = null): array
+    public function plan(User $user, Brand $brand, array $data, ?int $currentCampaignId = null, ?CarbonInterface $keepScheduledAt = null): array
     {
         $errors = [];
         $publishNow = (bool) ($data['publish_now'] ?? false);
@@ -267,7 +277,7 @@ class PostPlanner
 
         if ($schedule && $at === null && ! isset($errors['scheduled_at'])) {
             $errors['scheduled_at'][] = 'Indica la fecha y hora de publicacion.';
-        } elseif ($schedule && ! $publishNow && $at !== null && $at->lte(now())) {
+        } elseif ($schedule && ! $publishNow && $at !== null && $at->lte(now()) && ! $this->sameInstant($at, $keepScheduledAt)) {
             $errors['scheduled_at'][] = 'La fecha de publicacion debe ser futura.';
         }
 
@@ -292,7 +302,7 @@ class PostPlanner
         $targets = [];
         $seen = [];
         foreach ($rawTargets as $i => $raw) {
-            $key = "targets.$i";
+            $key = self::TARGET_ERROR_PREFIX.$i;
             $account = SocialAccount::ownedBy($user->id)->where('brand_id', $brand->id)
                 ->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)
                 ->find((int) ($raw['account_id'] ?? 0));
@@ -362,7 +372,7 @@ class PostPlanner
                 }
             }
 
-            $targets[] = ['account' => $account, 'type' => $type, 'options' => $options, 'text' => $ownText, 'first_comment' => $firstComment, 'media' => $ownMedia, 'manual' => filter_var($raw['manual'] ?? false, FILTER_VALIDATE_BOOLEAN)];
+            $targets[] = ['account' => $account, 'type' => $type, 'options' => $options, 'text' => $ownText, 'first_comment' => $firstComment, 'media' => $ownMedia, 'detached_media' => array_map('intval', (array) ($raw['detached_media'] ?? [])), 'manual' => filter_var($raw['manual'] ?? false, FILTER_VALIDATE_BOOLEAN)];
         }
 
         // Campaña (C-03, CA-12): null = quitarla; solo de esta marca y de este usuario. Omitida = no se toca (`false`).
@@ -385,8 +395,29 @@ class PostPlanner
             'status' => $schedule ? PostStatus::Scheduled : PostStatus::Draft,
             'publish_now' => $publishNow,
             'media' => $media,
+            'detached_media' => array_map('intval', (array) ($data['detached_media'] ?? [])),
             'targets' => $targets,
         ];
+    }
+
+    /**
+     * @param  list<int>  $mediaIds
+     * @param  array<int, int>  $exportByMediaId
+     */
+    private function replaceCommonMedia(Post $post, array $mediaIds, array $exportByMediaId): void
+    {
+        $relation = $post->media();
+        $rows = [];
+        foreach ($mediaIds as $position => $id) {
+            $rows[$id] = [
+                'position' => $position,
+                'design_export_id' => $exportByMediaId[$id] ?? null,
+            ];
+        }
+
+        // La edición del post ya está en una transacción. Recrear las filas evita colisiones en (post_id, position).
+        $relation->detach();
+        $relation->attach($rows);
     }
 
     /**
@@ -397,17 +428,21 @@ class PostPlanner
      * @param  Collection<string, PostTarget>|null  $existing
      * @param  array{text: ?string, media: list<int>}|null  $before  contenido previo del post (solo en edicion)
      */
-    public function fill(Post $post, array $plan, ?Collection $existing = null, ?array $before = null): void
+    public function fill(Post $post, array $plan, ?Collection $existing = null, ?array $before = null, bool $preserveTargetStatuses = false, ?PostMediaProvenance $provenance = null): void
     {
         $existing ??= new Collection;
         // La media comun es la base de los destinos que heredan; texto y media EFECTIVOS se comparan por destino (ADR-005, T-17).
         $commonIds = array_map(fn (MediaAsset $m) => (int) $m->id, $plan['media']);
-        $post->media()->sync(collect($plan['media'])->mapWithKeys(fn (MediaAsset $m, int $i) => [$m->id => ['position' => $i]])->all());
+        $previousCommonLinks = $before === null || $provenance !== null ? [] : $post->media()->newPivotQuery()
+            ->whereNotNull('design_export_id')->lockForUpdate()->pluck('design_export_id', 'media_asset_id')->all();
+        $commonLinks = $provenance?->common() ?? Arr::except($previousCommonLinks, $plan['detached_media'] ?? []);
+        $this->replaceCommonMedia($post, $commonIds, $commonLinks);
 
         $kept = [];
 
         foreach ($plan['targets'] as $t) {
-            $current = $existing->get($t['account']->id.'|'.$t['type']->value);
+            $targetKey = $t['account']->id.'|'.$t['type']->value;
+            $current = $existing->get($targetKey);
 
             if ($current === null) {
                 $target = new PostTarget([
@@ -423,6 +458,9 @@ class PostPlanner
                 ]);
                 $target->user_id = $post->user_id;
                 $target->post_id = $post->id;
+                if ($provenance !== null) {
+                    $target->setMediaProvenance($provenance->target($targetKey));
+                }
                 $target->save();
 
                 continue;
@@ -439,7 +477,7 @@ class PostPlanner
             $textChanged = $before !== null && $oldText !== $newText;
             $optionsChanged = $before !== null && ($current->options ?? []) != ($t['options'] ?? []);
             $mediaChanged = $before !== null && TargetMedia::effective($current, $before['media']) != TargetMedia::effective($t['media'], $commonIds);
-            $fresh = $current->status === PostStatus::Failed || $mediaChanged || $textChanged || $optionsChanged;
+            $fresh = (! $preserveTargetStatuses && $current->status === PostStatus::Failed) || $mediaChanged || $textChanged || $optionsChanged;
             // El primer comentario NO cuenta para `$fresh`: se publica despues del destino y no cambia lo que sale en la red.
             $manual = (bool) ($t['manual'] ?? false);
             $rescheduled = $before !== null && ! $this->sameInstant($before['scheduled_at'] ?? null, $plan['scheduled_at'] ?? null);
@@ -454,10 +492,20 @@ class PostPlanner
                 YouTubeResumableUpload::forgetSession($current->id);
             }
 
-            if ($current->status === $plan['status']) {
+            if ($provenance !== null) {
+                $current->setMediaProvenance($provenance->target($targetKey));
+            } elseif ($t['media'] !== null && ! $current->has_own_media) {
+                // Una lista personalizable que antes heredaba conserva el origen de los archivos copiados de la común.
+                $current->setMediaProvenance(Arr::except($previousCommonLinks, $t['detached_media'] ?? []));
+            } elseif (($t['detached_media'] ?? []) !== []) {
+                $current->setMediaProvenance($current->mediaItems->whereNotNull('design_export_id')
+                    ->pluck('design_export_id', 'media_asset_id')->except($t['detached_media'])->all());
+            }
+            $status = $preserveTargetStatuses ? $current->status : $plan['status'];
+            if ($current->status === $status) {
                 $current->forceFill($attributes)->save();
             } else {
-                $this->transitions->apply($current, $plan['status'], $attributes);
+                $this->transitions->apply($current, $status, $attributes);
             }
         }
 

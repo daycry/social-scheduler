@@ -13,11 +13,13 @@ La API está en `/api/v1`; MCP en `/mcp`. Ambos aceptan una API key personal com
 | `designs:read` | Consultar diseños, kits, recursos privados, exportaciones y sus estados. |
 | `designs:write` | Crear/editar/archivar/restaurar/duplicar diseños, editar kits, registrar recursos y solicitar render. |
 | `stats:read` | Consultar métricas mediante la API o `get_stats`. |
-| `brands:read` | Usar las herramientas previas `list_brands` y `list_media`. |
-| `posts:write` | Importar un archivo con la herramienta previa `import_media_from_url`; crear una publicación con `create_post`. |
+| `brands:read` | Consultar marcas con `list_brands`. |
+| `posts:write` | Crear una publicación con `create_post`. |
+| `media:read` | Consultar los archivos con `list_media`. |
+| `media:write` | Importar archivos con `import_media_from_url`. |
 | `canva:read` | Estado de Canva de una marca, diseños de Canva y trabajos de importación (`manage_canva`, `GET /brands/{brand}/canva*`). Ver [Canva](../modulos/canva.md). |
 | `canva:write` | Exportar un diseño de Canva a la biblioteca o enviar un recurso a Canva (`manage_canva`, `POST .../canva/exports` y `.../canva/uploads`). No compra ni publica nada. |
-| `studio:ai` | Generar y editar imágenes con IA (`generate_studio_image`, `/brands/{brand}/ai*`). Consume la cuota del proveedor; `designs:write` no basta. Ver [IA del estudio](../modulos/estudio-ia.md). |
+| `designs:ai` | Generar y editar imágenes con IA (`generate_studio_image`, `/brands/{brand}/ai*`). Consume la cuota del proveedor; `designs:write` no basta. Ver [IA del estudio](../modulos/estudio-ia.md). |
 
 `designs:write` no concede automáticamente `designs:read`. Para un flujo completo de diseño y seguimiento selecciona ambas. El preset «Publicar» incluye las abilities de lectura, pero debes añadir `designs:write` si quieres crear diseños. Todos los recursos se comprueban contra el usuario de la key y la marca correspondiente.
 
@@ -352,7 +354,7 @@ Flujo reproducible de las herramientas de diseño, adaptando los IDs a cada resp
 
 1. `list_designs({"brand_id":12,"page":1})` para consultar los diseños existentes; continúa con `page=2` si corresponde.
 2. `manage_brand_kit({"brand_id":12,"kit":{"palette":["#7c3aed","#ffffff"],"fonts":["Arial"],"voice":"Clara"}})` para preparar la marca. Repetir sin `kit` consulta el resultado.
-3. Si necesitas un recurso nuevo, usa la herramienta previa `import_media_from_url({"url":"https://tu-dominio.example/foto.png"})` con una URL pública válida. Consulta `list_media({"status":"pendiente"})` hasta que el archivo pase a `listo`; `list_media({"status":"invalido"})` da el motivo de fallo. La importación requiere `posts:write`; `list_media`, `brands:read`.
+3. Si necesitas un recurso nuevo, usa la herramienta previa `import_media_from_url({"url":"https://tu-dominio.example/foto.png"})` con una URL pública válida. Consulta `list_media({"status":"pendiente"})` hasta que el archivo pase a `listo`; `list_media({"status":"invalido"})` da el motivo de fallo. La importación requiere `media:write` y la consulta con `list_media` requiere `media:read`.
 4. `attach_design_asset({"brand_id":12,"media_id":701})`. Utiliza el ID real devuelto en un elemento `image`/`video` del documento, no la URL de importación.
 5. `create_design({"brand_id":12,"name":"Campaña","document":DOCUMENTO_V1})` con el objeto completo del ejemplo anterior. Para un logo, registra primero la imagen y actualiza después `kit.logos` con su ID.
 6. `get_design({"design_id":42})`. Conserva el documento y la revisión devueltos; modifica los elementos deseados.
@@ -476,7 +478,7 @@ La herramienta MCP dedicada `manage_design_captions` utiliza estas mismas operac
 
 Al exportar páginas, los runs contiguos conservan un único reloj fuente. Una página A de2s exportada sola conserva un cue1,8–1,95s entero aunque tuviera una transición original. En transiciones del resultado entre runs disjuntos, la fuente visual de subtítulos cambia en el punto medio del solapamiento para evitar duplicación o atenuación; el documento original permanece intacto.
 
-Este bloque manual no implementa reconocimiento de voz: sigue pendiente de elegir proveedor. La traducción de subtítulos (T-35) usa el asistente de IA: acción `translate_captions` de `POST /brands/{brand}/ai-text` (`studio:ai`), que devuelve una propuesta sin guardar nada. La [QA integral local de T-11](../roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa3/report.md) está aceptada, incluidos los subtítulos manuales. Las pruebas locales no acreditan despliegue, workers del VPS ni publicación real en redes.
+Este bloque manual no implementa reconocimiento de voz: sigue pendiente de elegir proveedor. La traducción de subtítulos (T-35) usa el asistente de IA: acción `translate_captions` de `POST /brands/{brand}/ai-text` (`designs:ai`), que devuelve una propuesta sin guardar nada. La [QA integral local de T-11](../roadmap/2026-11-03-creative-social-suite/testing/t11/final-qa3/report.md) está aceptada, incluidos los subtítulos manuales. Las pruebas locales no acreditan despliegue, workers del VPS ni publicación real en redes.
 
 
 ## Datasets por marca: API y MCP

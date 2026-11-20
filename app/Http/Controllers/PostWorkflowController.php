@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\InvalidPostTransition;
+use App\Exceptions\OwnershipException;
 use App\Exceptions\PostStateConflict;
 use App\Exceptions\PostValidationException;
 use App\Services\AuditLog;
@@ -18,7 +19,7 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
  */
 class PostWorkflowController extends Controller
 {
-    public function __construct(private readonly PostWorkflowActions $actions) {}
+    public function __construct(private readonly PostWorkflowActions $actions, private readonly AuditLog $auditLog) {}
 
     public function pending(Request $request): JsonResponse
     {
@@ -145,8 +146,9 @@ class PostWorkflowController extends Controller
             $this->audit($request, $action, AuditLog::ERROR, $postId);
 
             return response()->json(['message' => $e->getMessage()], 409);
-        } catch (HttpExceptionInterface $e) {
-            $this->audit($request, $action, $e->getStatusCode() === 404 ? AuditLog::DENIED : AuditLog::ERROR, $postId);
+        } catch (HttpExceptionInterface|OwnershipException $e) {
+            $outcome = $e instanceof OwnershipException || $e->getStatusCode() === 404 ? AuditLog::DENIED : AuditLog::ERROR;
+            $this->audit($request, $action, $outcome, $postId);
 
             throw $e;
         }
@@ -158,7 +160,7 @@ class PostWorkflowController extends Controller
     private function audit(Request $request, string $action, string $outcome, ?int $postId): void
     {
         if ($request->routeIs('api.*')) {
-            app(AuditLog::class)->record($request->user(), $action, $outcome, 'post', $postId, null, 'api');
+            $this->auditLog->record($request->user(), $action, $outcome, 'post', $postId, null, 'api');
         }
     }
 }

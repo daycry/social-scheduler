@@ -44,7 +44,7 @@ function api(string $key, string $method, string $uri, array $body = [])
 
 // ---------------------------------------------------------------------------------------------------------------- media
 
-test('media: lista solo la propia y lista con cursor, filtra por tipo y exige brands:read', function () {
+test('media: lista solo la propia y lista con cursor, filtra por tipo y exige media:read', function () {
     $mine = MediaAsset::factory()->count(3)->for($this->user)->create()->pluck('id')->sortDesc()->values()->all();
     MediaAsset::factory()->for($this->other)->create();
     $pdf = MediaAsset::factory()->for($this->user)->create(['kind' => 'pdf', 'mime' => 'application/pdf']);

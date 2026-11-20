@@ -6,6 +6,7 @@
 #   scheduler-worker@metrics.service          -> queue:work --queue=metrics
 #   scheduler-worker@reports.service          -> queue:work --queue=reports
 #   scheduler-worker@media.service            -> queue:work --queue=media
+#   scheduler-worker@studio-render.service    -> queue:work --queue=studio-render
 #   (la cola `studio` tiene su propia unidad: scheduler-studio.service)
 #
 # Instalacion en el VPS (ver deploy/systemd/README.md):

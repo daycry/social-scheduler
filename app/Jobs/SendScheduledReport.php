@@ -34,10 +34,11 @@ class SendScheduledReport implements ShouldQueue
 
     public function __construct(public readonly int $scheduleId)
     {
+        $this->timeout = max(1, min(110, (int) config('reports.timeout', $this->timeout)));
         $this->onQueue((string) config('reports.queue', 'reports'));
     }
 
-    public function handle(ReportService $reports): void
+    public function handle(ReportService $reports, JobFailureNotifier $failures): void
     {
         $schedule = ReportSchedule::withoutUserScope()->find($this->scheduleId);
 
@@ -84,7 +85,7 @@ class SendScheduledReport implements ShouldQueue
         if ($report->status !== Report::STATUS_READY) {
             RateLimiter::decrement($key, 86400, $reserved);
             $schedule->update(['last_run_at' => now(), 'last_error' => ReportService::GENERIC_ERROR]);
-            app(JobFailureNotifier::class)->report($schedule);
+            $failures->report($schedule);
 
             return;
         }

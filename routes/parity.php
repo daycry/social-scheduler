@@ -29,6 +29,7 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 Route::middleware(['auth', 'verified'])->group(function () {
     // Planificacion · Mejores horas (PA-05).
     Route::get('best-times', [BestTimesController::class, 'index'])->name('best-times.index');
+    Route::get('brands/{brand}/best-time-suggestion', [BestTimesController::class, 'suggest'])->whereNumber('brand')->name('best-times.suggest');
 
     // Planificacion · Biblioteca (PA-06).
     Route::get('library', [LibraryController::class, 'index'])->name('library.index');

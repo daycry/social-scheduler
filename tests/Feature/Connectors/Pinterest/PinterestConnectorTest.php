@@ -16,6 +16,7 @@ use App\Enums\ContentType;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\FixtureRecorder;
 use Tests\Support\NewNetworksFake;
 
 beforeEach(function () {
@@ -129,7 +130,8 @@ test('un pin de imagen lleva tablero, titulo derivado, descripcion, enlace y alt
         'media_source' => ['source_type' => 'image_url', 'url' => 'https://signed.example/i1.jpg'],
     ]);
     Http::assertSent(fn (Request $r) => $r->header('Authorization') === ['Bearer PI-TOKEN']);
-});
+    FixtureRecorder::assertRecorded('pinterest/success');
+})->group('provider-contracts');
 
 test('el titulo explicito manda sobre el derivado y el resultado trae el id y la URL del pin', function () {
     Http::fake(['api.pinterest.com/v5/pins' => Http::response(['id' => '9002'], 201)]);
@@ -211,4 +213,12 @@ test('los errores de Pinterest se traducen a la excepcion que la cola entiende',
     Http::fake(['api.pinterest.com/v5/pins' => Http::response(['code' => 1, 'message' => 'boom'], $status)]);
 
     expect(fn () => $this->publisher->publish(NewNetworksFake::pinterestAccount(), piRequest(ContentType::PinterestPin, 'x', [piImage(1)])))->toThrow($class);
-})->with([[401, ReconnectRequiredException::class], [403, PermanentPublishException::class], [400, PermanentPublishException::class], [429, QuotaExceededException::class], [500, TransientPublishException::class]]);
+})->with([[401, ReconnectRequiredException::class], [403, PermanentPublishException::class], [429, QuotaExceededException::class], [500, TransientPublishException::class]]);
+
+test('contrato de error de pinterest', function () {
+    Http::fake(['api.pinterest.com/v5/pins' => Http::response(['code' => 1, 'message' => 'boom'], 400)]);
+
+    expect(fn () => $this->publisher->publish(NewNetworksFake::pinterestAccount(), piRequest(ContentType::PinterestPin, 'x', [piImage(1)])))->toThrow(PermanentPublishException::class);
+
+    FixtureRecorder::assertRecorded('pinterest/error');
+})->group('provider-contracts');

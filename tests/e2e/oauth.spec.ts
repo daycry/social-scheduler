@@ -248,6 +248,9 @@ test.describe('MCP OAuth · navegador', () => {
 
         const first = await obtainToken(page, request, baseURL!, client, 'Solo lectura');
         expect((await mcpToolsList(request, first.access_token)).status()).toBe(200);
+        const readHeaders = { Authorization: `Bearer ${first.access_token}`, Accept: 'application/json' };
+        expect((await request.get('/api/v1/media', { headers: readHeaders })).status()).toBe(200);
+        expect((await request.post('/api/v1/media/import-url', { headers: readHeaders, data: {} })).status()).toBe(403);
 
         // CA-25: el token OAuth aparece con su origen y la key manual como «Manual».
         await page.goto('/api-keys');
@@ -263,12 +266,14 @@ test.describe('MCP OAuth · navegador', () => {
         const second = await obtainToken(page, request, baseURL!, client, 'Publicar');
         expect((await mcpToolsList(request, first.access_token)).status()).toBe(401);
         expect((await mcpToolsList(request, second.access_token)).status()).toBe(200);
+        const publishHeaders = { Authorization: `Bearer ${second.access_token}`, Accept: 'application/json' };
+        expect((await request.post('/api/v1/media/import-url', { headers: publishHeaders, data: {} })).status()).toBe(422);
         await page.goto('/api-keys');
         await expect(page.locator('li', { hasText: `OAuth · ${client.client_name}` })).toHaveCount(1);
 
         // Revocar el token OAuth: /mcp responde 401 con resource_metadata y la key manual sigue funcionando (CA-24, CA-25).
-        page.once('dialog', (d) => d.accept());
         await page.getByRole('button', { name: `Revocar OAuth · ${client.client_name}` }).click();
+        await page.getByTestId('confirm-dialog').getByRole('button', { name: 'Revocar API key', exact: true }).click();
         await expect(page.locator('li', { hasText: `OAuth · ${client.client_name}` })).toHaveCount(0);
         const revoked = await mcpToolsList(request, second.access_token);
         expect(revoked.status()).toBe(401);

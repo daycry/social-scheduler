@@ -6,6 +6,7 @@ use App\Exceptions\InvalidPostTransition;
 use App\Exceptions\PostValidationException;
 use App\Models\Post;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Support\Facades\Validator;
 use Throwable;
 
@@ -67,7 +68,7 @@ class BatchService
     {
         $post = Post::withoutUserScope()->find($id);
         $decision = in_array($action, ['approve', 'reject'], true);
-        $allowed = $post !== null && ($decision ? $this->approvals->canDecide($actor, $post) : (int) $post->user_id === (int) $actor->id);
+        $allowed = $post !== null && ($decision ? $this->approvals->canDecide($actor, $post) : Ownership::matches($post, $actor));
         if (! $allowed) {
             return ['post_id' => $id, 'ok' => false, 'error' => 'Publicacion no encontrada.'];
         }

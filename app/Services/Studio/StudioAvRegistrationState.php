@@ -19,14 +19,7 @@ class StudioAvRegistrationState
     public function allocateRegistration(StudioAvLease $lease): MediaAsset
     {
         return DB::transaction(function () use ($lease) {
-            $this->store->reserveSqliteWriter('studio_av_leases', $lease->id);
-            [$export, $workspace, $current] = $this->store->activeLease($lease);
-            if (! $current || $current->phase !== 'register') {
-                throw (new ModelNotFoundException)->setModel(StudioAvLease::class, [$lease->id]);
-            }
-            if ($workspace->media_retiring) {
-                throw new StudioAvWorkspaceBusy('La copia anterior todavía se está retirando.');
-            }
+            [$export, $workspace] = $this->lockRegistrationLease($lease);
             $source = $this->registrationSource($export);
             $result = $source->result;
             $kind = $export->format === 'mp4' ? MediaAsset::KIND_VIDEO : MediaAsset::KIND_IMAGE;
@@ -39,10 +32,7 @@ class StudioAvRegistrationState
 
                 return $media;
             }
-            $used = (int) StudioAvLease::where('workspace_id', $workspace->id)->where('category', 'output')->where('status', '!=', 'released')
-                ->sum(DB::raw('COALESCE(actual_bytes, reserved_bytes)'));
-            $limit = config('studio.av.disk.output', 8 * 1024 ** 3);
-            if (! is_int($limit) || $limit < 1 || $limit > 8 * 1024 ** 3 || $result['size'] > $limit - $used - $workspace->media_reserved_bytes) {
+            if (! $this->store->canReserveBytes($workspace, 'output', $result['size'])) {
                 throw ValidationException::withMessages(['export' => ['La copia final supera el presupuesto de almacenamiento del trabajo.']]);
             }
             $disk = (string) config('filesystems.media', 'local');
@@ -66,14 +56,7 @@ class StudioAvRegistrationState
     public function bindRegistrationLocation(StudioAvLease $lease, array $location): void
     {
         DB::transaction(function () use ($lease, $location) {
-            $this->store->reserveSqliteWriter('studio_av_leases', $lease->id);
-            [$export, $workspace, $current] = $this->store->activeLease($lease);
-            if (! $current || $current->phase !== 'register') {
-                throw (new ModelNotFoundException)->setModel(StudioAvLease::class, [$lease->id]);
-            }
-            if ($workspace->media_retiring) {
-                throw new StudioAvWorkspaceBusy('La copia anterior todavía se está retirando.');
-            }
+            [, $workspace] = $this->lockRegistrationLease($lease);
             $receipt = $workspace->media_receipt;
             if (! $receipt || $receipt['media_id'] !== $workspace->media_id || $receipt['state'] !== 'active'
                 || (! in_array($location['driver'] ?? null, ['local', 's3'], true))
@@ -114,6 +97,22 @@ class StudioAvRegistrationState
         return $this->runCheckpoint($checkpoint, $deadline);
     }
 
+    /** @return array{DesignExport, StudioAvWorkspace} */
+    private function lockRegistrationLease(StudioAvLease $lease): array
+    {
+        $this->store->reserveSqliteWriter('studio_av_leases', $lease->id);
+        [$export, $workspace, $current] = $this->store->activeLease($lease);
+        if (! $current || $current->phase !== 'register') {
+            throw (new ModelNotFoundException)->setModel(StudioAvLease::class, [$lease->id]);
+        }
+        if ($workspace->media_retiring) {
+            throw new StudioAvWorkspaceBusy('La copia anterior todavía se está retirando.');
+        }
+
+        return [$export, $workspace];
+    }
+
+    /** @internal */
     public function registrationSource(DesignExport $export): StudioAvLease
     {
         $sources = $this->store->checkpoints($export, ['assemble']);
@@ -142,6 +141,7 @@ class StudioAvRegistrationState
         return $source;
     }
 
+    /** @internal */
     public function assertRegistrationPin(StudioAvWorkspace $workspace, MediaAsset $media, array $result): void
     {
         if ($workspace->media_retiring) {

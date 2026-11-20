@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PostStatus;
 use App\Models\Concerns\BelongsToUser;
+use App\Models\Studio\StudioAsset;
 use App\Scopes\UserScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -114,14 +115,25 @@ class MediaAsset extends Model
             ->where('created_at', '>=', now()->subDays($days))->whereJsonContains('media_ids', $this->id)->exists();
     }
 
-    /** ¿La usa alguna publicacion (media comun o propia de un destino), una serie recurrente activa, una autolista o un export reciente? */
-    public function usedByPosts(): bool
+    public function usedByStudio(): bool
     {
-        return $this->usageReason() !== null;
+        return StudioAsset::withoutUserScope()->where('media_asset_id', $this->id)->exists();
     }
 
-    /** Motivo legible por el que no se puede borrar (`null` = libre). El orden es el de la consulta: la mas barata primero. */
+    /** ¿El archivo se usa en publicaciones, automatizaciones sociales o exportaciones recientes? */
+    public function usedByPosts(): bool
+    {
+        return $this->publicationUsageReason() !== null;
+    }
+
+    /** Motivo legible por el que no se puede borrar (`null` = libre). */
     public function usageReason(): ?string
+    {
+        return $this->publicationUsageReason()
+            ?? ($this->usedByStudio() ? 'El archivo está vinculado a Recursos del Estudio.' : null);
+    }
+
+    private function publicationUsageReason(): ?string
     {
         return match (true) {
             $this->posts()->exists() || $this->usedByTargetMedia() => 'El archivo se usa en una publicacion; quitalo de ella antes de borrarlo.',

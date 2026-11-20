@@ -85,9 +85,9 @@ class StudioApiController extends Controller
         return response()->json($this->studio->present($request->user(), $this->studio->restore($request->user(), $design), true));
     }
 
-    public function automation(Request $request, Design $design, string $operation): JsonResponse
+    public function automation(Request $request, Design $design, string $operation, StudioAutomation $automation): JsonResponse
     {
-        return response()->json(app(StudioAutomation::class)->perform($request->user(), $design, $operation, $request->all(), true),
+        return response()->json($automation->perform($request->user(), $design, $operation, $request->all(), true),
             in_array($operation, ['resize', 'apply-kit'], true) ? 200 : 201);
     }
 
@@ -153,10 +153,10 @@ class StudioApiController extends Controller
         return response()->json(['exports' => $this->exports->presentMany($request->user(), $history->getCollection()), 'pagination' => $this->exports->pageMetadata($history)]);
     }
 
-    public function export(Request $request, Design $design): JsonResponse
+    public function export(Request $request, Design $design, StudioFrames $frames, StudioRenderer $renderer): JsonResponse
     {
-        app(StudioFrames::class)->assertJsonList($request);
-        $export = app(StudioRenderer::class)->export($request->user(), $design, $request->all());
+        $frames->assertJsonList($request);
+        $export = $renderer->export($request->user(), $design, $request->all());
 
         return response()->json($this->exports->present($request->user(), $export), 202);
     }
@@ -166,16 +166,16 @@ class StudioApiController extends Controller
         return response()->json($this->exports->present($request->user(), $export));
     }
 
-    public function cancelExport(Request $request, DesignExport $export): JsonResponse
+    public function cancelExport(Request $request, DesignExport $export, StudioAvControl $avControl): JsonResponse
     {
-        $current = app(StudioAvControl::class)->cancel($request->user(), $export);
+        $current = $avControl->cancel($request->user(), $export);
 
         return response()->json($this->exports->present($request->user(), $current));
     }
 
-    public function retryExport(Request $request, DesignExport $export): JsonResponse
+    public function retryExport(Request $request, DesignExport $export, StudioAvControl $avControl): JsonResponse
     {
-        $current = app(StudioAvControl::class)->retry($request->user(), $export);
+        $current = $avControl->retry($request->user(), $export);
 
         return response()->json($this->exports->present($request->user(), $current), 202);
     }
@@ -183,7 +183,7 @@ class StudioApiController extends Controller
     public function createPost(Request $request, DesignExport $export): JsonResponse
     {
         validator(['payload' => $request->all()], ['payload' => ['array:text,targets']])->validate();
-        $post = $this->exports->createPost($request->user(), $export, $request->all());
+        $post = $this->exports->createPost($request->user(), $export, $request->only(['text', 'targets']));
 
         return response()->json(['post' => ['id' => $post->id, 'status' => $post->status->value, 'edit_url' => route('posts.edit', $post, absolute: false)]], 201);
     }

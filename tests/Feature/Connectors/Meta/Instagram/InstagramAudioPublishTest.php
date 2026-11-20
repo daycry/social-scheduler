@@ -6,6 +6,7 @@ use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Connectors\Exceptions\TransientPublishException;
 use App\Connectors\Meta\Instagram\InstagramPublisher;
+use App\Connectors\Support\StepBudget;
 use App\Enums\ContentType;
 use App\Models\SocialAccount;
 use Tests\Support\FakeGraph;
@@ -73,4 +74,17 @@ test('InstagramAudioPublish: provider messages cannot persist secrets in publica
         expect($e->errorCode)->toBe('rechazada');
         expect($e->getMessage())->not->toContain('token-secreto', 'signature=privada');
     }
+});
+
+test('InstagramAudioPublish: the audio lookup and the container flow share the job budget', function () {
+    $this->graph->on('GET', '#^587784541076604$#', ['audio_id' => '587784541076604', 'title' => 'Track']);
+    $request = new PublishRequest(1, $this->request->type, 'Reel', $this->request->media, $this->audioOptions, budget: StepBudget::within(0));
+
+    $result = (new InstagramPublisher)->publish($this->account, $request);
+
+    expect($result->isProcessing())->toBeTrue()
+        ->and($result->reference)->toBe('9001')
+        ->and($this->graph->callsTo('GET', '#^587784541076604$#'))->toHaveCount(1)
+        ->and($this->graph->callsTo('GET', '#^9001$#'))->toBeEmpty()
+        ->and($this->graph->callsTo('POST', '#/media_publish$#'))->toBeEmpty();
 });

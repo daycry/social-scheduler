@@ -1,0 +1,120 @@
+{
+  "duration_api_ms": 253651,
+  "stop_reason": "end_turn",
+  "session_id": "e5bff03e-b2f5-4932-bb63-88d9b3c4a635",
+  "total_cost_usd": 1.7051806,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 147628,
+    "cache_read_input_tokens": 123563,
+    "output_tokens": 24971,
+    "output_tokens_details": {
+      "thinking_tokens": 17913
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 147628,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 4,
+        "output_tokens": 971,
+        "cache_read_input_tokens": 123563,
+        "cache_creation_input_tokens": 24065,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 24065
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 24971,
+      "cacheReadInputTokens": 123563,
+      "cacheCreationInputTokens": 147628,
+      "webSearchRequests": 0,
+      "costUSD": 1.7051806,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 17913,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 147628,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 2,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "2. Node con el caso de `ready` que nunca se resuelve (I-2): el `DELETE` al servidor debe salir igualmente y `busy` debe volver a `false`.\n3. Navegador (E2E-20) repitiendo la revocación con `unsubscribe()` que no se resuelve: la tarjeta desaparece y el recuento en servidor es 0.\n4. Test de la cookie (I-1):\n   - Una suscripción existente con la cookie ausente o caducada recupera el identificador al visitar `index` o al reactivar.\n   - El logout posterior revoca solo ese dispositivo.\n5. Test de colisión entre dueños: B recibe un error de validación manejable (no 404), la fila de A queda intacta y no se transfiere el `user_id`.\n6. Si se corrige M-1: un fallo de DNS da `Retry`, una IP privada da `Rejected`, y el mensaje expuesto sigue siendo el mismo.\n7. Comprobación de despliegue para I-3: `GET /sw.js` en un entorno con la configuración nginx real devuelve 200 y `text/javascript` y no crea sesión. Esta comprobación es del operador; no se sustituye con un test local.\n8. Gates globales PHP r38 y navegador r39 en verde sobre el candidato corregido, además de TypeScript, vue-tsc, Pint, ESLint, Prettier y build.\n9. Si cambian `composer.json` o el lock (por ejemplo, la política 4): `composer validate --strict` y `composer audit` sobre el lock final, sin modificarlo después.\n\n## Resumen por eje\n\n| Eje | Estado | Bloqueantes |\n|---|---|---|\n| A Conformidad | Parcial | I-1 (logout tras 30 días), I-2 (revocación en servidor si PushManager no responde) |\n| B Corrección | Buena en MySQL y SQLite; clasificación DNS débil | M-1, M-4 |\n| C Seguridad | Sin fugas ni SSRF interno; SSRF ciego a internet público aceptado por contrato | — |\n| D Rendimiento | Correcto a escala personal | M-6, `/sw.js` en grupo `web` |\n| E Calidad | Buena separación de responsabilidades; campos muertos y duplicación base64url | M-5 |\n| Despliegue | Riesgo de 404 del worker en Hestia | I-3 (falta el hecho) |\n\n**Decisión:** cambios requeridos. Hay que corregir I-1 e I-2, confirmar o resolver I-3 y añadir los tests de M-3. M-1, M-2 y M-5 son baratos y conviene incluirlos en la misma iteración. M-07 (claves reales, HTTPS de producción y dispositivos) sigue a la espera del usuario y no bloquea esta implementación local.",
+  "ttft_ms": 186387,
+  "type": "result",
+  "duration_ms": 253859,
+  "uuid": "49becfa7-313c-43dd-a24d-e011a4a30614",
+  "ttft_stream_ms": 1338,
+  "time_to_request_ms": 195,
+  "first_content_frame_ms": 1338,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "model_usage_since_last_result": {
+    "claude-opus-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 24971,
+      "cacheReadInputTokens": 123563,
+      "cacheCreationInputTokens": 147628,
+      "webSearchRequests": 0,
+      "costUSD": 1.7051806,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 17913,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 147628,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "credential_expires_at": "2026-12-13T13:54:13.42Z"
+}

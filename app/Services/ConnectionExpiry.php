@@ -23,29 +23,38 @@ final class ConnectionExpiry
     /** @return array{at: CarbonInterface, reason: string}|null  Fecha mas proxima (futura) y motivo; null si no hay caducidad que avisar. */
     public static function deadline(SocialAccount $account): ?array
     {
+        $candidates = array_values(array_filter(self::candidates($account), fn (array $candidate) => $candidate['at']->isFuture()));
+
+        return $candidates[0] ?? null;
+    }
+
+    /** Plazo que requiere actuar, incluso ya vencido; comparte las reglas de selección de Conexiones.
+     * @return array{at: CarbonInterface, reason: string}|null
+     */
+    public static function knownDeadline(SocialAccount $account): ?array
+    {
+        return self::candidates($account)[0] ?? null;
+    }
+
+    /** @return list<array{at: CarbonInterface, reason: string}> */
+    private static function candidates(SocialAccount $account): array
+    {
         if ($account->status !== SocialAccount::STATUS_ACTIVE) {
-            return null;
+            return [];
         }
-
         $candidates = [];
-
         if ($account->data_access_expires_at !== null) {
             $candidates[] = ['at' => $account->data_access_expires_at, 'reason' => self::DATA_ACCESS];
         }
-
-        // El refresh token tambien caduca (LinkedIn 1 año; Pinterest y TikTok lo guardan): al vencer ya no hay renovacion automatica.
         if ($account->refresh_expires_at !== null) {
             $candidates[] = ['at' => $account->refresh_expires_at, 'reason' => self::REFRESH];
         }
-
         if ($account->network === Network::LinkedIn && $account->token_expires_at !== null && (string) $account->refresh_token === '') {
             $candidates[] = ['at' => $account->token_expires_at, 'reason' => self::TOKEN];
         }
+        usort($candidates, fn (array $left, array $right) => $left['at']->getTimestamp() <=> $right['at']->getTimestamp());
 
-        $candidates = array_values(array_filter($candidates, fn (array $c) => $c['at']->isFuture()));
-        usort($candidates, fn (array $a, array $b) => $a['at']->getTimestamp() <=> $b['at']->getTimestamp());
-
-        return $candidates[0] ?? null;
+        return $candidates;
     }
 
     /** Umbrales de aviso en dias (de mayor a menor), p. ej. [7, 1]. @return list<int> */

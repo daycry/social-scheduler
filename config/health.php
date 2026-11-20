@@ -4,6 +4,8 @@
 | Umbrales de salud (A-09). Los usa `App\Support\HealthCheck` (`app:health` y `/health`).
 */
 return [
+    // Vacío = nadie. Requiere correo verificado; no concede permisos editables desde la web.
+    'admin_emails' => array_values(array_filter(array_map('trim', explode(',', (string) env('SYSTEM_ADMIN_EMAILS', ''))))),
     // Segundos que puede llevar esperando el job pendiente mas viejo de una cola antes de avisar de «cola atrasada».
     // Las colas de trabajo nativo (media, studio) toleran mas. Una cola sin entrada usa `default`.
     'queue_max_age' => [

@@ -213,7 +213,7 @@ test('AV enqueue cannot apply a stale phase reservation after another delivery a
 
         return $real->claim($id, $generation, $bytes, ...$position);
     });
-    expect((new StudioAvQueue($leases, app(StudioAvLifecycle::class), app(StudioAvStore::class)))->enqueue($this->export->id))->toBeFalse();
+    expect(app()->make(StudioAvQueue::class, ['leases' => $leases])->enqueue($this->export->id))->toBeFalse();
     expect(app(StudioAvStore::class)->task($this->export->refresh()))->toBe(['phase' => 'render', 'index' => 0]);
     Queue::assertNothingPushed();
 });

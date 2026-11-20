@@ -96,6 +96,10 @@ jobs:
           restore-keys: composer-vendor-php8.4-
       - run: composer install --no-interaction --prefer-dist --no-scripts
       - run: npm ci
+      - name: Vue lint
+        run: npm run lint
+      - name: Vue format
+        run: npm run format:check
       # tests/frontend/*.test.mjs (sin navegador) y tests/e2e/isolated/*.test.cjs, con `node --test --expose-gc`.
       - name: Node unit tests
         run: npm run test:unit
@@ -147,7 +151,7 @@ jobs:
         run: npm run test:browser
 
   typecheck:
-    name: typecheck (tsc)
+    name: typecheck (TypeScript + Vue)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -156,8 +160,19 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, pdo_sqlite, bcmath
+          coverage: none
+      - name: Composer cache (vendor)
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-vendor-php8.4-no-dev-${{ hashFiles('composer.lock') }}
+      - run: composer install --no-dev --no-interaction --prefer-dist
       - run: npm ci
-      # tsc --noEmit sobre tests/e2e y las configs de Playwright (tsconfig.json; los .cjs/.mjs se infieren con allowJs, sin checkJs).
+      # Ziggy genera las declaraciones de las rutas registradas en Laravel.
       - name: Typecheck
         run: npm run typecheck
 

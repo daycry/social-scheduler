@@ -148,12 +148,15 @@ test('E2E-29 real fullscreen entry exit focus restoration and owned popup closur
 
 for (const action of ['close', 'design-unmount'] as const) test(`E2E-29 pending real media preparation cancelled by ${action} never publishes or plays late`, async ({ page }, info) => {
     const { user, id } = await setup(page, info); let release: () => void = () => {}; let delivered = false;
+    let settleDelivery!: () => void;
+    const deliverySettled = new Promise<void>(resolve => { settleDelivery = resolve; });
     try {
         await installAV(page, info, id); await observe(page);
         const held = new Promise<void>(resolve => { release = resolve; }); let received!: () => void; const realReceived = new Promise<void>(resolve => { received = resolve; });
         await page.route('**/brands/*/studio/assets/*/file', async route => {
             const response = await route.fetch(); expect([200, 206]).toContain(response.status()); received(); await held;
             try { await route.fulfill({ response }); delivered = true; } catch (error) { if (action !== 'design-unmount') throw error; }
+            finally { settleDelivery(); }
         });
         await page.getByRole('button', { name: 'Presentar', exact: true }).click(); await realReceived;
         await expect(modal(page).getByRole('status')).toHaveText('Preparando medios…');
@@ -165,11 +168,18 @@ for (const action of ['close', 'design-unmount'] as const) test(`E2E-29 pending 
             expect(data.draws.filter((d: any) => d.at > closed && outputs.includes(d.target))).toEqual([]); await expect(modal(page)).toHaveCount(0);
         } else {
             // Inertia navigation unmounts the editor in the same JS realm, retaining native observers.
+            const leaving = await mark(page, true);
             const home = page.getByRole('link', { name: 'Volver al estudio', exact: true }); await expect(home).toBeAttached();
-            const closed = await mark(page, true); await home.evaluate((anchor: HTMLAnchorElement) => anchor.click()); await expect(page).toHaveURL(/\/studio(?:\?.*)?$/);
-            release(); await quietFor(page, 1200); /* negativa: una preparación cancelada no llega a reproducir */ await paused(page);
-            const data = await evidence(page, info, 'native-design-unmounted'); expect(data.events.filter((e: any) => e.at > closed && ['play', 'playing', 'call:play'].includes(e.event))).toEqual([]);
-            expect(data.draws.filter((d: any) => d.at > closed && outputs.includes(d.target))).toEqual([]);
+            await home.evaluate((anchor: HTMLAnchorElement) => anchor.click());
+            await expect(page).toHaveURL(/\/studio(?:\?.*)?$/);
+            await expect(modal(page)).toHaveCount(0);
+            await expect(page.getByRole('heading', { name: 'Estudio creativo', exact: true })).toBeVisible();
+            await expect(page.getByRole('textbox', { name: 'Nombre del diseño', exact: true })).toHaveCount(0);
+            // Media remains held until the editor is gone. Frames painted while navigation is pending belong to the live editor.
+            const closed = await mark(page, true);
+            release(); await deliverySettled; await quietFor(page, 1200); /* negativa: una preparación cancelada no llega a reproducir */ await paused(page);
+            const data = await evidence(page, info, 'native-design-unmounted'); expect(data.events.filter((e: any) => e.at >= leaving && ['play', 'playing', 'call:play'].includes(e.event))).toEqual([]);
+            expect(data.draws.filter((d: any) => d.at >= closed && outputs.includes(d.target))).toEqual([]);
             await expect(modal(page)).toHaveCount(0);
         }
         await page.screenshot({ path: info.outputPath(`native-cancel-${action}.png`), fullPage: true });

@@ -96,6 +96,7 @@ test('E2E-02 · vistas del calendario: guardar, aplicar desde otro filtro, renom
 
     // Borrar: el selector vuelve al estado vacío.
     await page.getByTestId('view-delete').click();
+    await page.getByTestId('confirm-dialog').getByRole('button', { name: 'Borrar vista' }).click();
     await settle(page);
     await expect(rows(page)).toHaveCount(0);
     await expect(page.getByTestId('views-empty')).toBeVisible();

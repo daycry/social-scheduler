@@ -195,6 +195,20 @@ test.describe('axe · login social, cuentas vinculadas y consentimiento', () => 
         await axeYSinDesbordamiento(page, '/profile (diálogo de desvincular)');
     });
 
+    test('Perfil conserva identificadores únicos al confirmar la eliminación de cuenta', { tag: '@responsive' }, async ({ page }) => {
+        await loginAs(page, user);
+        await confirmPassword(page, user.password);
+        await page.goto('/profile');
+        await page.getByRole('button', { name: 'Eliminar cuenta', exact: true }).click();
+        const dialog = page.getByRole('dialog', { name: '¿Seguro que quieres eliminar tu cuenta?' });
+        const password = dialog.getByLabel('Contraseña', { exact: true });
+        await expect(password).toBeFocused();
+        const id = await password.getAttribute('id');
+        expect(id).toBeTruthy();
+        await expect(page.locator(`[id="${id}"]`)).toHaveCount(1);
+        await expect(page.locator(`[id="${id}-error"]`)).toHaveCount(1);
+    });
+
     test('consentimiento OAuth: pantalla de autorización y pantalla de error', { tag: '@responsive' }, async ({ page, request, baseURL }) => {
         const registered = await request.post('/oauth/register', { data: { client_name: `e2e-a11y-${stamp()}`, redirect_uris: [OAUTH_REDIRECT] } });
         expect(registered.status()).toBe(201);
@@ -218,9 +232,97 @@ test.describe('axe · login social, cuentas vinculadas y consentimiento', () => 
         await page.getByRole('button', { name: 'Todo', exact: true }).click();
         await axeYSinDesbordamiento(page, '/oauth/authorize (preset Todo)');
 
+        await page.route('**/oauth/authorize', async route => {
+            const data = route.request().postDataJSON();
+            await route.continue({ postData: JSON.stringify({ ...data, abilities: [data.abilities[0], 'e2e.invalid'] }) });
+        }, { times: 1 });
+        await page.getByRole('button', { name: 'Autorizar', exact: true }).click();
+        const group = page.getByRole('group', { name: 'Permisos', exact: true });
+        const alert = page.getByRole('alert').filter({ hasText: /\S/ });
+        await expect(alert).toBeVisible();
+        await expect(group).toHaveAccessibleDescription(await alert.innerText());
+        await expect(group).toBeFocused();
+
         // Pantalla de error propia (cliente desconocido): nunca redirige al cliente.
         await page.goto(`/oauth/authorize?${new URLSearchParams({ response_type: 'code', client_id: 'no-existe' })}`);
         await expect(page.getByRole('heading', { name: 'No se puede autorizar esta conexión' })).toBeVisible();
         await axeYSinDesbordamiento(page, '/oauth/authorize (error)');
+    });
+});
+
+test('E2E-12 · el error de acceso queda asociado al campo de correo @responsive', async ({ page }, info) => {
+    await page.goto('/login');
+    const email = page.getByLabel('Correo electrónico');
+    await email.fill(`e2e-invalid-${stamp()}-${info.project.name}@example.test`);
+    await page.getByLabel('Contraseña', { exact: true }).fill('Fixture-invalid-Aa1!');
+    await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+
+    const error = page.getByRole('alert').filter({ hasText: 'Estas credenciales no coinciden con nuestros registros.' });
+    await expect(error).toBeVisible();
+    await expect(email).toHaveAttribute('aria-invalid', 'true');
+    await expect(email).toHaveAccessibleDescription(await error.innerText());
+    await axeYSinDesbordamiento(page, 'Inicio de sesión con error asociado');
+});
+
+test.describe('E2E-12 · pestañas del área autenticada', () => {
+    test.use({ storageState: AUTH_FILE });
+
+    test('Calendario navega con flechas y anuncia el panel activo @responsive', async ({ page }) => {
+        await page.goto('/calendar?view=week');
+        const tabs = page.getByRole('tablist', { name: 'Vista del calendario' });
+        const week = tabs.getByRole('tab', { name: 'Semana', exact: true });
+        const month = tabs.getByRole('tab', { name: 'Mes', exact: true });
+        const list = tabs.getByRole('tab', { name: 'Lista', exact: true });
+
+        await expect(week).toHaveAttribute('aria-selected', 'true');
+        await expect(month).toHaveAttribute('tabindex', '-1');
+        await week.focus();
+        await page.keyboard.press('ArrowRight');
+        await expect(month).toBeFocused();
+        await expect(month).toHaveAttribute('aria-selected', 'true');
+        const panel = page.getByRole('tabpanel', { name: 'Mes', exact: true });
+        await expect(panel).toHaveAttribute('id', (await month.getAttribute('aria-controls'))!);
+
+        await page.keyboard.press('End');
+        await expect(list).toBeFocused();
+        await expect(list).toHaveAttribute('aria-selected', 'true');
+        await expect(page.getByRole('tabpanel', { name: 'Lista', exact: true })).toBeVisible();
+        await page.keyboard.press('ArrowRight');
+        await expect(week).toBeFocused();
+        await expect(week).toHaveAttribute('aria-selected', 'true');
+        await axeYSinDesbordamiento(page, 'Calendario con navegación por pestañas');
+    });
+
+    test('las pestañas de instalación de MCP conservan foco y panel @responsive', async ({ page }) => {
+        await page.goto('/api-keys');
+        const tabs = page.getByRole('tablist', { name: 'Cliente' });
+        const first = tabs.getByRole('tab', { name: 'Claude Code', exact: true });
+        const last = tabs.getByRole('tab', { name: 'OpenCode', exact: true });
+
+        await first.focus();
+        await page.keyboard.press('ArrowLeft');
+        await expect(last).toBeFocused();
+        await expect(last).toHaveAttribute('aria-selected', 'true');
+        await expect(page.getByRole('tabpanel')).toHaveAccessibleName(await last.innerText());
+        await page.keyboard.press('Home');
+        await expect(first).toHaveAttribute('aria-selected', 'true');
+        await expect(first).toBeFocused();
+        await page.keyboard.press('Tab');
+        await expect(page.getByRole('tabpanel', { name: 'Claude Code' })).toBeFocused();
+    });
+
+    test('API keys enfoca el grupo de permisos rechazado por el servidor @responsive', async ({ page }) => {
+        await page.goto('/api-keys');
+        await page.getByLabel('Nombre (p. ej. Claude Desktop)').fill('Permisos no válidos');
+        await page.route('**/api-keys', async route => {
+            const data = route.request().postDataJSON();
+            await route.continue({ postData: JSON.stringify({ ...data, abilities: [data.abilities[0], 'e2e.invalid'] }) });
+        }, { times: 1 });
+        await page.getByRole('button', { name: 'Crear API key', exact: true }).click();
+        const permissions = page.getByRole('group', { name: 'Permisos', exact: true });
+        await expect(permissions).toBeFocused();
+        await expect(permissions).toHaveAccessibleDescription(/permiso|válid/i);
+        await expect(permissions.locator('input[type=checkbox][aria-describedby]')).toHaveCount(0);
+        await axeYSinDesbordamiento(page, 'API keys con error de permisos');
     });
 });

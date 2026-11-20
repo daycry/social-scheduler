@@ -33,7 +33,6 @@ class CampaignController extends Controller
             'campaigns' => $brand
                 ? $this->campaigns->listForBrand($request->user(), $brand->id)->map(fn (Campaign $c) => $this->campaigns->toArray($c))->values()
                 : [],
-            'flash' => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error')],
         ]);
     }
 

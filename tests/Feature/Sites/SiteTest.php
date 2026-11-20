@@ -292,6 +292,10 @@ test('las imagenes solo se sirven si estan en lo publicado y con cabeceras de sa
     expect($r->headers->get('Content-Security-Policy'))->toBe("default-src 'none'; sandbox")->and($r->headers->get('Content-Type'))->toBe('image/png');
     $this->get("/s/mi-sitio/_m/{$other->id}")->assertNotFound();
     $this->get('/s/mi-sitio')->assertSee("/s/mi-sitio/_m/{$mine->id}", false)->assertSee('alt="Foto"', false);
+
+    $this->actingAs(User::factory()->create());
+    $this->get("/s/mi-sitio/_m/{$mine->id}")->assertOk();
+    $this->get("/s/mi-sitio/_m/{$other->id}")->assertNotFound();
 });
 
 test('el estudio se incrusta como imagen exportada de la misma marca', function () {

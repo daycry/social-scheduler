@@ -1,6 +1,8 @@
 <script setup>
 import NetworkIcon from '@/Components/NetworkIcon.vue';
 
+/** @typedef {{ title: string, text: string, kind: 'chart' | 'calendar' | 'report' | 'inbox' | 'link' }} FeatureCard */
+
 /**
  * Estado vacío de módulo reutilizable: banner con título + descripción + CTA (slot `cta`) y tres tarjetas de
  * valor con ilustración CSS propia. `cards`: [{ title, text, kind: 'chart' | 'calendar' | 'report' | 'inbox' | 'link' }]
@@ -9,14 +11,16 @@ import NetworkIcon from '@/Components/NetworkIcon.vue';
 defineProps({
     title: { type: String, required: true },
     description: { type: String, default: '' },
-    network: { type: String, default: null },
-    cards: { type: Array, default: () => [] },
+    network: { type: /** @type {import('vue').PropType<string | null>} */ (String), default: null },
+    cards: { type: /** @type {import('vue').PropType<FeatureCard[]>} */ (Array), default: () => [] },
 });
 </script>
 
 <template>
     <div class="space-y-6" data-testid="feature-empty">
-        <section class="card flex flex-col items-start gap-5 overflow-hidden bg-gradient-to-br from-white to-indigo-50 p-6 sm:flex-row sm:items-center sm:p-8">
+        <section
+            class="card flex flex-col items-start gap-5 overflow-hidden bg-gradient-to-br from-white to-indigo-50 p-6 sm:flex-row sm:items-center sm:p-8"
+        >
             <NetworkIcon v-if="network" :network="network" size="lg" />
             <div class="min-w-0 flex-1">
                 <h2 class="text-xl font-bold text-slate-900">{{ title }}</h2>
@@ -29,11 +33,21 @@ defineProps({
             <article v-for="c in cards" :key="c.title" class="card p-5">
                 <div class="mb-4 flex h-24 items-end gap-2 rounded-lg bg-slate-50 p-3" aria-hidden="true">
                     <template v-if="c.kind === 'chart'">
-                        <span v-for="h in [30, 45, 38, 60, 52, 78, 90]" :key="h" class="flex-1 rounded-t bg-gradient-to-t from-indigo-500 to-teal-400" :style="{ height: h + '%' }"></span>
+                        <span
+                            v-for="h in [30, 45, 38, 60, 52, 78, 90]"
+                            :key="h"
+                            class="flex-1 rounded-t bg-gradient-to-t from-indigo-500 to-teal-400"
+                            :style="{ height: h + '%' }"
+                        ></span>
                     </template>
                     <template v-else-if="c.kind === 'calendar'">
                         <div class="grid h-full w-full grid-cols-4 gap-1.5">
-                            <span v-for="i in 8" :key="i" class="rounded" :class="[2, 5, 6].includes(i) ? 'bg-indigo-400' : 'bg-slate-200'"></span>
+                            <span
+                                v-for="i in 8"
+                                :key="i"
+                                class="rounded"
+                                :class="[2, 5, 6].includes(i) ? 'bg-indigo-400' : 'bg-slate-200'"
+                            ></span>
                         </div>
                     </template>
                     <template v-else-if="c.kind === 'inbox'">

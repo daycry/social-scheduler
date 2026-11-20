@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PostStatus;
 use App\Models\Concerns\BelongsToUser;
+use App\Models\Studio\DesignExport;
 use App\Scopes\UserScope;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -84,6 +85,11 @@ class Post extends Model
     public function targets(): HasMany
     {
         return $this->hasMany(PostTarget::class)->withoutGlobalScope(UserScope::class);
+    }
+
+    public function designExport(): BelongsTo
+    {
+        return $this->belongsTo(DesignExport::class);
     }
 
     public function media(): BelongsToMany

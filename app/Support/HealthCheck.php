@@ -25,6 +25,8 @@ class HealthCheck
     /** Ventana (horas) en la que un job fallido cuenta como aviso; los mas antiguos no degradan el estado. */
     public const FAILED_WINDOW_HOURS = 24;
 
+    public function __construct(private readonly BackupStatus $backupStatus) {}
+
     /**
      * `ok` = false solo si algo esta caido. Un job fallido reciente deja `status` en
      * `degraded` (informado en el JSON) pero no tumba el endpoint ni el deploy.
@@ -192,7 +194,7 @@ class HealthCheck
      */
     public function backup(): array
     {
-        $r = app(BackupStatus::class)->check();
+        $r = $this->backupStatus->check();
 
         return $r['ok'] ? $r : ['ok' => true, 'warn' => true, 'detail' => 'AVISO: '.$r['detail']];
     }

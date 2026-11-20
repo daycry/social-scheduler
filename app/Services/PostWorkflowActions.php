@@ -7,6 +7,7 @@ use App\Models\Post;
 use App\Models\PostSeries;
 use App\Models\PostTarget;
 use App\Models\User;
+use App\Support\Ownership;
 
 /**
  * Acciones del flujo de publicacion (T-19) con UNA sola forma de entrada y de salida: web, API REST y MCP las llaman aqui, asi
@@ -62,7 +63,7 @@ class PostWorkflowActions
     {
         $model = $this->owned($user, $post);
         $row = PostTarget::withoutUserScope()->where('post_id', $model->id)->find($target);
-        abort_if($row === null, 404);
+        Ownership::ensure($row !== null);
         $done = $this->manual->markPublished($user, $model, $row, $url);
 
         return ['post' => $this->presenter->present($model->fresh()), 'target' => ['id' => $done->id, 'status' => $done->status->value, 'external_url' => $done->external_url]];
@@ -167,7 +168,7 @@ class PostWorkflowActions
     private function owned(User $user, int $post): Post
     {
         $model = Post::ownedBy($user->id)->find($post);
-        abort_if($model === null, 404);
+        Ownership::assert($model, $user);
 
         return $model;
     }
@@ -175,7 +176,7 @@ class PostWorkflowActions
     private function ownedSeries(User $user, int $series): PostSeries
     {
         $model = PostSeries::ownedBy($user->id)->find($series);
-        abort_if($model === null, 404);
+        Ownership::assert($model, $user);
 
         return $model;
     }
@@ -183,7 +184,7 @@ class PostWorkflowActions
     private function ownedBrand(User $user, int $brand): Brand
     {
         $model = Brand::ownedBy($user->id)->find($brand);
-        abort_if($model === null, 404);
+        Ownership::assert($model, $user);
 
         return $model;
     }

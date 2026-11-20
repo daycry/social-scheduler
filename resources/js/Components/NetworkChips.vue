@@ -3,6 +3,9 @@ import NetworkIcon from '@/Components/NetworkIcon.vue';
 import { Link } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
+/** @typedef {{ label: string, href: string }} NetworkLink */
+/** @typedef {NetworkLink & { value: string, connected?: boolean, connectHref?: string | null, testid?: string }} NetworkChip */
+
 /**
  * Chips de red: una fila horizontal de enlaces con el icono y el nombre de cada red (Resumen + redes del Dashboard; redes de
  * Competidores). `items`: `{ value, label, href, connected?, connectHref?, testid? }`; una red sin conectar (`connected: false`) lleva a
@@ -10,17 +13,19 @@ import { ref } from 'vue';
  * Los estilos son los de la barra de redes del Dashboard: ninguna pantalla repite este patrón.
  */
 const props = defineProps({
-    items: { type: Array, required: true },
-    active: { type: String, default: null },
-    summary: { type: Object, default: null },
+    items: { type: /** @type {import('vue').PropType<NetworkChip[]>} */ (Array), required: true },
+    active: { type: /** @type {import('vue').PropType<string | null>} */ (String), default: null },
+    summary: { type: /** @type {import('vue').PropType<NetworkLink | null>} */ (Object), default: null },
     label: { type: String, default: 'Redes' },
 });
 
-const nav = ref(null);
+const nav = ref(/** @type {HTMLElement | null} */ (null));
 
+/** @param {KeyboardEvent} e */
 const onKey = (e) => {
+    if (!nav.value) return;
     const links = [...nav.value.querySelectorAll('a')];
-    const i = links.indexOf(document.activeElement);
+    const i = links.findIndex((link) => link === document.activeElement);
     let to = null;
     if (e.key === 'ArrowRight') to = links[(i + 1) % links.length];
     else if (e.key === 'ArrowLeft') to = links[(i - 1 + links.length) % links.length];
@@ -37,7 +42,12 @@ const off = 'bg-white text-slate-700 ring-1 ring-slate-200';
 
 <template>
     <nav ref="nav" class="flex gap-2 overflow-x-auto pb-1 text-sm" :aria-label="label" @keydown="onKey">
-        <Link v-if="summary" :href="summary.href" :aria-current="active === 'summary' ? 'page' : undefined" :class="['shrink-0 rounded-full px-3 py-1.5 font-medium', active === 'summary' ? on : off]">
+        <Link
+            v-if="summary"
+            :href="summary.href"
+            :aria-current="active === 'summary' ? 'page' : undefined"
+            :class="['shrink-0 rounded-full px-3 py-1.5 font-medium', active === 'summary' ? on : off]"
+        >
             {{ summary.label }}
         </Link>
         <template v-for="n in items" :key="n.value">

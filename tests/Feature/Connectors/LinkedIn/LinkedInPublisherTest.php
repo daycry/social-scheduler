@@ -16,6 +16,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\FixtureRecorder;
 use Tests\Support\NewNetworksFake;
 
 beforeEach(function () {
@@ -67,7 +68,8 @@ test('publica texto como perfil con la Posts API, cabeceras de version y texto e
         ->and($body['commentary'])->toBe('Hola \(mundo\) #lanzamiento\_1 \@ana')->and($body)->not->toHaveKey('content')
         ->and($body['distribution']['feedDistribution'])->toBe('MAIN_FEED')->and($body['isReshareDisabledByAuthor'])->toBeFalse();
     Http::assertSent(fn (Request $r) => $r->header('Authorization') === ['Bearer LI-TOKEN'] && $r->header('X-Restli-Protocol-Version') === ['2.0.0'] && $r->header('LinkedIn-Version') === [config('social.linkedin.api_version')]);
-});
+    FixtureRecorder::assertRecorded('linkedin/success');
+})->group('provider-contracts');
 
 test('una imagen se sube desde el disco y se publica con su texto alternativo', function () {
     Http::fake([
@@ -167,6 +169,14 @@ test('los errores de LinkedIn se traducen a la excepcion que la cola entiende', 
 
     expect(fn () => $this->publisher->publish($this->account, liRequest(ContentType::LinkedInText, 'x')))->toThrow($class);
 })->with([[401, ReconnectRequiredException::class], [403, PermanentPublishException::class], [422, PermanentPublishException::class], [429, QuotaExceededException::class], [503, TransientPublishException::class]]);
+
+test('contrato de error de linkedin', function () {
+    Http::fake(['api.linkedin.com/rest/posts' => Http::response(['message' => 'boom', 'status' => 403], 403)]);
+
+    expect(fn () => $this->publisher->publish($this->account, liRequest(ContentType::LinkedInText, 'x')))->toThrow(PermanentPublishException::class);
+
+    FixtureRecorder::assertRecorded('linkedin/error');
+})->group('provider-contracts');
 
 test('un fallo de red es transitorio', function () {
     Http::fake(fn () => throw new ConnectionException('timeout'));

@@ -4,6 +4,7 @@ use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\Passkeys\PasskeyFailure;
 use App\Services\Passkeys\PasskeyGateway;
+use Laravel\Passkeys\Actions\StorePasskey;
 use Tests\Support\FakePasskeys;
 
 beforeEach(fn () => FakePasskeys::bind());
@@ -70,6 +71,19 @@ test('PasskeyGateway: registrar guarda la passkey del usuario y audita sin mater
     foreach ($row->getAttributes() as $value) {
         expect((string) $value)->not->toContain($passkey->credential_id);
     }
+});
+
+test('PasskeyGateway: el contenedor inyecta la Action de registro sustituida', function () {
+    $user = User::factory()->create();
+    $expected = FakePasskeys::seed($user, 'Acción sustituida', 'cred-action');
+    $store = Mockery::mock(StorePasskey::class);
+    $store->shouldReceive('__invoke')->once()->withArgs(fn ($actor, $name) => $actor->is($user) && $name === 'Acción sustituida')->andReturn($expected);
+    $this->app->instance(StorePasskey::class, $store);
+
+    $gateway = app(PasskeyGateway::class);
+    $gateway->registrationOptions($user);
+
+    expect($gateway->register($user, 'Acción sustituida', FakePasskeys::credential('cred-new', 'attestation')))->toBe($expected);
 });
 
 test('PasskeyGateway: registrar el mismo autenticador dos veces se rechaza', function () {

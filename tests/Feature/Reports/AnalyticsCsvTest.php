@@ -73,7 +73,10 @@ it('CSV de analitica: solo marcas propias, exige sesion y valida el periodo', fu
     $csv = csvBody($this->actingAs($this->user)->get(route('exports.analytics', ['from' => '2026-10-01', 'to' => '2026-10-10'])));
     expect($csv)->not->toContain('Ajena')->and($csv)->not->toContain('999');
 
-    $this->actingAs($this->user)->get(route('exports.analytics', ['from' => '2026-10-10', 'to' => '2026-10-01']))->assertStatus(422);
+    $url = route('exports.analytics', ['from' => '2026-10-10', 'to' => '2026-10-01']);
+    $this->actingAs($this->user)->get($url)->assertUnprocessable();
+    $this->getJson($url)
+        ->assertUnprocessable()->assertJsonValidationErrors('from');
     $this->actingAs($this->user)->get(route('exports.analytics', ['compare' => 'otro']))->assertSessionHasErrors('compare');
 
     auth()->logout();

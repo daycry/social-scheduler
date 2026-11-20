@@ -91,7 +91,8 @@ const lift = (t) => (t.lift_pct == null ? null : `${t.lift_pct > 0 ? '+' : ''}${
             :aria-expanded="open"
             data-testid="hashtags-open"
             @click="toggle"
-        ><span aria-hidden="true"># </span>Hashtags</button>
+            ><span aria-hidden="true"># </span>Hashtags</button
+        >
 
         <div
             v-if="open"
@@ -103,11 +104,21 @@ const lift = (t) => (t.lift_pct == null ? null : `${t.lift_pct > 0 ? '+' : ''}${
             @keydown="onKeydown"
             @keydown.tab="onTab"
         >
-            <p class="text-xs text-slate-600">De tu propio histórico (sin IA): los que has usado al menos {{ result?.min_uses ?? 2 }} veces, de mejor a peor rendimiento.</p>
+            <p class="text-xs text-slate-600"
+                >De tu propio histórico (sin IA): los que has usado al menos {{ result?.min_uses ?? 2 }} veces, de mejor
+                a peor rendimiento.</p
+            >
 
             <p v-if="loading" class="mt-2 text-sm text-slate-600" role="status">Cargando…</p>
-            <p v-else-if="failed" class="mt-2 text-sm text-rose-700" role="alert">No se pudieron cargar las sugerencias.</p>
-            <p v-else-if="result && !result.available" class="mt-2 text-sm text-slate-600" data-testid="hashtags-empty">{{ result.reason }}</p>
+            <p v-else-if="failed" class="mt-2 text-sm text-rose-700" role="alert"
+                >No se pudieron cargar las sugerencias.</p
+            >
+            <p
+                v-else-if="result && !result.available"
+                class="mt-2 text-sm text-slate-600"
+                data-testid="hashtags-empty"
+                >{{ result.reason }}</p
+            >
             <ul v-else-if="result" class="mt-2 flex max-h-60 flex-wrap gap-1.5 overflow-y-auto" aria-label="Hashtags">
                 <li v-for="t in result.tags" :key="t.tag">
                     <button
@@ -116,18 +127,38 @@ const lift = (t) => (t.lift_pct == null ? null : `${t.lift_pct > 0 ? '+' : ''}${
                         data-testid="hashtag-chip"
                         :title="`${t.uses} usos · ${Math.round(t.avg_interactions)} interacciones de media`"
                         @click="pick(t)"
-                    >#{{ t.tag }}<span class="ms-1.5 text-xs font-normal text-indigo-900/80">{{ t.uses }}×<template v-if="lift(t)"> · {{ lift(t) }}</template></span></button>
+                        >#{{ t.tag
+                        }}<span class="ms-1.5 text-xs font-normal text-indigo-900/80"
+                            >{{ t.uses }}×<template v-if="lift(t)"> · {{ lift(t) }}</template></span
+                        ></button
+                    >
                 </li>
             </ul>
 
             <p v-if="maxima.length" class="mt-2 text-xs text-slate-600" data-testid="hashtags-max">
-                Máximo por red: <template v-for="(r, i) in maxima" :key="r.target.account_id + r.target.content_type"><template v-if="i">, </template>{{ label(r) }} {{ r.max }}</template>.
+                Máximo por red:
+                <template v-for="(r, i) in maxima" :key="r.target.account_id + r.target.content_type"
+                    ><template v-if="i">, </template>{{ label(r) }} {{ r.max }}</template
+                >.
             </p>
-            <p v-if="exceeded.length" class="mt-1 text-xs font-medium text-rose-700" role="status" data-testid="hashtags-over">
-                Supera el máximo de hashtags en <template v-for="(r, i) in exceeded" :key="r.target.account_id + r.target.content_type"><template v-if="i">, </template>{{ label(r) }} ({{ hashtagsOf(r.target) }} de {{ r.max }})</template>.
+            <p
+                v-if="exceeded.length"
+                class="mt-1 text-xs font-medium text-rose-700"
+                role="status"
+                data-testid="hashtags-over"
+            >
+                Supera el máximo de hashtags en
+                <template v-for="(r, i) in exceeded" :key="r.target.account_id + r.target.content_type"
+                    ><template v-if="i">, </template>{{ label(r) }} ({{ hashtagsOf(r.target) }} de
+                    {{ r.max }})</template
+                >.
             </p>
 
-            <p class="mt-2 border-t border-slate-100 pt-2 text-right"><button type="button" class="text-xs font-medium text-indigo-700 underline" @click="close">Cerrar</button></p>
+            <p class="mt-2 border-t border-slate-100 pt-2 text-right"
+                ><button type="button" class="text-xs font-medium text-indigo-700 underline" @click="close"
+                    >Cerrar</button
+                ></p
+            >
         </div>
     </div>
 </template>

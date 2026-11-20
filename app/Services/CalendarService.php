@@ -8,7 +8,6 @@ use App\Models\Brand;
 use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\User;
-use App\Services\Posts\PostScheduling;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -127,8 +126,7 @@ class CalendarService
             ->select('id');
 
         $query = AnalyticsService::withLatestSnapshot(
-            PostTarget::withoutUserScope()
-                ->where('post_targets.user_id', $user->id)
+            PostTarget::ownedBy($user)
                 ->where(fn ($w) => $w->whereIn('post_targets.post_id', $dated)->orWhereIn('post_targets.post_id', $undated))
                 ->when($network, fn ($q) => $q->where('post_targets.network', $network->value)),
             $user->id,
@@ -234,9 +232,9 @@ class CalendarService
             'approval_status' => $post->approval_status,
             'approval_signature' => $post->approval_signature,
             'series_id' => $post->series_id,
-            'can_retry' => $post->isPublishable() && $post->targets->contains(fn (PostTarget $t) => $t->status === PostStatus::Failed && $t->error_code !== PostScheduling::MEDIA_MISSING),
+            'can_retry' => $post->isPublishable() && $post->targets->contains(fn (PostTarget $t) => $t->status === PostStatus::Failed && $t->error_code !== PostService::MEDIA_MISSING),
             // Motivo por el que no se puede reintentar (falta un archivo de la media de un destino): la UI lo explica en vez de ocultar el boton.
-            'retry_blocked' => $post->targets->contains(fn (PostTarget $t) => $t->status === PostStatus::Failed && $t->error_code === PostScheduling::MEDIA_MISSING) ? PostScheduling::MEDIA_MISSING_RETRY : null,
+            'retry_blocked' => $post->targets->contains(fn (PostTarget $t) => $t->status === PostStatus::Failed && $t->error_code === PostService::MEDIA_MISSING) ? PostService::MEDIA_MISSING_RETRY : null,
             'has_manual' => $post->targets->contains(fn (PostTarget $t) => $t->manual),
             'manual_pending' => $post->targets->contains(fn (PostTarget $t) => $t->manual && $t->manual_notified_at !== null && $t->status === PostStatus::Scheduled),
             'targets' => $targets->map(fn (PostTarget $t) => [

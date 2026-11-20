@@ -1,6 +1,7 @@
 <?php
 
 use App\Connectors\Network;
+use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\ApiKeyController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CalendarController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\FirstCommentController;
 use App\Http\Controllers\GifController;
+use App\Http\Controllers\GoalController;
 use App\Http\Controllers\HashtagController;
 use App\Http\Controllers\InstagramAudioController;
 use App\Http\Controllers\InstagramGridController;
@@ -22,12 +24,15 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OAuth\OAuthController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReportScheduleController;
 use App\Http\Controllers\ReportTemplateController;
 use App\Http\Controllers\SavedTextController;
 use App\Http\Controllers\Studio\StudioExportDownloadController;
 use App\Http\Controllers\Studio\StudioThumbnailController;
+use App\Http\Controllers\SystemStatusController;
+use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -76,6 +81,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('connections/{provider}/callback', [OAuthController::class, 'callback'])
         ->whereIn('provider', Network::providers())->name('connections.callback');
 
+    Route::get('activity', [ActivityController::class, 'index'])->name('activity.index');
+    Route::get('system', SystemStatusController::class)->name('system.index');
+    Route::get('profile/notifications', [PushSubscriptionController::class, 'index'])->name('profile.notifications');
+    Route::post('profile/push-subscriptions', [PushSubscriptionController::class, 'store'])->middleware('throttle:push-settings')->name('profile.push-subscriptions.store');
+    Route::delete('profile/push-subscriptions/{pushSubscription}', [PushSubscriptionController::class, 'destroy'])->middleware('throttle:push-settings')->name('profile.push-subscriptions.destroy');
+    Route::get('webhooks', [WebhookController::class, 'index'])->name('webhooks.index');
+    Route::post('brands/{brand}/webhooks', [WebhookController::class, 'store'])->name('brands.webhooks.store')->middleware('throttle:webhook-settings');
+    Route::put('webhooks/{webhook}', [WebhookController::class, 'update'])->name('webhooks.update')->middleware('throttle:webhook-settings');
+    Route::delete('webhooks/{webhook}', [WebhookController::class, 'destroy'])->name('webhooks.destroy')->middleware('throttle:webhook-settings');
+    Route::get('goals', [GoalController::class, 'index'])->name('goals.index');
+    Route::post('brands/{brand}/goals', [GoalController::class, 'store'])->name('brands.goals.store');
+    Route::put('goals/{goal}', [GoalController::class, 'update'])->name('goals.update');
+    Route::delete('goals/{goal}', [GoalController::class, 'destroy'])->name('goals.destroy');
+
     // Avisos in-app (T-25).
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
@@ -99,6 +118,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // «Guardar en biblioteca» con el contenido actual del compositor (sin post guardado, CA-26).
     Route::post('brands/{brand}/library', [LibraryController::class, 'storeFromComposer'])->name('brands.library.store');
     Route::get('posts/{post}/edit', [PostController::class, 'edit'])->name('posts.edit');
+    Route::post('posts/{post}/duplicate', [PostController::class, 'duplicate'])->name('posts.duplicate');
     Route::put('posts/{post}', [PostController::class, 'update'])->middleware('throttle:publish-now')->name('posts.update');
     Route::patch('posts/{post}/notes', [PostController::class, 'updateNotes'])->name('posts.notes');
     Route::patch('posts/{post}/campaign', [PostController::class, 'updateCampaign'])->name('posts.campaign');

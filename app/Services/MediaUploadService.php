@@ -31,6 +31,8 @@ class MediaUploadService
     public function __construct(
         private readonly MediaStorage $storage,
         private readonly MediaProbe $probe,
+        private readonly UrlGuard $urlGuard,
+        private readonly StudioAudioFiles $audioFiles,
     ) {}
 
     /**
@@ -118,9 +120,9 @@ class MediaUploadService
      */
     public function importFromUrl(User $user, string $url): MediaAsset
     {
-        app(UrlGuard::class)->validate($url);
+        $this->urlGuard->validate($url);
 
-        $source = new UrlSource(app(UrlGuard::class), $url);
+        $source = new UrlSource($this->urlGuard, $url);
 
         $asset = $this->beginLimited($user, MediaAsset::SOURCE_URL, $source->reference(), $source->name());
 
@@ -138,8 +140,8 @@ class MediaUploadService
      */
     public function importFromGiphy(User $user, string $url): MediaAsset
     {
-        $source = new GiphySource(app(UrlGuard::class), $url); // lanza InvalidArgumentException fuera de la lista
-        app(UrlGuard::class)->validate($url);
+        $source = new GiphySource($this->urlGuard, $url); // lanza InvalidArgumentException fuera de la lista
+        $this->urlGuard->validate($url);
 
         $asset = $this->beginLimited($user, MediaAsset::SOURCE_GIPHY, $source->reference(), $source->name());
 
@@ -156,7 +158,7 @@ class MediaUploadService
      */
     public function importFromDrive(User $user, string $fileId, #[\SensitiveParameter] string $token): MediaAsset
     {
-        $source = new DriveFileSource(app(UrlGuard::class), $fileId, $token);
+        $source = new DriveFileSource($this->urlGuard, $fileId, $token);
         $meta = $source->inspect();
 
         $kind = $this->kindFor($meta['mime']);
@@ -271,7 +273,7 @@ class MediaUploadService
 
         if ($asset->upload_id) {
             if ($parts === []) {
-                if ($asset->kind === MediaAsset::KIND_AUDIO && app(StudioAudioFiles::class)->hasCompleteObject($asset)) {
+                if ($asset->kind === MediaAsset::KIND_AUDIO && $this->audioFiles->hasCompleteObject($asset)) {
                     $asset->forceFill(['upload_id' => null])->save();
 
                     return $this->finalize($asset);
@@ -287,7 +289,7 @@ class MediaUploadService
                 ] + ($timeout === null ? [] : ['@retries' => 0, '@http' => ['timeout' => $timeout, 'connect_timeout' => min(5, $timeout)]]));
             } catch (AwsException $e) {
                 if ($asset->kind !== MediaAsset::KIND_AUDIO || $e->getAwsErrorCode() !== 'NoSuchUpload'
-                    || ! app(StudioAudioFiles::class)->hasCompleteObject($asset)) {
+                    || ! $this->audioFiles->hasCompleteObject($asset)) {
                     throw $e;
                 }
             }
@@ -303,14 +305,29 @@ class MediaUploadService
     /** Lee el objeto ya subido y rellena tamano y metadatos; deja `invalido` si no es lo declarado. */
     public function finalize(MediaAsset $asset): MediaAsset
     {
-        $this->guardStudioRender($asset);
         if ($asset->kind === MediaAsset::KIND_AUDIO) {
-            return app(StudioAudioFiles::class)->finalize($asset);
+            $this->guardStudioRender($asset);
+
+            return $this->audioFiles->finalize($asset);
+        }
+        $asset->forceFill($this->inspectUploadedObject($asset))->save();
+
+        return $asset;
+    }
+
+    /** Devuelve los atributos de imagen, vídeo o PDF sin guardar el modelo. Elimina los objetos inválidos. */
+    public function inspectUploadedObject(MediaAsset $asset): array
+    {
+        if ($asset->kind === MediaAsset::KIND_AUDIO) {
+            throw new InvalidArgumentException('El audio se finaliza con su servicio específico.');
+        }
+        if ($asset->getKey() !== null) {
+            $this->guardStudioRender($asset);
         }
         $disk = $this->storage->disk();
 
         if (! $disk->exists($asset->path)) {
-            return $this->invalidate($asset, 'El fichero no llego al almacenamiento.');
+            return $this->invalidUploadAttributes('El fichero no llego al almacenamiento.');
         }
 
         $size = (int) $disk->size($asset->path);
@@ -318,7 +335,7 @@ class MediaUploadService
         if ($size > (int) config("media.max_bytes.{$asset->kind}")) {
             $disk->delete($asset->path);
 
-            return $this->invalidate($asset, 'El fichero supera el tamano maximo permitido.');
+            return $this->invalidUploadAttributes('El fichero supera el tamano maximo permitido.');
         }
 
         // La URL prefirmada no puede limitar el tamano del PUT: se comprueba aqui el objeto REAL contra lo declarado
@@ -326,7 +343,7 @@ class MediaUploadService
         if ($size > $asset->declared_size) {
             $disk->delete($asset->path);
 
-            return $this->invalidate($asset, 'El fichero pesa mas de lo declarado al iniciar la subida.');
+            return $this->invalidUploadAttributes('El fichero pesa mas de lo declarado al iniciar la subida.');
         }
 
         try {
@@ -336,7 +353,7 @@ class MediaUploadService
         } catch (RuntimeException $e) {
             $disk->delete($asset->path);
 
-            return $this->invalidate($asset, $e->getMessage());
+            return $this->invalidUploadAttributes($e->getMessage());
         }
 
         $realMime = $meta['mime'];
@@ -345,12 +362,10 @@ class MediaUploadService
         if ($realMime !== null && $realMime !== $asset->mime) {
             $disk->delete($asset->path);
 
-            return $this->invalidate($asset, 'El contenido no coincide con el tipo de fichero declarado.');
+            return $this->invalidUploadAttributes('El contenido no coincide con el tipo de fichero declarado.');
         }
 
-        $asset->forceFill($meta + ['size' => $size, 'status' => MediaAsset::STATUS_READY, 'upload_id' => null, 'error' => null])->save();
-
-        return $asset;
+        return $meta + ['size' => $size, 'status' => MediaAsset::STATUS_READY, 'upload_id' => null, 'error' => null];
     }
 
     /**
@@ -365,7 +380,7 @@ class MediaUploadService
     {
         $this->guardStudioRender($asset, pendingOnly: true);
         if ($asset->kind === MediaAsset::KIND_AUDIO && ! $asset->isReady()) {
-            app(StudioAudioFiles::class)->deletePending($asset);
+            $this->audioFiles->deletePending($asset);
 
             return;
         }
@@ -400,7 +415,7 @@ class MediaUploadService
     public function pruneAbandoned(int $hours): int
     {
         StudioAudioProbe::pruneTemporaries();
-        app(StudioAudioFiles::class)->pruneStaging();
+        $this->audioFiles->pruneStaging();
         $n = 0;
 
         MediaAsset::withoutUserScope()
@@ -468,7 +483,7 @@ class MediaUploadService
     private function removeObject(MediaAsset $asset): void
     {
         if ($asset->kind === MediaAsset::KIND_AUDIO) {
-            $files = app(StudioAudioFiles::class);
+            $files = $this->audioFiles;
             $files->discardSnapshot($asset);
             $files->deleteStaging($asset);
         }
@@ -485,9 +500,14 @@ class MediaUploadService
 
     public function invalidate(MediaAsset $asset, string $reason): MediaAsset
     {
-        $asset->forceFill(['status' => MediaAsset::STATUS_INVALID, 'error' => $reason, 'upload_id' => null])->save();
+        $asset->forceFill($this->invalidUploadAttributes($reason))->save();
 
         return $asset;
+    }
+
+    private function invalidUploadAttributes(string $reason): array
+    {
+        return ['status' => MediaAsset::STATUS_INVALID, 'error' => $reason, 'upload_id' => null];
     }
 
     /** Lo que el usuario ve en «el fichero supera el maximo para {tipo}». */

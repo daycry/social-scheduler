@@ -7,14 +7,21 @@ use App\Models\MediaAsset;
 use App\Models\Studio\StudioAsset;
 use App\Models\Studio\StudioFont;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Validation\ValidationException;
 
 /** Validates our public scene format, never a renderer's executable class graph. */
 class StudioDocument
 {
+    public const MIN_DIMENSION = 40;
+
+    public const MAX_DIMENSION = 8000;
+
     public const MAX_TABLE_CELLS = 2000;
 
     public const TYPES = ['text', 'rect', 'ellipse', 'triangle', 'line', 'path', 'image', 'video', 'group', 'chart', 'table', 'connector'];
+
+    public function __construct(private readonly StudioTimeline $timeline, private readonly StudioCharts $charts) {}
 
     public static function blank(int $width = 1080, int $height = 1080): array
     {
@@ -26,16 +33,16 @@ class StudioDocument
     /** @return array The exact validated document, so save/reopen does not invent or discard editor state. */
     public function validate(User $user, Brand $brand, array $document): array
     {
-        abort_unless((int) $brand->user_id === (int) $user->id, 404);
+        Ownership::assert($brand, $user);
         if (($document['schema_version'] ?? null) === 2) {
-            return app(StudioTimeline::class)->validate($user, $brand, $document, $this);
+            return $this->timeline->validate($user, $brand, $document, $this);
         }
         $this->keys($document, ['schema_version', 'width', 'height', 'pages'], 'document');
         $encoded = json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_LINE_TERMINATORS);
         $this->ensure($encoded !== false && strlen($encoded) <= 2 * 1024 * 1024, 'document', 'El documento supera el límite de 2 MiB o contiene valores no finitos.');
         $this->ensure(($document['schema_version'] ?? null) === 1, 'document.schema_version', 'Versión de documento no compatible.');
         foreach (['width', 'height'] as $key) {
-            $this->ensure(is_int($document[$key] ?? null) && $document[$key] >= 40 && $document[$key] <= 8000, 'document.'.$key, 'La dimensión debe ser un entero de 40 a 8000 píxeles.');
+            $this->ensure(is_int($document[$key] ?? null) && $document[$key] >= self::MIN_DIMENSION && $document[$key] <= self::MAX_DIMENSION, 'document.'.$key, 'La dimensión debe ser un entero de 40 a 8000 píxeles.');
         }
         $pages = $document['pages'] ?? null;
         $this->ensure(is_array($pages) && array_is_list($pages) && count($pages) >= 1 && count($pages) <= 100, 'document.pages', 'Indica entre 1 y 100 páginas.');
@@ -65,7 +72,7 @@ class StudioDocument
             foreach ($needed as $id => $uses) {
                 $asset = $links->get($id)?->media;
                 foreach ($uses as [$type, $path, $element]) {
-                    $this->ensure($asset !== null && (int) $asset->user_id === (int) $user->id && $asset->isReady(), $path.'.asset_id', 'El recurso no está listo o no está registrado en esta marca.');
+                    $this->ensure(Ownership::matches($asset, $user) && $asset->isReady(), $path.'.asset_id', 'El recurso no está listo o no está registrado en esta marca.');
                     $expected = $type === 'video' ? MediaAsset::KIND_VIDEO : MediaAsset::KIND_IMAGE;
                     $this->ensure($asset->kind === $expected, $path.'.asset_id', 'El tipo de recurso no coincide con el elemento.');
                     foreach (['cropX' => 'width', 'cropY' => 'height'] as $offset => $dimension) {
@@ -83,7 +90,7 @@ class StudioDocument
             }
         }
 
-        app(StudioCharts::class)->validate($user, $brand, $document);
+        $this->charts->validate($user, $brand, $document);
         $fontIds = StudioFonts::idsFromDocument($document);
         if ($fontIds !== []) {
             $fonts = StudioFont::ownedBy($user->id)->where('brand_id', $brand->id)->where('status', 'ready')->whereIn('id', $fontIds)->get()->keyBy('id');

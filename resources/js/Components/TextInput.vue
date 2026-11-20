@@ -6,15 +6,15 @@ const model = defineModel({
     required: true,
 });
 
-const input = ref(null);
+const input = ref(/** @type {HTMLInputElement | null} */ (null));
 
 onMounted(() => {
-    if (input.value.hasAttribute('autofocus')) {
+    if (input.value?.hasAttribute('autofocus')) {
         input.value.focus();
     }
 });
 
-defineExpose({ focus: () => input.value.focus() });
+defineExpose({ focus: () => input.value?.focus() });
 </script>
 
 <template>

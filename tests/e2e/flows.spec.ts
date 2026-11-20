@@ -75,10 +75,10 @@ test.describe('con sesión de un usuario e2e-sec-*', () => {
             await expectNoOverflow(page);
             await axeSeriousCritical(page, 'calendario (lista) con una publicación');
 
-            // Guardar en biblioteca desde la lista del calendario
-            await page.getByRole('button', { name: /Guardar la publicación \d+ en la biblioteca/ }).click();
+            // Guardar como plantilla desde la lista del calendario
+            await page.getByRole('button', { name: /Guardar la publicación \d+ como plantilla/ }).click();
             await page.waitForURL(/\/library/);
-            await expect(page.getByText('Guardado en la biblioteca.')).toBeVisible();
+            await expect(page.getByText('Plantilla guardada.')).toBeVisible();
             await expect(page.getByRole('main').getByRole('listitem').filter({ hasText: text })).toBeVisible();
             await expectNoOverflow(page);
 
@@ -86,6 +86,7 @@ test.describe('con sesión de un usuario e2e-sec-*', () => {
             await page.goto(`/calendar?view=list&brand_id=${brandId}`);
             await page.getByRole('link', { name: text }).click();
             await page.getByRole('button', { name: 'Eliminar' }).click();
+            await page.getByTestId('confirm-dialog').getByRole('button', { name: 'Eliminar publicación' }).click();
             await page.waitForURL((u) => !u.pathname.includes('/posts/'));
             await page.goto('/trash');
             await expect(page.getByText(text)).toBeVisible();
@@ -160,7 +161,7 @@ test.describe('con sesión de un usuario e2e-sec-*', () => {
         expect(w.errors).toEqual([]);
     });
 
-    test('API keys: crear y revocar', { tag: '@responsive' }, async ({ page }, info) => {
+    test('API keys: crear y revocar', { tag: '@responsive' }, async ({ page, request }, info) => {
         const w = watch(page);
         aceptarDialogos(page);
         const name = `e2e-key-${stamp()}-${info.project.name}`;
@@ -172,12 +173,18 @@ test.describe('con sesión de un usuario e2e-sec-*', () => {
         await expect(page.getByRole('button', { name: 'Solo lectura' })).toHaveAttribute('aria-pressed', 'true');
         await expect(page.getByRole('checkbox', { name: /posts:write/ })).not.toBeChecked();
         await expect(page.getByRole('checkbox', { name: /posts:read/ })).toBeChecked();
+        await expect(page.getByRole('checkbox', { name: /media:read/ })).toBeChecked();
+        await expect(page.getByRole('checkbox', { name: /media:write/ })).not.toBeChecked();
+        await expect(page.getByRole('checkbox', { name: /designs:ai/ })).not.toBeChecked();
         await page.getByRole('button', { name: 'Crear API key' }).click();
         await expect(page.getByTestId('new-key')).toBeVisible();
         await expect(page.getByText(name)).toBeVisible();
 
         // Instalación por cliente con la key recién creada ya rellena.
         const key = (await page.getByTestId('new-key').textContent())!.trim();
+        const headers = { Authorization: `Bearer ${key}` };
+        expect((await request.get('/api/v1/media', { headers })).status()).toBe(200);
+        expect((await request.post('/api/v1/media/import-url', { headers, data: {} })).status()).toBe(403);
         const install = page.getByTestId('mcp-install');
         await expect(install).toContainText(`claude mcp add --transport http --scope user social-scheduler`);
         await expect(install).toContainText(key);
@@ -204,6 +211,7 @@ test.describe('con sesión de un usuario e2e-sec-*', () => {
         await expect(page.getByTestId('mcp-install')).toContainText('<TU_API_KEY>');
 
         await page.getByText(name, { exact: true }).locator('xpath=ancestor::li').getByRole('button', { name: 'Revocar' }).click();
+        await page.getByTestId('confirm-dialog').getByRole('button', { name: 'Revocar API key' }).click();
         await settle(page);
         await expect(page.getByText(name, { exact: true })).toHaveCount(0);
         expect(w.errors).toEqual([]);

@@ -17,7 +17,7 @@ beforeEach(function () {
     $this->approver = User::factory()->create();
     $this->stranger = User::factory()->create();
     $this->brand = Brand::factory()->for($this->owner)->create();
-    $this->collab = BrandCollaborator::query()->create(['brand_id' => $this->brand->id, 'owner_id' => $this->owner->id, 'user_id' => $this->approver->id, 'role' => 'aprobador']);
+    $this->collab = BrandCollaborator::query()->create(['brand_id' => $this->brand->id, 'owner_id' => $this->owner->id, 'user_id' => $this->approver->id, 'role' => BrandCollaborator::ROLE_APPROVER]);
 });
 
 function collabApi(User $user, array $abilities, int $brandId): TestResponse
@@ -47,7 +47,7 @@ test('workflow.collaborators.index: sin sesion no hay acceso', function () {
 test('workflow.collaborators.index: no mezcla marcas, cada marca lista solo los suyos', function () {
     $second = Brand::factory()->for($this->owner)->create();
     $guest = User::factory()->create();
-    $other = BrandCollaborator::query()->create(['brand_id' => $second->id, 'owner_id' => $this->owner->id, 'user_id' => $guest->id, 'role' => 'aprobador']);
+    $other = BrandCollaborator::query()->create(['brand_id' => $second->id, 'owner_id' => $this->owner->id, 'user_id' => $guest->id, 'role' => BrandCollaborator::ROLE_APPROVER]);
 
     $first = $this->actingAs($this->owner)->getJson(route('workflow.collaborators.index', $this->brand->id))->assertOk()->json('collaborators.*.id');
     $secondIds = $this->actingAs($this->owner)->getJson(route('workflow.collaborators.index', $second->id))->assertOk()->json('collaborators.*.id');

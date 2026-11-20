@@ -2,6 +2,8 @@
 
 Cada marca conecta su cuenta de Canva (Canva Connect API, OAuth 2.0 con PKCE) para listar y crear diseños, abrirlos en Canva, exportarlos a la biblioteca, enviar recursos a Canva y, si el plan lo permite, rellenar plantillas de marca (Autofill). **No compra ni publica nada.** Todo está probado con el Canva falso del servidor E2E y `Http::fake`; el smoke real es CS-M-01 en [pendientes manuales](../referencia/pendientes-manuales.md).
 
+Canva usa `OAuthStateStore` para consumir una sola vez cada intento de conexión. El intento identifica al usuario y a la marca, caduca a los 15 minutos y guarda cifrado el verificador PKCE.
+
 ## Alta de la app
 
 1. En Canva Developers, crea la app (pública o privada; una privada solo sirve a su equipo) con OAuth 2.0 y PKCE.
@@ -23,6 +25,8 @@ Sin la capacidad (o sin los permisos) la página de Canva no muestra la sección
 ## Origen en la biblioteca
 
 Lo exportado entra en la biblioteca como un recurso más con **origen explícito**: `origin` (Canva, id del diseño y enlace) y, en el compositor, «Origen: Canva» con enlace al diseño. Las exportaciones admiten PNG, JPG, MP4 y PDF.
+
+Las imágenes y los vídeos validados también aparecen en **Estudio → Recursos** de la marca conectada. Si se reimporta el mismo diseño, las páginas con el mismo contenido en la misma posición conservan su recurso. Una versión con contenido nuevo añade un recurso. La biblioteca protege los archivos compartidos con Recursos para conservar los diseños que los usan. Los PDF se consultan desde la biblioteca. La importación remota requiere el disco local de media. En una instalación con R2, descarga el archivo y súbelo desde la aplicación.
 
 ## PDF en la biblioteca
 
@@ -51,6 +55,8 @@ Los trabajos (`RunCanvaJob`) van en la cola **`media`** (`media.import_queue`) y
 Con la capacidad del plan, la página de Canva lista las plantillas de marca (`GET /brand-templates`), muestra los campos de la elegida (`GET /brand-templates/{id}/dataset`) y crea un diseño nuevo con los textos que rellenes (`POST /autofills`, modo `create_from_brand_template`). Es un trabajo asíncrono más (`kind = autofill`, `RunCanvaJob`, sondeo acotado): al terminar guarda el `design_id` del diseño creado y la página ofrece «Abrir el diseño en Canva» (enlace fresco con el `correlation_state` de retorno). Los campos vacíos se omiten. No exporta ni publica nada: para llevarlo a la biblioteca se exporta después como cualquier diseño.
 
 **Pendiente (usuario):** probarlo con una cuenta cuyo plan incluya Autofill; hasta entonces el flujo solo está comprobado con `Http::fake` y con el Canva falso del servidor E2E.
+
+La página consulta los trabajos pendientes hasta 30 veces por ciclo. Empieza a los 3 segundos y amplía la espera hasta 15 segundos. Pausa al ocultar la pestaña y ofrece «Volver a consultar» al llegar al límite. Los límites del worker se aplican por separado.
 
 ## API y MCP
 

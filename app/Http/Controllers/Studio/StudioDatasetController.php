@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 
 final class StudioDatasetController extends Controller
 {
+    public function __construct(private readonly StudioDatasetActions $datasets) {}
+
     public function handle(Request $request)
     {
         $brand = $request->route('brand');
@@ -28,7 +30,7 @@ final class StudioDatasetController extends Controller
             StudioDatasetInput::keys($input, $dataset === null ? ['name', 'format', 'header', 'file'] : ['name', 'format', 'header', 'file', 'revision']);
         }
         if ($action === 'export') {
-            $export = app(StudioDatasetActions::class)->export($request->user()->id, (int) $brand, (int) $dataset, $input);
+            $export = $this->datasets->export($request->user()->id, (int) $brand, (int) $dataset, $input);
             $mime = match ($export['format']) {
                 'csv' => 'text/csv', 'tsv' => 'text/tab-separated-values', 'json' => 'application/json'
             };
@@ -43,7 +45,7 @@ final class StudioDatasetController extends Controller
                 }
             }, 'dataset-'.$dataset.'-r'.$export['revision'].'.'.$export['format'], $headers);
         }
-        $result = app(StudioDatasetActions::class)->execute($request->user()->id, (int) $brand, $action, $dataset === null ? null : (int) $dataset, $input);
+        $result = $this->datasets->execute($request->user()->id, (int) $brand, $action, $dataset === null ? null : (int) $dataset, $input);
 
         return response()->json($result, $action === 'create' || ($action === 'import' && $dataset === null) ? 201 : 200, ['Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff'], StudioDatasetInput::JSON_FLAGS);
     }

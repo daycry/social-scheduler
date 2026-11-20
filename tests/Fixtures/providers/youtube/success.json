@@ -1,0 +1,15 @@
+{
+  "source": "https://developers.google.com/youtube/data/guides/using_resumable_upload_protocol",
+  "method": "POST",
+  "host": "www.googleapis.com",
+  "path": "/upload/youtube/v3/videos",
+  "query": {
+    "uploadType": "resumable",
+    "part": "snippet,status"
+  },
+  "status": 200,
+  "headers": {
+    "Location": "~^https://www\\.googleapis\\.com/upload/youtube/v3/videos(?:\\?|$)~"
+  },
+  "body": ""
+}

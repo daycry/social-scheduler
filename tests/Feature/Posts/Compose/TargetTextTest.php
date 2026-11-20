@@ -36,7 +36,7 @@ function ttBody(?string $textA, ?string $textB, array $over = []): array
 test('TargetText: CA-08 la web guarda el texto propio de una red y deja la otra vinculada', function () {
     $this->actingAs($this->user)->post(route('brands.posts.store', $this->brand), ttBody(null, 'Solo para B'))->assertSessionHasNoErrors();
 
-    $post = Post::withoutUserScope()->firstOrFail();
+    $post = Post::withoutUserScope()->with('targets.post')->firstOrFail();
     $byAccount = $post->targets->keyBy('social_account_id');
     expect($post->text)->toBe('Texto comun')
         ->and($byAccount[$this->fbA->id]->text)->toBeNull()->and($byAccount[$this->fbA->id]->effectiveText())->toBe('Texto comun')
@@ -60,7 +60,7 @@ test('TargetText: CA-09 volver a vincular (text null) borra el texto propio y ed
 
     $this->actingAs($this->user)->put(route('posts.update', $post), ttBody(null, 'Propio B', ['text' => 'Comun EDITADO']))->assertSessionHasNoErrors();
 
-    $byAccount = $post->fresh()->targets->keyBy('social_account_id');
+    $byAccount = $post->fresh('targets.post')->targets->keyBy('social_account_id');
     expect($byAccount[$this->fbA->id]->text)->toBeNull()->and($byAccount[$this->fbA->id]->effectiveText())->toBe('Comun EDITADO')
         ->and($byAccount[$this->fbB->id]->effectiveText())->toBe('Propio B');
 });

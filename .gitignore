@@ -46,7 +46,9 @@ spike/.results-*.json
 # Artefactos locales que no se versionan
 __pycache__/
 *.pyc
-docs/roadmap/*/testing/results.json
+docs/roadmap/**/testing/**/results.json
+docs/roadmap/**/testing/**/*.zip
+docs/roadmap/**/testing/**/raw/**/*.xml
 docs/roadmap/*/.claude/
 .serena/
 

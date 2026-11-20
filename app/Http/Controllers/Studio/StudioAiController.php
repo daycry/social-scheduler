@@ -8,6 +8,7 @@ use App\Models\Studio\Design;
 use App\Services\Studio\StudioAi;
 use App\Services\Studio\StudioAiText;
 use App\Services\Studio\StudioCaptions;
+use App\Support\Ownership;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -17,7 +18,7 @@ class StudioAiController extends Controller
 {
     public function status(Request $request, Brand $brand, StudioAi $ai, StudioAiText $text): JsonResponse
     {
-        abort_unless((int) $brand->user_id === (int) $request->user()->id, 404);
+        Ownership::assert($brand, $request->user());
 
         return response()->json($ai->status($request->user()) + ['text' => $text->status($request->user())]);
     }
@@ -39,7 +40,7 @@ class StudioAiController extends Controller
     public function text(Request $request, Brand $brand, StudioAiText $text, StudioCaptions $captions): JsonResponse
     {
         $user = $request->user();
-        abort_unless((int) $brand->user_id === (int) $user->id, 404);
+        Ownership::assert($brand, $user);
         $action = $request->input('action');
         $allowed = ['action', 'brief', 'count', 'design_id', 'items', 'media_id', 'language', 'cues'];
         if (array_diff(array_keys($request->all()), $allowed) !== []) {

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ApprovalPageController;
+use App\Http\Controllers\DesignApprovalController;
 use App\Http\Controllers\PostWorkflowController;
 use Illuminate\Support\Facades\Route;
 
@@ -13,6 +14,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::prefix('workflow')->name('workflow.')->group(function () {
         Route::get('approvals', [PostWorkflowController::class, 'pending'])->name('approvals.pending');
+        Route::prefix('designs/{design}/approval')->where(['design' => '[0-9]+'])->name('design-approval.')->group(function () {
+            Route::post('request', [DesignApprovalController::class, 'requestApproval'])->middleware('throttle:approval.request')->name('request');
+            Route::post('approve', [DesignApprovalController::class, 'approve'])->middleware('throttle:approval.approve')->name('approve');
+            Route::post('reject', [DesignApprovalController::class, 'reject'])->middleware('throttle:approval.reject')->name('reject');
+        });
         Route::post('posts/{post}/approval/request', [PostWorkflowController::class, 'requestApproval'])->whereNumber('post')->middleware('throttle:approval.request')->name('approval.request');
         Route::post('posts/{post}/approval/approve', [PostWorkflowController::class, 'approve'])->whereNumber('post')->middleware('throttle:approval.approve')->name('approval.approve');
         Route::post('posts/{post}/approval/reject', [PostWorkflowController::class, 'reject'])->whereNumber('post')->middleware('throttle:approval.reject')->name('approval.reject');

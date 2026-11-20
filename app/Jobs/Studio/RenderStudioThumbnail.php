@@ -7,7 +7,7 @@ use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
-/** Miniatura de un diseno (T-35): primera pagina reducida, por la cola `studio` (baja prioridad). Unico por diseno: varias visitas al listado no la duplican. */
+/** Miniatura única por diseño. Su cola está separada de IA y exportaciones estáticas. */
 class RenderStudioThumbnail implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
@@ -21,8 +21,7 @@ class RenderStudioThumbnail implements ShouldBeUnique, ShouldQueue
 
     public function __construct(public readonly int $designId)
     {
-        // Cola `studio`: su propio worker (con Chromium), asi las miniaturas no compiten con las importaciones de `media`.
-        $this->onQueue('studio');
+        $this->onQueue((string) config('studio.thumbnail_queue', 'studio'));
     }
 
     public function uniqueId(): string

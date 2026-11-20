@@ -38,6 +38,7 @@ export const AUTH_PAGES: Array<[string, string]> = [
     ['informes', '/reports'],
     ['api-keys', '/api-keys'],
     ['avisos', '/notifications'],
+    ['actividad', '/activity'],
     ['perfil', '/profile'],
     ['confirmar contraseña', '/confirm-password'],
     ['mejores horas', '/best-times'],
@@ -582,6 +583,23 @@ export function seedTiktokPhotoDraft(brandId: number, accountName: string): numb
 /** Cambia la zona horaria de la marca E2E (para comprobar que la UI usa la de la marca y no la del navegador). */
 export function setBrandTimezone(brandId: number, timezone: string) {
     artisan(String.raw`App\Models\Brand::withoutUserScope()->findOrFail(${brandId})->forceFill(['timezone' => ${q(timezone)}])->save();`);
+}
+
+/** Retira los recursos y archivos de las importaciones de Canva del usuario de prueba. */
+export function cleanCanvaMedia(email: string) {
+    artisan(String.raw`$user = App\Models\User::where('email', ${q(email)})->first();
+        if ($user) {
+            try {
+                App\Models\Studio\StudioAsset::ownedBy($user->id)
+                    ->whereHas('media', fn ($query) => $query->where('source', 'canva'))->delete();
+                App\Models\MediaAsset::ownedBy($user->id)->where('source', 'canva')->lazyById()
+                    ->each(fn ($asset) => app(App\Services\MediaUploadService::class)->delete($asset));
+            } finally {
+                foreach (['canva', 'canva-connect'] as $limiter) {
+                    Illuminate\Support\Facades\RateLimiter::clear(md5($limiter . $limiter . ':' . $user->id));
+                }
+            }
+        }`);
 }
 
 /**

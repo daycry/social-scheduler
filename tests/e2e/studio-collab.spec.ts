@@ -63,15 +63,31 @@ test('Studio: dos usuarios comparten, comentan, editan a la vez, ven el 409 y se
         await ready(page);
         let panel = await openPanel(page);
         await panel.getByRole('tab', { name: 'Compartir' }).click();
-        await panel.getByLabel('Email', { exact: true }).fill('nadie@example.test');
+        await panel.getByLabel('Correo electrónico', { exact: true }).fill('nadie@example.test');
         await panel.getByLabel('Rol', { exact: true }).selectOption('commenter');
         await panel.getByRole('button', { name: 'Compartir', exact: true }).click();
         // Respuesta uniforme: no revela si el email existe y no crea ningún acceso.
-        await expect(panel.getByRole('status').filter({ hasText: 'Si existe una cuenta con ese email, tendrá acceso a este diseño.' })).toBeVisible();
+        await expect(panel.getByRole('status').filter({ hasText: 'Si existe una cuenta con ese correo, tendrá acceso a este diseño.' })).toBeVisible();
         await expect(panel.getByTestId('studio-share-row')).toHaveCount(0);
-        await panel.getByLabel('Email', { exact: true }).fill(guest.email);
+        await panel.getByLabel('Correo electrónico', { exact: true }).fill(guest.email);
         await panel.getByRole('button', { name: 'Compartir', exact: true }).click();
         await expect(panel.getByTestId('studio-share-row')).toContainText(guest.email);
+        // Los controles del panel comparten el estado de carga. Espera a que se habiliten antes de medir el contraste.
+        await expect(panel.getByRole('button', { name: 'Crear enlace', exact: true })).toBeEnabled();
+        await expect
+            .poll(
+                () =>
+                    panel.evaluate((element) =>
+                        element.getAnimations({ subtree: true }).some(
+                            (animation) =>
+                                animation instanceof CSSTransition &&
+                                animation.transitionProperty === 'opacity' &&
+                                (animation.pending || animation.playState === 'running'),
+                        ),
+                    ),
+                { message: 'Esperando que termine la transición de opacidad en el diálogo' },
+            )
+            .toBe(false);
         await axeClean(page, 'dialog[open]');
 
         // 2. La invitada ve el diseño en «Compartidos conmigo» y lo revisa como comentarista (sin editor).
@@ -168,6 +184,7 @@ test('Studio: dos usuarios comparten, comentan, editan a la vez, ven el 409 y se
         await axeClean(anonymous.page);
         await expectNoOverflow(anonymous.page);
         await panel.getByTestId('studio-link-row').first().getByRole('button', { name: /Revocar/ }).click();
+        await page.getByTestId('confirm-dialog').getByRole('button', { name: 'Revocar enlace' }).click();
         await expect(panel.getByText('Enlace revocado: ya no da acceso.')).toBeVisible();
         expect((await anonymous.page.goto(readerUrl))?.status()).toBe(404);
 
@@ -187,6 +204,7 @@ test('Studio: dos usuarios comparten, comentan, editan a la vez, ven el 409 y se
         // 9. Revocación del acceso de la invitada: el servidor responde 404 en la página, la API y la lista.
         await panel.getByRole('tab', { name: 'Compartir' }).click();
         await panel.getByRole('button', { name: new RegExp(`Quitar acceso a ${guest.email}`) }).click();
+        await page.getByTestId('confirm-dialog').getByRole('button', { name: 'Quitar acceso' }).click();
         await expect(panel.getByText(`Acceso de ${guest.email} revocado.`)).toBeVisible();
         expect((await member.page.goto(edit))?.status()).toBe(404);
         expect(await member.page.evaluate(async id => (await fetch(`/studio/designs/${id}`, { headers: { Accept: 'application/json' } })).status, designId)).toBe(404);

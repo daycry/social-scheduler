@@ -5,6 +5,119 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Added — avisos del navegador (audit-hardening, T-81)
+
+- Instala la aplicación desde navegadores compatibles y activa avisos push genéricos por dispositivo. Las suscripciones se cifran y se pueden revocar; el envío usa VAPID, reintentos acotados y elimina las suscripciones caducadas. La aceptación real en HTTPS y dispositivos sigue pendiente.
+- Corregido: los envíos reales de push y de webhooks nunca salían del servidor (el cliente HTTP cambiaba a un manejador que rechaza la IP fijada). Ahora la respuesta se descarta sin leerla.
+
+### Added — webhooks salientes firmados (audit-hardening, T-80)
+
+- Configura receptores HTTPS de tus marcas para eventos de publicación e inbox. Envía firmas HMAC con marca de tiempo, reintentos acotados, protección de URLs, recuperación de cola y estado visible; el secreto permanece cifrado y privado.
+
+### Added — objetivos y alertas (audit-hardening, T-79)
+
+- Crea, edita y pausa objetivos por marca o cuenta propia. La evaluación diaria local avisa de hitos, caídas y caducidades conocidas una vez por regla o periodo; las métricas ausentes siguen desconocidas y el correo opcional respeta las preferencias del usuario.
+
+### Added — estado del sistema para operadores (audit-hardening, T-78)
+
+- Los operadores verificados autorizados por el servidor pueden consultar salud, sondas de trabajadores, caducidades agregadas y cuotas con su fecha. Los datos desconocidos o fallidos se explican sin exponer credenciales ni consultar las APIs sociales.
+
+### Added — duplicar publicaciones (audit-hardening, T-77)
+
+- Duplica publicaciones guardadas o publicadas como borradores independientes en la misma marca u otra propia. Conserva contenido y media compatibles, explica los destinos omitidos y reinicia el historial y las elecciones ligadas a la cuenta o a cada publicación.
+
+### Added — propuesta de mejor hora (audit-hardening, T-76)
+
+- Usa las métricas de la marca para rellenar una fecha futura en el compositor o abrir uno nuevo desde el calendario. Si faltan datos, se explica el motivo y se conserva la fecha actual.
+
+### Added — historial de actividad (audit-hardening, T-75)
+
+- El menú de cuenta permite consultar el historial de actividad, paginado y filtrable por marca, usuario, acción y fechas. Muestra la actividad personal y la atribuida a marcas propias, junto con el plazo de conservación configurado.
+
+### Fixed — filtros de la bandeja (`audit-hardening`, T-68)
+
+- La casilla «Solo ocultos» refleja el filtro activo al abrir o recargar una URL de la bandeja. Al desmarcarla vuelven a aparecer todos los comentarios.
+
+### Changed — permisos de archivos e IA del Estudio (`audit-hardening`, T-108)
+
+- REST y MCP usan `media:read` y `media:write` para la biblioteca y `designs:ai` para la IA del Estudio. La migración actualiza los permisos de claves existentes y autorizaciones OAuth pendientes.
+
+### Fixed — vistas previas de informes y búsqueda del calendario (`audit-hardening`, T-65)
+
+- Al cambiar de marca se cancela la vista previa pendiente para que el informe anterior no reaparezca. El campo de búsqueda del calendario tiene un nombre accesible.
+
+### Changed — aprobadores de marca y diseños de Estudio (audit-hardening, T-105)
+
+- Los aprobadores invitados pueden revisar diseños de su marca y decidir en la bandeja de Aprobaciones. HTTP y MCP usan `approver` en las invitaciones. Actualiza los clientes que envían la clave anterior.
+
+### Fixed — cargas y contexto del editor de Estudio (`audit-hardening`, T-63)
+
+- Estudio pone en cola los archivos elegidos mientras se ocupa el lienzo y conserva cada carga de audio recuperable para reintentar. Si cambia el diseño o la marca, el editor anterior deja de aceptar cambios y de enviar guardados. Los diálogos de presentación y gráficos usan los controles compartidos.
+
+### Added — rotación de la clave de aplicación (`audit-hardening`, T-70)
+
+- `app:reencrypt` permite simular y recifrar las credenciales de redes, Canva y doble factor tras cambiar la clave de aplicación.
+
+### Fixed — ancho y autoguardado del editor de Estudio (`audit-hardening`, T-62)
+
+- El editor de Estudio usa todo el ancho disponible. Al salir, se cancelan los autoguardados pendientes.
+
+### Fixed — cronología y rutas de tablas de Estudio (`audit-hardening`, T-61)
+
+- Estudio reutiliza el plan compilado de la cronología. Las acciones de las tablas funcionan cuando la aplicación se instala en un subdirectorio.
+
+### Added — archivos compartidos en el compositor y Estudio (`audit-hardening`, T-106)
+
+- Sube un archivo una sola vez y úsalo en el compositor y en Recursos de la marca. Abre una imagen en Estudio en otra pestaña para conservar el borrador abierto.
+
+### Added — vínculo entre Estudio y publicaciones (`audit-hardening`, T-101)
+
+- Reexportar un diseño vinculado actualiza la publicación editable y conserva sus adjuntos independientes. Las imágenes y los vídeos importados de Canva aparecen en Recursos de la marca y reutilizan el recurso si coincide el contenido.
+
+### Fixed — accesibilidad de formularios y pestañas (`audit-hardening`, T-60)
+
+- Los errores de validación se anuncian junto a su campo o grupo. Las pestañas de Calendario, MCP, Studio y el compositor admiten flechas, Inicio y Fin.
+
+### Fixed — listas paginadas (`audit-hardening`, T-59)
+
+- La papelera, las plantillas de publicación, los avisos, los informes y los diseños muestran el total y permiten recorrer todo el listado.
+
+### Fixed — avisos de la aplicación (`audit-hardening`, T-58)
+
+- La aplicación usa un aviso común para confirmar acciones y mostrar errores, incluidas la creación de diseños y la gestión de API keys.
+
+### Changed — confirmaciones accesibles (`audit-hardening`, T-57)
+
+- Las acciones destructivas y el aviso de primer comentario duplicado usan un diálogo común. Los botones nombran la acción, el foco entra en «Cancelar» y Escape cancela la acción.
+
+### Changed — actualización de estados e IA del compositor (`audit-hardening`, T-55)
+
+- Informes y Canva pausan la actualización cuando se oculta la pestaña y permiten reanudarla manualmente al llegar al límite. El compositor comparte el estado y la cuota del asistente.
+
+### Fixed — foco de los diálogos (`audit-hardening`, T-56)
+
+- Los diálogos de Studio, el perfil, el compositor y el calendario comparten el manejo del foco y del cierre con Escape. Al cerrar, el foco vuelve al control que abrió el diálogo si sigue disponible.
+
+### Changed — horas de marca y textos (`audit-hardening`, T-54)
+
+- La interfaz muestra las fechas y horas en la zona de la marca. Los contenidos guardados se agrupan en «Plantillas de publicación» y los archivos siguen en «Biblioteca».
+
+### Changed — carga del editor de Estudio (`audit-hardening`, T-52)
+
+- El editor carga cada diálogo al abrirlo por primera vez y carga la biblioteca de PDF al generar un PDF. Los fallos de carga muestran un mensaje legible y permiten seguir usando el editor.
+
+### Changed — workers de cola (`audit-hardening`, T-49)
+
+- Activa el worker `studio-render` antes de actualizar para procesar IA, imágenes y exportaciones estáticas. Redis espera al menos 180 segundos antes de volver a entregar un trabajo.
+
+### Changed — analítica (`audit-hardening`, T-47)
+
+- El panel, la exportación, los informes y MCP identifican el campo de fecha incorrecto o el rango inválido con mensajes coherentes. El panel por marca reutiliza los snapshots diarios y los vuelve a consultar tras recoger datos de esa marca.
+
+### Fixed — subidas reanudables (`audit-hardening`, T-37)
+
+- TikTok y YouTube aplazan el siguiente trozo cuando la pasada de subida agota su tiempo, también si el margen mínimo configurado es cero.
+
 ### Changed — publicación en Instagram (`audit-hardening`, T-36)
 
 - Un contenedor de Instagram que termina en error o caduca deja la publicación fallida con un código que indica la causa (`contenedor_error`, `contenedor_caducado`) en vez del genérico `rechazada`, igual que Threads.

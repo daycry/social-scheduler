@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Log;
  */
 class BlueskySession
 {
-    public function __construct(private readonly BlueskyClient $client) {}
+    public function __construct(private readonly BlueskyClient $client, private readonly SocialAccountService $accounts) {}
 
     /**
      * Crea la sesion inicial a partir de handle y app password. No guarda nada.
@@ -136,7 +136,7 @@ class BlueskySession
         // Renovar Y guardar dentro del MISMO bloqueo: si se guardara fuera, otro proceso podria leer el refreshJwt viejo (ya rotado)
         // y renovar de mas.
         $this->locked($account, function () use ($account): void {
-            app(SocialAccountService::class)->applyRefresh($account, $this->refreshing($account));
+            $this->accounts->applyRefresh($account, $this->refreshing($account));
         });
 
         return $call((string) $account->access_token, self::pds($account));

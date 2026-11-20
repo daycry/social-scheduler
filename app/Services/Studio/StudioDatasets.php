@@ -5,6 +5,7 @@ namespace App\Services\Studio;
 use App\Models\Brand;
 use App\Models\Studio\StudioDataset;
 use App\Models\Studio\StudioDatasetRevision;
+use App\Support\Ownership;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator as MetadataPaginator;
@@ -115,8 +116,7 @@ final class StudioDatasets
         $this->brand($userId, $brandId);
         $query = StudioDataset::ownedBy($userId)->where('brand_id', $brandId)->whereNull('archived_at');
         if ($search !== '') {
-            $literal = str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search);
-            $query->whereRaw("name LIKE ? ESCAPE '!'", ['%'.$literal.'%']);
+            $query->whereLikeEscaped('name', $search);
         }
 
         return $this->paginateMetadata($query->orderByDesc('id'), $this->metadataColumns(), $page, $perPage);
@@ -165,7 +165,7 @@ final class StudioDatasets
             $query->lockForUpdate();
         }
         $current = $query->first();
-        abort_unless($current, 404);
+        Ownership::assert($current, $userId);
 
         return $current;
     }
@@ -231,7 +231,7 @@ final class StudioDatasets
 
     private function brand(int $userId, int $brandId): void
     {
-        abort_unless(Brand::ownedBy($userId)->whereKey($brandId)->exists(), 404);
+        Ownership::ensure(Brand::ownedBy($userId)->whereKey($brandId)->exists());
     }
 
     private function name(string $name): string

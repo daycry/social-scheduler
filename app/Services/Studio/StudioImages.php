@@ -2,6 +2,7 @@
 
 namespace App\Services\Studio;
 
+use App\Exceptions\OwnershipException;
 use App\Jobs\Studio\ProcessStudioImage;
 use App\Models\Brand;
 use App\Models\MediaAsset;
@@ -20,7 +21,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class StudioImages
 {
-    public function __construct(private readonly StudioAssets $assets) {}
+    public function __construct(private readonly StudioAssets $assets, private readonly MediaUploadService $uploads) {}
 
     public function create(User $user, Brand $brand, array $data): StudioImageJob
     {
@@ -72,7 +73,7 @@ class StudioImages
                 if ($api) {
                     $output['preview_url'] = route('api.studio.assets.file', ['brand' => $brand->id, 'media' => $media->id], absolute: false);
                 }
-            } catch (ModelNotFoundException|NotFoundHttpException) {
+            } catch (ModelNotFoundException|NotFoundHttpException|OwnershipException) {
                 $effective = ['status' => 'failed', 'error_code' => 'output_removed', 'error' => 'La imagen generada se ha eliminado. Inicia un nuevo procesamiento.'];
             }
         }
@@ -82,6 +83,11 @@ class StudioImages
     }
 
     public function process(int $id): void
+    {
+        DB::afterCommit(fn () => $this->processCommittedJob($id));
+    }
+
+    private function processCommittedJob(int $id): void
     {
         if (StudioImageJob::withoutUserScope()->whereKey($id)->where('status', 'queued')->update(['status' => 'processing']) !== 1) {
             return;
@@ -167,47 +173,71 @@ class StudioImages
                 || $dimensions[0] !== $expectedWidth || $dimensions[1] !== $expectedHeight || (int) config('studio.images.max_pixels', 16000000) < $dimensions[0] * $dimensions[1]) {
                 throw new \RuntimeException;
             }
-            DB::transaction(function () use ($job, $user, $brand, $source, $output, $manifest, &$media, &$code): void {
+            $media = new MediaAsset(['disk' => config('filesystems.media', 'local'), 'path' => 'media/'.$user->id.'/'.Str::lower((string) Str::ulid()).'.png',
+                'original_name' => 'sin-fondo.png', 'mime' => 'image/png', 'kind' => 'image', 'declared_size' => filesize($output), 'status' => MediaAsset::STATUS_PENDING]);
+            $media->user_id = $user->id;
+            $this->storeOutput($media, $output, $manifest);
+
+            $code = 'source_changed';
+            if (! hash_equals($job->input_sha256, $this->inputHash($source))) {
+                throw new \RuntimeException;
+            }
+            $code = 'invalid_output';
+            DB::transaction(function () use ($job, $user, $brand, $source, $media, &$code): void {
                 Brand::ownedBy($user->id)->lockForUpdate()->findOrFail($brand->id);
                 $locked = StudioImageJob::ownedBy($user->id)->where('brand_id', $brand->id)->where('status', 'processing')->lockForUpdate()->findOrFail($job->id);
                 $current = MediaAsset::ownedBy($user->id)->lockForUpdate()->findOrFail($source->id);
                 $this->assets->owned($user, $brand, $source->id);
-                $code = 'source_changed';
-                if (! hash_equals($job->input_sha256, $this->inputHash($current))) {
+                $identity = ['disk', 'path', 'kind', 'mime', 'size', 'width', 'height'];
+                if ($current->only($identity) !== $source->only($identity)) {
+                    $code = 'source_changed';
                     throw new \RuntimeException;
                 }
-                $code = 'invalid_output';
-                $media = new MediaAsset(['disk' => config('filesystems.media', 'local'), 'path' => 'media/'.$user->id.'/'.Str::lower((string) Str::ulid()).'.png',
-                    'original_name' => 'sin-fondo.png', 'mime' => 'image/png', 'kind' => 'image', 'declared_size' => filesize($output), 'status' => MediaAsset::STATUS_PENDING]);
-                $media->user_id = $user->id;
                 $media->save();
-                $stream = fopen($output, 'rb');
-                try {
-                    if (! is_resource($stream) || ! Storage::disk($media->disk)->put($media->path, $stream)) {
-                        throw new \RuntimeException;
-                    }
-                } finally {
-                    if (is_resource($stream)) {
-                        fclose($stream);
-                    }
-                }
-                $media = app(MediaUploadService::class)->finalize($media);
-                if (! $media->isReady() || $media->mime !== 'image/png' || $media->width !== $manifest['width'] || $media->height !== $manifest['height']) {
-                    throw new \RuntimeException;
-                }
                 $this->assets->attach($user, $brand, $media->id);
                 $locked->forceFill(['status' => 'ready', 'output_media_id' => $media->id, 'error_code' => null, 'error' => null])->save();
             });
         } catch (\Throwable) {
-            StudioImageJob::withoutUserScope()->whereKey($id)->where('status', 'processing')->update(['status' => 'failed', 'error_code' => $code, 'error' => $this->errors()[$code]]);
-            if ($media) {
-                try {
-                    app(MediaUploadService::class)->delete($media);
-                } catch (\Throwable) { // Preserve media concurrently attached to a real publication.
+            try {
+                StudioImageJob::withoutUserScope()->whereKey($id)->where('status', 'processing')->update(['status' => 'failed', 'error_code' => $code, 'error' => $this->errors()[$code]]);
+            } finally {
+                if ($media) {
+                    $this->discardOutput($media);
                 }
             }
         } finally {
             $disk->deleteDirectory($directory);
+        }
+    }
+
+    private function discardOutput(MediaAsset $media): void
+    {
+        try {
+            // Una excepción tras el commit no debe borrar un objeto ya registrado.
+            if (! $media->exists || ! MediaAsset::ownedBy($media->user_id)->whereKey($media->id)->where('path', $media->path)->exists()) {
+                Storage::disk($media->disk)->delete($media->path);
+            }
+        } catch (\Throwable $error) {
+            report($error);
+        }
+    }
+
+    private function storeOutput(MediaAsset $media, string $output, array $manifest): void
+    {
+        $stream = fopen($output, 'rb');
+        try {
+            if (! is_resource($stream) || ! Storage::disk($media->disk)->put($media->path, $stream)) {
+                throw new \RuntimeException;
+            }
+        } finally {
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }
+
+        $media->forceFill($this->uploads->inspectUploadedObject($media));
+        if (! $media->isReady() || $media->width !== $manifest['width'] || $media->height !== $manifest['height']) {
+            throw new \RuntimeException;
         }
     }
 

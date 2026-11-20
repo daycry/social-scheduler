@@ -11,6 +11,7 @@ use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Connectors\Exceptions\TransientPublishException;
+use App\Connectors\Network;
 use App\Connectors\Support\MediaChunkReader;
 use App\Connectors\Support\UploadPassBudget;
 use App\Enums\ContentType;
@@ -93,7 +94,7 @@ class TikTokPublisher implements Publisher, StatusPoller
 
     public function __construct()
     {
-        $this->pass = new UploadPassBudget('tiktok');
+        $this->pass = new UploadPassBudget(Network::TikTok, minSliceDefault: 15);
     }
 
     public function publish(SocialAccount $account, PublishRequest $request): PublishResult
@@ -319,7 +320,7 @@ class TikTokPublisher implements Publisher, StatusPoller
             }
 
             // Presupuesto comprobado ANTES de cada PUT (el primero de la pasada siempre se intenta: garantiza avance).
-            if (! $first && $this->pass->budgetLeft() < (float) config('social.tiktok.upload_min_slice_seconds', 15)) {
+            if (! $first && ! $this->pass->canStartChunk()) {
                 return PublishResult::processing($publishId, [], $progress);
             }
             $first = false;

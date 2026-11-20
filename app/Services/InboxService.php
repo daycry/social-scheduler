@@ -20,10 +20,12 @@ use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Support\CursorPage;
+use App\Support\Ownership;
 use App\Support\PermissionHelp;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use Throwable;
@@ -34,13 +36,16 @@ use Throwable;
  */
 class InboxService
 {
-    /** Nota de cobertura por red (T-20, T-22): lo que se lee y responde, o el motivo de que quede fuera. Las capacidades salen del registro. */
+    /** Notas de las redes con una fuente registrada. Las capacidades salen del registro. */
     private const COVERAGE_NOTES = [
         'instagram' => 'Comentarios de publicaciones propias. Los mensajes directos requieren la revisión de la app de Meta.',
         'facebook' => 'Comentarios de la Página. Los mensajes directos requieren la revisión de la app de Meta.',
         'threads' => 'Respuestas a tus hilos (permisos threads_read_replies y threads_manage_replies).',
         'bluesky' => 'Respuestas a tus publicaciones; lectura pública y respuesta con la contraseña de aplicación.',
         'youtube' => 'Comentarios de tus videos (permiso youtube.force-ssl); cada respuesta gasta 50 unidades del cupo diario.',
+    ];
+
+    private const UNSUPPORTED_NOTES = [
         'linkedin' => 'Fuera por ahora: los comentarios exigen el permiso de Community Management de LinkedIn, que se aprueba aparte (se activará cuando LinkedIn lo conceda).',
         'pinterest' => 'Fuera: la API de Pinterest no permite leer ni responder los comentarios de los pines.',
         'tiktok' => 'Fuera: TikTok no ofrece una API pública de comentarios para terceros.',
@@ -119,7 +124,7 @@ class InboxService
         foreach ($this->networks() as $network) {
             $rows[$network->value] = ['network' => $network->value, 'label' => $network->label(), 'read' => true, 'reply' => true, 'hide' => $this->canHide($network), 'note' => self::COVERAGE_NOTES[$network->value] ?? ''];
         }
-        foreach (self::COVERAGE_NOTES as $value => $note) {
+        foreach (self::UNSUPPORTED_NOTES as $value => $note) {
             $rows[$value] ??= ['network' => $value, 'label' => Network::from($value)->label(), 'read' => false, 'reply' => false, 'hide' => false, 'note' => $note];
         }
 
@@ -238,7 +243,8 @@ class InboxService
         $comment->post_target_id = $target->id;
 
         try {
-            $comment->save();
+            // La fila y el outbox del evento deben confirmarse o revertirse juntos.
+            DB::transaction(fn () => $comment->save());
         } catch (UniqueConstraintViolationException) {
             // Carrera con `reply()` u otra sincronizacion: ya existe, se actualiza (idempotente).
             InboxComment::withoutUserScope()->where('social_account_id', $account->id)->where('external_id', $row['external_id'])
@@ -575,7 +581,7 @@ class InboxService
 
     private function assertOwns(User $user, InboxComment $comment): void
     {
-        if ($comment->user_id !== $user->id) {
+        if (! Ownership::matches($comment, $user)) {
             throw new PostValidationException(['comment' => ['El comentario no pertenece al usuario.']]);
         }
     }

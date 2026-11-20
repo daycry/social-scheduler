@@ -201,7 +201,7 @@ test('Triaje: asignar solo a uno mismo o a un colaborador de la marca; un extraÃ
     $guest = User::factory()->create();
     $stranger = User::factory()->create();
     $c = InboxComment::factory()->create(['user_id' => $user->id]);
-    BrandCollaborator::query()->create(['brand_id' => $c->brand_id, 'owner_id' => $user->id, 'user_id' => $guest->id, 'role' => 'aprobador']);
+    BrandCollaborator::query()->create(['brand_id' => $c->brand_id, 'owner_id' => $user->id, 'user_id' => $guest->id, 'role' => BrandCollaborator::ROLE_APPROVER]);
     $inbox = app(InboxService::class);
 
     $inbox->assign($user, $c, $guest->id);

@@ -2,6 +2,9 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parse, compileScript, compileTemplate } from '@vue/compiler-sfc';
+import { effectScope, ref } from 'vue';
+import { blankDocument } from '../../resources/js/Studio/document.js';
+import { usePresentation } from '../../resources/js/Studio/composables/usePresentation.js';
 const url=new URL('../../resources/js/Studio/presentation-audience.js',import.meta.url);
 const subject=await import(url).catch(e=>{if(e.code==='ERR_MODULE_NOT_FOUND'&&e.url===url.href)return {};throw e;});
 function fakeWindow(){
@@ -30,7 +33,26 @@ test('presentation and editor SFC compile, with real modal, text notes and guard
   assert.ok(source.length>0,`${file} presentation UI is absent`);const {descriptor,errors}=parse(source);assert.deepEqual(errors,[]);
   const script=compileScript(descriptor,{id:'presentation-test'});assert.ok(script.content.length>0);
   const template=compileTemplate({source:descriptor.template.content,filename:file,id:'presentation-test',compilerOptions:{bindingMetadata:script.bindings}});assert.deepEqual(template.errors,[]);
-  if(file.includes('PresentationDialog')) {assert.match(source,/showModal\(/);assert.match(source,/presentationKey/);assert.match(source,/state\.notes/);assert.match(source,/offline: true, renderScale: presentationPreviewScale/);assert.doesNotMatch(source,/v-html|innerHTML/);}
-  else {assert.match(source,/presentationOpen\.value/);assert.match(source,/Notas del presentador/);assert.match(source,/Array\.from\(value\)\.length/);}
+  if(file.includes('PresentationDialog')) {assert.match(source,/<BaseDialog/);assert.match(await readFile(new URL('../../resources/js/Components/BaseDialog.vue',import.meta.url),'utf8'),/showModal\(/);assert.match(source,/presentationKey/);assert.match(source,/state\.notes/);assert.match(source,/offline: true, renderScale: presentationPreviewScale/);assert.doesNotMatch(source,/v-html|innerHTML/);}
+  else {assert.match(source,/usePresentation\(\{/);assert.match(source,/Notas del presentador/);}
  }
+});
+
+
+test('speaker notes count Unicode characters and keep an oversized edit out of the document', () => {
+    const documentData = ref(blankDocument());
+    const page = ref(documentData.value.pages[0]);
+    const updates = [];
+    const scope = effectScope();
+    try {
+        const presentation = scope.run(() => usePresentation({
+            page, documentData, error: ref(''), patchPage: (patch, id) => updates.push([patch, id]),
+        }));
+        const exact = '🎞'.repeat(20000);
+        presentation.patchNotes({ target: { value: exact } }, page.value.id);
+        assert.deepEqual(updates, [[{ notes: exact }, page.value.id]]);
+        presentation.patchNotes({ target: { value: `${exact}a` } }, page.value.id);
+        assert.equal(updates.length, 1);
+        assert.match(presentation.notesError.value, /20.000 caracteres Unicode/);
+    } finally { scope.stop(); }
 });

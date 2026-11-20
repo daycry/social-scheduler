@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\SavedText;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Support\Facades\Log;
 
 class SavedTextPolicy
@@ -20,7 +21,7 @@ class SavedTextPolicy
 
     private function owns(User $user, SavedText $text, string $ability): bool
     {
-        if ($text->user_id === $user->id) {
+        if (Ownership::matches($text, $user)) {
             return true;
         }
 

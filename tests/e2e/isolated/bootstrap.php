@@ -10,6 +10,7 @@ use App\Connectors\Meta\Comments;
 use App\Connectors\Network;
 use App\Connectors\Threads\ThreadsComments;
 use App\Services\Media\UrlGuard;
+use App\Services\Push\PushSender;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiter;
 use Illuminate\Contracts\Console\Kernel;
@@ -103,6 +104,18 @@ function generalBootstrap(): Application
         // El host de descargas de Canva resuelve a una IP publica ficticia: UrlGuard lo valida y la peticion la atiende el fake.
         $app->instance(UrlGuard::class, new UrlGuard(fn (string $host) => ['151.101.2.2']));
         generalFakeCanva($root);
+    }
+    if (is_file($root.'/webhooks-on')) {
+        $app->instance(UrlGuard::class, new UrlGuard(fn (string $host) => $host === 'hooks.example.test' ? ['93.184.216.34'] : []));
+        generalFakeWebhooks($root);
+    }
+    if (is_file($root.'/push-on')) {
+        $fixture = json_decode(file_get_contents($root.'/push-on'), true, flags: JSON_THROW_ON_ERROR);
+        config(['push.enabled' => true, 'push.vapid.subject' => 'mailto:e2e-push@example.test',
+            'push.vapid.public_key' => $fixture['public'], 'push.vapid.private_key' => $fixture['private']]);
+        $app->instance(UrlGuard::class, new UrlGuard(fn (string $host) => $host === 'push.example.test' || ($host === 'hooks.example.test' && is_file($root.'/webhooks-on')) ? ['93.184.216.34'] : []));
+        require_once __DIR__.'/FakePushSender.php';
+        $app->instance(PushSender::class, new GeneralFakePushSender($root));
     }
     $registry = new ConnectorRegistry;
     foreach (['meta' => [Network::Instagram, Network::Facebook], 'google' => [Network::YouTube], 'tiktok' => [Network::TikTok], 'bluesky' => [Network::Bluesky], 'threads' => [Network::Threads], 'linkedin' => [Network::LinkedIn], 'pinterest' => [Network::Pinterest]] as $provider => $networks) {

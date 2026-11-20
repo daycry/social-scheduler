@@ -19,7 +19,7 @@ class RunStudioAiJob implements ShouldQueue
 
     public function __construct(public readonly int $aiJobId)
     {
-        $this->onQueue('media');
+        $this->onQueue((string) config('queue.studio_render', 'studio-render'));
     }
 
     public function handle(StudioAi $ai): void

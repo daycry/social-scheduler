@@ -1,7 +1,7 @@
 <script setup>
 defineProps({
     type: {
-        type: String,
+        type: /** @type {import('vue').PropType<'button' | 'submit' | 'reset'>} */ (String),
         default: 'button',
     },
 });

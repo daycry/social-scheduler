@@ -1,0 +1,78 @@
+{
+  "task": "T-68",
+  "date": "2026-11-17",
+  "status": "verified",
+  "source_files": 1702,
+  "source_hashes": "source-hashes.json",
+  "playwright": {
+    "stats": {
+      "startTime": "2026-11-17T20:07:09.286Z",
+      "duration": 5017836.989999999,
+      "expected": 765,
+      "skipped": 2,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "qa_gate_observed": "VERDE",
+    "report": "C:\\laragon\\www\\metricool\\.cache\\t105-r1-c88e73\\storage\\framework\\testing\\t43\\run-general-ce1b5cb0-e1ad-42fb-be95-f2a1310d72dd\\results.json",
+    "sha256": "598abf5f835af99fa9bdf584a11163e7557c38f44d4dc415ac9110fc9b651fce"
+  },
+  "pest": {
+    "tests": 4271,
+    "passed": 4262,
+    "skipped": 9,
+    "assertions": 28601,
+    "duration_ms": 372232
+  },
+  "node": {
+    "passed": 778,
+    "failed": 0,
+    "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t68-r14-node-full.log"
+  },
+  "typecheck": {
+    "errors": 0,
+    "log": "C:\\Users\\daycr\\AppData\\Local\\Temp\\metricool-t68-r17-final-typecheck.log"
+  },
+  "reviews": [
+    {
+      "name": "main-pages-r4",
+      "receipt": "metricool-t68-main-pages-r4-opus55.json",
+      "sha256": "c76d7f0f142ef38eb60b9dd107df0855fda3c75fd3ee6ab8c5e9dfd72c20f292",
+      "model": "claude-opus-5-5",
+      "path": "reviews/main-pages-r4.md"
+    },
+    {
+      "name": "main-pages-r5",
+      "receipt": "metricool-t68-main-pages-r5-opus55.json",
+      "sha256": "15705a0facf59b172da98bc64c8e99476c5aecd6e5e9c75df6769f1305370626",
+      "model": "claude-opus-5-5",
+      "path": "reviews/main-pages-r5.md"
+    },
+    {
+      "name": "composer-studio-r10",
+      "receipt": "metricool-t68-composer-studio-r10-opus55.json",
+      "sha256": "3673befff8b14b048bf5153389e1381ab236e9f5b9ed00d5648ca469ef02287e",
+      "model": "claude-opus-5-5",
+      "path": "reviews/composer-studio-r10.md"
+    },
+    {
+      "name": "test-followup-r12",
+      "receipt": "metricool-t68-test-followup-r12-opus55.json",
+      "sha256": "a786ec57d41e0cd3915d0ed74cf9a8f469c7a7c08ffa8986e432df3eff5c8ade",
+      "model": "claude-opus-5-5",
+      "path": "reviews/test-followup-r12.md"
+    },
+    {
+      "name": "unmount-followup-r14",
+      "receipt": "metricool-t68-unmount-followup-r14-opus55.json",
+      "sha256": "ea1d9f811edfc0daaa02000890eb4a62f589258b3e602a4a6f8417373a415ffd",
+      "model": "claude-opus-5-5",
+      "path": "reviews/unmount-followup-r14.md"
+    }
+  ],
+  "limits": [
+    "Revisiones estáticas; el revisor no ejecutó las pruebas.",
+    "CI reproducido localmente; GitHub Actions no se ha lanzado.",
+    "Scripts y plantillas del Compositor y Studio/Index y el motor Studio quedan fuera del programa estricto; sí se tipan los descriptores de props."
+  ]
+}

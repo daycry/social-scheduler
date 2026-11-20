@@ -2,9 +2,13 @@
 
 Informes por marca y rango de fechas, con comparación opcional. Se generan en la cola `reports`.
 
-La selección inicial respeta la marca del contexto o `brand_id` y calcula el periodo en su zona horaria. Al generar conserva esa marca. El historial reciente sigue siendo del usuario completo; no se presenta como una lista exclusiva de la marca seleccionada.
+La selección inicial respeta la marca del contexto o `brand_id` y calcula el periodo en su zona horaria. Al generar conserva esa marca. El próximo envío y el último envío se muestran en la zona de la marca del informe programado. El historial reciente sigue siendo del usuario completo; no se presenta como una lista exclusiva de la marca seleccionada.
+
+Si hay informes pendientes, la página consulta su estado hasta 40 veces por ciclo. Empieza a los 4 segundos y amplía la espera hasta 30. Pausa al ocultar la pestaña. Al llegar al límite, «Volver a consultar» inicia un ciclo nuevo.
 
 ## Piezas
+
+El historial reciente se recorre por páginas y muestra el total de informes de la cuenta. La selección de marca sigue controlando la preparación de un informe nuevo.
 
 | Pieza | Ruta |
 |---|---|
@@ -40,6 +44,8 @@ CSV en formato largo con cabecera `seccion,red,elemento,metrica,fecha,valor,ante
 ## Descarga
 
 La interfaz pide un enlace nuevo con `GET reports/{report}/link`. La descarga `reports/{report}/download/{owner}` va solo con firma, sin sesión, para que la use también un agente MCP. La firma cubre informe y dueño; el controlador comprueba que coinciden y que el informe está `ready`, y audita el acceso.
+
+La página de informes delega el resultado de la vista previa y el listado de informes recientes a sus componentes. `useReportPreview` gestiona la petición y la cancela al cambiar de marca. `ReportsRecent` refresca el listado mientras hay informes en proceso.
 
 ## Constructor de informes y envío programado (T-21)
 

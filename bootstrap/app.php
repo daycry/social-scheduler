@@ -1,9 +1,12 @@
 <?php
 
+use App\Exceptions\OwnershipException;
+use App\Http\Controllers\CspReportController;
 use App\Http\Controllers\HealthController;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LimitStudioDatasetPayload;
 use App\Http\Middleware\McpGuard;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\TrustProxiesFromConfig;
 use App\Support\CrossUserAccessLogger;
 use Illuminate\Foundation\Application;
@@ -24,6 +27,8 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function (): void {
             // /health fuera del grupo `web` (sin sesion en BD) y con rate limit.
             Route::get('/health', HealthController::class)->middleware('throttle:30,1')->name('health');
+            Route::post('/security/csp-report', CspReportController::class)
+                ->middleware('throttle:csp-report')->name('security.csp-report');
             Route::middleware('api')->group(base_path('routes/studio-api.php'));
         },
     )
@@ -34,8 +39,10 @@ return Application::configure(basePath: dirname(__DIR__))
             && ($request->is('studio*', 'brands/*/studio*', 'api/v1/*')
                 || ($request->is('mcp*') && ($request->input('params.name') === 'manage_studio_dataset' || is_array($request->input('params.arguments.document'))
                     || is_array($request->input('params.arguments.fields')))));
-        $middleware->trimStrings(except: [$studioJson]);
-        $middleware->convertEmptyStringsToNull(except: [$studioJson]);
+        // El receptor comprueba el tamaño antes de decodificar el JSON crudo.
+        $keepRawJson = static fn (Request $request): bool => $request->is('security/csp-report') || $studioJson($request);
+        $middleware->trimStrings(except: [$keepRawJson]);
+        $middleware->convertEmptyStringsToNull(except: [$keepRawJson]);
 
         // Baja one-click de informes (RFC 8058): el cliente de correo no tiene token CSRF; la firma de la URL protege la peticion.
         $middleware->validateCsrfTokens(except: ['report-schedules/*/unsubscribe']);
@@ -53,11 +60,13 @@ return Application::configure(basePath: dirname(__DIR__))
         // X-Forwarded-Host falso no puede envenenar URLs absolutas (p. ej. el enlace de reset).
         $middleware->trustHosts();
         // /mcp: Origin + limite por IP + log de 401, antes de la autenticacion (ver McpGuard).
-        $middleware->append(McpGuard::class);
+        $middleware->append([SecurityHeaders::class, McpGuard::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // Acceso cruzado entre usuarios: el UserScope devuelve 404 en el binding antes
-        // que la Policy, asi que se registra aqui sin cambiar la respuesta al cliente.
+        // La web y la API reciben el mismo 404 de un recurso inexistente.
+        $exceptions->map(OwnershipException::class, fn () => new NotFoundHttpException);
+
+        // Registra el acceso cruzado cuando el binding del UserScope devuelve 404 antes de la Policy.
         $exceptions->render(function (NotFoundHttpException $e): void {
             CrossUserAccessLogger::log($e);
         });

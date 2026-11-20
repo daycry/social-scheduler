@@ -7,6 +7,7 @@ use App\Connectors\Exceptions\PublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Connectors\Exceptions\TransientPublishException;
+use App\Connectors\Network;
 use App\Connectors\Support\UploadPassBudget;
 use App\Models\SocialAccount;
 use Illuminate\Http\Client\ConnectionException;
@@ -29,7 +30,7 @@ class YouTubeClient
 
     public function __construct(private readonly YouTubeQuota $quota = new YouTubeQuota)
     {
-        $this->pass = new UploadPassBudget('youtube');
+        $this->pass = new UploadPassBudget(Network::YouTube, minSliceDefault: 10);
     }
 
     public function quota(): YouTubeQuota

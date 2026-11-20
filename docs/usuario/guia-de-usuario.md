@@ -207,3 +207,15 @@ Las API keys del asistente de IA (MCP) no se ven afectadas por el doble factor.
 ## Avisos
 
 El icono de avisos lista fallos de publicación y cuentas que necesitan reconexión. Reconectar conserva tus publicaciones pendientes. Desconectar una cuenta hace fallar las que tuviera pendientes.
+
+## Historial de actividad
+
+El menú de cuenta incluye **Actividad**. Consulta tus acciones registradas, filtra por marca, usuario, acción o fechas y comprueba el plazo de conservación. Las acciones sin una marca comprobada permanecen en el historial general. Lee la [guía de actividad](actividad.md) para conocer el alcance del historial anterior y la zona horaria de los filtros.
+
+## Proponer la mejor hora
+
+En el compositor y el calendario, **Mejor hora** usa el historial de métricas de la marca y la red elegida. La [guía de planificación](planificar.md) explica los datos mínimos, la zona horaria y cómo aplicar la propuesta sin guardar nada automáticamente.
+
+## Duplicar una publicación
+
+Abre una publicación guardada y pulsa **Duplicar** para crear un borrador independiente en la misma marca u otra propia. La [guía de duplicación](duplicar.md) explica qué contenido se conserva, las cuentas compatibles y las opciones que debes elegir de nuevo.

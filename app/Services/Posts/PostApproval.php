@@ -17,7 +17,11 @@ use Illuminate\Support\Facades\DB;
  */
 class PostApproval
 {
-    public function __construct(private readonly PostSignature $signature, private readonly PostTransitions $transitions) {}
+    public function __construct(
+        private readonly PostSignature $signature,
+        private readonly PostTransitions $transitions,
+        private readonly BrandCollaboration $collaboration,
+    ) {}
 
     /**
      * Reglas de aprobacion sobre el plan: un post sin aprobar no se programa; editar el contenido de uno aprobado lo devuelve a pendiente.
@@ -163,7 +167,7 @@ class PostApproval
 
         $brandName = (string) Brand::withoutUserScope()->whereKey($post->brand_id)->value('name');
         $message = $edited ? 'Una publicacion aprobada de «'.$brandName.'» se ha editado y vuelve a necesitar tu aprobacion.' : 'Hay una publicacion de «'.$brandName.'» que pide tu aprobacion.';
-        foreach (app(BrandCollaboration::class)->approvers((int) $post->brand_id) as $approver) {
+        foreach ($this->collaboration->approvers((int) $post->brand_id) as $approver) {
             $approver->notify(new PostWorkflowActivity('approval_requested', $post->id, $post->brand_id, $brandName, $message, (string) $post->text));
         }
     }

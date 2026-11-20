@@ -12,6 +12,7 @@ use App\Services\AuditLog;
 use App\Services\PostPresenter;
 use App\Services\PostService;
 use App\Support\CursorPage;
+use App\Support\Ownership;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -23,12 +24,15 @@ use Illuminate\Validation\Rule;
  */
 class PostApiController extends ApiController
 {
-    public function __construct(private readonly PostService $posts, private readonly PostPresenter $presenter) {}
+    public function __construct(AuditLog $auditLog, private readonly PostService $posts, private readonly PostPresenter $presenter)
+    {
+        parent::__construct($auditLog);
+    }
 
     public function show(Request $request, Post $post): JsonResponse
     {
-        abort_unless($post->user_id === $request->user()->id, 404);
-        $this->audit($request, 'get_post', AuditLog::OK, 'post', $post->id);
+        Ownership::assert($post, $request->user());
+        $this->audit($request, 'get_post', AuditLog::OK, 'post', $post->id, brandId: $post->brand_id);
 
         return response()->json($this->presenter->present($post));
     }
@@ -57,7 +61,7 @@ class PostApiController extends ApiController
     /** Borra una publicacion aun no publicada (como `delete_post` del MCP y la papelera de la web). */
     public function destroy(Request $request, Post $post): JsonResponse
     {
-        abort_unless($post->user_id === $request->user()->id, 404);
+        Ownership::assert($post, $request->user());
 
         return $this->respond($request, 'delete_post', 'post', $post->id, function () use ($request, $post) {
             $this->posts->delete($request->user(), $post);
@@ -69,7 +73,7 @@ class PostApiController extends ApiController
     /** Cancela la programacion: la publicacion pendiente vuelve a borrador. */
     public function cancel(Request $request, Post $post): JsonResponse
     {
-        abort_unless($post->user_id === $request->user()->id, 404);
+        Ownership::assert($post, $request->user());
 
         return $this->respond($request, 'cancel_post', 'post', $post->id, function () use ($request, $post) {
             // Cancelar solo tiene sentido con algo programado: un borrador (ya cancelado) no admite la operacion.
@@ -84,7 +88,7 @@ class PostApiController extends ApiController
     /** Publica ya un borrador o una programada: se valida como al programar y se encola al instante. */
     public function publish(Request $request, Post $post): JsonResponse
     {
-        abort_unless($post->user_id === $request->user()->id, 404);
+        Ownership::assert($post, $request->user());
 
         return $this->respond($request, 'publish_post_now', 'post', $post->id, fn () => $this->presenter->present($this->posts->publishNow($request->user(), $post)), 202);
     }
@@ -95,7 +99,7 @@ class PostApiController extends ApiController
      */
     public function update(Request $request, Post $post): JsonResponse
     {
-        abort_unless($post->user_id === $request->user()->id, 404);
+        Ownership::assert($post, $request->user());
 
         return $this->respond($request, 'update_post', 'post', $post->id, fn () => $this->presenter->present($this->applyUpdate($request, $post)));
     }

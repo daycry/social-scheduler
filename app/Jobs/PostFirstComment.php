@@ -67,7 +67,7 @@ class PostFirstComment implements ShouldBeUnique, ShouldQueue
         return 'fc:'.$this->targetId;
     }
 
-    public function handle(ConnectorRegistry $connectors): void
+    public function handle(ConnectorRegistry $connectors, SocialAccountService $accounts): void
     {
         $claim = $this->claim();
 
@@ -136,7 +136,7 @@ class PostFirstComment implements ShouldBeUnique, ShouldQueue
             $this->settle($target, FirstCommentStatus::Failed, $e->getMessage());
         } catch (ReconnectRequiredException $e) {
             // Flujo comun de reconexion: la cuenta queda marcada (aviso y bloqueo de lo programado) ademas de fallar el comentario.
-            app(SocialAccountService::class)->flagReconnection($account, $e->getMessage());
+            $accounts->flagReconnection($account, $e->getMessage());
             $this->settle($target, FirstCommentStatus::Failed, $e->getMessage());
         } catch (PermanentPublishException $e) {
             $this->settle($target, FirstCommentStatus::Failed, $e->getMessage());

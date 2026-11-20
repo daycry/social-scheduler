@@ -10,7 +10,7 @@ function liCheck(string $version, string $today): array
 {
     config(['social.linkedin.api_version' => $version]);
 
-    return (new HealthCheck)->linkedinVersion(Carbon::parse($today));
+    return app(HealthCheck::class)->linkedinVersion(Carbon::parse($today));
 }
 
 test('una version reciente de LinkedIn no avisa', function () {
@@ -39,9 +39,9 @@ test('el valor por defecto esta vigente y el aviso entra en el estado de app:hea
     expect($defaults['linkedin']['api_version'])->toBe('202610');
 
     config(['social.linkedin.api_version' => '202401', 'health.native' => false]);
-    $run = (new HealthCheck)->run();
+    $run = app(HealthCheck::class)->run();
     expect($run['checks']['linkedin_version']['warn'])->toBeTrue()->and($run['status'])->toBe('degraded');
 
     config(['social.linkedin.enabled' => false]);
-    expect((new HealthCheck)->run()['checks'])->not->toHaveKey('linkedin_version');
+    expect(app(HealthCheck::class)->run()['checks'])->not->toHaveKey('linkedin_version');
 });

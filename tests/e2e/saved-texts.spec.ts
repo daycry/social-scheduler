@@ -80,6 +80,7 @@ test('E2E-01 · página «Textos guardados»: alta, edición, filtro por marca y
 
     // Borrado
     await rows(page).filter({ hasText: 'e2e-hashtags-marca' }).getByRole('button', { name: /^Eliminar/ }).click();
+    await page.getByTestId('confirm-dialog').getByRole('button', { name: 'Eliminar texto' }).click();
     await settle(page);
     await expect(rows(page)).toHaveCount(1);
 

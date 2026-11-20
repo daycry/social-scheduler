@@ -9,7 +9,11 @@ defineProps({
 </script>
 
 <template>
-    <div class="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900" role="note" data-testid="info-note">
+    <div
+        class="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900"
+        role="note"
+        data-testid="info-note"
+    >
         <p v-if="title" class="font-medium">{{ title }}</p>
         <div :class="title ? 'mt-1' : ''"><slot /></div>
     </div>

@@ -7,7 +7,9 @@ use App\Http\Controllers\OAuth\OAuthController;
 use App\Models\SocialAccount;
 use App\Services\InboxService;
 use App\Support\CurrentBrand;
+use App\Support\SystemAccess;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -42,6 +44,12 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'canViewSystemStatus' => fn () => SystemAccess::allows($request->user()),
+            'flash' => Inertia::always(fn () => [
+                'success' => $request->hasSession() ? $request->session()->get('success') : null,
+                'error' => $request->hasSession() ? $request->session()->get('error') : null,
+                'publishing_post_id' => $request->hasSession() ? $request->session()->get('publishing_post_id') : null,
+            ]),
             // Contador de avisos sin leer para la barra de navegacion.
             'unreadNotifications' => fn () => $request->user() ? $request->user()->unreadNotifications()->count() : 0,
             // Comentarios sin leer del Inbox (una sola consulta COUNT, lazy y solo con sesion).
@@ -101,7 +109,7 @@ class HandleInertiaRequests extends Middleware
 
         return [
             'brands' => $brands->map(fn ($b) => ['id' => $b->id, 'name' => $b->name, 'avatar_url' => $avatars[$b->id] ?? null])->values()->all(),
-            'currentBrand' => $current ? ['id' => $current->id, 'name' => $current->name, 'avatar_url' => $avatars[$current->id] ?? null] : null,
+            'currentBrand' => $current ? ['id' => $current->id, 'name' => $current->name, 'timezone' => $current->timezone, 'avatar_url' => $avatars[$current->id] ?? null] : null,
             'accounts' => (object) $accounts,
             'networks' => collect(Network::offered())->map(fn (Network $n) => $n->toArray())->values()->all(),
         ];

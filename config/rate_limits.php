@@ -5,6 +5,38 @@
 // `api-v1` es el tope conjunto de toda la API por usuario; el resto, el de cada ruta (nombre de la ruta). Se registran en AppServiceProvider.
 
 return [
+    // Grupos registrados explícitamente en las rutas. Sus contadores se comparten dentro del grupo.
+    'groups' => [
+        'report-builder' => 30,
+        'report-schedules' => 10,
+        'studio-ai' => 6,
+        'canva' => 30,
+        'canva-connect' => 10,
+        'studio-ai-text' => 12,
+        'studio-links' => 10,
+        'brand-collaborators' => 10,
+        'post-batches' => 10,
+        'studio-shares' => 10,
+        'studio-copies' => 10,
+        'passkey-manage' => 20,
+        'mcp-oauth-authorize' => 30,
+    ],
+
+    'per_ip' => [
+        'studio-link-view' => 60,
+        'passkey-login' => 10,
+        'passkey-login-options' => 30,
+        'social-login' => 20,
+        'mcp-oauth-token' => 30,
+    ],
+
+    // Publicar ahora consume cupo solo si se solicita. Los comentarios comparten cupo por enlace.
+    'publish_now' => 30,
+    'studio_link_comments' => 10,
+    'two_factor_manage' => 10,
+    // Registro OAuth por hora, agrupado por /64 para IPv6.
+    'mcp_oauth_register' => 10,
+
     'limits' => [
         'api-v1' => 120,
         'api.media.store' => 60,

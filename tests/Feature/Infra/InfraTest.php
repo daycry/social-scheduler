@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 
 test('queues publish, poll, metrics and reports are configured', function () {
-    expect(config('queue.names'))->toBe(['publish', 'poll', 'metrics', 'reports', 'media', 'studio']);
+    expect(config('queue.names'))->toBe(['publish', 'poll', 'metrics', 'reports', 'media', 'studio', 'studio-render']);
     expect(config('queue.connections.database.driver'))->toBe('database');
 });
 
@@ -103,7 +103,8 @@ test('app:queue-probe sondea la cola media aunque QUEUE_NAMES no la liste (gap 4
     Artisan::call('app:queue-probe');
 
     Queue::assertPushedOn('media', QueueProbeJob::class);
-    Queue::assertPushed(QueueProbeJob::class, 5);
+    Queue::assertPushedOn('studio-render', QueueProbeJob::class);
+    Queue::assertPushed(QueueProbeJob::class, 6);
 });
 
 test('los .env de ejemplo listan la cola media en QUEUE_NAMES', function (string $file) {
@@ -115,11 +116,11 @@ test('database queue persists a probe job per queue and a worker processes it', 
 
     Artisan::call('app:queue-probe');
     expect(DB::table('jobs')->pluck('queue')->sort()->values()->all())
-        ->toBe(['media', 'metrics', 'poll', 'publish', 'reports', 'studio']);
+        ->toBe(['media', 'metrics', 'poll', 'publish', 'reports', 'studio', 'studio-render']);
 
     Artisan::call('queue:work', [
         'connection' => 'database',
-        '--queue' => 'publish,poll,metrics,reports,media,studio',
+        '--queue' => 'publish,poll,metrics,reports,media,studio,studio-render',
         '--stop-when-empty' => true,
         '--memory' => 1024, // el worker de prueba corre dentro del proceso de Pest: con la suite grande superaba los 128 MB por defecto y paraba tras el primer job
     ]);
@@ -195,7 +196,7 @@ test('empty QUEUE_NAMES falls back to the default queues', function () {
     unset($_ENV['QUEUE_NAMES']);
     putenv('QUEUE_NAMES');
 
-    expect($names)->toBe(['publish', 'poll', 'metrics', 'reports', 'media', 'studio']);
+    expect($names)->toBe(['publish', 'poll', 'metrics', 'reports', 'media', 'studio', 'studio-render']);
 });
 
 test('stale heartbeat is detected', function () {

@@ -19,7 +19,7 @@ const document2 = (color: string) => ({ schema_version: 1, width: 320, height: 1
     { id: 'one', name: 'Portada', duration: 5, background: color, elements: [] },
     { id: 'two', name: 'Cierre', duration: 5, background: '#00aa55', elements: [] },
 ] });
-const runQueue = (queue: string) => artisan(`Illuminate\\Support\\Facades\\Artisan::call('queue:work',['connection'=>'database','--queue'=>'${queue}','--stop-when-empty'=>true,'--tries'=>1,'--timeout'=>100,'--sleep'=>0]);`);
+const runQueue = (queueConfig: 'studio.thumbnail_queue' | 'queue.studio_render') => artisan(`Illuminate\\Support\\Facades\\Artisan::call('queue:work',['connection'=>'database','--queue'=>config('${queueConfig}'),'--stop-when-empty'=>true,'--tries'=>1,'--timeout'=>100,'--sleep'=>0]);`);
 
 test('T-35 · listado: miniatura bajo demanda, caducada al editar y exportación PPTX descargable', { tag: '@responsive' }, async ({ page }, info) => {
     test.setTimeout(180_000);
@@ -35,7 +35,7 @@ test('T-35 · listado: miniatura bajo demanda, caducada al editar y exportación
         // Sin miniatura: hueco con el nombre y el trabajo queda en la cola; con el worker, aparece la imagen.
         await page.goto(`/studio?brand_id=${brand.id}`);
         await expect(page.getByTestId('design-thumbnail-pending')).toHaveCount(1);
-        runQueue('studio');
+        runQueue('studio.thumbnail_queue');
         await page.reload();
         const thumbnail = page.getByTestId('design-thumbnail');
         await expect(thumbnail).toBeVisible();
@@ -47,7 +47,7 @@ test('T-35 · listado: miniatura bajo demanda, caducada al editar y exportación
         expect(edited.revision).toBe(design.revision + 1);
         await page.reload();
         await expect(page.getByTestId('design-thumbnail-pending')).toHaveCount(1);
-        runQueue('studio');
+        runQueue('studio.thumbnail_queue');
         await page.reload();
         await expect(page.getByTestId('design-thumbnail')).toBeVisible();
 
@@ -63,7 +63,7 @@ test('T-35 · listado: miniatura bajo demanda, caducada al editar y exportación
         expect(started.status()).toBe(202);
         expect(started.request().postDataJSON()).toMatchObject({ format: 'pptx', pages: ['one', 'two'] });
         const row = dialog.getByRole('region', { name: `Exportación ${(await started.json()).export.id}`, exact: true });
-        runQueue('media');
+        runQueue('queue.studio_render');
         await dialog.getByRole('button', { name: 'Actualizar exportaciones', exact: true }).click();
         await expect(row).toContainText('Lista');
         await expect(row.getByRole('button', { name: 'Crear borrador' })).toHaveCount(0);

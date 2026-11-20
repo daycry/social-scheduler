@@ -1,6 +1,7 @@
 <?php
 
 use App\Connectors\Network;
+use App\Enums\ContentType;
 use App\Enums\FirstCommentStatus;
 use App\Enums\PostStatus;
 use App\Models\Brand;
@@ -57,6 +58,18 @@ test('Compose: todos los tipos ofrecidos llegan con una descripcion no vacia (T-
                 expect(trim($t['description'] ?? ''))->not->toBe('', $t['value']);
             }
         });
+});
+
+test('Compose: las definiciones de contenido están disponibles sin cuentas conectadas', function () {
+    $emptyBrand = Brand::factory()->for($this->user)->create();
+    $expectedLabels = collect(ContentType::cases())->map(fn (ContentType $type) => $type->value)->sort()->values()->all();
+
+    $this->actingAs($this->user)->get(route('brands.posts.create', $emptyBrand))->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('Posts/Compose')
+            ->has('accounts', 0)->has('contentTypes.instagram')->has('contentTypes.youtube')
+            ->where('presets', [])->where('firstCommentMax.instagram_image', (int) config('media_specs.types.instagram_image.first_comment.max'))
+            ->hasAll(['limits.instagram_image', 'mediaMeta.instagram_image', 'limits.youtube_video', 'mediaMeta.youtube_video'])
+            ->where('typeLabels', fn ($labels) => $labels->keys()->sort()->values()->all() === $expectedLabels));
 });
 
 test('Compose: programar guarda la publicacion con la hora de la marca en UTC y es visible al editar', function () {

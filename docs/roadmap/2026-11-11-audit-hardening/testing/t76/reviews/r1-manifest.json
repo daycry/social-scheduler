@@ -1,0 +1,91 @@
+{
+  "model": "claude-opus-5-5",
+  "receipt_sha256": "31e6791e076600b13a179507e5b96e34bae5534cbb31f09f0f67490e20fd13db",
+  "packet_sha256": "6cf4d90bf090ae31be39a3382fb4aa704001a9580fe5e087cfc6b50d177790c0",
+  "files": [
+    {
+      "path": "CHANGELOG.es.md",
+      "sha256": "4a94ca4df657e0f6c5edccaf267283832e03e3c6465f48a1fc73b152770b3c1b"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "a5a206f2658b5d38620f6bb26325285612122940ac2c525138b798735f39f4d5"
+    },
+    {
+      "path": "app/Http/Controllers/BestTimesController.php",
+      "sha256": "2a4f55a96cd9bc297e70c6e22f36363711d66db8c45d2e04d14186752b2ccf20"
+    },
+    {
+      "path": "app/Http/Controllers/PostController.php",
+      "sha256": "7eb3b93c5ad6926f31ae6150fed94f312821ad964a0cafeb0c00de52b91db1de"
+    },
+    {
+      "path": "app/Services/BestTimesService.php",
+      "sha256": "09b20d95d39cff9fce7d23e594d8909f58790462491700bded4970485cb42e50"
+    },
+    {
+      "path": "app/Support/LocalDateTime.php",
+      "sha256": "d578d5282a3e84a3969c63329b027c211799ee04a227890a7db679cbd2baf652"
+    },
+    {
+      "path": "docs/README.md",
+      "sha256": "502d6d563495dfb4ecc9d443bb0c565bb259c8236643580c261c05504e93385b"
+    },
+    {
+      "path": "docs/usuario/guia-de-usuario.md",
+      "sha256": "2e5fad0fb17f309d96feb1dba09fc60fec8f62b185b5cb950d48d7edb9ecc4bf"
+    },
+    {
+      "path": "docs/usuario/planificar.md",
+      "sha256": "82c2b71831ccb5883e1bfb1d176cbe8b18761f473d0b696e824019d316528b67"
+    },
+    {
+      "path": "resources/js/Components/BestTimeSuggestion.vue",
+      "sha256": "dadc3dac8b26303474439388d1ac9720a034c268801bc5384a18e0243b8722a6"
+    },
+    {
+      "path": "resources/js/Components/Composer/ScheduleSection.vue",
+      "sha256": "2f4988fb80f7889d4d30543a5f4ef0deba657df4dc867d5fb5fce068cdb5483f"
+    },
+    {
+      "path": "resources/js/Composables/useBestTimeSuggestion.js",
+      "sha256": "3052ee789dc8f0694414fbc9f36faff19ecc93ff1bcde24f33f2ed65b357bcd8"
+    },
+    {
+      "path": "resources/js/Composables/useComposer.js",
+      "sha256": "ee7ab49c83317c8771d46e32bf071f263512eeb00c55b50e0f640080dd56d221"
+    },
+    {
+      "path": "resources/js/Pages/Calendar/Index.vue",
+      "sha256": "ca1cf39070095bec51d57cad0fafd29bdc6067ad858b1759fd7de778defb309d"
+    },
+    {
+      "path": "resources/js/Pages/Posts/compose-props.js",
+      "sha256": "41a1643d6bdc9b29666d27df027df90bd80f15143077423c06d0f8714632ba5c"
+    },
+    {
+      "path": "resources/js/types/best-time.d.ts",
+      "sha256": "026c3ddadab6bff92e1f0c41a976d540e36791350ddccc213fa6cca0ca487b8f"
+    },
+    {
+      "path": "resources/js/types/compose.d.ts",
+      "sha256": "cc702914e12c391df9f6f72d2d7a31631f81460fadd683da99b55cbf650c247d"
+    },
+    {
+      "path": "routes/parity.php",
+      "sha256": "787ea5801198d2f3f7ecd4c1957a14b5f1af8c88c0e26220334fa1bfaca933c7"
+    },
+    {
+      "path": "tests/Feature/Parity/BestTimeSuggestionTest.php",
+      "sha256": "7731b2dd8988e577a562833fae8f504f31b6e39fb411f3c826483e6b1d9ca45f"
+    },
+    {
+      "path": "tests/e2e/best-time-suggestion.spec.ts",
+      "sha256": "0c3291e876f8dbd130ca50424dcb6591834f77812f98c45de940a780ab53cb87"
+    },
+    {
+      "path": "tests/frontend/best-time-suggestion.test.mjs",
+      "sha256": "9ad520c751d1a2ba8b4830f452536ecf979ecf5bd71809294b0525cbdc2fc777"
+    }
+  ]
+}

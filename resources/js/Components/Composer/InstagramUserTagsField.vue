@@ -49,27 +49,96 @@ function setCoordinate(tag, key, raw) {
             <div class="flex flex-wrap gap-2">
                 <div class="min-w-0 flex-1 basis-40">
                     <label :for="`${base}-username`" class="sr-only">Usuario de Instagram a etiquetar</label>
-                    <input :id="`${base}-username`" v-model="username" :disabled="!editable" class="field w-full" type="text" maxlength="31" placeholder="@usuario" autocomplete="off" @keydown.enter.prevent.stop="place(0.5, 0.5)" @input="error = ''" />
+                    <input
+                        :id="`${base}-username`"
+                        v-model="username"
+                        :disabled="!editable"
+                        class="field w-full"
+                        type="text"
+                        maxlength="31"
+                        placeholder="@usuario"
+                        autocomplete="off"
+                        @keydown.enter.prevent.stop="place(0.5, 0.5)"
+                        @input="error = ''"
+                    />
                 </div>
-                <button type="button" class="btn btn-secondary" :disabled="!editable || full" @click="place(0.5, 0.5)">Añadir en el centro</button>
+                <button type="button" class="btn btn-secondary" :disabled="!editable || full" @click="place(0.5, 0.5)"
+                    >Añadir en el centro</button
+                >
             </div>
             <p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p>
             <!-- La imagen es un área de clic para ratón y táctil; los campos x/y de abajo son la alternativa de teclado. -->
-            <div class="relative mx-auto w-full max-w-sm overflow-hidden rounded-xl border border-slate-200 bg-slate-100" :class="editable ? 'cursor-crosshair' : ''" :data-testid="`${base}-canvas`" @click="onImageClick">
-                <img v-if="image.url" :src="image.url" :alt="`Imagen para etiquetar: ${image.name}`" class="block w-full select-none" draggable="false" />
-                <span v-for="tag in tags" :key="tag.username" class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-slate-900/90 px-2 py-0.5 text-[11px] font-medium text-white" :style="{ left: `${tag.x * 100}%`, top: `${tag.y * 100}%` }" :data-testid="`${base}-marker-${tag.username}`">@{{ tag.username }}</span>
+            <div
+                class="relative mx-auto w-full max-w-sm overflow-hidden rounded-xl border border-slate-200 bg-slate-100"
+                :class="editable ? 'cursor-crosshair' : ''"
+                :data-testid="`${base}-canvas`"
+                @click="onImageClick"
+            >
+                <img
+                    v-if="image.url"
+                    :src="image.url"
+                    :alt="`Imagen para etiquetar: ${image.name}`"
+                    class="block w-full select-none"
+                    draggable="false"
+                />
+                <span
+                    v-for="tag in tags"
+                    :key="tag.username"
+                    class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-slate-900/90 px-2 py-0.5 text-[11px] font-medium text-white"
+                    :style="{ left: `${tag.x * 100}%`, top: `${tag.y * 100}%` }"
+                    :data-testid="`${base}-marker-${tag.username}`"
+                    >@{{ tag.username }}</span
+                >
             </div>
-            <p class="text-xs leading-relaxed text-slate-600">Escribe el usuario y pulsa sobre la imagen donde quieras la etiqueta (hasta {{ max }}). Instagram solo etiqueta cuentas públicas y rechaza la publicación si alguna no existe.</p>
+            <p class="text-xs leading-relaxed text-slate-600"
+                >Escribe el usuario y pulsa sobre la imagen donde quieras la etiqueta (hasta {{ max }}). Instagram solo
+                etiqueta cuentas públicas y rechaza la publicación si alguna no existe.</p
+            >
             <ul v-if="tags.length" class="space-y-2" aria-label="Etiquetas de usuario">
-                <li v-for="tag in tags" :key="tag.username" class="flex flex-wrap items-end gap-2 rounded-lg border border-slate-200 px-2 py-2 text-sm">
+                <li
+                    v-for="tag in tags"
+                    :key="tag.username"
+                    class="flex flex-wrap items-end gap-2 rounded-lg border border-slate-200 px-2 py-2 text-sm"
+                >
                     <span class="min-w-0 flex-1 basis-24 break-all font-medium">@{{ tag.username }}</span>
-                    <label class="text-xs">x
-                        <input :value="tag.x" :disabled="!editable" type="number" min="0" max="1" step="0.01" class="field ml-1 w-20" :aria-label="`Posición x de ${tag.username} (0 a 1)`" @change="setCoordinate(tag, 'x', $event.target.value)" @keydown.enter.prevent />
+                    <label class="text-xs"
+                        >x
+                        <input
+                            :value="tag.x"
+                            :disabled="!editable"
+                            type="number"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            class="field ml-1 w-20"
+                            :aria-label="`Posición x de ${tag.username} (0 a 1)`"
+                            @change="setCoordinate(tag, 'x', $event.target.value)"
+                            @keydown.enter.prevent
+                        />
                     </label>
-                    <label class="text-xs">y
-                        <input :value="tag.y" :disabled="!editable" type="number" min="0" max="1" step="0.01" class="field ml-1 w-20" :aria-label="`Posición y de ${tag.username} (0 a 1)`" @change="setCoordinate(tag, 'y', $event.target.value)" @keydown.enter.prevent />
+                    <label class="text-xs"
+                        >y
+                        <input
+                            :value="tag.y"
+                            :disabled="!editable"
+                            type="number"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            class="field ml-1 w-20"
+                            :aria-label="`Posición y de ${tag.username} (0 a 1)`"
+                            @change="setCoordinate(tag, 'y', $event.target.value)"
+                            @keydown.enter.prevent
+                        />
                     </label>
-                    <button type="button" :disabled="!editable" class="btn btn-secondary" :aria-label="`Quitar etiqueta de ${tag.username}`" @click="commit(removeTag(tags, tag.username))">Quitar</button>
+                    <button
+                        type="button"
+                        :disabled="!editable"
+                        class="btn btn-secondary"
+                        :aria-label="`Quitar etiqueta de ${tag.username}`"
+                        @click="commit(removeTag(tags, tag.username))"
+                        >Quitar</button
+                    >
                 </li>
             </ul>
         </template>

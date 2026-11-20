@@ -11,6 +11,7 @@ use App\Connectors\Google\YouTubeClient;
 use App\Connectors\Google\YouTubeQuota;
 use App\Connectors\Google\YouTubeResumableUpload;
 use App\Connectors\Google\YouTubeVideoMetadata;
+use App\Connectors\Google\YouTubeVideoStatus;
 use App\Enums\ContentType;
 use App\Models\SocialAccount;
 use Illuminate\Support\Facades\Cache;
@@ -52,7 +53,8 @@ test('YouTubeClient: una llamada sin pasada de subida usa su tope propio y con l
 });
 
 test('YouTubeResumableUpload: sin sesion guardada, resume pide reprogramar y forgetSession borra la sesion de cache', function () {
-    $upload = new YouTubeResumableUpload(new YouTubeClient, fn () => null);
+    $client = new YouTubeClient;
+    $upload = new YouTubeResumableUpload($client, new YouTubeVideoStatus($client));
     $media = new PublishMedia(1, 'video', 'video/mp4', 'https://cdn.test/v.mp4', disk: 'local', path: 'v.mp4');
     $request = new PublishRequest(88, ContentType::YouTubeVideo, 'Titulo', [$media], [], PublishResult::UPLOADING);
 
@@ -65,10 +67,15 @@ test('YouTubeResumableUpload: sin sesion guardada, resume pide reprogramar y for
 });
 
 test('YouTubeVideoMetadata: el tag propio va primero, es opaco y estable por destino', function () {
+    config(['app.key' => 'youtube-opacity-fixture-41']);
     $tag = YouTubeVideoMetadata::targetTag(77);
 
-    expect($tag)->toStartWith('ss-')->not->toContain('77')
+    // Un HMAC opaco sí puede contener «77» por azar; esta clave es un contraejemplo estable.
+    expect($tag)->toMatch('/^ss-[a-f0-9]{16}$/D')
         ->and(YouTubeVideoMetadata::targetTag(77))->toBe($tag)
         ->and(YouTubeVideoMetadata::targetTag(78))->not->toBe($tag)
         ->and(YouTubeVideoMetadata::tagsFor(77, ['php', 'PHP', 'a,b']))->toBe([$tag, 'php', 'ab']);
+
+    config(['app.key' => 'youtube-opacity-fixture-other']);
+    expect(YouTubeVideoMetadata::targetTag(77))->not->toBe($tag);
 });

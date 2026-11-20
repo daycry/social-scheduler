@@ -166,7 +166,16 @@ const minNative = computed(() => (todayExhausted.value ? `${firstDay.value}T00:0
 </script>
 
 <template>
-    <input v-if="native" :id="id" :value="modelValue" :min="minNative" :disabled="disabled" type="datetime-local" class="field mt-1 w-auto" @input="emit('update:modelValue', $event.target.value)" />
+    <input
+        v-if="native"
+        :id="id"
+        :value="modelValue"
+        :min="minNative"
+        :disabled="disabled"
+        type="datetime-local"
+        class="field mt-1 w-auto"
+        @input="emit('update:modelValue', $event.target.value)"
+    />
 
     <div v-else ref="root" class="relative mt-1 inline-block max-w-full" data-testid="datetime-picker">
         <button
@@ -194,20 +203,53 @@ const minNative = computed(() => (todayExhausted.value ? `${firstDay.value}T00:0
             @keydown="onDialogKey"
         >
             <div class="mb-2 flex items-center justify-between">
-                <button type="button" class="btn-secondary px-2 py-1" aria-label="Mes anterior" :disabled="!canGoPrev" @click="shiftMonth(-1)">‹</button>
-                <span class="inline-block text-sm font-medium text-slate-900 first-letter:uppercase" aria-live="polite">{{ monthTitle }}</span>
-                <button type="button" class="btn-secondary px-2 py-1" aria-label="Mes siguiente" @click="shiftMonth(1)">›</button>
+                <button
+                    type="button"
+                    class="btn-secondary px-2 py-1"
+                    aria-label="Mes anterior"
+                    :disabled="!canGoPrev"
+                    @click="shiftMonth(-1)"
+                    >‹</button
+                >
+                <span
+                    class="inline-block text-sm font-medium text-slate-900 first-letter:uppercase"
+                    aria-live="polite"
+                    >{{ monthTitle }}</span
+                >
+                <button type="button" class="btn-secondary px-2 py-1" aria-label="Mes siguiente" @click="shiftMonth(1)"
+                    >›</button
+                >
             </div>
 
-            <table role="grid" class="w-full table-fixed border-collapse text-center text-sm" :aria-label="`Días de ${monthTitle}`" @keydown="onGridKey">
+            <table
+                role="grid"
+                class="w-full table-fixed border-collapse text-center text-sm"
+                :aria-label="`Días de ${monthTitle}`"
+                @keydown="onGridKey"
+            >
                 <thead>
                     <tr role="row">
-                        <th v-for="w in WEEKDAYS" :key="w[0]" scope="col" role="columnheader" class="pb-1 text-xs font-medium text-slate-600" :abbr="w[1]"><span aria-hidden="true">{{ w[0] }}</span><span class="sr-only">{{ w[1] }}</span></th>
+                        <th
+                            v-for="w in WEEKDAYS"
+                            :key="w[0]"
+                            scope="col"
+                            role="columnheader"
+                            class="pb-1 text-xs font-medium text-slate-600"
+                            :abbr="w[1]"
+                            ><span aria-hidden="true">{{ w[0] }}</span
+                            ><span class="sr-only">{{ w[1] }}</span></th
+                        >
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-for="(week, i) in weeks" :key="i" role="row">
-                        <td v-for="(date, j) in week" :key="j" role="gridcell" class="p-0.5" :aria-selected="date && value?.date === date ? 'true' : undefined">
+                        <td
+                            v-for="(date, j) in week"
+                            :key="j"
+                            role="gridcell"
+                            class="p-0.5"
+                            :aria-selected="date && value?.date === date ? 'true' : undefined"
+                        >
                             <button
                                 v-if="date"
                                 type="button"
@@ -220,7 +262,8 @@ const minNative = computed(() => (todayExhausted.value ? `${firstDay.value}T00:0
                                 :class="value?.date === date ? 'bg-indigo-600 font-semibold text-white' : date === today ? 'border border-indigo-300 text-indigo-800 hover:bg-indigo-50' : 'text-slate-800 hover:bg-slate-100'"
                                 @click="pickDay(date)"
                                 @focus="focusDate = date"
-                            >{{ Number(date.slice(8)) }}</button>
+                                >{{ Number(date.slice(8)) }}</button
+                            >
                         </td>
                     </tr>
                 </tbody>
@@ -235,15 +278,28 @@ const minNative = computed(() => (todayExhausted.value ? `${firstDay.value}T00:0
                 </label>
                 <label class="flex items-center gap-1">
                     <span class="text-slate-700">Minutos</span>
-                    <select class="field w-auto py-1" :disabled="!value" :value="value ? Math.floor(value.minute / 5) * 5 : 0" @change="setMinute">
-                        <option v-for="m in minutesList" :key="m" :value="m" :disabled="minuteDisabled(m)">{{ pad(m) }}</option>
+                    <select
+                        class="field w-auto py-1"
+                        :disabled="!value"
+                        :value="value ? Math.floor(value.minute / 5) * 5 : 0"
+                        @change="setMinute"
+                    >
+                        <option
+                            v-for="m in minutesList"
+                            :key="m"
+                            :value="m"
+                            :disabled="minuteDisabled(m)"
+                            >{{ pad(m) }}</option
+                        >
                     </select>
                 </label>
             </div>
             <p class="mt-2 text-xs text-slate-600">Hora de {{ zone }}. Los días pasados no se pueden elegir.</p>
 
             <div class="mt-3 flex justify-between gap-2">
-                <button type="button" class="btn-secondary px-3 py-1" :disabled="!value" @click="clear">Quitar fecha</button>
+                <button type="button" class="btn-secondary px-3 py-1" :disabled="!value" @click="clear"
+                    >Quitar fecha</button
+                >
                 <button type="button" class="btn-primary px-3 py-1" @click="closeAndFocus">Listo</button>
             </div>
         </div>

@@ -60,7 +60,8 @@ class StudioEditor
      */
     public function web(User $actor, Design $design, int $exportsPage): array
     {
-        $role = $this->collab->role($actor, $design);
+        $access = $this->collab->access($actor, $design);
+        $role = $access['role'];
         $user = $this->collab->authorize($actor, $design, 'view');
         $design = $this->studio->owned($user, $design);
         $brand = Brand::ownedBy($user->id)->findOrFail($design->brand_id);
@@ -71,7 +72,6 @@ class StudioEditor
         $needed = array_merge($this->fonts->neededFor($user, $brand, $design->document), $this->fonts->many($user, $brand, $ids)->map(fn ($font) => $this->fonts->present($font))->values()->all());
         $props['fonts'] = collect(array_merge($props['fonts'], $needed))->unique('id')->values()->all();
         $presented = $this->studio->present($actor, $design);
-        $access = $this->collab->summary($role, $design);
 
         if ($role !== 'owner') {
             $routes = ['asset' => fn (int $id) => route('studio.shared.asset', ['design' => $design->id, 'media' => $id], false), 'font' => fn (int $id) => route('studio.shared.font', ['design' => $design->id, 'font' => $id], false)];

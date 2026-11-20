@@ -4,7 +4,6 @@ use App\Jobs\ImportRemoteMedia;
 use App\Models\MediaAsset;
 use App\Models\User;
 use App\Services\Media\DriveFileSource;
-use App\Services\Media\RemoteMediaImporter;
 use App\Services\Media\UrlGuard;
 use App\Services\MediaUploadService;
 use Illuminate\Contracts\Queue\ShouldBeEncrypted;
@@ -73,7 +72,7 @@ function beginDrive(): array
 function runDrive(ImportRemoteMedia $job): void
 {
     for ($i = 0; $i < 6; $i++) {
-        $job->handle(app(RemoteMediaImporter::class));
+        app()->call([$job, 'handle']);
 
         if (MediaAsset::withoutUserScope()->find($job->assetId)->status !== MediaAsset::STATUS_PENDING) {
             return;
@@ -197,7 +196,7 @@ test('un Drive que gotea 1 B por pasada acaba «invalido» en pocas pasadas (gap
 
     while ($passes < 20 && MediaAsset::withoutUserScope()->find($job->assetId)->status === MediaAsset::STATUS_PENDING) {
         $passes++;
-        $job->handle(app(RemoteMediaImporter::class));
+        app()->call([$job, 'handle']);
     }
 
     expect($passes)->toBeLessThanOrEqual(3)->and($asset->fresh()->status)->toBe(MediaAsset::STATUS_INVALID)
@@ -258,7 +257,7 @@ test('B-4: un 403 de cuota (userRateLimitExceeded/rateLimitExceeded) es transito
     $body = flowJpeg();
     ($this->fake)(['www.googleapis.com/drive/v3/files/'.FLOW_FILE.'?fields=id' => Http::response($quota, 403), driveMedia() => Http::response($quota, 403)] + driveOk(strlen($body)));
     [$asset, $job] = beginDrive();
-    expect(fn () => $job->handle(app(RemoteMediaImporter::class)))->toThrow(RuntimeException::class, 'cuota');
+    expect(fn () => app()->call([$job, 'handle']))->toThrow(RuntimeException::class, 'cuota');
     expect($asset->fresh()->status)->toBe(MediaAsset::STATUS_PENDING);
 })->with(['userRateLimitExceeded', 'rateLimitExceeded']);
 

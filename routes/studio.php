@@ -19,6 +19,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('studio', [StudioController::class, 'index'])->name('studio.index');
     Route::get('brands/{brand}/studio/designs', [StudioController::class, 'indexBrand'])->whereNumber('brand')->name('studio.designs.index');
     Route::post('brands/{brand}/studio/designs', [StudioController::class, 'store'])->whereNumber('brand')->name('studio.designs.store');
+    Route::post('brands/{brand}/studio/designs/from-image', [StudioController::class, 'fromImage'])->whereNumber('brand')->name('studio.designs.from-image');
     Route::get('studio/designs/{design}/edit', [StudioController::class, 'edit'])->whereNumber('design')->name('studio.designs.edit');
     Route::get('studio/designs/{design}', [StudioController::class, 'show'])->whereNumber('design')->name('studio.designs.show');
     Route::patch('studio/designs/{design}', [StudioController::class, 'update'])->whereNumber('design')->name('studio.designs.update');

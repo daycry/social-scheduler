@@ -39,7 +39,10 @@ async function submitChallenge(page: Page, field: 'code' | 'recovery', value: st
     await page.waitForLoadState('networkidle');
     // Si sigue en el reto, la app vacía el campo al terminar (form.reset): hay que esperarlo antes de escribir el siguiente.
     const input = page.locator(field === 'code' ? '#code' : '#recovery_code');
-    await expect.poll(async () => (await input.count()) === 0 || (await input.inputValue()) === '').toBe(true);
+    await expect.poll(async () => {
+        if (new URL(page.url()).pathname !== '/two-factor-challenge') return true;
+        return (await input.count()) === 0 || (await input.inputValue()) === '';
+    }).toBe(true);
     return response;
 }
 

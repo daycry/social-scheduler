@@ -47,68 +47,189 @@ const hasOptions = (account) => {
     <!-- Opciones por cuenta (las que ya existían) y errores de cada destino -->
     <template v-for="account in accounts" :key="account.id">
         <PresetSection
-            v-if="hasOptions(account)" :id="`network-presets-${account.id}`"
-            :title="`Ajustes de ${account.network_label}`" :label="`Opciones de ${account.network_label} (${account.name})`"
-            :subtitle="account.name" :badge="typeLabel(targetFor(account.id).content_type)"
+            v-if="hasOptions(account)"
+            :id="`network-presets-${account.id}`"
+            :title="`Ajustes de ${account.network_label}`"
+            :label="`Opciones de ${account.network_label} (${account.name})`"
+            :subtitle="account.name"
+            :badge="typeLabel(targetFor(account.id).content_type)"
         >
             <template #icon><NetworkIcon :network="account.network" size="md" /></template>
-            <label v-if="targetFor(account.id).content_type === 'instagram_reel'" class="composer-setting-row rounded-xl border border-slate-200/80 px-3 py-3">
+            <label
+                v-if="targetFor(account.id).content_type === 'instagram_reel'"
+                class="composer-setting-row rounded-xl border border-slate-200/80 px-3 py-3"
+            >
                 <span>Compartir también en el feed</span>
-                <input type="checkbox" class="composer-preset-toggle" :disabled="!editable" :checked="targetFor(account.id).options.share_to_feed !== false" @change="targetFor(account.id).options.share_to_feed = $event.target.checked" />
+                <input
+                    type="checkbox"
+                    class="composer-preset-toggle"
+                    :disabled="!editable"
+                    :checked="targetFor(account.id).options.share_to_feed !== false"
+                    @change="targetFor(account.id).options.share_to_feed = $event.target.checked"
+                />
             </label>
             <div v-if="targetFor(account.id).content_type === 'facebook_text'">
                 <InputLabel :for="`link-${account.id}`" value="Enlace (opcional)" />
-                <input :id="`link-${account.id}`" v-model="targetFor(account.id).options.link" :disabled="!editable" type="url" class="field mt-1" placeholder="https://" @keydown.enter.prevent />
+                <input
+                    :id="`link-${account.id}`"
+                    v-model="targetFor(account.id).options.link"
+                    :disabled="!editable"
+                    type="url"
+                    class="field mt-1"
+                    placeholder="https://"
+                    @keydown.enter.prevent
+                />
             </div>
-            <div v-if="account.network === 'facebook' && ['facebook_reel', 'facebook_video'].includes(targetFor(account.id).content_type)">
+            <div
+                v-if="account.network === 'facebook' && ['facebook_reel', 'facebook_video'].includes(targetFor(account.id).content_type)"
+            >
                 <InputLabel :for="`fb-title-${account.id}`" value="Título de Facebook (opcional)" />
-                <input :id="`fb-title-${account.id}`" v-model="targetFor(account.id).options.facebook_title" :disabled="!editable" type="text" maxlength="255" class="field mt-1" @keydown.enter.prevent />
-                <p class="mt-1 text-xs text-slate-600">Título del vídeo o Reel, independiente del texto de la publicación.</p>
+                <input
+                    :id="`fb-title-${account.id}`"
+                    v-model="targetFor(account.id).options.facebook_title"
+                    :disabled="!editable"
+                    type="text"
+                    maxlength="255"
+                    class="field mt-1"
+                    @keydown.enter.prevent
+                />
+                <p class="mt-1 text-xs text-slate-600"
+                    >Título del vídeo o Reel, independiente del texto de la publicación.</p
+                >
             </div>
             <!-- Lugar (T-34): `location_id` de Instagram y `place` de Facebook, con búsqueda de Meta o id pegado a mano. -->
-            <PlaceField v-if="account.network === 'instagram' && ['instagram_image', 'instagram_reel', 'instagram_carousel'].includes(targetFor(account.id).content_type)" :account="account" option-key="location_id" label="Ubicación (opcional)" />
-            <PlaceField v-if="account.network === 'facebook' && ['facebook_text', 'facebook_photo', 'facebook_photos'].includes(targetFor(account.id).content_type)" :account="account" option-key="place" label="Lugar (opcional)" />
-            <InstagramUserTagsField v-if="account.network === 'instagram' && targetFor(account.id).content_type === 'instagram_image'" :account="account" />
+            <PlaceField
+                v-if="account.network === 'instagram' && ['instagram_image', 'instagram_reel', 'instagram_carousel'].includes(targetFor(account.id).content_type)"
+                :account="account"
+                option-key="location_id"
+                label="Ubicación (opcional)"
+            />
+            <PlaceField
+                v-if="account.network === 'facebook' && ['facebook_text', 'facebook_photo', 'facebook_photos'].includes(targetFor(account.id).content_type)"
+                :account="account"
+                option-key="place"
+                label="Lugar (opcional)"
+            />
+            <InstagramUserTagsField
+                v-if="account.network === 'instagram' && targetFor(account.id).content_type === 'instagram_image'"
+                :account="account"
+            />
             <div v-if="account.network === 'linkedin'" class="space-y-2">
                 <div>
                     <InputLabel :for="`li-visibility-${account.id}`" value="Visibilidad" />
-                    <select :id="`li-visibility-${account.id}`" :value="targetFor(account.id).options.linkedin_visibility ?? 'PUBLIC'" :disabled="!editable" class="field mt-1 w-auto" @change="targetFor(account.id).options.linkedin_visibility = $event.target.value">
+                    <select
+                        :id="`li-visibility-${account.id}`"
+                        :value="targetFor(account.id).options.linkedin_visibility ?? 'PUBLIC'"
+                        :disabled="!editable"
+                        class="field mt-1 w-auto"
+                        @change="targetFor(account.id).options.linkedin_visibility = $event.target.value"
+                    >
                         <option value="PUBLIC">Público</option>
-                        <option v-if="account.linkedin?.visibilities?.includes('CONNECTIONS')" value="CONNECTIONS">Solo mis contactos</option>
+                        <option v-if="account.linkedin?.visibilities?.includes('CONNECTIONS')" value="CONNECTIONS"
+                            >Solo mis contactos</option
+                        >
                     </select>
-                    <p v-if="account.linkedin?.kind === 'page'" class="mt-1 text-xs text-slate-600">Las páginas de empresa publican siempre en abierto.</p>
+                    <p v-if="account.linkedin?.kind === 'page'" class="mt-1 text-xs text-slate-600"
+                        >Las páginas de empresa publican siempre en abierto.</p
+                    >
                 </div>
                 <label class="composer-setting-row rounded-xl border border-slate-200/80 px-3 py-3">
                     <span>Impedir que se comparta de nuevo</span>
-                    <input type="checkbox" class="composer-preset-toggle" :disabled="!editable" :checked="targetFor(account.id).options.linkedin_disable_reshare === true" @change="targetFor(account.id).options.linkedin_disable_reshare = $event.target.checked" />
+                    <input
+                        type="checkbox"
+                        class="composer-preset-toggle"
+                        :disabled="!editable"
+                        :checked="targetFor(account.id).options.linkedin_disable_reshare === true"
+                        @change="targetFor(account.id).options.linkedin_disable_reshare = $event.target.checked"
+                    />
                 </label>
             </div>
             <div v-if="account.network === 'pinterest'" class="space-y-2">
                 <div>
                     <InputLabel :for="`pi-board-${account.id}`" value="Tablero (obligatorio)" />
-                    <select v-if="account.pinterest?.boards?.length" :id="`pi-board-${account.id}`" v-model="targetFor(account.id).options.pinterest_board_id" :disabled="!editable" class="field mt-1" required>
+                    <select
+                        v-if="account.pinterest?.boards?.length"
+                        :id="`pi-board-${account.id}`"
+                        v-model="targetFor(account.id).options.pinterest_board_id"
+                        :disabled="!editable"
+                        class="field mt-1"
+                        required
+                    >
                         <option value="" disabled>Elige un tablero</option>
-                        <option v-for="board in account.pinterest.boards" :key="board.id" :value="board.id">{{ board.name }}</option>
+                        <option
+                            v-for="board in account.pinterest.boards"
+                            :key="board.id"
+                            :value="board.id"
+                            >{{ board.name }}</option
+                        >
                     </select>
-                    <input v-else :id="`pi-board-${account.id}`" v-model="targetFor(account.id).options.pinterest_board_id" :disabled="!editable" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="30" class="field mt-1" required @keydown.enter.prevent />
+                    <input
+                        v-else
+                        :id="`pi-board-${account.id}`"
+                        v-model="targetFor(account.id).options.pinterest_board_id"
+                        :disabled="!editable"
+                        type="text"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        maxlength="30"
+                        class="field mt-1"
+                        required
+                        @keydown.enter.prevent
+                    />
                 </div>
                 <div>
-                    <InputLabel :for="`pi-title-${account.id}`" value="Título del pin (por defecto, la primera línea del texto)" />
-                    <input :id="`pi-title-${account.id}`" v-model="targetFor(account.id).options.pinterest_title" :disabled="!editable" type="text" maxlength="100" class="field mt-1" @keydown.enter.prevent />
+                    <InputLabel
+                        :for="`pi-title-${account.id}`"
+                        value="Título del pin (por defecto, la primera línea del texto)"
+                    />
+                    <input
+                        :id="`pi-title-${account.id}`"
+                        v-model="targetFor(account.id).options.pinterest_title"
+                        :disabled="!editable"
+                        type="text"
+                        maxlength="100"
+                        class="field mt-1"
+                        @keydown.enter.prevent
+                    />
                 </div>
                 <div>
                     <InputLabel :for="`pi-link-${account.id}`" value="Enlace de destino (opcional)" />
-                    <input :id="`pi-link-${account.id}`" v-model="targetFor(account.id).options.pinterest_link" :disabled="!editable" type="url" class="field mt-1" placeholder="https://" @keydown.enter.prevent />
+                    <input
+                        :id="`pi-link-${account.id}`"
+                        v-model="targetFor(account.id).options.pinterest_link"
+                        :disabled="!editable"
+                        type="url"
+                        class="field mt-1"
+                        placeholder="https://"
+                        @keydown.enter.prevent
+                    />
                 </div>
             </div>
             <div v-if="account.network === 'youtube'" class="space-y-2">
                 <div>
-                    <InputLabel :for="`yt-title-${account.id}`" value="Título (por defecto, la primera línea del texto)" />
-                    <input :id="`yt-title-${account.id}`" v-model="targetFor(account.id).options.title" :disabled="!editable" type="text" maxlength="100" class="field mt-1" @keydown.enter.prevent />
+                    <InputLabel
+                        :for="`yt-title-${account.id}`"
+                        value="Título (por defecto, la primera línea del texto)"
+                    />
+                    <input
+                        :id="`yt-title-${account.id}`"
+                        v-model="targetFor(account.id).options.title"
+                        :disabled="!editable"
+                        type="text"
+                        maxlength="100"
+                        class="field mt-1"
+                        @keydown.enter.prevent
+                    />
                 </div>
                 <div>
                     <InputLabel :for="`yt-privacy-${account.id}`" value="Visibilidad" />
-                    <select :id="`yt-privacy-${account.id}`" :value="targetFor(account.id).options.privacy ?? 'public'" :disabled="!editable" class="field mt-1 w-auto" @change="targetFor(account.id).options.privacy = $event.target.value">
+                    <select
+                        :id="`yt-privacy-${account.id}`"
+                        :value="targetFor(account.id).options.privacy ?? 'public'"
+                        :disabled="!editable"
+                        class="field mt-1 w-auto"
+                        @change="targetFor(account.id).options.privacy = $event.target.value"
+                    >
                         <option value="public">Público</option>
                         <option value="unlisted">No listado</option>
                         <option value="private">Privado</option>
@@ -116,40 +237,85 @@ const hasOptions = (account) => {
                 </div>
             </div>
             <div v-if="account.network === 'tiktok'" class="space-y-1 text-sm">
-                <p v-if="!account.direct_post" class="text-xs text-slate-600">Se enviará como borrador a tu bandeja de TikTok; lo terminas de publicar en la app.</p>
+                <p v-if="!account.direct_post" class="text-xs text-slate-600"
+                    >Se enviará como borrador a tu bandeja de TikTok; lo terminas de publicar en la app.</p
+                >
                 <div v-else class="space-y-2" data-testid="tiktok-direct">
-                    <p v-if="tiktokCreator(account.id).loading" role="status" class="text-xs text-slate-600">Consultando tu cuenta de TikTok…</p>
+                    <p v-if="tiktokCreator(account.id).loading" role="status" class="text-xs text-slate-600"
+                        >Consultando tu cuenta de TikTok…</p
+                    >
                     <div v-else-if="tiktokCreator(account.id).error" class="space-y-1">
                         <p role="alert" class="text-xs text-red-700">{{ tiktokCreator(account.id).error }}</p>
-                        <button type="button" class="text-sm text-indigo-700 underline" @click="loadTiktokCreator(brand.id, account.id, true)">Reintentar consulta de TikTok</button>
+                        <button
+                            type="button"
+                            class="text-sm text-indigo-700 underline"
+                            @click="loadTiktokCreator(brand.id, account.id, true)"
+                            >Reintentar consulta de TikTok</button
+                        >
                     </div>
                     <template v-else-if="tiktokCreator(account.id).data">
                         <p class="flex items-center gap-2 text-sm text-slate-800" data-testid="tiktok-creator">
-                            <img v-if="tiktokCreator(account.id).data.avatar_url" :src="tiktokCreator(account.id).data.avatar_url" alt="" class="h-6 w-6 rounded-full" referrerpolicy="no-referrer" />
+                            <img
+                                loading="lazy"
+                                v-if="tiktokCreator(account.id).data.avatar_url"
+                                :src="tiktokCreator(account.id).data.avatar_url"
+                                alt=""
+                                class="h-6 w-6 rounded-full"
+                                referrerpolicy="no-referrer"
+                            />
                             Se publicará en <strong>{{ tiktokCreator(account.id).data.nickname }}</strong>
                         </p>
                         <div>
-                            <InputLabel :for="`tt-privacy-${account.id}`" value="¿Quién puede ver este vídeo? (obligatorio)" />
-                            <select :id="`tt-privacy-${account.id}`" :value="targetFor(account.id).options.privacy_level ?? ''" :disabled="!editable" class="field mt-1 w-auto" required @change="setPrivacy(account, $event.target.value)">
+                            <InputLabel
+                                :for="`tt-privacy-${account.id}`"
+                                value="¿Quién puede ver este vídeo? (obligatorio)"
+                            />
+                            <select
+                                :id="`tt-privacy-${account.id}`"
+                                :value="targetFor(account.id).options.privacy_level ?? ''"
+                                :disabled="!editable"
+                                class="field mt-1 w-auto"
+                                required
+                                @change="setPrivacy(account, $event.target.value)"
+                            >
                                 <option value="" disabled>Elige la visibilidad</option>
                                 <option
-                                    v-for="level in tiktokCreator(account.id).data.privacy_level_options" :key="level" :value="level"
+                                    v-for="level in tiktokCreator(account.id).data.privacy_level_options"
+                                    :key="level"
+                                    :value="level"
                                     :disabled="level === 'SELF_ONLY' && brandedContent(account)"
-                                >{{ PRIVACY_LABELS[level] ?? level }}{{ level === 'SELF_ONLY' && brandedContent(account) ? ' (no admite contenido de marca)' : '' }}</option>
+                                    >{{ PRIVACY_LABELS[level] ?? level
+                                    }}{{ level === 'SELF_ONLY' && brandedContent(account) ? ' (no admite contenido de marca)' : '' }}</option
+                                >
                             </select>
                         </div>
-                        <p v-if="tiktokCreator(account.id).data.max_video_post_duration_sec" class="text-xs text-slate-600">
-                            Duración máxima en esta cuenta: {{ tiktokCreator(account.id).data.max_video_post_duration_sec }} s.
+                        <p
+                            v-if="tiktokCreator(account.id).data.max_video_post_duration_sec"
+                            class="text-xs text-slate-600"
+                        >
+                            Duración máxima en esta cuenta:
+                            {{ tiktokCreator(account.id).data.max_video_post_duration_sec }} s.
                         </p>
                     </template>
                 </div>
             </div>
-            <InstagramCollaboratorsField v-if="account.network === 'instagram' && ['instagram_image', 'instagram_reel', 'instagram_carousel'].includes(targetFor(account.id).content_type)" :account="account" />
+            <InstagramCollaboratorsField
+                v-if="account.network === 'instagram' && ['instagram_image', 'instagram_reel', 'instagram_carousel'].includes(targetFor(account.id).content_type)"
+                :account="account"
+            />
             <!-- Solo aparecen las opciones admitidas; la indicación de IA de Instagram es por publicación. -->
-            <PresetsPanel v-if="hasYoutubeFields(account) || switchesFor(account, targetFor(account.id)).length" :account="account" />
+            <PresetsPanel
+                v-if="hasYoutubeFields(account) || switchesFor(account, targetFor(account.id)).length"
+                :account="account"
+            />
             <FirstCommentField :account="account" />
             <ManualToggle :account="account" />
-            <p v-if="targetFor(account.id).content_type !== 'instagram_reel' && account.audio?.embedded_video_types?.includes(targetFor(account.id).content_type)" class="rounded-xl bg-slate-50 px-3 py-3 text-xs leading-relaxed text-slate-600" data-testid="network-audio-note">{{ account.audio.note }}</p>
+            <p
+                v-if="targetFor(account.id).content_type !== 'instagram_reel' && account.audio?.embedded_video_types?.includes(targetFor(account.id).content_type)"
+                class="rounded-xl bg-slate-50 px-3 py-3 text-xs leading-relaxed text-slate-600"
+                data-testid="network-audio-note"
+                >{{ account.audio.note }}</p
+            >
             <InstagramAudioField v-if="targetFor(account.id).content_type === 'instagram_reel'" :account="account" />
         </PresetSection>
     </template>

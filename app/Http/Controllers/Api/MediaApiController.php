@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\MediaAsset;
+use App\Services\AuditLog;
 use App\Services\Media\UnsafeUrlException;
 use App\Services\MediaListing;
 use App\Services\MediaUploadService;
@@ -18,7 +19,10 @@ use InvalidArgumentException;
  */
 class MediaApiController extends ApiController
 {
-    public function __construct(private readonly MediaUploadService $uploads, private readonly MediaListing $listing) {}
+    public function __construct(AuditLog $auditLog, private readonly MediaUploadService $uploads, private readonly MediaListing $listing)
+    {
+        parent::__construct($auditLog);
+    }
 
     public function index(Request $request): JsonResponse
     {

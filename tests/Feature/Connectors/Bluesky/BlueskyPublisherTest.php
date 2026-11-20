@@ -11,6 +11,7 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\BlueskyFake;
+use Tests\Support\FixtureRecorder;
 
 beforeEach(function () {
     Storage::fake('local');
@@ -78,7 +79,8 @@ test('texto solo: un createRecord con texto, langs y createdAt, sin embed', func
         ->and($sent['record'])->not->toHaveKey('embed')->not->toHaveKey('facets')
         ->and($sent['record']['createdAt'])->toMatch('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/');
     expect(sentTo('uploadBlob'))->toBe([]);
-});
+    FixtureRecorder::assertRecorded('bluesky/success');
+})->group('provider-contracts');
 
 test('4 imagenes: 4 blobs dentro del tope, aspectRatio y facets de enlaces y hashtags', function () {
     fakeBskyPublish();
@@ -167,7 +169,6 @@ test('errores traducidos: sesion -> reconectar, 5xx y limite -> transitorio, rec
 })->with([
     '5xx' => [['pds.example.com/xrpc/com.atproto.repo.createRecord' => fn () => Http::response('boom', 502)], TransientPublishException::class],
     'limite' => [['pds.example.com/xrpc/com.atproto.repo.createRecord' => fn () => Http::response(['error' => 'RateLimitExceeded', 'message' => 'slow down'], 429)], TransientPublishException::class],
-    'rechazo' => [['pds.example.com/xrpc/com.atproto.repo.createRecord' => fn () => Http::response(['error' => 'InvalidRequest', 'message' => 'Record/text must not be longer than 300 graphemes'], 400)], PermanentPublishException::class],
     'cuenta suspendida' => [['pds.example.com/xrpc/com.atproto.repo.createRecord' => fn () => Http::response(['error' => 'AccountTakedown', 'message' => 'x'], 400)], PermanentPublishException::class],
     'sesion perdida' => [[
         'pds.example.com/xrpc/com.atproto.repo.createRecord' => fn () => Http::response(['error' => 'ExpiredToken', 'message' => 'x'], 400),
@@ -175,6 +176,20 @@ test('errores traducidos: sesion -> reconectar, 5xx y limite -> transitorio, rec
         'pds.example.com/xrpc/com.atproto.server.createSession' => fn () => Http::response(['error' => 'AuthenticationRequired', 'message' => 'x'], 401),
     ], ReconnectRequiredException::class],
 ]);
+
+test('contrato de error de bluesky', function () {
+    // Tras el fallo de createRecord, getRecord confirma que el registro no existe.
+    Http::fake([
+        'pds.example.com/xrpc/com.atproto.repo.createRecord' => Http::response([
+            'error' => 'InvalidRequest', 'message' => 'Record/text must not be longer than 300 graphemes',
+        ], 400),
+        'pds.example.com/xrpc/com.atproto.repo.getRecord*' => Http::response(['error' => 'RecordNotFound', 'message' => 'x'], 400),
+    ]);
+
+    expect(fn () => $this->publisher->publish($this->account, bskyRequest('Hola')))->toThrow(PermanentPublishException::class);
+
+    FixtureRecorder::assertRecorded('bluesky/error');
+})->group('provider-contracts');
 
 test('un tipo que no es de este publicador se rechaza sin llamar a la red', function () {
     Http::fake();

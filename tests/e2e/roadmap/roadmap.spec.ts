@@ -156,8 +156,8 @@ test('E2E-03 · OAuth local de Instagram, Facebook, YouTube y TikTok y desconexi
     expect(accounts.map((account: any) => account.network).sort()).toEqual(['facebook', 'instagram', 'tiktok', 'youtube']);
     expect(accounts.every((account: any) => account.status === 'activa' && account.hasToken)).toBe(true);
     await finish(page, info, 'e2e-03-cuentas-conectadas');
-    page.on('dialog', (dialog) => dialog.accept());
     await page.locator('[data-network="instagram"]').getByRole('button', { name: 'Desconectar', exact: true }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Desconectar cuenta', exact: true }).click();
     await expect.poll(() => fixture('state', info.project.name).accounts.find((account: any) => account.network === 'instagram')).toMatchObject({ status: 'desconectada', hasToken: false });
     await expect(page.locator('[data-network="instagram"]').getByRole('button', { name: 'Desconectar', exact: true })).toHaveCount(0);
 });
@@ -372,8 +372,8 @@ test('E2E-12 · API key visible una vez, revocada en UI y rechazada por MCP', as
     expect((await rpc(page, key, 'tools/list')).response.status()).toBe(200);
     await page.reload();
     await expect(page.getByTestId('new-key')).toHaveCount(0);
-    page.on('dialog', (dialog) => dialog.accept());
     await page.getByRole('button', { name: `Revocar ${name}`, exact: true }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Revocar API key', exact: true }).click();
     await expect(page.getByText(name, { exact: true })).toHaveCount(0);
     const rejected = await rpc(page, key, 'tools/list');
     expect(rejected.response.status()).toBe(401);

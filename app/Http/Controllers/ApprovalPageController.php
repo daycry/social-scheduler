@@ -30,10 +30,7 @@ class ApprovalPageController extends Controller
         $user = $request->user();
         $brands = Brand::ownedBy($user->id)->orderBy('name')->get();
 
-        return Inertia::render('Approvals/Index', [
-            'pending' => array_map(fn (Post $p) => $this->approvals->present($p), $this->approvals->pendingFor($user)),
-            'mine' => $this->approvals->queryFor($user)->where('user_id', $user->id)->whereIn('approval_status', [Post::APPROVAL_REJECTED, Post::APPROVAL_APPROVED])
-                ->latest('approval_decided_at')->limit(30)->get()->map(fn (Post $p) => $this->approvals->present($p))->values(),
+        return Inertia::render('Approvals/Index', $this->approvals->inbox($user) + [
             'brands' => $brands->map(fn (Brand $b) => ['id' => $b->id, 'name' => $b->name, 'collaborators' => $this->collab->list($user, $b)])->values(),
         ]);
     }

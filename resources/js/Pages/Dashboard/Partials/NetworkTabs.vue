@@ -1,4 +1,5 @@
 <script setup>
+/** @import { AnalyticsFilters, ConnectedNetwork } from '@/types/analytics' */
 import NetworkChips from '@/Components/NetworkChips.vue';
 import { useNetworks } from '@/Composables/useNetworks';
 import { computed } from 'vue';
@@ -9,13 +10,14 @@ import { computed } from 'vue';
  * componente común `NetworkChips` (el mismo que usa Competidores).
  */
 const props = defineProps({
-    networks: { type: Array, required: true },
+    networks: { type: /** @type {import('vue').PropType<ConnectedNetwork[]>} */ (Array), required: true },
     active: { type: String, default: 'summary' },
-    filters: { type: Object, required: true },
+    filters: { type: /** @type {import('vue').PropType<AnalyticsFilters>} */ (Object), required: true },
 });
 
 const catalog = useNetworks();
 
+/** @param {AnalyticsFilters} f */
 const query = (f) => ({ brand_id: f.brand_id, from: f.from, to: f.to, compare: f.compare });
 const connected = computed(() => new Set(props.networks.map((n) => n.value)));
 const items = computed(() =>

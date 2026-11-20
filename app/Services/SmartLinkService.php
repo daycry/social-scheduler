@@ -13,6 +13,8 @@ use App\Models\SmartLinkSubscriber;
 use App\Models\User;
 use App\Notifications\SmartLinkSubscribersFull;
 use App\Scopes\UserScope;
+use App\Support\DailyCounter;
+use App\Support\Ownership;
 use App\Support\SafeUrl;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -30,6 +32,8 @@ class SmartLinkService
     public const MAX_BLOCKS = 30;
 
     public const MESSAGES = ['slug.regex' => 'Usa de 3 a 40 caracteres: minusculas, numeros y guiones (sin guion al principio ni al final).'];
+
+    public function __construct(private readonly DailyCounter $counter) {}
 
     /**
      * Reglas de validacion de `save()` (sin la marca): las comparten la web y la API v1.
@@ -100,7 +104,7 @@ class SmartLinkService
      */
     public function save(User $user, Brand $brand, array $data): SmartLink
     {
-        if ($brand->user_id !== $user->id) {
+        if (! Ownership::matches($brand, $user)) {
             throw new PostValidationException(['brand' => ['La marca no pertenece al usuario.']]);
         }
 
@@ -421,12 +425,12 @@ class SmartLinkService
 
     public function recordView(SmartLink $link): void
     {
-        $this->bump('smart_link_views', ['smart_link_id' => $link->id, 'date' => now('UTC')->toDateString()]);
+        $this->counter->increment('smart_link_views', ['smart_link_id' => $link->id, 'date' => now('UTC')->toDateString()]);
     }
 
     public function recordClick(SmartLink $link, SmartLinkBlock $block): void
     {
-        $this->bump('smart_link_clicks', ['smart_link_id' => $link->id, 'smart_link_block_id' => $block->id, 'date' => now('UTC')->toDateString()]);
+        $this->counter->increment('smart_link_clicks', ['smart_link_id' => $link->id, 'smart_link_block_id' => $block->id, 'date' => now('UTC')->toDateString()]);
     }
 
     /**
@@ -454,22 +458,5 @@ class SmartLinkService
             'subscribers' => DB::table('smart_link_subscribers')->where('smart_link_id', $link->id)->count(),
             'daily' => $daily,
         ];
-    }
-
-    /** @param array<string, mixed> $key */
-    private function bump(string $table, array $key): void
-    {
-        $query = fn () => DB::table($table)->where($key);
-
-        if ($query()->increment('count') > 0) {
-            return;
-        }
-
-        try {
-            DB::table($table)->insert($key + ['count' => 1]);
-        } catch (QueryException) {
-            // Otra peticion creo la fila entre medias: se suma a ella.
-            $query()->increment('count');
-        }
     }
 }

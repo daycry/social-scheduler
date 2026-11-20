@@ -117,6 +117,7 @@ export function resolveOptions({ keep, minAgeDays } = {}) {
 }
 
 /** Calcula y (salvo dryRun) aplica la purga. Devuelve { kept, removed, failed, warnings }. */
+/** @param {{root?: string, keep?: string | number, minAgeDays?: string | number, dryRun?: boolean, now?: number, protectedPaths?: (string | undefined)[], docsDir?: string}} [options] */
 export function purge({ root, keep, minAgeDays, dryRun = false, now = Date.now(), protectedPaths = [], docsDir = DOCS_DIR } = {}) {
     if (!root) throw new Error('purge: root es obligatorio');
     const base = path.resolve(root);

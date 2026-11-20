@@ -88,6 +88,7 @@ function buildEnvironment(port: number, runRoot: string): Record<string, string>
     Object.assign(environment, {
         E2E_GENERAL_RUN_ROOT: runRoot, T43_RUN_ROOT: runRoot,
         APP_ENV: 'e2e', APP_DEBUG: 'true', APP_LOCALE: 'es', APP_FALLBACK_LOCALE: 'es', APP_URL: baseURL,
+        SYSTEM_ADMIN_EMAILS: 'e2e-system-operator@example.test',
         APP_KEY: `base64:${Buffer.alloc(32, 77).toString('base64')}`,
         APP_CONFIG_CACHE: path.join(runRoot, 'config.php'),
         APP_SERVICES_CACHE: path.join(runRoot, 'services.php'), APP_PACKAGES_CACHE: path.join(runRoot, 'packages.php'),

@@ -1,10 +1,14 @@
+/** @import { MetricCoverage, MetricFreshness } from '@/types/analytics' */
+
 const labels = {
     complete: 'Cobertura completa', partial: 'Datos parciales', no_data: 'Sin datos recogidos',
     not_due: 'Periodo aún abierto', unsupported: 'No disponible en esta red',
     unavailable_sandbox: 'No disponible en el entorno de pruebas', unavailable_access: 'No disponible: sin acceso a la analítica',
 };
-const date = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value ?? '') ? value.split('-').reverse().join('/') : null;
+/** @param {string | null | undefined} value */
+const date = (value) => value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value.split('-').reverse().join('/') : null;
 
+/** @param {MetricCoverage | null | undefined} coverage @param {Partial<MetricFreshness> | null} [freshness] */
 export function metricQuality(coverage, freshness = {}) {
     if (!coverage || !labels[coverage.status]) return null;
     const parts = [];
@@ -12,7 +16,8 @@ export function metricQuality(coverage, freshness = {}) {
         parts.push(`${coverage.observed_account_days ?? 0} de ${coverage.expected_account_days} observaciones de cuenta y día`);
         if (coverage.missing_account_days > 0) parts.push(`${coverage.missing_account_days} sin dato`);
     }
-    if (date(freshness?.latest_data_date)) parts.push(`Último día con datos: ${date(freshness.latest_data_date)}`);
+    const latestDate = date(freshness?.latest_data_date);
+    if (latestDate) parts.push(`Último día con datos: ${latestDate}`);
     if (freshness?.is_stale && date(freshness.latest_expected_date)) parts.push(`Faltan datos hasta el ${date(freshness.latest_expected_date)}`);
     if (coverage.status === 'no_data') parts.push('No se han recogido valores para este periodo; no equivale a cero actividad');
     if (coverage.status === 'not_due') parts.push('Este periodo todavía no contiene días cerrados para la red');

@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\MediaAsset;
 use App\Models\Studio\StudioAsset;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Filesystem\AwsS3V3Adapter;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
@@ -32,14 +33,15 @@ class StudioAssets
         $this->assertBrand($user, $brand);
 
         return StudioAsset::ownedBy($user->id)->where('brand_id', $brand->id)->with('media')->latest('id')->get()
-            ->map(fn (StudioAsset $link) => $link->media)->filter(fn (?MediaAsset $m) => $m !== null && (int) $m->user_id === (int) $user->id && $m->isReady())->values();
+            ->map(fn (StudioAsset $link) => $link->media)->filter(fn (?MediaAsset $m) => Ownership::matches($m, $user) && $m->isReady())->values();
     }
 
     public function owned(User $user, Brand $brand, int $mediaId): MediaAsset
     {
         $this->assertBrand($user, $brand);
         $link = StudioAsset::ownedBy($user->id)->where('brand_id', $brand->id)->where('media_asset_id', $mediaId)->with('media')->firstOrFail();
-        abort_unless($link->media && (int) $link->media->user_id === (int) $user->id && $link->media->isReady(), 404);
+        Ownership::assert($link->media, $user);
+        Ownership::ensure($link->media->isReady());
 
         return $link->media;
     }
@@ -55,8 +57,8 @@ class StudioAssets
         $links = StudioAsset::ownedBy($user->id)->where('brand_id', $brand->id)
             ->whereIn('media_asset_id', $ids)->with('media')->get();
         $media = $links->map(fn (StudioAsset $link) => $link->media)
-            ->filter(fn (?MediaAsset $asset) => $asset !== null && (int) $asset->user_id === (int) $user->id && $asset->isReady())->keyBy('id');
-        abort_unless($media->count() === count($ids), 404);
+            ->filter(fn (?MediaAsset $asset) => Ownership::matches($asset, $user) && $asset->isReady())->keyBy('id');
+        Ownership::ensure($media->count() === count($ids));
 
         return $media;
     }
@@ -139,6 +141,6 @@ class StudioAssets
 
     public function assertBrand(User $user, Brand $brand): void
     {
-        abort_unless((int) $brand->user_id === (int) $user->id, 404);
+        Ownership::assert($brand, $user);
     }
 }

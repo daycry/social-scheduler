@@ -11,6 +11,7 @@ use App\Services\Canva\CanvaDesigns;
 use App\Services\Canva\CanvaException;
 use App\Services\Canva\CanvaIntegration;
 use App\Services\Canva\CanvaJobs;
+use App\Support\Ownership;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -40,7 +41,6 @@ class CanvaController extends Controller
         return Inertia::render('Canva/Index', [
             'brand' => ['id' => $brand->id, 'name' => $brand->name],
             'canva' => $this->state($request, $brand),
-            'flash' => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error')],
             'focus' => preg_match('/^[A-Za-z0-9_-]{4,40}$/', (string) $request->query('design')) ? (string) $request->query('design') : null,
         ]);
     }
@@ -213,7 +213,7 @@ class CanvaController extends Controller
 
     private function owned(Request $request, Brand $brand): void
     {
-        abort_unless((int) $brand->user_id === (int) $request->user()->id, 404);
+        Ownership::assert($brand, $request->user());
     }
 
     private function active(Request $request, Brand $brand): CanvaConnection

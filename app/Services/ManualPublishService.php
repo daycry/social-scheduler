@@ -11,6 +11,7 @@ use App\Models\PostTarget;
 use App\Models\User;
 use App\Notifications\ManualPublishReminder;
 use App\Notifications\PostWorkflowActivity;
+use App\Support\Ownership;
 use App\Support\TargetMedia;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -115,12 +116,13 @@ class ManualPublishService
      */
     public function content(User $actor, Post $post): array
     {
-        abort_unless((int) $post->user_id === (int) $actor->id, 404);
+        Ownership::assert($post, $actor);
         $post->loadMissing(['targets.account', 'media']);
         $common = $post->media->pluck('id')->all();
         $assets = $post->media->keyBy('id');
 
         return $post->targets->filter(fn (PostTarget $t) => $t->manual)->map(function (PostTarget $t) use ($post, $common, $assets) {
+            $t->setRelation('post', $post);
             $media = collect(TargetMedia::effective($t, $common))->map(function ($m) use ($assets) {
                 $id = (int) (is_array($m) ? $m['id'] : $m);
                 $asset = $assets->get($id) ?? MediaAsset::withoutUserScope()->find($id);
@@ -134,7 +136,7 @@ class ManualPublishService
                 'network_label' => $t->network->label(),
                 'account_name' => $t->account?->name,
                 'content_type' => $t->content_type->value,
-                'text' => $t->effectiveText() ?? $post->text,
+                'text' => $t->effectiveText(),
                 'first_comment' => $t->first_comment,
                 'media' => $media,
                 'status' => $t->status->value,
@@ -150,7 +152,8 @@ class ManualPublishService
      */
     public function markPublished(User $actor, Post $post, PostTarget $target, mixed $url = null): PostTarget
     {
-        abort_unless((int) $post->user_id === (int) $actor->id && (int) $target->post_id === (int) $post->id, 404);
+        Ownership::assert($post, $actor);
+        Ownership::ensure((int) $target->post_id === (int) $post->id);
 
         $url = is_string($url) ? trim($url) : $url;
         $url = $url === '' ? null : $url;

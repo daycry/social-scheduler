@@ -79,7 +79,6 @@ class CalendarController extends Controller
             ],
             'views' => $this->views->list($user)->map(fn (CalendarView $v) => $this->views->toArray($v))->values(),
             'active_view' => $active?->id,
-            'flash' => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error'), 'publishing_post_id' => $request->session()->get('publishing_post_id')],
         ]);
     }
 

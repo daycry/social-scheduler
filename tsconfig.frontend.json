@@ -1,0 +1,50 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "checkJs": true,
+        "paths": {
+            "@/*": ["./resources/js/*"],
+            "ziggy-js": ["./vendor/tightenco/ziggy/src/js/index.d.ts"]
+        },
+        "lib": ["ES2022", "DOM", "DOM.Iterable"],
+        "types": []
+    },
+    "include": [
+        "storage/framework/cache/typecheck/ziggy.d.ts",
+        "resources/js/types/**/*.d.ts",
+        "resources/js/lib/**/*.js",
+        "resources/js/Composables/usePolling.js",
+        "resources/js/Composables/useTabs.js",
+        "resources/js/Composables/useReportPreview.js",
+        "resources/js/Composables/useAiStatus.js",
+        "resources/js/Components/FormField.vue",
+        "resources/js/Components/Checkbox.vue",
+        "resources/js/Components/DangerButton.vue",
+        "resources/js/Components/Dropdown.vue",
+        "resources/js/Components/DropdownLink.vue",
+        "resources/js/Components/EmptyState.vue",
+        "resources/js/Components/InputError.vue",
+        "resources/js/Components/InputLabel.vue",
+        "resources/js/Components/Pagination.vue",
+        "resources/js/Components/PrimaryButton.vue",
+        "resources/js/Components/SecondaryButton.vue",
+        "resources/js/Components/StatusBadge.vue",
+        "resources/js/Components/TextInput.vue",
+        "resources/js/Components/BaseDialog.vue",
+        "resources/js/Components/ConfirmDialog.vue",
+        "resources/js/Components/Composer/DuplicatePost.vue",
+        "resources/js/Pages/Reports/Index.vue",
+        "resources/js/Pages/Calendar/Index.vue",
+        "resources/js/Pages/Dashboard/Index.vue",
+        "resources/js/Pages/Dashboard/Network.vue",
+        "resources/js/Pages/Dashboard/AllBrands.vue",
+        "resources/js/Pages/Inbox/Index.vue",
+        "resources/js/Pages/Posts/compose-props.js",
+        "resources/js/Pages/Studio/index-props.js",
+        "resources/js/Pages/Activity/Index.vue",
+        "resources/js/Pages/System/Index.vue",
+        "resources/js/Pages/Goals/Index.vue",
+        "resources/js/Pages/Webhooks/Index.vue",
+        "resources/js/Pages/Profile/Notifications.vue"
+    ]
+}

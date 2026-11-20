@@ -53,7 +53,7 @@ Con 2 workers el reparto es por ficheros, y `a11y.spec.ts` (66 casos) domina; co
 | `ci.yml` · `php` | PR y push a `main` | `vendor/bin/pint --test` y `composer test` (Pest completo); caché de `vendor` |
 | `ci.yml` · `node` | ídem | `npm run test:unit` (incluye el arnés E2E) y `npm run build`; instala `ffmpeg` |
 | `ci.yml` · `node-browser` | ídem | `npm run test:browser` con Chromium (`npx playwright install --with-deps chromium`, con caché de `~/.cache/ms-playwright` por versión de Playwright) y `ffmpeg` |
-| `ci.yml` · `typecheck` | ídem | `npm run typecheck` (`tsc --noEmit` sobre `tests/e2e` y las configs de Playwright; los `.cjs`/`.mjs` se infieren con `allowJs`, sin `checkJs`) |
+| `ci.yml` · `typecheck` | ídem | `npm run typecheck` comprueba Playwright con `tsc`, genera los tipos de rutas con Ziggy y ejecuta `vue-tsc` con `checkJs` sobre el alcance de `tsconfig.frontend.json` |
 | `ci.yml` · `studio-runtime` | ídem | `python -m unittest discover -s tests/studio_runtime -p 'test_*.py'` con el Python privado de Studio y el modelo de quitar fondo (`setup-runtime.py --download-model`, SHA-256 fijado, con caché) |
 | `ci.yml` · `openapi` | ídem | `npx @redocly/cli@2.77.0 lint --extends minimal docs/api/openapi.yaml` |
 | `ci.yml` · `audit` | ídem | `composer audit --locked` y `npm audit --omit=dev` |

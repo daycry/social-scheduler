@@ -2,6 +2,8 @@
 
 Servidor MCP por HTTP para que un agente (p. ej. Claude) programe y consulte publicaciones. Usa `laravel/mcp` ~1.0.2 y Sanctum.
 
+El aviso de la página confirma la creación y la revocación de una API key. Al crearla, su secreto aparece una sola vez en su sección y se mantiene fuera del aviso compartido.
+
 ## Piezas
 
 | Pieza | Ruta |
@@ -97,11 +99,12 @@ Nginx/Hestia debe pasar la cabecera `Authorization` a PHP-FPM y dejar llegar `/.
 
 | Ability | Permite |
 |---|---|
-| `brands:read` | marcas, cuentas conectadas y media |
+| `brands:read` | marcas y cuentas conectadas |
 | `posts:read` | publicaciones, estado y calendario; aprobaciones pendientes, series y colaboradores (lectura); autolistas, textos guardados, presets y papelera (lectura) |
 | `posts:write` | crear, programar, editar, cancelar y borrar; pedir aprobación, reintentar, publicación manual, lotes, series y colaboradores de marca; autolistas, textos guardados y papelera (restaurar y eliminar para siempre, que pide `confirm: true`) |
 | `posts:approve` | aprobar y rechazar publicaciones pendientes (`approve_post`, `reject_post` y las acciones `approve`/`reject` de `batch_posts`) e invitar o retirar aprobadores de marca (`manage_brand_collaborators` invite/revoke y `POST/DELETE /brands/{brand}/collaborators`). `posts:write` no basta |
 | `stats:read` | estadísticas de marcas, redes y publicaciones; `compare_competitors`; `get_ads` (Meta Ads, solo lectura) |
+| `media:read` / `media:write` | listar archivos y consultar su estado / subir, importar y borrar archivos de la biblioteca |
 | `reports:write` | generar y descargar informes |
 | `inbox:read` / `inbox:write` | leer comentarios (Instagram, Facebook, Threads, YouTube y Bluesky) / responder, anotar y ordenar el buzón (`triage_comments`, incluido ocultar y mostrar comentarios en Instagram y Facebook) |
 | `designs:read` / `designs:write` | consultar diseños, kits, carpetas y trabajos / crear, modificar, registrar recursos, tipografías, audio, colaboración y exportar |
@@ -109,9 +112,15 @@ Nginx/Hestia debe pasar la cabecera `Authorization` a PHP-FPM y dejar llegar `/.
 | `sites:read` / `sites:write` | leer los sitios publicados de las marcas y su URL / publicarlos y despublicarlos (`manage_site`) |
 | `smartlinks:read` / `smartlinks:write` | leer el SmartLink de las marcas y sus estadísticas / crearlo, editarlo y publicarlo (`manage_smartlink` en el MCP y los endpoints de la API v1) |
 | `canva:read` / `canva:write` | estado de Canva, diseños de Canva y trabajos / exportar a la biblioteca y enviar recursos a Canva (`manage_canva`) |
-| `studio:ai` | generar y editar imágenes con IA (`generate_studio_image`); consume la cuota del proveedor. `designs:write` no basta |
+| `designs:ai` | generar y editar imágenes con IA (`generate_studio_image`); consume la cuota del proveedor. `designs:write` no basta |
 
 `*` también vale. La fuente es `app/Mcp/Abilities.php`. Si falta el permiso, la herramienta devuelve error y registra el intento `DENIED` en la auditoría.
+
+### Actualizar permisos de claves y OAuth (T-108)
+
+En el despliegue, ejecuta las migraciones en mantenimiento para actualizar las claves guardadas y los códigos OAuth todavía canjeables antes de habilitar el código nuevo. Las claves existentes con `brands:read` reciben `media:read`, las que tienen `posts:write` reciben `media:write` y el permiso anterior de IA del estudio se convierte en `designs:ai`. Las claves siguen siendo válidas y mantienen el mismo secreto. Al crear claves nuevas, selecciona los permisos de medios que necesites.
+
+Si se revierte el código a la versión anterior, activa el mantenimiento y revierte primero esta migración mientras esté disponible su fichero (`2026_11_17_185100_separate_media_and_design_ai_abilities.php`). Así el permiso de IA vuelve al nombre anterior. Una clave creada solo con `media:*` no puede usar los endpoints anteriores, que exigían los permisos de marcas y publicaciones. El rollback de Hestia conserva la base de datos. Los límites guardados del primer despliegue impiden conceder permisos nuevos al volver a actualizar.
 
 ### Conjuntos predefinidos de permisos
 
@@ -119,11 +128,11 @@ La pantalla **API keys** y el consentimiento OAuth ofrecen tres conjuntos (`Abil
 
 | Conjunto | Abilities |
 |---|---|
-| Solo lectura (`read`) | todas las que acaban en `:read`: `brands:read`, `posts:read`, `stats:read`, `designs:read`, `inbox:read`, `sites:read`, `smartlinks:read`, `canva:read` |
-| Publicar (`publish`) | las de lectura más `posts:write` y `reports:write` |
-| Todo (`all`) | las dieciocho abilities, incluidas `posts:approve`, `competitors:write`, `designs:write`, `inbox:write`, `sites:write`, `smartlinks:write`, `canva:write` y `studio:ai` |
+| Solo lectura (`read`) | todas las que acaban en `:read`: `brands:read`, `posts:read`, `stats:read`, `designs:read`, `inbox:read`, `sites:read`, `smartlinks:read`, `canva:read`, `media:read` |
+| Publicar (`publish`) | las de lectura más `posts:write`, `media:write` y `reports:write` |
+| Todo (`all`) | todas las abilities, incluidas `posts:approve`, `competitors:write`, `designs:write`, `inbox:write`, `sites:write`, `smartlinks:write`, `canva:write` y `designs:ai` |
 
-«Publicar» no incluye `posts:approve`, `designs:write`, `smartlinks:write` ni `studio:ai`: una key que apruebe, diseñe o consuma cuota de IA debe pedirlos de forma explícita.
+«Publicar» no incluye `posts:approve`, `designs:write`, `smartlinks:write` ni `designs:ai`: una key que apruebe, diseñe o consuma cuota de IA debe pedirlos de forma explícita.
 
 ## Paginación común por cursor (U-23)
 
@@ -133,9 +142,9 @@ La pantalla **API keys** y el consentimiento OAuth ofrecen tres conjuntos (`Abil
 
 `app/Mcp/Servers/SchedulerServer.php` registra **64** herramientas. `defaultPaginationLength=30`, así que `tools/list` devuelve 30 en la primera página y un `nextCursor`: acumula todas las páginas hasta que no llegue. Los desgloses por familia que siguen se añadieron por entregas; el recuento válido es el de esta cabecera (tres páginas: 30, 30 y 4).
 
-**Flujo de trabajo de publicaciones (T-19).** `request_post_approval`, `list_pending_approvals`, `approve_post`, `reject_post` (ability `posts:approve`; piden la `signature` = `content_signature` revisada y responden 409 si el contenido cambió), `batch_posts` (hasta 100 publicaciones con `idempotency_key`; approve/reject exigen `posts:approve`), `manage_post_series` (list/get/create/update/cancel; devuelve `last_error` y `last_error_at` si la generación falló), `mark_post_published` (destinos manuales), `retry_post` y `manage_brand_collaborators` (list con `posts:read`; invite/revoke exigen `posts:approve`; solo el propietario). Ver [flujo de trabajo](workflow-publicaciones.md).
+**Flujo de trabajo de publicaciones (T-19).** `request_post_approval`, `list_pending_approvals`, `approve_post`, `reject_post` (ability `posts:approve`; piden la `signature` = `content_signature` revisada y responden 409 si el contenido cambió), `batch_posts` (hasta 100 publicaciones con `idempotency_key`; approve/reject exigen `posts:approve`), `manage_post_series` (list/get/create/update/cancel; devuelve `last_error` y `last_error_at` si la generación falló), `mark_post_published` (destinos manuales), `retry_post` y `manage_brand_collaborators` (list con `posts:read`; invite/revoke exigen `posts:approve`; solo el propietario). El campo `role` de la invitación usa `approver` en MCP y HTTP. La migración actualiza los valores guardados y el valor anterior se rechaza en las peticiones nuevas. Las acciones MCP de aprobación operan sobre publicaciones. Las decisiones de diseño usan la bandeja web. Ver [flujo de trabajo](workflow-publicaciones.md).
 
-**Integraciones y estudio (T-14, T-15, T-16, T-21).** `manage_canva` (`canva:read` para status/designs/jobs; `canva:write` para export/send; la conexión OAuth se hace en la app), `generate_studio_image` (`studio:ai`), `manage_site` (`sites:read` list/get_url; `sites:write` publish/unpublish), `manage_design_collaboration` (compartir, enlaces, comentarios y versiones; lectura con `designs:read`, escritura con `designs:write`), `process_studio_image` (quitar fondo), `manage_studio_font` (tipografías privadas) y `manage_studio_audio` (audio privado por marca).
+**Integraciones y estudio (T-14, T-15, T-16, T-21).** `manage_canva` (`canva:read` para status/designs/jobs; `canva:write` para export/send; la conexión OAuth se hace en la app), `generate_studio_image` (`designs:ai`), `manage_site` (`sites:read` list/get_url; `sites:write` publish/unpublish), `manage_design_collaboration` (compartir, enlaces, comentarios y versiones; lectura con `designs:read`, escritura con `designs:write`), `process_studio_image` (quitar fondo), `manage_studio_font` (tipografías privadas) y `manage_studio_audio` (audio privado por marca).
 
 **Buzón y competidores.** `triage_comments` (`inbox:write`: read/unread/close/reopen en lote, label/unlabel/assign y, desde T-30, hide/unhide, que llaman a Instagram o Facebook y exigen el permiso de moderación de la cuenta) y `compare_competitors` (`stats:read`).
 
@@ -176,7 +185,7 @@ Marca por nombre: las herramientas que piden una marca (`create_post`, `list_acc
 
 `publish_post_now` (`post_id`, ability `posts:write`) publica ya un borrador o una publicación programada: valida como al programar (sin exigir fecha futura), pone la fecha del servidor y encola tras el commit con las mismas defensas contra el doble despacho que la web (ver [publicación](publicacion.md)). Una publicación en vuelo o publicada se rechaza con el mismo error que `update_post`; una de otro usuario responde como inexistente. También `create_post` y `update_post` aceptan `publish_now: true` (sin `scheduled_at`).
 
-`import_media_from_url` (`url`, ability `posts:write`) importa una imagen (JPG, PNG o WebP) o un vídeo (MP4 o MOV) desde una URL pública y devuelve el asset en estado `pendiente` con su progreso (`bytes` y `total`). Usa la misma guardia SSRF que la web (`UrlGuard`): solo `http`/`https` en los puertos 80 y 443, sin credenciales, y se rechazan las direcciones internas, de bucle, de metadatos y las redirecciones hacia ellas. La descarga ocurre en segundo plano (cola `media`); `list_media` acepta `status` (`listo` por defecto, `pendiente`, `invalido` o `todos`): con `status=pendiente` el agente ve el progreso (`bytes` y `total`) de la importación y con `status=invalido` el motivo del fallo (`error`, p. ej. «El servidor remoto respondió 404.»); solo la media `listo` se puede usar en `create_post`/`update_post`. Esto cubre la consulta de progreso sin añadir una herramienta, así que el recuento no sube por esto. Máximo 3 importaciones en curso por usuario.
+`import_media_from_url` (`url`, ability `media:write`) importa una imagen (JPG, PNG o WebP) o un vídeo (MP4 o MOV) desde una URL pública y devuelve el asset en estado `pendiente` con su progreso (`bytes` y `total`). Usa la misma guardia SSRF que la web (`UrlGuard`): solo `http`/`https` en los puertos 80 y 443, sin credenciales, y se rechazan las direcciones internas, de bucle, de metadatos y las redirecciones hacia ellas. La descarga ocurre en segundo plano (cola `media`); `list_media` (`media:read`) acepta `status` (`listo` por defecto, `pendiente`, `invalido` o `todos`): con `status=pendiente` el agente ve el progreso (`bytes` y `total`) de la importación y con `status=invalido` el motivo del fallo (`error`, p. ej. «El servidor remoto respondió 404.»); solo la media `listo` se puede usar en `create_post`/`update_post`. Esto cubre la consulta de progreso sin añadir una herramienta, así que el recuento no sube por esto. Máximo 3 importaciones en curso por usuario.
 
 Vistas del calendario (C-03a): `list_calendar_views` (ability `posts:read`, sin parámetros) devuelve las vistas guardadas del usuario (`id`, `name`, `filters`, `is_default`, `brand_name`). `get_calendar` acepta en `view` o bien `week|month|list` o bien el id de una vista guardada: con el id se aplican sus filtros (marca, red, estado y vista; mandan sobre los demás filtros) y la fecha se conserva, igual que en la web. Una vista de otro usuario responde como inexistente; cualquier otro valor da error.
 

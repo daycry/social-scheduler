@@ -46,9 +46,10 @@ class InboxController extends Controller
             'has_notes' => ['nullable', 'boolean'],
         ]);
         $brand = CurrentBrand::resolve($request);
+        $hidden = isset($filters['hidden']) ? (bool) $filters['hidden'] : null;
         $assigned = ($filters['assigned'] ?? null) === 'me' ? $user->id : ($filters['assigned'] ?? null);
         $query = $this->inbox->query($user, ['status' => $filters['status'] ?? null, 'assigned' => $assigned, 'label' => $filters['label'] ?? null, 'network' => $filters['network'] ?? null, 'unread' => (bool) ($filters['unread'] ?? false), 'brand_id' => $brand?->id, 'has_notes' => (bool) ($filters['has_notes'] ?? false)]
-            + (isset($filters['hidden']) ? ['hidden' => (bool) $filters['hidden']] : []));
+            + ($hidden === null ? [] : ['hidden' => $hidden]));
 
         $page = $query->with(['notes', 'labels', 'target' => fn ($q) => $q->select('id', 'post_id', 'external_url', 'text')->with(['post' => fn ($p) => $p->withTrashed()->select('id', 'text')]), 'account:id,name,username,network'])
             ->simplePaginate(30)->withQueryString();
@@ -59,8 +60,8 @@ class InboxController extends Controller
         $accounts = $this->inbox->accountsFor($user)->when($brand, fn ($c) => $c->where('brand_id', $brand->id));
 
         return Inertia::render('Inbox/Index', [
-            'brand' => $brand ? ['id' => $brand->id, 'name' => $brand->name] : null,
-            'filters' => ['status' => $filters['status'] ?? null, 'assigned' => $filters['assigned'] ?? null, 'label' => $filters['label'] ?? null, 'network' => $filters['network'] ?? null, 'unread' => (bool) ($filters['unread'] ?? false), 'hidden' => $filters['hidden'] ?? null, 'has_notes' => (bool) ($filters['has_notes'] ?? false)],
+            'brand' => $brand?->only(['id', 'name', 'timezone']),
+            'filters' => ['status' => $filters['status'] ?? null, 'assigned' => $filters['assigned'] ?? null, 'label' => $filters['label'] ?? null, 'network' => $filters['network'] ?? null, 'unread' => (bool) ($filters['unread'] ?? false), 'hidden' => $hidden, 'has_notes' => (bool) ($filters['has_notes'] ?? false)],
             'note_max' => InboxCommentNote::BODY_MAX,
             'networks' => array_map(fn (Network $n) => ['value' => $n->value, 'label' => $n->label()], $this->inbox->networks()),
             'coverage' => $this->inbox->coverage(),
@@ -95,7 +96,6 @@ class InboxController extends Controller
                 'missing_scopes' => $this->inbox->missingScopes($a), 'help' => $this->inbox->help($a),
                 'needs_reconnect' => ! $a->isActive(),
             ])->values(),
-            'flash' => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error')],
         ]);
     }
 

@@ -6,10 +6,53 @@
  * Entrada:  { key, label, icon, match: [nombres de ruta], href(ctx), when?(ctx), isActive?(ctx) }
  *           o { type: 'networks' } (una entrada por red con avatar o «+»; dinámica según las cuentas)
  *
- * `ctx` = { brand, q (query de marca), shell, page, route, is(...names), has(name) }. `match` acepta comodines de Ziggy.
- * `has(name)` indica si la ruta existe (Ziggy): sirve para módulos opcionales (Autolistas, Inbox, Ads) que solo aparecen
+ * `match` acepta comodines de Ziggy.
+ * `has(name)` comprueba si la ruta conocida por Ziggy está registrada en ejecución: sirve para módulos opcionales (Autolistas, Inbox, Ads) que solo aparecen
  * cuando su ruta está registrada. Un módulo puede llevar `when(ctx)` igual que una entrada.
  */
+/**
+ * @typedef {object} NavigationContext
+ * @property {import('./types/shell').Shell['currentBrand']} brand
+ * @property {{ brand_id?: number }} q
+ * @property {import('./types/shell').Shell} shell
+ * @property {{ props: Pick<import('./types/shell').ShellPageProps, 'view' | 'unreadInbox'> }} page
+ * @property {typeof route} route
+ * @property {(...names: string[]) => boolean} is
+ * @property {(name: keyof import('ziggy-js').RouteList) => boolean} has
+ */
+
+/**
+ * @typedef {object} NavigationItem
+ * @property {string} key
+ * @property {string} label
+ * @property {string} icon
+ * @property {string[]} match
+ */
+
+/**
+ * @typedef {NavigationItem & {
+ *     type?: undefined,
+ *     href: (context: NavigationContext) => string | null,
+ *     when?: (context: NavigationContext) => boolean,
+ *     isActive?: (context: NavigationContext) => boolean,
+ * }} NavigationEntry
+ */
+
+/**
+ * @typedef {NavigationItem & { side: (NavigationEntry | { type: 'networks' })[] }} NavigationGroup
+ * @typedef {NavigationGroup & {
+ *     href: (context: NavigationContext) => string,
+ *     when?: (context: NavigationContext) => boolean,
+ *     badge?: (context: NavigationContext) => number,
+ * }} NavigationModule
+ * @typedef {{ key: string, label: string, href: string, active: boolean }} ResolvedItem
+ * @typedef {ResolvedItem & (
+ *     { icon: string, network?: undefined, sub?: undefined, plus?: undefined } |
+ *     { network: string, sub: string, plus: boolean }
+ * )} ResolvedSideItem
+ */
+
+/** @type {NavigationModule[]} */
 export const MODULES = [
     {
         key: 'studio', label: 'Estudio', icon: 'palette', match: ['studio.*'],
@@ -17,7 +60,7 @@ export const MODULES = [
         href: (c) => c.route('studio.index', c.q),
         side: [
             { key: 'designs', label: 'Mis diseños', icon: 'grid', match: ['studio.index', 'studio.designs.*'], href: (c) => c.route('studio.index', c.q) },
-            { key: 'templates', label: 'Plantillas', icon: 'bookmark', match: [], href: (c) => c.route('studio.index', { ...c.q, templates: 1 }) },
+            { key: 'templates', label: 'Plantillas de diseño', icon: 'bookmark', match: [], href: (c) => c.route('studio.index', { ...c.q, templates: 1 }) },
             { key: 'brand-kit', label: 'Identidad de marca', icon: 'palette', match: [], href: (c) => c.route('studio.index', { ...c.q, tab: 'brand' }) },
             { key: 'archived-designs', label: 'Papelera de diseños', icon: 'trash', match: [], href: (c) => c.route('studio.index', { ...c.q, archived: 1 }) },
         ],
@@ -46,13 +89,13 @@ export const MODULES = [
             { key: 'list', label: 'Lista', icon: 'list', match: ['calendar.*'], isActive: (c) => c.page.props.view === 'list', href: (c) => c.route('calendar.index', { ...c.q, view: 'list' }) },
             { key: 'grid', label: 'Cuadrícula', icon: 'grid', match: ['instagram.grid'], when: (c) => c.has('instagram.grid'), href: (c) => c.route('instagram.grid', c.q) },
             { key: 'campaigns', label: 'Campañas', icon: 'tag', match: ['campaigns.*'], when: (c) => c.has('campaigns.index'), href: (c) => c.route('campaigns.index', c.q) },
-            { key: 'create', label: 'Crear publicación', icon: 'plus', match: ['brands.posts.*', 'posts.*'], when: (c) => !!c.brand, href: (c) => c.route('brands.posts.create', c.brand.id) },
+            { key: 'create', label: 'Crear publicación', icon: 'plus', match: ['brands.posts.*', 'posts.*'], href: (c) => c.brand ? c.route('brands.posts.create', c.brand.id) : null },
             { key: 'best-times', label: 'Mejores horas', icon: 'clock', match: ['best-times.*'], when: (c) => c.has('best-times.index'), href: (c) => c.route('best-times.index', c.q) },
-            { key: 'library', label: 'Biblioteca', icon: 'folder', match: ['library.*'], when: (c) => c.has('library.index'), href: (c) => c.route('library.index', c.q) },
+            { key: 'library', label: 'Plantillas de publicación', icon: 'folder', match: ['library.*'], when: (c) => c.has('library.index'), href: (c) => c.route('library.index', c.q) },
             { key: 'autolists', label: 'Autolistas', icon: 'repeat', match: ['autolists.*'], when: (c) => c.has('autolists.index'), href: (c) => c.route('autolists.index', c.q) },
             { key: 'approvals', label: 'Aprobaciones', icon: 'users', match: ['approvals.*'], when: (c) => c.has('approvals.index'), href: (c) => c.route('approvals.index') },
             { key: 'series', label: 'Series', icon: 'repeat', match: ['series.*'], when: (c) => c.has('series.index'), href: (c) => c.route('series.index') },
-            { key: 'trash', label: 'Papelera', icon: 'trash', match: ['trash.*'], when: (c) => c.has('trash.index'), href: (c) => c.route('trash.index') },
+            { key: 'trash', label: 'Papelera de publicaciones', icon: 'trash', match: ['trash.*'], when: (c) => c.has('trash.index'), href: (c) => c.route('trash.index') },
         ],
     },
     {
@@ -98,13 +141,16 @@ export const MODULES = [
         match: ['brands.connections.*'],
         href: (c) => (c.brand ? c.route('brands.connections.index', c.brand.id) : c.route('brands.index')),
         side: [
-            { key: 'connections', label: 'Conexiones de la marca', icon: 'link', match: ['brands.connections.*'], when: (c) => !!c.brand, href: (c) => c.route('brands.connections.index', c.brand.id) },
+            { key: 'connections', label: 'Conexiones de la marca', icon: 'link', match: ['brands.connections.*'], href: (c) => c.brand ? c.route('brands.connections.index', c.brand.id) : null },
             { key: 'brands', label: 'Gestionar marcas', icon: 'tag', match: [], href: (c) => c.route('brands.index') },
         ],
     },
 ];
 
-/** Módulo contextual cuando ninguno de los de la barra superior coincide (no aparece arriba). */
+/**
+ * Módulo contextual cuando ninguno de los de la barra superior coincide (no aparece arriba).
+ * @type {NavigationGroup}
+ */
 export const ACCOUNT_MODULE = {
     key: 'account',
     label: 'Cuenta',
@@ -113,18 +159,28 @@ export const ACCOUNT_MODULE = {
     side: [
         { key: 'brands', label: 'Marcas', icon: 'tag', match: ['brands.*'], href: (c) => c.route('brands.index') },
         { key: 'notifications', label: 'Avisos', icon: 'bell', match: ['notifications.*'], href: (c) => c.route('notifications.index') },
+        { key: 'activity', label: 'Actividad', icon: 'clock', match: ['activity.*'], when: (c) => c.has('activity.index'), href: (c) => c.route('activity.index') },
         { key: 'api-keys', label: 'API keys', icon: 'key', match: ['api-keys.*'], href: (c) => c.route('api-keys.index') },
         { key: 'profile', label: 'Perfil', icon: 'user', match: ['profile.*'], href: (c) => c.route('profile.edit') },
     ],
 };
 
-/** Módulos visibles en la barra superior (los opcionales aparecen solo si su ruta existe). */
+/**
+ * Módulos visibles en la barra superior (los opcionales aparecen solo si su ruta existe).
+ * @param {NavigationContext} c
+ */
 export const visibleModules = (c) => MODULES.filter((m) => !m.when || m.when(c));
 
+/** @param {NavigationContext} c */
 export const activeModule = (c) => visibleModules(c).find((m) => c.is(...m.match)) ?? ACCOUNT_MODULE;
 
-/** Entradas de la barra lateral del módulo, ya resueltas (href, activa, avatar de red...). */
+/**
+ * Entradas de la barra lateral del módulo, ya resueltas (href, activa, avatar de red...).
+ * @param {NavigationGroup} module
+ * @param {NavigationContext} c
+ */
 export const sideItems = (module, c) => {
+    /** @type {ResolvedSideItem[]} */
     const out = [];
     for (const e of module.side) {
         if (e.type === 'networks') {
@@ -143,11 +199,13 @@ export const sideItems = (module, c) => {
             continue;
         }
         if (e.when && !e.when(c)) continue;
+        const href = e.href(c);
+        if (href === null) continue;
         out.push({
             key: e.key,
             label: e.label,
             icon: e.icon,
-            href: e.href(c),
+            href,
             active: c.is(...e.match) && (e.isActive ? e.isActive(c) : true),
         });
     }

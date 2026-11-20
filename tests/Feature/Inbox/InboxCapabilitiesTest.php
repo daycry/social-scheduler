@@ -55,6 +55,7 @@ test('una red nueva con CommentSource aparece en el inbox y en la cobertura sin 
     expect(collect($inbox->networks())->map->value->all())->toContain('linkedin')
         ->and($inbox->canHide(Network::LinkedIn))->toBeFalse()
         ->and($row['read'])->toBeTrue()->and($row['reply'])->toBeTrue()->and($row['hide'])->toBeFalse()
+        ->and($row['note'])->toBe('')
         ->and(collect($inbox->coverage())->where('network', 'linkedin'))->toHaveCount(1);
 });
 

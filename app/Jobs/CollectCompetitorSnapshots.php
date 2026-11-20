@@ -27,11 +27,13 @@ class CollectCompetitorSnapshots implements ShouldBeUnique, ShouldQueue
     {
         $date = now('UTC')->toDateString();
 
-        // Job sin usuario autenticado: opta explicitamente por salir del UserScope.
-        Competitor::withoutUserScope()->chunkById(200, function ($competitors) use ($date): void {
-            foreach ($competitors as $competitor) {
-                CollectCompetitorSnapshot::dispatch($competitor->id, $date);
-            }
-        });
+        // Job sin usuario autenticado: opta explicitamente por salir del UserScope. Primero los que nunca tuvieron datos y los que llevan mas
+        // tiempo sin sincronizar: con una red de cuota limitada (YouTube) nadie se queda siempre el ultimo por tener un id alto.
+        Competitor::withoutUserScope()->orderByRaw('last_synced_at is not null')->orderBy('last_synced_at')->orderBy('id')->pluck('id')
+            ->chunk(200)->each(function ($ids) use ($date): void {
+                foreach ($ids as $id) {
+                    CollectCompetitorSnapshot::dispatch($id, $date);
+                }
+            });
     }
 }

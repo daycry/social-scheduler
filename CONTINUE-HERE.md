@@ -1,3 +1,16 @@
+# Punto de reanudación — 2026-11-20
+
+- Proyecto: `C:\laragon\www\metricool`, rama existente `feature/audit-hardening`.
+- Ledger actual: `docs/roadmap/2026-11-11-audit-hardening/tasks.md` (manda sobre los resúmenes).
+- **81/108 cerradas (T-82 incluida). T-81 cerrada e integrada el 2026-11-20** (rojo R60 resuelto, nits R2 aplicados, R3 aprobado sin gaps; evidencias en `testing/t81/`). Migraciones pendientes aplicadas en la MySQL de desarrollo con copia `storage/backups/pre-migrate-20261120-133549.sql`.
+- Próximo: **T-83 (importación CSV) en curso, backend subido en `8eb983a`**: servicio `PostCsvImport`, `PostImportController`, rutas, `config/post_import.php` y Pest 17/19. Hay 2 tests omitidos con `->skip()` y su motivo, que se quitan al terminar: falta la página `Posts/Import.vue`, y la revalidación al confirmar aún no rechaza una fecha ya pasada (hay que investigarlo). Faltan también la página, el CSV de ejemplo en la UI, el E2E-22, la documentación y la revisión adversarial. Después, T-84 y el resto.
+- La copia aislada no tiene `.env`: para Pest en `.cache/t8x-physical` hace falta `APP_KEY` efímera por proceso y `storage/framework/{views,cache/data,sessions}`.
+- Una sola ejecución Playwright a la vez; nunca modificar su copia física mientras ejecuta. Sin Docker/proveedores reales, `.env` privado, producción ni usuario 28. Commit y push a `feature/audit-hardening` al cerrar cada tarea (pedido por el usuario el 2026-11-20); merges del usuario. Conservar cambios existentes del workspace.
+
+---
+
+## Resumen histórico anterior (2026-11-10)
+
 # Continuar la suite social y creativa
 
 Actualizado: 2026-11-10. El [ledger canónico](docs/roadmap/2026-11-03-creative-social-suite/tasks.md) manda sobre este resumen.

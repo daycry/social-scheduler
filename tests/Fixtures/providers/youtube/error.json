@@ -1,0 +1,27 @@
+{
+  "source": "https://developers.google.com/youtube/data/reference/rest/v3/errors",
+  "method": "POST",
+  "host": "www.googleapis.com",
+  "path": "/upload/youtube/v3/videos",
+  "query": {
+    "uploadType": "resumable",
+    "part": "snippet,status"
+  },
+  "status": 403,
+  "headers": {},
+  "body": {
+    "error": {
+      "code": 403,
+      "message": "Quota exceeded",
+      "errors": [
+        {
+          "reason": "quotaExceeded"
+        }
+      ]
+    }
+  },
+  "fixed": [
+    "error.code",
+    "error.errors.0.reason"
+  ]
+}

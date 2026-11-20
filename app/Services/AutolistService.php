@@ -14,7 +14,9 @@ use App\Models\Post;
 use App\Models\PostTemplate;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Support\Ownership;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -36,7 +38,97 @@ class AutolistService
     /** Margen minimo (min) entre ahora y una franja generada. */
     private const LEAD_MINUTES = 5;
 
-    public function __construct(private readonly PostService $posts) {}
+    public function __construct(private readonly PostService $posts, private readonly MediaValidator $mediaValidator) {}
+
+    /**
+     * Reglas de validacion del alta (sin la marca): las comparten la web y el MCP.
+     *
+     * @return array<string, mixed>
+     */
+    public static function createRules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:120'],
+            'recycle' => ['boolean'],
+            'targets' => ['required', 'array', 'min:1', 'max:20'],
+            'targets.*.account_id' => ['required', 'integer'],
+            'targets.*.content_type' => ['required', 'string'],
+            'slots' => ['required', 'array', 'min:1', 'max:'.self::MAX_SLOTS],
+            'slots.*.day' => ['required', 'integer', 'between:1,7'],
+            'slots.*.time' => ['required', 'date_format:H:i'],
+        ];
+    }
+
+    /**
+     * Reglas de validacion de un elemento de la cola: las comparten la web y el MCP.
+     *
+     * @return array<string, mixed>
+     */
+    public static function itemRules(): array
+    {
+        return [
+            'post_template_id' => ['nullable', 'integer'],
+            'text' => ['nullable', 'string', 'max:10000'],
+            'media' => ['nullable', 'array', 'max:10'],
+            'media.*' => ['integer'],
+        ];
+    }
+
+    /**
+     * Autolistas del usuario por nombre (opcionalmente de una marca), con su cola cargada.
+     *
+     * @return Builder<Autolist>
+     */
+    public function query(User $user, ?int $brandId = null): Builder
+    {
+        return Autolist::ownedBy($user->id)->when($brandId, fn (Builder $q) => $q->where('brand_id', $brandId))
+            ->with('items.template:id,name,text')->orderBy('name')->orderBy('id');
+    }
+
+    /**
+     * Representacion unica de una autolista y su cola para la web y el MCP.
+     *
+     * @return array<string, mixed>
+     */
+    public function present(Autolist $l): array
+    {
+        return [
+            'id' => $l->id,
+            'brand_id' => $l->brand_id,
+            'name' => $l->name,
+            'active' => $l->active,
+            'recycle' => $l->recycle,
+            'slots' => $l->slots,
+            'targets' => $l->targets,
+            'cursor' => $l->cursor,
+            'last_generated_at' => $l->last_generated_at?->toIso8601String(),
+            'items' => $l->items->map(fn (AutolistItem $i) => [
+                'id' => $i->id,
+                'label' => $i->template?->name ?? mb_substr((string) $i->text, 0, 80),
+                'is_template' => $i->post_template_id !== null,
+                'times_used' => $i->times_used,
+            ])->values()->all(),
+        ];
+    }
+
+    /** Activa o pausa la lista, o cambia el reciclado. @param array{active?: bool, recycle?: bool} $data */
+    public function update(Autolist $autolist, array $data): Autolist
+    {
+        $autolist->forceFill($data)->save();
+
+        return $autolist;
+    }
+
+    public function delete(Autolist $autolist): void
+    {
+        $autolist->delete();
+    }
+
+    /** Quita un elemento de la cola de la lista (404 si no es de esa lista). */
+    public function removeItem(Autolist $autolist, int $itemId): void
+    {
+        AutolistItem::withoutUserScope()->where('autolist_id', $autolist->id)->whereKey($itemId)->firstOrFail()->delete();
+    }
 
     /**
      * @param  list<array<string, mixed>>  $targets  [{account_id, content_type}]
@@ -44,14 +136,14 @@ class AutolistService
      */
     public function create(User $user, Brand $brand, string $name, array $targets, array $slots, bool $recycle = false): Autolist
     {
-        if ($brand->user_id !== $user->id) {
+        if (! Ownership::matches($brand, $user)) {
             throw new PostValidationException(['brand' => ['La marca no pertenece al usuario.']]);
         }
         $name = trim($name);
         if ($name === '' || mb_strlen($name) > 120) {
             throw new PostValidationException(['name' => ['El nombre es obligatorio (maximo 120 caracteres).']]);
         }
-        if (Autolist::withoutUserScope()->where('user_id', $user->id)->count() >= self::MAX_PER_USER) {
+        if (Autolist::ownedBy($user->id)->count() >= self::MAX_PER_USER) {
             throw new PostValidationException(['name' => ['Has alcanzado el maximo de autolistas.']]);
         }
 
@@ -73,7 +165,7 @@ class AutolistService
      */
     public function addItem(User $user, Autolist $autolist, ?int $templateId, ?string $text, array $mediaIds = []): AutolistItem
     {
-        if ($autolist->user_id !== $user->id) {
+        if (! Ownership::matches($autolist, $user)) {
             throw new PostValidationException(['autolist' => ['La autolista no pertenece al usuario.']]);
         }
         if (AutolistItem::withoutUserScope()->where('autolist_id', $autolist->id)->count() >= self::MAX_ITEMS) {
@@ -82,17 +174,18 @@ class AutolistService
 
         $media = [];
         if ($templateId !== null) {
-            $exists = PostTemplate::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $autolist->brand_id)->whereKey($templateId)->exists();
+            $exists = PostTemplate::ownedBy($user->id)->where('brand_id', $autolist->brand_id)->whereKey($templateId)->exists();
             if (! $exists) {
                 throw new PostValidationException(['post_template_id' => ['La plantilla no existe en esta marca.']]);
             }
         } else {
             $text = $text !== null ? trim($text) : null;
             $ids = array_values(array_unique(array_map('intval', $mediaIds)));
-            $owned = $ids === [] ? [] : MediaAsset::withoutUserScope()->where('user_id', $user->id)->whereIn('id', $ids)->pluck('id')->all();
-            if (count($owned) !== count($ids)) {
+            $owned = $ids === [] ? collect() : MediaAsset::ownedBy($user->id)->whereIn('id', $ids)->get();
+            if ($owned->count() !== count($ids)) {
                 throw new PostValidationException(['media' => ['Algun archivo no existe.']]);
             }
+            $this->mediaValidator->assertPublishable($owned);
             $media = $ids;
             if (($text === null || $text === '') && $media === []) {
                 throw new PostValidationException(['text' => ['Escribe un texto, elige archivos o una plantilla.']]);
@@ -103,7 +196,7 @@ class AutolistService
         $item->user_id = $user->id;
         $item->autolist_id = $autolist->id;
         $item->position = (int) AutolistItem::withoutUserScope()->where('autolist_id', $autolist->id)->max('position') + 1;
-        $item->save();
+        DB::transaction(fn () => $item->save()); // elemento + indice de media en una transaccion
 
         return $item;
     }
@@ -120,7 +213,7 @@ class AutolistService
         $now ??= CarbonImmutable::now('UTC');
 
         $user = User::query()->find($autolist->user_id);
-        $brand = Brand::withoutUserScope()->where('user_id', $autolist->user_id)->find($autolist->brand_id);
+        $brand = Brand::ownedBy($autolist->user_id)->find($autolist->brand_id);
         if (! $autolist->active || ! $user || ! $brand) {
             return $result;
         }
@@ -324,7 +417,7 @@ class AutolistService
     private function postData(AutolistItem $item, Autolist $autolist, CarbonImmutable $at): array
     {
         $template = $item->post_template_id
-            ? PostTemplate::withoutUserScope()->where('user_id', $autolist->user_id)->with('media')->find($item->post_template_id)
+            ? PostTemplate::ownedBy($autolist->user_id)->with('media')->find($item->post_template_id)
             : null;
         $text = $template ? $template->text : $item->text;
         $media = $template ? $template->media->pluck('id')->map(fn ($id) => (int) $id)->all() : array_map('intval', (array) $item->media);
@@ -358,7 +451,7 @@ class AutolistService
         $out = [];
         $seen = [];
         foreach (array_values($targets) as $i => $t) {
-            $account = SocialAccount::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)
+            $account = SocialAccount::ownedBy($user->id)->where('brand_id', $brand->id)
                 ->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)->find((int) ($t['account_id'] ?? 0));
             $type = ContentType::tryFrom((string) ($t['content_type'] ?? ''));
             if (! $account || ! $type || $type->network() !== $account->network || ! $type->isOffered()) {

@@ -1,0 +1,104 @@
+{
+  "task": "T-79",
+  "date": "2026-11-18",
+  "status": "completed",
+  "source_files": 1809,
+  "candidate_files": 30,
+  "integrated_byte_exact": true,
+  "reverse_patch_check": true,
+  "source_verified_after_qa_and_integration": true,
+  "pest": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 4411,
+    "passed": 4402,
+    "assertions": 29556,
+    "duration_ms": 372019,
+    "skipped": 9,
+    "raw": [
+      "{\"peak_php_bytes\":465567744,\"memory_limit\":\"512M\"}",
+      "allocator_peak_bytes=499122176"
+    ]
+  },
+  "sqlite_focal": {
+    "passed": 51,
+    "assertions": 286,
+    "includes_T23_expiry": true
+  },
+  "mysql_focal": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 51,
+    "passed": 51,
+    "assertions": 286,
+    "duration_ms": 10328,
+    "version": "8.4.3",
+    "disposable": true
+  },
+  "concurrency": {
+    "rounds": 5,
+    "concurrent_processes_per_round": 2,
+    "all_single_event_and_notification": true
+  },
+  "migration_rollback_and_up": true,
+  "node": {
+    "passed": 789,
+    "failed": 0
+  },
+  "typecheck": {
+    "errors": 0,
+    "includes_final_e2e": true
+  },
+  "style_build": "Pint r55/r56; production lint/type/build r61; final capture spec format/type r64",
+  "playwright": {
+    "stats": {
+      "startTime": "2026-11-18T05:54:32.083Z",
+      "duration": 182015.89099999997,
+      "expected": 27,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "qa_gate": "VERDE",
+    "report": "C:\\laragon\\www\\metricool\\.cache\\t79-physical\\storage\\framework\\testing\\t43\\run-general-e2e82eb5-4745-4f8b-ba5b-aca5311aeea8\\results.json",
+    "sha256": "6c104c055b52f21e1a8d1c2f38f77e39d00e09910420dc2af910df9e38382bf5"
+  },
+  "playwright_final_capture_only": {
+    "stats": {
+      "startTime": "2026-11-18T05:59:21.716Z",
+      "duration": 96993.14600000001,
+      "expected": 12,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "qa_gate": "VERDE",
+    "report": "C:\\laragon\\www\\metricool\\.cache\\t79-physical\\storage\\framework\\testing\\t43\\run-general-fc88798f-c863-4efa-8604-355b30721acc\\results.json",
+    "sha256": "453abb56063d5708f3bc5a2dc7aba40f685a262dcebef1d823568cf66a057ece"
+  },
+  "review": {
+    "requested_model": "claude-opus-5-5",
+    "actual_model": "claude-opus-5-5",
+    "effort": "high",
+    "includes_code_quality": true,
+    "status": "r3_approved_two_optional_UI_nits_fixed_and_verified",
+    "critical_open": 0,
+    "important_open": 0,
+    "minor_open": 0,
+    "nit_open": 0,
+    "static_only": true,
+    "receipt": "reviews/r3-opus55.json",
+    "post_review_changed_files": [
+      "resources/js/Pages/Goals/Index.vue",
+      "tests/e2e/goals.spec.ts"
+    ]
+  },
+  "limits": [
+    "Complete PHP run precedes only reviewer-directed UI nits and E2E coverage/capture adjustments; all PHP bytes unchanged.",
+    "Broad27 browser cases precede only scroll-to-top screenshot capture refinement; final12 focal cases verify final source. No sum of overlapping cases.",
+    "Provider and mail calls simulated; native concurrency uses two real PHP processes/MySQL, not native queue workers.",
+    "Email after enqueue outage is best effort without durable outbox or exactly-once SMTP; documented.",
+    "Personal-app scale and goal-event retention policy remain explicit; no unlimited-scale claim.",
+    "No private env, production DB, user28, commit, push or merge."
+  ]
+}

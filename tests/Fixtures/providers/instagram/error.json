@@ -1,0 +1,17 @@
+{
+  "source": "https://developers.facebook.com/docs/graph-api/guides/error-handling",
+  "method": "POST",
+  "host": "graph.facebook.com",
+  "path": "/v23.0/17841400000000001/media",
+  "status": 400,
+  "headers": {},
+  "body": {
+    "error": {
+      "code": 10,
+      "message": "Application permission required"
+    }
+  },
+  "fixed": [
+    "error.code"
+  ]
+}

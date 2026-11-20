@@ -21,6 +21,9 @@ use Throwable;
  */
 class PublishOutcomes
 {
+    /** Claves de `progress` con URLs firmadas de subida (Pinterest `pinterest_upload`, TikTok `upload_url`). */
+    private const SENSITIVE_PROGRESS_KEYS = ['pinterest_upload', 'upload_url'];
+
     public function __construct(private readonly PostService $posts) {}
 
     /** Abre el intento n-esimo (historial). */
@@ -139,11 +142,28 @@ class PublishOutcomes
             'error_code' => $code,
             'error_message' => mb_substr($message, 0, 500),
             'next_attempt_at' => null,
-        ]);
+        ] + $this->scrubbedProgress($target));
 
         $this->notifyFailure($failed, $message);
 
         return $failed;
+    }
+
+    /**
+     * Un destino en `fallida` no necesita las URLs prefirmadas de subida (credenciales temporales, CWE-312): se quitan de su `progress`
+     * por cualquier camino de fallo (permanente, reintentos agotados, colgado). El resto del progreso se conserva.
+     *
+     * @return array{progress?: array<string, mixed>}
+     */
+    private function scrubbedProgress(PostTarget $target): array
+    {
+        $progress = $target->progress;
+        if (! is_array($progress)) {
+            return [];
+        }
+        $clean = array_diff_key($progress, array_flip(self::SENSITIVE_PROGRESS_KEYS));
+
+        return $clean === $progress ? [] : ['progress' => $clean];
     }
 
     /** Avisa al usuario (in-app + email) UNA vez: solo se llega aqui en la transicion a `fallida`. */

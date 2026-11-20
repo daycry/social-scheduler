@@ -1,0 +1,15 @@
+{
+  "source": "https://learn.microsoft.com/en-us/linkedin/shared/api-guide/concepts/error-handling",
+  "method": "POST",
+  "host": "api.linkedin.com",
+  "path": "/rest/posts",
+  "status": 403,
+  "headers": {},
+  "body": {
+    "message": "Permission denied",
+    "status": 403
+  },
+  "fixed": [
+    "status"
+  ]
+}

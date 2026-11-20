@@ -5,6 +5,141 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — adapt text to each network with AI (audit-hardening, T-82)
+
+- Adapt the common text to every selected network in a single AI request and review one version per network before applying it; versions that exceed a network's text or hashtag rules are rejected, not truncated. Generate editable image alt text from the composer. Both buttons stay disabled, with the reason, when the AI assistant is not configured.
+
+### Added — browser notifications (audit-hardening, T-81)
+
+- Install the app from supported browsers and opt into generic push notices per device. Encrypted subscriptions can be revoked; delivery supports VAPID with bounded retries and expires invalid devices. Real HTTPS/device acceptance remains pending.
+- Fixed: real push and webhook deliveries never left the server (the HTTP client was switched to a handler that rejects the pinned IP). Responses are now discarded without being read.
+
+### Added — signed outbound webhooks (audit-hardening, T-80)
+
+- Manage brand-owned HTTPS receivers for publication and inbox events. Deliver timestamped HMAC signatures with bounded retries, safe URL checks, durable queue recovery and visible delivery status; signing secrets remain encrypted and private.
+
+### Added — goals and alerts (audit-hardening, T-79)
+
+- Create, edit and pause goals for owned brands or accounts. Daily local evaluations notify milestones, threshold drops and known credential deadlines once per rule or period; missing metrics stay unknown, with optional email subject to user preferences.
+
+### Added — administrator system status (audit-hardening, T-78)
+
+- Verified server-configured operators can inspect application health, dated worker probes, aggregate token expiries and quota observations. Unknown or failed observations remain explicit; credentials and social API calls are excluded from the report.
+
+### Added — duplicate posts (audit-hardening, T-77)
+
+- Duplicate saved or published posts into independent drafts in the same or another owned brand. Keep compatible content and media, explain omitted targets, and reset publication history and account-bound and per-publication choices.
+
+### Added — best-time scheduling (audit-hardening, T-76)
+
+- Use brand metrics to fill a future publishing time in the composer or open an unsaved composer from the calendar. Insufficient history is explained without replacing the current date.
+
+### Added — activity history (audit-hardening, T-75)
+
+- The account menu opens a paginated activity history with brand, user, action and date filters. It shows personal activity and activity attributed to owned brands, with the configured retention period.
+
+### Fixed — inbox filters (`audit-hardening`, T-68)
+
+- The «Only hidden» checkbox reflects the active filter when opening or reloading an inbox URL. Unchecking it shows all comments again.
+
+### Changed — media and Studio AI permissions (`audit-hardening`, T-108)
+
+- REST and MCP use `media:read` and `media:write` for library files and `designs:ai` for Studio AI. The upgrade migrates permissions on existing keys and pending OAuth authorizations.
+
+### Fixed — report previews and calendar search (`audit-hardening`, T-65)
+
+- Switching brands cancels a pending report preview so the previous report cannot reappear. The calendar search field has an accessible name.
+
+### Changed — Brand approvers and Studio designs (audit-hardening, T-105)
+
+- Invited brand approvers can review designs for that brand and decide in the shared Approvals inbox. The HTTP and MCP invitation field now uses `approver`. Update clients that send the previous role value.
+
+### Fixed — Studio uploads and editor context (`audit-hardening`, T-63)
+
+- Studio queues files selected during a canvas operation and keeps each recoverable audio upload available for retry. When the design or brand changes, the previous editor stops accepting changes and no longer sends saves. Presentation and chart dialogs use the shared controls.
+
+### Added — application key rotation (`audit-hardening`, T-70)
+
+- Operators can dry-run `app:reencrypt` and migrate stored social, Canva and two-factor secrets after changing the application key.
+
+### Fixed — Studio editor layout and autosave (`audit-hardening`, T-62)
+
+- The Studio editor uses the full available width. Leaving the editor cancels pending autosaves.
+
+### Fixed — Studio timeline and dataset routes (`audit-hardening`, T-61)
+
+- The Studio reuses its compiled timeline. Dataset actions work when the application is installed in a subdirectory.
+
+### Added — shared media in Studio and the composer (`audit-hardening`, T-106)
+
+- Upload a file once and use it in the composer and in the brand’s Studio resources. Open an image in Studio in a new tab to keep the current draft open.
+
+### Added — Studio and publication links (`audit-hardening`, T-101)
+
+- Re-export a linked Studio design to update its editable post while retaining independent attachments. Imported Canva images and videos appear in the brand’s Studio resources and reuse an existing resource when their content matches.
+
+### Fixed — form and tab accessibility (`audit-hardening`, T-60)
+
+- Validation errors are associated with their field or group. Calendar, MCP, Studio and composer tabs support arrow keys, Home and End.
+
+### Fixed — paginated lists (`audit-hardening`, T-59)
+
+- Trash, publication templates, notifications, reports and designs show their totals and let users browse the full list.
+
+### Fixed — application notices (`audit-hardening`, T-58)
+
+- The application uses a shared banner for confirmations and errors, including design creation and API key management.
+
+### Changed — accessible confirmations (`audit-hardening`, T-57)
+
+- Destructive actions and the first-comment duplicate warning use a shared dialog. Buttons name the action, focus starts on Cancel, and Escape cancels the action.
+
+### Changed — status refresh and composer AI (`audit-hardening`, T-55)
+
+- Reports and Canva pause updates while the tab is hidden and offer a manual restart at the limit. Composer AI tools share their status and quota.
+
+### Fixed — dialog focus (`audit-hardening`, T-56)
+
+- Dialogs in Studio, profile, composer and calendar use the same focus handling and Escape behavior. Closing a dialog returns focus to its opening control when that control is still available.
+
+### Changed — brand time zones and labels (`audit-hardening`, T-54)
+
+- The interface displays dates and times in the brand's time zone. Saved post templates and the file library have distinct labels.
+
+### Changed — Studio editor loading (`audit-hardening`, T-52)
+
+- The Studio editor loads dialogs on first use and loads its PDF library when generating a PDF. Loading failures show a readable message and keep the editor available.
+
+### Changed — queue workers (`audit-hardening`, T-49)
+
+- Start a `studio-render` worker before upgrading for Studio AI, image processing and static exports. Redis now reserves jobs for at least 180 seconds before redelivery.
+
+### Changed — analytics (`audit-hardening`, T-47)
+
+- The dashboard, exports, reports and MCP identify invalid dates and ranges consistently. Brand dashboards reuse daily snapshots and refresh them after collection for that brand.
+
+### Fixed — resumable uploads (`audit-hardening`, T-37)
+
+- TikTok and YouTube defer the next chunk once the current upload pass runs out of time, including when the configured minimum margin is zero.
+
+### Changed — Instagram publishing (`audit-hardening`, T-36)
+
+- An Instagram container that ends in error or expires now fails the post with a code that states the cause (`contenedor_error`, `contenedor_caducado`) instead of the generic `rechazada`, the same as Threads.
+
+### Changed — API v1 and MCP, breaking changes (`audit-hardening`, T-28/T-29)
+
+- `POST /api/v1/posts` becomes `POST /api/v1/brands/{brand}/posts` and `POST /api/v1/series` becomes `POST /api/v1/brands/{brand}/series`: the brand is always in the path.
+- Pagination of posts, media, comments and designs (API and MCP) is cursor-based (`limit`, `cursor`, `has_more`, `next_cursor`); `page`, `before_id` and `total` are gone.
+- A state that does not allow the operation (e.g. deleting an already published post) answers 409; 422 is only for input errors.
+- Per-route rate limits now have their own counter and are configured in `config/rate_limits.php`.
+- A SmartLink `PUT` without `published` no longer publishes it.
+- A single OpenAPI file (`docs/api/openapi.yaml`) describes the whole API.
+
+### Added — publishing options and Studio (`audit-hardening`, T-34/T-35)
+
+- **T-34 — Publishing options: LinkedIn cover, Instagram places, Facebook `place`, `user_tags` editor.** The composer lets you pick a place for Instagram and Facebook (searching for it or pasting its id), tag users on an Instagram image by clicking on it, and set a cover on LinkedIn videos.
+- **T-35 — Studio: PPTX, per-design thumbnails and caption translation.** Studio exports a design to PowerPoint (one slide per page), shows a thumbnail of each design in the list and translates captions with the AI assistant when it is enabled.
+
 ### Added — `creative-social-suite` initiative (2026-11-03)
 
 - **T-01 — Inventario y evidencia de referencia** El inventario de funciones de referencia queda actualizado con el estado real de la aplicación: para cada función, si está cubierta, parcial o fuera, la tarea que la cubre y su prueba.

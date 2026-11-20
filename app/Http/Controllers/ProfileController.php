@@ -19,7 +19,7 @@ class ProfileController extends Controller
     /**
      * Display the user's profile form.
      */
-    public function edit(Request $request): Response
+    public function edit(Request $request, TotpService $totp): Response
     {
         $user = $request->user();
         $pending = $user->two_factor_secret !== null && ! $user->hasTwoFactorEnabled();
@@ -50,7 +50,7 @@ class ProfileController extends Controller
             // Activacion a medias: el secreto sale del propio usuario (cifrado en BD), nunca de un flash de sesion.
             'twoFactorSetup' => $revealSetup ? [
                 'secret' => $user->two_factor_secret,
-                'qrSvg' => app(TotpService::class)->qrSvg($user, $user->two_factor_secret),
+                'qrSvg' => $totp->qrSvg($user, $user->two_factor_secret),
             ] : null,
             // Los codigos en claro viajan una sola vez (flash).
             'recoveryCodes' => session('recoveryCodes'),

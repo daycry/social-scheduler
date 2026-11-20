@@ -63,6 +63,9 @@ class GetCalendar extends SchedulerTool
             $filters = array_merge(array_diff_key($filters, array_flip(['network', 'status', 'view'])), [], app(CalendarViewService::class)->filtersFor($user, $saved));
         }
 
-        return app(CalendarService::class)->build($user, $filters);
+        $calendar = app(CalendarService::class)->build($user, $filters);
+        $this->attributeBrand(isset($filters['brand_id']) ? (int) $filters['brand_id'] : null);
+
+        return $calendar;
     }
 }

@@ -9,9 +9,9 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 /** Guardado sobre una revisión obsoleta: 409 con la revisión vigente y quién la guardó, para que la UI ofrezca recargar o guardar como copia. */
 class StudioDesignConflict extends HttpException
 {
-    public function __construct(public readonly int $currentRevision, public readonly ?string $updatedBy)
+    public function __construct(public readonly int $currentRevision, public readonly ?string $updatedBy, string $lead = 'El diseño cambió en otra sesión')
     {
-        parent::__construct(409, 'El diseño cambió en otra sesión'.($updatedBy ? ' ('.$updatedBy.')' : '').'. Recarga la versión guardada o guarda tu versión como copia antes de continuar.');
+        parent::__construct(409, $lead.($updatedBy ? ' ('.$updatedBy.')' : '').'. Recarga la versión guardada o guarda tu versión como copia antes de continuar.');
     }
 
     public function render(Request $request): JsonResponse|false

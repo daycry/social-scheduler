@@ -33,18 +33,28 @@ function ltBody(array $over = []): array
     ], $over);
 }
 
+/** Ordena solo las claves de cada objeto JSON; conserva orden de destinos y tipos estrictos. */
+function ltTargetObjects(array $targets): array
+{
+    return array_map(function (array $target): array {
+        ksort($target);
+
+        return $target;
+    }, $targets);
+}
+
 test('LibraryTargetText: guardar desde el compositor y usar la plantilla conserva los textos propios (vinculado sigue vinculado)', function () {
     $this->actingAs($this->user)->post(route('brands.library.store', $this->brand), ltBody())->assertSessionHasNoErrors();
 
     $template = PostTemplate::query()->firstOrFail();
-    expect($template->targets)->toBe([
+    expect(ltTargetObjects($template->targets))->toBe(ltTargetObjects([
         ['account_id' => $this->ig->id, 'content_type' => 'instagram_image', 'text' => 'Propio IG'],
         ['account_id' => $this->fb->id, 'content_type' => 'facebook_photo'],
-    ]);
+    ]));
 
     $this->actingAs($this->user)->post(route('library.use', $template))->assertRedirect();
 
-    $post = Post::firstOrFail();
+    $post = Post::with('targets.post')->firstOrFail();
     $byAccount = $post->targets->keyBy('social_account_id');
     expect($post->text)->toBe('Plantilla comun')
         ->and($byAccount[$this->ig->id]->text)->toBe('Propio IG')
@@ -63,10 +73,10 @@ test('LibraryTargetText: guardar un post existente desde el calendario conserva 
 
     $this->actingAs($this->user)->post(route('library.store'), ['post_id' => $post->id, 'name' => 'Desde post'])->assertSessionHasNoErrors();
 
-    expect(PostTemplate::query()->firstOrFail()->targets)->toBe([
+    expect(ltTargetObjects(PostTemplate::query()->firstOrFail()->targets))->toBe(ltTargetObjects([
         ['account_id' => $this->ig->id, 'content_type' => 'instagram_image'],
         ['account_id' => $this->fb->id, 'content_type' => 'facebook_photo', 'text' => 'Propio FB'],
-    ]);
+    ]));
 });
 
 test('LibraryTargetText: una plantilla antigua sin text por destino sigue funcionando (todo vinculado)', function () {

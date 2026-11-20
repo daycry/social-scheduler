@@ -9,6 +9,10 @@ Una página pública por marca en `/l/{slug}` con título, bio, avatar, bloques 
 | Pública | `PublicSmartLinkController`, `resources/views/smartlinks/show.blade.php` |
 | URLs seguras | `app/Support/SafeUrl.php` |
 
+En `resources/js/Components/SmartLinks/`, `SmartLinkPreview` muestra los cambios del formulario conforme se editan. `SmartLinkSubscribers` reúne el listado, la descarga CSV y las acciones de borrado.
+
+Las visitas y los clics se agrupan por día UTC. `DailyCounter` suma cada evento a su fila de estadísticas.
+
 - **Editor**: vista previa en vivo del microsite junto al formulario, prefijo visible `/l/` con ayuda para el slug, selector de color (muestra + hex), enlace «Ver página pública» y clics por bloque (con su cuota sobre el total de 30 días). Las visitas son un contador de la página.
 - **Página pública**: sin login, sin sesión ni cookies, sin IP ni agente: solo contadores diarios agregados. Los enlaces pasan por `/l/{slug}/go/{bloque}` (cuenta el clic y redirige) con `rel="nofollow noopener"`. Lleva un aviso de contenido externo y el enlace **«Denunciar esta página»** (`mailto:` a `SMARTLINKS_REPORT_EMAIL`, por defecto `MAIL_FROM_ADDRESS`).
 - **`SafeUrl::isSafe`**: solo `http`/`https` con host y sin credenciales; rechaza espacios y caracteres de control, los de control/formato Unicode (Cc, Cf, Zl, Zp: saltos, anchura cero, marcas bidi), `%00` (incluida la doble codificación) y hosts con **mezcla de escrituras** en una etiqueta (homógrafos IDN; el punycode se decodifica antes de comprobar). Se valida al guardar y de nuevo al redirigir.

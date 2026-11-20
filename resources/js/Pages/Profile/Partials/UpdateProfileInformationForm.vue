@@ -1,5 +1,6 @@
 <script setup>
-import InputError from '@/Components/InputError.vue';
+import FormField from '@/Components/FormField.vue';
+import Checkbox from '@/Components/Checkbox.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -19,73 +20,73 @@ const user = usePage().props.auth.user;
 const form = useForm({
     name: user.name,
     email: user.email,
+    notify_by_mail: Boolean(user.notify_by_mail),
 });
 </script>
 
 <template>
     <section>
         <header>
-            <h2 class="text-lg font-medium text-slate-900">
-                Datos del perfil
-            </h2>
+            <h2 class="text-lg font-medium text-slate-900"> Datos del perfil </h2>
 
-            <p class="mt-1 text-sm text-slate-600">
-                Actualiza tu nombre y tu correo electrónico.
-            </p>
+            <p class="mt-1 text-sm text-slate-600"> Actualiza tu nombre y tu correo electrónico. </p>
         </header>
 
-        <form
-            @submit.prevent="form.patch(route('profile.update'))"
-            class="mt-6 space-y-6"
-        >
+        <form @submit.prevent="form.patch(route('profile.update'))" class="mt-6 space-y-6">
             <div>
-                <InputLabel for="name" value="Nombre" />
+                <FormField id="name" :error="form.errors.name" error-class="mt-2" v-slot="{ control }">
+                    <InputLabel for="name" value="Nombre" />
 
-                <TextInput
-                    id="name"
-                    type="text"
-                    class="mt-1 block w-full"
-                    v-model="form.name"
-                    required
-                    autofocus
-                    autocomplete="name"
-                />
-
-                <InputError class="mt-2" :message="form.errors.name" />
+                    <TextInput
+                        v-bind="control"
+                        type="text"
+                        class="mt-1 block w-full"
+                        v-model="form.name"
+                        required
+                        autofocus
+                        autocomplete="name"
+                    />
+                </FormField>
             </div>
 
             <div>
-                <InputLabel for="email" value="Correo electrónico" />
+                <FormField id="email" :error="form.errors.email" error-class="mt-2" v-slot="{ control }">
+                    <InputLabel for="email" value="Correo electrónico" />
 
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    v-model="form.email"
-                    required
-                    autocomplete="username"
-                />
-
-                <InputError class="mt-2" :message="form.errors.email" />
+                    <TextInput
+                        v-bind="control"
+                        type="email"
+                        class="mt-1 block w-full"
+                        v-model="form.email"
+                        required
+                        autocomplete="username"
+                    />
+                </FormField>
             </div>
+
+            <label class="flex items-start gap-2 text-sm text-slate-700" for="notify_by_mail">
+                <Checkbox
+                    id="notify_by_mail"
+                    name="notify_by_mail"
+                    v-model:checked="form.notify_by_mail"
+                    data-testid="notify-by-mail"
+                />
+                <span>
+                    Avisarme también por correo cuando falle un informe programado, una exportación de video, la IA,
+                    Canva o una importación, y antes de que caduque una conexión. Los avisos siempre se muestran en
+                    Avisos.
+                </span>
+            </label>
 
             <div v-if="mustVerifyEmail && user.email_verified_at === null">
                 <p class="mt-2 text-sm text-slate-800">
                     Tu correo electrónico no está verificado.
-                    <Link
-                        :href="route('verification.send')"
-                        method="post"
-                        as="button"
-                        class="link text-sm"
-                    >
+                    <Link :href="route('verification.send')" method="post" as="button" class="link text-sm">
                         Reenviar el correo de verificación.
                     </Link>
                 </p>
 
-                <div
-                    v-show="status === 'verification-link-sent'"
-                    class="mt-2 text-sm font-medium text-emerald-700"
-                >
+                <div v-show="status === 'verification-link-sent'" class="mt-2 text-sm font-medium text-emerald-700">
                     Te hemos enviado un nuevo enlace de verificación.
                 </div>
             </div>
@@ -99,12 +100,7 @@ const form = useForm({
                     leave-active-class="transition ease-in-out"
                     leave-to-class="opacity-0"
                 >
-                    <p
-                        v-if="form.recentlySuccessful"
-                        class="text-sm text-slate-600"
-                    >
-                        Guardado.
-                    </p>
+                    <p v-if="form.recentlySuccessful" class="text-sm text-slate-600"> Guardado. </p>
                 </Transition>
             </div>
         </form>

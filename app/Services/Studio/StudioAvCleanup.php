@@ -9,7 +9,11 @@ use Illuminate\Support\Facades\DB;
 
 class StudioAvCleanup
 {
-    public function __construct(private readonly StudioAvStorage $storage) {}
+    public function __construct(
+        private readonly StudioAvStorage $storage,
+        private readonly StudioAvQueue $queue,
+        private readonly StudioAvRegistrationCleanup $registrationCleanup,
+    ) {}
 
     public function lease(string $id): bool
     {
@@ -25,7 +29,7 @@ class StudioAvCleanup
                     if (! $current || $current->expires_at->isFuture()) {
                         return null;
                     }
-                    if (app(StudioAvQueue::class)->pending($current)) {
+                    if ($this->queue->pending($current)) {
                         return null;
                     }
                     if ($current->status === 'running') {
@@ -61,7 +65,7 @@ class StudioAvCleanup
         if (! $candidate || DesignExport::withoutUserScope()->whereKey($candidate->export_id)->exists()) {
             return false;
         }
-        if (! app(StudioAvRegistrationCleanup::class)->run($id)) {
+        if (! $this->registrationCleanup->run($id)) {
             return false;
         }
         try {

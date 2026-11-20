@@ -138,7 +138,7 @@ test.describe('MCP OAuth · API (sin interfaz)', () => {
 });
 
 test.describe('MCP OAuth · navegador', () => {
-    test('E2E-05 · registro, consentimiento con preset publish, token en /mcp y Origin ajeno (CA-16, CA-18, CA-19, CA-20, CA-28)', async ({ page, request, baseURL }, info) => {
+    test('E2E-05 · registro, consentimiento con preset publish, token en /mcp y Origin ajeno (CA-16, CA-18, CA-19, CA-20, CA-28)', { tag: '@responsive' }, async ({ page, request, baseURL }, info) => {
         const w = watch(page);
         const client = await register(request, 'flujo');
         const { verifier, challenge } = pkce();
@@ -241,13 +241,16 @@ test.describe('MCP OAuth · navegador', () => {
         expect(params.get('state')).toBe(state);
     });
 
-    test('E2E-07 · origen, reautorización, revocación y coexistencia con las API keys (CA-24, CA-25, CA-26)', async ({ page, request, baseURL }, info) => {
+    test('E2E-07 · origen, reautorización, revocación y coexistencia con las API keys (CA-24, CA-25, CA-26)', { tag: '@responsive' }, async ({ page, request, baseURL }, info) => {
         const manual = createManualKey(user.email, 'e2e key manual');
         await loginAs(page, user);
         const client = await register(request, 'origen');
 
         const first = await obtainToken(page, request, baseURL!, client, 'Solo lectura');
         expect((await mcpToolsList(request, first.access_token)).status()).toBe(200);
+        const readHeaders = { Authorization: `Bearer ${first.access_token}`, Accept: 'application/json' };
+        expect((await request.get('/api/v1/media', { headers: readHeaders })).status()).toBe(200);
+        expect((await request.post('/api/v1/media/import-url', { headers: readHeaders, data: {} })).status()).toBe(403);
 
         // CA-25: el token OAuth aparece con su origen y la key manual como «Manual».
         await page.goto('/api-keys');
@@ -263,12 +266,14 @@ test.describe('MCP OAuth · navegador', () => {
         const second = await obtainToken(page, request, baseURL!, client, 'Publicar');
         expect((await mcpToolsList(request, first.access_token)).status()).toBe(401);
         expect((await mcpToolsList(request, second.access_token)).status()).toBe(200);
+        const publishHeaders = { Authorization: `Bearer ${second.access_token}`, Accept: 'application/json' };
+        expect((await request.post('/api/v1/media/import-url', { headers: publishHeaders, data: {} })).status()).toBe(422);
         await page.goto('/api-keys');
         await expect(page.locator('li', { hasText: `OAuth · ${client.client_name}` })).toHaveCount(1);
 
         // Revocar el token OAuth: /mcp responde 401 con resource_metadata y la key manual sigue funcionando (CA-24, CA-25).
-        page.once('dialog', (d) => d.accept());
         await page.getByRole('button', { name: `Revocar OAuth · ${client.client_name}` }).click();
+        await page.getByTestId('confirm-dialog').getByRole('button', { name: 'Revocar API key', exact: true }).click();
         await expect(page.locator('li', { hasText: `OAuth · ${client.client_name}` })).toHaveCount(0);
         const revoked = await mcpToolsList(request, second.access_token);
         expect(revoked.status()).toBe(401);

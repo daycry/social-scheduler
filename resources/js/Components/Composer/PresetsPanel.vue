@@ -35,32 +35,71 @@ const setCategory = (value) => {
         <div v-if="hasYoutubeFields(account)" class="grid gap-2 sm:grid-cols-2">
             <div>
                 <InputLabel :for="`yt-category-${account.id}`" value="Categoría" />
-                <select :id="`yt-category-${account.id}`" :value="target().options.category_id ?? '22'" :disabled="!editable" class="field mt-1 w-full" @change="setCategory($event.target.value)">
+                <select
+                    :id="`yt-category-${account.id}`"
+                    :value="target().options.category_id ?? '22'"
+                    :disabled="!editable"
+                    class="field mt-1 w-full"
+                    @change="setCategory($event.target.value)"
+                >
                     <option v-for="c in YOUTUBE_CATEGORIES" :key="c.value" :value="c.value">{{ c.label }}</option>
                 </select>
             </div>
             <div>
                 <InputLabel :for="`yt-tags-${account.id}`" value="Etiquetas (separadas por comas)" />
-                <input :id="`yt-tags-${account.id}`" :value="tagText[account.id]" :disabled="!editable" type="text" class="field mt-1 w-full" autocomplete="off" @keydown.enter.prevent @input="setTags($event.target.value)" />
+                <input
+                    :id="`yt-tags-${account.id}`"
+                    :value="tagText[account.id]"
+                    :disabled="!editable"
+                    type="text"
+                    class="field mt-1 w-full"
+                    autocomplete="off"
+                    @keydown.enter.prevent
+                    @input="setTags($event.target.value)"
+                />
             </div>
         </div>
 
-        <fieldset v-if="switches().length" class="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200/80 p-0" :disabled="!editable">
+        <fieldset
+            v-if="switches().length"
+            class="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200/80 p-0"
+            :disabled="!editable"
+        >
             <legend class="sr-only">Interruptores de {{ account.network_label }} ({{ account.name }})</legend>
             <div v-for="s in switches()" :key="s.key" class="px-3 py-3">
                 <label class="composer-setting-row">
                     <span>{{ s.label }}</span>
                     <input
-                        type="checkbox" role="switch" class="composer-preset-toggle"
-                        :checked="checked(s)" :disabled="lockedByTiktok(s)" :aria-describedby="s.hint && checked(s) ? `hint-${account.id}-${s.key}` : undefined"
+                        type="checkbox"
+                        role="switch"
+                        class="composer-preset-toggle"
+                        :checked="checked(s)"
+                        :disabled="lockedByTiktok(s)"
+                        :aria-describedby="s.hint && checked(s) ? `hint-${account.id}-${s.key}` : undefined"
                         @change="set(s, $event.target.checked)"
                     />
                 </label>
-                <p v-if="lockedByTiktok(s)" class="mt-1.5 text-xs leading-relaxed text-slate-600">Desactivado en los ajustes de tu cuenta de TikTok.</p>
-                <p v-if="s.hint && checked(s)" :id="`hint-${account.id}-${s.key}`" class="mt-1.5 text-xs leading-relaxed text-slate-600" role="status">{{ s.hint }}</p>
-                <p v-if="s.warning && checked(s)" class="mt-1.5 text-xs leading-relaxed text-amber-800" role="status">{{ s.warning }}</p>
+                <p v-if="lockedByTiktok(s)" class="mt-1.5 text-xs leading-relaxed text-slate-600"
+                    >Desactivado en los ajustes de tu cuenta de TikTok.</p
+                >
+                <p
+                    v-if="s.hint && checked(s)"
+                    :id="`hint-${account.id}-${s.key}`"
+                    class="mt-1.5 text-xs leading-relaxed text-slate-600"
+                    role="status"
+                    >{{ s.hint }}</p
+                >
+                <p
+                    v-if="s.warning && checked(s)"
+                    class="mt-1.5 text-xs leading-relaxed text-amber-800"
+                    role="status"
+                    >{{ s.warning }}</p
+                >
             </div>
         </fieldset>
-        <p v-if="switches().length && account.network !== 'instagram'" class="text-xs leading-relaxed text-slate-500">Se recuerdan los ajustes habituales de esta marca y red. La música recomendada y las colaboraciones de pago se deciden en cada publicación.</p>
+        <p v-if="switches().length && account.network !== 'instagram'" class="text-xs leading-relaxed text-slate-500"
+            >Se recuerdan los ajustes habituales de esta marca y red. La música recomendada y las colaboraciones de pago
+            se deciden en cada publicación.</p
+        >
     </div>
 </template>

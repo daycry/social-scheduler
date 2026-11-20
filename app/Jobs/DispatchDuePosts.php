@@ -18,14 +18,19 @@ use Illuminate\Support\Collection;
  */
 class DispatchDuePosts
 {
-    public function __construct(private readonly PublishRecovery $recovery) {}
+    public function __construct(
+        private readonly PublishRecovery $recovery,
+        private readonly ManualPublishService $manual,
+    ) {}
 
     public function __invoke(): int
     {
         $this->recovery->run();
 
         // Publicacion manual (T-19): avisa de los destinos manuales cuya hora ha llegado (idempotente).
-        app(ManualPublishService::class)->notifyDue();
+        $this->manual->notifyDue();
+        // ... y recuerda los que tocan pronto (T-32): una sola vez, con correo si el usuario lo activo.
+        $this->manual->remindUpcoming();
 
         $dispatched = 0;
 

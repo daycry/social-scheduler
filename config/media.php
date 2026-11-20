@@ -8,6 +8,9 @@ return [
         'video' => ['video/mp4', 'video/quicktime'],
     ],
 
+    /* PDF: solo entra en la biblioteca desde el export de Canva (T-27); nunca es media publicable en redes. */
+    'allowed_pdf_mimes' => ['application/pdf'],
+
     // Audio is admitted only through the brand-scoped Studio upload service.
     'allowed_audio_mimes' => ['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/aac', 'audio/ogg'],
 
@@ -16,6 +19,7 @@ return [
         'image' => (int) env('MEDIA_MAX_IMAGE_BYTES', 30 * 1024 * 1024),
         'video' => (int) env('MEDIA_MAX_VIDEO_BYTES', 4 * 1024 * 1024 * 1024),
         'audio' => (int) env('MEDIA_MAX_AUDIO_BYTES', 100 * 1024 * 1024),
+        'pdf' => (int) env('MEDIA_MAX_PDF_BYTES', 50 * 1024 * 1024),
     ],
 
     /* A partir de este tamano se sube por multipart (partes de `part_size`; S3/R2 exige >= 5 MiB). */

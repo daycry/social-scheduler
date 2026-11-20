@@ -8,6 +8,7 @@ use App\Models\Report;
 use App\Models\ReportSchedule;
 use App\Models\ReportTemplate;
 use App\Models\User;
+use App\Services\JobFailureNotifier;
 use App\Services\Reports\ReportBlocks;
 use App\Services\ReportService;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -33,10 +34,11 @@ class SendScheduledReport implements ShouldQueue
 
     public function __construct(public readonly int $scheduleId)
     {
+        $this->timeout = max(1, min(110, (int) config('reports.timeout', $this->timeout)));
         $this->onQueue((string) config('reports.queue', 'reports'));
     }
 
-    public function handle(ReportService $reports): void
+    public function handle(ReportService $reports, JobFailureNotifier $failures): void
     {
         $schedule = ReportSchedule::withoutUserScope()->find($this->scheduleId);
 
@@ -45,10 +47,10 @@ class SendScheduledReport implements ShouldQueue
         }
 
         // Job sin sesion: la plantilla y la marca se leen del propietario de la programacion, no del usuario autenticado.
-        $template = ReportTemplate::withoutUserScope()->where('user_id', $schedule->user_id)->find($schedule->report_template_id);
+        $template = ReportTemplate::ownedBy($schedule->user_id)->find($schedule->report_template_id);
 
         $user = User::find($schedule->user_id);
-        $brand = Brand::withoutUserScope()->where('user_id', $schedule->user_id)->find($schedule->brand_id);
+        $brand = Brand::ownedBy($schedule->user_id)->find($schedule->brand_id);
 
         if (! $user || ! $brand || ! $template || (int) $template->brand_id !== (int) $brand->id) {
             $schedule->update(['active' => false, 'last_error' => 'La marca o la plantilla ya no existen.']);
@@ -83,6 +85,7 @@ class SendScheduledReport implements ShouldQueue
         if ($report->status !== Report::STATUS_READY) {
             RateLimiter::decrement($key, 86400, $reserved);
             $schedule->update(['last_run_at' => now(), 'last_error' => ReportService::GENERIC_ERROR]);
+            $failures->report($schedule);
 
             return;
         }
@@ -102,5 +105,9 @@ class SendScheduledReport implements ShouldQueue
     {
         Log::error('report.schedule_failed', ['schedule_id' => $this->scheduleId, 'error' => $e->getMessage()]);
         ReportSchedule::withoutUserScope()->whereKey($this->scheduleId)->update(['last_run_at' => now(), 'last_error' => ReportService::GENERIC_ERROR]);
+
+        if ($schedule = ReportSchedule::withoutUserScope()->find($this->scheduleId)) {
+            app(JobFailureNotifier::class)->report($schedule);
+        }
     }
 }

@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\ComposerPreset;
 use App\Models\PostTarget;
 use App\Models\User;
+use App\Support\Ownership;
 
 /**
  * Interruptores persistentes del compositor por (marca, red) (C-04, decision del usuario 2026-10-23):
@@ -36,7 +37,7 @@ class ComposerPresetService
         }
 
         $out = [];
-        foreach (ComposerPreset::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->get() as $preset) {
+        foreach (ComposerPreset::ownedBy($user->id)->where('brand_id', $brand->id)->get() as $preset) {
             $clean = $this->clean((string) $preset->network, (array) $preset->options);
 
             if ($clean !== []) {
@@ -77,7 +78,7 @@ class ComposerPresetService
 
     private function owns(User $user, Brand $brand): bool
     {
-        return (int) $brand->user_id === (int) $user->id;
+        return Ownership::matches($brand, $user);
     }
 
     /**

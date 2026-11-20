@@ -2,12 +2,15 @@
 
 namespace Tests\Feature\Studio;
 
+use App\Exceptions\OwnershipException;
 use App\Models\Brand;
 use App\Models\User;
 use App\Services\Studio\StudioChartFiles;
 use App\Services\Studio\StudioDatasets;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -151,8 +154,9 @@ final class StudioChartFilesTest extends TestCase
         try {
             $call();
             $this->fail('Expected '.$status);
-        } catch (HttpException $e) {
-            $this->assertSame($status, $e->getStatusCode());
+        } catch (HttpException|OwnershipException $e) {
+            $response = app(ExceptionHandler::class)->render(Request::create('/'), $e);
+            $this->assertSame($status, $response->getStatusCode());
         }
     }
 }

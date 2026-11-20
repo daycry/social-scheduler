@@ -25,7 +25,6 @@ class SavedTextController extends Controller
             'texts' => $this->texts->list($request->user())->map(fn (SavedText $t) => $this->texts->toArray($t))->values(),
             'brands' => CurrentBrand::brands($request)->map(fn ($b) => ['id' => $b->id, 'name' => $b->name])->values(),
             'kinds' => ['fragmento' => 'Fragmento', 'hashtags' => 'Grupo de hashtags'],
-            'flash' => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error')],
         ]);
     }
 

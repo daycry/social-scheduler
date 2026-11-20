@@ -3,13 +3,26 @@
 namespace App\Models\Studio;
 
 use App\Models\Concerns\BelongsToUser;
+use App\Models\Concerns\PrunesByAge;
 use App\Scopes\UserScope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DesignExport extends Model
 {
     use BelongsToUser;
+    use PrunesByAge;
+
+    protected static function retentionKey(): string
+    {
+        return 'studio_design_exports_days';
+    }
+
+    protected static function pruneScope(Builder $query): Builder
+    {
+        return $query->whereIn('status', ['failed', 'cancelled'])->whereNull('path');
+    }
 
     protected $table = 'studio_design_exports';
 

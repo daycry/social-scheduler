@@ -1,0 +1,2346 @@
+diff --git a/.env.example b/.env.example
+index 496bfa9..0c0d8f5 100644
+--- a/.env.example
++++ b/.env.example
+@@ -333,3 +333,13 @@ GOALS_MAIL_QUEUE=poll
+ WEBHOOK_QUEUE=poll
+ WEBHOOK_MAX_PER_USER=20
+ WEBHOOK_SETTINGS_PER_MINUTE=30
++
++# Avisos Web Push (T-81). Sin una pareja VAPID válida, la UI explica que están desactivados.
++# M-07 pendiente: claves propias del operador, HTTPS y comprobación real en dispositivos.
++PUSH_ENABLED=true
++PUSH_VAPID_SUBJECT=
++PUSH_VAPID_PUBLIC_KEY=
++PUSH_VAPID_PRIVATE_KEY=
++PUSH_QUEUE=poll
++PUSH_MAX_DEVICES_PER_USER=20
++PUSH_SETTINGS_PER_MINUTE=30
+diff --git a/.env.production.example b/.env.production.example
+index cb86edc..382d366 100644
+--- a/.env.production.example
++++ b/.env.production.example
+@@ -179,3 +179,13 @@ GOALS_MAIL_QUEUE=poll
+ WEBHOOK_QUEUE=poll
+ WEBHOOK_MAX_PER_USER=20
+ WEBHOOK_SETTINGS_PER_MINUTE=30
++
++# Avisos Web Push (T-81). Sin una pareja VAPID válida, la UI explica que están desactivados.
++# M-07 pendiente: claves propias del operador, HTTPS y comprobación real en dispositivos.
++PUSH_ENABLED=true
++PUSH_VAPID_SUBJECT=
++PUSH_VAPID_PUBLIC_KEY=
++PUSH_VAPID_PRIVATE_KEY=
++PUSH_QUEUE=poll
++PUSH_MAX_DEVICES_PER_USER=20
++PUSH_SETTINGS_PER_MINUTE=30
+diff --git a/CHANGELOG.es.md b/CHANGELOG.es.md
+index 42a7011..a339bc0 100644
+--- a/CHANGELOG.es.md
++++ b/CHANGELOG.es.md
+@@ -5,6 +5,10 @@ # Registro de cambios
+ 
+ ## [Sin publicar]
+ 
++### Added — avisos del navegador (audit-hardening, T-81)
++
++- Instala la aplicación desde navegadores compatibles y activa avisos push genéricos por dispositivo. Las suscripciones se cifran y se pueden revocar; el envío usa VAPID, reintentos acotados y elimina las suscripciones caducadas. La aceptación real en HTTPS y dispositivos sigue pendiente.
++
+ ### Added — webhooks salientes firmados (audit-hardening, T-80)
+ 
+ - Configura receptores HTTPS de tus marcas para eventos de publicación e inbox. Envía firmas HMAC con marca de tiempo, reintentos acotados, protección de URLs, recuperación de cola y estado visible; el secreto permanece cifrado y privado.
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 2010005..b46d12e 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -5,6 +5,10 @@ # Changelog
+ 
+ ## [Unreleased]
+ 
++### Added — browser notifications (audit-hardening, T-81)
++
++- Install the app from supported browsers and opt into generic push notices per device. Encrypted subscriptions can be revoked; delivery supports VAPID with bounded retries and expires invalid devices. Real HTTPS/device acceptance remains pending.
++
+ ### Added — signed outbound webhooks (audit-hardening, T-80)
+ 
+ - Manage brand-owned HTTPS receivers for publication and inbox events. Deliver timestamped HMAC signatures with bounded retries, safe URL checks, durable queue recovery and visible delivery status; signing secrets remain encrypted and private.
+diff --git a/app/Console/Commands/ReencryptSecrets.php b/app/Console/Commands/ReencryptSecrets.php
+index fb1002b..04a5de7 100644
+--- a/app/Console/Commands/ReencryptSecrets.php
++++ b/app/Console/Commands/ReencryptSecrets.php
+@@ -20,6 +20,7 @@ final class ReencryptSecrets extends Command
+         'canva_connections' => ['access_token', 'refresh_token'],
+         'users' => ['two_factor_secret'],
+         'webhooks' => ['secret'],
++        'push_subscriptions' => ['endpoint', 'keys'],
+     ];
+ 
+     public function handle(): int
+diff --git a/app/Http/Controllers/PushSubscriptionController.php b/app/Http/Controllers/PushSubscriptionController.php
+new file mode 100644
+index 0000000..fec54a0
+--- /dev/null
++++ b/app/Http/Controllers/PushSubscriptionController.php
+@@ -0,0 +1,56 @@
++<?php
++
++namespace App\Http\Controllers;
++
++use App\Models\PushSubscription;
++use App\Services\Push\PushConfiguration;
++use App\Services\Push\PushSubscriptions;
++use Illuminate\Http\RedirectResponse;
++use Illuminate\Http\Request;
++use Inertia\Inertia;
++use Inertia\Response;
++
++final class PushSubscriptionController extends Controller
++{
++    public function index(Request $request, PushConfiguration $configuration): Response
++    {
++        return Inertia::render('Profile/Notifications', [
++            'push' => $configuration->publicState(),
++            'subscriptions' => PushSubscription::ownedBy($request->user()->id)->orderByDesc('last_seen_at')->orderByDesc('id')
++                ->get(['id', 'device_name', 'last_seen_at', 'last_sent_at'])->map(fn (PushSubscription $subscription) => [
++                    'id' => $subscription->id, 'device_name' => $subscription->device_name,
++                    'last_seen_at' => $subscription->last_seen_at->toIso8601String(),
++                    'last_sent_at' => $subscription->last_sent_at?->toIso8601String(),
++                    'current' => (string) $request->cookie('push_device') === (string) $subscription->id,
++                ])->all(),
++        ]);
++    }
++
++    public function store(Request $request, PushSubscriptions $subscriptions): RedirectResponse
++    {
++        $data = $request->all();
++        foreach (['keys', 'endpoint'] as $field) {
++            $request->request->remove($field);
++            $request->query->remove($field);
++            if ($request->isJson()) {
++                $request->json()->remove($field);
++            }
++        }
++        $subscription = $subscriptions->subscribe($request->user(), $data);
++
++        return redirect()->route('profile.notifications')->with('success', 'Dispositivo suscrito.')
++            ->withCookie(cookie('push_device', (string) $subscription->id, 43200, '/', null, $request->isSecure(), true, false, 'lax'));
++    }
++
++    public function destroy(Request $request, PushSubscription $pushSubscription, PushSubscriptions $subscriptions): RedirectResponse
++    {
++        $subscriptions->revoke($request->user(), $pushSubscription);
++
++        $response = redirect()->route('profile.notifications')->with('success', 'Suscripción revocada.');
++        if ((string) $request->cookie('push_device') === (string) $pushSubscription->id) {
++            $response->withoutCookie('push_device', '/');
++        }
++
++        return $response;
++    }
++}
+diff --git a/app/Http/Controllers/PwaController.php b/app/Http/Controllers/PwaController.php
+new file mode 100644
+index 0000000..d8eaf93
+--- /dev/null
++++ b/app/Http/Controllers/PwaController.php
+@@ -0,0 +1,18 @@
++<?php
++
++namespace App\Http\Controllers;
++
++use Illuminate\Http\Response;
++use Illuminate\Support\Facades\File;
++
++final class PwaController extends Controller
++{
++    public function worker(): Response
++    {
++        return response(File::get(resource_path('js/sw.js')), 200, [
++            'Content-Type' => 'text/javascript; charset=utf-8',
++            'Cache-Control' => 'no-store, private',
++            'Service-Worker-Allowed' => '/',
++        ]);
++    }
++}
+diff --git a/app/Jobs/SendPushNotification.php b/app/Jobs/SendPushNotification.php
+new file mode 100644
+index 0000000..8305ad5
+--- /dev/null
++++ b/app/Jobs/SendPushNotification.php
+@@ -0,0 +1,72 @@
++<?php
++
++namespace App\Jobs;
++
++use App\Models\PushSubscription;
++use App\Models\User;
++use App\Services\Push\PushConfiguration;
++use App\Services\Push\PushResult;
++use App\Services\Push\PushSender;
++use Illuminate\Contracts\Queue\ShouldBeUnique;
++use Illuminate\Contracts\Queue\ShouldQueue;
++use Illuminate\Foundation\Queue\Queueable;
++use Illuminate\Support\Facades\DB;
++use RuntimeException;
++
++/** La cola solo transporta identificadores; el worker vuelve a comprobar consentimiento y propietario. */
++final class SendPushNotification implements ShouldBeUnique, ShouldQueue
++{
++    use Queueable;
++
++    public int $tries = 3;
++
++    public int $timeout = 20;
++
++    public int $uniqueFor = 600;
++
++    public function __construct(public readonly int $userId, public readonly int $subscriptionId, public readonly string $notificationId)
++    {
++        $this->onQueue(config('push.queue', 'poll'));
++    }
++
++    public function uniqueId(): string
++    {
++        return $this->subscriptionId.':'.$this->notificationId;
++    }
++
++    public function handle(PushSender $sender, PushConfiguration $configuration): void
++    {
++        if (! $configuration->enabled()) {
++            return;
++        }
++        DB::transaction(function () use ($sender): void {
++            $user = User::find($this->userId);
++            $subscription = PushSubscription::ownedBy($this->userId)->whereKey($this->subscriptionId)->lockForUpdate()->first();
++            if ($user === null || ! $user->hasVerifiedEmail() || $subscription === null
++                || $subscription->last_notification_id === $this->notificationId
++                || ! $user->notifications()->whereKey($this->notificationId)->whereNull('read_at')->exists()) {
++                return;
++            }
++            // Adquiere también el bloqueo de escritura de SQLite antes de salir a la red.
++            $subscription->forceFill(['last_attempted_at' => now()])->save();
++            $result = $sender->send($subscription);
++            if ($result === PushResult::Retry) {
++                throw new RuntimeException('Entrega push temporalmente no disponible.');
++            }
++            if ($result === PushResult::Expired) {
++                $subscription->delete();
++
++                return;
++            }
++            $subscription->forceFill([
++                'last_notification_id' => $this->notificationId,
++                'last_sent_at' => $result === PushResult::Delivered ? now() : $subscription->last_sent_at,
++            ])->save();
++        });
++    }
++
++    public function backoff(): array
++    {
++        return [30, 120];
++    }
++}
+diff --git a/app/Listeners/QueuePushNotification.php b/app/Listeners/QueuePushNotification.php
+new file mode 100644
+index 0000000..76fce55
+--- /dev/null
++++ b/app/Listeners/QueuePushNotification.php
+@@ -0,0 +1,37 @@
++<?php
++
++namespace App\Listeners;
++
++use App\Jobs\SendPushNotification;
++use App\Models\PushSubscription;
++use App\Models\User;
++use App\Services\Push\PushConfiguration;
++use Illuminate\Notifications\DatabaseNotification;
++use Illuminate\Notifications\Events\NotificationSent;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Log;
++use Throwable;
++
++/** Push complementa el aviso en la base de datos y nunca sustituye su entrega. */
++final class QueuePushNotification
++{
++    public function __construct(private readonly PushConfiguration $configuration) {}
++
++    public function handle(NotificationSent $event): void
++    {
++        $user = $event->notifiable;
++        if ($event->channel !== 'database' || ! $user instanceof User || ! $user->hasVerifiedEmail()
++            || ! $event->response instanceof DatabaseNotification || ! $this->configuration->enabled()) {
++            return;
++        }
++        $userId = (int) $user->id;
++        $notificationId = (string) $event->response->id;
++        DB::afterCommit(function () use ($userId, $notificationId): void {
++            try {
++                PushSubscription::ownedBy($userId)->select('id')->eachById(fn ($subscription) => SendPushNotification::dispatch($userId, (int) $subscription->id, $notificationId));
++            } catch (Throwable $error) {
++                Log::warning('No se pudo encolar el aviso push.', ['exception_class' => $error::class]);
++            }
++        });
++    }
++}
+diff --git a/app/Listeners/RevokePushOnLogout.php b/app/Listeners/RevokePushOnLogout.php
+new file mode 100644
+index 0000000..638c891
+--- /dev/null
++++ b/app/Listeners/RevokePushOnLogout.php
+@@ -0,0 +1,29 @@
++<?php
++
++namespace App\Listeners;
++
++use App\Models\PushSubscription;
++use App\Models\User;
++use Illuminate\Auth\Events\Logout;
++use Illuminate\Support\Facades\Cookie;
++use Illuminate\Support\Facades\Log;
++use Throwable;
++
++/** La cookie cifrada identifica este navegador; nunca revoca dispositivos de otra cuenta. */
++final class RevokePushOnLogout
++{
++    public function handle(Logout $event): void
++    {
++        $device = request()->cookie('push_device');
++        try {
++            if ($event->user instanceof User && is_string($device) && ctype_digit($device)) {
++                PushSubscription::ownedBy($event->user->id)->whereKey($device)->delete();
++            }
++        } catch (Throwable $error) {
++            // Una caída del almacén no debe impedir cerrar la sesión. El push solo muestra avisos genéricos.
++            Log::warning('No se pudo revocar el dispositivo push al cerrar sesión.', ['exception_class' => $error::class]);
++        } finally {
++            Cookie::queue(Cookie::forget('push_device', '/'));
++        }
++    }
++}
+diff --git a/app/Models/PushSubscription.php b/app/Models/PushSubscription.php
+new file mode 100644
+index 0000000..c5f36ea
+--- /dev/null
++++ b/app/Models/PushSubscription.php
+@@ -0,0 +1,18 @@
++<?php
++
++namespace App\Models;
++
++use App\Models\Concerns\BelongsToUser;
++use Illuminate\Database\Eloquent\Model;
++
++class PushSubscription extends Model
++{
++    use BelongsToUser;
++
++    protected $hidden = ['endpoint', 'keys', 'endpoint_hash'];
++
++    protected function casts(): array
++    {
++        return ['endpoint' => 'encrypted', 'keys' => 'encrypted:array', 'last_seen_at' => 'datetime', 'last_sent_at' => 'datetime', 'last_attempted_at' => 'datetime'];
++    }
++}
+diff --git a/app/Providers/PushServiceProvider.php b/app/Providers/PushServiceProvider.php
+new file mode 100644
+index 0000000..c376842
+--- /dev/null
++++ b/app/Providers/PushServiceProvider.php
+@@ -0,0 +1,31 @@
++<?php
++
++namespace App\Providers;
++
++use App\Listeners\QueuePushNotification;
++use App\Listeners\RevokePushOnLogout;
++use App\Services\Push\PushSender;
++use App\Services\Push\WebPushSender;
++use Illuminate\Auth\Events\Logout;
++use Illuminate\Cache\RateLimiting\Limit;
++use Illuminate\Http\Request;
++use Illuminate\Notifications\Events\NotificationSent;
++use Illuminate\Support\Facades\Event;
++use Illuminate\Support\Facades\RateLimiter;
++use Illuminate\Support\ServiceProvider;
++
++final class PushServiceProvider extends ServiceProvider
++{
++    public function register(): void
++    {
++        $this->app->bind(PushSender::class, WebPushSender::class);
++    }
++
++    public function boot(): void
++    {
++        RateLimiter::for('push-settings', fn (Request $request) => Limit::perMinute(max(1, (int) config('push.settings_per_minute', 30)))
++            ->by('push-settings:'.$request->user()->id));
++        Event::listen(Logout::class, RevokePushOnLogout::class);
++        Event::listen(NotificationSent::class, QueuePushNotification::class);
++    }
++}
+diff --git a/app/Services/Push/PushConfiguration.php b/app/Services/Push/PushConfiguration.php
+new file mode 100644
+index 0000000..f210ca6
+--- /dev/null
++++ b/app/Services/Push/PushConfiguration.php
+@@ -0,0 +1,54 @@
++<?php
++
++namespace App\Services\Push;
++
++/** El estado público nunca incluye la clave privada ni los datos de suscripción. */
++final class PushConfiguration
++{
++    public function enabled(): bool
++    {
++        if (! (bool) config('push.enabled', true)) {
++            return false;
++        }
++        $subject = config('push.vapid.subject');
++        if (! is_string($subject) || str_contains($subject, "\n") || str_contains($subject, "\r")
++            || ! ((str_starts_with($subject, 'mailto:') && filter_var(substr($subject, 7), FILTER_VALIDATE_EMAIL))
++                || (str_starts_with($subject, 'https://') && filter_var($subject, FILTER_VALIDATE_URL)))) {
++            return false;
++        }
++        $public = $this->decode(config('push.vapid.public_key'), 65);
++        $private = $this->decode(config('push.vapid.private_key'), 32);
++        if ($public === null || $private === null || $public[0] !== "\x04") {
++            return false;
++        }
++        // SEC1 sin punto público: OpenSSL lo deriva del escalar y permite comprobar que las dos claves corresponden.
++        $der = hex2bin('30310201010420').$private.hex2bin('a00a06082a8648ce3d030107');
++        $pem = "-----BEGIN EC PRIVATE KEY-----\n".chunk_split(base64_encode($der), 64, "\n")."-----END EC PRIVATE KEY-----\n";
++        $key = @openssl_pkey_get_private($pem);
++        $ec = $key === false ? null : (openssl_pkey_get_details($key)['ec'] ?? null);
++
++        return $ec !== null && hash_equals($public, "\x04".str_pad($ec['x'], 32, "\x00", STR_PAD_LEFT).str_pad($ec['y'], 32, "\x00", STR_PAD_LEFT));
++    }
++
++    private function decode(mixed $value, int $length): ?string
++    {
++        if (! is_string($value) || ! preg_match('/\A[A-Za-z0-9_-]+\z/D', $value)) {
++            return null;
++        }
++        $bytes = base64_decode(strtr($value, '-_', '+/'), true);
++
++        return $bytes !== false && strlen($bytes) === $length
++            && rtrim(strtr(base64_encode($bytes), '+/', '-_'), '=') === $value ? $bytes : null;
++    }
++
++    public function publicState(): array
++    {
++        $enabled = $this->enabled();
++
++        return [
++            'enabled' => $enabled,
++            'public_key' => $enabled ? config('push.vapid.public_key') : null,
++            'unavailable_reason' => $enabled ? null : 'Las notificaciones push no están configuradas en este servidor.',
++        ];
++    }
++}
+diff --git a/app/Services/Push/PushHttpClient.php b/app/Services/Push/PushHttpClient.php
+new file mode 100644
+index 0000000..affcf1d
+--- /dev/null
++++ b/app/Services/Push/PushHttpClient.php
+@@ -0,0 +1,33 @@
++<?php
++
++namespace App\Services\Push;
++
++use App\Services\Media\UnsafeUrlException;
++use App\Services\Media\UrlGuard;
++use GuzzleHttp\Psr7\Response;
++use Psr\Http\Client\ClientInterface;
++use Psr\Http\Message\RequestInterface;
++use Psr\Http\Message\ResponseInterface;
++
++/** Transporte PSR-18 síncrono con el mismo guard de URLs del proyecto. No consume la respuesta remota. */
++final class PushHttpClient implements ClientInterface
++{
++    public function __construct(private readonly UrlGuard $guard) {}
++
++    public function sendRequest(RequestInterface $request): ResponseInterface
++    {
++        $url = $this->guard->validate((string) $request->getUri());
++        if ($url->scheme !== 'https') {
++            throw new UnsafeUrlException('El receptor push debe usar HTTPS.');
++        }
++        $response = $this->guard->client($url)->connectTimeout(3)->timeout(10)->withOptions(['stream' => true])
++            ->withHeaders($request->getHeaders())
++            ->withBody((string) $request->getBody(), $request->getHeaderLine('Content-Type') ?: 'application/octet-stream')
++            ->send($request->getMethod(), $url->url);
++        try {
++            return new Response($response->status());
++        } finally {
++            $response->toPsrResponse()->getBody()->close();
++        }
++    }
++}
+diff --git a/app/Services/Push/PushResult.php b/app/Services/Push/PushResult.php
+new file mode 100644
+index 0000000..9f68531
+--- /dev/null
++++ b/app/Services/Push/PushResult.php
+@@ -0,0 +1,11 @@
++<?php
++
++namespace App\Services\Push;
++
++enum PushResult: string
++{
++    case Delivered = 'delivered';
++    case Expired = 'expired';
++    case Retry = 'retry';
++    case Rejected = 'rejected';
++}
+diff --git a/app/Services/Push/PushSender.php b/app/Services/Push/PushSender.php
+new file mode 100644
+index 0000000..5317674
+--- /dev/null
++++ b/app/Services/Push/PushSender.php
+@@ -0,0 +1,11 @@
++<?php
++
++namespace App\Services\Push;
++
++use App\Models\PushSubscription;
++
++/** El adaptador solo envía un aviso genérico; nunca recibe contenido privado del aviso in-app. */
++interface PushSender
++{
++    public function send(PushSubscription $subscription): PushResult;
++}
+diff --git a/app/Services/Push/PushSubscriptions.php b/app/Services/Push/PushSubscriptions.php
+new file mode 100644
+index 0000000..8dfd569
+--- /dev/null
++++ b/app/Services/Push/PushSubscriptions.php
+@@ -0,0 +1,77 @@
++<?php
++
++namespace App\Services\Push;
++
++use App\Models\PushSubscription;
++use App\Models\User;
++use App\Services\Media\UnsafeUrlException;
++use App\Services\Media\UrlGuard;
++use App\Support\Ownership;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Validator;
++use Illuminate\Validation\ValidationException;
++
++final class PushSubscriptions
++{
++    public function __construct(private readonly UrlGuard $guard, private readonly PushConfiguration $configuration) {}
++
++    /** @param array<string, mixed> $data */
++    public function subscribe(User $user, array $data): PushSubscription
++    {
++        abort_unless($this->configuration->enabled(), 409, 'Las notificaciones push no están configuradas en este servidor.');
++        $valid = Validator::make($data, [
++            'endpoint' => ['required', 'string', 'max:2048'],
++            'device_name' => ['required', 'string', 'max:120', 'not_regex:/[\p{C}]/u'],
++            'keys' => ['required', 'array:p256dh,auth'],
++            'keys.p256dh' => ['required', 'string', 'size:87', 'regex:/\A[A-Za-z0-9_-]+\z/D'],
++            'keys.auth' => ['required', 'string', 'size:22', 'regex:/\A[A-Za-z0-9_-]+\z/D'],
++        ])->validate();
++        $point = base64_decode(strtr($valid['keys']['p256dh'], '-_', '+/'), true);
++        $auth = base64_decode(strtr($valid['keys']['auth'], '-_', '+/'), true);
++        $canonical = fn (string $bytes): string => rtrim(strtr(base64_encode($bytes), '+/', '-_'), '=');
++        if ($point === false || strlen($point) !== 65 || $point[0] !== "\x04" || $canonical($point) !== $valid['keys']['p256dh']
++            || $auth === false || strlen($auth) !== 16 || $canonical($auth) !== $valid['keys']['auth']) {
++            throw ValidationException::withMessages(['keys' => 'La suscripción del navegador no es válida.']);
++        }
++        $spki = hex2bin('3059301306072a8648ce3d020106082a8648ce3d030107034200').$point;
++        $pem = "-----BEGIN PUBLIC KEY-----\n".chunk_split(base64_encode($spki), 64, "\n")."-----END PUBLIC KEY-----\n";
++        if (@openssl_pkey_get_public($pem) === false) {
++            throw ValidationException::withMessages(['keys.p256dh' => 'La clave del navegador no es válida.']);
++        }
++        try {
++            $url = $this->guard->validate($valid['endpoint']);
++            if ($url->scheme !== 'https') {
++                throw new UnsafeUrlException('El receptor push debe usar HTTPS.');
++            }
++        } catch (UnsafeUrlException $error) {
++            throw ValidationException::withMessages(['endpoint' => $error->getMessage()]);
++        }
++
++        return DB::transaction(function () use ($user, $valid, $url): PushSubscription {
++            User::whereKey($user->id)->lockForUpdate()->firstOrFail();
++            $subscription = PushSubscription::withoutUserScope()->where('endpoint_hash', hash('sha256', $url->url))->lockForUpdate()->first();
++            if ($subscription !== null) {
++                Ownership::assert($subscription, $user);
++            } else {
++                if (PushSubscription::ownedBy($user->id)->count() >= max(1, (int) config('push.max_devices_per_user', 20))) {
++                    throw ValidationException::withMessages(['device_name' => 'Has alcanzado el límite de dispositivos: revoca uno antes de añadir otro.']);
++                }
++                $subscription = new PushSubscription;
++                $subscription->user_id = $user->id;
++            }
++            $subscription->forceFill([
++                'endpoint_hash' => hash('sha256', $url->url), 'endpoint' => $url->url,
++                'keys' => ['p256dh' => $valid['keys']['p256dh'], 'auth' => $valid['keys']['auth']],
++                'device_name' => trim($valid['device_name']), 'last_seen_at' => now(),
++            ])->save();
++
++            return $subscription->fresh();
++        });
++    }
++
++    public function revoke(User $user, PushSubscription $subscription): void
++    {
++        Ownership::assert($subscription, $user);
++        $subscription->delete();
++    }
++}
+diff --git a/app/Services/Push/WebPushSender.php b/app/Services/Push/WebPushSender.php
+new file mode 100644
+index 0000000..6739a4e
+--- /dev/null
++++ b/app/Services/Push/WebPushSender.php
+@@ -0,0 +1,52 @@
++<?php
++
++namespace App\Services\Push;
++
++use App\Models\PushSubscription;
++use App\Services\Media\UnsafeUrlException;
++use GuzzleHttp\Psr7\HttpFactory;
++use Illuminate\Http\Client\ConnectionException;
++use Illuminate\Support\Facades\Log;
++use Minishlink\WebPush\Subscription;
++use Minishlink\WebPush\WebPush;
++use Throwable;
++
++/** RFC8291/VAPID mediante la biblioteca mantenida; el contenido privado nunca sale del servidor. */
++final class WebPushSender implements PushSender
++{
++    public function __construct(private readonly PushHttpClient $client, private readonly PushConfiguration $configuration) {}
++
++    public function send(PushSubscription $subscription): PushResult
++    {
++        if (! $this->configuration->enabled()) {
++            return PushResult::Rejected;
++        }
++        try {
++            $factory = new HttpFactory;
++            $webPush = new WebPush(['VAPID' => [
++                'subject' => config('push.vapid.subject'),
++                'publicKey' => config('push.vapid.public_key'),
++                'privateKey' => config('push.vapid.private_key'),
++            ]], ['TTL' => 300, 'urgency' => 'normal'], $this->client, $factory, $factory);
++            $report = $webPush->sendOneNotification(Subscription::create([
++                'endpoint' => $subscription->endpoint, 'keys' => $subscription->keys, 'contentEncoding' => 'aes128gcm',
++            ]), '{"title":"Social Scheduler","body":"Tienes nuevos avisos.","url":"/notifications"}');
++            $status = $report->getResponse()?->getStatusCode();
++
++            return match (true) {
++                $status !== null && $status >= 200 && $status < 300 => PushResult::Delivered,
++                $report->isSubscriptionExpired() => PushResult::Expired,
++                $status === null, in_array($status, [408, 425, 429], true), $status >= 500 => PushResult::Retry,
++                default => PushResult::Rejected,
++            };
++        } catch (ConnectionException) {
++            return PushResult::Retry;
++        } catch (UnsafeUrlException) {
++            return PushResult::Rejected;
++        } catch (Throwable $error) {
++            Log::warning('No se pudo preparar el aviso push.', ['exception_class' => $error::class]);
++
++            return PushResult::Rejected;
++        }
++    }
++}
+diff --git a/bootstrap/providers.php b/bootstrap/providers.php
+index 6a38aa6..57263cd 100644
+--- a/bootstrap/providers.php
++++ b/bootstrap/providers.php
+@@ -1,9 +1,11 @@
+ <?php
+ 
+ use App\Providers\AppServiceProvider;
++use App\Providers\PushServiceProvider;
+ use App\Providers\WebhookServiceProvider;
+ 
+ return [
+     AppServiceProvider::class,
+     WebhookServiceProvider::class,
++    PushServiceProvider::class,
+ ];
+diff --git a/composer.json b/composer.json
+index fc9988d..0ce2b2c 100644
+--- a/composer.json
++++ b/composer.json
+@@ -3,7 +3,10 @@
+     "name": "laravel/laravel",
+     "type": "project",
+     "description": "The skeleton application for the Laravel framework.",
+-    "keywords": ["laravel", "framework"],
++    "keywords": [
++        "laravel",
++        "framework"
++    ],
+     "license": "MIT",
+     "require": {
+         "php": "^8.3",
+@@ -18,6 +21,7 @@
+         "laravel/socialite": "^5.31",
+         "laravel/tinker": "^3.0",
+         "league/flysystem-aws-s3-v3": "^3.0",
++        "minishlink/web-push": "^11.0",
+         "pragmarx/google2fa": "^9.1",
+         "tightenco/ziggy": "^2.0",
+         "web-auth/webauthn-lib": "~5.3.0"
+diff --git a/composer.lock b/composer.lock
+index a30a2b4..d4f5b7b 100644
+--- a/composer.lock
++++ b/composer.lock
+@@ -4,7 +4,7 @@
+         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
+         "This file is @generated automatically"
+     ],
+-    "content-hash": "45e4e08069f861b91a4c60fd89fecd81",
++    "content-hash": "7084e922f7ea2030beb39d32bff0939c",
+     "packages": [
+         {
+             "name": "aws/aws-crt-php",
+@@ -3197,6 +3197,85 @@
+             },
+             "time": "2026-08-18T06:18:41+00:00"
+         },
++        {
++            "name": "minishlink/web-push",
++            "version": "v11.0.0",
++            "source": {
++                "type": "git",
++                "url": "https://github.com/web-push-libs/web-push-php.git",
++                "reference": "f8410afb73486ab895bb4792b879bdca62025b47"
++            },
++            "dist": {
++                "type": "zip",
++                "url": "https://api.github.com/repos/web-push-libs/web-push-php/zipball/f8410afb73486ab895bb4792b879bdca62025b47",
++                "reference": "f8410afb73486ab895bb4792b879bdca62025b47",
++                "shasum": ""
++            },
++            "require": {
++                "ext-curl": "*",
++                "ext-json": "*",
++                "ext-mbstring": "*",
++                "ext-openssl": "*",
++                "php": ">=8.2",
++                "php-http/discovery": "^1.19",
++                "php-http/httplug": "^2.4",
++                "psr/http-client": "^1.0",
++                "psr/http-factory": "^1.0",
++                "psr/http-message": "^1.1|^2.0",
++                "psr/log": "^2.0|^3.0",
++                "spomky-labs/base64url": "^2.0.4",
++                "symfony/polyfill-php83": "^1.33",
++                "web-token/jwt-library": "^3.4.9|^4.0.6"
++            },
++            "require-dev": {
++                "friendsofphp/php-cs-fixer": "^v3.92.2",
++                "guzzlehttp/guzzle": "^7.9.2",
++                "guzzlehttp/psr7": "^2.7",
++                "php-http/guzzle7-adapter": "^1.1",
++                "phpstan/phpstan": "^2.1.33",
++                "phpstan/phpstan-deprecation-rules": "^2.0",
++                "phpstan/phpstan-phpunit": "^2.0",
++                "phpstan/phpstan-strict-rules": "^2.0",
++                "phpunit/phpunit": "^11.5.46|^12.5.2",
++                "symfony/polyfill-iconv": "^1.33"
++            },
++            "suggest": {
++                "ext-bcmath": "Optional for performance.",
++                "ext-gmp": "Optional for performance.",
++                "php-http/guzzle7-adapter": "Enables concurrent sending via WebPush::flushPooled() if you use Guzzle."
++            },
++            "type": "library",
++            "autoload": {
++                "psr-4": {
++                    "Minishlink\\WebPush\\": "src"
++                }
++            },
++            "notification-url": "https://packagist.org/downloads/",
++            "license": [
++                "MIT"
++            ],
++            "authors": [
++                {
++                    "name": "Louis Lagrange",
++                    "email": "lagrange.louis@gmail.com",
++                    "homepage": "https://github.com/Minishlink"
++                }
++            ],
++            "description": "Web Push library for PHP",
++            "homepage": "https://github.com/web-push-libs/web-push-php",
++            "keywords": [
++                "Push API",
++                "WebPush",
++                "notifications",
++                "push",
++                "web"
++            ],
++            "support": {
++                "issues": "https://github.com/web-push-libs/web-push-php/issues",
++                "source": "https://github.com/web-push-libs/web-push-php/tree/v11.0.0"
++            },
++            "time": "2026-07-23T16:10:05+00:00"
++        },
+         {
+             "name": "monolog/monolog",
+             "version": "3.12.1",
+@@ -3778,16 +3857,16 @@
+         },
+         {
+             "name": "paragonie/constant_time_encoding",
+-            "version": "v3.1.3",
++            "version": "v3.1.4",
+             "source": {
+                 "type": "git",
+                 "url": "https://github.com/paragonie/constant_time_encoding.git",
+-                "reference": "d5b01a39b3415c2cd581d3bd3a3575c1ebbd8e77"
++                "reference": "5efef6e6cb43e088ccab7d0c1e2f2ab25b9e8b54"
+             },
+             "dist": {
+                 "type": "zip",
+-                "url": "https://api.github.com/repos/paragonie/constant_time_encoding/zipball/d5b01a39b3415c2cd581d3bd3a3575c1ebbd8e77",
+-                "reference": "d5b01a39b3415c2cd581d3bd3a3575c1ebbd8e77",
++                "url": "https://api.github.com/repos/paragonie/constant_time_encoding/zipball/5efef6e6cb43e088ccab7d0c1e2f2ab25b9e8b54",
++                "reference": "5efef6e6cb43e088ccab7d0c1e2f2ab25b9e8b54",
+                 "shasum": ""
+             },
+             "require": {
+@@ -3843,7 +3922,195 @@
+                 "issues": "https://github.com/paragonie/constant_time_encoding/issues",
+                 "source": "https://github.com/paragonie/constant_time_encoding"
+             },
+-            "time": "2025-09-24T15:06:41+00:00"
++            "time": "2026-11-06T20:31:19+00:00"
++        },
++        {
++            "name": "php-http/discovery",
++            "version": "1.20.0",
++            "source": {
++                "type": "git",
++                "url": "https://github.com/php-http/discovery.git",
++                "reference": "82fe4c73ef3363caed49ff8dd1539ba06044910d"
++            },
++            "dist": {
++                "type": "zip",
++                "url": "https://api.github.com/repos/php-http/discovery/zipball/82fe4c73ef3363caed49ff8dd1539ba06044910d",
++                "reference": "82fe4c73ef3363caed49ff8dd1539ba06044910d",
++                "shasum": ""
++            },
++            "require": {
++                "composer-plugin-api": "^1.0|^2.0",
++                "php": "^7.1 || ^8.0"
++            },
++            "conflict": {
++                "nyholm/psr7": "<1.0",
++                "zendframework/zend-diactoros": "*"
++            },
++            "provide": {
++                "php-http/async-client-implementation": "*",
++                "php-http/client-implementation": "*",
++                "psr/http-client-implementation": "*",
++                "psr/http-factory-implementation": "*",
++                "psr/http-message-implementation": "*"
++            },
++            "require-dev": {
++                "composer/composer": "^1.0.2|^2.0",
++                "graham-campbell/phpspec-skip-example-extension": "^5.0",
++                "php-http/httplug": "^1.0 || ^2.0",
++                "php-http/message-factory": "^1.0",
++                "phpspec/phpspec": "^5.1 || ^6.1 || ^7.3",
++                "sebastian/comparator": "^3.0.5 || ^4.0.8",
++                "symfony/phpunit-bridge": "^6.4.4 || ^7.0.1"
++            },
++            "type": "composer-plugin",
++            "extra": {
++                "class": "Http\\Discovery\\Composer\\Plugin",
++                "plugin-optional": true
++            },
++            "autoload": {
++                "psr-4": {
++                    "Http\\Discovery\\": "src/"
++                },
++                "exclude-from-classmap": [
++                    "src/Composer/Plugin.php"
++                ]
++            },
++            "notification-url": "https://packagist.org/downloads/",
++            "license": [
++                "MIT"
++            ],
++            "authors": [
++                {
++                    "name": "Márk Sági-Kazár",
++                    "email": "mark.sagikazar@gmail.com"
++                }
++            ],
++            "description": "Finds and installs PSR-7, PSR-17, PSR-18 and HTTPlug implementations",
++            "homepage": "http://php-http.org",
++            "keywords": [
++                "adapter",
++                "client",
++                "discovery",
++                "factory",
++                "http",
++                "message",
++                "psr17",
++                "psr7"
++            ],
++            "support": {
++                "issues": "https://github.com/php-http/discovery/issues",
++                "source": "https://github.com/php-http/discovery/tree/1.20.0"
++            },
++            "time": "2024-10-02T11:20:13+00:00"
++        },
++        {
++            "name": "php-http/httplug",
++            "version": "2.4.1",
++            "source": {
++                "type": "git",
++                "url": "https://github.com/php-http/httplug.git",
++                "reference": "5cad731844891a4c282f3f3e1b582c46839d22f4"
++            },
++            "dist": {
++                "type": "zip",
++                "url": "https://api.github.com/repos/php-http/httplug/zipball/5cad731844891a4c282f3f3e1b582c46839d22f4",
++                "reference": "5cad731844891a4c282f3f3e1b582c46839d22f4",
++                "shasum": ""
++            },
++            "require": {
++                "php": "^7.1 || ^8.0",
++                "php-http/promise": "^1.1",
++                "psr/http-client": "^1.0",
++                "psr/http-message": "^1.0 || ^2.0"
++            },
++            "require-dev": {
++                "friends-of-phpspec/phpspec-code-coverage": "^4.1 || ^5.0 || ^6.0",
++                "phpspec/phpspec": "^5.1 || ^6.0 || ^7.0"
++            },
++            "type": "library",
++            "autoload": {
++                "psr-4": {
++                    "Http\\Client\\": "src/"
++                }
++            },
++            "notification-url": "https://packagist.org/downloads/",
++            "license": [
++                "MIT"
++            ],
++            "authors": [
++                {
++                    "name": "Eric GELOEN",
++                    "email": "geloen.eric@gmail.com"
++                },
++                {
++                    "name": "Márk Sági-Kazár",
++                    "email": "mark.sagikazar@gmail.com",
++                    "homepage": "https://sagikazarmark.hu"
++                }
++            ],
++            "description": "HTTPlug, the HTTP client abstraction for PHP",
++            "homepage": "http://httplug.io",
++            "keywords": [
++                "client",
++                "http"
++            ],
++            "support": {
++                "issues": "https://github.com/php-http/httplug/issues",
++                "source": "https://github.com/php-http/httplug/tree/2.4.1"
++            },
++            "time": "2024-09-23T11:39:58+00:00"
++        },
++        {
++            "name": "php-http/promise",
++            "version": "1.3.1",
++            "source": {
++                "type": "git",
++                "url": "https://github.com/php-http/promise.git",
++                "reference": "fc85b1fba37c169a69a07ef0d5a8075770cc1f83"
++            },
++            "dist": {
++                "type": "zip",
++                "url": "https://api.github.com/repos/php-http/promise/zipball/fc85b1fba37c169a69a07ef0d5a8075770cc1f83",
++                "reference": "fc85b1fba37c169a69a07ef0d5a8075770cc1f83",
++                "shasum": ""
++            },
++            "require": {
++                "php": "^7.1 || ^8.0"
++            },
++            "require-dev": {
++                "friends-of-phpspec/phpspec-code-coverage": "^4.3.2 || ^6.3",
++                "phpspec/phpspec": "^5.1.2 || ^6.2 || ^7.4"
++            },
++            "type": "library",
++            "autoload": {
++                "psr-4": {
++                    "Http\\Promise\\": "src/"
++                }
++            },
++            "notification-url": "https://packagist.org/downloads/",
++            "license": [
++                "MIT"
++            ],
++            "authors": [
++                {
++                    "name": "Joel Wurtz",
++                    "email": "joel.wurtz@gmail.com"
++                },
++                {
++                    "name": "Márk Sági-Kazár",
++                    "email": "mark.sagikazar@gmail.com"
++                }
++            ],
++            "description": "Promise used for asynchronous HTTP requests",
++            "homepage": "http://httplug.io",
++            "keywords": [
++                "promise"
++            ],
++            "support": {
++                "issues": "https://github.com/php-http/promise/issues",
++                "source": "https://github.com/php-http/promise/tree/1.3.1"
++            },
++            "time": "2024-03-15T13:55:21+00:00"
+         },
+         {
+             "name": "phpdocumentor/reflection-common",
+@@ -4103,16 +4370,16 @@
+         },
+         {
+             "name": "phpseclib/phpseclib",
+-            "version": "4.0.2",
++            "version": "4.0.3",
+             "source": {
+                 "type": "git",
+                 "url": "https://github.com/phpseclib/phpseclib.git",
+-                "reference": "1fe20b9acb08ce810cec24d8a9d02e7c13426e4c"
++                "reference": "6077cecfed9e371993d3aa339b0afeb23f7bf636"
+             },
+             "dist": {
+                 "type": "zip",
+-                "url": "https://api.github.com/repos/phpseclib/phpseclib/zipball/1fe20b9acb08ce810cec24d8a9d02e7c13426e4c",
+-                "reference": "1fe20b9acb08ce810cec24d8a9d02e7c13426e4c",
++                "url": "https://api.github.com/repos/phpseclib/phpseclib/zipball/6077cecfed9e371993d3aa339b0afeb23f7bf636",
++                "reference": "6077cecfed9e371993d3aa339b0afeb23f7bf636",
+                 "shasum": ""
+             },
+             "require": {
+@@ -4136,9 +4403,6 @@
+             },
+             "type": "library",
+             "autoload": {
+-                "files": [
+-                    "phpseclib/bootstrap.php"
+-                ],
+                 "psr-4": {
+                     "phpseclib4\\": "phpseclib/"
+                 }
+@@ -4175,8 +4439,7 @@
+                 },
+                 {
+                     "name": "Jack Worman",
+-                    "email": "jack.worman@gmail.com",
+-                    "homepage": "https://jackworman.com",
++                    "email": "jack.worman@proton.me",
+                     "role": "Developer"
+                 }
+             ],
+@@ -4203,7 +4466,7 @@
+             ],
+             "support": {
+                 "issues": "https://github.com/phpseclib/phpseclib/issues",
+-                "source": "https://github.com/phpseclib/phpseclib/tree/4.0.2"
++                "source": "https://github.com/phpseclib/phpseclib/tree/4.0.3"
+             },
+             "funding": [
+                 {
+@@ -4219,7 +4482,7 @@
+                     "type": "tidelift"
+                 }
+             ],
+-            "time": "2026-10-07T19:55:38+00:00"
++            "time": "2026-11-02T10:46:03+00:00"
+         },
+         {
+             "name": "phpstan/phpdoc-parser",
+@@ -5055,6 +5318,71 @@
+             },
+             "time": "2026-09-20T15:02:00+00:00"
+         },
++        {
++            "name": "spomky-labs/base64url",
++            "version": "v2.0.4",
++            "source": {
++                "type": "git",
++                "url": "https://github.com/Spomky-Labs/base64url.git",
++                "reference": "7752ce931ec285da4ed1f4c5aa27e45e097be61d"
++            },
++            "dist": {
++                "type": "zip",
++                "url": "https://api.github.com/repos/Spomky-Labs/base64url/zipball/7752ce931ec285da4ed1f4c5aa27e45e097be61d",
++                "reference": "7752ce931ec285da4ed1f4c5aa27e45e097be61d",
++                "shasum": ""
++            },
++            "require": {
++                "php": ">=7.1"
++            },
++            "require-dev": {
++                "phpstan/extension-installer": "^1.0",
++                "phpstan/phpstan": "^0.11|^0.12",
++                "phpstan/phpstan-beberlei-assert": "^0.11|^0.12",
++                "phpstan/phpstan-deprecation-rules": "^0.11|^0.12",
++                "phpstan/phpstan-phpunit": "^0.11|^0.12",
++                "phpstan/phpstan-strict-rules": "^0.11|^0.12"
++            },
++            "type": "library",
++            "autoload": {
++                "psr-4": {
++                    "Base64Url\\": "src/"
++                }
++            },
++            "notification-url": "https://packagist.org/downloads/",
++            "license": [
++                "MIT"
++            ],
++            "authors": [
++                {
++                    "name": "Florent Morselli",
++                    "homepage": "https://github.com/Spomky-Labs/base64url/contributors"
++                }
++            ],
++            "description": "Base 64 URL Safe Encoding/Decoding PHP Library",
++            "homepage": "https://github.com/Spomky-Labs/base64url",
++            "keywords": [
++                "base64",
++                "rfc4648",
++                "safe",
++                "url"
++            ],
++            "support": {
++                "issues": "https://github.com/Spomky-Labs/base64url/issues",
++                "source": "https://github.com/Spomky-Labs/base64url/tree/v2.0.4"
++            },
++            "funding": [
++                {
++                    "url": "https://github.com/Spomky",
++                    "type": "github"
++                },
++                {
++                    "url": "https://www.patreon.com/FlorentMorselli",
++                    "type": "patreon"
++                }
++            ],
++            "time": "2020-11-03T09:10:25+00:00"
++        },
+         {
+             "name": "spomky-labs/cbor-php",
+             "version": "3.4.2",
+@@ -8941,6 +9269,95 @@
+             ],
+             "time": "2026-09-10T21:10:45+00:00"
+         },
++        {
++            "name": "web-token/jwt-library",
++            "version": "4.2.7",
++            "source": {
++                "type": "git",
++                "url": "https://github.com/web-token/jwt-library.git",
++                "reference": "62643a2f31274c546a7d158ceab6dd5c052db911"
++            },
++            "dist": {
++                "type": "zip",
++                "url": "https://api.github.com/repos/web-token/jwt-library/zipball/62643a2f31274c546a7d158ceab6dd5c052db911",
++                "reference": "62643a2f31274c546a7d158ceab6dd5c052db911",
++                "shasum": ""
++            },
++            "require": {
++                "brick/math": "^0.12|^0.13|^0.14|^0.15|^0.16|^0.17|^0.18|^0.19|^0.20|^1.0",
++                "php": ">=8.2",
++                "psr/clock": "^1.0",
++                "spomky-labs/pki-framework": "^1.2.1",
++                "symfony/deprecation-contracts": "^2.5|^3.0"
++            },
++            "conflict": {
++                "spomky-labs/jose": "*"
++            },
++            "suggest": {
++                "ext-bcmath": "GMP or BCMath is highly recommended to improve the library performance",
++                "ext-gmp": "GMP or BCMath is highly recommended to improve the library performance",
++                "ext-openssl": "For key management (creation, optimization, etc.) and some algorithms (AES, RSA, ECDSA, etc.)",
++                "ext-sodium": "Sodium is required for OKP key creation, EdDSA signature algorithm and ECDH-ES key encryption with OKP keys",
++                "paragonie/sodium_compat": "Sodium is required for OKP key creation, EdDSA signature algorithm and ECDH-ES key encryption with OKP keys",
++                "spomky-labs/aes-key-wrap": "For all Key Wrapping algorithms (AxxxKW, AxxxGCMKW, PBES2-HSxxx+AyyyKW...)",
++                "symfony/console": "Needed to use console commands",
++                "symfony/http-client": "To enable JKU/X5U support."
++            },
++            "type": "library",
++            "autoload": {
++                "psr-4": {
++                    "Jose\\Component\\": ""
++                }
++            },
++            "notification-url": "https://packagist.org/downloads/",
++            "license": [
++                "MIT"
++            ],
++            "authors": [
++                {
++                    "name": "Florent Morselli",
++                    "homepage": "https://github.com/Spomky"
++                },
++                {
++                    "name": "All contributors",
++                    "homepage": "https://github.com/web-token/jwt-framework/contributors"
++                }
++            ],
++            "description": "JWT library",
++            "homepage": "https://github.com/web-token",
++            "keywords": [
++                "JOSE",
++                "JWE",
++                "JWK",
++                "JWKSet",
++                "JWS",
++                "Jot",
++                "RFC7515",
++                "RFC7516",
++                "RFC7517",
++                "RFC7518",
++                "RFC7519",
++                "RFC7520",
++                "bundle",
++                "jwa",
++                "jwt",
++                "symfony"
++            ],
++            "support": {
++                "source": "https://github.com/web-token/jwt-library/tree/4.2.7"
++            },
++            "funding": [
++                {
++                    "url": "https://github.com/Spomky",
++                    "type": "github"
++                },
++                {
++                    "url": "https://www.patreon.com/FlorentMorselli",
++                    "type": "patreon"
++                }
++            ],
++            "time": "2026-11-08T14:44:36+00:00"
++        },
+         {
+             "name": "webmozart/assert",
+             "version": "2.5.0",
+diff --git a/config/push.php b/config/push.php
+new file mode 100644
+index 0000000..9608af2
+--- /dev/null
++++ b/config/push.php
+@@ -0,0 +1,13 @@
++<?php
++
++return [
++    'enabled' => (bool) env('PUSH_ENABLED', true),
++    'vapid' => [
++        'subject' => env('PUSH_VAPID_SUBJECT'),
++        'public_key' => env('PUSH_VAPID_PUBLIC_KEY'),
++        'private_key' => env('PUSH_VAPID_PRIVATE_KEY'),
++    ],
++    'queue' => env('PUSH_QUEUE', 'poll'),
++    'settings_per_minute' => (int) env('PUSH_SETTINGS_PER_MINUTE', 30),
++    'max_devices_per_user' => (int) env('PUSH_MAX_DEVICES_PER_USER', 20),
++];
+diff --git a/database/migrations/2026_11_18_093000_create_push_subscriptions_table.php b/database/migrations/2026_11_18_093000_create_push_subscriptions_table.php
+new file mode 100644
+index 0000000..969238f
+--- /dev/null
++++ b/database/migrations/2026_11_18_093000_create_push_subscriptions_table.php
+@@ -0,0 +1,32 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    public function up(): void
++    {
++        Schema::create('push_subscriptions', function (Blueprint $table) {
++            $table->id();
++            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
++            $table->char('endpoint_hash', 64)->unique();
++            $table->text('endpoint');
++            $table->text('keys');
++            $table->string('device_name', 120);
++            $table->string('content_encoding', 20)->default('aes128gcm');
++            $table->timestamp('last_seen_at');
++            $table->timestamp('last_sent_at')->nullable();
++            $table->timestamp('last_attempted_at')->nullable();
++            $table->uuid('last_notification_id')->nullable();
++            $table->timestamps();
++            $table->index(['user_id', 'created_at', 'id']);
++        });
++    }
++
++    public function down(): void
++    {
++        Schema::dropIfExists('push_subscriptions');
++    }
++};
+diff --git a/docs/README.md b/docs/README.md
+index 0c019bd..a46adcc 100644
+--- a/docs/README.md
++++ b/docs/README.md
+@@ -91,3 +91,5 @@ ## Categorías omitidas
+ - Confluence: no se publica (opt-in no configurado).
+ 
+ - [Ajustes del compositor](guias/ajustes-compositor.md) · paneles globales y por red, colaboradores, IA, título de Facebook y errores; inventario observado y pendientes.
++
++- [Instalar la aplicación y configurar avisos push](usuario/pwa.md).
+diff --git a/docs/usuario/pwa.md b/docs/usuario/pwa.md
+new file mode 100644
+index 0000000..61edca1
+--- /dev/null
++++ b/docs/usuario/pwa.md
+@@ -0,0 +1,27 @@
++# Instalar la aplicación y recibir avisos
++
++La aplicación incluye un manifiesto público con iconos de 192 y 512 píxeles y un service worker estático. Desde un navegador compatible, abre el menú y elige instalar o añadir a la pantalla de inicio. La disponibilidad y el texto de esa opción dependen del navegador y el dispositivo. En producción se necesita HTTPS; localhost sirve para las pruebas locales.
++
++## Activar avisos en un navegador
++
++En el menú de usuario abre **Notificaciones del navegador**. Escribe un nombre reconocible y pulsa **Activar en este navegador**. Solo esa acción pide permiso al navegador. Puedes denegarlo sin dejar de usar la aplicación; después se cambia en los ajustes del navegador.
++
++Si el servidor no tiene una pareja de claves VAPID válida, la pantalla explica que el envío no está configurado. Si faltan HTTPS o las APIs necesarias, explica la limitación del navegador. No se solicita permiso al abrir una página ni al registrar el service worker.
++
++Cada suscripción pertenece a un usuario. La lista solo muestra nombres, fechas y el dispositivo identificado como actual; no revela el endpoint ni las claves. Se puede **Revocar** un dispositivo con confirmación. Para el actual se intenta cancelar también la suscripción del navegador; la revocación en servidor sigue siendo posible si esa API falla. Al cerrar sesión se revoca el dispositivo identificado por la cookie cifrada de esta aplicación; otros dispositivos se conservan. Puedes revocar cualquier dispositivo desde la lista aunque hayas eliminado cookies o cambiado de navegador.
++
++## Qué se envía y qué se guarda
++
++El push muestra únicamente «Social Scheduler» y «Tienes nuevos avisos.». Nunca contiene mensajes, textos de publicaciones, marca, enlace firmado ni credenciales. Al pulsarlo se abre **Avisos** en el origen de esta aplicación; si no hay sesión se pide iniciarla. El worker no lee URLs del payload ni intercepta fetch, ni almacena HTML autenticado, Cache Storage o IndexedDB.
++
++Los endpoints y las claves de suscripción se guardan cifrados mediante APP_KEY. La clave privada VAPID solo se configura en el servidor y no llega a las props de la página. `app:reencrypt-secrets` incluye también endpoint y keys de push_subscriptions al rotar APP_KEY; conserva la política de copias de seguridad y claves anteriores del despliegue.
++
++El envío complementa las notificaciones guardadas en la aplicación. La cola lleva identificadores y vuelve a comprobar propietario, consentimiento, verificación y existencia de un aviso no leído. Una suscripción caducada (404/410) se elimina; los fallos transitorios se reintentan hasta tres intentos. Los fallos permanentes no reintentan el mismo aviso. Un fallo al encolar push no cancela el aviso in-app: este canal es best-effort, sin outbox durable propio ni garantía de entrega exactamente una vez ante una caída después del envío. El último aviso enviado se reconoce localmente para evitar su redelivery inmediata.
++
++## Configuración del operador y aceptación pendiente
++
++Los ejemplos públicos de entorno declaran PUSH_ENABLED, PUSH_VAPID_SUBJECT, PUSH_VAPID_PUBLIC_KEY, PUSH_VAPID_PRIVATE_KEY, PUSH_QUEUE, PUSH_MAX_DEVICES_PER_USER y PUSH_SETTINGS_PER_MINUTE. No contienen claves operativas. La cola predeterminada es poll y el límite por usuario es 20 dispositivos y 30 escrituras por minuto; ambos son configurables. El subject VAPID debe ser un mailto válido o una URL HTTPS. Las claves deben ser base64url canónicas de P-256 y corresponder entre sí.
++
++La implementación utiliza minishlink/web-push 11 para aes128gcm y VAPID, con el guard HTTPS/IP pública del proyecto, IP fijada, sin proxy ni redirecciones, conexión de 3 segundos y tiempo total de 10 segundos. La respuesta remota se cierra sin leer ni guardar su contenido.
++
++**M-07 sigue a la espera del usuario:** generar y desplegar las claves propias, HTTPS de producción y comprobar instalación, permiso y recepción real en los dispositivos objetivo. Las pruebas locales usan claves EC exclusivamente de fixture, PushSender falso o HTTP simulado con cifrado/firma reales; no acreditan recepción en un dispositivo ni entrega por un proveedor real. Tampoco acreditan un worker nativo en segundo plano.
+diff --git a/public/manifest.webmanifest b/public/manifest.webmanifest
+new file mode 100644
+index 0000000..513c21e
+--- /dev/null
++++ b/public/manifest.webmanifest
+@@ -0,0 +1,15 @@
++{
++    "id": "/",
++    "name": "Social Scheduler",
++    "short_name": "Scheduler",
++    "lang": "es",
++    "start_url": "/",
++    "scope": "/",
++    "display": "standalone",
++    "background_color": "#f8fafc",
++    "theme_color": "#0f172a",
++    "icons": [
++        { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
++        { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
++    ]
++}
+diff --git a/resources/js/Layouts/AuthenticatedLayout.vue b/resources/js/Layouts/AuthenticatedLayout.vue
+index f03b481..56276ae 100644
+--- a/resources/js/Layouts/AuthenticatedLayout.vue
++++ b/resources/js/Layouts/AuthenticatedLayout.vue
+@@ -216,6 +216,9 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
+                             <DropdownLink :href="route('saved-texts.index')">Textos guardados</DropdownLink>
+                             <DropdownLink :href="route('api-keys.index')">API keys</DropdownLink>
+                             <DropdownLink :href="route('notifications.index')">Avisos</DropdownLink>
++                            <DropdownLink :href="route('profile.notifications')"
++                                >Notificaciones del navegador</DropdownLink
++                            >
+                             <DropdownLink :href="route('activity.index')">Actividad</DropdownLink>
+                             <DropdownLink :href="route('goals.index')">Objetivos</DropdownLink>
+                             <DropdownLink :href="route('webhooks.index')">Webhooks</DropdownLink>
+diff --git a/resources/js/Pages/Profile/Notifications.vue b/resources/js/Pages/Profile/Notifications.vue
+new file mode 100644
+index 0000000..03caad6
+--- /dev/null
++++ b/resources/js/Pages/Profile/Notifications.vue
+@@ -0,0 +1,131 @@
++<script setup>
++import { computed, ref } from 'vue';
++import { Head, Link, router } from '@inertiajs/vue3';
++import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
++import { useConfirm } from '@/Composables/useConfirm';
++import { activatePush, pushSupported, revokeBrowserPush } from '@/lib/push';
++
++/** @import {PushState, PushDevice} from '@/types/push' */
++const props = defineProps({
++    push: { type: /** @type {import('vue').PropType<PushState>} */ (Object), required: true },
++    subscriptions: { type: /** @type {import('vue').PropType<PushDevice[]>} */ (Array), required: true },
++});
++const name = ref('Este navegador');
++const busy = ref(false);
++const messages = ref(/** @type {string[]} */ ([]));
++const supported = pushSupported();
++const canActivate = computed(() => props.push.enabled && supported && !busy.value);
++const ask = useConfirm();
++const dates = new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
++/** @param {string | null} value */
++const date = (value) => value && Number.isFinite(Date.parse(value)) ? dates.format(Date.parse(value)) : 'Aún no enviado';
++
++async function activate() {
++    if (!canActivate.value || !props.push.public_key) return;
++    busy.value = true;
++    messages.value = [];
++    try {
++        const subscription = await activatePush(props.push.public_key);
++        router.post(route('profile.push-subscriptions.store'), { ...subscription, device_name: name.value }, {
++            preserveScroll: true,
++            onError: (errors) => { messages.value = Object.values(errors); },
++            onFinish: () => { busy.value = false; },
++        });
++    } catch (error) {
++        messages.value = [error instanceof Error ? error.message : 'No se pudo activar este navegador.'];
++        busy.value = false;
++    }
++}
++
++/** @param {PushDevice} device */
++async function revoke(device) {
++    if (busy.value || !(await ask({ title: 'Revocar dispositivo', message: `¿Dejar de enviar avisos a «${device.device_name}»?`, confirmLabel: 'Revocar' }))) return;
++    busy.value = true;
++    messages.value = [];
++    if (device.current) {
++        try { await revokeBrowserPush(); } catch { messages.value = ['Se revocará en el servidor. Revisa también el permiso de este navegador.']; }
++    }
++    router.delete(route('profile.push-subscriptions.destroy', device.id), {
++        preserveScroll: true,
++        onError: (errors) => { messages.value = Object.values(errors); },
++        onFinish: () => { busy.value = false; },
++    });
++}
++</script>
++
++<template>
++    <Head title="Notificaciones del navegador" />
++    <AuthenticatedLayout>
++        <template #header><h1 class="text-xl font-bold text-slate-900">Notificaciones del navegador</h1></template>
++        <div class="max-w-3xl space-y-6">
++            <section class="card space-y-4 p-4 sm:p-6" aria-labelledby="push-enable-title">
++                <h2 id="push-enable-title" class="text-lg font-semibold text-slate-900">Activar avisos push</h2>
++                <p class="text-sm text-slate-600"
++                    >Recibe un aviso genérico cuando haya novedades. El contenido privado se consulta al entrar en la
++                    aplicación. El permiso solo se pide al pulsar Activar.</p
++                >
++                <p
++                    v-if="push.unavailable_reason"
++                    role="status"
++                    class="text-sm text-amber-800"
++                    >{{ push.unavailable_reason }}</p
++                >
++                <p v-else-if="!supported" role="status" class="text-sm text-amber-800"
++                    >Este navegador necesita HTTPS y compatibilidad con notificaciones push.</p
++                >
++                <form class="space-y-3" @submit.prevent="activate">
++                    <div
++                        ><label for="push-device-name" class="text-sm font-medium text-slate-800"
++                            >Nombre de este dispositivo</label
++                        >
++                        <input
++                            id="push-device-name"
++                            v-model="name"
++                            class="field mt-1 w-full"
++                            maxlength="120"
++                            required
++                            :disabled="busy"
++                            autocomplete="off"
++                    /></div>
++                    <button
++                        type="submit"
++                        class="btn-primary"
++                        :disabled="!canActivate"
++                        >{{ busy ? 'Procesando…' : 'Activar en este navegador' }}</button
++                    >
++                </form>
++                <ul v-if="messages.length" role="alert" class="space-y-1 text-sm text-red-700"
++                    ><li v-for="(message, index) in messages" :key="index">{{ message }}</li></ul
++                >
++            </section>
++            <section class="space-y-3" aria-labelledby="push-devices-title">
++                <h2 id="push-devices-title" class="text-lg font-semibold text-slate-900">Dispositivos suscritos</h2>
++                <p v-if="!subscriptions.length" class="text-sm text-slate-600">No tienes dispositivos suscritos.</p>
++                <article
++                    v-for="device in subscriptions"
++                    :key="device.id"
++                    class="card flex flex-wrap items-start justify-between gap-4 p-4"
++                >
++                    <div class="min-w-0"
++                        ><h3 class="break-words font-semibold text-slate-900"
++                            >{{ device.device_name
++                            }}<span v-if="device.current" class="text-sm font-normal"> · Este navegador</span></h3
++                        >
++                        <p class="text-sm text-slate-600">Última actividad: {{ date(device.last_seen_at) }}</p>
++                        <p class="text-sm text-slate-600">Último envío: {{ date(device.last_sent_at) }}</p></div
++                    >
++                    <button type="button" class="btn-secondary" :disabled="busy" @click="revoke(device)"
++                        >Revocar</button
++                    >
++                </article>
++            </section>
++            <p class="text-sm text-slate-600"
++                >Puedes instalar la aplicación desde el menú de tu navegador. La disponibilidad depende del navegador y
++                del dispositivo.</p
++            >
++            <Link :href="route('notifications.index')" class="text-sm font-medium text-indigo-700 underline"
++                >Ver avisos en la aplicación</Link
++            >
++        </div>
++    </AuthenticatedLayout>
++</template>
+diff --git a/resources/js/app.js b/resources/js/app.js
+index 313677b..186f945 100644
+--- a/resources/js/app.js
++++ b/resources/js/app.js
+@@ -11,6 +11,10 @@ import { confirmKey, createConfirmState } from './Composables/useConfirm';
+ import { installBackGuard } from './Composables/backGuard';
+ import { installNavigationProgress } from './Composables/navigationProgress';
+ 
++import { registerPushWorker } from './lib/push';
++
++void registerPushWorker().catch(() => {});
++
+ installBackGuard(); // antes que Inertia: ver backGuard.js
+ installNavigationProgress(); // sustituye a la barra de Inertia (role="bar" invalido): ver navigationProgress.js
+ 
+@@ -18,11 +22,7 @@ const appName = import.meta.env.VITE_APP_NAME || 'Social Scheduler';
+ 
+ createInertiaApp({
+     title: (title) => `${title} - ${appName}`,
+-    resolve: (name) =>
+-        resolvePageComponent(
+-            `./Pages/${name}.vue`,
+-            import.meta.glob('./Pages/**/*.vue'),
+-        ),
++    resolve: (name) => resolvePageComponent(`./Pages/${name}.vue`, import.meta.glob('./Pages/**/*.vue')),
+     setup({ el, App, props, plugin }) {
+         return createApp({ render: () => [h(App, props), h(ConfirmDialog)] })
+             .provide(confirmKey, createConfirmState())
+diff --git a/resources/js/lib/push.js b/resources/js/lib/push.js
+new file mode 100644
+index 0000000..1d1b2bd
+--- /dev/null
++++ b/resources/js/lib/push.js
+@@ -0,0 +1,50 @@
++/** Public worker registration never requests notification permission. */
++export function pushSupported() {
++    return (
++        typeof window !== 'undefined' &&
++        window.isSecureContext &&
++        'serviceWorker' in navigator &&
++        'PushManager' in window &&
++        typeof Notification !== 'undefined'
++    );
++}
++
++export async function registerPushWorker() {
++    if (!pushSupported()) return null;
++    return navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' });
++}
++
++/** @param {string} publicKey @returns {Promise<PushSubscriptionJSON>} */
++export async function activatePush(publicKey) {
++    if (!pushSupported()) throw new Error('Este navegador necesita HTTPS y compatibilidad con notificaciones push.');
++    // First async operation: called directly by the user's click, preserving the permission gesture.
++    const permission = await Notification.requestPermission();
++    if (permission !== 'granted')
++        throw new Error(
++            'No has concedido permiso para las notificaciones. Puedes cambiarlo en los ajustes del navegador.',
++        );
++    await registerPushWorker();
++    const registration = await navigator.serviceWorker.ready;
++    const binary = atob(publicKey.replace(/-/g, '+').replace(/_/g, '/'));
++    const key = Uint8Array.from(binary, (character) => character.charCodeAt(0));
++    let subscription = await registration.pushManager.getSubscription();
++    const previous = subscription?.options?.applicationServerKey;
++    if (subscription && previous && !sameKey(new Uint8Array(previous), key)) {
++        await subscription.unsubscribe();
++        subscription = null;
++    }
++    subscription ??= await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
++    return subscription.toJSON();
++}
++
++/** @param {Uint8Array} left @param {Uint8Array} right */
++function sameKey(left, right) {
++    return left.length === right.length && left.every((byte, index) => byte === right[index]);
++}
++
++export async function revokeBrowserPush() {
++    if (!pushSupported()) return;
++    await registerPushWorker();
++    const registration = await navigator.serviceWorker.ready;
++    await (await registration.pushManager.getSubscription())?.unsubscribe();
++}
+diff --git a/resources/js/sw.js b/resources/js/sw.js
+new file mode 100644
+index 0000000..6c4abe8
+--- /dev/null
++++ b/resources/js/sw.js
+@@ -0,0 +1,27 @@
++// No fetch handler, Cache Storage or IndexedDB: authenticated pages and user data stay out of worker storage.
++self.addEventListener('install', (event) => {
++    event.waitUntil(self.skipWaiting());
++});
++
++self.addEventListener('activate', (event) => {
++    event.waitUntil(self.clients.claim());
++});
++
++self.addEventListener('push', (event) => {
++    // Generic text also protects privacy when a device has been locked or its web session has ended.
++    event.waitUntil(
++        self.registration.showNotification('Social Scheduler', {
++            body: 'Tienes nuevos avisos.',
++            icon: '/icon-192.png',
++            badge: '/icon-192.png',
++            tag: 'social-scheduler-notifications',
++            data: { url: '/notifications' },
++        }),
++    );
++});
++
++self.addEventListener('notificationclick', (event) => {
++    event.notification.close();
++    // Never navigate to an endpoint or URL supplied by a push payload.
++    event.waitUntil(self.clients.openWindow(new URL('/notifications', self.location.origin).href));
++});
+diff --git a/resources/js/types/push.d.ts b/resources/js/types/push.d.ts
+new file mode 100644
+index 0000000..b90a547
+--- /dev/null
++++ b/resources/js/types/push.d.ts
+@@ -0,0 +1,13 @@
++export interface PushState {
++    enabled: boolean;
++    public_key: string | null;
++    unavailable_reason: string | null;
++}
++
++export interface PushDevice {
++    id: number;
++    device_name: string;
++    last_seen_at: string;
++    last_sent_at: string | null;
++    current: boolean;
++}
+diff --git a/resources/views/app.blade.php b/resources/views/app.blade.php
+index a22324d..87196a3 100644
+--- a/resources/views/app.blade.php
++++ b/resources/views/app.blade.php
+@@ -14,6 +14,8 @@
+         <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+         <link rel="icon" href="/favicon.ico" sizes="48x48">
+         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
++        <link rel="manifest" href="/manifest.webmanifest">
++        <meta name="theme-color" content="#0f172a">
+ 
+         <!-- Scripts -->
+         @routes(nonce: Vite::cspNonce())
+diff --git a/routes/web.php b/routes/web.php
+index 0df9e62..3ad6e6d 100644
+--- a/routes/web.php
++++ b/routes/web.php
+@@ -24,6 +24,8 @@
+ use App\Http\Controllers\OAuth\OAuthController;
+ use App\Http\Controllers\PostController;
+ use App\Http\Controllers\ProfileController;
++use App\Http\Controllers\PushSubscriptionController;
++use App\Http\Controllers\PwaController;
+ use App\Http\Controllers\ReportController;
+ use App\Http\Controllers\ReportScheduleController;
+ use App\Http\Controllers\ReportTemplateController;
+@@ -82,6 +84,9 @@
+ 
+     Route::get('activity', [ActivityController::class, 'index'])->name('activity.index');
+     Route::get('system', SystemStatusController::class)->name('system.index');
++    Route::get('profile/notifications', [PushSubscriptionController::class, 'index'])->name('profile.notifications');
++    Route::post('profile/push-subscriptions', [PushSubscriptionController::class, 'store'])->middleware('throttle:push-settings')->name('profile.push-subscriptions.store');
++    Route::delete('profile/push-subscriptions/{pushSubscription}', [PushSubscriptionController::class, 'destroy'])->middleware('throttle:push-settings')->name('profile.push-subscriptions.destroy');
+     Route::get('webhooks', [WebhookController::class, 'index'])->name('webhooks.index');
+     Route::post('brands/{brand}/webhooks', [WebhookController::class, 'store'])->name('brands.webhooks.store')->middleware('throttle:webhook-settings');
+     Route::put('webhooks/{webhook}', [WebhookController::class, 'update'])->name('webhooks.update')->middleware('throttle:webhook-settings');
+@@ -212,3 +217,6 @@
+     ->whereNumber(['design', 'owner'])->middleware(['signed', 'throttle:studio.thumbnails'])->name('studio.designs.thumbnail');
+ Route::get('studio/downloads/{export}/{owner}', StudioExportDownloadController::class)
+     ->whereNumber(['export', 'owner'])->middleware(['signed', 'throttle:studio.exports.download'])->name('studio.exports.download');
++
++// Public, static worker: no authenticated HTML or user-specific response is cached.
++Route::get('sw.js', [PwaController::class, 'worker'])->name('pwa.worker');
+diff --git a/tests/Feature/Push/PushSubscriptionTest.php b/tests/Feature/Push/PushSubscriptionTest.php
+new file mode 100644
+index 0000000..910d7c3
+--- /dev/null
++++ b/tests/Feature/Push/PushSubscriptionTest.php
+@@ -0,0 +1,267 @@
++<?php
++
++use App\Jobs\SendPushNotification;
++use App\Models\PushSubscription;
++use App\Models\User;
++use App\Notifications\PostWorkflowActivity;
++use App\Services\Media\UrlGuard;
++use App\Services\Push\PushConfiguration;
++use App\Services\Push\PushResult;
++use App\Services\Push\PushSender;
++use App\Services\Push\PushSubscriptions;
++use Illuminate\Support\Facades\Http;
++use Illuminate\Support\Facades\Queue;
++
++beforeEach(fn () => Http::preventStrayRequests());
++
++test('PushSubscription: the public manifest describes an installable app without private start data', function () {
++    $file = public_path('manifest.webmanifest');
++    expect(is_file($file))->toBeTrue();
++    $manifest = json_decode(file_get_contents($file), true, flags: JSON_THROW_ON_ERROR);
++    expect($manifest['name'])->toBe('Social Scheduler')->and($manifest['start_url'])->toBe('/')
++        ->and($manifest['scope'])->toBe('/')->and($manifest['display'])->toBe('standalone');
++    $sizes = array_column($manifest['icons'], 'sizes');
++    expect($sizes)->toContain('192x192', '512x512');
++    foreach ($manifest['icons'] as $icon) {
++        expect(is_file(public_path(ltrim($icon['src'], '/'))))->toBeTrue();
++    }
++});
++
++test('PushSubscription: the public service worker is available without auth and is served without caching', function () {
++    $response = $this->get('/sw.js')->assertOk()->assertHeader('Service-Worker-Allowed', '/');
++    expect($response->headers->get('Content-Type'))->toContain('javascript')
++        ->and($response->headers->get('Cache-Control'))->toContain('no-store');
++    $script = $response->getContent();
++    expect($script)->toContain('notificationclick')->toContain('push');
++    Http::assertNothingSent();
++});
++
++test('PushSubscription: absent server keys disable push and explain the state on the settings page', function () {
++    config()->set(['push.vapid.public_key' => '', 'push.vapid.private_key' => '']);
++    $owner = User::factory()->create();
++    $response = $this->actingAs($owner)->get('/profile/notifications')->assertOk();
++    expect($response->inertiaProps('push.enabled'))->toBeFalse()
++        ->and($response->inertiaProps('push.unavailable_reason'))->toBeString();
++    Http::assertNothingSent();
++});
++
++function pushTestKeys(): array
++{
++    $config = storage_path('push-fixture-openssl.cnf');
++    file_put_contents($config, "[req]\ndistinguished_name = dn\n[dn]\nCN = push-fixture\n");
++    $key = openssl_pkey_new(['config' => $config, 'private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_EC, 'curve_name' => 'prime256v1']);
++    $ec = openssl_pkey_get_details($key)['ec'];
++    foreach (['x', 'y', 'd'] as $coordinate) {
++        $ec[$coordinate] = str_pad($ec[$coordinate], 32, "\x00", STR_PAD_LEFT);
++    }
++    $encode = fn (string $bytes) => rtrim(strtr(base64_encode($bytes), '+/', '-_'), '=');
++    config()->set([
++        'push.enabled' => true, 'push.vapid.subject' => 'mailto:operator@example.test',
++        'push.vapid.public_key' => $encode("\x04".$ec['x'].$ec['y']), 'push.vapid.private_key' => $encode($ec['d']),
++    ]);
++
++    return ['p256dh' => $encode("\x04".$ec['x'].$ec['y']), 'auth' => $encode(str_repeat("\x02", 16))];
++}
++
++test('PushSubscription: device subscriptions are owner scoped encrypted and revocable without exposing endpoint keys', function () {
++    $keys = pushTestKeys();
++    app()->instance(UrlGuard::class, new UrlGuard(fn () => ['93.184.216.34']));
++    $owner = User::factory()->create();
++    $other = User::factory()->create();
++    $endpoint = 'https://push.example.test/subscription-one';
++    $this->actingAs($owner)->post('/profile/push-subscriptions', [
++        'endpoint' => $endpoint, 'keys' => $keys, 'device_name' => 'Navegador uno', 'user_id' => $other->id,
++    ])->assertRedirect()->assertSessionHasNoErrors();
++    $subscription = PushSubscription::ownedBy($owner->id)->sole();
++    expect($subscription->user_id)->toBe($owner->id)->and($subscription->endpoint)->toBe($endpoint)
++        ->and($subscription->getRawOriginal('endpoint'))->not->toBe($endpoint)
++        ->and($subscription->getRawOriginal('keys'))->not->toContain($keys['auth']);
++    $response = $this->get('/profile/notifications')->assertOk();
++    $row = $response->inertiaProps('subscriptions.0');
++    expect($row['id'])->toBe($subscription->id)->and($row)->not->toHaveKey('endpoint')->not->toHaveKey('keys');
++    $this->actingAs($other)->delete('/profile/push-subscriptions/'.$subscription->id)->assertNotFound();
++    $this->actingAs($owner)->delete('/profile/push-subscriptions/'.$subscription->id)->assertRedirect();
++    expect(PushSubscription::withoutUserScope()->count())->toBe(0);
++    Http::assertNothingSent();
++});
++
++test('PushSubscription: device creation is bounded per owner', function () {
++    $keys = pushTestKeys();
++    config()->set('push.max_devices_per_user', 1);
++    app()->instance(UrlGuard::class, new UrlGuard(fn () => ['93.184.216.34']));
++    $owner = User::factory()->create();
++    $data = ['endpoint' => 'https://push.example.test/one', 'keys' => $keys, 'device_name' => 'Uno'];
++    $this->actingAs($owner)->post('/profile/push-subscriptions', $data)->assertRedirect()->assertSessionHasNoErrors();
++    $this->postJson('/profile/push-subscriptions', array_replace($data, ['endpoint' => 'https://push.example.test/two']))
++        ->assertUnprocessable()->assertJsonValidationErrors('device_name');
++    expect(PushSubscription::ownedBy($owner->id)->count())->toBe(1);
++});
++
++test('PushSubscription: configuration writes have a per-owner rate budget', function () {
++    $keys = pushTestKeys();
++    config()->set('push.settings_per_minute', 1);
++    app()->instance(UrlGuard::class, new UrlGuard(fn () => ['93.184.216.34']));
++    $owner = User::factory()->create();
++    $other = User::factory()->create();
++    $data = ['endpoint' => 'https://push.example.test/one', 'keys' => $keys, 'device_name' => 'Uno'];
++    $this->actingAs($owner)->post('/profile/push-subscriptions', $data)->assertRedirect()->assertSessionHasNoErrors();
++    $this->postJson('/profile/push-subscriptions', $data)->assertTooManyRequests();
++    $this->actingAs($other)->post('/profile/push-subscriptions', array_replace($data, ['endpoint' => 'https://push.example.test/two']))
++        ->assertRedirect()->assertSessionHasNoErrors();
++});
++
++test('PushSubscription: logout revokes only this consenting device and leaves other devices intact', function () {
++    $keys = pushTestKeys();
++    app()->instance(UrlGuard::class, new UrlGuard(fn () => ['93.184.216.34']));
++    $owner = User::factory()->create();
++    $data = ['endpoint' => 'https://push.example.test/one', 'keys' => $keys, 'device_name' => 'Uno'];
++    $this->actingAs($owner)->post('/profile/push-subscriptions', $data)->assertRedirect();
++    $current = PushSubscription::ownedBy($owner->id)->sole();
++    $this->post('/profile/push-subscriptions', array_replace($data, ['endpoint' => 'https://push.example.test/two']))->assertRedirect();
++    $this->withCookie('push_device', (string) $current->id)->post('/logout')->assertRedirect();
++    expect(PushSubscription::ownedBy($owner->id)->pluck('endpoint')->all())->toBe(['https://push.example.test/two']);
++});
++
++test('PushDelivery: database notifications enqueue consented devices without leaking notification content into the job', function () {
++    $keys = pushTestKeys();
++    app()->instance(UrlGuard::class, new UrlGuard(fn () => ['93.184.216.34']));
++    $owner = User::factory()->create();
++    $other = User::factory()->create();
++    $data = ['endpoint' => 'https://push.example.test/one', 'keys' => $keys, 'device_name' => 'Uno'];
++    $this->actingAs($owner)->post('/profile/push-subscriptions', $data)->assertRedirect();
++    $ownDevice = PushSubscription::ownedBy($owner->id)->sole();
++    $this->actingAs($other)->post('/profile/push-subscriptions', array_replace($data, ['endpoint' => 'https://push.example.test/two']))->assertRedirect();
++    Queue::fake();
++    $owner->notify(new PostWorkflowActivity('approval_requested', null, null, 'Private Brand', 'Private message', 'Private post'));
++    Queue::assertPushed(SendPushNotification::class, function ($job) use ($owner, $ownDevice) {
++        expect($job->userId)->toBe($owner->id)->and($job->subscriptionId)->toBe($ownDevice->id);
++        $serialized = serialize($job);
++        expect($serialized)->not->toContain('Private message')->not->toContain('Private post')->not->toContain('push.example.test');
++
++        return true;
++    });
++    Queue::assertPushed(SendPushNotification::class, 1);
++    expect($owner->notifications()->count())->toBe(1);
++    Http::assertNothingSent();
++});
++
++test('PushDelivery: queued delivery uses the sender and removes expired devices or retries only transient failures', function (string $outcome) {
++    $keys = pushTestKeys();
++    app()->instance(UrlGuard::class, new UrlGuard(fn () => ['93.184.216.34']));
++    $owner = User::factory()->create();
++    $subscription = app(PushSubscriptions::class)->subscribe($owner, [
++        'endpoint' => 'https://push.example.test/one', 'keys' => $keys, 'device_name' => 'Uno',
++    ]);
++    Queue::fake();
++    $owner->notify(new PostWorkflowActivity('approval_requested', null, null, 'Private Brand', 'Private message'));
++    $notification = $owner->notifications()->sole();
++    $sender = Mockery::mock(PushSender::class);
++    $sender->shouldReceive('send')->once()->withArgs(fn ($device) => $device->id === $subscription->id)
++        ->andReturn(PushResult::from($outcome));
++    $job = new SendPushNotification($owner->id, $subscription->id, $notification->id);
++    if ($outcome === 'retry') {
++        expect(fn () => $job->handle($sender, app(PushConfiguration::class)))->toThrow(RuntimeException::class, 'Entrega push temporalmente no disponible.');
++    } else {
++        $job->handle($sender, app(PushConfiguration::class));
++    }
++    $fresh = PushSubscription::ownedBy($owner->id)->find($subscription->id);
++    if ($outcome === 'expired') {
++        expect($fresh)->toBeNull();
++    } elseif ($outcome === 'delivered') {
++        expect($fresh->last_sent_at)->not->toBeNull()->and($fresh->last_notification_id)->toBe($notification->id);
++        // La redelivery del mismo job no vuelve a enviar.
++        $job->handle($sender, app(PushConfiguration::class));
++    } else {
++        expect($fresh->last_sent_at)->toBeNull();
++    }
++    Http::assertNothingSent();
++})->with(['delivered', 'expired', 'retry', 'rejected']);
++
++test('PushDelivery: workers recheck consent notification ownership and verification before sending', function (string $condition) {
++    $keys = pushTestKeys();
++    app()->instance(UrlGuard::class, new UrlGuard(fn () => ['93.184.216.34']));
++    $owner = User::factory()->create();
++    $other = User::factory()->create();
++    $subscription = app(PushSubscriptions::class)->subscribe($owner, [
++        'endpoint' => 'https://push.example.test/one', 'keys' => $keys, 'device_name' => 'Uno',
++    ]);
++    Queue::fake();
++    $notificationOwner = $condition === 'foreign_notification' ? $other : $owner;
++    $notificationOwner->notify(new PostWorkflowActivity('approval_requested', null, null, 'Private Brand', 'Private message'));
++    $notification = $notificationOwner->notifications()->sole();
++    match ($condition) {
++        'revoked' => $subscription->delete(),
++        'unverified' => $owner->forceFill(['email_verified_at' => null])->save(),
++        'disabled' => config()->set('push.enabled', false),
++        'read' => $notification->markAsRead(),
++        default => null,
++    };
++    $sender = Mockery::mock(PushSender::class);
++    $sender->shouldNotReceive('send');
++    (new SendPushNotification($condition === 'foreign_device' ? $other->id : $owner->id, $subscription->id, $notification->id))
++        ->handle($sender, app(PushConfiguration::class));
++    Http::assertNothingSent();
++})->with(['revoked', 'foreign_notification', 'foreign_device', 'unverified', 'disabled', 'read']);
++
++test('PushDelivery: native adapter encrypts a generic payload and signs VAPID using only an isolated HTTP fake', function (int $status, string $result) {
++    $keys = pushTestKeys();
++    app()->instance(UrlGuard::class, new UrlGuard(fn () => ['93.184.216.34']));
++    $owner = User::factory()->create();
++    $subscription = app(PushSubscriptions::class)->subscribe($owner, [
++        'endpoint' => 'https://push.example.test/one', 'keys' => $keys, 'device_name' => 'Uno',
++    ]);
++    Http::fake(['https://push.example.test/*' => Http::response('Untrusted receiver text', $status)]);
++    $actual = app(PushSender::class)->send($subscription);
++    expect($actual->value)->toBe($result);
++    Http::assertSent(function ($request) {
++        expect($request->method())->toBe('POST')->and($request->header('Content-Encoding'))->toBe(['aes128gcm'])
++            ->and($request->header('Authorization')[0])->toStartWith('vapid t=')
++            ->and(strlen($request->body()))->toBeGreaterThan(100)
++            ->and($request->body())->not->toContain('Social Scheduler')->not->toContain('Tienes nuevos avisos');
++
++        return $request->url() === 'https://push.example.test/one';
++    });
++    Http::assertSentCount(1);
++})->with(['accepted' => [201, 'delivered'], 'gone' => [410, 'expired'], 'missing' => [404, 'expired'], 'rate limited' => [429, 'retry'], 'bad request' => [400, 'rejected'], 'redirect' => [302, 'rejected']]);
++
++test('PushSubscription: malformed filled VAPID settings are disabled without exposing the private key', function () {
++    config()->set(['push.enabled' => true, 'push.vapid.subject' => 'invalid contact', 'push.vapid.public_key' => 'not-a-key', 'push.vapid.private_key' => 'private-secret-invalid']);
++    $owner = User::factory()->create();
++    $response = $this->actingAs($owner)->get('/profile/notifications')->assertOk();
++    expect($response->inertiaProps('push.enabled'))->toBeFalse()
++        ->and($response->inertiaProps('push.public_key'))->toBeNull()
++        ->and(json_encode($response->inertiaProps()))->not->toContain('private-secret-invalid');
++    Http::assertNothingSent();
++});
++
++test('PushDelivery: adapter revalidates DNS at delivery and refuses a private destination without sending', function () {
++    $keys = pushTestKeys();
++    $private = false;
++    app()->instance(UrlGuard::class, new UrlGuard(function () use (&$private) {
++        return [$private ? '127.0.0.1' : '93.184.216.34'];
++    }));
++    $owner = User::factory()->create();
++    $subscription = app(PushSubscriptions::class)->subscribe($owner, ['endpoint' => 'https://push.example.test/one', 'keys' => $keys, 'device_name' => 'Uno']);
++    $private = true;
++    expect(app(PushSender::class)->send($subscription))->toBe(PushResult::Rejected);
++    Http::assertNothingSent();
++});
++
++test('PushDelivery: transport pins the public IP and disables proxies redirects and response buffering', function () {
++    $keys = pushTestKeys();
++    app()->instance(UrlGuard::class, new UrlGuard(fn () => ['93.184.216.34']));
++    $owner = User::factory()->create();
++    $subscription = app(PushSubscriptions::class)->subscribe($owner, ['endpoint' => 'https://push.example.test/one', 'keys' => $keys, 'device_name' => 'Uno']);
++    $observed = null;
++    Http::fake(function ($request, $options) use (&$observed) {
++        $observed = $options;
++
++        return Http::response('', 302, ['Location' => 'https://127.0.0.1/private']);
++    });
++    expect(app(PushSender::class)->send($subscription))->toBe(PushResult::Rejected);
++    expect($observed['proxy'])->toBe('')->and($observed['allow_redirects'])->toBeFalse()
++        ->and($observed['stream'])->toBeTrue()->and($observed['timeout'])->toBe(10)
++        ->and($observed['connect_timeout'])->toBe(3)
++        ->and($observed['curl'][CURLOPT_RESOLVE])->toBe(['push.example.test:443:93.184.216.34']);
++    Http::assertSentCount(1);
++});
+diff --git a/tests/e2e/isolated/FakePushSender.php b/tests/e2e/isolated/FakePushSender.php
+new file mode 100644
+index 0000000..bffdf1e
+--- /dev/null
++++ b/tests/e2e/isolated/FakePushSender.php
+@@ -0,0 +1,26 @@
++<?php
++
++declare(strict_types=1);
++
++use App\Models\PushSubscription;
++use App\Services\Push\PushResult;
++use App\Services\Push\PushSender;
++
++/** Never contacts a provider: only the disposable E2E bootstrap may bind it. */
++final class GeneralFakePushSender implements PushSender
++{
++    public function __construct(private readonly string $root) {}
++
++    public function send(PushSubscription $subscription): PushResult
++    {
++        if (! app()->environment('e2e') || realpath(storage_path()) !== realpath($this->root)
++            || ! is_file($this->root.'/.general-run') || ! str_starts_with($subscription->endpoint, 'https://push.example.test/')) {
++            throw new RuntimeException('Fake push sender requires its own disposable fixture.');
++        }
++        file_put_contents($this->root.'/push-receiver.ndjson', json_encode([
++            'user_id' => $subscription->user_id, 'subscription_id' => $subscription->id, 'result' => 'delivered',
++        ], JSON_THROW_ON_ERROR)."\n", FILE_APPEND | LOCK_EX);
++
++        return PushResult::Delivered;
++    }
++}
+diff --git a/tests/e2e/isolated/bootstrap.php b/tests/e2e/isolated/bootstrap.php
+index 4645a00..7a38e2b 100644
+--- a/tests/e2e/isolated/bootstrap.php
++++ b/tests/e2e/isolated/bootstrap.php
+@@ -10,6 +10,7 @@
+ use App\Connectors\Network;
+ use App\Connectors\Threads\ThreadsComments;
+ use App\Services\Media\UrlGuard;
++use App\Services\Push\PushSender;
+ use Illuminate\Auth\Notifications\ResetPassword;
+ use Illuminate\Cache\RateLimiter;
+ use Illuminate\Contracts\Console\Kernel;
+@@ -108,6 +109,14 @@ function generalBootstrap(): Application
+         $app->instance(UrlGuard::class, new UrlGuard(fn (string $host) => $host === 'hooks.example.test' ? ['93.184.216.34'] : []));
+         generalFakeWebhooks($root);
+     }
++    if (is_file($root.'/push-on')) {
++        $fixture = json_decode(file_get_contents($root.'/push-on'), true, flags: JSON_THROW_ON_ERROR);
++        config(['push.enabled' => true, 'push.vapid.subject' => 'mailto:e2e-push@example.test',
++            'push.vapid.public_key' => $fixture['public'], 'push.vapid.private_key' => $fixture['private']]);
++        $app->instance(UrlGuard::class, new UrlGuard(fn (string $host) => $host === 'push.example.test' || ($host === 'hooks.example.test' && is_file($root.'/webhooks-on')) ? ['93.184.216.34'] : []));
++        require_once __DIR__.'/FakePushSender.php';
++        $app->instance(PushSender::class, new GeneralFakePushSender($root));
++    }
+     $registry = new ConnectorRegistry;
+     foreach (['meta' => [Network::Instagram, Network::Facebook], 'google' => [Network::YouTube], 'tiktok' => [Network::TikTok], 'bluesky' => [Network::Bluesky], 'threads' => [Network::Threads], 'linkedin' => [Network::LinkedIn], 'pinterest' => [Network::Pinterest]] as $provider => $networks) {
+         $registry->register($provider === 'bluesky' ? $app->make(GeneralBlueskyConnector::class) : new T43Connector($provider, $networks));
+diff --git a/tests/e2e/push.spec.ts b/tests/e2e/push.spec.ts
+new file mode 100644
+index 0000000..ff7d770
+--- /dev/null
++++ b/tests/e2e/push.spec.ts
+@@ -0,0 +1,127 @@
++import { expect, test } from '@playwright/test';
++import { artisan, axeSeriousCritical, e2eUser, expectNoOverflow, loginAs, watch } from './helpers';
++
++test('E2E-20 · ajustes push explican la falta de claves sin pedir permiso y conservan accesibilidad @responsive', async ({
++    page,
++}, info) => {
++    await loginAs(page, e2eUser(info.project.name));
++    const errors = watch(page);
++    await page.goto('/profile/notifications');
++    await expect(page.getByRole('heading', { name: 'Notificaciones del navegador', exact: true })).toBeVisible();
++    await expect(
++        page.getByText('Las notificaciones push no están configuradas en este servidor.', { exact: true }),
++    ).toBeVisible();
++    await expect(page.getByRole('button', { name: 'Activar en este navegador', exact: true })).toBeDisabled();
++    await expectNoOverflow(page);
++    await axeSeriousCritical(page, 'Ajustes push sin claves');
++    await page.screenshot({ path: info.outputPath('push-unconfigured.png'), fullPage: true });
++    expect(errors.errors).toEqual([]);
++});
++
++test('E2E-20 · el permiso explícito suscribe, entrega con PushSender falso y permite revocar este navegador @responsive', async ({
++    page,
++}, info) => {
++    const user = e2eUser(info.project.name);
++    const fixture = artisan(String.raw`
++        $cfg=storage_path('push-e2e-openssl.cnf');file_put_contents($cfg,"[req]\ndistinguished_name=dn\n[dn]\nCN=fixture\n");
++        $k=openssl_pkey_new(['config'=>$cfg,'private_key_bits'=>2048,'private_key_type'=>OPENSSL_KEYTYPE_EC,'curve_name'=>'prime256v1']);
++        $ec=openssl_pkey_get_details($k)['ec'];$enc=fn($s)=>rtrim(strtr(base64_encode($s),'+/','-_'),'=');
++        $public=$enc("\x04".str_pad($ec['x'],32,"\x00",STR_PAD_LEFT).str_pad($ec['y'],32,"\x00",STR_PAD_LEFT));
++        file_put_contents(storage_path('push-on'),json_encode(['public'=>$public,'private'=>$enc(str_pad($ec['d'],32,"\x00",STR_PAD_LEFT))]));
++        $u=App\Models\User::where('email','${user.email}')->firstOrFail();App\Models\PushSubscription::ownedBy($u->id)->delete();
++        echo 'KEY:'.$public;
++    `);
++    const publicKey = fixture.match(/KEY:([A-Za-z0-9_-]+)/)![1];
++    try {
++        await page.addInitScript(
++            ({ publicKey }) => {
++                const calls: string[] = [];
++                const key = Uint8Array.from(atob(publicKey.replace(/-/g, '+').replace(/_/g, '/')), (c) =>
++                    c.charCodeAt(0),
++                );
++                const subscription = {
++                    options: { applicationServerKey: key.buffer },
++                    toJSON: () => ({
++                        endpoint: 'https://push.example.test/browser',
++                        keys: { p256dh: publicKey, auth: 'AgICAgICAgICAgICAgICAg' },
++                    }),
++                    unsubscribe: async () => {
++                        calls.push('unsubscribe');
++                        return true;
++                    },
++                };
++                let current: typeof subscription | null = null;
++                const registration = {
++                    pushManager: {
++                        getSubscription: async () => current,
++                        subscribe: async (options: { userVisibleOnly: boolean }) => {
++                            if (!options.userVisibleOnly) throw new Error('visible required');
++                            calls.push('subscribe');
++                            current = subscription;
++                            return subscription;
++                        },
++                    },
++                };
++                Object.defineProperty(window, 'Notification', {
++                    configurable: true,
++                    value: {
++                        requestPermission: async () => {
++                            calls.push('permission');
++                            return 'granted';
++                        },
++                    },
++                });
++                Object.defineProperty(window, 'PushManager', { configurable: true, value: function () {} });
++                Object.defineProperty(navigator, 'serviceWorker', {
++                    configurable: true,
++                    value: {
++                        register: async () => {
++                            calls.push('register');
++                            return registration;
++                        },
++                        ready: Promise.resolve(registration),
++                    },
++                });
++                Reflect.set(window, '__pushCalls', calls);
++            },
++            { publicKey },
++        );
++        await loginAs(page, user);
++        await page.goto('/profile/notifications');
++        const activate = page.getByRole('button', { name: 'Activar en este navegador', exact: true });
++        await expect(activate).toBeEnabled();
++        expect(await page.evaluate(() => Reflect.get(window, '__pushCalls'))).not.toContain('permission');
++        await page.getByLabel('Nombre de este dispositivo', { exact: true }).fill('Navegador e2e');
++        await activate.click();
++        const card = page
++            .getByRole('article')
++            .filter({ has: page.getByRole('heading', { name: 'Navegador e2e · Este navegador', exact: true }) });
++        await expect(card).toBeVisible();
++        const delivered =
++            artisan(String.raw`$u=App\Models\User::where('email','${user.email}')->firstOrFail();$s=App\Models\PushSubscription::ownedBy($u->id)->sole();
++            $u->notify(new App\Notifications\PostWorkflowActivity('approval_requested',null,null,'Private Brand','Private message'));
++            $n=$u->notifications()->latest()->firstOrFail();app()->call([new App\Jobs\SendPushNotification($u->id,$s->id,$n->id),'handle']);
++            echo 'PUSH:'.json_encode(['sent'=>$s->fresh()->last_sent_at!==null,'receipts'=>count(file(storage_path('push-receiver.ndjson'),FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES))]);`);
++        expect(delivered).toContain('"sent":true');
++        expect(delivered).toContain('"receipts":1');
++        await expectNoOverflow(page);
++        await axeSeriousCritical(page, 'Dispositivo push suscrito');
++        await page.screenshot({ path: info.outputPath('push-subscribed.png'), fullPage: true });
++        await card.getByRole('button', { name: 'Revocar', exact: true }).click();
++        await page
++            .getByRole('alertdialog', { name: 'Revocar dispositivo', exact: true })
++            .getByRole('button', { name: 'Revocar', exact: true })
++            .click();
++        await expect(card).toHaveCount(0);
++        expect(await page.evaluate(() => Reflect.get(window, '__pushCalls'))).toContain('unsubscribe');
++        expect(
++            artisan(
++                String.raw`$u=App\Models\User::where('email','${user.email}')->firstOrFail();echo 'COUNT:'.App\Models\PushSubscription::ownedBy($u->id)->count();`,
++            ),
++        ).toContain('COUNT:0');
++    } finally {
++        artisan(
++            String.raw`foreach(['push-on','push-receiver.ndjson']as$f){if(is_file(storage_path($f)))unlink(storage_path($f));}`,
++        );
++    }
++});
+diff --git a/tests/frontend/push-client.test.mjs b/tests/frontend/push-client.test.mjs
+new file mode 100644
+index 0000000..f46fc25
+--- /dev/null
++++ b/tests/frontend/push-client.test.mjs
+@@ -0,0 +1,94 @@
++import assert from 'node:assert/strict';
++import fs from 'node:fs';
++import vm from 'node:vm';
++import test from 'node:test';
++
++function client(permission = 'granted', existing = null) {
++    const calls = [];
++    const subscription = {
++        toJSON: () => ({ endpoint: 'https://push.example.test/device', keys: { p256dh: 'public', auth: 'auth' } }),
++    };
++    const registration = {
++        pushManager: {
++            getSubscription: async () => {
++                calls.push(['get']);
++                return existing;
++            },
++            subscribe: async (options) => {
++                calls.push(['subscribe', options]);
++                return subscription;
++            },
++        },
++    };
++    const sandbox = {
++        window: { isSecureContext: true, PushManager: function () {} },
++        navigator: {
++            serviceWorker: {
++                register: async (...args) => {
++                    calls.push(['register', ...args]);
++                    return registration;
++                },
++                ready: Promise.resolve(registration),
++            },
++        },
++        Notification: {
++            requestPermission: () => {
++                calls.push(['permission']);
++                return Promise.resolve(permission);
++            },
++        },
++        Uint8Array,
++        atob: (value) => Buffer.from(value, 'base64').toString('binary'),
++    };
++    const source = fs
++        .readFileSync(new URL('../../resources/js/lib/push.js', import.meta.url), 'utf8')
++        .replace(/^export /gm, '');
++    vm.runInNewContext(
++        source + '\nglobalThis.api = { registerPushWorker, activatePush, revokeBrowserPush, pushSupported };',
++        sandbox,
++    );
++    return { calls, api: sandbox.api };
++}
++
++test('push client registers the static worker without requesting notification permission', async () => {
++    const { calls, api } = client();
++    await api.registerPushWorker();
++    assert.equal(calls.length, 1);
++    assert.equal(calls[0][0], 'register');
++    assert.equal(calls[0][1], '/sw.js');
++    assert.equal(calls[0][2].scope, '/');
++    assert.equal(calls[0][2].updateViaCache, 'none');
++});
++
++test('push permission is requested synchronously from the action before registration and subscription', async () => {
++    const { calls, api } = client();
++    const promise = api.activatePush('BA');
++    assert.equal(calls[0][0], 'permission');
++    const result = await promise;
++    assert.equal(result.endpoint, 'https://push.example.test/device');
++    const options = calls.find(([name]) => name === 'subscribe')[1];
++    assert.equal(options.userVisibleOnly, true);
++    assert.deepEqual([...options.applicationServerKey], [4]);
++});
++
++test('denied permission does not register or subscribe a device', async () => {
++    const { calls, api } = client('denied');
++    await assert.rejects(api.activatePush('BA'), /permiso/);
++    assert.deepEqual(
++        calls.map(([name]) => name),
++        ['permission'],
++    );
++});
++
++test('revocation unsubscribes the current browser without requesting permission', async () => {
++    let revoked = 0;
++    const { calls, api } = client('granted', {
++        unsubscribe: async () => {
++            revoked++;
++            return true;
++        },
++    });
++    await api.revokeBrowserPush();
++    assert.equal(revoked, 1);
++    assert.ok(!calls.some(([name]) => name === 'permission'));
++});
+diff --git a/tests/frontend/service-worker.test.mjs b/tests/frontend/service-worker.test.mjs
+new file mode 100644
+index 0000000..9642c17
+--- /dev/null
++++ b/tests/frontend/service-worker.test.mjs
+@@ -0,0 +1,72 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import fs from 'node:fs';
++import vm from 'node:vm';
++
++function worker() {
++    const handlers = new Map();
++    const notices = [];
++    const opened = [];
++    const forbidden = new Proxy(
++        {},
++        {
++            get() {
++                throw new Error('Worker attempted private storage.');
++            },
++        },
++    );
++    const self = {
++        addEventListener: (name, handler) => handlers.set(name, handler),
++        skipWaiting: async () => {},
++        clients: { claim: async () => {}, openWindow: async (url) => opened.push(url) },
++        registration: { showNotification: async (title, options) => notices.push({ title, ...options }) },
++        location: { origin: 'https://app.example.test' },
++    };
++    vm.runInNewContext(fs.readFileSync(new URL('../../resources/js/sw.js', import.meta.url), 'utf8'), {
++        self,
++        URL,
++        caches: forbidden,
++        indexedDB: forbidden,
++    });
++    async function fire(name, extra = {}) {
++        assert.ok(handlers.has(name), `Missing ${name} behavior.`);
++        const pending = [];
++        const event = Object.defineProperties(
++            { waitUntil: (promise) => pending.push(promise) },
++            Object.getOwnPropertyDescriptors(extra),
++        );
++        handlers.get(name)(event);
++        await Promise.all(pending);
++    }
++    return { handlers, notices, opened, fire };
++}
++
++test('the worker never intercepts user requests or reads private push text into notifications', async () => {
++    const context = worker();
++    assert.equal(context.handlers.has('fetch'), false);
++    await context.fire('install');
++    await context.fire('activate');
++    await context.fire('push', {
++        get data() {
++            throw new Error('Private push data read.');
++        },
++    });
++    assert.equal(context.notices.length, 1);
++    assert.equal(context.notices[0].title, 'Social Scheduler');
++    assert.equal(context.notices[0].body, 'Tienes nuevos avisos.');
++});
++
++test('notification clicks ignore a supplied external URL and open only the local authenticated inbox', async () => {
++    const context = worker();
++    let closed = false;
++    await context.fire('notificationclick', {
++        notification: {
++            data: { url: 'https://evil.example/private' },
++            close() {
++                closed = true;
++            },
++        },
++    });
++    assert.equal(closed, true);
++    assert.deepEqual(context.opened, ['https://app.example.test/notifications']);
++});
+diff --git a/tsconfig.frontend.json b/tsconfig.frontend.json
+index dcf1e11..b445587 100644
+--- a/tsconfig.frontend.json
++++ b/tsconfig.frontend.json
+@@ -44,6 +44,7 @@
+         "resources/js/Pages/Activity/Index.vue",
+         "resources/js/Pages/System/Index.vue",
+         "resources/js/Pages/Goals/Index.vue",
+-        "resources/js/Pages/Webhooks/Index.vue"
++        "resources/js/Pages/Webhooks/Index.vue",
++        "resources/js/Pages/Profile/Notifications.vue"
+     ]
+ }

@@ -40,8 +40,7 @@ class GetPostStats extends SchedulerTool
         $post = $this->owned(Post::class, $user, $request->get('post_id'), 'Publicacion');
         $post->loadMissing('targets');
 
-        $latest = PostMetricSnapshot::withoutUserScope()
-            ->where('user_id', $user->id)->whereIn('post_target_id', $post->targets->pluck('id'))
+        $latest = PostMetricSnapshot::ownedBy($user->id)->whereIn('post_target_id', $post->targets->pluck('id'))
             ->orderBy('date')->get()->keyBy('post_target_id'); // el ultimo dia sobrescribe
 
         return [

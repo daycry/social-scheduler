@@ -8,8 +8,8 @@ T-43 valida los doce flujos originales de Social Scheduler y los bloques MCP API
 
 | Configuración | Entorno | Comando |
 |---|---|---|
-| `playwright.roadmap.config.ts` | SQLite nueva por ejecución, conectores simulados y usuarios `e2e-sec-roadmap-*`; servidor en `http://localhost:8081` | `npx playwright test -c playwright.roadmap.config.ts` |
-| `playwright.config.ts` | Batería general; SQLite y recursos desechables, cuatro usuarios ficticios y servidor propio en `http://localhost:8080` | `npm run test:e2e` |
+| `playwright.roadmap.config.ts` | SQLite nueva por ejecución, conectores simulados y usuarios `e2e-sec-roadmap-*`; servidor en `http://localhost:8081` (`E2E_ROADMAP_PORT` lo cambia) | `npm run test:e2e:roadmap` (equivale a `npx playwright test -c playwright.roadmap.config.ts`) |
+| `playwright.config.ts` | Batería general; SQLite y recursos desechables, cuatro usuarios ficticios y servidor propio en `E2E_PORT` o, por defecto, un puerto libre elegido por el SO | `npm run test:e2e` |
 
 Para validar T-43, elige la configuración explícita `playwright.roadmap.config.ts`. La batería general usa ahora su propio adaptador aislado en `tests/e2e/isolated/`: tres usuarios para los escenarios mutables y un cuarto de solo lectura con marca y cuentas ficticias. Sus bookends operan únicamente sobre la SQLite desechable. No necesita las credenciales de la cuenta demo.
 
@@ -58,7 +58,7 @@ La CLI migra únicamente su SQLite desechable. Los jobs de renovación, publicac
 
 `harness.spec.ts` comprueba cuatro condiciones: rechazo de `APP_ENV=production`, rechazo de una BD fuera del directorio de la ejecución, creación de usuarios dedicados sin cuentas reales y aislamiento de caché, límites y locks entre dos ejecuciones. La última inspecciona los almacenes reales resueltos por Laravel antes de escribir y comprueba la persistencia entre procesos de un mismo run. Los escenarios funcionales tienen sus propias aserciones.
 
-El adaptador general crea una carpeta `storage/framework/testing/t43/run-general-<UUID>/`. Su launcher entrega a HTTP y a la CLI solo un manifiesto de variables ficticias, con las rutas de BD, almacenamiento, configuración, sesiones, caché, locks y PsySH dentro de esa carpeta. Rechaza `E2E_NO_SERVER`, una URL diferente de `http://localhost:8080` y recursos ajenos. Los conectores y las peticiones externas se simulan; el simulador Bluesky conserva el contrato del formulario de credenciales real. La clave de Giphy queda vacía para el escenario negativo; los positivos inyectan sus simulaciones existentes.
+El adaptador general crea una carpeta `storage/framework/testing/t43/run-general-<UUID>/`. Su launcher entrega a HTTP y a la CLI solo un manifiesto de variables ficticias, con las rutas de BD, almacenamiento, configuración, sesiones, caché, locks y PsySH dentro de esa carpeta. Rechaza `E2E_NO_SERVER`, un `E2E_BASE_URL` distinto de su propia URL (`http://localhost:<puerto>`, con `E2E_PORT` o un puerto libre elegido al arrancar) y recursos ajenos. Antes de crear usuarios, `global-setup` pide `/__general-isolation-proof` y comprueba que el servidor que responde en ese puerto es el de su ejecución (su `storage` es la carpeta `run-general-<UUID>`); si es de otra ejecución simultánea, aborta. Los conectores y las peticiones externas se simulan; el simulador Bluesky conserva el contrato del formulario de credenciales real. La clave de Giphy queda vacía para el escenario negativo; los positivos inyectan sus simulaciones existentes.
 
 Sus tres guardias reales se ejecutan con `npx playwright test -c tests/e2e/isolated/guard.config.ts`. Comprueban conservación de una DEMO ficticia protegida y otro usuario ajeno, rutas efectivas iguales por HTTP y CLI, recursos fuera del run rechazados y aislamiento de caché/límites/locks entre dos ejecuciones con persistencia entre procesos del mismo run. El resultado de estas guardias no sustituye la batería general.
 

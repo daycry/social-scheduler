@@ -273,11 +273,19 @@ class LinkedInPublisher implements FirstCommenter, Publisher
     {
         $this->assertReadable($media);
         $size = (int) ($media->size ?: Storage::disk($media->disk)->size($media->path));
+        // Portada propia del destino (T-34): `uploadThumbnail` devuelve `thumbnailUploadUrl`; sin portada LinkedIn genera la miniatura.
+        $cover = $media->cover;
+        if ($cover !== null) {
+            $this->assertReadable($cover);
+        }
         $init = $this->client->api('POST', 'rest/videos', $token, ['initializeUploadRequest' => [
-            'owner' => $author, 'fileSizeBytes' => $size, 'uploadCaptions' => false, 'uploadThumbnail' => false,
+            'owner' => $author, 'fileSizeBytes' => $size, 'uploadCaptions' => false, 'uploadThumbnail' => $cover !== null,
         ]], ['action' => 'initializeUpload'])->json('value') ?? [];
-        if (empty($init['video']) || empty($init['uploadInstructions'])) {
-            throw new PermanentPublishException('LinkedIn no devolvio donde subir el video.', 'sin_subida');
+        if (empty($init['video']) || empty($init['uploadInstructions']) || ($cover !== null && empty($init['thumbnailUploadUrl']))) {
+            throw new PermanentPublishException('LinkedIn no devolvio donde subir el video'.($cover !== null ? ' y su portada' : '').'.', 'sin_subida');
+        }
+        if ($cover !== null) {
+            $this->client->upload((string) $init['thumbnailUploadUrl'], (string) Storage::disk($cover->disk)->get($cover->path), $token, ['media-type-family' => 'STILLIMAGE']);
         }
 
         $stream = Storage::disk($media->disk)->readStream($media->path);

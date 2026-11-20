@@ -1,0 +1,19 @@
+{
+  "source": "https://developers.facebook.com/docs/graph-api/guides/error-handling",
+  "method": "POST",
+  "host": "graph.threads.com",
+  "path": "/v1.0/17841400000000001/threads",
+  "status": 400,
+  "headers": {},
+  "body": {
+    "error": {
+      "code": 190,
+      "type": "OAuthException",
+      "message": "Invalid OAuth credential"
+    }
+  },
+  "fixed": [
+    "error.code",
+    "error.type"
+  ]
+}

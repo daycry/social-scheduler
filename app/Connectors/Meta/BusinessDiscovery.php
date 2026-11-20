@@ -22,7 +22,7 @@ class BusinessDiscovery
 
     private const FIELDS = 'username,name,profile_picture_url,followers_count,media_count';
 
-    public function __construct(private readonly GraphClient $graph = new GraphClient) {}
+    public function __construct(private readonly GraphClient $graph) {}
 
     /**
      * @return array{username: string, name: ?string, profile_picture_url: ?string, followers_count: ?int, media_count: ?int}

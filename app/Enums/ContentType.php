@@ -18,6 +18,8 @@ enum ContentType: string
     case FacebookPhoto = 'facebook_photo';
     case FacebookVideo = 'facebook_video';
     case FacebookReel = 'facebook_reel';
+    case FacebookPhotos = 'facebook_photos';
+    case FacebookStory = 'facebook_story';
     case YouTubeVideo = 'youtube_video';
     case YouTubeShort = 'youtube_short';
     case TikTokVideo = 'tiktok_video';
@@ -40,7 +42,7 @@ enum ContentType: string
     {
         return match ($this) {
             self::InstagramImage, self::InstagramCarousel, self::InstagramReel, self::InstagramStory => Network::Instagram,
-            self::FacebookText, self::FacebookPhoto, self::FacebookVideo, self::FacebookReel => Network::Facebook,
+            self::FacebookText, self::FacebookPhoto, self::FacebookVideo, self::FacebookReel, self::FacebookPhotos, self::FacebookStory => Network::Facebook,
             self::YouTubeVideo, self::YouTubeShort => Network::YouTube,
             self::TikTokVideo, self::TikTokPhoto => Network::TikTok,
             self::BlueskyPost, self::BlueskyVideo => Network::Bluesky,
@@ -61,6 +63,8 @@ enum ContentType: string
             self::FacebookPhoto => 'Foto',
             self::FacebookVideo => 'Video',
             self::FacebookReel => 'Reel',
+            self::FacebookPhotos => 'Varias fotos',
+            self::FacebookStory => 'Historia',
             self::YouTubeVideo => 'Video',
             self::YouTubeShort => 'Short',
             self::TikTokVideo => 'Video',
@@ -93,6 +97,8 @@ enum ContentType: string
             self::FacebookPhoto => 'Una sola foto',
             self::FacebookVideo => 'Un vídeo en la página',
             self::FacebookReel => 'Vídeo vertical de 3 a 90 segundos',
+            self::FacebookPhotos => 'De 2 a 10 fotos en una sola publicación',
+            self::FacebookStory => 'Una foto o un vídeo vertical, visible 24 horas',
             self::YouTubeVideo => 'Un vídeo en MP4 o MOV',
             self::YouTubeShort => 'Vídeo vertical o cuadrado de hasta 3 minutos',
             self::TikTokVideo => 'Un vídeo de hasta 10 minutos',
@@ -125,6 +131,8 @@ enum ContentType: string
             self::InstagramCarousel => ['El carrusel necesita entre 2 y 10 archivos; todos se recortan a la proporcion del primero.'],
             self::InstagramReel => ['El reel se publica tambien en el feed salvo que lo desactives; el procesamiento del video puede tardar unos minutos.'],
             self::InstagramStory => ['Las historias no admiten texto, enlaces ni stickers desde la API: solo se publica la imagen o el video (maximo 60 s).'],
+            self::FacebookPhotos => ['Entre 2 y 10 fotos (JPEG, PNG o WebP de hasta 10 MB); se suben una a una sin publicar y luego se publican juntas, con el texto y el primer comentario si los hay.'],
+            self::FacebookStory => ['Las historias de una Página no admiten texto, enlaces ni primer comentario desde la API: solo se publica la foto o el vídeo (9:16, hasta 60 s). Duran 24 horas.'],
             self::YouTubeVideo => ['La visibilidad elegida se respeta tal cual. Cada subida gasta ~1.600 de las 10.000 unidades diarias de la API (unas 6 subidas al dia).'],
             self::YouTubeShort => ['Video vertical de hasta 3 minutos; se anade #Shorts a la descripcion. Cada subida gasta ~1.600 de las 10.000 unidades diarias de la API.'],
             self::TikTokVideo, self::TikTokPhoto => ['Sin auditoria de TikTok el contenido se envia como borrador a la bandeja de la app: el usuario termina de publicarlo desde TikTok.'],
@@ -143,12 +151,15 @@ enum ContentType: string
     /**
      * Clave de la regla en `config/media_specs.php`.
      *
-     * @param  string|null  $firstMediaKind  'image' | 'video' (solo importa en las historias de Instagram).
+     * @param  string|null  $firstMediaKind  'image' | 'video' (solo importa en las historias de Instagram y Facebook).
      */
     public function specKey(?string $firstMediaKind = null): string
     {
         if ($this === self::InstagramStory) {
             return $firstMediaKind === 'video' ? 'instagram_story_video' : 'instagram_story_image';
+        }
+        if ($this === self::FacebookStory) {
+            return $firstMediaKind === 'video' ? 'facebook_story_video' : 'facebook_story_photo';
         }
 
         return $this->value;

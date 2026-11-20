@@ -2,6 +2,7 @@
 /** Iconos de trazo (24x24) propios y mínimos para el shell. */
 defineProps({ name: { type: String, required: true } });
 
+/** @type {Partial<Record<string, string>>} */
 const PATHS = {
     palette: 'M12 3a9 9 0 100 18h1a2 2 0 001.7-3l-.5-.8A2 2 0 0116 14h2a3 3 0 003-3 9 9 0 00-9-8zM7 10h.01M9 6h.01M14 6h.01M17 9h.01',
     chart: 'M4 20V10m6 10V4m6 16v-7m4 7H2',
@@ -34,7 +35,15 @@ const PATHS = {
 </script>
 
 <template>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+    >
         <path :d="PATHS[name] ?? PATHS.grid" />
     </svg>
 </template>

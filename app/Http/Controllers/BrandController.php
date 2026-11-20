@@ -24,7 +24,6 @@ class BrandController extends Controller
 
         return Inertia::render('Brands/Index', [
             'brands' => $this->brands->list($request->user())->map(fn (Brand $b) => [...$b->toArray(), 'avatar_url' => $this->avatarUrl($b)])->values(),
-            'flash' => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error')],
         ]);
     }
 

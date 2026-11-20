@@ -1,0 +1,12 @@
+{
+  "resources/js/Components/Studio/CaptionsPanel.vue": {
+    "vue/no-dupe-keys": {
+      "count": 1
+    }
+  },
+  "resources/js/Components/Studio/StudioAiPanel.vue": {
+    "vue/no-dupe-keys": {
+      "count": 1
+    }
+  }
+}

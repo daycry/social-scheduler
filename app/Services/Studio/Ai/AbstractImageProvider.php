@@ -18,7 +18,7 @@ abstract class AbstractImageProvider implements ImageProvider
 
     private readonly string $key;
 
-    public function __construct(#[\SensitiveParameter] string $key, array $config)
+    public function __construct(#[\SensitiveParameter] string $key, array $config, private readonly UrlGuard $guard)
     {
         $this->key = trim($key);
         $this->config = $config;
@@ -141,9 +141,8 @@ abstract class AbstractImageProvider implements ImageProvider
     protected function download(string $url): string
     {
         $max = (int) config('studio.ai.max_output_bytes', 30 * 1024 * 1024);
-        $guard = app(UrlGuard::class);
         try {
-            $response = $guard->follow($url, fn ($validated) => $guard->client($validated)->timeout((int) config('studio.ai.timeout', 120))
+            $response = $this->guard->follow($url, fn ($validated) => $this->guard->client($validated)->timeout((int) config('studio.ai.timeout', 120))
                 ->withOptions(['progress' => fn ($total, $now) => $now > $max])->get($validated->url));
         } catch (UnsafeUrlException|ConnectionException|GuzzleException) {
             throw new AiProviderException('invalid_response');

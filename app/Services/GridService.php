@@ -33,7 +33,7 @@ class GridService
     /** Cuentas de Instagram ACTIVAS de la marca para el selector (una desconectada o por reconectar no se puede leer). @return list<array{id: int, name: string, username: ?string}> */
     public function accounts(Brand $brand): array
     {
-        return SocialAccount::withoutUserScope()->where('brand_id', $brand->id)->where('user_id', $brand->user_id)
+        return SocialAccount::ownedBy($brand->user_id)->where('brand_id', $brand->id)
             ->where('network', Network::Instagram->value)->where('status', SocialAccount::STATUS_ACTIVE)->orderBy('name')->orderBy('id')->get()
             ->map(fn (SocialAccount $a) => ['id' => $a->id, 'name' => $a->name, 'username' => $a->username])->all();
     }
@@ -52,7 +52,7 @@ class GridService
     /** @return list<array<string, mixed>> */
     private function scheduled(User $user, SocialAccount $account): array
     {
-        $targets = PostTarget::withoutUserScope()->where('user_id', $user->id)
+        $targets = PostTarget::ownedBy($user->id)
             ->where('social_account_id', $account->id)->where('network', Network::Instagram->value)
             ->whereIn('status', [PostStatus::Scheduled->value, PostStatus::Publishing->value, PostStatus::Processing->value])
             ->where('content_type', '!=', ContentType::InstagramStory->value)

@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\MediaAsset;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Support\Facades\Log;
 
 class MediaAssetPolicy
@@ -25,7 +26,7 @@ class MediaAssetPolicy
 
     private function owns(User $user, MediaAsset $asset, string $ability): bool
     {
-        if ($asset->user_id === $user->id) {
+        if (Ownership::matches($asset, $user)) {
             return true;
         }
 

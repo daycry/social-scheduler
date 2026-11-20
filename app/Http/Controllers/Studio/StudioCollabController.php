@@ -77,14 +77,17 @@ class StudioCollabController extends Controller
     {
         $user = $request->user();
         $role = $this->collab->role($user, $design);
+        abort_if($role === null, 404);
         $rows = $this->collab->comments($design);
-        $roots = collect($rows)->keyBy('id');
+        $commentsById = collect($rows)->keyBy('id');
 
-        return array_map(function (array $comment) use ($user, $role, $roots) {
-            $root = $comment['parent_id'] === null ? $comment : ($roots[$comment['parent_id']] ?? $comment);
+        return array_map(function (array $comment) use ($user, $role, $commentsById) {
+            $root = $comment['parent_id'] === null ? $comment : ($commentsById[$comment['parent_id']] ?? null);
 
-            return $comment + ['can_resolve' => in_array($role, ['owner', 'editor'], true) || ($role === 'commenter' && (int) $root['author_id'] === (int) $user->id),
-                'can_delete' => $role === 'owner' || (in_array($role, ['editor', 'commenter'], true) && (int) $comment['author_id'] === (int) $user->id)];
+            return $comment + [
+                'can_resolve' => $root !== null && $this->collab->mayResolveThread($role, (int) $user->id, (int) $root['author_id']),
+                'can_delete' => $this->collab->mayDeleteComment($role, (int) $user->id, (int) $comment['author_id']),
+            ];
         }, $rows);
     }
 

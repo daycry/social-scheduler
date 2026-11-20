@@ -7,8 +7,10 @@ use App\Models\Studio\StudioAsset;
 use App\Models\Studio\StudioFont;
 use App\Models\User;
 use App\Services\Studio\StudioAssets;
+use App\Services\Studio\StudioAvAcceptance;
 use App\Services\Studio\StudioAvFiles;
-use App\Services\Studio\StudioAvState;
+use App\Services\Studio\StudioAvLeases;
+use App\Services\Studio\StudioAvLifecycle;
 use App\Services\Studio\StudioService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Storage;
@@ -29,14 +31,13 @@ beforeEach(function () {
     $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'AV files', 'document' => $document]);
     $export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $design->id,
         'revision' => 1, 'format' => 'mp4', 'pages' => ['page_one'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
-    $this->state = app(StudioAvState::class);
-    $this->export = $this->state->initialize($this->user, $export);
+    $this->export = app(StudioAvLifecycle::class)->initialize($this->user, $export);
     $generation = $this->export->render_state['generation'];
     $plan = ['frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 12, 'segmentCount' => 1,
         'selection' => ['page_one'], 'assetIds' => [$this->media->id], 'fontIds' => [], 'audioAssetIds' => [],
         'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]];
-    $this->state->accept($this->state->claim($export->id, $generation), $plan);
-    $this->lease = $this->state->claim($export->id, $generation, strlen($this->bytes));
+    app(StudioAvAcceptance::class)->accept(app(StudioAvLeases::class)->claim($export->id, $generation), $plan);
+    $this->lease = app(StudioAvLeases::class)->claim($export->id, $generation, strlen($this->bytes));
     $this->root = 'studio-exports/'.$this->user->id.'/'.$export->id.'/'.$this->export->render_state['workspace'];
 });
 
@@ -47,7 +48,7 @@ test('AV snapshot streams an authorized complete source into its immutable priva
     expect($result['file'])->toBe($file)->and($result['namespace'])->toBe($this->lease->id)
         ->and($result['size'])->toBe(strlen($this->bytes))->and($result['sha256'])->toBe(hash('sha256', $this->bytes));
     expect(Storage::disk('local')->get($this->root.'/'.$file))->toBe($this->bytes);
-    expect($this->state->accept($this->lease, $result, $result['size']))->toBeTrue();
+    expect(app(StudioAvAcceptance::class)->accept($this->lease, $result, $result['size']))->toBeTrue();
     Storage::disk('local')->put('source.bin', 'changed upload');
     expect(Storage::disk('local')->get($this->root.'/'.$file))->toBe($this->bytes);
 });
@@ -88,7 +89,7 @@ test('AV private output paths refuse linked ancestors without writing to their t
 test('AV checkpoint verification reads actual bytes and rejects changed content', function () {
     $files = app(StudioAvFiles::class);
     $result = $files->snapshot($this->lease);
-    $this->state->accept($this->lease, $result, $result['size']);
+    app(StudioAvAcceptance::class)->accept($this->lease, $result, $result['size']);
     expect($files->verify($this->lease))->toBe($result);
     // Same length corruption must not pass a size-only check.
     Storage::disk('local')->put($this->root.'/'.$result['file'], str_repeat('x', $result['size']));
@@ -98,8 +99,8 @@ test('AV checkpoint verification reads actual bytes and rejects changed content'
 test('AV native results are physically checked before acceptance and cannot escape their lease', function () {
     $files = app(StudioAvFiles::class);
     $snapshot = $files->snapshot($this->lease);
-    $this->state->accept($this->lease, $snapshot, $snapshot['size']);
-    $lease = $this->state->claim($this->export->id, $this->export->render_state['generation'], 100);
+    app(StudioAvAcceptance::class)->accept($this->lease, $snapshot, $snapshot['size']);
+    $lease = app(StudioAvLeases::class)->claim($this->export->id, $this->export->render_state['generation'], 100);
     expect($lease->phase)->toBe('render');
     $result = ['file' => 'segments/'.$lease->id.'/video-000000.mp4', 'namespace' => $lease->id,
         'size' => 13, 'sha256' => hash('sha256', 'native result'), 'index' => 0, 'frameCount' => 12];
@@ -110,7 +111,7 @@ test('AV native results are physically checked before acceptance and cannot esca
     Storage::disk('local')->put($this->root.'/'.$result['file'], 'native corrup');
     expect(fn () => $files->inspect($lease, $result))->toThrow(RuntimeException::class);
     expect($lease->refresh()->status)->toBe('running');
-    $this->state->cancel($this->user, $this->export);
+    app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
     expect(fn () => $files->inspect($lease, $result))->toThrow(RuntimeException::class);
 });
 
@@ -119,7 +120,7 @@ test('AV source promotion uses only accepted checkpoints and never replaces pinn
     $result = $files->snapshot($this->lease);
     expect(fn () => $files->publishSource($this->lease))->toThrow(RuntimeException::class);
     Storage::disk('local')->assertMissing($this->root.'/assets/'.$this->media->id.'.bin');
-    $this->state->accept($this->lease, $result, $result['size']);
+    app(StudioAvAcceptance::class)->accept($this->lease, $result, $result['size']);
     expect($files->publishSource($this->lease))->toBe('assets/'.$this->media->id.'.bin');
     expect($files->publishSource($this->lease))->toBe('assets/'.$this->media->id.'.bin');
     expect(Storage::disk('local')->get($this->root.'/assets/'.$this->media->id.'.bin'))->toBe($this->bytes);
@@ -134,7 +135,7 @@ test('AV snapshot refuses expired cancelled and foreign-brand sources before cre
     if ($condition === 'expired') {
         $this->travel(181)->seconds();
     } elseif ($condition === 'cancelled') {
-        $this->state->cancel($this->user, $this->export);
+        app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
     } else {
         StudioAsset::withoutUserScope()->where('brand_id', $this->brand->id)->where('media_asset_id', $this->media->id)->delete();
     }
@@ -188,13 +189,12 @@ test('AV cancellation during transport removes partial data and cannot publish a
     $remote = new StudioAudioR2;
     $remote->objects['remote.bin'] = $this->bytes;
     $this->media->update(['disk' => 'audio-test-r2', 'path' => 'remote.bin']);
-    $state = $this->state;
     $user = $this->user;
     $export = $this->export;
-    Storage::disk('audio-test-r2')->getClient()->getHandlerList()->appendInit(function (callable $next) use ($state, $user, $export) {
-        return function ($command, $request) use ($next, $state, $user, $export) {
+    Storage::disk('audio-test-r2')->getClient()->getHandlerList()->appendInit(function (callable $next) use ($user, $export) {
+        return function ($command, $request) use ($next, $user, $export) {
             if ($command->getName() === 'GetObject') {
-                $state->cancel($user, $export);
+                app(StudioAvLifecycle::class)->cancel($user, $export);
             }
 
             return $next($command, $request);
@@ -212,20 +212,20 @@ test('AV font snapshot preserves the normalized font hash and rejects same-size 
         'name' => 'Brand font', 'family' => 'Space Grotesk', 'style' => 'normal', 'weight' => 400, 'format' => 'woff2',
         'mime' => 'font/woff2', 'size' => strlen($bytes), 'sha256' => hash('sha256', $bytes), 'source_sha256' => hash('sha256', $bytes),
         'disk' => 'local', 'path' => 'font.woff2', 'status' => 'ready']);
-    $this->state->cancel($this->user, $this->export);
-    $export = $this->state->retry($this->user, $this->export);
+    app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
+    $export = app(StudioAvLifecycle::class)->retry($this->user, $this->export);
     $generation = $export->render_state['generation'];
     $plan = ['frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 12, 'segmentCount' => 1,
         'selection' => ['page_one'], 'assetIds' => [], 'fontIds' => [$font->id], 'audioAssetIds' => [],
         'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]];
-    $this->state->accept($this->state->claim($export->id, $generation), $plan);
-    $lease = $this->state->claim($export->id, $generation, strlen($bytes));
+    app(StudioAvAcceptance::class)->accept(app(StudioAvLeases::class)->claim($export->id, $generation), $plan);
+    $lease = app(StudioAvLeases::class)->claim($export->id, $generation, strlen($bytes));
     expect(fn () => app(StudioAvFiles::class)->snapshot($lease))->toThrow(RuntimeException::class);
     expect(Storage::disk('local')->allFiles($this->root))->toBe([]);
     Storage::disk('local')->put('font.woff2', $bytes);
     $result = app(StudioAvFiles::class)->snapshot($lease);
     expect($result['sha256'])->toBe($font->sha256);
-    $this->state->accept($lease, $result, $result['size']);
+    app(StudioAvAcceptance::class)->accept($lease, $result, $result['size']);
     expect(app(StudioAvFiles::class)->publishSource($lease))->toBe('fonts/'.$font->id.'.woff2');
     expect(Storage::disk('local')->get($this->root.'/fonts/'.$font->id.'.woff2'))->toBe($bytes);
 });

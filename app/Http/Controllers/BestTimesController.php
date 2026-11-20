@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Connectors\Network;
+use App\Models\Brand;
 use App\Services\BestTimesService;
 use App\Support\CurrentBrand;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -13,6 +15,16 @@ use Inertia\Response;
 class BestTimesController extends Controller
 {
     public function __construct(private readonly BestTimesService $bestTimes) {}
+
+    public function suggest(Request $request, string $brand): JsonResponse
+    {
+        $owned = Brand::ownedBy($request->user()->id)->find($brand) ?? abort(404);
+        $data = $request->validate([
+            'network' => ['required', 'in:'.implode(',', array_column(Network::offered(), 'value'))],
+        ]);
+
+        return response()->json($this->bestTimes->suggest($request->user(), $owned, Network::from($data['network'])));
+    }
 
     public function index(Request $request): Response
     {

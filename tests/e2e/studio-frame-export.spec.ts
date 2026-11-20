@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, stamp } from './helpers';
 
-test('Studio frame export: choose a local page time, export real pixels and retain it with the private brand output', async ({ page }, info) => {
+test('Studio frame export: choose a local page time, export real pixels and retain it with the private brand output', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name), errors: string[] = [];
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `studio-frame-${stamp()}-${info.project.name}`);

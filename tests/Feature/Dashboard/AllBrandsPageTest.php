@@ -41,12 +41,19 @@ it('Todas las marcas: la pagina entrega totales, fila por marca y serie (CA-12)'
             ->where('filters.from', '2026-10-25'));
 });
 
-it('Todas las marcas: sin marcas muestra la pantalla vacia y un periodo invalido da 422', function () {
+it('Todas las marcas: sin marcas muestra la pantalla vacia y valida el periodo', function () {
     $this->actingAs(User::factory()->create())->get(route('dashboard.all'))
         ->assertOk()->assertInertia(fn (Assert $p) => $p->component('Dashboard/AllBrands')->where('summary', null));
-    $this->actingAs($this->user)->get(route('dashboard.all', ['from' => '2026-10-10', 'to' => '2026-10-01']))->assertStatus(422);
+    $this->actingAs($this->user)->getJson(route('dashboard.all', ['from' => '2026-10-10', 'to' => '2026-10-01']))
+        ->assertUnprocessable()->assertJsonValidationErrors('from');
     $this->actingAs($this->user)->get(route('dashboard.all', ['compare' => 'otro']))->assertSessionHasErrors('compare');
-    $this->get(route('dashboard.all'))->assertOk();
+    $empty = Brand::factory()->for($this->user)->create();
+    $this->get(route('dashboard.all'))->assertOk()
+        ->assertInertia(fn (Assert $p) => $p->has('summary.networks', 0)
+            ->has('summary.brands', 1, fn (Assert $brand) => $brand
+                ->where('id', $empty->id)->where('networks', 0)
+                ->where('values.views', null)->where('previous.views', null)->etc())
+            ->where('summary.cards', fn ($cards) => ($cards->firstWhere('key', 'views')['series'][0]['values'] ?? null) === []));
 });
 
 it('Todas las marcas: exige sesion y la ruta no choca con las redes del dashboard', function () {

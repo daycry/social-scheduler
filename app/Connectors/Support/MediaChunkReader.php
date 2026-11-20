@@ -125,9 +125,6 @@ class MediaChunkReader
         return Utils::streamFor($data);
     }
 
-    /** No hay lecturas persistentes (cada trozo abre y cierra la suya); se mantiene por compatibilidad de uso. */
-    public function close(): void {}
-
     private function ranged(AwsS3V3Adapter $disk, int $offset, int $length, ?float $timeout): StreamInterface
     {
         $config = $disk->getConfig();

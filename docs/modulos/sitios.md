@@ -7,10 +7,19 @@ Cada marca construye una web de varias páginas con el tema de su kit de marca y
 | Pieza | Dónde |
 |---|---|
 | Rutas | `routes/sites.php` (constructor con sesión; públicas sin sesión, cookies de Laravel ni CSRF) |
-| Servicios | `app/Services/Sites/{SiteService,SiteAccess,SiteRenderer}.php` |
+| Sitios y borradores | `SiteService` gestiona el borrador, el tema y la instantánea. `SiteBlockNormalizer` valida páginas, bloques y medios. |
+| Acceso | `SiteAccess` gestiona contraseñas, enlaces y cookies de visitante. |
+| Interacciones | `SitePublicInteractions` registra visitas, mensajes y votos. |
+| Render público | `SiteRenderer` prepara la vista que comparten la previsualización y la ruta pública. |
 | Controladores | `SiteController` (constructor), `PublicSiteController` (público) |
 | Vistas | `resources/js/Pages/Sites/{Index,Edit}.vue`, `resources/views/sites/` |
 | MCP | `manage_site` (`list`, `get_url`, `publish`, `unpublish`) con `sites:read` y `sites:write` |
+
+`QueryCountTest` comprueba que el número de consultas del listado se mantiene al pasar de dos sitios al máximo por marca, con sitios publicados y borradores. Fuera de producción, Eloquent detecta la carga implícita de relaciones en colecciones.
+
+Las visitas diarias y los votos de encuestas usan `DailyCounter`. Las visitas incluyen la fecha en la clave y las encuestas agrupan los votos por opción. Si dos peticiones intentan crear la misma fila, la segunda incrementa la fila que creó la primera.
+
+El editor separa el acceso, los mensajes de contacto y la vista previa en componentes de `resources/js/Components/Sites/`. `resources/js/Composables/useSitePreview.js` selecciona la página guardada y el tamaño del iframe.
 
 ## Constructor
 

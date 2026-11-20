@@ -19,7 +19,7 @@ class StudioAvStorage
         if (! is_string($id) || ! preg_match('/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/D', $id)) {
             return false;
         }
-        $workspace = StudioAvWorkspace::withoutUserScope()->where('export_id', $export->id)->where('user_id', $export->user_id)
+        $workspace = StudioAvWorkspace::ownedBy($export->user_id)->where('export_id', $export->id)
             ->where('brand_id', $export->brand_id)->where('uuid', $export->render_state['workspace'])->first();
         if (! $workspace || ! StudioAvLease::whereKey($id)->where('workspace_id', $workspace->id)->where('generation', $export->render_state['generation'])->exists()) {
             return false;

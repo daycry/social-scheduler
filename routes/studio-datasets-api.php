@@ -4,7 +4,7 @@ use App\Http\Controllers\Studio\StudioDatasetController;
 use App\Http\Middleware\RequireApiAbility;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('api/v1/brands/{brand}/datasets')->name('api.studio.datasets.')->middleware(['auth:sanctum', 'throttle:120,1'])->group(function () {
+Route::prefix('api/v1/brands/{brand}/datasets')->name('api.studio.datasets.')->middleware(['auth:sanctum', 'throttle:api-v1'])->group(function () {
     foreach ([['GET', '', 'list', 'read'], ['POST', '', 'create', 'write'], ['GET', '/{dataset}', 'get', 'read'], ['PUT', '/{dataset}', 'replace', 'write'], ['DELETE', '/{dataset}', 'archive', 'write'], ['POST', '/{dataset}/restore', 'restore', 'write'], ['GET', '/{dataset}/revisions', 'history', 'read']] as [$method, $path, $action, $ability]) {
         Route::match([$method], $path, [StudioDatasetController::class, 'handle'])->whereNumber(['brand', 'dataset'])->defaults('dataset_action', $action)->middleware(RequireApiAbility::class.':designs:'.$ability)->name($action);
     }

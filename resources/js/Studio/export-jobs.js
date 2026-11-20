@@ -13,7 +13,7 @@ export function createStudioExportClient({ request = studioRequest, url = (name,
             : request('GET', `${url('studio.exports.index', designId)}?page=${page}`),
         async cancel(id) { return (await request('POST', url('studio.exports.cancel', id), {})).export; },
         async retry(id) { return (await request('POST', url('studio.exports.retry', id), {})).export; },
-        post: id => request('POST', url('studio.exports.post', id), {}),
+        post: (id, postId) => request('POST', url('studio.exports.post', id), postId ? { post_id: postId } : {}),
     };
 }
 

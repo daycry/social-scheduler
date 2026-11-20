@@ -24,14 +24,14 @@ class InstagramGridController extends Controller
         $selected = null;
 
         if ($request->filled('account_id')) {
-            $requested = SocialAccount::withoutUserScope()->where('user_id', $user->id)->find((int) $request->query('account_id'));
+            $requested = SocialAccount::ownedBy($user->id)->find((int) $request->query('account_id'));
             abort_if($requested === null, 404); // la cuenta de otro usuario no existe para este
             // Una cuenta propia de OTRA marca (el selector de marca conserva `account_id`) cae a la primera de la actual.
             $selected = collect($accounts)->firstWhere('id', $requested->id);
         }
 
         $selected ??= $accounts[0] ?? null;
-        $account = $selected ? SocialAccount::withoutUserScope()->where('user_id', $user->id)->find($selected['id']) : null;
+        $account = $selected ? SocialAccount::ownedBy($user->id)->find($selected['id']) : null;
         $data = $account ? $this->grid->build($user, $account) : ['items' => [], 'error' => null, 'cached' => false];
 
         return Inertia::render('Instagram/Grid', [

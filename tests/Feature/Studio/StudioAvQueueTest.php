@@ -8,13 +8,16 @@ use App\Models\Studio\StudioAvLease;
 use App\Models\Studio\StudioAvWorkspace;
 use App\Models\User;
 use App\Services\Studio\StudioAssets;
+use App\Services\Studio\StudioAvAcceptance;
 use App\Services\Studio\StudioAvCleanup;
 use App\Services\Studio\StudioAvFiles;
+use App\Services\Studio\StudioAvLeases;
+use App\Services\Studio\StudioAvLifecycle;
 use App\Services\Studio\StudioAvQueue;
 use App\Services\Studio\StudioAvRecovery;
 use App\Services\Studio\StudioAvRunner;
-use App\Services\Studio\StudioAvState;
 use App\Services\Studio\StudioAvStorage;
+use App\Services\Studio\StudioAvStore;
 use App\Services\Studio\StudioRenderFailure;
 use App\Services\Studio\StudioService;
 use Illuminate\Console\Scheduling\Schedule;
@@ -38,26 +41,25 @@ beforeEach(function () {
     $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'AV queue', 'document' => $document]);
     $export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $design->id,
         'revision' => 1, 'format' => 'mp4', 'pages' => ['one'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
-    $this->state = app(StudioAvState::class);
-    $this->export = $this->state->initialize($this->user, $export);
+    $this->export = app(StudioAvLifecycle::class)->initialize($this->user, $export);
 });
 
 test('AV queue delivery begins its reserved lease exactly once and may renew a still-current queued lease', function () {
-    $lease = $this->state->claim($this->export->id, $this->export->render_state['generation']);
+    $lease = app(StudioAvLeases::class)->claim($this->export->id, $this->export->render_state['generation']);
     $this->travel(181)->seconds();
-    $started = $this->state->begin($lease->id);
+    $started = app(StudioAvLeases::class)->begin($lease->id);
     expect($started)->not->toBeNull();
     expect($started->started_at)->not->toBeNull()->and($started->expires_at->isFuture())->toBeTrue();
-    expect($this->state->begin($lease->id))->toBeNull();
+    expect(app(StudioAvLeases::class)->begin($lease->id))->toBeNull();
     $this->travel(181)->seconds();
-    expect($this->state->begin($lease->id))->toBeNull();
+    expect(app(StudioAvLeases::class)->begin($lease->id))->toBeNull();
 });
 
 test('AV queue delivery cannot begin a cancelled or replaced generation', function () {
-    $lease = $this->state->claim($this->export->id, $this->export->render_state['generation']);
-    $this->state->cancel($this->user, $this->export);
-    $this->state->retry($this->user, $this->export);
-    expect($this->state->begin($lease->id))->toBeNull();
+    $lease = app(StudioAvLeases::class)->claim($this->export->id, $this->export->render_state['generation']);
+    app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
+    app(StudioAvLifecycle::class)->retry($this->user, $this->export);
+    expect(app(StudioAvLeases::class)->begin($lease->id))->toBeNull();
 });
 
 test('AV queue schedules one private lease delivery on the dedicated queue without a handoff unique lock', function () {
@@ -73,7 +75,7 @@ test('AV queue schedules one private lease delivery on the dedicated queue witho
 });
 
 test('AV state mutations serialize an independent SQLite session writer', function (string $mutation) {
-    $plan = $mutation === 'initialize' ? null : $this->state->claim($this->export->id, $this->export->render_state['generation']);
+    $plan = $mutation === 'initialize' ? null : app(StudioAvLeases::class)->claim($this->export->id, $this->export->render_state['generation']);
     $planData = ['frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 24, 'segmentCount' => 1,
         'selection' => ['one'], 'assetIds' => [], 'fontIds' => [], 'audioAssetIds' => [],
         'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]];
@@ -81,18 +83,18 @@ test('AV state mutations serialize an independent SQLite session writer', functi
         $this->export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $this->export->design_id,
             'revision' => 1, 'format' => 'mp4', 'pages' => ['one'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
     } elseif ($mutation === 'claim') {
-        $this->state->accept($plan, $planData);
+        app(StudioAvAcceptance::class)->accept($plan, $planData);
     } elseif ($mutation === 'retry') {
-        $this->state->cancel($this->user, $this->export);
+        app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
     } elseif ($mutation === 'rejectCheckpoint') {
-        $this->state->accept($plan, $planData);
-        $segment = $this->state->claim($this->export->id, $plan->generation, 1);
-        $this->state->accept($segment, ['file' => 'segments/'.$segment->id.'/video-000000.mp4', 'namespace' => $segment->id,
+        app(StudioAvAcceptance::class)->accept($plan, $planData);
+        $segment = app(StudioAvLeases::class)->claim($this->export->id, $plan->generation, 1);
+        app(StudioAvAcceptance::class)->accept($segment, ['file' => 'segments/'.$segment->id.'/video-000000.mp4', 'namespace' => $segment->id,
             'size' => 1, 'sha256' => str_repeat('a', 64)], 1);
-        $this->state->cancel($this->user, $this->export);
-        $retry = $this->state->retry($this->user, $this->export);
-        $this->state->accept($this->state->claim($retry->id, $retry->render_state['generation']), $planData);
-        $plan = $this->state->claim($retry->id, $retry->render_state['generation']);
+        app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
+        $retry = app(StudioAvLifecycle::class)->retry($this->user, $this->export);
+        app(StudioAvAcceptance::class)->accept(app(StudioAvLeases::class)->claim($retry->id, $retry->render_state['generation']), $planData);
+        $plan = app(StudioAvLeases::class)->claim($retry->id, $retry->render_state['generation']);
         expect($plan->phase)->toBe('verify');
     }
     $originalConnection = config('database.default');
@@ -143,16 +145,16 @@ PHP, $database, $marker]);
     });
     try {
         $result = match ($mutation) {
-            'initialize' => $this->state->initialize($this->user, $this->export),
+            'initialize' => app(StudioAvLifecycle::class)->initialize($this->user, $this->export),
             'claim' => app(StudioAvQueue::class)->enqueue($this->export->id),
-            'begin' => $this->state->begin($plan->id),
-            'defer' => $this->state->defer($plan),
-            'accept' => $this->state->accept($plan, $planData),
-            'cancel' => $this->state->cancel($this->user, $this->export),
-            'retry' => $this->state->retry($this->user, $this->export),
-            'fail' => $this->state->fail($plan, 'phase_failed'),
-            'failPosition' => $this->state->failPosition($this->export->id, $plan->generation, 0, 'phase_failed'),
-            'rejectCheckpoint' => $this->state->rejectCheckpoint($plan),
+            'begin' => app(StudioAvLeases::class)->begin($plan->id),
+            'defer' => app(StudioAvLeases::class)->defer($plan),
+            'accept' => app(StudioAvAcceptance::class)->accept($plan, $planData),
+            'cancel' => app(StudioAvLifecycle::class)->cancel($this->user, $this->export),
+            'retry' => app(StudioAvLifecycle::class)->retry($this->user, $this->export),
+            'fail' => app(StudioAvLifecycle::class)->fail($plan, 'phase_failed'),
+            'failPosition' => app(StudioAvLifecycle::class)->failPosition($this->export->id, $plan->generation, 0, 'phase_failed'),
+            'rejectCheckpoint' => app(StudioAvAcceptance::class)->rejectCheckpoint($plan),
         };
         expect((bool) $result)->toBeTrue();
         expect($writer)->toBeInstanceOf(Symfony\Component\Process\Process::class);
@@ -175,7 +177,7 @@ PHP, $database, $marker]);
         if ($mutation === 'claim') {
             Queue::assertPushed(ProcessStudioAvPhase::class, 1);
         } else {
-            Queue::assertNothingPushed();
+            Queue::assertNotPushed(ProcessStudioAvPhase::class); // el aviso de fallo (SendQueuedNotifications) es un efecto legitimo de fail/failPosition
         }
     } finally {
         if ($writer instanceof Symfony\Component\Process\Process) {
@@ -195,24 +197,24 @@ test('AV recovery recognizes a database message still waiting for a worker and c
     $this->travel(181)->seconds();
     expect($queue->enqueue($this->export->id))->toBeFalse();
     expect(app(StudioAvCleanup::class)->lease($lease->id))->toBeFalse();
-    expect($this->state->begin($lease->id))->not->toBeNull();
+    expect(app(StudioAvLeases::class)->begin($lease->id))->not->toBeNull();
     expect($queue->pending($lease->refresh()))->toBeFalse();
 });
 
 test('AV enqueue cannot apply a stale phase reservation after another delivery advances the cursor', function () {
-    $planLease = $this->state->claim($this->export->id, $this->export->render_state['generation']);
-    $real = $this->state;
+    $planLease = app(StudioAvLeases::class)->claim($this->export->id, $this->export->render_state['generation']);
+    $real = app(StudioAvLeases::class);
     $plan = ['frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 24, 'segmentCount' => 1,
         'selection' => ['one'], 'assetIds' => [], 'fontIds' => [], 'audioAssetIds' => [],
         'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]];
-    $state = Mockery::mock(StudioAvState::class)->makePartial();
-    $state->shouldReceive('claim')->once()->andReturnUsing(function ($id, $generation, $bytes, ...$position) use ($real, $planLease, $plan) {
-        $real->accept($planLease, $plan);
+    $leases = Mockery::mock(StudioAvLeases::class, [app(StudioAvStore::class)])->makePartial();
+    $leases->shouldReceive('claim')->once()->andReturnUsing(function ($id, $generation, $bytes, ...$position) use ($real, $planLease, $plan) {
+        app(StudioAvAcceptance::class)->accept($planLease, $plan);
 
         return $real->claim($id, $generation, $bytes, ...$position);
     });
-    expect((new StudioAvQueue($state))->enqueue($this->export->id))->toBeFalse();
-    expect($this->state->task($this->export->refresh()))->toBe(['phase' => 'render', 'index' => 0]);
+    expect(app()->make(StudioAvQueue::class, ['leases' => $leases])->enqueue($this->export->id))->toBeFalse();
+    expect(app(StudioAvStore::class)->task($this->export->refresh()))->toBe(['phase' => 'render', 'index' => 0]);
     Queue::assertNothingPushed();
 });
 
@@ -234,7 +236,7 @@ test('AV worker accepts a plan and hands off the next phase exactly once when th
     });
     $job->handle(app(StudioAvRunner::class));
     expect($this->export->refresh()->render_state['position'])->toBe(1);
-    expect($this->state->task($this->export))->toBe(['phase' => 'render', 'index' => 0]);
+    expect(app(StudioAvStore::class)->task($this->export))->toBe(['phase' => 'render', 'index' => 0]);
     Queue::assertPushed(ProcessStudioAvPhase::class, 2);
     $job->handle(app(StudioAvRunner::class));
     Process::assertRanTimes(fn () => true, 1);
@@ -257,11 +259,11 @@ test('AV worker reports source replacement as requiring a new export and never l
     $media = MediaAsset::factory()->for($this->user)->create(['kind' => 'image', 'mime' => 'image/png', 'disk' => 'local', 'path' => 'source.bin', 'size' => 5,
         'declared_size' => 5, 'status' => MediaAsset::STATUS_READY]);
     app(StudioAssets::class)->attach($this->user, $this->brand, $media->id);
-    $planLease = $this->state->claim($this->export->id, $this->export->render_state['generation']);
+    $planLease = app(StudioAvLeases::class)->claim($this->export->id, $this->export->render_state['generation']);
     $plan = ['frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 24, 'segmentCount' => 1,
         'selection' => ['one'], 'assetIds' => [$media->id], 'fontIds' => [], 'audioAssetIds' => [],
         'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]];
-    $this->state->accept($planLease, $plan);
+    app(StudioAvAcceptance::class)->accept($planLease, $plan);
     app(StudioAvQueue::class)->enqueue($this->export->id);
     $files = Mockery::mock(StudioAvFiles::class)->makePartial();
     $files->shouldReceive('snapshot')->once()->andThrow(new StudioRenderFailure('secret filesystem path'));
@@ -275,11 +277,11 @@ test('AV snapshot worker respects the caller deadline rather than opening a new 
     $media = MediaAsset::factory()->for($this->user)->create(['kind' => 'image', 'mime' => 'image/png', 'disk' => 'local', 'path' => 'source.bin',
         'size' => 5, 'declared_size' => 5, 'status' => MediaAsset::STATUS_READY]);
     app(StudioAssets::class)->attach($this->user, $this->brand, $media->id);
-    $planLease = $this->state->claim($this->export->id, $this->export->render_state['generation']);
+    $planLease = app(StudioAvLeases::class)->claim($this->export->id, $this->export->render_state['generation']);
     $plan = ['frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 24, 'segmentCount' => 1,
         'selection' => ['one'], 'assetIds' => [$media->id], 'fontIds' => [], 'audioAssetIds' => [],
         'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]];
-    $this->state->accept($planLease, $plan);
+    app(StudioAvAcceptance::class)->accept($planLease, $plan);
     app(StudioAvQueue::class)->enqueue($this->export->id);
     expect(app(StudioAvRunner::class)->run($this->export->refresh()->render_state['lease'], microtime(true) - 1))->toBeFalse();
     expect($this->export->refresh()->status)->toBe('failed');
@@ -290,13 +292,13 @@ test('AV snapshot worker respects the caller deadline rather than opening a new 
 test('AV recovery releases an interrupted delivery and schedules a fresh lease without reviving the old one', function () {
     app(StudioAvQueue::class)->enqueue($this->export->id);
     $old = StudioAvLease::findOrFail($this->export->refresh()->render_state['lease']);
-    $this->state->begin($old->id);
+    app(StudioAvLeases::class)->begin($old->id);
     $this->travel(181)->seconds();
     $result = app(StudioAvRecovery::class)->run();
     expect($result['enqueued'])->toBe(1)->and($result['leases_released'])->toBe(1);
     expect($old->refresh()->status)->toBe('released');
     expect($this->export->refresh()->render_state['lease'])->not->toBe($old->id);
-    expect($this->state->begin($old->id))->toBeNull();
+    expect(app(StudioAvLeases::class)->begin($old->id))->toBeNull();
     Queue::assertPushed(ProcessStudioAvPhase::class, 2);
 });
 
@@ -306,15 +308,15 @@ test('AV recovery publishes an accepted snapshot left by a crash before enqueuei
         'size' => 14, 'declared_size' => 14, 'status' => MediaAsset::STATUS_READY]);
     app(StudioAssets::class)->attach($this->user, $this->brand, $media->id);
     $generation = $this->export->render_state['generation'];
-    $planLease = $this->state->claim($this->export->id, $generation);
+    $planLease = app(StudioAvLeases::class)->claim($this->export->id, $generation);
     $plan = ['frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 24, 'segmentCount' => 1,
         'selection' => ['one'], 'assetIds' => [$media->id], 'fontIds' => [], 'audioAssetIds' => [],
         'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]];
-    $this->state->accept($planLease, $plan);
-    $source = $this->state->claim($this->export->id, $generation, 14);
+    app(StudioAvAcceptance::class)->accept($planLease, $plan);
+    $source = app(StudioAvLeases::class)->claim($this->export->id, $generation, 14);
     $files = app(StudioAvFiles::class);
     $snapshot = $files->snapshot($source);
-    $this->state->accept($source, $snapshot, $snapshot['size']);
+    app(StudioAvAcceptance::class)->accept($source, $snapshot, $snapshot['size']);
     // Crash boundary: no publishSource call happened after the accepted checkpoint.
     $root = 'studio-exports/'.$this->user->id.'/'.$this->export->id.'/'.$this->export->render_state['workspace'];
     Storage::disk('local')->assertMissing($root.'/assets/'.$media->id.'.bin');
@@ -326,7 +328,7 @@ test('AV recovery publishes an accepted snapshot left by a crash before enqueuei
 test('AV pending promotion lookup starts with unpublished leases and uses indexed generation membership', function () {
     DB::enableQueryLog();
     try {
-        $this->state->checkpoints($this->export, ['asset', 'font'], true);
+        app(StudioAvStore::class)->checkpoints($this->export, ['asset', 'font'], true);
         $query = collect(DB::getQueryLog())->first(fn ($q) => str_contains($q['query'], 'input_published'));
         $plan = DB::select('EXPLAIN QUERY PLAN '.$query['query'], $query['bindings']);
         expect($plan[0]->detail)->toContain('workspace_id=? AND category=? AND status=? AND input_published=?');
@@ -345,9 +347,9 @@ test('AV recovery cleans expired partials from failed or cancelled exports while
     $partial = $root.'/audio-sources/'.$lease->id.'/partial.pcm';
     Storage::disk('local')->put($partial, 'unaccepted partial');
     if ($status === 'failed') {
-        $this->state->fail($lease, 'phase_failed');
+        app(StudioAvLifecycle::class)->fail($lease, 'phase_failed');
     } else {
-        $this->state->cancel($this->user, $this->export);
+        app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
     }
     $this->travel(181)->seconds();
     $result = app(StudioAvRecovery::class)->run();
@@ -396,7 +398,7 @@ test('AV bounded recovery does not starve another brand behind a worker-down exp
     ]]);
     $other = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $brand->id, 'design_id' => $design->id,
         'revision' => 1, 'format' => 'mp4', 'pages' => ['one'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
-    $other = $this->state->initialize($this->user, $other);
+    $other = app(StudioAvLifecycle::class)->initialize($this->user, $other);
     $this->travel(181)->seconds();
     expect(app(StudioAvRecovery::class)->run(1)['enqueued'])->toBe(0);
     expect(app(StudioAvRecovery::class)->run(1)['enqueued'])->toBe(1);
@@ -406,7 +408,7 @@ test('AV bounded recovery does not starve another brand behind a worker-down exp
 test('AV recovery command runs a bounded pass and is scheduled without overlapping existing maintenance', function () {
     app(StudioAvQueue::class)->enqueue($this->export->id);
     $old = StudioAvLease::findOrFail($this->export->refresh()->render_state['lease']);
-    $this->state->begin($old->id);
+    app(StudioAvLeases::class)->begin($old->id);
     $this->travel(181)->seconds();
     expect(Artisan::call('studio:recover', ['--limit' => 1]))->toBe(0);
     expect(json_decode(Artisan::output(), true)['enqueued'] ?? null)->toBe(1);
@@ -419,7 +421,7 @@ test('AV recovery command runs a bounded pass and is scheduled without overlappi
 test('AV actual database worker processes native deliveries through assembly and durable media registration', function (string $format) {
     Queue::swap($this->realQueue);
     $export = DesignExport::create($this->export->only(['user_id', 'brand_id', 'design_id', 'revision', 'pages', 'options']) + ['format' => $format, 'status' => 'pending']);
-    $export = $this->state->initialize($this->user, $export);
+    $export = app(StudioAvLifecycle::class)->initialize($this->user, $export);
     expect(app(StudioAvQueue::class)->enqueue($export->id))->toBeTrue();
     foreach (['plan', 'render', 'assemble'] as $phase) {
         $lease = StudioAvLease::findOrFail($export->refresh()->render_state['lease']);
@@ -428,7 +430,7 @@ test('AV actual database worker processes native deliveries through assembly and
         expect($exit)->toBe(0)->and($lease->refresh()->status)->toBe('accepted', $export->refresh()->error ?? '');
         expect($lease->started_at)->not->toBeNull()->and($lease->result['runtime_memory']['limit'])->toBeGreaterThan(0)->toBeLessThanOrEqual(3 * 1024 ** 3);
     }
-    expect($this->state->task($export->refresh()))->toBe(['phase' => 'register', 'index' => 0]);
+    expect(app(StudioAvStore::class)->task($export->refresh()))->toBe(['phase' => 'register', 'index' => 0]);
     expect($export->status)->toBe('processing')->and($export->render_state['lease'])->not->toBeNull()->and($export->media_ids)->toBeNull();
     for ($pass = 0; $pass < 8 && $export->refresh()->status === 'processing'; $pass++) {
         expect(StudioAvLease::findOrFail($export->render_state['lease'])->phase)->toBe('register');
@@ -456,7 +458,7 @@ test('AV database worker snapshots and mixes a private real tone for MP4 while G
     $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Tone', 'document' => $document]);
     $export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $design->id,
         'revision' => 1, 'format' => $format, 'pages' => ['one'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
-    $export = $this->state->initialize($this->user, $export);
+    $export = app(StudioAvLifecycle::class)->initialize($this->user, $export);
     app(StudioAvQueue::class)->enqueue($export->id);
     foreach ($format === 'mp4' ? ['plan', 'asset', 'normalize', 'render', 'mix', 'assemble'] : ['plan', 'render', 'assemble'] as $phase) {
         $lease = StudioAvLease::findOrFail($export->refresh()->render_state['lease']);
@@ -464,7 +466,7 @@ test('AV database worker snapshots and mixes a private real tone for MP4 while G
         Artisan::call('queue:work', ['connection' => 'database', '--queue' => 'studio', '--once' => true, '--tries' => 1, '--timeout' => 100, '--sleep' => 0]);
         expect($lease->refresh()->status)->toBe('accepted', $export->refresh()->error ?? '');
     }
-    $final = $this->state->checkpoints($export->refresh(), ['assemble'])->first()->result;
+    $final = app(StudioAvStore::class)->checkpoints($export->refresh(), ['assemble'])->first()->result;
     expect($final['frameCount'])->toBe(12)->and($final['audioCodec'])->toBe($format === 'mp4' ? 'aac' : null);
     $root = 'studio-exports/'.$this->user->id.'/'.$export->id.'/'.$export->render_state['workspace'];
     expect(Storage::disk('local')->allFiles($root.'/work'))->toBe([]);

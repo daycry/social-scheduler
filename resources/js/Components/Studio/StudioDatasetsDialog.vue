@@ -1,4 +1,6 @@
 <script setup>
+import BaseDialog from '@/Components/BaseDialog.vue';
+import { useConfirm } from '@/Composables/useConfirm';
 import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import { downloadStudioBlob } from '@/Studio/api';
 import { createDatasetClient } from '@/Studio/dataset-client';
@@ -7,25 +9,29 @@ import * as tableCore from '@/Studio/dataset-table';
 const props = defineProps({ modelValue: Boolean, brandId: Number, brandName: { type: String, default: '' }, selectable: { type: Boolean, default: false } });
 const emit = defineEmits(['update:modelValue', 'changed', 'select-chart']);
 const client = createDatasetClient({ createAssembler: tableCore.createDatasetAssembler, tableChunks: tableCore.datasetTableChunks });
-const dialog = ref(null);
-const pendingDiscard = shallowRef(null);
-const discardButton = ref(null);
-let lastActionFocus = null;
+const ask = useConfirm();
+let discardPrompt = null;
 function askDiscard(run) {
     if (!dirty.value) return run();
-    lastActionFocus = typeof document === 'undefined' ? null : document.activeElement;
-    pendingDiscard.value = { run, context };
-    nextTick(() => discardButton.value?.focus());
+    if (discardPrompt) return;
+    const ticket = new AbortController();
+    const version = context;
+    discardPrompt = ticket;
+    return ask({
+        title: 'Hay cambios sin guardar',
+        message: 'Si continúas, se descartarán los cambios de esta tabla que aún no has guardado, incluidos los que estás escribiendo.',
+        confirmLabel: 'Descartar cambios',
+        cancelLabel: 'Seguir editando',
+    }, ticket.signal).then(accepted => {
+        if (discardPrompt === ticket) discardPrompt = null;
+        if (!accepted || version !== context) return;
+        cellEditor.value = null;
+        columnDrafts.value = Object.create(null);
+        if (savedTable) { history.reset(savedTable); table.value = history.table; name.value = savedName.value; historyVersion.value++; }
+        return run();
+    });
 }
-function requestClose() { askDiscard(() => { invalidateReads(); emit('update:modelValue', false); }); }
-function confirmDiscard() {
-    const action = pendingDiscard.value; pendingDiscard.value = null;
-    if (!action || action.context !== context) return;
-    cellEditor.value = null; columnDrafts.value = Object.create(null);
-    if (savedTable) { history.reset(savedTable); table.value = history.table; name.value = savedName.value; historyVersion.value++; }
-    return action.run();
-}
-function cancelDiscard() { pendingDiscard.value = null; nextTick(() => lastActionFocus?.focus()); }
+function requestClose() { return askDiscard(() => { invalidateReads(); emit('update:modelValue', false); }); }
 const datasets = ref([]);
 const pagination = ref({ current_page: 1, last_page: 1, total: 0 });
 const query = ref('');
@@ -38,6 +44,8 @@ let context = 0;
 let disposed = false;
 const requests = new Map();
 function invalidateReads() {
+    discardPrompt?.abort();
+    discardPrompt = null;
     context++; requests.forEach(ticket => ticket.abort.abort()); requests.clear();
     listBusy.value = readBusy.value = historyBusy.value = false;
 }
@@ -339,99 +347,741 @@ function createLocalTable() {
     selectedRowId.value = table.value.rows[0]?.id ?? ''; selectedColumnId.value = table.value.columns[0]?.id ?? '';
 }
 watch(() => [selectedColumnId.value, conversionType.value], () => { conversionPreview.value = null; });
-watch(() => [props.modelValue, props.brandId], async ([open]) => {
+watch(() => [props.modelValue, props.brandId], ([open]) => {
     invalidateReads(); table.value = null; selected.value = null; history = null; historyVersion.value++;
-    pendingDiscard.value = null; cellEditor.value = null; columnDrafts.value = Object.create(null); conversionPreview.value = null; transposePreview.value = false; historyOpen.value = false; revisions.value = []; conflict.value = false; importFile.value = null; importName.value = ''; if (fileInput.value) fileInput.value.value = ''; savedTable = null; name.value = savedName.value = ''; datasets.value = []; query.value = ''; error.value = ''; status.value = '';
-    const version = context;
+    cellEditor.value = null; columnDrafts.value = Object.create(null); conversionPreview.value = null; transposePreview.value = false; historyOpen.value = false; revisions.value = []; conflict.value = false; importFile.value = null; importName.value = ''; if (fileInput.value) fileInput.value.value = ''; savedTable = null; name.value = savedName.value = ''; datasets.value = []; query.value = ''; error.value = ''; status.value = '';
     if (open && props.brandId) loadList();
-    await nextTick();
-    if (version !== context || disposed) return;
-    if (open && !dialog.value?.open) dialog.value?.showModal();
-    else if (!open && dialog.value?.open) dialog.value.close();
 }, { immediate: true });
 function beforeUnload(event) {
     if (!props.modelValue || !dirty.value) return;
     event.preventDefault(); event.returnValue = '';
 }
 if (typeof window !== 'undefined') window.addEventListener('beforeunload', beforeUnload);
-onBeforeUnmount(() => { disposed = true; invalidateReads(); dialog.value?.close(); if (typeof window !== 'undefined') window.removeEventListener('beforeunload', beforeUnload); });
+onBeforeUnmount(() => { disposed = true; invalidateReads(); if (typeof window !== 'undefined') window.removeEventListener('beforeunload', beforeUnload); });
 </script>
 <template>
-    <Teleport to="body">
-        <dialog ref="dialog" aria-label="Tablas de datos de marca" class="datasets-dialog relative m-auto max-h-[94vh] w-[calc(100vw_-_1rem)] max-w-7xl overflow-hidden rounded-2xl border-0 bg-slate-50 p-0 text-slate-800 shadow-2xl backdrop:bg-slate-950/50" @cancel.prevent="pendingDiscard ? cancelDiscard() : requestClose()">
-            <div class="max-h-[92vh] overflow-y-auto" :inert="!!pendingDiscard || undefined">
-                <header class="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
-                    <div class="min-w-0"><p class="truncate text-xs font-semibold uppercase tracking-wider text-violet-700">{{ brandName || `Marca ${brandId}` }}</p><h2 class="mt-1 text-xl font-semibold tracking-tight text-slate-950">Tablas de datos</h2></div>
-                    <button type="button" class="close-tool shrink-0" aria-label="Cerrar tablas de datos" @click="requestClose">×</button>
-                </header>
-                <div class="space-y-4 p-3 sm:p-6">
-                    <p class="max-w-3xl text-sm leading-relaxed text-slate-600">Organiza los datos de esta marca y conserva sus revisiones. Los textos, números y valores vacíos mantienen su tipo; una importación no convierte los textos en fórmulas.</p>
-                    <p v-if="error" role="alert" class="rounded-xl border border-red-200 bg-red-50 p-3 text-sm leading-relaxed text-red-800">{{ error }}</p>
-                    <div v-if="conflict" class="flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950"><span>Tu borrador permanece en el editor.</span><button type="button" class="data-button" :disabled="writeBusy" @click="reloadSaved">Recargar versión guardada</button></div>
-                    <p v-if="status" role="status" class="text-sm text-violet-800">{{ status }}</p>
-                    <p v-if="writeBusy" role="status" class="rounded-xl bg-violet-100 p-3 text-sm font-medium text-violet-950">Hay una escritura en curso. Puedes cerrar esta ventana; su resultado se conservará en la marca de origen.</p>
-                    <div class="grid min-w-0 gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
-                        <aside class="min-w-0 space-y-4" aria-label="Biblioteca de tablas">
-                            <div class="rounded-2xl border border-slate-200 bg-white p-4">
-                                <button type="button" class="data-primary w-full" :disabled="writeBusy" @click="newTable">Nueva tabla</button>
-                                <form class="mt-4 flex gap-2" role="search" @submit.prevent="loadList()"><label class="sr-only" for="dataset-search">Buscar tablas</label><input id="dataset-search" v-model="query" type="search" maxlength="120" class="data-input min-w-0 flex-1" placeholder="Buscar tablas…" /><button type="submit" class="data-button px-3" :disabled="listBusy">Buscar</button></form>
-                                <p v-if="listBusy" role="status" class="mt-3 text-xs text-slate-500">Buscando tablas…</p>
-                                <p v-else-if="!datasets.length" class="mt-4 text-sm text-slate-500">No hay tablas para esta búsqueda. Crea una o importa tus datos.</p>
-                                <ul class="mt-3 space-y-2">
-                                    <li v-for="dataset in datasets" :key="dataset.id"><button type="button" :data-testid="`dataset-open-${dataset.id}`" :aria-label="dataset.name" :aria-pressed="selected?.id === dataset.id" :disabled="writeBusy" class="w-full rounded-xl border p-3 text-left transition hover:border-violet-400" :class="selected?.id === dataset.id ? 'border-violet-400 bg-violet-50' : 'border-slate-200 bg-white'" @click="selectDataset(dataset)"><span class="block break-words text-sm font-semibold text-slate-900">{{ dataset.name }}</span><span class="mt-1 block text-xs text-slate-600">Revisión {{ dataset.revision }} · {{ dataset.row_count }} filas × {{ dataset.column_count }} columnas</span><span v-if="dataset.archived_at" class="mt-2 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">Archivada</span></button></li>
-                                </ul>
-                                <nav v-if="pagination.last_page > 1" aria-label="Páginas de tablas" class="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs"><button type="button" class="data-button" :disabled="listBusy || pagination.current_page <= 1" @click="loadList(pagination.current_page - 1)">Tablas anteriores</button><span>{{ pagination.current_page }} / {{ pagination.last_page }}</span><button type="button" class="data-button" :disabled="listBusy || pagination.current_page >= pagination.last_page" @click="loadList(pagination.current_page + 1)">Tablas siguientes</button></nav>
-                                <p class="mt-3 text-[11px] leading-relaxed text-slate-500">La biblioteca incluye las tablas activas y archivadas de esta marca.</p>
+    <BaseDialog
+        :open="modelValue"
+        aria-label="Tablas de datos de marca"
+        class="datasets-dialog relative m-auto max-h-[94vh] w-[calc(100vw_-_1rem)] max-w-7xl overflow-hidden rounded-2xl border-0 bg-slate-50 p-0 text-slate-800 shadow-2xl backdrop:bg-slate-950/50"
+        @close="requestClose"
+    >
+        <div class="max-h-[92vh] overflow-y-auto">
+            <header
+                class="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 py-4 sm:px-6"
+            >
+                <div class="min-w-0"
+                    ><p
+                        class="truncate text-xs font-semibold uppercase tracking-wider text-violet-700"
+                        >{{ brandName || `Marca ${brandId}` }}</p
+                    ><h2 class="mt-1 text-xl font-semibold tracking-tight text-slate-950">Tablas de datos</h2></div
+                >
+                <button
+                    type="button"
+                    class="close-tool shrink-0"
+                    aria-label="Cerrar tablas de datos"
+                    @click="requestClose"
+                    >×</button
+                >
+            </header>
+            <div class="space-y-4 p-3 sm:p-6">
+                <p class="max-w-3xl text-sm leading-relaxed text-slate-600"
+                    >Organiza los datos de esta marca y conserva sus revisiones. Los textos, números y valores vacíos
+                    mantienen su tipo; una importación no convierte los textos en fórmulas.</p
+                >
+                <p
+                    v-if="error"
+                    role="alert"
+                    class="rounded-xl border border-red-200 bg-red-50 p-3 text-sm leading-relaxed text-red-800"
+                    >{{ error }}</p
+                >
+                <div
+                    v-if="conflict"
+                    class="flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950"
+                    ><span>Tu borrador permanece en el editor.</span
+                    ><button type="button" class="data-button" :disabled="writeBusy" @click="reloadSaved"
+                        >Recargar versión guardada</button
+                    ></div
+                >
+                <p v-if="status" role="status" class="text-sm text-violet-800">{{ status }}</p>
+                <p
+                    v-if="writeBusy"
+                    role="status"
+                    class="rounded-xl bg-violet-100 p-3 text-sm font-medium text-violet-950"
+                    >Hay una escritura en curso. Puedes cerrar esta ventana; su resultado se conservará en la marca de
+                    origen.</p
+                >
+                <div class="grid min-w-0 gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
+                    <aside class="min-w-0 space-y-4" aria-label="Biblioteca de tablas">
+                        <div class="rounded-2xl border border-slate-200 bg-white p-4">
+                            <button type="button" class="data-primary w-full" :disabled="writeBusy" @click="newTable"
+                                >Nueva tabla</button
+                            >
+                            <form class="mt-4 flex gap-2" role="search" @submit.prevent="loadList()"
+                                ><label class="sr-only" for="dataset-search">Buscar tablas</label
+                                ><input
+                                    id="dataset-search"
+                                    v-model="query"
+                                    type="search"
+                                    maxlength="120"
+                                    class="data-input min-w-0 flex-1"
+                                    placeholder="Buscar tablas…"
+                                /><button type="submit" class="data-button px-3" :disabled="listBusy"
+                                    >Buscar</button
+                                ></form
+                            >
+                            <p v-if="listBusy" role="status" class="mt-3 text-xs text-slate-500">Buscando tablas…</p>
+                            <p v-else-if="!datasets.length" class="mt-4 text-sm text-slate-500"
+                                >No hay tablas para esta búsqueda. Crea una o importa tus datos.</p
+                            >
+                            <ul class="mt-3 space-y-2">
+                                <li v-for="dataset in datasets" :key="dataset.id"
+                                    ><button
+                                        type="button"
+                                        :data-testid="`dataset-open-${dataset.id}`"
+                                        :aria-label="dataset.name"
+                                        :aria-pressed="selected?.id === dataset.id"
+                                        :disabled="writeBusy"
+                                        class="w-full rounded-xl border p-3 text-left transition hover:border-violet-400"
+                                        :class="selected?.id === dataset.id ? 'border-violet-400 bg-violet-50' : 'border-slate-200 bg-white'"
+                                        @click="selectDataset(dataset)"
+                                        ><span
+                                            class="block break-words text-sm font-semibold text-slate-900"
+                                            >{{ dataset.name }}</span
+                                        ><span class="mt-1 block text-xs text-slate-600"
+                                            >Revisión {{ dataset.revision }} · {{ dataset.row_count }} filas ×
+                                            {{ dataset.column_count }} columnas</span
+                                        ><span
+                                            v-if="dataset.archived_at"
+                                            class="mt-2 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600"
+                                            >Archivada</span
+                                        ></button
+                                    ></li
+                                >
+                            </ul>
+                            <nav
+                                v-if="pagination.last_page > 1"
+                                aria-label="Páginas de tablas"
+                                class="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs"
+                                ><button
+                                    type="button"
+                                    class="data-button"
+                                    :disabled="listBusy || pagination.current_page <= 1"
+                                    @click="loadList(pagination.current_page - 1)"
+                                    >Tablas anteriores</button
+                                ><span>{{ pagination.current_page }} / {{ pagination.last_page }}</span
+                                ><button
+                                    type="button"
+                                    class="data-button"
+                                    :disabled="listBusy || pagination.current_page >= pagination.last_page"
+                                    @click="loadList(pagination.current_page + 1)"
+                                    >Tablas siguientes</button
+                                ></nav
+                            >
+                            <p class="mt-3 text-[11px] leading-relaxed text-slate-500"
+                                >La biblioteca incluye las tablas activas y archivadas de esta marca.</p
+                            >
+                        </div>
+                        <details class="rounded-2xl border border-slate-200 bg-white p-4"
+                            ><summary class="cursor-pointer text-sm font-semibold text-slate-900"
+                                >Importar un archivo</summary
+                            >
+                            <form class="mt-4 space-y-3" @submit.prevent="importData"
+                                ><fieldset class="space-y-3" :disabled="writeBusy">
+                                    <label class="block text-xs font-medium text-slate-700"
+                                        >Nombre de la importación<input
+                                            v-model="importName"
+                                            class="data-input mt-1 w-full"
+                                            required
+                                            placeholder="Datos de la campaña"
+                                    /></label>
+                                    <label class="block text-xs font-medium text-slate-700"
+                                        >Formato de importación<select
+                                            v-model="importFormat"
+                                            class="data-input mt-1 w-full"
+                                            ><option value="csv">CSV</option
+                                            ><option value="tsv">TSV</option
+                                            ><option value="json">JSON tipado</option></select
+                                        ></label
+                                    >
+                                    <label
+                                        v-if="importFormat !== 'json'"
+                                        class="flex items-start gap-2 text-xs leading-relaxed"
+                                        ><input
+                                            v-model="importHeader"
+                                            type="checkbox"
+                                            class="mt-0.5 rounded border-slate-300 text-violet-700"
+                                        />La primera fila contiene encabezados</label
+                                    >
+                                    <label class="block text-xs font-medium text-slate-700"
+                                        >Archivo de datos<input
+                                            ref="fileInput"
+                                            type="file"
+                                            accept=".csv,.tsv,.json"
+                                            class="mt-2 block w-full min-w-0 text-xs file:mr-2 file:rounded-lg file:border-0 file:bg-violet-100 file:px-2 file:py-2 file:text-violet-900"
+                                            @change="pickFile"
+                                    /></label>
+                                    <p class="text-[11px] leading-relaxed text-slate-500"
+                                        >CSV y TSV: hasta 25 MB. JSON tipado: hasta 52 MB. Máximo 1.000 filas y 100
+                                        columnas. CSV y TSV se importan como texto.</p
+                                    >
+                                    <button type="submit" class="data-button w-full" :disabled="!importFile"
+                                        >Importar archivo</button
+                                    >
+                                </fieldset></form
+                            >
+                        </details>
+                    </aside>
+                    <section class="min-w-0 space-y-4" aria-label="Editor de tablas">
+                        <div
+                            v-if="readBusy"
+                            role="status"
+                            class="rounded-2xl border border-violet-200 bg-violet-50 p-8 text-center text-sm text-violet-900"
+                            >Cargando tabla…</div
+                        >
+                        <section
+                            v-else-if="table"
+                            data-testid="dataset-editor"
+                            class="min-w-0 space-y-4 rounded-2xl border border-slate-200 bg-white p-3 sm:p-5"
+                        >
+                            <div class="flex flex-wrap items-end justify-between gap-3">
+                                <label class="block min-w-0 flex-1 text-xs font-medium text-slate-600"
+                                    >Nombre de la tabla<input
+                                        v-model="name"
+                                        class="data-input mt-1 w-full text-base font-semibold text-slate-950"
+                                        :disabled="!canEdit"
+                                /></label>
+                                <button
+                                    type="button"
+                                    class="data-primary"
+                                    :disabled="!canEdit || !dirty"
+                                    @click="saveTable"
+                                    >Guardar tabla</button
+                                >
                             </div>
-                            <details class="rounded-2xl border border-slate-200 bg-white p-4"><summary class="cursor-pointer text-sm font-semibold text-slate-900">Importar un archivo</summary>
-                                <form class="mt-4 space-y-3" @submit.prevent="importData"><fieldset class="space-y-3" :disabled="writeBusy">
-                                    <label class="block text-xs font-medium text-slate-700">Nombre de la importación<input v-model="importName" class="data-input mt-1 w-full" required placeholder="Datos de la campaña" /></label>
-                                    <label class="block text-xs font-medium text-slate-700">Formato de importación<select v-model="importFormat" class="data-input mt-1 w-full"><option value="csv">CSV</option><option value="tsv">TSV</option><option value="json">JSON tipado</option></select></label>
-                                    <label v-if="importFormat !== 'json'" class="flex items-start gap-2 text-xs leading-relaxed"><input v-model="importHeader" type="checkbox" class="mt-0.5 rounded border-slate-300 text-violet-700" />La primera fila contiene encabezados</label>
-                                    <label class="block text-xs font-medium text-slate-700">Archivo de datos<input ref="fileInput" type="file" accept=".csv,.tsv,.json" class="mt-2 block w-full min-w-0 text-xs file:mr-2 file:rounded-lg file:border-0 file:bg-violet-100 file:px-2 file:py-2 file:text-violet-900" @change="pickFile" /></label>
-                                    <p class="text-[11px] leading-relaxed text-slate-500">CSV y TSV: hasta 25 MB. JSON tipado: hasta 52 MB. Máximo 1.000 filas y 100 columnas. CSV y TSV se importan como texto.</p>
-                                    <button type="submit" class="data-button w-full" :disabled="!importFile">Importar archivo</button>
-                                </fieldset></form>
-                            </details>
-                        </aside>
-                        <section class="min-w-0 space-y-4" aria-label="Editor de tablas">
-                            <div v-if="readBusy" role="status" class="rounded-2xl border border-violet-200 bg-violet-50 p-8 text-center text-sm text-violet-900">Cargando tabla…</div>
-                            <section v-else-if="table" data-testid="dataset-editor" class="min-w-0 space-y-4 rounded-2xl border border-slate-200 bg-white p-3 sm:p-5">
-                                <div class="flex flex-wrap items-end justify-between gap-3">
-                                    <label class="block min-w-0 flex-1 text-xs font-medium text-slate-600">Nombre de la tabla<input v-model="name" class="data-input mt-1 w-full text-base font-semibold text-slate-950" :disabled="!canEdit" /></label>
-                                    <button type="button" class="data-primary" :disabled="!canEdit || !dirty" @click="saveTable">Guardar tabla</button>
-                                </div>
-                                <div class="flex flex-wrap items-center gap-2 text-xs"><span v-if="selected" class="rounded-full bg-slate-100 px-2.5 py-1">Revisión {{ revisionView }}</span><span class="text-slate-500">{{ table.rows.length }} filas × {{ table.columns.length }} columnas</span><span role="status" :class="dirty ? 'text-amber-800' : 'text-emerald-700'">{{ dirty ? 'Cambios sin guardar' : 'Sin cambios pendientes' }}</span><span v-if="viewingHistory" class="rounded-full bg-amber-100 px-2.5 py-1 text-amber-900">Vista de revisión histórica</span><span v-if="selected?.archived_at" class="rounded-full bg-slate-200 px-2.5 py-1 text-slate-700">Tabla archivada · sólo lectura</span></div>
-                                <div class="flex flex-wrap gap-2"><button type="button" class="data-button" :disabled="!canUndo" @click="undoTable('undo')">Deshacer tabla</button><button type="button" class="data-button" :disabled="!canRedo" @click="undoTable('redo')">Rehacer tabla</button><button type="button" class="data-button" :disabled="writeBusy" @click="copyTable">Duplicar tabla</button><button v-if="selected" type="button" class="data-button" :disabled="writeBusy" @click="showHistory()">Historial de revisiones</button><button v-if="viewingHistory" type="button" class="data-button" :disabled="writeBusy" @click="reloadSaved">Volver a la revisión actual</button></div>
-                                <p class="text-[11px] leading-relaxed text-slate-500">Se conservan hasta 30 pasos para deshacer. Pulsa una celda para editar su contenido completo y elegir su tipo.</p>
-                                <div class="min-w-0 overflow-x-auto rounded-xl border border-slate-200" role="region" tabindex="0" aria-label="Desplazamiento horizontal de la tabla">
-                                    <table class="w-full min-w-[640px] table-fixed border-collapse text-left text-xs" aria-label="Datos de la tabla">
-                                        <caption class="sr-only">Filas {{ table.rows.length ? rowPage * 20 + 1 : 0 }} a {{ Math.min((rowPage + 1) * 20, table.rows.length) }}. Columnas {{ columnPage * 8 + 1 }} a {{ Math.min((columnPage + 1) * 8, table.columns.length) }}.</caption>
-                                        <thead class="bg-slate-50"><tr><th scope="col" class="w-12 border-b border-r border-slate-200 p-2"><span class="sr-only">Fila</span>#</th><th v-for="column in visibleColumns" :key="column.id" scope="col" class="min-w-24 border-b border-r border-slate-200 p-2 last:border-r-0"><label class="sr-only" :for="`dataset-header-${column.id}`">Nombre de columna {{ column.index + 1 }}</label><input :id="`dataset-header-${column.id}`" :value="columnDrafts[column.id] ?? column.label" :disabled="!canEdit" class="w-full min-w-0 rounded-md border border-transparent bg-transparent px-1 py-1 font-semibold text-slate-800 hover:border-slate-300 focus:border-violet-500 focus:bg-white disabled:opacity-100" @input="stageColumnLabel(column.id, $event.target.value)" @change="renameColumn(column.id, $event.target.value, $event)" /></th></tr></thead>
-                                        <tbody><tr v-for="(row, rowIndex) in visibleRows" :key="row.id" class="border-b border-slate-100 last:border-b-0"><th scope="row" class="border-r border-slate-200 bg-slate-50 p-2 font-normal text-slate-500">{{ rowPage * 20 + rowIndex + 1 }}</th><td v-for="column in visibleColumns" :key="column.id" class="border-r border-slate-100 p-0 align-top last:border-r-0"><button type="button" :data-testid="`dataset-cell-${row.id}-${column.id}`" :aria-label="`Editar fila ${rowPage * 20 + rowIndex + 1}, columna ${column.index + 1}: ${column.label}`" :disabled="!canEdit" class="block min-h-12 w-full px-3 py-2 text-left hover:bg-violet-50 disabled:opacity-100" :class="selectedRowId === row.id && selectedColumnId === column.id ? 'bg-violet-50 ring-1 ring-inset ring-violet-300' : ''" @click="openCell(row.id, column.id)"><span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">{{ { text: 'Texto', number: 'Número', empty: 'Vacío' }[tableCore.cellType(row.values[column.index])] }}</span><span class="block max-h-16 overflow-hidden whitespace-pre-wrap break-words text-slate-800">{{ row.values[column.index] === null ? '—' : tableCore.cellText(row.values[column.index]) || 'Texto vacío' }}</span></button></td></tr><tr v-if="!visibleRows.length"><td :colspan="visibleColumns.length + 1" class="p-6 text-center text-slate-500">Esta tabla todavía no tiene filas. Añade la primera fila para empezar.</td></tr></tbody>
-                                    </table>
-                                </div>
-                                <div class="flex flex-wrap items-center justify-between gap-3 text-xs"><div class="flex items-center gap-2"><button type="button" class="data-button" :disabled="rowPage === 0" @click="rowPage--">Filas anteriores</button><span>{{ table.rows.length ? rowPage * 20 + 1 : 0 }}–{{ Math.min((rowPage + 1) * 20, table.rows.length) }} / {{ table.rows.length }}</span><button type="button" class="data-button" :disabled="(rowPage + 1) * 20 >= table.rows.length" @click="rowPage++">Filas siguientes</button></div><div class="flex items-center gap-2"><button type="button" class="data-button" :disabled="columnPage === 0" @click="columnPage--">Columnas anteriores</button><span>{{ columnPage * 8 + 1 }}–{{ Math.min((columnPage + 1) * 8, table.columns.length) }}</span><button type="button" class="data-button" :disabled="(columnPage + 1) * 8 >= table.columns.length" @click="columnPage++">Columnas siguientes</button></div></div>
-                                <div v-if="headerPending" class="rounded-xl bg-amber-50 p-3 text-xs text-amber-950">Hay un encabezado pendiente. Sal del campo para aplicarlo o <button type="button" class="font-semibold underline" @click="columnDrafts = Object.create(null)">cancelar cambios de encabezados</button>.</div>
-                                <fieldset v-if="cellEditor" class="space-y-3 rounded-xl border border-violet-200 bg-violet-50/60 p-4" :disabled="!canEdit"><legend class="px-1 text-sm font-semibold text-violet-950">Editar celda</legend><label class="block text-xs font-medium">Tipo de la celda<select ref="cellTypeInput" v-model="cellTypeDraft" class="data-input mt-1 w-full sm:max-w-xs"><option value="text">Texto</option><option value="number">Número</option><option value="empty">Vacío</option></select></label><label class="block text-xs font-medium">Valor de la celda<textarea ref="cellInput" v-model="cellDraft" rows="4" class="data-input mt-1 w-full font-mono text-sm" :disabled="cellTypeDraft === 'empty'" spellcheck="false" /></label><p class="text-xs leading-relaxed text-slate-600">Texto conserva ceros iniciales y fórmulas literalmente. Número usa punto decimal, sin separador de miles; Vacío guarda un valor null.</p><div class="flex flex-wrap gap-2"><button type="button" class="data-primary" @click="commitCell">Aplicar celda</button><button type="button" class="data-button" @click="cellEditor = null">Cancelar edición de celda</button></div></fieldset>
-                                <details class="rounded-xl border border-slate-200 p-4"><summary class="cursor-pointer text-sm font-semibold text-slate-900">Herramientas de tabla</summary><fieldset class="mt-4 space-y-5" :disabled="!canEdit">
-                                    <div class="grid gap-3 sm:grid-cols-2"><label class="block text-xs font-medium">Fila seleccionada<select v-model="selectedRowId" class="data-input mt-1 w-full"><option v-if="!table.rows.length" value="">No hay filas</option><option v-for="(row, index) in table.rows" :key="row.id" :value="row.id">Fila {{ index + 1 }}</option></select></label><label class="block text-xs font-medium">Columna seleccionada<select v-model="selectedColumnId" class="data-input mt-1 w-full"><option v-for="(column, index) in table.columns" :key="column.id" :value="column.id">Columna {{ index + 1 }}: {{ column.label }}</option></select></label></div>
-                                    <div class="flex flex-wrap gap-2"><button type="button" class="data-button" @click="structure('add-row')">Añadir fila</button><button type="button" class="data-button" @click="structure('add-column')">Añadir columna</button><button type="button" class="data-button" :disabled="!selectedRowId" @click="structure('remove-row')">Eliminar fila seleccionada</button><button type="button" class="data-button" :disabled="table.columns.length <= 1" @click="structure('remove-column')">Eliminar columna seleccionada</button></div>
-                                    <section class="space-y-3 border-t border-slate-100 pt-4" aria-label="Conversión explícita de columna"><h3 class="text-sm font-semibold">Convertir la columna seleccionada</h3><label class="block text-xs font-medium">Tipo de conversión<select v-model="conversionType" class="data-input mt-1 w-full sm:max-w-xs"><option value="number">Número</option><option value="text">Texto</option><option value="empty">Vacío</option></select></label><button type="button" class="data-button" @click="previewConversion">Previsualizar conversión</button><div v-if="conversionPreview" class="space-y-2 rounded-lg bg-slate-50 p-3 text-xs"><p>{{ conversionPreview.changes.length }} filas convertibles. {{ conversionPreview.errors.length }} errores.</p><ul v-if="conversionPreview.errors.length" role="alert" class="space-y-1 text-red-800"><li v-for="failure in conversionPreview.errors.slice(0, 20)" :key="failure.rowId">Fila {{ table.rows.findIndex(row => row.id === failure.rowId) + 1 }}: {{ failure.message }}</li><li v-if="conversionPreview.errors.length > 20">Se muestran los primeros 20 errores.</li></ul><ul v-else class="space-y-1 text-slate-600"><li v-for="change in conversionPreview.changes.slice(0, 5)" :key="change.rowId">Fila {{ table.rows.findIndex(row => row.id === change.rowId) + 1 }} → {{ tableCore.cellText(change.value) || 'Vacío' }}</li></ul><button type="button" class="data-primary" :disabled="conversionPreview.errors.length > 0" @click="applyConversion">Aplicar conversión</button></div></section>
-                                    <section class="space-y-3 border-t border-slate-100 pt-4" aria-label="Buscar y rellenar"><label class="flex items-start gap-2 text-xs"><input v-model="onlySelectedColumn" type="checkbox" class="rounded border-slate-300 text-violet-700" />Sólo columna seleccionada</label><div class="grid gap-3 sm:grid-cols-2"><label class="block text-xs font-medium">Texto a buscar<input v-model="searchText" class="data-input mt-1 w-full" /></label><label class="block text-xs font-medium">Texto de reemplazo<input v-model="replacementText" class="data-input mt-1 w-full" /></label></div><p class="text-xs text-slate-500">Reemplazo literal dentro de celdas de texto, sin expresiones ni cambios a números.</p><button type="button" class="data-button" :disabled="!searchText" @click="replaceText">Reemplazar texto</button><div class="grid gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2"><label class="block text-xs font-medium">Tipo del relleno<select v-model="fillType" class="data-input mt-1 w-full"><option value="text">Texto</option><option value="number">Número</option><option value="empty">Vacío</option></select></label><label class="block text-xs font-medium">Valor para vacíos<input v-model="fillText" class="data-input mt-1 w-full" :disabled="fillType === 'empty'" /></label></div><label class="flex items-start gap-2 text-xs"><input v-model="includeEmptyStrings" type="checkbox" class="rounded border-slate-300 text-violet-700" />Incluir textos vacíos</label><button type="button" class="data-button" @click="fillBlanks">Rellenar vacíos</button></section>
-                                    <section class="space-y-3 border-t border-slate-100 pt-4" aria-label="Transponer"><button type="button" class="data-button" @click="transposeTable">Transponer tabla</button><div v-if="transposePreview" class="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-950"><p>Las columnas pasarán a ser filas. Se conservarán sus encabezados como valores de la primera columna «Columna»; las demás columnas se llamarán «Fila 1», «Fila 2»… Se crearán identificadores nuevos. Esta operación admite hasta 99 filas y se puede deshacer.</p><button type="button" class="data-primary" @click="confirmTranspose">Confirmar transposición</button><button type="button" class="data-button ml-2" @click="transposePreview = false">Cancelar transposición</button></div></section>
-                                </fieldset></details>
-                                <section v-if="historyOpen" class="space-y-3 rounded-xl border border-slate-200 p-4" aria-label="Historial de revisiones"><div class="flex items-center justify-between gap-3"><h3 class="text-sm font-semibold">Historial de revisiones</h3><button type="button" class="data-button" @click="historyOpen = false">Ocultar historial</button></div><p v-if="historyBusy" role="status" class="text-xs text-slate-500">Cargando revisiones…</p><ul class="space-y-2"><li v-for="revision in revisions" :key="revision.revision"><button type="button" class="flex w-full flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3 text-left hover:border-violet-400" :aria-label="`Ver revisión ${revision.revision}`" :disabled="writeBusy" @click="selectDataset(selected, revision.revision, revision.name)"><span class="min-w-0"><span class="block text-xs font-semibold">Revisión {{ revision.revision }} · {{ revision.name }}</span><span class="mt-1 block text-[11px] text-slate-500">{{ revision.row_count }} filas × {{ revision.column_count }} columnas · {{ revision.json_bytes }} bytes</span></span><span class="text-xs text-violet-700">Ver revisión {{ revision.revision }}</span></button></li></ul><nav v-if="historyPagination.last_page > 1" class="flex flex-wrap items-center justify-between gap-2 text-xs" aria-label="Páginas de revisiones"><button type="button" class="data-button" :disabled="historyBusy || historyPagination.current_page <= 1" @click="showHistory(historyPagination.current_page - 1)">Revisiones anteriores</button><span>{{ historyPagination.current_page }} / {{ historyPagination.last_page }}</span><button type="button" class="data-button" :disabled="historyBusy || historyPagination.current_page >= historyPagination.last_page" @click="showHistory(historyPagination.current_page + 1)">Revisiones siguientes</button></nav></section>
-                                <section v-if="selectable" class="space-y-3 rounded-xl border border-violet-200 bg-violet-50 p-4" aria-label="Datos para gráfico"><button type="button" class="data-primary" :disabled="!canSelectChart" @click="selectChart">Usar revisión guardada para gráfico</button><p v-if="dirty" class="text-xs">Guarda los cambios y recarga la revisión antes de seleccionarla.</p><p v-else-if="!sha256" class="text-xs">Recarga la revisión guardada para verificar su SHA-256.</p><button v-if="selected && !sha256" type="button" class="data-button" :disabled="readBusy || writeBusy" @click="reloadSaved">Recargar revisión guardada</button><p v-if="!chartColumns.some(column => column.numeric)" class="text-xs">No hay columnas numéricas. Convierte una columna a Número con las herramientas de edición de datos y guarda la revisión.</p></section><section class="space-y-3 border-t border-slate-200 pt-4" aria-label="Descargas de datos"><div v-if="selected" class="grid gap-3 sm:grid-cols-2"><label class="block text-xs font-medium">Formato de descarga<select v-model="downloadFormat" class="data-input mt-1 w-full"><option value="csv">CSV</option><option value="tsv">TSV</option><option value="json">JSON tipado</option></select></label><label v-if="downloadFormat !== 'json'" class="block text-xs font-medium">Modo de descarga<select v-model="downloadMode" class="data-input mt-1 w-full"><option value="spreadsheet">Segura para hojas de cálculo</option><option value="text">Fiel al original</option></select></label></div><p v-if="selected" class="text-xs leading-relaxed text-slate-500">La descarga corresponde a la revisión {{ revisionView }} guardada. El modo seguro antepone un apóstrofo a todos los textos para evitar que una hoja de cálculo ejecute fórmulas. El modo fiel conserva los textos originales.</p><div class="flex flex-wrap gap-2"><a v-if="selected" :href="downloadUrl" download class="data-button">Descargar tabla</a><button type="button" class="data-button" @click="downloadDraft">Descargar borrador JSON</button><button v-if="selected" type="button" class="data-button ml-auto text-slate-600" :disabled="writeBusy" @click="mutateDataset(selected.archived_at ? 'restore' : 'archive')">{{ selected.archived_at ? 'Restaurar tabla' : 'Archivar tabla' }}</button></div><p v-if="sha256" class="break-all font-mono text-xs text-slate-600">SHA-256: {{ sha256 }}</p></section>
-                            </section>
-                            <div v-else class="rounded-2xl border border-dashed border-violet-200 bg-white p-8 text-center"><div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-2xl text-violet-700" aria-hidden="true">▦</div><h3 class="text-base font-semibold text-slate-900">Un lugar para los datos de tu marca</h3><p class="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-slate-500">Elige una tabla de la biblioteca, crea una nueva o importa un archivo para empezar a trabajar.</p><button v-if="selected" type="button" class="data-button mt-4" :disabled="writeBusy" @click="reloadSaved">Reintentar carga de tabla</button></div>
+                            <div class="flex flex-wrap items-center gap-2 text-xs"
+                                ><span v-if="selected" class="rounded-full bg-slate-100 px-2.5 py-1"
+                                    >Revisión {{ revisionView }}</span
+                                ><span class="text-slate-500"
+                                    >{{ table.rows.length }} filas × {{ table.columns.length }} columnas</span
+                                ><span
+                                    role="status"
+                                    :class="dirty ? 'text-amber-800' : 'text-emerald-700'"
+                                    >{{ dirty ? 'Cambios sin guardar' : 'Sin cambios pendientes' }}</span
+                                ><span
+                                    v-if="viewingHistory"
+                                    class="rounded-full bg-amber-100 px-2.5 py-1 text-amber-900"
+                                    >Vista de revisión histórica</span
+                                ><span
+                                    v-if="selected?.archived_at"
+                                    class="rounded-full bg-slate-200 px-2.5 py-1 text-slate-700"
+                                    >Tabla archivada · sólo lectura</span
+                                ></div
+                            >
+                            <div class="flex flex-wrap gap-2"
+                                ><button
+                                    type="button"
+                                    class="data-button"
+                                    :disabled="!canUndo"
+                                    @click="undoTable('undo')"
+                                    >Deshacer tabla</button
+                                ><button
+                                    type="button"
+                                    class="data-button"
+                                    :disabled="!canRedo"
+                                    @click="undoTable('redo')"
+                                    >Rehacer tabla</button
+                                ><button type="button" class="data-button" :disabled="writeBusy" @click="copyTable"
+                                    >Duplicar tabla</button
+                                ><button
+                                    v-if="selected"
+                                    type="button"
+                                    class="data-button"
+                                    :disabled="writeBusy"
+                                    @click="showHistory()"
+                                    >Historial de revisiones</button
+                                ><button
+                                    v-if="viewingHistory"
+                                    type="button"
+                                    class="data-button"
+                                    :disabled="writeBusy"
+                                    @click="reloadSaved"
+                                    >Volver a la revisión actual</button
+                                ></div
+                            >
+                            <p class="text-[11px] leading-relaxed text-slate-500"
+                                >Se conservan hasta 30 pasos para deshacer. Pulsa una celda para editar su contenido
+                                completo y elegir su tipo.</p
+                            >
+                            <div
+                                class="min-w-0 overflow-x-auto rounded-xl border border-slate-200"
+                                role="region"
+                                tabindex="0"
+                                aria-label="Desplazamiento horizontal de la tabla"
+                            >
+                                <table
+                                    class="w-full min-w-[640px] table-fixed border-collapse text-left text-xs"
+                                    aria-label="Datos de la tabla"
+                                >
+                                    <caption class="sr-only"
+                                        >Filas {{ table.rows.length ? rowPage * 20 + 1 : 0 }} a
+                                        {{ Math.min((rowPage + 1) * 20, table.rows.length) }}. Columnas
+                                        {{ columnPage * 8 + 1 }} a
+                                        {{ Math.min((columnPage + 1) * 8, table.columns.length) }}.</caption
+                                    >
+                                    <thead class="bg-slate-50"
+                                        ><tr
+                                            ><th scope="col" class="w-12 border-b border-r border-slate-200 p-2"
+                                                ><span class="sr-only">Fila</span>#</th
+                                            ><th
+                                                v-for="column in visibleColumns"
+                                                :key="column.id"
+                                                scope="col"
+                                                class="min-w-24 border-b border-r border-slate-200 p-2 last:border-r-0"
+                                                ><label class="sr-only" :for="`dataset-header-${column.id}`"
+                                                    >Nombre de columna {{ column.index + 1 }}</label
+                                                ><input
+                                                    :id="`dataset-header-${column.id}`"
+                                                    :value="columnDrafts[column.id] ?? column.label"
+                                                    :disabled="!canEdit"
+                                                    class="w-full min-w-0 rounded-md border border-transparent bg-transparent px-1 py-1 font-semibold text-slate-800 hover:border-slate-300 focus:border-violet-500 focus:bg-white disabled:opacity-100"
+                                                    @input="stageColumnLabel(column.id, $event.target.value)"
+                                                    @change="renameColumn(column.id, $event.target.value, $event)" /></th></tr
+                                    ></thead>
+                                    <tbody
+                                        ><tr
+                                            v-for="(row, rowIndex) in visibleRows"
+                                            :key="row.id"
+                                            class="border-b border-slate-100 last:border-b-0"
+                                            ><th
+                                                scope="row"
+                                                class="border-r border-slate-200 bg-slate-50 p-2 font-normal text-slate-500"
+                                                >{{ rowPage * 20 + rowIndex + 1 }}</th
+                                            ><td
+                                                v-for="column in visibleColumns"
+                                                :key="column.id"
+                                                class="border-r border-slate-100 p-0 align-top last:border-r-0"
+                                                ><button
+                                                    type="button"
+                                                    :data-testid="`dataset-cell-${row.id}-${column.id}`"
+                                                    :aria-label="`Editar fila ${rowPage * 20 + rowIndex + 1}, columna ${column.index + 1}: ${column.label}`"
+                                                    :disabled="!canEdit"
+                                                    class="block min-h-12 w-full px-3 py-2 text-left hover:bg-violet-50 disabled:opacity-100"
+                                                    :class="selectedRowId === row.id && selectedColumnId === column.id ? 'bg-violet-50 ring-1 ring-inset ring-violet-300' : ''"
+                                                    @click="openCell(row.id, column.id)"
+                                                    ><span
+                                                        class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600"
+                                                        >{{ { text: 'Texto', number: 'Número', empty: 'Vacío' }[tableCore.cellType(row.values[column.index])] }}</span
+                                                    ><span
+                                                        class="block max-h-16 overflow-hidden whitespace-pre-wrap break-words text-slate-800"
+                                                        >{{ row.values[column.index] === null ? '—' : tableCore.cellText(row.values[column.index]) || 'Texto vacío' }}</span
+                                                    ></button
+                                                ></td
+                                            ></tr
+                                        ><tr v-if="!visibleRows.length"
+                                            ><td
+                                                :colspan="visibleColumns.length + 1"
+                                                class="p-6 text-center text-slate-500"
+                                                >Esta tabla todavía no tiene filas. Añade la primera fila para
+                                                empezar.</td
+                                            ></tr
+                                        ></tbody
+                                    >
+                                </table>
+                            </div>
+                            <div class="flex flex-wrap items-center justify-between gap-3 text-xs"
+                                ><div class="flex items-center gap-2"
+                                    ><button
+                                        type="button"
+                                        class="data-button"
+                                        :disabled="rowPage === 0"
+                                        @click="rowPage--"
+                                        >Filas anteriores</button
+                                    ><span
+                                        >{{ table.rows.length ? rowPage * 20 + 1 : 0
+                                        }}–{{ Math.min((rowPage + 1) * 20, table.rows.length) }} /
+                                        {{ table.rows.length }}</span
+                                    ><button
+                                        type="button"
+                                        class="data-button"
+                                        :disabled="(rowPage + 1) * 20 >= table.rows.length"
+                                        @click="rowPage++"
+                                        >Filas siguientes</button
+                                    ></div
+                                ><div class="flex items-center gap-2"
+                                    ><button
+                                        type="button"
+                                        class="data-button"
+                                        :disabled="columnPage === 0"
+                                        @click="columnPage--"
+                                        >Columnas anteriores</button
+                                    ><span
+                                        >{{ columnPage * 8 + 1
+                                        }}–{{ Math.min((columnPage + 1) * 8, table.columns.length) }}</span
+                                    ><button
+                                        type="button"
+                                        class="data-button"
+                                        :disabled="(columnPage + 1) * 8 >= table.columns.length"
+                                        @click="columnPage++"
+                                        >Columnas siguientes</button
+                                    ></div
+                                ></div
+                            >
+                            <div v-if="headerPending" class="rounded-xl bg-amber-50 p-3 text-xs text-amber-950"
+                                >Hay un encabezado pendiente. Sal del campo para aplicarlo o
+                                <button
+                                    type="button"
+                                    class="font-semibold underline"
+                                    @click="columnDrafts = Object.create(null)"
+                                    >cancelar cambios de encabezados</button
+                                >.</div
+                            >
+                            <fieldset
+                                v-if="cellEditor"
+                                class="space-y-3 rounded-xl border border-violet-200 bg-violet-50/60 p-4"
+                                :disabled="!canEdit"
+                                ><legend class="px-1 text-sm font-semibold text-violet-950">Editar celda</legend
+                                ><label class="block text-xs font-medium"
+                                    >Tipo de la celda<select
+                                        ref="cellTypeInput"
+                                        v-model="cellTypeDraft"
+                                        class="data-input mt-1 w-full sm:max-w-xs"
+                                        ><option value="text">Texto</option
+                                        ><option value="number">Número</option
+                                        ><option value="empty">Vacío</option></select
+                                    ></label
+                                ><label class="block text-xs font-medium"
+                                    >Valor de la celda<textarea
+                                        ref="cellInput"
+                                        v-model="cellDraft"
+                                        rows="4"
+                                        class="data-input mt-1 w-full font-mono text-sm"
+                                        :disabled="cellTypeDraft === 'empty'"
+                                        spellcheck="false"
+                                    /></label
+                                ><p class="text-xs leading-relaxed text-slate-600"
+                                    >Texto conserva ceros iniciales y fórmulas literalmente. Número usa punto decimal,
+                                    sin separador de miles; Vacío guarda un valor null.</p
+                                ><div class="flex flex-wrap gap-2"
+                                    ><button type="button" class="data-primary" @click="commitCell"
+                                        >Aplicar celda</button
+                                    ><button type="button" class="data-button" @click="cellEditor = null"
+                                        >Cancelar edición de celda</button
+                                    ></div
+                                ></fieldset
+                            >
+                            <details class="rounded-xl border border-slate-200 p-4"
+                                ><summary class="cursor-pointer text-sm font-semibold text-slate-900"
+                                    >Herramientas de tabla</summary
+                                ><fieldset class="mt-4 space-y-5" :disabled="!canEdit">
+                                    <div class="grid gap-3 sm:grid-cols-2"
+                                        ><label class="block text-xs font-medium"
+                                            >Fila seleccionada<select
+                                                v-model="selectedRowId"
+                                                class="data-input mt-1 w-full"
+                                                ><option v-if="!table.rows.length" value="">No hay filas</option
+                                                ><option
+                                                    v-for="(row, index) in table.rows"
+                                                    :key="row.id"
+                                                    :value="row.id"
+                                                    >Fila {{ index + 1 }}</option
+                                                ></select
+                                            ></label
+                                        ><label class="block text-xs font-medium"
+                                            >Columna seleccionada<select
+                                                v-model="selectedColumnId"
+                                                class="data-input mt-1 w-full"
+                                                ><option
+                                                    v-for="(column, index) in table.columns"
+                                                    :key="column.id"
+                                                    :value="column.id"
+                                                    >Columna {{ index + 1 }}: {{ column.label }}</option
+                                                ></select
+                                            ></label
+                                        ></div
+                                    >
+                                    <div class="flex flex-wrap gap-2"
+                                        ><button type="button" class="data-button" @click="structure('add-row')"
+                                            >Añadir fila</button
+                                        ><button type="button" class="data-button" @click="structure('add-column')"
+                                            >Añadir columna</button
+                                        ><button
+                                            type="button"
+                                            class="data-button"
+                                            :disabled="!selectedRowId"
+                                            @click="structure('remove-row')"
+                                            >Eliminar fila seleccionada</button
+                                        ><button
+                                            type="button"
+                                            class="data-button"
+                                            :disabled="table.columns.length <= 1"
+                                            @click="structure('remove-column')"
+                                            >Eliminar columna seleccionada</button
+                                        ></div
+                                    >
+                                    <section
+                                        class="space-y-3 border-t border-slate-100 pt-4"
+                                        aria-label="Conversión explícita de columna"
+                                        ><h3 class="text-sm font-semibold">Convertir la columna seleccionada</h3
+                                        ><label class="block text-xs font-medium"
+                                            >Tipo de conversión<select
+                                                v-model="conversionType"
+                                                class="data-input mt-1 w-full sm:max-w-xs"
+                                                ><option value="number">Número</option
+                                                ><option value="text">Texto</option
+                                                ><option value="empty">Vacío</option></select
+                                            ></label
+                                        ><button type="button" class="data-button" @click="previewConversion"
+                                            >Previsualizar conversión</button
+                                        ><div
+                                            v-if="conversionPreview"
+                                            class="space-y-2 rounded-lg bg-slate-50 p-3 text-xs"
+                                            ><p
+                                                >{{ conversionPreview.changes.length }} filas convertibles.
+                                                {{ conversionPreview.errors.length }} errores.</p
+                                            ><ul
+                                                v-if="conversionPreview.errors.length"
+                                                role="alert"
+                                                class="space-y-1 text-red-800"
+                                                ><li
+                                                    v-for="failure in conversionPreview.errors.slice(0, 20)"
+                                                    :key="failure.rowId"
+                                                    >Fila
+                                                    {{ table.rows.findIndex(row => row.id === failure.rowId) + 1 }}:
+                                                    {{ failure.message }}</li
+                                                ><li v-if="conversionPreview.errors.length > 20"
+                                                    >Se muestran los primeros 20 errores.</li
+                                                ></ul
+                                            ><ul v-else class="space-y-1 text-slate-600"
+                                                ><li
+                                                    v-for="change in conversionPreview.changes.slice(0, 5)"
+                                                    :key="change.rowId"
+                                                    >Fila
+                                                    {{ table.rows.findIndex(row => row.id === change.rowId) + 1 }} →
+                                                    {{ tableCore.cellText(change.value) || 'Vacío' }}</li
+                                                ></ul
+                                            ><button
+                                                type="button"
+                                                class="data-primary"
+                                                :disabled="conversionPreview.errors.length > 0"
+                                                @click="applyConversion"
+                                                >Aplicar conversión</button
+                                            ></div
+                                        ></section
+                                    >
+                                    <section
+                                        class="space-y-3 border-t border-slate-100 pt-4"
+                                        aria-label="Buscar y rellenar"
+                                        ><label class="flex items-start gap-2 text-xs"
+                                            ><input
+                                                v-model="onlySelectedColumn"
+                                                type="checkbox"
+                                                class="rounded border-slate-300 text-violet-700"
+                                            />Sólo columna seleccionada</label
+                                        ><div class="grid gap-3 sm:grid-cols-2"
+                                            ><label class="block text-xs font-medium"
+                                                >Texto a buscar<input
+                                                    v-model="searchText"
+                                                    class="data-input mt-1 w-full" /></label
+                                            ><label class="block text-xs font-medium"
+                                                >Texto de reemplazo<input
+                                                    v-model="replacementText"
+                                                    class="data-input mt-1 w-full" /></label></div
+                                        ><p class="text-xs text-slate-500"
+                                            >Reemplazo literal dentro de celdas de texto, sin expresiones ni cambios a
+                                            números.</p
+                                        ><button
+                                            type="button"
+                                            class="data-button"
+                                            :disabled="!searchText"
+                                            @click="replaceText"
+                                            >Reemplazar texto</button
+                                        ><div class="grid gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2"
+                                            ><label class="block text-xs font-medium"
+                                                >Tipo del relleno<select
+                                                    v-model="fillType"
+                                                    class="data-input mt-1 w-full"
+                                                    ><option value="text">Texto</option
+                                                    ><option value="number">Número</option
+                                                    ><option value="empty">Vacío</option></select
+                                                ></label
+                                            ><label class="block text-xs font-medium"
+                                                >Valor para vacíos<input
+                                                    v-model="fillText"
+                                                    class="data-input mt-1 w-full"
+                                                    :disabled="fillType === 'empty'" /></label></div
+                                        ><label class="flex items-start gap-2 text-xs"
+                                            ><input
+                                                v-model="includeEmptyStrings"
+                                                type="checkbox"
+                                                class="rounded border-slate-300 text-violet-700"
+                                            />Incluir textos vacíos</label
+                                        ><button type="button" class="data-button" @click="fillBlanks"
+                                            >Rellenar vacíos</button
+                                        ></section
+                                    >
+                                    <section class="space-y-3 border-t border-slate-100 pt-4" aria-label="Transponer"
+                                        ><button type="button" class="data-button" @click="transposeTable"
+                                            >Transponer tabla</button
+                                        ><div
+                                            v-if="transposePreview"
+                                            class="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-950"
+                                            ><p
+                                                >Las columnas pasarán a ser filas. Se conservarán sus encabezados como
+                                                valores de la primera columna «Columna»; las demás columnas se llamarán
+                                                «Fila 1», «Fila 2»… Se crearán identificadores nuevos. Esta operación
+                                                admite hasta 99 filas y se puede deshacer.</p
+                                            ><button type="button" class="data-primary" @click="confirmTranspose"
+                                                >Confirmar transposición</button
+                                            ><button
+                                                type="button"
+                                                class="data-button ml-2"
+                                                @click="transposePreview = false"
+                                                >Cancelar transposición</button
+                                            ></div
+                                        ></section
+                                    >
+                                </fieldset></details
+                            >
+                            <section
+                                v-if="historyOpen"
+                                class="space-y-3 rounded-xl border border-slate-200 p-4"
+                                aria-label="Historial de revisiones"
+                                ><div class="flex items-center justify-between gap-3"
+                                    ><h3 class="text-sm font-semibold">Historial de revisiones</h3
+                                    ><button type="button" class="data-button" @click="historyOpen = false"
+                                        >Ocultar historial</button
+                                    ></div
+                                ><p v-if="historyBusy" role="status" class="text-xs text-slate-500"
+                                    >Cargando revisiones…</p
+                                ><ul class="space-y-2"
+                                    ><li v-for="revision in revisions" :key="revision.revision"
+                                        ><button
+                                            type="button"
+                                            class="flex w-full flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3 text-left hover:border-violet-400"
+                                            :aria-label="`Ver revisión ${revision.revision}`"
+                                            :disabled="writeBusy"
+                                            @click="selectDataset(selected, revision.revision, revision.name)"
+                                            ><span class="min-w-0"
+                                                ><span class="block text-xs font-semibold"
+                                                    >Revisión {{ revision.revision }} · {{ revision.name }}</span
+                                                ><span class="mt-1 block text-[11px] text-slate-500"
+                                                    >{{ revision.row_count }} filas ×
+                                                    {{ revision.column_count }} columnas ·
+                                                    {{ revision.json_bytes }} bytes</span
+                                                ></span
+                                            ><span class="text-xs text-violet-700"
+                                                >Ver revisión {{ revision.revision }}</span
+                                            ></button
+                                        ></li
+                                    ></ul
+                                ><nav
+                                    v-if="historyPagination.last_page > 1"
+                                    class="flex flex-wrap items-center justify-between gap-2 text-xs"
+                                    aria-label="Páginas de revisiones"
+                                    ><button
+                                        type="button"
+                                        class="data-button"
+                                        :disabled="historyBusy || historyPagination.current_page <= 1"
+                                        @click="showHistory(historyPagination.current_page - 1)"
+                                        >Revisiones anteriores</button
+                                    ><span
+                                        >{{ historyPagination.current_page }} / {{ historyPagination.last_page }}</span
+                                    ><button
+                                        type="button"
+                                        class="data-button"
+                                        :disabled="historyBusy || historyPagination.current_page >= historyPagination.last_page"
+                                        @click="showHistory(historyPagination.current_page + 1)"
+                                        >Revisiones siguientes</button
+                                    ></nav
+                                ></section
+                            >
+                            <section
+                                v-if="selectable"
+                                class="space-y-3 rounded-xl border border-violet-200 bg-violet-50 p-4"
+                                aria-label="Datos para gráfico"
+                                ><button
+                                    type="button"
+                                    class="data-primary"
+                                    :disabled="!canSelectChart"
+                                    @click="selectChart"
+                                    >Usar revisión guardada para gráfico</button
+                                ><p v-if="dirty" class="text-xs"
+                                    >Guarda los cambios y recarga la revisión antes de seleccionarla.</p
+                                ><p v-else-if="!sha256" class="text-xs"
+                                    >Recarga la revisión guardada para verificar su SHA-256.</p
+                                ><button
+                                    v-if="selected && !sha256"
+                                    type="button"
+                                    class="data-button"
+                                    :disabled="readBusy || writeBusy"
+                                    @click="reloadSaved"
+                                    >Recargar revisión guardada</button
+                                ><p v-if="!chartColumns.some(column => column.numeric)" class="text-xs"
+                                    >No hay columnas numéricas. Convierte una columna a Número con las herramientas de
+                                    edición de datos y guarda la revisión.</p
+                                ></section
+                            ><section class="space-y-3 border-t border-slate-200 pt-4" aria-label="Descargas de datos"
+                                ><div v-if="selected" class="grid gap-3 sm:grid-cols-2"
+                                    ><label class="block text-xs font-medium"
+                                        >Formato de descarga<select
+                                            v-model="downloadFormat"
+                                            class="data-input mt-1 w-full"
+                                            ><option value="csv">CSV</option
+                                            ><option value="tsv">TSV</option
+                                            ><option value="json">JSON tipado</option></select
+                                        ></label
+                                    ><label v-if="downloadFormat !== 'json'" class="block text-xs font-medium"
+                                        >Modo de descarga<select v-model="downloadMode" class="data-input mt-1 w-full"
+                                            ><option value="spreadsheet">Segura para hojas de cálculo</option
+                                            ><option value="text">Fiel al original</option></select
+                                        ></label
+                                    ></div
+                                ><p v-if="selected" class="text-xs leading-relaxed text-slate-500"
+                                    >La descarga corresponde a la revisión {{ revisionView }} guardada. El modo seguro
+                                    antepone un apóstrofo a todos los textos para evitar que una hoja de cálculo ejecute
+                                    fórmulas. El modo fiel conserva los textos originales.</p
+                                ><div class="flex flex-wrap gap-2"
+                                    ><a v-if="selected" :href="downloadUrl" download class="data-button"
+                                        >Descargar tabla</a
+                                    ><button type="button" class="data-button" @click="downloadDraft"
+                                        >Descargar borrador JSON</button
+                                    ><button
+                                        v-if="selected"
+                                        type="button"
+                                        class="data-button ml-auto text-slate-600"
+                                        :disabled="writeBusy"
+                                        @click="mutateDataset(selected.archived_at ? 'restore' : 'archive')"
+                                        >{{ selected.archived_at ? 'Restaurar tabla' : 'Archivar tabla' }}</button
+                                    ></div
+                                ><p v-if="sha256" class="break-all font-mono text-xs text-slate-600"
+                                    >SHA-256: {{ sha256 }}</p
+                                ></section
+                            >
                         </section>
-                    </div>
+                        <div v-else class="rounded-2xl border border-dashed border-violet-200 bg-white p-8 text-center"
+                            ><div
+                                class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-2xl text-violet-700"
+                                aria-hidden="true"
+                                >▦</div
+                            ><h3 class="text-base font-semibold text-slate-900">Un lugar para los datos de tu marca</h3
+                            ><p class="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-slate-500"
+                                >Elige una tabla de la biblioteca, crea una nueva o importa un archivo para empezar a
+                                trabajar.</p
+                            ><button
+                                v-if="selected"
+                                type="button"
+                                class="data-button mt-4"
+                                :disabled="writeBusy"
+                                @click="reloadSaved"
+                                >Reintentar carga de tabla</button
+                            ></div
+                        >
+                    </section>
                 </div>
             </div>
-            <div v-if="pendingDiscard" class="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"><section role="alertdialog" aria-modal="true" aria-labelledby="dataset-discard-title" aria-describedby="dataset-discard-description" class="w-full max-w-md space-y-4 rounded-2xl bg-white p-6 shadow-2xl"><h3 id="dataset-discard-title" class="text-lg font-semibold text-slate-950">Hay cambios sin guardar</h3><p id="dataset-discard-description" class="text-sm leading-relaxed text-slate-600">Si continúas, se descartarán los cambios de esta tabla que aún no has guardado, incluidos los que estás escribiendo.</p><div class="flex flex-wrap gap-3"><button ref="discardButton" type="button" class="data-primary" @click="cancelDiscard">Seguir editando</button><button type="button" class="data-button" @click="confirmDiscard">Descartar cambios</button></div></section></div>
-        </dialog>
-    </Teleport>
+        </div>
+    </BaseDialog>
 </template>
 
 <style scoped>
@@ -440,5 +1090,5 @@ select.data-input { appearance: auto; background-image: none; }
 .data-button { @apply inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-violet-400 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50; }
 .data-primary { @apply inline-flex items-center justify-center rounded-lg bg-violet-700 px-4 py-2.5 text-xs font-semibold text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-50; }
 .close-tool { @apply flex h-9 w-9 items-center justify-center rounded-lg text-2xl text-slate-500 hover:bg-slate-100; }
-.datasets-dialog :is(button, a, input, select, textarea, summary, [tabindex]):focus-visible { outline: 3px solid #7c3aed; outline-offset: 2px; }
+:global(.datasets-dialog :is(button, a, input, select, textarea, summary, [tabindex]):focus-visible) { outline: 3px solid #7c3aed; outline-offset: 2px; }
 </style>

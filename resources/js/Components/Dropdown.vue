@@ -3,11 +3,11 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 const props = defineProps({
     align: {
-        type: String,
+        type: /** @type {import('vue').PropType<'left' | 'right' | 'center'>} */ (String),
         default: 'right',
     },
     width: {
-        type: String,
+        type: /** @type {import('vue').PropType<'48' | '64' | '72'>} */ (String),
         default: '48',
     },
     contentClasses: {
@@ -16,6 +16,7 @@ const props = defineProps({
     },
 });
 
+/** @param {KeyboardEvent} e */
 const closeOnEscape = (e) => {
     if (open.value && e.key === 'Escape') {
         open.value = false;
@@ -30,7 +31,7 @@ const widthClass = computed(() => {
         48: 'w-48',
         64: 'w-64',
         72: 'w-72',
-    }[props.width.toString()];
+    }[props.width];
 });
 
 const alignmentClasses = computed(() => {
@@ -53,11 +54,7 @@ const open = ref(false);
         </div>
 
         <!-- Full Screen Dropdown Overlay -->
-        <div
-            v-show="open"
-            class="fixed inset-0 z-40"
-            @click="open = false"
-        ></div>
+        <div v-show="open" class="fixed inset-0 z-40" @click="open = false"></div>
 
         <Transition
             enter-active-class="transition ease-out duration-200"
@@ -74,10 +71,7 @@ const open = ref(false);
                 style="display: none"
                 @click="open = false"
             >
-                <div
-                    class="rounded-lg ring-1 ring-slate-900/10"
-                    :class="contentClasses"
-                >
+                <div class="rounded-lg ring-1 ring-slate-900/10" :class="contentClasses">
                     <slot name="content" />
                 </div>
             </div>

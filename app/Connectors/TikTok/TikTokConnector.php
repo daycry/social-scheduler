@@ -51,7 +51,7 @@ class TikTokConnector implements OAuthConnector
     {
         return self::AUTH_URL.'?'.http_build_query([
             'client_key' => config('services.tiktok.client_key'),
-            'scope' => implode(',', config('social.tiktok.scopes')),
+            'scope' => implode(',', array_values(array_unique(array_merge((array) config('social.tiktok.scopes'), (array) config('social.tiktok.extra_scopes', []))))),
             'response_type' => 'code',
             'redirect_uri' => $redirectUri,
             'state' => $state,

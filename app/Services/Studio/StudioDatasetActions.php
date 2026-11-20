@@ -157,7 +157,7 @@ final class StudioDatasetActions
     public function authorizedRevisionInfo(int $userId, int $brandId, int $datasetId, ?int $revision = null): array
     {
         $dataset = $this->datasets->present($userId, $brandId, $datasetId);
-        $snapshot = StudioDatasetRevision::withoutUserScope()->where('user_id', $userId)->where('brand_id', $brandId)->where('dataset_id', $datasetId)->where('revision', $revision ?? $dataset['revision'])
+        $snapshot = StudioDatasetRevision::ownedBy($userId)->where('brand_id', $brandId)->where('dataset_id', $datasetId)->where('revision', $revision ?? $dataset['revision'])
             ->first(['revision', 'sha256', 'name', 'row_count', 'column_count', 'json_bytes']);
         abort_unless($snapshot, 404);
 

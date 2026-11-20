@@ -65,9 +65,9 @@ test('McpImportMedia: exige la url y el permiso posts:write', function () {
     [$err, $msg] = $this->callTool($this->key, 'import_media_from_url', []);
     expect($err)->toBeTrue()->and($msg)->toContain('url');
 
-    $readOnly = $this->mcpKey($this->user, ['brands:read']);
+    $readOnly = $this->mcpKey($this->user, ['media:read']);
     [$err, $msg] = $this->callTool($readOnly, 'import_media_from_url', ['url' => 'https://cdn.example.com/a.jpg']);
-    expect($err)->toBeTrue()->and($msg)->toContain('posts:write');
+    expect($err)->toBeTrue()->and($msg)->toContain('media:write');
     expect(MediaAsset::withoutUserScope()->count())->toBe(0);
 });
 

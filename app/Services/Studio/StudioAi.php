@@ -8,6 +8,7 @@ use App\Models\MediaAsset;
 use App\Models\Studio\StudioAiJob;
 use App\Models\Studio\StudioAsset;
 use App\Models\User;
+use App\Services\JobFailureNotifier;
 use App\Services\MediaUploadService;
 use App\Services\Studio\Ai\AiImageRequest;
 use App\Services\Studio\Ai\AiProviderException;
@@ -39,7 +40,12 @@ class StudioAi
         'watercolor' => 'Acuarela con texturas de papel.',
     ];
 
-    public function __construct(private readonly StudioAssets $assets, private readonly AiProviders $providers) {}
+    public function __construct(
+        private readonly StudioAssets $assets,
+        private readonly AiProviders $providers,
+        private readonly JobFailureNotifier $notifier,
+        private readonly MediaUploadService $media,
+    ) {}
 
     /** Estado de la funcion para la UI y la API: nunca incluye claves. */
     public function status(User $user): array
@@ -131,14 +137,14 @@ class StudioAi
         return DB::transaction(function () use ($user, $brand, $provider, $payload, $fingerprint, $key, $source, $inputSha, $kind, $prompt): StudioAiJob {
             // La cuota es por usuario y proveedor: el candado es por usuario (no por marca) para que dos marcas no la superen a la vez.
             User::query()->whereKey($user->id)->lockForUpdate()->firstOrFail();
-            if ($key !== null && ($existing = StudioAiJob::withoutUserScope()->where('user_id', $user->id)->where('idempotency_key', $key)->first())) {
+            if ($key !== null && ($existing = StudioAiJob::ownedBy($user->id)->where('idempotency_key', $key)->first())) {
                 if ($existing->fingerprint !== $fingerprint || (int) $existing->brand_id !== (int) $brand->id) {
                     throw ValidationException::withMessages(['idempotency_key' => ['Esa clave de idempotencia ya se usó con otra petición.']]);
                 }
 
                 return $existing;
             }
-            $active = StudioAiJob::withoutUserScope()->where('user_id', $user->id)->whereIn('status', ['queued', 'processing']);
+            $active = StudioAiJob::ownedBy($user->id)->whereIn('status', ['queued', 'processing']);
             if ($existing = (clone $active)->where('brand_id', $brand->id)->where('fingerprint', $fingerprint)->first()) {
                 return $existing;
             }
@@ -164,7 +170,7 @@ class StudioAi
     {
         $this->assets->assertBrand($user, $brand);
 
-        return StudioAiJob::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->findOrFail($id);
+        return StudioAiJob::ownedBy($user->id)->where('brand_id', $brand->id)->findOrFail($id);
     }
 
     public function present(User $user, Brand $brand, StudioAiJob $job, bool $api = false): array
@@ -203,7 +209,7 @@ class StudioAi
         $created = [];
         try {
             $user = User::findOrFail($job->user_id);
-            $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($job->brand_id);
+            $brand = Brand::ownedBy($user->id)->findOrFail($job->brand_id);
             $provider = $this->providers->get($job->provider);
             if (! $provider?->configured()) {
                 throw new AiProviderException('not_configured');
@@ -216,6 +222,9 @@ class StudioAi
             }
             $done = StudioAiJob::withoutUserScope()->whereKey($id)->where('status', 'processing')
                 ->update(['status' => 'ready', 'output_media_ids' => json_encode(array_map(fn (MediaAsset $m) => $m->id, $created)), 'error_code' => null, 'error' => null]);
+            if ($done === 1) {
+                $this->notifier->aiDone(StudioAiJob::withoutUserScope()->findOrFail($id));
+            }
             if ($done !== 1) {
                 // Otro proceso (failed() del worker) ya cerro el trabajo como error: no dejar recursos huerfanos.
                 $this->discard($created);
@@ -226,8 +235,11 @@ class StudioAi
             if (! $e instanceof AiProviderException) {
                 Log::warning('studio.ai_job_failed', ['job' => $id, 'exception' => $e::class]);
             }
-            StudioAiJob::withoutUserScope()->whereKey($id)->where('status', 'processing')
+            $closed = StudioAiJob::withoutUserScope()->whereKey($id)->where('status', 'processing')
                 ->update(['status' => 'failed', 'error_code' => $code, 'error' => $e instanceof AiProviderException ? $e->getMessage() : self::errorMessage($code)]);
+            if ($closed === 1) {
+                $this->notifier->ai(StudioAiJob::withoutUserScope()->findOrFail($id));
+            }
         }
     }
 
@@ -237,7 +249,7 @@ class StudioAi
         foreach ($media as $item) {
             try {
                 StudioAsset::withoutUserScope()->where('media_asset_id', $item->id)->delete();
-                app(MediaUploadService::class)->delete($item);
+                $this->media->delete($item);
             } catch (\Throwable) { // Conserva lo que ya use una publicacion.
             }
         }
@@ -331,14 +343,14 @@ class StudioAi
             if (! Storage::disk($media->disk)->put($media->path, $bytes)) {
                 throw new \RuntimeException('No se pudo guardar la imagen.');
             }
-            $media = app(MediaUploadService::class)->finalize($media);
+            $media = $this->media->finalize($media);
             if (! $media->isReady()) {
                 throw new \RuntimeException('La imagen no superó la validación.');
             }
             $this->assets->attach($user, $brand, $media->id);
         } catch (\Throwable $e) {
             try {
-                app(MediaUploadService::class)->delete($media);
+                $this->media->delete($media);
             } catch (\Throwable) {
             }
 

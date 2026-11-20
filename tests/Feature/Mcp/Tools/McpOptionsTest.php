@@ -47,8 +47,8 @@ test('McpOptions: create_post acepta las opciones de YouTube y get_post las devu
     [$err2, $post] = $this->callTool($this->key, 'get_post', ['post_id' => $created['id']]);
 
     expect($err)->toBeFalse()->and($err2)->toBeFalse()
-        ->and($created['targets'][0]['options'])->toBe($options)
-        ->and($post['targets'][0]['options'])->toBe($options);
+        ->and(moSortedOptions($created['targets'][0]['options']))->toBe(moSortedOptions($options))
+        ->and(moSortedOptions($post['targets'][0]['options']))->toBe(moSortedOptions($options));
 });
 
 test('McpOptions: una opcion con forma invalida da error de validacion, igual que en la web', function () {
@@ -71,9 +71,12 @@ test('McpOptions: con la cuenta de TikTok en publicacion directa se aceptan sus 
     $this->tt->forceFill(['meta' => ['direct_post' => true]])->save();
 
     [$err, $post] = $this->callTool($this->key, 'create_post', moArgs([moTt(['privacy_level' => 'PUBLIC_TO_EVERYONE', 'disable_duet' => true, 'brand_organic_toggle' => true])]));
-    expect($err)->toBeFalse()->and($post['targets'][0]['options'])->toBe(['privacy_level' => 'PUBLIC_TO_EVERYONE', 'disable_duet' => true, 'brand_organic_toggle' => true]);
+    expect($err)->toBeFalse()->and(moSortedOptions($post['targets'][0]['options']))->toBe(moSortedOptions(['privacy_level' => 'PUBLIC_TO_EVERYONE', 'disable_duet' => true, 'brand_organic_toggle' => true]));
 
     [$err, $msg] = $this->callTool($this->key, 'create_post', moArgs([moTt(['brand_content_toggle' => true])]));
+    expect($err)->toBeTrue()->and(json_encode($msg))->toContain('Elige la visibilidad');
+
+    [$err, $msg] = $this->callTool($this->key, 'create_post', moArgs([moTt(['brand_content_toggle' => true, 'privacy_level' => 'SELF_ONLY'])]));
     expect($err)->toBeTrue()->and(json_encode($msg))->toContain('no puede ser privado');
 });
 
@@ -85,3 +88,11 @@ test('McpOptions: update_post sustituye las opciones y el MCP no toca los preset
     expect($err)->toBeFalse()->and($updated['targets'][0]['options'])->toBe(['made_for_kids' => true])
         ->and(ComposerPreset::withoutUserScope()->count())->toBe(0);
 });
+
+/** MySQL normaliza el orden de claves JSON; los valores y las listas (p. ej. tags) conservan orden y tipo estrictos. */
+function moSortedOptions(array $options): array
+{
+    ksort($options);
+
+    return $options;
+}

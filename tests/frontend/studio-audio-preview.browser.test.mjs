@@ -185,7 +185,8 @@ test('two real tones mix through independent gain nodes and pause without mutati
     try {
         await page.waitForFunction(() => window.audioProbeDone || window.audioProbeError);
         assert.equal(await page.evaluate(() => window.audioProbeError), undefined);
-        await page.waitForTimeout(260);
+        // Hasta que el analizador llena su ventana con las dos pistas (evento observable, no un tiempo fijo).
+        await page.waitForFunction(() => { const m = window.audioProbe.measure(); return m.length === 2 && m[0].rms > 0.10 && m[1].rms > 0.05; });
         const measured = await page.evaluate(() => ({ meters: window.audioProbe.measure(), state: window.audioProbe.preview.mediaState() }));
         assert.equal(measured.meters.length, 2);
         assert.ok(Math.abs(measured.meters[0].hz - 440) < 10, JSON.stringify(measured));
@@ -194,7 +195,8 @@ test('two real tones mix through independent gain nodes and pause without mutati
         assert.ok(measured.meters[1].rms > 0.05 && measured.meters[1].rms < 0.08, JSON.stringify(measured));
         assert.ok(measured.state.every(track => !track.paused));
         await page.evaluate(() => window.audioProbe.preview.pause());
-        await page.waitForTimeout(260);
+        // Hasta que el analizador vacía su ventana: la pausa ha silenciado las dos pistas.
+        await page.waitForFunction(() => window.audioProbe.measure().every(meter => meter.rms < 0.0001));
         const paused = await page.evaluate(() => ({ meters: window.audioProbe.measure(), state: window.audioProbe.preview.mediaState(),
             unchanged: window.audioProbe.before === JSON.stringify(window.audioProbe.doc) }));
         assert.ok(paused.meters.every(meter => meter.rms < 0.0001), JSON.stringify(paused));

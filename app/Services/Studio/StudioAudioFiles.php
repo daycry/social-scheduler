@@ -81,7 +81,7 @@ class StudioAudioFiles
             }
             unset($meta['mime']);
             $result = DB::transaction(function () use ($asset, $snapshot, $source, $size, $meta): MediaAsset {
-                $fresh = MediaAsset::withoutUserScope()->where('user_id', $asset->user_id)->lockForUpdate()->findOrFail($asset->id);
+                $fresh = MediaAsset::ownedBy($asset->user_id)->lockForUpdate()->findOrFail($asset->id);
                 if ($fresh->isReady()) {
                     return $fresh;
                 }
@@ -162,7 +162,7 @@ class StudioAudioFiles
             return;
         }
         $this->removeFile($asset, $path);
-        MediaAsset::withoutUserScope()->where('user_id', $asset->user_id)->whereKey($asset->id)
+        MediaAsset::ownedBy($asset->user_id)->whereKey($asset->id)
             ->where('import_state->studio_audio_snapshot', $path)->update(['import_state' => null]);
     }
 
@@ -182,7 +182,7 @@ class StudioAudioFiles
             throw new DomainException('El audio se está procesando; vuelve a intentar su eliminación.');
         }
         try {
-            $fresh = MediaAsset::withoutUserScope()->where('user_id', $asset->user_id)->find($asset->id);
+            $fresh = MediaAsset::ownedBy($asset->user_id)->find($asset->id);
             if ($fresh === null) {
                 return;
             }
@@ -194,14 +194,14 @@ class StudioAudioFiles
             $this->deleteStaging($fresh);
             $this->removeFile($fresh, $fresh->path);
             DB::transaction(function () use ($asset): void {
-                $locked = MediaAsset::withoutUserScope()->where('user_id', $asset->user_id)->lockForUpdate()->find($asset->id);
+                $locked = MediaAsset::ownedBy($asset->user_id)->lockForUpdate()->find($asset->id);
                 if ($locked === null) {
                     return;
                 }
                 if ($locked->isReady() || $locked->posts()->exists()) {
                     throw new DomainException('El audio está en uso.');
                 }
-                StudioAsset::withoutUserScope()->where('user_id', $locked->user_id)->where('media_asset_id', $locked->id)->delete();
+                StudioAsset::ownedBy($locked->user_id)->where('media_asset_id', $locked->id)->delete();
                 $locked->delete();
             });
         } finally {

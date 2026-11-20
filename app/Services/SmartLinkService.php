@@ -13,12 +13,15 @@ use App\Models\SmartLinkSubscriber;
 use App\Models\User;
 use App\Notifications\SmartLinkSubscribersFull;
 use App\Scopes\UserScope;
+use App\Support\DailyCounter;
+use App\Support\Ownership;
 use App\Support\SafeUrl;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 /**
  * SmartLinks (PA-07): alta/edicion del microsite de una marca y contadores diarios agregados (visitas y clics) sin
@@ -28,6 +31,71 @@ class SmartLinkService
 {
     public const MAX_BLOCKS = 30;
 
+    public const MESSAGES = ['slug.regex' => 'Usa de 3 a 40 caracteres: minusculas, numeros y guiones (sin guion al principio ni al final).'];
+
+    public function __construct(private readonly DailyCounter $counter) {}
+
+    /**
+     * Reglas de validacion de `save()` (sin la marca): las comparten la web y la API v1.
+     *
+     * @return array<string, mixed>
+     */
+    public static function rules(?int $ignoreId): array
+    {
+        return [
+            'slug' => ['required', 'string', 'regex:/^'.SmartLink::SLUG_PATTERN.'$/', Rule::unique('smart_links', 'slug')->ignore($ignoreId)],
+            'title' => ['required', 'string', 'max:100'],
+            'bio' => ['nullable', 'string', 'max:300'],
+            'avatar_media_id' => ['nullable', 'integer'],
+            'theme_color' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'theme_mode' => ['nullable', 'in:light,dark'],
+            'published' => ['nullable', 'boolean'],
+            'blocks' => ['nullable', 'array', 'max:'.self::MAX_BLOCKS],
+            'blocks.*.id' => ['nullable', 'integer'],
+            'blocks.*.type' => ['required', 'in:'.implode(',', SmartLinkBlock::TYPES)],
+            'blocks.*.label' => ['nullable', 'string', 'max:100'],
+            'blocks.*.url' => ['nullable', 'string', 'max:2000'],
+            'blocks.*.media_id' => ['nullable', 'integer'],
+            'blocks.*.data' => ['nullable', 'array'],
+            'blocks.*.data.items' => ['nullable', 'array', 'max:8'],
+            'blocks.*.data.items.*.network' => ['nullable', 'string', 'max:20'],
+            'blocks.*.data.items.*.url' => ['nullable', 'string', 'max:2000'],
+            'blocks.*.data.cta' => ['nullable', 'string', 'max:30'],
+            'blocks.*.data.consent' => ['nullable', 'string', 'max:200'],
+            'blocks.*.data.count' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'blocks.*.visible_from' => ['nullable', 'string', 'max:40'],
+            'blocks.*.visible_until' => ['nullable', 'string', 'max:40'],
+        ];
+    }
+
+    /**
+     * Representacion unica del microsite para la web y la API v1 (horas de visibilidad en la zona de la marca).
+     *
+     * @return array<string, mixed>
+     */
+    public function present(SmartLink $link, Brand $brand): array
+    {
+        $tz = $brand->timezone ?: 'UTC';
+
+        return [
+            'id' => $link->id,
+            'slug' => $link->slug,
+            'title' => $link->title,
+            'bio' => $link->bio,
+            'avatar_media_id' => $link->avatar_media_id,
+            'theme_color' => $link->theme_color,
+            'theme_mode' => $link->theme_mode,
+            'published' => $link->published,
+            'public_url' => $link->url(),
+            'blocks' => $link->blocks->map(fn ($b) => [
+                'id' => $b->id, 'type' => $b->type, 'label' => $b->label, 'url' => $b->url, 'media_id' => $b->media_id, 'data' => $b->data,
+                'visible_from' => $b->visible_from?->setTimezone($tz)->format('Y-m-d\TH:i'),
+                'visible_until' => $b->visible_until?->setTimezone($tz)->format('Y-m-d\TH:i'),
+                'visibility' => $b->visible_from && $b->visible_from > now() ? 'scheduled' : ($b->visible_until && $b->visible_until <= now() ? 'expired' : 'visible'),
+            ])->values()->all(),
+        ];
+    }
+
     /**
      * Crea (o actualiza, si la marca ya tiene uno) el microsite. Los bloques con `id` de este microsite se actualizan
      * (conservan sus clics); los nuevos se crean y los que no llegan se borran.
@@ -36,7 +104,7 @@ class SmartLinkService
      */
     public function save(User $user, Brand $brand, array $data): SmartLink
     {
-        if ($brand->user_id !== $user->id) {
+        if (! Ownership::matches($brand, $user)) {
             throw new PostValidationException(['brand' => ['La marca no pertenece al usuario.']]);
         }
 
@@ -62,13 +130,13 @@ class SmartLinkService
 
         $avatarId = $data['avatar_media_id'] ?? null;
         if ($avatarId !== null) {
-            $ok = MediaAsset::withoutUserScope()->where('user_id', $user->id)->where('kind', MediaAsset::KIND_IMAGE)->whereKey($avatarId)->exists();
+            $ok = MediaAsset::ownedBy($user->id)->where('kind', MediaAsset::KIND_IMAGE)->whereKey($avatarId)->exists();
             if (! $ok) {
                 $errors['avatar_media_id'][] = 'El avatar debe ser una imagen tuya.';
             }
         }
 
-        $existing = SmartLink::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->first();
+        $existing = SmartLink::ownedBy($user->id)->where('brand_id', $brand->id)->first();
         $slugTaken = SmartLink::withoutUserScope()->where('slug', $data['slug'])->when($existing, fn ($q) => $q->whereKeyNot($existing->id))->exists();
         if ($slugTaken) {
             $errors['slug'][] = 'Ese enlace ya está en uso.';
@@ -88,7 +156,8 @@ class SmartLinkService
                     'avatar_media_id' => $avatarId,
                     'theme_color' => $data['theme_color'] ?? '#4f46e5',
                     'theme_mode' => $data['theme_mode'] ?? 'light',
-                    'published' => (bool) ($data['published'] ?? true),
+                    // Sin `published` nunca se publica por defecto (CWE-1188): un microsite nuevo nace sin publicar y uno existente conserva su estado.
+                    'published' => (bool) ($data['published'] ?? $existing?->published ?? false),
                 ]);
                 $link->user_id = $user->id;
                 $link->brand_id = $brand->id;
@@ -193,7 +262,7 @@ class SmartLinkService
                     $errors['url'][] = 'La URL debe empezar por http:// o https://.';
                 }
                 $mediaId = isset($b['media_id']) ? (int) $b['media_id'] : null;
-                $owned = $mediaId && MediaAsset::withoutUserScope()->where('user_id', $user->id)->where('kind', MediaAsset::KIND_IMAGE)->whereKey($mediaId)->exists();
+                $owned = $mediaId && MediaAsset::ownedBy($user->id)->where('kind', MediaAsset::KIND_IMAGE)->whereKey($mediaId)->exists();
                 if (! $owned) {
                     $errors['media_id'][] = 'Elige una imagen tuya.';
                 }
@@ -294,7 +363,7 @@ class SmartLinkService
      */
     public function recentPosts(SmartLink $link, int $count): array
     {
-        return PostTarget::withoutUserScope()->where('user_id', $link->user_id)->where('status', PostStatus::Published->value)->whereNotNull('external_url')
+        return PostTarget::ownedBy($link->user_id)->where('status', PostStatus::Published->value)->whereNotNull('external_url')
             ->whereHas('post', fn ($q) => $q->withoutGlobalScope(UserScope::class)->where('brand_id', $link->brand_id))
             ->with(['post' => fn ($q) => $q->withoutGlobalScope(UserScope::class)->select('id', 'text')])
             ->orderByDesc('published_at')->orderByDesc('id')->limit($count * 3)->get()
@@ -356,12 +425,12 @@ class SmartLinkService
 
     public function recordView(SmartLink $link): void
     {
-        $this->bump('smart_link_views', ['smart_link_id' => $link->id, 'date' => now('UTC')->toDateString()]);
+        $this->counter->increment('smart_link_views', ['smart_link_id' => $link->id, 'date' => now('UTC')->toDateString()]);
     }
 
     public function recordClick(SmartLink $link, SmartLinkBlock $block): void
     {
-        $this->bump('smart_link_clicks', ['smart_link_id' => $link->id, 'smart_link_block_id' => $block->id, 'date' => now('UTC')->toDateString()]);
+        $this->counter->increment('smart_link_clicks', ['smart_link_id' => $link->id, 'smart_link_block_id' => $block->id, 'date' => now('UTC')->toDateString()]);
     }
 
     /**
@@ -389,22 +458,5 @@ class SmartLinkService
             'subscribers' => DB::table('smart_link_subscribers')->where('smart_link_id', $link->id)->count(),
             'daily' => $daily,
         ];
-    }
-
-    /** @param array<string, mixed> $key */
-    private function bump(string $table, array $key): void
-    {
-        $query = fn () => DB::table($table)->where($key);
-
-        if ($query()->increment('count') > 0) {
-            return;
-        }
-
-        try {
-            DB::table($table)->insert($key + ['count' => 1]);
-        } catch (QueryException) {
-            // Otra peticion creo la fila entre medias: se suma a ella.
-            $query()->increment('count');
-        }
     }
 }

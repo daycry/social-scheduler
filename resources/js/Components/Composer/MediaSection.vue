@@ -1,15 +1,29 @@
 <script setup>
+import { Link } from '@inertiajs/vue3';
+import { requestJson } from '@/lib/http';
 import { nextTick, onBeforeUnmount, ref } from 'vue';
 import { useComposerContext } from '@/Composables/useComposer';
 import { useDrivePicker } from '@/Composables/useDrivePicker';
 import GifPicker from '@/Components/Composer/GifPicker.vue';
+import MediaLibraryPicker from '@/Components/Composer/MediaLibraryPicker.vue';
+import OpenStudioImage from '@/Components/OpenStudioImage.vue';
+
+defineProps({ studioOriginUrl: String, csrfToken: String });
 
 // La subida vive ahora en la barra del editor (`EditorToolbar`); aquí queda la lista ordenable de lo elegido
 // y la importación «Desde URL» (C-04a): el servidor descarga en segundo plano y aquí se sondea hasta `listo` o `invalido`.
-const { form, editable, mediaById, move, removeMedia, onUploaded, drivePicker, giphyEnabled } = useComposerContext();
+const { brand, form, editable, mediaById, move, removeMedia, onUploaded, drivePicker, giphyEnabled } = useComposerContext();
 
 // «Google Drive» (C-04b): solo con el Picker configurado en el servidor. Comparte lista y sondeo con «Desde URL».
 const drive = useDrivePicker(() => drivePicker.value);
+
+const libraryOpen = ref(false);
+const libraryButton = ref(null);
+function addFromLibrary(asset) {
+    if (!editable.value) return;
+    onUploaded({ ...asset, preview_url: route('media.file', asset.id, false) }, null);
+    libraryOpen.value = false;
+}
 
 // «GIF» (C-04b): solo con GIPHY_API_KEY en el servidor. El MP4 elegido se importa por el mismo camino y sondeo que «Desde URL».
 const gifOpen = ref(false);
@@ -34,23 +48,10 @@ let polling = false;
 let alive = true;
 let delay = POLL_MIN_MS;
 
-const xsrf = () => decodeURIComponent((document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/) || [])[1] || '');
-
-const call = async (target, method, body) => {
-    const response = await fetch(target, {
-        method,
-        credentials: 'same-origin',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-XSRF-TOKEN': xsrf() },
-        body: body ? JSON.stringify(body) : undefined,
-    });
-    const json = await response.json().catch(() => ({}));
-    if (!response.ok) {
-        const failure = new Error(json.message || json.errors?.url?.[0] || json.errors?.file_id?.[0] || 'No se pudo importar el fichero.');
-        failure.status = response.status;
-        throw failure;
-    }
-    return json;
-};
+const call = (target, method, body) => requestJson(method, target, {
+    json: body,
+    errorMessage: data => data?.message || data?.errors?.url?.[0] || data?.errors?.file_id?.[0] || 'No se pudo importar el fichero.',
+});
 
 const percent = (item) => (item.total ? Math.min(100, Math.round((item.bytes / item.total) * 100)) : null);
 const megabytes = (bytes) => `${(bytes / 1048576).toFixed(1)} MB`;
@@ -202,57 +203,190 @@ onBeforeUnmount(() => {
 <template>
     <!-- Media -->
     <section class="card p-4">
-        <h2 id="media-title" tabindex="-1" class="mb-2 font-medium text-slate-900">Imágenes y vídeos</h2>
-        <p v-if="!form.media.length" class="text-sm text-slate-600">Todavía no has añadido archivos. Usa «Añadir imagen o vídeo» en la barra del editor.</p>
+        <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <h2 id="media-title" tabindex="-1" class="font-medium text-slate-900">Imágenes y vídeos</h2>
+            <Link v-if="studioOriginUrl" :href="studioOriginUrl" class="btn-secondary">Editar en el Estudio</Link>
+        </div>
+        <p v-if="!form.media.length" class="text-sm text-slate-600"
+            >Todavía no has añadido archivos. Usa «Añadir imagen o vídeo» en la barra del editor.</p
+        >
         <ul v-if="form.media.length" class="mb-3 space-y-1">
-            <li v-for="(id, i) in form.media" :key="id" class="flex items-center justify-between rounded border border-slate-200 px-2 py-1 text-sm">
-                <span>{{ i + 1 }}. {{ mediaById(id)?.name ?? `Archivo ${id}` }}
-                    <span class="text-slate-500">({{ mediaById(id)?.kind === 'video' ? `vídeo ${mediaById(id)?.duration ?? '?'} s` : 'imagen' }}<template v-if="mediaById(id)?.width"> · {{ mediaById(id).width }}×{{ mediaById(id).height }}</template>)</span>
-                    <a v-if="mediaById(id)?.origin?.url" :href="mediaById(id).origin.url" target="_blank" rel="noopener noreferrer" class="ml-1 text-xs text-violet-700 underline" data-testid="media-origin">Origen: {{ mediaById(id).origin.label }}</a>
+            <li
+                v-for="(id, i) in form.media"
+                :key="id"
+                class="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-200 px-2 py-1 text-sm"
+            >
+                <span
+                    >{{ i + 1 }}. {{ mediaById(id)?.name ?? `Archivo ${id}` }}
+                    <span class="text-slate-500"
+                        >({{ mediaById(id)?.kind === 'video' ? `vídeo ${mediaById(id)?.duration ?? '?'} s` : 'imagen'
+                        }}<template v-if="mediaById(id)?.width">
+                            · {{ mediaById(id).width }}×{{ mediaById(id).height }}</template
+                        >)</span
+                    >
+                    <a
+                        v-if="mediaById(id)?.origin?.url"
+                        :href="mediaById(id).origin.url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="ml-1 text-xs text-violet-700 underline"
+                        data-testid="media-origin"
+                        >Origen: {{ mediaById(id).origin.label }}</a
+                    >
                 </span>
+                <OpenStudioImage :brand-id="brand.id" :media="mediaById(id)" :csrf-token="csrfToken" />
                 <span v-if="editable" class="space-x-2">
-                    <button type="button" class="text-slate-600" :aria-label="`Subir el archivo ${i + 1}`" @click="move(i, -1)">↑</button>
-                    <button type="button" class="text-slate-600" :aria-label="`Bajar el archivo ${i + 1}`" @click="move(i, 1)">↓</button>
+                    <button
+                        type="button"
+                        class="text-slate-600"
+                        :aria-label="`Subir el archivo ${i + 1}`"
+                        @click="move(i, -1)"
+                        >↑</button
+                    >
+                    <button
+                        type="button"
+                        class="text-slate-600"
+                        :aria-label="`Bajar el archivo ${i + 1}`"
+                        @click="move(i, 1)"
+                        >↓</button
+                    >
                     <button type="button" class="text-red-600" @click="removeMedia(id)">Quitar</button>
                 </span>
             </li>
         </ul>
 
+        <button
+            v-if="editable"
+            ref="libraryButton"
+            type="button"
+            class="btn-secondary mt-2"
+            aria-haspopup="dialog"
+            @click="libraryOpen = true"
+            >Desde la biblioteca</button
+        >
+        <MediaLibraryPicker
+            v-if="libraryOpen && editable"
+            :brand-id="brand.id"
+            :selected-ids="form.media"
+            :return-focus-to="libraryButton"
+            @select="addFromLibrary"
+            @close="libraryOpen = false"
+        />
+
         <!-- Importar desde una URL pública (C-04a) -->
         <div v-if="editable" class="mt-3 border-t border-slate-200 pt-3" data-testid="media-import">
             <form class="flex flex-wrap items-end gap-2" novalidate @submit.prevent="startImport">
                 <div class="min-w-0 flex-1 basis-56">
-                    <label for="media-import-url" class="mb-1 block text-sm font-medium text-slate-900">Desde URL</label>
-                    <input id="media-import-url" v-model="url" type="url" inputmode="url" autocomplete="off" maxlength="2048"
-                        placeholder="https://…/imagen.jpg" class="field w-full" :aria-invalid="error ? 'true' : 'false'"
-                        aria-describedby="media-import-help media-import-error">
+                    <label for="media-import-url" class="mb-1 block text-sm font-medium text-slate-900"
+                        >Desde URL</label
+                    >
+                    <input
+                        id="media-import-url"
+                        v-model="url"
+                        type="url"
+                        inputmode="url"
+                        autocomplete="off"
+                        maxlength="2048"
+                        placeholder="https://…/imagen.jpg"
+                        class="field w-full"
+                        :aria-invalid="error ? 'true' : 'false'"
+                        aria-describedby="media-import-help media-import-error"
+                    />
                 </div>
-                <button type="submit" class="btn-secondary" :disabled="sending || !url.trim()">{{ sending ? 'Importando…' : 'Importar' }}</button>
-                <button v-if="drive.available()" type="button" class="btn-secondary" data-testid="media-import-drive" :disabled="sending || drive.busy.value"
-                    aria-describedby="media-import-help" @pointerenter="drive.preload()" @focus="drive.preload()" @click="importFromDrive">{{ drive.busy.value ? 'Abriendo Drive…' : 'Google Drive' }}</button>
-                <button v-if="giphyEnabled" ref="gifButton" type="button" class="btn-secondary" data-testid="media-import-gif" aria-haspopup="dialog"
-                    :disabled="sending" @click="gifOpen = true">GIF</button>
+                <button
+                    type="submit"
+                    class="btn-secondary"
+                    :disabled="sending || !url.trim()"
+                    >{{ sending ? 'Importando…' : 'Importar' }}</button
+                >
+                <button
+                    v-if="drive.available()"
+                    type="button"
+                    class="btn-secondary"
+                    data-testid="media-import-drive"
+                    :disabled="sending || drive.busy.value"
+                    aria-describedby="media-import-help"
+                    @pointerenter="drive.preload()"
+                    @focus="drive.preload()"
+                    @click="importFromDrive"
+                    >{{ drive.busy.value ? 'Abriendo Drive…' : 'Google Drive' }}</button
+                >
+                <button
+                    v-if="giphyEnabled"
+                    ref="gifButton"
+                    type="button"
+                    class="btn-secondary"
+                    data-testid="media-import-gif"
+                    aria-haspopup="dialog"
+                    :disabled="sending"
+                    @click="gifOpen = true"
+                    >GIF</button
+                >
             </form>
             <GifPicker v-if="giphyEnabled" :show="gifOpen" @close="gifOpen = false" @pick="importGif" />
-            <p id="media-import-help" class="mt-1 text-xs text-slate-600">Enlace público a una imagen JPG, PNG o WebP, o a un vídeo MP4 o MOV.<template v-if="drive.available()"> También puedes elegir un fichero de Google Drive.</template><template v-if="giphyEnabled"> O busca un GIF en Giphy.</template></p>
-            <p id="media-import-error" role="alert" class="mt-1 text-sm text-red-700" data-testid="media-import-error">{{ error }}</p>
+            <p id="media-import-help" class="mt-1 text-xs text-slate-600"
+                >Enlace público a una imagen JPG, PNG o WebP, o a un vídeo MP4 o MOV.<template v-if="drive.available()">
+                    También puedes elegir un fichero de Google Drive.</template
+                ><template v-if="giphyEnabled"> O busca un GIF en Giphy.</template></p
+            >
+            <p
+                id="media-import-error"
+                role="alert"
+                class="mt-1 text-sm text-red-700"
+                data-testid="media-import-error"
+                >{{ error }}</p
+            >
 
             <ul v-if="imports.length" class="mt-2 space-y-2" aria-live="polite">
-                <li v-for="item in imports" :key="item.id" class="rounded border border-slate-200 px-2 py-1 text-sm" data-testid="media-import-item">
+                <li
+                    v-for="item in imports"
+                    :key="item.id"
+                    class="rounded border border-slate-200 px-2 py-1 text-sm"
+                    data-testid="media-import-item"
+                >
                     <template v-if="item.status === 'pendiente' && !item.stalled">
-                        <span class="break-all">Importando {{ item.name }}…
-                            <span class="text-slate-600">{{ percent(item) !== null ? `${percent(item)} %` : megabytes(item.bytes) }}</span>
+                        <span class="break-all"
+                            >Importando {{ item.name }}…
+                            <span
+                                class="text-slate-600"
+                                >{{ percent(item) !== null ? `${percent(item)} %` : megabytes(item.bytes) }}</span
+                            >
                         </span>
-                        <button type="button" class="ml-2 text-slate-700 underline" :disabled="item.cancelling" :aria-label="`Cancelar la importación de ${item.name}`" @click="cancel(item)">Cancelar</button>
-                        <progress class="mt-1 block h-2 w-full" :aria-label="`Progreso de ${item.name}`" :max="item.total || 100" :value="item.total ? item.bytes : undefined" />
+                        <button
+                            type="button"
+                            class="ml-2 text-slate-700 underline"
+                            :disabled="item.cancelling"
+                            :aria-label="`Cancelar la importación de ${item.name}`"
+                            @click="cancel(item)"
+                            >Cancelar</button
+                        >
+                        <progress
+                            class="mt-1 block h-2 w-full"
+                            :aria-label="`Progreso de ${item.name}`"
+                            :max="item.total || 100"
+                            :value="item.total ? item.bytes : undefined"
+                        />
                     </template>
                     <template v-else-if="item.stalled">
-                        <span class="break-all text-red-700" role="alert">La cola de importación no está procesando la descarga de {{ item.name }}. Inténtalo de nuevo más tarde o descártala.</span>
-                        <button type="button" class="ml-2 text-slate-700 underline" :disabled="item.cancelling" @click="cancel(item)">Descartar</button>
+                        <span class="break-all text-red-700" role="alert"
+                            >La cola de importación no está procesando la descarga de {{ item.name }}. Inténtalo de
+                            nuevo más tarde o descártala.</span
+                        >
+                        <button
+                            type="button"
+                            class="ml-2 text-slate-700 underline"
+                            :disabled="item.cancelling"
+                            @click="cancel(item)"
+                            >Descartar</button
+                        >
                     </template>
                     <template v-else>
-                        <span class="break-all text-red-700" role="alert">No se pudo importar {{ item.name }}: {{ item.error }}</span>
-                        <button type="button" class="ml-2 text-slate-700 underline" @click="dismiss(item.id)">Descartar</button>
+                        <span class="break-all text-red-700" role="alert"
+                            >No se pudo importar {{ item.name }}: {{ item.error }}</span
+                        >
+                        <button type="button" class="ml-2 text-slate-700 underline" @click="dismiss(item.id)"
+                            >Descartar</button
+                        >
                     </template>
                 </li>
             </ul>

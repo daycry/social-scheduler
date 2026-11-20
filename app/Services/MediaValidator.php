@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ContentType;
+use App\Exceptions\PostValidationException;
 use App\Models\MediaAsset;
 use App\Services\Media\ImageDownscaler;
 use App\Support\TextLength;
@@ -47,6 +48,12 @@ class MediaValidator
 
             if (! $asset->isReady()) {
                 $errors[] = $prefix.'el archivo aun no esta subido o no es valido.';
+
+                continue;
+            }
+
+            if ($asset->isPdf()) {
+                $errors[] = $prefix.$this->pdfNotice($asset);
 
                 continue;
             }
@@ -110,6 +117,22 @@ class MediaValidator
         }
     }
 
+    /** Aviso comun de «un PDF no es media publicable»: lo usan el validador, las autolistas y las plantillas de la biblioteca. */
+    public function pdfNotice(MediaAsset $asset): string
+    {
+        return 'Los PDF no se pueden publicar en redes: "'.$asset->original_name.'" se guarda en la biblioteca para verlo y descargarlo, no para adjuntarlo a una publicación.';
+    }
+
+    /** @param  iterable<MediaAsset>  $media @throws PostValidationException si alguno es un PDF. */
+    public function assertPublishable(iterable $media): void
+    {
+        foreach ($media as $asset) {
+            if ($asset->isPdf()) {
+                throw new PostValidationException(['media' => [$this->pdfNotice($asset)]]);
+            }
+        }
+    }
+
     /** @return array<string, mixed> */
     public function spec(ContentType $type, ?string $firstMediaKind = null): array
     {
@@ -121,6 +144,19 @@ class MediaValidator
         }
 
         return $spec;
+    }
+
+    /**
+     * Solo la regla de texto del tipo (longitud segun su modo de conteo, bytes y hashtags), sin media: la usa el asistente IA para
+     * comprobar cada version adaptada contra la regla de su red.
+     *
+     * @return list<string>
+     */
+    public function textErrors(ContentType $type, string $text): array
+    {
+        $spec = $this->spec($type);
+
+        return $this->validateText($spec, $spec['label'], $text);
     }
 
     /** @return list<string> */

@@ -24,9 +24,10 @@ test.afterEach(async ({}, info) => {
     cleanComposerBrands(e2eUser(info.project.name).email);
 });
 
+const lista = (page: Page) => page.getByRole('region', { name: 'Lista de publicaciones' });
 const card = (page: Page) => page.locator('section[data-network="threads"]');
 
-test('E2E-08 · Conexiones: la tarjeta de Threads y su cuenta conectada, sin desborde', async ({ page }) => {
+test('E2E-08 · Conexiones: la tarjeta de Threads y su cuenta conectada, sin desborde', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/brands/${brand.id}/connections`);
     await settle(page);
@@ -45,13 +46,13 @@ test('E2E-08 · Conexiones: la tarjeta de Threads y su cuenta conectada, sin des
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-08 · calendario: iconos de Threads y Bluesky y filtro por red', async ({ page }) => {
+test('E2E-08 · calendario: iconos de Threads y Bluesky y filtro por red', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/calendar?view=list&brand_id=${brand.id}`);
     await settle(page);
 
-    await expect(page.getByText('e2e programada en Threads').first()).toBeVisible();
-    await expect(page.getByText('e2e programada en Bluesky').first()).toBeVisible();
+    await expect(lista(page).getByRole('link', { name: 'e2e programada en Threads' })).toBeVisible();
+    await expect(lista(page).getByRole('link', { name: 'e2e programada en Bluesky' })).toBeVisible();
     // Cada fila lleva el chip de su red (nombre y abreviatura del catálogo).
     const fila = (texto: string) => page.locator(`xpath=//a[contains(normalize-space(.), "${texto}")]/ancestor::tr[1]`);
     await expect(fila('e2e programada en Threads')).toContainText('Threads');
@@ -66,7 +67,7 @@ test('E2E-08 · calendario: iconos de Threads y Bluesky y filtro por red', async
     await red.selectOption('threads');
     await page.waitForURL(/network=threads/);
     await settle(page);
-    await expect(page.getByText('e2e programada en Threads').first()).toBeVisible();
+    await expect(lista(page).getByRole('link', { name: 'e2e programada en Threads' })).toBeVisible();
     await expect(page.getByText('e2e programada en Bluesky')).toHaveCount(0);
     await expectNoOverflow(page);
     await axeSeriousCritical(page, 'Calendario filtrado por Threads');
@@ -74,7 +75,7 @@ test('E2E-08 · calendario: iconos de Threads y Bluesky y filtro por red', async
     expect(scheduledDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 });
 
-test('E2E-08 · dashboard de Threads: visitas al perfil (no visualizaciones), clics y la publicación con sus cifras', async ({ page }) => {
+test('E2E-08 · dashboard de Threads: visitas al perfil (no visualizaciones), clics y la publicación con sus cifras', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/dashboard/threads?brand_id=${brand.id}`);
     await settle(page);
@@ -95,14 +96,14 @@ test('E2E-08 · dashboard de Threads: visitas al perfil (no visualizaciones), cl
     // Resumen: Threads y Bluesky entran en las pestañas de red (móvil) o en la barra lateral (escritorio).
     await page.goto(`/dashboard?brand_id=${brand.id}`);
     await settle(page);
-    await expect(page.getByRole('link', { name: /Threads/ }).first()).toBeVisible();
-    await expect(page.getByRole('link', { name: /Bluesky/ }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /Threads/ }).and(page.locator(':visible'))).toBeVisible();
+    await expect(page.getByRole('link', { name: /Bluesky/ }).and(page.locator(':visible'))).toBeVisible();
     await expectNoOverflow(page);
     await axeSeriousCritical(page, 'Resumen con Threads y Bluesky');
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-08 · compositor: Threads cuenta 500 caracteres con cada emoji por sus bytes UTF-8', async ({ page }) => {
+test('E2E-08 · compositor: Threads cuenta 500 caracteres con cada emoji por sus bytes UTF-8', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/brands/${brand.id}/posts/create`);
     await settle(page);
@@ -130,7 +131,7 @@ test('E2E-08 · compositor: Threads cuenta 500 caracteres con cada emoji por sus
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-08 · compositor: con 2 etiquetas en Threads aparece el aviso de que solo se usa la primera (CA-14)', async ({ page }) => {
+test('E2E-08 · compositor: con 2 etiquetas en Threads aparece el aviso de que solo se usa la primera (CA-14)', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/brands/${brand.id}/posts/create`);
     await settle(page);

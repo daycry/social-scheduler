@@ -16,6 +16,7 @@ use App\Support\CurrentBrand;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -43,8 +44,6 @@ class ExportController extends Controller
     {
         $data = $request->validate([
             'brand_id' => ['nullable', 'integer'],
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d'],
             'compare' => ['nullable', 'in:'.implode(',', Period::COMPARE_MODES)],
         ]);
 
@@ -52,12 +51,14 @@ class ExportController extends Controller
         $brand = ! empty($data['brand_id']) ? (CurrentBrand::brands($request)->firstWhere('id', (int) $data['brand_id']) ?? abort(404)) : null;
 
         try {
-            $period = Period::make($data['from'] ?? null, $data['to'] ?? null, $brand?->timezone);
-        } catch (InvalidArgumentException $e) {
-            abort(422, $e->getMessage());
+            $period = Period::fromInput($request->only(['from', 'to']), $brand?->timezone);
+            $compare = $period->inputComparison($data['compare'] ?? 'none');
+        } catch (ValidationException $error) {
+            if ($request->expectsJson()) {
+                throw $error;
+            }
+            abort(422, $error->getMessage());
         }
-
-        $compare = $period->comparison($data['compare'] ?? 'none');
         $comparing = $compare !== null;
         $summary = $brand
             ? $this->analytics->summary($user, $brand, $period, $compare)

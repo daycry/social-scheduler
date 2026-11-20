@@ -268,8 +268,8 @@ test('los fallos no escriben la clave ni el cuerpo del proveedor en el log', fun
     Log::shouldHaveReceived('warning')->withArgs(fn ($message, $context = []) => $message === 'studio.ai_provider_failed' && ! str_contains(json_encode($context), 'sk-test') && $context['status'] === 401)->once();
 });
 
-test('API: exige la ability studio:ai y solo ve sus propios trabajos', function () {
-    $ai = $this->mcpKey($this->user, ['studio:ai']);
+test('API: exige la ability designs:ai y solo ve sus propios trabajos', function () {
+    $ai = $this->mcpKey($this->user, ['designs:ai']);
     $design = $this->mcpKey($this->user, ['designs:write', 'designs:read']);
     $url = '/api/v1/brands/'.$this->brand->id.'/ai-image-jobs';
     $payload = ['kind' => 'generate', 'provider' => 'openai', 'prompt' => 'Un faro al amanecer'];
@@ -281,11 +281,11 @@ test('API: exige la ability studio:ai y solo ve sus propios trabajos', function 
     app('auth')->forgetGuards();
     $this->withToken($ai)->getJson('/api/v1/brands/'.$this->brand->id.'/ai')->assertOk()->assertJsonPath('configured', true);
     app('auth')->forgetGuards();
-    $this->withToken($this->mcpKey(User::factory()->create(), ['studio:ai']))->getJson($url.'/'.$id)->assertNotFound();
+    $this->withToken($this->mcpKey(User::factory()->create(), ['designs:ai']))->getJson($url.'/'.$id)->assertNotFound();
 });
 
 test('MCP: generate_studio_image consulta el estado, encola y lee el trabajo con la misma ability', function () {
-    $key = $this->mcpKey($this->user, ['studio:ai']);
+    $key = $this->mcpKey($this->user, ['designs:ai']);
     [$e0, $status] = $this->callTool($key, 'generate_studio_image', ['brand_id' => $this->brand->id, 'action' => 'status']);
     expect($e0)->toBeFalse()->and($status['configured'])->toBeTrue();
     [$e1, $start] = $this->callTool($key, 'generate_studio_image', ['brand_id' => $this->brand->id, 'action' => 'start', 'kind' => 'generate', 'provider' => 'openai', 'prompt' => 'Un faro al amanecer', 'idempotency_key' => 'mcp-clave-0001']);
@@ -295,7 +295,7 @@ test('MCP: generate_studio_image consulta el estado, encola y lee el trabajo con
     [$e2, $get] = $this->callTool($key, 'generate_studio_image', ['brand_id' => $this->brand->id, 'action' => 'get', 'job_id' => $start['job']['id']]);
     expect($e2)->toBeFalse()->and($get['job']['status'])->toBe('ready')->and($get['job']['output_assets'])->toHaveCount(1);
     [$denied] = $this->callTool($this->mcpKey($this->user, ['designs:write']), 'generate_studio_image', ['brand_id' => $this->brand->id, 'action' => 'status']);
-    [$foreign] = $this->callTool($this->mcpKey(User::factory()->create(), ['studio:ai']), 'generate_studio_image', ['brand_id' => $this->brand->id, 'action' => 'get', 'job_id' => $start['job']['id']]);
+    [$foreign] = $this->callTool($this->mcpKey(User::factory()->create(), ['designs:ai']), 'generate_studio_image', ['brand_id' => $this->brand->id, 'action' => 'get', 'job_id' => $start['job']['id']]);
     expect($denied)->toBeTrue()->and($foreign)->toBeTrue();
 });
 

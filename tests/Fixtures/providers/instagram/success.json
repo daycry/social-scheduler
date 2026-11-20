@@ -1,0 +1,11 @@
+{
+  "source": "https://www.postman.com/meta/instagram/documentation/6yqw8pt/instagram-api?entity=request-23987686-dc3adfbc-7d2b-45b9-b764-a06d70f79b94",
+  "method": "POST",
+  "host": "graph.facebook.com",
+  "path": "/v23.0/17841400000000001/media_publish",
+  "status": 200,
+  "headers": {},
+  "body": {
+    "id": "100000000000003"
+  }
+}

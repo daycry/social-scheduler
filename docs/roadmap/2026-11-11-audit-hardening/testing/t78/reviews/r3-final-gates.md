@@ -1,0 +1,1 @@
+R3 sin defectos abiertos. Condición final de proceso cerrada: tsconfig.json incluye tests/e2e/**/*.ts, npm run typecheck r47 pasa tsc estricto y vue-tsc con0errores. Node789/789 y Prettier del spec final pasan. APIESLint isPathIgnored confirma true para este .ts: fuera del ámbito configurado, no se declara lint deTS. Producción igual a R2/R3; no cambios posteriores a revisión.

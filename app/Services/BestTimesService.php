@@ -10,6 +10,7 @@ use App\Models\Post;
 use App\Models\PostMetricSnapshot;
 use App\Models\PostTarget;
 use App\Models\User;
+use App\Support\LocalDateTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 
@@ -39,6 +40,47 @@ class BestTimesService
         return Cache::remember($key, now()->addMinutes($ttl), fn () => $this->compute($user, $brand, $network, $days));
     }
 
+    /** Una fecha futura basada solo en las franjas con métricas suficientes. */
+    public function suggest(User $user, Brand $brand, Network $network): array
+    {
+        $map = $this->heatmap($user, $brand, $network);
+        $result = [
+            'available' => $map['available'], 'reason' => $map['reason'],
+            'brand_id' => $brand->id, 'network' => $network->value,
+            'timezone' => $map['timezone'], 'posts' => $map['posts'], 'min_posts' => $map['min_posts'],
+            'scheduled_at' => null, 'scheduled_at_utc' => null,
+        ];
+        if (! $map['available']) {
+            return $result;
+        }
+
+        $now = CarbonImmutable::instance(now())->setTimezone($map['timezone']);
+        $candidates = [];
+        foreach ($map['top'] as $slot) {
+            for ($day = 0; $day < 14; $day++) {
+                $date = $now->startOfDay()->addDays($day);
+                if ($date->dayOfWeekIso !== $slot['dow']) {
+                    continue;
+                }
+                $at = LocalDateTime::parseUnique($date->format('Y-m-d').'T'.sprintf('%02d:00', $slot['hour']), $map['timezone']);
+                if ($at !== null && $at->gt($now)) {
+                    $candidates[] = ['at' => $at, 'score' => $slot['avg_engagement'], 'posts' => $slot['posts']];
+                }
+            }
+        }
+        if ($candidates === []) {
+            return array_replace($result, ['available' => false, 'reason' => 'No hay una franja válida en las próximas dos semanas.']);
+        }
+        usort($candidates, fn (array $a, array $b) => [$b['score'], $b['posts']] <=> [$a['score'], $a['posts']]
+            ?: $a['at']->getTimestamp() <=> $b['at']->getTimestamp());
+        $at = $candidates[0]['at'];
+
+        return array_replace($result, [
+            'scheduled_at' => $at->format('Y-m-d\TH:i'),
+            'scheduled_at_utc' => $at->utc()->toIso8601String(),
+        ]);
+    }
+
     /** @return array<string, mixed> */
     private function compute(User $user, Brand $brand, Network $network, ?int $days): array
     {
@@ -46,13 +88,12 @@ class BestTimesService
         $min = (int) config('social.best_times.min_posts', 10);
         $tz = $brand->timezone ?: 'UTC';
 
-        $targets = PostTarget::withoutUserScope()
-            ->where('user_id', $user->id)
+        $targets = PostTarget::ownedBy($user->id)
             ->where('network', $network->value)
             ->where('status', PostStatus::Published->value)
             ->whereNotNull('published_at')
             ->where('published_at', '>=', now()->subDays($days))
-            ->whereIn('post_id', Post::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->select('id'))
+            ->whereIn('post_id', Post::ownedBy($user->id)->where('brand_id', $brand->id)->select('id'))
             ->get(['id', 'published_at'])
             ->keyBy('id');
 
@@ -60,7 +101,7 @@ class BestTimesService
         // Solo se traen las filas ganadoras (una por destino), no todo el historico de snapshots.
         $latest = [];
         foreach ($targets->keys()->chunk(500) as $ids) {
-            $newest = PostMetricSnapshot::withoutUserScope()->where('user_id', $user->id)->whereIn('post_target_id', $ids->all())
+            $newest = PostMetricSnapshot::ownedBy($user->id)->whereIn('post_target_id', $ids->all())
                 ->groupBy('post_target_id')->selectRaw('post_target_id, MAX(date) as max_date');
 
             PostMetricSnapshot::withoutUserScope()->from('post_metric_snapshots as s')

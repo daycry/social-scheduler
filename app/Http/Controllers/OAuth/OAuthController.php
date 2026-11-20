@@ -11,10 +11,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Services\BrandService;
 use App\Services\SocialAccountService;
+use App\Support\OAuthStateStore;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -39,6 +39,7 @@ class OAuthController extends Controller
         private readonly ConnectorRegistry $connectors,
         private readonly BrandService $brands,
         private readonly SocialAccountService $accounts,
+        private readonly OAuthStateStore $states,
     ) {}
 
     public function redirect(Request $request, Brand $brand, string $provider): Response
@@ -49,13 +50,7 @@ class OAuthController extends Controller
         $state = Str::random(40);
         $flow = ['state' => $state, 'brand_id' => $brand->id, 'user_id' => $request->user()->id, 'issued_at' => now()->timestamp];
         $key = $this->flowKey($request, $provider);
-        Cache::lock($key.'.lock', 5)->block(5, function () use ($key, $flow, $state): void {
-            $flows = Cache::get($key, []);
-            $flows = array_filter(is_array($flows) ? $flows : [], fn ($item) => is_array($item)
-                && ($item['issued_at'] ?? 0) > now()->timestamp - self::FLOW_TTL_SECONDS);
-            $flows[hash('sha256', $state)] = $flow;
-            Cache::put($key, array_slice($flows, -10, null, true), self::FLOW_TTL_SECONDS);
-        });
+        $this->states->remember($key, $state, $flow, self::FLOW_TTL_SECONDS, 10);
         // Convenience pointer only: ordinary session writes cannot create or revive authoritative flows.
         $request->session()->put("oauth.$provider", $flow);
 
@@ -133,26 +128,9 @@ class OAuthController extends Controller
     /** Consume one matching authorization without invalidating another tab or brand. */
     private function takeFlow(Request $request, string $provider, string $state): ?array
     {
-        if ($state === '' || strlen($state) > 128) {
-            return null;
-        }
-        $key = $this->flowKey($request, $provider);
-        $stored = Cache::lock($key.'.lock', 5)->block(5, function () use ($key, $state, $request): ?array {
-            $flows = Cache::get($key, []);
-            $hash = hash('sha256', $state);
-            $flow = is_array($flows) ? ($flows[$hash] ?? null) : null;
-            if (! is_array($flow) || ! is_string($flow['state'] ?? null) || ! hash_equals($flow['state'], $state)) {
-                return null;
-            }
-            unset($flows[$hash]);
-            Cache::put($key, $flows, self::FLOW_TTL_SECONDS);
-            if (($flow['user_id'] ?? null) !== $request->user()->id
-                || ($flow['issued_at'] ?? 0) <= now()->timestamp - self::FLOW_TTL_SECONDS) {
-                return null;
-            }
-
-            return $flow;
-        });
+        $stored = $this->states->consume(
+            $this->flowKey($request, $provider), $state, $request->user()->id, self::FLOW_TTL_SECONDS, verifyStoredState: true,
+        );
         if ($stored === null) {
             return null;
         }

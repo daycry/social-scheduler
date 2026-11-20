@@ -160,12 +160,12 @@ test('YouTube: sin youtube.force-ssl no se sincroniza ni se responde y ocultar n
 });
 
 test('Cobertura: TikTok queda fuera con su motivo y el resto declara lectura y respuesta', function () {
-    $cov = collect(InboxService::coverage())->keyBy('network');
+    $cov = collect(app(InboxService::class)->coverage())->keyBy('network');
 
     expect($cov['tiktok']['read'])->toBeFalse()->and($cov['tiktok']['note'])->toContain('API pÃºblica')
         ->and($cov->only(['instagram', 'facebook', 'threads', 'bluesky', 'youtube'])->every(fn ($c) => $c['read'] && $c['reply']))->toBeTrue()
         ->and($cov['threads']['hide'])->toBeFalse()->and($cov['instagram']['note'])->toContain('mensajes directos');
-    expect(collect(InboxService::NETWORKS)->map->value->all())->not->toContain('tiktok');
+    expect(collect(app(InboxService::class)->networks())->map->value->all())->not->toContain('tiktok');
 });
 
 // ---------------------------------------------------------------------------------------------------------- triaje
@@ -201,7 +201,7 @@ test('Triaje: asignar solo a uno mismo o a un colaborador de la marca; un extraÃ
     $guest = User::factory()->create();
     $stranger = User::factory()->create();
     $c = InboxComment::factory()->create(['user_id' => $user->id]);
-    BrandCollaborator::query()->create(['brand_id' => $c->brand_id, 'owner_id' => $user->id, 'user_id' => $guest->id, 'role' => 'aprobador']);
+    BrandCollaborator::query()->create(['brand_id' => $c->brand_id, 'owner_id' => $user->id, 'user_id' => $guest->id, 'role' => BrandCollaborator::ROLE_APPROVER]);
     $inbox = app(InboxService::class);
 
     $inbox->assign($user, $c, $guest->id);
@@ -265,7 +265,7 @@ test('Web: filtros de red/estado/etiqueta/asignado, lote, cierre, etiqueta y gua
 
     $this->get(route('inbox.index', ['network' => 'threads', 'status' => 'open', 'label' => 'urgente', 'assigned' => 'none']))
         ->assertInertia(fn ($p) => $p->component('Inbox/Index')->has('comments.data', 1)->where('comments.data.0.labels', ['urgente'])
-            ->where('saved_replies.0.title', 'Hola')->has('coverage', 6));
+            ->where('saved_replies.0.title', 'Hola')->has('coverage', 8));
     $this->get(route('inbox.index', ['status' => 'closed']))->assertInertia(fn ($p) => $p->has('comments.data', 1)->where('comments.data.0.closed', true));
     $this->get(route('inbox.index', ['network' => 'tiktok']))->assertSessionHasErrors('network');
 

@@ -148,6 +148,37 @@ class CanvaClient
         return (array) ($json['job'] ?? []);
     }
 
+    /** @return array{items: list<array<string, mixed>>, continuation: ?string} */
+    public function brandTemplates(#[\SensitiveParameter] string $token, ?string $query, ?string $continuation): array
+    {
+        $params = array_filter(['query' => $query, 'continuation' => $continuation], fn ($v) => $v !== null && $v !== '');
+        $json = $this->send($token, 'get', '/brand-templates', $params);
+
+        return ['items' => array_values(array_filter((array) ($json['items'] ?? []), 'is_array')), 'continuation' => is_string($json['continuation'] ?? null) ? $json['continuation'] : null];
+    }
+
+    /** Campos autorrellenables de una plantilla de marca: nombre => ['type' => text|image|video|chart|sheet…]. @return array<string, array<string, mixed>> */
+    public function brandTemplateDataset(#[\SensitiveParameter] string $token, string $templateId): array
+    {
+        $json = $this->send($token, 'get', '/brand-templates/'.rawurlencode($templateId).'/dataset');
+
+        return array_filter((array) ($json['dataset'] ?? []), 'is_array');
+    }
+
+    /** @param  array<string, array<string, string>>  $data  Campos a rellenar: nombre => ['type' => 'text', 'text' => '…']. @return array<string, mixed> */
+    public function createAutofill(#[\SensitiveParameter] string $token, string $templateId, array $data, ?string $title): array
+    {
+        $body = ['type' => 'create_from_brand_template', 'brand_template_id' => $templateId, 'data' => $data] + ($title !== null ? ['title' => $title] : []);
+
+        return (array) ($this->send($token, 'post', '/autofills', null, $body)['job'] ?? []);
+    }
+
+    /** @return array<string, mixed> */
+    public function autofillJob(#[\SensitiveParameter] string $token, string $jobId): array
+    {
+        return (array) ($this->send($token, 'get', '/autofills/'.rawurlencode($jobId))['job'] ?? []);
+    }
+
     /** @return array{access_token: string, refresh_token: ?string, expires_in: int, scope: string} */
     private function token(#[\SensitiveParameter] array $form): array
     {

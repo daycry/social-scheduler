@@ -47,7 +47,7 @@ class PollPublishStatus implements ShouldBeUnique, ShouldQueue
         return (string) $this->targetId;
     }
 
-    public function handle(ConnectorRegistry $connectors, PublishOutcomes $outcomes, PublishRequestFactory $requests): void
+    public function handle(ConnectorRegistry $connectors, PublishOutcomes $outcomes, PublishRequestFactory $requests, SocialAccountService $accounts, QuotaPolicy $quota): void
     {
         // Solo un sondeo a la vez por destino: relee con lock y sale si ya no esta `procesando`.
         $target = DB::transaction(fn () => PostTarget::withoutUserScope()->lockForUpdate()->find($this->targetId));
@@ -105,13 +105,13 @@ class PollPublishStatus implements ShouldBeUnique, ShouldQueue
             return;
         } catch (ReconnectRequiredException $e) {
             // No se pierde el contenido ya enviado: se marca la cuenta y el sondeo se retoma al reconectarla.
-            app(SocialAccountService::class)->flagReconnection($account, $e->getMessage());
+            $accounts->flagReconnection($account, $e->getMessage());
             $this->waitForReconnection($outcomes, $target, $e->getMessage());
 
             return;
         } catch (QuotaExceededException $e) {
             // `media_publish` sin cupo: el contenedor ya existe, se aplica la politica de cuota sin recrearlo.
-            app(QuotaPolicy::class)->applyWhileProcessing($target, $e);
+            $quota->applyWhileProcessing($target, $e);
 
             return;
         } catch (Throwable $e) {

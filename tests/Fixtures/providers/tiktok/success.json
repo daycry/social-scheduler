@@ -1,0 +1,21 @@
+{
+  "source": "https://developers.tiktok.com/docs/en/content-posting-api-reference-upload-video",
+  "method": "POST",
+  "host": "open.tiktokapis.com",
+  "path": "/v2/post/publish/inbox/video/init/",
+  "status": 200,
+  "headers": {},
+  "body": {
+    "data": {
+      "publish_id": "v_inbox_file~v2.100000000000005",
+      "upload_url": "https://open-upload.tiktokapis.com/video/"
+    },
+    "error": {
+      "code": "ok",
+      "message": ""
+    }
+  },
+  "fixed": [
+    "error.code"
+  ]
+}

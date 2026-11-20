@@ -33,7 +33,6 @@ class CampaignController extends Controller
             'campaigns' => $brand
                 ? $this->campaigns->listForBrand($request->user(), $brand->id)->map(fn (Campaign $c) => $this->campaigns->toArray($c))->values()
                 : [],
-            'flash' => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error')],
         ]);
     }
 
@@ -52,7 +51,7 @@ class CampaignController extends Controller
 
         return Inertia::render('Campaigns/Show', [
             'campaign' => $this->campaigns->toArray($campaign),
-            'brand' => Brand::withoutUserScope()->where('user_id', $request->user()->id)->find($campaign->brand_id)?->only(['id', 'name']),
+            'brand' => Brand::ownedBy($request->user()->id)->find($campaign->brand_id)?->only(['id', 'name']),
             'summary' => $summary,
         ]);
     }

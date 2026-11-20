@@ -2,6 +2,8 @@
 
 use App\Services\Media\UnsafeUrlException;
 use App\Services\Media\UrlGuard;
+use App\Services\Media\ValidatedUrl;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -340,4 +342,20 @@ test('UrlGuard (revision): ningun candidato de la tabla de IPs privadas llega a 
     }
 
     Http::assertNothingSent();
+});
+
+test('UrlGuard: deliveryClient descarta la respuesta y sigue en el manejador cURL que aplica la IP fijada', function () {
+    // Sin red externa: la IP fijada es 127.0.0.1 y el puerto está cerrado. Con `stream => true` Guzzle cambiaba al
+    // manejador de streams y rechazaba la opción `curl` antes de conectar, así que ninguna entrega real salía (M-07).
+    Http::allowStrayRequests();
+    $v = new ValidatedUrl('http://delivery.example.test:9/hook', 'http', 'delivery.example.test', 9, '127.0.0.1', ['127.0.0.1']);
+    $error = null;
+    try {
+        guard()->deliveryClient($v)->connectTimeout(2)->timeout(3)->post($v->url, ['ping' => true]);
+    } catch (Throwable $caught) {
+        $error = $caught;
+    }
+
+    expect($error)->toBeInstanceOf(ConnectionException::class)
+        ->and($error->getMessage())->toContain('cURL error')->not->toContain('stream handler');
 });

@@ -33,11 +33,25 @@ const submit = () =>
 
 <template>
     <div>
-        <SecondaryButton v-if="!open" type="button" :aria-expanded="open" :aria-controls="`${uid}-form`" @click="open = true">+ Conectar</SecondaryButton>
+        <SecondaryButton
+            v-if="!open"
+            type="button"
+            :aria-expanded="open"
+            :aria-controls="`${uid}-form`"
+            @click="open = true"
+            >+ Conectar</SecondaryButton
+        >
 
-        <form v-if="open" :id="`${uid}-form`" class="mt-4 w-full space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4" autocomplete="off" @submit.prevent="submit">
+        <form
+            v-if="open"
+            :id="`${uid}-form`"
+            class="mt-4 w-full space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4"
+            autocomplete="off"
+            @submit.prevent="submit"
+        >
             <p class="text-sm text-slate-700">
-                Conecta {{ label }} con una <strong>app password</strong>, no con la contraseña de tu cuenta. Se guarda cifrada y puedes revocarla desde {{ label }} cuando quieras.
+                Conecta {{ label }} con una <strong>app password</strong>, no con la contraseña de tu cuenta. Se guarda
+                cifrada y puedes revocarla desde {{ label }} cuando quieras.
             </p>
 
             <div v-for="f in fields" :key="f.name">
@@ -56,14 +70,27 @@ const submit = () =>
                     :aria-invalid="form.errors[f.name] ? 'true' : undefined"
                 />
                 <p :id="`${uid}-${f.name}-help`" class="mt-1 text-xs text-slate-600">{{ f.help }}</p>
-                <p v-if="form.errors[f.name]" class="mt-1 text-sm text-red-700" role="alert">{{ form.errors[f.name] }}</p>
+                <p
+                    v-if="form.errors[f.name]"
+                    class="mt-1 text-sm text-red-700"
+                    role="alert"
+                    >{{ form.errors[f.name] }}</p
+                >
             </div>
 
-            <p v-if="generalError" class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert" data-testid="credentials-error">{{ generalError }}</p>
+            <p
+                v-if="generalError"
+                class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+                role="alert"
+                data-testid="credentials-error"
+                >{{ generalError }}</p
+            >
 
             <div class="flex flex-wrap items-center gap-3">
                 <PrimaryButton :disabled="form.processing">Conectar {{ label }}</PrimaryButton>
-                <button type="button" class="link text-sm" @click="open = false; form.reset(); form.clearErrors()">Cancelar</button>
+                <button type="button" class="link text-sm" @click="open = false; form.reset(); form.clearErrors()"
+                    >Cancelar</button
+                >
             </div>
         </form>
     </div>

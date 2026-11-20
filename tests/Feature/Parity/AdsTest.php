@@ -61,7 +61,7 @@ test('Ads: sin el permiso ads_read el estado es no disponible con la instruccion
     $this->fb->forceFill(['scopes' => ['pages_show_list']])->save();
 
     $this->actingAs($this->user)->get(route('ads.index'))->assertOk()->assertInertia(fn ($p) => $p->where('overview.available', false)->where('overview.reason', 'sin_permiso')
-        ->where('overview.message', fn ($m) => str_contains($m, 'ads_read') && str_contains($m, 'vuelve a conectar')));
+        ->where('overview.message', fn ($m) => str_contains($m, 'ads_read') && str_contains($m, 'reconecta')));
     expect($this->graph->calls)->toBe([]);
 });
 

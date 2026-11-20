@@ -127,7 +127,7 @@ test('E2E-02 · aislamiento de una marca entre dos sesiones reales', async ({ pa
     await page.goto('/brands');
     const href = await page.getByRole('main').getByRole('link', { name, exact: true }).getAttribute('href');
     expect(href).toBeTruthy();
-    const context = await browser.newContext({ baseURL: 'http://localhost:8081', locale: 'es-ES', timezoneId: 'Europe/Madrid', viewport: info.project.use.viewport, isMobile: info.project.use.isMobile, hasTouch: info.project.use.hasTouch });
+    const context = await browser.newContext({ baseURL: info.project.use.baseURL, locale: 'es-ES', timezoneId: 'Europe/Madrid', viewport: info.project.use.viewport, isMobile: info.project.use.isMobile, hasTouch: info.project.use.hasTouch });
     const pageB = await context.newPage();
     try {
         await login(pageB, other);
@@ -156,8 +156,8 @@ test('E2E-03 · OAuth local de Instagram, Facebook, YouTube y TikTok y desconexi
     expect(accounts.map((account: any) => account.network).sort()).toEqual(['facebook', 'instagram', 'tiktok', 'youtube']);
     expect(accounts.every((account: any) => account.status === 'activa' && account.hasToken)).toBe(true);
     await finish(page, info, 'e2e-03-cuentas-conectadas');
-    page.on('dialog', (dialog) => dialog.accept());
     await page.locator('[data-network="instagram"]').getByRole('button', { name: 'Desconectar', exact: true }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Desconectar cuenta', exact: true }).click();
     await expect.poll(() => fixture('state', info.project.name).accounts.find((account: any) => account.network === 'instagram')).toMatchObject({ status: 'desconectada', hasToken: false });
     await expect(page.locator('[data-network="instagram"]').getByRole('button', { name: 'Desconectar', exact: true })).toHaveCount(0);
 });
@@ -302,11 +302,11 @@ test('E2E-10 · dashboard de treinta días cambia red y periodo con gráficos y 
     for (const network of ['instagram', 'facebook', 'youtube', 'tiktok']) {
         await page.goto(`/dashboard/${network}?brand_id=${seed.brandId}`);
         await expect(page.getByRole('heading', { name: 'Crecimiento', exact: true })).toBeVisible();
-        await expect(page.getByRole('main')).toContainText('Seguidores');
-        if (network === 'instagram') await expect(page.getByText('Alcance', { exact: true }).first()).toBeVisible();
+        await expect(page.locator('[data-section="growth"]').getByText('Seguidores (último dato conocido)', { exact: true })).toBeVisible();
+        if (network === 'instagram') await expect(page.locator('[data-metric="reach"]').getByText('Alcance', { exact: true })).toBeVisible();
         await expect(page.getByText('Engagement (cuenta)', { exact: true })).toBeVisible();
         // The canonical views metric replaces the old impressions metric in Meta.
-        if (network !== 'tiktok') await expect(page.getByText('Visualizaciones', { exact: true }).first()).toBeVisible();
+        if (network !== 'tiktok') await expect(page.locator('[data-metric="views"]').getByText('Visualizaciones', { exact: true })).toBeVisible();
         await expect(page.getByRole('main')).toContainText(/No disponible/i);
         await expect(page.getByRole('img', { name: 'Gráfico de evolución' }).first()).toBeVisible();
         await page.getByRole('button', { name: '7 días', exact: true }).click();
@@ -372,8 +372,8 @@ test('E2E-12 · API key visible una vez, revocada en UI y rechazada por MCP', as
     expect((await rpc(page, key, 'tools/list')).response.status()).toBe(200);
     await page.reload();
     await expect(page.getByTestId('new-key')).toHaveCount(0);
-    page.on('dialog', (dialog) => dialog.accept());
     await page.getByRole('button', { name: `Revocar ${name}`, exact: true }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Revocar API key', exact: true }).click();
     await expect(page.getByText(name, { exact: true })).toHaveCount(0);
     const rejected = await rpc(page, key, 'tools/list');
     expect(rejected.response.status()).toBe(401);
@@ -433,7 +433,7 @@ test('API-02 · key inválida no devuelve herramientas ni datos', async ({ page 
 
 test('API-03 · MCP rechaza leer una marca ajena sin revelar sus datos', async ({ page, browser }, info) => {
     const seed = fixture<Seed>('seed', info.project.name);
-    const context = await browser.newContext({ baseURL: 'http://localhost:8081', locale: 'es-ES', timezoneId: 'Europe/Madrid', viewport: info.project.use.viewport, isMobile: info.project.use.isMobile, hasTouch: info.project.use.hasTouch });
+    const context = await browser.newContext({ baseURL: info.project.use.baseURL, locale: 'es-ES', timezoneId: 'Europe/Madrid', viewport: info.project.use.viewport, isMobile: info.project.use.isMobile, hasTouch: info.project.use.hasTouch });
     const pageB = await context.newPage();
     try {
         await login(pageB, other);

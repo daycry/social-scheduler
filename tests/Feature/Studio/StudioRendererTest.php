@@ -60,6 +60,7 @@ test('failed renderer never exposes a ready download and stores a useful error',
 });
 
 test('renderer rejects an image with unexpected output dimensions', function () {
+    config(['filesystems.media' => 'local']);
     $export = app(StudioRenderer::class)->export($this->user, $this->design, ['revision' => 1, 'format' => 'png', 'pages' => ['page_one']]);
     Process::fake(function ($process) {
         $image = imagecreatetruecolor(20, 20);
@@ -70,6 +71,9 @@ test('renderer rejects an image with unexpected output dimensions', function () 
     });
     app(StudioRenderer::class)->render($export->id);
     expect($export->refresh()->status)->toBe('failed')->and($export->media_ids)->toBeNull();
+    expect(MediaAsset::ownedBy($this->user->id)->count())->toBe(0);
+    Storage::disk('local')->assertDirectoryEmpty('media/'.$this->user->id);
+    expect(Storage::disk('local')->directories('studio-exports/'.$this->user->id.'/'.$export->id))->toBe([]);
 });
 
 test('signed downloads expire and bind both export and owner without leaking storage paths', function () {

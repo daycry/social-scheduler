@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Brand;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Support\Facades\Log;
 
 class BrandPolicy
@@ -35,7 +36,7 @@ class BrandPolicy
 
     private function owns(User $user, Brand $brand, string $ability): bool
     {
-        if ($brand->user_id === $user->id) {
+        if (Ownership::matches($brand, $user)) {
             return true;
         }
 

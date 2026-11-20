@@ -1,9 +1,9 @@
 <script setup>
 import DangerButton from '@/Components/DangerButton.vue';
 import EmptyState from '@/Components/EmptyState.vue';
-import InputError from '@/Components/InputError.vue';
+import FormField from '@/Components/FormField.vue';
 import InputLabel from '@/Components/InputLabel.vue';
-import Modal from '@/Components/Modal.vue';
+import BaseDialog from '@/Components/BaseDialog.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -156,8 +156,8 @@ onMounted(() => {
             <h2 id="passkeys-title" class="text-lg font-medium text-slate-900">Passkeys</h2>
 
             <p class="mt-1 text-sm text-slate-600">
-                Entra con tu huella, tu cara o el PIN del dispositivo, sin escribir la contraseña ni el código del doble factor.
-                Cada passkey es de un dispositivo o gestor de contraseñas.
+                Entra con tu huella, tu cara o el PIN del dispositivo, sin escribir la contraseña ni el código del doble
+                factor. Cada passkey es de un dispositivo o gestor de contraseñas.
             </p>
         </header>
 
@@ -175,18 +175,33 @@ onMounted(() => {
 
             <div v-else class="mt-4">
                 <ul class="divide-y divide-slate-200 rounded-lg border border-slate-200" aria-label="Tus passkeys">
-                    <li v-for="passkey in passkeys.items" :key="passkey.id" class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <li
+                        v-for="passkey in passkeys.items"
+                        :key="passkey.id"
+                        class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+                    >
                         <div class="min-w-0">
                             <p class="break-words font-medium text-slate-900">{{ passkey.name }}</p>
                             <p class="text-sm text-slate-600">
                                 Añadida el {{ formatDate(passkey.created_at) }} ·
-                                <template v-if="passkey.last_used_at">último uso el {{ formatDate(passkey.last_used_at) }}</template>
+                                <template v-if="passkey.last_used_at"
+                                    >último uso el {{ formatDate(passkey.last_used_at) }}</template
+                                >
                                 <template v-else>sin usar todavía</template>
                             </p>
                         </div>
                         <div class="flex flex-wrap gap-2">
-                            <SecondaryButton :aria-label="`Renombrar la passkey ${passkey.name}`" @click="openRename(passkey)">Renombrar</SecondaryButton>
-                            <DangerButton type="button" :aria-label="`Eliminar la passkey ${passkey.name}`" @click="openDelete(passkey)">Eliminar</DangerButton>
+                            <SecondaryButton
+                                :aria-label="`Renombrar la passkey ${passkey.name}`"
+                                @click="openRename(passkey)"
+                                >Renombrar</SecondaryButton
+                            >
+                            <DangerButton
+                                type="button"
+                                :aria-label="`Eliminar la passkey ${passkey.name}`"
+                                @click="openDelete(passkey)"
+                                >Eliminar</DangerButton
+                            >
                         </div>
                     </li>
                 </ul>
@@ -197,62 +212,81 @@ onMounted(() => {
         </template>
 
         <!-- Alta: el nombre se pide antes; el diálogo del navegador (biometría) se abre al enviar. -->
-        <Modal :show="adding" max-width="md" @close="closeAdd">
+        <BaseDialog
+            v-if="adding"
+            open
+            close-on-backdrop
+            class="dialog-panel max-w-md"
+            aria-label="Añadir una passkey"
+            @close="closeAdd"
+        >
             <form class="p-6" novalidate @submit.prevent="submitAdd">
                 <h2 class="text-lg font-medium text-slate-900">Añadir una passkey</h2>
                 <p class="mt-1 text-sm text-slate-600">
-                    Ponle un nombre que te ayude a reconocerla y, al continuar, tu dispositivo te pedirá la huella, la cara o el PIN.
+                    Ponle un nombre que te ayude a reconocerla y, al continuar, tu dispositivo te pedirá la huella, la
+                    cara o el PIN.
                 </p>
 
                 <div class="mt-6">
-                    <InputLabel for="passkey_name" value="Nombre de la passkey" />
-                    <TextInput
-                        id="passkey_name"
-                        ref="addNameInput"
-                        v-model="addName"
-                        type="text"
-                        maxlength="100"
-                        autocomplete="off"
-                        class="mt-1 block w-full"
-                        placeholder="Portátil de casa"
-                        required
-                        :aria-invalid="addError ? 'true' : undefined"
-                        aria-describedby="passkey_name_error"
-                    />
-                    <div id="passkey_name_error" role="alert" aria-live="polite">
-                        <InputError :message="addError" class="mt-2" />
-                    </div>
+                    <FormField id="passkey_name" :error="addError" error-class="mt-2" v-slot="{ control }">
+                        <InputLabel for="passkey_name" value="Nombre de la passkey" />
+                        <TextInput
+                            v-bind="control"
+                            ref="addNameInput"
+                            data-dialog-initial-focus
+                            v-model="addName"
+                            type="text"
+                            maxlength="100"
+                            autocomplete="off"
+                            class="mt-1 block w-full"
+                            placeholder="Portátil de casa"
+                            required
+                        />
+                    </FormField>
                 </div>
 
                 <div class="mt-6 flex justify-end gap-3">
                     <SecondaryButton :disabled="registering" @click="closeAdd">Cancelar</SecondaryButton>
-                    <PrimaryButton :disabled="registering">{{ registering ? 'Esperando a tu dispositivo…' : 'Continuar' }}</PrimaryButton>
+                    <PrimaryButton
+                        :disabled="registering"
+                        >{{ registering ? 'Esperando a tu dispositivo…' : 'Continuar' }}</PrimaryButton
+                    >
                 </div>
             </form>
-        </Modal>
+        </BaseDialog>
 
         <!-- Renombrar -->
-        <Modal :show="renaming !== null" max-width="md" @close="closeRename">
+        <BaseDialog
+            v-if="renaming !== null"
+            open
+            close-on-backdrop
+            class="dialog-panel max-w-md"
+            aria-label="Renombrar la passkey"
+            @close="closeRename"
+        >
             <form class="p-6" novalidate @submit.prevent="submitRename">
                 <h2 class="text-lg font-medium text-slate-900">Renombrar la passkey</h2>
 
                 <div class="mt-6">
-                    <InputLabel for="passkey_rename" value="Nombre de la passkey" />
-                    <TextInput
+                    <FormField
                         id="passkey_rename"
-                        ref="renameInput"
-                        v-model="renameForm.name"
-                        type="text"
-                        maxlength="100"
-                        autocomplete="off"
-                        class="mt-1 block w-full"
-                        required
-                        :aria-invalid="renameForm.errors.name ? 'true' : undefined"
-                        aria-describedby="passkey_rename_error"
-                    />
-                    <div id="passkey_rename_error" role="alert" aria-live="polite">
-                        <InputError :message="renameForm.errors.name" class="mt-2" />
-                    </div>
+                        :error="renameForm.errors.name"
+                        error-class="mt-2"
+                        v-slot="{ control }"
+                    >
+                        <InputLabel for="passkey_rename" value="Nombre de la passkey" />
+                        <TextInput
+                            v-bind="control"
+                            ref="renameInput"
+                            data-dialog-initial-focus
+                            v-model="renameForm.name"
+                            type="text"
+                            maxlength="100"
+                            autocomplete="off"
+                            class="mt-1 block w-full"
+                            required
+                        />
+                    </FormField>
                 </div>
 
                 <div class="mt-6 flex justify-end gap-3">
@@ -260,22 +294,35 @@ onMounted(() => {
                     <PrimaryButton :disabled="renameForm.processing">Guardar</PrimaryButton>
                 </div>
             </form>
-        </Modal>
+        </BaseDialog>
 
         <!-- Eliminar -->
-        <Modal :show="deleting !== null" max-width="md" @close="closeDelete">
+        <BaseDialog
+            v-if="deleting !== null"
+            open
+            close-on-backdrop
+            class="dialog-panel max-w-md"
+            aria-label="Eliminar la passkey"
+            @close="closeDelete"
+        >
             <div class="p-6">
                 <h2 class="text-lg font-medium text-slate-900">Eliminar la passkey</h2>
                 <p class="mt-1 text-sm text-slate-600">
-                    ¿Eliminar «{{ deleting?.name }}»? Dejará de servir para entrar. Podrás volver a añadirla cuando quieras y seguirás
-                    pudiendo entrar con tu contraseña.
+                    ¿Eliminar «{{ deleting?.name }}»? Dejará de servir para entrar. Podrás volver a añadirla cuando
+                    quieras y seguirás pudiendo entrar con tu contraseña.
                 </p>
 
                 <div class="mt-6 flex justify-end gap-3">
                     <SecondaryButton @click="closeDelete">Cancelar</SecondaryButton>
-                    <DangerButton type="button" :class="{ 'opacity-25': deleteForm.processing }" :disabled="deleteForm.processing" @click="submitDelete">Eliminar</DangerButton>
+                    <DangerButton
+                        type="button"
+                        :class="{ 'opacity-25': deleteForm.processing }"
+                        :disabled="deleteForm.processing"
+                        @click="submitDelete"
+                        >Eliminar</DangerButton
+                    >
                 </div>
             </div>
-        </Modal>
+        </BaseDialog>
     </section>
 </template>

@@ -3,6 +3,8 @@
 namespace App\Mcp\Tools;
 
 use App\Exceptions\InvalidPostTransition;
+use App\Exceptions\OwnershipException;
+use App\Exceptions\PostStateConflict;
 use App\Exceptions\PostValidationException;
 use App\Models\Brand;
 use App\Models\Post;
@@ -27,6 +29,21 @@ use Throwable;
  */
 abstract class SchedulerTool extends Tool
 {
+    /** @var array<int, true> Marcas verificadas durante esta llamada. */
+    private array $auditBrands = [];
+
+    protected function attributeBrand(?int $brandId): void
+    {
+        if ($brandId !== null) {
+            $this->auditBrands[$brandId] = true;
+        }
+    }
+
+    private function auditBrand(): ?int
+    {
+        return count($this->auditBrands) === 1 ? (int) array_key_first($this->auditBrands) : null;
+    }
+
     /** Ability de Sanctum que exige la herramienta. */
     abstract protected function ability(): string;
 
@@ -49,6 +66,7 @@ abstract class SchedulerTool extends Tool
 
     public function handle(Request $request): Response
     {
+        $this->auditBrands = [];
         $audit = app(AuditLog::class);
         $user = $request->user();
         $action = $this->name();
@@ -72,35 +90,40 @@ abstract class SchedulerTool extends Tool
 
             return Response::error($e->getMessage());
         } catch (ValidationException $e) {
-            $audit->record($user, $action, AuditLog::ERROR, $this->resource(), $resourceId, 'Validacion');
+            $audit->record($user, $action, AuditLog::ERROR, $this->resource(), $resourceId, 'Validacion', brandId: $this->auditBrand());
 
             return Response::error('Datos no validos: '.collect($e->errors())->map(fn ($m, $k) => "$k: ".implode(' ', $m))->implode(' | '));
         } catch (ModelNotFoundException $e) {
             $audit->record($user, $action, AuditLog::DENIED, $this->resource(), $resourceId, 'Recurso inexistente o ajeno');
 
             return Response::error('404: Recurso no encontrado.');
-        } catch (HttpExceptionInterface $e) {
-            $status = $e->getStatusCode();
-            $audit->record($user, $action, $status === 404 ? AuditLog::DENIED : AuditLog::ERROR, $this->resource(), $resourceId, 'HTTP '.$status);
+        } catch (HttpExceptionInterface|OwnershipException $e) {
+            $status = $e instanceof OwnershipException ? 404 : $e->getStatusCode();
+            $audit->record($user, $action, $status === 404 ? AuditLog::DENIED : AuditLog::ERROR, $this->resource(), $resourceId, 'HTTP '.$status, brandId: $this->auditBrand());
 
             return Response::error(in_array($status, [403, 409, 429], true) ? $status.': '.$e->getMessage() : ($status === 404 ? '404: Recurso no encontrado.' : ($status === 503 && $this->resource() === 'studio_dataset' ? '503: Dataset snapshot unavailable.' : 'No se pudo completar la operación.')));
+        } catch (PostStateConflict $e) {
+            // Estado que no admite la operacion: distinguible de un error de datos (como el 409 de la API).
+            $audit->record($user, $action, AuditLog::ERROR, $this->resource(), $resourceId, 'Conflicto de estado', brandId: $this->auditBrand());
+
+            return Response::error('409: '.$e->getMessage());
         } catch (PostValidationException $e) {
-            $audit->record($user, $action, AuditLog::ERROR, $this->resource(), $resourceId, 'Validacion');
+            $audit->record($user, $action, AuditLog::ERROR, $this->resource(), $resourceId, 'Validacion', brandId: $this->auditBrand());
 
             return Response::error('Datos no validos: '.collect($e->errors())->map(fn ($m, $k) => "$k: ".implode(' ', $m))->implode(' | '));
         } catch (InvalidPostTransition|InvalidArgumentException $e) {
-            $audit->record($user, $action, AuditLog::ERROR, $this->resource(), $resourceId, $e->getMessage());
+            $audit->record($user, $action, AuditLog::ERROR, $this->resource(), $resourceId, $e->getMessage(), brandId: $this->auditBrand());
 
             return Response::error($e->getMessage());
         } catch (Throwable $e) {
             // Fallo inesperado (BD, lock...): se audita como error sin volcar datos y el cliente recibe un mensaje generico.
-            $audit->record($user, $action, AuditLog::ERROR, $this->resource(), $resourceId, 'Error interno: '.class_basename($e));
+            $audit->record($user, $action, AuditLog::ERROR, $this->resource(), $resourceId, 'Error interno: '.class_basename($e), brandId: $this->auditBrand());
             report($e);
 
             return Response::error('Error interno al ejecutar la herramienta. Intentalo de nuevo.');
         }
 
-        $audit->record($user, $action, AuditLog::OK, $this->resource(), $result['id'] ?? $result['dataset']['id'] ?? $resourceId);
+        $audit->record($user, $action, AuditLog::OK, $this->resource(), $result['id'] ?? $result['dataset']['id'] ?? $resourceId, brandId: $this->auditBrand());
 
         return $this->resultResponse($result);
     }
@@ -115,18 +138,20 @@ abstract class SchedulerTool extends Tool
      *
      * @param  class-string<Model>  $model
      */
-    protected function owned(string $model, User $user, mixed $id, string $label): Model
+    protected function owned(string $model, User $user, mixed $id, string $label, bool $masculine = false): Model
     {
         $id = is_numeric($id) ? (int) $id : null;
-        $found = $id === null ? null : $model::withoutUserScope()->where('user_id', $user->id)->find($id);
+        $found = $id === null ? null : $model::ownedBy($user->id)->find($id);
 
         if ($found !== null) {
+            $this->attributeBrand($found instanceof Brand ? (int) $found->getKey() : (is_numeric($found->getAttribute('brand_id')) ? (int) $found->getAttribute('brand_id') : null));
+
             return $found;
         }
 
         $crossUser = $id !== null && $model::withoutUserScope()->whereKey($id)->exists();
 
-        throw new NotOwned("$label no encontrada.", strtolower(class_basename($model)), $id, $crossUser);
+        throw new NotOwned($label.($masculine ? ' no encontrado.' : ' no encontrada.'), strtolower(class_basename($model)), $id, $crossUser);
     }
 
     /**
@@ -148,14 +173,17 @@ abstract class SchedulerTool extends Tool
             return null;
         }
 
-        $matches = Brand::withoutUserScope()->where('user_id', $user->id)->get()
+        $matches = Brand::ownedBy($user->id)->get()
             ->filter(fn (Brand $b) => mb_strtolower(trim($b->name)) === mb_strtolower($name))->values();
 
         if ($matches->count() > 1) {
             throw new InvalidArgumentException("Hay varias marcas llamadas «{$name}»: indica brand_id (".$matches->pluck('id')->implode(', ').').');
         }
 
-        return $matches->first() ?? throw new NotOwned("Marca «{$name}» no encontrada. Usa list_brands para ver los nombres.", 'brand', null, false);
+        $brand = $matches->first() ?? throw new NotOwned("Marca «{$name}» no encontrada. Usa list_brands para ver los nombres.", 'brand', null, false);
+        $this->attributeBrand($brand->id);
+
+        return $brand;
     }
 
     /**
@@ -178,7 +206,7 @@ abstract class SchedulerTool extends Tool
      */
     protected function brandNames(User $user): array
     {
-        return Brand::withoutUserScope()->where('user_id', $user->id)->pluck('name', 'id')->all();
+        return Brand::ownedBy($user->id)->pluck('name', 'id')->all();
     }
 
     /** @return array<string, mixed> */

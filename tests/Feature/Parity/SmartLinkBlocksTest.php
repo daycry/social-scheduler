@@ -30,7 +30,7 @@ beforeEach(function () {
 
 function slRich(Brand $brand, array $blocks, array $over = []): array
 {
-    return array_merge(['brand_id' => $brand->id, 'slug' => 'mi-marca', 'title' => 'Mi marca', 'blocks' => $blocks], $over);
+    return array_merge(['brand_id' => $brand->id, 'slug' => 'mi-marca', 'title' => 'Mi marca', 'published' => true, 'blocks' => $blocks], $over);
 }
 
 function slSave(object $t, array $blocks, array $over = [])

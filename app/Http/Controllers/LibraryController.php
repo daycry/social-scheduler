@@ -9,41 +9,52 @@ use App\Models\PostTemplate;
 use App\Models\SocialAccount;
 use App\Services\LibraryService;
 use App\Support\CurrentBrand;
+use App\Support\CursorPage;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** Planificacion · Biblioteca (PA-06): plantillas reutilizables de texto + media + redes. */
+/** Planificación · Plantillas de publicación (PA-06): plantillas reutilizables de texto + media + redes. */
 class LibraryController extends Controller
 {
     use AuthorizesRequests;
 
     public function __construct(private readonly LibraryService $library) {}
 
-    public function index(Request $request): Response
+    public function index(Request $request): Response|RedirectResponse
     {
+        $filters = $request->validate(CursorPage::RULES);
         $brand = CurrentBrand::resolve($request);
-        $templates = PostTemplate::query()
+        $query = PostTemplate::query()
             ->when($brand, fn ($q) => $q->where('brand_id', $brand->id))
-            ->with(['brand:id,name', 'media'])->latest()->limit(200)->get();
+            ->with(['brand:id,name', 'media'])->latest('id');
+        [$templates, $pagination] = CursorPage::fetch(
+            $query, $filters['limit'] ?? null, $filters['cursor'] ?? null,
+            'library:u'.$request->user()->id.':b'.($brand?->id ?? 'all'), withTotal: true,
+        );
+        if ($templates->isEmpty() && filled($filters['cursor'] ?? null)) {
+            return to_route('library.index', ['brand_id' => $brand?->id, 'limit' => $filters['limit'] ?? null]);
+        }
         $accountIds = $templates->flatMap(fn (PostTemplate $t) => collect((array) $t->targets)->pluck('account_id'))->unique()->filter()->values();
         $networkByAccount = SocialAccount::query()->whereIn('id', $accountIds)->get()->mapWithKeys(fn (SocialAccount $a) => [$a->id => $a->network->value]);
 
         return Inertia::render('Library/Index', [
             'brand' => $brand ? ['id' => $brand->id, 'name' => $brand->name] : null,
+            'pagination' => $pagination + $filters,
+            'csrfToken' => fn () => $request->session()->token(),
             'templates' => $templates->map(fn (PostTemplate $t) => [
                 'id' => $t->id,
                 'name' => $t->name,
                 'text' => $t->text,
                 'brand' => $t->brand?->name,
+                'brand_id' => $t->brand_id,
                 'media' => $t->media->map(fn ($m) => $m->toPublicArray())->values(),
                 'targets' => count((array) $t->targets),
                 'networks' => collect((array) $t->targets)->map(fn ($x) => $networkByAccount[$x['account_id'] ?? 0] ?? null)->filter()->unique()->values(),
                 'created_at' => $t->created_at?->toIso8601String(),
             ])->values(),
-            'flash' => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error')],
         ]);
     }
 
@@ -70,11 +81,11 @@ class LibraryController extends Controller
             return back()->withErrors($e->errors());
         }
 
-        return redirect()->route('library.index')->with('success', 'Guardado en la biblioteca.');
+        return redirect()->route('library.index')->with('success', 'Plantilla guardada.');
     }
 
     /**
-     * «Guardar en biblioteca» desde el compositor (CA-26): copia el contenido actual (texto, media y destinos) aunque el post no
+     * «Guardar como plantilla» desde el compositor (CA-26): copia el contenido actual (texto, media y destinos) aunque el post no
      * este guardado o tenga cambios pendientes. No crea ningun post y deja al usuario en el compositor.
      */
     public function storeFromComposer(Request $request, Brand $brand): RedirectResponse
@@ -98,7 +109,7 @@ class LibraryController extends Controller
             return back()->withErrors($e->errors());
         }
 
-        return back()->with('success', 'Guardado en la biblioteca.');
+        return back()->with('success', 'Plantilla guardada.');
     }
 
     /** Crea un borrador con el contenido de la plantilla y abre el editor. */

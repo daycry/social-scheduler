@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\PostTemplate;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Support\Facades\Log;
 
 class PostTemplatePolicy
@@ -25,7 +26,7 @@ class PostTemplatePolicy
 
     private function owns(User $user, PostTemplate $template, string $ability): bool
     {
-        if ($template->user_id === $user->id) {
+        if (Ownership::matches($template, $user)) {
             return true;
         }
 

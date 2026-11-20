@@ -45,7 +45,7 @@ class ManageDesignCaptions extends SchedulerTool
     protected function run(Request $request, User $user): array
     {
         $data = $request->validate(['design_id' => ['required', 'integer', 'min:1'], 'action' => ['required', 'in:get,export,import,replace,upsert,delete,offset,style,clear']]);
-        $design = $this->owned(Design::class, $user, $data['design_id'], 'Diseño');
+        $design = $this->owned(Design::class, $user, $data['design_id'], 'Diseño', masculine: true);
         $payload = array_diff_key($request->all(), array_flip(['design_id']));
         $captions = app(StudioCaptions::class);
         if ($data['action'] === 'get') {

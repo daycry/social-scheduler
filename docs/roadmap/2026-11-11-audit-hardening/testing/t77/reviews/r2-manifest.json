@@ -1,0 +1,77 @@
+{
+  "model": "claude-opus-5-5",
+  "effort": "high",
+  "packet_sha256": "1d18a1c558fee8d06e51040e87767605ba25faf5b067ce5c5555786fbbcd53e6",
+  "patch_sha256": "3a07f44da107fd2c24568b5737a7c8e88704169dd7b5683d4f68922b041821b8",
+  "files": [
+    {
+      "path": "CHANGELOG.es.md",
+      "sha256": "01446e595d2e6426851bb8ba9d9ce8216f22038b2684914c517b004490030a7d"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "e5c3ab8f54bf7552e9bd84c3abd06feec221572ecf138ac7e85ca98bfcf17730"
+    },
+    {
+      "path": "app/Http/Controllers/PostController.php",
+      "sha256": "8b8f58e8f96109838326786675fa7df0ad042c682640a90b4bf25d6230fd8fd7"
+    },
+    {
+      "path": "app/Services/Posts/DuplicatePostResult.php",
+      "sha256": "03f3b9e07c69d1022ad24540f5b0aad7cab7d7ea8696bb07bf9ad27dc67a2c58"
+    },
+    {
+      "path": "app/Services/Posts/PostDuplicator.php",
+      "sha256": "3b8d31b5bb3379c39373721a0e2865269d14e700aa39b0a8f99fa699ceaa30ea"
+    },
+    {
+      "path": "app/Services/Posts/PostPlanner.php",
+      "sha256": "c61cb9d68fd8502f3b4ff5f8b9ced18cdeb085c9fd6204debfbc746333ef91df"
+    },
+    {
+      "path": "docs/README.md",
+      "sha256": "bbf25eb22fdacb6b44ce7402e909c18f3345041721b9f94b6397482cfdf11b77"
+    },
+    {
+      "path": "docs/usuario/duplicar.md",
+      "sha256": "cbf7cfc02c221082de81cf5bca94ea84e107d44a8c908d1f183f3fe3ea2f5916"
+    },
+    {
+      "path": "docs/usuario/guia-de-usuario.md",
+      "sha256": "16f7c0ae9f9379cd5cd3596727378f0f61dfc29abab6cf840a196308a7e42237"
+    },
+    {
+      "path": "resources/js/Components/Composer/DuplicatePost.vue",
+      "sha256": "6339273e09e37982e3d99d3ce366f372a63b13316693631c26996d997c5ba756"
+    },
+    {
+      "path": "resources/js/Pages/Posts/Compose.vue",
+      "sha256": "5e3474b2201295c992ffea6b7e1ed9f5cd995a31d4a2b96ed6f9b5ccf5cc0d61"
+    },
+    {
+      "path": "routes/web.php",
+      "sha256": "c4894dfb1412b04ff6611208029386e1718f6e89d48feae0864d81f3b72b0e5b"
+    },
+    {
+      "path": "tests/Feature/Connectors/Google/Publish/YouTubeClientTest.php",
+      "sha256": "0d3a8368785617a34b658304a9121df0d2deaecb9efd353cf609b62722443b46"
+    },
+    {
+      "path": "tests/Feature/Library/LibraryTargetTextTest.php",
+      "sha256": "c8788209aba14ace88e090417de5a8e7e5a05155dc4aba899dbc88889adbe6a9"
+    },
+    {
+      "path": "tests/Feature/Posts/DuplicatePostTest.php",
+      "sha256": "62e219e5585c54adeed2a9901818b03ac5f399daad63d90721b566e5c02fdf8c"
+    },
+    {
+      "path": "tests/e2e/duplicate-post.spec.ts",
+      "sha256": "46e4fd5bfa48ace56992c8e51a86ee9274ed6decf92beba9d618d77c5c270898"
+    },
+    {
+      "path": "tsconfig.frontend.json",
+      "sha256": "76bcdc1d1ec8a41e2c0569ff4ff5f965bbc3a4b2214b8581b0cce08a9ff3f36c"
+    }
+  ],
+  "source_manifest_sha256": "5d9494c8164d3ebf3a93d00a02a8cf5c11d1ce4cdf06b735133bf2167688b4b8"
+}

@@ -1,0 +1,129 @@
+{
+    "rows": 60000,
+    "visible": 50,
+    "visible_placement": "oldest rows",
+    "scenarios": {
+        "unfiltered": {
+            "elapsed_ms": 18.96,
+            "query_count": 6,
+            "total": 50,
+            "queries": [
+                {
+                    "sql": "select `id`, `name`, `timezone` from `brands` where `brands`.`user_id` = ? order by `name` asc",
+                    "ms": 0.64,
+                    "analyze": [
+                        {
+                            "EXPLAIN": "-> Index lookup on brands using brands_user_id_name_index (user_id=1)  (cost=0.35 rows=1) (actual time=0.0119..0.013 rows=1 loops=1)\n"
+                        }
+                    ]
+                },
+                {
+                    "sql": "select `users`.`id`, `users`.`name` from `users` inner join ((select distinct `user_id` from `audit_logs` where `user_id` = ?) union (select distinct `user_id` from `audit_logs` where `brand_id` in (?) and (`user_id` is null or `user_id` <> ?) and `user_id` is not null)) as `visible_actors` on `visible_actors`.`user_id` = `users`.`id` order by `users`.`name` asc",
+                    "ms": 0.91,
+                    "analyze": [
+                        {
+                            "EXPLAIN": "-> Nested loop inner join  (cost=1.43 rows=4.83) (actual time=0.0656..0.0659 rows=1 loops=1)\n    -> Sort: users.`name`  (cost=0.45 rows=2) (actual time=0.0256..0.0258 rows=2 loops=1)\n        -> Table scan on users  (cost=0.45 rows=2) (actual time=0.0117..0.0142 rows=2 loops=1)\n    -> Single-row covering index lookup on visible_actors using <auto_distinct_key> (user_id=users.id)  (cost=1.96..1.96 rows=1) (actual time=0.0191..0.0192 rows=0.5 loops=2)\n        -> Union materialize with deduplication  (cost=1.66..1.66 rows=2.41) (actual time=0.0356..0.0356 rows=1 loops=1)\n            -> Filter: (audit_logs.user_id = 1)  (cost=0.55 rows=1) (actual time=0.012..0.0139 rows=1 loops=1)\n                -> Covering index skip scan for deduplication on audit_logs using audit_logs_user_id_created_at_index over (user_id = 1)  (cost=0.55 rows=1) (actual time=0.0108..0.0125 rows=1 loops=1)\n            -> Group (no aggregates)  (cost=0.87 rows=1.41) (actual time=0.0093..0.0093 rows=0 loops=1)\n                -> Filter: ((audit_logs.brand_id = 1) and ((audit_logs.user_id is null) or (audit_logs.user_id <> 1)) and (audit_logs.user_id is not null))  (cost=0.67 rows=2) (actual time=0.0091..0.0091 rows=0 loops=1)\n                    -> Covering index range scan on audit_logs using audit_logs_brand_id_user_id_action_index over (brand_id = 1 AND NULL < user_id < 1) OR (brand_id = 1 AND 1 < user_id)  (cost=0.67 rows=2) (actual time=0.0084..0.0084 rows=0 loops=1)\n"
+                        }
+                    ]
+                },
+                {
+                    "sql": "select `id`, `user_id`, `brand_id`, `action`, `outcome`, `channel`, `created_at` from `audit_logs` where (`user_id` = ? or `brand_id` in (?)) order by `created_at` desc, `id` desc limit 51",
+                    "ms": 0.45,
+                    "analyze": [
+                        {
+                            "EXPLAIN": "-> Limit: 51 row(s)  (cost=97.7 rows=51) (actual time=0.114..0.118 rows=50 loops=1)\n    -> Sort: audit_logs.created_at DESC, audit_logs.id DESC, limit input to 51 row(s) per chunk  (cost=97.7 rows=100) (actual time=0.114..0.116 rows=50 loops=1)\n        -> Filter: ((audit_logs.user_id = 1) or (audit_logs.brand_id = 1))  (cost=97.7 rows=100) (actual time=0.0477..0.0988 rows=50 loops=1)\n            -> Sort-deduplicate by row ID  (cost=97.7 rows=100) (actual time=0.047..0.0957 rows=50 loops=1)\n                -> Index range scan on audit_logs using audit_logs_user_id_created_at_index over (user_id = 1)  (cost=5.29 rows=50) (actual time=0.0077..0.0187 rows=50 loops=1)\n                -> Index range scan on audit_logs using audit_logs_brand_id_created_at_index over (brand_id = 1)  (cost=5.29 rows=50) (actual time=0.0024..0.0102 rows=50 loops=1)\n"
+                        }
+                    ]
+                },
+                {
+                    "sql": "select count(*) as `aggregate` from `audit_logs` where `user_id` = ?",
+                    "ms": 0.27,
+                    "analyze": [
+                        {
+                            "EXPLAIN": "-> Aggregate: count(0)  (cost=10.3 rows=1) (actual time=0.0246..0.0246 rows=1 loops=1)\n    -> Covering index lookup on audit_logs using audit_logs_user_id_created_at_index (user_id=1)  (cost=5.28 rows=50) (actual time=0.0116..0.0221 rows=50 loops=1)\n"
+                        }
+                    ]
+                },
+                {
+                    "sql": "select count(*) as `aggregate` from `audit_logs` where `brand_id` in (?) and (`user_id` is null or `user_id` <> ?)",
+                    "ms": 0.27,
+                    "analyze": [
+                        {
+                            "EXPLAIN": "-> Aggregate: count(0)  (cost=0.87 rows=1) (actual time=0.0109..0.0111 rows=1 loops=1)\n    -> Filter: ((audit_logs.brand_id = 1) and ((audit_logs.user_id is null) or (audit_logs.user_id <> 1)))  (cost=0.67 rows=2) (actual time=0.0101..0.0101 rows=0 loops=1)\n        -> Covering index range scan on audit_logs using audit_logs_brand_id_user_id_action_index over (brand_id = 1 AND NULL <= user_id < 1) OR (brand_id = 1 AND 1 < user_id)  (cost=0.67 rows=2) (actual time=0.0099..0.0099 rows=0 loops=1)\n"
+                        }
+                    ]
+                },
+                {
+                    "sql": "select `action` from ((select distinct `action` from `audit_logs` where `user_id` = ?) union (select distinct `action` from `audit_logs` where `brand_id` in (?) and (`user_id` is null or `user_id` <> ?))) as `visible_actions` order by `action` asc",
+                    "ms": 0.72,
+                    "analyze": [
+                        {
+                            "EXPLAIN": "-> Sort: visible_actions.`action`  (cost=57.3..57.3 rows=52) (actual time=0.0715..0.0723 rows=13 loops=1)\n    -> Table scan on visible_actions  (cost=19.4..22.5 rows=52) (actual time=0.0591..0.0602 rows=13 loops=1)\n        -> Union materialize with deduplication  (cost=19.3..19.3 rows=52) (actual time=0.0587..0.0587 rows=13 loops=1)\n            -> Group (no aggregates)  (cost=10.7 rows=50) (actual time=0.0141..0.036 rows=13 loops=1)\n                -> Covering index lookup on audit_logs using audit_logs_user_id_action_index (user_id=1)  (cost=5.74 rows=50) (actual time=0.0098..0.0252 rows=50 loops=1)\n            -> Table scan on <temporary>  (cost=2.13..3.4 rows=2) (actual time=0.0107..0.0107 rows=0 loops=1)\n                -> Temporary table with deduplication  (cost=0.87..0.87 rows=2) (actual time=0.0101..0.0101 rows=0 loops=1)\n                    -> Filter: ((audit_logs.brand_id = 1) and ((audit_logs.user_id is null) or (audit_logs.user_id <> 1)))  (cost=0.67 rows=2) (actual time=0.007..0.007 rows=0 loops=1)\n                        -> Covering index range scan on audit_logs using audit_logs_brand_id_user_id_action_index over (brand_id = 1 AND NULL <= user_id < 1) OR (brand_id = 1 AND 1 < user_id)  (cost=0.67 rows=2) (actual time=0.0066..0.0066 rows=0 loops=1)\n"
+                        }
+                    ]
+                }
+            ]
+        },
+        "rare_action": {
+            "elapsed_ms": 3.27,
+            "query_count": 6,
+            "total": 1,
+            "queries": [
+                {
+                    "sql": "select `id`, `name`, `timezone` from `brands` where `brands`.`user_id` = ? order by `name` asc",
+                    "ms": 0.3,
+                    "analyze": [
+                        {
+                            "EXPLAIN": "-> Index lookup on brands using brands_user_id_name_index (user_id=1)  (cost=0.35 rows=1) (actual time=0.0096..0.0106 rows=1 loops=1)\n"
+                        }
+                    ]
+                },
+                {
+                    "sql": "select `users`.`id`, `users`.`name` from `users` inner join ((select distinct `user_id` from `audit_logs` where `user_id` = ?) union (select distinct `user_id` from `audit_logs` where `brand_id` in (?) and (`user_id` is null or `user_id` <> ?) and `user_id` is not null)) as `visible_actors` on `visible_actors`.`user_id` = `users`.`id` order by `users`.`name` asc",
+                    "ms": 0.46,
+                    "analyze": [
+                        {
+                            "EXPLAIN": "-> Nested loop inner join  (cost=1.43 rows=4.83) (actual time=0.0473..0.0478 rows=1 loops=1)\n    -> Sort: users.`name`  (cost=0.45 rows=2) (actual time=0.0182..0.0184 rows=2 loops=1)\n        -> Table scan on users  (cost=0.45 rows=2) (actual time=0.0082..0.0111 rows=2 loops=1)\n    -> Single-row covering index lookup on visible_actors using <auto_distinct_key> (user_id=users.id)  (cost=1.96..1.96 rows=1) (actual time=0.0138..0.014 rows=0.5 loops=2)\n        -> Union materialize with deduplication  (cost=1.66..1.66 rows=2.41) (actual time=0.0244..0.0244 rows=1 loops=1)\n            -> Filter: (audit_logs.user_id = 1)  (cost=0.55 rows=1) (actual time=0.0093..0.0114 rows=1 loops=1)\n                -> Covering index skip scan for deduplication on audit_logs using audit_logs_user_id_created_at_index over (user_id = 1)  (cost=0.55 rows=1) (actual time=0.0086..0.0106 rows=1 loops=1)\n            -> Group (no aggregates)  (cost=0.87 rows=1.41) (actual time=0.0075..0.0075 rows=0 loops=1)\n                -> Filter: ((audit_logs.brand_id = 1) and ((audit_logs.user_id is null) or (audit_logs.user_id <> 1)) and (audit_logs.user_id is not null))  (cost=0.67 rows=2) (actual time=0.0073..0.0073 rows=0 loops=1)\n                    -> Covering index range scan on audit_logs using audit_logs_brand_id_user_id_action_index over (brand_id = 1 AND NULL < user_id < 1) OR (brand_id = 1 AND 1 < user_id)  (cost=0.67 rows=2) (actual time=0.007..0.007 rows=0 loops=1)\n"
+                        }
+                    ]
+                },
+                {
+                    "sql": "select `id`, `user_id`, `brand_id`, `action`, `outcome`, `channel`, `created_at` from `audit_logs` where (`user_id` = ? or `brand_id` in (?)) and `action` = ? order by `created_at` desc, `id` desc limit 51",
+                    "ms": 0.46,
+                    "analyze": [
+                        {
+                            "EXPLAIN": "-> Limit: 51 row(s)  (cost=88.7 rows=51) (actual time=0.179..0.179 rows=1 loops=1)\n    -> Sort: audit_logs.created_at DESC, audit_logs.id DESC, limit input to 51 row(s) per chunk  (cost=88.7 rows=100) (actual time=0.179..0.179 rows=1 loops=1)\n        -> Filter: (((audit_logs.user_id = 1) or (audit_logs.brand_id = 1)) and (audit_logs.`action` = 'probe_rare'))  (cost=88.7 rows=100) (actual time=0.172..0.172 rows=1 loops=1)\n            -> Sort-deduplicate by row ID  (cost=88.7 rows=100) (actual time=0.0744..0.163 rows=50 loops=1)\n                -> Index range scan on audit_logs using audit_logs_user_id_created_at_index over (user_id = 1)  (cost=5.29 rows=50) (actual time=0.0089..0.0276 rows=50 loops=1)\n                -> Index range scan on audit_logs using audit_logs_brand_id_created_at_index over (brand_id = 1)  (cost=5.29 rows=50) (actual time=0.0051..0.0202 rows=50 loops=1)\n"
+                        }
+                    ]
+                },
+                {
+                    "sql": "select count(*) as `aggregate` from `audit_logs` where `user_id` = ? and `action` = ?",
+                    "ms": 0.24,
+                    "analyze": [
+                        {
+                            "EXPLAIN": "-> Aggregate: count(0)  (cost=0.45 rows=1) (actual time=0.0117..0.0117 rows=1 loops=1)\n    -> Covering index lookup on audit_logs using audit_logs_user_id_action_index (user_id=1, action='probe_rare')  (cost=0.35 rows=1) (actual time=0.0077..0.0097 rows=1 loops=1)\n"
+                        }
+                    ]
+                },
+                {
+                    "sql": "select count(*) as `aggregate` from `audit_logs` where `brand_id` in (?) and (`user_id` is null or `user_id` <> ?) and `action` = ?",
+                    "ms": 0.26,
+                    "analyze": [
+                        {
+                            "EXPLAIN": "-> Aggregate: count(0)  (cost=0.51 rows=1) (actual time=0.01..0.0101 rows=1 loops=1)\n    -> Filter: ((audit_logs.brand_id = 1) and ((audit_logs.user_id is null) or (audit_logs.user_id <> 1)) and (audit_logs.`action` = 'probe_rare'))  (cost=0.49 rows=0.2) (actual time=0.0092..0.0092 rows=0 loops=1)\n        -> Covering index range scan on audit_logs using audit_logs_brand_id_user_id_action_index over (brand_id = 1 AND NULL <= user_id <= 1 AND 'probe_rare' <= action) OR (brand_id = 1 AND 1 < user_id)  (cost=0.49 rows=2) (actual time=0.0089..0.0089 rows=0 loops=1)\n"
+                        }
+                    ]
+                },
+                {
+                    "sql": "select `action` from ((select distinct `action` from `audit_logs` where `user_id` = ?) union (select distinct `action` from `audit_logs` where `brand_id` in (?) and (`user_id` is null or `user_id` <> ?))) as `visible_actions` order by `action` asc",
+                    "ms": 0.45,
+                    "analyze": [
+                        {
+                            "EXPLAIN": "-> Sort: visible_actions.`action`  (cost=57.3..57.3 rows=52) (actual time=0.0705..0.071 rows=13 loops=1)\n    -> Table scan on visible_actions  (cost=19.4..22.5 rows=52) (actual time=0.0568..0.0581 rows=13 loops=1)\n        -> Union materialize with deduplication  (cost=19.3..19.3 rows=52) (actual time=0.0565..0.0565 rows=13 loops=1)\n            -> Group (no aggregates)  (cost=10.7 rows=50) (actual time=0.013..0.0355 rows=13 loops=1)\n                -> Covering index lookup on audit_logs using audit_logs_user_id_action_index (user_id=1)  (cost=5.74 rows=50) (actual time=0.0093..0.0244 rows=50 loops=1)\n            -> Table scan on <temporary>  (cost=2.13..3.4 rows=2) (actual time=0.0098..0.0098 rows=0 loops=1)\n                -> Temporary table with deduplication  (cost=0.87..0.87 rows=2) (actual time=0.0091..0.0091 rows=0 loops=1)\n                    -> Filter: ((audit_logs.brand_id = 1) and ((audit_logs.user_id is null) or (audit_logs.user_id <> 1)))  (cost=0.67 rows=2) (actual time=0.0065..0.0065 rows=0 loops=1)\n                        -> Covering index range scan on audit_logs using audit_logs_brand_id_user_id_action_index over (brand_id = 1 AND NULL <= user_id < 1) OR (brand_id = 1 AND 1 < user_id)  (cost=0.67 rows=2) (actual time=0.0062..0.0062 rows=0 loops=1)\n"
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

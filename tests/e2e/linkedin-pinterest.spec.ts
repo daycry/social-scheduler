@@ -48,7 +48,7 @@ function seedPost() {
 
 const region = (page: Page, name: string) => page.getByRole('region', { name, exact: true });
 
-test('T-18 · Conexiones: LinkedIn y Pinterest se conectan con el proveedor simulado y quedan como cuentas conectadas', async ({ page }) => {
+test('T-18 · Conexiones: LinkedIn y Pinterest se conectan con el proveedor simulado y quedan como cuentas conectadas', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/brands/${brand.id}/connections`);
     await settle(page);
@@ -62,6 +62,10 @@ test('T-18 · Conexiones: LinkedIn y Pinterest se conectan con el proveedor simu
         await expect(page.locator(`section[data-network="${network}"]`)).toContainText(`T43 ${label}`);
         await expect(page.locator(`section[data-network="${network}"]`)).toContainText('Conectada');
     }
+    // T-21 (B-04): las cuentas de Pinterest ofrecen refrescar los tableros (paginados) y dicen cuantos hay.
+    const boards = page.locator('section[data-network="pinterest"]').getByTestId(/^pinterest-boards-/);
+    await expect(boards).toContainText(/tableros? disponibles?/);
+    await expect(boards.getByRole('button', { name: 'Actualizar tableros', exact: true })).toBeEnabled();
     const html = await page.content();
     expect(html).not.toContain('access_token');
     expect(html).not.toContain('t43-fake-access');
@@ -71,7 +75,7 @@ test('T-18 · Conexiones: LinkedIn y Pinterest se conectan con el proveedor simu
     expect(w.errors.filter((e) => !/409/.test(e)), w.errors.join('\n')).toEqual([]);
 });
 
-test('T-18 · compositor: opciones de LinkedIn y Pinterest, errores del tablero y publicar en simulado', async ({ page }) => {
+test('T-18 · compositor: opciones de LinkedIn y Pinterest, errores del tablero y publicar en simulado', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     seedPost();
     await page.goto(`/posts/${post}/edit`);
@@ -113,7 +117,7 @@ test('T-18 · compositor: opciones de LinkedIn y Pinterest, errores del tablero 
     expect(w.errors.filter((e) => !/422/.test(e)), w.errors.join('\n')).toEqual([]);
 });
 
-test('T-18 · compositor: LinkedIn y Pinterest se ofrecen con su contador de caracteres propio y sin desbordar', async ({ page }) => {
+test('T-18 · compositor: LinkedIn y Pinterest se ofrecen con su contador de caracteres propio y sin desbordar', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     seedPost();
     await page.goto(`/brands/${brand.id}/posts/create`);

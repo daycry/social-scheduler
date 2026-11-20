@@ -1,0 +1,12 @@
+{
+  "source": "https://github.com/bluesky-social/atproto/blob/main/lexicons/com/atproto/repo/createRecord.json",
+  "method": "POST",
+  "host": "pds.example.com",
+  "path": "/xrpc/com.atproto.repo.createRecord",
+  "status": 200,
+  "headers": {},
+  "body": {
+    "uri": "at://did:plc:abcdefghijklmnopqrstuvwx/app.bsky.feed.post/3kabcdefghij2",
+    "cid": "bafyreicid"
+  }
+}

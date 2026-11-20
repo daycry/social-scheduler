@@ -23,7 +23,26 @@ test.afterEach(async ({}, info) => {
     cleanComposerBrands(e2eUser(info.project.name).email);
 });
 
-test('E2E-20e · SmartLinks: bloques enriquecidos, reordenar, programar, formulario público y clics por bloque', async ({ page }) => {
+test('SmartLinks conserva la identidad de un bloque nuevo al reordenar', { tag: '@responsive' }, async ({ page }) => {
+    await page.goto(`/smartlinks?brand_id=${brand.id}`);
+    await settle(page);
+    await page.getByRole('button', { name: 'Añadir enlace' }).click();
+    await page.getByRole('button', { name: 'Añadir cabecera' }).click();
+    await page.getByLabel('Texto del bloque 2').fill('Cabecera nueva');
+
+    const id = await page.getByRole('group', { name: 'Bloque 2', exact: true }).getAttribute('id');
+    expect(id).toBeTruthy();
+    await page.getByRole('button', { name: 'Subir bloque 2', exact: true }).click();
+    await expect(page.getByLabel('Texto del bloque 1')).toHaveValue('Cabecera nueva');
+    await expect(page.getByRole('group', { name: 'Bloque 1', exact: true })).toHaveAttribute('id', id!);
+    await expect(page.getByRole('button', { name: 'Bajar bloque 1', exact: true })).toBeFocused();
+    await page.getByRole('group', { name: 'Bloque 1', exact: true }).getByRole('button', { name: 'Quitar', exact: true }).click();
+    await expect(page.getByRole('group', { name: 'Bloque 1', exact: true })).toBeFocused();
+    await page.getByRole('group', { name: 'Bloque 1', exact: true }).getByRole('button', { name: 'Quitar', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Añadir enlace', exact: true })).toBeFocused();
+});
+
+test('E2E-20e · SmartLinks: bloques enriquecidos, reordenar, programar, formulario público y clics por bloque', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/smartlinks?brand_id=${brand.id}`);
     await settle(page);
@@ -56,6 +75,10 @@ test('E2E-20e · SmartLinks: bloques enriquecidos, reordenar, programar, formula
     await page.getByRole('button', { name: 'Guardar' }).click();
     await settle(page);
     await expect(page.getByText('Usa la URL de un video de YouTube')).toBeVisible();
+    const invalidUrl = page.getByLabel('URL del bloque 2', { exact: true });
+    await expect(invalidUrl).toHaveAttribute('aria-invalid', 'true');
+    await expect(invalidUrl).toBeFocused();
+    await expect(invalidUrl).toHaveAccessibleDescription(/Usa la URL de un video de YouTube/);
 
     await page.getByLabel('URL del bloque 2').fill('https://youtu.be/dQw4w9WgXcQ');
     // Reordenar: «Redes» (3) sube una posición, por encima del video.
@@ -108,6 +131,9 @@ test('E2E-20e · SmartLinks: bloques enriquecidos, reordenar, programar, formula
     await expectNoOverflow(page);
     await axeSeriousCritical(page, 'SmartLinks (suscriptores)');
     await page.getByRole('button', { name: 'Eliminar a lector@example.com' }).click();
+    const confirmation = page.getByTestId('confirm-dialog');
+    await expect(confirmation).toContainText('¿Eliminar este suscriptor?');
+    await confirmation.getByRole('button', { name: 'Eliminar suscriptor', exact: true }).click();
     await settle(page);
     await expect(page.getByTestId('subscribers')).toHaveCount(0);
     expect(w.errors, w.errors.join('\n')).toEqual([]);

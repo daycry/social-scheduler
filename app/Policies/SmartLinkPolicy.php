@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\SmartLink;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Support\Facades\Log;
 
 class SmartLinkPolicy
@@ -25,7 +26,7 @@ class SmartLinkPolicy
 
     private function owns(User $user, SmartLink $link, string $ability): bool
     {
-        if ($link->user_id === $user->id) {
+        if (Ownership::matches($link, $user)) {
             return true;
         }
 

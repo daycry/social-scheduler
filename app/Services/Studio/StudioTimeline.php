@@ -6,11 +6,14 @@ use App\Models\Brand;
 use App\Models\Studio\StudioAsset;
 use App\Models\Studio\StudioFont;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Validation\ValidationException;
 
 /** Version 2 reuses version 1 geometry, ownership and font validation without discarding time data. */
 class StudioTimeline
 {
+    public function __construct(private readonly StudioCaptionData $captionData) {}
+
     private const FPS = [12, 15, 24, 25, 30, 50, 60];
 
     private const EPS = 1e-9;
@@ -83,19 +86,19 @@ class StudioTimeline
             $uses[] = [$asset, $track, $path, true];
         }
         if (array_key_exists('captions', $timeline)) {
-            $document['timeline']['captions'] = app(StudioCaptionData::class)->validate($timeline['captions'], $total, array_keys($ids));
+            $document['timeline']['captions'] = $this->captionData->validate($timeline['captions'], $total, array_keys($ids));
             $style = $document['timeline']['captions']['style'];
             if (isset($style['font_id'])) {
-                $font = StudioFont::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->where('status', 'ready')->find($style['font_id']);
+                $font = StudioFont::ownedBy($user->id)->where('brand_id', $brand->id)->where('status', 'ready')->find($style['font_id']);
                 $this->ensure($font !== null && (! isset($style['fontFamily']) || $style['fontFamily'] === $font->family), 'timeline.captions.style.font_id', 'La fuente o su familia no está disponible en esta marca.');
             }
         }
         if ($uses !== []) {
-            $links = StudioAsset::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)
+            $links = StudioAsset::ownedBy($user->id)->where('brand_id', $brand->id)
                 ->whereIn('media_asset_id', array_unique(array_column($uses, 0)))->with('media')->get()->keyBy('media_asset_id');
             foreach ($uses as [$id, $clip, $path, $audio]) {
                 $asset = $links->get($id)?->media;
-                $this->ensure($asset !== null && (int) $asset->user_id === (int) $user->id && $asset->isReady(), $path.'.asset_id', 'El recurso no está listo en esta marca.');
+                $this->ensure(Ownership::matches($asset, $user) && $asset->isReady(), $path.'.asset_id', 'El recurso no está listo en esta marca.');
                 $this->ensure($audio ? in_array($asset->kind, ['audio', 'video'], true) && filled($asset->audio_codec) : $asset->kind === 'video', $path.'.asset_id', 'El recurso no contiene la pista requerida.');
                 $this->ensure($asset->duration !== null && is_finite((float) $asset->duration) && $asset->duration > 0, $path.'.asset_id', 'Falta la duración sondeada del recurso.');
                 $start = $clip['trimStart'] ?? 0;

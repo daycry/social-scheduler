@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\BrandCollaborator;
 use App\Models\User;
 use App\Notifications\PostWorkflowActivity;
+use App\Support\Ownership;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -16,7 +17,7 @@ use Illuminate\Validation\ValidationException;
  */
 class BrandCollaboration
 {
-    public const INVITE_MESSAGE = 'Si existe una cuenta con ese email, podra aprobar las publicaciones de esta marca.';
+    public const INVITE_MESSAGE = 'Si existe una cuenta con ese correo, podrá aprobar las publicaciones de esta marca.';
 
     public const ROLES = [BrandCollaborator::ROLE_APPROVER];
 
@@ -72,19 +73,22 @@ class BrandCollaboration
 
     public function isApprover(User $user, int $brandId): bool
     {
-        return BrandCollaborator::query()->where('brand_id', $brandId)->where('user_id', $user->id)->where('role', BrandCollaborator::ROLE_APPROVER)->exists();
+        return BrandCollaborator::query()->approverFor($user->id)->where('brand_id', $brandId)->exists();
     }
 
     /** @return list<int> marcas de otros usuarios en las que el usuario es aprobador */
     public function approverBrandIds(User $user): array
     {
-        return BrandCollaborator::query()->where('user_id', $user->id)->where('role', BrandCollaborator::ROLE_APPROVER)->pluck('brand_id')->map(fn ($id) => (int) $id)->all();
+        return BrandCollaborator::query()->approverFor($user->id)->pluck('brand_id')->map(fn ($id) => (int) $id)->all();
     }
 
     /** @return list<User> aprobadores invitados de la marca (el propietario aprueba por derecho propio y no se incluye) */
-    public function approvers(int $brandId): array
+    public function approvers(int $brandId, ?int $ownerId = null): array
     {
-        return User::query()->whereIn('id', BrandCollaborator::query()->where('brand_id', $brandId)->where('role', BrandCollaborator::ROLE_APPROVER)->select('user_id'))->get()->all();
+        $members = BrandCollaborator::query()->where('brand_id', $brandId)->where('role', BrandCollaborator::ROLE_APPROVER)
+            ->when($ownerId !== null, fn ($query) => $query->where('owner_id', $ownerId));
+
+        return User::query()->whereIn('id', $members->select('user_id'))->get()->all();
     }
 
     /** @return array<string, mixed> */
@@ -95,6 +99,6 @@ class BrandCollaboration
 
     private function assertOwner(User $actor, Brand $brand): void
     {
-        abort_unless((int) $brand->user_id === (int) $actor->id, 404);
+        Ownership::assert($brand, $actor);
     }
 }

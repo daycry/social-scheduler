@@ -56,7 +56,7 @@ const onTab = (e) => {
 </script>
 
 <template>
-    <div class="relative">
+    <div class="sm:relative">
         <button
             ref="button"
             type="button"
@@ -65,19 +65,22 @@ const onTab = (e) => {
             :aria-expanded="open"
             data-testid="saved-texts-open"
             @click="toggle"
-        ><span aria-hidden="true">📝 </span>Textos guardados</button>
+            ><span aria-hidden="true">📝 </span>Textos guardados</button
+        >
 
         <div
             v-if="open"
             ref="root"
             role="dialog"
             aria-label="Textos guardados"
-            class="absolute left-0 top-full z-30 mt-1 w-[min(22rem,calc(100vw-1.5rem))] rounded-lg border border-slate-200 bg-white p-3 shadow-lg"
+            class="absolute inset-x-0 top-full z-30 mt-1 sm:inset-x-auto sm:left-0 sm:w-[22rem] sm:max-w-[calc(100vw-1.5rem)] rounded-lg border border-slate-200 bg-white p-3 shadow-lg"
             data-testid="saved-texts-menu"
             @keydown="onKeydown"
             @keydown.tab="onTab"
         >
-            <p v-if="savedTexts.length === 0" class="text-sm text-slate-600">Aún no tienes textos guardados para esta marca.</p>
+            <p v-if="savedTexts.length === 0" class="text-sm text-slate-600"
+                >Aún no tienes textos guardados para esta marca.</p
+            >
             <ul v-else class="max-h-60 divide-y divide-slate-100 overflow-y-auto" aria-label="Textos">
                 <li v-for="t in savedTexts" :key="t.id">
                     <button
@@ -87,12 +90,16 @@ const onTab = (e) => {
                         @click="pick(t)"
                     >
                         <span class="block text-sm font-medium text-slate-900">{{ t.title }}</span>
-                        <span class="block truncate text-xs text-slate-600">{{ KIND_LABEL[t.kind] ?? t.kind }} · {{ t.brand ?? 'Todas las marcas' }}</span>
+                        <span class="block truncate text-xs text-slate-600"
+                            >{{ KIND_LABEL[t.kind] ?? t.kind }} · {{ t.brand ?? 'Todas las marcas' }}</span
+                        >
                     </button>
                 </li>
             </ul>
             <p class="mt-2 border-t border-slate-100 pt-2 text-xs text-slate-600">
-                <Link :href="route('saved-texts.index')" class="font-medium text-indigo-700 underline">Gestionar textos guardados</Link>
+                <Link :href="route('saved-texts.index')" class="font-medium text-indigo-700 underline"
+                    >Gestionar textos guardados</Link
+                >
             </p>
         </div>
     </div>

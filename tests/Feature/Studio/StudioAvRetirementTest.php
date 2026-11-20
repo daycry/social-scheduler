@@ -5,10 +5,12 @@ use App\Models\MediaAsset;
 use App\Models\Studio\DesignExport;
 use App\Models\Studio\StudioAvWorkspace;
 use App\Models\User;
+use App\Services\Studio\StudioAvAcceptance;
 use App\Services\Studio\StudioAvCleanup;
+use App\Services\Studio\StudioAvLeases;
+use App\Services\Studio\StudioAvLifecycle;
 use App\Services\Studio\StudioAvRecovery;
 use App\Services\Studio\StudioAvRegistrationCleanup;
-use App\Services\Studio\StudioAvState;
 use App\Services\Studio\StudioAvTransfer;
 use App\Services\Studio\StudioService;
 use Illuminate\Support\Facades\Storage;
@@ -20,29 +22,28 @@ beforeEach(function () {
     config(['filesystems.media' => 'local']);
     $this->user = User::factory()->create();
     $this->brand = Brand::factory()->for($this->user)->create();
-    $this->state = app(StudioAvState::class);
     $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Retirement', 'document' => [
         'schema_version' => 2, 'width' => 100, 'height' => 80, 'timeline' => ['fps' => 12, 'audio_tracks' => []],
         'pages' => [['id' => 'one', 'duration' => 1, 'background' => '#ffffff', 'elements' => []]]]]);
     $export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $design->id,
         'revision' => 1, 'format' => 'mp4', 'pages' => ['one'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
-    $this->export = $this->state->initialize($this->user, $export);
+    $this->export = app(StudioAvLifecycle::class)->initialize($this->user, $export);
     $generation = $this->export->render_state['generation'];
-    $this->state->accept($this->state->claim($export->id, $generation), [
+    app(StudioAvAcceptance::class)->accept(app(StudioAvLeases::class)->claim($export->id, $generation), [
         'frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 24, 'segmentCount' => 1,
         'selection' => ['one'], 'assetIds' => [], 'fontIds' => [], 'audioAssetIds' => [],
         'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]]);
-    $render = $this->state->claim($export->id, $generation, 1);
-    $this->state->accept($render, ['file' => 'segments/'.$render->id.'/video-000000.mp4', 'namespace' => $render->id,
+    $render = app(StudioAvLeases::class)->claim($export->id, $generation, 1);
+    app(StudioAvAcceptance::class)->accept($render, ['file' => 'segments/'.$render->id.'/video-000000.mp4', 'namespace' => $render->id,
         'size' => 1, 'sha256' => hash('sha256', 'x')], 1);
-    $source = $this->state->claim($export->id, $generation, 5);
-    $this->state->accept($source, ['file' => 'outputs/'.$source->id.'/project.mp4', 'namespace' => $source->id,
+    $source = app(StudioAvLeases::class)->claim($export->id, $generation, 5);
+    app(StudioAvAcceptance::class)->accept($source, ['file' => 'outputs/'.$source->id.'/project.mp4', 'namespace' => $source->id,
         'size' => 5, 'sha256' => hash('sha256', 'video'), 'width' => 100, 'height' => 80, 'duration' => 1,
         'fps' => 12, 'frameCount' => 12, 'videoCodec' => 'h264', 'audioCodec' => null, 'scale' => 1, 'quality' => 0.94,
         'chunk_size' => 16 * 1024 ** 2, 'chunk_sha256' => [hash('sha256', 'video')]], 5);
     $root = 'studio-exports/'.$this->user->id.'/'.$export->id.'/'.$this->export->render_state['workspace'];
     Storage::disk('local')->put($root.'/outputs/'.$source->id.'/project.mp4', 'video');
-    $this->lease = $this->state->claim($export->id, $generation);
+    $this->lease = app(StudioAvLeases::class)->claim($export->id, $generation);
     $this->workspace = StudioAvWorkspace::withoutUserScope()->findOrFail($this->lease->workspace_id);
 });
 
@@ -62,7 +63,7 @@ test('AV retirement deletes only expired cancelled local copy and releases its r
     app(StudioAvTransfer::class)->run($this->lease);
     $media = MediaAsset::withoutUserScope()->sole();
     Storage::disk('local')->put('media/unrelated.bin', 'keep');
-    $this->state->cancel($this->user, $this->export);
+    app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
     expect(app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toBeFalse();
     $this->travel(181)->seconds();
     expect(app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toBeTrue();
@@ -78,7 +79,7 @@ test('AV retirement aborts known multipart and verifies removal before releasing
     app(StudioAvTransfer::class)->run($this->lease);
     app(StudioAvTransfer::class)->run($this->lease);
     $media = MediaAsset::withoutUserScope()->sole();
-    $this->state->cancel($this->user, $this->export);
+    app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
     $this->travel(181)->seconds();
     expect(app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toBeTrue();
     expect($r2->uploads)->toBe([])->and($this->workspace->refresh()->media_reserved_bytes)->toBe(0);
@@ -117,7 +118,7 @@ test('AV retirement keeps journal and reservation after a delete acknowledgement
         $result = app(StudioAvTransfer::class)->run($this->lease);
     }
     $media = MediaAsset::withoutUserScope()->findOrFail($result['media_id']);
-    $this->state->cancel($this->user, $this->export);
+    app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
     $this->travel(181)->seconds();
     $r2->after = function ($name) use ($r2) {
         if ($name === 'DeleteObject') {
@@ -151,7 +152,7 @@ test('AV orphan cleanup cannot delete the workspace journal before its unknown m
 
 test('AV scheduled recovery retires a terminal copy even when all its leases have already been released', function () {
     app(StudioAvTransfer::class)->run($this->lease);
-    $this->state->cancel($this->user, $this->export);
+    app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
     $this->travel(181)->seconds();
     app(StudioAvCleanup::class)->lease($this->lease->id);
     app(StudioAvRecovery::class)->run();
@@ -164,7 +165,7 @@ test('AV retirement preserves ready library media when its design export becomes
     for ($pass = 0; $pass < 6 && $result === null; $pass++) {
         $result = app(StudioAvTransfer::class)->run($this->lease);
     }
-    $this->state->accept($this->lease, $result);
+    app(StudioAvAcceptance::class)->accept($this->lease, $result);
     $media = MediaAsset::withoutUserScope()->findOrFail($result['media_id']);
     expect($this->workspace->refresh()->media_receipt['state'])->toBe('published');
     $this->export->delete();
@@ -179,7 +180,7 @@ test('AV retirement retains the upload id while in-flight parts still appear aft
     app(StudioAvTransfer::class)->run($this->lease);
     app(StudioAvTransfer::class)->run($this->lease);
     $saved = $r2->uploads;
-    $this->state->cancel($this->user, $this->export);
+    app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
     $this->travel(181)->seconds();
     $r2->after = function ($name) use ($r2, $saved) {
         if ($name === 'AbortMultipartUpload') {
@@ -196,7 +197,7 @@ test('AV retirement retains the upload id while in-flight parts still appear aft
 test('AV recovery completes an interrupted retirement after retry even while the new generation holds a lease', function () {
     $r2 = new StudioAvR2;
     app(StudioAvTransfer::class)->run($this->lease);
-    $this->state->cancel($this->user, $this->export);
+    app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
     $this->travel(181)->seconds();
     $r2->after = function ($name) use ($r2) {
         if ($name === 'DeleteObject') {
@@ -205,8 +206,8 @@ test('AV recovery completes an interrupted retirement after retry even while the
         }
     };
     expect(fn () => app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toThrow(RuntimeException::class);
-    $retry = $this->state->retry($this->user, $this->export);
-    $next = $this->state->claim($retry->id, $retry->render_state['generation']);
+    $retry = app(StudioAvLifecycle::class)->retry($this->user, $this->export);
+    $next = app(StudioAvLeases::class)->claim($retry->id, $retry->render_state['generation']);
     expect($next->expires_at->isFuture())->toBeTrue();
     app(StudioAvRecovery::class)->run();
     expect($this->workspace->refresh()->media_reserved_bytes)->toBe(0)->and($this->workspace->media_retiring)->toBeFalse();
@@ -223,7 +224,7 @@ test('AV retirement paginates unrelated multipart prefixes without deleting anot
     for ($i = 0; $i < 20; $i++) {
         $r2->uploads['unrelated-'.$i] = ['key' => $key.'-'.sprintf('%03d', $i), 'metadata' => [], 'parts' => []];
     }
-    $this->state->cancel($this->user, $this->export);
+    app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
     $this->travel(181)->seconds();
     expect(app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toBeFalse();
     expect($this->workspace->refresh()->media_reserved_bytes)->toBe(5)->and($this->workspace->media_receipt['cursor'])->not->toBe([]);
@@ -237,7 +238,7 @@ test('AV retirement targets the original S3 key after its configured prefix chan
     $receipt = $this->workspace->refresh()->media_receipt;
     $r2->setPrefix('different');
     expect(fn () => app(StudioAvTransfer::class)->run($this->lease))->toThrow(ValidationException::class);
-    $this->state->cancel($this->user, $this->export);
+    app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
     $this->travel(181)->seconds();
     expect(app(StudioAvRegistrationCleanup::class)->run($this->workspace->id))->toBeTrue();
     foreach (collect($r2->calls->getArrayCopy())->filter(fn ($call) => in_array($call['name'], ['AbortMultipartUpload', 'DeleteObject'], true)) as $call) {
@@ -256,7 +257,7 @@ test('AV retirement does not touch an expired but still resumable processing cop
 
 test('AV retirement refuses an exhausted caller budget before claiming its cleanup token', function () {
     app(StudioAvTransfer::class)->run($this->lease);
-    $this->state->cancel($this->user, $this->export);
+    app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
     $this->travel(181)->seconds();
     expect(fn () => app(StudioAvRegistrationCleanup::class)->run($this->workspace->id, microtime(true) - 1))->toThrow(RuntimeException::class);
     expect($this->workspace->refresh()->media_retiring)->toBeFalse();
@@ -271,7 +272,7 @@ test('AV scheduled retirement backoff is respected by every recovery branch', fu
     if ($orphan) {
         $this->user->delete();
     } else {
-        $this->state->cancel($this->user, $this->export);
+        app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
     }
     $this->travel(181)->seconds();
     $r2->after = function ($name) {

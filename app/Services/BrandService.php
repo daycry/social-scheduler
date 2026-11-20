@@ -15,12 +15,12 @@ class BrandService
     /** @return Collection<int, Brand> */
     public function list(User $user): Collection
     {
-        return Brand::withoutUserScope()->where('user_id', $user->id)->orderBy('name')->get();
+        return Brand::ownedBy($user->id)->orderBy('name')->get();
     }
 
     public function find(User $user, int|string $id): ?Brand
     {
-        return Brand::withoutUserScope()->where('user_id', $user->id)->find($id);
+        return Brand::ownedBy($user->id)->find($id);
     }
 
     /** @param array{name: string, description?: ?string, timezone?: string} $data */

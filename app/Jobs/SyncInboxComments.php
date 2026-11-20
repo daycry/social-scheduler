@@ -34,11 +34,11 @@ class SyncInboxComments implements ShouldBeUnique, ShouldQueue
         return 'inbox:'.($this->userId ?? 'all');
     }
 
-    public function handle(): void
+    public function handle(InboxService $inbox): void
     {
         // Job sin usuario autenticado: opta explicitamente por salir del UserScope.
         SocialAccount::withoutUserScope()->where('status', SocialAccount::STATUS_ACTIVE)
-            ->whereIn('network', array_map(fn (Network $n) => $n->value, InboxService::NETWORKS))
+            ->whereIn('network', array_map(fn (Network $n) => $n->value, $inbox->networks()))
             ->when($this->userId, fn ($q) => $q->where('user_id', $this->userId))
             ->chunkById(200, function ($accounts): void {
                 foreach ($accounts as $account) {

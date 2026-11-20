@@ -26,7 +26,7 @@ class StudioLinkController extends Controller
     {
         [$link, $design, $owner] = $this->collab->resolveLink($token);
         $link->forceFill(['last_used_at' => now()])->save();
-        $brand = Brand::withoutUserScope()->where('user_id', $owner->id)->findOrFail($design->brand_id);
+        $brand = Brand::ownedBy($owner->id)->findOrFail($design->brand_id);
         $routes = ['asset' => fn (int $id) => route('studio.link.asset', ['token' => $token, 'media' => $id], false), 'font' => fn (int $id) => route('studio.link.font', ['token' => $token, 'font' => $id], false)];
         $assets = $this->assets->list($owner, $brand)->map(fn ($asset) => $this->assets->present($brand, $asset))->all();
         $rewritten = $this->shared->rewrite($design, $link->role, $assets, $this->fonts->neededFor($owner, $brand, $design->document), $routes);

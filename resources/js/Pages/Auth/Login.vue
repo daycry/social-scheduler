@@ -1,7 +1,7 @@
 <script setup>
 import Checkbox from '@/Components/Checkbox.vue';
 import GuestLayout from '@/Layouts/GuestLayout.vue';
-import InputError from '@/Components/InputError.vue';
+import FormField from '@/Components/FormField.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
@@ -116,65 +116,60 @@ const submit = () => {
             {{ status }}
         </div>
 
-        <div v-if="socialError" class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert" data-testid="login-error">
+        <div
+            v-if="socialError"
+            class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+            role="alert"
+            data-testid="login-error"
+        >
             {{ socialError }}
         </div>
 
         <form @submit.prevent="submit">
             <div>
-                <InputLabel for="email" value="Correo electrónico" />
+                <FormField id="email" :error="form.errors.email" error-class="mt-2" v-slot="{ control }">
+                    <InputLabel for="email" value="Correo electrónico" />
 
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    v-model="form.email"
-                    required
-                    autofocus
-                    autocomplete="username webauthn"
-                />
-
-                <InputError class="mt-2" :message="form.errors.email" />
+                    <TextInput
+                        v-bind="control"
+                        type="email"
+                        class="mt-1 block w-full"
+                        v-model="form.email"
+                        required
+                        autofocus
+                        autocomplete="username webauthn"
+                    />
+                </FormField>
             </div>
 
             <div class="mt-4">
-                <InputLabel for="password" value="Contraseña" />
+                <FormField id="password" :error="form.errors.password" error-class="mt-2" v-slot="{ control }">
+                    <InputLabel for="password" value="Contraseña" />
 
-                <TextInput
-                    id="password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    v-model="form.password"
-                    required
-                    autocomplete="current-password"
-                />
-
-                <InputError class="mt-2" :message="form.errors.password" />
+                    <TextInput
+                        v-bind="control"
+                        type="password"
+                        class="mt-1 block w-full"
+                        v-model="form.password"
+                        required
+                        autocomplete="current-password"
+                    />
+                </FormField>
             </div>
 
             <div class="mt-4 block">
                 <label class="flex items-center">
                     <Checkbox name="remember" v-model:checked="form.remember" />
-                    <span class="ms-2 text-sm text-slate-600"
-                        >Recordarme</span
-                    >
+                    <span class="ms-2 text-sm text-slate-600">Recordarme</span>
                 </label>
             </div>
 
             <div class="mt-4 flex items-center justify-end">
-                <Link
-                    v-if="canResetPassword"
-                    :href="route('password.request')"
-                    class="link text-sm"
-                >
+                <Link v-if="canResetPassword" :href="route('password.request')" class="link text-sm">
                     ¿Has olvidado tu contraseña?
                 </Link>
 
-                <PrimaryButton
-                    class="ms-4"
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
+                <PrimaryButton class="ms-4" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
                     Entrar
                 </PrimaryButton>
             </div>
@@ -199,13 +194,17 @@ const submit = () => {
                 <SecondaryButton class="w-full" :disabled="passkeyBusy" @click="startPasskey">
                     {{ passkeyBusy ? 'Esperando a tu dispositivo…' : 'Entrar con passkey' }}
                 </SecondaryButton>
-                <p class="mt-2 text-center text-xs text-slate-500">Sin contraseña ni código: con tu huella, tu cara o el PIN del dispositivo.</p>
+                <p class="mt-2 text-center text-xs text-slate-500"
+                    >Sin contraseña ni código: con tu huella, tu cara o el PIN del dispositivo.</p
+                >
             </template>
             <p v-else class="text-center text-sm text-slate-600" role="status">{{ httpsNotice }}</p>
 
             <p class="mt-3 text-center text-sm text-red-600" role="alert" aria-live="polite">{{ passkeyMessage }}</p>
         </div>
 
-        <p v-if="$page.props.registrationEnabled" class="mt-6 text-center text-sm text-slate-600">¿Aún no tienes cuenta? <Link :href="route('register')" class="link">Crear cuenta</Link></p>
+        <p v-if="$page.props.registrationEnabled" class="mt-6 text-center text-sm text-slate-600"
+            >¿Aún no tienes cuenta? <Link :href="route('register')" class="link">Crear cuenta</Link></p
+        >
     </GuestLayout>
 </template>

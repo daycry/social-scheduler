@@ -52,15 +52,15 @@ test('McpTools: list_media devuelve la media lista del usuario', function () {
     expect($err)->toBeFalse()->and(collect($media['media'])->pluck('id')->all())->toBe([$this->image->id]);
 });
 
-test('McpTools: list_media pagina con limit y cursor (has_more / next_cursor)', function () {
+test('McpTools: list_media pagina con limit y cursor opaco (has_more / next_cursor)', function () {
     $second = MediaAsset::withoutUserScope()->find($this->image->id)->replicate();
     $second->path = 'media/test/otra.jpg';
     $second->save();
 
     [, $p1] = $this->callTool($this->key, 'list_media', ['limit' => 1]);
-    expect($p1['media'])->toHaveCount(1)->and($p1['has_more'])->toBeTrue()->and($p1['next_cursor'])->toBe($second->id);
+    expect($p1['media'])->toHaveCount(1)->and($p1['has_more'])->toBeTrue()->and($p1['next_cursor'])->toBeString();
 
-    [, $p2] = $this->callTool($this->key, 'list_media', ['limit' => 1, 'before_id' => $p1['next_cursor']]);
+    [, $p2] = $this->callTool($this->key, 'list_media', ['limit' => 1, 'cursor' => $p1['next_cursor']]);
     expect(collect($p2['media'])->pluck('id')->all())->toBe([$this->image->id])->and($p2['has_more'])->toBeFalse()->and($p2['next_cursor'])->toBeNull();
 });
 

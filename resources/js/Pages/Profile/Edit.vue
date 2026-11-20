@@ -55,9 +55,7 @@ const { canUsePasskeys, httpsNotice } = useSecureContext();
 
         <div>
             <div class="w-full max-w-3xl space-y-6">
-                <div
-                    class="card p-4 sm:p-8"
-                >
+                <div class="card p-4 sm:p-8">
                     <UpdateProfileInformationForm
                         :must-verify-email="mustVerifyEmail"
                         :status="status"
@@ -65,16 +63,11 @@ const { canUsePasskeys, httpsNotice } = useSecureContext();
                     />
                 </div>
 
-                <div
-                    class="card p-4 sm:p-8"
-                >
+                <div class="card p-4 sm:p-8">
                     <UpdatePasswordForm class="max-w-xl" />
                 </div>
 
-                <div
-                    class="card p-4 sm:p-8"
-                    aria-label="Seguridad"
-                >
+                <div class="card p-4 sm:p-8" aria-label="Seguridad">
                     <TwoFactorForm
                         :two-factor="twoFactor"
                         :setup="twoFactorSetup"
@@ -82,19 +75,19 @@ const { canUsePasskeys, httpsNotice } = useSecureContext();
                         class="max-w-xl"
                     />
 
-                    <PasskeysForm v-if="canUsePasskeys" :passkeys="passkeys" class="mt-10 max-w-xl border-t border-slate-200 pt-8" />
+                    <PasskeysForm
+                        v-if="canUsePasskeys"
+                        :passkeys="passkeys"
+                        class="mt-10 max-w-xl border-t border-slate-200 pt-8"
+                    />
                     <p v-else class="mt-8 max-w-xl text-xs text-slate-500" role="note">{{ httpsNotice }}</p>
                 </div>
 
-                <div
-                    class="card p-4 sm:p-8"
-                >
+                <div class="card p-4 sm:p-8">
                     <LinkedAccountsForm :accounts="socialAccounts" :status="status" class="max-w-xl" />
                 </div>
 
-                <div
-                    class="card p-4 sm:p-8"
-                >
+                <div class="card p-4 sm:p-8">
                     <DeleteUserForm class="max-w-xl" />
                 </div>
             </div>

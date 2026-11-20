@@ -19,11 +19,11 @@ function aiEnable(array $over = []): void
     config(['social.ai' => array_merge(['enabled' => true, 'api_key' => 'sk-ant-TEST', 'model' => 'claude-sonnet-5-5', 'max_tokens' => 600, 'timeout' => 30, 'daily_limit' => 20], $over)]);
 }
 
-test('IA: desactivada por defecto (config) -> status enabled=false y suggest responde 404 sin llamar a nadie', function () {
+test('IA: desactivada por defecto (config) -> status enabled=false y suggest responde 409 sin llamar a nadie', function () {
     expect(config('social.ai.enabled'))->toBeFalse();
 
-    $this->actingAs($this->user)->getJson(route('ai.status'))->assertOk()->assertExactJson(['enabled' => false, 'remaining' => 0]);
-    $this->actingAs($this->user)->postJson(route('ai.suggest'), ['brief' => 'oferta'])->assertNotFound();
+    $this->actingAs($this->user)->getJson(route('ai.status'))->assertOk()->assertExactJson(['enabled' => false, 'remaining' => 0, 'vision' => false]);
+    $this->actingAs($this->user)->postJson(route('ai.suggest'), ['brief' => 'oferta'])->assertStatus(409)->assertJsonPath('message', 'El asistente IA no está activado.');
 });
 
 test('IA: el flag solo no basta, hace falta tambien la clave (y al reves)', function () {
@@ -32,7 +32,7 @@ test('IA: el flag solo no basta, hace falta tambien la clave (y al reves)', func
 
     aiEnable(['enabled' => false]);
     $this->actingAs($this->user)->getJson(route('ai.status'))->assertJson(['enabled' => false]);
-    $this->actingAs($this->user)->postJson(route('ai.suggest'), ['brief' => 'x'])->assertNotFound();
+    $this->actingAs($this->user)->postJson(route('ai.suggest'), ['brief' => 'x'])->assertStatus(409);
 });
 
 test('IA: sugiere con la Messages API (cabeceras, modelo, version) y sin datos personales', function () {
@@ -132,4 +132,12 @@ test('IA: C4 un fallo del servicio tras cambiar de dia devuelve la reserva del d
     expect((int) Cache::get('ai:'.$this->user->id.':2026-11-01'))->toBe(0)
         ->and((int) Cache::get('ai:'.$this->user->id.':2026-11-02'))->toBe(0);
     Carbon\Carbon::setTestNow();
+});
+
+test('IA: el estado informa de si el modelo admite imágenes', function () {
+    aiEnable(['vision' => false]);
+    $this->actingAs($this->user)->getJson(route('ai.status'))->assertOk()->assertJsonPath('enabled', true)->assertJsonPath('vision', false);
+
+    aiEnable(['vision' => true]);
+    $this->actingAs($this->user)->getJson(route('ai.status'))->assertJsonPath('vision', true);
 });

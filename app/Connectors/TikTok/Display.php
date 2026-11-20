@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Log;
 /**
  * Colector de TikTok (Display API v2). Decision G1: la analitica se limita a lo que concedan los scopes
  * `user.info.stats` (seguidores y numero de videos) y `video.list` (vistas, me gusta, comentarios y compartidos
- * de un video). Esos scopes requieren la auditoria de TikTok y NO estan en `social.tiktok.scopes`: una cuenta sin
+ * de un video). Esos scopes requieren la auditoria de TikTok y NO estan en `social.tiktok.scopes` (se piden con `TIKTOK_EXTRA_SCOPES` y reconectando la cuenta): una cuenta sin
  * ellos devuelve todo `null` ("no disponible") SIN llamar a la API. TikTok no ofrece flujos diarios de cuenta ni
  * historico: solo se guarda el stock de seguidores/videos cada dia.
  *

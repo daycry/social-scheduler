@@ -1,0 +1,33 @@
+# Instalar la aplicación y recibir avisos
+
+La aplicación incluye un manifiesto público con iconos de 192 y 512 píxeles y un service worker estático en `public/sw.js`. El servidor web sirve ese fichero directamente: no necesita una ruta PHP para archivos `.js` ni crea una sesión al comprobarlo. Desde un navegador compatible, abre el menú y elige instalar o añadir a la pantalla de inicio. La disponibilidad y el texto de esa opción dependen del navegador y el dispositivo. En producción se necesita HTTPS; localhost sirve para las pruebas locales.
+
+## Activar avisos en un navegador
+
+En el menú de usuario abre **Notificaciones del navegador**. Escribe un nombre reconocible y pulsa **Activar en este navegador**. Solo esa acción pide permiso al navegador. Puedes denegarlo sin dejar de usar la aplicación; después se cambia en los ajustes del navegador.
+
+Si el servidor no tiene una pareja de claves VAPID válida, la pantalla explica que el envío no está configurado. Si faltan HTTPS o las APIs necesarias, explica la limitación del navegador. No se solicita permiso al abrir una página ni al registrar el service worker.
+
+Cada suscripción pertenece a un usuario. La lista solo muestra nombres, fechas y el dispositivo identificado como actual; no revela el endpoint ni las claves. Se puede **Revocar** un dispositivo con confirmación. Para el actual se intenta cancelar también la suscripción del navegador; el DELETE al servidor se envía primero. La cancelación en el navegador ocurre después, como best effort: una promesa bloqueada no impide revocar en servidor ni deja la pantalla ocupada. Registro, espera de activación y operaciones de PushManager tienen un límite de tres segundos por operación; el tiempo de decisión del permiso sigue en manos del usuario. Al cerrar sesión se revoca el dispositivo identificado por la cookie cifrada de esta aplicación; otros dispositivos se conservan. La cookie es de larga duración y se renueva al abrir estos ajustes cuando identifica un dispositivo propio. Su duración efectiva depende del navegador. Si la has eliminado o el navegador la ha descartado, puedes reactivar tu suscripción para recuperar la identificación, o revocar cualquier dispositivo desde la lista. Sin identificador no se adivina qué dispositivo corresponde a este navegador al cerrar sesión. Si el endpoint sigue vinculado a otra cuenta, se muestra un error manejable sin transferirla; restablece el permiso de notificaciones en los ajustes del navegador antes de activar otra cuenta.
+
+## Qué se envía y qué se guarda
+
+El push muestra únicamente «Social Scheduler» y «Tienes nuevos avisos.». Nunca contiene mensajes, textos de publicaciones, marca, enlace firmado ni credenciales. Al pulsarlo se abre **Avisos** en el origen de esta aplicación; si no hay sesión se pide iniciarla. El worker no lee URLs del payload ni intercepta fetch, ni almacena HTML autenticado, Cache Storage o IndexedDB.
+
+Los endpoints y las claves de suscripción se guardan cifrados mediante APP_KEY. La clave privada VAPID solo se configura en el servidor y no llega a las props de la página. `app:reencrypt` incluye también endpoint y keys de push_subscriptions al rotar APP_KEY; conserva la política de copias de seguridad y claves anteriores del despliegue.
+
+El envío complementa las notificaciones guardadas en la aplicación. La cola lleva identificadores y vuelve a comprobar propietario, consentimiento, verificación y existencia de un aviso no leído. Una suscripción caducada (404/410) se elimina; los fallos transitorios se reintentan hasta tres intentos. Los fallos permanentes no reintentan el mismo aviso. Un fallo al encolar push no cancela el aviso in-app: este canal es best-effort, sin outbox durable propio ni garantía de entrega exactamente una vez ante una caída después del envío. El último aviso enviado se reconoce localmente para evitar su redelivery inmediata.
+
+## Configuración del operador y aceptación pendiente
+
+Los ejemplos públicos de entorno declaran PUSH_ENABLED, PUSH_VAPID_SUBJECT, PUSH_VAPID_PUBLIC_KEY, PUSH_VAPID_PRIVATE_KEY, PUSH_QUEUE, PUSH_MAX_DEVICES_PER_USER y PUSH_SETTINGS_PER_MINUTE. No contienen claves operativas. La cola predeterminada es poll y el límite por usuario es 20 dispositivos y 30 escrituras por minuto; ambos son configurables. El subject VAPID debe ser un mailto válido o una URL HTTPS. Las claves deben ser base64url canónicas de P-256 y corresponder entre sí.
+
+La implementación utiliza minishlink/web-push 11 para aes128gcm y VAPID, con el guard HTTPS/IP pública del proyecto, IP fijada y sin proxy ni redirecciones. Los límites HTTP son tres segundos para conectar y diez para la petición; la resolución DNS previa depende del resolver del sistema y no queda limitada por esos tiempos. El job declara veinte segundos de timeout, efectivo en un worker con soporte de señales. La respuesta remota se cierra sin leer ni guardar su contenido.
+
+El guard no distingue públicamente entre una dirección privada y un nombre que no resuelve. Ambos se rechazan sin HTTP; también un fallo DNS transitorio puede rechazar ese aviso sin reintento. Se conserva esta política conservadora compartida con webhooks y no se afirma que todo fallo DNS sea reintentable. La producción documentada usa MySQL/MariaDB; en SQLite el envío mantiene el lock global de escritura durante DNS/HTTP y esa opción se reserva para pruebas y desarrollo.
+
+El payload cifrado es mínimo (`{}`); el worker estático fija el título, el cuerpo y el destino. La columna técnica `last_attempted_at` adquiere el lock de escritura SQLite y se revierte al reintentar: no es un historial durable de intentos. La lista muestra la fecha de la última suscripción y del último envío confirmado.
+
+Después de desplegar los listeners, regenera el manifiesto de eventos con `php artisan event:cache` y reinicia los workers según el procedimiento de despliegue. Laravel los descubre por su método handle tipado; no se registran también a mano. Si `PUSH_QUEUE` difiere de `poll`, esa cola requiere su propio worker. Comprueba que el fichero público `/sw.js` responde como JavaScript en el servidor real; las pruebas locales no acreditan la configuración de Hestia/Nginx de producción.
+
+**M-07 sigue a la espera del usuario:** generar y desplegar las claves propias, HTTPS de producción y comprobar instalación, permiso y recepción real en los dispositivos objetivo. Las pruebas locales usan claves EC exclusivamente de fixture, PushSender falso o HTTP simulado con cifrado/firma reales; no acreditan recepción en un dispositivo ni entrega por un proveedor real. Tampoco acreditan un worker nativo en segundo plano.

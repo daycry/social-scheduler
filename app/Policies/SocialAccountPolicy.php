@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Support\Facades\Log;
 
 class SocialAccountPolicy
@@ -20,7 +21,7 @@ class SocialAccountPolicy
 
     private function owns(User $user, SocialAccount $account, string $ability): bool
     {
-        if ($account->user_id === $user->id) {
+        if (Ownership::matches($account, $user)) {
             return true;
         }
 

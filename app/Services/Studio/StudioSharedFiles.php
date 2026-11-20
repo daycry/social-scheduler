@@ -50,6 +50,6 @@ class StudioSharedFiles
 
     private function brand(User $owner, Design $design): Brand
     {
-        return Brand::withoutUserScope()->where('user_id', $owner->id)->findOrFail($design->brand_id);
+        return Brand::ownedBy($owner->id)->findOrFail($design->brand_id);
     }
 }

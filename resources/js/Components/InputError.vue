@@ -7,8 +7,8 @@ defineProps({
 </script>
 
 <template>
-    <div v-show="message">
-        <p class="text-sm text-red-600" role="alert">
+    <div :class="{ 'sr-only': !message }">
+        <p class="text-sm text-red-600" role="alert" aria-atomic="true">
             {{ message }}
         </p>
     </div>

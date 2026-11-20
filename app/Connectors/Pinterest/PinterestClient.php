@@ -7,6 +7,8 @@ use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Exceptions\QuotaExceededException;
 use App\Connectors\Exceptions\ReconnectRequiredException;
 use App\Connectors\Exceptions\TransientPublishException;
+use App\Connectors\Support\KnownSizeStream;
+use GuzzleHttp\Psr7\Utils;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -80,8 +82,10 @@ class PinterestClient
      * Sube el video a la URL prefirmada que dio `POST /v5/media` (multipart: primero los campos de `upload_parameters`, el fichero al final).
      *
      * @param  array<string, scalar>  $parameters
+     * @param  resource  $stream  flujo del video (nunca su contenido en un string: ver PinterestPublisher)
+     * @param  int  $size  tamano REAL en bytes (un stream remoto no lo declara) y $timeout ya acotado al presupuesto del paso
      */
-    public function upload(string $url, array $parameters, string $bytes, string $mime): void
+    public function upload(string $url, array $parameters, $stream, string $mime, int $size, int $timeout): void
     {
         $this->assertUploadUrl($url);
 
@@ -89,14 +93,17 @@ class PinterestClient
         foreach ($parameters as $name => $value) {
             $parts[] = ['name' => (string) $name, 'contents' => (string) $value];
         }
-        $parts[] = ['name' => 'file', 'contents' => $bytes, 'filename' => 'video', 'headers' => ['Content-Type' => $mime]];
+        $parts[] = ['name' => 'file', 'contents' => new KnownSizeStream(Utils::streamFor($stream), $size), 'filename' => 'video', 'headers' => ['Content-Type' => $mime]];
 
         try {
-            $response = Http::timeout((int) config('social.pinterest.upload_timeout', 60))->asMultipart()->post($url, $parts);
+            $response = Http::timeout(max(1, $timeout))->asMultipart()->post($url, $parts);
         } catch (ConnectionException) {
             throw new TransientPublishException('No se pudo subir el video a Pinterest (tiempo agotado o red).', 'red');
         }
 
+        if (in_array($response->status(), [400, 403, 404, 410], true)) {
+            throw new PinterestUploadRejectedException($response->status());
+        }
         if (! $response->successful()) {
             throw $this->exceptionFor($response, false);
         }
@@ -124,7 +131,9 @@ class PinterestClient
             return new ReconnectRequiredException('Pinterest rechazo las credenciales ('.$message.'). Reconecta la cuenta.');
         }
         if ($status === 429) {
-            return new QuotaExceededException('Pinterest limito las peticiones de la app ('.$message.').', null, 'rate_limit');
+            $retry = (string) $response->header('Retry-After');
+
+            return new QuotaExceededException('Pinterest limito las peticiones de la app ('.$message.').', ctype_digit($retry) && $retry !== '' ? now()->addSeconds(min((int) $retry, 86400)) : null, 'rate_limit');
         }
         if ($status === 403) {
             return new PermanentPublishException('Pinterest nego el permiso ('.$message.'). Las apps nuevas estan en acceso de prueba (solo sandbox) hasta que Pinterest las aprueba; revisa los permisos y vuelve a conectar.', 'permisos');

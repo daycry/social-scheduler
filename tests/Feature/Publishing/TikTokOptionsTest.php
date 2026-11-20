@@ -101,7 +101,8 @@ test('TikTokOptions: la validacion del destino rechaza lo que la cuenta no admit
 
     $this->account->forceFill(['meta' => ['direct_post' => true]])->save();
     expect(json_encode($validate(['disable_duet' => true, 'is_aigc' => true, 'privacy_level' => 'PUBLIC_TO_EVERYONE'])->json('errors')))->not->toContain('opcion')->not->toContain('privado');
-    expect(json_encode($validate(['brand_content_toggle' => true])->json('errors')))->toContain('no puede ser privado');
+    expect(json_encode($validate(['brand_content_toggle' => true])->json('errors')))->not->toContain('privado');
+    expect(json_encode($validate(['brand_content_toggle' => true, 'privacy_level' => 'SELF_ONLY'])->json('errors')))->toContain('no puede ser privado');
     expect(json_encode($validate(['brand_content_toggle' => true, 'privacy_level' => 'PUBLIC_TO_EVERYONE'])->json('errors')))->not->toContain('opcion')->not->toContain('privado');
     expect(json_encode($validate(['disable_duet' => true], 'tiktok_photo')->json('errors')))->toContain('solo existe en los videos');
 });

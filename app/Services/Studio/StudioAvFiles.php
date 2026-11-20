@@ -16,6 +16,12 @@ use RuntimeException;
 
 class StudioAvFiles
 {
+    public function __construct(
+        private readonly StudioAvStorage $storage,
+        private readonly StudioAssets $assets,
+        private readonly StudioFonts $fonts,
+    ) {}
+
     public function inspect(StudioAvLease $lease, array $result, ?float $deadline = null): array
     {
         return $this->locked($lease, fn () => $this->inspectResult($lease, $result, min($deadline ?? microtime(true) + 85, microtime(true) + 85)));
@@ -97,7 +103,7 @@ class StudioAvFiles
         if (microtime(true) >= $deadline) {
             throw new StudioAvProcessFailed('phase_timeout');
         }
-        $path = app(StudioAvStorage::class)->checkedPath($workspace, $relative);
+        $path = $this->storage->checkedPath($workspace, $relative);
         $stream = @fopen($path, 'rb');
         if ($stream === false) {
             if (! file_exists($path)) {
@@ -148,10 +154,10 @@ class StudioAvFiles
             throw new RuntimeException('La fase no admite una copia de origen.');
         }
         $user = User::findOrFail($workspace->user_id);
-        $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($workspace->brand_id);
+        $brand = Brand::ownedBy($user->id)->findOrFail($workspace->brand_id);
         $source = $current->phase === 'asset'
-            ? app(StudioAssets::class)->owned($user, $brand, $current->item)
-            : app(StudioFonts::class)->owned($user, $brand, $current->item);
+            ? $this->assets->owned($user, $brand, $current->item)
+            : $this->fonts->owned($user, $brand, $current->item);
         $pinned = StudioAvLease::where('workspace_id', $workspace->id)->where('category', 'snapshot')
             ->where('phase', $current->phase)->where('item', $current->item)->whereIn('status', ['accepted', 'invalid', 'released'])
             ->whereNotNull('result')->orderBy('created_at')->orderBy('id')->first(['result'])?->result;
@@ -213,7 +219,6 @@ class StudioAvFiles
             if (is_resource($stream)) {
                 fclose($stream);
             }
-            $reader->close();
             $safe = $this->path($workspace, $relative.'.part', true);
             if (is_file($safe) && ! @unlink($safe)) {
                 throw new RuntimeException('La limpieza de la copia privada queda pendiente.');
@@ -225,7 +230,7 @@ class StudioAvFiles
     {
         $current = StudioAvLease::findOrFail($lease->id);
 
-        return app(StudioAvStorage::class)->locked($current->workspace_id, $callback);
+        return $this->storage->locked($current->workspace_id, $callback);
     }
 
     /** Reread journal identity; no caller-supplied path or model attributes are trusted. */
@@ -233,7 +238,7 @@ class StudioAvFiles
     {
         $current = StudioAvLease::findOrFail($lease->id);
         $workspace = StudioAvWorkspace::withoutUserScope()->select(['id', 'user_id', 'brand_id', 'export_id', 'uuid', 'fingerprint'])->findOrFail($current->workspace_id);
-        $export = DesignExport::withoutUserScope()->where('user_id', $workspace->user_id)->where('brand_id', $workspace->brand_id)->findOrFail($workspace->export_id);
+        $export = DesignExport::ownedBy($workspace->user_id)->where('brand_id', $workspace->brand_id)->findOrFail($workspace->export_id);
         $state = $export->render_state;
         if (($accepted ? $current->status !== 'accepted' : ($current->status !== 'running' || ! $current->expires_at->isFuture()
             || ! in_array($export->status, ['pending', 'processing'], true)
@@ -242,7 +247,7 @@ class StudioAvFiles
             || ($state['fingerprint'] ?? null) !== $workspace->fingerprint) {
             throw new RuntimeException('El intento audiovisual ya no está activo.');
         }
-        Design::withoutUserScope()->where('user_id', $workspace->user_id)->where('brand_id', $workspace->brand_id)->findOrFail($export->design_id);
+        Design::ownedBy($workspace->user_id)->where('brand_id', $workspace->brand_id)->findOrFail($export->design_id);
 
         return [$current, $workspace, $export];
     }

@@ -1,0 +1,120 @@
+{
+  "duration_api_ms": 269733,
+  "stop_reason": "end_turn",
+  "session_id": "9493581b-adcd-4b60-9690-1310977c6a0d",
+  "total_cost_usd": 1.7897032,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 153121,
+    "cache_read_input_tokens": 129056,
+    "output_tokens": 26945,
+    "output_tokens_details": {
+      "thinking_tokens": 20081
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 153121,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 4,
+        "output_tokens": 2945,
+        "cache_read_input_tokens": 129056,
+        "cache_creation_input_tokens": 24065,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 24065
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 26945,
+      "cacheReadInputTokens": 129056,
+      "cacheCreationInputTokens": 153121,
+      "webSearchRequests": 0,
+      "costUSD": 1.7897032,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 20081,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 153121,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 2,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "ooks configurados. Cada transición terminal de un destino ejecuta 4. En sincronizaciones grandes del inbox esto multiplica la carga sin aportar nada.\n\n**Corrección:** comprobar primero `Webhook::ownedBy($uid)->where('brand_id', …)->where('enabled', true)->whereJsonContains('events', $name)->exists()`. También vale una caché por petición o job.\n\n### M-3 · Minor / política opcional — crecimiento sin poda\n**Ubicación:** `database/migrations/2026_11_18_092100_create_webhook_events_and_deliveries.php:11-35`.\n\n**Escenario:** `webhook_events` y `webhook_deliveries` crecen indefinidamente. Al borrar un webhook se eliminan sus entregas, pero los eventos quedan huérfanos con su `body` mientras exista la marca.\n\nEl contrato no fija retención, así que esto **no es un defecto contra el contrato**. Se sugiere un `model:prune` de eventos sin entregas y de entregas terminales con más de N días.\n\n### M-4 · Minor / política operativa — cola compartida y barrido\n**Ubicación:** `config/webhooks.php:4`, `.env.example` (`WEBHOOK_QUEUE=poll`), `DispatchPendingWebhooks.php:29-30`.\n\n**Escenarios:**\n- Receptores lentos (hasta 10 s, o más con DNS lento; ver I-3) ocupan los workers de `poll`, compartidos con otros jobs, y retrasan esos trabajos.\n- Con un atasco de más de 500 entregas `pending` vencidas que ya están en cola con lock, el barrido vuelve a seleccionar cada minuto las mismas 500 primeras. Las entregas huérfanas situadas detrás esperan hasta que se vacíe el atasco o expire `uniqueFor` (7200 s).\n\n**Sugerencia:** usar una cola dedicada por defecto o documentar el riesgo. Es opcional.\n\n### M-5 · Minor (E) — calidad y mantenibilidad\n\n**`WebhookDeliveryRunner.php:27-94`.** Un único closure combina la carga, la elegibilidad, el envío y la clasificación del resultado.\n- Extraer `classify(int $status): array{state, error, retry}` y un método `eligible()`.\n- `last_error` se escribe en tres sitios distintos (líneas 51, 68 y 83), lo que dificulta seguir el flujo.\n\n**Estados como literales.** `'pending'`, `'delivered'`, etc. están dispersos en el runner, el job de barrido y el modelo.\n- Un enum respaldado (`WebhookDeliveryStatus`) eliminaría la duplicación con `WebhookDelivery::STATES` y `DeliveryState` en TypeScript.\n\n**`WebhookDeliveryRunner.php:37`.** `$hook->brand_id !== $event->brand_id` compara de forma estricta columnas sin cast.\n- Hoy funciona porque ambas vienen del mismo driver.\n- Es frágil si cambia el modo de emulación de PDO. Conviene añadir `'brand_id' => 'integer'` a los casts o comparar con `(int)`.\n\n**`WebhookController.php:76-86`.** Mutar el request para que no se haga flash del secreto es un efecto lateral poco evidente.\n- La vía idiomática es `$dontFlash`/`->dontFlash(['secret'])` en el manejador de excepciones.\n- Opcional: el comportamiento actual es correcto y está probado.\n\n**`WebhookDomainObserver.php:16,32`.** El tipo unión `PostTarget|InboxComment` con guardas `instanceof` en cada método oscurece la intención.\n- Dos observers pequeños serían más claros. Opcional.\n\n**Duplicación.**\n- La comprobación HTTPS aparece en `WebhookSubscriptions.php:28-30` y `WebhookTransport.php:18-20`.\n- `max(1, (int) config('webhooks.max_per_user', 20))` aparece en el controlador y en el servicio.\n- Extraer ambos a un único sitio.\n\n### M-6 · Minor (UI / accesibilidad)\n\n**Botones con nombres idénticos.**\n- **Ubicación:** `resources/js/Pages/Webhooks/Index.vue:325-328`.\n- **Escenario:** con varias tarjetas, cada una tiene botones con nombre accesible «Editar» y «Eliminar». La lista de controles de un lector de pantalla queda ambigua.\n- **Corrección:** `:aria-label=\"\\`Editar ${hook.name}\\`\"` o `aria-describedby` hacia el `h3`.\n\n**Claves duplicadas en errores.**\n- **Ubicación:** `Index.vue:285`.\n- **Escenario:** `:key=\"error\"` genera claves duplicadas si dos campos devuelven el mismo mensaje, por ejemplo `events.0` y `events.1`. Vue emite un aviso y puede reutilizar mal los nodos.\n- **Corrección:** usar la clave del campo o el índice.\n\n### M-7 · Minor (tests) — huecos de cobertura\n\nFaltan casos para:\n- Reintento con 408, 425 y 429.\n- Rama `DecryptException` → `blocked/invalid_secret`.\n- Interacción real de `$tries` con `release()` y excepciones intermedias (I-3).\n- Rollback de la transición de publicación cuando falla el outbox (I-1).\n- Excepciones HTTP no clasificadas (M-1).\n- Receptor lento en SQLite con dos workers (I-2).\n\nLa concurrencia se acredita con scripts externos que no forman parte del parche. Hay que confirmar que quedan archivados en `testing/t80/**` como dice el ledger.\n\n### M-8 · Minor (robustez E2E) — fuga de la bandera de aislamiento\n**Ubicación:** `tests/e2e/webhooks.spec.ts:33-35`, `tests/e2e/isolated/bootstrap.php` (hunk `webhooks-on`).\n\n**Escenario:** el `unlink` de `webhooks-on` está en el mismo script de artisan que el borrado de `jobs`. Si ese borrado falla (por ejemplo, la tabla no existe porque la cola no es `database`), la bandera queda activa. Los specs posteriores reciben entonces un `UrlGuard` que solo resuelve `hooks.example.test`. Ese guard también sustituye al de Canva si ambas banderas coinciden, y los specs fallan de forma confusa.\n\n**Corrección:** eliminar la bandera en un `artisan` separado, o primero y con `try/finally`.\n\n---\n\n## Hechos que faltan, de forma exacta\n\n1. Fuente de `PostTransitions::transition`, `PublishOutcomes::{published,failed}`, `PollPublishStatus` y `PublishRecovery`. Sirve para saber si las transiciones terminales son transaccionales y se hacen mediante Eloquent (I-1).\n2. Si SQLite es un motor soportado en producción (I-2).\n3. `retry_after` de la conexión de cola y versión de `illuminate/http` (I-3, M-1).\n4. Si existen otras rutas de creación de `InboxComment` de terceros fuera de `InboxService::upsert` (por ejemplo, ingestión por webhook entrante o MCP) que no tengan transacción.\n\n## Política opcional, no defectos contra el contrato\n\n- Retención y poda de eventos y entregas (M-3).\n- Cola dedicada por defecto (M-4).\n- Reactivar entregas canceladas.\n- Rotación del secreto con dos firmas válidas simultáneas.\n- Uso de `dontFlash` frente a la mutación del request.\n\n## Resumen por eje\n\n| Eje | Estado |\n|---|---|\n| A Conformidad | Parcial: I-1 sin verificar; gates de MySQL y navegador pendientes sobre los padres finales |\n| B Corrección | I-3 Important; M-1 |\n| C Seguridad | Sin Critical/Important propios; la parte de disponibilidad de I-3 |\n| D Rendimiento | I-2 (condicional); M-2, M-4 |\n| E Calidad | M-5, M-6, M-7, M-8: Minor |\n\n**Para cerrar:** resolver I-3, aportar los hechos de I-1 e I-2 (y corregirlos si se confirman) y repetir los gates de MySQL y navegador sobre los padres finales.",
+  "ttft_ms": 206528,
+  "type": "result",
+  "duration_ms": 269895,
+  "uuid": "40449162-41f1-4d4f-9987-e2de47d3108d",
+  "ttft_stream_ms": 1063,
+  "time_to_request_ms": 147,
+  "first_content_frame_ms": 1064,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "model_usage_since_last_result": {
+    "claude-opus-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 26945,
+      "cacheReadInputTokens": 129056,
+      "cacheCreationInputTokens": 153121,
+      "webSearchRequests": 0,
+      "costUSD": 1.7897032,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 20081,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 153121,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "credential_expires_at": "2026-12-13T13:54:13.42Z"
+}

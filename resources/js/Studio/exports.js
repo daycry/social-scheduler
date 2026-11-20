@@ -1,4 +1,3 @@
-import { PDFDocument } from 'pdf-lib';
 import { FabricImage, Group } from 'fabric';
 import { selectPages, validateDocument, StudioDocumentError } from './document.js';
 import { renderStudioFrame } from './frame-renderer.js';
@@ -132,6 +131,11 @@ export async function exportPdf(documentData, pageIds, assets = [], options = {}
     const document = validateDocument(documentData);
     const pages = selectPages(document, pageIds);
     const times = frameTimes(document, pages.map(page => page.id), options.frame_times);
+    const { PDFDocument } = await import('pdf-lib').catch(cause => {
+        const error = new StudioDocumentError('No se pudo cargar el generador de PDF. Recarga la página.');
+        error.cause = cause;
+        throw error;
+    });
     const sampled = document.schema_version === 2 ? pages.map(page => ({ ...page, elements: frameElements(page.elements, times.get(page.id), page.duration) })) : pages;
     return withExportFonts(sampled, options.fonts ?? [], async () => {
         const pdf = await PDFDocument.create();
@@ -169,16 +173,4 @@ export async function exportDesign(documentData, { format = 'png', pageIds, asse
         }
         return output;
     });
-}
-
-export function downloadBlob(blob, filename) {
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.rel = 'noopener';
-    document.body.append(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 30000);
 }

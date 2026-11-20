@@ -17,7 +17,11 @@ const { brand, accounts, editable, targetFor, typesOf, typeLabel, typeInfo, togg
 
         <!-- Una pastilla por cuenta (botón de alternancia con aria-pressed) y, junto a cada cuenta activa, su tipo de publicación -->
         <ul class="flex flex-wrap gap-2" aria-label="Cuentas de la marca">
-            <li v-for="account in accounts" :key="account.id" class="relative flex max-w-full flex-wrap items-center gap-1.5">
+            <li
+                v-for="account in accounts"
+                :key="account.id"
+                class="relative flex max-w-full flex-wrap items-center gap-1.5"
+            >
                 <button
                     :id="`account-pill-${account.id}`"
                     type="button"
@@ -31,8 +35,14 @@ const { brand, accounts, editable, targetFor, typesOf, typeLabel, typeInfo, togg
                     <NetworkIcon :network="account.network" size="sm" />
                     <span class="truncate">{{ account.name }}</span>
                     <span v-if="targetFor(account.id)" aria-hidden="true">✓</span>
-                    <span v-if="account.available === false" class="rounded bg-slate-100 px-1.5 text-xs text-slate-600">No disponible</span>
-                    <span v-else-if="account.status !== 'activa'" class="rounded bg-amber-100 px-1.5 text-xs text-amber-800">Requiere reconexión</span>
+                    <span v-if="account.available === false" class="rounded bg-slate-100 px-1.5 text-xs text-slate-600"
+                        >No disponible</span
+                    >
+                    <span
+                        v-else-if="account.status !== 'activa'"
+                        class="rounded bg-amber-100 px-1.5 text-xs text-amber-800"
+                        >Requiere reconexión</span
+                    >
                 </button>
                 <ContentTypeSelect
                     v-if="targetFor(account.id)"
@@ -49,10 +59,17 @@ const { brand, accounts, editable, targetFor, typesOf, typeLabel, typeInfo, togg
         <!-- Limitaciones del tipo elegido en cada cuenta activa -->
         <ul class="mt-3 space-y-1">
             <template v-for="account in accounts" :key="`lim-${account.id}`">
-                <li v-if="targetFor(account.id) && typeInfo(targetFor(account.id), account.network)?.limitations.length" class="flex items-start gap-2 text-xs text-amber-700">
+                <li
+                    v-if="targetFor(account.id) && typeInfo(targetFor(account.id), account.network)?.limitations.length"
+                    class="flex items-start gap-2 text-xs text-amber-700"
+                >
                     <NetworkIcon :network="account.network" size="sm" />
                     <ul class="list-disc space-y-0.5 pl-4">
-                        <li v-for="l in typeInfo(targetFor(account.id), account.network).limitations" :key="l">{{ l }}</li>
+                        <li
+                            v-for="l in typeInfo(targetFor(account.id), account.network).limitations"
+                            :key="l"
+                            >{{ l }}</li
+                        >
                     </ul>
                 </li>
             </template>

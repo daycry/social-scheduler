@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Exceptions\PostValidationException;
 use App\Models\Post;
 use App\Services\TrashService;
+use App\Support\CursorPage;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -15,25 +17,25 @@ class TrashController extends Controller
 {
     use AuthorizesRequests;
 
-    public const RETENTION_DAYS = 30;
-
     public function __construct(private readonly TrashService $trash) {}
 
-    public function index(): Response
+    public function index(Request $request): Response|RedirectResponse
     {
-        $posts = Post::onlyTrashed()->with(['brand:id,name', 'targets'])->orderByDesc('deleted_at')->limit(200)->get();
+        $filters = $request->validate(CursorPage::RULES);
+        $user = $request->user();
+        [$posts, $pagination] = CursorPage::fetch(
+            $this->trash->query($user), $filters['limit'] ?? null, $filters['cursor'] ?? null,
+            'trash:u'.$user->id, withTotal: true,
+        );
+
+        if ($posts->isEmpty() && filled($filters['cursor'] ?? null)) {
+            return to_route('trash.index', ['limit' => $filters['limit'] ?? null]);
+        }
 
         return Inertia::render('Trash/Index', [
-            'retention_days' => self::RETENTION_DAYS,
-            'posts' => $posts->map(fn (Post $p) => [
-                'id' => $p->id,
-                'brand' => $p->brand?->name,
-                'text' => $p->text,
-                'networks' => $p->targets->pluck('network')->map(fn ($n) => $n->value)->unique()->values(),
-                'deleted_at' => $p->deleted_at?->toIso8601String(),
-                'days_left' => max(0, self::RETENTION_DAYS - (int) $p->deleted_at?->diffInDays(now())),
-            ])->values(),
-            'flash' => ['success' => session('success'), 'error' => session('error')],
+            'pagination' => $pagination + $filters,
+            'retention_days' => TrashService::RETENTION_DAYS,
+            'posts' => $posts->map(fn (Post $p) => $this->trash->present($p) + ['timezone' => $p->brand?->timezone])->values(),
         ]);
     }
 

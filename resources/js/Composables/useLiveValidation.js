@@ -1,4 +1,5 @@
-import { computed, ref, watch } from 'vue';
+import { requestJson } from '../lib/http.js';
+import { computed, getCurrentScope, onScopeDispose, ref, watch } from 'vue';
 
 const asList = (v) => (Array.isArray(v) ? v : [v]).filter((m) => typeof m === 'string' && m !== '');
 
@@ -32,32 +33,44 @@ export function normalizeErrors(errors, describeTarget = () => null) {
 export function useLiveValidation(form, { brandId, enabled, immediate = false, describeTarget = () => null }) {
     const liveErrors = ref({});
     let timer = null;
+    let pending = null;
 
     const validateNow = async () => {
+        pending?.abort();
+        pending = null;
         if (!enabled() || form.targets.length === 0) {
             liveErrors.value = {};
             return;
         }
-        const xsrf = decodeURIComponent((document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/) || [])[1] || '');
+        const request = new AbortController();
+        pending = request;
         try {
-            const response = await fetch(route('brands.posts.validate', brandId()), {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-XSRF-TOKEN': xsrf },
-                // La fecha pendiente no es un error mientras se escribe: se valida solo contenido y destinos.
-                body: JSON.stringify({ text: form.text, schedule: false, media: form.media, targets: form.targets }),
+            const result = await requestJson('POST', route('brands.posts.validate', brandId()), {
+                signal: request.signal,
+                // La fecha pendiente se valida al enviar, no mientras se escribe.
+                json: { text: form.text, schedule: false, media: form.media, targets: form.targets },
             });
-            liveErrors.value = response.ok ? (await response.json()).errors : {};
+            if (!request.signal.aborted) liveErrors.value = result?.errors ?? {};
         } catch {
-            liveErrors.value = {};
+            if (!request.signal.aborted) liveErrors.value = {};
+        } finally {
+            if (pending === request) pending = null;
         }
     };
 
     watch(() => [form.text, form.media, form.targets], () => {
+        pending?.abort();
         clearTimeout(timer);
         timer = setTimeout(validateNow, 500);
     }, { deep: true });
 
+    if (getCurrentScope()) {
+        onScopeDispose(() => {
+            clearTimeout(timer);
+            pending?.abort();
+            pending = null;
+        });
+    }
     if (immediate) validateNow();
 
     // Los mismos errores, normalizados `{ targetIndex, accountId, network, message }` (consumen ErrorsPanel y ActionBar).

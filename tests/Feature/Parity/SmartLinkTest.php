@@ -20,7 +20,7 @@ beforeEach(function () {
 function slPayload(Brand $brand, array $over = []): array
 {
     return array_merge([
-        'brand_id' => $brand->id, 'slug' => 'mi-marca', 'title' => 'Mi marca', 'bio' => 'Hola mundo', 'theme_color' => '#112233', 'theme_mode' => 'dark',
+        'brand_id' => $brand->id, 'slug' => 'mi-marca', 'title' => 'Mi marca', 'published' => true, 'bio' => 'Hola mundo', 'theme_color' => '#112233', 'theme_mode' => 'dark',
         'blocks' => [
             ['type' => 'header', 'label' => 'Novedades'],
             ['type' => 'link', 'label' => 'Mi web', 'url' => 'https://example.com/a?b=1'],

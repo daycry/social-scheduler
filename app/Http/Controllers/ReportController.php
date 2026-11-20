@@ -13,6 +13,8 @@ use App\Services\Reports\ReportBlocks;
 use App\Services\Reports\TooManyActiveReports;
 use App\Services\ReportService;
 use App\Support\CurrentBrand;
+use App\Support\CursorPage;
+use App\Support\Ownership;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,14 +35,20 @@ class ReportController extends Controller
 
     public function index(Request $request): Response
     {
-        $data = $request->validate(['brand_id' => ['nullable', 'integer']]);
+        $data = $request->validate(['brand_id' => ['nullable', 'integer']] + CursorPage::RULES);
         $brands = CurrentBrand::brands($request);
         $brand = ! empty($data['brand_id']) ? ($brands->firstWhere('id', (int) $data['brand_id']) ?? abort(404)) : CurrentBrand::resolve($request);
         $names = $brands->pluck('name', 'id');
         $period = Period::make(null, null, $brand?->timezone)->toArray();
 
+        // El historial es de la cuenta. La marca elegida solo configura el formulario de generación.
+        $reportQuery = Report::query()->latest('id');
+        [$rows, $pagination] = CursorPage::fetch(
+            $reportQuery, $data['limit'] ?? null, $data['cursor'] ?? null,
+            'reports:u'.$request->user()->id, 20,
+        );
         // Un pending/processing atascado se muestra como fallido (lo marca de verdad `reports:prune`).
-        $items = Report::query()->latest('id')->limit(20)->get()->map(fn (Report $r) => [
+        $items = $rows->map(fn (Report $r) => [
             'id' => $r->id, 'brand' => $names[$r->brand_id] ?? '—', 'format' => $r->format,
             'status' => $r->isStuck() ? Report::STATUS_FAILED : $r->status,
             'from' => $r->from->format('Y-m-d'), 'to' => $r->to->format('Y-m-d'), 'compare' => $r->compare,
@@ -52,8 +60,12 @@ class ReportController extends Controller
         ]);
 
         return Inertia::render('Reports/Index', [
-            'brands' => $brands->map(fn (Brand $b) => ['id' => $b->id, 'name' => $b->name])->all(),
+            'brands' => $brands->map(fn (Brand $b) => $b->only(['id', 'name', 'timezone']))->all(),
             'reports' => $items->all(),
+            // El sondeo solicita las filas y su paginación juntas. Las recargas que omiten pagination omiten el COUNT.
+            'pagination' => fn () => $pagination + array_intersect_key($data, CursorPage::RULES) + [
+                'total' => $reportQuery->toBase()->getCountForPagination(),
+            ],
             'defaults' => ['brand_id' => $brand?->id, 'from' => $period['from'], 'to' => $period['to'], 'compare' => 'none'],
             'templates' => ReportTemplate::query()->orderBy('name')->get()->map(fn (ReportTemplate $t) => [
                 'id' => $t->id, 'brand_id' => $t->brand_id, 'name' => $t->name, 'blocks' => $t->blocks, 'range_days' => $t->range_days, 'compare' => $t->compare,
@@ -64,7 +76,6 @@ class ReportController extends Controller
             ])->all(),
             'blockTypes' => ReportBlocks::TYPES,
             'limits' => ['blocks' => ReportBlocks::MAX_BLOCKS, 'text' => ReportBlocks::MAX_TEXT, 'title' => ReportBlocks::MAX_TITLE, 'recipients' => (int) config('reports.max_recipients', 5)],
-            'flash' => ['success' => session('success')],
             'polling' => $items->contains(fn ($r) => in_array($r['status'], [Report::STATUS_PENDING, Report::STATUS_PROCESSING], true)),
         ]);
     }
@@ -73,12 +84,11 @@ class ReportController extends Controller
     {
         $data = $request->validate([
             'brand_id' => ['required', 'integer'],
-            'from' => ['required', 'date_format:Y-m-d'],
-            'to' => ['required', 'date_format:Y-m-d'],
             'compare' => ['nullable', 'in:'.implode(',', Period::COMPARE_MODES)],
             'formats' => ['required', 'array', 'min:1'],
             'formats.*' => ['in:'.implode(',', Report::FORMATS)],
             'blocks' => ['nullable', 'array'],
+            'limit' => CursorPage::RULES['limit'],
         ]);
 
         // El UserScope limita a las marcas del usuario: una ajena no existe para el.
@@ -86,12 +96,8 @@ class ReportController extends Controller
         $compare = $data['compare'] ?? 'none';
 
         // Rango, comparacion y bloques se validan aqui (error de formulario), no se dejan para que el informe falle en la cola.
-        try {
-            $period = Period::make($data['from'], $data['to']);
-            $period->comparison($compare);
-        } catch (InvalidArgumentException $e) {
-            return back()->withErrors(['from' => $e->getMessage()]);
-        }
+        $period = Period::fromInput($request->only(['from', 'to']), required: true);
+        $period->inputComparison($compare);
 
         try {
             $blocks = ($data['blocks'] ?? null) !== null ? ReportBlocks::normalize($data['blocks']) : null;
@@ -105,7 +111,7 @@ class ReportController extends Controller
             return back()->withErrors(['formats' => $e->getMessage()]);
         }
 
-        return to_route('reports.index', ['brand_id' => $brand->id])->with('success', 'Informe en cola. Se generara en unos instantes.');
+        return to_route('reports.index', ['brand_id' => $brand->id, 'limit' => $data['limit'] ?? null])->with('success', 'Informe en cola. Se generara en unos instantes.');
     }
 
     /** Vista previa de los bloques con datos reales de la marca y el rango (sin guardar nada ni encolar). */
@@ -113,16 +119,14 @@ class ReportController extends Controller
     {
         $data = $request->validate([
             'brand_id' => ['required', 'integer'],
-            'from' => ['required', 'date_format:Y-m-d'],
-            'to' => ['required', 'date_format:Y-m-d'],
             'compare' => ['nullable', 'in:'.implode(',', Period::COMPARE_MODES)],
             'blocks' => ['required', 'array'],
         ]);
         $brand = Brand::query()->findOrFail($data['brand_id']);
+        $period = Period::fromInput($request->only(['from', 'to']), required: true);
+        $compare = $period->inputComparison($data['compare'] ?? 'none');
 
         try {
-            $period = Period::make($data['from'], $data['to']);
-            $compare = $period->comparison($data['compare'] ?? 'none');
             $blocks = ReportBlocks::normalize($data['blocks']);
         } catch (InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage(), 'errors' => ['blocks' => [$e->getMessage()]]], 422);
@@ -157,22 +161,22 @@ class ReportController extends Controller
      * Descarga SOLO con firma (sin sesion, para web y agentes MCP). La firma cubre el id y el dueno; aqui se comprueba que el
      * informe es de ese dueno y esta `ready`, y la descarga queda auditada.
      */
-    public function download(Request $request, int $report, int $owner): StreamedResponse
+    public function download(Request $request, int $report, int $owner, AuditLog $audit): StreamedResponse
     {
         // Un enlace enviado por email lleva su programacion en la firma: si se pauso o se borro, deja de valer.
         if ($request->query('schedule') !== null) {
-            abort_unless(ReportSchedule::withoutUserScope()->whereKey((int) $request->query('schedule'))->where('user_id', $owner)->where('active', true)->exists(), 404);
+            Ownership::ensure(ReportSchedule::ownedBy($owner)->whereKey((int) $request->query('schedule'))->where('active', true)->exists());
         }
 
         $model = Report::withoutUserScope()->find($report);
         $user = User::find($owner);
 
-        abort_unless($model && $user && $model->user_id === $user->id && $model->isReady(), 404);
+        abort_unless($user && Ownership::matches($model, $user) && $model->isReady(), 404);
 
         $disk = Storage::disk(config('filesystems.media'));
         abort_unless($disk->exists($model->path), 404);
 
-        app(AuditLog::class)->record($user, 'report_download', AuditLog::OK, 'report', $model->id, $model->format, 'signed-url');
+        $audit->record($user, 'report_download', AuditLog::OK, 'report', $model->id, $model->format, 'signed-url');
 
         $brand = Brand::withoutUserScope()->find($model->brand_id);
         $name = $model->downloadName($brand?->name ?? 'marca');

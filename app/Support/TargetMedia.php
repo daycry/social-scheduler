@@ -19,13 +19,13 @@ final class TargetMedia
 
     /** Tipos que publican texto alternativo por imagen. */
     private const ALT_TYPES = [
-        ContentType::InstagramImage, ContentType::InstagramCarousel, ContentType::FacebookPhoto,
+        ContentType::InstagramImage, ContentType::InstagramCarousel, ContentType::FacebookPhoto, ContentType::FacebookPhotos,
         ContentType::ThreadsImage, ContentType::ThreadsCarousel, ContentType::BlueskyPost,
         ContentType::LinkedInImage, ContentType::LinkedInCarousel, ContentType::PinterestPin,
     ];
 
     /** Tipos que publican una portada (imagen) para un video. */
-    private const COVER_TYPES = [ContentType::InstagramReel, ContentType::YouTubeVideo, ContentType::YouTubeShort, ContentType::PinterestVideo];
+    private const COVER_TYPES = [ContentType::InstagramReel, ContentType::YouTubeVideo, ContentType::YouTubeShort, ContentType::PinterestVideo, ContentType::LinkedInVideo];
 
     public static function supportsAlt(ContentType $type): bool
     {

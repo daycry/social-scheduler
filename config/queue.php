@@ -1,5 +1,7 @@
 <?php
 
+$studioRenderQueue = trim((string) env('STUDIO_RENDER_QUEUE')) ?: 'studio-render';
+
 return [
 
     /*
@@ -32,7 +34,8 @@ return [
     /*
     | Colas de la aplicacion por prioridad (se pasan a `queue:work --queue=`).
     */
-    'names' => array_values(array_filter(array_map('trim', explode(',', (string) env('QUEUE_NAMES') ?: 'publish,poll,metrics,reports,media,studio')))),
+    'names' => array_values(array_filter(array_map('trim', explode(',', (string) env('QUEUE_NAMES') ?: 'publish,poll,metrics,reports,media,studio,'.$studioRenderQueue)))),
+    'studio_render' => $studioRenderQueue,
 
     'connections' => [
 
@@ -74,7 +77,8 @@ return [
             'driver' => 'redis',
             'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
             'queue' => env('REDIS_QUEUE', 'default'),
-            'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 90),
+            // Igual que database: margen para el worker de 120 s y los trabajos de hasta 110 s.
+            'retry_after' => max(180, (int) env('REDIS_QUEUE_RETRY_AFTER', 180)),
             'block_for' => null,
             'after_commit' => false,
         ],

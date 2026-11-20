@@ -20,7 +20,7 @@ final class InstagramPostOptions
     public static function capabilities(): array
     {
         return ['max_collaborators' => self::MAX_COLLABORATORS, 'content_types' => ['instagram_image', 'instagram_reel', 'instagram_carousel'], 'ai_disclosure' => true,
-            // T-18: `location_id` (id numerico de lugar de Facebook; la app NO busca lugares) y `user_tags` [{username, x, y}] solo en imagenes.
+            // T-18: `location_id` (id numerico de la Pagina de un lugar; el compositor lo busca con la busqueda de lugares de Meta o se pega a mano) y `user_tags` [{username, x, y}] solo en imagenes.
             'location_id' => true, 'user_tags' => ['content_types' => ['instagram_image'], 'max' => self::MAX_USER_TAGS, 'coordinates' => 'x,y entre 0 y 1']];
     }
 

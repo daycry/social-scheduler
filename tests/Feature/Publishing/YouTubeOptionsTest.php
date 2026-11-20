@@ -3,6 +3,7 @@
 use App\Connectors\Data\PublishMedia;
 use App\Connectors\Data\PublishRequest;
 use App\Connectors\Google\YouTubePublisher;
+use App\Connectors\Google\YouTubeVideoMetadata;
 use App\Connectors\Network;
 use App\Enums\ContentType;
 use App\Models\Brand;
@@ -57,7 +58,7 @@ test('YouTubeOptions: la subida lleva categoria, hecho para ninos, tags, no noti
 
     $init = ytoInit();
     expect($init['json']['snippet']['categoryId'])->toBe('27')
-        ->and($init['json']['snippet']['tags'])->toBe([YouTubePublisher::targetTag(77), 'laravel', 'php'])
+        ->and($init['json']['snippet']['tags'])->toBe([YouTubeVideoMetadata::targetTag(77), 'laravel', 'php'])
         ->and($init['json']['status'])->toBe(['privacyStatus' => 'public', 'selfDeclaredMadeForKids' => false, 'containsSyntheticMedia' => true])
         ->and($init['url'])->toContain('notifySubscribers=false');
 });
@@ -67,7 +68,7 @@ test('YouTubeOptions: sin opciones se mantiene el comportamiento anterior (categ
 
     $init = ytoInit();
     expect($init['json']['snippet']['categoryId'])->toBe('22')
-        ->and($init['json']['snippet']['tags'])->toBe([YouTubePublisher::targetTag(77)])
+        ->and($init['json']['snippet']['tags'])->toBe([YouTubeVideoMetadata::targetTag(77)])
         ->and($init['json']['status'])->toBe(['privacyStatus' => 'public', 'selfDeclaredMadeForKids' => false])
         ->and($init['url'])->not->toContain('notifySubscribers');
 });
@@ -82,16 +83,16 @@ test('YouTubeOptions: hecho para ninos se envia cuando se marca; categoria no va
 test('YouTubeOptions: muchos tags largos no expulsan el marcador y el total no pasa de 500 caracteres', function () {
     $many = array_map(fn ($i) => 'etiqueta muy larga numero '.$i.str_repeat('x', 60), range(1, 30));
 
-    $tags = YouTubePublisher::tagsFor(77, $many);
+    $tags = YouTubeVideoMetadata::tagsFor(77, $many);
 
-    expect($tags[0])->toBe(YouTubePublisher::targetTag(77));
+    expect($tags[0])->toBe(YouTubeVideoMetadata::targetTag(77));
     $cost = array_sum(array_map(fn ($t) => mb_strlen($t) + (str_contains($t, ' ') ? 2 : 0) + 1, $tags));
     expect($cost)->toBeLessThanOrEqual(500)->and(count($tags))->toBeGreaterThan(1)->toBeLessThan(31);
 });
 
 test('YouTubeOptions: el marcador sobrevive a tags unicode, vacios, duplicados, con comas y al propio marcador', function () {
-    $marker = YouTubePublisher::targetTag(77);
-    $tags = YouTubePublisher::tagsFor(77, ['ñandú 🦩', '  ', 'PHP', 'php', 'a,b', '<x>', $marker, str_repeat('é', 100), 42]);
+    $marker = YouTubeVideoMetadata::targetTag(77);
+    $tags = YouTubeVideoMetadata::tagsFor(77, ['ñandú 🦩', '  ', 'PHP', 'php', 'a,b', '<x>', $marker, str_repeat('é', 100), 42]);
 
     expect($tags[0])->toBe($marker)
         ->and(array_count_values($tags)[$marker])->toBe(1)
@@ -103,7 +104,7 @@ test('YouTubeOptions: un video con tags del usuario sigue encontrandose por el m
     $this->http->on('GET', '#youtube/v3/playlistItems\?#', ['json' => ['items' => [
         ['snippet' => ['publishedAt' => '2026-11-01T11:59:30Z', 'resourceId' => ['videoId' => 'VID9']]],
     ]]])->on('GET', '#youtube/v3/videos\?part=snippet&id=#', ['json' => ['items' => [
-        ['id' => 'VID9', 'snippet' => ['tags' => YouTubePublisher::tagsFor(77, ['uno', 'dos', str_repeat('largo ', 70)])]],
+        ['id' => 'VID9', 'snippet' => ['tags' => YouTubeVideoMetadata::tagsFor(77, ['uno', 'dos', str_repeat('largo ', 70)])]],
     ]]])->on('GET', '#youtube/v3/videos\?part=status#', ['json' => ['items' => [['status' => ['uploadStatus' => 'processed']]]]]);
 
     $found = $this->yt->findPublished($this->account, ytoRequest(['tags' => ['uno', 'dos']]));

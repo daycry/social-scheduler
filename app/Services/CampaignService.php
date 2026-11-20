@@ -15,7 +15,7 @@ class CampaignService
     /** Campañas de una marca, activas primero y luego archivadas; con el recuento de posts. */
     public function listForBrand(User $user, int $brandId, bool $withArchived = true): Collection
     {
-        return Campaign::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brandId)
+        return Campaign::ownedBy($user->id)->where('brand_id', $brandId)
             ->when(! $withArchived, fn ($q) => $q->whereNull('archived_at'))
             ->withCount('posts')
             ->orderByRaw('archived_at is null desc')->orderBy('name')->get();

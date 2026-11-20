@@ -19,7 +19,7 @@ Route::middleware(['auth', 'verified'])->prefix('studio/designs/{design}')->wher
     Route::post('links', [StudioCollabController::class, 'createLink'])->middleware('throttle:studio-links')->name('studio.links.store');
     Route::delete('links/{link}', [StudioCollabController::class, 'revokeLink'])->whereNumber('link')->name('studio.links.destroy');
     Route::get('comments', [StudioCollabController::class, 'comments'])->name('studio.comments.index');
-    Route::post('comments', [StudioCollabController::class, 'addComment'])->middleware('throttle:60,1')->name('studio.comments.store');
+    Route::post('comments', [StudioCollabController::class, 'addComment'])->middleware('throttle:studio.comments.store')->name('studio.comments.store');
     Route::post('comments/{comment}/resolve', [StudioCollabController::class, 'resolve'])->whereNumber('comment')->name('studio.comments.resolve');
     Route::post('comments/{comment}/reopen', [StudioCollabController::class, 'reopen'])->whereNumber('comment')->name('studio.comments.reopen');
     Route::delete('comments/{comment}', [StudioCollabController::class, 'deleteComment'])->whereNumber('comment')->name('studio.comments.destroy');

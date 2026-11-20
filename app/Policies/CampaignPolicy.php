@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Campaign;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Support\Facades\Log;
 
 class CampaignPolicy
@@ -25,7 +26,7 @@ class CampaignPolicy
 
     private function owns(User $user, Campaign $campaign, string $ability): bool
     {
-        if ($campaign->user_id === $user->id) {
+        if (Ownership::matches($campaign, $user)) {
             return true;
         }
 

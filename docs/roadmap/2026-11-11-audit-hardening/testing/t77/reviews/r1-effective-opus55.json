@@ -1,0 +1,120 @@
+{
+  "duration_api_ms": 137938,
+  "stop_reason": "end_turn",
+  "session_id": "73df13ca-ab47-4cac-afac-e5991d7ed4be",
+  "total_cost_usd": 0.652228,
+  "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 48025,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 13401,
+    "output_tokens_details": {
+      "thinking_tokens": 8205
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 48025,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 13401,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 48025,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 48025
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 13401,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 48025,
+      "webSearchRequests": 0,
+      "costUSD": 0.652228,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 8205,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 48025,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 1,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "# Revisión T-77 · intento 1 de 3 · revisión estática efectiva\n\n**Veredicto:** aceptable. No encuentro defectos Critical ni Important confirmados contra el contrato aprobado. Hay un dato que falta (§B-1). Si ese dato resultara desfavorable, abriría un Important antes del cierre. Los demás hallazgos son Minor o sugerencias de política.\n\nNo he ejecutado nada. La evidencia de QA (PHP 4334, MySQL/SQLite 53, navegador 90) se toma como aportada y no como verificada por mí.\n\n---\n\n## A. Aceptación\n\nCada punto del contrato y el elemento del parche que lo cubre:\n\n| Contrato | Estado | Evidencia en el parche |\n|---|---|---|\n| Borrador independiente, sin fecha ni estado | ✔ | `PostDuplicator.php:28` fuerza `schedule/publish_now=false` y `scheduled_at=null`. `plan()` devuelve `Draft`. |\n| Mismos textos y media | ✔ | `dataFromPost` (allowlist) en `:28`. Tests en `DuplicatePostTest.php:53-85` y `:217-240`. |\n| Sin métricas ni historial | ✔ | `fill()` crea un `PostTarget` nuevo solo con campos de contenido. Tests en `:68-78` y `:231-236`. |\n| Sin aprobación, campaña, notas ni Studio | ✔ | `dataFromPost` no incluye `notes`, `campaign_id` ni `requires_approval`. `create()` se llama sin `sourceExport`, así que `commonLinks=[]` y la procedencia de destino es null. |\n| Misma marca u otra propia | ✔ | `PostController.php:93` usa `Brand::ownedBy(...)`. Test en `:109-124`. |\n| Colaborador no concede permiso | ✔ | La Policy `owns` y el `UserScope` producen un 404. Test en `:116-120`. |\n| No asignar arbitrariamente | ✔ | `:32-43` exige una cuenta única en origen y en destino. Tests en `:149-176`. |\n| Pinterest y TikTok | ✔ | `:37` y `:48-50`. Tests en `:178-215`. |\n| Error de media común aborta sin copia parcial | ✔ | `:57-60` lanza ante cualquier clave que no sea `targets.N`. Test en `:242-252`. |\n| UI: guardados y publicados, no compositor nuevo | ✔ | `Compose.vue` usa `v-if=\"post\"`. |\n| Bloqueo dirty, guardado y doble envío | ✔ | `DuplicatePost.vue:19,30,83`. |\n| preserveState | ✔ | `:34-37`: conserva el estado ante un rechazo sobre el mismo id y remonta con otro id. |\n| TS estricto | ✔ | Se incluye en `tsconfig.frontend.json`. |\n| Documentación | ✔ | `duplicar.md`, la guía, el índice y los dos CHANGELOG. |\n\nSobre la doble validación por destino: `validate()` y después `create()` ejecutan `plan()` dos veces. Con borrador (`schedule=false`), los errores de `plan()` por destino son independientes entre sí. La única interacción cruzada es `$seen` (`PostPlanner.php:322-327`). Esa colisión no puede darse:\n\n- en la misma marca, porque los pares cuenta+tipo de origen ya son únicos;\n- entre marcas, porque se exige una sola cuenta de origen por red y los tipos siguen siendo distintos.\n\nPor eso eliminar `targets.N` no hace aparecer errores nuevos en la segunda pasada, salvo una carrera real entre ambas llamadas. En ese caso `create()` lanza la excepción y el controlador la devuelve como error, sin copia parcial. Es un comportamiento correcto.\n\n## B. Corrección\n\n### B-1 · Dato faltante (Important condicional) — opciones ligadas a la cuenta distintas de Pinterest\n\n**Ubicación:** `app/Services/Posts/PostDuplicator.php:37-51`\n\n**Escenario:** entre marcas se copian íntegras las `options` del destino, salvo en Pinterest (se omite) y TikTok (se quita `privacy_level`). El ciclo TDD de Pinterest demostró que `optionErrors()` no comprobó que el tablero perteneciera a la cuenta destino. Si otra red tiene opciones con identificadores de la cuenta, esos identificadores viajarían a la cuenta de la otra marca sin que el validador lo detecte. Ejemplos posibles: lista de reproducción de YouTube, ubicación de Google Business, o ubicación o colaboradores de Instagram resueltos por cuenta.\n\n**Impacto:** incumpliría «solo contenido admitido por cuentas destino». Además, se publicaría contra un recurso ajeno o fallaría al programar.\n\n**Lo que falta saber:** la lista de claves de `options` por red y si `optionErrors($type, $account, $options)` valida cada identificador contra `$account->meta`.\n\n**Corrección si existe alguna:** generalizar la regla de Pinterest con una lista explícita de claves ligadas a la cuenta (por ejemplo, una constante por `Network`) y aplicar `Arr::except` al cambiar de marca. Añadir un test por clave.\n\nSi no existe ninguna opción de este tipo, no hay hallazgo.\n\n### B-2 · Minor — el aviso atribuye mal la causa de la omisión\n\n**Ubicación:** `PostDuplicator.php:66`\n\n**Escenario:** en la misma marca, un destino publicado tiene texto propio que ya supera el límite vigente de `media_specs`, o media propia borrada. `plan()` devuelve `targets.N` y el destino se omite. El aviso dice «no hay una cuenta inequívoca compatible o sus opciones ya no se admiten». Pinterest entre marcas también se cuenta con ese mismo texto.\n\n**Impacto:** el usuario pierde el texto o la media propios del destino y el aviso no le orienta. El contrato sí aprueba omitir esos destinos.\n\n**Corrección:** usar un texto neutro, por ejemplo «sin cuenta compatible inequívoca o con contenido u opciones que ya no se admiten». Mejor aún: indicar la red de cada destino omitido.\n\n### B-3 · Dato faltante (Minor) — `form.isDirty` tras guardar\n\n**Ubicación:** `Compose.vue` (`:dirty=\"form.isDirty\"`)\n\n**Escenario:** si `useComposer` no reinicia los valores por defecto del formulario después de un `PUT` con `preserveState`, «Duplicar» quedaría deshabilitado tras guardar, hasta recargar la página. El E2E (`duplicate-post.spec.ts:62-71`) guarda la copia pero no comprueba que el botón vuelva a estar habilitado.\n\n**Corrección:** añadir al E2E, después del guardado, `await expect(button).toBeEnabled()`. Probablemente ya funcione, porque `UnsavedGuard` depende de lo mismo, pero no está demostrado.\n\n### Observaciones sin hallazgo\n\n- Los índices de `$targets` y `$content` coinciden: `dataFromPost` usa `->values()` y `get()` devuelve índices 0..n-1.\n- `Collection::where('network', enum)` compara instancias del mismo caso. Es correcto.\n- La aprobación no se hereda. Que la copia nazca sin aprobación pendiente equivale a crear un post nuevo, porque `requires_approval` es una opción por post (`PostService.php:106`). Es política, no defecto. Sí falta confirmar si existe alguna obligación de aprobación por marca, en cuyo caso aplicaría lo mismo que a un post nuevo.\n\n## C. Seguridad introducida\n\nNo hay hallazgos accionables.\n\n- **Origen:** comprobación en dos capas. La Policy y `UserScope` actúan en el controlador (404). `Ownership::assertAll` actúa en el servicio (`:22,27`), con test directo en `:254-265`.\n- **Destino:** se filtra con `ownedBy` antes de `authorize`. La cuenta destino se filtra en `:24-25` y el planner la vuelve a comprobar en `:297-299`.\n- **Media:** el planner revalida la propiedad de la media común y de la media de cada destino. Un recurso ajeno aborta la operación.\n- **Entrada:** `brand_id` se valida como `integer|min:1` (tests en `:267-274`). No hay asignación masiva: el servicio construye `$data` y no lo toma de la petición.\n- **Política opcional, no defecto:** la ruta `posts/{post}/duplicate` (`routes/web.php:105`) no tiene `throttle`. Solo permite crear borradores propios, igual que el alta normal. Si `posts.store` tiene limitador, conviene igualarlo.\n\n## D. Rendimiento\n\nNo hay hallazgos accionables.\n\n- Por destino, `plan()` se ejecuta dos veces, con un `find` de cuenta y la validación de media en cada pasada. Para el tamaño habitual de una publicación (menos de 20 destinos) es despreciable.\n- `$accounts` se precarga pero el planner vuelve a consultar las cuentas. Es una duplicación menor y aceptable.\n- No se encolan trabajos (`publish_now=false`, verificado con `Queue::assertNothingPushed`).\n- No se copian archivos físicos: solo filas pivote.\n\n## E. Calidad del código\n\n### E-1 · Minor — parámetro de salida por referencia\n\n**Ubicación:** `PostDuplicator.php:19,21` y `PostController.php:97`\n\n**Escenario:** `?string &$notice` obliga al llamador (incluido un futuro adaptador API o MCP) a conocer ese canal implícito. El nombre `$notice` aparece en el controlador sin haberse declarado antes.\n\n**Corrección:** devolver un objeto de resultado, por ejemplo `DuplicateResult(Post $post, int $omitted)`, y que el texto lo componga el adaptador. Así el servicio deja de producir texto de presentación y se resuelve también parte de B-2.\n\n### E-2 · Minor — acoplamiento al formato de las claves de error\n\n**Ubicación:** `PostDuplicator.php:57-61`\n\n**Escenario:** la regex `^targets\\.(\\d+)$` depende de la convención interna de `PostPlanner.php:296`. Si el planner pasara a usar `targets.N.media`, todos los errores de destino abortarían el duplicado. El fallo sería visible, no silencioso, pero rompería la funcionalidad.\n\n**Corrección:** que el planner o `PostService` exponga `targetErrorIndex(string $key): ?int`, o una constante compartida, y cubrirlo con un test de contrato.\n\n### E-3 · Minor — prefiltro redundante con el validador\n\n**Ubicación:** `PostDuplicator.php:44`\n\n**Detalle:** `content_type->network() !== $account->network` y `isOffered()` repiten `PostPlanner.php:307-317`. Son inocuos, pero reglas duplicadas tienden a divergir.\n\n**Corrección:** dejar que esos casos lleguen al validador como `targets.N`, o comentar por qué se prefiltran.\n\n### E-4 · Minor — claves duplicadas en Vue\n\n**Ubicación:** `DuplicatePost.vue:74`\n\n**Escenario:** dos campos con el mismo mensaje (por ejemplo, el mismo texto para dos archivos) generan `:key=\"error\"` repetido. Vue muestra un aviso y puede reutilizar mal los nodos.\n\n**Corrección:** iterar `Object.entries(form.errors)` y usar como clave el nombre del campo.\n\n### E-5 · Minor — errores en el ámbito global de la página\n\n**Ubicación:** `DuplicatePost.vue:31` y `PostController.php:99`\n\n**Escenario:** `withErrors` sin error bag rellena `page.props.errors.media`. Si algún componente del compositor lee `page.props.errors` directamente, mostraría el error del duplicado en el campo de media del original. No consta en las fuentes si algún componente lo hace.\n\n**Corrección:** usar `errorBag: 'duplicate'` en `form.post` y `withErrors($e->errors(), 'duplicate')`.\n\n### E-6 · Sugerencia de accesibilidad (política)\n\n**Ubicación:** `DuplicatePost.vue:45-46`\n\nEl motivo del bloqueo («Guarda los cambios…») no está asociado al botón deshabilitado. Se puede añadir `aria-describedby`.\n\n### E-7 · Sugerencia (política)\n\n**Ubicación:** `PostController.php:102`\n\nEl aviso de destinos omitidos llega dentro del flash `success`. Separarlo en un flash `warning` lo haría más visible.\n\n### E-8 · Tests\n\n- **Sin hallazgo:** el cambio en `YouTubeClientTest` refuerza el test en vez de debilitarlo. El formato exacto, la estabilidad y la variación con la clave detectan una implementación no opaca (por ejemplo, `dechex(id)`), mientras que el antiguo `not->toContain('77')` era intrínsecamente frágil.\n- **Sin hallazgo:** `ltTargetObjects` solo ordena claves de objetos y mantiene `toBe` estricto en el orden de la lista y en los tipos.\n- **Minor:** los tests no comprueban que las métricas del origen sigan intactas tras duplicar (`DuplicatePostTest.php:78`, `duplicate-post.spec.ts:72-84`), aunque la evidencia lo afirma. El riesgo es bajo porque nada borra. La corrección es añadir `count === 1` sobre el snapshot del destino de origen.\n- **Ruido sin defecto:** el reformateo de `tsconfig.frontend.json` es de Prettier.\n\n---\n\n## Resumen de hallazgos\n\n| ID | Severidad | Ubicación | Bloquea el cierre |\n|---|---|---|---|\n| B-1 | Important condicional (dato faltante) | `PostDuplicator.php:37-51` | Solo si existen opciones con identificadores de cuenta además de Pinterest |\n| B-2 | Minor | `PostDuplicator.php:66` | No |\n| B-3 | Minor (dato faltante y test) | `Compose.vue` / `duplicate-post.spec.ts:71` | No |\n| E-1…E-5 | Minor | indicadas en cada punto | No |\n| E-6, E-7, throttle | Política opcional | — | No |\n\nPara cerrar sin Important abiertos falta solo la respuesta a B-1: la lista de claves de `options` que dependen de la cuenta y si `optionErrors` las valida contra la cuenta destino.",
+  "ttft_ms": 89715,
+  "type": "result",
+  "duration_ms": 138363,
+  "uuid": "07ce9919-48e8-4b4a-b85b-b4e0df9f51df",
+  "ttft_stream_ms": 1895,
+  "time_to_request_ms": 421,
+  "first_content_frame_ms": 1896,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "model_usage_since_last_result": {
+    "claude-opus-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 13401,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 48025,
+      "webSearchRequests": 0,
+      "costUSD": 0.652228,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 8205,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 48025,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "credential_expires_at": "2026-12-13T13:54:13.42Z"
+}

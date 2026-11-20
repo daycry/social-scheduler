@@ -50,14 +50,14 @@ class GetStats extends SchedulerTool
             return $this->allBrands($request, $user);
         }
 
-        $period = Period::make($request->get('from'), $request->get('to'), $brand->timezone);
+        $period = Period::fromInput($request->only(['from', 'to']), $brand->timezone);
         $mode = (string) ($request->get('compare') ?: 'none');
 
         if (! in_array($mode, Period::COMPARE_MODES, true)) {
             throw new InvalidArgumentException('Modo de comparacion no valido.');
         }
 
-        $compare = $period->comparison($mode);
+        $compare = $period->inputComparison($mode);
         $analytics = app(AnalyticsService::class);
         $withSeries = (bool) $request->get('include_series');
 
@@ -82,14 +82,14 @@ class GetStats extends SchedulerTool
             throw new InvalidArgumentException('Para una red concreta indica la marca: brand (su nombre) o brand_id. Sin marca solo hay totales de todas las marcas.');
         }
 
-        $period = Period::make($request->get('from'), $request->get('to'));
+        $period = Period::fromInput($request->only(['from', 'to']));
         $mode = (string) ($request->get('compare') ?: 'none');
 
         if (! in_array($mode, Period::COMPARE_MODES, true)) {
             throw new InvalidArgumentException('Modo de comparacion no valido.');
         }
 
-        $data = app(AggregateAnalytics::class)->summary($user, $period, $period->comparison($mode));
+        $data = app(AggregateAnalytics::class)->summary($user, $period, $period->inputComparison($mode));
         $withSeries = (bool) $request->get('include_series');
         $data['cards'] = array_map(fn (array $c) => $withSeries ? $c : array_diff_key($c, ['series' => 1]), $data['cards']);
 

@@ -109,7 +109,18 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onOutside));
         class="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700"
         :title="current?.description"
     >
-        <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path :d="iconPath(current?.value ?? modelValue)" /></svg>
+        <svg
+            class="h-4 w-4 shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+        >
+            <path :d="iconPath(current?.value ?? modelValue)" />
+        </svg>
         <span class="sr-only">{{ label }}: </span>{{ shownLabel }}
     </span>
 
@@ -128,9 +139,22 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onOutside));
             @click="toggle"
             @keydown="onButtonKey"
         >
-            <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path :d="iconPath(current?.value)" /></svg>
+            <svg
+                class="h-4 w-4 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+            >
+                <path :d="iconPath(current?.value)" />
+            </svg>
             <span class="truncate">{{ shownLabel }}</span>
-            <svg class="h-3 w-3 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5.5 7.5 10 12l4.5-4.5z" /></svg>
+            <svg class="h-3 w-3 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path d="M5.5 7.5 10 12l4.5-4.5z" />
+            </svg>
         </button>
 
         <ul
@@ -155,12 +179,31 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onOutside));
                 @mouseenter="active = i"
                 @click="choose(i)"
             >
-                <svg class="mt-0.5 h-5 w-5 shrink-0 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path :d="iconPath(t.value)" /></svg>
+                <svg
+                    class="mt-0.5 h-5 w-5 shrink-0 text-slate-600"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                >
+                    <path :d="iconPath(t.value)" />
+                </svg>
                 <span class="min-w-0 flex-1">
                     <span class="block text-sm font-medium text-slate-900">{{ t.label }}</span>
                     <span class="block text-xs text-slate-600">{{ t.description }}</span>
                 </span>
-                <svg v-if="t.value === modelValue" class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M7.7 13.3 4.4 10l-1.1 1.1 4.4 4.4 9-9-1.1-1.1z" /></svg>
+                <svg
+                    v-if="t.value === modelValue"
+                    class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                >
+                    <path d="M7.7 13.3 4.4 10l-1.1 1.1 4.4 4.4 9-9-1.1-1.1z" />
+                </svg>
             </li>
         </ul>
     </div>

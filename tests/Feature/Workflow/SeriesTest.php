@@ -105,7 +105,7 @@ test('editar la serie cambia las futuras sin editar y respeta las editadas a man
 
     $this->actingAs($this->user)->patchJson(route('workflow.series.update', $series->id), ['text' => 'Nuevo texto', 'time_local' => '18:30'])->assertOk();
 
-    $fresh = Post::withoutUserScope()->where('series_id', $series->id)->orderBy('scheduled_at')->get();
+    $fresh = Post::withoutUserScope()->with('brand')->where('series_id', $series->id)->orderBy('scheduled_at')->get();
     expect($fresh[0]->text)->toBe('Nuevo texto')->and($fresh[0]->scheduledAtLocal()->format('H:i'))->toBe('18:30')
         ->and($fresh[1]->text)->toBe('Solo esta')->and($fresh[1]->scheduledAtLocal()->format('H:i'))->toBe('10:00')
         ->and($fresh[2]->text)->toBe('Nuevo texto');

@@ -1,11 +1,16 @@
 <script setup>
+import FormField from '@/Components/FormField.vue';
+import { createDateFormatter } from '@/lib/format';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import NetworkIcon from '@/Components/NetworkIcon.vue';
 import FeatureEmpty from '@/Components/FeatureEmpty.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { reactive, watchEffect } from 'vue';
+import { computed, reactive, watchEffect } from 'vue';
+
+import { useConfirm } from '@/Composables/useConfirm';
+
+const ask = useConfirm();
 
 /** Autolistas (PA-09): cola de contenido + franjas semanales (en la zona de la marca) que genera publicaciones programadas. */
 const props = defineProps({
@@ -13,7 +18,6 @@ const props = defineProps({
     accounts: Array,
     templates: Array,
     autolists: Array,
-    flash: Object,
 });
 
 const DAYS = [
@@ -60,14 +64,18 @@ watchEffect(() => props.autolists.forEach((l) => (itemForm[l.id] ??= { text: '',
 const addItem = (list, payload) => router.post(route('autolists.items.store', list.id), payload, { preserveScroll: true, onSuccess: () => (itemForm[list.id] = { text: '', template: '' }) });
 const addText = (list) => addItem(list, { text: itemForm[list.id]?.text ?? '' });
 const addTemplate = (list) => itemForm[list.id]?.template && addItem(list, { post_template_id: Number(itemForm[list.id].template) });
-const removeItem = (list, item) => router.delete(route('autolists.items.destroy', [list.id, item.id]), { preserveScroll: true });
+const removeItem = async (list, item) => {
+    if (await ask({ message: '¿Quitar este contenido de la autolista?', confirmLabel: 'Quitar contenido' })) {
+        router.delete(route('autolists.items.destroy', [list.id, item.id]), { preserveScroll: true });
+    }
+};
 const toggle = (list) => router.patch(route('autolists.update', list.id), { active: !list.active }, { preserveScroll: true });
 const generate = (list) => router.post(route('autolists.generate', list.id), {}, { preserveScroll: true });
-const remove = (list) => {
-    if (confirm(`¿Eliminar la autolista «${list.name}»? Las publicaciones ya generadas se conservan.`)) router.delete(route('autolists.destroy', list.id), { preserveScroll: true });
+const remove = async (list) => {
+    if (await ask({ message: `¿Eliminar la autolista «${list.name}»? Las publicaciones ya generadas se conservan.`, confirmLabel: 'Eliminar autolista' })) router.delete(route('autolists.destroy', list.id), { preserveScroll: true });
 };
 const accountOf = (id) => props.accounts.find((a) => a.id === id);
-const fmtDate = (iso) => (iso ? new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso)) : 'nunca');
+const fmtDate = computed(() => createDateFormatter(props.brand?.timezone, { dateStyle: 'medium', timeStyle: 'short' }, 'nunca'));
 </script>
 
 <template>
@@ -79,9 +87,6 @@ const fmtDate = (iso) => (iso ? new Intl.DateTimeFormat('es-ES', { dateStyle: 'm
         </template>
 
         <div class="space-y-5">
-            <p v-if="flash?.success" class="text-sm text-emerald-700" role="status">{{ flash.success }}</p>
-            <p v-if="flash?.error" class="text-sm text-red-600" role="alert">{{ flash.error }}</p>
-
             <FeatureEmpty
                 v-if="!brand"
                 title="Autolistas"
@@ -96,48 +101,88 @@ const fmtDate = (iso) => (iso ? new Intl.DateTimeFormat('es-ES', { dateStyle: 'm
             <template v-else>
                 <form class="card space-y-4 p-5" @submit.prevent="submit">
                     <h2 class="text-sm font-medium text-slate-700">Nueva autolista · {{ brand.name }}</h2>
-                    <label class="block text-sm">
-                        <span class="block text-xs font-medium text-slate-500">Nombre</span>
-                        <input v-model="form.name" type="text" maxlength="120" required class="field max-w-md" />
-                        <InputError :message="form.errors.name" />
-                    </label>
+                    <FormField :error="form.errors.name" v-slot="{ control }">
+                        <label class="block text-sm">
+                            <span class="block text-xs font-medium text-slate-500">Nombre</span>
+                            <input
+                                v-bind="control"
+                                v-model="form.name"
+                                type="text"
+                                maxlength="120"
+                                required
+                                class="field max-w-md"
+                            />
+                        </label>
+                    </FormField>
 
-                    <fieldset>
-                        <legend class="text-xs font-medium text-slate-500">Cuentas de destino</legend>
-                        <p v-if="accounts.length === 0" class="mt-1 text-sm text-slate-500">Conecta una cuenta en esta marca.</p>
-                        <ul class="mt-1 space-y-2">
-                            <li v-for="a in accounts" :key="a.id" class="flex flex-wrap items-center gap-3 text-sm">
-                                <label class="flex items-center gap-2">
-                                    <input type="checkbox" :checked="a.id in chosen" @change="toggleAccount(a)" />
-                                    <NetworkIcon :network="a.network" size="sm" />
-                                    {{ a.name }}
-                                </label>
-                                <select v-if="a.id in chosen" v-model="chosen[a.id]" class="field w-auto" :aria-label="`Tipo de contenido de ${a.name}`">
-                                    <option v-for="t in a.content_types" :key="t.value" :value="t.value">{{ t.label }}</option>
+                    <FormField :error="form.errors.targets" v-slot="{ control }">
+                        <fieldset v-bind="control">
+                            <legend class="text-xs font-medium text-slate-500">Cuentas de destino</legend>
+                            <p v-if="accounts.length === 0" class="mt-1 text-sm text-slate-500"
+                                >Conecta una cuenta en esta marca.</p
+                            >
+                            <ul class="mt-1 space-y-2">
+                                <li v-for="a in accounts" :key="a.id" class="flex flex-wrap items-center gap-3 text-sm">
+                                    <label class="flex items-center gap-2">
+                                        <input type="checkbox" :checked="a.id in chosen" @change="toggleAccount(a)" />
+                                        <NetworkIcon :network="a.network" size="sm" />
+                                        {{ a.name }}
+                                    </label>
+                                    <select
+                                        v-if="a.id in chosen"
+                                        v-model="chosen[a.id]"
+                                        class="field w-auto"
+                                        :aria-label="`Tipo de contenido de ${a.name}`"
+                                    >
+                                        <option
+                                            v-for="t in a.content_types"
+                                            :key="t.value"
+                                            :value="t.value"
+                                            >{{ t.label }}</option
+                                        >
+                                    </select>
+                                </li>
+                            </ul>
+                        </fieldset>
+                    </FormField>
+
+                    <FormField :error="form.errors.slots" v-slot="{ control }">
+                        <fieldset v-bind="control">
+                            <legend class="text-xs font-medium text-slate-500"
+                                >Franjas semanales ({{ brand.timezone }})</legend
+                            >
+                            <div v-for="(s, i) in form.slots" :key="i" class="mt-2 flex items-center gap-2">
+                                <select
+                                    v-model.number="s.day"
+                                    class="field w-auto"
+                                    :aria-label="`Día de la franja ${i + 1}`"
+                                >
+                                    <option v-for="d in DAYS" :key="d.value" :value="d.value">{{ d.label }}</option>
                                 </select>
-                            </li>
-                        </ul>
-                        <InputError :message="form.errors.targets" />
-                    </fieldset>
-
-                    <fieldset>
-                        <legend class="text-xs font-medium text-slate-500">Franjas semanales ({{ brand.timezone }})</legend>
-                        <div v-for="(s, i) in form.slots" :key="i" class="mt-2 flex items-center gap-2">
-                            <select v-model.number="s.day" class="field w-auto" :aria-label="`Día de la franja ${i + 1}`">
-                                <option v-for="d in DAYS" :key="d.value" :value="d.value">{{ d.label }}</option>
-                            </select>
-                            <input v-model="s.time" type="time" required class="field w-auto" :aria-label="`Hora de la franja ${i + 1}`" />
-                            <button v-if="form.slots.length > 1" type="button" class="text-xs text-red-600 underline" @click="removeSlot(i)">Quitar</button>
-                        </div>
-                        <button type="button" class="btn btn-secondary mt-2" @click="addSlot">Añadir franja</button>
-                        <InputError :message="form.errors.slots" />
-                    </fieldset>
+                                <input
+                                    v-model="s.time"
+                                    type="time"
+                                    required
+                                    class="field w-auto"
+                                    :aria-label="`Hora de la franja ${i + 1}`"
+                                />
+                                <button
+                                    v-if="form.slots.length > 1"
+                                    type="button"
+                                    class="text-xs text-red-600 underline"
+                                    @click="removeSlot(i)"
+                                    >Quitar</button
+                                >
+                            </div>
+                            <button type="button" class="btn btn-secondary mt-2" @click="addSlot">Añadir franja</button>
+                        </fieldset>
+                    </FormField>
 
                     <label class="flex items-center gap-2 text-sm">
                         <input v-model="form.recycle" type="checkbox" />
                         Reciclar: al terminar la cola, volver a empezar
                     </label>
-                    <InputError :message="form.errors.brand_id" />
+                    <FormField :error="form.errors.brand_id" />
                     <PrimaryButton :disabled="form.processing">Crear autolista</PrimaryButton>
                 </form>
 
@@ -146,33 +191,61 @@ const fmtDate = (iso) => (iso ? new Intl.DateTimeFormat('es-ES', { dateStyle: 'm
                         <div>
                             <h2 class="text-sm font-semibold text-slate-900">
                                 {{ l.name }}
-                                <span class="ms-2 rounded-full px-2 py-0.5 text-xs" :class="l.active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'">{{ l.active ? 'Activa' : 'En pausa' }}</span>
+                                <span
+                                    class="ms-2 rounded-full px-2 py-0.5 text-xs"
+                                    :class="l.active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'"
+                                    >{{ l.active ? 'Activa' : 'En pausa' }}</span
+                                >
                             </h2>
                             <p class="text-xs text-slate-500">
-                                {{ l.slots.map((s) => `${dayLabel(s.day)} ${s.time}`).join(' · ') }} · {{ l.recycle ? 'con reciclado' : 'sin reciclado' }} · última generación: {{ fmtDate(l.last_generated_at) }}
+                                {{ l.slots.map((s) => `${dayLabel(s.day)} ${s.time}`).join(' · ') }} ·
+                                {{ l.recycle ? 'con reciclado' : 'sin reciclado' }} · última generación:
+                                {{ fmtDate(l.last_generated_at) }}
                             </p>
                             <p class="mt-1 flex items-center gap-1 text-xs text-slate-500">
                                 <template v-for="t in l.targets" :key="t.account_id + t.content_type">
-                                    <NetworkIcon v-if="accountOf(t.account_id)" :network="accountOf(t.account_id).network" size="sm" />
+                                    <NetworkIcon
+                                        v-if="accountOf(t.account_id)"
+                                        :network="accountOf(t.account_id).network"
+                                        size="sm"
+                                    />
                                 </template>
                             </p>
                         </div>
                         <div class="flex items-center gap-3">
                             <button type="button" class="btn btn-secondary" @click="generate(l)">Generar ahora</button>
-                            <button type="button" class="btn btn-secondary" @click="toggle(l)">{{ l.active ? 'Pausar' : 'Activar' }}</button>
-                            <button type="button" class="text-xs text-red-600 underline" @click="remove(l)">Eliminar</button>
+                            <button
+                                type="button"
+                                class="btn btn-secondary"
+                                @click="toggle(l)"
+                                >{{ l.active ? 'Pausar' : 'Activar' }}</button
+                            >
+                            <button type="button" class="text-xs text-red-600 underline" @click="remove(l)"
+                                >Eliminar</button
+                            >
                         </div>
                     </header>
 
-                    <p v-if="l.items.length === 0" class="px-5 py-4 text-sm text-slate-500">La cola está vacía: añade contenido para que se generen publicaciones.</p>
+                    <p v-if="l.items.length === 0" class="px-5 py-4 text-sm text-slate-500"
+                        >La cola está vacía: añade contenido para que se generen publicaciones.</p
+                    >
                     <ol v-else class="divide-y">
-                        <li v-for="(it, idx) in l.items" :key="it.id" class="flex items-center justify-between gap-3 px-5 py-2 text-sm">
+                        <li
+                            v-for="(it, idx) in l.items"
+                            :key="it.id"
+                            class="flex items-center justify-between gap-3 px-5 py-2 text-sm"
+                        >
                             <span class="min-w-0 truncate">
-                                <span class="me-2 text-xs text-slate-500">{{ idx + 1 }}.</span>{{ it.label || '(solo archivos)' }}
+                                <span class="me-2 text-xs text-slate-500">{{ idx + 1 }}.</span
+                                >{{ it.label || '(solo archivos)' }}
                                 <span v-if="it.is_template" class="ms-2 text-xs text-indigo-600">plantilla</span>
-                                <span v-if="idx === l.cursor % l.items.length" class="ms-2 text-xs text-emerald-700">siguiente</span>
+                                <span v-if="idx === l.cursor % l.items.length" class="ms-2 text-xs text-emerald-700"
+                                    >siguiente</span
+                                >
                             </span>
-                            <button type="button" class="text-xs text-red-600 underline" @click="removeItem(l, it)">Quitar</button>
+                            <button type="button" class="text-xs text-red-600 underline" @click="removeItem(l, it)"
+                                >Quitar</button
+                            >
                         </li>
                     </ol>
 

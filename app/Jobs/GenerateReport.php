@@ -24,6 +24,7 @@ class GenerateReport implements ShouldQueue
 
     public function __construct(public readonly int $reportId)
     {
+        $this->timeout = max(1, min(110, (int) config('reports.timeout', $this->timeout)));
         $this->onQueue((string) config('reports.queue', 'reports'));
     }
 

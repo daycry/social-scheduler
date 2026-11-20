@@ -1,8 +1,8 @@
 <script setup>
 import DangerButton from '@/Components/DangerButton.vue';
-import InputError from '@/Components/InputError.vue';
+import FormField from '@/Components/FormField.vue';
 import InputLabel from '@/Components/InputLabel.vue';
-import Modal from '@/Components/Modal.vue';
+import BaseDialog from '@/Components/BaseDialog.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { useForm } from '@inertiajs/vue3';
@@ -41,53 +41,55 @@ const closeModal = () => {
 <template>
     <section class="space-y-6">
         <header>
-            <h2 class="text-lg font-medium text-slate-900">
-                Eliminar cuenta
-            </h2>
+            <h2 class="text-lg font-medium text-slate-900"> Eliminar cuenta </h2>
 
             <p class="mt-1 text-sm text-slate-600">
-                Al eliminar tu cuenta se borrarán de forma permanente todos sus recursos y datos. Antes de hacerlo, descarga cualquier información que quieras conservar.
+                Al eliminar tu cuenta se borrarán de forma permanente todos sus recursos y datos. Antes de hacerlo,
+                descarga cualquier información que quieras conservar.
             </p>
         </header>
 
         <DangerButton @click="confirmUserDeletion">Eliminar cuenta</DangerButton>
 
-        <Modal :show="confirmingUserDeletion" @close="closeModal">
+        <BaseDialog
+            v-if="confirmingUserDeletion"
+            open
+            close-on-backdrop
+            class="dialog-panel max-w-2xl"
+            aria-label="¿Seguro que quieres eliminar tu cuenta?"
+            @close="closeModal"
+        >
             <div class="p-6">
-                <h2
-                    class="text-lg font-medium text-slate-900"
-                >
-                    ¿Seguro que quieres eliminar tu cuenta?
-                </h2>
+                <h2 class="text-lg font-medium text-slate-900"> ¿Seguro que quieres eliminar tu cuenta? </h2>
 
                 <p class="mt-1 text-sm text-slate-600">
                     Esta acción es permanente. Introduce tu contraseña para confirmar que quieres eliminar tu cuenta.
                 </p>
 
                 <div class="mt-6">
-                    <InputLabel
-                        for="password"
-                        value="Contraseña"
-                        class="sr-only"
-                    />
+                    <FormField
+                        id="delete-account-password"
+                        :error="form.errors.password"
+                        error-class="mt-2"
+                        v-slot="{ control }"
+                    >
+                        <InputLabel for="delete-account-password" value="Contraseña" class="sr-only" />
 
-                    <TextInput
-                        id="password"
-                        ref="passwordInput"
-                        v-model="form.password"
-                        type="password"
-                        class="mt-1 block w-3/4"
-                        placeholder="Contraseña"
-                        @keyup.enter="deleteUser"
-                    />
-
-                    <InputError :message="form.errors.password" class="mt-2" />
+                        <TextInput
+                            v-bind="control"
+                            ref="passwordInput"
+                            data-dialog-initial-focus
+                            v-model="form.password"
+                            type="password"
+                            class="mt-1 block w-3/4"
+                            placeholder="Contraseña"
+                            @keyup.enter="deleteUser"
+                        />
+                    </FormField>
                 </div>
 
                 <div class="mt-6 flex justify-end">
-                    <SecondaryButton @click="closeModal">
-                        Cancelar
-                    </SecondaryButton>
+                    <SecondaryButton @click="closeModal"> Cancelar </SecondaryButton>
 
                     <DangerButton
                         class="ms-3"
@@ -99,6 +101,6 @@ const closeModal = () => {
                     </DangerButton>
                 </div>
             </div>
-        </Modal>
+        </BaseDialog>
     </section>
 </template>

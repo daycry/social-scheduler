@@ -30,27 +30,42 @@ const rows = computed(() => form.targets.map((t) => {
 </script>
 
 <template>
-    <ul v-if="rows.length" class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs" aria-label="Contadores por red" data-testid="network-counters">
+    <ul
+        v-if="rows.length"
+        class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs"
+        aria-label="Contadores por red"
+        data-testid="network-counters"
+    >
         <li v-for="r in rows" :key="r.key" class="flex min-w-0 items-center gap-1.5">
             <NetworkIcon v-if="r.network" :network="r.network" size="sm" />
             <span class="truncate text-slate-600">{{ r.name }}</span>
             <span v-if="r.own" class="shrink-0 rounded bg-indigo-100 px-1.5 text-indigo-800">texto propio</span>
             <span
-                data-testid="counter-chars" aria-live="polite"
+                data-testid="counter-chars"
+                aria-live="polite"
                 class="rounded px-1.5 py-0.5 font-medium"
                 :class="r.overChars ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'"
-            >{{ formatThousands(r.chars) }}<template v-if="r.maxChars != null"> / {{ formatThousands(r.maxChars) }}</template><template v-if="r.overChars"> · supera el máximo</template></span>
+                >{{ formatThousands(r.chars)
+                }}<template v-if="r.maxChars != null"> / {{ formatThousands(r.maxChars) }}</template
+                ><template v-if="r.overChars"> · supera el máximo</template></span
+            >
             <span
                 v-if="r.maxHashtags != null"
-                data-testid="counter-hashtags" aria-live="polite"
+                data-testid="counter-hashtags"
+                aria-live="polite"
                 class="rounded px-1.5 py-0.5 font-medium"
                 :class="r.overHashtags ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'"
-            >{{ r.hashtags }} / {{ r.maxHashtags }} #<template v-if="r.overHashtags"> · supera el máximo</template></span>
+                >{{ r.hashtags }} / {{ r.maxHashtags }} #<template v-if="r.overHashtags">
+                    · supera el máximo</template
+                ></span
+            >
             <span
                 v-if="r.adviseOver"
-                data-testid="counter-hashtags-advice" role="status"
+                data-testid="counter-hashtags-advice"
+                role="status"
                 class="rounded bg-amber-100 px-1.5 py-0.5 font-medium text-amber-900"
-            >Threads solo admite {{ r.adviseHashtags }} etiqueta de tema por publicación: se usa la primera.</span>
+                >Threads solo admite {{ r.adviseHashtags }} etiqueta de tema por publicación: se usa la primera.</span
+            >
         </li>
     </ul>
 </template>

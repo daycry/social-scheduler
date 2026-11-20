@@ -2,9 +2,8 @@
 
 namespace App\Http\Requests;
 
-use App\Models\SavedText;
+use App\Services\SavedTextService;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 /** Alta y edición de un texto guardado (C-01a). La marca, si se informa, debe ser del usuario. */
 class SavedTextRequest extends FormRequest
@@ -16,12 +15,7 @@ class SavedTextRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
-            'kind' => ['required', 'string', Rule::in(SavedText::KINDS)],
-            'title' => ['required', 'string', 'max:120'],
-            'body' => ['required', 'string', 'max:5000'],
-            'brand_id' => ['nullable', 'integer', Rule::exists('brands', 'id')->where('user_id', $this->user()?->id)],
-        ];
+        return SavedTextService::rules($this->user()?->id);
     }
 
     public function attributes(): array

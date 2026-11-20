@@ -1,0 +1,2122 @@
+diff --git a/.env.example b/.env.example
+index 9ae5a23..496bfa9 100644
+--- a/.env.example
++++ b/.env.example
+@@ -328,3 +328,8 @@ META_LOGIN_APP_SECRET=
+ GOALS_DAILY_AT=13:15
+ GOALS_QUEUE=
+ GOALS_MAIL_QUEUE=poll
++
++# Webhooks salientes: una cola distinta de poll requiere su worker.
++WEBHOOK_QUEUE=poll
++WEBHOOK_MAX_PER_USER=20
++WEBHOOK_SETTINGS_PER_MINUTE=30
+diff --git a/.env.production.example b/.env.production.example
+index 3581b7c..cb86edc 100644
+--- a/.env.production.example
++++ b/.env.production.example
+@@ -174,3 +174,8 @@ TRUSTED_PROXIES=
+ GOALS_DAILY_AT=13:15
+ GOALS_QUEUE=
+ GOALS_MAIL_QUEUE=poll
++
++# Webhooks salientes: una cola distinta de poll requiere su worker.
++WEBHOOK_QUEUE=poll
++WEBHOOK_MAX_PER_USER=20
++WEBHOOK_SETTINGS_PER_MINUTE=30
+diff --git a/CHANGELOG.es.md b/CHANGELOG.es.md
+index c773f83..42a7011 100644
+--- a/CHANGELOG.es.md
++++ b/CHANGELOG.es.md
+@@ -5,6 +5,10 @@ # Registro de cambios
+ 
+ ## [Sin publicar]
+ 
++### Added — webhooks salientes firmados (audit-hardening, T-80)
++
++- Configura receptores HTTPS de tus marcas para eventos de publicación e inbox. Envía firmas HMAC con marca de tiempo, reintentos acotados, protección de URLs, recuperación de cola y estado visible; el secreto permanece cifrado y privado.
++
+ ### Added — objetivos y alertas (audit-hardening, T-79)
+ 
+ - Crea, edita y pausa objetivos por marca o cuenta propia. La evaluación diaria local avisa de hitos, caídas y caducidades conocidas una vez por regla o periodo; las métricas ausentes siguen desconocidas y el correo opcional respeta las preferencias del usuario.
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 664cdb0..2010005 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -5,6 +5,10 @@ # Changelog
+ 
+ ## [Unreleased]
+ 
++### Added — signed outbound webhooks (audit-hardening, T-80)
++
++- Manage brand-owned HTTPS receivers for publication and inbox events. Deliver timestamped HMAC signatures with bounded retries, safe URL checks, durable queue recovery and visible delivery status; signing secrets remain encrypted and private.
++
+ ### Added — goals and alerts (audit-hardening, T-79)
+ 
+ - Create, edit and pause goals for owned brands or accounts. Daily local evaluations notify milestones, threshold drops and known credential deadlines once per rule or period; missing metrics stay unknown, with optional email subject to user preferences.
+diff --git a/app/Console/Commands/ReencryptSecrets.php b/app/Console/Commands/ReencryptSecrets.php
+index 5acac20..fb1002b 100644
+--- a/app/Console/Commands/ReencryptSecrets.php
++++ b/app/Console/Commands/ReencryptSecrets.php
+@@ -19,6 +19,7 @@ final class ReencryptSecrets extends Command
+         'social_accounts' => ['access_token', 'refresh_token', 'credential_secret'],
+         'canva_connections' => ['access_token', 'refresh_token'],
+         'users' => ['two_factor_secret'],
++        'webhooks' => ['secret'],
+     ];
+ 
+     public function handle(): int
+diff --git a/app/Events/OutboundDomainEvent.php b/app/Events/OutboundDomainEvent.php
+new file mode 100644
+index 0000000..27c661e
+--- /dev/null
++++ b/app/Events/OutboundDomainEvent.php
+@@ -0,0 +1,20 @@
++<?php
++
++namespace App\Events;
++
++use Illuminate\Support\Str;
++
++/** Hechos escalares internos, sin modelos serializados ni credenciales de proveedores. */
++final readonly class OutboundDomainEvent
++{
++    public string $id;
++
++    public string $occurredAt;
++
++    /** @param array<string, int|string|null> $data */
++    public function __construct(public int $ownerId, public int $brandId, public string $name, public array $data)
++    {
++        $this->id = (string) Str::uuid();
++        $this->occurredAt = now()->utc()->toIso8601String();
++    }
++}
+diff --git a/app/Http/Controllers/WebhookController.php b/app/Http/Controllers/WebhookController.php
+new file mode 100644
+index 0000000..35afd69
+--- /dev/null
++++ b/app/Http/Controllers/WebhookController.php
+@@ -0,0 +1,87 @@
++<?php
++
++namespace App\Http\Controllers;
++
++use App\Models\Brand;
++use App\Models\Webhook;
++use App\Models\WebhookDelivery;
++use App\Services\Webhooks\WebhookSubscriptions;
++use App\Support\CursorPage;
++use Illuminate\Http\RedirectResponse;
++use Illuminate\Http\Request;
++use Inertia\Inertia;
++use Inertia\Response;
++
++final class WebhookController extends Controller
++{
++    public function __construct(private readonly WebhookSubscriptions $subscriptions) {}
++
++    public function index(Request $request): Response
++    {
++        $filters = $request->validate(['brand_id' => ['nullable', 'integer', 'min:1']] + CursorPage::RULES);
++        $user = $request->user();
++        $brands = Brand::ownedBy($user->id)->orderBy('name')->orderBy('id')->get(['id', 'name']);
++        $brand = isset($filters['brand_id']) ? $brands->firstWhere('id', (int) $filters['brand_id']) : $brands->first();
++        abort_if(isset($filters['brand_id']) && $brand === null, 404);
++        $query = Webhook::ownedBy($user->id)->where('brand_id', $brand?->id)
++            ->with(['latestDelivery' => fn ($query) => $query->where('webhook_deliveries.user_id', $user->id)])
++            ->orderByDesc('created_at')->orderByDesc('id');
++        [$hooks, $pagination] = CursorPage::fetch($query, $filters['limit'] ?? null, $filters['cursor'] ?? null,
++            'webhooks:u'.$user->id.':b'.($brand?->id ?? 'none'), withTotal: true);
++
++        return Inertia::render('Webhooks/Index', [
++            'brands' => $brands, 'brand' => $brand,
++            'webhooks' => $hooks->map(function (Webhook $hook): array {
++                $last = $hook->latestDelivery;
++
++                return [
++                    'id' => $hook->id, 'name' => $hook->name, 'url' => $hook->url,
++                    'events' => $hook->events, 'enabled' => $hook->enabled,
++                    'last_delivery' => $last === null ? null : [
++                        'status' => $last->status, 'attempts' => $last->attempts, 'http_status' => $last->last_http_status,
++                        'reason' => $last->last_error === null ? null : (WebhookDelivery::ERRORS[$last->last_error] ?? 'Error de entrega.'),
++                        'next_attempt_at' => $last->next_attempt_at?->toIso8601String(),
++                        'updated_at' => $last->updated_at->toIso8601String(),
++                    ],
++                ];
++            })->values(),
++            'events' => Webhook::EVENTS, 'delivery_states' => WebhookDelivery::STATES,
++            'max_per_user' => max(1, (int) config('webhooks.max_per_user', 20)),
++            'pagination' => $pagination + $filters,
++        ]);
++    }
++
++    public function store(Request $request, Brand $brand): RedirectResponse
++    {
++        $this->subscriptions->create($request->user(), $brand, $this->inputWithoutSecretFlash($request));
++
++        return redirect()->route('webhooks.index', ['brand_id' => $brand->id])->with('success', 'Webhook creado.');
++    }
++
++    public function update(Request $request, Webhook $webhook): RedirectResponse
++    {
++        $this->subscriptions->update($request->user(), $webhook, $this->inputWithoutSecretFlash($request));
++
++        return redirect()->route('webhooks.index', ['brand_id' => $webhook->brand_id])->with('success', 'Webhook actualizado.');
++    }
++
++    public function destroy(Request $request, Webhook $webhook): RedirectResponse
++    {
++        $this->subscriptions->delete($request->user(), $webhook);
++
++        return redirect()->route('webhooks.index', ['brand_id' => $webhook->brand_id])->with('success', 'Webhook eliminado.');
++    }
++
++    /** El validador recibe el secreto; una excepción no debe copiarlo a _old_input en la sesión. */
++    private function inputWithoutSecretFlash(Request $request): array
++    {
++        $data = $request->all();
++        $request->request->remove('secret');
++        $request->query->remove('secret');
++        if ($request->isJson()) {
++            $request->json()->remove('secret');
++        }
++
++        return $data;
++    }
++}
+diff --git a/app/Jobs/DeliverWebhook.php b/app/Jobs/DeliverWebhook.php
+new file mode 100644
+index 0000000..ca67d7b
+--- /dev/null
++++ b/app/Jobs/DeliverWebhook.php
+@@ -0,0 +1,47 @@
++<?php
++
++namespace App\Jobs;
++
++use App\Services\Webhooks\WebhookDeliveryRunner;
++use Illuminate\Contracts\Queue\ShouldBeUnique;
++use Illuminate\Contracts\Queue\ShouldQueue;
++use Illuminate\Foundation\Queue\Queueable;
++use Throwable;
++
++final class DeliverWebhook implements ShouldBeUnique, ShouldQueue
++{
++    use Queueable;
++
++    public int $tries = WebhookDeliveryRunner::MAX_ATTEMPTS;
++
++    public int $timeout = 20;
++
++    public int $uniqueFor = 7200;
++
++    public function __construct(public readonly int $deliveryId)
++    {
++        $this->onQueue((string) config('webhooks.queue', 'poll'));
++    }
++
++    public function uniqueId(): string
++    {
++        return (string) $this->deliveryId;
++    }
++
++    public function backoff(): array
++    {
++        return WebhookDeliveryRunner::BACKOFF;
++    }
++
++    public function handle(WebhookDeliveryRunner $runner): void
++    {
++        if (($delay = $runner->run($this->deliveryId)) !== null) {
++            $this->release($delay);
++        }
++    }
++
++    public function failed(?Throwable $exception): void
++    {
++        app(WebhookDeliveryRunner::class)->markFailed($this->deliveryId);
++    }
++}
+diff --git a/app/Jobs/DispatchPendingWebhooks.php b/app/Jobs/DispatchPendingWebhooks.php
+new file mode 100644
+index 0000000..5ae3166
+--- /dev/null
++++ b/app/Jobs/DispatchPendingWebhooks.php
+@@ -0,0 +1,34 @@
++<?php
++
++namespace App\Jobs;
++
++use App\Models\WebhookDelivery;
++use App\Services\Webhooks\WebhookDispatcher;
++use Illuminate\Contracts\Queue\ShouldBeUnique;
++use Illuminate\Contracts\Queue\ShouldQueue;
++use Illuminate\Foundation\Queue\Queueable;
++
++/** Recupera el tramo DB confirmada → cola caída, sin saltarse la fecha de backoff ni enviar HTTP. */
++final class DispatchPendingWebhooks implements ShouldBeUnique, ShouldQueue
++{
++    use Queueable;
++
++    public int $tries = 3;
++
++    public int $backoff = 60;
++
++    public int $uniqueFor = 120;
++
++    public function __construct()
++    {
++        $this->onQueue((string) config('webhooks.queue', 'poll'));
++    }
++
++    public function handle(WebhookDispatcher $dispatcher): void
++    {
++        foreach (WebhookDelivery::withoutUserScope()->where('status', 'pending')->where('next_attempt_at', '<=', now())
++            ->orderBy('next_attempt_at')->orderBy('id')->limit(500)->get(['id']) as $delivery) {
++            $dispatcher->enqueue((int) $delivery->id);
++        }
++    }
++}
+diff --git a/app/Models/Webhook.php b/app/Models/Webhook.php
+new file mode 100644
+index 0000000..0e52951
+--- /dev/null
++++ b/app/Models/Webhook.php
+@@ -0,0 +1,31 @@
++<?php
++
++namespace App\Models;
++
++use App\Models\Concerns\BelongsToUser;
++use App\Scopes\UserScope;
++use Illuminate\Database\Eloquent\Model;
++use Illuminate\Database\Eloquent\Relations\HasOne;
++
++class Webhook extends Model
++{
++    use BelongsToUser;
++
++    public const EVENTS = ['post.published' => 'Publicación completada', 'post.failed' => 'Publicación fallida', 'comment.created' => 'Comentario nuevo'];
++
++    protected $fillable = ['name', 'url', 'events', 'secret', 'enabled'];
++
++    protected $hidden = ['secret'];
++
++    protected $attributes = ['enabled' => true];
++
++    protected function casts(): array
++    {
++        return ['events' => 'array', 'enabled' => 'boolean', 'secret' => 'encrypted'];
++    }
++
++    public function latestDelivery(): HasOne
++    {
++        return $this->hasOne(WebhookDelivery::class)->withoutGlobalScope(UserScope::class)->latestOfMany();
++    }
++}
+diff --git a/app/Models/WebhookDelivery.php b/app/Models/WebhookDelivery.php
+new file mode 100644
+index 0000000..46f1325
+--- /dev/null
++++ b/app/Models/WebhookDelivery.php
+@@ -0,0 +1,30 @@
++<?php
++
++namespace App\Models;
++
++use App\Models\Concerns\BelongsToUser;
++use Illuminate\Database\Eloquent\Model;
++
++class WebhookDelivery extends Model
++{
++    use BelongsToUser;
++
++    public const STATES = ['pending' => 'Pendiente', 'delivered' => 'Entregada', 'blocked' => 'Bloqueada', 'failed' => 'Fallida', 'exhausted' => 'Reintentos agotados', 'cancelled' => 'Cancelada'];
++
++    public const ERRORS = [
++        'subscription_unavailable' => 'El receptor está pausado, eliminado o ya no recibe este evento.',
++        'unsafe_url' => 'La URL ya no apunta a una dirección pública permitida.',
++        'redirect' => 'El receptor devolvió una redirección. No se ha seguido.',
++        'invalid_secret' => 'No se puede leer el secreto. Crea un receptor nuevo.',
++        'connection_error' => 'No se pudo conectar con el receptor.',
++        'http_error' => 'El receptor respondió con un error HTTP.',
++        'worker_failed' => 'El trabajo terminó sin completar la entrega.',
++    ];
++
++    protected $attributes = ['status' => 'pending', 'attempts' => 0];
++
++    protected function casts(): array
++    {
++        return ['attempts' => 'integer', 'last_http_status' => 'integer', 'next_attempt_at' => 'datetime', 'delivered_at' => 'datetime', 'finished_at' => 'datetime'];
++    }
++}
+diff --git a/app/Models/WebhookEvent.php b/app/Models/WebhookEvent.php
+new file mode 100644
+index 0000000..e4e0c69
+--- /dev/null
++++ b/app/Models/WebhookEvent.php
+@@ -0,0 +1,17 @@
++<?php
++
++namespace App\Models;
++
++use App\Models\Concerns\BelongsToUser;
++use Illuminate\Database\Eloquent\Model;
++
++class WebhookEvent extends Model
++{
++    use BelongsToUser;
++
++    public $incrementing = false;
++
++    protected $keyType = 'string';
++
++    protected $hidden = ['body'];
++}
+diff --git a/app/Observers/WebhookDomainObserver.php b/app/Observers/WebhookDomainObserver.php
+new file mode 100644
+index 0000000..6ef09f7
+--- /dev/null
++++ b/app/Observers/WebhookDomainObserver.php
+@@ -0,0 +1,51 @@
++<?php
++
++namespace App\Observers;
++
++use App\Enums\PostStatus;
++use App\Events\OutboundDomainEvent;
++use App\Models\InboxComment;
++use App\Models\Post;
++use App\Models\PostTarget;
++use App\Models\SocialAccount;
++use Illuminate\Support\Facades\Event;
++
++/** Adapta hechos persistidos a eventos de dominio; no modifica conectores ni realiza peticiones. */
++final class WebhookDomainObserver
++{
++    public function updated(PostTarget|InboxComment $model): void
++    {
++        if (! $model instanceof PostTarget || ! $model->wasChanged('status') || ! in_array($model->status, [PostStatus::Published, PostStatus::Failed], true)) {
++            return;
++        }
++        $post = Post::ownedBy($model->user_id)->withTrashed()->find($model->post_id);
++        if ($post === null || ($model->social_account_id !== null && ! $this->ownsAccount((int) $model->user_id, (int) $post->brand_id, $model->social_account_id))) {
++            return;
++        }
++        Event::dispatch(new OutboundDomainEvent((int) $model->user_id, (int) $post->brand_id,
++            $model->status === PostStatus::Published ? 'post.published' : 'post.failed', [
++                'post_id' => (int) $post->id, 'target_id' => (int) $model->id,
++                'network' => $model->network->value, 'status' => $model->status->value,
++            ]));
++    }
++
++    public function created(PostTarget|InboxComment $model): void
++    {
++        if (! $model instanceof InboxComment || $model->is_own || ! $this->ownsAccount((int) $model->user_id, (int) $model->brand_id, $model->social_account_id)) {
++            return;
++        }
++        $target = PostTarget::ownedBy($model->user_id)->whereKey($model->post_target_id)->where('social_account_id', $model->social_account_id)->first();
++        if ($target === null || ! Post::ownedBy($model->user_id)->whereKey($target->post_id)->where('brand_id', $model->brand_id)->exists()) {
++            return;
++        }
++        Event::dispatch(new OutboundDomainEvent((int) $model->user_id, (int) $model->brand_id, 'comment.created', [
++            'comment_id' => (int) $model->id, 'target_id' => (int) $target->id,
++            'post_id' => (int) $target->post_id, 'network' => $model->network->value,
++        ]));
++    }
++
++    private function ownsAccount(int $userId, int $brandId, ?int $accountId): bool
++    {
++        return $accountId !== null && SocialAccount::ownedBy($userId)->whereKey($accountId)->where('brand_id', $brandId)->exists();
++    }
++}
+diff --git a/app/Providers/WebhookServiceProvider.php b/app/Providers/WebhookServiceProvider.php
+new file mode 100644
+index 0000000..624f3ff
+--- /dev/null
++++ b/app/Providers/WebhookServiceProvider.php
+@@ -0,0 +1,26 @@
++<?php
++
++namespace App\Providers;
++
++use App\Events\OutboundDomainEvent;
++use App\Models\InboxComment;
++use App\Models\PostTarget;
++use App\Observers\WebhookDomainObserver;
++use App\Services\Webhooks\WebhookDispatcher;
++use Illuminate\Cache\RateLimiting\Limit;
++use Illuminate\Http\Request;
++use Illuminate\Support\Facades\Event;
++use Illuminate\Support\Facades\RateLimiter;
++use Illuminate\Support\ServiceProvider;
++
++final class WebhookServiceProvider extends ServiceProvider
++{
++    public function boot(): void
++    {
++        RateLimiter::for('webhook-settings', fn (Request $request) => Limit::perMinute(max(1, (int) config('webhooks.settings_per_minute', 30)))
++            ->by('webhook-settings:'.$request->user()->id));
++        PostTarget::observe(WebhookDomainObserver::class);
++        InboxComment::observe(WebhookDomainObserver::class);
++        Event::listen(OutboundDomainEvent::class, [WebhookDispatcher::class, 'handle']);
++    }
++}
+diff --git a/app/Services/InboxService.php b/app/Services/InboxService.php
+index 1943d69..b42f542 100644
+--- a/app/Services/InboxService.php
++++ b/app/Services/InboxService.php
+@@ -25,6 +25,7 @@
+ use Illuminate\Database\Eloquent\Builder;
+ use Illuminate\Database\UniqueConstraintViolationException;
+ use Illuminate\Support\Collection;
++use Illuminate\Support\Facades\DB;
+ use Illuminate\Support\Facades\Log;
+ use InvalidArgumentException;
+ use Throwable;
+@@ -242,7 +243,8 @@ private function upsert(SocialAccount $account, PostTarget $target, array $row):
+         $comment->post_target_id = $target->id;
+ 
+         try {
+-            $comment->save();
++            // La fila y el outbox del evento deben confirmarse o revertirse juntos.
++            DB::transaction(fn () => $comment->save());
+         } catch (UniqueConstraintViolationException) {
+             // Carrera con `reply()` u otra sincronizacion: ya existe, se actualiza (idempotente).
+             InboxComment::withoutUserScope()->where('social_account_id', $account->id)->where('external_id', $row['external_id'])
+diff --git a/app/Services/Webhooks/WebhookDeliveryRunner.php b/app/Services/Webhooks/WebhookDeliveryRunner.php
+new file mode 100644
+index 0000000..5eef7b3
+--- /dev/null
++++ b/app/Services/Webhooks/WebhookDeliveryRunner.php
+@@ -0,0 +1,108 @@
++<?php
++
++namespace App\Services\Webhooks;
++
++use App\Models\Brand;
++use App\Models\Webhook;
++use App\Models\WebhookDelivery;
++use App\Models\WebhookEvent;
++use App\Services\Media\UnsafeUrlException;
++use Illuminate\Contracts\Encryption\DecryptException;
++use Illuminate\Http\Client\ConnectionException;
++use Illuminate\Support\Facades\DB;
++
++/** Serializa intentos; el receptor deduplica por event id si debe repetirse una petición ambigua. */
++final class WebhookDeliveryRunner
++{
++    public const MAX_ATTEMPTS = 5;
++
++    public const BACKOFF = [60, 300, 900, 3600];
++
++    public function __construct(private readonly WebhookTransport $transport) {}
++
++    /** @return ?int Segundos hasta reintentar; null indica que no debe reencolarse. */
++    public function run(int $id): ?int
++    {
++        // Sin reintentos automáticos de la transacción: repetiría el efecto HTTP de un intento ambiguo.
++        return DB::transaction(function () use ($id): ?int {
++            $delivery = WebhookDelivery::withoutUserScope()->lockForUpdate()->find($id);
++            if ($delivery === null || $delivery->status !== 'pending') {
++                return null;
++            }
++            if ($delivery->next_attempt_at?->isFuture()) {
++                return max(1, (int) ceil(now()->diffInSeconds($delivery->next_attempt_at)));
++            }
++            $event = WebhookEvent::ownedBy($delivery->user_id)->find($delivery->webhook_event_id);
++            $hook = Webhook::ownedBy($delivery->user_id)->find($delivery->webhook_id);
++            if ($event === null || $hook === null || ! $hook->enabled || $hook->brand_id !== $event->brand_id
++                || ! in_array($event->event, $hook->events, true)
++                || ! Brand::ownedBy($delivery->user_id)->whereKey($event->brand_id)->exists()) {
++                $this->finish($delivery, 'cancelled', 'subscription_unavailable');
++
++                return null;
++            }
++            if ($delivery->attempts >= self::MAX_ATTEMPTS) {
++                $this->finish($delivery, 'exhausted', $delivery->last_error);
++
++                return null;
++            }
++            $delivery->attempts++;
++            $delivery->last_http_status = null;
++            $delivery->last_error = null;
++            // También adquiere el lock de escritura en SQLite ANTES del efecto externo (FOR UPDATE es vacío allí).
++            $delivery->save();
++            try {
++                $status = $this->transport->send($hook, $event);
++                $delivery->last_http_status = $status;
++                if ($status >= 200 && $status < 300) {
++                    $delivery->delivered_at = now();
++                    $this->finish($delivery, 'delivered', null);
++
++                    return null;
++                }
++                if ($status >= 300 && $status < 400) {
++                    $this->finish($delivery, 'blocked', 'redirect');
++
++                    return null;
++                }
++                $delivery->last_error = 'http_error';
++                if ($status < 500 && ! in_array($status, [408, 425, 429], true)) {
++                    $this->finish($delivery, 'failed', 'http_error');
++
++                    return null;
++                }
++            } catch (UnsafeUrlException) {
++                $this->finish($delivery, 'blocked', 'unsafe_url');
++
++                return null;
++            } catch (DecryptException) {
++                $this->finish($delivery, 'blocked', 'invalid_secret');
++
++                return null;
++            } catch (ConnectionException) {
++                $delivery->last_error = 'connection_error';
++            }
++            if ($delivery->attempts >= self::MAX_ATTEMPTS) {
++                $this->finish($delivery, 'exhausted', $delivery->last_error);
++
++                return null;
++            }
++            $delay = self::BACKOFF[$delivery->attempts - 1];
++            $delivery->forceFill(['next_attempt_at' => now()->addSeconds($delay)])->save();
++
++            return $delay;
++        });
++    }
++
++    public function markFailed(int $id): void
++    {
++        WebhookDelivery::withoutUserScope()->whereKey($id)->where('status', 'pending')->update([
++            'status' => 'exhausted', 'last_error' => 'worker_failed', 'finished_at' => now(), 'next_attempt_at' => null,
++        ]);
++    }
++
++    private function finish(WebhookDelivery $delivery, string $status, ?string $error): void
++    {
++        $delivery->forceFill(['status' => $status, 'last_error' => $error, 'finished_at' => now(), 'next_attempt_at' => null])->save();
++    }
++}
+diff --git a/app/Services/Webhooks/WebhookDispatcher.php b/app/Services/Webhooks/WebhookDispatcher.php
+new file mode 100644
+index 0000000..a472e09
+--- /dev/null
++++ b/app/Services/Webhooks/WebhookDispatcher.php
+@@ -0,0 +1,69 @@
++<?php
++
++namespace App\Services\Webhooks;
++
++use App\Events\OutboundDomainEvent;
++use App\Jobs\DeliverWebhook;
++use App\Models\Brand;
++use App\Models\Webhook;
++use App\Models\WebhookDelivery;
++use App\Models\WebhookEvent;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Log;
++use InvalidArgumentException;
++use Throwable;
++
++/** Outbox transaccional; el cuerpo firmado queda inmutable y cada suscripción recibe una entrega independiente. */
++final class WebhookDispatcher
++{
++    public function handle(OutboundDomainEvent $event): void
++    {
++        if (! array_key_exists($event->name, Webhook::EVENTS)) {
++            throw new InvalidArgumentException('Unsupported outbound event.');
++        }
++        if (! Brand::ownedBy($event->ownerId)->whereKey($event->brandId)->exists()) {
++            return;
++        }
++        $hooks = Webhook::ownedBy($event->ownerId)->where('brand_id', $event->brandId)->where('enabled', true)
++            ->whereJsonContains('events', $event->name)->get(['id']);
++        if ($hooks->isEmpty()) {
++            return;
++        }
++        DB::transaction(function () use ($event, $hooks): void {
++            $stored = WebhookEvent::ownedBy($event->ownerId)->find($event->id);
++            if ($stored === null) {
++                $stored = new WebhookEvent;
++                $stored->forceFill([
++                    'id' => $event->id, 'user_id' => $event->ownerId, 'brand_id' => $event->brandId,
++                    'event' => $event->name, 'body' => json_encode([
++                        'id' => $event->id, 'event' => $event->name, 'occurred_at' => $event->occurredAt,
++                        'brand_id' => $event->brandId, 'data' => $event->data,
++                    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
++                ])->save();
++            }
++            foreach ($hooks as $hook) {
++                $delivery = WebhookDelivery::ownedBy($event->ownerId)->where('webhook_id', $hook->id)->where('webhook_event_id', $event->id)->first();
++                if ($delivery !== null) {
++                    continue;
++                }
++                $delivery = new WebhookDelivery;
++                $delivery->forceFill([
++                    'user_id' => $event->ownerId, 'webhook_id' => $hook->id, 'webhook_event_id' => $event->id,
++                    'next_attempt_at' => now(),
++                ])->save();
++                $id = (int) $delivery->id;
++                DB::afterCommit(fn () => $this->enqueue($id));
++            }
++        });
++    }
++
++    public function enqueue(int $id): void
++    {
++        try {
++            DeliverWebhook::dispatch($id);
++        } catch (Throwable $error) {
++            // PendingDispatch libera su lock único si falla la cola; el barrido puede volver a intentarlo.
++            Log::warning('webhooks.enqueue_failed', ['delivery_id' => $id, 'exception' => $error::class]);
++        }
++    }
++}
+diff --git a/app/Services/Webhooks/WebhookSubscriptions.php b/app/Services/Webhooks/WebhookSubscriptions.php
+new file mode 100644
+index 0000000..4349b6e
+--- /dev/null
++++ b/app/Services/Webhooks/WebhookSubscriptions.php
+@@ -0,0 +1,88 @@
++<?php
++
++namespace App\Services\Webhooks;
++
++use App\Models\Brand;
++use App\Models\User;
++use App\Models\Webhook;
++use App\Services\Media\UnsafeUrlException;
++use App\Services\Media\UrlGuard;
++use App\Support\Ownership;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Validator;
++use Illuminate\Validation\Rule;
++use Illuminate\Validation\ValidationException;
++
++/** Suscripciones de una marca propia. URL y secreto son inmutables: cambiar receptor requiere un alta nueva. */
++final class WebhookSubscriptions
++{
++    public function __construct(private readonly UrlGuard $guard) {}
++
++    /** @param array<string, mixed> $data */
++    public function create(User $user, Brand $brand, array $data): Webhook
++    {
++        Ownership::assert($brand, $user);
++        $valid = $this->validated($data, creating: true);
++        try {
++            $url = $this->guard->validate($valid['url']);
++            if ($url->scheme !== 'https') {
++                throw new UnsafeUrlException('El receptor debe usar HTTPS.');
++            }
++        } catch (UnsafeUrlException $error) {
++            throw ValidationException::withMessages(['url' => $error->getMessage()]);
++        }
++        $valid['url'] = $url->url;
++
++        return DB::transaction(function () use ($user, $brand, $valid): Webhook {
++            // El lock del usuario también limita altas simultáneas en marcas distintas.
++            User::whereKey($user->id)->lockForUpdate()->firstOrFail();
++            $limit = max(1, (int) config('webhooks.max_per_user', 20));
++            if (Webhook::ownedBy($user->id)->count() >= $limit) {
++                throw ValidationException::withMessages(['webhook' => 'Se ha alcanzado el límite de '.$limit.' webhooks de la cuenta.']);
++            }
++            $hook = new Webhook($valid);
++            $hook->user_id = $user->id;
++            $hook->brand_id = $brand->id;
++            $hook->save();
++
++            return $hook->fresh();
++        });
++    }
++
++    /** @param array<string, mixed> $data */
++    public function update(User $user, Webhook $hook, array $data): void
++    {
++        $this->assertOwner($user, $hook);
++        $hook->fill($this->validated($data, creating: false))->save();
++    }
++
++    public function delete(User $user, Webhook $hook): void
++    {
++        $this->assertOwner($user, $hook);
++        $hook->delete();
++    }
++
++    private function assertOwner(User $user, Webhook $hook): void
++    {
++        Ownership::assert($hook, $user);
++        Ownership::assert(Brand::ownedBy($user->id)->find($hook->brand_id), $user);
++    }
++
++    /** @param array<string, mixed> $data
++     * @return array<string, mixed>
++     */
++    private function validated(array $data, bool $creating): array
++    {
++        $valid = Validator::make($data, [
++            'name' => ['required', 'string', 'max:120', 'not_regex:/[\p{C}]/u'],
++            'url' => $creating ? ['required', 'string', 'max:2048'] : ['prohibited'],
++            'secret' => $creating ? ['required', 'string', 'regex:/\A[A-Za-z0-9_-]{32,128}\z/'] : ['prohibited'],
++            'events' => ['required', 'array', 'min:1', 'max:'.count(Webhook::EVENTS)],
++            'events.*' => ['required', 'string', 'distinct', Rule::in(array_keys(Webhook::EVENTS))],
++            'enabled' => ['sometimes', 'boolean'],
++        ])->validate();
++        $valid['name'] = trim($valid['name']);
++
++        return $valid;
++    }
++}
+diff --git a/app/Services/Webhooks/WebhookTransport.php b/app/Services/Webhooks/WebhookTransport.php
+new file mode 100644
+index 0000000..340edc2
+--- /dev/null
++++ b/app/Services/Webhooks/WebhookTransport.php
+@@ -0,0 +1,35 @@
++<?php
++
++namespace App\Services\Webhooks;
++
++use App\Models\Webhook;
++use App\Models\WebhookEvent;
++use App\Services\Media\UnsafeUrlException;
++use App\Services\Media\UrlGuard;
++
++/** Una petición HTTPS con IP fijada, sin redirección ni proxy. El cuerpo firmado no se recodifica. */
++final class WebhookTransport
++{
++    public function __construct(private readonly UrlGuard $guard) {}
++
++    public function send(Webhook $hook, WebhookEvent $event): int
++    {
++        $url = $this->guard->validate($hook->url);
++        if ($url->scheme !== 'https') {
++            throw new UnsafeUrlException('El receptor debe usar HTTPS.');
++        }
++        $timestamp = (string) now()->timestamp;
++        $signature = hash_hmac('sha256', $timestamp.'.'.$event->body, $hook->secret);
++        $response = $this->guard->client($url)->connectTimeout(3)->timeout(10)->withOptions(['stream' => true])
++            ->acceptJson()->withBody($event->body, 'application/json')->withHeaders([
++                'X-SocialScheduler-Signature' => 't='.$timestamp.',v1='.$signature,
++                'X-SocialScheduler-Event' => $event->event,
++                'X-SocialScheduler-Event-Id' => $event->id,
++            ])->post($url->url);
++        try {
++            return $response->status();
++        } finally {
++            $response->toPsrResponse()->getBody()->close();
++        }
++    }
++}
+diff --git a/bootstrap/providers.php b/bootstrap/providers.php
+index fc94ae6..6a38aa6 100644
+--- a/bootstrap/providers.php
++++ b/bootstrap/providers.php
+@@ -1,7 +1,9 @@
+ <?php
+ 
+ use App\Providers\AppServiceProvider;
++use App\Providers\WebhookServiceProvider;
+ 
+ return [
+     AppServiceProvider::class,
++    WebhookServiceProvider::class,
+ ];
+diff --git a/config/webhooks.php b/config/webhooks.php
+new file mode 100644
+index 0000000..b3ffc62
+--- /dev/null
++++ b/config/webhooks.php
+@@ -0,0 +1,7 @@
++<?php
++
++return [
++    'queue' => env('WEBHOOK_QUEUE', 'poll'),
++    'max_per_user' => (int) env('WEBHOOK_MAX_PER_USER', 20),
++    'settings_per_minute' => (int) env('WEBHOOK_SETTINGS_PER_MINUTE', 30),
++];
+diff --git a/database/migrations/2026_11_18_092000_create_webhooks_table.php b/database/migrations/2026_11_18_092000_create_webhooks_table.php
+new file mode 100644
+index 0000000..bb5abd9
+--- /dev/null
++++ b/database/migrations/2026_11_18_092000_create_webhooks_table.php
+@@ -0,0 +1,29 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    public function up(): void
++    {
++        Schema::create('webhooks', function (Blueprint $table) {
++            $table->id();
++            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
++            $table->foreignId('brand_id')->constrained()->cascadeOnDelete();
++            $table->string('name', 120);
++            $table->text('url');
++            $table->json('events');
++            $table->text('secret');
++            $table->boolean('enabled')->default(true);
++            $table->timestamps();
++            $table->index(['user_id', 'brand_id', 'created_at', 'id']);
++        });
++    }
++
++    public function down(): void
++    {
++        Schema::dropIfExists('webhooks');
++    }
++};
+diff --git a/database/migrations/2026_11_18_092100_create_webhook_events_and_deliveries.php b/database/migrations/2026_11_18_092100_create_webhook_events_and_deliveries.php
+new file mode 100644
+index 0000000..5751ee8
+--- /dev/null
++++ b/database/migrations/2026_11_18_092100_create_webhook_events_and_deliveries.php
+@@ -0,0 +1,43 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    public function up(): void
++    {
++        Schema::create('webhook_events', function (Blueprint $table) {
++            $table->uuid('id')->primary();
++            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
++            $table->foreignId('brand_id')->constrained()->cascadeOnDelete();
++            $table->string('event', 40);
++            $table->text('body');
++            $table->timestamps();
++        });
++        Schema::create('webhook_deliveries', function (Blueprint $table) {
++            $table->id();
++            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
++            $table->foreignId('webhook_id')->constrained()->cascadeOnDelete();
++            $table->foreignUuid('webhook_event_id')->constrained()->cascadeOnDelete();
++            $table->string('status', 16)->default('pending');
++            $table->unsignedTinyInteger('attempts')->default(0);
++            $table->unsignedSmallInteger('last_http_status')->nullable();
++            $table->string('last_error', 40)->nullable();
++            $table->timestamp('next_attempt_at')->nullable();
++            $table->timestamp('delivered_at')->nullable();
++            $table->timestamp('finished_at')->nullable();
++            $table->timestamps();
++            $table->unique(['webhook_id', 'webhook_event_id']);
++            $table->index(['status', 'next_attempt_at', 'id']);
++            $table->index(['user_id', 'webhook_id', 'id']);
++        });
++    }
++
++    public function down(): void
++    {
++        Schema::dropIfExists('webhook_deliveries');
++        Schema::dropIfExists('webhook_events');
++    }
++};
+diff --git a/docs/README.md b/docs/README.md
+index 03ac1a7..0c019bd 100644
+--- a/docs/README.md
++++ b/docs/README.md
+@@ -34,6 +34,7 @@ ## Por dónde empezar
+ | Publicar una web de la marca en `/s/{slug}` | [Sitios](modulos/sitios.md) |
+ | Proponer una fecha futura con métricas de la marca | [Planificar](usuario/planificar.md) |
+ | Crear un borrador independiente de una publicación guardada | [Duplicar](usuario/duplicar.md) |
++| Recibir eventos firmados en tu propio receptor HTTPS | [Webhooks salientes](api/webhooks.md) |
+ | Configurar hitos, caídas y avisos de caducidad por marca/cuenta | [Objetivos y alertas](modulos/analitica.md#objetivos-y-alertas-t-79) |
+ | Consultar salud, trabajadores, caducidades y cuotas como operador | [Estado del sistema](modulos/despliegue.md#pantalla-de-estado-del-sistema) |
+ | Consultar acciones de la cuenta, filtros y conservación | [Actividad](usuario/actividad.md) |
+diff --git a/docs/api/webhooks.md b/docs/api/webhooks.md
+new file mode 100644
+index 0000000..f4a6dfe
+--- /dev/null
++++ b/docs/api/webhooks.md
+@@ -0,0 +1,90 @@
++# Webhooks salientes
++
++En el menú de cuenta, **Webhooks** permite configurar receptores de una marca propia. Se puede crear, renombrar, pausar o borrar una suscripción, elegir sus eventos y consultar el estado de su última entrega. Un colaborador aprobador no adquiere permiso para configurar los receptores de la persona propietaria.
++
++El receptor debe ser una URL **HTTPS pública**, sin credenciales en la URL y en los puertos admitidos por `UrlGuard` (80 o 443). Se rechazan direcciones privadas, reservadas, loopback, metadatos, alias numéricos y DNS mixtos con alguna IP no pública. La dirección se valida al crear y de nuevo al entregar; la conexión se fija a la IP validada, sin proxy ni redirecciones. Un receptor que devuelve una redirección queda bloqueado: no se visita su `Location`.
++
++## Crear un receptor
++
++1. Elige la marca y un nombre reconocible.
++2. Introduce la URL pública del receptor.
++3. Usa **Generar secreto** o uno propio de 32–128 letras ASCII, números, guiones o guiones bajos. El generador utiliza 32 bytes aleatorios del navegador y los presenta como 64 caracteres hexadecimales.
++4. Copia el secreto al receptor antes de guardar. Se almacena cifrado con la clave de la aplicación y no vuelve a aparecer en el listado, las respuestas del servidor ni los datos temporales de un formulario rechazado.
++5. Selecciona los eventos y crea el webhook. URL y secreto son inmutables; para cambiarlos, crea otra suscripción y elimina la anterior.
++
++Hay un máximo predeterminado de **20 suscripciones por usuario**, entre todas sus marcas, y **30 cambios por minuto por usuario**. Las altas simultáneas se serializan con el lock del usuario para respetar ese máximo. Los límites de una persona no consumen el presupuesto de otra.
++
++## Eventos y cuerpo
++
++| Evento | Cuándo se genera | Campos de `data` |
++|---|---|---|
++| `post.published` | Un destino propio cambia a publicada | `post_id`, `target_id`, `network`, `status` |
++| `post.failed` | Un destino propio pasa a fallo definitivo, incluso si su cuenta fue borrada | `post_id`, `target_id`, `network`, `status` |
++| `comment.created` | Se guarda por primera vez un comentario de otra persona en el inbox propio | `comment_id`, `target_id`, `post_id`, `network` |
++
++Una actualización o sincronización repetida de un comentario no crea otro evento; las respuestas propias se excluyen. Los eventos no incluyen credenciales, URLs de subida, texto del comentario, autor ni mensajes privados de error del proveedor. La asociación de usuario, marca, publicación y cuenta se comprueba antes de generar o entregar los datos.
++
++Cada cuerpo JSON contiene:
++
++```json
++{
++  "id": "4f3d63a0-2f40-4c11-a835-77aab71ba015",
++  "event": "post.published",
++  "occurred_at": "2026-11-18T12:00:00+00:00",
++  "brand_id": 12,
++  "data": {"post_id": 31, "target_id": 45, "network": "facebook", "status": "publicada"}
++}
++```
++
++Los identificadores del ejemplo son ficticios. El cuerpo se persiste una vez y cada intento envía **esos mismos bytes**, sin volver a codificarlos. `occurred_at` corresponde al evento; la marca de tiempo de la firma corresponde al intento.
++
++## Verificar la firma
++
++Las peticiones son `POST`, `Content-Type: application/json`, con estas cabeceras:
++
++| Cabecera | Valor |
++|---|---|
++| `X-SocialScheduler-Event` | Nombre del evento |
++| `X-SocialScheduler-Event-Id` | UUID del evento, estable en los reintentos |
++| `X-SocialScheduler-Signature` | `t=<timestamp Unix>,v1=<HMAC-SHA256 hexadecimal>` |
++
++La entrada del HMAC es `timestamp + "." + cuerpo_crudo`. La clave es el secreto compartido. Verifica el cuerpo antes de interpretarlo; no lo decodifiques y vuelvas a generar para calcular la firma. Ejemplo de receptor PHP:
++
++```php
++function verifyWebhook(string $rawBody, string $header, string $secret, int $now): array
++{
++    if (!preg_match('/\At=(\d+),v1=([a-f0-9]{64})\z/D', $header, $parts)
++        || abs($now - (int) $parts[1]) > 300) {
++        throw new RuntimeException('Firma o marca de tiempo inválida.');
++    }
++    $expected = hash_hmac('sha256', $parts[1].'.'.$rawBody, $secret);
++    if (!hash_equals($expected, $parts[2])) {
++        throw new RuntimeException('Firma inválida.');
++    }
++    return json_decode($rawBody, true, flags: JSON_THROW_ON_ERROR);
++}
++```
++
++Mantén sincronizado el reloj del receptor. Después de verificar, valida el esquema y **deduplica por `id`** dentro de tu transacción de procesamiento. Devuelve un `2xx` después de guardar el resultado; para un evento ya procesado, responde también `2xx` sin repetir su efecto. Una petición puede repetirse si se pierde la respuesta o el proceso cae después de que el receptor la acepte. No se garantiza recepción si el receptor permanece indisponible.
++
++## Reintentos y estados
++
++Hasta cinco intentos, con esperas de **1, 5, 15 y 60 minutos** entre fallos transitorios. Un `2xx` confirma la entrega. Se reintentan errores de conexión, `5xx`, `408`, `425` y `429`. Los demás errores HTTP terminan en **Fallida**; cualquier `3xx` o URL que deje de ser segura termina en **Bloqueada**. Al agotar los intentos queda **Reintentos agotados**. No se guarda el cuerpo de respuesta remoto ni las cabeceras de firma en el historial.
++
++La pantalla muestra estado, intentos, último código HTTP, motivo seguro, fecha de actualización y próximo intento. **Actualizar estado** recarga estas observaciones. Pausar o quitar un evento cancela las entregas pendientes cuando se procesan; reactivar recibe eventos nuevos y no reinicia las canceladas. Borrar un webhook elimina sus entregas; los eventos durables de la marca se conservan mientras exista la marca o su propietario.
++
++El evento y sus entregas se guardan en un outbox. En publicación forman parte de la transacción de estado; al sincronizar un comentario nuevo se confirma o revierte junto con la inserción del comentario. Una caída de la cola después del commit no borra el evento: el barrido programado recupera hasta 500 entregas vencidas por minuto. El lock único del job evita encolados repetidos y el lock de la fila serializa los intentos en MySQL. En SQLite se escribe el intento dentro de la transacción antes de enviar, adquiriendo su lock de escritura: una carrera que pierda el lock falla antes de hacer HTTP y puede reintentarse. El cuerpo mantiene el mismo UUID si hay que repetir una petición ambigua.
++
++## Operación y límites de las pruebas
++
++Debe funcionar el scheduler y un worker de la cola configurada:
++
++| Variable opcional | Por defecto | Efecto |
++|---|---|---|
++| `WEBHOOK_QUEUE` | `poll` | Cola de entrega y recuperación; una cola distinta requiere su worker |
++| `WEBHOOK_MAX_PER_USER` | `20` | Máximo de receptores por usuario, al menos uno |
++| `WEBHOOK_SETTINGS_PER_MINUTE` | `30` | Cambios de configuración por usuario/minuto, al menos uno |
++
++Cada petición tiene tres segundos para conectar y diez de tiempo total; la respuesta se abre en streaming y se cierra sin consumir su cuerpo. El timeout del job es veinte segundos. Los secretos del webhook están incluidos en `app:reencrypt`: utiliza el procedimiento existente de `APP_PREVIOUS_KEYS`, simulación y recifrado al rotar `APP_KEY`. Perder las claves sin recifrar puede impedir descifrarlos; en ese caso la entrega queda bloqueada y se necesita un receptor nuevo.
++
++Pest usa `Http::fake` y DNS inyectado para probar firma, reintentos, SSRF y privacidad. Playwright activa un receptor virtual únicamente en el bootstrap aislado, con `APP_ENV=e2e`, URL local y bandera dentro de su propio almacenamiento. Ese receptor valida la firma contra un secreto ficticio conocido; no se permite usar una URL privada real ni se desactiva el guard productivo. Los handlers se invocan directamente: estas pruebas no acreditan un worker nativo ni un receptor HTTPS externo real.
+diff --git a/resources/js/Layouts/AuthenticatedLayout.vue b/resources/js/Layouts/AuthenticatedLayout.vue
+index f4d2959..f03b481 100644
+--- a/resources/js/Layouts/AuthenticatedLayout.vue
++++ b/resources/js/Layouts/AuthenticatedLayout.vue
+@@ -218,6 +218,7 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
+                             <DropdownLink :href="route('notifications.index')">Avisos</DropdownLink>
+                             <DropdownLink :href="route('activity.index')">Actividad</DropdownLink>
+                             <DropdownLink :href="route('goals.index')">Objetivos</DropdownLink>
++                            <DropdownLink :href="route('webhooks.index')">Webhooks</DropdownLink>
+                             <DropdownLink v-if="page.props.canViewSystemStatus" :href="route('system.index')"
+                                 >Estado del sistema</DropdownLink
+                             >
+diff --git a/resources/js/Pages/Webhooks/Index.vue b/resources/js/Pages/Webhooks/Index.vue
+new file mode 100644
+index 0000000..bef3a7b
+--- /dev/null
++++ b/resources/js/Pages/Webhooks/Index.vue
+@@ -0,0 +1,363 @@
++<script setup>
++import { computed, nextTick, ref, watch } from 'vue';
++import { Head, Link, router, useForm } from '@inertiajs/vue3';
++import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
++import Pagination from '@/Components/Pagination.vue';
++import { useConfirm } from '@/Composables/useConfirm';
++
++/** @import { WebhookInput, WebhookView, WebhooksPageProps } from '@/types/webhooks' */
++const props = defineProps({
++    brands: { type: /** @type {import('vue').PropType<WebhooksPageProps['brands']>} */ (Array), required: true },
++    brand: { type: /** @type {import('vue').PropType<WebhooksPageProps['brand']>} */ (Object), default: null },
++    webhooks: { type: /** @type {import('vue').PropType<WebhooksPageProps['webhooks']>} */ (Array), required: true },
++    events: { type: /** @type {import('vue').PropType<WebhooksPageProps['events']>} */ (Object), required: true },
++    delivery_states: {
++        type: /** @type {import('vue').PropType<WebhooksPageProps['delivery_states']>} */ (Object),
++        required: true,
++    },
++    max_per_user: { type: Number, required: true },
++    pagination: {
++        type: /** @type {import('vue').PropType<WebhooksPageProps['pagination']>} */ (Object),
++        required: true,
++    },
++});
++const ask = useConfirm();
++const editing = ref(/** @type {number | null} */ (null));
++const selectedBrand = ref(props.brand?.id ?? null);
++const navigating = ref(false);
++const deleting = ref(/** @type {number | null} */ (null));
++const showSecret = ref(false);
++const generationError = ref('');
++const nameInput = ref(/** @type {HTMLInputElement | null} */ (null));
++/** @returns {WebhookInput} */
++const defaults = () => ({ name: '', url: '', secret: '', events: ['post.published'], enabled: true });
++const form = useForm(defaults());
++const busy = computed(() => form.processing || navigating.value || deleting.value !== null);
++const errors = computed(() => [
++    ...Object.values(form.errors),
++    ...(generationError.value ? [generationError.value] : []),
++]);
++const dates = new Intl.DateTimeFormat('es-ES', { dateStyle: 'short', timeStyle: 'short' });
++
++watch(
++    () => props.brand?.id,
++    (id) => {
++        selectedBrand.value = id ?? null;
++    },
++);
++
++function reset() {
++    editing.value = null;
++    showSecret.value = false;
++    generationError.value = '';
++    form.defaults(defaults());
++    form.reset();
++    form.clearErrors();
++}
++
++function generateSecret() {
++    generationError.value = '';
++    if (!globalThis.crypto?.getRandomValues) {
++        generationError.value =
++            'No se puede generar un secreto en este navegador. Introduce uno propio de al menos 32 caracteres.';
++        return;
++    }
++    form.secret = Array.from(crypto.getRandomValues(new Uint8Array(32)), (byte) =>
++        byte.toString(16).padStart(2, '0'),
++    ).join('');
++}
++
++/** @param {WebhookView} hook */
++async function edit(hook) {
++    if (busy.value) return;
++    if (form.isDirty && !(await ask('¿Descartar los cambios pendientes del formulario?'))) return;
++    form.defaults({ name: hook.name, url: hook.url, secret: '', events: [...hook.events], enabled: hook.enabled });
++    form.reset();
++    form.clearErrors();
++    generationError.value = '';
++    editing.value = hook.id;
++    await nextTick();
++    nameInput.value?.focus();
++}
++
++function submit() {
++    if (busy.value || !props.brand) return;
++    form.transform((data) =>
++        editing.value === null ? data : { name: data.name, events: data.events, enabled: data.enabled },
++    );
++    const options = { preserveScroll: true, onSuccess: reset };
++    if (editing.value === null) form.post(route('brands.webhooks.store', props.brand.id), options);
++    else form.put(route('webhooks.update', editing.value), options);
++}
++
++async function changeBrand() {
++    if (busy.value || selectedBrand.value === props.brand?.id) return;
++    if (form.isDirty && !(await ask('¿Descartar los cambios pendientes y cambiar de marca?'))) {
++        selectedBrand.value = props.brand?.id ?? null;
++        return;
++    }
++    router.get(
++        route('webhooks.index'),
++        { brand_id: selectedBrand.value },
++        {
++            preserveState: false,
++            onStart: () => {
++                navigating.value = true;
++            },
++            onFinish: () => {
++                navigating.value = false;
++            },
++        },
++    );
++}
++
++/** @param {WebhookView} hook */
++async function remove(hook) {
++    if (
++        busy.value ||
++        !(await ask({
++            title: 'Eliminar webhook',
++            message: `¿Eliminar «${hook.name}» y sus entregas pendientes?`,
++            confirmLabel: 'Eliminar webhook',
++        }))
++    )
++        return;
++    router.delete(route('webhooks.destroy', hook.id), {
++        preserveScroll: true,
++        onStart: () => {
++            deleting.value = hook.id;
++        },
++        onFinish: () => {
++            deleting.value = null;
++        },
++        onSuccess: () => {
++            if (editing.value === hook.id) reset();
++        },
++    });
++}
++
++function refresh() {
++    if (busy.value) return;
++    router.reload({
++        only: ['webhooks', 'pagination'],
++        onStart: () => {
++            navigating.value = true;
++        },
++        onFinish: () => {
++            navigating.value = false;
++        },
++    });
++}
++</script>
++
++<template>
++    <Head title="Webhooks salientes" />
++    <AuthenticatedLayout>
++        <template #header><h1 class="text-xl font-semibold text-slate-900">Webhooks salientes</h1></template>
++        <div class="space-y-6">
++            <div v-if="brands.length" class="max-w-md space-y-1">
++                <label for="webhooks-brand" class="block text-sm font-medium text-slate-800">Marca</label>
++                <select
++                    id="webhooks-brand"
++                    v-model.number="selectedBrand"
++                    class="field w-full"
++                    :disabled="busy"
++                    @change="changeBrand"
++                >
++                    <option v-for="option in brands" :key="option.id" :value="option.id">{{ option.name }}</option>
++                </select>
++            </div>
++            <p v-if="!brand" class="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-700">
++                Crea una marca para configurar webhooks.
++                <Link :href="route('brands.create')" class="link">Crear marca</Link>
++            </p>
++            <template v-else>
++                <p class="text-sm text-slate-600"
++                    >Recibe eventos de esta marca en un receptor HTTPS público. Máximo {{ max_per_user }} webhooks entre
++                    todas tus marcas.</p
++                >
++                <form
++                    class="grid gap-4 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-2"
++                    aria-label="Configuración del webhook"
++                    @submit.prevent="submit"
++                >
++                    <h2
++                        class="text-lg font-semibold text-slate-900 sm:col-span-2"
++                        >{{ editing === null ? 'Nuevo webhook' : 'Editar webhook' }}</h2
++                    >
++                    <div class="min-w-0 space-y-1 sm:col-span-2">
++                        <label for="webhook-name" class="block text-sm font-medium text-slate-800"
++                            >Nombre del webhook</label
++                        >
++                        <input
++                            id="webhook-name"
++                            ref="nameInput"
++                            v-model="form.name"
++                            class="field w-full"
++                            required
++                            maxlength="120"
++                            :disabled="busy"
++                        />
++                    </div>
++                    <template v-if="editing === null">
++                        <div class="min-w-0 space-y-1 sm:col-span-2">
++                            <label for="webhook-url" class="block text-sm font-medium text-slate-800"
++                                >URL del receptor</label
++                            >
++                            <input
++                                id="webhook-url"
++                                v-model="form.url"
++                                type="url"
++                                class="field w-full"
++                                required
++                                maxlength="2048"
++                                placeholder="https://tu-receptor.example/eventos"
++                                :disabled="busy"
++                            />
++                        </div>
++                        <div class="min-w-0 space-y-2 sm:col-span-2">
++                            <label for="webhook-secret" class="block text-sm font-medium text-slate-800"
++                                >Secreto de firma</label
++                            >
++                            <input
++                                id="webhook-secret"
++                                v-model="form.secret"
++                                :type="showSecret ? 'text' : 'password'"
++                                class="field w-full"
++                                autocomplete="new-password"
++                                :spellcheck="false"
++                                required
++                                minlength="32"
++                                maxlength="128"
++                                pattern="[A-Za-z0-9_\-]{32,128}"
++                                aria-describedby="webhook-secret-help"
++                                :disabled="busy"
++                            />
++                            <div class="flex flex-wrap items-center gap-4">
++                                <button type="button" class="btn-secondary" :disabled="busy" @click="generateSecret"
++                                    >Generar secreto</button
++                                >
++                                <label class="flex items-center gap-2 text-sm text-slate-800"
++                                    ><input
++                                        v-model="showSecret"
++                                        type="checkbox"
++                                        class="rounded border-slate-300"
++                                        :disabled="busy"
++                                    />
++                                    Mostrar secreto</label
++                                >
++                            </div>
++                            <p id="webhook-secret-help" class="text-xs text-slate-600"
++                                >Copia el secreto antes de crear el webhook: el servidor no vuelve a mostrarlo. Usa de
++                                32 a 128 letras, números, guiones o guiones bajos.</p
++                            >
++                        </div>
++                    </template>
++                    <p v-else class="break-all text-sm text-slate-600 sm:col-span-2"
++                        >{{ form.url }} · Para cambiar de URL o secreto, crea un webhook nuevo.</p
++                    >
++                    <fieldset class="space-y-2 sm:col-span-2" :disabled="busy">
++                        <legend class="mb-2 text-sm font-medium text-slate-800">Eventos que quieres recibir</legend>
++                        <label
++                            v-for="(label, eventName) in events"
++                            :key="eventName"
++                            class="flex items-center gap-2 text-sm text-slate-800"
++                        >
++                            <input
++                                v-model="form.events"
++                                type="checkbox"
++                                :value="eventName"
++                                class="rounded border-slate-300"
++                            />
++                            {{ label }}
++                        </label>
++                    </fieldset>
++                    <label class="flex items-center gap-2 text-sm text-slate-800 sm:col-span-2"
++                        ><input
++                            v-model="form.enabled"
++                            type="checkbox"
++                            class="rounded border-slate-300"
++                            :disabled="busy"
++                        />
++                        Activo</label
++                    >
++                    <div v-if="errors.length" role="alert" class="space-y-1 text-sm text-red-700 sm:col-span-2"
++                        ><p v-for="error in errors" :key="error">{{ error }}</p></div
++                    >
++                    <div class="flex flex-wrap gap-2 sm:col-span-2">
++                        <button
++                            type="submit"
++                            class="btn-primary"
++                            :disabled="busy"
++                            >{{ form.processing ? 'Guardando…' : editing === null ? 'Crear webhook' : 'Guardar cambios' }}</button
++                        >
++                        <button
++                            v-if="editing !== null"
++                            type="button"
++                            class="btn-secondary"
++                            :disabled="busy"
++                            @click="reset"
++                            >Cancelar edición</button
++                        >
++                    </div>
++                </form>
++                <section class="space-y-3" aria-labelledby="webhooks-list-title">
++                    <div class="flex flex-wrap items-center justify-between gap-3">
++                        <h2 id="webhooks-list-title" class="text-lg font-semibold text-slate-900"
++                            >Receptores de la marca</h2
++                        >
++                        <button type="button" class="btn-secondary" :disabled="busy" @click="refresh"
++                            >Actualizar estado</button
++                        >
++                    </div>
++                    <p v-if="!webhooks.length" class="text-sm text-slate-600">No hay webhooks en esta página.</p>
++                    <article
++                        v-for="hook in webhooks"
++                        :key="hook.id"
++                        class="space-y-2 rounded-lg border border-slate-200 bg-white p-4"
++                    >
++                        <div class="flex flex-wrap items-start justify-between gap-3">
++                            <div class="min-w-0"
++                                ><h3 class="break-words font-semibold text-slate-900">{{ hook.name }}</h3
++                                ><p class="text-sm text-slate-600">{{ hook.enabled ? 'Activo' : 'Pausado' }}</p></div
++                            >
++                            <div class="flex gap-2"
++                                ><button type="button" class="btn-secondary" :disabled="busy" @click="edit(hook)"
++                                    >Editar</button
++                                ><button type="button" class="btn-secondary" :disabled="busy" @click="remove(hook)"
++                                    >Eliminar</button
++                                ></div
++                            >
++                        </div>
++                        <p class="break-all text-sm text-slate-700">{{ hook.url }}</p>
++                        <ul class="flex flex-wrap gap-x-3 text-sm text-slate-600"
++                            ><li v-for="eventName in hook.events" :key="eventName">{{ events[eventName] }}</li></ul
++                        >
++                        <div v-if="hook.last_delivery" class="space-y-1 text-sm text-slate-700">
++                            <p
++                                >Última entrega:
++                                {{ delivery_states[hook.last_delivery.status] ?? 'Estado no disponible' }} · Intentos:
++                                {{ hook.last_delivery.attempts
++                                }}<span v-if="hook.last_delivery.http_status !== null">
++                                    · HTTP {{ hook.last_delivery.http_status }}</span
++                                ></p
++                            >
++                            <p>Actualizado: {{ dates.format(new Date(hook.last_delivery.updated_at)) }}</p>
++                            <p v-if="hook.last_delivery.reason">{{ hook.last_delivery.reason }}</p>
++                            <p v-if="hook.last_delivery.next_attempt_at"
++                                >Próximo intento: {{ dates.format(new Date(hook.last_delivery.next_attempt_at)) }}</p
++                            >
++                        </div>
++                        <p v-else class="text-sm text-slate-600">Aún sin entregas.</p>
++                    </article>
++                    <Pagination
++                        :page="pagination"
++                        route-name="webhooks.index"
++                        :params="{ brand_id: brand.id }"
++                        label="Paginación de webhooks"
++                    />
++                </section>
++            </template>
++        </div>
++    </AuthenticatedLayout>
++</template>
+diff --git a/resources/js/types/webhooks.d.ts b/resources/js/types/webhooks.d.ts
+new file mode 100644
+index 0000000..de5866b
+--- /dev/null
++++ b/resources/js/types/webhooks.d.ts
+@@ -0,0 +1,35 @@
++import type { BrandRef } from './shell';
++import type { CursorPage } from './pagination';
++
++export type WebhookEventName = 'post.published' | 'post.failed' | 'comment.created';
++export type DeliveryState = 'pending' | 'delivered' | 'blocked' | 'failed' | 'exhausted' | 'cancelled';
++
++export interface WebhookInput {
++    name: string;
++    url: string;
++    secret: string;
++    events: WebhookEventName[];
++    enabled: boolean;
++}
++
++export interface WebhookView extends Omit<WebhookInput, 'secret'> {
++    id: number;
++    last_delivery: {
++        status: DeliveryState;
++        attempts: number;
++        http_status: number | null;
++        reason: string | null;
++        next_attempt_at: string | null;
++        updated_at: string;
++    } | null;
++}
++
++export interface WebhooksPageProps {
++    brands: BrandRef[];
++    brand: BrandRef | null;
++    webhooks: WebhookView[];
++    events: Record<WebhookEventName, string>;
++    delivery_states: Record<DeliveryState, string>;
++    max_per_user: number;
++    pagination: CursorPage;
++}
+diff --git a/routes/console.php b/routes/console.php
+index 4852115..d5785f9 100644
+--- a/routes/console.php
++++ b/routes/console.php
+@@ -4,6 +4,7 @@
+ use App\Jobs\CollectCompetitorSnapshots;
+ use App\Jobs\CollectSnapshots;
+ use App\Jobs\DispatchDuePosts;
++use App\Jobs\DispatchPendingWebhooks;
+ use App\Jobs\EvaluateGoals;
+ use App\Jobs\GenerateAutolistPosts;
+ use App\Jobs\GenerateSeriesOccurrences;
+@@ -87,3 +88,6 @@
+ // Objetivos sobre datos locales: después de la recogida de snapshots, sin llamadas a las redes.
+ Schedule::job(new EvaluateGoals)->dailyAt((string) config('goals.daily_at', '13:15'))
+     ->name('evaluate-goals')->withoutOverlapping();
++
++// Outbox: las entregas conservadas tras una caída de cola se reencolan al recuperarse.
++Schedule::job(new DispatchPendingWebhooks)->everyMinute()->name('dispatch-pending-webhooks')->withoutOverlapping();
+diff --git a/routes/web.php b/routes/web.php
+index 8a451de..0df9e62 100644
+--- a/routes/web.php
++++ b/routes/web.php
+@@ -31,6 +31,7 @@
+ use App\Http\Controllers\Studio\StudioExportDownloadController;
+ use App\Http\Controllers\Studio\StudioThumbnailController;
+ use App\Http\Controllers\SystemStatusController;
++use App\Http\Controllers\WebhookController;
+ use Illuminate\Support\Facades\Route;
+ use Inertia\Inertia;
+ 
+@@ -81,6 +82,10 @@
+ 
+     Route::get('activity', [ActivityController::class, 'index'])->name('activity.index');
+     Route::get('system', SystemStatusController::class)->name('system.index');
++    Route::get('webhooks', [WebhookController::class, 'index'])->name('webhooks.index');
++    Route::post('brands/{brand}/webhooks', [WebhookController::class, 'store'])->name('brands.webhooks.store')->middleware('throttle:webhook-settings');
++    Route::put('webhooks/{webhook}', [WebhookController::class, 'update'])->name('webhooks.update')->middleware('throttle:webhook-settings');
++    Route::delete('webhooks/{webhook}', [WebhookController::class, 'destroy'])->name('webhooks.destroy')->middleware('throttle:webhook-settings');
+     Route::get('goals', [GoalController::class, 'index'])->name('goals.index');
+     Route::post('brands/{brand}/goals', [GoalController::class, 'store'])->name('brands.goals.store');
+     Route::put('goals/{goal}', [GoalController::class, 'update'])->name('goals.update');
+diff --git a/tests/Feature/Webhooks/WebhookDeliveryTest.php b/tests/Feature/Webhooks/WebhookDeliveryTest.php
+new file mode 100644
+index 0000000..afacf0d
+--- /dev/null
++++ b/tests/Feature/Webhooks/WebhookDeliveryTest.php
+@@ -0,0 +1,326 @@
++<?php
++
++use App\Enums\PostStatus;
++use App\Events\OutboundDomainEvent;
++use App\Jobs\DeliverWebhook;
++use App\Models\Brand;
++use App\Models\Post;
++use App\Models\PostTarget;
++use App\Models\SocialAccount;
++use App\Models\User;
++use App\Models\Webhook;
++use App\Models\WebhookDelivery;
++use App\Models\WebhookEvent;
++use App\Services\Media\UrlGuard;
++use App\Services\Posts\PostTransitions;
++use App\Services\Webhooks\WebhookSubscriptions;
++use Illuminate\Console\Scheduling\Schedule;
++use Illuminate\Encryption\Encrypter;
++use Illuminate\Http\Client\ConnectionException;
++use Illuminate\Http\Client\Request;
++use Illuminate\Support\Carbon;
++use Illuminate\Support\Facades\Crypt;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Event;
++use Illuminate\Support\Facades\Http;
++use Illuminate\Support\Facades\Queue;
++use Illuminate\Support\Testing\Fakes\QueueFake;
++use Illuminate\Validation\ValidationException;
++
++beforeEach(function () {
++    Carbon::setTestNow('2026-11-18 08:00:00 UTC');
++    Http::preventStrayRequests();
++    Queue::fake();
++    app()->instance(UrlGuard::class, new UrlGuard(fn () => ['93.184.216.34']));
++});
++
++afterEach(fn () => Carbon::setTestNow());
++
++test('WebhookDelivery: a real publication transition queues one owner delivery for a matching subscription', function () {
++    $owner = User::factory()->create();
++    $brand = Brand::factory()->for($owner)->create();
++    $this->actingAs($owner)->post('/brands/'.$brand->id.'/webhooks', [
++        'name' => 'Publicadas', 'url' => 'https://hooks.example.test/receiver',
++        'events' => ['post.published'], 'secret' => str_repeat('a', 64),
++    ])->assertRedirect()->assertSessionHasNoErrors();
++    $post = Post::factory()->for($brand)->create();
++    $target = PostTarget::factory()->for($post)->status(PostStatus::Publishing)->create();
++    app(PostTransitions::class)->transition($target, PostStatus::Published, ['external_id' => 'published-test']);
++    Queue::assertPushed(DeliverWebhook::class, 1);
++    Http::assertNothingSent();
++});
++
++test('WebhookDelivery: an owner manages subscriptions without exposing the encrypted secret or accepting a client owner', function () {
++    $owner = User::factory()->create();
++    $other = User::factory()->create();
++    $brand = Brand::factory()->for($owner)->create();
++    $data = ['name' => 'Publicaciones', 'url' => 'https://hooks.example.test/receiver',
++        'events' => ['post.published'], 'secret' => str_repeat('a', 64), 'user_id' => $other->id];
++    $this->actingAs($owner)->post('/brands/'.$brand->id.'/webhooks', $data)
++        ->assertRedirect()->assertSessionHasNoErrors();
++    $hook = Webhook::ownedBy($owner->id)->sole();
++    expect($hook->user_id)->toBe($owner->id)->and($hook->brand_id)->toBe($brand->id)
++        ->and($hook->secret)->toBe($data['secret'])->and($hook->getRawOriginal('secret'))->not->toBe($data['secret']);
++    $response = $this->get('/webhooks?brand_id='.$brand->id)->assertOk();
++    expect($response->getContent())->not->toContain($data['secret'])->not->toContain($hook->getRawOriginal('secret'));
++    $this->put('/webhooks/'.$hook->id, ['name' => 'Pausado', 'events' => ['post.failed'], 'enabled' => false])
++        ->assertRedirect()->assertSessionHasNoErrors();
++    expect($hook->fresh()->enabled)->toBeFalse()->and($hook->fresh()->events)->toBe(['post.failed']);
++    $this->actingAs($other)->delete('/webhooks/'.$hook->id)->assertNotFound();
++    $this->actingAs($owner)->delete('/webhooks/'.$hook->id)->assertRedirect();
++    expect(Webhook::withoutUserScope()->count())->toBe(0);
++    Http::assertNothingSent();
++    Queue::assertNothingPushed();
++});
++
++function preparedWebhookDelivery(): array
++{
++    $owner = User::factory()->create();
++    $brand = Brand::factory()->for($owner)->create();
++    $hook = app(WebhookSubscriptions::class)->create($owner, $brand, [
++        'name' => 'Firmado', 'url' => 'https://hooks.example.test/receiver',
++        'events' => ['post.published'], 'secret' => str_repeat('a', 64),
++    ]);
++    $post = Post::factory()->for($brand)->create();
++    $target = PostTarget::factory()->for($post)->status(PostStatus::Publishing)->create(['progress' => ['upload_url' => 'PROVIDER-SECRET']]);
++    app(PostTransitions::class)->transition($target, PostStatus::Published, ['external_id' => 'published-test']);
++
++    return [$owner, $hook, WebhookDelivery::ownedBy($owner->id)->sole(), Queue::pushed(DeliverWebhook::class)->sole()];
++}
++
++test('WebhookDelivery: exact stored bytes carry a verifiable timestamped HMAC and a repeated job does not resend success', function () {
++    [$owner, $hook, $delivery, $job] = preparedWebhookDelivery();
++    Http::fake(function () use ($delivery) {
++        expect($delivery->fresh()->attempts)->toBe(1);
++
++        return Http::response('', 204);
++    });
++    app()->call([$job, 'handle']);
++    app()->call([$job, 'handle']);
++    Http::assertSentCount(1);
++    Http::assertSent(function (Request $request) use ($hook) {
++        $body = $request->body();
++        $data = json_decode($body, true, flags: JSON_THROW_ON_ERROR);
++        $timestamp = (string) now()->timestamp;
++        $signature = 't='.$timestamp.',v1='.hash_hmac('sha256', $timestamp.'.'.$body, $hook->secret);
++
++        return $request->method() === 'POST' && $request->url() === $hook->url
++            && $request->hasHeader('X-SocialScheduler-Signature', $signature)
++            && $request->hasHeader('X-SocialScheduler-Event', 'post.published')
++            && $request->hasHeader('X-SocialScheduler-Event-Id', $data['id'])
++            && $data['event'] === 'post.published' && isset($data['occurred_at'])
++            && ! str_contains($body, 'PROVIDER-SECRET') && ! str_contains($body, $hook->secret);
++    });
++    expect($delivery->fresh()->status)->toBe('delivered')->and($delivery->fresh()->attempts)->toBe(1)
++        ->and($delivery->fresh()->last_http_status)->toBe(204)->and($delivery->fresh()->delivered_at)->not->toBeNull();
++    $response = $this->actingAs($owner)->get('/webhooks?brand_id='.$hook->brand_id)->assertOk();
++    expect($response->inertiaProps('webhooks.0.last_delivery.status'))->toBe('delivered')
++        ->and($response->inertiaProps('webhooks.0.last_delivery.attempts'))->toBe(1);
++});
++
++test('WebhookDelivery: transient responses retain five attempts with increasing backoff and stop after exhaustion', function () {
++    [, , $delivery] = preparedWebhookDelivery();
++    Http::fake(['https://hooks.example.test/*' => Http::response('REMOTE-PRIVATE-BODY', 503)]);
++    foreach ([60, 300, 900, 3600, null] as $index => $delay) {
++        $job = (new DeliverWebhook($delivery->id))->withFakeQueueInteractions();
++        app()->call([$job, 'handle']);
++        $fresh = $delivery->fresh();
++        expect($fresh->attempts)->toBe($index + 1)->and($fresh->last_http_status)->toBe(503)
++            ->and($fresh->last_error)->toBe('http_error');
++        if ($delay !== null) {
++            $job->assertReleased($delay);
++            expect($fresh->status)->toBe('pending')->and($fresh->next_attempt_at->equalTo(now()->addSeconds($delay)))->toBeTrue();
++            Carbon::setTestNow(now()->addSeconds($delay));
++        } else {
++            $job->assertNotReleased();
++            expect($fresh->status)->toBe('exhausted')->and($fresh->next_attempt_at)->toBeNull()
++                ->and($fresh->finished_at)->not->toBeNull();
++        }
++    }
++    app()->call([new DeliverWebhook($delivery->id), 'handle']);
++    Http::assertSentCount(5);
++    expect($delivery->fresh()->toJson())->not->toContain('REMOTE-PRIVATE-BODY');
++});
++
++test('WebhookDelivery: a redirect is a terminal blocked attempt and the guarded request pins DNS without a proxy', function () {
++    [, , $delivery, $job] = preparedWebhookDelivery();
++    $options = null;
++    Http::fake(function (Request $request, array $requestOptions) use (&$options) {
++        $options = $requestOptions;
++
++        return Http::response('', 302, ['Location' => 'http://127.0.0.1/private']);
++    });
++    app()->call([$job, 'handle']);
++    Http::assertSentCount(1);
++    expect($options['allow_redirects'])->toBeFalse()->and($options['proxy'])->toBe('')
++        ->and($options['curl'][CURLOPT_RESOLVE])->toBe(['hooks.example.test:443:93.184.216.34'])
++        ->and($options['stream'])->toBeTrue()
++        ->and($delivery->fresh()->status)->toBe('blocked')->and($delivery->fresh()->last_error)->toBe('redirect')
++        ->and($delivery->fresh()->attempts)->toBe(1)->and($delivery->fresh()->next_attempt_at)->toBeNull();
++});
++
++test('WebhookDelivery: DNS is revalidated at delivery and a changed private address receives no request', function () {
++    [, , $delivery, $job] = preparedWebhookDelivery();
++    app()->instance(UrlGuard::class, new UrlGuard(fn () => ['10.0.0.2']));
++    app()->call([$job, 'handle']);
++    expect($delivery->fresh()->status)->toBe('blocked')->and($delivery->fresh()->last_error)->toBe('unsafe_url')
++        ->and($delivery->fresh()->attempts)->toBe(1);
++    Http::assertNothingSent();
++});
++
++test('WebhookDelivery: a rejected web form never flashes its signing secret into session input', function () {
++    $owner = User::factory()->create();
++    $brand = Brand::factory()->for($owner)->create();
++    $this->actingAs($owner)->from('/webhooks')->post('/brands/'.$brand->id.'/webhooks', [
++        'name' => 'Rechazado', 'url' => 'https://127.0.0.1/private',
++        'events' => ['post.published'], 'secret' => str_repeat('b', 64),
++    ])->assertRedirect('/webhooks')->assertSessionHasErrors('url')->assertSessionMissing('_old_input.secret');
++});
++
++test('WebhookDelivery: a failed owned post with a deleted account still emits its terminal event', function () {
++    $owner = User::factory()->create();
++    $brand = Brand::factory()->for($owner)->create();
++    app(WebhookSubscriptions::class)->create($owner, $brand, [
++        'name' => 'Fallos', 'url' => 'https://hooks.example.test/receiver',
++        'events' => ['post.failed'], 'secret' => str_repeat('a', 64),
++    ]);
++    $post = Post::factory()->for($brand)->create();
++    $target = PostTarget::factory()->for($post)->status(PostStatus::Publishing)->create();
++    SocialAccount::ownedBy($owner->id)->findOrFail($target->social_account_id)->delete();
++    app(PostTransitions::class)->transition($target->fresh(), PostStatus::Failed);
++    Queue::assertPushed(DeliverWebhook::class, 1);
++});
++
++test('WebhookDelivery: a queue outage keeps the committed event and the scheduled sweep recovers its delivery', function () {
++    $owner = User::factory()->create();
++    $brand = Brand::factory()->for($owner)->create();
++    app(WebhookSubscriptions::class)->create($owner, $brand, [
++        'name' => 'Recuperación', 'url' => 'https://hooks.example.test/receiver',
++        'events' => ['post.published'], 'secret' => str_repeat('a', 64),
++    ]);
++    $fake = new class(app()) extends QueueFake
++    {
++        public bool $available = false;
++
++        public function push($job, $data = '', $queue = null)
++        {
++            if (! $this->available) {
++                throw new RuntimeException('test queue unavailable');
++            }
++
++            return parent::push($job, $data, $queue);
++        }
++    };
++    Queue::swap($fake);
++    Event::dispatch(new OutboundDomainEvent($owner->id, $brand->id, 'post.published', ['target_id' => 123]));
++    expect(WebhookDelivery::ownedBy($owner->id)->sole()->status)->toBe('pending');
++    Queue::assertNothingPushed();
++    $fake->available = true;
++    $event = collect(app(Schedule::class)->events())
++        ->first(fn ($event) => $event->description === 'dispatch-pending-webhooks');
++    expect($event)->not->toBeNull();
++    $event->run(app());
++    $repair = Queue::pushed('App\Jobs\DispatchPendingWebhooks')->sole();
++    app()->call([$repair, 'handle']);
++    Queue::assertPushed(DeliverWebhook::class, 1);
++    Http::assertNothingSent();
++});
++
++test('WebhookDelivery: a per-owner subscription cap bounds fanout across all owned brands', function () {
++    config()->set('webhooks.max_per_user', 1);
++    $owner = User::factory()->create();
++    $first = Brand::factory()->for($owner)->create();
++    $second = Brand::factory()->for($owner)->create();
++    $service = app(WebhookSubscriptions::class);
++    $data = ['name' => 'Límite', 'url' => 'https://hooks.example.test/receiver', 'events' => ['post.published'], 'secret' => str_repeat('a', 64)];
++    $service->create($owner, $first, $data);
++    expect(fn () => $service->create($owner, $second, $data))->toThrow(ValidationException::class);
++    expect(Webhook::ownedBy($owner->id)->count())->toBe(1);
++});
++
++test('WebhookDelivery: settings throttling is per owner and cannot consume another owners budget', function () {
++    config()->set('webhooks.settings_per_minute', 1);
++    $owner = User::factory()->create();
++    $other = User::factory()->create();
++    $brand = Brand::factory()->for($owner)->create();
++    $otherBrand = Brand::factory()->for($other)->create();
++    $data = ['name' => 'Ritmo', 'url' => 'https://hooks.example.test/receiver', 'events' => ['post.published'], 'secret' => str_repeat('a', 64)];
++    $this->actingAs($owner)->post('/brands/'.$brand->id.'/webhooks', $data)->assertRedirect()->assertSessionHasNoErrors();
++    $this->postJson('/brands/'.$brand->id.'/webhooks', $data)->assertTooManyRequests();
++    $this->actingAs($other)->post('/brands/'.$otherBrand->id.'/webhooks', $data)->assertRedirect()->assertSessionHasNoErrors();
++    expect(Webhook::withoutUserScope()->count())->toBe(2);
++});
++
++test('WebhookDelivery: an early duplicate job preserves the retry time without consuming another attempt', function () {
++    [, , $delivery, $job] = preparedWebhookDelivery();
++    Http::fake(['https://hooks.example.test/*' => Http::response('', 503)]);
++    app()->call([$job->withFakeQueueInteractions(), 'handle']);
++    $early = (new DeliverWebhook($delivery->id))->withFakeQueueInteractions();
++    app()->call([$early, 'handle']);
++    $early->assertReleased(60);
++    Http::assertSentCount(1);
++    expect($delivery->fresh()->attempts)->toBe(1);
++});
++
++test('WebhookDelivery: disabling or unsubscribing cancels pending work before HTTP', function (array $changes) {
++    [, $hook, $delivery, $job] = preparedWebhookDelivery();
++    $hook->forceFill($changes)->save();
++    app()->call([$job, 'handle']);
++    Http::assertNothingSent();
++    expect($delivery->fresh()->status)->toBe('cancelled')->and($delivery->fresh()->attempts)->toBe(0);
++})->with(['paused' => [['enabled' => false]], 'unsubscribed' => [['events' => ['post.failed']]]]);
++
++test('WebhookDelivery: connection failures retry without persisting private exception text', function () {
++    [, , $delivery, $job] = preparedWebhookDelivery();
++    Http::fake(fn () => throw new ConnectionException('PRIVATE-REMOTE-URL-WITH-SECRET'));
++    app()->call([$job->withFakeQueueInteractions(), 'handle']);
++    $job->assertReleased(60);
++    expect($delivery->fresh()->last_error)->toBe('connection_error')
++        ->and($delivery->fresh()->last_http_status)->toBeNull()
++        ->and($delivery->fresh()->toJson())->not->toContain('PRIVATE-REMOTE-URL-WITH-SECRET');
++});
++
++test('WebhookDelivery: a permanent HTTP refusal stops and a failed worker callback cannot overwrite success', function () {
++    [, , $delivery, $job] = preparedWebhookDelivery();
++    Http::fake(['https://hooks.example.test/*' => Http::response('', 401)]);
++    app()->call([$job->withFakeQueueInteractions(), 'handle']);
++    $job->assertNotReleased();
++    expect($delivery->fresh()->status)->toBe('failed')->and($delivery->fresh()->attempts)->toBe(1);
++    $delivery->forceFill(['status' => 'delivered', 'delivered_at' => now()])->save();
++    $job->failed(new RuntimeException('PRIVATE-WORKER-TEXT'));
++    expect($delivery->fresh()->status)->toBe('delivered')->and($delivery->fresh()->toJson())->not->toContain('PRIVATE-WORKER-TEXT');
++});
++
++test('WebhookDelivery: replaying one internal event is idempotent and a foreign brand event cannot fan out', function () {
++    [$owner, $hook] = preparedWebhookDelivery();
++    $event = new OutboundDomainEvent($owner->id, $hook->brand_id, 'post.published', ['target_id' => 99]);
++    Event::dispatch($event);
++    Event::dispatch($event);
++    $other = User::factory()->create();
++    Event::dispatch(new OutboundDomainEvent($other->id, $hook->brand_id, 'post.published', ['target_id' => 99]));
++    expect(WebhookDelivery::ownedBy($owner->id)->count())->toBe(2)
++        ->and(WebhookEvent::ownedBy($owner->id)->count())->toBe(2)
++        ->and(WebhookDelivery::ownedBy($other->id)->count())->toBe(0);
++    Queue::assertPushed(DeliverWebhook::class, 2);
++});
++
++test('WebhookDelivery: application key rotation covers the signing secret and is idempotent', function () {
++    $old = new Encrypter(str_repeat('o', 32), config('app.cipher'));
++    $current = new Encrypter(str_repeat('n', 32), config('app.cipher'));
++    Crypt::swap($current->previousKeys([$old->getKey()]));
++    $owner = User::factory()->create();
++    $brand = Brand::factory()->for($owner)->create();
++    $hook = app(WebhookSubscriptions::class)->create($owner, $brand, [
++        'name' => 'Rotación', 'url' => 'https://hooks.example.test/receiver',
++        'events' => ['post.published'], 'secret' => str_repeat('a', 64),
++    ]);
++    $previous = $old->encryptString(str_repeat('a', 64));
++    DB::table('webhooks')->where('id', $hook->id)->update(['secret' => $previous]);
++    $this->artisan('app:reencrypt --dry-run')->expectsOutput('Registros que se recifrarían: 1')->assertSuccessful();
++    expect($hook->fresh()->getRawOriginal('secret'))->toBe($previous);
++    $this->artisan('app:reencrypt')->expectsOutput('Registros recifrados: 1')->assertSuccessful();
++    expect($current->decryptString($hook->fresh()->getRawOriginal('secret')))->toBe(str_repeat('a', 64));
++    $ciphertext = $hook->fresh()->getRawOriginal('secret');
++    $this->artisan('app:reencrypt')->expectsOutput('Registros recifrados: 0')->assertSuccessful();
++    expect($hook->fresh()->getRawOriginal('secret'))->toBe($ciphertext);
++});
+diff --git a/tests/Feature/Webhooks/WebhookDomainTest.php b/tests/Feature/Webhooks/WebhookDomainTest.php
+new file mode 100644
+index 0000000..f001d49
+--- /dev/null
++++ b/tests/Feature/Webhooks/WebhookDomainTest.php
+@@ -0,0 +1,79 @@
++<?php
++
++use App\Connectors\Network;
++use App\Enums\PostStatus;
++use App\Events\OutboundDomainEvent;
++use App\Jobs\DeliverWebhook;
++use App\Models\Brand;
++use App\Models\InboxComment;
++use App\Models\Post;
++use App\Models\PostTarget;
++use App\Models\SocialAccount;
++use App\Models\User;
++use App\Models\WebhookEvent;
++use App\Services\InboxService;
++use App\Services\Media\UrlGuard;
++use App\Services\Webhooks\WebhookSubscriptions;
++use Illuminate\Support\Facades\Event;
++use Illuminate\Support\Facades\Http;
++use Illuminate\Support\Facades\Queue;
++use Tests\Support\FakeGraph;
++
++beforeEach(function () {
++    Http::preventStrayRequests();
++    Queue::fake();
++    app()->instance(UrlGuard::class, new UrlGuard(fn () => ['93.184.216.34']));
++});
++
++function webhookCommentFixture(): array
++{
++    $owner = User::factory()->create();
++    $brand = Brand::factory()->for($owner)->create();
++    app(WebhookSubscriptions::class)->create($owner, $brand, [
++        'name' => 'Comentarios', 'url' => 'https://hooks.example.test/comments',
++        'events' => ['comment.created'], 'secret' => str_repeat('a', 64),
++    ]);
++    $account = SocialAccount::factory()->for($owner)->for($brand)->create([
++        'network' => Network::Instagram, 'username' => 'owner-account',
++        'scopes' => ['instagram_manage_comments'],
++    ]);
++    $post = Post::factory()->for($brand)->create();
++    PostTarget::factory()->for($post)->create([
++        'social_account_id' => $account->id, 'network' => Network::Instagram,
++        'status' => PostStatus::Published, 'external_id' => 'published-post', 'published_at' => now()->subDay(),
++    ]);
++    $graph = new FakeGraph;
++    $graph->on('GET', '#^published-post/comments$#', ['data' => [
++        ['id' => 'received-comment', 'text' => 'COMMENT-PRIVATE-TEXT', 'username' => 'reader', 'timestamp' => now()->subHour()->toIso8601String()],
++        ['id' => 'own-reply', 'text' => 'Respuesta', 'username' => 'owner-account', 'timestamp' => now()->toIso8601String()],
++    ]]);
++
++    return [$owner, $account];
++}
++
++test('WebhookDomain: repeated real inbox sync emits only the new third-party comment and no sensitive text', function () {
++    [$owner, $account] = webhookCommentFixture();
++    expect(app(InboxService::class)->sync($account))->toBe(1)
++        ->and(app(InboxService::class)->sync($account))->toBe(0);
++    Queue::assertPushed(DeliverWebhook::class, 1);
++    $event = WebhookEvent::ownedBy($owner->id)->sole();
++    expect($event->event)->toBe('comment.created')->and($event->body)->not->toContain('COMMENT-PRIVATE-TEXT')
++        ->and(InboxComment::ownedBy($owner->id)->count())->toBe(2);
++});
++
++test('WebhookDomain: an event persistence failure rolls back inbox insertion so retry can emit the missing event', function () {
++    [$owner, $account] = webhookCommentFixture();
++    $breakOutbox = true;
++    Event::listen(OutboundDomainEvent::class, function (OutboundDomainEvent $event) use (&$breakOutbox): void {
++        if ($breakOutbox && $event->name === 'comment.created') {
++            throw new RuntimeException('test outbox write failure');
++        }
++    });
++    expect(fn () => app(InboxService::class)->sync($account))->toThrow(RuntimeException::class, 'test outbox write failure');
++    expect(InboxComment::ownedBy($owner->id)->where('is_own', false)->count())->toBe(0)
++        ->and(WebhookEvent::ownedBy($owner->id)->count())->toBe(0);
++    Queue::assertNothingPushed();
++    $breakOutbox = false;
++    expect(app(InboxService::class)->sync($account))->toBe(1);
++    Queue::assertPushed(DeliverWebhook::class, 1);
++});
+diff --git a/tests/Feature/Webhooks/WebhookSsrfTest.php b/tests/Feature/Webhooks/WebhookSsrfTest.php
+new file mode 100644
+index 0000000..f547ea8
+--- /dev/null
++++ b/tests/Feature/Webhooks/WebhookSsrfTest.php
+@@ -0,0 +1,29 @@
++<?php
++
++use App\Models\Brand;
++use App\Models\User;
++use App\Models\Webhook;
++use App\Services\Media\UrlGuard;
++use Illuminate\Support\Facades\Http;
++
++test('WebhookSsrf: private mixed metadata numeric and non-HTTPS receivers are rejected before any request', function (string $url, array $ips) {
++    Http::preventStrayRequests();
++    app()->instance(UrlGuard::class, new UrlGuard(fn () => $ips));
++    $owner = User::factory()->create();
++    $brand = Brand::factory()->for($owner)->create();
++    $this->actingAs($owner)->postJson('/brands/'.$brand->id.'/webhooks', [
++        'name' => 'Receptor inseguro', 'url' => $url,
++        'events' => ['post.published'], 'secret' => str_repeat('a', 64),
++    ])->assertUnprocessable()->assertJsonValidationErrors('url');
++    expect(Webhook::withoutUserScope()->count())->toBe(0);
++    Http::assertNothingSent();
++})->with([
++    'loopback' => ['https://127.0.0.1/hook', []],
++    'private' => ['https://10.0.0.1/hook', []],
++    'metadata' => ['https://169.254.169.254/hook', []],
++    'numeric alias' => ['https://2130706433/hook', []],
++    'mapped IPv6' => ['https://[::ffff:127.0.0.1]/hook', []],
++    'mixed DNS' => ['https://hooks.example.test/hook', ['93.184.216.34', '192.168.1.2']],
++    'no DNS' => ['https://hooks.example.test/hook', []],
++    'cleartext' => ['http://hooks.example.test/hook', ['93.184.216.34']],
++]);
+diff --git a/tests/e2e/isolated/bootstrap.php b/tests/e2e/isolated/bootstrap.php
+index ca677ad..4645a00 100644
+--- a/tests/e2e/isolated/bootstrap.php
++++ b/tests/e2e/isolated/bootstrap.php
+@@ -104,6 +104,10 @@ function generalBootstrap(): Application
+         $app->instance(UrlGuard::class, new UrlGuard(fn (string $host) => ['151.101.2.2']));
+         generalFakeCanva($root);
+     }
++    if (is_file($root.'/webhooks-on')) {
++        $app->instance(UrlGuard::class, new UrlGuard(fn (string $host) => $host === 'hooks.example.test' ? ['93.184.216.34'] : []));
++        generalFakeWebhooks($root);
++    }
+     $registry = new ConnectorRegistry;
+     foreach (['meta' => [Network::Instagram, Network::Facebook], 'google' => [Network::YouTube], 'tiktok' => [Network::TikTok], 'bluesky' => [Network::Bluesky], 'threads' => [Network::Threads], 'linkedin' => [Network::LinkedIn], 'pinterest' => [Network::Pinterest]] as $provider => $networks) {
+         $registry->register($provider === 'bluesky' ? $app->make(GeneralBlueskyConnector::class) : new T43Connector($provider, $networks));
+diff --git a/tests/e2e/isolated/fakes.php b/tests/e2e/isolated/fakes.php
+index 7d1b284..1abd0f6 100644
+--- a/tests/e2e/isolated/fakes.php
++++ b/tests/e2e/isolated/fakes.php
+@@ -10,6 +10,26 @@
+ use Illuminate\Http\Client\Request;
+ use Illuminate\Support\Facades\Http;
+ 
++/** Receptor virtual de E2E, activado únicamente por el bootstrap aislado con bandera propia. */
++function generalFakeWebhooks(string $root): void
++{
++    Http::fake(['https://hooks.example.test/*' => function (Request $request) use ($root) {
++        $header = $request->header('X-SocialScheduler-Signature')[0] ?? '';
++        $matches = [];
++        $format = preg_match('/\At=(\d+),v1=([a-f0-9]{64})\z/D', $header, $matches) === 1;
++        $body = json_decode($request->body(), true);
++        $valid = $format && abs(now()->timestamp - (int) $matches[1]) <= 300
++            && hash_equals(hash_hmac('sha256', $matches[1].'.'.$request->body(), 'e2e-webhook-signing-key-0123456789abcdef'), $matches[2])
++            && is_array($body) && isset($body['id'], $body['event'], $body['occurred_at']);
++        file_put_contents($root.'/webhook-receiver.ndjson', json_encode([
++            'event_id' => is_array($body) ? ($body['id'] ?? null) : null,
++            'signature_valid' => $valid, 'body_sha256' => hash('sha256', $request->body()),
++        ], JSON_THROW_ON_ERROR)."\n", FILE_APPEND | LOCK_EX);
++
++        return Http::response('', $valid ? 204 : 401);
++    }]);
++}
++
+ /** Keep the real credential-form contract while ensuring connection and refresh cannot contact a PDS. */
+ class GeneralBlueskyConnector extends BlueskyConnector
+ {
+diff --git a/tests/e2e/webhooks.spec.ts b/tests/e2e/webhooks.spec.ts
+new file mode 100644
+index 0000000..9bdcdce
+--- /dev/null
++++ b/tests/e2e/webhooks.spec.ts
+@@ -0,0 +1,111 @@
++import { expect, test } from '@playwright/test';
++import {
++    artisan,
++    axeSeriousCritical,
++    cleanComposerBrands,
++    e2eUser,
++    expectNoOverflow,
++    loginAs,
++    seedComposerBrand,
++    stamp,
++    watch,
++    type ComposerBrand,
++} from './helpers';
++
++const SECRET = 'e2e-webhook-signing-key-0123456789abcdef';
++
++test.describe('Webhooks salientes', { tag: '@responsive' }, () => {
++    let brand: ComposerBrand;
++    test.beforeEach(async ({ page }, info) => {
++        const user = e2eUser(info.project.name);
++        cleanComposerBrands(user.email);
++        brand = seedComposerBrand(user.email, `webhooks-${stamp()}`);
++        artisan(String.raw`file_put_contents(storage_path('webhooks-on'), '1');`);
++        await loginAs(page, user);
++        await page.goto(`/brands/${brand.id}`);
++        await page.getByRole('button', { name: 'Menú de usuario', exact: true }).click();
++        await expect(page.getByRole('link', { name: 'Webhooks', exact: true })).toBeVisible();
++        await page.getByRole('link', { name: 'Webhooks', exact: true }).click();
++        await expect(page.getByRole('heading', { name: 'Webhooks salientes', exact: true })).toBeVisible();
++    });
++    test.afterEach(async ({}, info) => {
++        if (brand)
++            artisan(String.raw`$ids=App\Models\WebhookDelivery::withoutUserScope()->whereIn('webhook_id',App\Models\Webhook::withoutUserScope()->where('brand_id',${brand.id})->select('id'))->pluck('id');
++            foreach($ids as $id){Illuminate\Support\Facades\DB::table('jobs')->where('payload','like','%DeliverWebhook%')->whereRaw("payload like ? escape '|'",['%deliveryId\";i:'.$id.';%'])->delete();}
++            if(is_file(storage_path('webhooks-on')))unlink(storage_path('webhooks-on'));`);
++        cleanComposerBrands(e2eUser(info.project.name).email);
++    });
++
++    test('E2E-19 · crea un receptor, publica con el conector simulado y recibe una firma válida', async ({
++        page,
++    }, info) => {
++        const errors = watch(page);
++        await page.getByLabel('Nombre del webhook', { exact: true }).fill('Receptor e2e');
++        await page.getByLabel('URL del receptor', { exact: true }).fill('https://hooks.example.test/receiver');
++        await page.getByRole('button', { name: 'Generar secreto', exact: true }).click();
++        await expect(page.getByLabel('Secreto de firma', { exact: true })).toHaveValue(/^[a-f0-9]{64}$/);
++        await expect(page.getByLabel('Secreto de firma', { exact: true })).toHaveAttribute('type', 'password');
++        await page.getByLabel('Secreto de firma', { exact: true }).fill(SECRET);
++        await page.getByRole('button', { name: 'Crear webhook', exact: true }).click();
++        const card = page
++            .getByRole('article')
++            .filter({ has: page.getByRole('heading', { name: 'Receptor e2e', exact: true }) });
++        await expect(card).toBeVisible();
++        await expect(page.getByLabel('Secreto de firma', { exact: true })).toHaveValue('');
++        await page.evaluate(() => window.scrollTo(0, 0));
++        await page.screenshot({ path: info.outputPath('webhook-created.png'), fullPage: true });
++        const result =
++            artisan(String.raw`$b=App\Models\Brand::withoutUserScope()->findOrFail(${brand.id});$u=App\Models\User::findOrFail($b->user_id);
++            $hook=App\Models\Webhook::ownedBy($u->id)->where('brand_id',$b->id)->sole();
++            $fb=App\Models\SocialAccount::ownedBy($u->id)->where('brand_id',$b->id)->where('network','facebook')->firstOrFail();
++            $svc=app(App\Services\PostService::class);$p=$svc->create($u,$b,['text'=>'e2e webhook publication','schedule'=>false,'media'=>[],'targets'=>[['account_id'=>$fb->id,'content_type'=>'facebook_text']]]);
++            $svc->publishNow($u,$p);$t=$p->fresh()->targets->sole();app()->call([new App\Jobs\PublishPostTarget($t->id),'handle']);
++            $d=App\Models\WebhookDelivery::ownedBy($u->id)->where('webhook_id',$hook->id)->sole();app()->call([new App\Jobs\DeliverWebhook($d->id),'handle']);
++            $lines=file(storage_path('webhook-receiver.ndjson'),FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES);$receipts=array_map(fn($line)=>json_decode($line,true),$lines);
++            $receipt=collect($receipts)->firstWhere('event_id',$d->webhook_event_id);
++            echo 'DELIVERY:'.json_encode(['status'=>$d->fresh()->status,'target_status'=>$t->fresh()->status->value,'signature_valid'=>$receipt['signature_valid']??false]);`);
++        expect(result).toContain('"status":"delivered"');
++        expect(result).toContain('"target_status":"publicada"');
++        expect(result).toContain('"signature_valid":true');
++        await page.reload();
++        await expect(card).toContainText('Entregada');
++        await expect(card).toContainText('Intentos: 1');
++        await expectNoOverflow(page);
++        await axeSeriousCritical(page, 'Webhook entregado');
++        await page.evaluate(() => window.scrollTo(0, 0));
++        await page.screenshot({ path: info.outputPath('webhook-delivered.png'), fullPage: true });
++        await card.getByRole('button', { name: 'Editar', exact: true }).click();
++        await expect(page.getByLabel('Nombre del webhook', { exact: true })).toBeFocused();
++        await page.getByLabel('Nombre del webhook', { exact: true }).fill('Receptor revisado');
++        await page.getByLabel('Activo', { exact: true }).uncheck();
++        await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
++        const updated = page
++            .getByRole('article')
++            .filter({ has: page.getByRole('heading', { name: 'Receptor revisado', exact: true }) });
++        await expect(updated).toContainText('Pausado');
++        await updated.getByRole('button', { name: 'Eliminar', exact: true }).click();
++        await page.getByRole('alertdialog').getByRole('button', { name: 'Eliminar webhook', exact: true }).click();
++        await expect(updated).toHaveCount(0);
++        expect(errors.errors).toEqual([]);
++    });
++
++    test('E2E-19 · rechaza una URL privada y conserva el formulario para corregirla', async ({ page }) => {
++        const errors = watch(page);
++        await page.getByLabel('Nombre del webhook', { exact: true }).fill('Privado rechazado');
++        await page.getByLabel('URL del receptor', { exact: true }).fill('https://127.0.0.1/private');
++        await page.getByLabel('Secreto de firma', { exact: true }).fill(SECRET);
++        await page.getByRole('button', { name: 'Crear webhook', exact: true }).click();
++        await expect(
++            page.getByRole('form', { name: 'Configuración del webhook', exact: true }).getByRole('alert'),
++        ).toContainText('no permitida');
++        await expect(page.getByLabel('Nombre del webhook', { exact: true })).toHaveValue('Privado rechazado');
++        expect(
++            artisan(
++                String.raw`echo 'HOOKS:'.App\Models\Webhook::withoutUserScope()->where('brand_id',${brand.id})->count();`,
++            ),
++        ).toContain('HOOKS:0');
++        await expectNoOverflow(page);
++        await axeSeriousCritical(page, 'Webhook privado rechazado');
++        expect(errors.errors).toEqual([]);
++    });
++});
+diff --git a/tsconfig.frontend.json b/tsconfig.frontend.json
+index a1bb369..dcf1e11 100644
+--- a/tsconfig.frontend.json
++++ b/tsconfig.frontend.json
+@@ -43,6 +43,7 @@
+         "resources/js/Pages/Studio/index-props.js",
+         "resources/js/Pages/Activity/Index.vue",
+         "resources/js/Pages/System/Index.vue",
+-        "resources/js/Pages/Goals/Index.vue"
++        "resources/js/Pages/Goals/Index.vue",
++        "resources/js/Pages/Webhooks/Index.vue"
+     ]
+ }

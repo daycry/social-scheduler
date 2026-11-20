@@ -1,7 +1,31 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createDatasetAssembler, datasetTableChunks, cellText } from '../../resources/js/Studio/dataset-table.js';
-import { createDatasetClient } from '../../resources/js/Studio/dataset-client.js';
+import { route as ziggyRoute } from '../../vendor/tightenco/ziggy/dist/index.js';
+import { createDatasetClient as createClient } from '../../resources/js/Studio/dataset-client.js';
+import { StudioApiError } from '../../resources/js/Studio/api.js';
+
+const path = 'brands/{brand}/studio/datasets';
+const routes = {
+    list: [path, 'GET'],
+    get: [path + '/{dataset}', 'GET'],
+    archive: [path + '/{dataset}', 'DELETE'],
+    restore: [path + '/{dataset}/restore', 'POST'],
+    history: [path + '/{dataset}/revisions', 'GET'],
+    rows: [path + '/{dataset}/table', 'GET'],
+    'import-create': [path + '/import', 'POST'],
+    'import-replace': [path + '/{dataset}/import', 'POST'],
+    export: [path + '/{dataset}/export', 'GET'],
+};
+const namedRoutes = {
+    url: 'https://local.invalid',
+    defaults: {},
+    routes: Object.fromEntries(Object.entries(routes).map(([key, [uri, method]]) => [
+        `studio.datasets.${key}`, { uri, methods: [method] },
+    ])),
+};
+const routeFor = (name, params, absolute) => ziggyRoute(name, params, absolute, namedRoutes);
+const createDatasetClient = options => createClient({ routeFor, ...options });
 
 const metadata = { id: 7, brand_id: 3, name: 'Datos', revision: 2, row_count: 1, column_count: 1, archived_at: null };
 const jsonResponse = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
@@ -10,13 +34,21 @@ function harness(extra = {}) {
     const client = createDatasetClient({ csrf: () => 'own-token', fetchImpl: async (url, options) => { calls.push({ url, options }); return jsonResponse({ datasets: [metadata], dataset: metadata, pagination: { current_page: 2, last_page: 3, total: 41 } }); }, ...extra });
     return { client, calls };
 }
+test('client rejects missing route configuration without making a request', async () => {
+    const { client, calls } = harness({ routeFor: null });
+    await assert.rejects(client.list(3), { name: 'StudioApiError', message: /No están disponibles las rutas de tablas/ });
+    assert.deepEqual(calls, []);
+});
+
 test('client lists the exact brand with literal query pagination and same origin credentials', async () => {
     const { client, calls } = harness(); const abort = new AbortController();
     const result = await client.list(3, { query: 'A&B + =', page: 2, signal: abort.signal });
     assert.equal(result.datasets[0].id, 7);
-    assert.equal(calls[0].url, '/brands/3/studio/datasets?query=A%26B+%2B+%3D&page=2&per_page=20');
+    const url = new URL(calls[0].url, namedRoutes.url);
+    assert.equal(url.pathname, '/brands/3/studio/datasets');
+    assert.deepEqual(Object.fromEntries(url.searchParams), { query: 'A&B + =', page: '2', per_page: '20' });
     assert.equal(calls[0].options.credentials, 'same-origin'); assert.equal(calls[0].options.signal, abort.signal);
-    assert.equal(calls[0].options.headers['X-XSRF-TOKEN'], 'own-token');
+    assert.equal(new Headers(calls[0].options.headers).get('X-XSRF-TOKEN'), 'own-token');
 });
 
 test('client loads raw pages sequentially pinned to revision and passes AbortSignal', async () => {
@@ -41,7 +73,7 @@ test('client saves exact typed chunks as multipart JSON with optimistic revision
     const { body, headers, method } = calls[0].options;
     assert.equal(method, 'POST'); assert.equal(body.get('name'), 'Datos 🎵'); assert.equal(body.get('revision'), '2');
     assert.equal(body.get('format'), 'json'); assert.equal(body.has('header'), false); assert.equal(await body.get('file').text(), text);
-    assert.equal(headers['Content-Type'], undefined); assert.equal(headers['X-XSRF-TOKEN'], 'own-token');
+    assert.equal(new Headers(headers).get('Content-Type'), null); assert.equal(new Headers(headers).get('X-XSRF-TOKEN'), 'own-token');
 });
 
 test('client imports original file without reading it and enforces independent format byte limits', async () => {
@@ -95,10 +127,54 @@ test('client omits an optional blank search query while preserving literal searc
         const call = calls.at(-1), url = new URL(call.url, 'https://local.invalid');
         observed.push({ hasQuery: url.searchParams.has('query'), page: url.searchParams.get('page'), perPage: url.searchParams.get('per_page') });
         assert.equal(url.pathname, '/brands/3/studio/datasets'); assert.equal(call.options.credentials, 'same-origin');
-        assert.equal(call.options.method, 'GET'); assert.equal(call.options.headers['Content-Type'], undefined);
-        assert.equal(call.options.headers['X-XSRF-TOKEN'], 'own-token'); assert.equal(call.options.signal, abort.signal);
+        assert.equal(call.options.method, 'GET'); assert.equal(new Headers(call.options.headers).get('Content-Type'), null);
+        assert.equal(new Headers(call.options.headers).get('X-XSRF-TOKEN'), 'own-token'); assert.equal(call.options.signal, abort.signal);
     }
     const literal = ' Libre + = & '; await client.list(3, { query: literal, page: 4 });
     assert.equal(new URL(calls.at(-1).url, 'https://local.invalid').searchParams.get('query'), literal);
     assert.deepEqual(observed, [{ hasQuery: false, page: '1', perPage: '20' }, { hasQuery: false, page: '2', perPage: '20' }, { hasQuery: false, page: '3', perPage: '20' }]);
+});
+
+test('dataset error responses retain their HTTP status for a null body', async () => {
+    const client = createDatasetClient({ csrf: () => '', fetchImpl: async () => jsonResponse(null, 422) });
+    await assert.rejects(client.list(3), error => error instanceof StudioApiError && error.status === 422 && error.data === null);
+});
+
+test('dataset errors retain cancellation while reading the response body', async () => {
+    const abort = new DOMException('Cancelled while reading the response.', 'AbortError');
+    const body = new ReadableStream({ start: controller => controller.error(abort) });
+    const client = createDatasetClient({ csrf: () => '', fetchImpl: async () => new Response(body, { status: 422 }) });
+    await assert.rejects(client.list(3), error => error === abort);
+});
+
+
+test('dataset actions use named Ziggy web routes with relative URLs and literal query parameters', async () => {
+    const generated = [];
+    const { client, calls } = harness({ routeFor(name, params, absolute) {
+        generated.push({ name, params, absolute });
+        return 'https://local.invalid/fixture/subpath/' + name;
+    } });
+    await client.list(3, { query: 'A&B + =', page: 2 });
+    await client.control(3, 7, 'restore');
+    assert.equal(client.exportUrl(3, 7, { revision: 2, format: 'json' }), '/fixture/subpath/studio.datasets.export');
+    assert.deepEqual(generated, [
+        { name: 'studio.datasets.list', params: { brand: 3, _query: { query: 'A&B + =', page: 2, per_page: 20 } }, absolute: true },
+        { name: 'studio.datasets.restore', params: { brand: 3, dataset: 7 }, absolute: true },
+        { name: 'studio.datasets.export', params: { brand: 3, dataset: 7, _query: { revision: 2, format: 'json' } }, absolute: true },
+    ]);
+    assert.deepEqual(calls.map(call => call.url), [
+        '/fixture/subpath/studio.datasets.list',
+        '/fixture/subpath/studio.datasets.restore',
+    ]);
+});
+
+test('actual Ziggy routes preserve the deployment subdirectory for list and export', async () => {
+    const config = { ...namedRoutes, url: 'https://local.invalid/subdir' };
+    const { client, calls } = harness({
+        routeFor: (name, params, absolute) => ziggyRoute(name, params, absolute, config),
+    });
+
+    await client.list(3);
+    assert.equal(calls[0].url, '/subdir/brands/3/studio/datasets?page=1&per_page=20');
+    assert.equal(client.exportUrl(3, 7, { revision: 2, format: 'json' }), '/subdir/brands/3/studio/datasets/7/export?revision=2&format=json');
 });

@@ -42,7 +42,7 @@ class CampaignAnalytics
      */
     public function summary(User $user, Campaign $campaign): array
     {
-        $postsQuery = fn () => Post::withoutUserScope()->where('user_id', $user->id)->where('campaign_id', $campaign->id);
+        $postsQuery = fn () => Post::ownedBy($user->id)->where('campaign_id', $campaign->id);
         $total = $postsQuery()->count();
         $timezone = Brand::withoutUserScope()->whereKey($campaign->brand_id)->value('timezone') ?: 'UTC';
 
@@ -73,7 +73,7 @@ class CampaignAnalytics
      */
     private function targets(User $user, Builder $postIds)
     {
-        return AnalyticsService::withLatestSnapshot(PostTarget::withoutUserScope()->where('post_targets.user_id', $user->id)->whereIn('post_targets.post_id', $postIds), $user->id)
+        return AnalyticsService::withLatestSnapshot(PostTarget::ownedBy($user)->whereIn('post_targets.post_id', $postIds), $user->id)
             ->select('post_targets.id', 'post_targets.post_id', 'post_targets.network', 'post_targets.content_type', 'post_targets.status', 'post_targets.published_at', 'post_targets.external_url', 'pm.metrics as latest_metrics')
             ->orderBy('post_targets.id')->toBase()->get();
     }
@@ -150,10 +150,10 @@ class CampaignAnalytics
         $sums[] = "SUM(CASE WHEN $paired THEN $views END) as paired_views";
         $sums[] = "SUM(CASE WHEN $paired THEN $interactions END) as paired_interactions";
 
-        $targetIds = PostTarget::withoutUserScope()->select('id')->where('user_id', $user->id)
+        $targetIds = PostTarget::ownedBy($user->id)->select('id')
             ->where('status', PostStatus::Published->value)->whereIn('post_id', $postIds);
 
-        $rows = PostMetricSnapshot::withoutUserScope()->where('user_id', $user->id)->whereIn('post_target_id', $targetIds)
+        $rows = PostMetricSnapshot::ownedBy($user->id)->whereIn('post_target_id', $targetIds)
             ->selectRaw($grammar->wrap('date').', '.implode(', ', $sums))->groupBy('date')->orderBy('date')->toBase()->get();
 
         $num = fn ($v) => $v === null ? null : ((float) $v == (int) $v ? (int) $v : round((float) $v, 4));

@@ -11,6 +11,7 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\BlueskyFake;
+use Tests\Support\FixtureRecorder;
 
 beforeEach(function () {
     Storage::fake('local');
@@ -78,7 +79,8 @@ test('texto solo: un createRecord con texto, langs y createdAt, sin embed', func
         ->and($sent['record'])->not->toHaveKey('embed')->not->toHaveKey('facets')
         ->and($sent['record']['createdAt'])->toMatch('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/');
     expect(sentTo('uploadBlob'))->toBe([]);
-});
+    FixtureRecorder::assertRecorded('bluesky/success');
+})->group('provider-contracts');
 
 test('4 imagenes: 4 blobs dentro del tope, aspectRatio y facets de enlaces y hashtags', function () {
     fakeBskyPublish();
@@ -158,13 +160,15 @@ test('un token caducado se renueva y la publicacion continua', function () {
 });
 
 test('errores traducidos: sesion -> reconectar, 5xx y limite -> transitorio, rechazo -> permanente', function (array $fake, string $exception) {
-    Http::fake($fake);
+    // Tras un fallo del createRecord el publicador consulta getRecord (por si el PDS si lo creo): se simula como inexistente. Sin ese
+    // fake la consulta salia a la red real y cada caso esperaba su timeout de 10 s (41 s en total); con `preventStrayRequests` solo
+    // fallaba rapido por la excepcion de peticion no simulada, no por el camino que el test dice cubrir.
+    Http::fake($fake + ['pds.example.com/xrpc/com.atproto.repo.getRecord*' => fn () => Http::response(['error' => 'RecordNotFound', 'message' => 'x'], 400)]);
 
     expect(fn () => $this->publisher->publish($this->account, bskyRequest('Hola')))->toThrow($exception);
 })->with([
     '5xx' => [['pds.example.com/xrpc/com.atproto.repo.createRecord' => fn () => Http::response('boom', 502)], TransientPublishException::class],
     'limite' => [['pds.example.com/xrpc/com.atproto.repo.createRecord' => fn () => Http::response(['error' => 'RateLimitExceeded', 'message' => 'slow down'], 429)], TransientPublishException::class],
-    'rechazo' => [['pds.example.com/xrpc/com.atproto.repo.createRecord' => fn () => Http::response(['error' => 'InvalidRequest', 'message' => 'Record/text must not be longer than 300 graphemes'], 400)], PermanentPublishException::class],
     'cuenta suspendida' => [['pds.example.com/xrpc/com.atproto.repo.createRecord' => fn () => Http::response(['error' => 'AccountTakedown', 'message' => 'x'], 400)], PermanentPublishException::class],
     'sesion perdida' => [[
         'pds.example.com/xrpc/com.atproto.repo.createRecord' => fn () => Http::response(['error' => 'ExpiredToken', 'message' => 'x'], 400),
@@ -172,6 +176,20 @@ test('errores traducidos: sesion -> reconectar, 5xx y limite -> transitorio, rec
         'pds.example.com/xrpc/com.atproto.server.createSession' => fn () => Http::response(['error' => 'AuthenticationRequired', 'message' => 'x'], 401),
     ], ReconnectRequiredException::class],
 ]);
+
+test('contrato de error de bluesky', function () {
+    // Tras el fallo de createRecord, getRecord confirma que el registro no existe.
+    Http::fake([
+        'pds.example.com/xrpc/com.atproto.repo.createRecord' => Http::response([
+            'error' => 'InvalidRequest', 'message' => 'Record/text must not be longer than 300 graphemes',
+        ], 400),
+        'pds.example.com/xrpc/com.atproto.repo.getRecord*' => Http::response(['error' => 'RecordNotFound', 'message' => 'x'], 400),
+    ]);
+
+    expect(fn () => $this->publisher->publish($this->account, bskyRequest('Hola')))->toThrow(PermanentPublishException::class);
+
+    FixtureRecorder::assertRecorded('bluesky/error');
+})->group('provider-contracts');
 
 test('un tipo que no es de este publicador se rechaza sin llamar a la red', function () {
     Http::fake();

@@ -2,14 +2,15 @@
 
 Aplicación web personal para programar publicaciones y consultar analítica en Instagram, Facebook, YouTube, TikTok, Bluesky, Threads, LinkedIn y Pinterest. Laravel 13 + Inertia/Vue, cola `database` y media en Cloudflare R2.
 
-Última actualización: 2026-11-10
+Última actualización: 2026-11-18
 
 ## Por dónde empezar
 
 | Si quieres… | Lee |
 |---|---|
 | Diseñar contenido por marca y reutilizarlo en una publicación | [Estudio creativo](guias/estudio-creativo.md) |
-| Automatizar diseños, recursos y exportación desde API o MCP | [API v1 y MCP del estudio](guias/estudio-api-mcp.md) · [OpenAPI](api/creative-suite.openapi.yaml) |
+| Usar la API v1 (publicaciones, media, buzón, informes, SmartLinks, sitios) | [API v1](guias/api-v1.md) · [OpenAPI](api/openapi.yaml) |
+| Automatizar diseños, recursos y exportación desde API o MCP | [API v1 y MCP del estudio](guias/estudio-api-mcp.md) · [OpenAPI](api/openapi.yaml) |
 | Revisar cobertura, cálculos y recolección de métricas | [Auditoría de métricas](roadmap/2026-11-03-creative-social-suite/testing/metrics/audit-2026-11-03.md) |
 | Entender cómo encaja todo | [Arquitectura](arquitectura.md) y [Stack](stack.md) |
 | Saber qué se decidió por red (Meta, YouTube, TikTok, Bluesky, Threads, LinkedIn, Pinterest) | [Decisiones por red](referencia/decisiones-por-red.md) |
@@ -31,6 +32,12 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Aprobaciones, series, lotes, colaboradores, publicación manual y reintento | [Flujo de trabajo](modulos/workflow-publicaciones.md) |
 | Dar a un destino su propia media, alt y portada | [Media por destino](modulos/media-por-destino.md) |
 | Publicar una web de la marca en `/s/{slug}` | [Sitios](modulos/sitios.md) |
+| Proponer una fecha futura con métricas de la marca | [Planificar](usuario/planificar.md) |
+| Crear un borrador independiente de una publicación guardada | [Duplicar](usuario/duplicar.md) |
+| Recibir eventos firmados en tu propio receptor HTTPS | [Webhooks salientes](api/webhooks.md) |
+| Configurar hitos, caídas y avisos de caducidad por marca/cuenta | [Objetivos y alertas](modulos/analitica.md#objetivos-y-alertas-t-79) |
+| Consultar salud, trabajadores, caducidades y cuotas como operador | [Estado del sistema](modulos/despliegue.md#pantalla-de-estado-del-sistema) |
+| Consultar acciones de la cuenta, filtros y conservación | [Actividad](usuario/actividad.md) |
 | Saber qué falta por hacer a mano | [Pendientes manuales](referencia/pendientes-manuales.md) |
 
 ## Módulos (documentación técnica)
@@ -84,3 +91,5 @@ Las comprobaciones con cuentas y servidor reales siguen en [Pendientes manuales]
 - Confluence: no se publica (opt-in no configurado).
 
 - [Ajustes del compositor](guias/ajustes-compositor.md) · paneles globales y por red, colaboradores, IA, título de Facebook y errores; inventario observado y pendientes.
+
+- [Instalar la aplicación y configurar avisos push](usuario/pwa.md).

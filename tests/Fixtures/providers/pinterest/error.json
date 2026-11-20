@@ -1,0 +1,15 @@
+{
+  "source": "https://github.com/pinterest/pinterest-python-generated-api-client/blob/main/docs/PinsApi.md",
+  "method": "POST",
+  "host": "api.pinterest.com",
+  "path": "/v5/pins",
+  "status": 400,
+  "headers": {},
+  "body": {
+    "code": 1,
+    "message": "Invalid Pin parameters"
+  },
+  "fixed": [
+    "code"
+  ]
+}

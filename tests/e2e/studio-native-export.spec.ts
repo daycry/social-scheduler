@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import { artisan, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, stamp } from './helpers';
 
-test('Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft', async ({ page }, info) => {
+test('Studio native export: order pages, resume history, cancel retry and download real MP4 GIF before a brand draft', { tag: '@responsive' }, async ({ page }, info) => {
     test.setTimeout(120_000);
     const user = e2eUser(info.project.name), errors: string[] = [];
     cleanComposerBrands(user.email);
@@ -79,11 +79,31 @@ test('Studio native export: order pages, resume history, cancel retry and downlo
         await expect(page).toHaveURL(/\/posts\/\d+\/edit$/);
         const brandCheck = artisan(`echo json_encode(App\\Models\\Post::withoutUserScope()->latest('id')->first(['brand_id','status']));`);
         expect(JSON.parse(brandCheck)).toMatchObject({ brand_id: brand.id, status: 'borrador' });
+
+        const postPath = new URL(page.url()).pathname;
+        const postId = Number(postPath.match(/\/posts\/(\d+)\/edit$/)?.[1]);
+        await page.getByRole('link', { name: 'Editar en el Estudio' }).click();
+        await page.getByRole('button', { name: 'Actualizar publicación', exact: true }).click();
+        await dialog.getByLabel('Formato', { exact: true }).selectOption('gif');
+        await expect(gifRow.getByRole('button', { name: 'Crear borrador nuevo', exact: true })).toBeVisible();
+        const linked = page.waitForResponse(response => response.request().method() === 'POST'
+            && new URL(response.url()).pathname === `/studio/exports/${gif.id}/post`);
+        await gifRow.getByRole('button', { name: 'Actualizar publicación', exact: true }).click();
+        const update = await linked;
+        expect(update.status()).toBe(200);
+        expect(update.request().postDataJSON()).toEqual({ post_id: postId });
+        await expect(page).toHaveURL(url => url.pathname === postPath);
+        const model = artisan(String.raw`$post = App\Models\Post::withoutUserScope()->findOrFail(${postId});
+            $export = App\Models\Studio\DesignExport::withoutUserScope()->findOrFail(${Number(gif.id)});
+            echo json_encode([$post->design_export_id, $post->media->modelKeys(), $export->media_ids]);`);
+        const [originId, attachedFiles, exportedFiles] = JSON.parse(model);
+        expect(originId).toBe(Number(gif.id));
+        expect(attachedFiles).toEqual(exportedFiles);
         await expectNoOverflow(page); expect(errors).toEqual([]);
     } finally { cleanComposerBrands(user.email); }
 });
 
-test('Studio native history: paginate real exports in one request per page and reopen without creating work', async ({ page }, info) => {
+test('Studio native history: paginate real exports in one request per page and reopen without creating work', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `studio-export-history-${stamp()}-${info.project.name}`);

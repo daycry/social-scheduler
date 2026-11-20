@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ContentType;
+use App\Models\AuditLog;
 use App\Models\Brand;
 use App\Models\MediaAsset;
 use App\Models\Studio\StudioAsset;
@@ -38,6 +39,26 @@ function studioAudioWave(): string
     return 'RIFF'.pack('V', 36 + strlen($pcm)).'WAVEfmt '.pack('VvvVVvv', 16, 1, 1, 16000, 32000, 2, 16)
         .'data'.pack('V', strlen($pcm)).$pcm;
 }
+
+test('Studio audio MCP reports a linked image as missing and audits the denial', function () {
+    $image = MediaAsset::factory()->for($this->user)->create();
+    StudioAsset::create([
+        'user_id' => $this->user->id,
+        'brand_id' => $this->brand->id,
+        'media_asset_id' => $image->id,
+    ]);
+
+    $key = $this->mcpKey($this->user, ['designs:read']);
+    [$isError, $message] = $this->callTool($key, 'manage_studio_audio', [
+        'action' => 'get',
+        'brand_id' => $this->brand->id,
+        'media_id' => $image->id,
+    ]);
+
+    expect($isError)->toBeTrue()
+        ->and($message)->toBe('404: Recurso no encontrado.')
+        ->and(AuditLog::where('action', 'manage_studio_audio')->sole()->outcome)->toBe('denied');
+});
 
 test('Studio audio starts a private binary upload registered in exactly its brand', function () {
     $response = $this->postJson($this->audioUrl, ['name' => 'tono.wav', 'mime' => 'audio/wav', 'size' => strlen(studioAudioWave())])
@@ -120,7 +141,7 @@ test('Studio audio never appears in the social composer media catalog', function
     MediaAsset::factory()->for($this->user)->create(['kind' => 'audio', 'mime' => 'audio/wav', 'duration' => 1, 'audio_codec' => 'pcm_s16le']);
     $ids = array_column($this->getJson(route('media.index'))->assertOk()->json('media'), 'id');
     expect($ids)->toBe([$image->id]);
-    [$error, $data] = $this->callTool($this->mcpKey($this->user, ['brands:read']), 'list_media');
+    [$error, $data] = $this->callTool($this->mcpKey($this->user, ['media:read']), 'list_media');
     expect($error)->toBeFalse()->and(array_column($data['media'], 'id'))->toBe([$image->id]);
 });
 

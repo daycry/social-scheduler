@@ -3,9 +3,14 @@
 declare(strict_types=1);
 
 use App\Analytics\Metric;
+use App\Connectors\Bluesky\BlueskyComments;
 use App\Connectors\ConnectorRegistry;
+use App\Connectors\Google\YouTubeComments;
+use App\Connectors\Meta\Comments;
 use App\Connectors\Network;
+use App\Connectors\Threads\ThreadsComments;
 use App\Services\Media\UrlGuard;
+use App\Services\Push\PushSender;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiter;
 use Illuminate\Contracts\Console\Kernel;
@@ -24,7 +29,7 @@ function generalRoot(bool $initialize = false): string
     $root = str_replace('\\', '/', (string) getenv('E2E_GENERAL_RUN_ROOT'));
     if ($root !== str_replace('\\', '/', (string) getenv('T43_RUN_ROOT'))
         || ! preg_match('#/run-general-[a-f0-9-]{36}$#', $root)
-        || getenv('APP_URL') !== 'http://localhost:8080'
+        || ! preg_match('#^http://localhost:\d+$#', (string) getenv('APP_URL'))
         || str_replace('\\', '/', (string) getenv('PSYSH_CONFIG')) !== $root.'/psysh.php') {
         throw new RuntimeException('General E2E requires its own disposable local environment.');
     }
@@ -78,11 +83,13 @@ function generalBootstrap(): Application
             // `studio-ai-text-off` apaga el asistente de texto para comprobar su vista «no configurado».
             ...(is_file($root.'/studio-ai-on') ? ['studio.ai.providers.openai.key' => 'e2e-fake-openai-key', 'studio.ai.providers.google.key' => 'e2e-fake-google-key', 'studio.ai.backoff' => [0, 0]] : []),
             // T-16: Canva falso. Con `<run root>/canva-on` hay credenciales ficticias y api.canva.com / export-download.canva.com los atiende
-            // generalFakeCanva() (sin red); `canva-pro` anade la capacidad de PNG transparente. Sin la bandera la UI dice «no configurada».
+            // generalFakeCanva() (sin red); `canva-pro` anade la capacidad de PNG transparente y `canva-templates` las de plantillas de marca y Autofill
+            // (con sus permisos). Sin la bandera la UI dice «no configurada».
             ...(is_file($root.'/canva-on') ? ['services.canva.client_id' => 'e2e-canva-client', 'services.canva.client_secret' => 'e2e-canva-secret', 'services.canva.poll_delay' => 0] : []),
+            ...(is_file($root.'/canva-templates') ? ['services.canva.scopes' => [...(array) config('services.canva.scopes'), 'brandtemplate:meta:read', 'brandtemplate:content:read']] : []),
             ...(is_file($root.'/studio-ai-text-off') ? ['social.ai.enabled' => false] : []),
             // Read-only, pinned weights; all image input/output stays in this run's storage.
-            'studio.images.model_path' => dirname(__DIR__, 3).'/storage/app/private/studio-models/birefnet-general-lite.onnx',
+            'studio.images.model_path' => dirname(__DIR__, 3).'/storage/app/private/studio-models/isnet-general-use.onnx',
         ]);
     });
     $app->make(Kernel::class)->bootstrap();
@@ -98,6 +105,18 @@ function generalBootstrap(): Application
         $app->instance(UrlGuard::class, new UrlGuard(fn (string $host) => ['151.101.2.2']));
         generalFakeCanva($root);
     }
+    if (is_file($root.'/webhooks-on')) {
+        $app->instance(UrlGuard::class, new UrlGuard(fn (string $host) => $host === 'hooks.example.test' ? ['93.184.216.34'] : []));
+        generalFakeWebhooks($root);
+    }
+    if (is_file($root.'/push-on')) {
+        $fixture = json_decode(file_get_contents($root.'/push-on'), true, flags: JSON_THROW_ON_ERROR);
+        config(['push.enabled' => true, 'push.vapid.subject' => 'mailto:e2e-push@example.test',
+            'push.vapid.public_key' => $fixture['public'], 'push.vapid.private_key' => $fixture['private']]);
+        $app->instance(UrlGuard::class, new UrlGuard(fn (string $host) => $host === 'push.example.test' || ($host === 'hooks.example.test' && is_file($root.'/webhooks-on')) ? ['93.184.216.34'] : []));
+        require_once __DIR__.'/FakePushSender.php';
+        $app->instance(PushSender::class, new GeneralFakePushSender($root));
+    }
     $registry = new ConnectorRegistry;
     foreach (['meta' => [Network::Instagram, Network::Facebook], 'google' => [Network::YouTube], 'tiktok' => [Network::TikTok], 'bluesky' => [Network::Bluesky], 'threads' => [Network::Threads], 'linkedin' => [Network::LinkedIn], 'pinterest' => [Network::Pinterest]] as $provider => $networks) {
         $registry->register($provider === 'bluesky' ? $app->make(GeneralBlueskyConnector::class) : new T43Connector($provider, $networks));
@@ -109,6 +128,12 @@ function generalBootstrap(): Application
             $registry->registerInsights($network, $insights);
         }
     }
+    // Inbox (T-43): las fuentes de comentarios reales (HTTP simulado por cada spec), como en AppServiceProvider.
+    $meta = $app->make(Comments::class);
+    $registry->registerComments(Network::Instagram, $meta)->registerComments(Network::Facebook, $meta)
+        ->registerComments(Network::Threads, $app->make(ThreadsComments::class))
+        ->registerComments(Network::Bluesky, $app->make(BlueskyComments::class))
+        ->registerComments(Network::YouTube, $app->make(YouTubeComments::class));
     $app->instance(ConnectorRegistry::class, $registry);
     Event::listen(NotificationSent::class, function ($event) use ($root): void {
         if ($event->notification instanceof ResetPassword) {

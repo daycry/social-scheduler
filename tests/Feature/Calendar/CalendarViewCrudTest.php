@@ -130,6 +130,6 @@ it('no deja crear más vistas del tope por usuario', function () {
 
 it('las rutas de vistas llevan throttle', function () {
     foreach (['calendar-views.store', 'calendar-views.update', 'calendar-views.destroy'] as $name) {
-        expect(app('router')->getRoutes()->getByName($name)->gatherMiddleware())->toContain('throttle:60,1');
+        expect(app('router')->getRoutes()->getByName($name)->gatherMiddleware())->toContain('throttle:'.$name)->and(config('rate_limits.limits')[$name])->toBe(60);
     }
 });

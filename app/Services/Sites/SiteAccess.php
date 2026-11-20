@@ -2,11 +2,17 @@
 
 namespace App\Services\Sites;
 
+use App\Exceptions\PostValidationException;
 use App\Models\Site;
 use App\Models\SiteToken;
+use App\Models\User;
+use App\Services\SmartLinkService;
+use App\Support\Ownership;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Cookie;
 
 /**
@@ -27,7 +33,7 @@ class SiteAccess
 
     public const GLOBAL_DECAY = 900;
 
-    public function __construct(private readonly SiteService $sites) {}
+    public const MAX_TOKENS = 20;
 
     /** ¿Puede ver el sitio quien hace esta peticion? (publico siempre; el resto exige una cookie vigente). */
     public function allows(Request $request, Site $site): bool
@@ -117,7 +123,7 @@ class SiteAccess
         if (! $this->reserveAttempt($request, $site)) {
             return null;
         }
-        $token = $this->sites->findToken($site, $plain);
+        $token = $this->findToken($site, $plain);
         if (! $token || ! $token->isUsable()) {
             $this->failedAttempt($site);
 
@@ -127,6 +133,80 @@ class SiteAccess
         $token->forceFill(['last_used_at' => now()])->save();
 
         return $token->id;
+    }
+
+    // ---- Gestion del acceso por el propietario ---------------------------------------------------------------------------
+
+    /** Modo de acceso, contrasena (hash) y noindex. Cambiar el modo o la contrasena cierra todas las sesiones de acceso emitidas. */
+    public function updateAccess(User $user, Site $site, string $mode, ?string $password, bool $noindex): Site
+    {
+        Ownership::assert($site, $user);
+        if (! in_array($mode, Site::ACCESS_MODES, true)) {
+            throw new PostValidationException(['access_mode' => ['Modo de acceso no válido.']]);
+        }
+        if ($password !== null && $password !== '' && (mb_strlen($password) < 8 || mb_strlen($password) > 128)) {
+            throw new PostValidationException(['password' => ['La contraseña debe tener entre 8 y 128 caracteres.']]);
+        }
+        $hasPassword = $site->password_hash || ($password !== null && $password !== '');
+        if ($mode === Site::ACCESS_PASSWORD && ! $hasPassword) {
+            throw new PostValidationException(['password' => ['Define una contraseña para este modo de acceso.']]);
+        }
+
+        $changed = $mode !== $site->access_mode || ($password !== null && $password !== '');
+        $site->forceFill([
+            'access_mode' => $mode, 'noindex' => $noindex,
+            'password_hash' => $password !== null && $password !== '' ? Hash::make($password) : $site->password_hash,
+            'access_version' => $site->access_version + ($changed ? 1 : 0),
+        ])->save();
+
+        return $site;
+    }
+
+    /** @return array{0: SiteToken, 1: string} el texto claro solo existe en esta respuesta. */
+    public function createToken(User $user, Site $site, string $label, ?int $days): array
+    {
+        Ownership::assert($site, $user);
+        $label = SmartLinkService::clean($label, 60);
+        if ($label === '') {
+            throw new PostValidationException(['label' => ['Pon un nombre al enlace.']]);
+        }
+        if ($days !== null && ($days < 1 || $days > 365)) {
+            throw new PostValidationException(['days' => ['La caducidad va de 1 a 365 días.']]);
+        }
+        if (SiteToken::query()->where('site_id', $site->id)->whereNull('revoked_at')->count() >= self::MAX_TOKENS) {
+            throw new PostValidationException(['label' => ['Máximo '.self::MAX_TOKENS.' enlaces activos. Revoca alguno.']]);
+        }
+        $plain = 'st_'.Str::random(40);
+        $token = SiteToken::create(['site_id' => $site->id, 'label' => $label, 'token_hash' => hash('sha256', $plain), 'expires_at' => $days ? now()->addDays($days) : null]);
+
+        return [$token, $plain];
+    }
+
+    /** Revoca un enlace: sus sesiones dejan de valer en la siguiente peticion (la sesion comprueba el token). */
+    public function revokeToken(User $user, Site $site, SiteToken $token): void
+    {
+        Ownership::assert($site, $user);
+        Ownership::ensure($token->site_id === $site->id);
+        $token->forceFill(['revoked_at' => $token->revoked_at ?? now()])->save();
+    }
+
+    /** Cierra todo acceso concedido (sesiones por contrasena y por enlace) y revoca todos los enlaces. */
+    public function revokeAllAccess(User $user, Site $site): void
+    {
+        Ownership::assert($site, $user);
+        DB::transaction(function () use ($site) {
+            SiteToken::query()->where('site_id', $site->id)->whereNull('revoked_at')->update(['revoked_at' => now()]);
+            $site->forceFill(['access_version' => $site->access_version + 1])->save();
+        });
+    }
+
+    public function findToken(Site $site, string $plain): ?SiteToken
+    {
+        if ($plain === '' || strlen($plain) > 100) {
+            return null;
+        }
+
+        return SiteToken::query()->where('site_id', $site->id)->where('token_hash', hash('sha256', $plain))->first();
     }
 
     private static function cookieName(Site $site): string

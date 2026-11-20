@@ -10,12 +10,18 @@ use App\Models\PublishAttempt;
 use App\Models\User;
 use App\Services\Canva\CanvaJobs;
 use App\Services\Canva\CanvaSource;
+use App\Services\Canva\CanvaStudioResources;
 use App\Services\Media\UrlGuard;
+use App\Services\MediaProbe;
+use App\Services\Studio\StudioAssets;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\Process\Exception\ProcessStartFailedException;
+use Symfony\Component\Process\Process;
 
 require_once __DIR__.'/CanvaTestSupport.php';
 
@@ -179,26 +185,51 @@ test('un fichero que no es lo que dice ser (magic bytes) o que supera el tamano 
     expect($job['status'])->toBe('failed')->and(MediaAsset::withoutUserScope()->where('status', 'listo')->count())->toBe(0);
 });
 
-test('el PDF no entra en la biblioteca: se devuelve el enlace temporal de Canva y no se descarga', function () {
-    canvaExportFake([['job' => ['id' => 'job-1', 'status' => 'success', 'urls' => [str_replace('.png', '.pdf', CANVA_FILE)]]]]);
+test('el MP4 exportado entra en Recursos de su marca y conserva el recurso al reimportar', function () {
+    $ffmpeg = (string) config('media.ffmpeg');
+    $ffprobe = (string) config('media.ffprobe');
+    if ($ffmpeg === '' || $ffprobe === '') {
+        $this->markTestSkipped('Este recorrido requiere ffmpeg y ffprobe.');
+    }
+    try {
+        if ((new Process([$ffmpeg, '-version']))->run() !== 0 || (new Process([$ffprobe, '-version']))->run() !== 0) {
+            $this->markTestSkipped('Este recorrido requiere ffmpeg y ffprobe.');
+        }
+    } catch (ProcessStartFailedException) {
+        $this->markTestSkipped('No se pudo iniciar ffmpeg o ffprobe.');
+    }
+    $fixture = tempnam(sys_get_temp_dir(), 'canva-mp4-');
+    try {
+        (new Process([$ffmpeg, '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'color=s=32x32:r=24:d=1',
+            '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-f', 'mp4', $fixture]))->mustRun();
+        $bytes = file_get_contents($fixture);
+    } finally {
+        unlink($fixture);
+    }
 
-    $res = $this->actingAs($this->user)->postJson(route('canva.exports.store', $this->brand), ['design_id' => 'DAF123abcde', 'format' => 'pdf'])->assertStatus(202);
-    $job = $this->actingAs($this->user)->getJson(route('canva.jobs.show', [$this->brand, $res->json('job.id')]))->json('job');
+    $import = function (string $version) use ($bytes): void {
+        $url = "https://export-download.canva.com/{$version}/clip.mp4?sig=1";
+        canvaExportFake(
+            [['job' => ['id' => 'job-1', 'status' => 'success', 'urls' => [$url]]]],
+            download: fn () => Http::response($bytes, 200, ['Content-Type' => 'video/mp4']),
+        );
+        $this->actingAs($this->user)->postJson(route('canva.exports.store', $this->brand), ['design_id' => 'DAF123abcde', 'format' => 'mp4'])->assertAccepted();
+    };
 
-    expect($job['status'])->toBe('ready')->and($job['download_urls'])->toHaveCount(1)->and($job['media'])->toBe([]);
-    Http::assertNotSent(fn (Request $r) => str_contains($r->url(), 'export-download'));
-    expect(MediaAsset::withoutUserScope()->count())->toBe(0);
-});
+    $import('original');
+    $asset = MediaAsset::ownedBy($this->user->id)->where('source', 'canva')->sole();
 
-test('el MP4 exportado entra como video con su origen', function () {
-    canvaExportFake([['job' => ['id' => 'job-1', 'status' => 'success', 'urls' => ['https://export-download.canva.com/v/clip.mp4?sig=1']]]], "\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isom".str_repeat("\0", 64));
+    expect($asset->original_name)->toEndWith('.mp4')
+        ->and($asset->origin['design_id'])->toBe('DAF123abcde')
+        ->and($asset->isReady())->toBeTrue()
+        ->and($asset->isVideo())->toBeTrue()
+        ->and(app(StudioAssets::class)->list($this->user, $this->brand)->pluck('id')->all())->toBe([$asset->id]);
 
-    $res = $this->actingAs($this->user)->postJson(route('canva.exports.store', $this->brand), ['design_id' => 'DAF123abcde', 'format' => 'mp4'])->assertStatus(202);
-    $asset = MediaAsset::withoutUserScope()->where('source', 'canva')->firstOrFail();
-
-    expect($asset->original_name)->toEndWith('.mp4')->and($asset->origin['design_id'])->toBe('DAF123abcde');
-    // Sin ffprobe en el entorno de test el video puede quedar invalido; lo que se garantiza aqui es que se intenta por el pipeline y con su origen.
-    expect(in_array($asset->status, ['listo', 'invalido', 'pendiente'], true))->toBeTrue();
+    $import('reimported');
+    $duplicate = MediaAsset::ownedBy($this->user->id)->where('source', 'canva')->whereKeyNot($asset->id)->sole();
+    expect($duplicate->isReady())->toBeTrue()
+        ->and($duplicate->usedByStudio())->toBeFalse()
+        ->and(app(StudioAssets::class)->list($this->user, $this->brand)->pluck('id')->all())->toBe([$asset->id]);
 });
 
 test('maximo de trabajos en curso por usuario y validacion de entrada', function () {
@@ -265,4 +296,105 @@ test('nada compra ni publica: la integracion no crea publicaciones ni toca el es
     expect(Post::withoutUserScope()->count())->toBe(0)->and(PublishAttempt::withoutUserScope()->count())->toBe(0);
     expect(app(UrlGuard::class))->toBeInstanceOf(UrlGuard::class);
     expect(CanvaSource::allowedUrl(CANVA_FILE))->toBeTrue()->and(ImportRemoteMedia::class)->toBeString();
+});
+
+test('la importación de Canva añade cada página a Recursos y reutiliza las páginas idénticas al reimportar', function () {
+    $client = $this->actingAs($this->user);
+    $secondBrand = Brand::factory()->for($this->user)->create();
+    canvaConnect($this->user, $secondBrand);
+
+    $resourceIds = fn (Brand $brand) => app(StudioAssets::class)->list($this->user, $brand)->pluck('id')->sort()->values()->all();
+
+    $import = function (Brand $brand, string $version, int $width = 64) use ($client, $resourceIds): array {
+        $urls = [
+            "https://export-download.canva.com/{$version}/one.png?Signature=test",
+            "https://export-download.canva.com/{$version}/two.png?Signature=test",
+        ];
+        canvaExportFake([['job' => ['id' => 'job-1', 'status' => 'success', 'urls' => $urls]]], canvaPng($width));
+        $response = $client->postJson(route('canva.exports.store', $brand), ['design_id' => 'DAF123abcde', 'format' => 'png'])->assertAccepted();
+
+        $resourcesBeforePolling = $resourceIds($brand);
+        $job = $client->getJson(route('canva.jobs.show', [$brand, $response->json('job.id')]))
+            ->assertOk()->assertJsonPath('job.status', 'ready')->json('job');
+
+        expect($resourceIds($brand))->toBe($resourcesBeforePolling);
+
+        return collect($job['media'])->pluck('id')->all();
+    };
+
+    $first = $import($this->brand, 'first');
+    expect($resourceIds($this->brand))->toBe($first)->and($resourceIds($secondBrand))->toBe([]);
+
+    $import($this->brand, 'reimport');
+    expect($resourceIds($this->brand))->toBe($first);
+
+    $changed = $import($this->brand, 'changed', 96);
+    expect($resourceIds($this->brand))->toBe([...$first, ...$changed]);
+
+    $other = $import($secondBrand, 'other');
+    expect($resourceIds($secondBrand))->toBe($other)->and($resourceIds($this->brand))->toBe([...$first, ...$changed]);
+});
+
+test('una vinculación fallida deja el archivo de Canva pendiente y permite reanudar la importación', function () {
+    $body = canvaPng();
+    $length = strlen($body);
+    canvaExportFake(
+        [['job' => ['id' => 'job-1', 'status' => 'success', 'urls' => [CANVA_FILE]]]],
+        download: fn (Request $request) => $request->hasHeader('Range', "bytes={$length}-")
+            ? Http::response('', 416, ['Content-Range' => "bytes */{$length}"])
+            : Http::response($body, 200, ['Content-Type' => 'image/png', 'Content-Length' => (string) $length]),
+    );
+    Queue::fake([ImportRemoteMedia::class]);
+
+    $response = $this->actingAs($this->user)->postJson(route('canva.exports.store', $this->brand), ['design_id' => 'DAF123abcde', 'format' => 'png'])
+        ->assertAccepted();
+    $id = CanvaJob::ownedBy($this->user->id)->findOrFail($response->json('job.id'))->output_media_ids[0];
+    $asset = MediaAsset::ownedBy($this->user->id)->findOrFail($id);
+    $job = new ImportRemoteMedia($id, CANVA_FILE);
+
+    $probe = app(MediaProbe::class);
+    $transactionLevel = DB::transactionLevel();
+    app()->instance(MediaProbe::class, Mockery::mock(MediaProbe::class, function ($mock) use ($probe, $transactionLevel): void {
+        $mock->shouldReceive('inspect')->twice()->andReturnUsing(function (MediaAsset $asset) use ($probe, $transactionLevel): array {
+            expect(DB::transactionLevel())->toBe($transactionLevel);
+
+            return $probe->inspect($asset);
+        });
+    }));
+    app()->instance(CanvaStudioResources::class, Mockery::mock(CanvaStudioResources::class, function ($mock) use ($body): void {
+        $mock->shouldReceive('attach')->once()
+            ->withArgs(fn (MediaAsset $asset, string $digest) => $asset->isReady() && $digest === hash('sha256', $body))
+            ->andThrow(new RuntimeException('Vinculación temporalmente no disponible'));
+    }));
+
+    expect(fn () => app()->call([$job, 'handle']))->toThrow(RuntimeException::class, 'Vinculación temporalmente no disponible');
+    expect($asset->fresh()->status)->toBe(MediaAsset::STATUS_PENDING);
+    Storage::disk('local')->assertExists($asset->path);
+
+    app()->forgetInstance(CanvaStudioResources::class);
+    app()->call([$job, 'handle']);
+
+    expect($asset->fresh()->isReady())->toBeTrue()
+        ->and(app(StudioAssets::class)->list($this->user, $this->brand)->pluck('id')->all())->toBe([$id]);
+});
+
+test('un archivo compartido por Canva explica el bloqueo de borrado y una copia sin vínculo se puede eliminar', function () {
+    $client = $this->actingAs($this->user);
+    $import = function () use ($client): int {
+        canvaExportFake([['job' => ['id' => 'job-1', 'status' => 'success', 'urls' => [CANVA_FILE]]]]);
+        $id = $client->postJson(route('canva.exports.store', $this->brand), ['design_id' => 'DAF123abcde', 'format' => 'png'])
+            ->assertAccepted()->json('job.id');
+
+        return (int) $client->getJson(route('canva.jobs.show', [$this->brand, $id]))->assertOk()->json('job.media.0.id');
+    };
+    $linked = $import();
+    $duplicate = $import();
+
+    $client->deleteJson(route('media.destroy', $linked))->assertConflict()
+        ->assertJsonPath('message', 'El archivo está vinculado a Recursos del Estudio.');
+    $client->deleteJson(route('media.destroy', $duplicate))->assertOk();
+    $this->assertDatabaseMissing('media_assets', ['id' => $duplicate]);
+
+    $import();
+    expect(app(StudioAssets::class)->list($this->user, $this->brand)->pluck('id')->all())->toBe([$linked]);
 });

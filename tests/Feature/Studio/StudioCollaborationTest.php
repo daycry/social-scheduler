@@ -79,7 +79,7 @@ test('Colaboración: el propietario comparte por email, cambia el rol y revoca c
 
 test('Colaboración: valida rol y email, y la respuesta no revela si una cuenta existe', function () {
     $this->actingAs($this->owner);
-    $message = 'Si existe una cuenta con ese email, tendrá acceso a este diseño.';
+    $message = 'Si existe una cuenta con ese correo, tendrá acceso a este diseño.';
     $missing = $this->postJson($this->base.'/shares', ['email' => 'nadie@example.test', 'role' => 'reader'])->assertStatus(202)->assertJsonPath('message', $message)->json();
     $self = $this->postJson($this->base.'/shares', ['email' => $this->owner->email, 'role' => 'reader'])->assertStatus(202)->json();
     expect(DB::table('studio_design_shares')->count())->toBe(0);
@@ -141,7 +141,8 @@ test('Colaboración: los comentarios de un enlace tienen límite propio', functi
 
 test('Colaboración: un editor invitado no cambia carpeta ni plantilla y no ve carpetas del propietario', function () {
     $folder = $this->actingAs($this->owner)->postJson('/brands/'.$this->brand->id.'/studio/folders', ['name' => 'Secreta'])->json('folder.id');
-    $this->patchJson($this->base, ['name' => 'Con carpeta', 'document' => collabDocument(), 'revision' => 1, 'folder_id' => $folder])->assertOk();
+    $this->patchJson($this->base, ['name' => 'Con carpeta', 'document' => collabDocument(), 'revision' => 1])->assertOk();
+    $this->patchJson($this->base.'/folder', ['folder_id' => $folder])->assertOk();
     collabShare($this, $this->editor, 'editor');
     collabAs($this, $this->editor);
     $res = $this->patchJson($this->base, ['name' => 'Del editor', 'document' => collabDocument('E'), 'revision' => 2, 'folder_id' => null, 'is_template' => true])->assertOk();

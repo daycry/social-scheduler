@@ -41,7 +41,7 @@ class LoginRequest extends FormRequest
      *
      * @throws ValidationException
      */
-    public function validateCredentials(): User
+    public function validateCredentials(Timebox $timebox): User
     {
         $this->ensureIsNotRateLimited();
 
@@ -50,7 +50,7 @@ class LoginRequest extends FormRequest
 
         // Igual que SessionGuard::attempt: el Timebox iguala el tiempo con usuario existente e inexistente
         // (evita la enumeracion por tiempo) y se rehashea la contrasena si las rondas cambiaron.
-        $user = app(Timebox::class)->call(function ($timebox) use ($provider, $credentials) {
+        $user = $timebox->call(function ($timebox) use ($provider, $credentials) {
             $user = $provider->retrieveByCredentials($credentials);
 
             if ($user instanceof User && $provider->validateCredentials($user, $credentials)) {

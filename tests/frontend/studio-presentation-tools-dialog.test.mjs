@@ -10,11 +10,17 @@ import { createAudienceWindow } from '../../resources/js/Studio/presentation-aud
 
 // Real compiled Vue SFC, real overlay/timer cores. Only rendering/media/clock
 // boundaries are controlled. This is not browser or native playback evidence.
-const source = await readFile(new URL('../../resources/js/Components/Studio/PresentationDialog.vue', import.meta.url), 'utf8');
-const { descriptor } = parse(source);
-const script = compileScript(descriptor, { id: 'tools-dialog', inlineTemplate: true });
-const code = script.content.replace(/import\s*\{([^}]+)\}\s*from\s*['"]([^'"]+)['"];?/g, (_, names) =>
-    `const {${names.replace(/\bas\b/g, ':')}} = imports;`).replace('export default', 'return');
+async function compileDialog(file) {
+    const source = await readFile(new URL(file, import.meta.url), 'utf8');
+    const { descriptor } = parse(source);
+    const script = compileScript(descriptor, { id: 'tools-dialog', inlineTemplate: true });
+    const code = script.content.replace(/^import BaseDialog .*?;$/m, 'const { BaseDialog } = imports;')
+        .replace(/import\s*\{([^}]+)\}\s*from\s*['"]([^'"]+)['"];?/g, (_, names) =>
+            `const {${names.replace(/\bas\b/g, ':')}} = imports;`).replace('export default', 'return');
+    return imports => new Function('imports', code)(imports);
+}
+const BaseDialog = (await compileDialog('../../resources/js/Components/BaseDialog.vue'))(Vue);
+const presentation = await compileDialog('../../resources/js/Components/Studio/PresentationDialog.vue');
 
 function node(type = 'canvas') {
     const calls = [], listeners = new Map();
@@ -24,7 +30,8 @@ function node(type = 'canvas') {
         addEventListener(name, fn) { listeners.set(name, fn); }, removeEventListener(name) { listeners.delete(name); },
         setPointerCapture(id) { this.captured.add(id); }, releasePointerCapture(id) { this.captured.delete(id); }, hasPointerCapture(id) { return this.captured.has(id); },
         getBoundingClientRect: () => ({ left: 0, top: 0, width: 400, height: 400 }),
-        showModal() {}, close() {}, focus() {},
+        get ownerDocument() { return globalThis.document; },
+        showModal() { this.open = true; }, close() { this.open = false; }, focus() {}, querySelector() { return null; },
         play() { this.paused = false; calls.push(['play']); return Promise.resolve(); }, pause() { this.paused = true; calls.push(['pause']); }, load() { calls.push(['load']); },
         requestFullscreen() { calls.push(['fullscreen']); return Promise.resolve(); },
     };
@@ -55,14 +62,17 @@ async function mount({ assets = [], audioPlay, rendererError = '' } = {}) {
             dispose: async () => calls.push(['dispose']),
         }; players.push(player); return player;
     }
-    const component = new Function('imports', code)({ ...Vue, ...tools, ...timer, createPresentationPlayer, presentationKey, presentationPreviewScale, createTimelinePreview() {}, createAudienceWindow });
+    const component = presentation({ BaseDialog, ...Vue, ...tools, ...timer, createPresentationPlayer, presentationKey, presentationPreviewScale, createTimelinePreview() {}, createAudienceWindow });
     const renderer = Vue.createRenderer({
         createElement: type => node(type), createText: text => Object.assign(node('text'), { text }), createComment: text => Object.assign(node('comment'), { text }),
         setText(n, text) { n.text = text; }, setElementText(n, text) { n.text = text; n.children = []; },
         parentNode: n => n.parent, nextSibling: n => n.parent?.children[n.parent.children.indexOf(n) + 1], querySelector: () => body,
         insert(n, parent, anchor) { if (n.parent) n.parent.children.splice(n.parent.children.indexOf(n), 1); n.parent = parent; const i = parent.children.indexOf(anchor); parent.children.splice(i < 0 ? parent.children.length : i, 0, n); },
         remove(n) { n.parent?.children.splice(n.parent.children.indexOf(n), 1); n.parent = null; },
-        patchProp(n, key, previous, next) { n.props[key] = next; if (key === 'style') n.style = { ...next }; },
+        patchProp(n, key, previous, next) {
+            n.props[key] = key.startsWith('on') && Array.isArray(next) ? event => next.forEach(listener => listener(event)) : next;
+            if (key === 'style') n.style = { ...next };
+        },
     });
     const app = renderer.createApp(component, { document: { pages: [{ id: 'one' }, { id: 'two' }] }, assets }); app.mount(root);
     await Vue.nextTick(); await Vue.nextTick(); await Vue.nextTick();

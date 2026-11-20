@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Post;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Support\Facades\Log;
 
 class PostPolicy
@@ -35,7 +36,7 @@ class PostPolicy
 
     private function owns(User $user, Post $post, string $ability): bool
     {
-        if ($post->user_id === $user->id) {
+        if (Ownership::matches($post, $user)) {
             return true;
         }
 

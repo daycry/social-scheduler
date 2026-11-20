@@ -14,13 +14,20 @@ Estos metadatos describen el periodo solicitado, no certifican que el cron esté
 | Histórico inicial | `app/Jobs/BackfillMetrics.php` |
 | Métricas de publicaciones | `app/Jobs/RefreshPostMetrics.php` |
 | Recolector | `app/Analytics/SnapshotCollector.php` |
+| Caché de snapshots del panel | `app/Analytics/DashboardSnapshotCache.php` |
 | Día cerrado por zona | `app/Analytics/Days.php` |
 | Cálculos (crecimiento, engagement) | `app/Analytics/Calculator.php`, `Metric.php`, `Period.php` |
 | Servicio | `app/Services/AnalyticsService.php` (`withLatestSnapshot`: el último snapshot de cada destino, compartido con las campañas) |
 | Campañas | `app/Services/CampaignAnalytics.php`, `resources/js/Pages/Campaigns/{Index,Show}.vue` |
-| Lectores por red | `Meta/Insights.php`, `Google/Analytics.php`, `TikTok/Display.php`, `Bluesky/BlueskyInsights.php`, `Threads/ThreadsInsights.php` |
+| Lectores por red | `Meta/Insights.php`, `Google/Analytics.php`, `TikTok/Display.php`, `Bluesky/BlueskyInsights.php`, `Threads/ThreadsInsights.php`, `Pinterest/PinterestInsightsReader.php` |
 | UI | `resources/js/Pages/Dashboard/{Index,Network}.vue`, `LineChart.vue` |
 | Tablas | `account_snapshots` (con `settled_at`), `post_metric_snapshots` |
+
+## Períodos y caché del panel
+
+`Period::fromInput()` valida las fechas del panel, la exportación, los informes y MCP. Un rango invertido o de más de 366 días genera un error en `from`. Una fecha inexistente o con formato incorrecto identifica su propio campo. Los formularios muestran los errores de campo y las peticiones JSON reciben 422.
+
+El resumen por marca y el detalle por red reutilizan los cálculos de snapshots diarios durante 60 segundos. Durante los cuatro minutos siguientes sirven los cálculos en caché y programan una actualización. El recolector invalida la versión de la marca tras confirmar cambios en los snapshots de cuenta, también cuando escribe un tramo histórico. La clave incorpora el rango, la comparación y el estado de las cuentas. Los datos de publicaciones se consultan en cada petición.
 
 ## Cuándo y cómo se recoge
 
@@ -39,6 +46,7 @@ Las publicaciones se refrescan cada 6 h (`15 */6 * * *`) durante las primeras 72
 | YouTube | 365 | un informe `dimensions=day` por tramo de 90 días |
 | TikTok | 0 | la Display API no da serie histórica |
 | Bluesky | 0 | solo hay stocks (seguidores y posts): no existe el valor de un día pasado |
+| Pinterest | 30 (`SOCIAL_BACKFILL_DAYS_PINTEREST`) | `user_account/analytics` admite hasta 90 días atrás y 90 de rango; se piden tramos de 30 (`maxRangeDays` = 30) |
 | Threads | 30 (`SOCIAL_BACKFILL_DAYS_THREADS`) | la serie de cuenta admite `since`/`until` (desde el 2024-04-13), pero los totales del día se piden día a día (`maxRangeDays` = 0) |
 
 ## Métricas: lo medido en el spike
@@ -82,6 +90,16 @@ El panel (`/campaigns/{id}`) lee de las mismas tablas que el dashboard y reutili
 - **Expectativas** (`Metric::EXPECTED_FLOWS['threads']`): `profile_views`, `likes`, `comments`, `shares` e `interactions` (sin `clicks`: sin enlaces pulsados no hay dato). `AnalyticsService::SUPPORTED['threads']` = seguidores, visitas al perfil, interacciones, me gusta, comentarios, compartidos y clics.
 - **Agregado y CSV:** el total de «Visualizaciones» de una marca ignora a Threads (es `null` y se respeta el `null`); sus visitas al perfil salen en la página de la red y en el informe de red.
 
+## Pinterest (T-21)
+
+`PinterestInsightsReader` (`RangeInsightsReader`) lee la API v5 con el token de la cuenta. Contrato leído en el OpenAPI oficial `pinterest/api-description` v5.28.0 (2026-11-12); las respuestas van como `{ "ALL": { daily_metrics, summary_metrics, lifetime_metrics } }`.
+
+- **Cuenta** (`GET /v5/user_account/analytics`, scope `user_accounts:read`, fechas UTC): `IMPRESSION` → `views`, `ENGAGEMENT` → `interactions`, `OUTBOUND_CLICK` → `clicks`. Un día solo vale con `data_status = READY`; `PROCESSING`/`BEFORE_*` o ausente es `null` (se reintenta). `followers` y `post_count` salen de `GET /v5/user_account` (`follower_count`, `pin_count`) y solo para el último día cerrado.
+- **Pin** (`GET /v5/pins/{id}/analytics`, `pins:read`): `summary_metrics` de los últimos 89 días (la API rechaza más de 90 atrás) → `views` (`IMPRESSION`), `saved` (`SAVE`); `lifetime_metrics` `TOTAL_REACTIONS` → `likes` y `TOTAL_COMMENTS` → `comments`; `interactions` = guardados + clics en el pin + clics de salida + reacciones + comentarios (los presentes). Sin `reach` ni `shares`: `null`.
+- **Expectativas:** `EXPECTED_FLOWS['pinterest']` = `views` e `interactions`; `AnalyticsService::SUPPORTED['pinterest']` = seguidores, visualizaciones, interacciones, clics y publicaciones.
+- **Sandbox:** ambos endpoints están `x-sandbox: disabled`; con `PINTEREST_API_HOST` en el sandbox responden error. El lector **no** lanza: lee igualmente el perfil (seguidores y pines, que sí funcionan allí), deja los flujos en blanco y anota en `meta.analytics_unavailable` la razón (`sandbox` si el host es el sandbox, `access` si es producción con 403: falta de permiso o app sin acceso estándar). `MetricCoverage` la devuelve como `coverage.status` = `unavailable_sandbox` / `unavailable_access` (y `coverage.reason`) mientras no haya datos observados, en lugar de un `no_data` eterno; el panel lo explica («Pinterest no ofrece analítica en el entorno de pruebas; conecta la app con acceso de producción»). La razón se borra en cuanto la analítica responde.
+- **Límite de cuota (todas las redes):** un 429 o cualquier `QuotaExceededException` en los jobs de analítica (`GuardsInsightsErrors`: backfill, refresco de publicaciones, snapshot de cuenta, comentarios y competidores) ya no es un fallo definitivo: el job se libera con backoff exponencial por intento (`$backoff` × 2^(intento−1)), al menos lo que pida la red (`Retry-After` de Pinterest → `retryAt`) y con tope de una hora. Antes el backfill se abandonaba y los días siguientes se quedaban sin datos.
+
 ## Todas las marcas (C-03b)
 
 La página `/dashboard/todas-las-marcas` (`DashboardController::allBrands`) y `get_stats` sin marca (MCP) leen de `app/Services/AggregateAnalytics.php`, que suma lo que `AnalyticsService::summary()` calcula para cada marca del usuario. No relee los snapshots por su cuenta: cada marca usa las mismas consultas acotadas de la paridad 2 (sin recorrer publicaciones ni hidratar modelos), así que el agregado y el dashboard por marca no pueden discrepar. Las consultas crecen con el número de marcas, no con el de snapshots ni cuentas (lo fija `AllBrandsFlowTest`).
@@ -91,3 +109,21 @@ La página `/dashboard/todas-las-marcas` (`DashboardController::allBrands`) y `g
 - **Días UTC:** sin marca no hay zona horaria, así que el periodo (y su valor por defecto) se calcula en días UTC, como los snapshots. Los snapshots se suman por su fecha, así que con fechas explícitas el total coincide con el de cada marca; solo el periodo por defecto (que termina en el último día cerrado) se calcula en UTC y no en la zona de cada marca, y puede terminar un día antes que el de una marca en otra zona.
 - **Caché:** el resultado se guarda `SOCIAL_ALL_BRANDS_CACHE_MINUTES` (5; 0 la desactiva) por usuario y periodo. Un snapshot nuevo tarda ese tiempo en reflejarse.
 - **Solo marcas propias:** se parte de las marcas del usuario; las de otros no se suman ni aparecen.
+
+## Objetivos y alertas (T-79)
+
+Desde **Objetivos** en el menú de usuario, elige una marca propia y crea, edita, pausa o elimina reglas. Los objetivos no consultan proveedores al guardarse. Una cuenta desconectada no puede elegirse para una regla nueva ni para cambiar de cuenta; una regla que ya la usaba permite conservarla durante cualquier edición, y la interfaz indica que no está disponible. No tendrá datos nuevos hasta reconectar. No se amplía automáticamente a toda la marca.
+
+- **Hito:** avisa una vez por métrica, cuenta y umbral al alcanzar el valor indicado.
+- **Caída:** compara la variación relativa con el día anterior. Una caída del 20% al 10% de engagement representa una reducción relativa del 50%, no diez puntos porcentuales. Solo avisa si supera el umbral y una vez por regla y periodo.
+- **Caducidad:** avisa de un plazo conocido que requiere actuar para conservar la conexión. Comparte la selección de Conexiones (T-23): acceso a datos, vencimiento de la renovación y acceso de LinkedIn sin renovación. Un access token que se renueva automáticamente no genera avisos diarios falsos. Mientras la cuenta siga activa, una fecha ya vencida sigue siendo conocida y tiene prioridad frente a otra futura: no se supone que sea un dato rancio. Si la conexión ya requiere reconexión, se indica ese estado en lugar de afirmar que faltan datos del proveedor. Una fecha ausente permanece desconocida. Se avisa una vez por cuenta y plazo.
+
+La evaluación usa la última fecha que ya está cerrada tanto en la zona de la marca como en las redes de las cuentas elegidas, con la misma referencia de días que el colector. Así no se adelanta a los snapshots en marcas de Australia o Nueva Zelanda. Las dos fechas comparan la misma lista de cuentas; una cuenta sin datos invalida el agregado, sin aportar un cero ficticio. Engagement usa `100 × suma(interacciones) / suma(visualizaciones)`, no una media de porcentajes. Un denominador cero o una base de comparación cero no producen un porcentaje inventado. No se buscan fechas antiguas para sustituir un día cuyo dato falta. Las redes con latencia, como YouTube, pueden mantener el agregado desconocido mientras su métrica diaria no esté disponible; no se completa con una cifra inventada.
+
+Cambiar tipo, métrica, umbral o cuenta limpia la observación mostrada hasta volver a evaluar. Renombrar conserva la observación. Una regla modificada puede emitir una alerta de caída en el mismo periodo si cumple la nueva condición; repetir la misma regla no duplica avisos.
+
+`EvaluateGoals` se programa a las **13:15** en la zona del scheduler (`GOALS_DAILY_AT`), después de la recogida predeterminada de las 12:00. Deben funcionar el scheduler y el worker de `metrics` o `GOALS_QUEUE`. Si cambias el horario del colector, ajusta también el de objetivos. La hora no garantiza que una recogida lenta haya terminado: si falta el dato, la observación queda desconocida. Se procesan lotes de 100 objetivos sin sesión web. Un objetivo inconsistente no impide evaluar los de otros usuarios: se registra su identificador y la clase de error, sin mensajes privados. Al acabar el lote, los fallos de evaluación generan un resumen para activar los reintentos del job; los avisos ya emitidos no se duplican. Las referencias de propiedad inconsistentes se omiten con un registro explícito.
+
+El evento y el aviso in-app se confirman juntos mediante una transacción, bloqueo del objetivo e índice único. El aviso conserva el nombre, periodo y valor que lo motivaron. Borrar el objetivo elimina sus eventos internos, pero conserva los avisos históricos. Los eventos internos no tienen poda automática; una regla de caída puede conservar un evento por periodo que haya disparado una alerta.
+
+El **correo opcional** exige consentimiento del objetivo, preferencia global y dirección verificada. Se encola aparte en `GOALS_MAIL_QUEUE` (`poll` por defecto) después del commit, con tres intentos y comprobación de preferencias antes de enviar. Si falla el encolado después del commit, el aviso in-app permanece y ese correo puede perderse: no hay outbox durable ni promesa de entrega SMTP exactamente una vez. Las pruebas locales simulan cola y correo; no acreditan un trabajador nativo ni un envío real.

@@ -1,6 +1,5 @@
 <?php
 
-use App\Connectors\ConnectorRegistry;
 use App\Connectors\Network;
 use App\Enums\PostStatus;
 use App\Exceptions\PostValidationException;
@@ -13,9 +12,6 @@ use App\Models\Post;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\PostService;
-use App\Services\PublishOutcomes;
-use App\Services\PublishRequestFactory;
-use App\Services\SocialAccountService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -32,7 +28,7 @@ beforeEach(function () {
     $this->stranger = User::factory()->create();
     $this->brand = Brand::factory()->for($this->owner)->create(['timezone' => 'UTC']);
     $this->fb = SocialAccount::factory()->for($this->owner)->create(['brand_id' => $this->brand->id, 'network' => Network::Facebook]);
-    BrandCollaborator::query()->create(['brand_id' => $this->brand->id, 'owner_id' => $this->owner->id, 'user_id' => $this->approver->id, 'role' => 'aprobador']);
+    BrandCollaborator::query()->create(['brand_id' => $this->brand->id, 'owner_id' => $this->owner->id, 'user_id' => $this->approver->id, 'role' => BrandCollaborator::ROLE_APPROVER]);
 });
 
 function wfSig(Post $post): string
@@ -147,7 +143,7 @@ test('un post sin aprobar nunca se publica: ni el despachador ni el job ni publi
 
     expect(DispatchDuePosts::dueTargets()->all())->toBe([]);
 
-    (new PublishPostTarget($target->id))->handle(app(ConnectorRegistry::class), app(PublishOutcomes::class), app(PublishRequestFactory::class), app(SocialAccountService::class));
+    app()->call([new PublishPostTarget($target->id), 'handle']);
     expect($target->fresh()->status)->toBe(PostStatus::Scheduled)->and($target->fresh()->attempts)->toBe(0);
 
     expect(fn () => app(PostService::class)->publishNow($this->owner, $post->fresh()))->toThrow(PostValidationException::class);
@@ -170,8 +166,8 @@ test('la API REST aprueba y rechaza con la misma respuesta que la web y audita',
 });
 
 test('invitar es uniforme: la respuesta no distingue un email registrado de otro que no lo esta, y limita el ritmo', function () {
-    $known = $this->actingAs($this->owner)->postJson(route('workflow.collaborators.store', $this->brand->id), ['email' => $this->stranger->email, 'role' => 'aprobador']);
-    $unknown = $this->actingAs($this->owner)->postJson(route('workflow.collaborators.store', $this->brand->id), ['email' => 'nadie@ejemplo.test', 'role' => 'aprobador']);
+    $known = $this->actingAs($this->owner)->postJson(route('workflow.collaborators.store', $this->brand->id), ['email' => $this->stranger->email, 'role' => BrandCollaborator::ROLE_APPROVER]);
+    $unknown = $this->actingAs($this->owner)->postJson(route('workflow.collaborators.store', $this->brand->id), ['email' => 'nadie@ejemplo.test', 'role' => BrandCollaborator::ROLE_APPROVER]);
 
     expect($known->status())->toBe($unknown->status())->and($known->json())->toBe($unknown->json());
     expect(BrandCollaborator::query()->where('user_id', $this->stranger->id)->exists())->toBeTrue()

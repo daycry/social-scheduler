@@ -25,6 +25,19 @@ test('native export client preserves page order and sends server rendering witho
     assert.deepEqual(calls[4], ['GET', 'studio.exports.index/7?page=2']);
 });
 
+test('an export can update the post that opened the editor', async () => {
+    const { createStudioExportClient } = await moduleUnderTest();
+    const calls = [];
+    const client = createStudioExportClient({
+        request: async (...args) => { calls.push(args); },
+        url: (name, id) => `${name}/${id}`,
+    });
+
+    await client.post(19, 8);
+
+    assert.deepEqual(calls, [['POST', 'studio.exports.post/19', { post_id: 8 }]]);
+});
+
 test('export monitoring uses one history request per page and never overlaps or recreates work', async () => {
     const module = await moduleUnderTest();
     assert.equal(typeof module?.createExportMonitor, 'function', 'resumable export monitoring is unavailable');

@@ -23,6 +23,7 @@ use App\Http\Controllers\MediaController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OAuth\OAuthController;
 use App\Http\Controllers\PostController;
+use App\Http\Controllers\PostImportController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ReportController;
@@ -114,6 +115,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('brands/{brand}/posts/create', [PostController::class, 'create'])->name('brands.posts.create');
     Route::post('brands/{brand}/posts', [PostController::class, 'store'])->middleware('throttle:publish-now')->name('brands.posts.store');
     Route::post('brands/{brand}/posts/validate', [PostController::class, 'validatePost'])->name('brands.posts.validate');
+    // Importacion masiva por CSV (T-83): vista previa sin crear nada y confirmacion de un solo uso.
+    Route::get('brands/{brand}/posts/import', [PostImportController::class, 'show'])->name('brands.posts.import.show');
+    Route::get('brands/{brand}/posts/import/sample', [PostImportController::class, 'sample'])->name('brands.posts.import.sample');
+    Route::post('brands/{brand}/posts/import/preview', [PostImportController::class, 'preview'])->middleware('throttle:brands.posts.import.preview')->name('brands.posts.import.preview');
+    Route::post('brands/{brand}/posts/import/confirm', [PostImportController::class, 'confirm'])->middleware('throttle:brands.posts.import.confirm')->name('brands.posts.import.confirm');
     Route::get('brands/{brand}/hashtags', [HashtagController::class, 'index'])->middleware('throttle:brands.hashtags')->name('brands.hashtags');
     // «Guardar en biblioteca» con el contenido actual del compositor (sin post guardado, CA-26).
     Route::post('brands/{brand}/library', [LibraryController::class, 'storeFromComposer'])->name('brands.library.store');

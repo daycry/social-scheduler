@@ -104,6 +104,8 @@ return [
         'calendar-views.update' => 60,
         'calendar-views.destroy' => 60,
         'brands.hashtags' => 60,
+        'brands.posts.import.preview' => 20,
+        'brands.posts.import.confirm' => 10,
         'posts.first-comment.update' => 30,
         'posts.first-comment.retry' => 30,
         'posts.first-comment.published' => 30,

@@ -26,9 +26,7 @@ const clearSubscribers = async () => {
         aria-label="Suscriptores"
     >
         <div class="flex flex-wrap items-center justify-between gap-2">
-            <h2 class="text-base font-semibold text-slate-900"
-                >Suscriptores ({{ count }})</h2
-            >
+            <h2 class="text-base font-semibold text-slate-900">Suscriptores ({{ count }})</h2>
             <span class="flex gap-3">
                 <a :href="route('smartlinks.subscribers', linkId)" class="underline">Descargar CSV</a>
                 <button
@@ -41,11 +39,7 @@ const clearSubscribers = async () => {
             </span>
         </div>
         <ul class="divide-y">
-            <li
-                v-for="s in subscribers"
-                :key="s.id"
-                class="flex flex-wrap items-center justify-between gap-2 py-1"
-            >
+            <li v-for="s in subscribers" :key="s.id" class="flex flex-wrap items-center justify-between gap-2 py-1">
                 <span class="min-w-0 break-all">{{ s.email }}</span>
                 <button
                     type="button"

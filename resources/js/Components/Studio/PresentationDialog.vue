@@ -220,23 +220,9 @@ const secondaryButtonClass =
                         ><option value="presenter">Presentador</option
                         ><option value="audience">Audiencia</option></select
                     >
-                    <button
-                        type="button"
-                        :class="secondaryButtonClass"
-                        @click="openAudience"
-                        >Abrir audiencia</button
-                    >
-                    <button
-                        type="button"
-                        :class="secondaryButtonClass"
-                        @click="fullscreen"
-                        >Pantalla completa</button
-                    >
-                    <button
-                        type="button"
-                        :class="secondaryButtonClass"
-                        aria-label="Cerrar presentación"
-                        @click="close"
+                    <button type="button" :class="secondaryButtonClass" @click="openAudience">Abrir audiencia</button>
+                    <button type="button" :class="secondaryButtonClass" @click="fullscreen">Pantalla completa</button>
+                    <button type="button" :class="secondaryButtonClass" aria-label="Cerrar presentación" @click="close"
                         >Cerrar</button
                     >
                 </div>
@@ -295,7 +281,9 @@ const secondaryButtonClass =
                                 :value="toolState.trailSeconds"
                                 @change="toolAct('setTrailSeconds', Number($event.target.value))"
                         /></label>
-                        <button :class="secondaryButtonClass" type="button" @click="toolAct('clear')">Borrar trazos</button>
+                        <button :class="secondaryButtonClass" type="button" @click="toolAct('clear')"
+                            >Borrar trazos</button
+                        >
                     </fieldset>
                     <fieldset class="flex min-w-0 flex-wrap items-center gap-3 text-xs">
                         <legend class="mb-2 font-semibold text-slate-300">Temporizador</legend>
@@ -321,7 +309,9 @@ const secondaryButtonClass =
                         <button v-else :class="secondaryButtonClass" type="button" @click="timerAct('pause')"
                             >Pausar temporizador</button
                         >
-                        <button :class="secondaryButtonClass" type="button" @click="timerAct('reset')">Reiniciar temporizador</button>
+                        <button :class="secondaryButtonClass" type="button" @click="timerAct('reset')"
+                            >Reiniciar temporizador</button
+                        >
                         <label class="flex items-center gap-2"
                             ><input
                                 aria-label="Mostrar temporizador a la audiencia"

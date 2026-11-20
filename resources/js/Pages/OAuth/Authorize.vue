@@ -84,11 +84,7 @@ const submit = (decision) => {
                 </p>
             </div>
 
-            <FormField
-                :error="abilitiesError"
-                error-class="mt-2"
-                v-slot="{ group }"
-            >
+            <FormField :error="abilitiesError" error-class="mt-2" v-slot="{ group }">
                 <fieldset v-bind="group">
                     <legend class="text-sm font-semibold text-slate-900">Permisos</legend>
                     <p class="mt-1 text-xs text-slate-500"

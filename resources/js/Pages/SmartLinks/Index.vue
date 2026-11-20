@@ -492,7 +492,11 @@ const hexDraft = computed({
                                     </div>
                                 </FormField>
                                 <div class="flex flex-wrap gap-2" data-testid="add-blocks">
-                                    <button type="button" class="btn btn-secondary" data-add-block @click="addBlock('link')"
+                                    <button
+                                        type="button"
+                                        class="btn btn-secondary"
+                                        data-add-block
+                                        @click="addBlock('link')"
                                         >Añadir enlace</button
                                     >
                                     <button type="button" class="btn btn-secondary" @click="addBlock('header')"
@@ -523,7 +527,11 @@ const hexDraft = computed({
                         </div>
                     </form>
 
-                    <SmartLinkSubscribers :link-id="link?.id" :count="stats?.subscribers ?? 0" :subscribers="subscribers" />
+                    <SmartLinkSubscribers
+                        :link-id="link?.id"
+                        :count="stats?.subscribers ?? 0"
+                        :subscribers="subscribers"
+                    />
 
                     <SmartLinkPreview :draft="form" :images="images" :default-color="defaults.theme_color" />
                 </div>

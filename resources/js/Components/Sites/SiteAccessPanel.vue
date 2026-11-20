@@ -27,24 +27,15 @@ const revokeAll = async () => {
             <FormField :error="access.errors.access_mode" v-slot="{ control }">
                 <label class="block"
                     ><span class="block text-xs font-medium text-slate-600">Quién puede verlo</span>
-                    <select
-                        v-bind="control"
-                        v-model="access.access_mode"
-                        class="field"
-                        data-testid="access-mode"
+                    <select v-bind="control" v-model="access.access_mode" class="field" data-testid="access-mode"
                         ><option v-for="(l, k) in MODES" :key="k" :value="k">{{ l }}</option></select
                     >
                 </label>
             </FormField>
-            <FormField
-                v-if="access.access_mode === 'password'"
-                :error="access.errors.password"
-                v-slot="{ control }"
-            >
+            <FormField v-if="access.access_mode === 'password'" :error="access.errors.password" v-slot="{ control }">
                 <label class="block"
                     ><span class="block text-xs font-medium text-slate-600"
-                        >Contraseña
-                        {{ site.has_password ? '(déjala vacía para conservar la actual)' : '' }}</span
+                        >Contraseña {{ site.has_password ? '(déjala vacía para conservar la actual)' : '' }}</span
                     >
 
                     <input
@@ -68,25 +59,17 @@ const revokeAll = async () => {
                 No indexar en buscadores (noindex)</label
             >
             <p class="text-xs text-slate-600"
-                >Cambiar el modo o la contraseña cierra las sesiones de acceso ya abiertas. Los sitios
-                con contraseña o token nunca se indexan.</p
+                >Cambiar el modo o la contraseña cierra las sesiones de acceso ya abiertas. Los sitios con contraseña o
+                token nunca se indexan.</p
             >
-            <button
-                type="submit"
-                class="btn btn-secondary"
-                :disabled="access.processing"
-                data-testid="access-save"
+            <button type="submit" class="btn btn-secondary" :disabled="access.processing" data-testid="access-save"
                 >Guardar acceso</button
             >
         </form>
 
         <div v-if="access.access_mode === 'token' || tokens.length" class="space-y-2 border-t pt-3">
             <h3 class="text-sm font-semibold text-slate-900">Enlaces con token</h3>
-            <div
-                v-if="newToken"
-                class="rounded border border-emerald-300 bg-emerald-50 p-2"
-                data-testid="new-token"
-            >
+            <div v-if="newToken" class="rounded border border-emerald-300 bg-emerald-50 p-2" data-testid="new-token">
                 <p class="text-xs font-medium"
                     >Enlace «{{ newToken.label }}» (cópialo ahora; no se vuelve a mostrar):</p
                 >
@@ -134,11 +117,7 @@ const revokeAll = async () => {
                 >
             </form>
             <ul class="divide-y" data-testid="token-list">
-                <li
-                    v-for="t in tokens"
-                    :key="t.id"
-                    class="flex flex-wrap items-center justify-between gap-2 py-1"
-                >
+                <li v-for="t in tokens" :key="t.id" class="flex flex-wrap items-center justify-between gap-2 py-1">
                     <span
                         >{{ t.label }} ·
                         <span

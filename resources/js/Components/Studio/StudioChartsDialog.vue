@@ -95,9 +95,17 @@ onBeforeUnmount(()=>{disposed=true;invalidate();invalidateData();disposeScene();
     <StudioDialog :model-value="modelValue" title="Diseñar gráfico" wide @update:model-value="close">
         <div class="space-y-5 min-w-0">
             <nav class="flex gap-2 rounded-xl bg-slate-100 p-1" aria-label="Pasos del gráfico"
-                ><button type="button" class="btn-secondary flex-1 px-3 text-xs aria-pressed:border-violet-300 aria-pressed:text-violet-700" :aria-pressed="tab==='data'" @click="tab='data'"
+                ><button
+                    type="button"
+                    class="btn-secondary flex-1 px-3 text-xs aria-pressed:border-violet-300 aria-pressed:text-violet-700"
+                    :aria-pressed="tab==='data'"
+                    @click="tab='data'"
                     >1 · Datos</button
-                ><button type="button" class="btn-secondary flex-1 px-3 text-xs aria-pressed:border-violet-300 aria-pressed:text-violet-700" :aria-pressed="tab==='style'" @click="tab='style'"
+                ><button
+                    type="button"
+                    class="btn-secondary flex-1 px-3 text-xs aria-pressed:border-violet-300 aria-pressed:text-violet-700"
+                    :aria-pressed="tab==='style'"
+                    @click="tab='style'"
                     >2 · Estilo</button
                 ></nav
             >
@@ -108,7 +116,10 @@ onBeforeUnmount(()=>{disposed=true;invalidate();invalidateData();disposeScene();
                             >Tabla {{ draft.binding.dataset.id }} · Revisión
                             {{ draft.binding.dataset.revision }} fija</p
                         ><p class="mt-1 break-all font-mono text-[10px]">SHA-256 {{ draft.binding.dataset.sha256 }}</p
-                        ><button type="button" class="btn-secondary px-3 text-xs mt-3" @click="emit('choose-data',copy(draft))"
+                        ><button
+                            type="button"
+                            class="btn-secondary px-3 text-xs mt-3"
+                            @click="emit('choose-data',copy(draft))"
                             >Elegir otra revisión guardada</button
                         ><p class="mt-2 text-xs text-slate-600"
                             >La revisión sólo cambia al elegirla y aplicar el gráfico. Puedes deshacer ese cambio.</p
@@ -121,7 +132,9 @@ onBeforeUnmount(()=>{disposed=true;invalidate();invalidateData();disposeScene();
                         >Abre «Ver datos del gráfico» para cargar las columnas de esta revisión histórica.</p
                     >
                     <label class="block text-sm font-medium"
-                        >Tipo de gráfico<select v-model="draft.options.kind" class="field appearance-auto bg-none mt-1.5 block"
+                        >Tipo de gráfico<select
+                            v-model="draft.options.kind"
+                            class="field appearance-auto bg-none mt-1.5 block"
                             ><option
                                 v-for="[value,label] in kinds"
                                 :key="value"
@@ -131,7 +144,9 @@ onBeforeUnmount(()=>{disposed=true;invalidate();invalidateData();disposeScene();
                         ></label
                     >
                     <label class="block text-sm font-medium"
-                        >Categoría<select v-model="draft.binding.category_column" class="field appearance-auto bg-none mt-1.5 block"
+                        >Categoría<select
+                            v-model="draft.binding.category_column"
+                            class="field appearance-auto bg-none mt-1.5 block"
                             ><option v-if="missingCategory" :value="draft.binding.category_column" disabled
                                 >{{ draft.binding.category_column }} · No disponible en esta revisión</option
                             ><option v-for="c in columns" :key="c.id" :value="c.id">{{ c.label }}</option></select
@@ -177,7 +192,9 @@ onBeforeUnmount(()=>{disposed=true;invalidate();invalidateData();disposeScene();
                         ></fieldset
                     >
                     <label class="block text-sm font-medium"
-                        >Precisión<select v-model="draft.binding.precision" class="field appearance-auto bg-none mt-1.5 block"
+                        >Precisión<select
+                            v-model="draft.binding.precision"
+                            class="field appearance-auto bg-none mt-1.5 block"
                             ><option value="safe">Segura · rechazar pérdida de precisión</option
                             ><option value="approximate">Aproximada · acepto aproximar números</option></select
                         ></label
@@ -222,12 +239,16 @@ onBeforeUnmount(()=>{disposed=true;invalidate();invalidateData();disposeScene();
                                 max="72"
                                 class="field mt-1.5 block" /></label
                         ><label class="block text-sm font-medium"
-                            >Peso<select v-model="draft.style.fontWeight" class="field appearance-auto bg-none mt-1.5 block"
+                            >Peso<select
+                                v-model="draft.style.fontWeight"
+                                class="field appearance-auto bg-none mt-1.5 block"
                                 ><option value="normal">Normal</option
                                 ><option value="bold">Negrita</option></select
                             ></label
                         ><label class="block text-sm font-medium"
-                            >Estilo<select v-model="draft.style.fontStyle" class="field appearance-auto bg-none mt-1.5 block"
+                            >Estilo<select
+                                v-model="draft.style.fontStyle"
+                                class="field appearance-auto bg-none mt-1.5 block"
                                 ><option value="normal">Normal</option
                                 ><option value="italic">Cursiva</option></select
                             ></label
@@ -267,12 +288,16 @@ onBeforeUnmount(()=>{disposed=true;invalidate();invalidateData();disposeScene();
                             class="flex items-center gap-2 text-sm"
                             ><input v-model="draft.style[field]" type="checkbox" />{{label}}</label
                         ><label class="block text-sm font-medium"
-                            >Posición de leyenda<select v-model="draft.style.legend_position" class="field appearance-auto bg-none mt-1.5 block"
+                            >Posición de leyenda<select
+                                v-model="draft.style.legend_position"
+                                class="field appearance-auto bg-none mt-1.5 block"
                                 ><option value="bottom">Abajo</option
                                 ><option value="right">Derecha</option></select
                             ></label
                         ><label class="block text-sm font-medium"
-                            >Etiquetas de valores<select v-model="draft.style.value_labels" class="field appearance-auto bg-none mt-1.5 block"
+                            >Etiquetas de valores<select
+                                v-model="draft.style.value_labels"
+                                class="field appearance-auto bg-none mt-1.5 block"
                                 ><option value="none">Ocultas</option
                                 ><option value="raw">Valor original</option
                                 ><option value="percentage">Porcentaje · sólo proporcionales</option></select
@@ -383,7 +408,11 @@ onBeforeUnmount(()=>{disposed=true;invalidate();invalidateData();disposeScene();
                             ></table
                         ></div
                     ><nav class="flex flex-wrap gap-3 text-xs" aria-label="Páginas de datos del gráfico"
-                        ><button type="button" class="btn-secondary px-3 text-xs" :disabled="dataPage===0" @click="dataPage--"
+                        ><button
+                            type="button"
+                            class="btn-secondary px-3 text-xs"
+                            :disabled="dataPage===0"
+                            @click="dataPage--"
                             >Anterior</button
                         ><span role="status"
                             >Página {{dataPage+1}} de {{Math.max(1,Math.ceil(dataTable.rows.length/50))}} ·

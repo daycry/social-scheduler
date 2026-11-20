@@ -25,8 +25,8 @@ const removeMessage = async (m) => {
             >Mensajes del formulario ({{ messagesMeta.total }})</h2
         >
         <p class="text-xs text-slate-600"
-            >Se guardan los últimos 500; al llegar al tope se descartan los más antiguos.
-            {{ messagesMeta.unread }} sin leer.</p
+            >Se guardan los últimos 500; al llegar al tope se descartan los más antiguos. {{ messagesMeta.unread }} sin
+            leer.</p
         >
         <div class="flex flex-wrap gap-3 text-xs">
             <button
@@ -47,8 +47,7 @@ const removeMessage = async (m) => {
         <ul class="divide-y" data-testid="messages">
             <li v-for="m in messages" :key="m.id" class="py-2">
                 <p class="font-medium"
-                    >{{ m.name }} ·
-                    <span class="break-all text-xs font-normal">{{ m.email }}</span>&#32;<span
+                    >{{ m.name }} · <span class="break-all text-xs font-normal">{{ m.email }}</span>&#32;<span
                         v-if="m.unread"
                         class="rounded bg-amber-100 px-1 text-xs"
                         >Nuevo</span

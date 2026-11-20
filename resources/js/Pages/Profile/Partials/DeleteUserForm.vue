@@ -67,7 +67,12 @@ const closeModal = () => {
                 </p>
 
                 <div class="mt-6">
-                    <FormField id="delete-account-password" :error="form.errors.password" error-class="mt-2" v-slot="{ control }">
+                    <FormField
+                        id="delete-account-password"
+                        :error="form.errors.password"
+                        error-class="mt-2"
+                        v-slot="{ control }"
+                    >
                         <InputLabel for="delete-account-password" value="Contraseña" class="sr-only" />
 
                         <TextInput

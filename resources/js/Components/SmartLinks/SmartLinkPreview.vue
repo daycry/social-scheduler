@@ -88,10 +88,7 @@ const avatarUrl = computed(() => props.images?.find((m) => m.id === props.draft.
                         >{{ b.label }}</span
                     >
                 </li>
-                <li
-                    v-if="!previewBlocks.length"
-                    class="text-xs"
-                    :style="{ color: dark ? '#9ca3af' : '#6b7280' }"
+                <li v-if="!previewBlocks.length" class="text-xs" :style="{ color: dark ? '#9ca3af' : '#6b7280' }"
                     >Añade bloques para verlos aquí.</li
                 >
             </ul>

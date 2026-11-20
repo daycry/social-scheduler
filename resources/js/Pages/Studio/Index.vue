@@ -591,10 +591,7 @@ const sharedDate = createZonedDateFormatter(designDateOptions);
                                 required /></label></div
                     ><p class="text-xs text-slate-500">Dimensiones en píxeles. Podrás adaptarlas desde el editor.</p>
                 </fieldset>
-                <FlashBanner
-                    :info="createOpen ? creationNotice : ''"
-                    :error="createError || openDesignError"
-                >
+                <FlashBanner :info="createOpen ? creationNotice : ''" :error="createError || openDesignError">
                     <template #info>
                         <button
                             ref="openCreatedButton"

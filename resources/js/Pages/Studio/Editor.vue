@@ -1257,7 +1257,12 @@ const {
             @busy="exportBusy = $event"
             @conflict="onExportConflict"
         />
-        <StudioFontsDialog v-if="contextActive && fontsMounted" v-model="fontsOpen" :brand-id="initialContext.brandId" @changed="updateFonts" />
+        <StudioFontsDialog
+            v-if="contextActive && fontsMounted"
+            v-model="fontsOpen"
+            :brand-id="initialContext.brandId"
+            @changed="updateFonts"
+        />
         <StudioDatasetsDialog
             v-if="contextActive && datasetsMounted"
             v-model="datasetsOpen"

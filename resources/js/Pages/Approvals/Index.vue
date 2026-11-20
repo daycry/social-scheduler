@@ -131,12 +131,13 @@ const when = (local) => (local ? local.replace('T', ' ') : 'Sin fecha');
                             class="line-clamp-3 whitespace-pre-line text-sm text-slate-900"
                             >{{ p.text || '(sin texto)' }}</p
                         >
-                        <p class="mt-1 text-xs text-slate-600"
-                            v-if="!isDesign(p)"
+                        <p class="mt-1 text-xs text-slate-600" v-if="!isDesign(p)"
                             >{{ p.brand_name }} · {{ p.networks.join(', ') || 'sin destinos' }} ·
                             {{ when(p.scheduled_at_local) }} · pide {{ p.requested_by }}</p
                         >
-                        <p v-else class="mt-1 text-xs text-slate-600">{{ p.brand_name }} · Diseño · pide {{ p.requested_by }}</p>
+                        <p v-else class="mt-1 text-xs text-slate-600"
+                            >{{ p.brand_name }} · Diseño · pide {{ p.requested_by }}</p
+                        >
                         <div class="mt-3 flex flex-wrap items-center gap-2">
                             <button
                                 type="button"
@@ -201,7 +202,9 @@ const when = (local) => (local ? local.replace('T', ' ') : 'Sin fecha');
                             >{{ decisionLabel(p) }}</span
                         >
                         · {{ p.text || '(sin texto)' }}
-                        <span v-if="isDesign(p) && !p.approval_current" class="text-xs text-slate-600">· revisión {{ p.approval_revision }}</span>
+                        <span v-if="isDesign(p) && !p.approval_current" class="text-xs text-slate-600"
+                            >· revisión {{ p.approval_revision }}</span
+                        >
                         <span v-if="p.approval_comment" class="block text-xs text-slate-600"
                             >Motivo: {{ p.approval_comment }}</span
                         >

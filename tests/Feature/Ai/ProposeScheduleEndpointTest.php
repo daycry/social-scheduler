@@ -40,11 +40,11 @@ test('propone la fecha y las redes, descuenta del cupo y no crea ninguna publica
     expect(Post::withoutUserScope()->count())->toBe(0);
 });
 
-test('con la IA desactivada responde 404 sin llamar a nadie', function () {
+test('con la IA desactivada responde 409 con la explicación sin llamar a nadie', function () {
     config(['social.ai.enabled' => false]);
     Http::fake();
 
-    $this->actingAs($this->user)->postJson(route('ai.schedule'), ['phrase' => 'mañana', 'brand_id' => $this->brand->id])->assertNotFound();
+    $this->actingAs($this->user)->postJson(route('ai.schedule'), ['phrase' => 'mañana', 'brand_id' => $this->brand->id])->assertStatus(409)->assertJsonPath('message', 'El asistente IA no está activado.');
     Http::assertNothingSent();
 });
 

@@ -5,6 +5,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Added — adaptar el texto a cada red con IA (audit-hardening, T-82)
+
+- Adapta el texto común a cada red elegida con una sola petición a la IA y revisa una versión por red antes de aplicarla; las versiones que superan el texto o los hashtags de su red se rechazan, no se recortan. Genera desde el compositor el texto alternativo de una imagen y edítalo antes de guardar. Con el asistente sin configurar, ambos botones quedan inactivos y explican por qué.
+
 ### Added — avisos del navegador (audit-hardening, T-81)
 
 - Instala la aplicación desde navegadores compatibles y activa avisos push genéricos por dispositivo. Las suscripciones se cifran y se pueden revocar; el envío usa VAPID, reintentos acotados y elimina las suscripciones caducadas. La aceptación real en HTTPS y dispositivos sigue pendiente.

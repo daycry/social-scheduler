@@ -1,11 +1,19 @@
 <script setup>
-import { computed, watch } from 'vue';
+import { computed, ref, useId, watch } from 'vue';
+import AiNotConfigured from '@/Components/AiNotConfigured.vue';
+import InfoNote from '@/Components/InfoNote.vue';
+import { useAiStatus } from '@/Composables/useAiStatus';
+import { useConfirm } from '@/Composables/useConfirm';
 import { useComposerContext } from '@/Composables/useComposer';
+import { HttpError } from '@/lib/http';
 
 /**
  * Media por destino (T-17). Por defecto cada red publica la media común; «Personalizar media para esta red» copia esa lista para que
  * la red tenga su propia selección, orden, texto alternativo y portada. «Volver a la media común» descarta la propia. Lo que se
  * valida, se previsualiza y se publica es siempre la media EFECTIVA de la red.
+ *
+ * «Generar» (T-82) propone el texto alternativo de una imagen con la IA (`StudioAiText::describe`): lo pone en el campo, que sigue siendo
+ * editable antes de guardar. Sin IA configurada el botón queda inactivo y explica por qué.
  */
 const props = defineProps({ row: { type: Object, required: true } });
 const {
@@ -23,6 +31,30 @@ const name = (id) => mediaById(id)?.name ?? `Archivo ${id}`;
 const kindLabel = (id) => (mediaById(id)?.kind === 'video' ? 'vídeo' : 'imagen');
 const isVideo = (id) => mediaById(id)?.kind === 'video';
 watch(own, (value) => { if (value) loadLibrary(); }, { immediate: true });
+
+const ask = useConfirm();
+const { enabled, vision, loaded, call } = useAiStatus();
+const altNoteId = useId();
+const altBusy = ref(null); // id de la media cuyo alt se está generando
+const altErrors = ref({}); // mensaje por id de media
+const altUnavailable = computed(() => !enabled.value || !vision.value);
+const hasAltField = computed(() => meta.value.alt && target.value.media.some((m) => !isVideo(m.id)));
+const generateAlt = async (item) => {
+    altErrors.value = { ...altErrors.value, [item.id]: '' };
+    // Un texto alternativo ya escrito no se sobrescribe sin confirmar (y la confirmación va antes de gastar un uso de IA).
+    if (item.alt?.trim() && !(await ask({ title: 'Reemplazar texto alternativo', message: 'Ya has escrito un texto alternativo para este archivo. ¿Reemplazarlo por el generado?', confirmLabel: 'Reemplazar' }))) return;
+    altBusy.value = item.id;
+    try {
+        const data = await call('ai.alt', { media_id: item.id }, {
+            errorMessage: (data) => data?.errors?.media_id?.[0] ?? data?.message ?? 'No se pudo generar el texto alternativo.',
+        });
+        if (data?.text) item.alt = data.text.slice(0, altMax.value);
+    } catch (failure) {
+        altErrors.value = { ...altErrors.value, [item.id]: failure instanceof HttpError ? failure.message : 'No se pudo contactar con el asistente.' };
+    } finally {
+        altBusy.value = null;
+    }
+};
 const onAdd = (e) => {
     addTargetMedia(target.value, Number(e.target.value));
     e.target.value = '';
@@ -115,6 +147,23 @@ const onAdd = (e) => {
                             class="field mt-1 w-full text-sm"
                             :data-testid="`target-media-alt-${item.id}`"
                         />
+                        <button
+                            v-if="editable"
+                            type="button"
+                            class="btn btn-secondary mt-1 px-3 py-1 text-sm"
+                            :disabled="altUnavailable || altBusy !== null"
+                            :aria-describedby="loaded && altUnavailable ? altNoteId : undefined"
+                            :aria-label="`Generar texto alternativo del archivo ${i + 1} de ${row.label}`"
+                            :data-testid="`target-media-alt-generate-${item.id}`"
+                            @click="generateAlt(item)"
+                            >{{ altBusy === item.id ? 'Generando…' : 'Generar' }}</button
+                        >
+                        <p
+                            v-if="altErrors[item.id]"
+                            class="mt-1 text-xs text-rose-700"
+                            role="alert"
+                            >{{ altErrors[item.id] }}</p
+                        >
                     </div>
                     <div v-if="meta.cover && isVideo(item.id)" class="mt-2">
                         <label :for="`${idBase}-cover-${item.id}`" class="block text-xs font-medium text-slate-900"
@@ -133,6 +182,22 @@ const onAdd = (e) => {
                     </div>
                 </li>
             </ul>
+            <template v-if="editable && hasAltField && loaded">
+                <AiNotConfigured
+                    v-if="!enabled"
+                    :id="altNoteId"
+                    class="mt-2 text-xs"
+                    data-testid="target-media-alt-unconfigured"
+                />
+                <InfoNote
+                    v-else-if="!vision"
+                    :id="altNoteId"
+                    class="mt-2 text-xs"
+                    data-testid="target-media-alt-novision"
+                    >El modelo de IA configurado no admite imágenes, así que no se puede generar el texto alternativo.
+                    Escríbelo a mano.</InfoNote
+                >
+            </template>
 
             <div v-if="editable" class="mt-2 flex flex-wrap items-center gap-2">
                 <template v-if="addableMedia(target).length">

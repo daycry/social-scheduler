@@ -92,6 +92,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('ai/status', [AiAssistantController::class, 'status'])->name('ai.status');
     Route::post('ai/suggest', [AiAssistantController::class, 'suggest'])->middleware('throttle:ai.suggest')->name('ai.suggest');
     Route::post('ai/schedule', [AiAssistantController::class, 'schedule'])->middleware('throttle:ai.schedule')->name('ai.schedule');
+    Route::post('ai/adapt', [AiAssistantController::class, 'adapt'])->middleware('throttle:ai.adapt')->name('ai.adapt');
+    Route::post('ai/alt', [AiAssistantController::class, 'alt'])->middleware('throttle:ai.alt')->name('ai.alt');
 });
 
 // SmartLinks publicos (PA-07): sin login, sin sesion ni cookies (ni Set-Cookie ni CSRF) y sin el middleware de Inertia

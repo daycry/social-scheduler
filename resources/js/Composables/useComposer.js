@@ -433,6 +433,14 @@ export function useComposer(props) {
     const relink = (target) => {
         target.text = null;
     };
+    // «Adaptar a cada red» (T-82): da a cada destino su versión como texto propio (el mismo mecanismo de «Editar por red») y abre las pestañas.
+    const applyTargetTexts = (versions) => {
+        for (const { account_id: accountId, text } of versions) {
+            const target = form.targets.find((t) => t.account_id === accountId);
+            if (target && text) target.text = text;
+        }
+        byNetwork.value = true;
+    };
     const openTargetText = (accountId) => {
         byNetwork.value = true;
         activeTab.value = accountId;
@@ -545,6 +553,7 @@ export function useComposer(props) {
         currentTab,
         unlink,
         relink,
+        applyTargetTexts,
         openTargetText,
     };
     provide(KEY, api);

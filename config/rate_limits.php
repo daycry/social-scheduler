@@ -67,6 +67,8 @@ return [
         'ads.index' => 30,
         'ai.suggest' => 10,
         'ai.schedule' => 10,
+        'ai.adapt' => 10,
+        'ai.alt' => 20,
         'web-public-parity' => 120,
         'api.retry' => 30,
         'api.series.store' => 30,

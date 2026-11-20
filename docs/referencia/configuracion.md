@@ -258,6 +258,8 @@ Variables nuevas, todas opcionales (valores por defecto en la segunda columna). 
 | `AI_ASSISTANT_ENABLED` + `ANTHROPIC_API_KEY` | `false` / vacío | El asistente «Sugerir texto» solo existe si **ambas** están definidas |
 | `AI_ASSISTANT_DAILY_LIMIT` / `_GLOBAL_DAILY_LIMIT` | `20` / `200` | Sugerencias por usuario y día, y tope global diario entre todos los usuarios (0 = sin tope global) |
 | `AI_ASSISTANT_MODEL` / `_MAX_TOKENS` / `_TIMEOUT` | `claude-sonnet-5-5` / `600` / `30` | Modelo y límites de la llamada a la Messages API |
+| `AI_ASSISTANT_ADAPT_MAX_TOKENS` | `8000` | «Adaptar a cada red»: tope de tokens de salida de una adaptación (se dimensiona por la entrada y las redes) |
+| `AI_ASSISTANT_ADAPT_MAX_TIMEOUT` | `50` | «Adaptar a cada red»: tope (s) del tiempo de espera, que crece desde `AI_ASSISTANT_TIMEOUT` con los tokens a generar. **Nunca pasa de 55** (la config lo recorta): Nginx corta la petición a los 60 s (`fastcgi_read_timeout` por defecto, que `deploy/hestia/nginx-overrides.conf` no cambia) |
 | `AI_ASSISTANT_SCHEDULE_MAX_DAYS` | `365` | «Escribe cuándo»: la fecha propuesta no puede quedar a más de estos días |
 
 ## Objetivos y alertas (T-79)

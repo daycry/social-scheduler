@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, useId } from 'vue';
 import { useStudioAssetLinks } from '@/Composables/useStudioAssetLinks';
 import AiSuggest from '@/Components/AiSuggest.vue';
+import AiAdapt from '@/Components/Composer/AiAdapt.vue';
 import MediaUploader from '@/Components/MediaUploader.vue';
 import EmojiPicker from '@/Components/Composer/EmojiPicker.vue';
 import UtmModal from '@/Components/Composer/UtmModal.vue';
@@ -11,7 +12,7 @@ import { useComposerContext } from '@/Composables/useComposer';
 import { countHashtags } from '@/Composables/textCount';
 
 /**
- * Barra de iconos del editor: media, emoji, textos guardados, hashtags sugeridos del histórico, enlace con UTM, IA y recuento de hashtags. El emoji se inserta con `@emoji`
+ * Barra de iconos del editor: media, emoji, textos guardados, hashtags sugeridos del histórico, enlace con UTM, IA (sugerir y adaptar a cada red) y recuento de hashtags. El emoji se inserta con `@emoji`
  * (lo recoge `TextSection` y lo pasa al cursor del `TextEditor`); la IA y la media usan los controles que ya existían.
  */
 const emit = defineEmits(['emoji', 'insert']);
@@ -70,7 +71,12 @@ const hashtags = computed(() => countHashtags(form.text));
                 @uploaded="registerUpload"
                 @busy="setUploading"
             />
-            <p class="sr-only" role="status" aria-atomic="true">{{ announcementBrandId === brand.id ? announcement : '' }}</p>
+            <p
+                class="sr-only"
+                role="status"
+                aria-atomic="true"
+                >{{ announcementBrandId === brand.id ? announcement : '' }}</p
+            >
             <ul v-if="visibleLinks.length" class="mt-1 space-y-1 text-sm text-slate-700">
                 <li v-for="link in visibleLinks" :key="link.key">
                     <span v-if="link.state === 'linking'">Añadiendo {{ link.asset.name }} a Recursos…</span>
@@ -144,6 +150,8 @@ const hashtags = computed(() => countHashtags(form.text));
         <HashtagSuggestions @insert="(t, o) => emit('insert', t, o)" />
 
         <AiSuggest :brand-id="brand.id" :network="selectedNetwork" @use="(t) => (form.text = t)" />
+
+        <AiAdapt />
 
         <p class="ms-auto self-center text-xs text-slate-600" data-testid="hashtag-count" aria-live="polite"
             >{{ hashtags }} {{ hashtags === 1 ? 'hashtag' : 'hashtags' }}</p

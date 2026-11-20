@@ -35,3 +35,25 @@ test('quota errors update both consumers while preserving the typed HTTP error',
     await assert.rejects(status.call('ai.schedule', { phrase: 'Mañana' }), error => error === failure);
     assert.equal(status.remaining.value, 0);
 });
+
+test('the status exposes whether the model accepts images', async () => {
+    const status = createAiStatus({ resolveRoute: name => name, transport: async () => ({ enabled: true, remaining: 3, vision: false }) });
+    await status.load();
+    assert.equal(status.vision.value, false);
+    const withVision = createAiStatus({ resolveRoute: name => name, transport: async () => ({ enabled: true, remaining: 3, vision: true }) });
+    await withVision.load();
+    assert.equal(withVision.vision.value, true);
+});
+
+test('the status says when it is known, even if the request fails', async () => {
+    const ok = createAiStatus({ resolveRoute: name => name, transport: async () => ({ enabled: false, remaining: 0 }) });
+    assert.equal(ok.loaded.value, false);
+    await ok.load();
+    assert.equal(ok.loaded.value, true);
+    assert.equal(ok.enabled.value, false);
+
+    const broken = createAiStatus({ resolveRoute: name => name, transport: async () => { throw new Error('offline'); } });
+    await broken.load();
+    assert.equal(broken.loaded.value, true);
+    assert.equal(broken.enabled.value, false);
+});

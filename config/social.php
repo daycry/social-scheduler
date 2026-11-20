@@ -463,6 +463,11 @@ return [
         'model' => env('AI_ASSISTANT_MODEL', 'claude-sonnet-5-5'),
         'max_tokens' => (int) env('AI_ASSISTANT_MAX_TOKENS', 600),
         'timeout' => (int) env('AI_ASSISTANT_TIMEOUT', 30),
+        /* «Adaptar a cada red» (T-82): tope de tokens de salida de una adaptacion (se dimensiona por la entrada y las redes, sin pasar de esto). */
+        'adapt_max_tokens' => (int) env('AI_ASSISTANT_ADAPT_MAX_TOKENS', 8000),
+        /* «Adaptar a cada red»: tope del tiempo de espera (s); crece desde `timeout` con los tokens a generar. Nunca pasa de 55: Nginx corta a los
+           60 s (`fastcgi_read_timeout`, deploy/hestia/nginx-overrides.conf) y la peticion moriria antes que la llamada. */
+        'adapt_max_timeout' => min(55, (int) env('AI_ASSISTANT_ADAPT_MAX_TIMEOUT', 50)),
         /* Limite por usuario: peticiones al dia. */
         'daily_limit' => (int) env('AI_ASSISTANT_DAILY_LIMIT', 20),
         /* Tope diario GLOBAL (todos los usuarios) de sugerencias; 0 = sin tope. Protege el gasto de la clave compartida. */

@@ -146,6 +146,19 @@ class MediaValidator
         return $spec;
     }
 
+    /**
+     * Solo la regla de texto del tipo (longitud segun su modo de conteo, bytes y hashtags), sin media: la usa el asistente IA para
+     * comprobar cada version adaptada contra la regla de su red.
+     *
+     * @return list<string>
+     */
+    public function textErrors(ContentType $type, string $text): array
+    {
+        $spec = $this->spec($type);
+
+        return $this->validateText($spec, $spec['label'], $text);
+    }
+
     /** @return list<string> */
     private function validateText(array $spec, string $label, ?string $text, int $mediaCount = 0): array
     {

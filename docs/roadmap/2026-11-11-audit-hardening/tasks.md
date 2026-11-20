@@ -48,9 +48,9 @@ estado: en-progreso
 | Fase 5 — Frontend | 15 | 18 | 83% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
 | Fase 5b — Unificación | 4 | 8 | 50% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
 | Fase 6 — Operación y repositorio | 4 | 6 | 67% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
-| Fase 7 — Funciones nuevas | 7 | 24 | 29% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
+| Fase 7 — Funciones nuevas | 8 | 24 | 33% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **80** | **108** | **74%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
+| **TOTAL** | **81** | **108** | **75%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -4309,35 +4309,37 @@ CoberturaM3extra descubre registrodoble deListeners por autodetección+PushServi
 ### T-82 — Adaptar contenido entre redes con IA y alt text en el compositor
 
 - **Descripción**: Botón que reescribe el texto para cada red de destino respetando sus límites, y generación de alt text desde el compositor reutilizando `StudioAiText::altText`.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: En el compositor, «Adaptar a cada red» propone una versión del texto por red que respeta sus límites y hashtags (se aplica solo al confirmar), y «Generar» propone el texto alternativo de cada imagen, editable antes de guardar; sin IA configurada los botones explican por qué están inactivos.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-81
 - **Tipo**: fullstack
-- **Archivos**: `app/Services/AiAssistant.php`, `app/Services/Studio/StudioAiText.php`, `resources/js/composables/useComposer.js`, `resources/js/Components/AiSuggest.vue`, `docs/modulos/asistente-ia.md`
+- **Archivos**: `CHANGELOG.es.md`, `CHANGELOG.md`, `app/Http/Controllers/AiAssistantController.php`, `app/Services/AiAssistant.php`, `app/Services/MediaValidator.php`, `app/Services/Studio/StudioAiText.php`, `config/rate_limits.php`, `config/social.php`, `docs/modulos/asistente-ia.md`, `docs/modulos/despliegue.md`, `docs/referencia/configuracion.md`, `docs/usuario/guia-de-usuario.md`, `resources/js/Components/Composer/AiAdapt.vue`, `resources/js/Components/Composer/EditorToolbar.vue`, `resources/js/Components/Composer/TargetMediaPanel.vue`, `resources/js/Composables/useAiStatus.js`, `resources/js/Composables/useComposer.js`, `resources/views/legal/privacy.blade.php`, `routes/parity.php`, `tests/Feature/Ai/AdaptContentTest.php`, `tests/Feature/Ai/AiQuotaPolicyTest.php`, `tests/Feature/Ai/ProposeScheduleEndpointTest.php`, `tests/Feature/Ai/ProposeScheduleTest.php`, `tests/Feature/Parity/AiAssistantTest.php`, `tests/Feature/Studio/StudioCaptionTranslationTest.php`, `tests/e2e/ai-adapt.spec.ts`, `tests/e2e/isolated/fakes.php`, `tests/frontend/ai-status.test.mjs`, `docs/roadmap/2026-11-11-audit-hardening/testing/t82/**`
 - **Cubre**: F-08
 - **Cubre (tests)**: E2E-21
 - **Verificación**: `php artisan test --compact --filter=AdaptContentTest` → verde
 
 **Criterios de aceptación**
-- [ ] Cada versión adaptada respeta límites y hashtags de su red
-- [ ] Sin `ANTHROPIC_API_KEY` el botón muestra por qué está inactivo
-- [ ] El alt text se puede editar antes de guardar
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Cada versión adaptada respeta límites y hashtags de su red
+- [x] Sin `ANTHROPIC_API_KEY` el botón muestra por qué está inactivo
+- [x] El alt text se puede editar antes de guardar
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Qué se puede hacer ya: todo con un asistente falso en tests. Queda a la espera (U): `ANTHROPIC_API_KEY` real para el smoke. **A la espera (no bloquea la fase)**: `ANTHROPIC_API_KEY` real (usuario).
+
+**Cierre — 2026-11-20:** `AiAssistant::adapt` (una llamada y una unidad de cupo por adaptación, JSON estricto por cuenta, validación por red con `MediaValidator::textErrors` = la misma regla que el guardado, enmascarado de correos/enlaces/teléfonos en una pasada con delimitadores que no colisionan con el texto, límite efectivo descontando lo que crecen los marcadores, rechazo de marcadores perdidos o inventados, tokens y timeout proporcionales con tope ≤ 55 s) y `POST ai/alt` con `StudioAiText::describe` autorizado por `MediaAsset::ownedBy` (sirve para biblioteca, URL y Drive). UI `AiAdapt.vue` con el patrón propuesta → Aplicar/Descartar, `AiNotConfigured`, `useAiStatus` (`loaded`, `vision`) y `useConfirm` antes de sobrescribir un alt. Política de cuota única en suggest/schedule/adapt/complete: si el proveedor respondió se gasta (CWE-770), solo se devuelve si la llamada no se hizo o el proveedor la rechazó con HTTP; «IA no configurada» = 409 en las cuatro rutas. Política de privacidad actualizada. Revisión adversarial A+B+C en 3 intentos más verificación (I1-I5 y M1-M6/N1-N5 corregidos; el 3.er intento abrió I5 y el usuario eligió «corregir y cerrar»): parches en `testing/t82/reviews/r1..r4.patch`. QA: Pest IA 211/211 (765 aserciones), Node 799/799, typecheck/lint/format:check/pint/build verdes; E2E r3 103/103 (adaptar, compositor, estudio IA, programación natural) y r4 37/37 en tres tamaños con axe. Pendiente del usuario (no bloquea): smoke con `ANTHROPIC_API_KEY` real.
 
 ### T-83 — Importación masiva de posts por CSV
 

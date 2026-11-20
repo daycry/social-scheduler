@@ -66,25 +66,25 @@ test('Traduccion: el enmascarado detecta telefonos y deja cifras, anos y rangos'
     'correo y enlace' => ['a@b.es www.x.com', '⟦1⟧ ⟦2⟧'],
 ]);
 
-test('Traduccion: si la IA pierde o inventa un marcador la respuesta se rechaza y no gasta cuota', function (string $text) {
+test('Traduccion: si la IA pierde o inventa un marcador la respuesta se rechaza (el uso se gasta: el proveedor respondió)', function (string $text) {
     config(['social.ai.enabled' => true, 'social.ai.api_key' => 'sk-ant-test', 'social.ai.daily_limit' => 1]);
     Http::fake(['api.anthropic.com/*' => Http::response(translationReply([['id' => 'cue_1', 'text' => 'Hello'], ['id' => 'cue_2', 'text' => $text]]))]);
 
     $this->actingAs($this->user)->postJson($this->url, ['action' => 'translate_captions', 'language' => 'inglés', 'cues' => $this->cues])->assertUnprocessable()->assertJsonValidationErrors('cues');
-    expect(app(AiAssistant::class)->remaining($this->user))->toBe(1);
+    expect(app(AiAssistant::class)->remaining($this->user))->toBe(0);
 })->with([
     'falta uno' => ['Write to ⟦1⟧'],
     'sobra uno' => ['Write to ⟦1⟧ or ⟦2⟧ or ⟦3⟧'],
     'sin marcadores' => ['Write to them'],
 ]);
 
-test('Traduccion: una respuesta cortada se explica y devuelve la cuota consumida', function () {
+test('Traduccion: una respuesta cortada se explica y gasta el uso (el proveedor respondió)', function () {
     config(['social.ai.enabled' => true, 'social.ai.api_key' => 'sk-ant-test', 'social.ai.daily_limit' => 1]);
     Http::fake(['api.anthropic.com/*' => Http::response(['stop_reason' => 'max_tokens', 'content' => [['type' => 'text', 'text' => '{"cues":[{"id":"cue_1","text":"Hel']]])]);
 
     $this->actingAs($this->user)->postJson($this->url, ['action' => 'translate_captions', 'language' => 'inglés', 'cues' => $this->cues])
-        ->assertUnprocessable()->assertJsonPath('errors.cues.0', fn (string $m) => str_contains($m, 'incompleta') && str_contains($m, 'cuota'));
-    expect(app(AiAssistant::class)->remaining($this->user))->toBe(1);
+        ->assertUnprocessable()->assertJsonPath('errors.cues.0', fn (string $m) => str_contains($m, 'incompleta') && ! str_contains($m, 'descontado'));
+    expect(app(AiAssistant::class)->remaining($this->user))->toBe(0);
 });
 
 test('Traduccion: max_tokens cubre el JSON de salida de cada subtitulo', function () {

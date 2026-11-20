@@ -5,11 +5,15 @@ import { HttpError, requestJson } from '../lib/http.js';
 const aiStatusKey = Symbol('aiStatus');
 
 /** @typedef {Extract<keyof import('ziggy-js').RouteList, `ai.${string}`>} AiRoute */
-/** @typedef {{enabled?: boolean, remaining?: number | null}} AiStatusPayload */
+/** @typedef {{enabled?: boolean, remaining?: number | null, vision?: boolean}} AiStatusPayload */
 
 /** @param {{transport?: typeof requestJson, resolveRoute?: (name: AiRoute) => string}} [options] */
 export function createAiStatus({ transport = requestJson, resolveRoute = name => route(name) } = {}) {
     const enabled = ref(false);
+    // El modelo configurado admite imágenes (texto alternativo).
+    const vision = ref(false);
+    // Hasta que llega el estado no se sabe si la IA está configurada: la UI no debe mostrar «no configurada» antes de tiempo.
+    const loaded = ref(false);
     const remaining = ref(0);
     const lifecycle = new AbortController();
     /** @type {Promise<void> | undefined} */
@@ -24,9 +28,13 @@ export function createAiStatus({ transport = requestJson, resolveRoute = name =>
         try {
             const data = /** @type {AiStatusPayload | null} */ (await transport('GET', resolveRoute('ai.status'), { signal: lifecycle.signal }));
             enabled.value = Boolean(data?.enabled);
+            vision.value = Boolean(data?.vision);
             syncRemaining(data);
         } catch {
             enabled.value = false;
+            vision.value = false;
+        } finally {
+            loaded.value = true;
         }
     }
 
@@ -48,6 +56,8 @@ export function createAiStatus({ transport = requestJson, resolveRoute = name =>
 
     return {
         enabled: readonly(enabled),
+        vision: readonly(vision),
+        loaded: readonly(loaded),
         remaining: readonly(remaining),
         load: () => (statusRequest ??= fetchStatus()),
         call,

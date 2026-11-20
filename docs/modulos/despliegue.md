@@ -334,6 +334,7 @@ Nunca pongas `MEDIA_DISK=public`: toda la media (también la no publicada y los 
 ### Requisitos con disco local
 
 - **Tamaño de subida.** El fichero pasa por Nginx y PHP-FPM: sube a la vez `client_max_body_size` (Nginx, `nginx-overrides.conf`, 512m) y `upload_max_filesize`/`post_max_size` (PHP del dominio en Hestia, 512M), y `max_execution_time=300` para vídeos grandes.
+- **IA («Adaptar a cada red»).** La petición espera al proveedor dentro de la petición web: Nginx la corta a los 60 s (`fastcgi_read_timeout` por defecto; `nginx-overrides.conf` no lo cambia). Por eso `AI_ASSISTANT_ADAPT_MAX_TIMEOUT` vale 50 s por defecto y la config nunca lo deja pasar de 55; si subes `fastcgi_read_timeout`, sube también ese tope con cuidado.
 - **Cloudflare (plan gratuito) corta las peticiones de más de 100 MB.** Con el proxy activo, un vídeo de más de 100 MB falla al subirlo. Para vídeos mayores: subir sin proxy (nube gris) o pasar a R2, que sube directo sin atravesar Cloudflare.
 - **Cloudflare no debe cachear ni retar `/storage/*`**: Meta y Google descargan la media de ahí. Va en la misma regla de *Bypass* y de omisión del WAF que `/mcp` y `/oauth/*` (ver [Cloudflare delante](#cloudflare-delante)).
 - **Espacio en disco y copias.** La media vive en el VPS: inclúyela en las copias de seguridad de Hestia (`storage/app/private`). `app:media-prune` (cada hora) borra las subidas abandonadas o inválidas.

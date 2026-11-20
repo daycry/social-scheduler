@@ -93,6 +93,17 @@ function generalFakeAi(): void
                 return Http::response(['content' => [['type' => 'text', 'text' => 'Un círculo amarillo sobre un fondo violeta liso']]]);
             }
             $input = json_decode((string) $content, true);
+            if (is_array($input) && isset($input['destinos'])) {
+                // T-82 («Adaptar a cada red»): una version corta por destino; con «e2e-excede» en el texto, Bluesky devuelve una que no cabe (301 > 300).
+                $versions = [];
+                foreach ($input['destinos'] as $destino) {
+                    $versions[$destino['id']] = $destino['red'] === 'bluesky' && str_contains($input['texto'], 'e2e-excede')
+                        ? str_repeat('a', 301)
+                        : 'Adaptado a '.$destino['red'].': '.mb_substr($input['texto'], 0, 40);
+                }
+
+                return Http::response(['content' => [['type' => 'text', 'text' => json_encode(['versions' => $versions], JSON_UNESCAPED_UNICODE)]]]);
+            }
             if (is_array($input) && isset($input['campos'])) {
                 $rows = array_map(fn ($item) => array_combine($input['campos'], array_map(fn ($field) => $field.' de '.$item, $input['campos'])), $input['elementos']);
 

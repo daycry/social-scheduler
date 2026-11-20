@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — adapt text to each network with AI (audit-hardening, T-82)
+
+- Adapt the common text to every selected network in a single AI request and review one version per network before applying it; versions that exceed a network's text or hashtag rules are rejected, not truncated. Generate editable image alt text from the composer. Both buttons stay disabled, with the reason, when the AI assistant is not configured.
+
 ### Added — browser notifications (audit-hardening, T-81)
 
 - Install the app from supported browsers and opt into generic push notices per device. Encrypted subscriptions can be revoked; delivery supports VAPID with bounded retries and expires invalid devices. Real HTTPS/device acceptance remains pending.

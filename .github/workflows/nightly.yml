@@ -44,7 +44,8 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-studio.txt
       - name: FFmpeg and Poppler for Studio export checks
-        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg poppler-utils
+        timeout-minutes: 10
+        run: bash scripts/ci/apt-install.sh ffmpeg poppler-utils
       - name: Private Studio font runtime
         run: python scripts/studio/setup-runtime.py
       - name: Composer cache (vendor)
@@ -57,6 +58,7 @@ jobs:
       - run: cp .env.example .env && php artisan key:generate
       - run: npm ci && npm run build
       - name: Playwright browser
+        timeout-minutes: 10
         run: npx playwright install --with-deps chromium
       - name: E2E (shard ${{ matrix.shard }}/4)
         run: npx playwright test --shard=${{ matrix.shard }}/4
@@ -98,7 +100,8 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-studio.txt
       - name: ffmpeg/ffprobe
-        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+        timeout-minutes: 10
+        run: bash scripts/ci/apt-install.sh ffmpeg
       - name: Private Studio font runtime
         run: python scripts/studio/setup-runtime.py
       - name: Composer cache (vendor)
@@ -121,6 +124,7 @@ jobs:
           key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       # Descarga solo si falta en la cache; con --with-deps instala siempre las librerias del sistema.
       - name: Chromium
+        timeout-minutes: 10
         run: npx playwright install --with-deps chromium
       # --compact imprime una linea JSON con passed/skipped; el paso falla si algun test queda omitido (el opt-in no llego).
       - name: Native AV tests (Pest, --filter=StudioAv)

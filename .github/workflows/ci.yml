@@ -51,7 +51,8 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-studio.txt
       - name: ffmpeg/ffprobe for Studio audio and video
-        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+        timeout-minutes: 10
+        run: bash scripts/ci/apt-install.sh ffmpeg
       - name: Private Studio font runtime
         run: python scripts/studio/setup-runtime.py
       - name: Composer cache (vendor)
@@ -81,7 +82,8 @@ jobs:
           cache: npm
       # Los tests de audio/video de tests/frontend generan y decodifican medios con ffmpeg (libx264).
       - name: ffmpeg for the Studio audio and video tests
-        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+        timeout-minutes: 10
+        run: bash scripts/ci/apt-install.sh ffmpeg
       # vite importa vendor/tightenco/ziggy: el build necesita las dependencias de Composer.
       - uses: shivammathur/setup-php@v2
         with:
@@ -117,7 +119,8 @@ jobs:
           node-version: 22
           cache: npm
       - name: ffmpeg for the Studio audio and video tests
-        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+        timeout-minutes: 10
+        run: bash scripts/ci/apt-install.sh ffmpeg
       # vite importa vendor/tightenco/ziggy: el build necesita las dependencias de Composer.
       - uses: shivammathur/setup-php@v2
         with:
@@ -144,6 +147,7 @@ jobs:
           key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       # Descarga solo si falta en la cache; con --with-deps instala siempre las librerias del sistema.
       - name: Chromium
+        timeout-minutes: 10
         run: npx playwright install --with-deps chromium
       # Los tests de tests/frontend que importan playwright (directa o transitivamente) los clasifica
       # scripts/test/run-node-tests.mjs; npm run test:unit nunca lanza un navegador.

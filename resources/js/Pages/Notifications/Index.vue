@@ -42,10 +42,12 @@ const LINK = {
     job_failed_canva: 'Abrir Canva',
     job_failed_import: 'Ver biblioteca',
     job_failed_summary: 'Ver detalle',
+    job_failed_full_export: 'Ver exportación',
     job_done_studio_export: 'Abrir diseño',
     job_done_studio_ai: 'Abrir el estudio',
     job_done_canva: 'Abrir Canva',
     job_done_import: 'Ver biblioteca',
+    job_done_full_export: 'Ver exportación',
 };
 // Un aviso de una publicación lleva siempre «Ver publicación» (aunque traiga también `url`); el resto, la etiqueta de su tipo.
 const linkLabel = (n) => (n.post_id ? 'Ver publicación' : (LINK[n.type] ?? 'Abrir'));

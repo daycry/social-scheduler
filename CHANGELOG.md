@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — full data export (audit-hardening, T-84)
+
+- Download a ZIP with all your own data from Profile → Export my data: brands, posts with targets and texts, campaigns, reports and their PDFs, the media library files, Studio designs and exports, sites, smart links, templates and goals, as readable JSON plus a manifest with SHA-256 hashes. Choose whether to include the media files (a data-only ZIP is much smaller; up to 20 GB, with ZIP64). It is built in the background, you get an in-app notice (and an email if the export fails and you enabled email notices), and the download link is signed, expires in 10 minutes and only works for your own session. Credentials, other people's data and third-party inbox comments are never included; the ZIP is deleted after 72 hours.
+
 ### Added — bulk post import from CSV (audit-hardening, T-83)
 
 - Import many posts into a brand from a CSV: review every row with its errors first (nothing is created), then confirm to create only the valid ones with the same validation as the composer. Download a sample CSV from the page; limits are 200 rows and 1 MB. A confirmation can only be used once, so a double click never duplicates posts.

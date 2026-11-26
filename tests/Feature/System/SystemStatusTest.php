@@ -85,10 +85,11 @@ test('SystemStatus: queue observations distinguish an actual processed probe fro
     $probe = (new QueueProbeJob('system-status-fixture'))->onQueue('media');
     $probe->handle();
     $this->actingAs($admin)->get('/system')->assertOk()->assertInertia(fn (Assert $page) => $page->component('System/Index')
-        ->has('report.queues', 3)
+        ->has('report.queues', 4)
         ->where('report.queues.0.name', 'publish')->where('report.queues.0.last_processed_at', null)
         ->where('report.queues.1.name', 'media')->where('report.queues.1.last_processed_at', now()->toIso8601String())
-        ->where('report.queues.2.name', 'studio-render')->where('report.queues.2.last_processed_at', null));
+        ->where('report.queues.2.name', 'studio-render')->where('report.queues.2.last_processed_at', null)
+        ->where('report.queues.3.name', 'exports')->where('report.queues.3.last_processed_at', null));
     expect(Cache::has(QueueProbeJob::cacheKey('system-status-fixture')))->toBeTrue();
     Queue::assertNothingPushed();
     Http::assertNothingSent();

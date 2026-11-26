@@ -104,7 +104,8 @@ test('app:queue-probe sondea la cola media aunque QUEUE_NAMES no la liste (gap 4
 
     Queue::assertPushedOn('media', QueueProbeJob::class);
     Queue::assertPushedOn('studio-render', QueueProbeJob::class);
-    Queue::assertPushed(QueueProbeJob::class, 6);
+    Queue::assertPushedOn('exports', QueueProbeJob::class);
+    Queue::assertPushed(QueueProbeJob::class, 7);
 });
 
 test('los .env de ejemplo listan la cola media en QUEUE_NAMES', function (string $file) {
@@ -116,11 +117,11 @@ test('database queue persists a probe job per queue and a worker processes it', 
 
     Artisan::call('app:queue-probe');
     expect(DB::table('jobs')->pluck('queue')->sort()->values()->all())
-        ->toBe(['media', 'metrics', 'poll', 'publish', 'reports', 'studio', 'studio-render']);
+        ->toBe(['exports', 'media', 'metrics', 'poll', 'publish', 'reports', 'studio', 'studio-render']);
 
     Artisan::call('queue:work', [
         'connection' => 'database',
-        '--queue' => 'publish,poll,metrics,reports,media,studio,studio-render',
+        '--queue' => 'publish,poll,metrics,reports,media,studio,studio-render,exports',
         '--stop-when-empty' => true,
         '--memory' => 1024, // el worker de prueba corre dentro del proceso de Pest: con la suite grande superaba los 128 MB por defecto y paraba tras el primer job
     ]);

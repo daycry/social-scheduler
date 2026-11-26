@@ -31,6 +31,14 @@ php artisan queue:work database --queue=publish,poll,metrics,reports,media,studi
 php artisan schedule:work          # sustituye al cron de producción
 ```
 
+La exportación completa de datos (T-84) va en su propia conexión de cola, `exports`, con un tiempo límite largo. El worker anterior no la recoge: para probarla en local arranca también
+
+```bash
+php artisan queue:work exports --queue=exports --timeout=3600 --tries=1
+```
+
+Sin ese worker la exportación se queda «en cola» y `exports:prune` la da por fallida a las 6 h (`EXPORTS_PENDING_MINUTES`).
+
 `php artisan app:queue-probe --wait=60` encola un job por cola y comprueba que se procesan. `php artisan app:health` revisa BD, cola, disco y latido del scheduler.
 
 ## OAuth en local: ngrok

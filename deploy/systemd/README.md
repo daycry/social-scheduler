@@ -49,6 +49,10 @@ Para validar la plantilla preparada, `systemd-analyze verify deploy/systemd/sche
 
 Las pruebas de cgroup son de integración y requieren `STUDIO_AV_CGROUP_TEST=1` dentro de una unidad temporal delegada y limitada. Sin esa opción se omiten explícitamente; no cuentan como aceptación Linux. Un ejecutable Python mínimo verifica el contrato del supervisor/exec; no sustituye una exportación real mediante Node/FFmpeg/Chromium. Las pruebas del VPS siguen a cargo del usuario.
 
+## Worker de exportaciones de datos (`scheduler-exports`)
+
+`scheduler-exports.service` atiende la cola `exports` (ZIP completo de datos del usuario, T-84) con un job de hasta 3600 s: `queue:work exports --queue=exports --timeout=3600 --tries=1`, `TimeoutStopSec=3700`. Usa su propia conexión de cola `exports` (`retry_after` 3700 s), así que **no** hay que tocar `DB_QUEUE_RETRY_AFTER`. Instálalo igual que `scheduler-worker@` (copiar, sustituir `USUARIO`/`DOMINIO`/`PHP_BIN`, `daemon-reload`, `enable --now scheduler-exports`) y necesita espacio libre en `storage/` para el ZIP completo; ver [Exportación completa de datos](../../docs/modulos/despliegue.md#exportación-completa-de-datos-t-84). Puedes ponerlo en `WORKER_UNITS`: `deploy.sh` lo reinicia con `--no-block` para no esperar a una exportación en curso.
+
 ## Healthcheck
 
 1. **Interno / deploy**: `php artisan app:health` (exit 0 = BD, cola, almacenamiento y latido del scheduler correctos, con avisos si hay jobs fallidos recientes; `--json` para scripts;

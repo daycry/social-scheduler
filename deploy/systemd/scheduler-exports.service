@@ -1,0 +1,41 @@
+# Worker de la cola `exports` (exportación completa de datos en ZIP, T-84). Un job puede tardar hasta EXPORTS_TIMEOUT (3600 s).
+# Usa la conexion de cola propia `exports` (config/queue.php, retry_after 3700 s > --timeout): NO hay que tocar DB_QUEUE_RETRY_AFTER, que sigue en 180 s para
+# publish/poll. --timeout (3600) debe ser >= EXPORTS_TIMEOUT del job (ver docs/modulos/despliegue.md).
+# deploy.sh lo reinicia con --no-block: el reinicio espera a que termine la exportacion en curso (TimeoutStopSec) sin bloquear el despliegue.
+# Instalacion igual que scheduler-worker@: copiar, sustituir USUARIO/DOMINIO/PHP_BIN, `systemctl daemon-reload` y `enable --now scheduler-exports`.
+[Unit]
+Description=Social Scheduler exports queue worker
+After=network.target mysql.service mariadb.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=USUARIO
+Group=USUARIO
+WorkingDirectory=/home/USUARIO/web/DOMINIO/app
+Environment=PHP_BIN=php
+# Un solo job a la vez (los ZIP grandes saturan disco y CPU). --tries=1: un fallo deja la exportacion en error y el usuario la repite.
+ExecStart=/usr/bin/env ${PHP_BIN} artisan queue:work exports --queue=exports --sleep=3 --tries=1 --timeout=3600 --max-time=7200 --max-jobs=20
+Restart=always
+RestartSec=5
+# Deja terminar el job en curso: debe ser > --timeout (3600 s).
+TimeoutStopSec=3700
+KillSignal=SIGTERM
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scheduler-exports
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+# El ZIP se arma en storage/app/exports-tmp y se publica en storage/app/private/full-exports.
+ReadWritePaths=/home/USUARIO/web/DOMINIO/app/storage /home/USUARIO/web/DOMINIO/app/bootstrap/cache
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

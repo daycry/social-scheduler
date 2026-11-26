@@ -12,6 +12,8 @@ return [
         'default' => (int) env('HEALTH_QUEUE_MAX_AGE', 600),
         'media' => (int) env('HEALTH_QUEUE_MAX_AGE_NATIVE', 1800),
         'studio' => (int) env('HEALTH_QUEUE_MAX_AGE_NATIVE', 1800),
+        // Una exportacion de datos puede tardar hasta exports.timeout (1 h): otra pendiente detras no es una cola atrasada.
+        'exports' => (int) env('HEALTH_QUEUE_MAX_AGE_EXPORTS', 4200),
     ],
 
     // Horas sin ningun snapshot nuevo de `CollectSnapshots` (diario) tras las que se avisa; solo si hay cuentas conectadas.

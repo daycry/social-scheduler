@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Brand;
 use App\Models\Canva\CanvaJob;
+use App\Models\DataExport;
 use App\Models\MediaAsset;
 use App\Models\ReportSchedule;
 use App\Models\Studio\DesignExport;
@@ -31,7 +32,7 @@ class JobFailureNotifier
 {
     public const BURST = 5;
 
-    private const NOUNS = ['report' => 'informes programados', 'studio_export' => 'exportación de video', 'studio_ai' => 'IA', 'canva' => 'Canva', 'import' => 'importación'];
+    private const NOUNS = ['report' => 'informes programados', 'studio_export' => 'exportación de video', 'studio_ai' => 'IA', 'canva' => 'Canva', 'import' => 'importación', 'full_export' => 'exportación de datos'];
 
     public function report(ReportSchedule $schedule): void
     {
@@ -70,6 +71,12 @@ class JobFailureNotifier
             (string) ($asset->error ?: 'No se pudo descargar el fichero; inténtalo de nuevo más tarde.'), route('media.index', [], false), (string) $asset->original_name, null);
     }
 
+    /** Exportación completa de datos (T-84): el motivo ya viene legible y sin rutas ni discos. */
+    public function fullExport(DataExport $export, string $reason): void
+    {
+        $this->failed((int) $export->user_id, 'full_export', 'full_export:'.$export->id, 'No se pudo preparar tu exportación de datos', $reason, route('profile.export', [], false), '', null);
+    }
+
     // ------------------------------------------------------------------ exitos (solo en la app)
 
     public function exportDone(DesignExport $export): void
@@ -95,6 +102,12 @@ class JobFailureNotifier
             default => ['Exportación de Canva lista', 'Ya la tienes en la biblioteca.'],
         };
         $this->done((int) $job->user_id, 'canva', 'canva:'.$job->id, $title, $message, route('canva.index', $job->brand_id, false), (string) ($job->title ?? ''), $job->brand_id);
+    }
+
+    public function fullExportDone(DataExport $export): void
+    {
+        $this->done((int) $export->user_id, 'full_export', 'full_export:'.$export->id, 'Tu exportación de datos está lista',
+            'Ya puedes descargar el ZIP con tus datos. Estará disponible '.(int) config('exports.retention_hours').' horas.', route('profile.export', [], false), '', null);
     }
 
     /** Solo importaciones por URL (las de Canva ya avisan con su propio trabajo). */

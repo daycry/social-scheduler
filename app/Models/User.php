@@ -35,6 +35,8 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             foreach (['studio-thumbnails', 'studio-exports'] as $directory) {
                 Storage::disk('local')->deleteDirectory($directory.'/'.$user->id);
             }
+            // Los ZIP de la exportacion completa viven en su propio disco privado.
+            Storage::disk((string) config('exports.disk'))->deleteDirectory('full-exports/'.$user->id);
         });
     }
 

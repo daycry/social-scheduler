@@ -219,6 +219,7 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
                             <DropdownLink :href="route('profile.notifications')"
                                 >Notificaciones del navegador</DropdownLink
                             >
+                            <DropdownLink :href="route('profile.export')">Exportar mis datos</DropdownLink>
                             <DropdownLink :href="route('activity.index')">Actividad</DropdownLink>
                             <DropdownLink :href="route('goals.index')">Objetivos</DropdownLink>
                             <DropdownLink :href="route('webhooks.index')">Webhooks</DropdownLink>

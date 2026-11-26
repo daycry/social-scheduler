@@ -53,6 +53,18 @@ return [
             'after_commit' => false,
         ],
 
+        // Conexion propia de la cola `exports` (T-84): misma tabla `jobs`, pero con un `retry_after` mayor que el $timeout de su job (1 h). Asi
+        // subirlo no retrasa el reintento de los jobs de publish/poll de la conexion `database` (que siguen con 180 s). Nunca baja de
+        // EXPORTS_TIMEOUT + 60 s aunque EXPORTS_QUEUE_RETRY_AFTER se configure mal.
+        'exports' => [
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => 'exports',
+            'retry_after' => max((int) env('EXPORTS_QUEUE_RETRY_AFTER', 3700), (int) env('EXPORTS_TIMEOUT', 3600) + 60),
+            'after_commit' => false,
+        ],
+
         'beanstalkd' => [
             'driver' => 'beanstalkd',
             'host' => env('BEANSTALKD_QUEUE_HOST', 'localhost'),

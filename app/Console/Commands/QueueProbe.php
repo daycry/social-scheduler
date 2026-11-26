@@ -36,13 +36,18 @@ class QueueProbe extends Command
             ...$names,
             (string) config('media.import_queue', 'media'),
             (string) config('queue.studio_render', 'studio-render'),
+            (string) config('exports.queue', 'exports'),
         ]));
 
         $probes = [];
 
         foreach ($names as $queue) {
             $id = (string) Str::uuid();
-            QueueProbeJob::dispatch($id)->onQueue($queue);
+            $probe = QueueProbeJob::dispatch($id)->onQueue($queue);
+            // La cola de exportaciones vive en su propia conexion (otro retry_after): se sondea ahi.
+            if ($queue === (string) config('exports.queue')) {
+                $probe->onConnection((string) config('exports.connection'));
+            }
             $probes[$queue] = $id;
             $this->line("encolado en '$queue' ($id)");
         }

@@ -12,6 +12,7 @@ use App\Http\Controllers\CredentialConnectionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\FirstCommentController;
+use App\Http\Controllers\FullExportController;
 use App\Http\Controllers\GifController;
 use App\Http\Controllers\GoalController;
 use App\Http\Controllers\HashtagController;
@@ -87,6 +88,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('profile/notifications', [PushSubscriptionController::class, 'index'])->name('profile.notifications');
     Route::post('profile/push-subscriptions', [PushSubscriptionController::class, 'store'])->middleware('throttle:push-settings')->name('profile.push-subscriptions.store');
     Route::delete('profile/push-subscriptions/{pushSubscription}', [PushSubscriptionController::class, 'destroy'])->middleware('throttle:push-settings')->name('profile.push-subscriptions.destroy');
+    // Exportacion completa de datos en ZIP (T-84): se pide, se genera en cola y se descarga con un enlace firmado (`link` lo genera al pulsar).
+    Route::get('profile/export', [FullExportController::class, 'index'])->name('profile.export');
+    Route::post('profile/export', [FullExportController::class, 'store'])->middleware('throttle:profile.export.store')->name('profile.export.store');
+    Route::get('profile/export/{export}/link', [FullExportController::class, 'link'])->whereNumber('export')->middleware('throttle:profile.export.link')->name('profile.export.link');
+    Route::get('profile/export/{export}/download/{owner}', [FullExportController::class, 'download'])->whereNumber(['export', 'owner'])
+        ->middleware(['signed', 'throttle:profile.export.download'])->name('profile.export.download');
     Route::get('webhooks', [WebhookController::class, 'index'])->name('webhooks.index');
     Route::post('brands/{brand}/webhooks', [WebhookController::class, 'store'])->name('brands.webhooks.store')->middleware('throttle:webhook-settings');
     Route::put('webhooks/{webhook}', [WebhookController::class, 'update'])->name('webhooks.update')->middleware('throttle:webhook-settings');

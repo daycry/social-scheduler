@@ -48,9 +48,9 @@ estado: en-progreso
 | Fase 5 — Frontend | 15 | 18 | 83% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
 | Fase 5b — Unificación | 4 | 8 | 50% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
 | Fase 6 — Operación y repositorio | 4 | 6 | 67% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
-| Fase 7 — Funciones nuevas | 9 | 24 | 38% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
+| Fase 7 — Funciones nuevas | 10 | 24 | 42% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **82** | **108** | **76%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
+| **TOTAL** | **83** | **108** | **77%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -4379,35 +4379,37 @@ CoberturaM3extra descubre registrodoble deListeners por autodetección+PushServi
 ### T-84 — Copia de seguridad y exportación completa (ZIP)
 
 - **Descripción**: Exportación de todos los datos propios (posts, marcas, informes, media) en un ZIP generado en cola y descargable con enlace firmado.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: «Exportar mis datos» en el perfil: genera en segundo plano un ZIP con todos tus datos (marcas, publicaciones, campañas, informes, media, diseños, sitios, plantillas, objetivos…) sin secretos ni datos de otros, avisa al terminar y se descarga con un enlace firmado que caduca; opción de exportar solo los datos sin la media.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-83
 - **Tipo**: fullstack
-- **Archivos**: `app/Http/Controllers/ExportController.php`, `app/Services/Export/FullExport.php`, `app/Jobs/BuildFullExport.php`, `resources/js/Pages/Profile/Export.vue`, `docs/usuario/exportar.md`
+- **Archivos**: `app/Http/Controllers/FullExportController.php`, `app/Services/Export/**`, `app/Support/Zip/**`, `app/Jobs/BuildFullExport.php`, `app/Models/DataExport.php`, `app/Models/User.php`, `app/Console/Commands/PruneFullExports.php`, `app/Console/Commands/QueueProbe.php`, `app/Services/JobFailureNotifier.php`, `app/Services/SystemStatus.php`, `app/Services/Studio/StudioPptxExporter.php`, `app/Services/Studio/StudioZipWriter.php`, `config/exports.php`, `config/queue.php`, `config/health.php`, `config/rate_limits.php`, `database/migrations/2026_11_26_090000_create_full_exports_table.php`, `routes/web.php`, `routes/console.php`, `resources/js/Pages/Profile/Export.vue`, `resources/js/Pages/Profile/Edit.vue`, `resources/js/Pages/Notifications/Index.vue`, `resources/js/Layouts/AuthenticatedLayout.vue`, `resources/js/types/full-export.d.ts`, `scripts/export/**`, `deploy/systemd/scheduler-exports.service`, `deploy/systemd/README.md`, `deploy/hestia/README.md`, `deploy/hestia/deploy.sh`, `tests/Feature/Export/**`, `tests/Feature/Infra/InfraTest.php`, `tests/Feature/System/SystemStatusTest.php`, `tests/e2e/full-export.spec.ts`, `docs/usuario/exportar.md`, `docs/modulos/despliegue.md`, `docs/modulos/estudio.md`, `docs/guias/desarrollo-local.md`, `docs/README.md`, `CHANGELOG.md`, `CHANGELOG.es.md`, `docs/roadmap/2026-11-11-audit-hardening/testing/t84/**`
 - **Cubre**: F-10
 - **Cubre (tests)**: E2E-23
 - **Verificación**: `php artisan test --compact --filter=FullExportTest` → verde
 
 **Criterios de aceptación**
-- [ ] El ZIP contiene solo datos del usuario
-- [ ] Se genera en cola y notifica al terminar
-- [ ] El enlace caduca
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] El ZIP contiene solo datos del usuario
+- [x] Se genera en cola y notifica al terminar
+- [x] El enlace caduca
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. No ejecutar contra el usuario 28: tests con fábricas.
+
+**Cierre — 2026-11-26:** `FullExport` + `ExportInventory` (38+7 entidades con `BelongsToUser`, listas blancas de columnas sensibles y filtro por nombre: sin tokens, API keys, contraseñas, 2FA, passkeys, push, secretos de webhooks ni datos de terceros —marcas de colaborador, comentarios ajenos del buzón, `approval_comment`—) y `BuildFullExport` en la conexión de cola propia `exports` (`retry_after` ≥ timeout + 60; `database` sigue en 180 s), `$timeout` 3600 s, `tries=1`, latido `heartbeat_at`. Un único escritor ZIP `App\Support\Zip\ZipWriter` con ZIP64 por entrada (sustituye a `StudioZipWriter`, también para el PPTX). Tope 20 GiB, comprobación previa de espacio con `DiskSpace` (publicación con `rename` en el mismo volumen; falla cerrado si no se puede medir), opción sin media, copia anterior conservada hasta publicar la nueva. Avisos por `JobFailureNotifier` (correo solo en fallos). Descarga con enlace firmado de 10 min + sesión del dueño; ZIP 72 h; `exports:prune` cada hora (caducados, atascados, pendientes viejas, huérfanos y temporales). Despliegue: worker `exports` (`deploy/systemd/scheduler-exports.service` o cron de Hestia), reinicio con `--no-block`. Revisión adversarial A+B+C en 3 intentos (5 Important + 6 Minor; 2 Important + 5 Minor nuevos; verificación sin gaps): `testing/t84/reviews/`. QA: Pest 36/36 (1881 aserciones), regresión 1025/1034 (9 omitidos), Node 799/799, ZIP validado con `zipfile` de Python (normal, ZIP64 y 65 540 entradas); typecheck/lint/format:check/pint/build verdes; E2E exportación + estado del sistema + PPTX 18/18 en tres tamaños con axe (dos pasadas). Pendiente del usuario (no bloquea): activar el worker `exports` en el VPS.
 
 ### T-85 — Búsqueda global y paleta de comandos
 

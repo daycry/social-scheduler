@@ -83,6 +83,7 @@ final class SystemStatus
             ...(array) config('queue.names', []),
             (string) config('media.import_queue', 'media'),
             (string) config('queue.studio_render', 'studio-render'),
+            (string) config('exports.queue', 'exports'),
         ]));
 
         try {

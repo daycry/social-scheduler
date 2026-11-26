@@ -119,6 +119,9 @@ return [
         'report-schedules.unsubscribe' => 30,
         'reports.download' => 30,
         'studio.exports.download' => 60,
+        'profile.export.store' => 3,
+        'profile.export.link' => 30,
+        'profile.export.download' => 30,
         'studio.thumbnails' => 600,
     ],
 ];

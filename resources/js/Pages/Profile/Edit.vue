@@ -7,7 +7,7 @@ import TwoFactorForm from './Partials/TwoFactorForm.vue';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm.vue';
 import { useSecureContext } from '@/Composables/useSecureContext';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 
 defineProps({
     mustVerifyEmail: {
@@ -85,6 +85,19 @@ const { canUsePasskeys, httpsNotice } = useSecureContext();
 
                 <div class="card p-4 sm:p-8">
                     <LinkedAccountsForm :accounts="socialAccounts" :status="status" class="max-w-xl" />
+                </div>
+
+                <div class="card p-4 sm:p-8" aria-labelledby="export-data-title">
+                    <section class="max-w-xl space-y-2">
+                        <h2 id="export-data-title" class="text-lg font-medium text-slate-900">Exportar mis datos</h2>
+                        <p class="text-sm text-slate-600"
+                            >Descarga una copia completa de tus datos (marcas, publicaciones, informes, media y diseños)
+                            en un ZIP.</p
+                        >
+                        <Link :href="route('profile.export')" class="btn-secondary inline-block"
+                            >Ir a la exportación</Link
+                        >
+                    </section>
                 </div>
 
                 <div class="card p-4 sm:p-8">

@@ -2,8 +2,8 @@
 
 - Proyecto: `C:\laragon\www\metricool`, rama existente `feature/audit-hardening`.
 - Ledger actual: `docs/roadmap/2026-11-11-audit-hardening/tasks.md` (manda sobre los resúmenes).
-- **82/108 cerradas (T-83 incluida). T-81 cerrada e integrada el 2026-11-20** (rojo R60 resuelto, nits R2 aplicados, R3 aprobado sin gaps; evidencias en `testing/t81/`). Migraciones pendientes aplicadas en la MySQL de desarrollo con copia `storage/backups/pre-migrate-20261120-133549.sql`.
-- Próximo: T-84 (copia de seguridad y exportación completa en ZIP) y el resto.
+- **83/108 cerradas (T-84 incluida). T-81 cerrada e integrada el 2026-11-20** (rojo R60 resuelto, nits R2 aplicados, R3 aprobado sin gaps; evidencias en `testing/t81/`). Migraciones pendientes aplicadas en la MySQL de desarrollo con copia `storage/backups/pre-migrate-20261120-133549.sql`.
+- Próximo: T-85 (búsqueda global y paleta de comandos) y el resto. En el VPS hay que activar el worker `exports` de T-84.
 - La copia aislada no tiene `.env`: para Pest en `.cache/t8x-physical` hace falta `APP_KEY` efímera por proceso y `storage/framework/{views,cache/data,sessions}`.
 - Una sola ejecución Playwright a la vez; nunca modificar su copia física mientras ejecuta. Sin Docker/proveedores reales, `.env` privado, producción ni usuario 28. Commit y push a `feature/audit-hardening` al cerrar cada tarea (pedido por el usuario el 2026-11-20); merges del usuario. Conservar cambios existentes del workspace.
 

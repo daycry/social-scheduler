@@ -305,9 +305,26 @@ done
 
 if [ -n "${WORKER_UNITS:-}" ]; then
     CURRENT_STEP="systemctl restart"
-    echo "-> sudo systemctl restart $WORKER_UNITS"
-    # shellcheck disable=SC2086
-    sudo systemctl restart $WORKER_UNITS || echo "!! No se pudieron reiniciar los workers: revisalos a mano." >&2
+    # `scheduler-exports` espera hasta TimeoutStopSec=3700 s a que acabe una exportacion en curso: se reinicia con --no-block para que el
+    # despliegue no se quede esperando (systemd la relanza cuando termina el job; `queue:restart` ya le avisa).
+    SYNC_UNITS=""
+    NOBLOCK_UNITS=""
+    for unit in $WORKER_UNITS; do
+        case "$unit" in
+            scheduler-exports*) NOBLOCK_UNITS="$NOBLOCK_UNITS $unit" ;;
+            *) SYNC_UNITS="$SYNC_UNITS $unit" ;;
+        esac
+    done
+    if [ -n "$SYNC_UNITS" ]; then
+        echo "-> sudo systemctl restart$SYNC_UNITS"
+        # shellcheck disable=SC2086
+        sudo systemctl restart $SYNC_UNITS || echo "!! No se pudieron reiniciar los workers: revisalos a mano." >&2
+    fi
+    if [ -n "$NOBLOCK_UNITS" ]; then
+        echo "-> sudo systemctl restart --no-block$NOBLOCK_UNITS"
+        # shellcheck disable=SC2086
+        sudo systemctl restart --no-block $NOBLOCK_UNITS || echo "!! No se pudo reiniciar el worker de exportaciones: revisalo a mano." >&2
+    fi
 fi
 
 # Smoke tras reiniciar workers: un fallo aqui falla el despliegue, pero ya no deja nada a medias.

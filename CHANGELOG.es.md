@@ -5,6 +5,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Added — exportación completa de datos (audit-hardening, T-84)
+
+- Descarga un ZIP con todos tus datos desde Perfil → Exportar mis datos: marcas, publicaciones con destinos y textos, campañas, informes y sus PDF, los ficheros de la biblioteca, diseños del Estudio y sus exportaciones, sitios, smart links, plantillas y objetivos, en JSON legible y un manifiesto con el SHA-256 de cada fichero. Elige si incluir los archivos de media (un ZIP solo de datos es mucho más pequeño; hasta 20 GB, con ZIP64). Se prepara en segundo plano, te avisa en la aplicación (y por correo si falla y tienes activados los avisos por correo) y el enlace de descarga está firmado, caduca a los 10 minutos y solo sirve con tu sesión. Nunca incluye credenciales, datos de otras personas ni los comentarios de terceros del buzón; el ZIP se borra a las 72 horas.
+
 ### Added — importación masiva de publicaciones por CSV (audit-hardening, T-83)
 
 - Importa muchas publicaciones a una marca desde un CSV: revisa cada fila con sus errores antes (no se crea nada) y confirma para crear solo las válidas, con la misma validación que el compositor. Descarga un CSV de ejemplo desde la página; los límites son 200 filas y 1 MB. Una confirmación solo se puede usar una vez, así que un doble clic nunca duplica publicaciones.

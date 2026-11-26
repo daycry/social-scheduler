@@ -2,11 +2,15 @@
 
 namespace App\Services\Studio;
 
+use App\Support\Zip\ZipSourceFailed;
+use App\Support\Zip\ZipWriteFailed;
+use App\Support\Zip\ZipWriter;
+
 /**
  * Exportacion a PowerPoint (PPTX, OOXML) del estudio: UNA diapositiva por pagina con la imagen PNG que renderizo Chromium, a pantalla
  * completa. Decision: el texto no es editable. El render del estudio (capas, grupos, tipografias propias, graficos, efectos) no tiene
  * equivalente fiel en las formas de PowerPoint; convertirlo capa a capa daria un resultado que no se parece al diseno. Quien necesite editar
- * el texto lo edita en el estudio y vuelve a exportar. El paquete se escribe sin `ext-zip` (`StudioZipWriter`) y sin dependencias nuevas.
+ * el texto lo edita en el estudio y vuelve a exportar. El paquete se escribe sin `ext-zip` (`ZipWriter`) y sin dependencias nuevas.
  *
  * Tamano de diapositiva: 1 px = 9525 EMU (96 ppp), reducido de forma uniforme si el diseno superaria el maximo de PowerPoint (56 pulgadas).
  */
@@ -37,32 +41,43 @@ final class StudioPptxExporter
         }
         $layout = $this->slideBox($width, $height);
         [$cx, $cy] = [$layout['sw'], $layout['sh']];
-        $zip = new StudioZipWriter($target);
+        $handle = @fopen($target, 'wb');
+        if (! is_resource($handle)) {
+            throw new StudioRenderFailure('No se pudo crear el paquete de la exportación.');
+        }
+        $zip = new ZipWriter($handle);
+        // OOXML: las entradas van sin comprimir, con su CRC y tamaño en la cabecera.
+        $add = fn (string $name, string $content) => $zip->addString($name, $content, false);
         try {
-            $zip->addString('[Content_Types].xml', $this->contentTypes(count($slides)));
-            $zip->addString('_rels/.rels', $this->rels([
+            $add('[Content_Types].xml', $this->contentTypes(count($slides)));
+            $add('_rels/.rels', $this->rels([
                 ['rId1', 'officeDocument', 'ppt/presentation.xml'],
                 ['rId2', 'package/2006/relationships/metadata/core-properties', 'docProps/core.xml'],
             ]));
-            $zip->addString('docProps/core.xml', $this->core($title));
-            $zip->addString('ppt/presentation.xml', $this->presentation(count($slides), $cx, $cy));
-            $zip->addString('ppt/_rels/presentation.xml.rels', $this->rels(array_merge(
+            $add('docProps/core.xml', $this->core($title));
+            $add('ppt/presentation.xml', $this->presentation(count($slides), $cx, $cy));
+            $add('ppt/_rels/presentation.xml.rels', $this->rels(array_merge(
                 [['rId1', 'slideMaster', 'slideMasters/slideMaster1.xml'], ['rId2', 'theme', 'theme/theme1.xml']],
                 array_map(fn (int $i) => ['rId'.($i + 3), 'slide', 'slides/slide'.($i + 1).'.xml'], array_keys($slides)),
             )));
-            $zip->addString('ppt/slideMasters/slideMaster1.xml', $this->master());
-            $zip->addString('ppt/slideMasters/_rels/slideMaster1.xml.rels', $this->rels([['rId1', 'slideLayout', '../slideLayouts/slideLayout1.xml'], ['rId2', 'theme', '../theme/theme1.xml']]));
-            $zip->addString('ppt/slideLayouts/slideLayout1.xml', $this->layout());
-            $zip->addString('ppt/slideLayouts/_rels/slideLayout1.xml.rels', $this->rels([['rId1', 'slideMaster', '../slideMasters/slideMaster1.xml']]));
-            $zip->addString('ppt/theme/theme1.xml', $this->theme());
+            $add('ppt/slideMasters/slideMaster1.xml', $this->master());
+            $add('ppt/slideMasters/_rels/slideMaster1.xml.rels', $this->rels([['rId1', 'slideLayout', '../slideLayouts/slideLayout1.xml'], ['rId2', 'theme', '../theme/theme1.xml']]));
+            $add('ppt/slideLayouts/slideLayout1.xml', $this->layout());
+            $add('ppt/slideLayouts/_rels/slideLayout1.xml.rels', $this->rels([['rId1', 'slideMaster', '../slideMasters/slideMaster1.xml']]));
+            $add('ppt/theme/theme1.xml', $this->theme());
             foreach ($slides as $i => $slide) {
                 $n = $i + 1;
-                $zip->addString("ppt/slides/slide$n.xml", $this->slide($n, $slide['name'], $layout));
-                $zip->addString("ppt/slides/_rels/slide$n.xml.rels", $this->rels([['rId1', 'slideLayout', '../slideLayouts/slideLayout1.xml'], ['rId2', 'image', "../media/image$n.png"]]));
+                $add("ppt/slides/slide$n.xml", $this->slide($n, $slide['name'], $layout));
+                $add("ppt/slides/_rels/slide$n.xml.rels", $this->rels([['rId1', 'slideLayout', '../slideLayouts/slideLayout1.xml'], ['rId2', 'image', "../media/image$n.png"]]));
                 $zip->addFile("ppt/media/image$n.png", $slide['path']);
             }
+            $zip->finish();
+        } catch (ZipSourceFailed) {
+            throw new StudioRenderFailure('No se pudo leer una imagen renderizada para empaquetarla.');
+        } catch (ZipWriteFailed) {
+            throw new StudioRenderFailure('No se pudo escribir el paquete de la exportación (¿disco lleno?).');
         } finally {
-            $zip->close();
+            fclose($handle);
         }
     }
 

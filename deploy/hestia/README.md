@@ -119,6 +119,23 @@ La unidad ejecuta `php artisan queue:work database --queue=studio --sleep=1 --tr
 
 El cron 2 atiende `publish,poll`, el 3 atiende `metrics,reports`, el 4 atiende `media` y el 5 atiende `studio-render`. La unidad `scheduler-studio` atiende `studio`.
 
+### 5.1-ter Worker de la cola `exports` (exportación de datos en ZIP)
+
+La exportación completa de datos (T-84) usa la cola `exports`, con jobs de hasta `EXPORTS_TIMEOUT` (3600 s). Dos formas de atenderla:
+
+```bash
+# systemd (recomendado): unidad dedicada, un job a la vez
+sudo cp deploy/systemd/scheduler-exports.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now scheduler-exports
+```
+
+```cron
+# Cron de Hestia (alternativa): cada 5 minutos, un solo worker gracias a flock
+*/5 * * * * cd /home/<USUARIO>/web/<DOMINIO>/app && flock -n /home/<USUARIO>/tmp/ss-exports.lock /usr/bin/php artisan queue:work exports --queue=exports --stop-when-empty --max-time=3600 --timeout=3600 --tries=1 >> /home/<USUARIO>/tmp/ss-exports.log 2>&1
+```
+
+El worker usa la **conexión propia `exports`** (`config/queue.php`: misma tabla `jobs`, `retry_after` `EXPORTS_QUEUE_RETRY_AFTER` = 3700 s, nunca menor que `EXPORTS_TIMEOUT` + 60). El `$timeout` del job manda sobre el `--timeout` del worker, que debe ser igual o mayor. **No subas `DB_QUEUE_RETRY_AFTER`**: sigue en 180 s para `publish`/`poll`, así que un worker caído no retrasa una publicación. `deploy.sh` reinicia `scheduler-exports` con `--no-block` para que el despliegue no espere a que acabe una exportación en curso.
+
 Latencia máxima: una publicación sale con hasta 1 minuto de retraso y las métricas o informes, con hasta 5. Para uso personal es suficiente.
 
 Antes de desplegar el cambio de cola, activa el cron 5 o la unidad `scheduler-worker@studio-render` y añade `studio-render` a `QUEUE_NAMES` si lo defines en `.env`. Mantén activos los workers anteriores para consumir los trabajos ya encolados en `media` o `studio`. `deploy.sh` ejecuta `queue:restart` y el próximo arranque carga el código nuevo. Usa `WORKER_UNITS` para las unidades systemd que tengas instaladas.

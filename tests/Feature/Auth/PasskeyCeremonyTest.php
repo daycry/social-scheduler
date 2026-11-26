@@ -217,7 +217,7 @@ test('PasskeyCeremony: la regla del contador tolera 0 -> 0 (passkeys sincronizad
     $assertionWithCounter = function (int $signCount) use ($vector): AuthenticatorAssertionResponse {
         $credential = $vector['assertions'][0]['credential'];
         $data = base64_decode(strtr($credential['response']['authenticatorData'], '-_', '+/').'==');
-        $credential['response']['authenticatorData'] = base64_encode(substr($data, 0, 33).pack('N', $signCount).substr($data, 37));
+        $credential['response']['authenticatorData'] = rtrim(strtr(base64_encode(substr($data, 0, 33).pack('N', $signCount).substr($data, 37)), '+/', '-_'), '=');
 
         return WebAuthn::fromJson(json_encode($credential), PublicKeyCredential::class)->response;
     };

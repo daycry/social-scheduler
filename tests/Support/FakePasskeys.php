@@ -84,7 +84,7 @@ final class FakePasskeys
 
     /**
      * Respuesta de navegador (JSON) con el id de credencial dado, valida para el deserializador del paquete
-     * (que acepta base64 con relleno en rawId, firma, authenticatorData y attestationObject).
+     * (en base64url sin relleno, como la envia `@simplewebauthn/browser`: webauthn-lib >= 5.3.13 rechaza el base64 con relleno).
      */
     public static function credential(string $credentialId, string $type = 'assertion', ?string $challenge = null): array
     {
@@ -100,19 +100,19 @@ final class FakePasskeys
 
         return [
             'id' => $url($credentialId),
-            'rawId' => base64_encode($credentialId),
+            'rawId' => $url($credentialId),
             'type' => 'public-key',
             'response' => $type === 'assertion'
                 ? [
                     'clientDataJSON' => $clientData('webauthn.get'),
                     // Hash del RP ID configurado (el gateway lo comprueba antes de buscar la credencial) + flags y contador.
-                    'authenticatorData' => base64_encode(hash('sha256', Passkeys::relyingPartyId(), true).str_repeat("\0", 5)),
-                    'signature' => base64_encode('firma'),
-                    'userHandle' => base64_encode('handle'),
+                    'authenticatorData' => $url(hash('sha256', Passkeys::relyingPartyId(), true).str_repeat("\0", 5)),
+                    'signature' => $url('firma'),
+                    'userHandle' => $url('handle'),
                 ]
                 : [
                     'clientDataJSON' => $clientData('webauthn.create'),
-                    'attestationObject' => base64_encode($attestation),
+                    'attestationObject' => $url($attestation),
                 ],
         ];
     }

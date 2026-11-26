@@ -96,6 +96,8 @@ class PostRequest extends FormRequest
             'targets.*.options.pinterest_board_id' => ['nullable'],
             'targets.*.options.pinterest_title' => ['nullable', 'string', 'max:1000'],
             'targets.*.options.pinterest_link' => ['nullable', 'string', 'max:5000'],
+            // T-87: visibilidad del estado de Mastodon; los valores admitidos los valida PostPlanner::optionErrors (MastodonPostOptions).
+            'targets.*.options.mastodon_visibility' => ['nullable', 'string', 'max:20'],
         ];
     }
 }

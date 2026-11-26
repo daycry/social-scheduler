@@ -5,6 +5,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Added — Mastodon y Telegram (audit-hardening, T-87)
+
+- Conecta una cuenta de Mastodon (la dirección de tu instancia y un token de acceso personal) y un canal de Telegram (el token de un bot de BotFather y el canal, con el bot como administrador con permiso para publicar) desde Conexiones, con el mismo formulario de credenciales que Bluesky. Publica texto e imágenes en Mastodon (texto alternativo, visibilidad por publicación y los límites propios de tu instancia de caracteres, imágenes y peso, que se refrescan a diario) y texto o una sola foto con pie en Telegram, con el límite correcto de cada uno; aparecen en el compositor con sus contadores. Los tokens se guardan cifrados y nunca se registran. La comprobación con cuentas reales sigue pendiente.
+
 ### Added — resumen semanal y preferencias de avisos (audit-hardening, T-86)
 
 - Recibe cada lunes por la mañana (en la zona horaria de tu marca principal) un resumen con los seguidores, visualizaciones, alcance, interacciones, publicaciones publicadas y la mejor publicación de la semana anterior de cada marca, comparados con la previa, como aviso en la aplicación (y por push si lo tienes activado) y por correo si activaste los avisos por correo, con un enlace de baja de un clic. Las marcas sin datos salen como «sin datos». Viene apagado por defecto; un párrafo opcional escrito con IA (solo si el asistente está configurado) envía únicamente el nombre de tus marcas y las cifras agregadas. Las nuevas preferencias de avisos, en Notificaciones del navegador, permiten activar o desactivar el resumen y el recordatorio de publicación manual (encendido por defecto); el aviso de «es la hora» se envía siempre.

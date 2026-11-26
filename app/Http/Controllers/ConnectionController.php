@@ -73,7 +73,8 @@ class ConnectionController extends Controller
                     'auth_kind' => $n->authKind(),
                     'available' => $this->connectors->has($n->provider()),
                     // Campos del formulario de las redes que se conectan con credenciales (nunca valores guardados).
-                    'fields' => $this->credentialFields($n),
+                    'fields' => $this->credentialConnector($n)?->credentialFields() ?? [],
+                    'intro' => $this->credentialConnector($n)?->credentialIntro(),
                 ])->values(),
             'pending' => $pending ? [
                 'provider' => $pending['provider'],
@@ -90,15 +91,15 @@ class ConnectionController extends Controller
         return ['reconnect_before' => $d['at'] ?? null, 'reconnect_reason' => $d['reason'] ?? null, 'reconnect_message' => $d ? ConnectionExpiry::message($a, $d['reason']) : null];
     }
 
-    /** @return list<array{name: string, label: string, type: string, help?: string}> */
-    private function credentialFields(Network $network): array
+    /** El conector de una red que se conecta con credenciales (sus campos e introduccion salen de el), o null. */
+    private function credentialConnector(Network $network): ?CredentialConnector
     {
         if ($network->authKind() !== Network::AUTH_CREDENTIALS || ! $this->connectors->has($network->provider())) {
-            return [];
+            return null;
         }
         $connector = $this->connectors->forProvider($network->provider());
 
-        return $connector instanceof CredentialConnector ? $connector->credentialFields() : [];
+        return $connector instanceof CredentialConnector ? $connector : null;
     }
 
     /** Conecta las cuentas elegidas entre las candidatas pendientes del ultimo OAuth. */

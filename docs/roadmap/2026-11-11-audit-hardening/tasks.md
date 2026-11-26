@@ -48,9 +48,9 @@ estado: en-progreso
 | Fase 5 — Frontend | 15 | 18 | 83% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
 | Fase 5b — Unificación | 4 | 8 | 50% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
 | Fase 6 — Operación y repositorio | 4 | 6 | 67% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
-| Fase 7 — Funciones nuevas | 12 | 24 | 50% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
+| Fase 7 — Funciones nuevas | 13 | 24 | 54% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **85** | **108** | **79%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
+| **TOTAL** | **86** | **108** | **80%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -4483,34 +4483,36 @@ CoberturaM3extra descubre registrodoble deListeners por autodetección+PushServi
 ### T-87 — Mastodon y Telegram
 
 - **Descripción**: Dos conectores nuevos siguiendo el patrón `Bluesky/` y `CredentialConnectionController`, con publicación de texto e imagen.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Nuevas redes Mastodon (cualquier instancia, con token personal; texto y varias imágenes con texto alternativo, límites leídos de la instancia) y Telegram (canal con un bot administrador; texto o una foto con pie), conectables desde Conexiones y disponibles en el compositor.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-86, T-74
 - **Tipo**: backend
-- **Archivos**: `app/Connectors/Mastodon/**`, `app/Connectors/Telegram/**`, `app/Enums/Network.php`, `app/Http/Controllers/CredentialConnectionController.php`, `config/social.php`, `config/media_specs.php`, `docs/modulos/conexiones.md`
+- **Archivos**: `CHANGELOG.es.md`, `CHANGELOG.md`, `app/Analytics/Metric.php`, `app/Connectors/Bluesky/BlueskyConnector.php`, `app/Connectors/Contracts/CredentialConnector.php`, `app/Connectors/Mastodon/**`, `app/Connectors/Network.php`, `app/Connectors/Telegram/**`, `app/Enums/ContentType.php`, `app/Http/Controllers/AiAssistantController.php`, `app/Http/Controllers/ConnectionController.php`, `app/Http/Controllers/CredentialConnectionController.php`, `app/Http/Controllers/PostController.php`, `app/Http/Requests/PostRequest.php`, `app/Mcp/Servers/SchedulerServer.php`, `app/Mcp/Tools/PostPayload.php`, `app/Providers/AppServiceProvider.php`, `app/Services/AccountPresenter.php`, `app/Services/AiAssistant.php`, `app/Services/AnalyticsService.php`, `app/Services/InboxService.php`, `app/Services/MediaValidator.php`, `app/Services/Posts/PostCsvImport.php`, `app/Services/Posts/PostPlanner.php`, `app/Support/TargetMedia.php`, `app/Support/TextLength.php`, `config/media_specs.php`, `config/social.php`, `docs/RAG-INDEX.md`, `docs/README.md`, `docs/guias/mastodon-telegram.md`, `docs/modulos/conexiones.md`, `docs/modulos/despliegue.md`, `docs/modulos/media-por-destino.md`, `docs/referencia/configuracion.md`, `resources/js/Components/Composer/AiAdapt.vue`, `resources/js/Components/Composer/NetworkCounters.vue`, `resources/js/Components/Composer/TargetOptions.vue`, `resources/js/Components/Connections/CredentialsForm.vue`, `resources/js/Components/NetworkIcon.vue`, `resources/js/Composables/composerOptions.js`, `resources/js/Composables/textLength.js`, `resources/js/Composables/useComposer.js`, `resources/js/Pages/Brands/Connections.vue`, `resources/js/types/compose.d.ts`, `tests/Feature/Ai/AdaptContentTest.php`, `tests/Feature/Connectors/ConnectorContractTest.php`, `tests/Feature/Connectors/Mastodon/**`, `tests/Feature/Connectors/Telegram/**`, `tests/Feature/Connectors/Threads/ThreadsFlowTest.php`, `tests/Feature/Dashboard/DashboardTest.php`, `tests/Feature/Inbox/InboxCoverageTest.php`, `tests/Feature/Inbox/InboxProvidersTest.php`, `tests/Feature/Publishing/BlueskyPublishingTest.php`, `tests/Feature/Ui/ShellTest.php`, `tests/Fixtures/providers/mastodon/**`, `tests/Fixtures/providers/telegram/**`, `tests/Unit/MediaValidator/MediaValidatorTest.php`, `tests/Unit/Networks/NetworkCatalogTest.php`, `tests/Unit/Networks/NetworkCoverageTest.php`, `tests/Unit/TextLengthTest.php`, `tests/e2e/helpers.ts`, `tests/e2e/isolated/bootstrap.php`, `tests/e2e/isolated/fakes.php`, `tests/e2e/mastodon-telegram.spec.ts`, `tests/frontend/text-length-mastodon.test.mjs`, `docs/roadmap/2026-11-11-audit-hardening/testing/t87/**`
 - **Cubre**: F-13
 - **Cubre (tests)**: E2E-26, M-10
 - **Verificación**: `php artisan test --compact --filter=MastodonConnectorTest` → verde · `php artisan test --compact --filter=TelegramConnectorTest` → verde
 
 **Criterios de aceptación**
-- [ ] Se conecta, publica y desconecta cada red con fakes
-- [ ] Aparecen en tipos de contenido y compositor
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Se conecta, publica y desconecta cada red con fakes
+- [x] Aparecen en tipos de contenido y compositor
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Qué se puede hacer ya: ambos conectores contra fixtures. Queda a la espera (V): contrastar las APIs reales (sin red durante el plan); smoke del usuario. **A la espera (no bloquea la fase)**: Verificación contra las APIs reales (smoke del usuario).
+
+**Cierre — 2026-11-26:** conectores por credencial `Mastodon/**` y `Telegram/**` con el patrón de Bluesky y el único `CredentialsForm` (los campos e introducción los declara cada conector), contratos contrastados con la documentación oficial (`testing/t87/api-contract.md`). Mastodon: URL de instancia validada con `UrlGuard` (HTTPS, IP fijada, sin redirecciones), token de usuario cifrado e incluido en `app:reencrypt`, `external_id` `host:id`, límites de `/api/v2/instance` en `meta.limits` (TTL 24 h), conteo de texto como Mastodon (`TextLength::MASTODON` y su espejo JS: grafemas, URL = reserva de la instancia sin la puntuación final, mención remota = `@usuario`), media con alt text, sondeo del 202 acotado y resubida ante 404, `Idempotency-Key` con hash de destino, ventana y contenido, URL publicada saneada, tope de tamaño de respuesta sin `stream=>true`. Telegram: bot administrador con `can_post_messages` en un canal (sin supergrupo), `telegram_text` (4096) y `telegram_photo` (una foto, pie 1024), token nunca en logs ni excepciones (`#[SensitiveParameter]`), timeout ambiguo → `resultado_incierto` sin reintento. `AiAssistant` y `MediaValidator` usan los límites de la cuenta. Revisión adversarial A+B+C en 2 intentos (G1 Important + 7 Minor, cerrados; N1 corregido aquí). **Deuda aceptada (Minor):** N2 — en Telegram el errno se deduce del texto de la excepción y un timeout de conexión (28) se trata como ambiguo; N3 — tras un timeout ambiguo en Mastodon, editar el texto en menos de 1 h puede dejar el estado viejo y el nuevo (sin `findPublished` por la API). QA: Pest completo 4737 pasados / 9 omitidos (los 2 fallos de media, por colisión con un Pest paralelo, pasan 43/43 al repetirlos); conectores 73 + relacionados 129; Node 818/818; typecheck/lint/format:check/pint/build verdes; E2E Mastodon/Telegram + Bluesky + compositor 87/87 (dos pasadas) en tres tamaños con axe. **Pendiente del usuario (M-10):** probar con una instancia de Mastodon y un canal de Telegram reales.
 
 ### T-88 — Autolistas desde RSS
 

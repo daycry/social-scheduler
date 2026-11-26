@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Connectors\LinkedIn\LinkedInPostOptions;
+use App\Connectors\Mastodon\MastodonLimits;
+use App\Connectors\Mastodon\MastodonPostOptions;
 use App\Connectors\Meta\Instagram\InstagramAudio;
 use App\Connectors\Meta\Instagram\InstagramPostOptions;
 use App\Connectors\Network;
@@ -28,6 +30,8 @@ class AccountPresenter
             'instagram_presets' => $a->network === Network::Instagram ? InstagramPostOptions::capabilities() : null,
             'linkedin' => $a->network === Network::LinkedIn ? LinkedInPostOptions::capabilities($a) : null,
             'pinterest' => $a->network === Network::Pinterest ? PinterestPostOptions::capabilities($a) : null,
+            'visibilities' => $a->network === Network::Mastodon ? MastodonPostOptions::capabilities() : null,
+            'limits' => $a->network === Network::Mastodon ? MastodonLimits::forComposer($a) : null,
             'instagram_audio' => $a->network === Network::Instagram ? [
                 'available' => InstagramAudio::unavailableReason($a) === null,
                 'reason' => InstagramAudio::unavailableReason($a),

@@ -1,0 +1,20 @@
+{
+  "source": "https://core.telegram.org/bots/api#making-requests",
+  "method": "POST",
+  "host": "api.telegram.org",
+  "path": "/bot123456789:TEST_token-abcdefghijklmnopqrstuv/sendMessage",
+  "status": 429,
+  "headers": {},
+  "body": {
+    "ok": false,
+    "error_code": 429,
+    "description": "Too Many Requests: retry after 5",
+    "parameters": {
+      "retry_after": 5
+    }
+  },
+  "fixed": [
+    "ok",
+    "error_code"
+  ]
+}

@@ -79,6 +79,9 @@ final class Metric
         'linkedin' => [],
         // Pinterest (T-21): impresiones e interacciones diarias (`user_account/analytics`); los clics solo si hubo salidas; seguidores es un stock.
         'pinterest' => [self::VIEWS, self::INTERACTIONS],
+        // Mastodon y Telegram solo publican (T-87): sin lector de metricas, ningun flujo esperado.
+        'mastodon' => [],
+        'telegram' => [],
     ];
 
     /**

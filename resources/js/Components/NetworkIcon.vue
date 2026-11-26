@@ -64,6 +64,14 @@ const dim = computed(() => ({ sm: 'h-5 w-5', md: 'h-7 w-7', lg: 'h-10 w-10' })[p
                 v-else-if="network === 'pinterest'"
                 d="M12 4.5a6.5 6.5 0 00-2.4 12.5M10.4 19.5l1.5-6.3M12 4.5c3.6 0 6 2.2 6 5.2 0 3-1.9 4.8-4 4.8-1.1 0-1.9-.7-1.9-1.7"
             />
+            <template v-else-if="network === 'mastodon'">
+                <path d="M6 8a3 3 0 013-3h6a3 3 0 013 3v5a3 3 0 01-3 3h-3l-3.5 3v-3H9a3 3 0 01-3-3z" />
+                <path d="M9.5 13v-3.5a1.2 1.2 0 012.4 0V13M11.9 9.5a1.2 1.2 0 012.4 0V13" />
+            </template>
+            <path
+                v-else-if="network === 'telegram'"
+                d="M20 5L3.5 11.6l5 1.8 1.7 5.4 2.9-3.3 4.4 3.2L20 5zM8.5 13.4L20 5"
+            />
             <circle v-else cx="12" cy="12" r="6" />
         </svg>
     </span>

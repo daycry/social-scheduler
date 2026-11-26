@@ -127,6 +127,12 @@ class InboxService
         foreach (self::UNSUPPORTED_NOTES as $value => $note) {
             $rows[$value] ??= ['network' => $value, 'label' => Network::from($value)->label(), 'read' => false, 'reply' => false, 'hide' => false, 'note' => $note];
         }
+        // El resto de redes que esta instalacion ofrece y no leen comentarios (Mastodon, Telegram...) salen del registro, sin una nota escrita a mano por red.
+        foreach (Network::cases() as $network) {
+            if ($network->isAvailable() && $this->connectors->has($network->provider())) {
+                $rows[$network->value] ??= ['network' => $network->value, 'label' => $network->label(), 'read' => false, 'reply' => false, 'hide' => false, 'note' => 'Fuera: '.$network->label().' no tiene buzón de comentarios en esta aplicación.'];
+            }
+        }
 
         return array_values($rows);
     }

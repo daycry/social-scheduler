@@ -5,6 +5,7 @@
  *  - chars:     puntos de codigo Unicode (`[...text]`; NO `text.length`, que cuenta unidades UTF-16).
  *  - graphemes: grafemas con `Intl.Segmenter` (un emoji compuesto cuenta 1).
  *  - threads:   cada secuencia de emoji cuenta los bytes UTF-8 enteros; el resto, 1 por code point (no por grafema).
+ *  - mastodon:  grafemas, con cada URL contada como la reserva de la instancia y una mencion remota `@usuario@dominio` como `@usuario`.
  */
 const segmenter = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
 const encoder = new TextEncoder();
@@ -34,11 +35,27 @@ export const countThreads = (text) => {
     return total;
 };
 
+// Mismos patrones que `TextLength::mastodon` (ASCII explicito en lugar de `\w`: igual en PHP y en JS).
+// La puntuacion final (punto, coma, cierre de parentesis o comillas) no forma parte de la URL, como en twitter-text.
+const MASTODON_URL = /https?:\/\/\S+?(?=[.,:;!?)\]"'»]*(?:\s|$))/giu;
+const MASTODON_REMOTE_MENTION = /(?<![=/A-Za-z0-9_])(@[A-Za-z0-9_]+(?:[A-Za-z0-9_.-]+[A-Za-z0-9_]+)?)@[A-Za-z0-9_.-]+[A-Za-z0-9_]/gu;
+
+/** Reserva por URL de Mastodon cuando la instancia no dice otra (`characters_reserved_per_url`). */
+export const MASTODON_URL_LENGTH = 23;
+
+export const countMastodon = (text, urlLength = MASTODON_URL_LENGTH) => {
+    const t = String(text ?? '').trim();
+    if (t === '') return 0;
+
+    return countGraphemes(t.replace(MASTODON_URL, () => 'x'.repeat(Math.max(0, urlLength))).replace(MASTODON_REMOTE_MENTION, '$1'));
+};
+
 export const countChars = (text) => [...String(text ?? '').trim()].length;
 
-/** Longitud segun el modo del tipo de contenido (`limits[tipo].count`; sin valor = chars). */
-export const countText = (text, mode = 'chars') => {
+/** Longitud segun el modo del tipo de contenido (`limits[tipo].count`; sin valor = chars). `urlLength`: solo Mastodon (`account.limits.url_length`). */
+export const countText = (text, mode = 'chars', urlLength = undefined) => {
     if (mode === 'graphemes') return countGraphemes(text);
+    if (mode === 'mastodon') return countMastodon(text, urlLength);
     if (mode === 'threads') return countThreads(text);
 
     return countChars(text);

@@ -91,6 +91,17 @@ test('LinkedIn y Pinterest, configuradas, se ofrecen y tienen todas sus superfic
         ->and(surfaceGaps('linkedin'))->toBe([])->and(surfaceGaps('pinterest'))->toBe([]);
 });
 
+test('Mastodon y Telegram, ofrecidas, tienen todas sus superficies, icono incluido, y se pueden apagar', function () {
+    expect(Network::offered())->toContain(Network::Mastodon)->toContain(Network::Telegram)
+        ->and(surfaceGaps('mastodon'))->toBe([])->and(surfaceGaps('telegram'))->toBe([]);
+
+    config(['social.mastodon.enabled' => false, 'social.telegram.enabled' => false]);
+    app()->forgetInstance(ConnectorRegistry::class);
+
+    expect(Network::offered())->not->toContain(Network::Mastodon)->not->toContain(Network::Telegram)
+        ->and(ContentType::MastodonPost->isOffered())->toBeFalse()->and(ContentType::TelegramText->isOffered())->toBeFalse();
+});
+
 test('ninguna pagina repite una lista fija de redes fuera de NetworkIcon.vue', function () {
     $offenders = [];
     $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(resource_path('js'), FilesystemIterator::SKIP_DOTS));

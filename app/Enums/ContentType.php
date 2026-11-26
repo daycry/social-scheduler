@@ -37,6 +37,9 @@ enum ContentType: string
     case PinterestPin = 'pinterest_pin';
     case PinterestCarousel = 'pinterest_carousel';
     case PinterestVideo = 'pinterest_video';
+    case MastodonPost = 'mastodon_post';
+    case TelegramText = 'telegram_text';
+    case TelegramPhoto = 'telegram_photo';
 
     public function network(): Network
     {
@@ -49,6 +52,8 @@ enum ContentType: string
             self::ThreadsText, self::ThreadsImage, self::ThreadsVideo, self::ThreadsCarousel => Network::Threads,
             self::LinkedInText, self::LinkedInImage, self::LinkedInCarousel, self::LinkedInVideo => Network::LinkedIn,
             self::PinterestPin, self::PinterestCarousel, self::PinterestVideo => Network::Pinterest,
+            self::MastodonPost => Network::Mastodon,
+            self::TelegramText, self::TelegramPhoto => Network::Telegram,
         };
     }
 
@@ -82,6 +87,9 @@ enum ContentType: string
             self::PinterestPin => 'Pin de imagen',
             self::PinterestCarousel => 'Pin de carrusel',
             self::PinterestVideo => 'Pin de vídeo',
+            self::MastodonPost => 'Publicación',
+            self::TelegramText => 'Mensaje de texto',
+            self::TelegramPhoto => 'Foto',
         };
     }
 
@@ -116,6 +124,9 @@ enum ContentType: string
             self::PinterestPin => 'Una imagen en un tablero',
             self::PinterestCarousel => 'De 2 a 5 imágenes en un tablero',
             self::PinterestVideo => 'Un vídeo en un tablero, con portada opcional',
+            self::MastodonPost => 'Texto, con hasta 4 imágenes según tu instancia',
+            self::TelegramText => 'Solo texto, de hasta 4096 caracteres',
+            self::TelegramPhoto => 'Una foto con un pie de hasta 1024 caracteres',
         };
     }
 
@@ -144,6 +155,9 @@ enum ContentType: string
             self::ThreadsCarousel => ['De 2 a 20 elementos, imágenes (JPEG o PNG) o vídeos mezclados. Cuenta como una sola publicación en el límite de 250 al día.'],
             self::LinkedInText, self::LinkedInImage, self::LinkedInCarousel, self::LinkedInVideo => ['Hasta 3000 caracteres. Se publica como perfil personal o como página de empresa según la cuenta conectada; las páginas exigen el permiso de Community Management de LinkedIn.'],
             self::PinterestPin, self::PinterestCarousel, self::PinterestVideo => ['Todo pin necesita un tablero (board_id), descripción de hasta 800 caracteres, título de hasta 100 y enlace de destino opcional. Las apps nuevas de Pinterest empiezan en acceso de prueba (solo sandbox) hasta que Pinterest las aprueba.'],
+            self::MastodonPost => ['El límite de caracteres, el número de imágenes y su peso son los de tu instancia (500 y 4 por defecto). Las imágenes admiten texto alternativo. La visibilidad por defecto es pública.'],
+            self::TelegramText => ['Se publica como texto plano, sin formato, en el canal. El bot debe ser administrador del canal con permiso para publicar.'],
+            self::TelegramPhoto => ['Una sola foto (JPEG o PNG, hasta 10 MB) y el texto va como pie de foto, de hasta 1024 caracteres: si necesitas más texto usa «Mensaje de texto». Telegram no guarda texto alternativo.'],
             default => [],
         };
     }
@@ -167,8 +181,8 @@ enum ContentType: string
 
     /**
      * ¿Se ofrece en el compositor? Las fotos de TikTok solo existen por PULL_FROM_URL, que exige un dominio
-     * verificado en TikTok (`social.tiktok.verified_domain`); sin el, el tipo no se ofrece ni se acepta. Los de Bluesky y Threads desaparecen
-     * con `BLUESKY_ENABLED=false` o `THREADS_ENABLED=false` (Threads, ademas, sin `THREADS_APP_ID`).
+     * verificado en TikTok (`social.tiktok.verified_domain`); sin el, el tipo no se ofrece ni se acepta. Los de Bluesky, Mastodon, Telegram y Threads desaparecen
+     * con `BLUESKY_ENABLED=false`, `MASTODON_ENABLED=false`, `TELEGRAM_ENABLED=false` o `THREADS_ENABLED=false` (Threads, ademas, sin `THREADS_APP_ID`).
      */
     public function isOffered(): bool
     {

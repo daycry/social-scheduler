@@ -292,3 +292,13 @@ test('un marcador literal escrito por el usuario no colisiona con los del servid
         ->assertJsonPath('results.0.text', 'Resumen: Escribe a [email3] y mira https://sol.test/x')
         ->assertJsonPath('results.1.error', null);
 });
+
+test('Mastodon se valida con el limite de la cuenta (los de su instancia), no con el 500 por defecto', function () {
+    $ma = SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::Mastodon, 'meta' => ['instance' => 'https://mastodon.example', 'limits' => ['max_characters' => 300, 'characters_reserved_per_url' => 23, 'fetched_at' => now()->toIso8601String()]]]);
+    fakeVersions([(string) $ma->id => str_repeat('a', 301)]);
+
+    $response = adapt(['targets' => [['account_id' => $ma->id, 'content_type' => 'mastodon_post']]])->assertOk()->assertJsonPath('results.0.text', null);
+
+    expect($response->json('results.0.error'))->toContain('301')->toContain('300');
+    Http::assertSent(fn (Request $r) => str_contains((string) $r->body(), 'maximo\\":\\"300 caracteres (cada enlace cuenta 23)'));
+});

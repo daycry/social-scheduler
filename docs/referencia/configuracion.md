@@ -90,6 +90,10 @@ Los demás límites de tamaño y sondeo (`MEDIA_*`) no están en `.env.example`;
 | `TIKTOK_VERIFIED_DOMAIN` | Dominio verificado para fotos/carrusel; vacío = tipo no ofrecido. Ver [despliegue](../modulos/despliegue.md#tiktok-media-pública) |
 | `BLUESKY_ENABLED` | `true`. `false` retira Bluesky de Conexiones, compositor, filtros, MCP y reprogramación (sus cuentas se conservan). Se conecta con una app password cifrada: [guía](../guias/bluesky-app-password.md) |
 | `BLUESKY_IMAGE_MAX_BYTES`, `BLUESKY_VIDEO_MAX_BYTES` | `2000000` y `52428800` bytes. Topes de media; la foto mayor se recomprime y el vídeo mayor se rechaza al guardar |
+| `MASTODON_ENABLED`, `TELEGRAM_ENABLED` | `true`. `false` retira esa red de Conexiones, compositor, filtros, MCP y reprogramación (sus cuentas se conservan). Se conectan con un token cifrado: [guía](../guias/mastodon-telegram.md) |
+| `MASTODON_LIMITS_TTL_HOURS` | `24`. Edad máxima de los límites de la instancia (caracteres, imágenes, peso) antes de volver a leerlos al publicar |
+| `MASTODON_MEDIA_POLL_ATTEMPTS`, `MASTODON_MEDIA_POLL_DELAY_MS` | `5` y `1500`. Sondeos y espera entre ellos de una imagen que Mastodon aún procesa (202), dentro del paso de 85 s del job |
+| `MASTODON_MAX_RESPONSE_BYTES` | `1048576`. Tope del cuerpo de cualquier respuesta de una instancia de Mastodon (se corta la lectura al pasarlo) |
 | `BLUESKY_UPLOAD_TIMEOUT` | `80`. Segundos de la subida del vídeo (una petición dentro de los 85 s del paso del job de 110 s) |
 | `BLUESKY_ENTRYWAY`, `BLUESKY_PLC_DIRECTORY`, `BLUESKY_APPVIEW`, `BLUESKY_VIDEO_SERVICE`, `BLUESKY_ALLOWED_HOSTS`, `BLUESKY_DEFAULT_LANGS` | Ver `config/social.php`. Hosts fijos (lista cerrada contra SSRF) e idioma por defecto (`es`); no hace falta tocarlos |
 | `THREADS_APP_ID`, `THREADS_APP_SECRET` | ID y secreto **de Threads** de la app de Meta (hay dos pares; Configuración → Básica). Sin `THREADS_APP_ID` la red no se ofrece. Guía: [Threads](../guias/threads-app-meta.md) |

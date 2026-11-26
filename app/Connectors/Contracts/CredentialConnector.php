@@ -5,9 +5,12 @@ namespace App\Connectors\Contracts;
 use App\Connectors\Data\ConnectionCandidate;
 use App\Connectors\Exceptions\ConnectorException;
 
-/** Proveedor que se conecta con credenciales escritas por el usuario (p. ej. handle + app password de Bluesky). */
+/** Proveedor que se conecta con credenciales escritas por el usuario (handle + app password de Bluesky, instancia + token de Mastodon, bot + canal de Telegram). */
 interface CredentialConnector extends Connector
 {
+    /** Texto que abre el formulario de conexion: que credencial hace falta y que se hace con ella (sin HTML). */
+    public function credentialIntro(): string;
+
     /**
      * Campos del formulario de conexion.
      *

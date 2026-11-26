@@ -27,7 +27,7 @@ $mb = 1024 * 1024;
 
 return [
 
-    'version' => '2026-10-27',
+    'version' => '2026-11-26',
 
     'types' => [
 
@@ -282,6 +282,31 @@ return [
             'text' => ['max' => 800, 'required' => false],
             // Tope de esta instalacion (Pinterest admite hasta 2 GB): la subida es UNA peticion dentro del paso del job (85 s, con registro y comprobaciones); 128 MB caben a ~2,5 MB/s.
             'video' => ['mimes' => ['video/mp4', 'video/quicktime'], 'max_bytes' => 128 * $mb, 'min_duration' => 4, 'max_duration' => 900],
+        ],
+
+        // ---------------------------------------------------------------- Mastodon (T-87)
+        // Los limites son de CADA instancia (`GET /api/v2/instance`): `MastodonLimits::specFor()` sustituye aqui el maximo de texto, el de imagenes, los tipos y el peso
+        // por los de la cuenta. Lo de abajo es el valor prudente cuando la cuenta aun no los tiene (500 caracteres, 4 imagenes; peso y tipos de `social.mastodon.*`).
+        'mastodon_post' => [
+            'label' => 'una publicacion de Mastodon',
+            'media' => ['min' => 0, 'max' => 4, 'kinds' => ['image']],
+            'text' => ['max' => 500, 'count' => 'mastodon', 'required' => false, 'required_without_media' => true],
+            'image' => ['mimes' => ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], 'max_bytes' => 8 * $mb],
+        ],
+
+        // ---------------------------------------------------------------- Telegram (T-87)
+        // Dos tipos porque el limite depende de la media: sendMessage admite 4096 caracteres y el pie de sendPhoto, 1024. Una sola foto: `sendMediaGroup` (varias)
+        // no esta en el contrato verificado. Formatos de foto: JPEG y PNG (la documentacion leida no lista formatos).
+        'telegram_text' => [
+            'label' => 'un mensaje de Telegram',
+            'media' => ['min' => 0, 'max' => 0, 'kinds' => []],
+            'text' => ['max' => 4096, 'required' => true],
+        ],
+        'telegram_photo' => [
+            'label' => 'una foto de Telegram',
+            'media' => ['min' => 1, 'max' => 1, 'kinds' => ['image']],
+            'text' => ['max' => 1024, 'required' => false],
+            'image' => ['mimes' => ['image/jpeg', 'image/png'], 'max_bytes' => 10 * $mb, 'aspect' => ['min' => 0.05, 'max' => 20]],
         ],
     ],
 ];

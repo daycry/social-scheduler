@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Connectors\Google\YouTubeComments;
 use App\Connectors\LinkedIn\LinkedInPostOptions;
 use App\Connectors\LinkedIn\LinkedInPublisher;
+use App\Connectors\Mastodon\MastodonLimits;
+use App\Connectors\Mastodon\MastodonPostOptions;
 use App\Connectors\Meta\Instagram\InstagramAudio;
 use App\Connectors\Meta\Instagram\InstagramPostOptions;
 use App\Connectors\Network;
@@ -251,6 +253,9 @@ class PostController extends Controller
                 'instagram_presets' => $a->network === Network::Instagram ? InstagramPostOptions::capabilities() : null,
                 'linkedin' => $a->network === Network::LinkedIn ? LinkedInPostOptions::capabilities($a) : null,
                 'pinterest' => $a->network === Network::Pinterest ? PinterestPostOptions::capabilities($a) : null,
+                'visibilities' => $a->network === Network::Mastodon ? MastodonPostOptions::capabilities() : null,
+                // Limites propios de la cuenta (Mastodon: los de su instancia): mandan sobre `limits` del tipo en contadores y avisos.
+                'limits' => $a->network === Network::Mastodon ? MastodonLimits::forComposer($a) : null,
                 'instagram_audio' => $a->network === Network::Instagram ? [
                     'available' => InstagramAudio::unavailableReason($a) === null,
                     'reason' => InstagramAudio::unavailableReason($a),

@@ -74,6 +74,9 @@ class AnalyticsService
         'linkedin' => [],
         // Pinterest (T-21): impresiones (views), interacciones y clics de salida; seguidores y pines del perfil. Sin alcance ni reacciones de cuenta.
         'pinterest' => [Metric::FOLLOWERS, Metric::VIEWS, Metric::INTERACTIONS, Metric::CLICKS, Metric::POST_COUNT],
+        // Mastodon y Telegram solo publican (T-87): sin lector de metricas, ninguna esta soportada.
+        'mastodon' => [],
+        'telegram' => [],
     ];
 
     /** Publicaciones que lista la pagina de una red por defecto (las de mas interacciones); ver `social.analytics.dashboard_posts`. */

@@ -38,6 +38,7 @@ const hasOptions = (account) => {
     if (account.audio?.embedded_video_types?.includes(t.content_type)) return true;
     return t.content_type === 'instagram_reel' || t.content_type === 'facebook_text'
         || account.network === 'youtube' || account.network === 'tiktok' || account.network === 'linkedin' || account.network === 'pinterest'
+        || account.visibilities != null
         || ['facebook_photo', 'facebook_photos'].includes(t.content_type)
         || ['instagram_image', 'instagram_carousel'].includes(t.content_type);
 };
@@ -204,6 +205,24 @@ const hasOptions = (account) => {
                         @keydown.enter.prevent
                     />
                 </div>
+            </div>
+            <div v-if="account.visibilities" class="space-y-2">
+                <div>
+                    <InputLabel :for="`ma-visibility-${account.id}`" value="Visibilidad" />
+                    <select
+                        :id="`ma-visibility-${account.id}`"
+                        :value="targetFor(account.id).options.mastodon_visibility ?? account.visibilities[0].value"
+                        :disabled="!editable"
+                        class="field mt-1"
+                        @change="targetFor(account.id).options.mastodon_visibility = $event.target.value"
+                    >
+                        <option v-for="v in account.visibilities" :key="v.value" :value="v.value">{{ v.label }}</option>
+                    </select>
+                </div>
+                <p v-if="account.limits" class="text-xs text-slate-600">
+                    Tu instancia admite hasta {{ account.limits.max_chars }} caracteres y
+                    {{ account.limits.max_media }} imágenes por publicación.
+                </p>
             </div>
             <div v-if="account.network === 'youtube'" class="space-y-2">
                 <div>

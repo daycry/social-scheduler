@@ -59,8 +59,8 @@ const rows = computed(() => (results.value ?? []).map((r) => {
         stale: target?.content_type !== r.contentType,
         network: account?.network,
         label: account ? `${account.network_label} · ${account.name}` : 'Cuenta eliminada',
-        chars: r.text ? countText(r.text, limit.count) : 0,
-        max: limit.max_chars ?? null,
+        chars: r.text ? countText(r.text, limit.count, account?.limits?.url_length) : 0,
+        max: account?.limits?.max_chars ?? limit.max_chars ?? null,
     };
 }));
 const accepted = computed(() => rows.value.filter((r) => r.text && !r.stale));

@@ -126,6 +126,7 @@ export function useComposer(props) {
                 ['linkedin_visibility', 'linkedin_disable_reshare'].forEach((k) => keep.add(k));
             if (account?.network === 'pinterest')
                 ['pinterest_board_id', 'pinterest_title', 'pinterest_link'].forEach((k) => keep.add(k));
+            if (account?.visibilities) keep.add('mastodon_visibility');
             for (const key of MANAGED_KEYS) {
                 if (key in t.options && !keep.has(key)) delete t.options[key];
             }
@@ -446,7 +447,12 @@ export function useComposer(props) {
         activeTab.value = accountId;
     };
     // Cada tipo cuenta a su manera (`limits[tipo].count`): caracteres, grafemas (Bluesky) o la regla de Threads; igual que el servidor.
-    const charsOf = (target) => countText(textOf(target), limits.value?.[target.content_type]?.count);
+    const charsOf = (target) =>
+        countText(
+            textOf(target),
+            limits.value?.[target.content_type]?.count,
+            props.accounts.find((a) => a.id === target.account_id)?.limits?.url_length,
+        );
     const hashtagsOf = (target) => countHashtags(textOf(target));
     const accountName = (id) => props.accounts.find((a) => a.id === id)?.name ?? 'Cuenta eliminada';
 

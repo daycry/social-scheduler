@@ -118,14 +118,22 @@ function generalBootstrap(): Application
         $app->instance(PushSender::class, new GeneralFakePushSender($root));
     }
     $registry = new ConnectorRegistry;
-    foreach (['meta' => [Network::Instagram, Network::Facebook], 'google' => [Network::YouTube], 'tiktok' => [Network::TikTok], 'bluesky' => [Network::Bluesky], 'threads' => [Network::Threads], 'linkedin' => [Network::LinkedIn], 'pinterest' => [Network::Pinterest]] as $provider => $networks) {
-        $registry->register($provider === 'bluesky' ? $app->make(GeneralBlueskyConnector::class) : new T43Connector($provider, $networks));
+    foreach (['meta' => [Network::Instagram, Network::Facebook], 'google' => [Network::YouTube], 'tiktok' => [Network::TikTok], 'bluesky' => [Network::Bluesky], 'threads' => [Network::Threads], 'linkedin' => [Network::LinkedIn], 'pinterest' => [Network::Pinterest], 'mastodon' => [Network::Mastodon], 'telegram' => [Network::Telegram]] as $provider => $networks) {
+        $registry->register(match ($provider) {
+            'bluesky' => $app->make(GeneralBlueskyConnector::class),
+            'mastodon' => $app->make(GeneralMastodonConnector::class),
+            'telegram' => $app->make(GeneralTelegramConnector::class),
+            default => new T43Connector($provider, $networks),
+        });
         foreach ($networks as $network) {
             $registry->registerPublisher($network, new T43Publisher($root));
-            $insights = new FakeInsights;
-            $insights->account[Metric::VIEWS] = null;
-            $insights->post[Metric::VIEWS] = null;
-            $registry->registerInsights($network, $insights);
+            // Mastodon y Telegram (T-87) solo publican: sin lector de metricas, como en la aplicacion.
+            if (! in_array($provider, ['mastodon', 'telegram'], true)) {
+                $insights = new FakeInsights;
+                $insights->account[Metric::VIEWS] = null;
+                $insights->post[Metric::VIEWS] = null;
+                $registry->registerInsights($network, $insights);
+            }
         }
     }
     // Inbox (T-43): las fuentes de comentarios reales (HTTP simulado por cada spec), como en AppServiceProvider.

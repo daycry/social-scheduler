@@ -41,6 +41,7 @@
 | [QA general](roadmap/2026-10-26-metricool-parity-3/testing/attempt-2/report.md) | Regresión de 504 casos en tres tamaños, 502 pasados, dos skips previstos y manuales abiertos | T-77, Playwright, frontera de mes, SHA256, qa-gate |
 | [guias/login-social-google-meta.md](guias/login-social-google-meta.md) | Activar el login con Google y Facebook | `GOOGLE_LOGIN_*`, `META_LOGIN_*`, redirect URIs |
 | [guias/bluesky-app-password.md](guias/bluesky-app-password.md) | Crear la app password de Bluesky y conectarla | app password, email verificado, vídeo, revocar |
+| [guias/mastodon-telegram.md](guias/mastodon-telegram.md) | Conectar Mastodon (token personal) y Telegram (bot + canal), límites y problemas | token, instancia, BotFather, administrador, 4096, 1024 |
 | [guias/threads-app-meta.md](guias/threads-app-meta.md) | Crear la app de Meta para Threads y conectarla | THREADS_APP_ID, THREADS_APP_SECRET, tester, URI de redirección, App Review |
 | [usuario/guia-de-usuario.md](usuario/guia-de-usuario.md) | Uso de la app | marcas, conectar, programar, informes |
 | [knowledge/README.md](knowledge/README.md) | ADR y gotchas con su estado canónico | ADR-001, ADR-002, ADR-003, ADR-004, ADR-005 |

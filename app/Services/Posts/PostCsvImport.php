@@ -418,6 +418,8 @@ class PostCsvImport
             Network::Threads => $hasMedia ? ContentType::ThreadsImage : ContentType::ThreadsText,
             Network::LinkedIn => $hasMedia ? ContentType::LinkedInImage : ContentType::LinkedInText,
             Network::Pinterest => ContentType::PinterestPin,
+            Network::Mastodon => ContentType::MastodonPost,
+            Network::Telegram => $hasMedia ? ContentType::TelegramPhoto : ContentType::TelegramText,
         };
     }
 

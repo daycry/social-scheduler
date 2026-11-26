@@ -8,6 +8,7 @@ use App\Exceptions\PostValidationException;
 use App\Models\Brand;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Support\TextLength;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
@@ -131,7 +132,7 @@ class AiAssistant
      *
      * Cuota: la politica unica de la clase (una respuesta inservible o rechazada version a version gasta el uso: la llamada ya se pago).
      *
-     * @param  list<array{account_id: int, content_type: ContentType}>  $targets
+     * @param  list<array{account_id: int, content_type: ContentType, account?: SocialAccount}>  $targets  `account`: sus limites propios (Mastodon) mandan sobre los del tipo.
      * @return list<array{account_id: int, text: ?string, error: ?string}>
      *
      * @throws PostValidationException texto vacio/largo, IA desactivada, limite diario, fallo del servicio o respuesta no valida
@@ -160,14 +161,14 @@ class AiAssistant
             'marca' => mb_substr($brand->name, 0, 120),
             'texto' => $safe,
             'destinos' => array_map(function (array $t) use ($chars, $bytes) {
-                $rule = $this->validator->spec($t['content_type'])['text'];
+                $rule = $this->validator->spec($t['content_type'], null, $t['account'] ?? null)['text'];
 
                 return array_filter([
                     'id' => (string) $t['account_id'],
                     'red' => $t['content_type']->network()->value,
                     'tipo' => $t['content_type']->label(),
                     'maximo' => max(1, $rule['max'] - $chars).' '.match ($rule['count'] ?? 'chars') {
-                        'graphemes' => 'grafemas', 'threads' => 'caracteres (cada emoji cuenta sus bytes)', default => 'caracteres',
+                        'graphemes' => 'grafemas', 'threads' => 'caracteres (cada emoji cuenta sus bytes)', 'mastodon' => 'caracteres (cada enlace cuenta '.($rule['url_length'] ?? TextLength::MASTODON_URL_LENGTH).')', default => 'caracteres',
                     },
                     'maximo_bytes' => isset($rule['max_bytes']) ? max(1, $rule['max_bytes'] - $bytes) : null,
                     'maximo_hashtags' => $rule['max_hashtags'] ?? null,
@@ -185,7 +186,7 @@ class AiAssistant
             $raw = $versions[(string) $target['account_id']];
             $version = trim(strtr($raw, $restore));
             $errors = ($problem = $this->markerProblem($raw, array_keys($restore), $delimiters)) !== null ? [$problem]
-                : ($version === '' ? ['El asistente no devolvió texto para esta red.'] : $this->validator->textErrors($target['content_type'], $version));
+                : ($version === '' ? ['El asistente no devolvió texto para esta red.'] : $this->validator->textErrors($target['content_type'], $version, $target['account'] ?? null));
             $results[] = ['account_id' => $target['account_id'], 'text' => $errors === [] ? $version : null, 'error' => $errors === [] ? null : implode(' ', $errors)];
         }
 
@@ -219,7 +220,7 @@ class AiAssistant
     {
         $total = 150;
         foreach ($targets as $target) {
-            $max = (int) $this->validator->spec($target['content_type'])['text']['max'];
+            $max = (int) $this->validator->spec($target['content_type'], null, $target['account'] ?? null)['text']['max'];
             $total += (int) ceil(min($max, max(300, 2 * mb_strlen($text))) / 2) + 30;
         }
 

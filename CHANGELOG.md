@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — Mastodon and Telegram (audit-hardening, T-87)
+
+- Connect a Mastodon account (your instance address plus a personal access token) and a Telegram channel (a bot token from BotFather plus the channel, with the bot as an administrator that can post) from Connections, with the same credentials form as Bluesky. Publish text and images to Mastodon (alt text, visibility per post, and your instance's own limits for characters, images and file size, refreshed daily) and text or a single photo with a caption to Telegram, with the right limit for each; they show up in the composer with their own counters. Tokens are stored encrypted and never logged. Real-account acceptance remains pending.
+
 ### Added — weekly digest and notice preferences (audit-hardening, T-86)
 
 - Get a weekly digest every Monday morning (in your main brand's timezone) with last week's followers, views, reach, interactions, published posts and best post for each brand compared with the week before, as an in-app notice (also by push if enabled) and by email if you enabled email notices, with a one-click unsubscribe link. Brands without data show «no data». It is off by default; an optional AI-written paragraph (only if the assistant is configured) sends just your brand names and aggregate figures. New notice preferences under Browser notifications let you turn the digest and the manual-publishing reminder (on by default) on or off; the "it's time" notice is always sent.

@@ -133,6 +133,7 @@ const discardPending = () => router.delete(route('brands.connections.pending.dis
                             :provider="n.provider"
                             :label="n.label"
                             :fields="n.fields"
+                            :intro="n.intro"
                         />
                         <SecondaryButton v-else-if="n.available" type="button" @click="connect(n.provider)"
                             >+ Conectar</SecondaryButton
@@ -215,7 +216,7 @@ const discardPending = () => router.delete(route('brands.connections.pending.dis
                                 <p v-if="a.status === 'requiere_reconexion'" class="mt-1 text-xs text-amber-700">
                                     Las publicaciones programadas se conservan, pero no se enviarán hasta que
                                     reconectes<template v-if="a.auth_kind === 'credentials'">
-                                        (pulsa «+ Conectar» con una app password nueva)</template
+                                        (pulsa «+ Conectar» con credenciales nuevas)</template
                                     >.
                                     <span v-if="a.last_error">({{ a.last_error }})</span>
                                 </p>

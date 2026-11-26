@@ -21,7 +21,7 @@ final class TargetMedia
     private const ALT_TYPES = [
         ContentType::InstagramImage, ContentType::InstagramCarousel, ContentType::FacebookPhoto, ContentType::FacebookPhotos,
         ContentType::ThreadsImage, ContentType::ThreadsCarousel, ContentType::BlueskyPost,
-        ContentType::LinkedInImage, ContentType::LinkedInCarousel, ContentType::PinterestPin,
+        ContentType::LinkedInImage, ContentType::LinkedInCarousel, ContentType::PinterestPin, ContentType::MastodonPost,
     ];
 
     /** Tipos que publican una portada (imagen) para un video. */

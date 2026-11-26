@@ -2,9 +2,12 @@
 
 namespace App\Services;
 
+use App\Connectors\Mastodon\MastodonLimits;
+use App\Connectors\Network;
 use App\Enums\ContentType;
 use App\Exceptions\PostValidationException;
 use App\Models\MediaAsset;
+use App\Models\SocialAccount;
 use App\Services\Media\ImageDownscaler;
 use App\Support\TextLength;
 use InvalidArgumentException;
@@ -17,13 +20,14 @@ class MediaValidator
 {
     /**
      * @param  iterable<MediaAsset>  $media  En el orden de publicacion.
+     * @param  ?SocialAccount  $account  La cuenta de destino: en las redes con limites propios de cada cuenta (Mastodon) mandan los suyos.
      * @return list<string> Vacia si todo es valido.
      */
-    public function validate(ContentType $type, iterable $media, ?string $text = null): array
+    public function validate(ContentType $type, iterable $media, ?string $text = null, ?SocialAccount $account = null): array
     {
         $media = is_array($media) ? array_values($media) : iterator_to_array($media, false);
         $firstKind = ($media[0] ?? null)?->kind;
-        $spec = $this->spec($type, $firstKind);
+        $spec = $this->spec($type, $firstKind, $account);
         $label = $spec['label'];
         $errors = [];
 
@@ -134,7 +138,7 @@ class MediaValidator
     }
 
     /** @return array<string, mixed> */
-    public function spec(ContentType $type, ?string $firstMediaKind = null): array
+    public function spec(ContentType $type, ?string $firstMediaKind = null, ?SocialAccount $account = null): array
     {
         $key = $type->specKey($firstMediaKind);
         $spec = config("media_specs.types.$key");
@@ -143,7 +147,8 @@ class MediaValidator
             throw new InvalidArgumentException("No hay reglas de media para $key.");
         }
 
-        return $spec;
+        // Mastodon: los limites son los de la instancia de esa cuenta (texto, imagenes, formatos y peso), no un valor fijo.
+        return $account?->network === Network::Mastodon ? MastodonLimits::specFor($spec, $account) : $spec;
     }
 
     /**
@@ -152,9 +157,9 @@ class MediaValidator
      *
      * @return list<string>
      */
-    public function textErrors(ContentType $type, string $text): array
+    public function textErrors(ContentType $type, string $text, ?SocialAccount $account = null): array
     {
-        $spec = $this->spec($type);
+        $spec = $this->spec($type, null, $account);
 
         return $this->validateText($spec, $spec['label'], $text);
     }
@@ -163,7 +168,7 @@ class MediaValidator
     private function validateText(array $spec, string $label, ?string $text, int $mediaCount = 0): array
     {
         // El modo de conteo es de la red: caracteres (por defecto), grafemas (Bluesky) o la regla de Threads.
-        $length = TextLength::count($text, $spec['text']['count'] ?? TextLength::CHARS);
+        $length = TextLength::count($text, $spec['text']['count'] ?? TextLength::CHARS, $spec['text']['url_length'] ?? null);
 
         if (($spec['text']['required'] ?? false) && $length === 0) {
             return [ucfirst($label).' necesita texto.'];

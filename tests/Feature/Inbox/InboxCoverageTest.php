@@ -1,5 +1,6 @@
 <?php
 
+use App\Connectors\ConnectorRegistry;
 use App\Connectors\Network;
 use App\Models\Brand;
 use App\Models\SocialAccount;
@@ -34,4 +35,18 @@ test('una cuenta con los permisos no lleva ayuda', function () {
 
     $this->actingAs($user)->get(route('inbox.index'))->assertInertia(fn ($page) => $page
         ->where('accounts.0.can_read', true)->where('accounts.0.help', null)->where('accounts.0.missing_scopes', []));
+});
+
+test('G8: Mastodon y Telegram salen como redes sin buzon, derivadas del registro, y no si se apagan', function () {
+    $rows = collect(app(InboxService::class)->coverage())->keyBy('network');
+
+    expect($rows)->toHaveKeys(['mastodon', 'telegram'])
+        ->and($rows['mastodon']['read'])->toBeFalse()->and($rows['mastodon']['note'])->toContain('Mastodon')->toContain('comentarios')
+        ->and($rows['telegram']['read'])->toBeFalse()->and($rows['telegram']['note'])->toContain('Telegram');
+
+    config(['social.mastodon.enabled' => false, 'social.telegram.enabled' => false]);
+    app()->forgetInstance(ConnectorRegistry::class);
+    app()->forgetInstance(InboxService::class);
+
+    expect(collect(app(InboxService::class)->coverage())->pluck('network')->all())->not->toContain('mastodon')->not->toContain('telegram');
 });

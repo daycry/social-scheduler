@@ -87,6 +87,11 @@ test('el flujo OAuth responde 404 para un proveedor que no es OAuthConnector', f
             return 1;
         }
 
+        public function credentialIntro(): string
+        {
+            return '';
+        }
+
         public function credentialFields(): array
         {
             return [];

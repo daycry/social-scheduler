@@ -45,6 +45,10 @@ interface ComposerAccount {
         alt_text: boolean;
         cover: boolean;
     } | null;
+    /** Visibilidades que ofrece la red (Mastodon); null en las demás. */
+    visibilities: { value: string; label: string }[] | null;
+    /** Límites propios de la cuenta (Mastodon: los de su instancia); mandan sobre los del tipo de contenido. */
+    limits: { max_chars: number; max_media: number; url_length: number } | null;
 }
 
 interface ComposerTarget {

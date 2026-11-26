@@ -10,6 +10,8 @@ const { form, accounts, limits, charsOf, hashtagsOf, isUnlinked } = useComposerC
 const rows = computed(() => form.targets.map((t) => {
     const account = accounts.value.find((a) => a.id === t.account_id);
     const limit = limits.value?.[t.content_type] ?? {};
+    // El máximo propio de la cuenta (Mastodon: el de su instancia) manda sobre el del tipo de contenido.
+    const maxChars = account?.limits?.max_chars ?? limit.max_chars ?? null;
     const chars = charsOf(t);
     const hashtags = hashtagsOf(t);
     return {
@@ -18,8 +20,8 @@ const rows = computed(() => form.targets.map((t) => {
         name: account ? `${account.network_label} · ${account.name}` : 'Cuenta eliminada',
         own: isUnlinked(t),
         chars,
-        maxChars: limit.max_chars ?? null,
-        overChars: limit.max_chars != null && chars > limit.max_chars,
+        maxChars,
+        overChars: maxChars != null && chars > maxChars,
         hashtags,
         maxHashtags: limit.max_hashtags ?? null,
         overHashtags: limit.max_hashtags != null && hashtags > limit.max_hashtags,

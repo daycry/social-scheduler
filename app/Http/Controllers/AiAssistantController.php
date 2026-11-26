@@ -104,7 +104,7 @@ class AiAssistantController extends Controller
             if ($type->network() !== $account->network) {
                 throw ValidationException::withMessages(["targets.$index.content_type" => ['El tipo de contenido no corresponde a la red de la cuenta.']]);
             }
-            $targets[] = ['account_id' => $account->id, 'content_type' => $type];
+            $targets[] = ['account_id' => $account->id, 'content_type' => $type, 'account' => $account];
         }
 
         try {

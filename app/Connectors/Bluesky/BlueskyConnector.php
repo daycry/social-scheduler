@@ -32,6 +32,11 @@ class BlueskyConnector implements CredentialConnector
         return (int) config('social.refresh_margin_hours.bluesky', 1);
     }
 
+    public function credentialIntro(): string
+    {
+        return 'Conecta Bluesky con una app password, no con la contraseña de tu cuenta. Se guarda cifrada y puedes revocarla desde Bluesky cuando quieras.';
+    }
+
     public function credentialFields(): array
     {
         return [

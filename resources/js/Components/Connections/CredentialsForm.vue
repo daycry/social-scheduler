@@ -5,14 +5,15 @@ import { useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
 /**
- * Formulario «handle + app password» para las redes que no usan OAuth (Bluesky, D1). La contraseña solo viaja en el POST:
- * tras cualquier respuesta se vacía el campo y el servidor nunca la devuelve.
+ * Formulario de credenciales para las redes que no usan OAuth (Bluesky, Mastodon y Telegram): los campos y el texto de introducción los declara el
+ * conector. Los secretos (campos `password`) solo viajan en el POST: tras un error se vacían y el servidor nunca los devuelve.
  */
 const props = defineProps({
     brandId: { type: Number, required: true },
     provider: { type: String, required: true },
     label: { type: String, required: true },
     fields: { type: Array, required: true },
+    intro: { type: String, default: '' },
 });
 
 const open = ref(false);
@@ -27,7 +28,7 @@ const submit = () =>
             form.reset();
             open.value = false;
         },
-        onError: () => form.reset('app_password'),
+        onError: () => form.reset(...props.fields.filter((f) => f.type === 'password').map((f) => f.name)),
     });
 </script>
 
@@ -49,10 +50,7 @@ const submit = () =>
             autocomplete="off"
             @submit.prevent="submit"
         >
-            <p class="text-sm text-slate-700">
-                Conecta {{ label }} con una <strong>app password</strong>, no con la contraseña de tu cuenta. Se guarda
-                cifrada y puedes revocarla desde {{ label }} cuando quieras.
-            </p>
+            <p class="text-sm text-slate-700">{{ intro }}</p>
 
             <div v-for="f in fields" :key="f.name">
                 <label :for="`${uid}-${f.name}`" class="block text-sm font-medium text-slate-700">{{ f.label }}</label>

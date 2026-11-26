@@ -1,6 +1,6 @@
 # Social Scheduler — documentación
 
-Aplicación web personal para programar publicaciones y consultar analítica en Instagram, Facebook, YouTube, TikTok, Bluesky, Threads, LinkedIn y Pinterest. Laravel 13 + Inertia/Vue, cola `database` y media en Cloudflare R2.
+Aplicación web personal para programar publicaciones y consultar analítica en Instagram, Facebook, YouTube, TikTok, Bluesky, Threads, LinkedIn, Pinterest, Mastodon y Telegram. Laravel 13 + Inertia/Vue, cola `database` y media en Cloudflare R2.
 
 Última actualización: 2026-11-18
 
@@ -24,6 +24,7 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Conectar un asistente (Claude, Codex, OpenCode) sin API key y desplegar el OAuth del MCP | [Servidor MCP](modulos/mcp.md#autorización-oauth-21-sin-api-key) y [Despliegue → OAuth del MCP](modulos/despliegue.md#oauth-del-mcp-nginxhestia-y-redirect-uris) |
 | Activar «Google Drive» en el compositor y reconectar YouTube para el primer comentario | [Guía de Google Cloud](guias/google-cloud-picker-drive.md) |
 | Conectar Bluesky con una app password (alta, email verificado para vídeo, revocación) | [Guía de Bluesky](guias/bluesky-app-password.md) |
+| Conectar Mastodon (token personal) y un canal de Telegram (bot), con sus límites | [Guía de Mastodon y Telegram](guias/mastodon-telegram.md) |
 | Conectar Threads con una app de Meta (ID y secreto de Threads, URI de redirección, tester y App Review) | [Guía de Threads](guias/threads-app-meta.md) |
 | Activar el buscador de GIFs (clave de Giphy, límites, atribución «Powered by GIPHY» y términos) | [Guía de Giphy](guias/giphy-api-key.md) |
 | Conectar LinkedIn (perfil y páginas) y Pinterest (tablero obligatorio) | [LinkedIn y Pinterest](guias/linkedin-pinterest.md) |

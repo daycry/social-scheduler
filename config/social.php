@@ -133,6 +133,35 @@ return [
     ],
 
     /*
+    | Mastodon (T-87): se conecta con la URL de la instancia y un token personal (scopes `write:statuses`, `write:media` y `read:accounts`); no caduca
+    | ni se renueva. Los limites (caracteres, imagenes, peso, tipos y texto alternativo) son de CADA instancia: se leen de `GET /api/v2/instance` al
+    | conectar y se refrescan al publicar si el dato tiene mas de `limits_ttl_hours`. Sin dato se aplican los `default_*` (prudentes, no son los de la
+    | instancia). El estado de una imagen que Mastodon aun procesa (202) se sondea `media_poll_attempts` veces, `media_poll_delay_ms` entre cada una.
+    */
+    'mastodon' => [
+        /* Apagar Mastodon sin tocar codigo: la red desaparece de Conexiones, el compositor y los filtros. */
+        'enabled' => (bool) env('MASTODON_ENABLED', true),
+        'limits_ttl_hours' => (int) env('MASTODON_LIMITS_TTL_HOURS', 24),
+        'default_max_characters' => 500,
+        'default_max_media' => 4,
+        'default_image_bytes' => 8 * 1024 * 1024,
+        'default_mime_types' => ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+        'media_poll_attempts' => (int) env('MASTODON_MEDIA_POLL_ATTEMPTS', 5),
+        'media_poll_delay_ms' => (int) env('MASTODON_MEDIA_POLL_DELAY_MS', 1500),
+        /* Tope (bytes) del cuerpo de cualquier respuesta de una instancia: una instancia hostil no puede agotar la memoria del worker. */
+        'max_response_bytes' => (int) env('MASTODON_MAX_RESPONSE_BYTES', 1_048_576),
+    ],
+
+    /*
+    | Telegram (T-87): el bot publica en UN canal (el bot debe ser administrador con permiso para publicar). La Bot API es siempre `https://api.telegram.org`
+    | (no es configurable); el token del bot viaja en la ruta de cada peticion y nunca se registra.
+    */
+    'telegram' => [
+        /* Apagar Telegram sin tocar codigo: la red desaparece de Conexiones, el compositor y los filtros. */
+        'enabled' => (bool) env('TELEGRAM_ENABLED', true),
+    ],
+
+    /*
     | Aviso de caducidad de conexiones (T-23): dias de antelacion (coma-separados, de mayor a menor) con que se avisa una sola vez por umbral
     | de que hay que reconectar una cuenta cuya caducidad el sistema no puede renovar (acceso a datos de Meta de 90 dias, token de LinkedIn
     | sin refresh_token). El umbral mayor es tambien la ventana del «Reconecta antes de» de Conexiones. Hora de la pasada diaria en `expiry_notice_at`.
@@ -283,6 +312,9 @@ return [
             // Sin lector de metricas todavia (T-18): la zona es la de referencia.
             'linkedin' => 'UTC',
             'pinterest' => 'UTC',
+            // Mastodon y Telegram solo publican (T-87): sin lector de metricas, la zona es la de referencia.
+            'mastodon' => 'UTC',
+            'telegram' => 'UTC',
         ],
         /*
         | Dias anteriores al ultimo cerrado que se reintentan mientras su snapshot no este completo (faltan flujos
@@ -318,6 +350,8 @@ return [
             'linkedin' => 0,
             // Pinterest (T-21): `user_account/analytics` admite rango (<= 90 dias atras y de rango); se piden 30 y por tramos de 30.
             'pinterest' => (int) env('SOCIAL_BACKFILL_DAYS_PINTEREST', 30),
+            'mastodon' => 0,
+            'telegram' => 0,
         ],
         /* Presupuesto (s) de una pasada de backfill; si no acaba, el job se reencola y continua. */
         'backfill_budget_seconds' => (int) env('SOCIAL_BACKFILL_BUDGET', 80),

@@ -16,6 +16,8 @@ use App\Connectors\Google\YouTubeCompetitors;
 use App\Connectors\Google\YouTubePublisher;
 use App\Connectors\LinkedIn\LinkedInConnector;
 use App\Connectors\LinkedIn\LinkedInPublisher;
+use App\Connectors\Mastodon\MastodonConnector;
+use App\Connectors\Mastodon\MastodonPublisher;
 use App\Connectors\Meta\Comments;
 use App\Connectors\Meta\Facebook\FacebookPublisher;
 use App\Connectors\Meta\GraphClient;
@@ -27,6 +29,8 @@ use App\Connectors\Network;
 use App\Connectors\Pinterest\PinterestConnector;
 use App\Connectors\Pinterest\PinterestInsightsReader;
 use App\Connectors\Pinterest\PinterestPublisher;
+use App\Connectors\Telegram\TelegramConnector;
+use App\Connectors\Telegram\TelegramPublisher;
 use App\Connectors\Threads\ThreadsComments;
 use App\Connectors\Threads\ThreadsConnector;
 use App\Connectors\Threads\ThreadsInsights;
@@ -122,6 +126,14 @@ class AppServiceProvider extends ServiceProvider
                 $registry->register($this->app->make(PinterestConnector::class))
                     ->registerPublisher(Network::Pinterest, $this->app->make(PinterestPublisher::class))
                     ->registerInsights(Network::Pinterest, $this->app->make(PinterestInsightsReader::class));
+            }
+
+            // Mastodon y Telegram (T-87): se conectan con credenciales y solo publican (sin comentarios ni metricas). Se apagan con MASTODON_ENABLED / TELEGRAM_ENABLED.
+            if (Network::Mastodon->isAvailable()) {
+                $registry->register($this->app->make(MastodonConnector::class))->registerPublisher(Network::Mastodon, $this->app->make(MastodonPublisher::class));
+            }
+            if (Network::Telegram->isAvailable()) {
+                $registry->register($this->app->make(TelegramConnector::class))->registerPublisher(Network::Telegram, $this->app->make(TelegramPublisher::class));
             }
 
             // Comentarios del inbox (T-43): una fuente por red; Meta sirve a Instagram y Facebook y es la unica que oculta. El inbox, el MCP y la

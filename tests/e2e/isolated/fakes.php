@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use App\Connectors\Bluesky\BlueskyConnector;
 use App\Connectors\Data\RefreshResult;
+use App\Connectors\Mastodon\MastodonConnector;
 use App\Connectors\Network;
+use App\Connectors\Telegram\TelegramConnector;
 use App\Models\SocialAccount;
 use Firebase\JWT\JWT;
 use Illuminate\Http\Client\Request;
@@ -41,6 +43,34 @@ class GeneralBlueskyConnector extends BlueskyConnector
     public function refresh(SocialAccount $account): RefreshResult
     {
         return new RefreshResult('general-fake-access', 'general-fake-refresh', now()->addDays(60));
+    }
+}
+
+/** T-87: el formulario de credenciales de Mastodon es el real (campos e introduccion); conectar y renovar no salen nunca a la instancia. */
+class GeneralMastodonConnector extends MastodonConnector
+{
+    public function connectWithCredentials(array $input): array
+    {
+        return (new T43Connector('mastodon', [Network::Mastodon]))->exchangeCode('fake-local-code', (string) getenv('APP_URL'));
+    }
+
+    public function refresh(SocialAccount $account): RefreshResult
+    {
+        return new RefreshResult('general-fake-access');
+    }
+}
+
+/** T-87: el formulario de credenciales de Telegram es el real; conectar y renovar no salen nunca a la Bot API. */
+class GeneralTelegramConnector extends TelegramConnector
+{
+    public function connectWithCredentials(array $input): array
+    {
+        return (new T43Connector('telegram', [Network::Telegram]))->exchangeCode('fake-local-code', (string) getenv('APP_URL'));
+    }
+
+    public function refresh(SocialAccount $account): RefreshResult
+    {
+        return new RefreshResult('general-fake-access');
     }
 }
 

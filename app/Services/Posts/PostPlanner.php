@@ -5,6 +5,7 @@ namespace App\Services\Posts;
 use App\Connectors\Google\YouTubeResumableUpload;
 use App\Connectors\LinkedIn\LinkedInPostOptions;
 use App\Connectors\LinkedIn\LinkedInPublisher;
+use App\Connectors\Mastodon\MastodonPostOptions;
 use App\Connectors\Meta\Facebook\FacebookPostOptions;
 use App\Connectors\Meta\Instagram\InstagramAudio;
 use App\Connectors\Meta\Instagram\InstagramPostOptions;
@@ -133,7 +134,7 @@ class PostPlanner
     private function optionErrors(ContentType $type, SocialAccount $account, array $options): array
     {
         $asked = fn (string $k) => array_key_exists($k, $options) && ! in_array($options[$k], [null, false, [], ''], true);
-        $errors = array_merge(InstagramAudio::selectionErrors($options['instagram_audio'] ?? null, $type, $account), InstagramPostOptions::errors($options, $type), FacebookPostOptions::errors($options, $type), LinkedInPostOptions::errors($options, $type, $account), PinterestPostOptions::errors($options, $type));
+        $errors = array_merge(InstagramAudio::selectionErrors($options['instagram_audio'] ?? null, $type, $account), InstagramPostOptions::errors($options, $type), FacebookPostOptions::errors($options, $type), LinkedInPostOptions::errors($options, $type, $account), PinterestPostOptions::errors($options, $type), MastodonPostOptions::errors($options, $type));
 
         if ($type->network() !== Network::YouTube) {
             foreach (self::YOUTUBE_OPTIONS as $k) {
@@ -345,7 +346,7 @@ class PostPlanner
             foreach ($mediaErrors as $message) {
                 $errors[$key][] = $message;
             }
-            foreach ($this->validator->validate($type, $effectiveMedia, $ownText ?? $text) as $message) {
+            foreach ($this->validator->validate($type, $effectiveMedia, $ownText ?? $text, $account) as $message) {
                 $errors[$key][] = $ownMedia !== null ? $this->targetLabel($account).': '.$message : $message;
             }
 

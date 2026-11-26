@@ -48,7 +48,7 @@ class PruneFullExports extends Command
         $deleted = 0;
         foreach ($disk->allFiles('full-exports') as $file) {
             $row = preg_match('#^full-exports/(\d+)/(\d+)\.zip$#', $file, $m)
-                ? DataExport::withoutUserScope()->where('user_id', (int) $m[1])->find((int) $m[2])
+                ? DataExport::ownedBy((int) $m[1])->find((int) $m[2])
                 : null;
             if ($row !== null && ($row->in_progress || ($row->status === DataExport::STATUS_READY && $row->path === $file))) {
                 continue;

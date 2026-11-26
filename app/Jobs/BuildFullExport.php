@@ -25,8 +25,8 @@ class BuildFullExport implements ShouldQueue
     public function __construct(public readonly int $exportId)
     {
         $this->timeout = max(1, (int) config('exports.timeout'));
-        $this->onConnection((string) config('exports.connection'));
-        $this->onQueue((string) config('exports.queue'));
+        $this->onConnection((string) config('exports.connection', 'exports'));
+        $this->onQueue((string) config('exports.queue', 'exports'));
     }
 
     public function handle(FullExport $exports): void

@@ -97,7 +97,7 @@ final class FullExport
         }
         $export->refresh();
         // La copia anterior solo se sustituye cuando la nueva se ha publicado bien.
-        DataExport::withoutUserScope()->where('user_id', $export->user_id)->where('id', '!=', $export->id)->get()->each(function (DataExport $old): void {
+        DataExport::ownedBy($export->user_id)->where('id', '!=', $export->id)->get()->each(function (DataExport $old): void {
             $old->deleteFile();
             $old->delete();
         });
@@ -268,7 +268,7 @@ final class FullExport
             return;
         }
         $this->lastBeat = $now;
-        $alive = DataExport::withoutUserScope()->whereKey($this->current->id)->where('user_id', $this->current->user_id)->where('in_progress', true)->update(['heartbeat_at' => now()]);
+        $alive = DataExport::ownedBy($this->current->user_id)->whereKey($this->current->id)->where('in_progress', true)->update(['heartbeat_at' => now()]);
         if ($alive === 0) {
             throw new ExportAborted;
         }

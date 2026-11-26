@@ -5,6 +5,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Added — importación masiva de publicaciones por CSV (audit-hardening, T-83)
+
+- Importa muchas publicaciones a una marca desde un CSV: revisa cada fila con sus errores antes (no se crea nada) y confirma para crear solo las válidas, con la misma validación que el compositor. Descarga un CSV de ejemplo desde la página; los límites son 200 filas y 1 MB. Una confirmación solo se puede usar una vez, así que un doble clic nunca duplica publicaciones.
+
 ### Added — adaptar el texto a cada red con IA (audit-hardening, T-82)
 
 - Adapta el texto común a cada red elegida con una sola petición a la IA y revisa una versión por red antes de aplicarla; las versiones que superan el texto o los hashtags de su red se rechazan, no se recortan. Genera desde el compositor el texto alternativo de una imagen y edítalo antes de guardar. Con el asistente sin configurar, ambos botones quedan inactivos y explican por qué.

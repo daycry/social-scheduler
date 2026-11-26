@@ -1,0 +1,1422 @@
+diff --git a/CHANGELOG.es.md b/CHANGELOG.es.md
+index 9e1a753..e6dd710 100644
+--- a/CHANGELOG.es.md
++++ b/CHANGELOG.es.md
+@@ -5,6 +5,10 @@ # Registro de cambios
+ 
+ ## [Sin publicar]
+ 
++### Added — importación masiva de publicaciones por CSV (audit-hardening, T-83)
++
++- Importa muchas publicaciones a una marca desde un CSV: revisa cada fila con sus errores antes (no se crea nada) y confirma para crear solo las válidas, con la misma validación que el compositor. Descarga un CSV de ejemplo desde la página; los límites son 200 filas y 1 MB. Una confirmación solo se puede usar una vez, así que un doble clic nunca duplica publicaciones.
++
+ ### Added — adaptar el texto a cada red con IA (audit-hardening, T-82)
+ 
+ - Adapta el texto común a cada red elegida con una sola petición a la IA y revisa una versión por red antes de aplicarla; las versiones que superan el texto o los hashtags de su red se rechazan, no se recortan. Genera desde el compositor el texto alternativo de una imagen y edítalo antes de guardar. Con el asistente sin configurar, ambos botones quedan inactivos y explican por qué.
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 6d70603..309668c 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -5,6 +5,10 @@ # Changelog
+ 
+ ## [Unreleased]
+ 
++### Added — bulk post import from CSV (audit-hardening, T-83)
++
++- Import many posts into a brand from a CSV: review every row with its errors first (nothing is created), then confirm to create only the valid ones with the same validation as the composer. Download a sample CSV from the page; limits are 200 rows and 1 MB. A confirmation can only be used once, so a double click never duplicates posts.
++
+ ### Added — adapt text to each network with AI (audit-hardening, T-82)
+ 
+ - Adapt the common text to every selected network in a single AI request and review one version per network before applying it; versions that exceed a network's text or hashtag rules are rejected, not truncated. Generate editable image alt text from the composer. Both buttons stay disabled, with the reason, when the AI assistant is not configured.
+diff --git a/app/Http/Controllers/PostImportController.php b/app/Http/Controllers/PostImportController.php
+index e10b1d3..70015b1 100644
+--- a/app/Http/Controllers/PostImportController.php
++++ b/app/Http/Controllers/PostImportController.php
+@@ -39,6 +39,7 @@ public function show(Request $request, Brand $brand): Response
+             'required' => PostCsvImport::REQUIRED,
+             'accounts' => $this->accounts->listForBrand($request->user(), $brand)->map(fn (SocialAccount $a) => [
+                 'id' => $a->id,
++                'network' => $a->network->value,
+                 'network_label' => $a->network->label(),
+                 'name' => $a->name,
+                 'identifier' => PostCsvImport::identifier($a),
+@@ -63,8 +64,16 @@ public function preview(Request $request, Brand $brand): JsonResponse
+         $rows = $this->import->parse((string) file_get_contents($request->file('file')->getRealPath()));
+         $preview = $this->import->preview($request->user(), $brand, $rows);
+ 
++        // Una sola vista previa viva por usuario y marca: la nueva sustituye a las FILAS de la anterior. Nunca se tocan su marca `:claimed` ni su
++        // avance: si su confirmacion sigue en curso (o murio por un timeout), un reintento debe seguir viendo que ya se reclamo y no duplicar.
+         $token = Str::random(40);
+-        Cache::put($this->key($request, $brand, $token), $rows, now()->addMinutes((int) config('post_import.ttl_minutes')));
++        $current = $this->key($request, $brand, 'current');
++        if (is_string($previous = Cache::get($current))) {
++            Cache::forget($this->key($request, $brand, $previous));
++        }
++        $ttl = now()->addMinutes((int) config('post_import.ttl_minutes'));
++        Cache::put($this->key($request, $brand, $token), ['rows' => $rows], $ttl);
++        Cache::put($current, $token, $ttl);
+         $valid = count(array_filter($preview, fn (array $r) => $r['valid']));
+ 
+         return response()->json([
+@@ -81,20 +90,39 @@ public function confirm(Request $request, Brand $brand): JsonResponse
+         $key = $this->key($request, $brand, $token);
+         $ttl = now()->addMinutes((int) config('post_import.ttl_minutes'));
+ 
+-        $rows = Cache::get($key);
+-        if ($rows === null) {
++        // Ya confirmada: el reintento recibe el mismo resultado, sin crear nada. El avance vive en su propia clave (pequena) y sobrevive a
++        // que una vista previa nueva sustituya las filas.
++        $progress = Cache::get($key.':progress');
++        if (is_array($progress) && $progress['done']) {
++            return $this->outcome($progress['results'], true);
++        }
++        $state = Cache::get($key);
++        if (! is_array($state) && ! is_array($progress)) {
+             return response()->json(['message' => 'La importación ha caducado o no existe: sube el fichero otra vez.'], 410);
+         }
+-        // `true` es la marca de «ya confirmada»; `add` es atomico: de dos confirmaciones simultaneas solo una pasa.
+-        if (! is_array($rows) || ! Cache::add($key.':claimed', true, $ttl)) {
+-            return response()->json(['message' => 'Esta importación ya se ha confirmado: no se vuelve a crear nada.'], 409);
++        // `add` es atomico: de dos confirmaciones simultaneas (o de un reintento tras una interrumpida) solo una pasa.
++        if (! is_array($state) || ! Cache::add($key.':claimed', true, $ttl)) {
++            return response()->json([
++                'message' => 'Esta importación ya se ha confirmado y está en curso o se interrumpió: no se vuelve a crear nada. Estas son las filas ya procesadas.',
++                'rows' => $progress['results'] ?? [],
++            ], 409);
+         }
+ 
+-        $results = $this->import->import($request->user(), $brand, $rows);
+-        Cache::put($key, true, $ttl); // las filas ya no hacen falta: queda solo la marca de confirmada
++        $results = $this->import->import($request->user(), $brand, $state['rows'], fn (array $done) => Cache::put($key.':progress', ['results' => $done, 'done' => false], $ttl));
++        Cache::put($key.':progress', ['results' => $results, 'done' => true], $ttl);
++        Cache::forget($key); // las filas ya no hacen falta: queda el resultado
++
++        return $this->outcome($results, false);
++    }
++
++    /**
++     * @param  list<array<string, mixed>>  $results
++     */
++    private function outcome(array $results, bool $repeated): JsonResponse
++    {
+         $created = count(array_filter($results, fn (array $r) => $r['post_id'] !== null));
+ 
+-        return response()->json(['summary' => ['created' => $created, 'skipped' => count($results) - $created], 'rows' => $results]);
++        return response()->json(['summary' => ['created' => $created, 'skipped' => count($results) - $created], 'rows' => $results, 'repeated' => $repeated]);
+     }
+ 
+     public function sample(Request $request, Brand $brand): StreamedResponse
+diff --git a/app/Services/Posts/PostCsvImport.php b/app/Services/Posts/PostCsvImport.php
+index fa83c96..f3d49d4 100644
+--- a/app/Services/Posts/PostCsvImport.php
++++ b/app/Services/Posts/PostCsvImport.php
+@@ -11,6 +11,7 @@
+ use App\Models\User;
+ use App\Services\PostService;
+ use App\Services\SocialAccountService;
++use App\Support\CsvWriter;
+ use App\Support\LocalDateTime;
+ use Illuminate\Support\Collection;
+ use Illuminate\Support\Facades\Validator;
+@@ -36,12 +37,10 @@ class PostCsvImport
+ 
+     public function __construct(private readonly PostService $posts, private readonly SocialAccountService $accounts) {}
+ 
+-    /** Identificador de una cuenta en la columna `cuentas`: `red:@usuario` si tiene usuario, `red:nombre` si no. */
++    /** Identificador de una cuenta en la columna `cuentas`: `red:id`. El id es unico, no lleva espacios ni `|` y nunca confunde dos cuentas. */
+     public static function identifier(SocialAccount $account): string
+     {
+-        $username = ltrim((string) $account->username, '@');
+-
+-        return $account->network->value.':'.($username !== '' ? '@'.$username : $account->name);
++        return $account->network->value.':'.$account->id;
+     }
+ 
+     /**
+@@ -111,7 +110,9 @@ private function header(array $cells): array
+         $header = array_map(fn ($c) => strtr(mb_strtolower(trim((string) $c)), ['ó' => 'o']), $cells);
+         $unknown = array_values(array_unique(array_filter($header, fn (string $c) => ! in_array($c, self::COLUMNS, true))));
+         if ($unknown !== []) {
+-            $this->fileError('Columnas desconocidas: '.implode(', ', $unknown).'. Las columnas son: '.implode(', ', self::COLUMNS).'.');
++            $shown = array_map(fn (string $c) => '«'.mb_strimwidth($c, 0, 30, '…').'»', array_slice($unknown, 0, 5));
++            $more = count($unknown) > 5 ? ' y '.(count($unknown) - 5).' más' : '';
++            $this->fileError('Columnas desconocidas: '.implode(', ', $shown).$more.'. Las columnas son: '.implode(', ', self::COLUMNS).'.');
+         }
+         if (count(array_unique($header)) !== count($header)) {
+             $this->fileError('Hay columnas repetidas en la cabecera.');
+@@ -142,9 +143,10 @@ public function preview(User $user, Brand $brand, array $rows): array
+      * haberse desconectado) y un fallo de una fila no detiene las demas.
+      *
+      * @param  list<array<string, mixed>>  $rows
++     * @param  (callable(list<array<string, mixed>>): void)|null  $progress  se llama tras cada fila con los resultados acumulados
+      * @return list<array<string, mixed>>
+      */
+-    public function import(User $user, Brand $brand, array $rows): array
++    public function import(User $user, Brand $brand, array $rows, ?callable $progress = null): array
+     {
+         $accounts = $this->accounts->listForBrand($user, $brand);
+         $results = [];
+@@ -162,45 +164,64 @@ public function import(User $user, Brand $brand, array $rows): array
+                 }
+             }
+             $results[] = $this->view($evaluated) + ['post_id' => $postId];
++            if ($progress !== null) {
++                $progress($results);
++            }
+         }
+ 
+         return $results;
+     }
+ 
+-    /** CSV de ejemplo con las columnas documentadas y dos filas de muestra, con las cuentas reales de la marca si las tiene. */
++    /**
++     * CSV de ejemplo con las columnas documentadas (lineas `#`), la leyenda de las cuentas reales de la marca y filas de muestra que SON validas
++     * para esas cuentas: cada candidata pasa por la misma validacion que la importacion y solo entra la que no da errores. Sin cuentas o sin
++     * ninguna que admita una fila sin media, no hay filas y un comentario lo explica. Se escribe con `CsvWriter`: separador de
++     * `reports.csv_locale` y ninguna celda puede empezar por una formula.
++     */
+     public function sample(User $user, Brand $brand): string
+     {
+-        $priority = [Network::Facebook, Network::Bluesky, Network::Threads, Network::LinkedIn];
+-        $accounts = $this->accounts->listForBrand($user, $brand)->sortBy(function (SocialAccount $a) use ($priority) {
+-            $position = array_search($a->network, $priority, true);
+-
+-            return $position === false ? count($priority) : $position;
+-        })->values();
+-        $first = $accounts->get(0) ? self::identifier($accounts[0]) : 'facebook:Nombre de tu página';
+-        $second = $accounts->get(1) ? self::identifier($accounts[1]) : 'bluesky:@usuario.bsky.social';
++        $accounts = $this->accounts->listForBrand($user, $brand);
++        $writer = CsvWriter::forConfiguredLocale();
+         $zone = $brand->timezone ?: 'UTC';
++        $when = now($zone)->addDay()->format('Y-m-d').' 10:00';
++
++        $valid = fn (SocialAccount $a, string $date) => $this->evaluate($user, $brand, $accounts, ['row' => 0, 'fecha' => $date, 'texto' => 'Ejemplo', 'cuentas' => self::identifier($a), 'tipo' => '', 'medios' => '', 'aprobacion' => ''])['errors'] === [];
++        $scheduled = $accounts->first(fn (SocialAccount $a) => $valid($a, $when));
++        $drafts = $accounts->filter(fn (SocialAccount $a) => $valid($a, ''))->take(2);
++
++        $out = CsvWriter::BOM;
++        $comments = [
++            'Importar publicaciones. Las líneas que empiezan por # antes de la cabecera se ignoran: borra estas explicaciones y las filas de muestra.',
++            'fecha: hora local de la marca, AAAA-MM-DD HH:MM o DD/MM/AAAA HH:MM. Vacía = borrador.',
++            'texto: el texto de la publicación; entre comillas si lleva comas.',
++            'cuentas: una o varias cuentas de ESTA marca separadas por |, escritas red:id. Las de esta marca son:',
++        ];
++        foreach ($accounts as $a) {
++            $comments[] = '  '.self::identifier($a).' = '.$a->network->label().': '.mb_strimwidth((string) preg_replace('/[\s;,]+/u', ' ', (string) CsvWriter::cell($a->name)), 0, 60, '…');
++        }
++        array_push($comments,
++            'tipo (opcional): tipos de contenido separados por | (por ejemplo instagram_reel). Si falta, se usa el de cada red por defecto.',
++            'medios (opcional): ids de archivos de tu biblioteca separados por |. Algunas redes (Instagram, TikTok, YouTube, Pinterest) los exigen.',
++            'aprobacion (opcional): sí o no. Con sí la publicación nace como borrador pendiente de aprobar.',
++        );
++        if ($accounts->isEmpty()) {
++            $comments[] = 'Esta marca no tiene cuentas conectadas: conecta una y vuelve a descargar este ejemplo.';
++        } elseif ($scheduled === null && $drafts->isEmpty()) {
++            $comments[] = 'Las redes de esta marca exigen archivos: añade los ids de tu biblioteca en medios para que una fila sea válida.';
++        }
++        foreach ($comments as $comment) {
++            $out .= '# '.str_replace(["\r", "\n"], ' ', $comment)."\n";
++        }
+ 
+-        $stream = fopen('php://temp', 'r+');
+-        fwrite($stream, "\xEF\xBB\xBF");
+-        foreach ([
+-            '# Importar publicaciones. Las líneas que empiezan por # antes de la cabecera se ignoran: borra estas explicaciones y las filas de muestra.',
+-            '# fecha: hora local de la marca, AAAA-MM-DD HH:MM. Vacía = borrador.',
+-            '# texto: el texto de la publicación; entre comillas si lleva comas o saltos de línea.',
+-            '# cuentas: una o varias cuentas de ESTA marca separadas por |, como red:Nombre o red:@usuario (con @ se busca por usuario).',
+-            '# tipo (opcional): tipos de contenido separados por | (por ejemplo instagram_reel). Si falta, se usa el de cada red por defecto.',
+-            '# medios (opcional): ids de archivos de tu biblioteca separados por |.',
+-            '# aprobacion (opcional): sí o no. Con sí la publicación nace como borrador pendiente de aprobar.',
+-        ] as $comment) {
+-            fwrite($stream, $comment."\n");
++        $out .= $writer->line(self::COLUMNS);
++        if ($scheduled !== null) {
++            $out .= $writer->line([$when, 'Texto de ejemplo: una publicación programada.', self::identifier($scheduled), '', '', 'no']);
++        }
++        if ($drafts->isNotEmpty()) {
++            $out .= $writer->line(['', 'Borrador de ejemplo, con una coma entre comillas.', $drafts->map(fn (SocialAccount $a) => self::identifier($a))->implode('|'), '', '', '']);
+         }
+-        fputcsv($stream, self::COLUMNS, ';', '"', '');
+-        fputcsv($stream, [now($zone)->addDay()->format('Y-m-d').' 10:00', 'Texto de ejemplo: una publicación programada.', $first, '', '', 'no'], ';', '"', '');
+-        fputcsv($stream, ['', "Borrador con varias líneas,\ny una coma entre comillas.", $first.'|'.$second, '', '', ''], ';', '"', '');
+-        rewind($stream);
+-        $csv = (string) stream_get_contents($stream);
+-        fclose($stream);
+ 
+-        return $csv;
++        return $out;
+     }
+ 
+     /**
+@@ -262,6 +283,9 @@ private function commonErrors(User $user, Brand $brand, array $payload): array
+     }
+ 
+     /**
++     * Fecha local de la marca. Formatos: `AAAA-MM-DD HH:MM` (con `T` o espacio) y `DD/MM/AAAA HH:MM` (como lo reescribe Excel en espanol; dia y mes de
++     * una o dos cifras), con segundos opcionales si son `00`. Nunca se interpreta `MM/DD`: el primer numero de una fecha con barras es el dia.
++     *
+      * @param  list<string>  $errors
+      * @return array{0: ?string, 1: ?string} valor `AAAA-MM-DDTHH:MM` para el compositor y fecha legible
+      */
+@@ -270,9 +294,35 @@ private function date(string $value, Brand $brand, array &$errors): array
+         if ($value === '') {
+             return [null, null];
+         }
+-        $wall = preg_match('/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})$/D', $value, $m) === 1 ? $m[1].'T'.$m[2] : null;
+-        if ($wall === null || LocalDateTime::parseUnique($wall, $brand->timezone ?: 'UTC') === null) {
+-            $errors[] = 'La fecha debe tener el formato AAAA-MM-DD HH:MM, existir y no ser ambigua en la zona horaria de la marca.';
++        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?$/D', $value, $m) === 1) {
++            [$year, $month, $day] = [$m[1], $m[2], $m[3]];
++        } elseif (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4}) (\d{1,2}):(\d{2})(?::(\d{2}))?$/D', $value, $m) === 1) {
++            [$day, $month, $year] = [$m[1], $m[2], $m[3]];
++            if ((int) $month > 12) {
++                $errors[] = "La fecha «{$value}» tiene el mes {$month}: con barras el formato es DD/MM/AAAA (primero el día, después el mes).";
++
++                return [null, $value];
++            }
++        } else {
++            $errors[] = "La fecha «{$value}» no tiene un formato válido: usa AAAA-MM-DD HH:MM o DD/MM/AAAA HH:MM.";
++
++            return [null, $value];
++        }
++        [$hour, $minute, $second] = [(int) $m[4], (int) $m[5], (int) ($m[6] ?? 0)];
++        if (! checkdate((int) $month, (int) $day, (int) $year) || $hour > 23 || $minute > 59 || $second > 59) {
++            $errors[] = "La fecha «{$value}» no existe en el calendario.";
++
++            return [null, $value];
++        }
++        if ($second !== 0) {
++            $errors[] = "La fecha «{$value}» lleva segundos distintos de 00: las publicaciones se programan al minuto.";
++
++            return [null, $value];
++        }
++
++        $wall = sprintf('%04d-%02d-%02dT%02d:%02d', $year, $month, $day, $hour, $minute);
++        if (LocalDateTime::parseUnique($wall, $brand->timezone ?: 'UTC') === null) {
++            $errors[] = "La hora «{$value}» no existe o es ambigua en la zona horaria de la marca (cambio de hora).";
+ 
+             return [null, $value];
+         }
+@@ -291,7 +341,7 @@ private function targets(string $accountsCell, string $typesCell, bool $hasMedia
+         $targets = [];
+         $tokens = array_values(array_filter(array_map('trim', explode('|', $accountsCell)), fn (string $t) => $t !== ''));
+         if ($tokens === []) {
+-            $errors[] = 'Indica al menos una cuenta (red:Nombre o red:@usuario).';
++            $errors[] = 'Indica al menos una cuenta (red:id, como aparece en la página de importación).';
+         }
+ 
+         foreach ($tokens as $token) {
+@@ -333,43 +383,27 @@ private function types(string $cell, array &$errors): array
+     }
+ 
+     /**
++     * Resuelve `red:id` contra las cuentas de la marca. Solo por id: no hay forma de elegir una cuenta equivocada.
++     *
+      * @param  Collection<int, SocialAccount>  $accounts
+      * @param  list<string>  $errors
+      */
+     private function account(string $token, Collection $accounts, array &$errors): ?SocialAccount
+     {
+-        $pos = strpos($token, ':');
+-        if ($pos === false) {
+-            $errors[] = "Cuenta «{$token}» no válida: usa red:Nombre o red:@usuario.";
++        if (preg_match('/^([A-Za-z]+)\s*:\s*(\d{1,18})$/D', $token, $m) !== 1) {
++            $errors[] = "Cuenta «{$token}» no válida: usa red:id, como aparece en la página de importación.";
+ 
+             return null;
+         }
+-        $network = Network::tryFrom(strtolower(trim(substr($token, 0, $pos))));
+-        $ident = trim(substr($token, $pos + 1));
+-        if ($network === null || $ident === '') {
+-            $errors[] = "Cuenta «{$token}» no válida: usa red:Nombre o red:@usuario.";
++        $network = Network::tryFrom(strtolower($m[1]));
++        $account = $network === null ? null : $accounts->first(fn (SocialAccount $a) => $a->network === $network && $a->id === (int) $m[2]);
+ 
+-            return null;
+-        }
+-
+-        $byUsername = str_starts_with($ident, '@');
+-        $wanted = mb_strtolower($byUsername ? ltrim($ident, '@') : $ident);
+-        $found = $accounts->filter(fn (SocialAccount $a) => $a->network === $network
+-            && mb_strtolower($byUsername ? ltrim((string) $a->username, '@') : $a->name) === $wanted)->values();
+-
+-        // Una cuenta inexistente, de otra marca o de otro usuario dan el mismo mensaje: no se revela si existe en otro sitio.
+-        if ($found->isEmpty()) {
++        // Una cuenta inexistente, de otra red, de otra marca o de otro usuario dan el mismo mensaje: no se revela si existe en otro sitio.
++        if ($account === null) {
+             $errors[] = "No hay ninguna cuenta «{$token}» en esta marca.";
+-
+-            return null;
+-        }
+-        if ($found->count() > 1) {
+-            $errors[] = "Hay varias cuentas «{$token}» en esta marca: identifícala con @usuario.";
+-
+-            return null;
+         }
+ 
+-        return $found[0];
++        return $account;
+     }
+ 
+     /** Tipo de cada red cuando la columna `tipo` no lo indica. */
+diff --git a/docs/README.md b/docs/README.md
+index a46adcc..fdfd911 100644
+--- a/docs/README.md
++++ b/docs/README.md
+@@ -34,6 +34,7 @@ ## Por dónde empezar
+ | Publicar una web de la marca en `/s/{slug}` | [Sitios](modulos/sitios.md) |
+ | Proponer una fecha futura con métricas de la marca | [Planificar](usuario/planificar.md) |
+ | Crear un borrador independiente de una publicación guardada | [Duplicar](usuario/duplicar.md) |
++| Importar muchas publicaciones de una marca desde un CSV | [Importar CSV](usuario/importar-csv.md) |
+ | Recibir eventos firmados en tu propio receptor HTTPS | [Webhooks salientes](api/webhooks.md) |
+ | Configurar hitos, caídas y avisos de caducidad por marca/cuenta | [Objetivos y alertas](modulos/analitica.md#objetivos-y-alertas-t-79) |
+ | Consultar salud, trabajadores, caducidades y cuotas como operador | [Estado del sistema](modulos/despliegue.md#pantalla-de-estado-del-sistema) |
+diff --git a/docs/knowledge/journal/README.md b/docs/knowledge/journal/README.md
+index 2d64c23..0b41e7d 100644
+--- a/docs/knowledge/journal/README.md
++++ b/docs/knowledge/journal/README.md
+@@ -1,8 +1,9 @@
+ # `docs/knowledge/journal/` — bitácora de sesión (memoria episódica)
+ 
+ Una entrada por sesión, **generada** por `agent-kits/shared/journal.py` (hook `SessionEnd`; la
+-última se reinyecta al arrancar/retomar). Cronológica y **no curada**: lo que merezca doctrina
+-se promueve a `adr/`, `gotchas/` o `lessons/` con el umbral de `knowledge-write.md`. **Excluida de
++última se reinyecta al arrancar/retomar). Cronológica y **no curada**: lo que cumpla el umbral de
++`knowledge-write.md` se propone mediante `knowledge-curation.py propose`; `knowledge-curator`
++decide antes de publicar en `approved/`. **Excluida de
+ Confluence** (`docs/knowledge/journal/**`). Nombre: `AAAA-MM-DD-<iniciativa activa | sesion>.md` (sufijo `-2`
+ si otra sesión del día ya lo usó). **Las entradas se versionan** (memoria del proyecto, como ADR y lecciones);
+ quien no quiera versionarlas añade `docs/knowledge/journal/*.md` (no este README) a su `.gitignore`.
+@@ -17,10 +18,20 @@ # `docs/knowledge/journal/` — bitácora de sesión (memoria episódica)
+ | `reason` | motivo del envelope (`clear`, `resume`, `logout`, `prompt_input_exit`, `other`) o `orphan_recovery` | Motivo de cierre; `orphan_recovery` = nunca hubo envelope |
+ | `derivados_en` | `replay` | `ficheros_tocados`/`tareas_cambiadas` se calculan con git al materializar (también para huérfanas), nunca en el teardown de `SessionEnd` (CA-01) |
+ | `materializado_en` | timestamp ISO UTC | Cuándo se escribió la entrada final; la `fecha` es la del cierre (`captured_at`) |
++| `log_hasta` | timestamp ISO UTC (solo `recuperado_sin_cierre`) | mtime del log de prompts con el que se recuperó; si el log cambia después, `recover` rehace la entrada |
++| `objetivo` · `punto_actual` · `siguientes_pasos` · `bloqueos` · `descartados` | texto · texto · lista · lista · lista (opcionales) | Continuidad declarada con `--enrich`; clave ausente = nunca declarada, vacía = vaciada a propósito |
+ 
+ | Fecha | Iniciativa | Resumen | Fuente |
+ |---|---|---|---|
+-| [2026-10-31](2026-10-31-social-scheduler.md) | social-scheduler | continua | hook |
+-| [2026-10-27](2026-10-23-social-scheduler.md) | social-scheduler | <agent-message from="a02b055c63343b667"> [Subagent hand-back] The text below is the final report of… | hook |
++| [2026-11-18](2026-11-18-social-scheduler.md) | social-scheduler | This is an app-generated request for a suggested next user message. The user did not write this mes… | hook |
++| [2026-11-17](2026-10-23-social-scheduler.md) | social-scheduler | <task-notification> <task-id>bj57wyvon</task-id> <tool-use-id>toolu_01FVibKU5cBRMkYujqVqeeDL</tool-… | hook |
++| [2026-11-16](2026-11-16-audit-hardening-2.md) | audit-hardening | This is an app-generated request for a suggested next user message. The user did not write this mes… | hook |
++| [2026-11-16](2026-11-16-audit-hardening.md) | audit-hardening | This is an app-generated request for a suggested next user message. The user did not write this mes… | hook |
++| [2026-11-16](2026-11-16-social-scheduler-5.md) | social-scheduler | Sesión sobre social-scheduler | hook |
++| [2026-11-16](2026-11-16-social-scheduler-4.md) | social-scheduler | This is an app-generated request for a suggested next user message. The user did not write this mes… | hook |
++| [2026-11-16](2026-11-16-social-scheduler-3.md) | social-scheduler | This is an app-generated request for a suggested next user message. The user did not write this mes… | hook |
++| [2026-11-16](2026-11-16-social-scheduler-2.md) | social-scheduler | This is an app-generated request for a suggested next user message. The user did not write this mes… | hook |
++| [2026-11-16](2026-11-16-social-scheduler.md) | social-scheduler | This is an app-generated request for a suggested next user message. The user did not write this mes… | hook |
++| [2026-11-07](2026-10-31-social-scheduler.md) | social-scheduler | continua | hook |
+ | [2026-10-21](2026-10-21-social-scheduler.md) | social-scheduler | <agent-message from="a2f5a01efa4b8d629"> [Subagent hand-back] The text below is the final report of… | recover |
+ | [2026-10-19](2026-10-19-sesion.md) | n/a | al ser una herramienta local, van a haber problemas con la api de las redes sociales? | hook |
+diff --git a/resources/js/navigation.js b/resources/js/navigation.js
+index a7bcddf..c01b105 100644
+--- a/resources/js/navigation.js
++++ b/resources/js/navigation.js
+@@ -89,7 +89,8 @@ export const MODULES = [
+             { key: 'list', label: 'Lista', icon: 'list', match: ['calendar.*'], isActive: (c) => c.page.props.view === 'list', href: (c) => c.route('calendar.index', { ...c.q, view: 'list' }) },
+             { key: 'grid', label: 'Cuadrícula', icon: 'grid', match: ['instagram.grid'], when: (c) => c.has('instagram.grid'), href: (c) => c.route('instagram.grid', c.q) },
+             { key: 'campaigns', label: 'Campañas', icon: 'tag', match: ['campaigns.*'], when: (c) => c.has('campaigns.index'), href: (c) => c.route('campaigns.index', c.q) },
+-            { key: 'create', label: 'Crear publicación', icon: 'plus', match: ['brands.posts.*', 'posts.*'], href: (c) => c.brand ? c.route('brands.posts.create', c.brand.id) : null },
++            { key: 'create', label: 'Crear publicación', icon: 'plus', match: ['brands.posts.*', 'posts.*'], isActive: (c) => !c.is('brands.posts.import.*'), href: (c) => c.brand ? c.route('brands.posts.create', c.brand.id) : null },
++            { key: 'import', label: 'Importar CSV', icon: 'doc', match: ['brands.posts.import.*'], href: (c) => c.brand ? c.route('brands.posts.import.show', c.brand.id) : null },
+             { key: 'best-times', label: 'Mejores horas', icon: 'clock', match: ['best-times.*'], when: (c) => c.has('best-times.index'), href: (c) => c.route('best-times.index', c.q) },
+             { key: 'library', label: 'Plantillas de publicación', icon: 'folder', match: ['library.*'], when: (c) => c.has('library.index'), href: (c) => c.route('library.index', c.q) },
+             { key: 'autolists', label: 'Autolistas', icon: 'repeat', match: ['autolists.*'], when: (c) => c.has('autolists.index'), href: (c) => c.route('autolists.index', c.q) },
+diff --git a/tests/Feature/Posts/PostCsvImportTest.php b/tests/Feature/Posts/PostCsvImportTest.php
+index 675b35c..d503363 100644
+--- a/tests/Feature/Posts/PostCsvImportTest.php
++++ b/tests/Feature/Posts/PostCsvImportTest.php
+@@ -7,8 +7,10 @@
+ use App\Models\Post;
+ use App\Models\SocialAccount;
+ use App\Models\User;
++use App\Services\Posts\PostCsvImport;
+ use Illuminate\Http\UploadedFile;
+ use Illuminate\Support\Carbon;
++use Illuminate\Support\Facades\Cache;
+ use Illuminate\Support\Facades\Queue;
+ 
+ // Importacion masiva por CSV (T-83): vista previa fila a fila sin crear nada, y confirmacion de un solo uso que crea solo las filas validas
+@@ -26,6 +28,26 @@
+     $this->bsky = SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::Bluesky, 'name' => 'Mi Bluesky', 'username' => 'mi.bsky.social']);
+ });
+ 
++function importAcct(SocialAccount $account): string
++{
++    return PostCsvImport::identifier($account);
++}
++
++function importFb(): string
++{
++    return importAcct(test()->fb);
++}
++
++function importIg(): string
++{
++    return importAcct(test()->ig);
++}
++
++function importBsky(): string
++{
++    return importAcct(test()->bsky);
++}
++
+ function importCsv(string $content, string $name = 'posts.csv'): UploadedFile
+ {
+     return UploadedFile::fake()->createWithContent($name, $content);
+@@ -42,7 +64,7 @@ function confirmImport(string $token, ?User $user = null, ?Brand $brand = null)
+ }
+ 
+ test('la vista previa lista cada fila con sus datos y no crea nada', function () {
+-    $csv = CSV_HEADER."\n2026-12-01 10:00;Hola mundo;facebook:Mi Pagina;;;\n;Borrador sin fecha;facebook:Mi Pagina;;;\n";
++    $csv = CSV_HEADER."\n2026-12-01 10:00;Hola mundo;".importFb().";;;\n;Borrador sin fecha;".importFb().";;;\n";
+ 
+     $res = previewImport($csv)->assertOk();
+ 
+@@ -57,10 +79,10 @@ function confirmImport(string $token, ?User $user = null, ?Brand $brand = null)
+ 
+ test('confirmar crea solo las filas validas; las invalidas siguen listadas y no se crean', function () {
+     $csv = CSV_HEADER."\n"
+-        ."2026-12-01 10:00;Valida programada;facebook:Mi Pagina;;;\n"
+-        .";Valida borrador;facebook:Mi Pagina|bluesky:@mi.bsky.social;;;\n"
+-        ."2026-12-02 10:00;Instagram sin media;instagram:@miinsta;;;\n"
+-        ."2026-10-01 10:00;Fecha en el pasado;facebook:Mi Pagina;;;\n";
++        .'2026-12-01 10:00;Valida programada;'.importFb().";;;\n"
++        .';Valida borrador;'.importFb().'|'.importBsky().";;;\n"
++        .'2026-12-02 10:00;Instagram sin media;'.importIg().";;;\n"
++        .'2026-10-01 10:00;Fecha en el pasado;'.importFb().";;;\n";
+ 
+     $preview = previewImport($csv)->assertOk()->assertJsonPath('summary', ['total' => 4, 'valid' => 2, 'invalid' => 2]);
+     $preview->assertJsonPath('rows.2.valid', false)->assertJsonPath('rows.3.valid', false);
+@@ -83,9 +105,9 @@ function confirmImport(string $token, ?User $user = null, ?Brand $brand = null)
+ test('aplica la misma validacion que el compositor: fecha pasada, media exigida y limite de texto de la red', function () {
+     $long = str_repeat('a', 301); // Bluesky admite 300
+     $csv = CSV_HEADER."\n"
+-        ."2026-10-01 10:00;Pasado;facebook:Mi Pagina;;;\n"
+-        ."2026-12-02 10:00;Sin media;instagram:@miinsta;;;\n"
+-        ."2026-12-02 10:00;{$long};bluesky:@mi.bsky.social;;;\n";
++        .'2026-10-01 10:00;Pasado;'.importFb().";;;\n"
++        .'2026-12-02 10:00;Sin media;'.importIg().";;;\n"
++        ."2026-12-02 10:00;{$long};".importBsky().";;;\n";
+ 
+     $expected = collect([
+         ['text' => 'Pasado', 'targets' => [['account_id' => $this->fb->id, 'content_type' => 'facebook_text']], 'schedule' => true, 'scheduled_at' => '2026-10-01T10:00'],
+@@ -106,14 +128,14 @@ function confirmImport(string $token, ?User $user = null, ?Brand $brand = null)
+ 
+ test('una cuenta de otra marca, de otro usuario o inexistente es un error de fila que no revela nada', function () {
+     $otherBrand = Brand::factory()->for($this->user)->create();
+-    SocialAccount::factory()->for($this->user)->create(['brand_id' => $otherBrand->id, 'network' => Network::Facebook, 'name' => 'Cuenta Hermana']);
++    $sister = SocialAccount::factory()->for($this->user)->create(['brand_id' => $otherBrand->id, 'network' => Network::Facebook, 'name' => 'Cuenta Hermana']);
+     $stranger = User::factory()->create();
+     $strangerBrand = Brand::factory()->for($stranger)->create();
+-    SocialAccount::factory()->for($stranger)->create(['brand_id' => $strangerBrand->id, 'network' => Network::Facebook, 'name' => 'Cuenta Foranea']);
++    $foreign = SocialAccount::factory()->for($stranger)->create(['brand_id' => $strangerBrand->id, 'network' => Network::Facebook, 'name' => 'Cuenta Foranea']);
+     $csv = CSV_HEADER."\n"
+-        .";Otra marca;facebook:Cuenta Hermana;;;\n"
+-        .";Otro usuario;facebook:Cuenta Foranea;;;\n"
+-        .";No existe;facebook:Nada;;;\n";
++        .';Otra marca;'.importAcct($sister).";;;\n"
++        .';Otro usuario;'.importAcct($foreign).";;;\n"
++        .";No existe;facebook:999999;;;\n";
+ 
+     $res = previewImport($csv)->assertOk()->assertJsonPath('summary.valid', 0);
+ 
+@@ -130,9 +152,9 @@ function confirmImport(string $token, ?User $user = null, ?Brand $brand = null)
+     $mine = MediaAsset::factory()->create(['user_id' => $this->user->id]);
+     $theirs = MediaAsset::factory()->create(['user_id' => User::factory()->create()->id]);
+     $csv = CSV_HEADER."\n"
+-        ."2026-12-02 10:00;Con media ajena;instagram:@miinsta;;{$theirs->id};\n"
+-        ."2026-12-02 10:00;Con media propia;instagram:@miinsta;;{$mine->id};\n"
+-        .";Media rara;facebook:Mi Pagina;;abc;\n";
++        .'2026-12-02 10:00;Con media ajena;'.importIg().";;{$theirs->id};\n"
++        .'2026-12-02 10:00;Con media propia;'.importIg().";;{$mine->id};\n"
++        .';Media rara;'.importFb().";;abc;\n";
+ 
+     $res = previewImport($csv)->assertOk();
+ 
+@@ -143,7 +165,7 @@ function confirmImport(string $token, ?User $user = null, ?Brand $brand = null)
+ });
+ 
+ test('admite separador coma, BOM y un texto con saltos de linea y comas entre comillas', function () {
+-    $csv = "\xEF\xBB\xBF"."fecha,texto,cuentas\r\n,\"Linea uno,\r\nlinea \"\"dos\"\"\",facebook:Mi Pagina\r\n";
++    $csv = "\xEF\xBB\xBF"."fecha,texto,cuentas\r\n,\"Linea uno,\r\nlinea \"\"dos\"\"\",".importFb()."\r\n";
+ 
+     $res = previewImport($csv)->assertOk()->assertJsonPath('summary.valid', 1);
+     $res->assertJsonPath('rows.0.text', "Linea uno,\nlinea \"dos\"");
+@@ -152,25 +174,25 @@ function confirmImport(string $token, ?User $user = null, ?Brand $brand = null)
+ });
+ 
+ test('las filas totalmente vacias se ignoran', function () {
+-    $csv = CSV_HEADER."\n;;;;;\n\n;Con texto;facebook:Mi Pagina;;;\n;;;;;\n";
++    $csv = CSV_HEADER."\n;;;;;\n\n;Con texto;".importFb().";;;\n;;;;;\n";
+ 
+     previewImport($csv)->assertOk()->assertJsonPath('summary.total', 1)->assertJsonPath('rows.0.row', 4);
+ });
+ 
+ test('el texto del CSV no se interpreta: se devuelve tal cual para pintarlo escapado', function () {
+-    $csv = CSV_HEADER."\n;<script>alert(1)</script> =HYPERLINK(\"x\");facebook:Mi Pagina;;;\n";
++    $csv = CSV_HEADER."\n;<script>alert(1)</script> =HYPERLINK(\"x\");".importFb().";;;\n";
+ 
+     previewImport($csv)->assertOk()->assertJsonPath('rows.0.text', '<script>alert(1)</script> =HYPERLINK("x")');
+ });
+ 
+ test('el limite de filas y el de tamano se rechazan a nivel de fichero', function () {
+     config(['post_import.max_rows' => 2]);
+-    $rows = implode('', array_fill(0, 3, ";Fila;facebook:Mi Pagina;;;\n"));
++    $rows = implode('', array_fill(0, 3, ';Fila;'.importFb().";;;\n"));
+ 
+     previewImport(CSV_HEADER."\n".$rows)->assertUnprocessable()->assertJsonValidationErrors('file');
+ 
+     config(['post_import.max_kb' => 1]);
+-    $big = CSV_HEADER."\n;".str_repeat('x', 2000).";facebook:Mi Pagina;;;\n";
++    $big = CSV_HEADER."\n;".str_repeat('x', 2000).';'.importFb().";;;\n";
+     previewImport($big)->assertUnprocessable()->assertJsonValidationErrors('file');
+     expect(Post::withoutUserScope()->count())->toBe(0);
+ });
+@@ -178,22 +200,22 @@ function confirmImport(string $token, ?User $user = null, ?Brand $brand = null)
+ test('si falta una columna obligatoria el error es del fichero', function () {
+     previewImport("fecha;texto\n;Hola\n")->assertUnprocessable()->assertJsonValidationErrors('file')
+         ->assertJsonPath('errors.file.0', fn ($m) => str_contains($m, 'cuentas'));
+-    previewImport("fecha;texto;cuentas;rareza\n;Hola;facebook:Mi Pagina;x\n")->assertUnprocessable()->assertJsonValidationErrors('file');
++    previewImport("fecha;texto;cuentas;rareza\n;Hola;".importFb().";x\n")->assertUnprocessable()->assertJsonValidationErrors('file');
+     previewImport("fecha;texto;cuentas\n")->assertUnprocessable()->assertJsonValidationErrors('file');
+-    previewImport("fecha;texto;cuentas\n;\xFF\xFE;facebook:Mi Pagina\n")->assertUnprocessable()->assertJsonValidationErrors('file');
++    previewImport("fecha;texto;cuentas\n;\xFF\xFE;".importFb()."\n")->assertUnprocessable()->assertJsonValidationErrors('file');
+ });
+ 
+ test('una segunda confirmacion con el mismo token no duplica posts', function () {
+-    $token = previewImport(CSV_HEADER."\n;Una sola vez;facebook:Mi Pagina;;;\n")->assertOk()->json('token');
++    $token = previewImport(CSV_HEADER."\n;Una sola vez;".importFb().";;;\n")->assertOk()->json('token');
+ 
+     confirmImport($token)->assertOk()->assertJsonPath('summary.created', 1);
+-    confirmImport($token)->assertStatus(409);
++    confirmImport($token)->assertOk()->assertJsonPath('repeated', true);
+ 
+     expect(Post::withoutUserScope()->count())->toBe(1);
+ });
+ 
+ test('el token no sirve para otro usuario ni para otra marca y caduca', function () {
+-    $token = previewImport(CSV_HEADER."\n;Mio;facebook:Mi Pagina;;;\n")->json('token');
++    $token = previewImport(CSV_HEADER."\n;Mio;".importFb().";;;\n")->json('token');
+     $otherBrand = Brand::factory()->for($this->user)->create();
+ 
+     confirmImport($token, null, $otherBrand)->assertStatus(410);
+@@ -206,20 +228,20 @@ function confirmImport(string $token, ?User $user = null, ?Brand $brand = null)
+ });
+ 
+ test('al confirmar se vuelve a validar: una fecha que ya paso entre la vista previa y la confirmacion no se crea', function () {
+-    $token = previewImport(CSV_HEADER."\n2026-11-01 14:00;Pronto;facebook:Mi Pagina;;;\n")->assertJsonPath('summary.valid', 1)->json('token');
++    $token = previewImport(CSV_HEADER."\n2026-11-01 13:20;Pronto;".importFb().";;;\n")->assertJsonPath('summary.valid', 1)->json('token');
+ 
+     Carbon::setTestNow('2026-11-01 12:25:00');
+     confirmImport($token)->assertOk()->assertJsonPath('summary', ['created' => 0, 'skipped' => 1]);
+ 
+     expect(Post::withoutUserScope()->count())->toBe(0);
+-})->skip('T-83 en curso (pausa del 2026-11-20): la revalidación al confirmar aún no rechaza la fecha ya pasada.');
++});
+ 
+ test('un usuario ajeno a la marca recibe 404 en todas las rutas', function () {
+     $stranger = User::factory()->create();
+ 
+     $this->actingAs($stranger)->get(route('brands.posts.import.show', $this->brand))->assertNotFound();
+     $this->actingAs($stranger)->get(route('brands.posts.import.sample', $this->brand))->assertNotFound();
+-    previewImport(CSV_HEADER."\n;Hola;facebook:Mi Pagina;;;\n", $stranger)->assertNotFound();
++    previewImport(CSV_HEADER."\n;Hola;".importFb().";;;\n", $stranger)->assertNotFound();
+     confirmImport(str_repeat('a', 40), $stranger)->assertNotFound();
+     auth()->logout();
+     $this->post(route('brands.posts.import.preview', $this->brand))->assertRedirect(route('login'));
+@@ -231,10 +253,10 @@ function confirmImport(string $token, ?User $user = null, ?Brand $brand = null)
+             ->where('brand.id', $this->brand->id)
+             ->where('limits.max_rows', config('post_import.max_rows'))
+             ->where('accounts.0.identifier', fn ($v) => str_contains($v, ':')));
+-})->skip('T-83 en curso (pausa del 2026-11-20): falta la página Posts/Import.vue.');
++});
+ 
+ test('la aprobacion pedida deja el post como borrador pendiente', function () {
+-    $csv = CSV_HEADER."\n2026-12-01 10:00;Con aprobacion;facebook:Mi Pagina;;;si\n";
++    $csv = CSV_HEADER."\n2026-12-01 10:00;Con aprobacion;".importFb().";;;si\n";
+ 
+     $token = previewImport($csv)->assertJsonPath('rows.0.valid', true)->assertJsonPath('rows.0.approval', true)->json('token');
+     confirmImport($token)->assertOk();
+@@ -245,20 +267,25 @@ function confirmImport(string $token, ?User $user = null, ?Brand $brand = null)
+ 
+ test('el tipo de contenido se aplica a la cuenta de su red y un tipo sin cuenta es un error', function () {
+     $csv = CSV_HEADER."\n"
+-        .";Con tipo;facebook:Mi Pagina;facebook_text;;\n"
+-        .";Tipo ajeno a la fila;facebook:Mi Pagina;instagram_reel;;\n"
+-        .";Tipo inventado;facebook:Mi Pagina;inventado;;\n";
++        .';Con tipo;'.importFb().";facebook_text;;\n"
++        .';Tipo ajeno a la fila;'.importFb().";instagram_reel;;\n"
++        .';Tipo inventado;'.importFb().";inventado;;\n";
+ 
+     $res = previewImport($csv)->assertOk();
+ 
+     $res->assertJsonPath('rows.0.valid', true)->assertJsonPath('rows.1.valid', false)->assertJsonPath('rows.2.valid', false);
+ });
+ 
++function sampleCsv(?Brand $brand = null): string
++{
++    return test()->actingAs(test()->user)->get(route('brands.posts.import.sample', $brand ?? test()->brand))->assertOk()->streamedContent();
++}
++
+ test('el CSV de ejemplo se descarga y se importa limpio en la marca', function () {
+     $res = $this->actingAs($this->user)->get(route('brands.posts.import.sample', $this->brand))->assertOk();
+     expect($res->headers->get('content-disposition'))->toContain('importar-publicaciones.csv');
+     $content = $res->streamedContent();
+-    expect(str_starts_with($content, "\xEF\xBB\xBF"))->toBeTrue()->and($content)->toContain('facebook:Mi Pagina');
++    expect(str_starts_with($content, "\xEF\xBB\xBF"))->toBeTrue()->and($content)->toContain(importFb());
+ 
+     $preview = previewImport($content)->assertOk();
+ 
+@@ -266,10 +293,169 @@ function confirmImport(string $token, ?User $user = null, ?Brand $brand = null)
+     confirmImport($preview->json('token'))->assertOk()->assertJsonPath('summary.skipped', 0);
+ });
+ 
+-test('el CSV de ejemplo de una marca sin cuentas usa nombres de muestra y se descarga igual', function () {
++test('el CSV de ejemplo se importa limpio con una sola cuenta y con una marca que solo tiene redes que exigen media', function () {
++    $single = Brand::factory()->for($this->user)->create(['timezone' => 'Europe/Madrid']);
++    $only = SocialAccount::factory()->for($this->user)->create(['brand_id' => $single->id, 'network' => Network::Facebook, 'name' => 'Unica']);
++    $content = sampleCsv($single);
++    expect($content)->toContain(importAcct($only));
++    $preview = previewImport($content, null, $single)->assertOk();
++    expect($preview->json('summary.invalid'))->toBe(0)->and($preview->json('summary.total'))->toBeGreaterThanOrEqual(1);
++
++    $igBrand = Brand::factory()->for($this->user)->create(['timezone' => 'Europe/Madrid']);
++    SocialAccount::factory()->for($this->user)->create(['brand_id' => $igBrand->id, 'network' => Network::Instagram, 'name' => 'Solo Insta']);
++    $igContent = sampleCsv($igBrand);
++    expect($igContent)->toContain('Las redes de esta marca exigen archivos');
++    previewImport($igContent, null, $igBrand)->assertUnprocessable()->assertJsonValidationErrors('file');
++});
++
++test('el CSV de ejemplo de una marca sin cuentas no inventa cuentas y explica que hay que conectar una', function () {
+     $empty = Brand::factory()->for($this->user)->create();
+ 
+-    $res = $this->actingAs($this->user)->get(route('brands.posts.import.sample', $empty))->assertOk();
++    $content = sampleCsv($empty);
++
++    expect($content)->toContain('"fecha";"texto";"cuentas"')->and($content)->toContain('# ')->not->toContain('facebook:');
++});
++
++test('el CSV de ejemplo respeta el separador de la configuracion comun y nunca produce una celda que empiece por una formula', function () {
++    config(['reports.csv_locale' => 'en']);
++    $this->fb->forceFill(['name' => '=cmd|calc'])->save();
++
++    $content = sampleCsv();
++
++    expect($content)->toContain('"fecha","texto","cuentas"');
++    foreach (preg_split('/\R/', $content) as $line) {
++        $line = ltrim($line, "\xEF\xBB\xBF");
++        if ($line === '' || str_starts_with($line, '#')) {
++            continue;
++        }
++        expect($line)->not->toMatch('/(^|,)"?[=+\-@]/');
++    }
++    expect(previewImport($content)->assertOk()->json('summary.invalid'))->toBe(0);
++});
++
++test('acepta las fechas de Excel: DD/MM/AAAA, segundos opcionales y T ISO; rechaza lo ambiguo o imposible', function (string $date, ?string $shown, ?string $error) {
++    $res = previewImport(CSV_HEADER."\n{$date};Fecha;".importFb().";;;\n")->assertOk();
++
++    if ($error === null) {
++        $res->assertJsonPath('rows.0.valid', true)->assertJsonPath('rows.0.date', $shown);
++    } else {
++        $res->assertJsonPath('rows.0.valid', false);
++        expect(implode(' ', $res->json('rows.0.errors')))->toContain($error);
++    }
++})->with([
++    'ISO' => ['2026-12-01 10:00', '2026-12-01 10:00', null],
++    'ISO con segundos' => ['2026-12-01 10:00:00', '2026-12-01 10:00', null],
++    'ISO con T' => ['2026-12-01T10:00', '2026-12-01 10:00', null],
++    'ISO con T y segundos' => ['2026-12-01T10:00:00', '2026-12-01 10:00', null],
++    'Excel espanol' => ['27/11/2026 10:00', '2026-11-27 10:00', null],
++    'Excel espanol con segundos' => ['27/11/2026 10:00:00', '2026-11-27 10:00', null],
++    'dia y mes de una cifra' => ['1/12/2026 9:05', '2026-12-01 09:05', null],
++    'MM/DD no se interpreta' => ['11/27/2026 10:00', null, 'mes'],
++    'dia imposible' => ['31/02/2026 10:00', null, 'no existe'],
++    'mes imposible ISO' => ['2026-13-01 10:00', null, 'no existe'],
++    'hora imposible' => ['27/11/2026 25:00', null, 'no existe'],
++    'segundos distintos de cero' => ['2026-12-01 10:00:30', null, 'segundos'],
++    'anio de dos cifras' => ['27/11/26 10:00', null, 'formato'],
++    'solo fecha' => ['2026-12-01', null, 'formato'],
++]);
++
++test('dos cuentas de la misma red con el mismo nombre se distinguen por su identificador y nunca se elige la equivocada', function () {
++    $twin = SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::Facebook, 'name' => $this->fb->name, 'username' => null]);
++    expect(importAcct($twin))->not->toBe(importFb());
++    $csv = CSV_HEADER."\n;Gemela;".importAcct($twin).";;;\n;Por nombre;facebook:".$this->fb->name.";;;\n;Con espacios;facebook: ".$twin->id.' |'.importFb().";;;\n";
++
++    $res = previewImport($csv)->assertOk();
++
++    $res->assertJsonPath('rows.0.valid', true)->assertJsonPath('rows.0.accounts.0.id', $twin->id)
++        ->assertJsonPath('rows.1.valid', false)->assertJsonPath('rows.2.valid', true);
++    confirmImport($res->json('token'))->assertOk()->assertJsonPath('summary.created', 2);
++});
++
++test('una cuenta cuyo nombre lleva barra o espacios en los extremos se importa por su identificador', function () {
++    $odd = SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::Facebook, 'name' => ' Mi | Cuenta ', 'username' => null]);
++
++    previewImport(CSV_HEADER."\n;Rara;".importAcct($odd).";;;\n")->assertOk()->assertJsonPath('rows.0.valid', true);
++    expect(previewImport(sampleCsv())->assertOk()->json('summary.invalid'))->toBe(0);
++});
++
++test('un identificador de otra red, con el id mal escrito o inexistente es el mismo error', function () {
++    $csv = CSV_HEADER."\n;a;instagram:".$this->fb->id.";;;\n;b;facebook:".$this->fb->id."x;;;\n;c;facebook:0;;;\n;d;rara:".$this->fb->id.";;;\n";
++
++    $res = previewImport($csv)->assertOk()->assertJsonPath('summary.valid', 0);
++
++    foreach ($res->json('rows') as $row) {
++        expect($row['errors'])->toHaveCount(1);
++    }
++});
++
++test('un reintento tras confirmar devuelve el mismo resumen y los mismos enlaces sin crear nada', function () {
++    $token = previewImport(CSV_HEADER."\n;Una vez;".importFb().";;;\n;Falla;facebook:999999;;;\n")->assertOk()->json('token');
++
++    $first = confirmImport($token)->assertOk();
++    $again = confirmImport($token)->assertOk();
++
++    expect($again->json('summary'))->toBe($first->json('summary'))->and($again->json('rows'))->toBe($first->json('rows'))->and($again->json('repeated'))->toBeTrue();
++    expect($first->json('repeated'))->toBeFalse()->and(Post::withoutUserScope()->count())->toBe(1);
++});
++
++test('si la confirmacion se interrumpio a medias, el reintento no crea nada y dice que filas ya se procesaron', function () {
++    $token = previewImport(CSV_HEADER."\n;Primera;".importFb().";;;\n;Segunda;".importFb().";;;\n")->assertOk()->json('token');
++    $key = 'post-import:'.$this->user->id.':'.$this->brand->id.':'.$token;
++    Cache::put($key.':progress', ['results' => [['row' => 2, 'post_id' => 77]], 'done' => false], now()->addMinutes(10));
++    Cache::put($key.':claimed', true, now()->addMinutes(10));
++
++    $res = confirmImport($token)->assertStatus(409);
++
++    $res->assertJsonPath('rows.0.post_id', 77);
++    expect(Post::withoutUserScope()->count())->toBe(0);
++});
++
++test('subir otra vista previa mientras una confirmacion sigue en curso no la resucita ni permite duplicarla', function () {
++    $a = previewImport(CSV_HEADER."\n;A uno;".importFb().";;;\n;A dos;".importFb().";;;\n")->assertOk()->json('token');
++    $keyA = 'post-import:'.$this->user->id.':'.$this->brand->id.':'.$a;
++    $b = null;
++    $fired = false;
++    Post::created(function () use (&$b, &$fired) {
++        if (! $fired) {
++            $fired = true;
++            $b = previewImport(CSV_HEADER."\n;B uno;".importFb().";;;\n")->json('token'); // otra pestana sube B mientras A crea filas
++        }
++    });
++
++    confirmImport($a)->assertOk()->assertJsonPath('summary.created', 2);
++
++    expect(Cache::has($keyA.':claimed'))->toBeTrue()->and(Cache::has($keyA))->toBeFalse();
++    confirmImport($a)->assertOk()->assertJsonPath('repeated', true)->assertJsonPath('summary.created', 2);
++    expect(Post::withoutUserScope()->count())->toBe(2);
++    confirmImport($b)->assertOk()->assertJsonPath('summary.created', 1);
++    expect(Post::withoutUserScope()->count())->toBe(3);
++});
++
++test('si la confirmacion A murio a mitad y se sube B, reintentar A sigue sin crear nada', function () {
++    $a = previewImport(CSV_HEADER."\n;A uno;".importFb().";;;\n")->assertOk()->json('token');
++    $keyA = 'post-import:'.$this->user->id.':'.$this->brand->id.':'.$a;
++    Cache::put($keyA.':claimed', true, now()->addMinutes(10));
++    Cache::put($keyA.':progress', ['results' => [], 'done' => false], now()->addMinutes(10));
++
++    previewImport(CSV_HEADER."\n;B uno;".importFb().";;;\n")->assertOk();
++
++    confirmImport($a)->assertStatus(409);
++    expect(Post::withoutUserScope()->count())->toBe(0)->and(Cache::has($keyA.':claimed'))->toBeTrue();
++});
++
++test('una vista previa nueva sustituye a la anterior de la misma marca: solo hay una viva por usuario y marca', function () {
++    $old = previewImport(CSV_HEADER."\n;Vieja;".importFb().";;;\n")->json('token');
++    $new = previewImport(CSV_HEADER."\n;Nueva;".importFb().";;;\n")->json('token');
++
++    confirmImport($old)->assertStatus(410);
++    confirmImport($new)->assertOk()->assertJsonPath('summary.created', 1);
++    expect(Post::withoutUserScope()->pluck('text')->all())->toBe(['Nueva']);
++});
++
++test('una cabecera con miles de columnas da un error corto', function () {
++    $header = implode(';', array_map(fn ($i) => 'columna_rara_numero_'.$i, range(1, 3000)));
++
++    $res = previewImport($header."\n;a;b\n")->assertUnprocessable()->assertJsonValidationErrors('file');
+ 
+-    expect($res->streamedContent())->toContain('fecha;texto;cuentas');
++    expect(strlen($res->json('errors.file.0')))->toBeLessThan(600);
+ });
+diff --git a/docs/usuario/importar-csv.md b/docs/usuario/importar-csv.md
+new file mode 100644
+index 0000000..6054876
+--- /dev/null
++++ b/docs/usuario/importar-csv.md
+@@ -0,0 +1,56 @@
++# Importar publicaciones por CSV
++
++Crea muchas publicaciones de una marca de una vez. Entra en **Planificación → Importar CSV** (con la marca elegida).
++
++## Flujo
++
++1. **Sube el fichero.** El servidor lo analiza y muestra una **vista previa fila a fila** con los datos interpretados y los errores de cada una. En este paso no se crea nada.
++2. **Confirma.** Se crean solo las filas válidas. El servidor vuelve a validarlas al confirmar (una fecha puede haber pasado entre tanto). Las filas con errores siguen listadas y no se crean.
++3. **Resumen.** Publicaciones creadas (con enlace para abrirlas), filas omitidas con su motivo y acceso al calendario.
++
++Puedes descargar un **CSV de ejemplo** desde la página. Lleva las columnas documentadas y la leyenda de las cuentas de la marca en líneas que empiezan por `#`, y solo incluye filas que **son válidas para las cuentas reales de la marca** (una programada y un borrador). Si ninguna red de la marca admite una fila sin archivos (por ejemplo, solo tiene Instagram), no trae filas y un comentario lo explica: añade ids en `medios`. Usa el separador de la configuración común (`reports.csv_locale`: `;` en español, `,` en inglés) y ninguna celda puede empezar por `=`, `+`, `-` o `@`.
++
++## Formato
++
++- UTF-8 (se tolera el BOM). Separador `;` o `,`, detectado por la cabecera. Comillas según RFC 4180: un texto con comas o saltos de línea va entre comillas, y una comilla se escribe doble (`""`).
++- La primera fila es la cabecera. Las líneas en blanco o que empiezan por `#` **antes** de la cabecera se ignoran. Las filas totalmente vacías se ignoran.
++
++| Columna | Obligatoria | Contenido |
++|---|---|---|
++| `fecha` | sí (puede ir vacía) | Hora local de la marca. Formatos: `AAAA-MM-DD HH:MM` (también con `T`) y `DD/MM/AAAA HH:MM` (como lo reescribe Excel en español; día y mes pueden llevar una cifra), con segundos opcionales si son `00`. Con barras el primer número es siempre el día: nunca se interpreta `MM/DD`. Las fechas imposibles (`31/02/2026`, mes 13) se rechazan. Vacía = borrador. |
++| `texto` | sí | Texto de la publicación. |
++| `cuentas` | sí | Una o varias cuentas **de esta marca** separadas por `\|`, escritas `red:id` (por ejemplo `facebook:12`). Es el único formato: el id es único, así que dos cuentas con el mismo nombre, o con `\|` o espacios en el nombre, nunca se confunden. La página y los comentarios del CSV de ejemplo listan el identificador de cada cuenta junto a su nombre. |
++| `tipo` | no | Tipos de contenido separados por `\|` (por ejemplo `instagram_reel`). Cada uno se aplica a la cuenta de su red; debe haber una cuenta de esa red en la fila. Si falta, se usa el tipo por defecto de la red (Instagram: imagen, Facebook: texto o foto, Threads y LinkedIn: texto o imagen, Bluesky: publicación, YouTube y TikTok: vídeo, Pinterest: pin). |
++| `medios` | no | Ids de archivos de **tu** biblioteca separados por `\|`. |
++| `aprobacion` | no | `sí` o `no`. Con `sí` la publicación nace como borrador pendiente de aprobar (la puede aprobar el propietario o un aprobador de la marca). |
++
++Una columna desconocida o repetida, o la falta de una obligatoria, es un error del fichero entero.
++
++## Validación
++
++Es la **misma que la del compositor**: cada fila se convierte en el mismo payload y pasa por las mismas reglas. Una fecha en el pasado, una red que exige media sin ella o un texto que supera el límite de la red salen como error de esa fila con el mensaje del compositor. Una cuenta que no existe, es de otra marca o de otro usuario da siempre el mismo error: no se revela si existe en otro sitio.
++
++## Límites
++
++Definidos en `config/post_import.php`:
++
++| Límite | Valor por defecto |
++|---|---|
++| Tamaño del fichero | 1024 KB |
++| Filas de datos | 200 |
++| Caducidad de la vista previa | 30 minutos |
++
++Además, la subida y la confirmación tienen su límite de ritmo por minuto (`brands.posts.import.preview` y `brands.posts.import.confirm` en `config/rate_limits.php`).
++
++## No se duplica
++
++Cada vista previa genera un identificador de un solo uso, ligado a tu usuario y a la marca, y solo hay **una vista previa viva por usuario y marca**: subir otro fichero sustituye a la anterior. Al confirmar, el servidor lo reclama de forma atómica antes de crear nada. Si la confirmación se corta (por ejemplo, un tiempo de espera) y la repites, **recibes el mismo resumen y los mismos enlaces sin que se cree nada más**; si se interrumpió a medias, recibes un aviso con las filas que ya se procesaron. Si subes el mismo fichero otra vez, es una importación nueva.
++
++## Errores frecuentes
++
++- **«Falta la columna obligatoria»**: la cabecera no tiene `fecha`, `texto` o `cuentas`.
++- **«El fichero debe estar codificado en UTF-8»**: guarda el CSV como UTF-8.
++- **«La fecha … no tiene un formato válido»**: usa `2031-03-10 10:00` o `10/03/2031 10:00`. **«no existe en el calendario»**: día, mes u hora imposibles. **«tiene el mes 27»**: con barras va primero el día. Una hora inexistente o ambigua por el cambio de hora también se rechaza.
++- **«No hay ninguna cuenta … en esta marca»** o **«Cuenta … no válida»**: copia el identificador `red:id` de la lista de la página.
++- **La fecha debe ser futura**: las filas con fecha pasada no se crean.
++- **Una red exige media**: añade ids en `medios`.
+diff --git a/resources/js/Pages/Posts/Import.vue b/resources/js/Pages/Posts/Import.vue
+new file mode 100644
+index 0000000..89dc925
+--- /dev/null
++++ b/resources/js/Pages/Posts/Import.vue
+@@ -0,0 +1,331 @@
++<script setup>
++import { nextTick, ref } from 'vue';
++import { Head, Link } from '@inertiajs/vue3';
++import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
++import EmptyState from '@/Components/EmptyState.vue';
++import FormField from '@/Components/FormField.vue';
++import NetworkChip from '@/Components/NetworkChip.vue';
++import InfoNote from '@/Components/InfoNote.vue';
++import { useConfirm } from '@/Composables/useConfirm';
++import { fieldErrorDetails, HttpError, requestJson } from '@/lib/http';
++
++/**
++ * Importación de publicaciones por CSV (T-83): subir -> vista previa fila a fila (no crea nada) -> confirmar -> resumen.
++ * La validación es la del compositor y vive en el servidor; aquí solo se pintan sus mensajes (siempre escapados con `{{ }}`).
++ */
++/** @import { PostImportOutcome, PostImportOutcomeRow, PostImportPageProps, PostImportPreview } from '@/types/post-import' */
++const props = defineProps({
++    brand: { type: /** @type {import('vue').PropType<PostImportPageProps['brand']>} */ (Object), required: true },
++    limits: { type: /** @type {import('vue').PropType<PostImportPageProps['limits']>} */ (Object), required: true },
++    columns: { type: /** @type {import('vue').PropType<PostImportPageProps['columns']>} */ (Array), required: true },
++    required: { type: /** @type {import('vue').PropType<PostImportPageProps['required']>} */ (Array), required: true },
++    accounts: { type: /** @type {import('vue').PropType<PostImportPageProps['accounts']>} */ (Array), required: true },
++});
++const ask = useConfirm();
++
++const file = ref(/** @type {File | null} */ (null));
++const fileInput = ref(/** @type {HTMLInputElement | null} */ (null));
++const preview = ref(/** @type {PostImportPreview | null} */ (null));
++const outcome = ref(/** @type {PostImportOutcome | null} */ (null));
++const busy = ref(false);
++const error = ref('');
++const fileError = ref('');
++const heading = ref(/** @type {HTMLElement | null} */ (null));
++
++/** @param {Event} event */
++const pick = (event) => {
++    file.value = /** @type {HTMLInputElement} */ (event.target).files?.[0] ?? null;
++};
++
++/** @param {unknown} e */
++const message = (e) => (e instanceof HttpError ? fieldErrorDetails(e.data) || e.message : 'No se pudo completar la operación.');
++
++const focusResult = async () => {
++    await nextTick();
++    heading.value?.focus();
++};
++
++const analyze = async () => {
++    if (busy.value || !file.value) return;
++    busy.value = true;
++    error.value = '';
++    fileError.value = '';
++    const body = new FormData();
++    body.append('file', file.value);
++    try {
++        preview.value = /** @type {PostImportPreview} */ (
++            await requestJson('POST', route('brands.posts.import.preview', props.brand.id), { body })
++        );
++        await focusResult();
++    } catch (e) {
++        preview.value = null;
++        // Los errores del fichero (columnas, límites, codificación) van en su campo; el resto, en el aviso general.
++        if (e instanceof HttpError && e.status === 422 && fieldErrorDetails(e.data)) fileError.value = fieldErrorDetails(e.data);
++        else error.value = message(e);
++    } finally {
++        busy.value = false;
++    }
++};
++
++const confirm = async () => {
++    const current = preview.value;
++    if (busy.value || !current || current.summary.valid === 0) return;
++    const { valid, invalid } = current.summary;
++    const accepted = await ask({
++        title: 'Crear las publicaciones',
++        message: `Se crearán ${valid} ${valid === 1 ? 'publicación' : 'publicaciones'}${invalid ? ` y se omitirán ${invalid} ${invalid === 1 ? 'fila con errores' : 'filas con errores'}` : ''}. ¿Continuar?`,
++        confirmLabel: 'Crear publicaciones',
++        cancelLabel: 'Revisar',
++    });
++    if (!accepted || busy.value) return;
++    busy.value = true;
++    error.value = '';
++    try {
++        outcome.value = /** @type {PostImportOutcome} */ (
++            await requestJson('POST', route('brands.posts.import.confirm', props.brand.id), { json: { token: current.token } })
++        );
++        preview.value = null;
++        await focusResult();
++    } catch (e) {
++        // 409 (ya confirmada) y 410 (caducada): la vista previa ya no sirve y no se puede reintentar con ella.
++        if (e instanceof HttpError && (e.status === 409 || e.status === 410)) preview.value = null;
++        // El 409 trae las filas ya procesadas: se pintan con la misma tabla de resultados.
++        const done = e instanceof HttpError && e.status === 409 ? /** @type {PostImportOutcomeRow[] | undefined} */ (e.data?.rows) : undefined;
++        if (done?.length) {
++            const created = done.filter((r) => r.post_id !== null).length;
++            outcome.value = { summary: { created, skipped: done.length - created }, rows: done, repeated: true };
++            await focusResult();
++        }
++        error.value = message(e);
++    } finally {
++        busy.value = false;
++    }
++};
++
++const reset = () => {
++    preview.value = null;
++    outcome.value = null;
++    error.value = '';
++    fileError.value = '';
++    file.value = null;
++    if (fileInput.value) fileInput.value.value = '';
++};
++</script>
++
++<template>
++    <Head title="Importar CSV" />
++
++    <AuthenticatedLayout>
++        <template #header>
++            <h1 class="text-xl font-semibold text-slate-900">Importar publicaciones por CSV · {{ brand.name }}</h1>
++        </template>
++
++        <div class="max-w-5xl space-y-6">
++            <p
++                v-if="error"
++                class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
++                role="alert"
++                data-testid="import-error"
++                >{{ error }}</p
++            >
++
++            <EmptyState
++                v-if="accounts.length === 0"
++                title="Esta marca no tiene cuentas conectadas"
++                description="Para importar publicaciones hace falta al menos una cuenta conectada en la marca."
++            >
++                <Link :href="route('brands.connections.index', brand.id)" class="btn-primary">Conectar una cuenta</Link>
++            </EmptyState>
++
++            <template v-else>
++                <section v-if="!preview && !outcome" class="card space-y-4 p-4" aria-labelledby="import-upload">
++                    <h2 id="import-upload" class="text-base font-semibold text-slate-900">Subir el fichero</h2>
++                    <InfoNote>
++                        Sube un CSV con las columnas <strong>{{ columns.join(', ') }}</strong> (obligatorias:
++                        {{ required.join(', ') }}). Máximo {{ limits.max_rows }} filas y {{ limits.max_kb }} KB. Primero
++                        verás una vista previa de cada fila y no se creará nada hasta que confirmes. Las horas se
++                        interpretan en la zona de la marca ({{ brand.timezone ?? 'UTC' }}).
++                    </InfoNote>
++                    <form class="space-y-3" @submit.prevent="analyze">
++                        <div>
++                            <FormField id="import-file" :error="fileError" error-class="mt-1" v-slot="{ control }">
++                                <label for="import-file" class="block text-sm font-medium text-slate-800"
++                                    >Fichero CSV</label
++                                >
++                                <input
++                                    v-bind="control"
++                                    ref="fileInput"
++                                    type="file"
++                                    accept=".csv,.txt,text/csv"
++                                    class="field w-full"
++                                    :disabled="busy"
++                                    @change="pick"
++                                />
++                            </FormField>
++                        </div>
++                        <div class="flex flex-wrap gap-2">
++                            <button type="submit" class="btn-primary" :disabled="busy || !file"
++                                >Analizar fichero</button
++                            >
++                            <a
++                                :href="route('brands.posts.import.sample', brand.id)"
++                                class="btn-secondary"
++                                data-testid="import-sample"
++                                >Descargar CSV de ejemplo</a
++                            >
++                        </div>
++                    </form>
++
++                    <div>
++                        <h3 class="text-sm font-semibold text-slate-900">Cómo escribir las cuentas de esta marca</h3>
++                        <p class="mt-1 text-sm text-slate-600"
++                            >Copia el identificador en la columna <code>cuentas</code>; con varias, sepáralas con
++                            <code>|</code>.</p
++                        >
++                        <ul class="mt-2 space-y-1 text-sm text-slate-800">
++                            <li v-for="a in accounts" :key="a.id" class="flex flex-wrap items-center gap-2"
++                                ><code class="rounded bg-slate-100 px-1">{{ a.identifier }}</code>
++                                <NetworkChip :network="a.network" :label="a.network_label" /> {{ a.name }}</li
++                            >
++                        </ul>
++                    </div>
++                </section>
++
++                <section v-if="preview" class="space-y-4" aria-labelledby="import-preview">
++                    <h2 id="import-preview" ref="heading" tabindex="-1" class="text-base font-semibold text-slate-900"
++                        >Vista previa</h2
++                    >
++                    <p class="text-sm text-slate-700" role="status" data-testid="import-summary">
++                        {{ preview.summary.total }} {{ preview.summary.total === 1 ? 'fila' : 'filas' }}:
++                        {{ preview.summary.valid }} {{ preview.summary.valid === 1 ? 'válida' : 'válidas' }} y
++                        {{ preview.summary.invalid }} con errores. Todavía no se ha creado nada.
++                    </p>
++                    <div
++                        class="card overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
++                        role="region"
++                        aria-label="Filas del CSV con su estado"
++                        tabindex="0"
++                    >
++                        <table class="w-full text-left text-sm" data-testid="import-preview-table">
++                            <caption class="sr-only">Filas del CSV con su estado</caption>
++                            <thead class="border-b border-slate-200 text-xs uppercase text-slate-600">
++                                <tr>
++                                    <th scope="col" class="px-3 py-2">Fila</th>
++                                    <th scope="col" class="px-3 py-2">Fecha ({{ brand.timezone ?? 'UTC' }})</th>
++                                    <th scope="col" class="px-3 py-2">Texto</th>
++                                    <th scope="col" class="px-3 py-2">Cuentas</th>
++                                    <th scope="col" class="px-3 py-2">Estado</th>
++                                </tr>
++                            </thead>
++                            <tbody>
++                                <tr
++                                    v-for="r in preview.rows"
++                                    :key="r.row"
++                                    class="border-b border-slate-100 align-top"
++                                    :data-testid="`import-row-${r.row}`"
++                                >
++                                    <td class="px-3 py-2">{{ r.row }}</td>
++                                    <td class="px-3 py-2">{{ r.date ?? 'Borrador' }}</td>
++                                    <td class="max-w-xs whitespace-pre-line break-words px-3 py-2">{{ r.text }}</td>
++                                    <td class="px-3 py-2">
++                                        <span
++                                            v-for="a in r.accounts"
++                                            :key="a.id"
++                                            class="mb-1 flex flex-wrap items-center gap-1"
++                                            ><NetworkChip :network="a.network" :label="a.network_label" />
++                                            {{ a.name }}</span
++                                        >
++                                    </td>
++                                    <td class="px-3 py-2">
++                                        <span v-if="r.valid" class="font-medium text-emerald-800">Válida</span>
++                                        <template v-else>
++                                            <span class="font-medium text-red-800">Con errores (no se creará)</span>
++                                            <ul class="mt-1 list-disc space-y-0.5 pl-4 text-red-800">
++                                                <li v-for="(e, i) in r.errors" :key="i" class="break-words">{{ e }}</li>
++                                            </ul>
++                                        </template>
++                                    </td>
++                                </tr>
++                            </tbody>
++                        </table>
++                    </div>
++                    <div class="flex flex-wrap gap-2">
++                        <button
++                            type="button"
++                            class="btn-primary"
++                            :disabled="busy || preview.summary.valid === 0"
++                            data-testid="import-confirm"
++                            @click="confirm"
++                        >
++                            Crear {{ preview.summary.valid }}
++                            {{ preview.summary.valid === 1 ? 'publicación' : 'publicaciones' }}
++                        </button>
++                        <button type="button" class="btn-secondary" :disabled="busy" @click="reset"
++                            >Subir otro fichero</button
++                        >
++                    </div>
++                </section>
++
++                <section v-if="outcome" class="space-y-4" aria-labelledby="import-result">
++                    <h2 id="import-result" ref="heading" tabindex="-1" class="text-base font-semibold text-slate-900"
++                        >Resultado de la importación</h2
++                    >
++                    <p class="text-sm text-slate-700" role="status" data-testid="import-outcome">
++                        {{ outcome.summary.created }}
++                        {{ outcome.summary.created === 1 ? 'publicación creada' : 'publicaciones creadas' }} y
++                        {{ outcome.summary.skipped }}
++                        {{ outcome.summary.skipped === 1 ? 'fila omitida' : 'filas omitidas' }}.
++                    </p>
++                    <div
++                        class="card overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
++                        role="region"
++                        aria-label="Resultado de cada fila"
++                        tabindex="0"
++                    >
++                        <table class="w-full text-left text-sm" data-testid="import-result-table">
++                            <caption class="sr-only">Resultado de cada fila</caption>
++                            <thead class="border-b border-slate-200 text-xs uppercase text-slate-600">
++                                <tr>
++                                    <th scope="col" class="px-3 py-2">Fila</th>
++                                    <th scope="col" class="px-3 py-2">Texto</th>
++                                    <th scope="col" class="px-3 py-2">Resultado</th>
++                                </tr>
++                            </thead>
++                            <tbody>
++                                <tr
++                                    v-for="r in outcome.rows"
++                                    :key="r.row"
++                                    class="border-b border-slate-100 align-top"
++                                    :data-testid="`import-result-${r.row}`"
++                                >
++                                    <td class="px-3 py-2">{{ r.row }}</td>
++                                    <td class="max-w-xs whitespace-pre-line break-words px-3 py-2">{{ r.text }}</td>
++                                    <td class="px-3 py-2">
++                                        <Link
++                                            v-if="r.post_id !== null"
++                                            :href="route('posts.edit', r.post_id)"
++                                            class="link"
++                                            >Creada: abrir publicación</Link
++                                        >
++                                        <template v-else>
++                                            <span class="font-medium text-red-800">Omitida</span>
++                                            <ul class="mt-1 list-disc space-y-0.5 pl-4 text-red-800">
++                                                <li v-for="(e, i) in r.errors" :key="i" class="break-words">{{ e }}</li>
++                                            </ul>
++                                        </template>
++                                    </td>
++                                </tr>
++                            </tbody>
++                        </table>
++                    </div>
++                    <div class="flex flex-wrap gap-2">
++                        <Link :href="route('calendar.index', { brand_id: brand.id, view: 'list' })" class="btn-primary"
++                            >Ver en el calendario</Link
++                        >
++                        <button type="button" class="btn-secondary" @click="reset">Importar otro fichero</button>
++                    </div>
++                </section>
++            </template>
++        </div>
++    </AuthenticatedLayout>
++</template>
+diff --git a/resources/js/types/post-import.d.ts b/resources/js/types/post-import.d.ts
+new file mode 100644
+index 0000000..6f50448
+--- /dev/null
++++ b/resources/js/types/post-import.d.ts
+@@ -0,0 +1,44 @@
++import type { BrandWithTimezone } from './shell';
++
++export interface PostImportAccountHelp {
++    id: number;
++    network: string;
++    network_label: string;
++    name: string;
++    identifier: string;
++}
++
++export interface PostImportPageProps {
++    brand: BrandWithTimezone;
++    limits: { max_rows: number; max_kb: number };
++    columns: string[];
++    required: string[];
++    accounts: PostImportAccountHelp[];
++}
++
++export interface PostImportRow {
++    row: number;
++    valid: boolean;
++    errors: string[];
++    date: string | null;
++    text: string;
++    approval: boolean;
++    media: number[];
++    accounts: { id: number; network: string; network_label: string; name: string; content_type: string }[];
++}
++
++export interface PostImportPreview {
++    token: string;
++    summary: { total: number; valid: number; invalid: number };
++    rows: PostImportRow[];
++}
++
++export interface PostImportOutcomeRow extends PostImportRow {
++    post_id: number | null;
++}
++
++export interface PostImportOutcome {
++    summary: { created: number; skipped: number };
++    rows: PostImportOutcomeRow[];
++    repeated: boolean;
++}
+diff --git a/tests/e2e/csv-import.spec.ts b/tests/e2e/csv-import.spec.ts
+new file mode 100644
+index 0000000..310891b
+--- /dev/null
++++ b/tests/e2e/csv-import.spec.ts
+@@ -0,0 +1,121 @@
++import { expect, test } from '@playwright/test';
++import {
++    artisan,
++    axeSeriousCritical,
++    cleanComposerBrands,
++    e2eUser,
++    expectNoOverflow,
++    loginAs,
++    seedComposerBrand,
++    settle,
++    stamp,
++    watch,
++    type ComposerBrand,
++} from './helpers';
++
++/**
++ * Importación de publicaciones por CSV (T-83, E2E-22): la vista previa lista las filas inválidas sin crearlas y, al confirmar,
++ * solo las válidas aparecen como publicaciones. Usuarios `e2e-*` y marcas `e2e-composer-*`: no toca datos reales.
++ */
++test.describe.configure({ mode: 'serial' });
++
++let brand: ComposerBrand;
++const label = `csv-import-${stamp()}`;
++
++/** CSV del test con el identificador `red:id` de la cuenta de Facebook de la marca sembrada. */
++const buildCsv = (facebook: string) =>
++    [
++        'fecha;texto;cuentas;tipo;medios;aprobacion',
++        `2031-03-10 10:00;E2E import programada;${facebook};;;`,
++        `;"E2E import borrador\ncon dos líneas, y una coma";${facebook};;;`,
++        `10/03/2020 10:00:00;E2E import en el pasado;${facebook};;;`,
++        ';E2E import cuenta inexistente;facebook:999999999;;;',
++    ].join('\n');
++
++/** Identificador `red:id` de la cuenta de Facebook de la marca. */
++const facebookId = (brandId: number) =>
++    `facebook:${artisan(
++        String.raw`echo 'ACC:' . App\Models\SocialAccount::withoutUserScope()->where('brand_id', ${brandId})->where('network', 'facebook')->value('id');`,
++    ).match(/ACC:(\d+)/)![1]}`;
++
++/** Publicaciones de la marca cuyo texto empieza por «E2E import». */
++const created = (brandId: number) =>
++    Number(
++        artisan(
++            String.raw`echo 'COUNT:' . App\Models\Post::withoutUserScope()->where('brand_id', ${brandId})->where('text', 'like', 'E2E import%')->count();`,
++        ).match(/COUNT:(\d+)/)![1],
++    );
++
++test.describe('Importar CSV', { tag: '@responsive' }, () => {
++    test.beforeEach(async ({ page }, info) => {
++        const user = e2eUser(info.project.name);
++        cleanComposerBrands(user.email);
++        brand = seedComposerBrand(user.email, `${label}-${info.project.name}`);
++        await loginAs(page, user);
++    });
++
++    test.afterEach(async ({}, info) => {
++        cleanComposerBrands(e2eUser(info.project.name).email);
++    });
++
++    test('E2E-22 · importar CSV: las filas inválidas se listan sin crearse y al confirmar las válidas aparecen como publicaciones', async ({
++        page,
++    }, info) => {
++        const w = watch(page);
++        await page.goto(`/brands/${brand.id}/posts/import`);
++        await settle(page);
++        await expect(
++            page.getByRole('heading', { name: `Importar publicaciones por CSV · ${brand.name}`, exact: true }),
++        ).toBeVisible();
++        await expect(page.getByRole('link', { name: 'Descargar CSV de ejemplo', exact: true })).toBeVisible();
++        await expectNoOverflow(page);
++        await axeSeriousCritical(page, 'Importar CSV: estado inicial');
++        await page.screenshot({ path: info.outputPath('csv-import-initial.png'), fullPage: true });
++
++        await page.getByLabel('Fichero CSV', { exact: true }).setInputFiles({
++            name: 'publicaciones.csv',
++            mimeType: 'text/csv',
++            buffer: Buffer.from(buildCsv(facebookId(brand.id)), 'utf8'),
++        });
++        await page.getByRole('button', { name: 'Analizar fichero', exact: true }).click();
++
++        await expect(page.getByTestId('import-summary')).toContainText('4 filas: 2 válidas y 2 con errores');
++        const table = page.getByTestId('import-preview-table');
++        await expect(table.getByTestId('import-row-2')).toContainText('Válida');
++        await expect(table.getByTestId('import-row-3')).toContainText('Válida');
++        await expect(table.getByTestId('import-row-4')).toContainText('Con errores (no se creará)');
++        await expect(table.getByTestId('import-row-5')).toContainText('Con errores (no se creará)');
++        await expect(table.getByTestId('import-row-5')).toContainText(
++            'No hay ninguna cuenta «facebook:999999999» en esta marca.',
++        );
++        expect(created(brand.id), 'la vista previa no crea nada').toBe(0);
++        await expectNoOverflow(page);
++        await axeSeriousCritical(page, 'Importar CSV: vista previa');
++
++        await page.getByTestId('import-confirm').click();
++        const dialog = page.getByRole('alertdialog');
++        await expect(dialog).toContainText('Se crearán 2 publicaciones y se omitirán 2 filas con errores');
++        await dialog.getByRole('button', { name: 'Crear publicaciones', exact: true }).click();
++
++        await expect(page.getByTestId('import-outcome')).toContainText('2 publicaciones creadas y 2 filas omitidas.');
++        const result = page.getByTestId('import-result-table');
++        await expect(
++            result.getByTestId('import-result-2').getByRole('link', { name: 'Creada: abrir publicación' }),
++        ).toBeVisible();
++        await expect(
++            result.getByTestId('import-result-3').getByRole('link', { name: 'Creada: abrir publicación' }),
++        ).toBeVisible();
++        await expect(result.getByTestId('import-result-4')).toContainText('Omitida');
++        await expect(result.getByTestId('import-result-5')).toContainText('Omitida');
++        expect(created(brand.id), 'solo las 2 filas válidas se crean').toBe(2);
++        await expectNoOverflow(page);
++        await axeSeriousCritical(page, 'Importar CSV: resultado');
++        await page.screenshot({ path: info.outputPath('csv-import-final.png'), fullPage: true });
++
++        // Las publicaciones creadas se abren en el compositor con el texto importado (incluido el salto de línea).
++        await result.getByTestId('import-result-3').getByRole('link', { name: 'Creada: abrir publicación' }).click();
++        await page.waitForURL(/\/posts\/\d+\/edit$/);
++        await expect(page.locator('#text')).toHaveValue('E2E import borrador\ncon dos líneas, y una coma');
++        expect(w.errors, 'errores de consola').toEqual([]);
++    });
++});

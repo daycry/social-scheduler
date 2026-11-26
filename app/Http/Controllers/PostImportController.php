@@ -39,6 +39,7 @@ class PostImportController extends Controller
             'required' => PostCsvImport::REQUIRED,
             'accounts' => $this->accounts->listForBrand($request->user(), $brand)->map(fn (SocialAccount $a) => [
                 'id' => $a->id,
+                'network' => $a->network->value,
                 'network_label' => $a->network->label(),
                 'name' => $a->name,
                 'identifier' => PostCsvImport::identifier($a),
@@ -63,8 +64,16 @@ class PostImportController extends Controller
         $rows = $this->import->parse((string) file_get_contents($request->file('file')->getRealPath()));
         $preview = $this->import->preview($request->user(), $brand, $rows);
 
+        // Una sola vista previa viva por usuario y marca: la nueva sustituye a las FILAS de la anterior. Nunca se tocan su marca `:claimed` ni su
+        // avance: si su confirmacion sigue en curso (o murio por un timeout), un reintento debe seguir viendo que ya se reclamo y no duplicar.
         $token = Str::random(40);
-        Cache::put($this->key($request, $brand, $token), $rows, now()->addMinutes((int) config('post_import.ttl_minutes')));
+        $current = $this->key($request, $brand, 'current');
+        if (is_string($previous = Cache::get($current))) {
+            Cache::forget($this->key($request, $brand, $previous));
+        }
+        $ttl = now()->addMinutes((int) config('post_import.ttl_minutes'));
+        Cache::put($this->key($request, $brand, $token), ['rows' => $rows], $ttl);
+        Cache::put($current, $token, $ttl);
         $valid = count(array_filter($preview, fn (array $r) => $r['valid']));
 
         return response()->json([
@@ -81,20 +90,39 @@ class PostImportController extends Controller
         $key = $this->key($request, $brand, $token);
         $ttl = now()->addMinutes((int) config('post_import.ttl_minutes'));
 
-        $rows = Cache::get($key);
-        if ($rows === null) {
+        // Ya confirmada: el reintento recibe el mismo resultado, sin crear nada. El avance vive en su propia clave (pequena) y sobrevive a
+        // que una vista previa nueva sustituya las filas.
+        $progress = Cache::get($key.':progress');
+        if (is_array($progress) && $progress['done']) {
+            return $this->outcome($progress['results'], true);
+        }
+        $state = Cache::get($key);
+        if (! is_array($state) && ! is_array($progress)) {
             return response()->json(['message' => 'La importación ha caducado o no existe: sube el fichero otra vez.'], 410);
         }
-        // `true` es la marca de «ya confirmada»; `add` es atomico: de dos confirmaciones simultaneas solo una pasa.
-        if (! is_array($rows) || ! Cache::add($key.':claimed', true, $ttl)) {
-            return response()->json(['message' => 'Esta importación ya se ha confirmado: no se vuelve a crear nada.'], 409);
+        // `add` es atomico: de dos confirmaciones simultaneas (o de un reintento tras una interrumpida) solo una pasa.
+        if (! is_array($state) || ! Cache::add($key.':claimed', true, $ttl)) {
+            return response()->json([
+                'message' => 'Esta importación ya se ha confirmado y está en curso o se interrumpió: no se vuelve a crear nada. Estas son las filas ya procesadas.',
+                'rows' => $progress['results'] ?? [],
+            ], 409);
         }
 
-        $results = $this->import->import($request->user(), $brand, $rows);
-        Cache::put($key, true, $ttl); // las filas ya no hacen falta: queda solo la marca de confirmada
+        $results = $this->import->import($request->user(), $brand, $state['rows'], fn (array $done) => Cache::put($key.':progress', ['results' => $done, 'done' => false], $ttl));
+        Cache::put($key.':progress', ['results' => $results, 'done' => true], $ttl);
+        Cache::forget($key); // las filas ya no hacen falta: queda el resultado
+
+        return $this->outcome($results, false);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $results
+     */
+    private function outcome(array $results, bool $repeated): JsonResponse
+    {
         $created = count(array_filter($results, fn (array $r) => $r['post_id'] !== null));
 
-        return response()->json(['summary' => ['created' => $created, 'skipped' => count($results) - $created], 'rows' => $results]);
+        return response()->json(['summary' => ['created' => $created, 'skipped' => count($results) - $created], 'rows' => $results, 'repeated' => $repeated]);
     }
 
     public function sample(Request $request, Brand $brand): StreamedResponse

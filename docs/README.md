@@ -34,6 +34,7 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Publicar una web de la marca en `/s/{slug}` | [Sitios](modulos/sitios.md) |
 | Proponer una fecha futura con métricas de la marca | [Planificar](usuario/planificar.md) |
 | Crear un borrador independiente de una publicación guardada | [Duplicar](usuario/duplicar.md) |
+| Importar muchas publicaciones de una marca desde un CSV | [Importar CSV](usuario/importar-csv.md) |
 | Recibir eventos firmados en tu propio receptor HTTPS | [Webhooks salientes](api/webhooks.md) |
 | Configurar hitos, caídas y avisos de caducidad por marca/cuenta | [Objetivos y alertas](modulos/analitica.md#objetivos-y-alertas-t-79) |
 | Consultar salud, trabajadores, caducidades y cuotas como operador | [Estado del sistema](modulos/despliegue.md#pantalla-de-estado-del-sistema) |

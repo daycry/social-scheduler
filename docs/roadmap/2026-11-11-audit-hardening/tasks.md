@@ -48,9 +48,9 @@ estado: en-progreso
 | Fase 5 — Frontend | 15 | 18 | 83% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
 | Fase 5b — Unificación | 4 | 8 | 50% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
 | Fase 6 — Operación y repositorio | 4 | 6 | 67% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
-| Fase 7 — Funciones nuevas | 8 | 24 | 33% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
+| Fase 7 — Funciones nuevas | 9 | 24 | 38% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **81** | **108** | **75%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
+| **TOTAL** | **82** | **108** | **76%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -4344,35 +4344,37 @@ CoberturaM3extra descubre registrodoble deListeners por autodetección+PushServi
 ### T-83 — Importación masiva de posts por CSV
 
 - **Descripción**: Subir un CSV, validarlo fila a fila con `posts/validate` (vista previa con errores) y crear los posts como borradores o programados.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Importar publicaciones desde un CSV: vista previa fila a fila con los errores (sin crear nada), confirmación que crea solo las filas válidas con la misma validación que el compositor y no duplica al reintentar, y CSV de ejemplo descargable con las cuentas de la marca.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-82
 - **Tipo**: fullstack
-- **Archivos**: `app/Services/BatchService.php`, `app/Http/Controllers/PostImportController.php`, `resources/js/Pages/Posts/Import.vue`, `docs/usuario/importar-csv.md`
+- **Archivos**: `app/Services/Posts/PostCsvImport.php`, `app/Http/Controllers/PostImportController.php`, `config/post_import.php`, `config/rate_limits.php`, `routes/web.php`, `resources/js/Pages/Posts/Import.vue`, `resources/js/types/post-import.d.ts`, `resources/js/navigation.js`, `tests/Feature/Posts/PostCsvImportTest.php`, `tests/e2e/csv-import.spec.ts`, `docs/usuario/importar-csv.md`, `docs/README.md`, `CHANGELOG.md`, `CHANGELOG.es.md`, `docs/roadmap/2026-11-11-audit-hardening/testing/t83/**`
 - **Cubre**: F-09
 - **Cubre (tests)**: E2E-22
 - **Verificación**: `php artisan test --compact --filter=PostCsvImportTest` → verde
 
 **Criterios de aceptación**
-- [ ] Las filas inválidas se muestran sin crear nada
-- [ ] Las válidas crean posts con la misma validación que el compositor
-- [ ] Hay un CSV de ejemplo descargable
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Las filas inválidas se muestran sin crear nada
+- [x] Las válidas crean posts con la misma validación que el compositor
+- [x] Hay un CSV de ejemplo descargable
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M.
+
+**Cierre — 2026-11-26:** `PostCsvImport` + `PostImportController` + `Posts/Import.vue` (entrada «Importar CSV» en Planificación). CSV UTF-8 (BOM tolerado), separador `;`/`,`, RFC 4180; columnas `fecha` (`AAAA-MM-DD HH:MM`, ISO con `T` o `DD/MM/AAAA HH:MM` como lo guarda Excel; nunca MM/DD), `texto`, `cuentas` (`red:id`, inequívoco), `tipo`, `medios`, `aprobacion`. Cada fila es el payload del compositor y se valida y crea con `PostRequest` + `PostService` (mismas reglas, sin vías propias). Confirmación con token de un solo uso (`Cache::add` atómico también en `CACHE_STORE=database`), avance en clave aparte y reintento que devuelve el mismo resumen; una vista previa nueva sustituye a la anterior sin borrar su bloqueo. CSV de ejemplo con `CsvWriter` (sin celdas de fórmula, CWE-1236) y solo filas válidas para las cuentas reales. Límites 200 filas, 1024 KB, 30 min, throttle 20/10 por minuto. `BatchService` no se usa (no tenía nada reutilizable). Revisión adversarial A+B+C en 3 intentos (1 Important + 7 Minor; N1 Important y 3 Minor nuevos; verificación sin gaps): `testing/t83/reviews/`. QA: Pest 44/44 (258 aserciones) y 84/84 con `PostsTest`; Node 799/799; typecheck/lint/format:check/pint/build verdes; E2E-22 + compositor 69/69 y E2E-22 final 3/3 en tres tamaños con axe.
 
 ### T-84 — Copia de seguridad y exportación completa (ZIP)
 

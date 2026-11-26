@@ -11,6 +11,7 @@ use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\PostService;
 use App\Services\SocialAccountService;
+use App\Support\CsvWriter;
 use App\Support\LocalDateTime;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
@@ -36,12 +37,10 @@ class PostCsvImport
 
     public function __construct(private readonly PostService $posts, private readonly SocialAccountService $accounts) {}
 
-    /** Identificador de una cuenta en la columna `cuentas`: `red:@usuario` si tiene usuario, `red:nombre` si no. */
+    /** Identificador de una cuenta en la columna `cuentas`: `red:id`. El id es unico, no lleva espacios ni `|` y nunca confunde dos cuentas. */
     public static function identifier(SocialAccount $account): string
     {
-        $username = ltrim((string) $account->username, '@');
-
-        return $account->network->value.':'.($username !== '' ? '@'.$username : $account->name);
+        return $account->network->value.':'.$account->id;
     }
 
     /**
@@ -111,7 +110,9 @@ class PostCsvImport
         $header = array_map(fn ($c) => strtr(mb_strtolower(trim((string) $c)), ['ó' => 'o']), $cells);
         $unknown = array_values(array_unique(array_filter($header, fn (string $c) => ! in_array($c, self::COLUMNS, true))));
         if ($unknown !== []) {
-            $this->fileError('Columnas desconocidas: '.implode(', ', $unknown).'. Las columnas son: '.implode(', ', self::COLUMNS).'.');
+            $shown = array_map(fn (string $c) => '«'.mb_strimwidth($c, 0, 30, '…').'»', array_slice($unknown, 0, 5));
+            $more = count($unknown) > 5 ? ' y '.(count($unknown) - 5).' más' : '';
+            $this->fileError('Columnas desconocidas: '.implode(', ', $shown).$more.'. Las columnas son: '.implode(', ', self::COLUMNS).'.');
         }
         if (count(array_unique($header)) !== count($header)) {
             $this->fileError('Hay columnas repetidas en la cabecera.');
@@ -142,9 +143,10 @@ class PostCsvImport
      * haberse desconectado) y un fallo de una fila no detiene las demas.
      *
      * @param  list<array<string, mixed>>  $rows
+     * @param  (callable(list<array<string, mixed>>): void)|null  $progress  se llama tras cada fila con los resultados acumulados
      * @return list<array<string, mixed>>
      */
-    public function import(User $user, Brand $brand, array $rows): array
+    public function import(User $user, Brand $brand, array $rows, ?callable $progress = null): array
     {
         $accounts = $this->accounts->listForBrand($user, $brand);
         $results = [];
@@ -162,45 +164,64 @@ class PostCsvImport
                 }
             }
             $results[] = $this->view($evaluated) + ['post_id' => $postId];
+            if ($progress !== null) {
+                $progress($results);
+            }
         }
 
         return $results;
     }
 
-    /** CSV de ejemplo con las columnas documentadas y dos filas de muestra, con las cuentas reales de la marca si las tiene. */
+    /**
+     * CSV de ejemplo con las columnas documentadas (lineas `#`), la leyenda de las cuentas reales de la marca y filas de muestra que SON validas
+     * para esas cuentas: cada candidata pasa por la misma validacion que la importacion y solo entra la que no da errores. Sin cuentas o sin
+     * ninguna que admita una fila sin media, no hay filas y un comentario lo explica. Se escribe con `CsvWriter`: separador de
+     * `reports.csv_locale` y ninguna celda puede empezar por una formula.
+     */
     public function sample(User $user, Brand $brand): string
     {
-        $priority = [Network::Facebook, Network::Bluesky, Network::Threads, Network::LinkedIn];
-        $accounts = $this->accounts->listForBrand($user, $brand)->sortBy(function (SocialAccount $a) use ($priority) {
-            $position = array_search($a->network, $priority, true);
-
-            return $position === false ? count($priority) : $position;
-        })->values();
-        $first = $accounts->get(0) ? self::identifier($accounts[0]) : 'facebook:Nombre de tu página';
-        $second = $accounts->get(1) ? self::identifier($accounts[1]) : 'bluesky:@usuario.bsky.social';
+        $accounts = $this->accounts->listForBrand($user, $brand);
+        $writer = CsvWriter::forConfiguredLocale();
         $zone = $brand->timezone ?: 'UTC';
+        $when = now($zone)->addDay()->format('Y-m-d').' 10:00';
 
-        $stream = fopen('php://temp', 'r+');
-        fwrite($stream, "\xEF\xBB\xBF");
-        foreach ([
-            '# Importar publicaciones. Las líneas que empiezan por # antes de la cabecera se ignoran: borra estas explicaciones y las filas de muestra.',
-            '# fecha: hora local de la marca, AAAA-MM-DD HH:MM. Vacía = borrador.',
-            '# texto: el texto de la publicación; entre comillas si lleva comas o saltos de línea.',
-            '# cuentas: una o varias cuentas de ESTA marca separadas por |, como red:Nombre o red:@usuario (con @ se busca por usuario).',
-            '# tipo (opcional): tipos de contenido separados por | (por ejemplo instagram_reel). Si falta, se usa el de cada red por defecto.',
-            '# medios (opcional): ids de archivos de tu biblioteca separados por |.',
-            '# aprobacion (opcional): sí o no. Con sí la publicación nace como borrador pendiente de aprobar.',
-        ] as $comment) {
-            fwrite($stream, $comment."\n");
+        $valid = fn (SocialAccount $a, string $date) => $this->evaluate($user, $brand, $accounts, ['row' => 0, 'fecha' => $date, 'texto' => 'Ejemplo', 'cuentas' => self::identifier($a), 'tipo' => '', 'medios' => '', 'aprobacion' => ''])['errors'] === [];
+        $scheduled = $accounts->first(fn (SocialAccount $a) => $valid($a, $when));
+        $drafts = $accounts->filter(fn (SocialAccount $a) => $valid($a, ''))->take(2);
+
+        $out = CsvWriter::BOM;
+        $comments = [
+            'Importar publicaciones. Las líneas que empiezan por # antes de la cabecera se ignoran: borra estas explicaciones y las filas de muestra.',
+            'fecha: hora local de la marca, AAAA-MM-DD HH:MM o DD/MM/AAAA HH:MM. Vacía = borrador.',
+            'texto: el texto de la publicación; entre comillas si lleva comas.',
+            'cuentas: una o varias cuentas de ESTA marca separadas por |, escritas red:id. Las de esta marca son:',
+        ];
+        foreach ($accounts as $a) {
+            $comments[] = '  '.self::identifier($a).' = '.$a->network->label().': '.mb_strimwidth((string) preg_replace('/[\s;,]+/u', ' ', (string) CsvWriter::cell($a->name)), 0, 60, '…');
         }
-        fputcsv($stream, self::COLUMNS, ';', '"', '');
-        fputcsv($stream, [now($zone)->addDay()->format('Y-m-d').' 10:00', 'Texto de ejemplo: una publicación programada.', $first, '', '', 'no'], ';', '"', '');
-        fputcsv($stream, ['', "Borrador con varias líneas,\ny una coma entre comillas.", $first.'|'.$second, '', '', ''], ';', '"', '');
-        rewind($stream);
-        $csv = (string) stream_get_contents($stream);
-        fclose($stream);
+        array_push($comments,
+            'tipo (opcional): tipos de contenido separados por | (por ejemplo instagram_reel). Si falta, se usa el de cada red por defecto.',
+            'medios (opcional): ids de archivos de tu biblioteca separados por |. Algunas redes (Instagram, TikTok, YouTube, Pinterest) los exigen.',
+            'aprobacion (opcional): sí o no. Con sí la publicación nace como borrador pendiente de aprobar.',
+        );
+        if ($accounts->isEmpty()) {
+            $comments[] = 'Esta marca no tiene cuentas conectadas: conecta una y vuelve a descargar este ejemplo.';
+        } elseif ($scheduled === null && $drafts->isEmpty()) {
+            $comments[] = 'Las redes de esta marca exigen archivos: añade los ids de tu biblioteca en medios para que una fila sea válida.';
+        }
+        foreach ($comments as $comment) {
+            $out .= '# '.str_replace(["\r", "\n"], ' ', $comment)."\n";
+        }
 
-        return $csv;
+        $out .= $writer->line(self::COLUMNS);
+        if ($scheduled !== null) {
+            $out .= $writer->line([$when, 'Texto de ejemplo: una publicación programada.', self::identifier($scheduled), '', '', 'no']);
+        }
+        if ($drafts->isNotEmpty()) {
+            $out .= $writer->line(['', 'Borrador de ejemplo, con una coma entre comillas.', $drafts->map(fn (SocialAccount $a) => self::identifier($a))->implode('|'), '', '', '']);
+        }
+
+        return $out;
     }
 
     /**
@@ -262,6 +283,9 @@ class PostCsvImport
     }
 
     /**
+     * Fecha local de la marca. Formatos: `AAAA-MM-DD HH:MM` (con `T` o espacio) y `DD/MM/AAAA HH:MM` (como lo reescribe Excel en espanol; dia y mes de
+     * una o dos cifras), con segundos opcionales si son `00`. Nunca se interpreta `MM/DD`: el primer numero de una fecha con barras es el dia.
+     *
      * @param  list<string>  $errors
      * @return array{0: ?string, 1: ?string} valor `AAAA-MM-DDTHH:MM` para el compositor y fecha legible
      */
@@ -270,9 +294,35 @@ class PostCsvImport
         if ($value === '') {
             return [null, null];
         }
-        $wall = preg_match('/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})$/D', $value, $m) === 1 ? $m[1].'T'.$m[2] : null;
-        if ($wall === null || LocalDateTime::parseUnique($wall, $brand->timezone ?: 'UTC') === null) {
-            $errors[] = 'La fecha debe tener el formato AAAA-MM-DD HH:MM, existir y no ser ambigua en la zona horaria de la marca.';
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?$/D', $value, $m) === 1) {
+            [$year, $month, $day] = [$m[1], $m[2], $m[3]];
+        } elseif (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4}) (\d{1,2}):(\d{2})(?::(\d{2}))?$/D', $value, $m) === 1) {
+            [$day, $month, $year] = [$m[1], $m[2], $m[3]];
+            if ((int) $month > 12) {
+                $errors[] = "La fecha «{$value}» tiene el mes {$month}: con barras el formato es DD/MM/AAAA (primero el día, después el mes).";
+
+                return [null, $value];
+            }
+        } else {
+            $errors[] = "La fecha «{$value}» no tiene un formato válido: usa AAAA-MM-DD HH:MM o DD/MM/AAAA HH:MM.";
+
+            return [null, $value];
+        }
+        [$hour, $minute, $second] = [(int) $m[4], (int) $m[5], (int) ($m[6] ?? 0)];
+        if (! checkdate((int) $month, (int) $day, (int) $year) || $hour > 23 || $minute > 59 || $second > 59) {
+            $errors[] = "La fecha «{$value}» no existe en el calendario.";
+
+            return [null, $value];
+        }
+        if ($second !== 0) {
+            $errors[] = "La fecha «{$value}» lleva segundos distintos de 00: las publicaciones se programan al minuto.";
+
+            return [null, $value];
+        }
+
+        $wall = sprintf('%04d-%02d-%02dT%02d:%02d', $year, $month, $day, $hour, $minute);
+        if (LocalDateTime::parseUnique($wall, $brand->timezone ?: 'UTC') === null) {
+            $errors[] = "La hora «{$value}» no existe o es ambigua en la zona horaria de la marca (cambio de hora).";
 
             return [null, $value];
         }
@@ -291,7 +341,7 @@ class PostCsvImport
         $targets = [];
         $tokens = array_values(array_filter(array_map('trim', explode('|', $accountsCell)), fn (string $t) => $t !== ''));
         if ($tokens === []) {
-            $errors[] = 'Indica al menos una cuenta (red:Nombre o red:@usuario).';
+            $errors[] = 'Indica al menos una cuenta (red:id, como aparece en la página de importación).';
         }
 
         foreach ($tokens as $token) {
@@ -333,43 +383,27 @@ class PostCsvImport
     }
 
     /**
+     * Resuelve `red:id` contra las cuentas de la marca. Solo por id: no hay forma de elegir una cuenta equivocada.
+     *
      * @param  Collection<int, SocialAccount>  $accounts
      * @param  list<string>  $errors
      */
     private function account(string $token, Collection $accounts, array &$errors): ?SocialAccount
     {
-        $pos = strpos($token, ':');
-        if ($pos === false) {
-            $errors[] = "Cuenta «{$token}» no válida: usa red:Nombre o red:@usuario.";
+        if (preg_match('/^([A-Za-z]+)\s*:\s*(\d{1,18})$/D', $token, $m) !== 1) {
+            $errors[] = "Cuenta «{$token}» no válida: usa red:id, como aparece en la página de importación.";
 
             return null;
         }
-        $network = Network::tryFrom(strtolower(trim(substr($token, 0, $pos))));
-        $ident = trim(substr($token, $pos + 1));
-        if ($network === null || $ident === '') {
-            $errors[] = "Cuenta «{$token}» no válida: usa red:Nombre o red:@usuario.";
+        $network = Network::tryFrom(strtolower($m[1]));
+        $account = $network === null ? null : $accounts->first(fn (SocialAccount $a) => $a->network === $network && $a->id === (int) $m[2]);
 
-            return null;
-        }
-
-        $byUsername = str_starts_with($ident, '@');
-        $wanted = mb_strtolower($byUsername ? ltrim($ident, '@') : $ident);
-        $found = $accounts->filter(fn (SocialAccount $a) => $a->network === $network
-            && mb_strtolower($byUsername ? ltrim((string) $a->username, '@') : $a->name) === $wanted)->values();
-
-        // Una cuenta inexistente, de otra marca o de otro usuario dan el mismo mensaje: no se revela si existe en otro sitio.
-        if ($found->isEmpty()) {
+        // Una cuenta inexistente, de otra red, de otra marca o de otro usuario dan el mismo mensaje: no se revela si existe en otro sitio.
+        if ($account === null) {
             $errors[] = "No hay ninguna cuenta «{$token}» en esta marca.";
-
-            return null;
-        }
-        if ($found->count() > 1) {
-            $errors[] = "Hay varias cuentas «{$token}» en esta marca: identifícala con @usuario.";
-
-            return null;
         }
 
-        return $found[0];
+        return $account;
     }
 
     /** Tipo de cada red cuando la columna `tipo` no lo indica. */

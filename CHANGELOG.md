@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — bulk post import from CSV (audit-hardening, T-83)
+
+- Import many posts into a brand from a CSV: review every row with its errors first (nothing is created), then confirm to create only the valid ones with the same validation as the composer. Download a sample CSV from the page; limits are 200 rows and 1 MB. A confirmation can only be used once, so a double click never duplicates posts.
+
 ### Added — adapt text to each network with AI (audit-hardening, T-82)
 
 - Adapt the common text to every selected network in a single AI request and review one version per network before applying it; versions that exceed a network's text or hashtag rules are rejected, not truncated. Generate editable image alt text from the composer. Both buttons stay disabled, with the reason, when the AI assistant is not configured.

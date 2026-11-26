@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
-    <title>Baja del informe programado · {{ config('app.name') }}</title>
+    <title>{{ $title }} · {{ config('app.name') }}</title>
     <style>
         body { font-family: system-ui, sans-serif; max-width: 34rem; margin: 3rem auto; padding: 0 1rem; line-height: 1.6; color: #1f2937; }
         h1 { font-size: 1.4rem; }
@@ -16,10 +16,10 @@
     <main>
         @if ($done)
             <h1 role="status">Listo</h1>
-            <p>Ya no recibirás este informe programado.</p>
+            <p>{{ $doneText }}</p>
         @else
-            <h1>¿Dejar de recibir este informe?</h1>
-            <p>Se quitará <strong>{{ $email }}</strong> de los destinatarios de este informe programado.</p>
+            <h1>{{ $question }}</h1>
+            <p>{{ $detail }}</p>
             <form method="POST" action="{{ $action }}">
                 <button type="submit">Darme de baja</button>
             </form>

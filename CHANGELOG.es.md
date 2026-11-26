@@ -5,6 +5,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Added — resumen semanal y preferencias de avisos (audit-hardening, T-86)
+
+- Recibe cada lunes por la mañana (en la zona horaria de tu marca principal) un resumen con los seguidores, visualizaciones, alcance, interacciones, publicaciones publicadas y la mejor publicación de la semana anterior de cada marca, comparados con la previa, como aviso en la aplicación (y por push si lo tienes activado) y por correo si activaste los avisos por correo, con un enlace de baja de un clic. Las marcas sin datos salen como «sin datos». Viene apagado por defecto; un párrafo opcional escrito con IA (solo si el asistente está configurado) envía únicamente el nombre de tus marcas y las cifras agregadas. Las nuevas preferencias de avisos, en Notificaciones del navegador, permiten activar o desactivar el resumen y el recordatorio de publicación manual (encendido por defecto); el aviso de «es la hora» se envía siempre.
+
 ### Added — búsqueda global y paleta de comandos (audit-hardening, T-85)
 
 - Pulsa Ctrl+K (Cmd+K en macOS) o el botón Buscar de la cabecera para abrir una paleta que se maneja con el teclado y encuentra al momento las páginas y acciones de la aplicación y, desde dos letras, tus publicaciones, marcas, archivos de la biblioteca, diseños del Estudio, campañas, plantillas, sitios y smart links, con la marca, la fecha en la zona horaria de la marca y el estado. Solo devuelve lo que ya ves en el resto de la aplicación (como aprobador de una marca ajena, las publicaciones pendientes de tu aprobación y los diseños de esa marca), con un máximo de 5 resultados por tipo y 20 en total.

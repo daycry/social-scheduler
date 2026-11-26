@@ -22,6 +22,7 @@ use App\Http\Controllers\LibraryController;
 use App\Http\Controllers\Mcp\OAuth\AuthorizeController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\NotificationPreferenceController;
 use App\Http\Controllers\OAuth\OAuthController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\PostImportController;
@@ -89,6 +90,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('activity', [ActivityController::class, 'index'])->name('activity.index');
     Route::get('system', SystemStatusController::class)->name('system.index');
     Route::get('profile/notifications', [PushSubscriptionController::class, 'index'])->name('profile.notifications');
+    Route::patch('profile/notification-preferences', [NotificationPreferenceController::class, 'update'])->middleware('throttle:profile.notification-preferences')->name('profile.notification-preferences');
     Route::post('profile/push-subscriptions', [PushSubscriptionController::class, 'store'])->middleware('throttle:push-settings')->name('profile.push-subscriptions.store');
     Route::delete('profile/push-subscriptions/{pushSubscription}', [PushSubscriptionController::class, 'destroy'])->middleware('throttle:push-settings')->name('profile.push-subscriptions.destroy');
     // Exportacion completa de datos en ZIP (T-84): se pide, se genera en cola y se descarga con un enlace firmado (`link` lo genera al pulsar).
@@ -219,6 +221,11 @@ Route::get('report-schedules/{schedule}/unsubscribe', [ReportScheduleController:
     ->middleware(['signed', 'throttle:report-schedules.unsubscribe.confirm'])->whereNumber('schedule')->name('report-schedules.unsubscribe.confirm');
 Route::post('report-schedules/{schedule}/unsubscribe', [ReportScheduleController::class, 'unsubscribe'])
     ->middleware(['signed', 'throttle:report-schedules.unsubscribe'])->whereNumber('schedule')->name('report-schedules.unsubscribe');
+// Baja del resumen semanal (T-86): mismo patron firmado y de un clic (GET confirma sin efectos, POST firmado desactiva).
+Route::get('digest/{user}/unsubscribe', [NotificationPreferenceController::class, 'confirmUnsubscribe'])
+    ->middleware(['signed', 'throttle:digest.unsubscribe.confirm'])->whereNumber('user')->name('digest.unsubscribe.confirm');
+Route::post('digest/{user}/unsubscribe', [NotificationPreferenceController::class, 'unsubscribe'])
+    ->middleware(['signed', 'throttle:digest.unsubscribe'])->whereNumber('user')->name('digest.unsubscribe');
 Route::get('reports/{report}/download/{owner}', [ReportController::class, 'download'])
     ->middleware(['signed', 'throttle:reports.download'])->whereNumber(['report', 'owner'])->name('reports.download');
 

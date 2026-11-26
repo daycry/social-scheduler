@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — weekly digest and notice preferences (audit-hardening, T-86)
+
+- Get a weekly digest every Monday morning (in your main brand's timezone) with last week's followers, views, reach, interactions, published posts and best post for each brand compared with the week before, as an in-app notice (also by push if enabled) and by email if you enabled email notices, with a one-click unsubscribe link. Brands without data show «no data». It is off by default; an optional AI-written paragraph (only if the assistant is configured) sends just your brand names and aggregate figures. New notice preferences under Browser notifications let you turn the digest and the manual-publishing reminder (on by default) on or off; the "it's time" notice is always sent.
+
 ### Added — global search and command palette (audit-hardening, T-85)
 
 - Press Ctrl+K (Cmd+K on macOS) or the Search button in the header to open a keyboard-friendly palette that finds app pages and actions instantly and, from two letters, your posts, brands, library files, Studio designs, campaigns, post templates, sites and smart links, with brand, date in the brand's timezone and status. It only returns what you can already see elsewhere in the app (as a brand approver, that means the posts waiting for your approval and the designs of that brand), at most 5 results per type and 20 in total.

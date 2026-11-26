@@ -299,10 +299,7 @@ class AnalyticsService
 
         [$from, $to] = $this->bounds($brand, $period);
 
-        $query = fn (): Builder => self::withLatestSnapshot(PostTarget::ownedBy($user)
-            ->whereIn('post_targets.social_account_id', $accounts->pluck('id'))
-            ->where('post_targets.status', PostStatus::Published->value)
-            ->where('post_targets.published_at', '>=', $from)->where('post_targets.published_at', '<', $to), $user->id);
+        $query = fn (): Builder => self::withLatestSnapshot($this->publishedTargets($user, $accounts->pluck('id'), $from, $to), $user->id);
 
         $grammar = DB::connection((new PostTarget)->getConnectionName())->getQueryGrammar();
         // Un `null` JSON es "no disponible": NULLIF evita que MySQL lo lea como la cadena 'null' (que casteada seria 0).
@@ -368,6 +365,28 @@ class AnalyticsService
                 'lm', 'lm.post_target_id', '=', 'post_targets.id',
             )
             ->leftJoin('post_metric_snapshots as pm', fn ($j) => $j->on('pm.post_target_id', '=', 'lm.post_target_id')->on('pm.date', '=', 'lm.last_date'));
+    }
+
+    /**
+     * Publicaciones (destinos) publicadas en el periodo por una marca: las mismas que cuenta el panel (`kpis.posts`), con las cuentas no
+     * desconectadas y los dias en la zona de la marca.
+     */
+    public function publishedCount(User $user, Brand $brand, Period $period): int
+    {
+        $this->assertOwns($user, $brand);
+        $accounts = SocialAccount::ownedBy($user->id)->where('brand_id', $brand->id)->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)->pluck('id');
+        [$from, $to] = $this->bounds($brand, $period);
+
+        return $this->publishedTargets($user, $accounts, $from, $to)->count();
+    }
+
+    /** Destinos publicados de esas cuentas con `published_at` en [desde, hasta). */
+    private function publishedTargets(User $user, iterable $accountIds, CarbonImmutable $from, CarbonImmutable $to): Builder
+    {
+        return PostTarget::ownedBy($user)
+            ->whereIn('post_targets.social_account_id', $accountIds)
+            ->where('post_targets.status', PostStatus::Published->value)
+            ->where('post_targets.published_at', '>=', $from)->where('post_targets.published_at', '<', $to);
     }
 
     /**

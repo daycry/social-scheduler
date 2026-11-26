@@ -44,8 +44,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trimStrings(except: [$keepRawJson]);
         $middleware->convertEmptyStringsToNull(except: [$keepRawJson]);
 
-        // Baja one-click de informes (RFC 8058): el cliente de correo no tiene token CSRF; la firma de la URL protege la peticion.
-        $middleware->validateCsrfTokens(except: ['report-schedules/*/unsubscribe']);
+        // Baja one-click de informes y del resumen semanal (RFC 8058): el cliente de correo no tiene token CSRF; la firma de la URL protege la peticion.
+        $middleware->validateCsrfTokens(except: ['report-schedules/*/unsubscribe', 'digest/*/unsubscribe']);
 
         $middleware->web(append: [
             HandleInertiaRequests::class,

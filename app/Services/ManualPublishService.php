@@ -65,8 +65,12 @@ class ManualPublishService
 
     /**
      * Recordatorio previo (T-32): avisa una sola vez, `social.series.manual_reminder_minutes` antes de la hora, de los destinos manuales
-     * aprobados que aun no se han recordado. Mismo claim atomico que `notifyDue()`; en la app siempre y por correo con `notify_by_mail`.
+     * aprobados que aun no se han recordado. Mismo claim atomico que `notifyDue()`; en la app y, con `notify_by_mail`, por correo.
      * Un fallo del correo se registra y no rompe el resto de la pasada.
+     *
+     * Solo recuerda a quien no ha apagado `notify_manual_reminder` (T-86): la preferencia entra en la propia seleccion y en el claim, asi un
+     * usuario sin recordatorio no gasta `manual_reminded_at` y, si lo reactiva antes de la hora, aun lo recibe. `notifyDue()` NO la mira:
+     * el aviso «es la hora» es el que entrega el contenido a copiar y la media de una publicacion que la app no enviara sola, no un extra.
      */
     public function remindUpcoming(): int
     {
@@ -75,6 +79,7 @@ class ManualPublishService
         $eligible = fn () => PostTarget::withoutUserScope()
             ->where('manual', true)->where('status', PostStatus::Scheduled->value)->whereNull('manual_reminded_at')->whereNull('manual_notified_at')
             ->whereIn('post_id', Post::withoutUserScope()->where('scheduled_at', '>', now())->where('scheduled_at', '<=', now()->addMinutes($lead))
+                ->whereIn('user_id', User::query()->where('notify_manual_reminder', true)->select('id'))
                 ->where(fn ($q) => $q->whereNull('approval_status')->orWhere('approval_status', Post::APPROVAL_APPROVED))->select('id'));
         $upcoming = $eligible()->orderBy('id')->limit(500)->pluck('id');
 

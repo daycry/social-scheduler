@@ -11,3 +11,9 @@ export interface PushDevice {
     last_sent_at: string | null;
     current: boolean;
 }
+
+export interface NotificationPreferences {
+    notify_weekly_digest: boolean;
+    weekly_digest_ai: boolean;
+    notify_manual_reminder: boolean;
+}

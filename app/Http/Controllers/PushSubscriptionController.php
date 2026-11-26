@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PushSubscription;
+use App\Services\AiAssistant;
 use App\Services\Push\PushConfiguration;
 use App\Services\Push\PushSubscriptions;
 use Illuminate\Http\RedirectResponse;
@@ -14,7 +15,7 @@ use Symfony\Component\HttpFoundation\Cookie as HttpCookie;
 
 final class PushSubscriptionController extends Controller
 {
-    public function index(Request $request, PushConfiguration $configuration): Response
+    public function index(Request $request, PushConfiguration $configuration, AiAssistant $ai): Response
     {
         $devices = PushSubscription::ownedBy($request->user()->id)->orderByDesc('last_seen_at')->orderByDesc('id')
             ->get(['id', 'device_name', 'last_seen_at', 'last_sent_at'])->map(fn (PushSubscription $subscription) => [
@@ -31,6 +32,10 @@ final class PushSubscriptionController extends Controller
         return Inertia::render('Profile/Notifications', [
             'push' => $configuration->publicState(),
             'subscriptions' => $devices->all(),
+            // Preferencias de avisos por tipo (T-86) y lo que condiciona su pantalla: el correo global y el asistente de IA.
+            'preferences' => $request->user()->only(['notify_weekly_digest', 'weekly_digest_ai', 'notify_manual_reminder']),
+            'mailEnabled' => (bool) $request->user()->notify_by_mail,
+            'aiAvailable' => $ai->enabled(),
         ]);
     }
 

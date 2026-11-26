@@ -318,6 +318,12 @@ Los usuarios descargan un ZIP con sus datos desde **Perfil → Exportar mis dato
 - **Limpieza:** `exports:prune` (cada hora, `routes/console.php`; necesita el cron del scheduler) borra los ZIP pasadas `EXPORTS_RETENTION_HOURS` (72 h), los ZIP de `full-exports/` sin fila, los temporales sin tocar en `EXPORTS_STUCK_MINUTES`, y marca en error las exportaciones en curso sin latido en ese plazo y las pendientes que llevan más de `EXPORTS_PENDING_MINUTES` (360) en cola, liberando el cupo. Borrar la cuenta borra también sus ZIP.
 - **Ritmo:** `profile.export.store` (3/min), `profile.export.link` y `profile.export.download` (30/min) en `config/rate_limits.php`.
 
+## Resumen semanal y preferencias de avisos (T-86)
+
+- **Migración:** `2026_11_26_090100_add_notification_preferences_to_users` añade a `users` cuatro columnas (`notify_weekly_digest`, `weekly_digest_ai`, `notify_manual_reminder` y `weekly_digest_sent_for`) y es reversible: ejecuta `php artisan migrate`. Los usuarios existentes conservan el comportamiento anterior (recordatorio de publicación manual encendido, resumen semanal apagado).
+- **Tarea programada:** `send-weekly-digest` (`SendWeeklyDigest`, cada hora, `withoutOverlapping`) necesita el cron del scheduler y un worker de la cola **`reports`**, que ya existe: no hay colas ni workers nuevos. La tarea solo reparte un job `SendUserWeeklyDigest` por usuario en esa misma cola (timeout de 100 s cada uno). Cada usuario recibe como mucho un resumen por semana (marca de envío con claim atómico, que se devuelve si el job falla sin entregar), de modo que varios servidores o reintentos no duplican. Solo lo reciben los usuarios con el correo verificado. Limitación conocida: con varios workers en la misma cola, el `failed()` de un job duplicado podría liberar la semana de otro que ya la reclamó; el despliegue usa un solo worker con `flock`, así que no se da en la práctica.
+- **Correo e IA:** el correo usa el mailer ya configurado y solo se envía a quien tiene `notify_by_mail`; el párrafo de IA reutiliza `AI_ASSISTANT_ENABLED` y `ANTHROPIC_API_KEY` y el límite diario del asistente.
+
 ## Almacenamiento de media
 
 **Este despliegue usa el disco local del servidor** (`MEDIA_DISK=local`, decisión del 2026-10-23). R2 sigue soportado: para usarlo, `MEDIA_DISK=r2` y las variables `R2_*`.

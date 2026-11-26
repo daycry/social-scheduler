@@ -18,7 +18,7 @@ final class ExportInventory
 
     /** @var array<string, array{table: string, only?: list<string>, except?: list<string>, json?: list<string>, where?: array<string, mixed>, by?: string, via?: array{0: string, 1: string}, order?: list<string>}> */
     public const ENTITIES = [
-        'usuario' => ['table' => 'users', 'by' => 'id', 'only' => ['id', 'name', 'email', 'notify_by_mail', 'created_at']],
+        'usuario' => ['table' => 'users', 'by' => 'id', 'only' => ['id', 'name', 'email', 'notify_by_mail', 'notify_weekly_digest', 'weekly_digest_ai', 'notify_manual_reminder', 'created_at']],
         'marcas' => ['table' => 'brands'],
         'cuentas-conectadas' => ['table' => 'social_accounts', 'only' => ['id', 'brand_id', 'network', 'external_id', 'name', 'username', 'status', 'scopes', 'connected_at', 'created_at'], 'json' => ['scopes']],
         'publicaciones' => ['table' => 'posts', 'except' => ['approval_comment']],

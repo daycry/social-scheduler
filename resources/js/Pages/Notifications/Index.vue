@@ -48,6 +48,7 @@ const LINK = {
     job_done_canva: 'Abrir Canva',
     job_done_import: 'Ver biblioteca',
     job_done_full_export: 'Ver exportación',
+    weekly_digest: 'Abrir el panel',
 };
 // Un aviso de una publicación lleva siempre «Ver publicación» (aunque traiga también `url`); el resto, la etiqueta de su tipo.
 const linkLabel = (n) => (n.post_id ? 'Ver publicación' : (LINK[n.type] ?? 'Abrir'));
@@ -59,7 +60,7 @@ const DYNAMIC_TITLES = {
 };
 function title(n) {
     if (WORKFLOW[n.type]) return WORKFLOW[n.type];
-    if (n.title && (n.type === 'goal_alert' || n.type?.startsWith('job_failed_') || n.type?.startsWith('job_done_'))) return n.title;
+    if (n.title && (n.type === 'goal_alert' || n.type === 'weekly_digest' || n.type?.startsWith('job_failed_') || n.type?.startsWith('job_done_'))) return n.title;
     return DYNAMIC_TITLES[n.type]?.(n) ?? 'Aviso';
 }
 </script>
@@ -82,7 +83,7 @@ function title(n) {
                     v-for="n in notifications"
                     :key="n.id"
                     class="card p-4"
-                    :class="n.read ? 'opacity-70' : (n.type?.startsWith('job_done_') ? 'border-l-4 border-emerald-400' : 'border-l-4 border-red-400')"
+                    :class="n.read ? 'opacity-70' : (n.type?.startsWith('job_done_') || n.type === 'weekly_digest' ? 'border-l-4 border-emerald-400' : 'border-l-4 border-red-400')"
                 >
                     <div class="flex items-start justify-between gap-3">
                         <div>

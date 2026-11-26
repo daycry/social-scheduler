@@ -16,12 +16,15 @@ use Laravel\Passkeys\Contracts\PasskeyUser;
 use Laravel\Passkeys\PasskeyAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'notify_by_mail'])]
+#[Fillable(['name', 'email', 'password', 'notify_by_mail', 'notify_weekly_digest', 'weekly_digest_ai', 'notify_manual_reminder'])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable, PasskeyAuthenticatable;
+
+    /** Igual que los valores por defecto de las columnas: un usuario recien creado en memoria ya tiene sus preferencias de avisos. */
+    protected $attributes = ['notify_weekly_digest' => false, 'weekly_digest_ai' => false, 'notify_manual_reminder' => true];
 
     protected static function booted(): void
     {
@@ -72,6 +75,10 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         return [
             'email_verified_at' => 'datetime',
             'notify_by_mail' => 'boolean',
+            'notify_weekly_digest' => 'boolean',
+            'weekly_digest_ai' => 'boolean',
+            'notify_manual_reminder' => 'boolean',
+            'weekly_digest_sent_for' => 'date',
             'password' => 'hashed',
             'two_factor_secret' => 'encrypted',
             'two_factor_recovery_codes' => 'array',

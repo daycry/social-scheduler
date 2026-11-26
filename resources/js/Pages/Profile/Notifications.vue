@@ -1,15 +1,22 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import Checkbox from '@/Components/Checkbox.vue';
+import InfoNote from '@/Components/InfoNote.vue';
+import PrimaryButton from '@/Components/PrimaryButton.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { useConfirm } from '@/Composables/useConfirm';
 import { activatePush, pushSupported, revokeBrowserPush } from '@/lib/push';
 
-/** @import {PushState, PushDevice} from '@/types/push' */
+/** @import {PushState, PushDevice, NotificationPreferences} from '@/types/push' */
 const props = defineProps({
     push: { type: /** @type {import('vue').PropType<PushState>} */ (Object), required: true },
     subscriptions: { type: /** @type {import('vue').PropType<PushDevice[]>} */ (Array), required: true },
+    preferences: { type: /** @type {import('vue').PropType<NotificationPreferences>} */ (Object), required: true },
+    mailEnabled: { type: Boolean, required: true },
+    aiAvailable: { type: Boolean, required: true },
 });
+const prefs = useForm({ ...props.preferences });
 const name = ref('Este navegador');
 const busy = ref(false);
 const messages = ref(/** @type {string[]} */ ([]));
@@ -62,6 +69,63 @@ async function revoke(device) {
     <AuthenticatedLayout>
         <template #header><h1 class="text-xl font-bold text-slate-900">Notificaciones del navegador</h1></template>
         <div class="max-w-3xl space-y-6">
+            <section class="card space-y-4 p-4 sm:p-6" aria-labelledby="prefs-title">
+                <h2 id="prefs-title" class="text-lg font-semibold text-slate-900">Qué avisos quieres recibir</h2>
+                <form
+                    class="space-y-3"
+                    @submit.prevent="prefs.patch(route('profile.notification-preferences'), { preserveScroll: true })"
+                >
+                    <label class="flex items-start gap-2 text-sm text-slate-700" for="notify_weekly_digest">
+                        <Checkbox
+                            id="notify_weekly_digest"
+                            v-model:checked="prefs.notify_weekly_digest"
+                            data-testid="pref-weekly-digest"
+                        />
+                        <span
+                            >Resumen semanal: cada lunes por la mañana (hora de tu marca principal), las cifras de la
+                            semana anterior de cada marca comparadas con la previa. Llega como aviso y, si tienes
+                            activado el correo, también por correo.</span
+                        >
+                    </label>
+                    <label
+                        class="ml-6 flex items-start gap-2 text-sm text-slate-700"
+                        for="weekly_digest_ai"
+                        :class="{ 'opacity-60': !aiAvailable }"
+                    >
+                        <Checkbox
+                            id="weekly_digest_ai"
+                            v-model:checked="prefs.weekly_digest_ai"
+                            :disabled="!aiAvailable"
+                            data-testid="pref-weekly-digest-ai"
+                        />
+                        <span
+                            >Añadir un párrafo escrito con IA. Se envía al proveedor solo el nombre de tus marcas y las
+                            cifras agregadas.</span
+                        >
+                    </label>
+                    <label class="flex items-start gap-2 text-sm text-slate-700" for="notify_manual_reminder">
+                        <Checkbox
+                            id="notify_manual_reminder"
+                            v-model:checked="prefs.notify_manual_reminder"
+                            data-testid="pref-manual-reminder"
+                        />
+                        <span
+                            >Recordatorio de publicación manual: un aviso antes de la hora de una publicación que tienes
+                            que hacer a mano. El aviso de «es la hora» se envía siempre.</span
+                        >
+                    </label>
+                    <InfoNote v-if="!mailEnabled">
+                        El correo está desactivado: estos avisos solo llegan a la aplicación. Puedes activarlo en
+                        <Link :href="route('profile.edit')" class="underline">tu perfil</Link>.
+                    </InfoNote>
+                    <div class="flex items-center gap-4">
+                        <PrimaryButton :disabled="prefs.processing" data-testid="pref-save"
+                            >Guardar preferencias</PrimaryButton
+                        >
+                        <p v-if="prefs.recentlySuccessful" role="status" class="text-sm text-slate-600">Guardado.</p>
+                    </div>
+                </form>
+            </section>
             <section class="card space-y-4 p-4 sm:p-6" aria-labelledby="push-enable-title">
                 <h2 id="push-enable-title" class="text-lg font-semibold text-slate-900">Activar avisos push</h2>
                 <p class="text-sm text-slate-600"

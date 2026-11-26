@@ -48,9 +48,9 @@ estado: en-progreso
 | Fase 5 — Frontend | 15 | 18 | 83% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
 | Fase 5b — Unificación | 4 | 8 | 50% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
 | Fase 6 — Operación y repositorio | 4 | 6 | 67% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
-| Fase 7 — Funciones nuevas | 11 | 24 | 46% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
+| Fase 7 — Funciones nuevas | 12 | 24 | 50% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **84** | **108** | **78%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
+| **TOTAL** | **85** | **108** | **79%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -1393,7 +1393,7 @@ Resueltos (b): `composer.spec` ×6 (los dos enlaces «Nueva publicación» eran 
 - **Archivos**: `app/Services/SeriesService.php`, `app/Jobs/GenerateSeriesOccurrences.php`, `app/Services/ManualPublishService.php`, `resources/js/Pages/Series/**`, `docs/modulos/planificacion-avanzada.md`, `docs/modulos/workflow-publicaciones.md`, `docs/api/openapi.yaml`, `app/Http/Controllers/PostWorkflowController.php`, `app/Services/PostWorkflowActions.php`, `app/Services/PostService.php`, `app/Models/PostTarget.php`, `app/Notifications/PostWorkflowActivity.php`, `app/Jobs/DispatchDuePosts.php`, `app/Mcp/Tools/ManagePostSeries.php`, `config/social.php`, `routes/post-workflow.php`, `routes/post-workflow-api.php`, `database/migrations/2026_12_22_090000_add_manual_reminded_at_to_post_targets.php`, `tests/Feature/Workflow/SeriesApprovalInheritanceTest.php`, `tests/Feature/Workflow/SeriesBackfillTest.php`, `tests/Feature/Workflow/ManualReminderTest.php`, `tests/e2e/workflow.spec.ts`, `app/Services/ApprovalService.php`, `app/Notifications/ManualPublishReminder.php`, `app/Models/PostSeries.php`, `database/migrations/2026_12_23_090000_add_rule_changed_at_to_post_series.php`, `database/migrations/2026_12_23_090100_add_manual_status_index_to_post_targets.php`
 - **Cubre**: B-15
 - **Cubre (tests)**: E2E-37
-- **Verificación**: `php artisan test --compact --filter=SeriesApprovalInheritanceTest` → verde · `php artisan test --compact --filter=SeriesBackfillTest` → verde · `php artisan test --compact --filter=ManualReminderTest` → verde
+- **Verificación**: `php artisan test --compact --filter=SeriesApprovalInheritanceTest` → verde · `php artisan test --compact --filter=SeriesBackfillTest` → verde · `php artisan test --compact --filter=ManualPublishReminderTest` → verde
 
 **Criterios de aceptación**
 - [x] Las ocurrencias heredan la aprobación de la serie
@@ -4448,35 +4448,37 @@ CoberturaM3extra descubre registrodoble deListeners por autodetección+PushServi
 ### T-86 — Resumen semanal y recordatorio de publicación manual
 
 - **Descripción**: Resumen semanal por correo/in-app (con párrafo de IA opcional) y recordatorio por correo —y por push cuando exista— de las publicaciones manuales.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Resumen semanal opcional cada lunes (en la app, por push y por correo con baja de un clic) con las cifras de la semana por marca frente a la anterior y un párrafo de IA si se activa; el recordatorio de publicación manual llega también por push y, como el resumen, se puede desactivar en las preferencias de avisos.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-85, T-32
 - **Tipo**: fullstack
-- **Archivos**: `app/Jobs/SendWeeklyDigest.php`, `app/Mail/WeeklyDigest.php`, `app/Services/ManualPublishService.php`, `app/Models/ReportSchedule.php`, `resources/js/Pages/Profile/Notifications.vue`, `docs/modulos/informes.md`
+- **Archivos**: `app/Services/WeeklyDigest.php`, `app/Jobs/SendWeeklyDigest.php`, `app/Jobs/SendUserWeeklyDigest.php`, `app/Mail/WeeklyDigest.php`, `app/Notifications/WeeklyDigestReady.php`, `app/Notifications/ManualPublishReminder.php`, `app/Services/ManualPublishService.php`, `app/Services/AnalyticsService.php`, `app/Services/Export/ExportInventory.php`, `app/Http/Controllers/NotificationPreferenceController.php`, `app/Http/Controllers/PushSubscriptionController.php`, `app/Http/Controllers/ReportScheduleController.php`, `app/Models/User.php`, `bootstrap/app.php`, `config/rate_limits.php`, `routes/web.php`, `routes/console.php`, `database/migrations/2026_11_26_090100_add_notification_preferences_to_users.php`, `resources/views/mail/weekly-digest.blade.php`, `resources/views/mail/weekly-digest-text.blade.php`, `resources/views/unsubscribe.blade.php`, `resources/views/reports/unsubscribe.blade.php`, `resources/views/legal/privacy.blade.php`, `resources/js/Pages/Profile/Notifications.vue`, `resources/js/Pages/Notifications/Index.vue`, `resources/js/types/push.d.ts`, `tests/Feature/Notifications/**`, `tests/Feature/Workflow/ManualReminderTest.php`, `tests/Feature/Push/PushSubscriptionTest.php`, `tests/Pest.php`, `tests/e2e/weekly-digest.spec.ts`, `docs/modulos/informes.md`, `docs/modulos/despliegue.md`, `docs/modulos/workflow-publicaciones.md`, `docs/usuario/guia-de-usuario.md`, `CHANGELOG.md`, `CHANGELOG.es.md`, `docs/roadmap/2026-11-11-audit-hardening/testing/t86/**`
 - **Cubre**: F-12, F-16
 - **Cubre (tests)**: E2E-25
 - **Verificación**: `php artisan test --compact --filter=WeeklyDigestTest` → verde · `php artisan test --compact --filter=ManualPublishReminderTest` → verde
 
 **Criterios de aceptación**
-- [ ] El resumen incluye métricas de la semana con comparación
-- [ ] El recordatorio se envía una vez antes de la hora
-- [ ] Ambos se desactivan por preferencia
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] El resumen incluye métricas de la semana con comparación
+- [x] El recordatorio se envía una vez antes de la hora
+- [x] Ambos se desactivan por preferencia
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Qué se puede hacer ya: todo con `Mail::fake`. Queda a la espera (U): SMTP real y, para push, F-07 configurado. **A la espera (no bloquea la fase)**: SMTP real (usuario).
+
+**Cierre — 2026-11-26:** `WeeklyDigest` (lunes desde las 08:00 en la zona de la marca más antigua; métricas de `AnalyticsService::summary`/`publishedCount` y `ReportService::topPosts` con la semana de `ReportSchedule::periodFor`, «sin datos» o «sin comparación» cuando corresponde) repartido por `SendWeeklyDigest` en un `SendUserWeeklyDigest` por usuario (cola `reports`) con claim atómico `weekly_digest_sent_for` que se libera ante fallo o timeout solo si el aviso no se entregó. Aviso `WeeklyDigestReady` (base de datos y por tanto push) y `Mailable` HTML/texto con baja firmada de un clic (RFC 8058) en una única vista `unsubscribe.blade.php` compartida con los informes. Párrafo de IA opcional por `AiAssistant::complete` con la cuota de T-82, cifras y nombres de marca saneados. Preferencias por tipo en `users` (resumen e IA apagados por defecto, recordatorio encendido) en `Profile/Notifications.vue`; `ManualPublishReminder::shouldSend()` respeta la preferencia también en cola y `notifyDue()` («es la hora») no se desactiva. Solo usuarios verificados; limitación de varios workers documentada. Revisión adversarial A+B+C en 2 intentos más verificación (I1, I2 + 6 Minor; N1-N3 Minor): `testing/t86/reviews/`. QA: Pest completo 4637 pasados / 9 omitidos; focal 40/40; Node 814/814; typecheck/lint/format:check/pint/build verdes; E2E resumen + push + avisos + informes 25/25 en tres tamaños con axe. Pendiente del usuario (no bloquea): SMTP real.
 
 ### T-87 — Mastodon y Telegram
 

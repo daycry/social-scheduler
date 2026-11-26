@@ -10,6 +10,7 @@ use App\Jobs\GenerateAutolistPosts;
 use App\Jobs\GenerateSeriesOccurrences;
 use App\Jobs\RefreshPostMetrics;
 use App\Jobs\RefreshTokens;
+use App\Jobs\SendWeeklyDigest;
 use App\Jobs\SyncInboxComments;
 use App\Support\HealthCheck;
 use App\Support\Retention;
@@ -54,6 +55,9 @@ Schedule::command('reports:prune')->dailyAt('04:10')->name('reports-prune')->wit
 
 // Informes programados (T-21): cada hora encola los envios por email (semanal/mensual) cuya fecha ya paso. Cola `reports`.
 Schedule::command('reports:send-scheduled')->hourly()->name('reports-send-scheduled')->withoutOverlapping();
+
+// Resumen semanal (T-86): cada hora mira quien tiene ya lunes 08:00 en su zona y no ha recibido el de esta semana (claim atomico por usuario). Cola `reports`.
+Schedule::job(new SendWeeklyDigest)->hourly()->name('send-weekly-digest')->withoutOverlapping();
 
 // Exportacion completa de datos (T-84): borra los ZIP caducados (exports.retention_hours) y libera las exportaciones atascadas.
 Schedule::command('exports:prune')->hourly()->name('exports-prune')->withoutOverlapping();

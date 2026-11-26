@@ -210,6 +210,15 @@ Las API keys del asistente de IA (MCP) no se ven afectadas por el doble factor.
 
 El icono de avisos lista fallos de publicación y cuentas que necesitan reconexión. Reconectar conserva tus publicaciones pendientes. Desconectar una cuenta hace fallar las que tuviera pendientes.
 
+### Qué avisos recibes
+
+En el menú de usuario, **Notificaciones del navegador → Qué avisos quieres recibir**, eliges qué avisos llegan:
+
+- **Resumen semanal** (apagado por defecto). Cada lunes por la mañana, en la hora de tu marca principal (la más antigua), recibes un aviso con las cifras de la semana anterior de cada marca comparadas con la previa: seguidores, visualizaciones, alcance, interacciones, publicaciones publicadas y la mejor publicación. Lo que no tiene dato aparece como «sin datos». Si tienes activado el correo, también te llega por correo, con un enlace para darte de baja de un clic. Opcionalmente puedes añadir un párrafo escrito con IA (solo si el administrador ha configurado el asistente): se envía al proveedor únicamente el nombre de tus marcas y las cifras agregadas.
+- **Recordatorio de publicación manual** (encendido por defecto). Un aviso antes de la hora de una publicación que tienes que hacer a mano. El aviso de «es la hora» se envía siempre, aunque apagues el recordatorio, porque trae el texto y la media que necesitas para publicar.
+
+Los avisos siempre llegan a la aplicación (y por push si lo has activado); el correo depende de la casilla de **Perfil** («Avisarme también por correo…»).
+
 ## Historial de actividad
 
 El menú de cuenta incluye **Actividad**. Consulta tus acciones registradas, filtra por marca, usuario, acción o fechas y comprueba el plazo de conservación. Las acciones sin una marca comprobada permanecen en el historial general. Lee la [guía de actividad](actividad.md) para conocer el alcance del historial anterior y la zona horaria de los filtros.

@@ -35,6 +35,7 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Proponer una fecha futura con métricas de la marca | [Planificar](usuario/planificar.md) |
 | Crear un borrador independiente de una publicación guardada | [Duplicar](usuario/duplicar.md) |
 | Importar muchas publicaciones de una marca desde un CSV | [Importar CSV](usuario/importar-csv.md) |
+| Buscar páginas, publicaciones, marcas, archivos y diseños con Ctrl+K | [Buscar](usuario/buscar.md) |
 | Descargar una copia completa de mis datos en un ZIP | [Exportar mis datos](usuario/exportar.md) |
 | Recibir eventos firmados en tu propio receptor HTTPS | [Webhooks salientes](api/webhooks.md) |
 | Configurar hitos, caídas y avisos de caducidad por marca/cuenta | [Objetivos y alertas](modulos/analitica.md#objetivos-y-alertas-t-79) |

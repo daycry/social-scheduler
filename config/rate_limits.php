@@ -122,6 +122,7 @@ return [
         'profile.export.store' => 3,
         'profile.export.link' => 30,
         'profile.export.download' => 30,
+        'search' => 60,
         'studio.thumbnails' => 600,
     ],
 ];

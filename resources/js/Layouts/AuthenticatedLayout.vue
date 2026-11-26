@@ -1,11 +1,13 @@
 <script setup>
 import FlashBanner from '@/Components/FlashBanner.vue';
 import BrandLogo from '@/Components/BrandLogo.vue';
+import CommandPalette from '@/Components/CommandPalette.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import Icon from '@/Components/Icon.vue';
 import NetworkIcon from '@/Components/NetworkIcon.vue';
-import { Link, router, usePage } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
+import { useNavigationContext } from '@/Composables/useNavigationContext';
 import { activeModule, sideItems, visibleModules } from '@/navigation';
 import { computed, onMounted, ref, watch } from 'vue';
 
@@ -16,36 +18,19 @@ defineProps({ fullBleed: Boolean });
  * barra lateral contextual por módulo (colapsable) y menú móvil. La marca actual y las cuentas por red llegan
  * por Inertia (`shell`), compartidas por HandleInertiaRequests.
  */
-/** @type {ReturnType<typeof usePage<import('@/types/shell').ShellPageProps>>} */
-const page = usePage();
-const shell = computed(() => page.props.shell ?? { brands: [], currentBrand: null, accounts: {}, networks: [] });
+const { page, shell, brand, ctx } = useNavigationContext();
 const user = computed(() => page.props.auth.user);
 const unread = computed(() => page.props.unreadNotifications ?? 0);
 // OAuth de varias cuentas sin confirmar: se avisa en cualquier página salvo en la propia de Conexiones de esa marca (ya muestra la tarjeta).
 const pendingConnections = computed(() =>
     (page.props.pendingConnections ?? []).filter((p) => !route().current('brands.connections.index', p.brand_id)),
 );
-const brand = computed(() => shell.value.currentBrand);
 
 const mobileOpen = ref(false);
 const collapsed = ref(false);
 onMounted(() => (collapsed.value = localStorage.getItem('ss.sidebar') === 'collapsed'));
 watch(collapsed, (v) => localStorage.setItem('ss.sidebar', v ? 'collapsed' : 'open'));
 watch(() => page.url, () => (mobileOpen.value = false));
-
-/** @param {...string} names */
-const is = (...names) => names.some((n) => route().current(n));
-
-/** @type {import('vue').ComputedRef<import('@/navigation').NavigationContext>} */
-const ctx = computed(() => ({
-    brand: brand.value,
-    q: brand.value ? { brand_id: brand.value.id } : {},
-    shell: shell.value,
-    page,
-    route,
-    is,
-    has: (name) => route().has(name),
-}));
 
 const current = computed(() => activeModule(ctx.value));
 const activeKey = computed(() => current.value.key);
@@ -97,16 +82,19 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
                     ><BrandLogo dark compact
                 /></Link>
 
-                <nav class="ms-6 hidden items-center gap-1 lg:flex" aria-label="Módulos">
+                <nav class="ms-2 hidden items-center gap-1 lg:flex nav:ms-6" aria-label="Módulos">
                     <Link
                         v-for="m in modules"
                         :key="m.key"
                         :href="m.href"
-                        class="rounded-md px-3 py-1.5 text-sm font-medium transition hover:bg-white/10 hover:text-white"
+                        :title="m.label"
+                        class="rounded-md px-2 py-1.5 text-sm font-medium transition hover:bg-white/10 hover:text-white nav:px-3"
                         :class="activeKey === m.key ? 'bg-white/10 text-white shadow-[inset_0_-2px_0_0_#818cf8]' : 'text-slate-300'"
                         :aria-current="activeKey === m.key ? 'page' : undefined"
-                        >{{ m.label
-                        }}<span
+                        ><Icon :name="m.icon" class="h-5 w-5 nav:hidden" /><span class="sr-only nav:not-sr-only">{{
+                            m.label
+                        }}</span
+                        ><span
                             v-if="m.badge"
                             class="ms-1.5 rounded-full bg-rose-700 px-1.5 py-0.5 text-[10px] font-bold text-white"
                             data-testid="inbox-badge"
@@ -116,13 +104,17 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
                 </nav>
 
                 <div class="ms-auto flex min-w-0 items-center gap-1 sm:gap-2">
+                    <!-- Búsqueda global y paleta de comandos (Ctrl+K) -->
+                    <CommandPalette />
+
                     <!-- Selector de marca -->
-                    <Dropdown align="right" width="72">
+                    <Dropdown align="right" width="72" class="min-w-0">
                         <template #trigger>
                             <button
                                 type="button"
                                 class="flex max-w-[7rem] items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2 py-1.5 text-sm text-white hover:bg-white/10 min-[420px]:max-w-[10rem] sm:max-w-[16rem] sm:gap-2 sm:px-2.5"
                                 aria-label="Cambiar de marca"
+                                :title="brand?.name"
                                 data-testid="brand-switcher"
                             >
                                 <img
@@ -198,11 +190,11 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
                         <template #trigger>
                             <button
                                 type="button"
-                                class="flex items-center gap-2 rounded-lg p-1 hover:bg-white/10"
+                                class="flex shrink-0 items-center gap-2 rounded-lg p-1 hover:bg-white/10"
                                 aria-label="Menú de usuario"
                             >
                                 <span
-                                    class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-teal-500 text-xs font-bold text-white"
+                                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-teal-500 text-xs font-bold text-white"
                                     >{{ initials }}</span
                                 >
                             </button>

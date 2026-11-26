@@ -1,12 +1,14 @@
 <script setup>
 import FlashBanner from '@/Components/FlashBanner.vue';
 import BrandLogo from '@/Components/BrandLogo.vue';
+import CommandPalette from '@/Components/CommandPalette.vue';
 import { usePage } from '@inertiajs/vue3';
 
 const page = usePage();
 
 /**
- * Layout mínimo del compositor a pantalla completa: sin navegación de la aplicación.
+ * Layout mínimo del compositor a pantalla completa: sin navegación de la aplicación, pero con la paleta de búsqueda (Ctrl+K). Sus
+ * navegaciones pasan por el router, así que la protección de cambios sin guardar (`UnsavedGuard`) las intercepta como cualquier otra.
  * La cabecera (marca, Cerrar y acciones) llega por el slot `header`; el contenido, por el slot por defecto.
  */
 </script>
@@ -22,6 +24,7 @@ const page = usePage();
         <header class="sticky top-0 z-40 border-b border-slate-200 bg-white shadow-sm">
             <div class="mx-auto flex min-h-14 max-w-7xl items-center gap-3 px-3 py-2 sm:px-6">
                 <BrandLogo compact class="shrink-0" />
+                <CommandPalette light />
                 <slot name="header" />
             </div>
         </header>

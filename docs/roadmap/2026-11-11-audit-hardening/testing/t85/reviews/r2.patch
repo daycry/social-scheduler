@@ -1,0 +1,1845 @@
+diff --git a/CHANGELOG.es.md b/CHANGELOG.es.md
+index 6d0d29b..63f1cb8 100644
+--- a/CHANGELOG.es.md
++++ b/CHANGELOG.es.md
+@@ -5,6 +5,10 @@ # Registro de cambios
+ 
+ ## [Sin publicar]
+ 
++### Added — búsqueda global y paleta de comandos (audit-hardening, T-85)
++
++- Pulsa Ctrl+K (Cmd+K en macOS) o el botón Buscar de la cabecera para abrir una paleta que se maneja con el teclado y encuentra al momento las páginas y acciones de la aplicación y, desde dos letras, tus publicaciones, marcas, archivos de la biblioteca, diseños del Estudio, campañas, plantillas, sitios y smart links, con la marca, la fecha en la zona horaria de la marca y el estado. Solo devuelve lo que ya ves en el resto de la aplicación (como aprobador de una marca ajena, las publicaciones pendientes de tu aprobación y los diseños de esa marca), con un máximo de 5 resultados por tipo y 20 en total.
++
+ ### Added — exportación completa de datos (audit-hardening, T-84)
+ 
+ - Descarga un ZIP con todos tus datos desde Perfil → Exportar mis datos: marcas, publicaciones con destinos y textos, campañas, informes y sus PDF, los ficheros de la biblioteca, diseños del Estudio y sus exportaciones, sitios, smart links, plantillas y objetivos, en JSON legible y un manifiesto con el SHA-256 de cada fichero. Elige si incluir los archivos de media (un ZIP solo de datos es mucho más pequeño; hasta 20 GB, con ZIP64). Se prepara en segundo plano, te avisa en la aplicación (y por correo si falla y tienes activados los avisos por correo) y el enlace de descarga está firmado, caduca a los 10 minutos y solo sirve con tu sesión. Nunca incluye credenciales, datos de otras personas ni los comentarios de terceros del buzón; el ZIP se borra a las 72 horas.
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 4af0ded..bd92751 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -5,6 +5,10 @@ # Changelog
+ 
+ ## [Unreleased]
+ 
++### Added — global search and command palette (audit-hardening, T-85)
++
++- Press Ctrl+K (Cmd+K on macOS) or the Search button in the header to open a keyboard-friendly palette that finds app pages and actions instantly and, from two letters, your posts, brands, library files, Studio designs, campaigns, post templates, sites and smart links, with brand, date in the brand's timezone and status. It only returns what you can already see elsewhere in the app (as a brand approver, that means the posts waiting for your approval and the designs of that brand), at most 5 results per type and 20 in total.
++
+ ### Added — full data export (audit-hardening, T-84)
+ 
+ - Download a ZIP with all your own data from Profile → Export my data: brands, posts with targets and texts, campaigns, reports and their PDFs, the media library files, Studio designs and exports, sites, smart links, templates and goals, as readable JSON plus a manifest with SHA-256 hashes. Choose whether to include the media files (a data-only ZIP is much smaller; up to 20 GB, with ZIP64). It is built in the background, you get an in-app notice (and an email if the export fails and you enabled email notices), and the download link is signed, expires in 10 minutes and only works for your own session. Credentials, other people's data and third-party inbox comments are never included; the ZIP is deleted after 72 hours.
+diff --git a/config/rate_limits.php b/config/rate_limits.php
+index cf57db4..b2810c3 100644
+--- a/config/rate_limits.php
++++ b/config/rate_limits.php
+@@ -122,6 +122,7 @@
+         'profile.export.store' => 3,
+         'profile.export.link' => 30,
+         'profile.export.download' => 30,
++        'search' => 60,
+         'studio.thumbnails' => 600,
+     ],
+ ];
+diff --git a/docs/README.md b/docs/README.md
+index 4861d2a..7cec240 100644
+--- a/docs/README.md
++++ b/docs/README.md
+@@ -35,6 +35,7 @@ ## Por dónde empezar
+ | Proponer una fecha futura con métricas de la marca | [Planificar](usuario/planificar.md) |
+ | Crear un borrador independiente de una publicación guardada | [Duplicar](usuario/duplicar.md) |
+ | Importar muchas publicaciones de una marca desde un CSV | [Importar CSV](usuario/importar-csv.md) |
++| Buscar páginas, publicaciones, marcas, archivos y diseños con Ctrl+K | [Buscar](usuario/buscar.md) |
+ | Descargar una copia completa de mis datos en un ZIP | [Exportar mis datos](usuario/exportar.md) |
+ | Recibir eventos firmados en tu propio receptor HTTPS | [Webhooks salientes](api/webhooks.md) |
+ | Configurar hitos, caídas y avisos de caducidad por marca/cuenta | [Objetivos y alertas](modulos/analitica.md#objetivos-y-alertas-t-79) |
+diff --git a/docs/knowledge/journal/README.md b/docs/knowledge/journal/README.md
+index 2d64c23..0b41e7d 100644
+--- a/docs/knowledge/journal/README.md
++++ b/docs/knowledge/journal/README.md
+@@ -1,8 +1,9 @@
+ # `docs/knowledge/journal/` — bitácora de sesión (memoria episódica)
+ 
+ Una entrada por sesión, **generada** por `agent-kits/shared/journal.py` (hook `SessionEnd`; la
+-última se reinyecta al arrancar/retomar). Cronológica y **no curada**: lo que merezca doctrina
+-se promueve a `adr/`, `gotchas/` o `lessons/` con el umbral de `knowledge-write.md`. **Excluida de
++última se reinyecta al arrancar/retomar). Cronológica y **no curada**: lo que cumpla el umbral de
++`knowledge-write.md` se propone mediante `knowledge-curation.py propose`; `knowledge-curator`
++decide antes de publicar en `approved/`. **Excluida de
+ Confluence** (`docs/knowledge/journal/**`). Nombre: `AAAA-MM-DD-<iniciativa activa | sesion>.md` (sufijo `-2`
+ si otra sesión del día ya lo usó). **Las entradas se versionan** (memoria del proyecto, como ADR y lecciones);
+ quien no quiera versionarlas añade `docs/knowledge/journal/*.md` (no este README) a su `.gitignore`.
+@@ -17,10 +18,20 @@ # `docs/knowledge/journal/` — bitácora de sesión (memoria episódica)
+ | `reason` | motivo del envelope (`clear`, `resume`, `logout`, `prompt_input_exit`, `other`) o `orphan_recovery` | Motivo de cierre; `orphan_recovery` = nunca hubo envelope |
+ | `derivados_en` | `replay` | `ficheros_tocados`/`tareas_cambiadas` se calculan con git al materializar (también para huérfanas), nunca en el teardown de `SessionEnd` (CA-01) |
+ | `materializado_en` | timestamp ISO UTC | Cuándo se escribió la entrada final; la `fecha` es la del cierre (`captured_at`) |
++| `log_hasta` | timestamp ISO UTC (solo `recuperado_sin_cierre`) | mtime del log de prompts con el que se recuperó; si el log cambia después, `recover` rehace la entrada |
++| `objetivo` · `punto_actual` · `siguientes_pasos` · `bloqueos` · `descartados` | texto · texto · lista · lista · lista (opcionales) | Continuidad declarada con `--enrich`; clave ausente = nunca declarada, vacía = vaciada a propósito |
+ 
+ | Fecha | Iniciativa | Resumen | Fuente |
+ |---|---|---|---|
+-| [2026-10-31](2026-10-31-social-scheduler.md) | social-scheduler | continua | hook |
+-| [2026-10-27](2026-10-23-social-scheduler.md) | social-scheduler | <agent-message from="a02b055c63343b667"> [Subagent hand-back] The text below is the final report of… | hook |
++| [2026-11-18](2026-11-18-social-scheduler.md) | social-scheduler | This is an app-generated request for a suggested next user message. The user did not write this mes… | hook |
++| [2026-11-17](2026-10-23-social-scheduler.md) | social-scheduler | <task-notification> <task-id>bj57wyvon</task-id> <tool-use-id>toolu_01FVibKU5cBRMkYujqVqeeDL</tool-… | hook |
++| [2026-11-16](2026-11-16-audit-hardening-2.md) | audit-hardening | This is an app-generated request for a suggested next user message. The user did not write this mes… | hook |
++| [2026-11-16](2026-11-16-audit-hardening.md) | audit-hardening | This is an app-generated request for a suggested next user message. The user did not write this mes… | hook |
++| [2026-11-16](2026-11-16-social-scheduler-5.md) | social-scheduler | Sesión sobre social-scheduler | hook |
++| [2026-11-16](2026-11-16-social-scheduler-4.md) | social-scheduler | This is an app-generated request for a suggested next user message. The user did not write this mes… | hook |
++| [2026-11-16](2026-11-16-social-scheduler-3.md) | social-scheduler | This is an app-generated request for a suggested next user message. The user did not write this mes… | hook |
++| [2026-11-16](2026-11-16-social-scheduler-2.md) | social-scheduler | This is an app-generated request for a suggested next user message. The user did not write this mes… | hook |
++| [2026-11-16](2026-11-16-social-scheduler.md) | social-scheduler | This is an app-generated request for a suggested next user message. The user did not write this mes… | hook |
++| [2026-11-07](2026-10-31-social-scheduler.md) | social-scheduler | continua | hook |
+ | [2026-10-21](2026-10-21-social-scheduler.md) | social-scheduler | <agent-message from="a2f5a01efa4b8d629"> [Subagent hand-back] The text below is the final report of… | recover |
+ | [2026-10-19](2026-10-19-sesion.md) | n/a | al ser una herramienta local, van a haber problemas con la api de las redes sociales? | hook |
+diff --git a/resources/js/Components/Icon.vue b/resources/js/Components/Icon.vue
+index 37391a3..e4a3301 100644
+--- a/resources/js/Components/Icon.vue
++++ b/resources/js/Components/Icon.vue
+@@ -30,6 +30,7 @@ const PATHS = {
+     inbox: 'M4 13l2-8h12l2 8M4 13v6a1 1 0 001 1h14a1 1 0 001-1v-6M4 13h5l1 2h4l1-2h5',
+     megaphone: 'M3 11v2a1 1 0 001 1h2l7 4V6L6 10H4a1 1 0 00-1 1zm14-3a4 4 0 010 8',
+     bookmark: 'M6 4h12v17l-6-4-6 4V4z',
++    search: 'M21 21l-4.3-4.3M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z',
+     tag: 'M3 12V4a1 1 0 011-1h8l9 9-9 9-9-9zm5-4h.01',
+ };
+ </script>
+diff --git a/resources/js/Layouts/AuthenticatedLayout.vue b/resources/js/Layouts/AuthenticatedLayout.vue
+index 9b4e5ee..0b6e3e4 100644
+--- a/resources/js/Layouts/AuthenticatedLayout.vue
++++ b/resources/js/Layouts/AuthenticatedLayout.vue
+@@ -1,11 +1,13 @@
+ <script setup>
+ import FlashBanner from '@/Components/FlashBanner.vue';
+ import BrandLogo from '@/Components/BrandLogo.vue';
++import CommandPalette from '@/Components/CommandPalette.vue';
+ import Dropdown from '@/Components/Dropdown.vue';
+ import DropdownLink from '@/Components/DropdownLink.vue';
+ import Icon from '@/Components/Icon.vue';
+ import NetworkIcon from '@/Components/NetworkIcon.vue';
+-import { Link, router, usePage } from '@inertiajs/vue3';
++import { Link, router } from '@inertiajs/vue3';
++import { useNavigationContext } from '@/Composables/useNavigationContext';
+ import { activeModule, sideItems, visibleModules } from '@/navigation';
+ import { computed, onMounted, ref, watch } from 'vue';
+ 
+@@ -16,16 +18,13 @@ defineProps({ fullBleed: Boolean });
+  * barra lateral contextual por módulo (colapsable) y menú móvil. La marca actual y las cuentas por red llegan
+  * por Inertia (`shell`), compartidas por HandleInertiaRequests.
+  */
+-/** @type {ReturnType<typeof usePage<import('@/types/shell').ShellPageProps>>} */
+-const page = usePage();
+-const shell = computed(() => page.props.shell ?? { brands: [], currentBrand: null, accounts: {}, networks: [] });
++const { page, shell, brand, ctx } = useNavigationContext();
+ const user = computed(() => page.props.auth.user);
+ const unread = computed(() => page.props.unreadNotifications ?? 0);
+ // OAuth de varias cuentas sin confirmar: se avisa en cualquier página salvo en la propia de Conexiones de esa marca (ya muestra la tarjeta).
+ const pendingConnections = computed(() =>
+     (page.props.pendingConnections ?? []).filter((p) => !route().current('brands.connections.index', p.brand_id)),
+ );
+-const brand = computed(() => shell.value.currentBrand);
+ 
+ const mobileOpen = ref(false);
+ const collapsed = ref(false);
+@@ -33,20 +32,6 @@ onMounted(() => (collapsed.value = localStorage.getItem('ss.sidebar') === 'colla
+ watch(collapsed, (v) => localStorage.setItem('ss.sidebar', v ? 'collapsed' : 'open'));
+ watch(() => page.url, () => (mobileOpen.value = false));
+ 
+-/** @param {...string} names */
+-const is = (...names) => names.some((n) => route().current(n));
+-
+-/** @type {import('vue').ComputedRef<import('@/navigation').NavigationContext>} */
+-const ctx = computed(() => ({
+-    brand: brand.value,
+-    q: brand.value ? { brand_id: brand.value.id } : {},
+-    shell: shell.value,
+-    page,
+-    route,
+-    is,
+-    has: (name) => route().has(name),
+-}));
+-
+ const current = computed(() => activeModule(ctx.value));
+ const activeKey = computed(() => current.value.key);
+ const modules = computed(() => visibleModules(ctx.value).map((m) => ({ key: m.key, label: m.label, icon: m.icon, href: m.href(ctx.value), badge: m.badge ? m.badge(ctx.value) : 0 })));
+@@ -116,6 +101,9 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
+                 </nav>
+ 
+                 <div class="ms-auto flex min-w-0 items-center gap-1 sm:gap-2">
++                    <!-- Búsqueda global y paleta de comandos (Ctrl+K) -->
++                    <CommandPalette />
++
+                     <!-- Selector de marca -->
+                     <Dropdown align="right" width="72">
+                         <template #trigger>
+diff --git a/resources/js/Layouts/ComposerLayout.vue b/resources/js/Layouts/ComposerLayout.vue
+index 0440e7f..68670cb 100644
+--- a/resources/js/Layouts/ComposerLayout.vue
++++ b/resources/js/Layouts/ComposerLayout.vue
+@@ -1,12 +1,14 @@
+ <script setup>
+ import FlashBanner from '@/Components/FlashBanner.vue';
+ import BrandLogo from '@/Components/BrandLogo.vue';
++import CommandPalette from '@/Components/CommandPalette.vue';
+ import { usePage } from '@inertiajs/vue3';
+ 
+ const page = usePage();
+ 
+ /**
+- * Layout mínimo del compositor a pantalla completa: sin navegación de la aplicación.
++ * Layout mínimo del compositor a pantalla completa: sin navegación de la aplicación, pero con la paleta de búsqueda (Ctrl+K). Sus
++ * navegaciones pasan por el router, así que la protección de cambios sin guardar (`UnsavedGuard`) las intercepta como cualquier otra.
+  * La cabecera (marca, Cerrar y acciones) llega por el slot `header`; el contenido, por el slot por defecto.
+  */
+ </script>
+@@ -22,6 +24,7 @@ const page = usePage();
+         <header class="sticky top-0 z-40 border-b border-slate-200 bg-white shadow-sm">
+             <div class="mx-auto flex min-h-14 max-w-7xl items-center gap-3 px-3 py-2 sm:px-6">
+                 <BrandLogo compact class="shrink-0" />
++                <CommandPalette light />
+                 <slot name="header" />
+             </div>
+         </header>
+diff --git a/routes/web.php b/routes/web.php
+index 7718b43..dc6d2b6 100644
+--- a/routes/web.php
++++ b/routes/web.php
+@@ -31,6 +31,7 @@
+ use App\Http\Controllers\ReportScheduleController;
+ use App\Http\Controllers\ReportTemplateController;
+ use App\Http\Controllers\SavedTextController;
++use App\Http\Controllers\SearchController;
+ use App\Http\Controllers\Studio\StudioExportDownloadController;
+ use App\Http\Controllers\Studio\StudioThumbnailController;
+ use App\Http\Controllers\SystemStatusController;
+@@ -83,6 +84,8 @@
+     Route::get('connections/{provider}/callback', [OAuthController::class, 'callback'])
+         ->whereIn('provider', Network::providers())->name('connections.callback');
+ 
++    // Búsqueda global de la paleta de comandos (T-85): JSON, solo lo que el usuario puede ver.
++    Route::get('search', SearchController::class)->middleware('throttle:search')->name('search');
+     Route::get('activity', [ActivityController::class, 'index'])->name('activity.index');
+     Route::get('system', SystemStatusController::class)->name('system.index');
+     Route::get('profile/notifications', [PushSubscriptionController::class, 'index'])->name('profile.notifications');
+diff --git a/tsconfig.frontend.json b/tsconfig.frontend.json
+index b445587..79ca155 100644
+--- a/tsconfig.frontend.json
++++ b/tsconfig.frontend.json
+@@ -31,6 +31,7 @@
+         "resources/js/Components/StatusBadge.vue",
+         "resources/js/Components/TextInput.vue",
+         "resources/js/Components/BaseDialog.vue",
++        "resources/js/Components/CommandPalette.vue",
+         "resources/js/Components/ConfirmDialog.vue",
+         "resources/js/Components/Composer/DuplicatePost.vue",
+         "resources/js/Pages/Reports/Index.vue",
+diff --git a/app/Http/Controllers/SearchController.php b/app/Http/Controllers/SearchController.php
+new file mode 100644
+index 0000000..d2f6838
+--- /dev/null
++++ b/app/Http/Controllers/SearchController.php
+@@ -0,0 +1,24 @@
++<?php
++
++namespace App\Http\Controllers;
++
++use App\Services\GlobalSearch;
++use Illuminate\Http\JsonResponse;
++use Illuminate\Http\Request;
++
++/** Búsqueda global de la paleta de comandos (T-85). Solo JSON: las páginas y acciones de la app se filtran en el cliente desde `navigation.js`. */
++class SearchController extends Controller
++{
++    public function __invoke(Request $request, GlobalSearch $search): JsonResponse
++    {
++        $data = $request->validate([
++            'q' => ['required', 'string', 'min:'.GlobalSearch::MIN_LENGTH, 'max:'.GlobalSearch::MAX_LENGTH],
++        ], [
++            'q.required' => 'Escribe qué quieres buscar.',
++            'q.min' => 'Escribe al menos '.GlobalSearch::MIN_LENGTH.' caracteres.',
++            'q.max' => 'La búsqueda admite '.GlobalSearch::MAX_LENGTH.' caracteres como máximo.',
++        ]);
++
++        return response()->json(['results' => $search->search($request->user(), $data['q'])]);
++    }
++}
+diff --git a/app/Services/GlobalSearch.php b/app/Services/GlobalSearch.php
+new file mode 100644
+index 0000000..de97c73
+--- /dev/null
++++ b/app/Services/GlobalSearch.php
+@@ -0,0 +1,220 @@
++<?php
++
++namespace App\Services;
++
++use App\Models\Brand;
++use App\Models\BrandCollaborator;
++use App\Models\Campaign;
++use App\Models\MediaAsset;
++use App\Models\Post;
++use App\Models\PostTemplate;
++use App\Models\Site;
++use App\Models\SmartLink;
++use App\Models\Studio\Design;
++use App\Models\Studio\DesignShare;
++use App\Models\User;
++use App\Services\Studio\StudioCollab;
++use Illuminate\Database\Eloquent\Builder;
++use Illuminate\Support\Str;
++
++/**
++ * Búsqueda global de la paleta de comandos (T-85, F-11): contenido del usuario por texto o nombre, con la MISMA visibilidad que el listado
++ * de cada cosa (no se inventa otra regla):
++ *  - Publicaciones: las propias fuera de la papelera, y las pendientes de aprobar de las marcas donde es aprobador (la bandeja de aprobaciones,
++ *    `ApprovalService::queryFor`); el resto de publicaciones de una marca ajena no se listan en ninguna parte.
++ *  - Diseños: los propios, los compartidos directamente y los de marcas donde es aprobador (`StudioCollab::sharedWith`).
++ *  - Marcas, archivos, campañas, plantillas, sitios y smart links: solo los propios (ningún listado muestra los de otro usuario).
++ *
++ * Una consulta por tipo (fija, con `limit`) y marca/zona horaria por JOIN, sin N+1. El LIKE escapa `%`, `_` y `!`; SQLite ignora mayúsculas solo en
++ * ASCII y MySQL según la collation de la columna (con `utf8mb4_unicode_ci` ignora también los acentos).
++ */
++class GlobalSearch
++{
++    public const MIN_LENGTH = 2;
++
++    public const MAX_LENGTH = 100;
++
++    public const PER_TYPE = 5;
++
++    public const TOTAL = 20;
++
++    private const TITLE_LENGTH = 120;
++
++    /** Tipos en el orden en que se muestran. */
++    private const TYPES = ['post', 'brand', 'design', 'media', 'campaign', 'template', 'site', 'smartlink'];
++
++    /** Tipos de fichero que lista la biblioteca (imagen, video y PDF); el audio es de uso interno del estudio. */
++    private const MEDIA_KINDS = [MediaAsset::KIND_IMAGE, MediaAsset::KIND_VIDEO, MediaAsset::KIND_PDF];
++
++    private const MEDIA_LABELS = [MediaAsset::KIND_IMAGE => 'Imagen', MediaAsset::KIND_VIDEO => 'Vídeo', MediaAsset::KIND_PDF => 'PDF'];
++
++    /**
++     * @return list<array{type: string, id: int, title: string, brand: ?string, date: ?string, status: ?string, url: string, external: bool}>
++     */
++    public function search(User $user, string $term): array
++    {
++        $byType = [
++            'post' => $this->posts($user, $term),
++            'brand' => $this->brands($user, $term),
++            'design' => $this->designs($user, $term),
++            'media' => $this->media($user, $term),
++            'campaign' => $this->campaigns($user, $term),
++            'template' => $this->templates($user, $term),
++            'site' => $this->sites($user, $term),
++            'smartlink' => $this->smartLinks($user, $term),
++        ];
++
++        return $this->share($byType);
++    }
++
++    /**
++     * Reparte el tope total por turnos entre los tipos, para que uno con muchas coincidencias no deje a los demás sin hueco,
++     * y devuelve el resultado agrupado en el orden de los tipos.
++     *
++     * @param  array<string, list<array<string, mixed>>>  $byType
++     * @return list<array<string, mixed>>
++     */
++    private function share(array $byType): array
++    {
++        $taken = array_fill_keys(self::TYPES, 0);
++        $budget = self::TOTAL;
++        while ($budget > 0) {
++            $grew = false;
++            foreach (self::TYPES as $type) {
++                if ($budget > 0 && $taken[$type] < count($byType[$type])) {
++                    $taken[$type]++;
++                    $budget--;
++                    $grew = true;
++                }
++            }
++            if (! $grew) {
++                break;
++            }
++        }
++
++        return array_merge(...array_map(fn (string $type) => array_slice($byType[$type], 0, $taken[$type]), self::TYPES));
++    }
++
++    /** @return list<array<string, mixed>> */
++    private function posts(User $user, string $term): array
++    {
++        $approverBrands = BrandCollaborator::query()->approverFor($user->id)->select('brand_id');
++
++        return Post::withoutUserScope()
++            ->leftJoin('brands', 'brands.id', '=', 'posts.brand_id')
++            ->where(fn (Builder $q) => $q->where('posts.user_id', $user->id)
++                ->orWhere(fn (Builder $q) => $q->where('posts.approval_status', Post::APPROVAL_PENDING)->whereIn('posts.brand_id', $approverBrands)))
++            ->whereLikeEscaped('posts.text', $term)
++            ->orderByDesc('posts.id')->limit(self::PER_TYPE)
++            ->get(['posts.id', 'posts.user_id', 'posts.text', 'posts.status', 'posts.scheduled_at', 'brands.name as brand_name', 'brands.timezone as brand_timezone'])
++            ->map(function (Post $post) use ($user) {
++                $own = $post->user_id === $user->id;
++
++                return $this->row('post', $post->id, $this->title((string) $post->text), $own ? route('posts.edit', $post, false) : route('approvals.index', absolute: false), [
++                    'brand' => $post->brand_name,
++                    'date' => $post->scheduled_at?->copy()->setTimezone($post->brand_timezone ?: 'UTC')->format('Y-m-d H:i'),
++                    'status' => $own ? $post->status->label() : 'Pendiente de aprobar',
++                ]);
++            })->all();
++    }
++
++    /** @return list<array<string, mixed>> */
++    private function brands(User $user, string $term): array
++    {
++        return Brand::ownedBy($user)->whereLikeEscaped('name', $term)->orderBy('name')->orderBy('id')->limit(self::PER_TYPE)->get(['id', 'name'])
++            ->map(fn (Brand $brand) => $this->row('brand', $brand->id, $brand->name, route('brands.show', $brand, false)))->all();
++    }
++
++    /** @return list<array<string, mixed>> */
++    private function designs(User $user, string $term): array
++    {
++        $shared = DesignShare::query()->where('user_id', $user->id)->whereIn('role', StudioCollab::ROLES)->select('design_id');
++
++        return Design::withoutUserScope()
++            ->leftJoin('brands', 'brands.id', '=', 'studio_designs.brand_id')
++            ->where(fn (Builder $q) => $q->where('studio_designs.user_id', $user->id)
++                ->orWhereIn('studio_designs.id', $shared)
++                ->orWhereExists(Design::brandApproverGrant($user->id)->selectRaw('1')))
++            ->whereLikeEscaped('studio_designs.name', $term)
++            ->orderByDesc('studio_designs.id')->limit(self::PER_TYPE)
++            ->get(['studio_designs.id', 'studio_designs.user_id', 'studio_designs.name', 'studio_designs.is_template', 'studio_designs.updated_at', 'brands.name as brand_name', 'brands.timezone as brand_timezone'])
++            ->map(fn (Design $design) => $this->row('design', $design->id, $design->name, route('studio.designs.edit', $design, false), [
++                'brand' => $design->brand_name,
++                'date' => $design->updated_at?->copy()->setTimezone($design->brand_timezone ?: 'UTC')->format('Y-m-d H:i'),
++                'status' => $design->is_template ? 'Plantilla' : ($design->user_id === $user->id ? null : 'Compartido'),
++            ]))->all();
++    }
++
++    /** @return list<array<string, mixed>> */
++    private function media(User $user, string $term): array
++    {
++        return MediaAsset::ownedBy($user)->where('status', MediaAsset::STATUS_READY)->whereIn('kind', self::MEDIA_KINDS)
++            ->whereLikeEscaped('original_name', $term)->orderByDesc('id')->limit(self::PER_TYPE)->get(['id', 'original_name', 'kind'])
++            ->map(fn (MediaAsset $asset) => $this->row('media', $asset->id, $asset->original_name, route('media.file', $asset, false), [
++                'status' => self::MEDIA_LABELS[$asset->kind] ?? null,
++                'external' => true,
++            ]))->all();
++    }
++
++    /** @return list<array<string, mixed>> */
++    private function campaigns(User $user, string $term): array
++    {
++        return Campaign::ownedBy($user)->leftJoin('brands', 'brands.id', '=', 'campaigns.brand_id')
++            ->whereLikeEscaped('campaigns.name', $term)->orderByDesc('campaigns.id')->limit(self::PER_TYPE)
++            ->get(['campaigns.id', 'campaigns.name', 'campaigns.starts_on', 'campaigns.archived_at', 'brands.name as brand_name'])
++            ->map(fn (Campaign $campaign) => $this->row('campaign', $campaign->id, $campaign->name, route('campaigns.show', $campaign->id, false), [
++                'brand' => $campaign->brand_name,
++                'date' => $campaign->starts_on?->format('Y-m-d'),
++                'status' => $campaign->archived_at === null ? null : 'Archivada',
++            ]))->all();
++    }
++
++    /** @return list<array<string, mixed>> */
++    private function templates(User $user, string $term): array
++    {
++        return PostTemplate::ownedBy($user)->leftJoin('brands', 'brands.id', '=', 'post_templates.brand_id')
++            ->whereLikeEscaped('post_templates.name', $term)->orderByDesc('post_templates.id')->limit(self::PER_TYPE)
++            ->get(['post_templates.id', 'post_templates.brand_id', 'post_templates.name', 'brands.name as brand_name'])
++            ->map(fn (PostTemplate $template) => $this->row('template', $template->id, $template->name, route('library.index', ['brand_id' => $template->brand_id], false), ['brand' => $template->brand_name]))->all();
++    }
++
++    /** @return list<array<string, mixed>> */
++    private function sites(User $user, string $term): array
++    {
++        return Site::ownedBy($user)->leftJoin('brands', 'brands.id', '=', 'sites.brand_id')
++            ->whereLikeEscaped('sites.title', $term)->orderByDesc('sites.id')->limit(self::PER_TYPE)
++            ->get(['sites.id', 'sites.title', 'sites.is_published', 'brands.name as brand_name'])
++            ->map(fn (Site $site) => $this->row('site', $site->id, $site->title, route('sites.edit', $site, false), [
++                'brand' => $site->brand_name,
++                'status' => $site->is_published ? 'Publicado' : 'Borrador',
++            ]))->all();
++    }
++
++    /** @return list<array<string, mixed>> */
++    private function smartLinks(User $user, string $term): array
++    {
++        return SmartLink::ownedBy($user)->leftJoin('brands', 'brands.id', '=', 'smart_links.brand_id')
++            ->whereLikeEscaped('smart_links.title', $term)->orderByDesc('smart_links.id')->limit(self::PER_TYPE)
++            ->get(['smart_links.id', 'smart_links.brand_id', 'smart_links.title', 'smart_links.published', 'brands.name as brand_name'])
++            ->map(fn (SmartLink $link) => $this->row('smartlink', $link->id, $link->title, route('smartlinks.index', ['brand_id' => $link->brand_id], false), [
++                'brand' => $link->brand_name,
++                'status' => $link->published ? 'Publicado' : 'Sin publicar',
++            ]))->all();
++    }
++
++    /** Una sola línea y de longitud acotada: el texto de una publicación puede ser largo y de varias líneas. */
++    private function title(string $text): string
++    {
++        return Str::limit(trim((string) preg_replace('/\s+/u', ' ', $text)), self::TITLE_LENGTH);
++    }
++
++    /**
++     * @param  array{brand?: ?string, date?: ?string, status?: ?string, external?: bool}  $context
++     * @return array{type: string, id: int, title: string, brand: ?string, date: ?string, status: ?string, url: string, external: bool}
++     */
++    private function row(string $type, int $id, string $title, string $url, array $context = []): array
++    {
++        return ['type' => $type, 'id' => $id, 'title' => $title, 'brand' => $context['brand'] ?? null, 'date' => $context['date'] ?? null,
++            'status' => $context['status'] ?? null, 'url' => $url, 'external' => $context['external'] ?? false];
++    }
++}
+diff --git a/docs/usuario/buscar.md b/docs/usuario/buscar.md
+new file mode 100644
+index 0000000..b477c60
+--- /dev/null
++++ b/docs/usuario/buscar.md
+@@ -0,0 +1,43 @@
++# Buscar en la aplicación
++
++La paleta de búsqueda encuentra páginas, acciones y tu contenido desde cualquier pantalla, tanto de la parte social como del Estudio.
++
++## Cómo abrirla
++
++- **Con el teclado:** `Ctrl + K` (en macOS, `⌘ + K`). Ningún editor de la aplicación usa esa combinación, así que funciona también dentro del Estudio y del compositor (en el compositor, si hay cambios sin guardar, te pregunta antes de salir, igual que con cualquier otro enlace). Si ya hay otro diálogo abierto, el atajo no hace nada: ciérralo primero.
++- **Con el botón** de la lupa, en la cabecera (con el texto **Buscar** en pantallas anchas). En pantallas pequeñas la paleta ocupa toda la pantalla y tiene un botón **Cerrar**.
++
++Al abrirla, el cursor ya está en el campo de búsqueda. `Esc` (o **Cerrar**, o pulsar fuera) la cierra y el foco vuelve al elemento donde estabas.
++
++## Qué busca
++
++| Qué | Cómo se busca | Dónde te lleva |
++|---|---|---|
++| **Páginas y acciones** (Calendario, Crear publicación, Importar CSV, Campañas, Informes, Perfil…) | Al momento, sin tildes ni mayúsculas, con las mismas condiciones que el menú: si una pantalla no te aparece en el menú, tampoco aquí | La propia pantalla |
++| **Publicaciones** | Por el texto (desde 2 letras) | Su edición |
++| **Marcas** | Por el nombre | La ficha de la marca |
++| **Diseños** del Estudio | Por el nombre | El editor |
++| **Archivos** de la biblioteca | Por el nombre del fichero (imágenes, vídeos y PDF ya subidos) | El archivo, en otra pestaña |
++| **Campañas** | Por el nombre (las archivadas llevan la etiqueta «Archivada») | El panel de la campaña |
++| **Plantillas** de publicación | Por el nombre | La biblioteca de plantillas de la marca |
++| **Sitios** y **smart links** | Por el título | Su editor |
++
++Cada resultado muestra su tipo (el encabezado del grupo), el título y, según el caso, la marca, la fecha en la **zona horaria de esa marca** y el estado. Se muestran como máximo 5 resultados por tipo y 20 en total, repartidos entre los tipos; si no ves lo que buscas, escribe algo más concreto.
++
++## Cómo moverte
++
++`↓` y `↑` cambian de resultado (al llegar al final vuelven al otro extremo), `Inicio`, `Fin` y las flechas laterales mueven el cursor dentro del campo, y `Intro` abre el seleccionado. También puedes pulsar un resultado con el ratón o el dedo. Un lector de pantalla anuncia cuántos resultados hay, si se está buscando o si no hay ninguno.
++
++## Qué no busca
++
++- **Solo tu contenido.** Nunca aparece nada de otra persona, ni siquiera cuántas coincidencias tiene.
++- **Colaboradores de una marca ajena:** ves lo mismo que ya ves en el resto de la aplicación, ni más ni menos. Si eres aprobador de la marca de otra persona, la búsqueda encuentra sus publicaciones **pendientes de aprobar** (las de tu bandeja de **Aprobaciones**) y sus diseños del Estudio. No encuentra sus otras publicaciones, su marca, sus archivos, campañas, sitios ni plantillas, porque ninguna pantalla te los muestra.
++- Las publicaciones y los diseños que están en la papelera, y los archivos aún sin procesar o no válidos.
++- Texto dentro de los diseños, comentarios del buzón, métricas ni nombres de cuentas de redes: solo los títulos y textos de la tabla de arriba.
++- Consultas de menos de 2 o de más de 100 caracteres: con menos de 2 letras solo se filtran las páginas.
++
++## Detalles de la búsqueda
++
++- No distingue mayúsculas de minúsculas. Los acentos dependen de la base de datos: en el entorno de pruebas (SQLite) `cafe` no encuentra «café»; en MySQL con la collation habitual (`utf8mb4_unicode_ci`) sí. Las páginas y acciones se buscan siempre sin tildes.
++- Los caracteres `%`, `_` y `!` se buscan tal cual, no son comodines.
++- Hay un límite de 60 búsquedas por minuto y persona; con el uso normal no se nota (se espera un instante antes de buscar mientras escribes). Si lo superas, la paleta lo dice y puedes seguir con las páginas.
+diff --git a/resources/js/Components/CommandPalette.vue b/resources/js/Components/CommandPalette.vue
+new file mode 100644
+index 0000000..fa077a8
+--- /dev/null
++++ b/resources/js/Components/CommandPalette.vue
+@@ -0,0 +1,297 @@
++<script setup>
++import BaseDialog from '@/Components/BaseDialog.vue';
++import Icon from '@/Components/Icon.vue';
++import InfoNote from '@/Components/InfoNote.vue';
++import NetworkIcon from '@/Components/NetworkIcon.vue';
++import {
++    MIN_LENGTH,
++    PAGE_LIMIT,
++    createRemoteSearch,
++    fetchResults,
++    filterPages,
++    groupEntries,
++    isPaletteShortcut,
++    nextIndex,
++    pageCommands,
++    queryLength,
++    restoreIndex,
++} from '@/lib/commandPalette';
++import { useNavigationContext } from '@/Composables/useNavigationContext';
++import { router } from '@inertiajs/vue3';
++import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
++
++/**
++ * Paleta de comandos (T-85, F-11): botón de la cabecera + diálogo común (`BaseDialog`: foco atrapado, Esc cierra y el foco vuelve a quien la
++ * abrió) con el patrón combobox/listbox de ARIA. Las páginas y acciones salen de `navigation.js` (el mismo menú, con sus permisos y condiciones)
++ * y se filtran al instante; el contenido del usuario llega del servidor (`search`) con debounce y cancelación, ya acotado a lo que puede ver.
++ * Todo se pinta como texto con `{{ }}`: nada de HTML del servidor.
++ *
++ * Atajo: Ctrl+K (Cmd+K en macOS) en cualquier pantalla, también en el compositor (su layout la monta igual; sus navegaciones pasan por el
++ * router y las intercepta `UnsavedGuard`). Ningún editor de la app usa esa combinación (el estudio usa Z, S, A, C, V y D;
++ * el compositor es un `textarea` normal), así que no se pisa nada; cede si otro diálogo modal ya está abierto o si quien lo gestiona
++ * antes ya ha hecho `preventDefault`.
++ */
++defineProps({
++    /** Botón para cabeceras claras (el compositor); por defecto, para la cabecera oscura del shell. */
++    light: Boolean,
++});
++const { ctx } = useNavigationContext();
++
++const LISTBOX_ID = 'command-palette-listbox';
++const optionId = (/** @type {number} */ index) => `command-palette-option-${index}`;
++
++const open = ref(false);
++const query = ref('');
++const active = ref(0);
++const mac = ref(false);
++const trigger = ref(/** @type {HTMLButtonElement | null} */ (null));
++const returnTo = ref(/** @type {HTMLButtonElement | null} */ (null));
++const remote = ref(/** @type {import('@/lib/commandPalette').RemoteState} */ ({ status: 'idle', query: '', results: [], error: '' }));
++
++const search = createRemoteSearch({ request: fetchResults, onChange: (state) => (remote.value = state) });
++const pages = computed(() => (open.value ? pageCommands(ctx.value) : []));
++const groups = computed(() => groupEntries(filterPages(pages.value, query.value, PAGE_LIMIT), remote.value.results));
++const flat = computed(() => groups.value.flatMap((group) => group.entries));
++const typed = computed(() => queryLength(query.value));
++const shortcut = computed(() => (mac.value ? '⌘K' : 'Ctrl K'));
++
++/** Mensaje para el lector de pantalla (región `aria-live` educada); lo visible va aparte, en la propia lista. */
++const announcement = computed(() => {
++    const { status } = remote.value;
++    // El error se anuncia por su propio `role="alert"`.
++    if (status === 'error') return '';
++    if (status === 'loading') return 'Buscando…';
++    if (status === 'ready') return flat.value.length ? `${flat.value.length} resultados.` : `Sin resultados para «${remote.value.query}».`;
++    return typed.value > 0 && typed.value < MIN_LENGTH ? `Escribe al menos ${MIN_LENGTH} caracteres para buscar en tu contenido.` : '';
++});
++
++// Al escribir, la primera opción; cuando solo llegan los resultados del servidor, se conserva la opción activa si sigue en la lista.
++let resetActive = false;
++watch(query, (text) => {
++    resetActive = true;
++    search.update(text);
++});
++watch(flat, (list, previous) => {
++    active.value = resetActive ? 0 : restoreIndex(list, previous[active.value]?.key);
++    resetActive = false;
++});
++watch(active, async (index) => {
++    await nextTick();
++    document.getElementById(optionId(index))?.scrollIntoView({ block: 'nearest' });
++});
++
++/** @param {HTMLButtonElement | null} from botón que la abre (para devolverle el foco); sin él, el foco vuelve a donde estaba */
++function openPalette(from) {
++    returnTo.value = from;
++    open.value = true;
++}
++
++function close() {
++    open.value = false;
++    query.value = '';
++}
++
++/** @param {import('@/lib/commandPalette').PaletteEntry} entry */
++function choose(entry) {
++    close();
++    if (entry.external) window.open(entry.url, '_blank', 'noopener');
++    else router.visit(entry.url);
++}
++
++/** @param {KeyboardEvent} event */
++function onInputKeydown(event) {
++    if (event.isComposing) return;
++    if (event.key === 'Enter') {
++        const entry = flat.value[active.value];
++        if (entry) {
++            event.preventDefault();
++            choose(entry);
++        }
++        return;
++    }
++    const next = nextIndex(active.value, event.key, flat.value.length);
++    if (next >= 0) {
++        event.preventDefault();
++        active.value = next;
++    }
++}
++
++/** @param {KeyboardEvent} event */
++function onShortcut(event) {
++    if (!isPaletteShortcut(event, mac.value)) return;
++    if (open.value) return event.preventDefault();
++    if (document.querySelector('dialog[open]')) return;
++    event.preventDefault();
++    openPalette(null);
++}
++
++onMounted(() => {
++    mac.value = /Mac|iPhone|iPad/.test(navigator.platform);
++    window.addEventListener('keydown', onShortcut);
++});
++onBeforeUnmount(() => {
++    window.removeEventListener('keydown', onShortcut);
++    search.close();
++});
++</script>
++
++<template>
++    <button
++        ref="trigger"
++        type="button"
++        class="flex shrink-0 items-center gap-2 rounded-lg p-2 xl:border xl:px-2.5 xl:py-1.5"
++        :class="
++            light
++                ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 xl:border-slate-300'
++                : 'text-slate-300 hover:bg-white/10 hover:text-white xl:border-white/15 xl:bg-white/5'
++        "
++        :title="`Buscar (${shortcut})`"
++        aria-label="Buscar en la aplicación"
++        aria-haspopup="dialog"
++        aria-keyshortcuts="Control+K Meta+K"
++        data-testid="command-palette-trigger"
++        @click="openPalette(trigger)"
++    >
++        <Icon name="search" class="h-5 w-5" />
++        <span class="hidden text-sm xl:inline">Buscar</span>
++        <kbd
++            class="hidden rounded border px-1.5 text-[11px] 2xl:inline"
++            :class="light ? 'border-slate-300 text-slate-600' : 'border-white/20 text-slate-300'"
++            aria-hidden="true"
++            >{{
++            shortcut
++            }}</kbd
++        >
++    </button>
++
++    <BaseDialog
++        v-if="open"
++        open
++        close-on-backdrop
++        :return-focus-to="returnTo"
++        class="dialog-panel max-w-2xl max-sm:my-0 max-sm:h-dvh max-sm:max-h-none max-sm:w-screen max-sm:max-w-none max-sm:rounded-none sm:mt-20"
++        aria-labelledby="command-palette-title"
++        @close="close"
++    >
++        <div class="flex h-full min-w-0 flex-col" data-testid="command-palette">
++            <h2 id="command-palette-title" class="sr-only">Buscar</h2>
++            <div class="flex items-center gap-2 border-b border-slate-200 px-3 py-2">
++                <Icon name="search" class="h-5 w-5 shrink-0 text-slate-500" />
++                <label for="command-palette-input" class="sr-only"
++                    >Buscar páginas, publicaciones, marcas, archivos y más</label
++                >
++                <input
++                    id="command-palette-input"
++                    v-model="query"
++                    data-dialog-initial-focus
++                    type="text"
++                    role="combobox"
++                    aria-autocomplete="list"
++                    aria-haspopup="listbox"
++                    :aria-expanded="flat.length > 0"
++                    :aria-controls="flat.length > 0 ? LISTBOX_ID : undefined"
++                    :aria-activedescendant="flat.length > 0 ? optionId(active) : undefined"
++                    aria-describedby="command-palette-hint"
++                    :maxlength="100"
++                    autocomplete="off"
++                    autocapitalize="off"
++                    spellcheck="false"
++                    enterkeyhint="go"
++                    placeholder="Buscar…"
++                    class="min-h-11 min-w-0 flex-1 rounded-md border-0 bg-transparent px-1 text-base text-slate-900 placeholder:text-slate-500 focus:ring-2 focus:ring-inset focus:ring-indigo-500 focus:ring-offset-0 sm:text-sm"
++                    data-testid="command-palette-input"
++                    @keydown="onInputKeydown"
++                />
++                <button
++                    type="button"
++                    class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100"
++                    aria-label="Cerrar la búsqueda"
++                    data-testid="command-palette-close"
++                    @click="close"
++                >
++                    <Icon name="x" class="h-5 w-5" />
++                </button>
++            </div>
++
++            <p id="command-palette-hint" class="px-4 pt-2 text-xs text-slate-600">
++                Las páginas se filtran al momento; publicaciones, marcas, archivos y diseños se buscan desde
++                {{ MIN_LENGTH }} letras.
++            </p>
++
++            <div class="min-h-0 flex-1 overflow-y-auto pb-2 sm:max-h-[min(26rem,60dvh)]">
++                <div v-if="flat.length > 0" :id="LISTBOX_ID" role="listbox" aria-label="Resultados">
++                    <div
++                        v-for="group in groups"
++                        :key="group.type"
++                        role="group"
++                        :aria-labelledby="`command-palette-group-${group.type}`"
++                    >
++                        <div
++                            :id="`command-palette-group-${group.type}`"
++                            role="presentation"
++                            class="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-slate-500"
++                            >{{ group.label }}</div
++                        >
++                        <div
++                            v-for="entry in group.entries"
++                            :id="optionId(entry.index)"
++                            :key="entry.key"
++                            role="option"
++                            :aria-selected="entry.index === active"
++                            class="flex min-h-11 cursor-pointer items-center gap-3 border-s-2 px-4 py-2"
++                            :class="entry.index === active ? 'border-indigo-600 bg-indigo-50' : 'border-transparent'"
++                            data-testid="command-palette-option"
++                            @click="choose(entry)"
++                            @mousemove="active = entry.index"
++                        >
++                            <NetworkIcon v-if="entry.network !== undefined" :network="entry.network" size="sm" />
++                            <Icon v-else :name="entry.icon ?? 'grid'" class="h-5 w-5 shrink-0 text-slate-500" />
++                            <span class="min-w-0 flex-1">
++                                <span class="block truncate text-sm font-medium text-slate-900">{{ entry.title }}</span>
++                                <span v-if="entry.meta" class="block truncate text-xs text-slate-600">{{
++                                    entry.meta
++                                }}</span>
++                            </span>
++                            <span v-if="entry.external" class="sr-only">(se abre en otra pestaña)</span>
++                        </div>
++                    </div>
++                </div>
++
++                <p
++                    v-if="remote.status === 'loading'"
++                    class="px-4 py-3 text-sm text-slate-600"
++                    data-testid="command-palette-loading"
++                    >Buscando en tu contenido…</p
++                >
++                <p
++                    v-else-if="remote.status === 'error'"
++                    role="alert"
++                    class="px-4 py-3 text-sm text-red-700"
++                    data-testid="command-palette-error"
++                    >{{ remote.error }}</p
++                >
++                <div
++                    v-else-if="remote.status === 'ready' && remote.results.length === 0"
++                    class="px-4 pt-3"
++                    data-testid="command-palette-empty"
++                >
++                    <InfoNote
++                        >No hay publicaciones, marcas, archivos ni diseños tuyos que coincidan con «{{ remote.query
++                        }}».</InfoNote
++                    >
++                </div>
++            </div>
++
++            <p
++                aria-live="polite"
++                role="status"
++                class="sr-only"
++                data-testid="command-palette-status"
++                >{{ announcement }}</p
++            >
++            <p class="hidden border-t border-slate-200 px-4 py-2 text-xs text-slate-600 sm:block">
++                ↑ ↓ para moverte · Intro para abrir · Esc para cerrar
++            </p>
++        </div>
++    </BaseDialog>
++</template>
+diff --git a/resources/js/Composables/useNavigationContext.js b/resources/js/Composables/useNavigationContext.js
+new file mode 100644
+index 0000000..a57675f
+--- /dev/null
++++ b/resources/js/Composables/useNavigationContext.js
+@@ -0,0 +1,29 @@
++import { usePage } from '@inertiajs/vue3';
++import { computed } from 'vue';
++
++/**
++ * Contexto de `navigation.js` (marca, ruta actual, rutas registradas...) y el shell compartido por Inertia. Lo usan el menú del layout
++ * principal y la paleta de comandos (que se monta también en el compositor), para que ambos resuelvan las mismas páginas.
++ */
++export function useNavigationContext() {
++    /** @type {ReturnType<typeof usePage<import('@/types/shell').ShellPageProps>>} */
++    const page = usePage();
++    const shell = computed(() => page.props.shell ?? { brands: [], currentBrand: null, accounts: {}, networks: [] });
++    const brand = computed(() => shell.value.currentBrand);
++
++    /** @param {...string} names */
++    const is = (...names) => names.some((n) => route().current(n));
++
++    /** @type {import('vue').ComputedRef<import('@/navigation').NavigationContext>} */
++    const ctx = computed(() => ({
++        brand: brand.value,
++        q: brand.value ? { brand_id: brand.value.id } : {},
++        shell: shell.value,
++        page,
++        route,
++        is,
++        has: (name) => route().has(name),
++    }));
++
++    return { page, shell, brand, is, ctx };
++}
+diff --git a/resources/js/lib/commandPalette.js b/resources/js/lib/commandPalette.js
+new file mode 100644
+index 0000000..cad4ee4
+--- /dev/null
++++ b/resources/js/lib/commandPalette.js
+@@ -0,0 +1,277 @@
++import { ACCOUNT_MODULE, activeModule, sideItems, visibleModules } from '../navigation.js';
++import { HttpError, requestJson } from './http.js';
++
++/**
++ * Lógica pura de la paleta de comandos (T-85): páginas y acciones sacadas de `navigation.js` (la fuente única del menú), filtrado sin tildes,
++ * agrupación, movimiento por teclado y la búsqueda remota con debounce que descarta las respuestas fuera de orden.
++ */
++
++/**
++ * @typedef {import('../navigation.js').NavigationContext} NavigationContext
++ * @typedef {{type: string, id: number, title: string, brand: string | null, date: string | null, status: string | null, url: string, external: boolean}} SearchResult
++ * @typedef {{key: string, type: string, title: string, meta: string, url: string, external: boolean, icon?: string, network?: string}} PaletteEntry
++ * @typedef {PaletteEntry & {index: number}} IndexedEntry
++ * @typedef {{type: string, label: string, entries: IndexedEntry[]}} PaletteGroup
++ * @typedef {{status: 'idle' | 'loading' | 'ready' | 'error', query: string, results: SearchResult[], error: string}} RemoteState
++ */
++
++export const MIN_LENGTH = 2;
++export const MAX_LENGTH = 100;
++export const DEBOUNCE_MS = 250;
++export const PAGE_LIMIT = 8;
++
++const PAGE_TYPE = 'page';
++
++/** Encabezado de cada grupo, en el orden en que se muestran. */
++export const GROUP_LABELS = /** @type {const} */ ({
++    page: 'Páginas y acciones',
++    post: 'Publicaciones',
++    brand: 'Marcas',
++    design: 'Diseños',
++    media: 'Archivos',
++    campaign: 'Campañas',
++    template: 'Plantillas',
++    site: 'Sitios',
++    smartlink: 'Smart links',
++});
++
++/** Icono de cada tipo de resultado del servidor. */
++export const TYPE_ICONS = /** @type {Record<string, string>} */ ({
++    post: 'doc',
++    brand: 'tag',
++    design: 'palette',
++    media: 'folder',
++    campaign: 'megaphone',
++    template: 'bookmark',
++    site: 'grid',
++    smartlink: 'link',
++});
++
++/** Minúsculas y sin tildes, para comparar «Campañas» con «campanas». @param {string} text */
++export function fold(text) {
++    return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
++}
++
++/**
++ * Páginas y acciones de la app tal y como las muestra el menú: mismas condiciones (`when`), mismos permisos y mismos enlaces, porque se
++ * resuelven con `sideItems` de `navigation.js`, con las del módulo actual primero. Sin entradas repetidas (varias secciones enlazan la misma pantalla con el mismo nombre).
++ * @param {NavigationContext} context
++ * @returns {PaletteEntry[]}
++ */
++export function pageCommands(context) {
++    /** @type {Map<string, PaletteEntry>} */
++    const entries = new Map();
++    // El módulo en el que estás va primero: sus pantallas caben siempre en la primera lista, aunque el menú tenga muchas.
++    const current = activeModule(context);
++    const modules = [...visibleModules(context), ACCOUNT_MODULE];
++    for (const module of [current, ...modules.filter((candidate) => candidate !== current)]) {
++        for (const item of sideItems(module, context)) {
++            const key = `${module.key}:${item.key}`;
++            const url = item.href;
++            if (entries.has(`${url}|${item.label}`)) continue;
++            entries.set(`${url}|${item.label}`, {
++                key: `page-${key}`,
++                type: PAGE_TYPE,
++                title: item.label,
++                meta: module.label,
++                url,
++                external: false,
++                ...(item.network !== undefined ? { network: item.network } : { icon: item.icon }),
++            });
++        }
++    }
++    return [...entries.values()];
++}
++
++/**
++ * Filtra las páginas por todas las palabras de la consulta (sin tildes ni mayúsculas); primero las que empiezan por ella y luego las que la
++ * contienen en el título. Sin consulta devuelve las primeras.
++ * @param {PaletteEntry[]} pages
++ * @param {string} query
++ * @param {number} [limit]
++ */
++export function filterPages(pages, query, limit = PAGE_LIMIT) {
++    const words = fold(query).split(/\s+/).filter(Boolean);
++    if (words.length === 0) return pages.slice(0, limit);
++    return pages
++        .map((page, order) => {
++            const title = fold(page.title);
++            const haystack = `${title} ${fold(page.meta)}`;
++            const rank = title.startsWith(words[0]) ? 0 : title.includes(words[0]) ? 1 : 2;
++            return { page, order, rank, match: words.every((word) => haystack.includes(word)) };
++        })
++        .filter((candidate) => candidate.match)
++        .sort((a, b) => a.rank - b.rank || a.order - b.order)
++        .slice(0, limit)
++        .map((candidate) => candidate.page);
++}
++
++/**
++ * Fecha local de la marca (`2026-11-19 20:30` o `2026-11-19`) en texto legible. El servidor ya la dio en la zona de la marca: aquí no se
++ * convierte nada, solo se escribe.
++ * @param {string | null} value
++ */
++export function formatLocalDate(value) {
++    const match = /^(\d{4})-(\d{2})-(\d{2})(?: (\d{2}):(\d{2}))?$/.exec(value ?? '');
++    if (!match) return '';
++    const [, year, month, day, hours, minutes] = match;
++    // Se construye y se escribe en UTC: la hora de la marca no pasa por la zona del navegador (que podría saltarse esa hora en un cambio de horario).
++    const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hours ?? 0), Number(minutes ?? 0)));
++    return new Intl.DateTimeFormat('es', { timeZone: 'UTC', dateStyle: 'medium', ...(hours === undefined ? {} : { timeStyle: 'short' }) }).format(date);
++}
++
++/**
++ * @param {SearchResult} result
++ * @returns {PaletteEntry}
++ */
++export function resultEntry(result) {
++    return {
++        key: `${result.type}-${result.id}`,
++        type: result.type,
++        title: result.title,
++        meta: [result.brand, formatLocalDate(result.date), result.status].filter(Boolean).join(' · '),
++        url: result.url,
++        external: result.external,
++        icon: TYPE_ICONS[result.type] ?? 'grid',
++    };
++}
++
++/**
++ * Páginas primero y luego el contenido del usuario, agrupado por tipo en el orden de `GROUP_LABELS`, con un índice continuo para el teclado.
++ * @param {PaletteEntry[]} pages
++ * @param {SearchResult[]} results
++ * @returns {PaletteGroup[]}
++ */
++export function groupEntries(pages, results) {
++    const entries = [...pages, ...results.map(resultEntry)];
++    let index = 0;
++    return Object.entries(GROUP_LABELS)
++        .map(([type, label]) => ({
++            type,
++            label,
++            entries: entries.filter((entry) => entry.type === type).map((entry) => ({ ...entry, index: index++ })),
++        }))
++        .filter((group) => group.entries.length > 0);
++}
++
++/**
++ * Opción activa tras una flecha (con vuelta al otro extremo). `-1` si la tecla no mueve nada: Inicio y Fin son del cursor del campo (combobox editable).
++ * @param {number} current
++ * @param {string} key
++ * @param {number} count
++ */
++export function nextIndex(current, key, count) {
++    if (count === 0) return -1;
++    if (key === 'ArrowDown') return (current + 1) % count;
++    if (key === 'ArrowUp') return (current - 1 + count) % count;
++    return -1;
++}
++
++/**
++ * Opción activa tras cambiar la lista: la misma si sigue en ella; si no, la primera.
++ * @param {{key: string}[]} entries
++ * @param {string | undefined} key clave de la opción que estaba activa
++ */
++export function restoreIndex(entries, key) {
++    return Math.max(0, entries.findIndex((entry) => entry.key === key));
++}
++
++/**
++ * Longitud de la consulta en puntos de código (como `mb_strlen` del servidor), no en unidades UTF-16: «😀» cuenta 1.
++ * @param {string} text
++ */
++export function queryLength(text) {
++    return [...text.trim()].length;
++}
++
++/**
++ * ¿Es la combinación de la paleta? Ctrl+K, o Cmd+K en macOS (allí Ctrl+K es «borrar hasta el final de la línea» en los campos de texto).
++ * @param {Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'altKey' | 'shiftKey' | 'repeat' | 'isComposing' | 'defaultPrevented'>} event
++ * @param {boolean} mac
++ */
++export function isPaletteShortcut(event, mac) {
++    if (event.defaultPrevented || event.repeat || event.isComposing || event.altKey || event.shiftKey) return false;
++    return (mac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey) && event.key.toLowerCase() === 'k';
++}
++
++/** @param {unknown} error */
++function searchErrorMessage(error) {
++    if (error instanceof HttpError && error.status === 429) return 'Demasiadas búsquedas seguidas. Espera un momento.';
++    return 'No se pudo buscar. Inténtalo de nuevo.';
++}
++
++/**
++ * Petición real al servidor.
++ * @param {string} query
++ * @param {AbortSignal} signal
++ * @returns {Promise<SearchResult[]>}
++ */
++export async function fetchResults(query, signal) {
++    const data = /** @type {{results: SearchResult[]}} */ (await requestJson('GET', route('search', { q: query }, false), { signal }));
++    return data.results;
++}
++
++/**
++ * Búsqueda remota con debounce. Cada cambio de texto cancela el temporizador y la petición anterior (AbortController) y avanza una secuencia:
++ * una respuesta que llega tras otra más reciente (o tras cerrar) se descarta aunque el transporte no respete la cancelación.
++ * @param {{request: (query: string, signal: AbortSignal) => Promise<SearchResult[]>, onChange: (state: RemoteState) => void, delay?: number, setTimer?: typeof setTimeout, clearTimer?: typeof clearTimeout}} options
++ */
++export function createRemoteSearch({ request, onChange, delay = DEBOUNCE_MS, setTimer = setTimeout, clearTimer = clearTimeout }) {
++    /** @type {ReturnType<typeof setTimeout> | null} */
++    let timer = null;
++    /** @type {AbortController | null} */
++    let controller = null;
++    let sequence = 0;
++    /** @type {RemoteState} */
++    const state = { status: 'idle', query: '', results: [], error: '' };
++
++    /** @param {Partial<RemoteState>} patch */
++    const publish = (patch) => {
++        Object.assign(state, patch);
++        onChange({ ...state });
++    };
++    const cancel = () => {
++        if (timer !== null) clearTimer(timer);
++        timer = null;
++        controller?.abort();
++        controller = null;
++    };
++
++    /** @param {string} query @param {number} id */
++    async function run(query, id) {
++        const mine = new AbortController();
++        controller = mine;
++        try {
++            const results = await request(query, mine.signal);
++            if (id === sequence) publish({ status: 'ready', results });
++        } catch (error) {
++            if (id === sequence && !mine.signal.aborted) publish({ status: 'error', results: [], error: searchErrorMessage(error) });
++        } finally {
++            if (controller === mine) controller = null;
++        }
++    }
++
++    return {
++        /** @param {string} text */
++        update(text) {
++            const query = [...text.trim()].slice(0, MAX_LENGTH).join('');
++            sequence++;
++            cancel();
++            if (queryLength(query) < MIN_LENGTH) {
++                publish({ status: 'idle', query, results: [], error: '' });
++                return;
++            }
++            publish({ status: 'loading', query, results: [], error: '' });
++            const id = sequence;
++            timer = setTimer(() => {
++                timer = null;
++                run(query, id);
++            }, delay);
++        },
++        close() {
++            sequence++;
++            cancel();
++            publish({ status: 'idle', query: '', results: [], error: '' });
++        },
++    };
++}
+diff --git a/tests/Feature/Search/GlobalSearchTest.php b/tests/Feature/Search/GlobalSearchTest.php
+new file mode 100644
+index 0000000..e5408e1
+--- /dev/null
++++ b/tests/Feature/Search/GlobalSearchTest.php
+@@ -0,0 +1,221 @@
++<?php
++
++use App\Enums\PostStatus;
++use App\Models\Brand;
++use App\Models\BrandCollaborator;
++use App\Models\Campaign;
++use App\Models\MediaAsset;
++use App\Models\Post;
++use App\Models\Site;
++use App\Models\SmartLink;
++use App\Models\Studio\Design;
++use App\Models\Studio\DesignShare;
++use App\Models\User;
++use Illuminate\Support\Facades\DB;
++
++/**
++ * T-85 (F-11) · búsqueda global: solo lo que el usuario puede ver, con la misma visibilidad que cada listado, límites,
++ * comodines del LIKE escapados y un número de consultas que no depende del número de resultados.
++ */
++beforeEach(function () {
++    $this->user = User::factory()->create();
++    $this->other = User::factory()->create();
++});
++
++function searchDesign(User $user, Brand $brand, string $name): Design
++{
++    return Design::unguarded(fn () => Design::create(['user_id' => $user->id, 'brand_id' => $brand->id, 'name' => $name, 'document' => ['pages' => []], 'width' => 10, 'height' => 10, 'page_count' => 1, 'revision' => 1]));
++}
++
++/** Crea `$count` elementos de cada tipo buscable cuyo nombre contiene `$term`. */
++function seedSearchable(User $user, string $term, int $count): void
++{
++    $slug = strtolower($term);
++    $existing = Brand::ownedBy($user)->count();
++    for ($i = $existing + 1; $i <= $existing + $count; $i++) {
++        $brand = Brand::factory()->create(['user_id' => $user->id, 'name' => "$term marca $i", 'timezone' => 'UTC']);
++        Post::factory()->create(['brand_id' => $brand->id, 'text' => "$term publicación $i"]);
++        MediaAsset::factory()->create(['user_id' => $user->id, 'original_name' => "$term-foto-$i.jpg"]);
++        searchDesign($user, $brand, "$term diseño $i");
++        Campaign::factory()->create(['brand_id' => $brand->id, 'name' => "$term campaña $i"]);
++        DB::table('post_templates')->insert(['user_id' => $user->id, 'brand_id' => $brand->id, 'name' => "$term plantilla $i"]);
++        Site::create(['user_id' => $user->id, 'brand_id' => $brand->id, 'slug' => "$slug-sitio-$i-u{$user->id}", 'title' => "$term sitio $i", 'draft' => []]);
++        (new SmartLink)->forceFill(['user_id' => $user->id, 'brand_id' => $brand->id, 'slug' => "$slug-link-$i-u{$user->id}", 'title' => "$term enlace $i"])->save();
++    }
++}
++
++/** @return list<array<string, mixed>> */
++function searchResults(mixed $test, string $term): array
++{
++    return $test->getJson(route('search', ['q' => $term], false))->assertOk()->json('results');
++}
++
++it('finds content of every type with its context and a link', function () {
++    $brand = Brand::factory()->create(['user_id' => $this->user->id, 'name' => 'Cafetería Sol', 'timezone' => 'UTC']);
++    $post = Post::factory()->create(['brand_id' => $brand->id, 'text' => 'Oferta de verano en Cafetería']);
++    $media = MediaAsset::factory()->create(['user_id' => $this->user->id, 'original_name' => 'cafetería-fachada.jpg']);
++    $design = searchDesign($this->user, $brand, 'Cartel cafetería');
++    $campaign = Campaign::factory()->create(['brand_id' => $brand->id, 'name' => 'Campaña cafetería']);
++    DB::table('post_templates')->insert(['user_id' => $this->user->id, 'brand_id' => $brand->id, 'name' => 'Plantilla cafetería']);
++    $site = Site::create(['user_id' => $this->user->id, 'brand_id' => $brand->id, 'slug' => 'cafe-sitio', 'title' => 'Sitio cafetería', 'draft' => []]);
++    (new SmartLink)->forceFill(['user_id' => $this->user->id, 'brand_id' => $brand->id, 'slug' => 'cafe-link', 'title' => 'Enlaces cafetería'])->save();
++
++    $results = collect(searchResults($this->actingAs($this->user), 'cafetería'))->keyBy('type');
++
++    expect($results->keys()->sort()->values()->all())->toBe(['brand', 'campaign', 'design', 'media', 'post', 'site', 'smartlink', 'template']);
++    expect($results['post'])->toMatchArray(['id' => $post->id, 'title' => 'Oferta de verano en Cafetería', 'brand' => 'Cafetería Sol', 'status' => 'Borrador', 'url' => route('posts.edit', $post, false)]);
++    expect($results['brand'])->toMatchArray(['id' => $brand->id, 'title' => 'Cafetería Sol', 'url' => route('brands.show', $brand, false)]);
++    expect($results['media'])->toMatchArray(['id' => $media->id, 'title' => 'cafetería-fachada.jpg', 'external' => true, 'url' => route('media.file', $media, false)]);
++    expect($results['design'])->toMatchArray(['id' => $design->id, 'brand' => 'Cafetería Sol', 'url' => route('studio.designs.edit', $design, false)]);
++    expect($results['campaign'])->toMatchArray(['id' => $campaign->id, 'url' => route('campaigns.show', $campaign->id, false)]);
++    expect($results['site'])->toMatchArray(['id' => $site->id, 'status' => 'Borrador', 'url' => route('sites.edit', $site, false)]);
++    expect($results['template']['url'])->toBe(route('library.index', ['brand_id' => $brand->id], false));
++    expect($results['smartlink']['url'])->toBe(route('smartlinks.index', ['brand_id' => $brand->id], false));
++});
++
++it('never returns content of another user, not even indirectly', function () {
++    $mine = Brand::factory()->create(['user_id' => $this->user->id, 'name' => 'Mi marca', 'timezone' => 'UTC']);
++    Post::factory()->create(['brand_id' => $mine->id, 'text' => 'secreto-propio']);
++    seedSearchable($this->other, 'secreto', 3);
++
++    $response = $this->actingAs($this->user)->getJson(route('search', ['q' => 'secreto'], false))->assertOk();
++
++    expect(collect($response->json('results'))->pluck('title')->all())->toBe(['secreto-propio']);
++    expect(array_keys($response->json()))->toBe(['results']);
++});
++
++it('hides trashed posts and designs and unfinished media, and marks archived campaigns', function () {
++    $brand = Brand::factory()->create(['user_id' => $this->user->id, 'name' => 'Marca', 'timezone' => 'UTC']);
++    Post::factory()->create(['brand_id' => $brand->id, 'text' => 'zeta borrada'])->delete();
++    searchDesign($this->user, $brand, 'zeta diseño borrado')->delete();
++    MediaAsset::factory()->create(['user_id' => $this->user->id, 'original_name' => 'zeta-pendiente.jpg', 'status' => MediaAsset::STATUS_PENDING]);
++    Campaign::factory()->create(['brand_id' => $brand->id, 'name' => 'zeta archivada', 'archived_at' => now()]);
++
++    $results = searchResults($this->actingAs($this->user), 'zeta');
++
++    expect(collect($results)->pluck('type')->all())->toBe(['campaign']);
++    expect($results[0]['status'])->toBe('Archivada');
++});
++
++it('matches the collaborator visibility of the approvals inbox and the studio, neither more nor less', function () {
++    $theirs = Brand::factory()->create(['user_id' => $this->other->id, 'name' => 'Marca ajena', 'timezone' => 'UTC']);
++    $unrelated = Brand::factory()->create(['user_id' => $this->other->id, 'name' => 'Otra ajena', 'timezone' => 'UTC']);
++    BrandCollaborator::create(['brand_id' => $theirs->id, 'owner_id' => $this->other->id, 'user_id' => $this->user->id, 'role' => BrandCollaborator::ROLE_APPROVER]);
++
++    $pending = Post::factory()->create(['brand_id' => $theirs->id, 'text' => 'vis pendiente de aprobar', 'approval_status' => Post::APPROVAL_PENDING]);
++    Post::factory()->create(['brand_id' => $theirs->id, 'text' => 'vis borrador del dueño']);
++    Post::factory()->create(['brand_id' => $theirs->id, 'text' => 'vis ya aprobado', 'approval_status' => Post::APPROVAL_APPROVED]);
++    Post::factory()->create(['brand_id' => $unrelated->id, 'text' => 'vis pendiente de otra marca', 'approval_status' => Post::APPROVAL_PENDING]);
++    $design = searchDesign($this->other, $theirs, 'vis diseño de la marca aprobada');
++    searchDesign($this->other, $unrelated, 'vis diseño de otra marca');
++    $shared = searchDesign($this->other, $unrelated, 'vis diseño compartido');
++    DesignShare::create(['design_id' => $shared->id, 'user_id' => $this->user->id, 'owner_id' => $this->other->id, 'role' => 'reader']);
++    Campaign::factory()->create(['brand_id' => $theirs->id, 'name' => 'vis campaña ajena']);
++    MediaAsset::factory()->create(['user_id' => $this->other->id, 'original_name' => 'vis-ajena.jpg']);
++    Brand::factory()->create(['user_id' => $this->other->id, 'name' => 'vis marca ajena', 'timezone' => 'UTC']);
++
++    $results = collect(searchResults($this->actingAs($this->user), 'vis'));
++
++    expect($results->pluck('title')->sort()->values()->all())->toBe(['vis diseño compartido', 'vis diseño de la marca aprobada', 'vis pendiente de aprobar']);
++    expect($results->firstWhere('type', 'post'))->toMatchArray(['id' => $pending->id, 'status' => 'Pendiente de aprobar', 'url' => route('approvals.index', absolute: false)]);
++    expect($results->where('type', 'design')->firstWhere('id', $design->id)['status'])->toBe('Compartido');
++});
++
++it('stops showing collaborator content when the grant is revoked', function () {
++    $theirs = Brand::factory()->create(['user_id' => $this->other->id, 'name' => 'Marca', 'timezone' => 'UTC']);
++    $grant = BrandCollaborator::create(['brand_id' => $theirs->id, 'owner_id' => $this->other->id, 'user_id' => $this->user->id, 'role' => BrandCollaborator::ROLE_APPROVER]);
++    searchDesign($this->other, $theirs, 'revocable');
++
++    expect(searchResults($this->actingAs($this->user), 'revocable'))->toHaveCount(1);
++    $grant->delete();
++    expect(searchResults($this, 'revocable'))->toBe([]);
++});
++
++it('treats % and _ as literal characters', function () {
++    $brand = Brand::factory()->create(['user_id' => $this->user->id, 'timezone' => 'UTC']);
++    Post::factory()->create(['brand_id' => $brand->id, 'text' => 'rebaja 100% real']);
++    Post::factory()->create(['brand_id' => $brand->id, 'text' => 'rebaja 100 xx real']);
++    Post::factory()->create(['brand_id' => $brand->id, 'text' => 'fichero a_b final']);
++    Post::factory()->create(['brand_id' => $brand->id, 'text' => 'fichero aXb final']);
++    Post::factory()->create(['brand_id' => $brand->id, 'text' => 'barra ! invertida']);
++
++    $this->actingAs($this->user);
++
++    expect(collect(searchResults($this, '100%'))->pluck('title')->all())->toBe(['rebaja 100% real']);
++    expect(collect(searchResults($this, 'a_b'))->pluck('title')->all())->toBe(['fichero a_b final']);
++    expect(searchResults($this, '%%'))->toBe([]);
++    expect(searchResults($this, '!!'))->toBe([]);
++    expect(collect(searchResults($this, '! i'))->pluck('title')->all())->toBe(['barra ! invertida']);
++});
++
++it('ignores letter case', function () {
++    $brand = Brand::factory()->create(['user_id' => $this->user->id, 'name' => 'Marca Mayusculas', 'timezone' => 'UTC']);
++
++    expect(collect(searchResults($this->actingAs($this->user), 'MARCA mayus'))->pluck('id')->all())->toBe([$brand->id]);
++});
++
++it('caps results per type and in total, sharing the total between types', function () {
++    seedSearchable($this->user, 'tope', 7);
++
++    $results = collect(searchResults($this->actingAs($this->user), 'tope'));
++
++    expect($results)->toHaveCount(20);
++    expect($results->countBy('type')->max())->toBeLessThanOrEqual(5);
++    expect($results->pluck('type')->unique())->toHaveCount(8);
++});
++
++it('validates the minimum and maximum query length', function () {
++    $this->actingAs($this->user);
++
++    $this->getJson(route('search', [], false))->assertJsonValidationErrors('q');
++    $this->getJson(route('search', ['q' => 'a'], false))->assertJsonValidationErrors('q');
++    $this->getJson(route('search', ['q' => ' a '], false))->assertJsonValidationErrors('q');
++    $this->getJson(route('search', ['q' => str_repeat('a', 101)], false))->assertJsonValidationErrors('q');
++    $this->getJson(route('search', ['q' => ['a', 'b']], false))->assertJsonValidationErrors('q');
++    $this->getJson(route('search', ['q' => 'ab'], false))->assertOk();
++    $this->getJson(route('search', ['q' => str_repeat('a', 100)], false))->assertOk();
++});
++
++it('requires a session', function () {
++    $this->getJson(route('search', ['q' => 'marca'], false))->assertUnauthorized();
++    $this->get(route('search', ['q' => 'marca'], false))->assertRedirect(route('login'));
++});
++
++it('has its own named throttle', function () {
++    config(['rate_limits.limits.search' => 2]);
++    $this->actingAs($this->user);
++
++    $this->getJson(route('search', ['q' => 'marca'], false))->assertOk();
++    $this->getJson(route('search', ['q' => 'marca'], false))->assertOk();
++    $this->getJson(route('search', ['q' => 'marca'], false))->assertStatus(429);
++});
++
++it('runs a fixed number of queries whatever the number of results', function () {
++    $count = function (): int {
++        $queries = 0;
++        DB::listen(function () use (&$queries) {
++            $queries++;
++        });
++        $this->getJson(route('search', ['q' => 'fijo'], false))->assertOk();
++
++        return $queries;
++    };
++    $this->actingAs($this->user);
++    $this->getJson(route('search', ['q' => 'calentar'], false))->assertOk();
++
++    seedSearchable($this->user, 'fijo', 1);
++    $few = $count();
++    seedSearchable($this->user, 'fijo', 6);
++    $many = $count();
++
++    expect($many)->toBe($few)->and($few)->toBeLessThanOrEqual(10);
++});
++
++it('formats post dates in the timezone of the brand', function () {
++    $brand = Brand::factory()->create(['user_id' => $this->user->id, 'timezone' => 'America/Mexico_City']);
++    Post::factory()->create(['brand_id' => $brand->id, 'text' => 'zona horaria', 'status' => PostStatus::Scheduled, 'scheduled_at' => '2026-11-20 02:30:00']);
++
++    $result = searchResults($this->actingAs($this->user), 'zona horaria')[0];
++
++    expect($result)->toMatchArray(['date' => '2026-11-19 20:30', 'status' => 'Programada']);
++});
+diff --git a/tests/e2e/command-palette.spec.ts b/tests/e2e/command-palette.spec.ts
+new file mode 100644
+index 0000000..d9194f7
+--- /dev/null
++++ b/tests/e2e/command-palette.spec.ts
+@@ -0,0 +1,182 @@
++import { expect, test, type Page } from '@playwright/test';
++import {
++    artisan,
++    axeSeriousCritical,
++    cleanComposerBrands,
++    clearUserThrottle,
++    createExtraE2eUser,
++    e2eUser,
++    expectNoOverflow,
++    loginAs,
++    seedComposerBrand,
++    settle,
++    stamp,
++    watch,
++    type ComposerBrand,
++} from './helpers';
++
++/**
++ * Búsqueda global y paleta de comandos (T-85, E2E-24): Ctrl+K o el botón de la cabecera, resultados solo del usuario, navegación con el
++ * teclado, Esc y devolución del foco. Usuarios `e2e-*`; las marcas `e2e-composer-*` (propias y de un segundo usuario) se limpian al terminar.
++ */
++test.describe.configure({ mode: 'serial' });
++
++let brand: ComposerBrand;
++let otherEmail: string;
++let token: string;
++
++/** Una publicación propia y otra de OTRO usuario con el mismo texto buscable: la ajena nunca puede aparecer. */
++function seedPalette(brandId: number, other: string, word: string) {
++    artisan(
++        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
++            String.raw`App\Models\Post::factory()->create(['brand_id' => $b->id, 'text' => 'e2e paleta propia ${word}']); ` +
++            String.raw`$o = App\Models\User::where('email', '${other}')->firstOrFail(); ` +
++            String.raw`$ob = App\Models\Brand::factory()->for($o)->create(['name' => 'e2e-composer-ajena-${word}']); ` +
++            String.raw`App\Models\Post::factory()->create(['brand_id' => $ob->id, 'text' => 'e2e paleta ajena ${word}']);`,
++    );
++}
++
++const openWithShortcut = (page: Page) => page.keyboard.press('ControlOrMeta+K');
++const paletteDialog = (page: Page) => page.getByRole('dialog', { name: 'Buscar', exact: true });
++
++test.describe('Paleta de comandos', { tag: '@responsive' }, () => {
++    test.beforeEach(async ({ page }, info) => {
++        const user = e2eUser(info.project.name);
++        token = `pal${stamp()}`;
++        cleanComposerBrands(user.email);
++        brand = seedComposerBrand(user.email, `${token}-${info.project.name}`);
++        otherEmail = createExtraE2eUser(`paleta-${token}`);
++        cleanComposerBrands(otherEmail);
++        seedPalette(brand.id, otherEmail, token);
++        clearUserThrottle(user.email);
++        await loginAs(page, user);
++    });
++
++    test.afterEach(async ({}, info) => {
++        cleanComposerBrands(e2eUser(info.project.name).email);
++        cleanComposerBrands(otherEmail);
++    });
++
++    test('E2E-24 · paleta de comandos: Ctrl+K busca solo contenido propio, se navega con el teclado, Esc devuelve el foco y el botón también la abre', async ({
++        page,
++    }, info) => {
++        const w = watch(page);
++        await page.goto(`/calendar?brand_id=${brand.id}`);
++        await settle(page);
++        const trigger = page.getByRole('button', { name: 'Buscar en la aplicación', exact: true });
++        await expect(trigger).toBeVisible();
++        await expectNoOverflow(page);
++
++        // 1. Ctrl+K abre la paleta con el foco en el campo y las páginas de la app al momento (sin pedir nada al servidor).
++        await page.getByTestId('brand-switcher').focus();
++        await openWithShortcut(page);
++        const dialog = paletteDialog(page);
++        await expect(dialog).toBeVisible();
++        const input = dialog.getByRole('combobox');
++        await expect(input).toBeFocused();
++        await expect(input).toHaveAttribute('aria-expanded', 'true');
++        await expect(dialog.getByRole('option', { name: /Calendario/ })).toBeVisible();
++        const box = await dialog.boundingBox();
++        expect(box!.width, 'la paleta cabe en la pantalla').toBeLessThanOrEqual(page.viewportSize()!.width);
++        await expectNoOverflow(page);
++        await axeSeriousCritical(page, 'Paleta abierta, estado inicial');
++        await page.screenshot({ path: info.outputPath('command-palette-initial.png'), fullPage: true });
++
++        // 2. Una publicación y una marca propias aparecen; la publicación (y la marca) de otro usuario, nunca.
++        await input.fill(token);
++        const post = dialog.getByRole('option', { name: new RegExp(`e2e paleta propia ${token}`) });
++        const brandOption = dialog.getByRole('option', { name: brand.name, exact: true });
++        await expect(post).toBeVisible();
++        await expect(brandOption).toBeVisible();
++        await expect(dialog.getByRole('group', { name: 'Publicaciones', exact: true })).toBeVisible();
++        await expect(dialog.getByRole('group', { name: 'Marcas', exact: true })).toBeVisible();
++        await expect(dialog.getByRole('option', { name: /ajena/ })).toHaveCount(0);
++        await expect(dialog.getByRole('option')).toHaveCount(2);
++        await expect(dialog.getByTestId('command-palette-status')).toHaveText('2 resultados.');
++        await expectNoOverflow(page);
++        await axeSeriousCritical(page, 'Paleta con resultados');
++
++        // Sin coincidencias: mensaje visible y anunciado.
++        await input.fill(`${token}-no-existe`);
++        await expect(dialog.getByTestId('command-palette-empty')).toBeVisible();
++        await expect(dialog.getByTestId('command-palette-status')).toContainText('Sin resultados');
++        await input.fill(token);
++        await expect(post).toBeVisible();
++
++        // 3. Flechas e Intro: la primera opción está activa; ↓ pasa a la marca, ↑ vuelve (y ↑ desde la primera da la vuelta); Intro abre la marca.
++        await expect(post).toHaveAttribute('aria-selected', 'true');
++        await page.keyboard.press('ArrowDown');
++        await expect(brandOption).toHaveAttribute('aria-selected', 'true');
++        await expect(input).toHaveAttribute('aria-activedescendant', (await brandOption.getAttribute('id'))!);
++        await page.keyboard.press('ArrowUp');
++        await expect(post).toHaveAttribute('aria-selected', 'true');
++        await page.keyboard.press('ArrowUp');
++        await expect(brandOption).toHaveAttribute('aria-selected', 'true');
++        await page.screenshot({ path: info.outputPath('command-palette-results.png'), fullPage: true });
++        await page.keyboard.press('Enter');
++        await page.waitForURL(new RegExp(`/brands/${brand.id}$`));
++        await expect(page.getByRole('heading', { name: brand.name, exact: true })).toBeVisible();
++        await expect(paletteDialog(page)).toHaveCount(0);
++
++        // Intro sobre la publicación abre su edición.
++        await openWithShortcut(page);
++        await paletteDialog(page).getByRole('combobox').fill(token);
++        await expect(post).toBeVisible();
++        await page.keyboard.press('Enter');
++        await page.waitForURL(/\/posts\/\d+\/edit$/);
++        await settle(page);
++        await page.screenshot({ path: info.outputPath('command-palette-final.png'), fullPage: true });
++
++        // 4. Esc cierra y el foco vuelve al elemento que tenía antes de abrir la paleta.
++        await page.goto(`/calendar?brand_id=${brand.id}`);
++        await settle(page);
++        await page.getByTestId('brand-switcher').focus();
++        await openWithShortcut(page);
++        await expect(paletteDialog(page)).toBeVisible();
++        await page.keyboard.press('Escape');
++        await expect(paletteDialog(page)).toHaveCount(0);
++        await expect(page.getByTestId('brand-switcher')).toBeFocused();
++
++        // 5. También se abre con el botón visible (sin atajos) y, al cerrarla, el foco vuelve al botón.
++        await trigger.click();
++        await expect(paletteDialog(page)).toBeVisible();
++        await paletteDialog(page).getByRole('combobox').fill('calendario');
++        await expect(paletteDialog(page).getByRole('option', { name: /Calendario/ })).toBeVisible();
++        await paletteDialog(page).getByRole('button', { name: 'Cerrar la búsqueda', exact: true }).click();
++        await expect(paletteDialog(page)).toHaveCount(0);
++        await expect(trigger).toBeFocused();
++        expect(w.errors, 'errores de consola').toEqual([]);
++    });
++
++    test('E2E-24 · la paleta también se abre con Ctrl+K en el compositor y respeta el aviso de cambios sin guardar', async ({
++        page,
++    }) => {
++        const w = watch(page);
++        await page.goto(`/brands/${brand.id}/posts/create`);
++        await settle(page);
++        await expectNoOverflow(page);
++        await page.locator('#text').fill('e2e paleta borrador sin guardar');
++        await openWithShortcut(page);
++        const dialog = paletteDialog(page);
++        await expect(dialog).toBeVisible();
++        await expectNoOverflow(page);
++        await dialog.getByRole('combobox').fill('calendario');
++        await dialog.getByRole('option', { name: /Calendario/ }).click();
++
++        // Navegar desde la paleta con cambios sin guardar pregunta antes; seguir editando se queda en el compositor.
++        const guard = page.getByRole('alertdialog');
++        await expect(guard).toBeVisible();
++        await guard.getByRole('button', { name: 'Seguir editando', exact: true }).click();
++        await expect(page).toHaveURL(new RegExp(`/brands/${brand.id}/posts/create$`));
++        await expect(page.locator('#text')).toHaveValue('e2e paleta borrador sin guardar');
++
++        await openWithShortcut(page);
++        await paletteDialog(page).getByRole('combobox').fill('calendario');
++        await paletteDialog(page)
++            .getByRole('option', { name: /Calendario/ })
++            .click();
++        await page.getByRole('alertdialog').getByRole('button', { name: 'Salir sin guardar', exact: true }).click();
++        await page.waitForURL(/\/calendar/);
++        expect(w.errors, 'errores de consola').toEqual([]);
++    });
++});
+diff --git a/tests/frontend/command-palette.test.mjs b/tests/frontend/command-palette.test.mjs
+new file mode 100644
+index 0000000..97c13f6
+--- /dev/null
++++ b/tests/frontend/command-palette.test.mjs
+@@ -0,0 +1,264 @@
++import assert from 'node:assert/strict';
++import test from 'node:test';
++import {
++    createRemoteSearch,
++    filterPages,
++    formatLocalDate,
++    groupEntries,
++    isPaletteShortcut,
++    nextIndex,
++    pageCommands,
++    queryLength,
++    restoreIndex,
++} from '../../resources/js/lib/commandPalette.js';
++import { HttpError } from '../../resources/js/lib/http.js';
++
++/** Contexto mínimo del menú: `has` decide qué rutas opcionales existen y `brand` si hay marca elegida. */
++function context({ brand = null, missing = [], current = [] } = {}) {
++    const route = Object.assign((name, params = {}) => `/${name}?${JSON.stringify(params)}`, { params: {} });
++    return {
++        brand,
++        q: brand ? { brand_id: brand.id } : {},
++        shell: { networks: [{ value: 'bluesky', label: 'Bluesky' }], accounts: {}, brands: [], currentBrand: brand },
++        page: { props: { view: 'week', unreadInbox: 0 } },
++        route,
++        is: (...names) => names.some((name) => current.includes(name)),
++        has: (name) => !missing.includes(name),
++    };
++}
++
++const titles = (pages) => pages.map((page) => page.title);
++
++test('pages and actions come from navigation.js and keep its conditions', () => {
++    const withBrand = pageCommands(context({ brand: { id: 4, name: 'Marca' } }));
++    assert.ok(titles(withBrand).includes('Crear publicación'));
++    assert.ok(titles(withBrand).includes('Importar CSV'));
++    assert.ok(titles(withBrand).includes('Competidores'));
++    assert.ok(titles(withBrand).includes('Bluesky'), 'las redes del menú también');
++    assert.equal(withBrand.find((page) => page.title === 'Bluesky').network, 'bluesky');
++
++    const withoutBrand = pageCommands(context({ missing: ['competitors.index', 'studio.index'] }));
++    assert.ok(!titles(withoutBrand).includes('Crear publicación'), 'sin marca no hay enlace');
++    assert.ok(!titles(withoutBrand).includes('Competidores'), 'una ruta no registrada no aparece');
++    assert.ok(!titles(withoutBrand).includes('Mis diseños'), 'un módulo opcional ausente no aparece');
++    assert.ok(titles(withoutBrand).includes('Perfil'), 'las secciones de la cuenta siempre');
++});
++
++test('page entries are unique and carry their module as context', () => {
++    const pages = pageCommands(context({ brand: { id: 1, name: 'M' } }));
++    const keys = pages.map((page) => page.key);
++    assert.equal(new Set(keys).size, keys.length);
++    assert.equal(pages.find((page) => page.title === 'Calendario').meta, 'Planificación');
++    assert.ok(pages.every((page) => page.type === 'page' && page.external === false));
++});
++
++test('filtering ignores case and accents and ranks title prefixes first', () => {
++    const pages = pageCommands(context({ brand: { id: 1, name: 'M' } }));
++    assert.deepEqual(titles(filterPages(pages, 'CAMPANAS')), ['Campañas']);
++    assert.equal(titles(filterPages(pages, 'crear'))[0], 'Crear publicación');
++    assert.ok(titles(filterPages(pages, 'planificacion')).includes('Calendario'), 'también por el nombre del módulo');
++    assert.deepEqual(filterPages(pages, 'zzzz'), []);
++    assert.equal(filterPages(pages, '   ', 3).length, 3);
++    assert.ok(titles(filterPages(pages, 'publicación crear')).includes('Crear publicación'), 'cualquier orden de palabras');
++});
++
++test('groups keep a continuous index across pages and server results', () => {
++    const pages = filterPages(pageCommands(context({ brand: { id: 1, name: 'M' } })), 'calendario');
++    const results = [
++        { type: 'brand', id: 7, title: 'Café', brand: null, date: null, status: null, url: '/brands/7', external: false },
++        { type: 'post', id: 3, title: 'Oferta', brand: 'Café', date: '2026-11-19 20:30', status: 'Programada', url: '/posts/3/edit', external: false },
++    ];
++    const groups = groupEntries(pages, results);
++
++    assert.deepEqual(groups.map((group) => group.type), ['page', 'post', 'brand']);
++    assert.deepEqual(groups.flatMap((group) => group.entries.map((entry) => entry.index)), [0, 1, 2]);
++    const post = groups[1].entries[0];
++    assert.equal(post.title, 'Oferta');
++    assert.ok(post.meta.startsWith('Café · ') && post.meta.endsWith(' · Programada'));
++    assert.deepEqual(groupEntries([], []), []);
++});
++
++test('local dates are written as given, in any browser timezone, even on a daylight saving gap', () => {
++    const previous = process.env.TZ;
++    process.env.TZ = 'Europe/Madrid';
++    try {
++        assert.match(formatLocalDate('2026-03-29 02:30'), / 2:30/, 'esa hora no existe en Madrid y no debe moverse');
++        assert.match(formatLocalDate('2026-10-25 02:30'), / 2:30/);
++    } finally {
++        if (previous === undefined) delete process.env.TZ;
++        else process.env.TZ = previous;
++    }
++    assert.match(formatLocalDate('2026-11-19 20:30'), /19/);
++    assert.match(formatLocalDate('2026-11-19 20:30'), /20:30/);
++    assert.doesNotMatch(formatLocalDate('2026-11-19'), /:/);
++    assert.equal(formatLocalDate(null), '');
++    assert.equal(formatLocalDate('ayer'), '');
++});
++
++test('keyboard navigation wraps around with the arrows', () => {
++    assert.equal(nextIndex(0, 'ArrowDown', 3), 1);
++    assert.equal(nextIndex(2, 'ArrowDown', 3), 0);
++    assert.equal(nextIndex(0, 'ArrowUp', 3), 2);
++    assert.equal(nextIndex(1, 'Home', 3), -1, 'Inicio y Fin mueven el cursor del campo, no la opción');
++    assert.equal(nextIndex(1, 'End', 3), -1);
++    assert.equal(nextIndex(0, 'a', 3), -1);
++    assert.equal(nextIndex(0, 'ArrowDown', 0), -1);
++});
++
++test('the page order starts with the active module, so its pages are always on the first screen', () => {
++    const pages = pageCommands(context({ brand: { id: 1, name: 'M' }, current: ['calendar.*'] }));
++    assert.equal(pages[0].title, 'Calendario');
++    assert.equal(pages[0].meta, 'Planificación');
++    assert.ok(titles(filterPages(pages, '')).includes('Calendario'));
++    assert.equal(pageCommands(context({ current: [] }))[0].meta, 'Cuenta', 'sin módulo de la barra activo, el contextual de la cuenta');
++});
++
++test('the active option is kept when it is still in the list and resets to the first otherwise', () => {
++    const list = [{ key: 'a' }, { key: 'b' }, { key: 'c' }];
++    assert.equal(restoreIndex(list, 'b'), 1);
++    assert.equal(restoreIndex(list, 'z'), 0);
++    assert.equal(restoreIndex(list, undefined), 0);
++    assert.equal(restoreIndex([], 'b'), 0);
++});
++
++test('the query is measured in code points, like the server does', () => {
++    assert.equal(queryLength('😀'), 1);
++    assert.equal(queryLength(' a😀 '), 2);
++    assert.equal(queryLength('ab'), 2);
++});
++
++test('the shortcut is Ctrl+K, or Cmd+K on macOS, and never a modified or repeated key', () => {
++    const key = (extra) => ({ key: 'k', ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, repeat: false, isComposing: false, defaultPrevented: false, ...extra });
++    assert.equal(isPaletteShortcut(key({ ctrlKey: true }), false), true);
++    assert.equal(isPaletteShortcut(key({ ctrlKey: true, key: 'K' }), false), true);
++    assert.equal(isPaletteShortcut(key({ metaKey: true }), false), false);
++    assert.equal(isPaletteShortcut(key({ metaKey: true }), true), true);
++    assert.equal(isPaletteShortcut(key({ ctrlKey: true }), true), false, 'en macOS Ctrl+K borra hasta el final de la línea');
++    assert.equal(isPaletteShortcut(key({ ctrlKey: true, shiftKey: true }), false), false);
++    assert.equal(isPaletteShortcut(key({ ctrlKey: true, altKey: true }), false), false);
++    assert.equal(isPaletteShortcut(key({ ctrlKey: true, repeat: true }), false), false);
++    assert.equal(isPaletteShortcut(key({ ctrlKey: true, defaultPrevented: true }), false), false, 'si un editor ya lo ha gestionado');
++    assert.equal(isPaletteShortcut(key({ ctrlKey: true, key: 'j' }), false), false);
++});
++
++/** Temporizador manual y peticiones que se resuelven cuando el test lo decide. */
++function harness() {
++    const timers = new Map();
++    let nextTimer = 1;
++    const requests = [];
++    const states = [];
++    const search = createRemoteSearch({
++        delay: 250,
++        setTimer: (callback) => {
++            timers.set(nextTimer, callback);
++            return nextTimer++;
++        },
++        clearTimer: (id) => timers.delete(id),
++        request: (query, signal) => new Promise((resolve, reject) => requests.push({ query, signal, resolve, reject })),
++        onChange: (state) => states.push(state),
++    });
++    const fire = () => {
++        const [id, callback] = [...timers][0];
++        timers.delete(id);
++        callback();
++    };
++    const result = (title) => ({ type: 'post', id: 1, title, brand: null, date: null, status: null, url: '/p', external: false });
++    return { search, timers, requests, states, fire, result, last: () => states.at(-1) };
++}
++
++const settle = () => new Promise((resolve) => setImmediate(resolve));
++
++test('typing is debounced into a single request and short queries ask for nothing', async () => {
++    const { search, timers, requests, fire, last } = harness();
++    search.update('a');
++    assert.equal(timers.size, 0);
++    assert.equal(last().status, 'idle');
++    search.update('😀');
++    assert.equal(timers.size, 0, 'un emoji es un solo carácter: el servidor lo rechazaría');
++    search.update('a😀');
++    assert.equal(timers.size, 1);
++
++    search.update('ab');
++    search.update('abc');
++    search.update(' abcd ');
++    assert.equal(timers.size, 1, 'cada tecla anula el temporizador anterior');
++    assert.equal(last().status, 'loading');
++    assert.equal(requests.length, 0);
++
++    fire();
++    assert.deepEqual(requests.map((request) => request.query), ['abcd']);
++});
++
++test('a new query aborts the previous request and drops its late answer', async () => {
++    const { search, requests, fire, result, last } = harness();
++    search.update('uno');
++    fire();
++    search.update('dos');
++    assert.equal(requests[0].signal.aborted, true);
++    fire();
++    assert.equal(requests[1].signal.aborted, false);
++
++    requests[1].resolve([result('dos')]);
++    await settle();
++    requests[0].resolve([result('uno')]);
++    await settle();
++
++    assert.equal(last().status, 'ready');
++    assert.equal(last().query, 'dos');
++    assert.deepEqual(last().results.map((r) => r.title), ['dos']);
++});
++
++test('answers arriving out of order never overwrite the newest one, even if the transport ignores the abort', async () => {
++    const { search, requests, fire, result, last } = harness();
++    search.update('uno');
++    fire();
++    search.update('dos');
++    fire();
++
++    requests[0].resolve([result('viejo')]);
++    await settle();
++    assert.equal(last().status, 'loading', 'la respuesta vieja no cierra el estado de carga de la nueva');
++    requests[1].resolve([result('nuevo')]);
++    await settle();
++
++    assert.deepEqual(last().results.map((r) => r.title), ['nuevo']);
++});
++
++test('closing cancels the timer and the request and ignores what arrives later', async () => {
++    const { search, timers, requests, fire, result, last } = harness();
++    search.update('uno');
++    search.close();
++    assert.equal(timers.size, 0);
++
++    search.update('dos');
++    fire();
++    search.close();
++    assert.equal(requests[0].signal.aborted, true);
++    requests[0].resolve([result('tarde')]);
++    await settle();
++
++    assert.equal(last().status, 'idle');
++    assert.deepEqual(last().results, []);
++});
++
++test('errors become a message, and a cancelled request is not an error', async () => {
++    const { search, requests, fire, last } = harness();
++    search.update('uno');
++    fire();
++    requests[0].reject(new HttpError('Too Many Attempts.', 429));
++    await settle();
++    assert.equal(last().status, 'error');
++    assert.match(last().error, /Demasiadas búsquedas/);
++
++    search.update('dos');
++    fire();
++    search.update('tres');
++    requests[1].reject(new DOMException('Aborted', 'AbortError'));
++    await settle();
++    assert.equal(last().status, 'loading');
++
++    fire();
++    requests[2].reject(new Error('red'));
++    await settle();
++    assert.match(last().error, /No se pudo buscar/);
++});

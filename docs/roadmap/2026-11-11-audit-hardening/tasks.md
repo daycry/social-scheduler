@@ -48,9 +48,9 @@ estado: en-progreso
 | Fase 5 — Frontend | 15 | 18 | 83% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
 | Fase 5b — Unificación | 4 | 8 | 50% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
 | Fase 6 — Operación y repositorio | 4 | 6 | 67% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
-| Fase 7 — Funciones nuevas | 10 | 24 | 42% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
+| Fase 7 — Funciones nuevas | 11 | 24 | 46% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **83** | **108** | **77%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
+| **TOTAL** | **84** | **108** | **78%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -4414,34 +4414,36 @@ CoberturaM3extra descubre registrodoble deListeners por autodetección+PushServi
 ### T-85 — Búsqueda global y paleta de comandos
 
 - **Descripción**: Paleta (Ctrl/Cmd+K) que busca posts, marcas, media, diseños y páginas, limitada por `UserScope`.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Paleta de búsqueda global (Ctrl/Cmd+K o la lupa de la cabecera, también en el compositor): encuentra páginas de la app, publicaciones, marcas, archivos, diseños y campañas propios, se maneja entera con el teclado y es accesible. La cabecera ya no se desborda en pantallas medianas: por debajo de 1400 px los módulos se muestran solo con su icono.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-84
 - **Tipo**: fullstack
-- **Archivos**: `app/Http/Controllers/SearchController.php`, `app/Services/GlobalSearch.php`, `resources/js/Components/CommandPalette.vue`, `resources/js/Layouts/AuthenticatedLayout.vue`, `docs/usuario/buscar.md`
+- **Archivos**: `app/Services/GlobalSearch.php`, `app/Http/Controllers/SearchController.php`, `routes/web.php`, `config/rate_limits.php`, `resources/js/Components/CommandPalette.vue`, `resources/js/lib/commandPalette.js`, `resources/js/Composables/useNavigationContext.js`, `resources/js/Layouts/AuthenticatedLayout.vue`, `resources/js/Layouts/ComposerLayout.vue`, `resources/js/Components/Icon.vue`, `resources/js/navigation.js`, `tailwind.config.js`, `tsconfig.frontend.json`, `tests/Feature/Search/**`, `tests/frontend/command-palette.test.mjs`, `tests/e2e/command-palette.spec.ts`, `docs/usuario/buscar.md`, `docs/README.md`, `CHANGELOG.md`, `CHANGELOG.es.md`, `docs/roadmap/2026-11-11-audit-hardening/testing/t85/**`
 - **Cubre**: F-11
 - **Cubre (tests)**: E2E-24
 - **Verificación**: `php artisan test --compact --filter=GlobalSearchTest` → verde
 
 **Criterios de aceptación**
-- [ ] Los resultados pertenecen solo al usuario
-- [ ] La paleta se abre y se cierra con el teclado y es accesible
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Los resultados pertenecen solo al usuario
+- [x] La paleta se abre y se cierra con el teclado y es accesible
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M.
+
+**Cierre — 2026-11-26:** `GlobalSearch` + `SearchController` (`GET /search`, `throttle:search` 60/min, 2–100 caracteres por code points, `whereLikeEscaped`, 8 consultas de 5 resultados con tope total 20 y número de consultas fijo; visibilidad idéntica a los listados: propio fuera de papelera, posts pendientes de marcas donde es aprobador → `approvals.index`, diseños compartidos o de marca aprobadora; sin recuentos). `CommandPalette` con `BaseDialog` y patrón combobox ARIA (listbox enfocable con `aria-activedescendant`, Inicio/Fin mueven el cursor), páginas desde `navigation.js` vía `useNavigationContext` (sin duplicar el menú), debounce con cancelación y descarte de respuestas fuera de orden, montada también en `ComposerLayout` respetando `UnsavedGuard`. Cabecera: módulos solo con icono por debajo del breakpoint `nav` (1400 px, `tailwind.config.js`), selector de marca que encoge con `title`, avatar `shrink-0`, icono propio `plug` para Conexiones; arregla el desbordamiento que ya existía a 1024 px. Revisión adversarial A+B+C en 3 intentos más comprobación final (I-1 + 5 Minor; N-1 Important + 3 Minor; N-5, N-6 Minor): `testing/t85/reviews/`. QA: Pest 47/47 con rutas y límites; Node 814/814; typecheck/lint/format:check/pint/build verdes; E2E paleta + a11y + compositor + calendario + marcas 216 y 194 (+22 repetidos tras un `ERR_NO_BUFFER_SPACE` del sistema), final paleta + compositor 73/73 en tres tamaños con axe y cabecera sin desbordamiento a 1024, 1280 y 1440 px.
 
 ### T-86 — Resumen semanal y recordatorio de publicación manual
 

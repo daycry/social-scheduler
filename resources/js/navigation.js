@@ -138,11 +138,11 @@ export const MODULES = [
     {
         key: 'connections',
         label: 'Conexiones',
-        icon: 'link',
+        icon: 'plug',
         match: ['brands.connections.*'],
         href: (c) => (c.brand ? c.route('brands.connections.index', c.brand.id) : c.route('brands.index')),
         side: [
-            { key: 'connections', label: 'Conexiones de la marca', icon: 'link', match: ['brands.connections.*'], href: (c) => c.brand ? c.route('brands.connections.index', c.brand.id) : null },
+            { key: 'connections', label: 'Conexiones de la marca', icon: 'plug', match: ['brands.connections.*'], href: (c) => c.brand ? c.route('brands.connections.index', c.brand.id) : null },
             { key: 'brands', label: 'Gestionar marcas', icon: 'tag', match: [], href: (c) => c.route('brands.index') },
         ],
     },

@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — global search and command palette (audit-hardening, T-85)
+
+- Press Ctrl+K (Cmd+K on macOS) or the Search button in the header to open a keyboard-friendly palette that finds app pages and actions instantly and, from two letters, your posts, brands, library files, Studio designs, campaigns, post templates, sites and smart links, with brand, date in the brand's timezone and status. It only returns what you can already see elsewhere in the app (as a brand approver, that means the posts waiting for your approval and the designs of that brand), at most 5 results per type and 20 in total.
+
 ### Added — full data export (audit-hardening, T-84)
 
 - Download a ZIP with all your own data from Profile → Export my data: brands, posts with targets and texts, campaigns, reports and their PDFs, the media library files, Studio designs and exports, sites, smart links, templates and goals, as readable JSON plus a manifest with SHA-256 hashes. Choose whether to include the media files (a data-only ZIP is much smaller; up to 20 GB, with ZIP64). It is built in the background, you get an in-app notice (and an email if the export fails and you enabled email notices), and the download link is signed, expires in 10 minutes and only works for your own session. Credentials, other people's data and third-party inbox comments are never included; the ZIP is deleted after 72 hours.

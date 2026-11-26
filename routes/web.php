@@ -31,6 +31,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReportScheduleController;
 use App\Http\Controllers\ReportTemplateController;
 use App\Http\Controllers\SavedTextController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Studio\StudioExportDownloadController;
 use App\Http\Controllers\Studio\StudioThumbnailController;
 use App\Http\Controllers\SystemStatusController;
@@ -83,6 +84,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('connections/{provider}/callback', [OAuthController::class, 'callback'])
         ->whereIn('provider', Network::providers())->name('connections.callback');
 
+    // Búsqueda global de la paleta de comandos (T-85): JSON, solo lo que el usuario puede ver.
+    Route::get('search', SearchController::class)->middleware('throttle:search')->name('search');
     Route::get('activity', [ActivityController::class, 'index'])->name('activity.index');
     Route::get('system', SystemStatusController::class)->name('system.index');
     Route::get('profile/notifications', [PushSubscriptionController::class, 'index'])->name('profile.notifications');

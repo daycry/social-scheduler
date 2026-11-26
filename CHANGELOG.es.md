@@ -5,6 +5,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Added — búsqueda global y paleta de comandos (audit-hardening, T-85)
+
+- Pulsa Ctrl+K (Cmd+K en macOS) o el botón Buscar de la cabecera para abrir una paleta que se maneja con el teclado y encuentra al momento las páginas y acciones de la aplicación y, desde dos letras, tus publicaciones, marcas, archivos de la biblioteca, diseños del Estudio, campañas, plantillas, sitios y smart links, con la marca, la fecha en la zona horaria de la marca y el estado. Solo devuelve lo que ya ves en el resto de la aplicación (como aprobador de una marca ajena, las publicaciones pendientes de tu aprobación y los diseños de esa marca), con un máximo de 5 resultados por tipo y 20 en total.
+
 ### Added — exportación completa de datos (audit-hardening, T-84)
 
 - Descarga un ZIP con todos tus datos desde Perfil → Exportar mis datos: marcas, publicaciones con destinos y textos, campañas, informes y sus PDF, los ficheros de la biblioteca, diseños del Estudio y sus exportaciones, sitios, smart links, plantillas y objetivos, en JSON legible y un manifiesto con el SHA-256 de cada fichero. Elige si incluir los archivos de media (un ZIP solo de datos es mucho más pequeño; hasta 20 GB, con ZIP64). Se prepara en segundo plano, te avisa en la aplicación (y por correo si falla y tienes activados los avisos por correo) y el enlace de descarga está firmado, caduca a los 10 minutos y solo sirve con tu sesión. Nunca incluye credenciales, datos de otras personas ni los comentarios de terceros del buzón; el ZIP se borra a las 72 horas.

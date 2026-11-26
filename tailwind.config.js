@@ -12,6 +12,8 @@ export default {
 
     theme: {
         extend: {
+            // `nav`: ancho a partir del cual los ocho modulos de la cabecera caben con su texto (T-85).
+            screens: { nav: '1400px' },
             fontFamily: {
                 sans: ['Inter', ...defaultTheme.fontFamily.sans],
             },

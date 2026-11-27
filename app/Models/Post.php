@@ -69,6 +69,8 @@ class Post extends Model
             'approval_requested_at' => 'datetime',
             'approval_decided_at' => 'datetime',
             'series_exception' => 'boolean',
+            'recycle_family_id' => 'integer',
+            'recycle_dismissed_at' => 'datetime',
         ];
     }
 

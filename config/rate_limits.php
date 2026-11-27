@@ -55,6 +55,7 @@ return [
         'competitors.export' => 30,
         'competitors.posts.refresh' => 6,
         'autolists.generate' => 20,
+        'autolists.recycle' => 30,
         'inbox.sync' => 6,
         'inbox.reply' => 30,
         'inbox.hide' => 30,

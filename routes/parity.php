@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdsController;
 use App\Http\Controllers\AiAssistantController;
 use App\Http\Controllers\AutolistController;
+use App\Http\Controllers\AutolistRecycleController;
 use App\Http\Controllers\BestTimesController;
 use App\Http\Controllers\CalendarFeedController;
 use App\Http\Controllers\CompetitorController;
@@ -75,6 +76,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('autolists/{autolist}/items', [AutolistController::class, 'addItem'])->whereNumber('autolist')->name('autolists.items.store');
     Route::delete('autolists/{autolist}/items/{item}', [AutolistController::class, 'removeItem'])->whereNumber(['autolist', 'item'])->name('autolists.items.destroy');
     Route::post('autolists/{autolist}/generate', [AutolistController::class, 'generate'])->middleware('throttle:autolists.generate')->whereNumber('autolist')->name('autolists.generate');
+
+    // Planificacion · Reciclado inteligente de mejores posts (T-92).
+    Route::get('autolists/recycle', [AutolistRecycleController::class, 'index'])->name('autolists.recycle.index');
+    Route::post('autolists/recycle/{post}', [AutolistRecycleController::class, 'store'])->middleware('throttle:autolists.recycle')->whereNumber('post')->name('autolists.recycle.store');
+    Route::post('autolists/recycle/{post}/dismiss', [AutolistRecycleController::class, 'dismiss'])->middleware('throttle:autolists.recycle')->whereNumber('post')->name('autolists.recycle.dismiss');
 
     // Inbox de comentarios de Instagram/Facebook (PA-10).
     Route::get('inbox', [InboxController::class, 'index'])->name('inbox.index');

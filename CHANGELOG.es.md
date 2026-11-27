@@ -5,6 +5,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Added — reciclado inteligente de mejores posts (audit-hardening, T-92)
+
+- La nueva página Planificación → Reciclado de posts propone, por marca, tus publicaciones ya publicadas que mejor funcionaron para volver a publicarlas. Se ordenan por engagement (interacciones entre visualizaciones, la misma medida del panel, así que se pueden comparar entre redes) y solo aparecen si su cuenta sigue conectada, se publicaron hace al menos 14 días y tienen al menos 100 visualizaciones. El mismo contenido no se vuelve a proponer antes de 60 días desde su última publicación o reciclado, incluidas las copias recicladas que sigan en borrador o programadas. «Reciclar» crea un borrador con el mismo texto, archivos y cuentas para que lo revises (nada se publica solo); «Descartar» oculta la propuesta hasta que pase ese intervalo. La página muestra las cifras de cada propuesta y por qué el resto se ha quedado fuera.
+
 ### Added — marca de agua automática y exportación en lote (audit-hardening, T-91)
 
 - Configura una marca de agua por marca en Identidad de marca: elige uno de los logotipos de la marca, su posición (esquinas o centro), opacidad, tamaño y margen, y actívala o desactívala. Las exportaciones de imagen que genera el servidor (PNG, JPG y WebP, por la API o con la nueva exportación en lote) llevan el logotipo superpuesto automáticamente, y cualquier exportación puede prescindir de ella. La nueva acción «Exportar en lote» del editor convierte un diseño en una imagen por cada formato que elijas (cuadrado, 4:5, historia, horizontal…) de una sola vez; cada archivo se guarda en la biblioteca de la marca con su tamaño y con la marca de agua si está activa, y repetir el lote nunca duplica archivos. El diálogo Exportar indica si la imagen lleva marca de agua y permite desactivarla en esa exportación.

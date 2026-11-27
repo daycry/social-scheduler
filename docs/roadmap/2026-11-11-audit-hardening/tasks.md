@@ -48,9 +48,9 @@ estado: en-progreso
 | Fase 5 — Frontend | 15 | 18 | 83% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
 | Fase 5b — Unificación | 4 | 8 | 50% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
 | Fase 6 — Operación y repositorio | 4 | 6 | 67% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
-| Fase 7 — Funciones nuevas | 17 | 24 | 71% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
+| Fase 7 — Funciones nuevas | 18 | 24 | 75% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **90** | **108** | **83%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
+| **TOTAL** | **91** | **108** | **84%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -4655,34 +4655,36 @@ CoberturaM3extra descubre registrodoble deListeners por autodetección+PushServi
 ### T-92 — Reciclado inteligente de mejores posts
 
 - **Descripción**: Proponer reciclar los posts con mejor rendimiento según `PostMetricSnapshot`, con intervalo mínimo entre repeticiones.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: La nueva página Reciclado de posts propone tus mejores publicaciones (por engagement, con métricas suficientes y fuera del intervalo mínimo) para reciclarlas como borrador o descartarlas.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-91
 - **Tipo**: fullstack
-- **Archivos**: `app/Services/Autolists/RecycleService.php`, `app/Models/PostMetricSnapshot.php`, `resources/js/Pages/Autolists/**`, `docs/modulos/planificacion-avanzada.md`
+- **Archivos**: `app/Services/Autolists/RecycleService.php`, `app/Models/PostMetricSnapshot.php`, `resources/js/Pages/Autolists/**`, `docs/modulos/planificacion-avanzada.md`, `app/Http/Controllers/AutolistRecycleController.php`, `app/Models/Post.php`, `config/social.php`, `config/rate_limits.php`, `routes/parity.php`, `resources/js/navigation.js`, `database/migrations/2026_11_27_130000_add_recycling_to_posts_table.php`, `tests/Feature/Autolists/RecycleServiceTest.php`, `tests/e2e/autolist-recycle.spec.ts`, `CHANGELOG.md`, `CHANGELOG.es.md`, `docs/roadmap/2026-11-11-audit-hardening/testing/t92/**`
 - **Cubre**: F-20
 - **Cubre (tests)**: E2E-31
 - **Verificación**: `php artisan test --compact --filter=RecycleServiceTest` → verde
 
 **Criterios de aceptación**
-- [ ] Se proponen solo posts con métricas suficientes
-- [ ] Nunca se repite un post antes del intervalo mínimo
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Se proponen solo posts con métricas suficientes
+- [x] Nunca se repite un post antes del intervalo mínimo
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M.
+
+**Cierre — 2026-11-27:** reciclado inteligente por marca en `App\Services\Autolists\RecycleService` (aparte de las autolistas, en la sección `/autolists/recycle` y en el menú de Planificación), con el criterio de engagement del dashboard (`Calculator::engagementRate` sobre el último snapshot) agregado por post como Σinteracciones/Σvisualizaciones de sus destinos válidos. Solo se proponen posts con métricas suficientes (`social.recycle`: `min_views` 100, `min_age_days` 14, ventana de 365 días, tope `max_targets` 2000 aplicado tras filtrar por antigüedad, con aviso si queda algo sin analizar) y fuera del intervalo mínimo (`min_interval_days` 60), contado por familia estable `posts.recycle_family_id` (id del original, sin FK: purgar el original no rompe la familia), desde la publicación de cualquier miembro, el borrador o programado de un reciclado o el descarte; se propone solo el mejor miembro de cada familia y «Fuera de las propuestas» explica los motivos. «Reciclar» crea un borrador con `PostDuplicator` (avisa si hay opciones que revisar, p. ej. TikTok) y «Descartar» oculta la propuesta durante el intervalo; ambas validan con la misma función que la lista, bajo un cerrojo de una sola fila por clave primaria (deadlock residual → aviso, no 500) y con limitador `autolists.recycle`. Sin MCP (el reciclado se revisa a mano; `manage_post` ya crea borradores). Revisión adversarial A+B+C en 2 intentos: intento 1 — 1 Important (la purga del original rompía la familia y el intervalo) + 8 Minor (cerrojo con original en papelera, cifras multi-destino, aviso de opciones, clave Vue, doc, Prettier, throttle y tope CWE-770, descartar sin propuesta), corregidos; intento 2 — 0 Critical/Important, 3 Minor (veredicto distinto por POST directo, tope que gastaba cupo en recientes, posible deadlock en MySQL) corregidos. QA: Pest completo 4907 pasados / 9 omitidos (en serie); Node 819/819; build, `format:check`, ESLint, typecheck y Pint verdes; E2E reciclado + autolistas RSS + paleta de comandos + páginas + a11y en tres tamaños (primera pasada: el spec contaba los `listitem` anidados de destinos — corregido para contar acciones «Reciclar» —, y un `ERR_NO_BUFFER_SPACE` de infraestructura); repetición 131/131 (`testing/t92/t92-e2e-r2.log`). **Deuda aceptada (Minor):** descartar no se puede deshacer (oculta la propuesta durante el intervalo); la concurrencia del cerrojo en MySQL está razonada pero no probada con dos sesiones reales.
 
 ### T-93 — Plan de contenido en lenguaje natural (lote)
 
@@ -5507,3 +5509,7 @@ Lentes A+B+C. Intento 1: 0 Critical/Important, 10 Minor (incluidos CWE-525 y CWE
 ## Revisión de dos lentes — intento 3: Fase 7 (T-91) — cerrada por decisión del usuario
 
 Lentes A+B+C. Intento 1: 3 Important + 6 Minor corregidos. Intento 2: 1 Important + 3 Minor corregidos. Intento 3: 3 Important introducidos por las correcciones; el usuario eligió «corregir y simplificar» (se retiró el borrador automático con marca, JPEG aplanado sobre blanco, tope sobre el fichero final), verificado con tests, Pest, Node y E2E. Diffs en `testing/t91/reviews/r1.patch`–`r3.patch`. Total 90/108.
+
+## Revisión de dos lentes — intento 2: Fase 7 (T-92) — aprobada y cerrada
+
+Lentes A+B+C. Intento 1: 1 Important (familia rota al purgar el original) + 8 Minor corregidos. Intento 2: 0 Critical/Important; 3 Minor corregidos. Diffs en `testing/t92/reviews/r1.patch` y `r2.patch`. Total 91/108.

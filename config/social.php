@@ -442,6 +442,20 @@ return [
     ],
 
     /*
+    | Reciclado inteligente (T-92): propone los posts publicados con mejor engagement. `min_views` = visualizaciones minimas del ultimo snapshot
+    | de un destino; `min_age_days` = dias desde la publicacion para que sus metricas hayan madurado; `min_interval_days` = dias minimos entre dos
+    | usos del MISMO contenido (publicacion, reciclado o descarte); `window_days` = antiguedad maxima de lo que se mira; `limit` = propuestas mostradas; `max_targets` = tope de destinos analizados por peticion (los mas recientes primero).
+    */
+    'recycle' => [
+        'min_views' => max(1, (int) env('SOCIAL_RECYCLE_MIN_VIEWS', 100)),
+        'min_age_days' => max(0, (int) env('SOCIAL_RECYCLE_MIN_AGE_DAYS', 14)),
+        'min_interval_days' => max(1, (int) env('SOCIAL_RECYCLE_MIN_INTERVAL_DAYS', 60)),
+        'window_days' => max(1, (int) env('SOCIAL_RECYCLE_WINDOW_DAYS', 365)),
+        'limit' => max(1, (int) env('SOCIAL_RECYCLE_LIMIT', 20)),
+        'max_targets' => max(1, (int) env('SOCIAL_RECYCLE_MAX_TARGETS', 2000)),
+    ],
+
+    /*
     | Origen RSS/Atom de las autolistas (T-88). El feed lo escribe el usuario: `max_bytes` es el tope del cuerpo (se corta la descarga al pasarlo),
     | `timeout` / `connect_timeout` (s) el limite de la peticion y `max_entries` cuantas entradas (las mas recientes) se leen por sondeo y
     | `initial_entries` cuantas de ellas entran en la cola en el primer sondeo (las demas se dan por vistas, sin generar elementos).

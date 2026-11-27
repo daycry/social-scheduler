@@ -9,6 +9,18 @@ pest()->extend(TestCase::class)
     ->afterEach(fn () => gc_collect_cycles())
     ->in('Feature');
 
+/**
+ * Color RGB con tolerancia por canal: la GD de cada plataforma redondea distinto al remuestrear o codificar (en Linux un 255 puede
+ * salir 252), asi que los tests de pixeles comparan con margen en vez de igualdad exacta.
+ */
+expect()->extend('toBeNearColor', function (array $rgb, int $tolerance = 8) {
+    foreach ($rgb as $channel => $expected) {
+        expect(abs($this->value[$channel] - $expected))->toBeLessThanOrEqual($tolerance, 'canal '.$channel.': '.json_encode($this->value).' frente a '.json_encode($rgb));
+    }
+
+    return $this;
+});
+
 /** Genera un par EC P-256 de prueba, configura VAPID con el y devuelve las claves de una suscripcion de navegador. */
 function pushTestKeys(): array
 {

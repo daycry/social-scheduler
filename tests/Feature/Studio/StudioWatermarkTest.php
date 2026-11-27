@@ -121,9 +121,9 @@ test('the exported file carries the watermark in the configured corner when it i
 
     expect($export->refresh()->status)->toBe('ready', $export->error ?? '')
         ->and($export->options['watermark'])->toBe(['logo_id' => $logo->id, 'position' => 'bottom-right', 'opacity' => 100, 'size' => 20, 'margin' => 5])
-        ->and(exportPixel($export, 175, 75))->toBe([255, 0, 0])
-        ->and(exportPixel($export, 10, 10))->toBe([0, 0, 255])
-        ->and(exportPixel($export, 100, 50))->toBe([0, 0, 255]);
+        ->and(exportPixel($export, 175, 75))->toBeNearColor([255, 0, 0])
+        ->and(exportPixel($export, 10, 10))->toBeNearColor([0, 0, 255])
+        ->and(exportPixel($export, 100, 50))->toBeNearColor([0, 0, 255]);
     $media = MediaAsset::withoutUserScope()->findOrFail($export->media_ids[0]);
     expect($media->width)->toBe(200)->and($media->height)->toBe(100);
 });
@@ -151,18 +151,18 @@ test('there is no watermark when the brand disabled it or the export opts out', 
     fakeBlueRenderer();
     $plain = app(StudioRenderer::class)->export($this->user, $this->design, ['revision' => 1, 'format' => 'png', 'pages' => ['page_one']]);
     app(StudioRenderer::class)->render($plain->id);
-    expect($plain->refresh()->options)->not->toHaveKey('watermark')->and(exportPixel($plain, 175, 75))->toBe([0, 0, 255]);
+    expect($plain->refresh()->options)->not->toHaveKey('watermark')->and(exportPixel($plain, 175, 75))->toBeNearColor([0, 0, 255]);
 
     $this->studio->updateKit($this->user, $this->brand, ['watermark' => ['enabled' => true]]);
     $optOut = app(StudioRenderer::class)->export($this->user, $this->design, ['revision' => 1, 'format' => 'png', 'pages' => ['page_one'], 'watermark' => false]);
     app(StudioRenderer::class)->render($optOut->id);
-    expect($optOut->refresh()->options)->not->toHaveKey('watermark')->and(exportPixel($optOut, 175, 75))->toBe([0, 0, 255]);
+    expect($optOut->refresh()->options)->not->toHaveKey('watermark')->and(exportPixel($optOut, 175, 75))->toBeNearColor([0, 0, 255]);
 
     // La opción por exportación también permite aplicarla con la marca desactivada.
     $this->studio->updateKit($this->user, $this->brand, ['watermark' => ['enabled' => false]]);
     $forced = app(StudioRenderer::class)->export($this->user, $this->design, ['revision' => 1, 'format' => 'png', 'pages' => ['page_one'], 'watermark' => true]);
     app(StudioRenderer::class)->render($forced->id);
-    expect(exportPixel($forced, 175, 75))->toBe([255, 0, 0]);
+    expect(exportPixel($forced, 175, 75))->toBeNearColor([255, 0, 0]);
 });
 
 test('asking for a watermark without a configured logo or in a format without pixels is rejected', function () {
@@ -198,7 +198,7 @@ test('the watermark is pinned when the export is created, not when it renders', 
     fakeBlueRenderer();
     app(StudioRenderer::class)->render($export->id);
 
-    expect(exportPixel($export, 175, 75))->toBe([255, 0, 0]);
+    expect(exportPixel($export, 175, 75))->toBeNearColor([255, 0, 0]);
 });
 
 test('the kit endpoint saves the watermark and another user cannot touch the brand', function () {

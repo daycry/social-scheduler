@@ -158,8 +158,8 @@ test('the batch applies the brand watermark to every file when it is active', fu
         $corner = imagecolorat($image, $media->width - 8, $media->height - 8);
         $top = imagecolorat($image, 2, 2);
         expect($export->options['batch'])->toBeString()
-            ->and(($corner >> 16) & 255)->toBe($index < 3 ? 255 : 0, "export {$export->id}")
-            ->and($top & 255)->toBe(255);
+            ->and(abs((($corner >> 16) & 255) - ($index < 3 ? 255 : 0)))->toBeLessThanOrEqual(8, "export {$export->id}")
+            ->and(abs(($top & 255) - 255))->toBeLessThanOrEqual(8);
     }
 });
 

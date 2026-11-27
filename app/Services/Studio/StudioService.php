@@ -21,7 +21,7 @@ use Illuminate\Validation\ValidationException;
 
 class StudioService
 {
-    public function __construct(private readonly StudioDocument $documents, private readonly StudioAssets $assets, private readonly StudioCollab $collab, private readonly StudioFonts $fonts) {}
+    public function __construct(private readonly StudioDocument $documents, private readonly StudioAssets $assets, private readonly StudioCollab $collab, private readonly StudioFonts $fonts, private readonly StudioWatermark $watermark) {}
 
     /**
      * Diseños de la marca (resumenes sin documento), los mas recientes primero por id (estable entre paginas aunque un diseno se edite), con el contrato de cursor comun (limit, cursor, has_more, next_cursor).
@@ -285,7 +285,9 @@ class StudioService
         $this->assets->assertBrand($user, $brand);
         $kit = BrandKit::ownedBy($user->id)->where('brand_id', $brand->id)->first();
 
-        return $kit?->only(['palette', 'fonts', 'font_ids', 'logos', 'guidelines', 'voice']) ?? ['palette' => ['#7c3aed', '#111827', '#ffffff'], 'fonts' => ['Arial'], 'logos' => [], 'guidelines' => '', 'voice' => ''];
+        $data = $kit?->only(['palette', 'fonts', 'font_ids', 'logos', 'guidelines', 'voice']) ?? ['palette' => ['#7c3aed', '#111827', '#ffffff'], 'fonts' => ['Arial'], 'logos' => [], 'guidelines' => '', 'voice' => ''];
+
+        return $data + ['watermark' => StudioWatermark::resolve($kit?->watermark)];
     }
 
     public function updateKit(User $user, Brand $brand, array $data): array
@@ -295,7 +297,8 @@ class StudioService
             'fonts' => ['sometimes', 'array', 'max:50'], 'fonts.*' => ['required', 'string', 'max:100'],
             'font_ids' => ['sometimes', 'array', 'max:50'], 'font_ids.*' => ['nullable', 'integer', 'min:1'],
             'logos' => ['sometimes', 'array', 'max:30'], 'logos.*' => ['required', 'integer', 'min:1', 'distinct'],
-            'guidelines' => ['sometimes', 'nullable', 'string', 'max:10000'], 'voice' => ['sometimes', 'nullable', 'string', 'max:5000']])->validate();
+            'guidelines' => ['sometimes', 'nullable', 'string', 'max:10000'], 'voice' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            'watermark' => ['sometimes', 'array']])->validate();
         foreach ($data['palette'] ?? [] as $color) {
             if (! StudioDocument::color($color)) {
                 throw ValidationException::withMessages(['palette' => ['Los colores deben ser hexadecimales.']]);
@@ -321,6 +324,7 @@ class StudioService
             $data['font_ids'] = array_fill(0, count($data['fonts']), null);
         }
         $merged = array_replace($current, $data);
+        $merged['watermark'] = $this->watermark->normalize($user, $brand, $data['watermark'] ?? [], $current['watermark'], array_map('intval', $merged['logos'] ?? []));
         if (isset($merged['font_ids']) && count($merged['font_ids']) !== count($merged['fonts'])) {
             throw ValidationException::withMessages(['font_ids' => ['Los identificadores deben estar alineados con las familias.']]);
         }

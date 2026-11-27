@@ -29,9 +29,16 @@ class StudioRenderer
         private readonly StudioExportFiles $files,
         private readonly StudioRenderResources $resources,
         private readonly JobFailureNotifier $notifier,
+        private readonly StudioWatermark $watermarks,
     ) {}
 
-    public function export(User $user, Design $design, array $data): DesignExport
+    /**
+     * Crea la exportación y encola su render.
+     *
+     * @param  array<string, mixed>  $internal  opciones que fija el servidor y no la petición: `fit` ({width, height, mode}: redimensiona el
+     *                                          documento al renderizarlo) y `batch` (huella que identifica la exportación dentro de un lote)
+     */
+    public function export(User $user, Design $design, array $data, array $internal = []): DesignExport
     {
         $design = $this->studio->owned($user, $design);
         $data = Validator::make($data, [
@@ -40,6 +47,7 @@ class StudioRenderer
             'pages' => ['required', 'array', 'min:1', 'max:100'], 'pages.*' => ['required', 'string', 'max:64', 'distinct'],
             'frame_times' => ['sometimes', 'array', 'max:100'],
             'scale' => ['sometimes', 'numeric', 'min:0.1', 'max:4'], 'quality' => ['sometimes', 'numeric', 'min:0.1', 'max:1'], 'transparent' => ['sometimes', 'boolean'],
+            'watermark' => ['sometimes', 'nullable', 'boolean'],
         ])->validate();
         $native = in_array($data['format'], ['mp4', 'gif'], true);
         if ($native && ($data['frame_times'] ?? []) !== []) {
@@ -55,8 +63,13 @@ class StudioRenderer
         $frameTimes = $this->frames->validate($revision->document, $data['pages'], $data['frame_times'] ?? []);
         $frameOptions = array_key_exists('frame_times', $data) ? ['frame_times' => $frameTimes] : [];
         $scale = (float) ($data['scale'] ?? 1);
-        $width = (int) round($revision->document['width'] * $scale);
-        $height = (int) round($revision->document['height'] * $scale);
+        $fit = $internal['fit'] ?? null;
+        $width = (int) round(($fit['width'] ?? $revision->document['width']) * $scale);
+        $height = (int) round(($fit['height'] ?? $revision->document['height']) * $scale);
+        $watermark = $this->watermarks->snapshot($this->studio->kit($user, Brand::ownedBy($user->id)->findOrFail($design->brand_id))['watermark'], $data['format'], $data['watermark'] ?? null);
+        if ($watermark !== null && $width * $height > (int) config('studio.watermark.max_pixels', 25_000_000)) {
+            throw ValidationException::withMessages(['watermark' => ['La imagen es demasiado grande para aplicar la marca de agua. Reduce la escala o desactívala.']]);
+        }
         if ($native && ((int) ceil($width / 2) * 2 * (int) ceil($height / 2) * 2 > 16000000 || $width > 16000 || $height > 16000)) {
             throw ValidationException::withMessages(['scale' => ['El fotograma audiovisual admite hasta 16 megapíxeles y 16000 píxeles por lado.']]);
         }
@@ -64,10 +77,12 @@ class StudioRenderer
             throw ValidationException::withMessages(['scale' => ['El trabajo completo admite hasta 64 megapíxeles y 16000 píxeles por lado. Exporta menos páginas o reduce la escala.']]);
         }
 
-        return DB::transaction(function () use ($user, $design, $data, $frameOptions, $native): DesignExport {
+        $extra = array_filter(['fit' => $fit, 'batch' => $internal['batch'] ?? null, 'watermark' => $watermark]);
+
+        return DB::transaction(function () use ($user, $design, $data, $frameOptions, $native, $extra): DesignExport {
             $export = DesignExport::create(['user_id' => $user->id, 'brand_id' => $design->brand_id, 'design_id' => $design->id,
                 'revision' => $data['revision'], 'format' => $data['format'], 'pages' => $data['pages'], 'status' => 'pending',
-                'options' => ['scale' => (float) ($data['scale'] ?? 1), 'quality' => (float) ($data['quality'] ?? 0.94), 'transparent' => (bool) ($data['transparent'] ?? false)] + $frameOptions]);
+                'options' => ['scale' => (float) ($data['scale'] ?? 1), 'quality' => (float) ($data['quality'] ?? 0.94), 'transparent' => (bool) ($data['transparent'] ?? false)] + $frameOptions + $extra]);
             // Con la fila ya insertada la fusion y la poda ven la revision como fijada; si desaparecio entre la validacion y el insert, se revierte con el 409.
             $this->exports->revision($user, $design, (int) $data['revision']);
             if ($native) {
@@ -107,16 +122,18 @@ class StudioRenderer
         $user = User::findOrFail($export->user_id);
         $design = Design::ownedBy($user->id)->findOrFail($export->design_id);
         $revision = $this->exports->revision($user, $design, $export->revision);
-        $times = array_column($this->frames->validate($revision->document, $export->pages, $export->options['frame_times'] ?? []), 'time', 'page_id');
+        // Una exportación de lote renderiza el documento ya ajustado al formato pedido; el resto, la revisión tal cual.
+        $document = isset($export->options['fit']) ? StudioAutomation::resize($revision->document, (int) $export->options['fit']['width'], (int) $export->options['fit']['height'], (string) $export->options['fit']['mode']) : $revision->document;
+        $times = array_column($this->frames->validate($document, $export->pages, $export->options['frame_times'] ?? []), 'time', 'page_id');
         $brand = Brand::ownedBy($user->id)->findOrFail($export->brand_id);
         // PPTX: Chromium renderiza cada pagina como PNG y `StudioPptxExporter` las empaqueta (sin crear media en la biblioteca).
-        $manifest = $this->execute($user, $brand, $revision->document, $export->pages, $times, $export->format === 'pptx' ? 'png' : $export->format, $export->options, $directory);
+        $manifest = $this->execute($user, $brand, $document, $export->pages, $times, ($export->format === 'pptx' || isset($export->options['watermark'])) ? 'png' : $export->format, array_intersect_key($export->options, array_flip(['scale', 'quality', 'transparent', 'frame_times'])), $directory);
         $files = $manifest['files'] ?? [];
         if (count($files) !== ($export->format === 'pdf' ? 1 : count($export->pages))) {
             throw new StudioRenderFailure('El renderizador devolvió un número de archivos incorrecto.');
         }
 
-        [$paths, $mediaIds] = $this->files->storeFiles($export, $user, $revision, $files, $directory, $createdMedia);
+        [$paths, $mediaIds] = $this->files->storeFiles($export, $user, $revision->name, $document, $files, $directory, $createdMedia);
         $download = $this->files->packageDownload($export, $revision, $paths, $directory);
 
         DB::transaction(function () use ($user, $brand, $mediaIds, $export, $download): void {

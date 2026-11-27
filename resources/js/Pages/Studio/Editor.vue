@@ -513,6 +513,7 @@ onBeforeUnmount(() => {
 
 const {
     ExportDialog,
+    BatchExportDialog,
     PresentationDialog,
     StudioDialog,
     StudioCollabPanel,
@@ -522,6 +523,7 @@ const {
     StudioDatasetsDialog,
     loadPresentationDialog,
     exportMounted,
+    batchMounted,
     templateSaveMounted,
     fontsMounted,
     datasetsMounted,
@@ -530,6 +532,7 @@ const {
     collabMounted,
     exporter,
     exportOpen,
+    batchOpen,
     exportBusy,
     fontsOpen,
     collabOpen,
@@ -615,6 +618,14 @@ const {
                     :disabled="!ready || busy || automationBusy || exportBusy || conflict"
                     @click="openVariants"
                     >Crear variantes</button
+                >
+                <button
+                    v-if="access.is_owner"
+                    type="button"
+                    class="tool text-xs"
+                    :disabled="!ready || busy || automationBusy || exportBusy || conflict"
+                    @click="batchOpen = true"
+                    >Exportar en lote</button
                 >
                 <button
                     v-if="access.is_owner"
@@ -1252,8 +1263,19 @@ const {
             :design-id="initialContext.designId"
             :source-post-id="source_post_id"
             :chart-resources="chartResources"
+            :watermark="kit?.watermark"
             :prepare="prepareExport"
             :playhead="timeline"
+            @busy="exportBusy = $event"
+            @conflict="onExportConflict"
+        />
+        <BatchExportDialog
+            v-if="contextActive && batchMounted && access.is_owner"
+            v-model="batchOpen"
+            :document="documentData"
+            :design-id="initialContext.designId"
+            :watermark="kit?.watermark"
+            :prepare="prepareExport"
             @busy="exportBusy = $event"
             @conflict="onExportConflict"
         />

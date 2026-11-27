@@ -142,3 +142,14 @@ test('history cancellation reaches the actual same-origin fetch transport', asyn
         assert.equal(calls[0].headers.Authorization, undefined);
     } finally { Object.assign(globalThis, previous); }
 });
+
+test('watermarked image exports keep their frame times and transparency while video ignores them', async () => {
+    const { createStudioExportClient } = await moduleUnderTest();
+    const calls = [];
+    const client = createStudioExportClient({ request: async (...args) => { calls.push(args[2]); return { export: { id: 1 } }; }, url: (name, id) => `${name}/${id}` });
+    const frame_times = [{ page_id: 'one', time: 1.5 }];
+    await client.start(7, { revision: 3, format: 'png', pages: ['one'], scale: 1, quality: 0.9, transparent: true, watermark: true, frame_times });
+    await client.start(7, { revision: 3, format: 'mp4', pages: ['one'], scale: 1, quality: 0.9, transparent: true, frame_times });
+    assert.deepEqual(calls[0], { revision: 3, format: 'png', pages: ['one'], scale: 1, quality: 0.9, transparent: true, watermark: true, frame_times });
+    assert.deepEqual(calls[1], { revision: 3, format: 'mp4', pages: ['one'], scale: 1, quality: 0.9, transparent: false });
+});

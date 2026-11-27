@@ -66,6 +66,14 @@ const selectedKitFonts = ref((props.kit?.font_ids ?? []).filter(id => Number.isI
 const kitFontChoices = computed(() => localFonts.value.filter(font => !font.archived_at || selectedKitFonts.value.includes(font.id)));
 const selectedLogos = ref([...(props.kit?.logos ?? [])]);
 const logoAssets = computed(() => (props.assets ?? []).filter(asset => asset.kind === 'image'));
+const WATERMARK_POSITIONS = [
+    { value: 'top-left', label: 'Arriba a la izquierda' }, { value: 'top-right', label: 'Arriba a la derecha' },
+    { value: 'bottom-left', label: 'Abajo a la izquierda' }, { value: 'bottom-right', label: 'Abajo a la derecha' }, { value: 'center', label: 'Centro' },
+];
+const watermark = ref({ enabled: false, logo_id: null, position: 'bottom-right', opacity: 70, size: 20, margin: 3, ...props.kit?.watermark });
+const watermarkLogos = computed(() => logoAssets.value.filter(asset => selectedLogos.value.includes(asset.id)));
+// Sin logotipo seleccionado no hay marca de agua posible: se desactiva sola en vez de dejar una casilla marcada y bloqueada.
+watch(watermarkLogos, logos => { if (!logos.length) watermark.value.enabled = false; });
 const guidelines = ref(props.kit?.guidelines ?? '');
 const voice = ref(props.kit?.voice ?? '');
 const pageError = computed(() => {
@@ -161,6 +169,7 @@ const saveKit = async () => {
             palette: paletteText.value.split(',').map(s => s.trim()).filter(Boolean), fonts: families,
             font_ids: families.map(family => localFonts.value.find(font => font.family === family && selectedKitFonts.value.includes(font.id))?.id ?? null),
             logos: selectedLogos.value, guidelines: guidelines.value, voice: voice.value,
+            watermark: { ...watermark.value, logo_id: selectedLogos.value.includes(watermark.value.logo_id) ? watermark.value.logo_id : null },
         });
         kitOpen.value = false; router.reload({ only: ['kit'] });
     } catch (e) { error.value = e.message; } finally { busy.value = false; }
@@ -814,6 +823,83 @@ const sharedDate = createZonedDateFormatter(designDateOptions);
                             >Todavía no hay imágenes en la biblioteca de esta marca.</p
                         >
                         <p class="text-xs text-slate-500">{{ selectedLogos.length }}/30 seleccionados</p>
+                    </fieldset>
+                    <fieldset class="min-w-0 space-y-3 rounded-xl border border-slate-200 p-4">
+                        <legend class="px-1 text-sm font-medium">Marca de agua</legend>
+                        <p class="text-xs leading-relaxed text-slate-500"
+                            >Superpone un logotipo del kit en las exportaciones de imagen de esta marca (PNG, JPG y
+                            WebP; las del diálogo Exportar pasan por el servidor mientras esté activa y la exportación
+                            en lote la aplica siempre que lo esté). Se puede desactivar en cada exportación.</p
+                        >
+                        <label class="flex items-center gap-2 text-sm font-medium"
+                            ><input
+                                v-model="watermark.enabled"
+                                type="checkbox"
+                                :disabled="!watermarkLogos.length"
+                            />Aplicar marca de agua automáticamente</label
+                        >
+                        <p v-if="!watermarkLogos.length" class="rounded-lg bg-slate-50 p-3 text-xs text-slate-500"
+                            >Selecciona antes un logotipo de marca para poder usarlo como marca de agua.</p
+                        >
+                        <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <label class="block min-w-0 text-sm font-medium"
+                                >Logotipo<select
+                                    v-model.number="watermark.logo_id"
+                                    aria-label="Logotipo de la marca de agua"
+                                    class="field mt-1"
+                                    ><option :value="null">Elige un logotipo</option
+                                    ><option
+                                        v-for="asset in watermarkLogos"
+                                        :key="asset.id"
+                                        :value="asset.id"
+                                        >{{ asset.name }}</option
+                                    ></select
+                                ></label
+                            >
+                            <label class="block min-w-0 text-sm font-medium"
+                                >Posición<select
+                                    v-model="watermark.position"
+                                    aria-label="Posición de la marca de agua"
+                                    class="field mt-1"
+                                    ><option
+                                        v-for="item in WATERMARK_POSITIONS"
+                                        :key="item.value"
+                                        :value="item.value"
+                                        >{{ item.label }}</option
+                                    ></select
+                                ></label
+                            >
+                            <label class="block min-w-0 text-sm font-medium"
+                                >Opacidad ({{ watermark.opacity }} %)<input
+                                    v-model.number="watermark.opacity"
+                                    aria-label="Opacidad de la marca de agua"
+                                    class="mt-1 w-full"
+                                    type="range"
+                                    min="5"
+                                    max="100"
+                                    step="5"
+                            /></label>
+                            <label class="block min-w-0 text-sm font-medium"
+                                >Tamaño ({{ watermark.size }} % del ancho)<input
+                                    v-model.number="watermark.size"
+                                    aria-label="Tamaño de la marca de agua"
+                                    class="mt-1 w-full"
+                                    type="range"
+                                    min="5"
+                                    max="50"
+                                    step="1"
+                            /></label>
+                            <label class="block min-w-0 text-sm font-medium"
+                                >Margen ({{ watermark.margin }} %)<input
+                                    v-model.number="watermark.margin"
+                                    aria-label="Margen de la marca de agua"
+                                    class="mt-1 w-full"
+                                    type="range"
+                                    min="0"
+                                    max="20"
+                                    step="1"
+                            /></label>
+                        </div>
                     </fieldset>
                     <label class="block text-sm font-medium"
                         >Guía de estilo<textarea v-model="guidelines" class="field mt-1" rows="3" maxlength="10000" />

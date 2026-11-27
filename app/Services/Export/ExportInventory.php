@@ -50,7 +50,7 @@ final class ExportInventory
         'disenos' => ['table' => 'studio_designs', 'except' => ['document', 'thumbnail_path', 'approval_comment']],
         'carpetas-de-disenos' => ['table' => 'studio_design_folders'],
         'exportaciones-del-estudio' => ['table' => 'studio_design_exports', 'except' => ['disk', 'path', 'render_state'], 'json' => ['pages', 'media_ids', 'options']],
-        'kits-de-marca' => ['table' => 'studio_brand_kits', 'json' => ['palette', 'fonts', 'logos', 'guidelines', 'voice', 'font_ids']],
+        'kits-de-marca' => ['table' => 'studio_brand_kits', 'json' => ['palette', 'fonts', 'logos', 'guidelines', 'voice', 'font_ids', 'watermark']],
         'tipografias-de-kits' => ['table' => 'studio_brand_kit_fonts', 'via' => ['kit_id', 'studio_brand_kits'], 'order' => ['kit_id', 'font_id']],
         'tablas-de-datos' => ['table' => 'studio_datasets'],
         'tipografias' => ['table' => 'studio_fonts', 'except' => ['disk', 'path', 'source_sha256']],

@@ -677,6 +677,7 @@ paths:
                 scale: { type: number, minimum: 0.1, maximum: 4, default: 1 }
                 quality: { type: number, minimum: 0.1, maximum: 1, default: 0.94 }
                 transparent: { type: boolean, default: false, description: Transparencia de formatos estáticos compatibles; MP4/GIF requieren false }
+                watermark: { type: boolean, nullable: true, description: 'Marca de agua del kit en PNG, JPEG y WebP. Omitido usa la marca de la marca; false la desactiva; true la fuerza y exige un logotipo configurado' }
       responses:
         '202': { description: Trabajo de render aceptado, content: { application/json: { schema: { $ref: '#/components/schemas/Export' } } } }
         '422': { $ref: '#/components/responses/ValidationError' }
@@ -2284,6 +2285,16 @@ components:
         logos: { type: array, maxItems: 30, items: { type: integer, minimum: 1 } }
         guidelines: { type: string, nullable: true, maxLength: 10000 }
         voice: { type: string, nullable: true, maxLength: 5000 }
+        watermark:
+          type: object
+          description: Marca de agua automática de las exportaciones de imagen. `logo_id` debe ser uno de `logos`
+          properties:
+            enabled: { type: boolean }
+            logo_id: { type: integer, nullable: true, minimum: 1 }
+            position: { type: string, enum: [top-left, top-right, bottom-left, bottom-right, center] }
+            opacity: { type: integer, minimum: 5, maximum: 100 }
+            size: { type: integer, minimum: 5, maximum: 50, description: Porcentaje del ancho de la imagen }
+            margin: { type: integer, minimum: 0, maximum: 20, description: Porcentaje del lado menor }
     Export:
       type: object
       required: [id, design_id, revision, status, format]

@@ -81,7 +81,7 @@ class StudioEditor
             $presented['fonts'] = $this->shared->rewrite($design, $role, [], $presented['fonts'], $routes)['fonts'];
             $props['folders'] = [];
             // Lectores y comentaristas no necesitan la paleta ni las tipografías del kit para ver el diseño.
-            $props['kit'] = ['palette' => $role === 'editor' ? $props['kit']['palette'] : [], 'fonts' => $role === 'editor' ? $props['kit']['fonts'] : [], 'font_ids' => $role === 'editor' ? ($props['kit']['font_ids'] ?? []) : [], 'logos' => [], 'guidelines' => '', 'voice' => ''];
+            $props['kit'] = ['palette' => $role === 'editor' ? $props['kit']['palette'] : [], 'fonts' => $role === 'editor' ? $props['kit']['fonts'] : [], 'font_ids' => $role === 'editor' ? ($props['kit']['font_ids'] ?? []) : [], 'logos' => [], 'guidelines' => '', 'voice' => '', 'watermark' => StudioWatermark::defaults()];
             $history = null;
         }
 

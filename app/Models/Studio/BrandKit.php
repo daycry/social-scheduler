@@ -15,6 +15,6 @@ class BrandKit extends Model
 
     protected function casts(): array
     {
-        return ['palette' => 'array', 'fonts' => 'array', 'font_ids' => 'array', 'logos' => 'array'];
+        return ['palette' => 'array', 'fonts' => 'array', 'font_ids' => 'array', 'logos' => 'array', 'watermark' => 'array'];
     }
 }

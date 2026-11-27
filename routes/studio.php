@@ -43,6 +43,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('studio/designs/{design}/exports', [StudioController::class, 'exports'])->whereNumber('design')->name('studio.exports.index');
     Route::post('studio/designs/{design}/exports', [StudioController::class, 'registerExport'])->whereNumber('design')->name('studio.exports.store');
     Route::post('studio/designs/{design}/render', [StudioController::class, 'renderExport'])->whereNumber('design')->name('studio.exports.render');
+    Route::post('studio/designs/{design}/batch-export', [StudioController::class, 'batchExport'])->whereNumber('design')->name('studio.exports.batch');
     Route::get('studio/exports/{export}', [StudioController::class, 'showExport'])->whereNumber('export')->name('studio.exports.show');
     Route::post('studio/exports/{export}/post', [StudioController::class, 'createPost'])->whereNumber('export')->name('studio.exports.post');
     Route::post('studio/exports/{export}/cancel', [StudioController::class, 'cancelExport'])->whereNumber('export')->name('studio.exports.cancel');

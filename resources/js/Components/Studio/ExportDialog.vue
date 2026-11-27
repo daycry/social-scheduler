@@ -1,6 +1,6 @@
 <script setup>
 import { exportFailure } from '@/Studio/export-conflict';
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, ref, useId, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import StudioDialog from './StudioDialog.vue';
 import NativeExportJobs from './NativeExportJobs.vue';
@@ -10,9 +10,10 @@ import { compileTimeline } from '@/Studio/timeline';
 import { createStudioExportClient } from '@/Studio/export-jobs';
 
 defineOptions({ name: 'StudioExportDialog' });
-const props = defineProps({ modelValue: Boolean, document: Object, assets: Array, fonts: { type: Array, default: () => [] }, chartResources: { type: Object, default: null }, designId: Number, sourcePostId: Number, prepare: Function, playhead: { type: Number, default: 0 } });
+const props = defineProps({ modelValue: Boolean, document: Object, assets: Array, fonts: { type: Array, default: () => [] }, chartResources: { type: Object, default: null }, watermark: { type: Object, default: null }, designId: Number, sourcePostId: Number, prepare: Function, playhead: { type: Number, default: 0 } });
 const emit = defineEmits(['update:modelValue', 'busy', 'registered', 'conflict']);
 const publicationClient = createStudioExportClient();
+const watermarkHintId = useId();
 const format = ref('png');
 const scale = ref(1);
 const quality = ref(0.94);
@@ -25,8 +26,12 @@ const error = ref('');
 const savedExportId = ref(null);
 const draftAction = ref(null);
 const raster = computed(() => ['png', 'jpeg', 'webp'].includes(format.value));
-// Trabajos que prepara el servidor en segundo plano (cola): vídeo, GIF y PowerPoint. El resto se renderiza en el navegador.
-const native = computed(() => ['mp4', 'gif', 'pptx'].includes(format.value));
+// Con la marca de agua del kit, la imagen se renderiza en el servidor (el mismo camino que el lote y la API) y no en el navegador.
+const watermarkAvailable = computed(() => props.watermark?.logo_id != null);
+const applyWatermark = ref(Boolean(props.watermark?.enabled));
+const serverImage = computed(() => raster.value && watermarkAvailable.value && applyWatermark.value);
+// Trabajos que prepara el servidor en segundo plano (cola): vídeo, GIF, PowerPoint e imágenes con marca de agua. El resto se renderiza en el navegador.
+const native = computed(() => ['mp4', 'gif', 'pptx'].includes(format.value) || serverImage.value);
 const video = computed(() => ['mp4', 'gif'].includes(format.value));
 const formats = [...EXPORT_FORMATS, { value: 'pptx', label: 'PPTX · una diapositiva por página' }, { value: 'mp4', label: 'MP4 · vídeo con audio' }, { value: 'gif', label: 'GIF · animación sin audio' }];
 const pageOrder = ref(props.document.pages.map(page => page.id));
@@ -48,7 +53,9 @@ async function nativeOptions() {
     const existing = new Set(snapshot.document.pages.map(page => page.id));
     const pages = pageOrder.value.filter(id => selectedPages.value.includes(id) && existing.has(id));
     if (!pages.length) throw new Error('Selecciona al menos una página existente.');
-    return { revision: snapshot.revision, format: format.value, pages, scale: Number(scale.value), quality: Number(quality.value) };
+    const frames = snapshot.document.schema_version === 2 ? { frame_times: pages.map(page_id => ({ page_id, time: pageFrameTimes.value[page_id] ?? 0 })) } : {};
+    const image = serverImage.value ? { transparent: transparent.value && format.value !== 'jpeg', watermark: true, ...frames } : {};
+    return { revision: snapshot.revision, format: format.value, pages, scale: Number(scale.value), quality: Number(quality.value), ...image };
 }
 function initializeFrames() {
     const times = Object.create(null);
@@ -139,7 +146,7 @@ defineExpose({ publish });
         <div class="space-y-5">
             <p
                 class="text-sm leading-relaxed text-slate-500"
-                >{{ native ? (format === 'pptx' ? 'Exporta cada página como una diapositiva de PowerPoint con la imagen del diseño; el texto no es editable en PowerPoint.' : format === 'gif' ? 'Exporta la secuencia de páginas como una animación sin sonido.' : 'Exporta la secuencia de páginas con vídeo, transiciones y mezcla de audio.') : 'Exporta las páginas elegidas. Los elementos de vídeo se incluyen como fotograma estático.' }}</p
+                >{{ native ? (serverImage ? 'Se renderiza en el servidor con la marca de agua de la marca y se guarda en la biblioteca.' : format === 'pptx' ? 'Exporta cada página como una diapositiva de PowerPoint con la imagen del diseño; el texto no es editable en PowerPoint.' : format === 'gif' ? 'Exporta la secuencia de páginas como una animación sin sonido.' : 'Exporta la secuencia de páginas con vídeo, transiciones y mezcla de audio.') : 'Exporta las páginas elegidas. Los elementos de vídeo se incluyen como fotograma estático.' }}</p
             >
             <label class="block space-y-1 text-sm font-medium"
                 >Formato<select v-model="format" aria-label="Formato" class="field" :disabled="busy"
@@ -174,12 +181,25 @@ defineExpose({ publish });
                     >{{ format === 'svg' ? `${document.width} × ${document.height} px · vector y medios embebidos` : outputSize
                     }}{{ format === 'pdf' ? ' · un fotograma por página en PDF' : '' }}</p
                 >
-                <label v-if="!native && format !== 'jpeg'" class="flex items-center gap-2 text-sm"
+                <label v-if="(!native || serverImage) && format !== 'jpeg'" class="flex items-center gap-2 text-sm"
                     ><input v-model="transparent" type="checkbox" />Fondo transparente</label
+                ><div v-if="raster" class="rounded-xl border border-slate-200 p-3"
+                    ><label class="flex items-center gap-2 text-sm font-medium"
+                        ><input
+                            v-model="applyWatermark"
+                            type="checkbox"
+                            :disabled="!watermarkAvailable"
+                            :aria-describedby="watermarkHintId"
+                        />Aplicar la marca de agua de la marca</label
+                    ><p
+                        :id="watermarkHintId"
+                        class="mt-1 text-xs leading-relaxed text-slate-500"
+                        >{{ !watermarkAvailable ? 'La marca no tiene marca de agua configurada: la imagen no llevará marca de agua.' : applyWatermark ? 'La imagen llevará la marca de agua. Se prepara en el servidor, en segundo plano.' : 'La imagen no llevará marca de agua.' }}</p
+                    ></div
                 >
                 <div
                     ><h3 class="mb-2 text-sm font-medium">Páginas</h3
-                    ><p v-if="native" class="mb-2 text-xs text-slate-500"
+                    ><p v-if="native && !serverImage" class="mb-2 text-xs text-slate-500"
                         >Selecciona páginas y ajusta su orden con las flechas.</p
                     ><p v-else-if="document.schema_version === 2" class="mb-2 text-xs text-slate-500"
                         >Elige un segundo local por página. Las páginas donde está el cabezal parten de ese instante.</p
@@ -209,7 +229,7 @@ defineExpose({ publish });
                                     ></span
                                 ></div
                             ><label
-                                v-if="!native && document.schema_version === 2"
+                                v-if="(!native || serverImage) && document.schema_version === 2"
                                 class="flex min-w-0 flex-wrap items-center gap-2 text-xs text-slate-600"
                                 ><span>Fotograma (s)</span
                                 ><input
@@ -243,10 +263,15 @@ defineExpose({ publish });
             <div class="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4"
                 ><button type="button" class="btn-secondary" :disabled="busy" @click="emit('update:modelValue',false)"
                     >Cerrar exportación</button
-                ><button v-if="raster" type="button" class="btn-secondary" :disabled="busy" @click="run('library')"
+                ><button
+                    v-if="raster && !native"
+                    type="button"
+                    class="btn-secondary"
+                    :disabled="busy"
+                    @click="run('library')"
                     >Guardar en biblioteca</button
                 ><button
-                    v-if="raster && sourcePostId && !savedExportId"
+                    v-if="raster && !native && sourcePostId && !savedExportId"
                     type="button"
                     class="btn-primary bg-violet-700"
                     data-dialog-initial-focus
@@ -254,7 +279,7 @@ defineExpose({ publish });
                     @click="run('update')"
                     >Actualizar publicación</button
                 ><button
-                    v-if="raster && sourcePostId"
+                    v-if="raster && !native && sourcePostId"
                     ref="draftAction"
                     type="button"
                     :class="savedExportId ? 'btn-primary bg-violet-700' : 'btn-secondary'"

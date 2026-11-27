@@ -5,6 +5,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Added — marca de agua automática y exportación en lote (audit-hardening, T-91)
+
+- Configura una marca de agua por marca en Identidad de marca: elige uno de los logotipos de la marca, su posición (esquinas o centro), opacidad, tamaño y margen, y actívala o desactívala. Las exportaciones de imagen que genera el servidor (PNG, JPG y WebP, por la API o con la nueva exportación en lote) llevan el logotipo superpuesto automáticamente, y cualquier exportación puede prescindir de ella. La nueva acción «Exportar en lote» del editor convierte un diseño en una imagen por cada formato que elijas (cuadrado, 4:5, historia, horizontal…) de una sola vez; cada archivo se guarda en la biblioteca de la marca con su tamaño y con la marca de agua si está activa, y repetir el lote nunca duplica archivos. El diálogo Exportar indica si la imagen lleva marca de agua y permite desactivarla en esa exportación.
+
 ### Added — fechas señaladas y feed .ics del calendario (audit-hardening, T-90)
 
 - El calendario muestra ahora un conjunto inicial de fechas señaladas de marketing (Año Nuevo, San Valentín, Día de la Mujer, Día del Padre y de la Madre en España, Día del Libro, Halloween, Black Friday, Cyber Monday, Navidad…), diferenciadas de tus publicaciones en las vistas semana, mes y lista; puedes ocultarlas desde el panel del calendario y se recuerda en tu cuenta. El mismo panel crea un enlace de suscripción secreto (.ics) para ver tus publicaciones programadas y publicadas, y las fechas señaladas si están visibles, en Google Calendar, Outlook o Apple Calendar. El enlace se muestra una sola vez, solo contiene tus propias publicaciones (un resumen corto: marca, redes, estado y el inicio del texto), se puede regenerar (el anterior deja de funcionar) o revocar cuando quieras, se revoca solo al cambiar o restablecer la contraseña, y nunca se indexa ni se cachea. El listado definitivo de fechas está pendiente de confirmar.

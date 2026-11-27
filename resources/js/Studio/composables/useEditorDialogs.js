@@ -2,6 +2,8 @@ import { defineAsyncComponent, getCurrentInstance, onErrorCaptured, ref, watch }
 
 const loadExportDialog = () => import('@/Components/Studio/ExportDialog.vue');
 const ExportDialog = defineAsyncComponent(loadExportDialog);
+const loadBatchExportDialog = () => import('@/Components/Studio/BatchExportDialog.vue');
+const BatchExportDialog = defineAsyncComponent(loadBatchExportDialog);
 const loadPresentationDialog = () => import('@/Components/Studio/PresentationDialog.vue');
 const PresentationDialog = defineAsyncComponent(loadPresentationDialog);
 const loadStudioDialog = () => import('@/Components/Studio/StudioDialog.vue');
@@ -21,6 +23,7 @@ export function useEditorDialogs({ error, isDisposed, templateSaveOpen, variants
     const exporter = ref(null);
     const exportOpen = ref(false);
     const exportBusy = ref(false);
+    const batchOpen = ref(false);
     const fontsOpen = ref(false);
     const collabOpen = ref(false);
 
@@ -43,6 +46,7 @@ export function useEditorDialogs({ error, isDisposed, templateSaveOpen, variants
     }
 
     const exportMounted = mountDialogOnOpen(exportOpen, loadExportDialog);
+    const batchMounted = mountDialogOnOpen(batchOpen, loadBatchExportDialog);
     const templateSaveMounted = mountDialogOnOpen(templateSaveOpen, loadStudioDialog);
     const fontsMounted = mountDialogOnOpen(fontsOpen, loadStudioFontsDialog);
     const datasetsMounted = mountDialogOnOpen(datasetsOpen, loadStudioDatasetsDialog);
@@ -70,6 +74,7 @@ export function useEditorDialogs({ error, isDisposed, templateSaveOpen, variants
     function closeEditorDialogs() {
         publishPending.value = false;
         exportOpen.value = false;
+        batchOpen.value = false;
         fontsOpen.value = false;
         collabOpen.value = false;
     }
@@ -107,6 +112,7 @@ export function useEditorDialogs({ error, isDisposed, templateSaveOpen, variants
 
     return {
         ExportDialog,
+        BatchExportDialog,
         PresentationDialog,
         StudioDialog,
         StudioCollabPanel,
@@ -116,6 +122,7 @@ export function useEditorDialogs({ error, isDisposed, templateSaveOpen, variants
         StudioDatasetsDialog,
         loadPresentationDialog,
         exportMounted,
+        batchMounted,
         templateSaveMounted,
         fontsMounted,
         datasetsMounted,
@@ -124,6 +131,7 @@ export function useEditorDialogs({ error, isDisposed, templateSaveOpen, variants
         collabMounted,
         exporter,
         exportOpen,
+        batchOpen,
         exportBusy,
         fontsOpen,
         collabOpen,

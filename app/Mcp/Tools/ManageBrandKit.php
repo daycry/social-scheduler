@@ -11,7 +11,7 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
 
 #[Name('manage_brand_kit')]
-#[Description('Consulta o actualiza kit de una marca: palette hexadecimal, fonts familias sin CSS/URL, logos IDs propios registrados, guidelines y voice. kit omitido consulta; campos omitidos se conservan. Requiere designs:write; get_design también incluye el kit con designs:read.')]
+#[Description('Consulta o actualiza kit de una marca: palette hexadecimal, fonts familias sin CSS/URL, logos IDs propios registrados, guidelines, voice y watermark (marca de agua: enabled, logo_id de uno de los logos, position, opacity 5-100, size 5-50 % del ancho, margin 0-20 %). kit omitido consulta; campos omitidos se conservan. Requiere designs:write; get_design también incluye el kit con designs:read.')]
 class ManageBrandKit extends SchedulerTool
 {
     protected function ability(): string
@@ -28,7 +28,9 @@ class ManageBrandKit extends SchedulerTool
     {
         return $this->brandSchema($schema) + ['kit' => $schema->object(['palette' => $schema->array()->items($schema->string()),
             'fonts' => $schema->array()->items($schema->string()), 'font_ids' => $schema->array()->items($schema->integer()->nullable()), 'logos' => $schema->array()->items($schema->integer()),
-            'guidelines' => $schema->string(), 'voice' => $schema->string()])];
+            'guidelines' => $schema->string(), 'voice' => $schema->string(),
+            'watermark' => $schema->object(['enabled' => $schema->boolean(), 'logo_id' => $schema->integer()->nullable(), 'position' => $schema->string(),
+                'opacity' => $schema->integer(), 'size' => $schema->integer(), 'margin' => $schema->integer()])])];
     }
 
     protected function run(Request $request, User $user): array

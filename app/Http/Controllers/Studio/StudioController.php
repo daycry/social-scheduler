@@ -20,6 +20,7 @@ use App\Services\IdempotencyService;
 use App\Services\Studio\StudioAssets;
 use App\Services\Studio\StudioAutomation;
 use App\Services\Studio\StudioAvControl;
+use App\Services\Studio\StudioBatchExport;
 use App\Services\Studio\StudioCollab;
 use App\Services\Studio\StudioEditor;
 use App\Services\Studio\StudioExports;
@@ -265,6 +266,11 @@ class StudioController extends Controller
         $export = $renderer->export($request->user(), $design, $request->all());
 
         return response()->json(['export' => $this->exports->present($request->user(), $export)], 202);
+    }
+
+    public function batchExport(Request $request, Design $design, StudioBatchExport $batch): JsonResponse
+    {
+        return response()->json($batch->start($request->user(), $design, $request->all()), 202);
     }
 
     public function cancelExport(Request $request, DesignExport $export, StudioAvControl $avControl): JsonResponse

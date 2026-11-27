@@ -2,6 +2,7 @@
 
 namespace App\Services\Studio;
 
+use App\Models\Brand;
 use App\Models\MediaAsset;
 use App\Models\Studio\DesignExport;
 use App\Models\Studio\DesignRevision;
@@ -15,16 +16,17 @@ use Illuminate\Support\Str;
 /** Valida, empaqueta y descarta archivos producidos por el render estático del Estudio. */
 final class StudioExportFiles
 {
-    public function __construct(private readonly MediaUploadService $uploads, private readonly StudioPptxExporter $presentations) {}
+    public function __construct(private readonly MediaUploadService $uploads, private readonly StudioPptxExporter $presentations, private readonly StudioWatermark $watermarks) {}
 
     /**
      * Valida cada fichero generado y, en los formatos de imagen, lo guarda como media de la biblioteca.
      *
+     * @param  array<string, mixed>  $document  el documento que se renderizó (su ancho y alto por la escala son las dimensiones esperadas)
      * @param  list<array<string, mixed>>  $files
      * @param  list<MediaAsset>  $createdMedia
      * @return array{0: list<string>, 1: list<int>} rutas relativas del disco `local` e ids de media creados
      */
-    public function storeFiles(DesignExport $export, User $user, DesignRevision $revision, array $files, string $directory, array &$createdMedia): array
+    public function storeFiles(DesignExport $export, User $user, string $designName, array $document, array $files, string $directory, array &$createdMedia): array
     {
         $disk = Storage::disk('local');
         $extension = ['png' => 'png', 'jpeg' => 'jpg', 'webp' => 'webp', 'svg' => 'svg', 'pdf' => 'pdf', 'pptx' => 'png'][$export->format];
@@ -32,16 +34,29 @@ final class StudioExportFiles
         $mediaIds = [];
         foreach ($files as $index => $file) {
             $name = sprintf('page-%03d.%s', $index + 1, $extension);
-            if (($file['name'] ?? null) !== $name) {
+            // Con marca de agua Chromium entrega un PNG sin pérdida y la codificación final (JPEG o WebP) se hace una sola vez al superponerla.
+            $rendered = isset($export->options['watermark']) ? sprintf('page-%03d.png', $index + 1) : $name;
+            if (($file['name'] ?? null) !== $rendered) {
                 throw new StudioRenderFailure('Nombre de archivo de render no válido.');
             }
             $path = $directory.'/'.$name;
-            if (! $disk->exists($path) || $disk->size($path) < 1 || $disk->size($path) > 64000000) {
+            $limit = (int) config('studio.export.max_file_bytes', 64000000);
+            // El PNG intermedio sin pérdida de una exportación con marca de agua no lleva tope de bytes: lo acota el tope de píxeles (`studio.watermark.max_pixels`). El límite se mide sobre el fichero final.
+            if (! $disk->exists($directory.'/'.$rendered) || $disk->size($directory.'/'.$rendered) < 1 || ($rendered === $name && $disk->size($path) > $limit)) {
                 throw new StudioRenderFailure('El archivo generado falta o supera el tamaño permitido.');
             }
             $paths[] = $path;
-            if (in_array($export->format, ['png', 'jpeg', 'webp'], true)) {
-                $mediaIds[] = $this->importImage($export, $user, $revision, $path, $name, $extension, $createdMedia);
+            if (in_array($export->format, StudioWatermark::FORMATS, true)) {
+                if (isset($export->options['watermark'])) {
+                    $this->watermarks->apply($user, Brand::ownedBy($user->id)->findOrFail($export->brand_id), $disk->path($directory.'/'.$rendered), $disk->path($path), $export->format, $export->options['watermark'], (float) ($export->options['quality'] ?? 0.94));
+                    if ($rendered !== $name) {
+                        $disk->delete($directory.'/'.$rendered);
+                    }
+                    if ($disk->size($path) > $limit) {
+                        throw new StudioRenderFailure('El archivo generado supera el tamaño permitido.');
+                    }
+                }
+                $mediaIds[] = $this->importImage($export, $user, $designName, $document, $path, $name, $extension, $createdMedia);
             }
         }
 
@@ -53,13 +68,13 @@ final class StudioExportFiles
      *
      * @param  list<MediaAsset>  $createdMedia
      */
-    private function importImage(DesignExport $export, User $user, DesignRevision $revision, string $path, string $name, string $extension, array &$createdMedia): int
+    private function importImage(DesignExport $export, User $user, string $designName, array $document, string $path, string $name, string $extension, array &$createdMedia): int
     {
         $disk = Storage::disk('local');
         $mime = ['png' => 'image/png', 'jpeg' => 'image/jpeg', 'webp' => 'image/webp'][$export->format];
         // A server-generated object is written directly, without opening an unused S3 multipart session.
         $media = new MediaAsset(['disk' => config('filesystems.media', 'local'), 'path' => 'media/'.$user->id.'/'.Str::lower((string) Str::ulid()).'.'.$extension,
-            'original_name' => Str::limit($revision->name.'-'.$name, 200, ''), 'mime' => $mime, 'kind' => 'image',
+            'original_name' => Str::limit($designName.'-'.$name, 200, ''), 'mime' => $mime, 'kind' => 'image',
             'declared_size' => $disk->size($path), 'status' => MediaAsset::STATUS_PENDING]);
         $media->user_id = $user->id;
         $media->save();
@@ -76,7 +91,7 @@ final class StudioExportFiles
         }
         $media = $this->uploads->finalize($media);
         $scale = (float) ($export->options['scale'] ?? 1);
-        if (! $media->isReady() || $media->width !== (int) round($revision->document['width'] * $scale) || $media->height !== (int) round($revision->document['height'] * $scale)) {
+        if (! $media->isReady() || $media->width !== (int) round($document['width'] * $scale) || $media->height !== (int) round($document['height'] * $scale)) {
             throw new StudioRenderFailure('La imagen generada no coincide con el formato y las dimensiones de la revisión.');
         }
 

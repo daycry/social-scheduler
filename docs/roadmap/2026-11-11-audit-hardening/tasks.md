@@ -48,9 +48,9 @@ estado: en-progreso
 | Fase 5 — Frontend | 15 | 18 | 83% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
 | Fase 5b — Unificación | 4 | 8 | 50% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
 | Fase 6 — Operación y repositorio | 4 | 6 | 67% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
-| Fase 7 — Funciones nuevas | 16 | 24 | 67% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
+| Fase 7 — Funciones nuevas | 17 | 24 | 71% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **89** | **108** | **82%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
+| **TOTAL** | **90** | **108** | **83%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -4621,34 +4621,36 @@ CoberturaM3extra descubre registrodoble deListeners por autodetección+PushServi
 ### T-91 — Marca de agua automática y exportación en lote
 
 - **Descripción**: Aplicar el kit de marca como marca de agua y exportar un diseño en lote a los formatos del post.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Marca de agua automática por marca (logotipo, posición, opacidad, tamaño y margen) y nueva acción «Exportar en lote»: una imagen por formato (cuadrado, 4:5, historia…) guardada en la biblioteca, sin duplicados al repetirla.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-90
 - **Tipo**: fullstack
-- **Archivos**: `app/Services/Studio/StudioWatermark.php`, `app/Services/Studio/StudioBatchExport.php`, `resources/js/Pages/Studio/**`, `docs/modulos/estudio.md`
+- **Archivos**: `app/Services/Studio/StudioWatermark.php`, `app/Services/Studio/StudioBatchExport.php`, `app/Services/Studio/StudioRenderer.php`, `app/Services/Studio/StudioExportFiles.php`, `app/Services/Studio/StudioAutomation.php`, `app/Services/Studio/StudioService.php`, `app/Services/Studio/StudioEditor.php`, `app/Services/Export/ExportInventory.php`, `app/Models/Studio/BrandKit.php`, `app/Http/Controllers/Studio/StudioController.php`, `app/Mcp/Tools/ManageBrandKit.php`, `routes/studio.php`, `config/studio.php`, `database/migrations/2026_11_27_120000_add_watermark_to_studio_brand_kits.php`, `resources/js/Pages/Studio/**`, `resources/js/Components/Studio/BatchExportDialog.vue`, `resources/js/Components/Studio/ExportDialog.vue`, `resources/js/Studio/export-jobs.js`, `app/Mcp/Tools/ExportDesign.php`, `tests/Feature/Studio/StudioWatermarkTest.php`, `tests/Feature/Studio/StudioBatchExportTest.php`, `tests/Support/StudioWatermarkFixtures.php`, `tests/e2e/studio-watermark-batch.spec.ts`, `docs/modulos/estudio.md`, `docs/api/openapi.yaml`, `CHANGELOG.md`, `CHANGELOG.es.md`, `docs/roadmap/2026-11-11-audit-hardening/testing/t91/**`
 - **Cubre**: F-19
 - **Cubre (tests)**: E2E-30
 - **Verificación**: `php artisan test --compact --filter=StudioWatermarkTest` → verde
 
 **Criterios de aceptación**
-- [ ] Marca de agua configurable por marca
-- [ ] El lote genera un fichero por formato y lo guarda en biblioteca
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Marca de agua configurable por marca
+- [x] El lote genera un fichero por formato y lo guarda en biblioteca
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
-**Notas**: Tamaño M.
+**Notas**: Tamaño M. Decisión: los formatos del lote son los presets del editor (cuadrado, 4:5, 3:4, historia, horizontal…) y cualquier tamaño de 40 a 8000 px; no se derivan de los destinos de un post (`media_specs`/`TargetMedia` dan rangos de aspecto y no tamaños concretos, así que habría que inventar el tamaño de cada red). Desviación aceptada de F-19. La exportación PNG/JPG/WebP del diálogo Exportar pasa por el servidor cuando la marca de agua está activa.
+
+**Cierre — 2026-11-27:** marca de agua por marca en `studio_brand_kits.watermark` (logotipo del kit, posición, opacidad 5–100, tamaño 5–50, margen 0–20; validada en web, API y MCP) aplicada por `StudioWatermark` con GD sobre la imagen que renderiza Chromium en servidor (sin segundo renderizador): opacidad multiplicativa sobre el alfa del logo, logotipo limitado a 16 Mpx antes de decodificar (`studio.watermark.logo_max_pixels`) y fallos controlados como `StudioRenderFailure`, intermedio PNG sin pérdida y una sola codificación final (JPEG aplanado sobre blanco, WebP con alfa), tope de 64 MB sobre el fichero final (`studio.export.max_file_bytes`); se fija como instantánea al crear la exportación y se puede desactivar por exportación. En el diálogo Exportar, con la marca activa la imagen se prepara en el servidor (mismo camino que el lote, con el fotograma elegido en v2) y una descripción ligada a la casilla indica si la lleva; «Usar en publicación» abre entonces el panel nativo, como con vídeo. Lote `StudioBatchExport` (`POST studio/designs/{design}/batch-export`): una exportación por formato a la biblioteca, reutilizando `RenderStudioDesign` y la cola `studio-render`, idempotente por huella (solo se rehacen las fallidas), serializado con bloqueo del usuario, límites de 8 formatos y 24 activas. Revisión adversarial A+B+C en 3 intentos: intento 1 — 3 Important (marca ausente en la exportación principal; opacidad aditiva; bomba de descompresión en el logo, CWE-409) + 6 Minor, corregidos; intento 2 — 1 Important (selector de fotograma perdido con marca) + 3 Minor, corregidos; intento 3 — 3 Important introducidos por las correcciones (sondeo del borrador automático sin cancelar al desmontar; render lanzado también para MP4/GIF/PPTX; JPEG con marca y fondo transparente salía negro) + 1 Minor (tope sobre el intermedio): el usuario eligió «corregir y simplificar» — se retiró el borrador automático (el flujo vuelve al panel nativo), JPEG aplanado sobre blanco y tope sobre el fichero final. QA: la primera pasada E2E detectó que el aviso fijo de marca de agua era una región viva `role="status"` que chocaba con la del resultado (4 fallos); pasó a descripción `aria-describedby` de la casilla. Pest completo verde; Node 819/819; typecheck, ESLint, `format:check` y Pint verdes; E2E del Estudio (marca y lote, exportación nativa y por fotograma, kit, automatización, colaboración) + a11y 165/165 en tres tamaños (`testing/t91/t91-e2e-r2.log`). **Deuda aceptada (Minor):** solo marca de agua de logotipo (sin texto); el lote solo por web (sin API v1 ni MCP); los formatos del lote son los del editor, no derivados de los destinos del post (decisión anotada arriba).
 
 ### T-92 — Reciclado inteligente de mejores posts
 
@@ -5501,3 +5503,7 @@ Lentes A+B+C. Intento 1: 0 Critical/Important, 8 Minor (incluidos el homógrafo 
 ## Revisión de dos lentes — intento 2: Fase 7 (T-90) — aprobada y cerrada
 
 Lentes A+B+C. Intento 1: 0 Critical/Important, 10 Minor (incluidos CWE-525 y CWE-613 de la lente C) corregidos. Intento 2: sin defectos de código; 2 Minor de documentación corregidos. QA encontró y cerró un desbordamiento en móvil. Diffs en `testing/t90/reviews/r1.patch` y `r2.patch`. Total 89/108.
+
+## Revisión de dos lentes — intento 3: Fase 7 (T-91) — cerrada por decisión del usuario
+
+Lentes A+B+C. Intento 1: 3 Important + 6 Minor corregidos. Intento 2: 1 Important + 3 Minor corregidos. Intento 3: 3 Important introducidos por las correcciones; el usuario eligió «corregir y simplificar» (se retiró el borrador automático con marca, JPEG aplanado sobre blanco, tope sobre el fichero final), verificado con tests, Pest, Node y E2E. Diffs en `testing/t91/reviews/r1.patch`–`r3.patch`. Total 90/108.

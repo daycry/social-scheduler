@@ -18,6 +18,12 @@ return [
     'export_media_guard_days' => (int) env('STUDIO_EXPORT_MEDIA_GUARD_DAYS', 30),
     // Miniaturas del listado (T-35): se renderizan bajo demanda en su cola configurada.
     'thumbnails' => ['enabled' => (bool) env('STUDIO_THUMBNAILS', true)],
+    // Exportación en lote (T-91): formatos por lote y exportaciones en curso por usuario (comparten la cola `studio-render`).
+    'batch' => ['max_formats' => (int) env('STUDIO_BATCH_MAX_FORMATS', 8), 'max_active' => (int) env('STUDIO_BATCH_MAX_ACTIVE', 24)],
+    // Marca de agua (T-91): la superposición se hace en memoria con GD; las imágenes mayores no la admiten.
+    // Tamaño máximo (bytes) de cada fichero de imagen exportado por el servidor.
+    'export' => ['max_file_bytes' => 64_000_000],
+    'watermark' => ['max_pixels' => 25_000_000, 'logo_max_pixels' => 16_000_000],
     'revisions' => ['min_interval_seconds' => (int) env('STUDIO_REVISION_MIN_INTERVAL', 300)],
     'fonts' => [
         'disk' => env('STUDIO_FONT_DISK', 'local'),

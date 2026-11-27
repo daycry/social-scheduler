@@ -105,9 +105,13 @@ it('solo incluye las publicaciones del usuario, no las de otros ni los borradore
 
 it('resume el texto largo en vez de volcarlo entero', function () {
     feedPost($this->user, $this->brand, '2026-11-24 08:30:00', str_repeat('palabra ', 200));
-    $body = $this->get(feedUrl($this->user))->assertOk()->getContent();
+    // Se mide cada propiedad desplegada, no el tamano total del feed (depende del entorno: URL de la app, fechas señaladas).
+    $lines = icsLines($this->get(feedUrl($this->user))->assertOk()->getContent());
+    $value = fn (string $name) => (string) substr((string) collect($lines)->first(fn ($l) => str_starts_with($l, $name.':')), strlen($name) + 1);
 
-    expect(strlen($body))->toBeLessThan(4000);
+    expect(implode('', $lines))->not->toContain(str_repeat('palabra ', 60))
+        ->and(mb_strlen($value('SUMMARY')))->toBeLessThanOrEqual(120)
+        ->and(mb_strlen($value('DESCRIPTION')))->toBeLessThanOrEqual(420);
 });
 
 it('regenerar el token invalida el anterior', function () {

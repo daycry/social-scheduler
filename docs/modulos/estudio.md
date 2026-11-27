@@ -21,7 +21,15 @@ Mientras abre el editor, el Estudio informa del progreso. El editor confirma «D
 
 El editor reutiliza el plan de la línea de tiempo para su duración, el inicio de cada página y la división de clips. Los enlaces de las tablas se generan con las rutas web nombradas de Ziggy.
 
-Cada diseño pertenece a una marca y a un usuario. El editor guarda un documento propio versionado (páginas, capas, grupos, formas, texto, imágenes, vídeo, tablas y gráficos) con control optimista por `revision`: un conflicto devuelve 409 y conserva el trabajo local. Parte de catorce plantillas originales y de plantillas propias con campos `{{campo}}`. El kit de marca (paleta, tipografías, logos, guía y voz) se aplica de forma trazable; también hay redimensionado y variantes. Formatos de documento: lienzos sociales, documentos A4, pizarras, presentaciones y gráficos.
+Cada diseño pertenece a una marca y a un usuario. El editor guarda un documento propio versionado (páginas, capas, grupos, formas, texto, imágenes, vídeo, tablas y gráficos) con control optimista por `revision`: un conflicto devuelve 409 y conserva el trabajo local. Puedes partir de una plantilla integrada o de una plantilla propia con campos `{{campo}}`. El kit de marca (paleta, tipografías, logos, guía y voz) se aplica de forma trazable; también hay redimensionado y variantes. Formatos de documento: lienzos sociales, documentos A4, pizarras, presentaciones y gráficos.
+
+### Catálogo de plantillas
+
+En **Una idea para empezar** hay 64 plantillas integradas. Puedes buscar por nombre o categoría, incluidos términos escritos sin tilde, y filtrar por formato. Hay diez diseños nuevos en cada formato con preajuste propio del catálogo. Los cinco formatos son cuadrado 1:1, Instagram 4:5 y 3:4, Historia/Reel 9:16 y presentación o vídeo 16:9. Los diseños incluyen anuncios, citas, ofertas, eventos, lanzamientos, testimonios, listas, antes y después, carruseles de tres páginas y consejos.
+
+Al seleccionar una plantilla se abre una copia editable adaptada a la paleta y la primera tipografía del kit. Los diseños nuevos se crean como documentos v2 con texto y formas, y 25 incluyen animaciones de entrada y salida. La miniatura muestra el diseño en reposo. Para ver el movimiento o exportar un fotograma concreto, mueve el cabezal de la línea de tiempo.
+
+El catálogo integrado vive en `resources/js/Studio/templates.js` y `templates-social.js`. Las miniaturas se generan en el navegador al acercarse a la tarjeta. Al crear el diseño, el servidor valida el mismo documento que utiliza el editor.
 
 Los filtros de diseños, audio, datasets y tipografías buscan texto literal con `whereLikeEscaped`. Los caracteres `%`, `_` y `!` se pueden buscar como parte de un nombre.
 

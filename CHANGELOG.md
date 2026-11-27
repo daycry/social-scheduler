@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — Studio template catalog (audit-hardening, T-95)
+
+- The Studio adds 50 editable templates across five formats, including carousels and 25 designs with entrance and exit animations. Search by name or category, filter by format, and start a design using your brand colors and font.
+
 ### Added — animations per object in the Studio (audit-hardening, T-94)
 
 - In the Studio timeline, select a clip and give it an entrance and/or exit animation: fade, slide from or towards any side, or zoom, with a duration (0.1–10 s), a delay and an easing curve (linear, accelerate, decelerate, smooth). The animation shows in the timeline clip, in the preview when you move the playhead, in the MP4/GIF video and in the image exported at the chosen instant, so the exported frame matches the preview. The entrance and exit must fit within the object's visible time; shortening a clip drops the phases that no longer fit. Designs without animations render exactly as before.

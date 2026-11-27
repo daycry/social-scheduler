@@ -5,6 +5,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Added — catálogo de plantillas del Estudio (audit-hardening, T-95)
+
+- El Estudio añade 50 plantillas editables en cinco formatos, con carruseles y 25 diseños con animaciones de entrada y salida. Busca por nombre o categoría, filtra por formato y crea un diseño con los colores y la tipografía de tu marca.
+
 ### Added — animaciones por objeto en el Estudio (audit-hardening, T-94)
 
 - En la línea de tiempo del Estudio, selecciona un clip y dale una animación de entrada y/o de salida: fundido, deslizamiento desde o hacia cualquier lado, o zoom, con duración (0,1–10 s), retardo y curva de suavizado (lineal, acelera, frena, suave). La animación se ve en el clip de la línea de tiempo, en la previsualización al mover el cabezal, en el vídeo MP4/GIF y en la imagen exportada en el instante elegido, así que el fotograma exportado coincide con la previsualización. La entrada y la salida deben caber en el tiempo visible del objeto; al acortar un clip se descartan las fases que ya no caben. Los diseños sin animaciones se renderizan exactamente igual que antes.

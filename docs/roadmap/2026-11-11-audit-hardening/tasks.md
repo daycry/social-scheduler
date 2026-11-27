@@ -48,9 +48,9 @@ estado: en-progreso
 | Fase 5 — Frontend | 15 | 18 | 83% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
 | Fase 5b — Unificación | 4 | 8 | 50% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
 | Fase 6 — Operación y repositorio | 4 | 6 | 67% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
-| Fase 7 — Funciones nuevas | 20 | 24 | 83% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
+| Fase 7 — Funciones nuevas | 21 | 24 | 88% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **93** | **108** | **86%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
+| **TOTAL** | **94** | **108** | **87%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -4761,34 +4761,44 @@ CoberturaM3extra descubre registrodoble deListeners por autodetección+PushServi
 ### T-95 — Estudio: más plantillas (continuación de F-23)
 
 - **Descripción**: Ampliar el catálogo de plantillas aprovechando las animaciones.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El Estudio añade 50 plantillas editables en cinco formatos, 25 con animaciones de entrada y salida, con búsqueda por nombre o categoría y filtro por formato.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-94
 - **Tipo**: fullstack
-- **Archivos**: `resources/js/Studio/templates/**`, `database/seeders/StudioTemplatesSeeder.php`, `docs/modulos/estudio.md`
+- **Archivos**: `resources/js/Studio/templates.js`, `resources/js/Studio/templates-social.js`, `resources/js/Studio/previews.js`, `resources/js/Pages/Studio/Index.vue`, `tests/Feature/Studio/StudioTemplatesCatalogTest.php`, `tests/frontend/studio-templates.test.mjs`, `tests/e2e/studio-templates.spec.ts`, `tests/e2e/support/studio-template-renderer.ts`, `docs/modulos/estudio.md`, `CHANGELOG.md`, `CHANGELOG.es.md`, este ledger., `docs/roadmap/2026-11-11-audit-hardening/testing/t95/**`
 - **Cubre**: — (continuación de la tarea anterior; el ID se cuenta allí)
 - **Cubre (tests)**: E2E-33
-- **Verificación**: `php artisan test --compact --filter=StudioTemplatesCatalogTest` → verde
+- **Verificación**: Pest focal (`php -d memory_limit=1G vendor/bin/pest --compact --filter=StudioTemplatesCatalogTest`) → 3 aprobadas, 1690 aserciones. Pest completo tras `php artisan config:clear` → 4963 aprobadas, 21 omitidas, 36631 aserciones. Node sin aislamiento de procesos → catálogo 4/4 y estructura de `Editor.vue` 1/1. Arnés E2E → 14/17, con tres bloqueos `spawnSync EPERM`. Formato, lint, tipos y Pint → verde. `npm run test:unit` → 93 archivos bloqueados por `spawn EPERM`. `npm run build` → `spawn EPERM` al cargar la configuración de Vite.
+- RED: `StudioTemplatesCatalogTest.php` falló con 0 plantillas nuevas en 1080×1080 y sin animaciones de entrada y salida para ese formato (2 fallos, 1 test verde) · 2026-11-27.
+- RED: `studio-templates.test.mjs` falló por ausencia de plantillas animadas (1 fallo, 3 tests verdes con `--experimental-test-isolation=none` tras `spawn EPERM`) · 2026-11-27.
+- **Formatos**: cuadrado 1:1, Instagram 4:5, Instagram 3:4, Historia/Reel 9:16 y presentación/vídeo 16:9 (10 nuevas por formato). Cada uno tiene un preajuste propio en `format-presets.js` y ya estaba representado en el catálogo integrado. A4 y pizarra son preajustes de documento y espacio de trabajo.
+- **Catálogo**: se amplía el módulo JavaScript que usa la pantalla del Estudio. Las miniaturas reutilizan el render diferido de Fabric y la creación envía el documento al validador del servidor. El catálogo integrado se distribuye con el frontend, por lo que no requiere un seeder.
+- **Corrección tras revisión (intento 1 de 3)**: Se reservó altura para los textos de varias líneas y se ajustó el límite de miniaturas al tamaño del catálogo (64). Pest focal → 4 aprobadas, 3274 aserciones. Node focal sin aislamiento de procesos → 5 aprobadas. Ambos validan las 50 plantillas nuevas con una fuente propia y paletas hexadecimales de 3, 4, 6 y 8 dígitos. Formato, lint, tipos y Pint → verde.
+- RED: `studio-templates.test.mjs` («las cajas de texto reservadas no se solapan en las 50 plantillas nuevas») falló con 46,8 px de solape vertical entre Titular y Detalle en `offer-members` (1920 × 1080), el único par detectado · 2026-11-27.
+- **Corrección tras revisión (intento 2 de 3)**: El Titular horizontal de `offer-members` sube y conserva dos líneas de reserva con 18 px libres antes del Detalle. Node comprueba 525 pares de cajas reservadas de texto en 60 páginas de los cinco formatos (50 plantillas) y detecta 0 solapes. Node focal → 6 aprobadas. Pest focal → 4 aprobadas, 3274 aserciones. Formato, lint y tipos → verde.
+- **Pendiente de QA**: `npm run test:e2e -- tests/e2e/studio-templates.spec.ts --workers=1`. El caso de escritorio prepara las 60 páginas de las 50 plantillas nuevas con un kit y una fuente WOFF2. Comprueba píxeles, errores, desbordes y cruces entre cajas de texto reales de Fabric con una tolerancia de 2 px. El módulo de prueba compila en Vite y queda pendiente su ejecución en Chromium. Las 78 páginas recorridas en la prueba de render de Node usan una superficie ráster simulada.
 
 **Criterios de aceptación**
-- [ ] Al menos 10 plantillas nuevas por formato principal
-- [ ] Todas renderizan sin errores
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Al menos 10 plantillas nuevas por formato principal
+- [x] Todas renderizan sin errores
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Continuación de F-23.
+
+**Cierre — 2026-11-27:** 50 plantillas nuevas en `resources/js/Studio/templates-social.js` (10 conceptos × 5 formatos sociales: 1:1, 4:5, 3:4, 9:16 y 16:9), generadas con la fábrica común `templateElements` de `templates.js`, que aplica los colores y la tipografía del kit de marca con tinta legible; 25 animadas con el esquema de T-94. El catálogo (64 plantillas) añade búsqueda por nombre o categoría (sin tildes) y filtro por formato en `Index.vue`, con estado vacío accesible; la caché de miniaturas se dimensiona con el catálogo. Implementado por Codex (gpt-6.2-sol, high). Revisión adversarial A+B+C con Opus (effort high) en 3 intentos: intento 1 — 0 Critical/Important, el criterio «todas renderizan» sin demostrar (render simulado) + 3 Minor; intento 2 — el render real en Chromium detectó textos de 2–3 líneas en cajas de una (alturas ajustadas) y 1 Important (solape titular/detalle en `offer-members` 16:9 introducido por el ajuste), corregido; intento 3 — sin hallazgos. QA: spec de render real (`tests/e2e/support/studio-template-renderer.ts` con el `renderStudioFrame` de la app y una fuente de marca WOFF2) sobre las 60 páginas nuevas: sin errores, sin lienzos vacíos, sin desbordes ni solapes texto-texto (2 px); Pest y Node validan las 50 con kit vacío y con kit completo (hex de 3/4/6/8 dígitos y `font_id`). Pest completo 4976 pasados / 9 omitidos; Node 853/853; build, `format:check`, ESLint, typecheck y Pint verdes; E2E del Estudio + páginas + a11y 277/277 en tres tamaños (`testing/t95/t95-e2e.log`). **Deuda aceptada (Minor):** la caja declarada de «Categoría» sobresale del panel de color en algunas capas (texto real corto, no visible).
 
 ### T-96 — Atajos globales, preferencias de notificación y onboarding
 
@@ -5529,3 +5539,7 @@ Lentes A+B+C. Intento 1: 10 Minor corregidos. Intento 2: 1 Important (lote dupli
 ## Revisión de dos lentes — intento 3: Fase 7 (T-94) — aprobada y cerrada
 
 Lentes A+B+C. Intento 1: 1 Important (reposo en salidas estáticas) + 5 Minor corregidos. Intento 2 (Opus high): 1 Important (aspecto al dividir) + 2 Minor corregidos por Codex. Intento 3 (Opus high): 0 Critical/Important; 1 Minor corregido. Diffs en `testing/t94/reviews/r1.patch`–`r3.patch`. Total 93/108.
+
+## Revisión de dos lentes — intento 3: Fase 7 (T-95) — aprobada y cerrada
+
+Lentes A+B+C (Opus, effort high). Intento 1: render sin demostrar + 3 Minor. Intento 2: 1 Important (solape introducido al ajustar alturas) corregido. Intento 3: sin hallazgos. Diffs en `testing/t95/reviews/r1.patch`–`r3.patch`. Total 94/108.

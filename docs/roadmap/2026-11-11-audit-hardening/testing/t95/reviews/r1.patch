@@ -1,0 +1,777 @@
+diff --git a/CHANGELOG.es.md b/CHANGELOG.es.md
+index aac6d1b..5d2bc10 100644
+--- a/CHANGELOG.es.md
++++ b/CHANGELOG.es.md
+@@ -5,6 +5,10 @@ # Registro de cambios
+ 
+ ## [Sin publicar]
+ 
++### Added — catálogo de plantillas del Estudio (audit-hardening, T-95)
++
++- El Estudio añade 50 plantillas editables en cinco formatos, con carruseles y 25 diseños con animaciones de entrada y salida. Busca por nombre o categoría, filtra por formato y crea un diseño con los colores y la tipografía de tu marca.
++
+ ### Added — animaciones por objeto en el Estudio (audit-hardening, T-94)
+ 
+ - En la línea de tiempo del Estudio, selecciona un clip y dale una animación de entrada y/o de salida: fundido, deslizamiento desde o hacia cualquier lado, o zoom, con duración (0,1–10 s), retardo y curva de suavizado (lineal, acelera, frena, suave). La animación se ve en el clip de la línea de tiempo, en la previsualización al mover el cabezal, en el vídeo MP4/GIF y en la imagen exportada en el instante elegido, así que el fotograma exportado coincide con la previsualización. La entrada y la salida deben caber en el tiempo visible del objeto; al acortar un clip se descartan las fases que ya no caben. Los diseños sin animaciones se renderizan exactamente igual que antes.
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index ccc0d4c..ea0a6a1 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -5,6 +5,10 @@ # Changelog
+ 
+ ## [Unreleased]
+ 
++### Added — Studio template catalog (audit-hardening, T-95)
++
++- The Studio adds 50 editable templates across five formats, including carousels and 25 designs with entrance and exit animations. Search by name or category, filter by format, and start a design using your brand colors and font.
++
+ ### Added — animations per object in the Studio (audit-hardening, T-94)
+ 
+ - In the Studio timeline, select a clip and give it an entrance and/or exit animation: fade, slide from or towards any side, or zoom, with a duration (0.1–10 s), a delay and an easing curve (linear, accelerate, decelerate, smooth). The animation shows in the timeline clip, in the preview when you move the playhead, in the MP4/GIF video and in the image exported at the chosen instant, so the exported frame matches the preview. The entrance and exit must fit within the object's visible time; shortening a clip drops the phases that no longer fit. Designs without animations render exactly as before.
+diff --git a/docs/modulos/estudio.md b/docs/modulos/estudio.md
+index 598a2d2..96d4a00 100644
+--- a/docs/modulos/estudio.md
++++ b/docs/modulos/estudio.md
+@@ -21,7 +21,15 @@ ## Editor
+ 
+ El editor reutiliza el plan de la línea de tiempo para su duración, el inicio de cada página y la división de clips. Los enlaces de las tablas se generan con las rutas web nombradas de Ziggy.
+ 
+-Cada diseño pertenece a una marca y a un usuario. El editor guarda un documento propio versionado (páginas, capas, grupos, formas, texto, imágenes, vídeo, tablas y gráficos) con control optimista por `revision`: un conflicto devuelve 409 y conserva el trabajo local. Parte de catorce plantillas originales y de plantillas propias con campos `{{campo}}`. El kit de marca (paleta, tipografías, logos, guía y voz) se aplica de forma trazable; también hay redimensionado y variantes. Formatos de documento: lienzos sociales, documentos A4, pizarras, presentaciones y gráficos.
++Cada diseño pertenece a una marca y a un usuario. El editor guarda un documento propio versionado (páginas, capas, grupos, formas, texto, imágenes, vídeo, tablas y gráficos) con control optimista por `revision`: un conflicto devuelve 409 y conserva el trabajo local. Puedes partir de una plantilla integrada o de una plantilla propia con campos `{{campo}}`. El kit de marca (paleta, tipografías, logos, guía y voz) se aplica de forma trazable; también hay redimensionado y variantes. Formatos de documento: lienzos sociales, documentos A4, pizarras, presentaciones y gráficos.
++
++### Catálogo de plantillas
++
++En **Una idea para empezar** hay 64 plantillas integradas. Puedes buscar por nombre o categoría, incluidos términos escritos sin tilde, y filtrar por formato. Hay diez diseños nuevos en cada formato con preajuste propio del catálogo. Los cinco formatos son cuadrado 1:1, Instagram 4:5 y 3:4, Historia/Reel 9:16 y presentación o vídeo 16:9. Los diseños incluyen anuncios, citas, ofertas, eventos, lanzamientos, testimonios, listas, antes y después, carruseles de tres páginas y consejos.
++
++Al seleccionar una plantilla se abre una copia editable adaptada a la paleta y la primera tipografía del kit. Los diseños nuevos se crean como documentos v2 con texto y formas, y 25 incluyen animaciones de entrada y salida. La miniatura muestra el diseño en reposo. Para ver el movimiento o exportar un fotograma concreto, mueve el cabezal de la línea de tiempo.
++
++El catálogo integrado vive en `resources/js/Studio/templates.js` y `templates-social.js`. Las miniaturas se generan en el navegador al acercarse a la tarjeta. Al crear el diseño, el servidor valida el mismo documento que utiliza el editor.
+ 
+ Los filtros de diseños, audio, datasets y tipografías buscan texto literal con `whereLikeEscaped`. Los caracteres `%`, `_` y `!` se pueden buscar como parte de un nombre.
+ 
+diff --git a/docs/roadmap/2026-11-11-audit-hardening/tasks.md b/docs/roadmap/2026-11-11-audit-hardening/tasks.md
+index 9e8de42..365d214 100644
+--- a/docs/roadmap/2026-11-11-audit-hardening/tasks.md
++++ b/docs/roadmap/2026-11-11-audit-hardening/tasks.md
+@@ -4761,18 +4761,23 @@ ### T-94 — Estudio: animaciones por objeto
+ ### T-95 — Estudio: más plantillas (continuación de F-23)
+ 
+ - **Descripción**: Ampliar el catálogo de plantillas aprovechando las animaciones.
+-- **Changelog**:
+-- **Estado**: borrador
++- **Changelog**: El Estudio añade 50 plantillas editables en cinco formatos, 25 con animaciones de entrada y salida, con búsqueda por nombre o categoría y filtro por formato.
++- **Estado**: en-progreso
+ - **Tiempo humano**: est. 8.0h · real —
+ - **Tiempo IA (ejec.)**: est. 2.0h · real —
+ - **Supervisión**: est. 0.50h (≈25 % IA) · real —
+ - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
+ - **Dependencias**: T-94
+ - **Tipo**: fullstack
+-- **Archivos**: `resources/js/Studio/templates/**`, `database/seeders/StudioTemplatesSeeder.php`, `docs/modulos/estudio.md`
++- **Archivos**: `resources/js/Studio/templates.js`, `resources/js/Studio/templates-social.js`, `resources/js/Pages/Studio/Index.vue`, `tests/Feature/Studio/StudioTemplatesCatalogTest.php`, `tests/frontend/studio-templates.test.mjs`, `tests/e2e/studio-templates.spec.ts`, `docs/modulos/estudio.md`, `CHANGELOG.md`, `CHANGELOG.es.md`, este ledger.
+ - **Cubre**: — (continuación de la tarea anterior; el ID se cuenta allí)
+ - **Cubre (tests)**: E2E-33
+-- **Verificación**: `php artisan test --compact --filter=StudioTemplatesCatalogTest` → verde
++- **Verificación**: Pest focal (`php -d memory_limit=1G vendor/bin/pest --compact --filter=StudioTemplatesCatalogTest`) → 3 aprobadas, 1690 aserciones. Pest completo tras `php artisan config:clear` → 4963 aprobadas, 21 omitidas, 36631 aserciones. Node sin aislamiento de procesos → catálogo 4/4 y estructura de `Editor.vue` 1/1. Arnés E2E → 14/17, con tres bloqueos `spawnSync EPERM`. Formato, lint, tipos y Pint → verde. `npm run test:unit` → 93 archivos bloqueados por `spawn EPERM`. `npm run build` → `spawn EPERM` al cargar la configuración de Vite.
++- RED: `StudioTemplatesCatalogTest.php` falló con 0 plantillas nuevas en 1080×1080 y sin animaciones de entrada y salida para ese formato (2 fallos, 1 test verde) · 2026-11-27.
++- RED: `studio-templates.test.mjs` falló por ausencia de plantillas animadas (1 fallo, 3 tests verdes con `--experimental-test-isolation=none` tras `spawn EPERM`) · 2026-11-27.
++- **Formatos**: cuadrado 1:1, Instagram 4:5, Instagram 3:4, Historia/Reel 9:16 y presentación/vídeo 16:9 (10 nuevas por formato). Cada uno tiene un preajuste propio en `format-presets.js` y ya estaba representado en el catálogo integrado. A4 y pizarra son preajustes de documento y espacio de trabajo.
++- **Catálogo**: se amplía el módulo JavaScript que usa la pantalla del Estudio. Las miniaturas reutilizan el render diferido de Fabric y la creación envía el documento al validador del servidor. El catálogo integrado se distribuye con el frontend, por lo que no requiere un seeder.
++- **Pendiente de QA**: Node recorrió las 78 páginas del catálogo con el renderizador de escenas de Fabric y una superficie ráster simulada. Edge headless terminó con «Access is denied» antes de verificar los archivos ráster. `npm run test:e2e -- tests/e2e/studio-templates.spec.ts --workers=1` queda pendiente junto con la revisión.
+ 
+ **Criterios de aceptación**
+ - [ ] Al menos 10 plantillas nuevas por formato principal
+@@ -4782,7 +4787,7 @@ ### T-95 — Estudio: más plantillas (continuación de F-23)
+ - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+ 
+ **Subtareas**
+-- [ ] Implementar (implementer)
++- [x] Implementar (implementer)
+ - [ ] Revisión adversarial A+B(+C)
+ - [ ] Corregir hallazgos de la revisión
+ - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
+diff --git a/resources/js/Pages/Studio/Index.vue b/resources/js/Pages/Studio/Index.vue
+index aedff78..2ae7e7f 100644
+--- a/resources/js/Pages/Studio/Index.vue
++++ b/resources/js/Pages/Studio/Index.vue
+@@ -98,6 +98,18 @@ watch(missingThumbnails, missing => { clearTimeout(thumbnailTimer); thumbnailTri
+ onBeforeUnmount(() => clearTimeout(thumbnailTimer));
+ const templatesOnly = computed(() => !!props.filters?.templates);
+ const presets = STUDIO_FORMAT_PRESETS;
++const catalogFormat = ref('');
++const catalogSearch = ref('');
++const catalogFormats = presets.filter(({ w, h }) => STUDIO_TEMPLATES.some(template => template.width === w && template.height === h));
++const searchText = value => value.trim().normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
++const catalogResults = computed(() => {
++    const format = catalogFormats.find(preset => preset.key === catalogFormat.value);
++    const term = searchText(catalogSearch.value);
++    return STUDIO_TEMPLATES.filter(template =>
++        (!format || (template.width === format.w && template.height === format.h))
++        && searchText(`${template.name} ${template.category}`).includes(term),
++    );
++});
+ const pagination = computed(() => ({
+     total: props.designs.total,
+     cursor: props.filters?.cursor,
+@@ -548,19 +560,49 @@ const sharedDate = createZonedDateFormatter(designDateOptions);
+                         ><p class="mt-1 text-sm text-slate-500"
+                             >Plantillas editables que puedes adaptar a tu marca.</p
+                         ></div
++                    ><div class="grid gap-3 sm:grid-cols-2"
++                        ><label class="min-w-0 text-sm font-medium"
++                            >Buscar plantillas
++                            <input
++                                v-model="catalogSearch"
++                                type="search"
++                                class="mt-1 block w-full rounded-xl border-slate-300 text-sm"
++                            />
++                        </label>
++                        <label class="min-w-0 text-sm font-medium"
++                            >Formato de plantilla
++                            <select
++                                v-model="catalogFormat"
++                                class="mt-1 block w-full rounded-xl border-slate-300 text-sm"
++                            >
++                                <option value="">Todos los formatos</option>
++                                <option
++                                    v-for="format in catalogFormats"
++                                    :key="format.key"
++                                    :value="format.key"
++                                    >{{ format.label }}</option
++                                >
++                            </select>
++                        </label></div
++                    ><p
++                        role="status"
++                        class="text-sm text-slate-600"
++                        >{{ catalogResults.length === 0 ? 'No se encontraron plantillas.' : catalogResults.length === 1 ? '1 plantilla' : `${catalogResults.length} plantillas` }}</p
+                     ><div class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5"
+                         ><button
+-                            v-for="template in STUDIO_TEMPLATES"
++                            v-for="template in catalogResults"
+                             :key="template.key"
+                             type="button"
+-                            class="text-left transition hover:-translate-y-1"
++                            class="min-w-0 break-words rounded-xl text-left transition hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600"
+                             :disabled="busy || !!createdDesign"
+                             @click="create(template)"
+                             ><TemplatePreview :template="template" :kit="kit" :fonts="localFonts" /><span
+                                 class="mt-2 block text-sm font-semibold"
+                                 >{{ template.name }}</span
+                             ><span class="mt-1 block text-xs text-slate-500"
+-                                >{{ template.category }} · {{ template.width }} × {{ template.height }}</span
++                                >{{ template.category }} · {{ template.width }} ×
++                                {{ template.height
++                                }}<span v-if="template.motion"> · Animada</span></span
+                             ></button
+                         ></div
+                     ></section
+diff --git a/resources/js/Studio/templates.js b/resources/js/Studio/templates.js
+index 23f33c0..5ce1281 100644
+--- a/resources/js/Studio/templates.js
++++ b/resources/js/Studio/templates.js
+@@ -1,4 +1,5 @@
+ import { blankDocument, duplicatePage, newElement, validateDocument } from './document.js';
++import { SOCIAL_TEMPLATES, buildSocialTemplate } from './templates-social.js';
+ 
+ /** Original layouts. No stock images, proprietary Canva designs or premium assets. */
+ export const STUDIO_TEMPLATES = Object.freeze([
+@@ -16,10 +17,20 @@ export const STUDIO_TEMPLATES = Object.freeze([
+     { key: 'deck-cover', name: 'Una gran presentación', category: 'Presentaciones', width: 1920, height: 1080, accent: '#386f67', background: '#eef4f0', description: 'Portada panorámica con una composición geométrica.', pages: 1 },
+     { key: 'deck-agenda', name: 'El siguiente paso', category: 'Presentaciones', width: 1920, height: 1080, accent: '#b4573c', background: '#f7f0e9', description: 'Tres diapositivas de portada, agenda y cierre.', pages: 3 },
+     { key: 'video-title', name: 'En movimiento', category: 'Vídeo', width: 1920, height: 1080, accent: '#d7ef62', background: '#151b20', description: 'Una tarjeta de apertura para tu próxima pieza.', pages: 1 },
++    ...SOCIAL_TEMPLATES,
+ ]);
+ 
+ const hex = value => typeof value === 'string' && /^#(?:[a-f\d]{3}|[a-f\d]{4}|[a-f\d]{6}|[a-f\d]{8})$/i.test(value);
+ 
++function templateElements(page, { dark, font, fontReference }) {
++    const add = (type, patch) => page.elements.push(newElement(type, patch));
++    return {
++        rect: (x, y, width, height, fill, patch = {}) => add('rect', { x, y, width, height, fill, ...patch }),
++        ellipse: (x, y, width, height, fill, patch = {}) => add('ellipse', { x, y, width, height, fill, ...patch }),
++        text: (value, x, y, width, size, fill = dark, patch = {}) => add('text', { text: value, x, y, width, height: size * 1.4, fontSize: size, fontFamily: font, ...fontReference, fill, lineHeight: 1.1, ...patch }),
++    };
++}
++
+ export function createFromTemplate(key, kit = {}) {
+     const template = STUDIO_TEMPLATES.find(item => item.key === key);
+     if (!template) throw new Error('La plantilla seleccionada no está disponible.');
+@@ -31,15 +42,18 @@ export function createFromTemplate(key, kit = {}) {
+     const font = Array.isArray(kit.fonts) && typeof kit.fonts[0] === 'string' ? kit.fonts[0] : 'Arial';
+     const fontReference = Number.isSafeInteger(kit.font_ids?.[0]) && kit.font_ids[0] > 0 ? { font_id: kit.font_ids[0] } : {};
+     const document = blankDocument(template.width, template.height);
++    const draw = page => templateElements(page, { dark, font, fontReference });
++    if (template.layout) {
++        buildSocialTemplate(document, template, { dark, accent, paper }, draw);
++        return validateDocument(document);
++    }
++
+     const page = document.pages[0];
+     page.name = template.name;
+     page.background = paper;
+     const w = template.width;
+     const h = template.height;
+-    const elements = page.elements;
+-    const rect = (x, y, width, height, fill, patch = {}) => elements.push(newElement('rect', { x, y, width, height, fill, ...patch }));
+-    const ellipse = (x, y, width, height, fill, patch = {}) => elements.push(newElement('ellipse', { x, y, width, height, fill, ...patch }));
+-    const text = (value, x, y, width, size, fill = dark, patch = {}) => elements.push(newElement('text', { text: value, x, y, width, height: size * 1.4, fontSize: size, fontFamily: font, ...fontReference, fill, lineHeight: 1.1, ...patch }));
++    const { rect, ellipse, text } = draw(page);
+     const label = (value, x = 80, y = 70, fill = dark) => text(value, x, y, w - 160, 24, fill, { charSpacing: 160, fontWeight: 'bold' });
+     const footer = (value = 'TU MARCA · HECHO CON INTENCIÓN', fill = dark) => text(value, 80, h - 90, w - 160, 21, fill, { charSpacing: 80 });
+     const gradient = (from, to, angle = 45) => ({ type: 'linear', angle, stops: [{ offset: 0, color: from }, { offset: 1, color: to }] });
+diff --git a/tests/frontend/studio-templates.test.mjs b/tests/frontend/studio-templates.test.mjs
+index 8c7d8c0..1b5a3fd 100644
+--- a/tests/frontend/studio-templates.test.mjs
++++ b/tests/frontend/studio-templates.test.mjs
+@@ -2,6 +2,9 @@ import test from 'node:test';
+ import assert from 'node:assert/strict';
+ import { STUDIO_TEMPLATES, createFromTemplate } from '../../resources/js/Studio/templates.js';
+ import { validateDocument } from '../../resources/js/Studio/document.js';
++import { renderStudioFrame } from '../../resources/js/Studio/frame-renderer.js';
++import { setEnv } from 'fabric';
++import { getEnv } from 'fabric/node';
+ 
+ test('at least twelve original templates create valid nonempty independent documents', () => {
+     assert.ok(STUDIO_TEMPLATES.length >= 12);
+@@ -26,10 +29,62 @@ test('templates use supplied brand colors/fonts without mutating the kit', () =>
+ 
+ test('brand templates preserve the first uploaded font identity on every generated page', () => {
+     const kit = { palette: ['#102030', '#dca123', '#fafafa'], fonts: ['Space Grotesk'], font_ids: [17] };
+-    for (const key of ['aurora-launch', 'carousel-story', 'deck-agenda']) {
++    for (const key of ['aurora-launch', 'carousel-story', 'deck-agenda', 'carousel-guide']) {
+         const document = createFromTemplate(key, kit);
+         for (const page of document.pages) for (const element of page.elements.filter(item => item.type === 'text')) {
+             assert.equal(element.font_id, 17, `${key}/${page.name}/${element.text}`);
+         }
+     }
+ });
++
++test('cada página del catálogo se valida y renderiza en Fabric, en reposo y con animación', async (t) => {
++    const animated = STUDIO_TEMPLATES.filter(template => createFromTemplate(template.key).pages.some(page => page.elements.some(item => item.animation)));
++    assert.ok(animated.length >= 5, 'el catálogo necesita plantillas animadas en los formatos principales');
++
++    // Fabric compone y dibuja la escena real sobre una superficie ráster simulada.
++    const env = getEnv();
++    setEnv(env);
++    t.mock.method(env.window.HTMLCanvasElement.prototype, 'getContext', function () {
++        const drawing = () => {};
++        return {
++            canvas: this, measureText: text => ({ width: text.length * 220 }),
++            save: drawing, restore: drawing, clearRect: drawing, fillRect: drawing, translate: drawing,
++            transform: drawing, setTransform: drawing, scale: drawing, beginPath: drawing, closePath: drawing, moveTo: drawing,
++            lineTo: drawing, bezierCurveTo: drawing, arc: drawing, fill: drawing, fillText: drawing, stroke: drawing,
++            setLineDash: drawing, drawImage: drawing, createLinearGradient: () => ({ addColorStop: drawing }),
++        };
++    });
++    const previousDocument = globalThis.document;
++    globalThis.document = env.document;
++    try {
++        for (const template of STUDIO_TEMPLATES) {
++            const document = validateDocument(createFromTemplate(template.key));
++            for (const page of document.pages) {
++                const frames = [{ time: 0, settled: true }];
++                if (document.schema_version === 2) frames.push({ time: 0 }, { time: page.duration - 0.1 });
++                for (const { time, settled } of frames) {
++                    const scene = await renderStudioFrame(document, page.id, time, [], [], { settled, renderScale: 0.25 });
++                    try {
++                        const objects = scene.canvas.getObjects();
++                        assert.equal(objects.length, page.elements.length, template.key);
++                        const svg = scene.canvas.toSVG();
++                        assert.match(svg, /<text[\s>]/u, template.key);
++                        assert.doesNotMatch(svg, /NaN|Infinity|<image\b/u, template.key);
++                        for (const [index, layer] of page.elements.entries()) {
++                            if (settled || !layer.animation) continue;
++                            if (time === 0 && layer.animation.in) assert.equal(objects[index].opacity, 0, template.key);
++                            if (time > 0 && layer.animation.out) {
++                                assert.ok(objects[index].opacity > 0 && objects[index].opacity < layer.opacity, template.key);
++                            }
++                        }
++                    } finally {
++                        await scene.dispose();
++                    }
++                }
++            }
++        }
++    } finally {
++        if (previousDocument === undefined) delete globalThis.document;
++        else globalThis.document = previousDocument;
++    }
++});
+diff --git a/resources/js/Studio/templates-social.js b/resources/js/Studio/templates-social.js
+new file mode 100644
+index 0000000..c670d5b
+--- /dev/null
++++ b/resources/js/Studio/templates-social.js
+@@ -0,0 +1,276 @@
++import { duplicatePage } from './document.js';
++import { STUDIO_FORMAT_PRESETS } from './format-presets.js';
++
++const card = (key, name, title, detail, action) => ({ key, name, title, detail, action });
++
++const concepts = [
++    {
++        layout: 'bulletin', category: 'Noticias', accent: '#d3613d', background: '#fff3e7', motion: 'fade',
++        cards: {
++            square: card('bulletin-hours', 'Nuevo horario', 'Abrimos más tarde', 'De lunes a viernes, hasta las 20 h.', 'Consulta el horario completo'),
++            portrait: card('bulletin-pickup', 'Recogida en tienda', 'Tu pedido te espera', 'Recoge tu compra en nuestro mostrador.', 'Ver puntos de recogida'),
++            'portrait-three-four': card('bulletin-team', 'Nuevas incorporaciones', 'El equipo crece', 'Damos la bienvenida a quienes se suman.', 'Conoce al equipo'),
++            story: card('bulletin-schedule', 'Agenda de la semana', 'Esta semana', 'Taller, directo y novedades en la tienda.', 'Guarda la agenda'),
++            landscape: card('bulletin-space', 'Estrenamos espacio', 'Nos mudamos', 'Muy pronto te recibimos en otra dirección.', 'Consulta cómo llegar'),
++        },
++    },
++    {
++        layout: 'quote', category: 'Citas', accent: '#708c62', background: '#f2f5e7',
++        cards: {
++            square: card('quote-small-steps', 'Pequeños pasos', 'Un paso pequeño también cuenta.', 'Una idea para hoy'),
++            portrait: card('quote-listening', 'El valor de escuchar', 'Escuchar también es una forma de cuidar.', 'Nota del equipo'),
++            'portrait-three-four': card('quote-questions', 'Buenas preguntas', 'Una buena pregunta abre camino.', 'Idea de la semana'),
++            story: card('quote-quiet', 'Tiempo para parar', 'Haz sitio para lo que importa.', 'Pausa del día'),
++            landscape: card('quote-sharing', 'Ideas que se comparten', 'Las ideas crecen al compartirlas.', 'Reflexión de apertura'),
++        },
++    },
++    {
++        layout: 'offer', category: 'Promociones', accent: '#efb836', background: '#fff7d7', motion: 'zoom',
++        cards: {
++            square: card('offer-weekend', 'Oferta de fin de semana', '−20 %', 'En productos seleccionados.', 'Ver la selección'),
++            portrait: card('offer-set', 'Lote especial', 'Lote dúo', 'Dos favoritos en un solo pedido.', 'Descubre el lote'),
++            'portrait-three-four': card('offer-delivery', 'Envío de regalo', 'Envío gratis', 'Disponible durante la promoción.', 'Consulta las condiciones'),
++            story: card('offer-hours', 'Últimas horas', 'Hasta hoy', 'Todavía estás a tiempo de aprovecharlo.', 'Ver la oferta'),
++            landscape: card('offer-members', 'Ventaja para socios', 'Precio especial', 'Para miembros de nuestra comunidad.', 'Consulta la promoción'),
++        },
++    },
++    {
++        layout: 'event', category: 'Eventos', accent: '#508f9d', background: '#eaf6f5', motion: 'slide_up',
++        cards: {
++            square: card('event-open-doors', 'Puertas abiertas', 'Ven a vernos', 'Sábado · 11 h\nEn nuestro espacio', 'Reserva tu plaza'),
++            portrait: card('event-workshop', 'Taller creativo', 'Crea con papel', 'Jueves · 18 h\nMaterial incluido', 'Inscríbete al taller'),
++            'portrait-three-four': card('event-meetup', 'Encuentro local', 'Conoce a tu comunidad', 'Viernes · 19 h\nPunto de encuentro en la plaza', 'Apúntate al encuentro'),
++            story: card('event-live', 'Directo de preguntas', 'Hoy en directo', 'A las 19 h\nTrae tus preguntas', 'Activa el recordatorio'),
++            landscape: card('event-conference', 'Jornada de charlas', 'Compartir para aprender', 'Martes · 10 h\nAuditorio principal', 'Consulta el programa'),
++        },
++    },
++    {
++        layout: 'launch', category: 'Lanzamientos', accent: '#a895ec', background: '#f1ecff', motion: 'slide_right',
++        cards: {
++            square: card('launch-season', 'Nueva temporada', 'Empieza la temporada', 'Ideas nuevas para tus días de siempre.', 'Explora la colección'),
++            portrait: card('launch-guide', 'Presentación de una guía', 'Ya está aquí la guía', 'Un punto de partida para tu próximo proyecto.', 'Descarga la guía'),
++            'portrait-three-four': card('launch-service', 'Nuevo servicio', 'Ahora te acompañamos', 'Agenda una sesión con nuestro equipo.', 'Conoce el servicio'),
++            story: card('launch-first-look', 'Primer vistazo', 'Mira lo que llega', 'Un adelanto de nuestra próxima colección.', 'Descubre la novedad'),
++            landscape: card('launch-series', 'Estreno de una serie', 'Comienza una nueva serie', 'El primer episodio ya está disponible.', 'Ver el estreno'),
++        },
++    },
++    {
++        layout: 'testimonial', category: 'Testimonios', accent: '#bc6d83', background: '#fceef1',
++        cards: {
++            square: card('testimonial-client', 'Voz de un cliente', '«Me explicaron cada paso con claridad.»', 'Nombre del cliente', 'Añade aquí el servicio'),
++            portrait: card('testimonial-project', 'Reseña de un proyecto', '«Entendieron lo que necesitábamos desde el inicio.»', 'Nombre del equipo', 'Añade aquí el proyecto'),
++            'portrait-three-four': card('testimonial-store', 'Reseña de tienda', '«Encontré justo lo que buscaba.»', 'Nombre del cliente', 'Añade aquí el producto'),
++            story: card('testimonial-experience', 'Una buena experiencia', '«Me sentí en buenas manos.»', 'Nombre del cliente', 'Añade aquí su experiencia'),
++            landscape: card('testimonial-case', 'El cliente cuenta', '«Ahora sabemos cómo dar el siguiente paso.»', 'Nombre de la organización', 'Añade aquí el caso'),
++        },
++    },
++    {
++        layout: 'list', category: 'Listas', accent: '#3879a2', background: '#edf5fc',
++        cards: {
++            square: card('list-plan', 'Tres ideas para empezar', 'Empieza por aquí', ['Define tu objetivo', 'Elige un primer paso', 'Ponle fecha'], 'Guárdalo para después'),
++            portrait: card('list-bag', 'Lista de imprescindibles', 'Prepara tu mochila', ['Agua para el camino', 'Una capa de abrigo', 'Mapa o ruta sin conexión'], 'Revísala antes de salir'),
++            'portrait-three-four': card('list-week', 'Plan semanal', 'Organiza la semana', ['Revisa los pendientes', 'Elige tres prioridades', 'Reserva tiempo de descanso'], 'Adáptala a tu ritmo'),
++            story: card('list-content', 'Ideas para publicar', '¿Qué publico hoy?', ['Un truco de tu oficio', 'Una duda frecuente', 'Un vistazo al proceso'], 'Guarda estas ideas'),
++            landscape: card('list-brief', 'Lista para una reunión', 'Antes de reunirnos', ['Comparte el objetivo', 'Envía el material', 'Acuerda quién toma notas'], 'Comparte la lista'),
++        },
++    },
++    {
++        layout: 'comparison', category: 'Antes y después', accent: '#558a79', background: '#edf7ed',
++        cards: {
++            square: card('comparison-desk', 'Cambio de escritorio', 'Un lugar para cada cosa', ['Material repartido por toda la mesa', 'Superficie libre y lo esencial a mano'], 'Comparte tu cambio'),
++            portrait: card('comparison-routine', 'Cambio de rutina', 'Una mañana con calma', ['Decisiones de última hora', 'Lista breve y tiempo reservado'], 'Cuenta qué te ayudó'),
++            'portrait-three-four': card('comparison-brief', 'Cambio de presentación', 'Menos texto, más claridad', ['Todas las ideas en una diapositiva', 'Una idea clara en cada pantalla'], 'Muestra tu proceso'),
++            story: card('comparison-studio', 'Cambio en el taller', 'El taller en dos momentos', ['Herramientas difíciles de encontrar', 'Utensilios ordenados por uso'], 'Desliza para ver el cambio'),
++            landscape: card('comparison-process', 'Evolución de un proyecto', 'Del borrador al plan', ['Ideas sueltas sin fecha', 'Tareas asignadas y plazos claros'], 'Resume lo que cambió'),
++        },
++    },
++    {
++        layout: 'carousel', category: 'Carruseles', accent: '#6e68ba', background: '#f3effc', motion: 'fade',
++        cards: {
++            square: card('carousel-project', 'Cuenta un proyecto', 'Así nació el proyecto', ['Qué queríamos resolver', 'Qué probamos primero', 'Qué aprendimos'], 'Cuéntanos tu idea'),
++            portrait: card('carousel-reuse', 'Guía para reutilizar', 'Dale otro uso', ['Elige lo que ya tienes', 'Piensa en otra función', 'Prueba una mejora pequeña'], 'Comparte tu resultado'),
++            'portrait-three-four': card('carousel-about', 'Presenta tu marca', 'Hola, somos tu equipo', ['Qué nos mueve', 'Cómo trabajamos', 'Dónde puedes encontrarnos'], 'Ponte en contacto'),
++            story: card('carousel-questions', 'Serie de preguntas', 'Nos preguntáis mucho', ['Cómo reservar', 'Qué necesitas traer', 'Cuándo respondemos'], 'Envíanos otra pregunta'),
++            landscape: card('carousel-guide', 'Guía en tres pantallas', 'Prepara tu primer directo', ['Elige un tema concreto', 'Prueba cámara y sonido', 'Anuncia la hora'], 'Comparte la guía'),
++        },
++    },
++    {
++        layout: 'tip', category: 'Redes sociales', accent: '#cf8f47', background: '#fbf0e4',
++        cards: {
++            square: card('tip-break', 'Consejo de descanso', 'Haz una pausa', 'Un descanso breve ayuda a retomar con atención.', 'Pon un recordatorio'),
++            portrait: card('tip-notes', 'Consejo para tus notas', 'Anota la idea', 'Guarda una frase y añade una acción concreta.', 'Pruébalo con tu próxima idea'),
++            'portrait-three-four': card('tip-edit', 'Consejo de edición', 'Lee en voz alta', 'Si te falta aire, divide la frase en dos.', 'Revisa tu próximo texto'),
++            story: card('tip-light', 'Consejo para grabar', 'Busca la luz', 'Colócate de frente a una ventana para grabar.', 'Prueba antes de empezar'),
++            landscape: card('tip-feedback', 'Consejo de equipo', 'Pide una opinión', 'Pregunta qué se entiende y qué falta por explicar.', 'Elige una pregunta concreta'),
++        },
++    },
++];
++
++export const SOCIAL_TEMPLATES = concepts.flatMap(({ cards, ...style }) =>
++    Object.entries(cards).map(([format, content]) => {
++        const { w, h } = STUDIO_FORMAT_PRESETS.find(preset => preset.key === format);
++        return { ...style, ...content, width: w, height: h, pages: style.layout === 'carousel' ? 3 : 1 };
++    }),
++);
++
++// Conserva el color de marca si tiene contraste suficiente para texto normal.
++function luminance(color) {
++    const hex = color.length <= 5 ? [...color.slice(1)].map(digit => digit.repeat(2)).join('') : color.slice(1);
++    const alpha = hex.length === 8 ? parseInt(hex.slice(6), 16) / 255 : 1;
++    return [0.2126, 0.7152, 0.0722].reduce((sum, weight, index) => {
++        const channel = (parseInt(hex.slice(index * 2, index * 2 + 2), 16) / 255) * alpha + (1 - alpha);
++        return sum + weight * (channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
++    }, 0);
++}
++
++function readableInk(background, preferred) {
++    const bg = luminance(background) + 0.05;
++    const ink = luminance(preferred) + 0.05;
++    if (Math.max(bg, ink) / Math.min(bg, ink) >= 4.5) return preferred;
++    return bg / 0.05 >= 1.05 / bg ? '#000000' : '#ffffff';
++}
++
++function layoutTools(page, { width, height }, draw) {
++    const { rect, ellipse, text } = draw(page);
++    const wide = width > height;
++    const box = (x, y, w, h, fill, patch) => rect(x * width, y * height, w * width, h * height, fill, patch);
++    const circle = (x, y, diameter, fill, opacity = 1) => ellipse(x * width, y * height, diameter, diameter, fill, { opacity });
++    const copy = (value, x, y, w, size, fill, name, patch) => text(value, x * width, y * height, w * width, size, fill, { name, ...patch });
++    return { wide, box, circle, copy };
++}
++
++export function buildSocialTemplate(document, template, { dark, accent, paper }, draw) {
++    const page = document.pages[0];
++    const { layout, name, category, title, detail, action, motion } = template;
++    const ink = readableInk(paper, dark);
++    const inverse = readableInk(dark, '#ffffff');
++    const accentInk = readableInk(accent, dark);
++    const { wide, box, circle, copy } = layoutTools(page, document, draw);
++    const bold = { fontWeight: 'bold' };
++    const animation = motion ? { animation: {
++        in: { type: motion, duration: 0.65, easing: 'ease_out' },
++        out: { type: 'fade', duration: 0.45, easing: 'ease_in' },
++    } } : {};
++    const label = (x = 0.09, y = 0.11, fill = ink) => copy(category.toLocaleUpperCase('es'), x, y, 0.78, 29, fill, 'Categoría', { ...bold, charSpacing: 90 });
++    const headline = (x, y, w, size, fill = ink, patch) => copy(title, x, y, w, size, fill, 'Titular', { ...bold, ...animation, ...patch });
++    const detailAt = (x, y, w, fill = ink) => copy(detail, x, y, w, 40, fill, 'Detalle');
++    const actionAt = (x = 0.09, y = 0.86, w = 0.82, fill = ink) => copy(action, x, y, w, 30, fill, 'Llamada a la acción', bold);
++    const list = (message, x, y, w, tone = ink) => copy(message, x, y, w, 37, tone, 'Punto de la lista', bold);
++
++    document.schema_version = 2;
++    document.timeline = { fps: 30, audio_tracks: [] };
++    page.name = name;
++    page.background = paper;
++    if (layout === 'carousel') {
++        const steps = duplicatePage(page);
++        steps.name = 'Los pasos';
++        const next = duplicatePage(page);
++        next.name = 'Siguiente paso';
++        document.pages.push(steps, next);
++    }
++
++    switch (layout) {
++        case 'bulletin':
++            box(0, 0, 0.035, 1, accent);
++            box(0.09, 0.19, 0.12, 0.009, accent);
++            circle(wide ? 0.83 : 0.73, 0.07, 320, accent, 0.22);
++            label();
++            headline(0.09, 0.28, wide ? 0.7 : 0.82, 112);
++            detailAt(0.09, 0.64, 0.82);
++            actionAt();
++            break;
++        case 'quote':
++            box(0.095, 0.16, 0.81, 0.68, accent, { opacity: 0.18, radius: 48 });
++            copy('“', 0.18, 0.2, 0.64, 152, ink, 'Comillas', { textAlign: 'center' });
++            headline(0.18, 0.39, 0.64, wide ? 92 : 76, ink, { textAlign: 'center', fontStyle: 'italic' });
++            copy(detail, 0.18, 0.73, 0.64, 29, ink, 'Firma', { textAlign: 'center' });
++            break;
++        case 'offer':
++            box(0.06, 0.08, 0.88, 0.84, accent, { radius: 44 });
++            box(0.095, 0.15, 0.81, 0.7, paper, { radius: 32 });
++            label(0.14, 0.21);
++            headline(0.14, 0.33, 0.72, wide ? 144 : 112);
++            detailAt(0.14, 0.62, 0.72);
++            actionAt(0.14, 0.75, 0.72);
++            break;
++        case 'event':
++            box(wide ? 0.63 : 0, wide ? 0 : 0.57, wide ? 0.37 : 1, wide ? 1 : 0.43, dark);
++            box(0.09, 0.19, 0.08, 0.012, accent);
++            label();
++            headline(0.09, wide ? 0.34 : 0.24, wide ? 0.48 : 0.82, wide ? 86 : 84);
++            detailAt(wide ? 0.68 : 0.09, wide ? 0.36 : 0.63, wide ? 0.27 : 0.82, inverse);
++            actionAt(wide ? 0.68 : 0.09, wide ? 0.67 : 0.83, wide ? 0.27 : 0.82, inverse);
++            break;
++        case 'launch':
++            page.background = dark;
++            circle(wide ? 0.76 : 0.56, 0.19, 680, accent, 0.18);
++            circle(wide ? 0.81 : 0.67, 0.26, 410, accent, 0.22);
++            label(0.09, 0.13, inverse);
++            headline(0.09, 0.32, wide ? 0.63 : 0.8, 102, inverse);
++            detailAt(0.09, 0.65, wide ? 0.65 : 0.8, inverse);
++            box(0.09, 0.79, wide ? 0.33 : 0.74, 0.09, accent, { radius: 28 });
++            actionAt(0.12, 0.814, wide ? 0.28 : 0.66, accentInk);
++            break;
++        case 'testimonial':
++            box(0.06, 0.09, 0.88, 0.83, dark, { radius: 52 });
++            box(0.09, 0.12, 0.82, 0.76, paper, { radius: 38 });
++            box(0.14, 0.25, 0.09, 0.01, accent);
++            label(0.14, 0.19);
++            headline(0.14, 0.32, 0.72, wide ? 93 : 74);
++            circle(0.14, 0.72, 62, accent);
++            copy(detail, wide ? 0.19 : 0.23, 0.71, 0.6, 31, ink, 'Nombre', bold);
++            actionAt(wide ? 0.19 : 0.23, 0.77, 0.6);
++            break;
++        case 'list':
++            label();
++            headline(0.09, 0.19, 0.82, 84);
++            detail.forEach((message, index) => {
++                const y = 0.39 + index * 0.14;
++                box(0.09, y, 0.82, 0.105, accent, { opacity: 0.18, radius: 24 });
++                copy(String(index + 1).padStart(2, '0'), 0.125, y + 0.026, 0.1, 41, ink, 'Número', bold);
++                list(message, 0.25, y + 0.03, 0.61);
++            });
++            actionAt();
++            break;
++        case 'comparison':
++            label();
++            headline(0.09, 0.18, 0.82, wide ? 90 : 72);
++            detail.forEach((message, index) => {
++                const x = wide ? 0.09 + index * 0.42 : 0.09;
++                const y = wide ? 0.43 : 0.37 + index * 0.235;
++                const w = wide ? 0.4 : 0.82;
++                const fill = index === 0 ? accentInk : inverse;
++                box(x, y, w, wide ? 0.33 : 0.19, index === 0 ? accent : dark, { radius: 28 });
++                copy(index === 0 ? 'ANTES' : 'DESPUÉS', x + 0.035, y + 0.03, w - 0.07, 30, fill, 'Momento', bold);
++                copy(message, x + 0.035, y + 0.08, w - 0.07, 43, fill, 'Descripción');
++            });
++            actionAt();
++            break;
++        case 'carousel': {
++            label();
++            box(0.09, 0.23, 0.11, 0.012, accent);
++            headline(0.09, 0.32, 0.78, wide ? 120 : 96);
++            copy('Sigue para descubrir los pasos', 0.09, 0.75, 0.66, 37, ink, 'Continuación');
++            const [, steps, next] = document.pages;
++            const middle = layoutTools(steps, document, draw);
++            middle.copy('Los pasos', 0.09, 0.12, 0.82, 90, ink, 'Titular', bold);
++            detail.forEach((message, index) => {
++                const y = 0.34 + index * 0.18;
++                middle.box(0.09, y, 0.82, 0.12, index % 2 ? dark : accent, { radius: 24 });
++                middle.copy(message, 0.13, y + 0.033, 0.74, 39, index % 2 ? inverse : accentInk, 'Paso', bold);
++            });
++            next.background = dark;
++            const end = layoutTools(next, document, draw);
++            end.box(0.09, 0.34, 0.14, 0.012, accent);
++            end.copy(action, 0.09, 0.46, 0.82, 96, inverse, 'Llamada a la acción', { ...bold, ...animation });
++            break;
++        }
++        case 'tip':
++            label();
++            headline(0.09, 0.25, wide ? 0.48 : 0.82, 106);
++            box(wide ? 0.59 : 0.09, wide ? 0.23 : 0.54, wide ? 0.32 : 0.82, wide ? 0.52 : 0.22, accent, { radius: 36 });
++            detailAt(wide ? 0.63 : 0.14, wide ? 0.37 : 0.59, wide ? 0.24 : 0.73, accentInk);
++            actionAt();
++            break;
++    }
++}
+diff --git a/tests/Feature/Studio/StudioTemplatesCatalogTest.php b/tests/Feature/Studio/StudioTemplatesCatalogTest.php
+new file mode 100644
+index 0000000..35c95a0
+--- /dev/null
++++ b/tests/Feature/Studio/StudioTemplatesCatalogTest.php
+@@ -0,0 +1,106 @@
++<?php
++
++use App\Models\Brand;
++use App\Models\User;
++use App\Services\Studio\StudioDocument;
++use Symfony\Component\Process\ExecutableFinder;
++use Symfony\Component\Process\Process;
++
++function studioCatalogDocuments(): array
++{
++    static $catalog;
++    if ($catalog !== null) {
++        return $catalog;
++    }
++
++    $node = (new ExecutableFinder)->find('node');
++    expect($node)->not->toBeNull('Node es necesario para leer el catálogo real del Estudio.');
++    $process = new Process([$node, '--input-type=module', '-e', <<<'JS'
++        import { STUDIO_TEMPLATES, createFromTemplate } from './resources/js/Studio/templates.js';
++        console.log(JSON.stringify(STUDIO_TEMPLATES.map(({ key, name, pages }) => ({ key, name, pages, document: createFromTemplate(key) }))));
++        JS
++    ], base_path());
++    $process->mustRun();
++
++    return $catalog = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
++}
++
++test('el catálogo añade al menos diez plantillas por formato principal y conserva las originales', function () {
++    $originals = [
++        'aurora-launch', 'bold-statement', 'minimal-quote', 'organic-note', 'studio-offer',
++        'social-announcement', 'story-editorial', 'story-launch', 'story-event', 'portrait-spotlight',
++        'carousel-story', 'deck-cover', 'deck-agenda', 'video-title',
++    ];
++    $catalog = studioCatalogDocuments();
++    expect(array_diff($originals, array_column($catalog, 'key')))->toBeEmpty();
++    $counts = [];
++    foreach ($catalog as $template) {
++        if (in_array($template['key'], $originals, true)) {
++            continue;
++        }
++        $document = $template['document'];
++        $format = $document['width'].'×'.$document['height'];
++        $counts[$format] = ($counts[$format] ?? 0) + 1;
++        expect($document['schema_version'])->toBe(2, $template['key']);
++    }
++    foreach (['1080×1080', '1080×1350', '1080×1440', '1080×1920', '1920×1080'] as $format) {
++        expect($counts[$format] ?? 0)->toBeGreaterThanOrEqual(10, $format.' carece de diez plantillas nuevas');
++    }
++});
++
++test('cada plantilla se valida en el servidor con identificadores únicos y sin recursos externos', function () {
++    $user = new User;
++    $user->id = 1;
++    $brand = new Brand;
++    $brand->user_id = $user->id;
++    $validator = app(StudioDocument::class);
++    $catalog = studioCatalogDocuments();
++    foreach (['key', 'name'] as $field) {
++        expect(array_unique(array_column($catalog, $field)))->toHaveCount(count($catalog));
++    }
++
++    $ids = [];
++    foreach ($catalog as $template) {
++        $source = $template['document'];
++        expect($source['pages'])->toHaveCount($template['pages']);
++        $document = $source['schema_version'] === 2 ? $source : array_replace($source, [
++            'schema_version' => 2, 'timeline' => ['fps' => 30, 'audio_tracks' => []],
++        ]);
++        expect($validator->validate($user, $brand, $document))->toBe($document, $template['key'])
++            ->and($document['timeline']['audio_tracks'])->toBe([]);
++        foreach ($document['pages'] as $page) {
++            $ids[] = $page['id'];
++            expect($page['elements'])->not->toBeEmpty();
++            foreach ($page['elements'] as $element) {
++                $ids[] = $element['id'];
++                expect($element['type'])->toBeIn(['rect', 'ellipse', 'text'])
++                    ->and(array_intersect(['asset_id', 'font_id', 'url'], array_keys($element)))->toBeEmpty();
++                if ($element['type'] === 'text') {
++                    expect($element['fontFamily'])->toBe('Arial');
++                }
++            }
++        }
++    }
++    expect(array_unique($ids))->toHaveCount(count($ids));
++});
++
++test('cada formato principal ofrece animaciones de entrada y salida dentro de la vida del objeto', function () {
++    $formats = [];
++    foreach (studioCatalogDocuments() as ['document' => $document]) {
++        foreach ($document['pages'] as $page) {
++            foreach ($page['elements'] as $element) {
++                if (! isset($element['animation'])) {
++                    continue;
++                }
++                $animation = $element['animation'];
++                $life = $element['timing']['duration'] ?? $page['duration'];
++                $occupied = array_sum(array_map(fn (array $phase) => $phase['duration'] + ($phase['delay'] ?? 0), $animation));
++                expect($occupied)->toBeLessThanOrEqual($life);
++                if (isset($animation['in'], $animation['out'])) {
++                    $formats[$document['width'].'×'.$document['height']] = true;
++                }
++            }
++        }
++    }
++    expect($formats)->toHaveKeys(['1080×1080', '1080×1350', '1080×1440', '1080×1920', '1920×1080']);
++});
+diff --git a/tests/e2e/studio-templates.spec.ts b/tests/e2e/studio-templates.spec.ts
+new file mode 100644
+index 0000000..5c43ad5
+--- /dev/null
++++ b/tests/e2e/studio-templates.spec.ts
+@@ -0,0 +1,77 @@
++import { readFileSync } from 'node:fs';
++import { expect, test } from '@playwright/test';
++import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, stamp } from './helpers';
++
++test.describe('E2E-33 · Catálogo de plantillas del Estudio', { tag: '@responsive' }, () => {
++    test('crea un diseño desde una plantilla animada, previsualiza y exporta un fotograma', async ({ page }, info) => {
++        const user = e2eUser(info.project.name);
++        cleanComposerBrands(user.email);
++        const brand = seedComposerBrand(user.email, `studio-catalog-${stamp()}-${info.project.name}`);
++        const errors: string[] = [];
++        page.on('pageerror', error => errors.push(error.message));
++        try {
++            await loginAs(page, user);
++            await page.goto(`/studio?brand_id=${brand.id}`);
++            const catalog = page.getByRole('region', { name: 'Una idea para empezar', exact: true });
++            await catalog.getByLabel('Formato de plantilla').selectOption('story');
++            await catalog.getByLabel('Buscar plantillas').fill('AGENDA');
++            await expect(catalog.getByRole('status')).toHaveText('1 plantilla');
++            const template = catalog.getByRole('button', { name: /^Agenda de la semana.*1080 × 1920.*Animada$/ });
++            await template.scrollIntoViewIfNeeded();
++            await expect(template.locator('img')).toBeVisible();
++            await expect.poll(() => template.locator('img').evaluate(img => (img as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
++            await expectNoOverflow(page);
++            await page.screenshot({ path: info.outputPath('studio-template-initial.png') });
++
++            await template.click();
++            await expect(page).toHaveURL(/\/studio\/designs\/\d+\/edit$/);
++            await expect(page).toHaveTitle(/Agenda de la semana/);
++            const timeline = page.getByRole('region', { name: 'Línea de tiempo', exact: true });
++            await expect(timeline.getByTestId('timeline-animation-in')).toHaveCount(1);
++            await expect(timeline.getByTestId('timeline-animation-out')).toHaveCount(1);
++            const clock = timeline.getByLabel('Tiempo de reproducción', { exact: true });
++            const preview = page.getByLabel('Previsualización de la línea de tiempo', { exact: true });
++            const headlinePixels = () => preview.evaluate(node => {
++                const canvas = node as HTMLCanvasElement;
++                const { width, height } = canvas;
++                // La región del titular queda entre la etiqueta y el detalle, sobre el fondo claro.
++                const data = canvas.getContext('2d')!.getImageData(
++                    Math.floor(width * 0.09), Math.floor(height * 0.28), Math.floor(width * 0.58), Math.floor(height * 0.23),
++                ).data;
++                let count = 0;
++                for (let i = 0; i < data.length; i += 4) {
++                    if (data[i + 3] > 200 && data[i] + data[i + 1] + data[i + 2] < 500) count++;
++                }
++                return count;
++            });
++            await clock.fill('2');
++            await clock.press('Tab');
++            await expect(preview).toBeVisible();
++            await expect.poll(headlinePixels).toBeGreaterThan(50);
++            const visiblePixels = await headlinePixels();
++            await clock.fill('0');
++            await clock.press('Tab');
++            await expect.poll(headlinePixels).toBeLessThan(visiblePixels / 2);
++            await clock.fill('2');
++            await clock.press('Tab');
++            await expect.poll(headlinePixels).toBeGreaterThan(visiblePixels / 2);
++            await expectNoOverflow(page);
++            await page.screenshot({ path: info.outputPath('studio-template-preview.png') });
++
++            await page.getByRole('button', { name: 'Exportar', exact: true }).click();
++            const exporter = page.getByLabel('Exportar diseño', { exact: true });
++            await exporter.getByLabel('Formato', { exact: true }).selectOption('png');
++            await expect(exporter.getByLabel('Fotograma de Agenda de la semana (s)', { exact: true })).toHaveValue('2');
++            const download = page.waitForEvent('download');
++            await exporter.getByRole('button', { name: 'Descargar', exact: true }).click();
++            const output = info.outputPath('studio-template-frame.png');
++            await (await download).saveAs(output);
++            const png = readFileSync(output);
++            expect(png.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
++            expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1080, 1920]);
++            expect(errors).toEqual([]);
++        } finally {
++            cleanComposerBrands(user.email);
++        }
++    });
++});

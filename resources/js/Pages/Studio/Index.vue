@@ -98,6 +98,18 @@ watch(missingThumbnails, missing => { clearTimeout(thumbnailTimer); thumbnailTri
 onBeforeUnmount(() => clearTimeout(thumbnailTimer));
 const templatesOnly = computed(() => !!props.filters?.templates);
 const presets = STUDIO_FORMAT_PRESETS;
+const catalogFormat = ref('');
+const catalogSearch = ref('');
+const catalogFormats = presets.filter(({ w, h }) => STUDIO_TEMPLATES.some(template => template.width === w && template.height === h));
+const searchText = value => value.trim().normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+const catalogResults = computed(() => {
+    const format = catalogFormats.find(preset => preset.key === catalogFormat.value);
+    const term = searchText(catalogSearch.value);
+    return STUDIO_TEMPLATES.filter(template =>
+        (!format || (template.width === format.w && template.height === format.h))
+        && searchText(`${template.name} ${template.category}`).includes(term),
+    );
+});
 const pagination = computed(() => ({
     total: props.designs.total,
     cursor: props.filters?.cursor,
@@ -548,19 +560,49 @@ const sharedDate = createZonedDateFormatter(designDateOptions);
                         ><p class="mt-1 text-sm text-slate-500"
                             >Plantillas editables que puedes adaptar a tu marca.</p
                         ></div
+                    ><div class="grid gap-3 sm:grid-cols-2"
+                        ><label class="min-w-0 text-sm font-medium"
+                            >Buscar plantillas
+                            <input
+                                v-model="catalogSearch"
+                                type="search"
+                                class="mt-1 block w-full rounded-xl border-slate-300 text-sm"
+                            />
+                        </label>
+                        <label class="min-w-0 text-sm font-medium"
+                            >Formato de plantilla
+                            <select
+                                v-model="catalogFormat"
+                                class="mt-1 block w-full rounded-xl border-slate-300 text-sm"
+                            >
+                                <option value="">Todos los formatos</option>
+                                <option
+                                    v-for="format in catalogFormats"
+                                    :key="format.key"
+                                    :value="format.key"
+                                    >{{ format.label }}</option
+                                >
+                            </select>
+                        </label></div
+                    ><p
+                        role="status"
+                        class="text-sm text-slate-600"
+                        >{{ catalogResults.length === 0 ? 'No se encontraron plantillas.' : catalogResults.length === 1 ? '1 plantilla' : `${catalogResults.length} plantillas` }}</p
                     ><div class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5"
                         ><button
-                            v-for="template in STUDIO_TEMPLATES"
+                            v-for="template in catalogResults"
                             :key="template.key"
                             type="button"
-                            class="text-left transition hover:-translate-y-1"
+                            class="min-w-0 break-words rounded-xl text-left transition hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600"
                             :disabled="busy || !!createdDesign"
                             @click="create(template)"
                             ><TemplatePreview :template="template" :kit="kit" :fonts="localFonts" /><span
                                 class="mt-2 block text-sm font-semibold"
                                 >{{ template.name }}</span
                             ><span class="mt-1 block text-xs text-slate-500"
-                                >{{ template.category }} · {{ template.width }} × {{ template.height }}</span
+                                >{{ template.category }} · {{ template.width }} ×
+                                {{ template.height
+                                }}<span v-if="template.motion"> · Animada</span></span
                             ></button
                         ></div
                     ></section

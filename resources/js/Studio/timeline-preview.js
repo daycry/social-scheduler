@@ -4,6 +4,7 @@ import { clipMediaState, compileTimeline, sampleTimeline } from './timeline.js';
 import { createTimelineAudio } from './timeline-audio.js';
 import { createCaptionLayer } from './captions-renderer.js';
 import { assertChartDocumentBudget } from './chart-scene.js';
+import { applyElementAnimation } from './animation-scene.js';
 
 /** A separate, disposable scene: preview state can never leak into saved Fabric objects. */
 export async function createTimelinePreview(output, { document: input, assets = [], fonts = [], chartResources, offline = false, renderScale = 1 } = {}) {
@@ -89,13 +90,14 @@ export async function createTimelinePreview(output, { document: input, assets = 
             scenes.push({ ...entry, sample, source });
         }
         for (const { scene, elements, sample, source } of scenes) {
-            async function update(objects, elements, inherited = true) {
+            async function update(objects, elements, inherited = true, parent) {
                 for (let i = 0; i < objects.length; i++) {
                     const object = objects[i], element = elements[i];
                     const timing = element.timing ?? { start: 0, duration: source.duration };
                     const visible = inherited && element.visible !== false && sample.localTime >= timing.start && sample.localTime < timing.start + timing.duration;
                     object.set('visible', visible);
-                    if (element.type === 'group') await update(object.getObjects(), element.elements, visible);
+                    const window = applyElementAnimation(object, element, sample.localTime, { width: document.width, height: document.height, pageDuration: source.duration, parent });
+                    if (element.type === 'group') await update(object.getObjects(), element.elements, visible, window);
                     if (object.studioVideo) {
                         const video = object.studioVideo;
                         const state = clipMediaState(element, sample.localTime, video.duration, source.duration);

@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — animations per object in the Studio (audit-hardening, T-94)
+
+- In the Studio timeline, select a clip and give it an entrance and/or exit animation: fade, slide from or towards any side, or zoom, with a duration (0.1–10 s), a delay and an easing curve (linear, accelerate, decelerate, smooth). The animation shows in the timeline clip, in the preview when you move the playhead, in the MP4/GIF video and in the image exported at the chosen instant, so the exported frame matches the preview. The entrance and exit must fit within the object's visible time; shortening a clip drops the phases that no longer fit. Designs without animations render exactly as before.
+
 ### Added — content plan in natural language (audit-hardening, T-93)
 
 - The new Content plan page (Planning → Content plan) turns a plain-language brief such as "next week, 3 posts about the launch of X, in the morning" into a batch of text posts with dates, written by the AI assistant. Nothing is created while you review: each proposed post shows its date, accounts and text, and you can edit it, untick it or change its accounts before confirming. A text that does not fit a network's limit is flagged for you to edit, never cut. When you confirm, the server checks everything again and creates only what you chose, as drafts with their date or scheduled, all or nothing; double-clicking "Confirm" never creates the batch twice. Only accounts of the current brand that publish text without images (Bluesky, Mastodon, Threads, LinkedIn, Facebook, Telegram) are used; the others are listed with the reason. It uses the same daily AI allowance as the rest of the assistant and shows a clear message when the AI is not configured.

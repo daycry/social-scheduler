@@ -2,6 +2,7 @@ import { computed, ref } from 'vue';
 import { cloneDocument, findPage, validateDocument } from '../document.js';
 import { captionOperation } from '../captions.js';
 import { clipMediaState, splitTimelineElement, splitTimelineAudio } from '../timeline.js';
+import { ANIMATION_DEFAULT_EASING, ANIMATION_LIMITS, animationPhaseSpan, fitAnimation } from '../object-animation.js';
 
 /** Edita la cronología del documento y aplica el resultado al lienzo del editor. */
 export function useTimelineEditing({
@@ -44,6 +45,28 @@ export function useTimelineEditing({
             if (patch.start !== undefined) timing.duration = Math.min(timing.duration, page.value.duration - timing.start);
             if (clip.gainPoints && old.duration !== timing.duration) clip.gainPoints = clip.gainPoints.map(point => ({ ...point, time: point.time / old.duration * timing.duration }));
             clip.timing = timing;
+            // Acortar la vida del clip descarta las fases de animación que ya no caben.
+            if (clip.animation) { const fitted = fitAnimation(clip.animation, timing.duration); if (fitted) clip.animation = fitted; else delete clip.animation; }
+            await applyTimelineChange(next);
+        });
+    }
+    /** `patch` null quita la fase; si no, la crea con valores por defecto o actualiza solo lo indicado. */
+    function patchClipAnimation({ phase, patch }) {
+        return run(async () => {
+            const next = cloneDocument(documentData.value);
+            const clip = findPage(next, pageId.value).elements.find(item => item.id === selectedClipId.value);
+            if (!clip) return;
+            const animation = { ...clip.animation };
+            if (patch === null) delete animation[phase];
+            else {
+                // Duración por defecto: 0,5 s o lo que quepa en la vida del clip junto a la otra fase (mínimo 0,1 s).
+                const length = clip.timing?.duration ?? page.value.duration;
+                const other = animation[phase === 'in' ? 'out' : 'in'];
+                const room = length - (other ? animationPhaseSpan(other, length) : 0) - (animation[phase]?.delay ?? 0);
+                const duration = Math.max(ANIMATION_LIMITS.minDuration, Math.min(0.5, Math.floor(room * 1000) / 1000));
+                animation[phase] = { type: 'fade', duration, easing: ANIMATION_DEFAULT_EASING, ...animation[phase], ...patch };
+            }
+            if (Object.keys(animation).length) clip.animation = animation; else delete clip.animation;
             await applyTimelineChange(next);
         });
     }
@@ -115,6 +138,6 @@ export function useTimelineEditing({
 
     return {
         selectedAudioId, selectedClipId, openTimeline, applyCaptions,
-        patchClipWindow, splitClip, patchTimelineFps, addAudioTrack, patchAudio, fadeAudio, splitAudio, removeAudio,
+        patchClipWindow, patchClipAnimation, splitClip, patchTimelineFps, addAudioTrack, patchAudio, fadeAudio, splitAudio, removeAudio,
     };
 }

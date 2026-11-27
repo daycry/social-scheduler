@@ -5,6 +5,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Added — animaciones por objeto en el Estudio (audit-hardening, T-94)
+
+- En la línea de tiempo del Estudio, selecciona un clip y dale una animación de entrada y/o de salida: fundido, deslizamiento desde o hacia cualquier lado, o zoom, con duración (0,1–10 s), retardo y curva de suavizado (lineal, acelera, frena, suave). La animación se ve en el clip de la línea de tiempo, en la previsualización al mover el cabezal, en el vídeo MP4/GIF y en la imagen exportada en el instante elegido, así que el fotograma exportado coincide con la previsualización. La entrada y la salida deben caber en el tiempo visible del objeto; al acortar un clip se descartan las fases que ya no caben. Los diseños sin animaciones se renderizan exactamente igual que antes.
+
 ### Added — plan de contenido en lenguaje natural (audit-hardening, T-93)
 
 - La nueva página Plan de contenido (Planificación → Plan de contenido) convierte un briefing en lenguaje natural, como «la semana que viene, 3 posts sobre el lanzamiento de X, por la mañana», en un lote de publicaciones de texto con fecha redactadas por el asistente IA. Mientras revisas no se crea nada: cada publicación propuesta muestra su fecha, cuentas y texto, y puedes editarla, desmarcarla o cambiar sus cuentas antes de confirmar. Un texto que no cabe en el límite de una red se marca para que lo edites, nunca se recorta. Al confirmar, el servidor lo comprueba todo de nuevo y crea solo lo que elegiste, como borradores con su fecha o programadas, todo o nada; un doble clic en «Confirmar» nunca crea el lote dos veces. Solo se usan las cuentas de la marca actual que publican texto sin imágenes (Bluesky, Mastodon, Threads, LinkedIn, Facebook, Telegram); el resto se lista con su motivo. Comparte el cupo diario de IA con el resto del asistente y muestra un mensaje claro si la IA no está configurada.

@@ -31,6 +31,7 @@ export function useEditorCanvas(
     const ready = ref(false);
     const busy = ref(false);
     const fontBusy = ref(false);
+    const canvasWarning = ref('');
 
     const zoom = ref(50);
     const fitMode = ref(true);
@@ -71,6 +72,7 @@ export function useEditorCanvas(
     }
     async function reloadCanvas() {
         if (!adapter) return;
+        canvasWarning.value = '';
         invalidatePreview();
         busy.value = true;
         setPlaying(false);
@@ -86,6 +88,7 @@ export function useEditorCanvas(
     const action = (method, value) =>
         run(async () => {
             if (busy.value) return;
+            canvasWarning.value = '';
             busy.value = true;
             try {
                 await adapter?.[method](value);
@@ -229,6 +232,9 @@ export function useEditorCanvas(
         adapter.canvas.on('studio:error', ({ error: e }) => {
             if (!isDisposed() && adapter === scene) error.value = e.message;
         });
+        adapter.canvas.on('studio:warning', ({ message }) => {
+            if (!isDisposed() && adapter === scene) canvasWarning.value = message;
+        });
         ready.value = true;
         refreshLayers();
         fit();
@@ -262,6 +268,7 @@ export function useEditorCanvas(
         ready,
         busy,
         fontBusy,
+        canvasWarning,
         zoom,
         drawing,
         drawColor,

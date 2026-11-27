@@ -117,6 +117,7 @@ function setIdentity(object, element) {
     object.studioType = element.type;
     object.studioName = element.name ?? '';
     object.studioTiming = element.timing == null ? null : clone(element.timing);
+    object.studioAnimation = element.animation == null ? null : clone(element.animation);
     object.studioAssetId = element.asset_id;
     object.studioFontId = element.font_id;
     object.studioFontFamily = element.fontFamily;
@@ -162,6 +163,7 @@ export function studioObjectToElement(object, { absolute = false } = {}) {
     });
     if (object.shadow) element.shadow = { color: object.shadow.color, blur: object.shadow.blur, offsetX: object.shadow.offsetX, offsetY: object.shadow.offsetY };
     if (object.studioTiming != null) element.timing = clone(object.studioTiming);
+    if (object.studioAnimation != null) element.animation = clone(object.studioAnimation);
     if (type === 'text') Object.assign(element, { text: object.text, fontFamily: object.fontFamily, fontSize: object.fontSize, fontWeight: String(object.fontWeight) === 'bold' || Number(object.fontWeight) >= 600 ? 'bold' : 'normal', fontStyle: object.fontStyle === 'italic' ? 'italic' : 'normal', textAlign: object.textAlign, underline: Boolean(object.underline), lineHeight: object.lineHeight, charSpacing: object.charSpacing });
     if (type === 'text' && object.studioFontId != null) { element.font_id = object.studioFontId; element.fontFamily = object.studioFontFamily; }
     if (type === 'rect') element.radius = object.rx ?? 0;
@@ -685,9 +687,22 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
             ready(); const groups = selectedObjects().filter(object => object.studioType === 'group' && object instanceof Group && !(object instanceof ActiveSelection) && !object.studioLocked);
             if (!groups.length) return false;
             const restricted = new Map();
-            for (const group of groups) if (documentData.schema_version === 2 && group.studioTiming) {
-                for (const child of group.getObjects()) restricted.set(child, checked(restrictElementWindow(studioObjectToElement(child), group.studioTiming,
-                    { pageDuration: currentPage.duration, sourceDuration: child.studioVideo?.duration })));
+            let animationLoss = false;
+            for (const group of groups) if (documentData.schema_version === 2 && (group.studioTiming || group.studioAnimation)) {
+                const children = group.getObjects();
+                const sharedOpacity = children.filter(child => child.visible && child.opacity > 0).length > 1;
+                for (const child of children) {
+                    const center = child.getRelativeCenterPoint();
+                    const bounded = restrictElementWindow(studioObjectToElement(child), group.studioTiming ?? { start: 0, duration: currentPage.duration }, {
+                        pageDuration: currentPage.duration,
+                        sourceDuration: child.studioVideo?.duration,
+                        parentAnimation: group.studioAnimation ?? undefined,
+                        centered: Math.abs(center.x) < 1e-9 && Math.abs(center.y) < 1e-9,
+                        sharedOpacity,
+                        onAnimationLoss: () => { if (group.visible && group.opacity > 0 && child.opacity > 0) animationLoss = true; },
+                    });
+                    restricted.set(child, checked(bounded));
+                }
             }
             canvas.discardActiveObject(); const released = [];
             for (const group of groups) {
@@ -714,7 +729,9 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
                     child.setCoords();
                 });
             }
-            choose(released); changed('ungroup'); return true;
+            choose(released); changed('ungroup');
+            if (animationLoss) canvas.fire('studio:warning', { message: 'Al desagrupar, parte de la animación del grupo puede verse distinta al aplicarse a las capas por separado.' });
+            return true;
         },
         align(mode) {
             ready(); const selected = selectedObjects().filter(object => !object.studioLocked);

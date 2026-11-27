@@ -18,6 +18,12 @@ class StudioTimeline
 
     private const EPS = 1e-9;
 
+    private const ANIMATION_PHASES = ['in', 'out'];
+
+    private const ANIMATION_TYPES = ['fade', 'slide_left', 'slide_right', 'slide_up', 'slide_down', 'zoom'];
+
+    private const ANIMATION_EASINGS = ['linear', 'ease_in', 'ease_out', 'ease_in_out'];
+
     public function validate(User $user, Brand $brand, array $document, StudioDocument $spatial): array
     {
         $encoded = json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_LINE_TERMINATORS);
@@ -117,7 +123,7 @@ class StudioTimeline
             if (! is_array($element)) {
                 continue;
             }
-            unset($element['timing']);
+            unset($element['timing'], $element['animation']);
             if (($element['type'] ?? null) === 'video') {
                 unset($element['playbackRate'], $element['sourceOffset'], $element['loop'], $element['gainPoints']);
             }
@@ -141,6 +147,9 @@ class StudioTimeline
                 $length = $this->number($element['timing']['duration'] ?? null, 0, $duration + self::EPS, $p.'.timing.duration');
                 $this->ensure($length > 0 && $start + $length > $start && $start + $length <= $duration + self::EPS, $p.'.timing', 'La ventana debe ser positiva y quedar dentro de la página.');
             }
+            if (array_key_exists('animation', $element)) {
+                $this->animation($element['animation'], $length, $p.'.animation');
+            }
             if ($element['type'] === 'video') {
                 $this->mediaFields($element, $length, $p);
                 $uses[] = [$element['asset_id'], $element, $p, false];
@@ -149,6 +158,33 @@ class StudioTimeline
                 $this->elements($element['elements'], $duration, $fps, $p.'.elements', $ids, $uses);
             }
         }
+    }
+
+    /** Mismo esquema que normalizeAnimation de object-animation.js: tipos, rangos y que entrada y salida quepan en la vida del objeto. */
+    private function animation(mixed $animation, float $length, string $path): void
+    {
+        $this->keys($animation, self::ANIMATION_PHASES, $path);
+        $this->ensure($animation !== [], $path, 'Indica una entrada o una salida.');
+        $total = 0.0;
+        foreach (self::ANIMATION_PHASES as $key) {
+            if (! array_key_exists($key, $animation)) {
+                continue;
+            }
+            $phase = $animation[$key];
+            $where = "$path.$key";
+            $this->keys($phase, ['type', 'duration', 'delay', 'easing', 'clipped'], $where);
+            $this->ensure(in_array($phase['type'] ?? null, self::ANIMATION_TYPES, true), $where.'.type', 'Tipo de animación no admitido.');
+            $duration = $this->number($phase['duration'] ?? null, 0.1, 10, $where.'.duration');
+            $clipped = array_key_exists('clipped', $phase);
+            $this->ensure(! $clipped || $phase['clipped'] === true, $where.'.clipped', 'El indicador de recorte debe ser true.');
+            $delay = array_key_exists('delay', $phase) ? $this->number($phase['delay'], $clipped ? -10 : 0, 3600, $where.'.delay') : 0.0;
+            // Una fase recortada cuya curva acaba antes de que empiece el clip no haría nada: se rechaza (mismo criterio en `object-animation.js`).
+            $this->ensure(! $clipped || $delay > -$duration, $where.'.delay', 'El retardo deja la fase recortada entera antes del clip.');
+            $this->ensure(! array_key_exists('easing', $phase) || in_array($phase['easing'], self::ANIMATION_EASINGS, true), $where.'.easing', 'Curva de suavizado no admitida.');
+            $span = $delay + $duration;
+            $total += $clipped ? min($length, max(0, $span)) : $span;
+        }
+        $this->ensure($total <= $length + self::EPS, $path, 'La entrada y la salida no caben en la vida del objeto.');
     }
 
     private function mediaFields(array $clip, float $duration, string $path): void

@@ -11,7 +11,7 @@ const source = await readFile(new URL('../../resources/js/Studio/timeline-previe
 const ast = parse(source, { sourceType: 'module' });
 const factory = ast.program.body.find(node => node.type === 'ExportNamedDeclaration' && node.declaration?.id?.name === 'createTimelinePreview').declaration;
 const instantiate = Function('validateDocument', 'renderStudioPage', 'seekVideoFrame', 'clipMediaState', 'compileTimeline', 'sampleTimeline',
-    'createTimelineAudio', 'createCaptionLayer', 'assertChartDocumentBudget', 'videoFrameReady', `return (${source.slice(factory.start, factory.end)});`);
+    'createTimelineAudio', 'createCaptionLayer', 'assertChartDocumentBudget', 'videoFrameReady', 'applyElementAnimation', `return (${source.slice(factory.start, factory.end)});`);
 const document = () => ({ schema_version: 2, width: 320, height: 180, timeline: { fps: 30, audio_tracks: [] }, pages: [
     { id: 'a', duration: 1, background: '#ff0000', elements: [newElement('video', { id: 'clip', asset_id: 1 })] },
 ] });
@@ -29,7 +29,7 @@ test('disposing an offline preview aborts a video frame wait that would never pr
         (_video, { signal }) => new Promise((_resolve, reject) => {
             received = signal; entered();
             signal.addEventListener('abort', () => reject(new DOMException('Carga cancelada', 'AbortError')), { once: true });
-        }));
+        }), () => {});
     const canvas = { getContext: () => ({}) };
     const preview = await create(canvas, { document: document(), offline: true });
     const frame = preview.seek(0.1).catch(error => error);

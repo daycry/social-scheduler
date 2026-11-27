@@ -48,9 +48,9 @@ estado: en-progreso
 | Fase 5 — Frontend | 15 | 18 | 83% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
 | Fase 5b — Unificación | 4 | 8 | 50% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
 | Fase 6 — Operación y repositorio | 4 | 6 | 67% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
-| Fase 7 — Funciones nuevas | 19 | 24 | 79% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
+| Fase 7 — Funciones nuevas | 20 | 24 | 83% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **92** | **108** | **85%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
+| **TOTAL** | **93** | **108** | **86%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -4723,34 +4723,40 @@ CoberturaM3extra descubre registrodoble deListeners por autodetección+PushServi
 ### T-94 — Estudio: animaciones por objeto
 
 - **Descripción**: Animaciones de entrada/salida por objeto en la línea de tiempo y en el render MP4/GIF. F-23 se cuenta aquí; la tarea siguiente añade plantillas.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: En la línea de tiempo del Estudio puedes dar a cada objeto una animación de entrada y de salida (fundido, deslizamiento o zoom, con duración, retardo y curva) que se ve en la previsualización y en el vídeo y la imagen exportados.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-93
 - **Tipo**: fullstack
-- **Archivos**: `app/Services/Studio/StudioTimeline.php`, `resources/js/Studio/timeline/**`, `resources/js/Pages/Studio/Editor.vue`, `docs/modulos/estudio.md`
+- **Archivos**: `app/Services/Studio/StudioTimeline.php`, `resources/js/Studio/timeline/**`, `resources/js/Pages/Studio/Editor.vue`, `docs/modulos/estudio.md`, `resources/js/Studio/object-animation.js`, `resources/js/Studio/animation-scene.js`, `resources/js/Studio/timeline.js`, `resources/js/Studio/timeline-preview.js`, `resources/js/Studio/frame-renderer.js`, `resources/js/Studio/canvas.js`, `resources/js/Studio/composables/useTimelineEditing.js`, `resources/js/Studio/composables/useEditorCanvas.js`, `resources/js/Components/Studio/TimelinePanel.vue`, `resources/js/Components/Studio/ObjectAnimationFields.vue`, `tests/Feature/Studio/StudioObjectAnimationTest.php`, `tests/frontend/studio-object-animation.test.mjs`, `tests/frontend/studio-object-animation-flows.test.mjs`, `tests/frontend/studio-chart-exports.test.mjs`, `tests/frontend/studio-presentation-media-cancel.test.mjs`, `tests/frontend/studio-preview-frame-abort.test.mjs`, `tests/e2e/studio-object-animation.spec.ts`, `CHANGELOG.md`, `CHANGELOG.es.md`, `public/build/**`, `docs/roadmap/2026-11-11-audit-hardening/testing/t94/**`
 - **Cubre**: F-23
 - **Cubre (tests)**: E2E-33
-- **Verificación**: `php artisan test --compact --filter=StudioObjectAnimationTest` → verde
+- **Verificación**: intento 2 · `php -d memory_limit=1G vendor/bin/pest --compact --filter=StudioObjectAnimationTest` → 32 pruebas, 71 aserciones · Pest completo tras `php artisan config:clear` → 4959 aprobadas, 21 omitidas, 34940 aserciones · `npm run test:unit` bloqueado por `spawn EPERM`, ejecución individual → 812 aprobadas, 37 fallidas · `npm run build` bloqueado por `spawn EPERM`, Vite con `preserveSymlinks` → aplicación y dos renderizadores compilados · formato, lint, tipos y Pint → verde
 
 **Criterios de aceptación**
-- [ ] Una animación por objeto se previsualiza y se exporta
-- [ ] Los diseños antiguos no cambian
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Una animación por objeto se previsualiza y se exporta
+- [x] Los diseños antiguos no cambian
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
-**Notas**: Tamaño M. F-23 es L: dos tareas.
+**Notas**: Tamaño M. F-23 es L: dos tareas. Corrección del intento 2. `animation.in` y `animation.out` admiten `clipped: true` en v2 con la misma validación en JS y PHP. La duración original se conserva, el retardo admite valores de −10 a 3600 s y solo cuenta el tramo de influencia dentro de la ventana. Al desagrupar se respeta el anclaje de cada fase y se muestra un aviso si cambia su aspecto.
+
+**Cierre — 2026-11-27:** animaciones de entrada y salida por objeto (también dentro de grupos) en documentos v2: `animation: {in?, out?}` con `type` (fade, slide_left/right/up/down, zoom), `duration` 0,1–10 s, `delay` y `easing`, validadas con el mismo esquema en `resources/js/Studio/object-animation.js` y `app/Services/Studio/StudioTimeline.php` (v1 sigue rechazando `animation`). Una sola función pura (`animationState`) usada por la previsualización, el render MP4/GIF (`createTimelinePreview` offline) y la exportación por fotograma; sin `animation` no se toca el objeto (diseños antiguos idénticos). Las salidas estáticas sin instante explícito (miniatura, lote, PPTX, imagen nativa, diálogo sin fotograma) muestran el diseño en reposo; el campo «Fotograma» del diálogo explica cuándo se aplica la animación. Dividir un clip conserva exactamente el aspecto en cada instante (campo `clipped` para las fases recortadas, validado igual en JS y PHP, que rechaza fases sin efecto); desagrupar conserva el anclaje temporal (prevalece la fase del hijo) y avisa con el `FlashBanner` común cuando el aspecto puede cambiar. UI `ObjectAnimationFields.vue` en el panel de línea de tiempo. Revisión adversarial A+B+C en 3 intentos (los intentos 2 y 3 con Opus en esfuerzo alto): intento 1 — 1 Important (salidas estáticas en t=0 dejaban invisible un objeto con entrada) + 5 Minor, corregidos; intento 2 — 1 Important (dividir un clip con fases retardadas cambiaba el aspecto) + 2 Minor (fase comprimida al dividir, anclaje al desagrupar), corregidos por Codex (gpt-6.2-sol, high); intento 3 — 0 Critical/Important, verificado con scripts sobre miles de combinaciones sin desviaciones; 1 Minor (fase recortada sin efecto aceptada) corregido con test en rojo. QA: Pest completo 4972 pasados / 9 omitidos; Node 850/850; build, `format:check`, ESLint, typecheck y Pint verdes; E2E animación + exportación por fotograma y nativa + línea de tiempo + editor + marca de agua + vídeo compuesto 41/41 en tres tamaños (`testing/t94/t94-e2e.log`). Nota de método: el sandbox de Codex en Windows bloquea procesos hijos (`spawn EPERM`), así que Node, build y Pest completo se verifican fuera de él. **Deuda aceptada (Minor):** el aviso de desagrupar puede aparecer con varias capas visibles que no se solapan aunque nada cambie; los desplazamientos de hijos en grupos escalados son aproximados (coordenadas del grupo).
+
+- RED: `studio-object-animation-flows.test.mjs::splitting preserves` falló por opacidad `1` en vez de `0,995` tras perder una salida, `1` en vez de `0` antes de una entrada y discrepancias en las curvas parciales · 2026-11-27
+- RED: `studio-object-animation-flows.test.mjs::ungrouping` falló por opacidad `0,08` en vez de `1` a los `2,1 s` y por la falta de aviso al competir dos fases · 2026-11-27
+- RED: `StudioObjectAnimationTest.php::cropped phases preserve` devolvió `422` en los dos casos que esperaban `201` · 2026-11-27
 
 ### T-95 — Estudio: más plantillas (continuación de F-23)
 
@@ -5519,3 +5525,7 @@ Lentes A+B+C. Intento 1: 1 Important (familia rota al purgar el original) + 8 Mi
 ## Revisión de dos lentes — intento 3: Fase 7 (T-93) — aprobada y cerrada
 
 Lentes A+B+C. Intento 1: 10 Minor corregidos. Intento 2: 1 Important (lote duplicado al renovar la clave tras un 422 de clave reutilizada) + 2 Minor corregidos. Intento 3: 0 Critical/Important; 3 Minor corregidos y verificados con Pest, Node y E2E. Diffs en `testing/t93/reviews/r1.patch`–`r3.patch`. Total 92/108.
+
+## Revisión de dos lentes — intento 3: Fase 7 (T-94) — aprobada y cerrada
+
+Lentes A+B+C. Intento 1: 1 Important (reposo en salidas estáticas) + 5 Minor corregidos. Intento 2 (Opus high): 1 Important (aspecto al dividir) + 2 Minor corregidos por Codex. Intento 3 (Opus high): 0 Critical/Important; 1 Minor corregido. Diffs en `testing/t94/reviews/r1.patch`–`r3.patch`. Total 93/108.

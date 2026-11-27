@@ -53,15 +53,22 @@ async function nativeOptions() {
     const existing = new Set(snapshot.document.pages.map(page => page.id));
     const pages = pageOrder.value.filter(id => selectedPages.value.includes(id) && existing.has(id));
     if (!pages.length) throw new Error('Selecciona al menos una página existente.');
-    const frames = snapshot.document.schema_version === 2 ? { frame_times: pages.map(page_id => ({ page_id, time: pageFrameTimes.value[page_id] ?? 0 })) } : {};
+    const frames = explicitFrames(snapshot.document, pages);
     const image = serverImage.value ? { transparent: transparent.value && format.value !== 'jpeg', watermark: true, ...frames } : {};
     return { revision: snapshot.revision, format: format.value, pages, scale: Number(scale.value), quality: Number(quality.value), ...image };
+}
+/** Solo las páginas con un instante escrito fijan fotograma; el resto se exporta en reposo (animaciones completadas). */
+function explicitFrames(document, pageIds) {
+    if (document.schema_version !== 2) return {};
+    const frame_times = pageIds.filter(id => Number.isFinite(pageFrameTimes.value[id])).map(page_id => ({ page_id, time: pageFrameTimes.value[page_id] }));
+    return frame_times.length ? { frame_times } : {};
 }
 function initializeFrames() {
     const times = Object.create(null);
     if (props.document.schema_version === 2) for (const page of compileTimeline(props.document).pages) {
         const local = props.playhead - page.start;
-        times[page.id] = local >= 0 && local < page.source.duration ? Math.floor(local * 1e6) / 1e6 : 0;
+        // Un cabezal sin mover (0) no es un instante elegido a propósito: el campo queda vacío y se exporta en reposo.
+        times[page.id] = local > 0 && local < page.source.duration ? Math.floor(local * 1e6) / 1e6 : '';
     }
     pageFrameTimes.value = times;
 }
@@ -91,8 +98,7 @@ async function run(mode) {
         status.value = 'Guardando la revisión del diseño…';
         const snapshot = await props.prepare();
         const pageIds = snapshot.document.pages.filter(page => selectedPages.value.includes(page.id)).map(page => page.id);
-        const temporal = snapshot.document.schema_version === 2
-            ? { frame_times: pageIds.map(page_id => ({ page_id, time: pageFrameTimes.value[page_id] ?? 0 })) } : {};
+        const temporal = explicitFrames(snapshot.document, pageIds);
         status.value = 'Preparando fuentes, recursos y páginas…';
         const files = await exportDesign(snapshot.document, { format: format.value, pageIds, assets: props.assets, fonts: props.fonts, chartResources: props.chartResources, scale: Number(scale.value), quality: Number(quality.value), transparent: transparent.value && format.value !== 'jpeg', title: snapshot.name, ...temporal, onProgress: ({ completed, total }) => { status.value = `Renderizadas ${completed} de ${total} páginas.`; } });
         if (mode === 'download') {
@@ -241,7 +247,10 @@ defineExpose({ publish });
                                     step="0.001"
                                     class="field w-28 text-xs"
                                     :disabled="!selectedPages.includes(page.id)"
-                                /><span>antes de {{ page.duration }} s</span></label
+                                /><span
+                                    >antes de {{ page.duration }} s ·
+                                    {{ Number.isFinite(pageFrameTimes[page.id]) ? 'se exporta ese instante, con sus animaciones' : 'vacío = diseño en reposo (animaciones completadas)' }}</span
+                                ></label
                             ></div
                         ></div
                     ></div

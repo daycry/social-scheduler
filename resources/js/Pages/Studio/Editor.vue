@@ -79,6 +79,7 @@ const {
     ready,
     busy,
     fontBusy,
+    canvasWarning,
     zoom,
     drawing,
     drawColor,
@@ -348,6 +349,7 @@ const {
     openTimeline,
     applyCaptions,
     patchClipWindow,
+    patchClipAnimation,
     splitClip,
     patchTimelineFps,
     addAudioTrack,
@@ -693,6 +695,7 @@ const {
                     </div>
                 </template>
             </FlashBanner>
+            <FlashBanner :warning="canvasWarning" />
             <FlashBanner :info="fontBusy ? 'Cargando la tipografía antes de actualizar el texto…' : ''" />
 
             <div
@@ -1022,6 +1025,7 @@ const {
                         :busy="busy || previewBusy || automationBusy"
                         @select="selectLayer"
                         @window="patchClipWindow"
+                        @animation="patchClipAnimation"
                         @seek="seekTimeline"
                         @play="playTimeline"
                         @split="splitClip"

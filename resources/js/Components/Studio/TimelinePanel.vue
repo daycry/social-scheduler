@@ -1,10 +1,12 @@
 <script setup>
 import { computed } from 'vue';
+import { animationPhaseSpan } from '@/Studio/object-animation';
 import AudioTrackPanel from './AudioTrackPanel.vue';
 import CaptionsPanel from './CaptionsPanel.vue';
+import ObjectAnimationFields from './ObjectAnimationFields.vue';
 
 const props = defineProps({ document: Object, page: Object, pageStart: Number, selectedId: String, time: Number, duration: Number, playing: Boolean, busy: Boolean, assets: Array, selectedAudioId: String, applyCaptions: Function, fonts: Array, kitFonts: Array, brandId: Number });
-const emit = defineEmits(['select', 'window', 'seek', 'play', 'split', 'page', 'fps', 'edit', 'audio-select', 'audio-patch', 'audio-split', 'audio-remove', 'audio-fade']);
+const emit = defineEmits(['select', 'window', 'seek', 'play', 'split', 'page', 'fps', 'edit', 'animation', 'audio-select', 'audio-patch', 'audio-split', 'audio-remove', 'audio-fade']);
 const selected = computed(() => props.page.elements.find(element => element.id === props.selectedId));
 const window = computed(() => selected.value?.timing ?? { start: 0, duration: props.page.duration });
 const localTime = computed(() => props.time - props.pageStart);
@@ -12,6 +14,11 @@ const audioDuration = computed(() => props.document.pages.reduce((total, page) =
 const canSplit = computed(() => selected.value && localTime.value >= window.value.start + 1 / props.document.timeline.fps - 1e-9
     && localTime.value <= window.value.start + window.value.duration - 1 / props.document.timeline.fps + 1e-9);
 const format = value => Number(value.toFixed(3));
+const phaseShare = (clip, phase) => {
+    const length = clip.timing?.duration ?? props.page.duration;
+    const value = clip.animation?.[phase];
+    return value ? `${(animationPhaseSpan(value, length) / length) * 100}%` : null;
+};
 </script>
 
 <template>
@@ -84,46 +91,68 @@ const format = value => Number(value.toFixed(3));
                     :style="{ left: `${(clip.timing?.start ?? 0) / page.duration * 100}%`, width: `${(clip.timing?.duration ?? page.duration) / page.duration * 100}%` }"
                     @click="emit('select', clip.id)"
                 >
-                    <span class="truncate">{{ clip.name }}</span>
+                    <span
+                        v-if="phaseShare(clip, 'in')"
+                        data-testid="timeline-animation-in"
+                        class="pointer-events-none absolute inset-y-0 left-0 bg-amber-300/60"
+                        :style="{ width: phaseShare(clip, 'in') }"
+                        aria-hidden="true"
+                    />
+                    <span
+                        v-if="phaseShare(clip, 'out')"
+                        data-testid="timeline-animation-out"
+                        class="pointer-events-none absolute inset-y-0 right-0 bg-amber-300/60"
+                        :style="{ width: phaseShare(clip, 'out') }"
+                        aria-hidden="true"
+                    />
+                    <span class="relative truncate">{{ clip.name }}</span>
                 </button>
             </div>
             <p v-if="!page.elements.length" class="py-3 text-xs text-slate-500"
                 >Añade texto, imágenes o vídeo para crear clips.</p
             >
         </div>
-        <div v-if="selected" class="flex flex-wrap items-end gap-3 border-t border-slate-100 pt-3">
-            <label class="space-y-1 text-xs text-slate-600"
-                ><span class="block">Inicio del clip</span
-                ><input
-                    type="number"
-                    min="0"
-                    :max="page.duration - 1 / document.timeline.fps"
-                    :step="1 / document.timeline.fps"
-                    :value="format(window.start)"
-                    :disabled="busy || playing"
-                    class="w-28 rounded-lg border-slate-200 text-xs"
-                    @change="emit('window', { start: Number($event.target.value) })"
-            /></label>
-            <label class="space-y-1 text-xs text-slate-600"
-                ><span class="block">Duración del clip</span
-                ><input
-                    type="number"
-                    :min="1 / document.timeline.fps"
-                    :max="page.duration - window.start"
-                    :step="1 / document.timeline.fps"
-                    :value="format(window.duration)"
-                    :disabled="busy || playing"
-                    class="w-28 rounded-lg border-slate-200 text-xs"
-                    @change="emit('window', { duration: Number($event.target.value) })"
-            /></label>
-            <button
-                type="button"
-                class="timeline-button"
-                :disabled="busy || playing || !canSplit"
-                @click="emit('split')"
-                >Dividir clip</button
-            >
-        </div>
+        <template v-if="selected">
+            <div class="flex flex-wrap items-end gap-3 border-t border-slate-100 pt-3">
+                <label class="space-y-1 text-xs text-slate-600"
+                    ><span class="block">Inicio del clip</span
+                    ><input
+                        type="number"
+                        min="0"
+                        :max="page.duration - 1 / document.timeline.fps"
+                        :step="1 / document.timeline.fps"
+                        :value="format(window.start)"
+                        :disabled="busy || playing"
+                        class="w-28 rounded-lg border-slate-200 text-xs"
+                        @change="emit('window', { start: Number($event.target.value) })"
+                /></label>
+                <label class="space-y-1 text-xs text-slate-600"
+                    ><span class="block">Duración del clip</span
+                    ><input
+                        type="number"
+                        :min="1 / document.timeline.fps"
+                        :max="page.duration - window.start"
+                        :step="1 / document.timeline.fps"
+                        :value="format(window.duration)"
+                        :disabled="busy || playing"
+                        class="w-28 rounded-lg border-slate-200 text-xs"
+                        @change="emit('window', { duration: Number($event.target.value) })"
+                /></label>
+                <button
+                    type="button"
+                    class="timeline-button"
+                    :disabled="busy || playing || !canSplit"
+                    @click="emit('split')"
+                    >Dividir clip</button
+                >
+            </div>
+            <ObjectAnimationFields
+                :animation="selected.animation"
+                :step="0.1"
+                :disabled="busy || playing"
+                @change="emit('animation', $event)"
+            />
+        </template>
         <p v-else class="text-xs text-slate-500">Selecciona un clip para ajustar sus tiempos o dividirlo.</p>
         <AudioTrackPanel
             :tracks="document.timeline.audio_tracks"

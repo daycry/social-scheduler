@@ -27,6 +27,18 @@ Los filtros de diseños, audio, datasets y tipografías buscan texto literal con
 
 Los diálogos de Studio usan el componente modal nativo compartido. Tab y Mayús+Tab recorren los controles del diálogo activo. Escape cierra el diálogo cuando la acción lo permite. Al cerrar, el foco vuelve al control que lo abrió si sigue disponible. Si hay dos diálogos abiertos, el teclado actúa sobre el que está encima.
 
+### Animaciones por objeto
+
+En los documentos de versión 2, cada elemento (también dentro de grupos) admite `animation` con una fase `in`, `out` o ambas. Cada fase lleva `type` (`fade`, `slide_left`, `slide_right`, `slide_up`, `slide_down` o `zoom`), `duration` (0,1 a 10 s), `delay` opcional y `easing` opcional (`linear`, `ease_in`, `ease_out` o `ease_in_out`, que es el valor por defecto). En fases completas, el retardo va de 0 a 3600 s y la suma de retardos y duraciones debe caber en la vida del objeto. La entrada empieza tras el retardo contado desde el inicio de la ventana y la salida termina ese tiempo antes del final. El objeto es transparente antes de la entrada y después de la salida. Los deslizamientos recorren el 25 % de la página con fundido y el zoom parte del 50 % del tamaño. Un diseño sin `animation` se renderiza igual que antes, y los documentos de versión 1 la rechazan.
+
+La función pura `animationState`, en `resources/js/Studio/object-animation.js`, sirve a la previsualización, al render de servidor (MP4/GIF y fotogramas en Chromium) y a la exportación de imágenes en el instante elegido. `StudioTimeline.php` valida el mismo esquema. El panel de la línea de tiempo muestra y permite editar la entrada y la salida. La duración inicial de una fase nueva es 0,5 s o lo que quepa, con un mínimo de 0,1 s.
+
+Al dividir un clip, ambas mitades conservan la opacidad, el desplazamiento y la escala del objeto en cada instante, incluidos los tramos transparentes y los hijos de un grupo. Una fase recortada guarda `clipped: true`, mantiene su duración original y ajusta su `delay` respecto al borde correspondiente. El retardo puede ir de −10 a 3600 s y situar parte o toda la curva fuera del clip. Solo cuenta el tramo de influencia dentro de la ventana para comprobar que entrada y salida caben. Al acortar un clip desde el panel se descartan las fases que dejan de caber.
+
+Un hijo de grupo se anima dentro de la intersección de su ventana con la del grupo. Al desagrupar, solo se hereda el tramo de la fase del grupo que tiene efecto en esa ventana, con su anclaje original. Si la fase compite con la del hijo o ambas se solapan, se prioriza la del hijo y el editor muestra un aviso. Un zoom de grupo se conserva en un hijo centrado y se traslada como fundido a los hijos descentrados. El editor también avisa en ese caso y cuando la opacidad conjunta puede cambiar al separar varias capas visibles.
+
+Regla de los instantes: una salida estática (miniatura del listado, exportación en lote, PPTX, PNG/JPG/WebP de servidor o del navegador) que no recibe un instante explícito muestra el diseño **en reposo**: entradas completadas y salidas sin empezar (`animationState` con `settled`), sin tocar las ventanas `timing`. Solo con un instante explícito (`frame_times` o el fotograma escrito en el diálogo Exportar) se aplica la animación en ese instante. En el diálogo Exportar el campo «Fotograma» queda vacío si el cabezal sigue en 0 («vacío = diseño en reposo») y se rellena con el instante del cabezal si lo moviste.
+
 ## Diseños y aprobadores de marca
 
 Un aprobador invitado ve los diseños activos de esa marca en **Compartidos conmigo**. Puede abrirlos, comentar y

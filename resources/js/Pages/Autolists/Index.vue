@@ -35,6 +35,7 @@ const form = useForm({
     brand_id: props.brand?.id ?? '',
     name: '',
     recycle: false,
+    rss_url: '',
     targets: [],
     slots: [{ day: 1, time: '10:00' }],
 });
@@ -53,15 +54,30 @@ const submit = () => {
     form.post(route('autolists.store'), {
         preserveScroll: true,
         onSuccess: () => {
-            form.reset('name', 'recycle');
+            form.reset('name', 'recycle', 'rss_url');
             Object.keys(chosen).forEach((k) => delete chosen[k]);
         },
     });
 };
 
 const itemForm = reactive({});
-watchEffect(() => props.autolists.forEach((l) => (itemForm[l.id] ??= { text: '', template: '' })));
-const addItem = (list, payload) => router.post(route('autolists.items.store', list.id), payload, { preserveScroll: true, onSuccess: () => (itemForm[list.id] = { text: '', template: '' }) });
+watchEffect(() => props.autolists.forEach((l) => (itemForm[l.id] ??= { text: '', template: '', rss: l.rss_url ?? '', rssError: null })));
+const addItem = (list, payload) =>
+    router.post(route('autolists.items.store', list.id), payload, {
+        preserveScroll: true,
+        onSuccess: () => Object.assign(itemForm[list.id], { text: '', template: '' }),
+    });
+// Feed RSS/Atom de la lista: vacío lo quita. El estado del último sondeo llega en la propia lista.
+const saveFeed = (list) =>
+    router.patch(
+        route('autolists.update', list.id),
+        { rss_url: itemForm[list.id]?.rss ?? '' },
+        {
+            preserveScroll: true,
+            onSuccess: () => (itemForm[list.id].rssError = null),
+            onError: (errors) => (itemForm[list.id].rssError = errors.rss_url ?? null),
+        },
+    );
 const addText = (list) => addItem(list, { text: itemForm[list.id]?.text ?? '' });
 const addTemplate = (list) => itemForm[list.id]?.template && addItem(list, { post_template_id: Number(itemForm[list.id].template) });
 const removeItem = async (list, item) => {
@@ -113,6 +129,23 @@ const fmtDate = computed(() => createDateFormatter(props.brand?.timezone, { date
                                 class="field max-w-md"
                             />
                         </label>
+                    </FormField>
+
+                    <FormField :error="form.errors.rss_url" v-slot="{ control }">
+                        <label class="block text-sm">
+                            <span class="block text-xs font-medium text-slate-500">Feed RSS o Atom (opcional)</span>
+                            <input
+                                v-bind="control"
+                                v-model="form.rss_url"
+                                type="url"
+                                maxlength="2048"
+                                placeholder="https://tu-blog.com/feed.xml"
+                                class="field max-w-xl"
+                            />
+                        </label>
+                        <p class="mt-1 text-xs text-slate-500"
+                            >Las entradas nuevas del feed se añaden a la cola cada vez que se genera la lista.</p
+                        >
                     </FormField>
 
                     <FormField :error="form.errors.targets" v-slot="{ control }">
@@ -202,6 +235,12 @@ const fmtDate = computed(() => createDateFormatter(props.brand?.timezone, { date
                                 {{ l.recycle ? 'con reciclado' : 'sin reciclado' }} · última generación:
                                 {{ fmtDate(l.last_generated_at) }}
                             </p>
+                            <p v-if="l.rss_url" class="mt-1 break-all text-xs text-slate-500">
+                                Feed: {{ l.rss_url }} · último sondeo: {{ fmtDate(l.rss_checked_at) }}
+                            </p>
+                            <p v-if="l.rss_error" class="mt-1 text-xs text-red-600"
+                                >Último sondeo con error: {{ l.rss_error }}</p
+                            >
                             <p class="mt-1 flex items-center gap-1 text-xs text-slate-500">
                                 <template v-for="t in l.targets" :key="t.account_id + t.content_type">
                                     <NetworkIcon
@@ -266,6 +305,24 @@ const fmtDate = computed(() => createDateFormatter(props.brand?.timezone, { date
                                 </select>
                             </label>
                             <button type="submit" class="btn btn-secondary">Añadir</button>
+                        </form>
+                        <form class="md:col-span-2" @submit.prevent="saveFeed(l)">
+                            <FormField :error="itemForm[l.id].rssError" v-slot="{ control }">
+                                <div class="flex items-end gap-2">
+                                    <label class="block flex-1 text-sm">
+                                        <span class="block text-xs font-medium text-slate-500">Feed RSS o Atom</span>
+                                        <input
+                                            v-bind="control"
+                                            v-model="itemForm[l.id].rss"
+                                            type="url"
+                                            maxlength="2048"
+                                            placeholder="https://tu-blog.com/feed.xml"
+                                            class="field"
+                                        />
+                                    </label>
+                                    <button type="submit" class="btn btn-secondary">Guardar feed</button>
+                                </div>
+                            </FormField>
                         </form>
                     </div>
                 </section>

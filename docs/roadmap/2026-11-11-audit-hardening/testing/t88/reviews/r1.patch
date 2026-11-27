@@ -1,0 +1,2120 @@
+diff --git a/app/Http/Controllers/AutolistController.php b/app/Http/Controllers/AutolistController.php
+index 4d4cbfd..17d4503 100644
+--- a/app/Http/Controllers/AutolistController.php
++++ b/app/Http/Controllers/AutolistController.php
+@@ -49,7 +49,7 @@ public function store(Request $request): RedirectResponse
+         $brand = Brand::query()->findOrFail((int) $data['brand_id']); // UserScope: una marca ajena es 404
+ 
+         try {
+-            $this->autolists->create($request->user(), $brand, $data['name'], $data['targets'], $data['slots'], (bool) ($data['recycle'] ?? false));
++            $this->autolists->create($request->user(), $brand, $data['name'], $data['targets'], $data['slots'], (bool) ($data['recycle'] ?? false), $data['rss_url'] ?? null);
+         } catch (PostValidationException $e) {
+             return back()->withErrors($e->errors());
+         }
+@@ -57,12 +57,17 @@ public function store(Request $request): RedirectResponse
+         return redirect()->route('autolists.index', ['brand_id' => $brand->id])->with('success', 'Autolista creada. Añade contenido a la cola.');
+     }
+ 
+-    /** Activa/pausa la lista o cambia el reciclado. */
++    /** Activa/pausa la lista, cambia el reciclado o el feed RSS (vacio lo quita). */
+     public function update(Request $request, Autolist $autolist): RedirectResponse
+     {
+         $this->authorize('update', $autolist);
+-        $data = $request->validate(['active' => ['sometimes', 'boolean'], 'recycle' => ['sometimes', 'boolean']]);
+-        $this->autolists->update($autolist, $data);
++        $data = $request->validate(['active' => ['sometimes', 'boolean'], 'recycle' => ['sometimes', 'boolean'], 'rss_url' => ['sometimes', ...AutolistService::RSS_URL_RULES]]);
++
++        try {
++            $this->autolists->update($autolist, $data);
++        } catch (PostValidationException $e) {
++            return back()->withErrors($e->errors());
++        }
+ 
+         return back()->with('success', 'Autolista actualizada.');
+     }
+@@ -104,6 +109,8 @@ public function generate(Autolist $autolist): RedirectResponse
+         $this->authorize('update', $autolist);
+         $result = $this->autolists->generate($autolist);
+ 
+-        return back()->with('success', "Generadas {$result['created']} publicaciones programadas".($result['skipped'] ? " ({$result['skipped']} franjas omitidas por contenido no válido)" : '').'.');
++        $rss = isset($result['rss']) ? " Feed: {$result['rss']['added']} ".($result['rss']['added'] === 1 ? 'entrada nueva' : 'entradas nuevas').'.' : '';
++
++        return back()->with('success', "Generadas {$result['created']} publicaciones programadas".($result['skipped'] ? " ({$result['skipped']} franjas omitidas por contenido no válido)" : '').'.'.$rss);
+     }
+ }
+diff --git a/app/Mcp/Tools/ManageAutolist.php b/app/Mcp/Tools/ManageAutolist.php
+index c8be193..4ce87f6 100644
+--- a/app/Mcp/Tools/ManageAutolist.php
++++ b/app/Mcp/Tools/ManageAutolist.php
+@@ -14,7 +14,7 @@
+ use Laravel\Mcp\Server\Attributes\Name;
+ 
+ #[Name('manage_autolist')]
+-#[Description('Autolistas: colas de contenido con franjas semanales que generan publicaciones programadas. action: list (las del usuario, opcionalmente de una marca; paginado por cursor con limit y cursor), create (brand, name, targets [{account_id, content_type}], slots [{day 1-7, time HH:MM en la zona de la marca}], recycle), update (autolist_id; active y/o recycle), delete (autolist_id; las publicaciones ya generadas se conservan), add_item (autolist_id y post_template_id de una plantilla de la marca, o text y/o media ids propios de list_media), remove_item (autolist_id, item_id) y generate (autolist_id: crea ya las publicaciones de los proximos dias; idempotente). list requiere posts:read; el resto, posts:write.')]
++#[Description('Autolistas: colas de contenido con franjas semanales que generan publicaciones programadas. action: list (las del usuario, opcionalmente de una marca; paginado por cursor con limit y cursor), create (brand, name, targets [{account_id, content_type}], slots [{day 1-7, time HH:MM en la zona de la marca}], recycle, rss_url opcional: feed RSS/Atom cuyas entradas nuevas se anaden a la cola en cada generacion), update (autolist_id; active, recycle y/o rss_url; vacio quita el feed), delete (autolist_id; las publicaciones ya generadas se conservan), add_item (autolist_id y post_template_id de una plantilla de la marca, o text y/o media ids propios de list_media), remove_item (autolist_id, item_id) y generate (autolist_id: crea ya las publicaciones de los proximos dias; idempotente). list requiere posts:read; el resto, posts:write.')]
+ class ManageAutolist extends SchedulerTool
+ {
+     private const ACTIONS = ['list', 'create', 'update', 'delete', 'add_item', 'remove_item', 'generate'];
+@@ -43,6 +43,7 @@ public function schema(JsonSchema $schema): array
+             'name' => $schema->string()->description('create: nombre (hasta 120 caracteres)'),
+             'recycle' => $schema->boolean()->description('create/update: volver a empezar la cola al acabarla'),
+             'active' => $schema->boolean()->description('update: activa o pausa la lista'),
++            'rss_url' => $schema->string()->description('create/update: URL http(s) de un feed RSS o Atom publico (vacio en update lo quita). list devuelve rss_checked_at y rss_error del ultimo sondeo'),
+             'targets' => $schema->array()->items($schema->object(['account_id' => $schema->integer()->required(), 'content_type' => $schema->string()->required()]))->description('create: destinos; los tipos validos salen de list_accounts'),
+             'slots' => $schema->array()->items($schema->object(['day' => $schema->integer()->min(1)->max(7)->required(), 'time' => $schema->string()->description('HH:MM')->required()]))->description('create: franjas semanales (dia ISO 1=lunes)'),
+             'post_template_id' => $schema->integer()->description('add_item: plantilla de la Biblioteca de la marca'),
+@@ -69,7 +70,7 @@ protected function run(Request $request, User $user): array
+ 
+         if ($action === 'create') {
+             $data = $request->validate(AutolistService::createRules());
+-            $list = $lists->create($user, $this->brandFrom($request, $user), $data['name'], $data['targets'], $data['slots'], (bool) ($data['recycle'] ?? false));
++            $list = $lists->create($user, $this->brandFrom($request, $user), $data['name'], $data['targets'], $data['slots'], (bool) ($data['recycle'] ?? false), $data['rss_url'] ?? null);
+ 
+             return $lists->present($list->load('items.template'));
+         }
+@@ -79,9 +80,9 @@ protected function run(Request $request, User $user): array
+ 
+         switch ($action) {
+             case 'update':
+-                $data = $request->validate(['active' => ['sometimes', 'boolean'], 'recycle' => ['sometimes', 'boolean']]);
++                $data = $request->validate(['active' => ['sometimes', 'boolean'], 'recycle' => ['sometimes', 'boolean'], 'rss_url' => ['sometimes', ...AutolistService::RSS_URL_RULES]]);
+                 if ($data === []) {
+-                    throw new InvalidArgumentException('update necesita active y/o recycle.');
++                    throw new InvalidArgumentException('update necesita active, recycle y/o rss_url.');
+                 }
+                 $lists->update($list, $data);
+                 break;
+diff --git a/app/Models/Autolist.php b/app/Models/Autolist.php
+index 251ac29..c50ec11 100644
+--- a/app/Models/Autolist.php
++++ b/app/Models/Autolist.php
+@@ -13,7 +13,7 @@ class Autolist extends Model
+ {
+     use BelongsToUser;
+ 
+-    protected $fillable = ['name', 'active', 'recycle', 'targets', 'slots', 'cursor', 'last_position', 'last_item_id', 'last_generated_at'];
++    protected $fillable = ['name', 'active', 'recycle', 'targets', 'slots', 'cursor', 'last_position', 'last_item_id', 'last_generated_at', 'rss_url', 'rss_checked_at', 'rss_error'];
+ 
+     protected function casts(): array
+     {
+@@ -24,6 +24,7 @@ protected function casts(): array
+             'slots' => 'array',
+             'cursor' => 'integer',
+             'last_generated_at' => 'datetime',
++            'rss_checked_at' => 'datetime',
+         ];
+     }
+ 
+diff --git a/app/Services/AutolistService.php b/app/Services/AutolistService.php
+index 324369c..860f300 100644
+--- a/app/Services/AutolistService.php
++++ b/app/Services/AutolistService.php
+@@ -14,6 +14,10 @@
+ use App\Models\PostTemplate;
+ use App\Models\SocialAccount;
+ use App\Models\User;
++use App\Services\Media\UnsafeUrlException;
++use App\Services\Media\UrlGuard;
++use App\Services\Rss\RssException;
++use App\Services\Rss\RssFetcher;
+ use App\Support\Ownership;
+ use Carbon\CarbonImmutable;
+ use Illuminate\Database\Eloquent\Builder;
+@@ -26,6 +30,7 @@
+  * (dia ISO + hora en la zona de la marca). `generate()` crea PUBLICACIONES PROGRAMADAS de los proximos dias con
+  * `PostService` (misma validacion de media y de cuentas que el compositor) y es idempotente: cada franja se
+  * reserva en `autolist_slots` (unica por lista + instante UTC) antes de crear la publicacion.
++ * Una lista puede tener un feed RSS/Atom como origen (T-88): cada generacion lo sondea y anade a la cola las entradas nuevas.
+  */
+ class AutolistService
+ {
+@@ -35,6 +40,9 @@ class AutolistService
+ 
+     public const MAX_ITEMS = 200;
+ 
++    /** Reglas de la URL del feed (la validacion de red la hace UrlGuard al guardarla). */
++    public const RSS_URL_RULES = ['nullable', 'string', 'url:http,https', 'max:2048'];
++
+     /** Margen minimo (min) entre ahora y una franja generada. */
+     private const LEAD_MINUTES = 5;
+ 
+@@ -50,6 +58,7 @@ public static function createRules(): array
+         return [
+             'name' => ['required', 'string', 'max:120'],
+             'recycle' => ['boolean'],
++            'rss_url' => self::RSS_URL_RULES,
+             'targets' => ['required', 'array', 'min:1', 'max:20'],
+             'targets.*.account_id' => ['required', 'integer'],
+             'targets.*.content_type' => ['required', 'string'],
+@@ -102,6 +111,9 @@ public function present(Autolist $l): array
+             'targets' => $l->targets,
+             'cursor' => $l->cursor,
+             'last_generated_at' => $l->last_generated_at?->toIso8601String(),
++            'rss_url' => $l->rss_url,
++            'rss_checked_at' => $l->rss_checked_at?->toIso8601String(),
++            'rss_error' => $l->rss_error,
+             'items' => $l->items->map(fn (AutolistItem $i) => [
+                 'id' => $i->id,
+                 'label' => $i->template?->name ?? mb_substr((string) $i->text, 0, 80),
+@@ -111,9 +123,22 @@ public function present(Autolist $l): array
+         ];
+     }
+ 
+-    /** Activa o pausa la lista, o cambia el reciclado. @param array{active?: bool, recycle?: bool} $data */
++    /**
++     * Activa o pausa la lista, cambia el reciclado o el feed RSS (null lo quita). @param array{active?: bool, recycle?: bool, rss_url?: ?string} $data
++     *
++     * @throws PostValidationException
++     */
+     public function update(Autolist $autolist, array $data): Autolist
+     {
++        if (array_key_exists('rss_url', $data)) {
++            $url = $this->normalizeFeedUrl($data['rss_url']);
++            if ($url !== $autolist->rss_url) {
++                $data['rss_url'] = $url;
++                $data += ['rss_checked_at' => null, 'rss_error' => null]; // otro feed: el estado del sondeo anterior ya no vale
++            } else {
++                unset($data['rss_url']);
++            }
++        }
+         $autolist->forceFill($data)->save();
+ 
+         return $autolist;
+@@ -134,7 +159,7 @@ public function removeItem(Autolist $autolist, int $itemId): void
+      * @param  list<array<string, mixed>>  $targets  [{account_id, content_type}]
+      * @param  list<array<string, mixed>>  $slots  [{day, time}]
+      */
+-    public function create(User $user, Brand $brand, string $name, array $targets, array $slots, bool $recycle = false): Autolist
++    public function create(User $user, Brand $brand, string $name, array $targets, array $slots, bool $recycle = false, ?string $rssUrl = null): Autolist
+     {
+         if (! Ownership::matches($brand, $user)) {
+             throw new PostValidationException(['brand' => ['La marca no pertenece al usuario.']]);
+@@ -148,7 +173,7 @@ public function create(User $user, Brand $brand, string $name, array $targets, a
+         }
+ 
+         $autolist = new Autolist([
+-            'name' => $name, 'active' => true, 'recycle' => $recycle,
++            'name' => $name, 'active' => true, 'recycle' => $recycle, 'rss_url' => $this->normalizeFeedUrl($rssUrl),
+             'targets' => $this->normalizeTargets($user, $brand, $targets), 'slots' => $this->normalizeSlots($slots), 'cursor' => 0,
+         ]);
+         $autolist->user_id = $user->id;
+@@ -204,7 +229,9 @@ public function addItem(User $user, Autolist $autolist, ?int $templateId, ?strin
+     /**
+      * Genera las publicaciones programadas de los proximos `$days` dias. Idempotente.
+      *
+-     * @return array{created: int, skipped: int}
++     * Con feed RSS, antes sondea el feed y anade `rss` = ['added' => entradas nuevas, 'error' => motivo legible o null]; un feed roto no impide generar.
++     *
++     * @return array{created: int, skipped: int, rss?: array{added: int, error: ?string}}
+      */
+     public function generate(Autolist $autolist, ?int $days = null, ?CarbonImmutable $now = null): array
+     {
+@@ -218,6 +245,10 @@ public function generate(Autolist $autolist, ?int $days = null, ?CarbonImmutable
+             return $result;
+         }
+ 
++        if ($autolist->rss_url !== null && $autolist->rss_url !== '') {
++            $result['rss'] = $this->syncFeed($autolist, $now);
++        }
++
+         foreach ($this->upcomingSlots($autolist, $brand, $days, $now) as $at) {
+             $outcome = $this->fillSlot($autolist->id, $user, $brand, $at);
+             if ($outcome === null) {
+@@ -235,6 +266,92 @@ public function generate(Autolist $autolist, ?int $days = null, ?CarbonImmutable
+         return $result;
+     }
+ 
++    /**
++     * Sondea el feed de la lista y anade a la cola las entradas nuevas (de la mas antigua a la mas reciente). Cada entrada se registra en
++     * `autolist_rss_entries` (unica por lista + clave) en la misma transaccion que su elemento, bajo el cerrojo de la lista: dos ejecuciones
++     * simultaneas no duplican y una entrada ya vista (aunque se quitara de la cola o se editara en el feed) no vuelve. Con la cola llena las
++     * entradas que no caben quedan sin ver y se reintentan. El resultado del sondeo queda en `rss_checked_at` / `rss_error`.
++     *
++     * @return array{added: int, error: ?string}
++     */
++    private function syncFeed(Autolist $autolist, CarbonImmutable $now): array
++    {
++        $added = 0;
++        $error = null;
++
++        try {
++            $entries = array_reverse(app(RssFetcher::class)->fetch((string) $autolist->rss_url));
++            $added = DB::transaction(function () use ($autolist, $entries, &$error) {
++                return $this->ingest($autolist->id, $entries, $error);
++            });
++        } catch (RssException $e) {
++            $error = $e->getMessage();
++        } catch (QueryException $e) {
++            Log::warning('autolist.rss_failed', ['autolist_id' => $autolist->id, 'exception' => $e::class]);
++            $error = 'No se pudieron guardar las entradas del feed.';
++        }
++
++        if ($error !== null) {
++            Log::notice('autolist.rss_error', ['autolist_id' => $autolist->id, 'error' => $error]);
++        }
++        $autolist->forceFill(['rss_checked_at' => $now, 'rss_error' => $error])->save();
++
++        return ['added' => $added, 'error' => $error];
++    }
++
++    /**
++     * @param  list<array{key: string, title: string, link: ?string, summary: string}>  $entries
++     */
++    private function ingest(int $autolistId, array $entries, ?string &$error): int
++    {
++        $autolist = Autolist::withoutUserScope()->lockForUpdate()->findOrFail($autolistId);
++        $room = self::MAX_ITEMS - AutolistItem::withoutUserScope()->where('autolist_id', $autolistId)->count();
++        $position = (int) AutolistItem::withoutUserScope()->where('autolist_id', $autolistId)->max('position');
++        $added = 0;
++
++        foreach ($entries as $entry) {
++            if (DB::table('autolist_rss_entries')->where('autolist_id', $autolistId)->where('entry_key', $entry['key'])->exists()) {
++                continue;
++            }
++            if ($added >= $room) {
++                $error = 'La cola de la autolista está llena: quita contenido para recibir las entradas nuevas del feed.';
++
++                break;
++            }
++            // La clave unica decide: si otra ejecucion registro esta entrada entre medias, no se inserta nada y no se crea el elemento.
++            if (DB::table('autolist_rss_entries')->insertOrIgnore(['autolist_id' => $autolistId, 'entry_key' => $entry['key'], 'created_at' => now()]) !== 1) {
++                continue;
++            }
++
++            $item = new AutolistItem(['text' => mb_substr($entry['title'].($entry['link'] !== null ? "\n".$entry['link'] : ''), 0, 10000), 'position' => ++$position]);
++            $item->user_id = $autolist->user_id;
++            $item->autolist_id = $autolistId;
++            $item->save();
++            $added++;
++        }
++
++        return $added;
++    }
++
++    /** URL del feed lista para guardar (null = sin feed): http(s) con IP publica. @throws PostValidationException */
++    private function normalizeFeedUrl(?string $url): ?string
++    {
++        $url = $url !== null ? trim($url) : null;
++        if ($url === null || $url === '') {
++            return null;
++        }
++        if (mb_strlen($url) > 2048) {
++            throw new PostValidationException(['rss_url' => ['La dirección del feed es demasiado larga.']]);
++        }
++        try {
++            app(UrlGuard::class)->validate($url);
++        } catch (UnsafeUrlException $e) {
++            throw new PostValidationException(['rss_url' => [$e->getMessage()]]);
++        }
++
++        return $url;
++    }
++
+     /**
+      * Instantes UTC de las franjas de los proximos `$days` dias (hora local de la marca), ordenados.
+      *
+diff --git a/config/social.php b/config/social.php
+index 724c257..3138654 100644
+--- a/config/social.php
++++ b/config/social.php
+@@ -434,6 +434,17 @@
+         'queue' => env('SOCIAL_AUTOLISTS_QUEUE', 'poll'),
+     ],
+ 
++    /*
++    | Origen RSS/Atom de las autolistas (T-88). El feed lo escribe el usuario: `max_bytes` es el tope del cuerpo (se corta la descarga al pasarlo),
++    | `timeout` / `connect_timeout` (s) el limite de la peticion y `max_entries` cuantas entradas (las primeras del feed) se leen por sondeo.
++    */
++    'rss' => [
++        'max_bytes' => max(1024, (int) env('SOCIAL_RSS_MAX_BYTES', 1_048_576)),
++        'timeout' => max(1, (int) env('SOCIAL_RSS_TIMEOUT', 10)),
++        'connect_timeout' => max(1, (int) env('SOCIAL_RSS_CONNECT_TIMEOUT', 5)),
++        'max_entries' => max(1, (int) env('SOCIAL_RSS_MAX_ENTRIES', 20)),
++    ],
++
+     /*
+     | Buzon de comentarios de Instagram/Facebook (PA-10): sincronizacion periodica en la cola `poll`. Solo publicaciones
+     | propias publicadas en los ultimos `post_days` dias (y como mucho `max_posts` por cuenta) para acotar las llamadas.
+diff --git a/docs/modulos/planificacion-avanzada.md b/docs/modulos/planificacion-avanzada.md
+index 0f8e4f6..ea60bcf 100644
+--- a/docs/modulos/planificacion-avanzada.md
++++ b/docs/modulos/planificacion-avanzada.md
+@@ -34,3 +34,13 @@ ## Autolistas
+ - El cursor apunta al **último elemento usado** (`last_position` + `last_item_id`), no a un índice: borrar elementos no desplaza la cola. Un elemento cuya plantilla se borró y no tiene texto ni media propios se elimina de la cola.
+ - Si una cuenta de destino está en `requiere_reconexion` (causa temporal), la franja **no** se registra ni avanza el cursor (`deferred`); se reintenta en la siguiente generación mientras sea futura. Una media inválida o una cuenta desconectada sí omite la franja con motivo.
+ - El job programado solo reparte: lanza un `GenerateAutolistPosts` por lista activa.
++
++### Origen RSS/Atom (T-88)
++
++Una autolista puede tener un **feed RSS 2.0, RSS 1.0 o Atom** como fuente (`autolists.rss_url`; se indica al crearla o con «Guardar feed» en la lista; vacío lo quita; también por MCP con `rss_url` en `manage_autolist`). Cada `generate()` (el botón «Generar ahora» y el job diario) sondea el feed **antes** de rellenar franjas y añade a la cola un elemento de texto (`título` + salto de línea + enlace http(s)) por entrada nueva, de la más antigua a la más reciente. Una lista con feed necesita destinos que admitan texto sin archivos (Mastodon, Telegram, Bluesky, Facebook...): un destino de solo imagen omitirá la franja por falta de media.
++
++- **Feed hostil.** La URL pasa por `UrlGuard` (solo http/https, puertos 80/443, todas las IPs resueltas públicas, conexión fijada a la IP validada, sin proxy) y las redirecciones se siguen a mano revalidando cada `Location`: una redirección a una IP privada nunca se pide. El cuerpo tiene tope (`SOCIAL_RSS_MAX_BYTES`, 1 MB): se rechaza por `Content-Length` y, sin él, se corta la descarga en cuanto lo pasa (no se lee entero en memoria). La petición tiene límite de conexión (`SOCIAL_RSS_CONNECT_TIMEOUT`, 5 s) y total (`SOCIAL_RSS_TIMEOUT`, 10 s).
++- **XML seguro.** Se rechaza cualquier `<!DOCTYPE>`/`<!ENTITY>` y se parsea sin entidades ni red (`LIBXML_NONET`, sin `NOENT`): ni XXE ni expansión de entidades. El título y el resumen se guardan como texto plano (sin HTML) y un enlace que no sea http(s) seguro se descarta.
++- **Sin duplicados.** Cada entrada se identifica por su `guid`/`id`, si no por su enlace y si no por su contenido (sha256). La clave se registra en `autolist_rss_entries` (**única** por lista + clave) en la misma transacción que el elemento y bajo el cerrojo de la lista: dos ejecuciones simultáneas no duplican y una entrada ya vista **no vuelve** aunque se quite de la cola o se edite en el feed. Se leen como mucho `SOCIAL_RSS_MAX_ENTRIES` (20) entradas por sondeo (las primeras del feed). Con la cola llena (`MAX_ITEMS`) las entradas que no caben quedan sin ver y se reintentan al hacer sitio.
++- **Estado del sondeo.** `rss_checked_at` y `rss_error` (mensaje legible, sin datos del feed) se muestran en la lista y se exponen en `list` del MCP. Un feed roto no impide generar publicaciones con lo que ya hay en la cola; se recupera solo en el siguiente sondeo correcto. La cola de trabajo es la de siempre (`SOCIAL_AUTOLISTS_QUEUE`, `poll`): no hay worker nuevo.
++- **Código:** `app/Services/Rss/RssFetcher.php` (descarga y parseo), `AutolistService::syncFeed()` (ingesta transaccional).
+diff --git a/docs/roadmap/2026-11-11-audit-hardening/tasks.md b/docs/roadmap/2026-11-11-audit-hardening/tasks.md
+index 94c6a5e..e804899 100644
+--- a/docs/roadmap/2026-11-11-audit-hardening/tasks.md
++++ b/docs/roadmap/2026-11-11-audit-hardening/tasks.md
+@@ -4517,15 +4517,15 @@ ### T-87 — Mastodon y Telegram
+ ### T-88 — Autolistas desde RSS
+ 
+ - **Descripción**: Origen RSS/Atom para autolistas con `UrlGuard`, deduplicación y límites de tamaño/tiempo.
+-- **Changelog**:
+-- **Estado**: borrador
++- **Changelog**: Las autolistas pueden tomar un feed RSS o Atom como fuente: las entradas nuevas se añaden solas a la cola sin duplicarse, y un feed no seguro, enorme o lento se rechaza con un aviso claro.
++- **Estado**: en-progreso
+ - **Tiempo humano**: est. 8.0h · real —
+ - **Tiempo IA (ejec.)**: est. 2.0h · real —
+ - **Supervisión**: est. 0.50h (≈25 % IA) · real —
+ - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
+ - **Dependencias**: T-87
+ - **Tipo**: fullstack
+-- **Archivos**: `app/Services/AutolistService.php`, `app/Services/Rss/RssFetcher.php`, `app/Support/UrlGuard.php`, `resources/js/Pages/Autolists/**`, `docs/modulos/planificacion-avanzada.md`
++- **Archivos**: `app/Services/AutolistService.php`, `app/Services/Rss/RssFetcher.php`, `app/Support/UrlGuard.php`, `resources/js/Pages/Autolists/**`, `docs/modulos/planificacion-avanzada.md`, `app/Services/Rss/RssException.php`, `app/Models/Autolist.php`, `app/Http/Controllers/AutolistController.php`, `app/Mcp/Tools/ManageAutolist.php`, `config/social.php`, `database/migrations/2026_11_27_090000_add_rss_source_to_autolists.php`, `tests/Feature/Autolists/RssAutolistTest.php`, `tests/e2e/autolist-rss.spec.ts`, `tests/e2e/isolated/bootstrap.php`, `tests/e2e/isolated/fakes.php`
+ - **Cubre**: F-14
+ - **Cubre (tests)**: E2E-27
+ - **Verificación**: `php artisan test --compact --filter=RssAutolistTest` → verde
+@@ -4538,7 +4538,7 @@ ### T-88 — Autolistas desde RSS
+ - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+ 
+ **Subtareas**
+-- [ ] Implementar (implementer)
++- [x] Implementar (implementer)
+ - [ ] Revisión adversarial A+B(+C)
+ - [ ] Corregir hallazgos de la revisión
+ - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
+diff --git a/resources/js/Pages/Autolists/Index.vue b/resources/js/Pages/Autolists/Index.vue
+index 77a4a54..6e275fc 100644
+--- a/resources/js/Pages/Autolists/Index.vue
++++ b/resources/js/Pages/Autolists/Index.vue
+@@ -35,6 +35,7 @@ const form = useForm({
+     brand_id: props.brand?.id ?? '',
+     name: '',
+     recycle: false,
++    rss_url: '',
+     targets: [],
+     slots: [{ day: 1, time: '10:00' }],
+ });
+@@ -53,15 +54,30 @@ const submit = () => {
+     form.post(route('autolists.store'), {
+         preserveScroll: true,
+         onSuccess: () => {
+-            form.reset('name', 'recycle');
++            form.reset('name', 'recycle', 'rss_url');
+             Object.keys(chosen).forEach((k) => delete chosen[k]);
+         },
+     });
+ };
+ 
+ const itemForm = reactive({});
+-watchEffect(() => props.autolists.forEach((l) => (itemForm[l.id] ??= { text: '', template: '' })));
+-const addItem = (list, payload) => router.post(route('autolists.items.store', list.id), payload, { preserveScroll: true, onSuccess: () => (itemForm[list.id] = { text: '', template: '' }) });
++watchEffect(() => props.autolists.forEach((l) => (itemForm[l.id] ??= { text: '', template: '', rss: l.rss_url ?? '', rssError: null })));
++const addItem = (list, payload) =>
++    router.post(route('autolists.items.store', list.id), payload, {
++        preserveScroll: true,
++        onSuccess: () => Object.assign(itemForm[list.id], { text: '', template: '' }),
++    });
++// Feed RSS/Atom de la lista: vacío lo quita. El estado del último sondeo llega en la propia lista.
++const saveFeed = (list) =>
++    router.patch(
++        route('autolists.update', list.id),
++        { rss_url: itemForm[list.id]?.rss ?? '' },
++        {
++            preserveScroll: true,
++            onSuccess: () => (itemForm[list.id].rssError = null),
++            onError: (errors) => (itemForm[list.id].rssError = errors.rss_url ?? null),
++        },
++    );
+ const addText = (list) => addItem(list, { text: itemForm[list.id]?.text ?? '' });
+ const addTemplate = (list) => itemForm[list.id]?.template && addItem(list, { post_template_id: Number(itemForm[list.id].template) });
+ const removeItem = async (list, item) => {
+@@ -115,6 +131,23 @@ const fmtDate = computed(() => createDateFormatter(props.brand?.timezone, { date
+                         </label>
+                     </FormField>
+ 
++                    <FormField :error="form.errors.rss_url" v-slot="{ control }">
++                        <label class="block text-sm">
++                            <span class="block text-xs font-medium text-slate-500">Feed RSS o Atom (opcional)</span>
++                            <input
++                                v-bind="control"
++                                v-model="form.rss_url"
++                                type="url"
++                                maxlength="2048"
++                                placeholder="https://tu-blog.com/feed.xml"
++                                class="field max-w-xl"
++                            />
++                        </label>
++                        <p class="mt-1 text-xs text-slate-500"
++                            >Las entradas nuevas del feed se añaden a la cola cada vez que se genera la lista.</p
++                        >
++                    </FormField>
++
+                     <FormField :error="form.errors.targets" v-slot="{ control }">
+                         <fieldset v-bind="control">
+                             <legend class="text-xs font-medium text-slate-500">Cuentas de destino</legend>
+@@ -202,6 +235,12 @@ const fmtDate = computed(() => createDateFormatter(props.brand?.timezone, { date
+                                 {{ l.recycle ? 'con reciclado' : 'sin reciclado' }} · última generación:
+                                 {{ fmtDate(l.last_generated_at) }}
+                             </p>
++                            <p v-if="l.rss_url" class="mt-1 break-all text-xs text-slate-500">
++                                Feed: {{ l.rss_url }} · último sondeo: {{ fmtDate(l.rss_checked_at) }}
++                            </p>
++                            <p v-if="l.rss_error" class="mt-1 text-xs text-red-600"
++                                >Último sondeo con error: {{ l.rss_error }}</p
++                            >
+                             <p class="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                                 <template v-for="t in l.targets" :key="t.account_id + t.content_type">
+                                     <NetworkIcon
+@@ -267,6 +306,24 @@ const fmtDate = computed(() => createDateFormatter(props.brand?.timezone, { date
+                             </label>
+                             <button type="submit" class="btn btn-secondary">Añadir</button>
+                         </form>
++                        <form class="flex items-end gap-2 md:col-span-2" @submit.prevent="saveFeed(l)">
++                            <label class="block flex-1 text-sm">
++                                <span class="block text-xs font-medium text-slate-500">Feed RSS o Atom</span>
++                                <input
++                                    v-model="itemForm[l.id].rss"
++                                    type="url"
++                                    maxlength="2048"
++                                    placeholder="https://tu-blog.com/feed.xml"
++                                    class="field"
++                                />
++                            </label>
++                            <button type="submit" class="btn btn-secondary">Guardar feed</button>
++                        </form>
++                        <p
++                            v-if="itemForm[l.id].rssError"
++                            class="text-xs text-red-600 md:col-span-2"
++                            >{{ itemForm[l.id].rssError }}</p
++                        >
+                     </div>
+                 </section>
+             </template>
+diff --git a/tests/e2e/isolated/bootstrap.php b/tests/e2e/isolated/bootstrap.php
+index 6aff6af..36bc197 100644
+--- a/tests/e2e/isolated/bootstrap.php
++++ b/tests/e2e/isolated/bootstrap.php
+@@ -109,6 +109,11 @@ function generalBootstrap(): Application
+         $app->instance(UrlGuard::class, new UrlGuard(fn (string $host) => $host === 'hooks.example.test' ? ['93.184.216.34'] : []));
+         generalFakeWebhooks($root);
+     }
++    if (is_file($root.'/rss-on')) {
++        // T-88: el feed de la autolista RSS vive en un host publico ficticio: UrlGuard lo valida y la peticion la atiende el fake (sin red).
++        $app->instance(UrlGuard::class, new UrlGuard(fn (string $host) => $host === 'feeds.example.test' ? ['93.184.216.34'] : []));
++        generalFakeRss();
++    }
+     if (is_file($root.'/push-on')) {
+         $fixture = json_decode(file_get_contents($root.'/push-on'), true, flags: JSON_THROW_ON_ERROR);
+         config(['push.enabled' => true, 'push.vapid.subject' => 'mailto:e2e-push@example.test',
+diff --git a/tests/e2e/isolated/fakes.php b/tests/e2e/isolated/fakes.php
+index 734a7bc..10089e1 100644
+--- a/tests/e2e/isolated/fakes.php
++++ b/tests/e2e/isolated/fakes.php
+@@ -251,3 +251,13 @@ function generalFakeCanva(string $root): void
+         'export-download.canva.com/*' => fn () => Http::response($png(), 200, ['Content-Type' => 'image/png']),
+     ]);
+ }
++
++/** T-88: feed RSS 2.0 de la bateria E2E (tres entradas, la mas reciente primero) servido sin salir nunca a la red. */
++function generalFakeRss(): void
++{
++    $items = '';
++    foreach ([3 => 'Tercera entrada E2E', 2 => 'Segunda entrada E2E', 1 => 'Primera entrada E2E'] as $n => $title) {
++        $items .= "<item><guid isPermaLink=\"false\">e2e-rss-$n</guid><title>$title</title><link>https://blog.example.test/e2e-$n</link></item>";
++    }
++    Http::fake(['https://feeds.example.test/*' => Http::response('<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Blog E2E</title>'.$items.'</channel></rss>', 200, ['Content-Type' => 'application/rss+xml'])]);
++}
+diff --git a/app/Services/Rss/RssException.php b/app/Services/Rss/RssException.php
+new file mode 100644
+index 0000000..1f52f06
+--- /dev/null
++++ b/app/Services/Rss/RssException.php
+@@ -0,0 +1,8 @@
++<?php
++
++namespace App\Services\Rss;
++
++use RuntimeException;
++
++/** Fallo al leer un feed RSS/Atom. El mensaje es legible para el usuario y no incluye datos del feed. */
++class RssException extends RuntimeException {}
+diff --git a/app/Services/Rss/RssFetcher.php b/app/Services/Rss/RssFetcher.php
+new file mode 100644
+index 0000000..94c553a
+--- /dev/null
++++ b/app/Services/Rss/RssFetcher.php
+@@ -0,0 +1,197 @@
++<?php
++
++namespace App\Services\Rss;
++
++use App\Services\Media\UnsafeUrlException;
++use App\Services\Media\UrlGuard;
++use App\Services\Media\ValidatedUrl;
++use App\Support\SafeUrl;
++use GuzzleHttp\Exception\TransferException;
++use Illuminate\Http\Client\ConnectionException;
++use Illuminate\Http\Client\RequestException;
++use Illuminate\Http\Client\Response;
++use Illuminate\Support\Facades\Http;
++use Psr\Http\Message\ResponseInterface;
++use SimpleXMLElement;
++
++/**
++ * Lector de feeds RSS 2.0 / RSS 1.0 / Atom (T-88). La URL la escribe el usuario, asi que:
++ *  - la peticion pasa por `UrlGuard` (IP publica validada y fijada, redirecciones seguidas a mano y revalidadas, sin proxy);
++ *  - el cuerpo tiene tope (`social.rss.max_bytes`): se corta por `Content-Length` y, sin el, en cuanto lo descargado lo pasa, sin leerlo entero;
++ *  - la peticion tiene limite de conexion y total (`social.rss.connect_timeout` / `timeout`);
++ *  - el XML se parsea sin DTD ni entidades (se rechaza cualquier `<!DOCTYPE`), sin red y sin expandir entidades (XXE, billion laughs).
++ * Devuelve entradas normalizadas; los fallos son `RssException` con un mensaje legible para el usuario.
++ */
++class RssFetcher
++{
++    /** Longitud maxima del titulo y del resumen que se conservan de cada entrada. */
++    private const MAX_TITLE = 300;
++
++    private const MAX_SUMMARY = 2000;
++
++    public function __construct(private readonly UrlGuard $guard) {}
++
++    /**
++     * Descarga y lee el feed: las primeras `social.rss.max_entries` entradas, en el orden del feed (normalmente la mas reciente primero).
++     *
++     * @return list<array{key: string, title: string, link: ?string, summary: string}>
++     *
++     * @throws RssException
++     */
++    public function fetch(string $url): array
++    {
++        return $this->parse($this->download($url));
++    }
++
++    /**
++     * @return list<array{key: string, title: string, link: ?string, summary: string}>
++     *
++     * @throws RssException
++     */
++    public function parse(string $xml): array
++    {
++        $invalid = new RssException('La dirección no es un feed válido (RSS o Atom).');
++
++        // Sin DTD no hay entidades externas ni expansion exponencial: un feed legitimo casi nunca lleva DOCTYPE.
++        if ($xml === '' || preg_match('/<!DOCTYPE|<!ENTITY/i', $xml) === 1) {
++            throw $invalid;
++        }
++
++        $previous = libxml_use_internal_errors(true);
++
++        try {
++            // Sin LIBXML_NOENT / DTDLOAD / DTDATTR: no se sustituyen entidades ni se carga ningun recurso. LIBXML_NONET: nunca toca la red.
++            $root = simplexml_load_string($xml, SimpleXMLElement::class, LIBXML_NONET | LIBXML_NOCDATA | LIBXML_NOWARNING | LIBXML_NOERROR | LIBXML_COMPACT);
++        } finally {
++            libxml_clear_errors();
++            libxml_use_internal_errors($previous);
++        }
++
++        if (! $root instanceof SimpleXMLElement || ! in_array(strtolower($root->getName()), ['rss', 'rdf', 'feed'], true)) {
++            throw $invalid;
++        }
++
++        $nodes = $root->xpath("//*[local-name()='item' or local-name()='entry']") ?: [];
++        $entries = [];
++        foreach (array_slice($nodes, 0, max(1, (int) config('social.rss.max_entries', 20))) as $node) {
++            $entry = $this->entry($node);
++            if ($entry !== null) {
++                $entries[$entry['key']] = $entry; // un guid repetido dentro del feed cuenta una vez
++            }
++        }
++
++        return array_values($entries);
++    }
++
++    /** @throws RssException */
++    private function download(string $url): string
++    {
++        $cap = max(1024, (int) config('social.rss.max_bytes', 1_048_576));
++        $exceeded = false;
++
++        try {
++            $response = $this->guard->follow($url, function (ValidatedUrl $v) use ($cap, &$exceeded): Response {
++                $http = Http::withHeaders(['Accept' => 'application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.8'])
++                    ->connectTimeout(max(1, (int) config('social.rss.connect_timeout', 5)))
++                    ->timeout(max(1, (int) config('social.rss.timeout', 10)))
++                    ->withoutRedirecting()
++                    // Opciones nativas de Guzzle: no cambian el manejador cURL, asi que la IP fijada sigue aplicandose (`stream => true` la rechazaria).
++                    ->withOptions($this->guard->requestOptions($v) + [
++                        'on_headers' => function (ResponseInterface $response) use ($cap, &$exceeded): void {
++                            if ((int) $response->getHeaderLine('Content-Length') > $cap) {
++                                $exceeded = true;
++
++                                throw new RssException('El feed es demasiado grande.');
++                            }
++                        },
++                        // Abortar desde el callback de cURL llega como un fallo de conexion: `$exceeded` distingue el corte por tamano.
++                        'progress' => function ($downloadTotal, $downloaded) use ($cap, &$exceeded): void {
++                            if ($downloaded > $cap) {
++                                $exceeded = true;
++
++                                throw new RssException('El feed es demasiado grande.');
++                            }
++                        },
++                    ]);
++
++                return $http->get($v->url);
++            });
++        } catch (UnsafeUrlException) {
++            throw new RssException('La dirección del feed no está permitida.');
++        } catch (ConnectionException) {
++            throw $exceeded ? new RssException('El feed es demasiado grande.') : new RssException('El feed no respondió a tiempo o no se pudo contactar.');
++        } catch (RequestException $e) {
++            throw new RssException('El feed respondió con un error ('.$e->response->status().').');
++        } catch (TransferException) {
++            // Fallo del cliente HTTP a mitad de la respuesta (p. ej. un callback de tope que lo aborta).
++            throw $exceeded ? new RssException('El feed es demasiado grande.') : new RssException('El feed no se pudo leer.');
++        }
++
++        if ($response->status() >= 300 && $response->status() < 400) {
++            throw new RssException('El feed redirige demasiadas veces o a un destino no válido.');
++        }
++        if ($response->failed()) {
++            throw new RssException('El feed respondió con un error ('.$response->status().').');
++        }
++        if ((int) $response->header('Content-Length') > $cap || strlen($response->body()) > $cap) {
++            throw new RssException('El feed es demasiado grande.');
++        }
++
++        return $response->body();
++    }
++
++    /** @return array{key: string, title: string, link: ?string, summary: string}|null */
++    private function entry(SimpleXMLElement $node): ?array
++    {
++        $title = $this->text($this->child($node, 'title'), self::MAX_TITLE);
++        $summary = $this->text($this->child($node, 'summary') ?? $this->child($node, 'description') ?? $this->child($node, 'content'), self::MAX_SUMMARY);
++        $link = $this->link($node);
++        $id = trim((string) ($this->child($node, 'guid') ?? $this->child($node, 'id') ?? ''));
++
++        if ($title === '' && $summary === '' && $link === null) {
++            return null;
++        }
++
++        // Identidad estable: guid/id de la entrada; si no hay, su enlace; si no, el contenido (titulo + resumen). Con prefijo para que no choquen.
++        $key = $id !== '' ? 'id:'.$id : ($link !== null ? 'link:'.$link : 'hash:'.$title."\n".$summary);
++
++        return ['key' => hash('sha256', $key), 'title' => $title !== '' ? $title : mb_substr($summary, 0, self::MAX_TITLE), 'link' => $link, 'summary' => $summary];
++    }
++
++    private function child(SimpleXMLElement $node, string $name): ?SimpleXMLElement
++    {
++        $found = $node->xpath("./*[local-name()='{$name}']");
++
++        return $found ? $found[0] : null;
++    }
++
++    /** Enlace http(s) de la entrada: el texto de `<link>` (RSS) o el `href` del `<link rel="alternate">` (Atom). Cualquier otro esquema se descarta. */
++    private function link(SimpleXMLElement $node): ?string
++    {
++        foreach ($node->xpath("./*[local-name()='link']") ?: [] as $link) {
++            $rel = strtolower(trim((string) ($link['rel'] ?? '')));
++            if ($rel !== '' && $rel !== 'alternate') {
++                continue;
++            }
++            $href = trim((string) ($link['href'] ?? '') !== '' ? (string) $link['href'] : (string) $link);
++            if (SafeUrl::isSafe($href)) {
++                return $href;
++            }
++        }
++
++        return null;
++    }
++
++    /** Texto plano: sin etiquetas HTML ni entidades, con los espacios colapsados y recortado. */
++    private function text(?SimpleXMLElement $node, int $max): string
++    {
++        if ($node === null) {
++            return '';
++        }
++
++        $text = html_entity_decode(strip_tags((string) $node), ENT_QUOTES | ENT_HTML5, 'UTF-8');
++        $text = (string) preg_replace('/[\p{Cc}\p{Cf}\s]+/u', ' ', $text);
++
++        return mb_substr(trim($text), 0, $max);
++    }
++}
+diff --git a/database/migrations/2026_11_27_090000_add_rss_source_to_autolists.php b/database/migrations/2026_11_27_090000_add_rss_source_to_autolists.php
+new file mode 100644
+index 0000000..dd9eeb7
+--- /dev/null
++++ b/database/migrations/2026_11_27_090000_add_rss_source_to_autolists.php
+@@ -0,0 +1,37 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    public function up(): void
++    {
++        // Origen RSS/Atom de una autolista (T-88): URL del feed y estado del ultimo sondeo (fecha y error legible, sin datos del feed).
++        Schema::table('autolists', function (Blueprint $table) {
++            $table->string('rss_url', 2048)->nullable()->after('slots');
++            $table->timestamp('rss_checked_at')->nullable()->after('rss_url');
++            $table->string('rss_error', 255)->nullable()->after('rss_checked_at');
++        });
++
++        // Entradas del feed ya vistas por lista: la clave (sha256 del guid, el enlace o el contenido) es UNICA, asi que dos ejecuciones
++        // simultaneas no duplican y una entrada quitada de la cola o editada en el feed no vuelve a entrar.
++        Schema::create('autolist_rss_entries', function (Blueprint $table) {
++            $table->id();
++            $table->foreignId('autolist_id')->constrained()->cascadeOnDelete();
++            $table->char('entry_key', 64);
++            $table->timestamp('created_at')->nullable();
++
++            $table->unique(['autolist_id', 'entry_key']);
++        });
++    }
++
++    public function down(): void
++    {
++        Schema::dropIfExists('autolist_rss_entries');
++        Schema::table('autolists', function (Blueprint $table) {
++            $table->dropColumn(['rss_url', 'rss_checked_at', 'rss_error']);
++        });
++    }
++};
+diff --git a/docs/roadmap/2026-11-11-audit-hardening/testing/t88/reviews/r1.patch b/docs/roadmap/2026-11-11-audit-hardening/testing/t88/reviews/r1.patch
+new file mode 100644
+index 0000000..7f0f103
+--- /dev/null
++++ b/docs/roadmap/2026-11-11-audit-hardening/testing/t88/reviews/r1.patch
+@@ -0,0 +1,789 @@
++diff --git a/app/Http/Controllers/AutolistController.php b/app/Http/Controllers/AutolistController.php
++index 4d4cbfd..17d4503 100644
++--- a/app/Http/Controllers/AutolistController.php
+++++ b/app/Http/Controllers/AutolistController.php
++@@ -49,7 +49,7 @@ public function store(Request $request): RedirectResponse
++         $brand = Brand::query()->findOrFail((int) $data['brand_id']); // UserScope: una marca ajena es 404
++ 
++         try {
++-            $this->autolists->create($request->user(), $brand, $data['name'], $data['targets'], $data['slots'], (bool) ($data['recycle'] ?? false));
+++            $this->autolists->create($request->user(), $brand, $data['name'], $data['targets'], $data['slots'], (bool) ($data['recycle'] ?? false), $data['rss_url'] ?? null);
++         } catch (PostValidationException $e) {
++             return back()->withErrors($e->errors());
++         }
++@@ -57,12 +57,17 @@ public function store(Request $request): RedirectResponse
++         return redirect()->route('autolists.index', ['brand_id' => $brand->id])->with('success', 'Autolista creada. Añade contenido a la cola.');
++     }
++ 
++-    /** Activa/pausa la lista o cambia el reciclado. */
+++    /** Activa/pausa la lista, cambia el reciclado o el feed RSS (vacio lo quita). */
++     public function update(Request $request, Autolist $autolist): RedirectResponse
++     {
++         $this->authorize('update', $autolist);
++-        $data = $request->validate(['active' => ['sometimes', 'boolean'], 'recycle' => ['sometimes', 'boolean']]);
++-        $this->autolists->update($autolist, $data);
+++        $data = $request->validate(['active' => ['sometimes', 'boolean'], 'recycle' => ['sometimes', 'boolean'], 'rss_url' => ['sometimes', ...AutolistService::RSS_URL_RULES]]);
+++
+++        try {
+++            $this->autolists->update($autolist, $data);
+++        } catch (PostValidationException $e) {
+++            return back()->withErrors($e->errors());
+++        }
++ 
++         return back()->with('success', 'Autolista actualizada.');
++     }
++@@ -104,6 +109,8 @@ public function generate(Autolist $autolist): RedirectResponse
++         $this->authorize('update', $autolist);
++         $result = $this->autolists->generate($autolist);
++ 
++-        return back()->with('success', "Generadas {$result['created']} publicaciones programadas".($result['skipped'] ? " ({$result['skipped']} franjas omitidas por contenido no válido)" : '').'.');
+++        $rss = isset($result['rss']) ? " Feed: {$result['rss']['added']} ".($result['rss']['added'] === 1 ? 'entrada nueva' : 'entradas nuevas').'.' : '';
+++
+++        return back()->with('success', "Generadas {$result['created']} publicaciones programadas".($result['skipped'] ? " ({$result['skipped']} franjas omitidas por contenido no válido)" : '').'.'.$rss);
++     }
++ }
++diff --git a/app/Mcp/Tools/ManageAutolist.php b/app/Mcp/Tools/ManageAutolist.php
++index c8be193..4ce87f6 100644
++--- a/app/Mcp/Tools/ManageAutolist.php
+++++ b/app/Mcp/Tools/ManageAutolist.php
++@@ -14,7 +14,7 @@
++ use Laravel\Mcp\Server\Attributes\Name;
++ 
++ #[Name('manage_autolist')]
++-#[Description('Autolistas: colas de contenido con franjas semanales que generan publicaciones programadas. action: list (las del usuario, opcionalmente de una marca; paginado por cursor con limit y cursor), create (brand, name, targets [{account_id, content_type}], slots [{day 1-7, time HH:MM en la zona de la marca}], recycle), update (autolist_id; active y/o recycle), delete (autolist_id; las publicaciones ya generadas se conservan), add_item (autolist_id y post_template_id de una plantilla de la marca, o text y/o media ids propios de list_media), remove_item (autolist_id, item_id) y generate (autolist_id: crea ya las publicaciones de los proximos dias; idempotente). list requiere posts:read; el resto, posts:write.')]
+++#[Description('Autolistas: colas de contenido con franjas semanales que generan publicaciones programadas. action: list (las del usuario, opcionalmente de una marca; paginado por cursor con limit y cursor), create (brand, name, targets [{account_id, content_type}], slots [{day 1-7, time HH:MM en la zona de la marca}], recycle, rss_url opcional: feed RSS/Atom cuyas entradas nuevas se anaden a la cola en cada generacion), update (autolist_id; active, recycle y/o rss_url; vacio quita el feed), delete (autolist_id; las publicaciones ya generadas se conservan), add_item (autolist_id y post_template_id de una plantilla de la marca, o text y/o media ids propios de list_media), remove_item (autolist_id, item_id) y generate (autolist_id: crea ya las publicaciones de los proximos dias; idempotente). list requiere posts:read; el resto, posts:write.')]
++ class ManageAutolist extends SchedulerTool
++ {
++     private const ACTIONS = ['list', 'create', 'update', 'delete', 'add_item', 'remove_item', 'generate'];
++@@ -43,6 +43,7 @@ public function schema(JsonSchema $schema): array
++             'name' => $schema->string()->description('create: nombre (hasta 120 caracteres)'),
++             'recycle' => $schema->boolean()->description('create/update: volver a empezar la cola al acabarla'),
++             'active' => $schema->boolean()->description('update: activa o pausa la lista'),
+++            'rss_url' => $schema->string()->description('create/update: URL http(s) de un feed RSS o Atom publico (vacio en update lo quita). list devuelve rss_checked_at y rss_error del ultimo sondeo'),
++             'targets' => $schema->array()->items($schema->object(['account_id' => $schema->integer()->required(), 'content_type' => $schema->string()->required()]))->description('create: destinos; los tipos validos salen de list_accounts'),
++             'slots' => $schema->array()->items($schema->object(['day' => $schema->integer()->min(1)->max(7)->required(), 'time' => $schema->string()->description('HH:MM')->required()]))->description('create: franjas semanales (dia ISO 1=lunes)'),
++             'post_template_id' => $schema->integer()->description('add_item: plantilla de la Biblioteca de la marca'),
++@@ -69,7 +70,7 @@ protected function run(Request $request, User $user): array
++ 
++         if ($action === 'create') {
++             $data = $request->validate(AutolistService::createRules());
++-            $list = $lists->create($user, $this->brandFrom($request, $user), $data['name'], $data['targets'], $data['slots'], (bool) ($data['recycle'] ?? false));
+++            $list = $lists->create($user, $this->brandFrom($request, $user), $data['name'], $data['targets'], $data['slots'], (bool) ($data['recycle'] ?? false), $data['rss_url'] ?? null);
++ 
++             return $lists->present($list->load('items.template'));
++         }
++@@ -79,9 +80,9 @@ protected function run(Request $request, User $user): array
++ 
++         switch ($action) {
++             case 'update':
++-                $data = $request->validate(['active' => ['sometimes', 'boolean'], 'recycle' => ['sometimes', 'boolean']]);
+++                $data = $request->validate(['active' => ['sometimes', 'boolean'], 'recycle' => ['sometimes', 'boolean'], 'rss_url' => ['sometimes', ...AutolistService::RSS_URL_RULES]]);
++                 if ($data === []) {
++-                    throw new InvalidArgumentException('update necesita active y/o recycle.');
+++                    throw new InvalidArgumentException('update necesita active, recycle y/o rss_url.');
++                 }
++                 $lists->update($list, $data);
++                 break;
++diff --git a/app/Models/Autolist.php b/app/Models/Autolist.php
++index 251ac29..c50ec11 100644
++--- a/app/Models/Autolist.php
+++++ b/app/Models/Autolist.php
++@@ -13,7 +13,7 @@ class Autolist extends Model
++ {
++     use BelongsToUser;
++ 
++-    protected $fillable = ['name', 'active', 'recycle', 'targets', 'slots', 'cursor', 'last_position', 'last_item_id', 'last_generated_at'];
+++    protected $fillable = ['name', 'active', 'recycle', 'targets', 'slots', 'cursor', 'last_position', 'last_item_id', 'last_generated_at', 'rss_url', 'rss_checked_at', 'rss_error'];
++ 
++     protected function casts(): array
++     {
++@@ -24,6 +24,7 @@ protected function casts(): array
++             'slots' => 'array',
++             'cursor' => 'integer',
++             'last_generated_at' => 'datetime',
+++            'rss_checked_at' => 'datetime',
++         ];
++     }
++ 
++diff --git a/app/Services/AutolistService.php b/app/Services/AutolistService.php
++index 324369c..860f300 100644
++--- a/app/Services/AutolistService.php
+++++ b/app/Services/AutolistService.php
++@@ -14,6 +14,10 @@
++ use App\Models\PostTemplate;
++ use App\Models\SocialAccount;
++ use App\Models\User;
+++use App\Services\Media\UnsafeUrlException;
+++use App\Services\Media\UrlGuard;
+++use App\Services\Rss\RssException;
+++use App\Services\Rss\RssFetcher;
++ use App\Support\Ownership;
++ use Carbon\CarbonImmutable;
++ use Illuminate\Database\Eloquent\Builder;
++@@ -26,6 +30,7 @@
++  * (dia ISO + hora en la zona de la marca). `generate()` crea PUBLICACIONES PROGRAMADAS de los proximos dias con
++  * `PostService` (misma validacion de media y de cuentas que el compositor) y es idempotente: cada franja se
++  * reserva en `autolist_slots` (unica por lista + instante UTC) antes de crear la publicacion.
+++ * Una lista puede tener un feed RSS/Atom como origen (T-88): cada generacion lo sondea y anade a la cola las entradas nuevas.
++  */
++ class AutolistService
++ {
++@@ -35,6 +40,9 @@ class AutolistService
++ 
++     public const MAX_ITEMS = 200;
++ 
+++    /** Reglas de la URL del feed (la validacion de red la hace UrlGuard al guardarla). */
+++    public const RSS_URL_RULES = ['nullable', 'string', 'url:http,https', 'max:2048'];
+++
++     /** Margen minimo (min) entre ahora y una franja generada. */
++     private const LEAD_MINUTES = 5;
++ 
++@@ -50,6 +58,7 @@ public static function createRules(): array
++         return [
++             'name' => ['required', 'string', 'max:120'],
++             'recycle' => ['boolean'],
+++            'rss_url' => self::RSS_URL_RULES,
++             'targets' => ['required', 'array', 'min:1', 'max:20'],
++             'targets.*.account_id' => ['required', 'integer'],
++             'targets.*.content_type' => ['required', 'string'],
++@@ -102,6 +111,9 @@ public function present(Autolist $l): array
++             'targets' => $l->targets,
++             'cursor' => $l->cursor,
++             'last_generated_at' => $l->last_generated_at?->toIso8601String(),
+++            'rss_url' => $l->rss_url,
+++            'rss_checked_at' => $l->rss_checked_at?->toIso8601String(),
+++            'rss_error' => $l->rss_error,
++             'items' => $l->items->map(fn (AutolistItem $i) => [
++                 'id' => $i->id,
++                 'label' => $i->template?->name ?? mb_substr((string) $i->text, 0, 80),
++@@ -111,9 +123,22 @@ public function present(Autolist $l): array
++         ];
++     }
++ 
++-    /** Activa o pausa la lista, o cambia el reciclado. @param array{active?: bool, recycle?: bool} $data */
+++    /**
+++     * Activa o pausa la lista, cambia el reciclado o el feed RSS (null lo quita). @param array{active?: bool, recycle?: bool, rss_url?: ?string} $data
+++     *
+++     * @throws PostValidationException
+++     */
++     public function update(Autolist $autolist, array $data): Autolist
++     {
+++        if (array_key_exists('rss_url', $data)) {
+++            $url = $this->normalizeFeedUrl($data['rss_url']);
+++            if ($url !== $autolist->rss_url) {
+++                $data['rss_url'] = $url;
+++                $data += ['rss_checked_at' => null, 'rss_error' => null]; // otro feed: el estado del sondeo anterior ya no vale
+++            } else {
+++                unset($data['rss_url']);
+++            }
+++        }
++         $autolist->forceFill($data)->save();
++ 
++         return $autolist;
++@@ -134,7 +159,7 @@ public function removeItem(Autolist $autolist, int $itemId): void
++      * @param  list<array<string, mixed>>  $targets  [{account_id, content_type}]
++      * @param  list<array<string, mixed>>  $slots  [{day, time}]
++      */
++-    public function create(User $user, Brand $brand, string $name, array $targets, array $slots, bool $recycle = false): Autolist
+++    public function create(User $user, Brand $brand, string $name, array $targets, array $slots, bool $recycle = false, ?string $rssUrl = null): Autolist
++     {
++         if (! Ownership::matches($brand, $user)) {
++             throw new PostValidationException(['brand' => ['La marca no pertenece al usuario.']]);
++@@ -148,7 +173,7 @@ public function create(User $user, Brand $brand, string $name, array $targets, a
++         }
++ 
++         $autolist = new Autolist([
++-            'name' => $name, 'active' => true, 'recycle' => $recycle,
+++            'name' => $name, 'active' => true, 'recycle' => $recycle, 'rss_url' => $this->normalizeFeedUrl($rssUrl),
++             'targets' => $this->normalizeTargets($user, $brand, $targets), 'slots' => $this->normalizeSlots($slots), 'cursor' => 0,
++         ]);
++         $autolist->user_id = $user->id;
++@@ -204,7 +229,9 @@ public function addItem(User $user, Autolist $autolist, ?int $templateId, ?strin
++     /**
++      * Genera las publicaciones programadas de los proximos `$days` dias. Idempotente.
++      *
++-     * @return array{created: int, skipped: int}
+++     * Con feed RSS, antes sondea el feed y anade `rss` = ['added' => entradas nuevas, 'error' => motivo legible o null]; un feed roto no impide generar.
+++     *
+++     * @return array{created: int, skipped: int, rss?: array{added: int, error: ?string}}
++      */
++     public function generate(Autolist $autolist, ?int $days = null, ?CarbonImmutable $now = null): array
++     {
++@@ -218,6 +245,10 @@ public function generate(Autolist $autolist, ?int $days = null, ?CarbonImmutable
++             return $result;
++         }
++ 
+++        if ($autolist->rss_url !== null && $autolist->rss_url !== '') {
+++            $result['rss'] = $this->syncFeed($autolist, $now);
+++        }
+++
++         foreach ($this->upcomingSlots($autolist, $brand, $days, $now) as $at) {
++             $outcome = $this->fillSlot($autolist->id, $user, $brand, $at);
++             if ($outcome === null) {
++@@ -235,6 +266,92 @@ public function generate(Autolist $autolist, ?int $days = null, ?CarbonImmutable
++         return $result;
++     }
++ 
+++    /**
+++     * Sondea el feed de la lista y anade a la cola las entradas nuevas (de la mas antigua a la mas reciente). Cada entrada se registra en
+++     * `autolist_rss_entries` (unica por lista + clave) en la misma transaccion que su elemento, bajo el cerrojo de la lista: dos ejecuciones
+++     * simultaneas no duplican y una entrada ya vista (aunque se quitara de la cola o se editara en el feed) no vuelve. Con la cola llena las
+++     * entradas que no caben quedan sin ver y se reintentan. El resultado del sondeo queda en `rss_checked_at` / `rss_error`.
+++     *
+++     * @return array{added: int, error: ?string}
+++     */
+++    private function syncFeed(Autolist $autolist, CarbonImmutable $now): array
+++    {
+++        $added = 0;
+++        $error = null;
+++
+++        try {
+++            $entries = array_reverse(app(RssFetcher::class)->fetch((string) $autolist->rss_url));
+++            $added = DB::transaction(function () use ($autolist, $entries, &$error) {
+++                return $this->ingest($autolist->id, $entries, $error);
+++            });
+++        } catch (RssException $e) {
+++            $error = $e->getMessage();
+++        } catch (QueryException $e) {
+++            Log::warning('autolist.rss_failed', ['autolist_id' => $autolist->id, 'exception' => $e::class]);
+++            $error = 'No se pudieron guardar las entradas del feed.';
+++        }
+++
+++        if ($error !== null) {
+++            Log::notice('autolist.rss_error', ['autolist_id' => $autolist->id, 'error' => $error]);
+++        }
+++        $autolist->forceFill(['rss_checked_at' => $now, 'rss_error' => $error])->save();
+++
+++        return ['added' => $added, 'error' => $error];
+++    }
+++
+++    /**
+++     * @param  list<array{key: string, title: string, link: ?string, summary: string}>  $entries
+++     */
+++    private function ingest(int $autolistId, array $entries, ?string &$error): int
+++    {
+++        $autolist = Autolist::withoutUserScope()->lockForUpdate()->findOrFail($autolistId);
+++        $room = self::MAX_ITEMS - AutolistItem::withoutUserScope()->where('autolist_id', $autolistId)->count();
+++        $position = (int) AutolistItem::withoutUserScope()->where('autolist_id', $autolistId)->max('position');
+++        $added = 0;
+++
+++        foreach ($entries as $entry) {
+++            if (DB::table('autolist_rss_entries')->where('autolist_id', $autolistId)->where('entry_key', $entry['key'])->exists()) {
+++                continue;
+++            }
+++            if ($added >= $room) {
+++                $error = 'La cola de la autolista está llena: quita contenido para recibir las entradas nuevas del feed.';
+++
+++                break;
+++            }
+++            // La clave unica decide: si otra ejecucion registro esta entrada entre medias, no se inserta nada y no se crea el elemento.
+++            if (DB::table('autolist_rss_entries')->insertOrIgnore(['autolist_id' => $autolistId, 'entry_key' => $entry['key'], 'created_at' => now()]) !== 1) {
+++                continue;
+++            }
+++
+++            $item = new AutolistItem(['text' => mb_substr($entry['title'].($entry['link'] !== null ? "\n".$entry['link'] : ''), 0, 10000), 'position' => ++$position]);
+++            $item->user_id = $autolist->user_id;
+++            $item->autolist_id = $autolistId;
+++            $item->save();
+++            $added++;
+++        }
+++
+++        return $added;
+++    }
+++
+++    /** URL del feed lista para guardar (null = sin feed): http(s) con IP publica. @throws PostValidationException */
+++    private function normalizeFeedUrl(?string $url): ?string
+++    {
+++        $url = $url !== null ? trim($url) : null;
+++        if ($url === null || $url === '') {
+++            return null;
+++        }
+++        if (mb_strlen($url) > 2048) {
+++            throw new PostValidationException(['rss_url' => ['La dirección del feed es demasiado larga.']]);
+++        }
+++        try {
+++            app(UrlGuard::class)->validate($url);
+++        } catch (UnsafeUrlException $e) {
+++            throw new PostValidationException(['rss_url' => [$e->getMessage()]]);
+++        }
+++
+++        return $url;
+++    }
+++
++     /**
++      * Instantes UTC de las franjas de los proximos `$days` dias (hora local de la marca), ordenados.
++      *
++diff --git a/config/social.php b/config/social.php
++index 724c257..3138654 100644
++--- a/config/social.php
+++++ b/config/social.php
++@@ -434,6 +434,17 @@
++         'queue' => env('SOCIAL_AUTOLISTS_QUEUE', 'poll'),
++     ],
++ 
+++    /*
+++    | Origen RSS/Atom de las autolistas (T-88). El feed lo escribe el usuario: `max_bytes` es el tope del cuerpo (se corta la descarga al pasarlo),
+++    | `timeout` / `connect_timeout` (s) el limite de la peticion y `max_entries` cuantas entradas (las primeras del feed) se leen por sondeo.
+++    */
+++    'rss' => [
+++        'max_bytes' => max(1024, (int) env('SOCIAL_RSS_MAX_BYTES', 1_048_576)),
+++        'timeout' => max(1, (int) env('SOCIAL_RSS_TIMEOUT', 10)),
+++        'connect_timeout' => max(1, (int) env('SOCIAL_RSS_CONNECT_TIMEOUT', 5)),
+++        'max_entries' => max(1, (int) env('SOCIAL_RSS_MAX_ENTRIES', 20)),
+++    ],
+++
++     /*
++     | Buzon de comentarios de Instagram/Facebook (PA-10): sincronizacion periodica en la cola `poll`. Solo publicaciones
++     | propias publicadas en los ultimos `post_days` dias (y como mucho `max_posts` por cuenta) para acotar las llamadas.
++diff --git a/docs/modulos/planificacion-avanzada.md b/docs/modulos/planificacion-avanzada.md
++index 0f8e4f6..ea60bcf 100644
++--- a/docs/modulos/planificacion-avanzada.md
+++++ b/docs/modulos/planificacion-avanzada.md
++@@ -34,3 +34,13 @@ ## Autolistas
++ - El cursor apunta al **último elemento usado** (`last_position` + `last_item_id`), no a un índice: borrar elementos no desplaza la cola. Un elemento cuya plantilla se borró y no tiene texto ni media propios se elimina de la cola.
++ - Si una cuenta de destino está en `requiere_reconexion` (causa temporal), la franja **no** se registra ni avanza el cursor (`deferred`); se reintenta en la siguiente generación mientras sea futura. Una media inválida o una cuenta desconectada sí omite la franja con motivo.
++ - El job programado solo reparte: lanza un `GenerateAutolistPosts` por lista activa.
+++
+++### Origen RSS/Atom (T-88)
+++
+++Una autolista puede tener un **feed RSS 2.0, RSS 1.0 o Atom** como fuente (`autolists.rss_url`; se indica al crearla o con «Guardar feed» en la lista; vacío lo quita; también por MCP con `rss_url` en `manage_autolist`). Cada `generate()` (el botón «Generar ahora» y el job diario) sondea el feed **antes** de rellenar franjas y añade a la cola un elemento de texto (`título` + salto de línea + enlace http(s)) por entrada nueva, de la más antigua a la más reciente. Una lista con feed necesita destinos que admitan texto sin archivos (Mastodon, Telegram, Bluesky, Facebook...): un destino de solo imagen omitirá la franja por falta de media.
+++
+++- **Feed hostil.** La URL pasa por `UrlGuard` (solo http/https, puertos 80/443, todas las IPs resueltas públicas, conexión fijada a la IP validada, sin proxy) y las redirecciones se siguen a mano revalidando cada `Location`: una redirección a una IP privada nunca se pide. El cuerpo tiene tope (`SOCIAL_RSS_MAX_BYTES`, 1 MB): se rechaza por `Content-Length` y, sin él, se corta la descarga en cuanto lo pasa (no se lee entero en memoria). La petición tiene límite de conexión (`SOCIAL_RSS_CONNECT_TIMEOUT`, 5 s) y total (`SOCIAL_RSS_TIMEOUT`, 10 s).
+++- **XML seguro.** Se rechaza cualquier `<!DOCTYPE>`/`<!ENTITY>` y se parsea sin entidades ni red (`LIBXML_NONET`, sin `NOENT`): ni XXE ni expansión de entidades. El título y el resumen se guardan como texto plano (sin HTML) y un enlace que no sea http(s) seguro se descarta.
+++- **Sin duplicados.** Cada entrada se identifica por su `guid`/`id`, si no por su enlace y si no por su contenido (sha256). La clave se registra en `autolist_rss_entries` (**única** por lista + clave) en la misma transacción que el elemento y bajo el cerrojo de la lista: dos ejecuciones simultáneas no duplican y una entrada ya vista **no vuelve** aunque se quite de la cola o se edite en el feed. Se leen como mucho `SOCIAL_RSS_MAX_ENTRIES` (20) entradas por sondeo (las primeras del feed). Con la cola llena (`MAX_ITEMS`) las entradas que no caben quedan sin ver y se reintentan al hacer sitio.
+++- **Estado del sondeo.** `rss_checked_at` y `rss_error` (mensaje legible, sin datos del feed) se muestran en la lista y se exponen en `list` del MCP. Un feed roto no impide generar publicaciones con lo que ya hay en la cola; se recupera solo en el siguiente sondeo correcto. La cola de trabajo es la de siempre (`SOCIAL_AUTOLISTS_QUEUE`, `poll`): no hay worker nuevo.
+++- **Código:** `app/Services/Rss/RssFetcher.php` (descarga y parseo), `AutolistService::syncFeed()` (ingesta transaccional).
++diff --git a/docs/roadmap/2026-11-11-audit-hardening/tasks.md b/docs/roadmap/2026-11-11-audit-hardening/tasks.md
++index 94c6a5e..e804899 100644
++--- a/docs/roadmap/2026-11-11-audit-hardening/tasks.md
+++++ b/docs/roadmap/2026-11-11-audit-hardening/tasks.md
++@@ -4517,15 +4517,15 @@ ### T-87 — Mastodon y Telegram
++ ### T-88 — Autolistas desde RSS
++ 
++ - **Descripción**: Origen RSS/Atom para autolistas con `UrlGuard`, deduplicación y límites de tamaño/tiempo.
++-- **Changelog**:
++-- **Estado**: borrador
+++- **Changelog**: Las autolistas pueden tomar un feed RSS o Atom como fuente: las entradas nuevas se añaden solas a la cola sin duplicarse, y un feed no seguro, enorme o lento se rechaza con un aviso claro.
+++- **Estado**: en-progreso
++ - **Tiempo humano**: est. 8.0h · real —
++ - **Tiempo IA (ejec.)**: est. 2.0h · real —
++ - **Supervisión**: est. 0.50h (≈25 % IA) · real —
++ - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
++ - **Dependencias**: T-87
++ - **Tipo**: fullstack
++-- **Archivos**: `app/Services/AutolistService.php`, `app/Services/Rss/RssFetcher.php`, `app/Support/UrlGuard.php`, `resources/js/Pages/Autolists/**`, `docs/modulos/planificacion-avanzada.md`
+++- **Archivos**: `app/Services/AutolistService.php`, `app/Services/Rss/RssFetcher.php`, `app/Support/UrlGuard.php`, `resources/js/Pages/Autolists/**`, `docs/modulos/planificacion-avanzada.md`, `app/Services/Rss/RssException.php`, `app/Models/Autolist.php`, `app/Http/Controllers/AutolistController.php`, `app/Mcp/Tools/ManageAutolist.php`, `config/social.php`, `database/migrations/2026_11_27_090000_add_rss_source_to_autolists.php`, `tests/Feature/Autolists/RssAutolistTest.php`, `tests/e2e/autolist-rss.spec.ts`, `tests/e2e/isolated/bootstrap.php`, `tests/e2e/isolated/fakes.php`
++ - **Cubre**: F-14
++ - **Cubre (tests)**: E2E-27
++ - **Verificación**: `php artisan test --compact --filter=RssAutolistTest` → verde
++@@ -4538,7 +4538,7 @@ ### T-88 — Autolistas desde RSS
++ - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
++ 
++ **Subtareas**
++-- [ ] Implementar (implementer)
+++- [x] Implementar (implementer)
++ - [ ] Revisión adversarial A+B(+C)
++ - [ ] Corregir hallazgos de la revisión
++ - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
++diff --git a/resources/js/Pages/Autolists/Index.vue b/resources/js/Pages/Autolists/Index.vue
++index 77a4a54..6e275fc 100644
++--- a/resources/js/Pages/Autolists/Index.vue
+++++ b/resources/js/Pages/Autolists/Index.vue
++@@ -35,6 +35,7 @@ const form = useForm({
++     brand_id: props.brand?.id ?? '',
++     name: '',
++     recycle: false,
+++    rss_url: '',
++     targets: [],
++     slots: [{ day: 1, time: '10:00' }],
++ });
++@@ -53,15 +54,30 @@ const submit = () => {
++     form.post(route('autolists.store'), {
++         preserveScroll: true,
++         onSuccess: () => {
++-            form.reset('name', 'recycle');
+++            form.reset('name', 'recycle', 'rss_url');
++             Object.keys(chosen).forEach((k) => delete chosen[k]);
++         },
++     });
++ };
++ 
++ const itemForm = reactive({});
++-watchEffect(() => props.autolists.forEach((l) => (itemForm[l.id] ??= { text: '', template: '' })));
++-const addItem = (list, payload) => router.post(route('autolists.items.store', list.id), payload, { preserveScroll: true, onSuccess: () => (itemForm[list.id] = { text: '', template: '' }) });
+++watchEffect(() => props.autolists.forEach((l) => (itemForm[l.id] ??= { text: '', template: '', rss: l.rss_url ?? '', rssError: null })));
+++const addItem = (list, payload) =>
+++    router.post(route('autolists.items.store', list.id), payload, {
+++        preserveScroll: true,
+++        onSuccess: () => Object.assign(itemForm[list.id], { text: '', template: '' }),
+++    });
+++// Feed RSS/Atom de la lista: vacío lo quita. El estado del último sondeo llega en la propia lista.
+++const saveFeed = (list) =>
+++    router.patch(
+++        route('autolists.update', list.id),
+++        { rss_url: itemForm[list.id]?.rss ?? '' },
+++        {
+++            preserveScroll: true,
+++            onSuccess: () => (itemForm[list.id].rssError = null),
+++            onError: (errors) => (itemForm[list.id].rssError = errors.rss_url ?? null),
+++        },
+++    );
++ const addText = (list) => addItem(list, { text: itemForm[list.id]?.text ?? '' });
++ const addTemplate = (list) => itemForm[list.id]?.template && addItem(list, { post_template_id: Number(itemForm[list.id].template) });
++ const removeItem = async (list, item) => {
++@@ -115,6 +131,23 @@ const fmtDate = computed(() => createDateFormatter(props.brand?.timezone, { date
++                         </label>
++                     </FormField>
++ 
+++                    <FormField :error="form.errors.rss_url" v-slot="{ control }">
+++                        <label class="block text-sm">
+++                            <span class="block text-xs font-medium text-slate-500">Feed RSS o Atom (opcional)</span>
+++                            <input
+++                                v-bind="control"
+++                                v-model="form.rss_url"
+++                                type="url"
+++                                maxlength="2048"
+++                                placeholder="https://tu-blog.com/feed.xml"
+++                                class="field max-w-xl"
+++                            />
+++                        </label>
+++                        <p class="mt-1 text-xs text-slate-500"
+++                            >Las entradas nuevas del feed se añaden a la cola cada vez que se genera la lista.</p
+++                        >
+++                    </FormField>
+++
++                     <FormField :error="form.errors.targets" v-slot="{ control }">
++                         <fieldset v-bind="control">
++                             <legend class="text-xs font-medium text-slate-500">Cuentas de destino</legend>
++@@ -202,6 +235,12 @@ const fmtDate = computed(() => createDateFormatter(props.brand?.timezone, { date
++                                 {{ l.recycle ? 'con reciclado' : 'sin reciclado' }} · última generación:
++                                 {{ fmtDate(l.last_generated_at) }}
++                             </p>
+++                            <p v-if="l.rss_url" class="mt-1 break-all text-xs text-slate-500">
+++                                Feed: {{ l.rss_url }} · último sondeo: {{ fmtDate(l.rss_checked_at) }}
+++                            </p>
+++                            <p v-if="l.rss_error" class="mt-1 text-xs text-red-600"
+++                                >Último sondeo con error: {{ l.rss_error }}</p
+++                            >
++                             <p class="mt-1 flex items-center gap-1 text-xs text-slate-500">
++                                 <template v-for="t in l.targets" :key="t.account_id + t.content_type">
++                                     <NetworkIcon
++@@ -267,6 +306,24 @@ const fmtDate = computed(() => createDateFormatter(props.brand?.timezone, { date
++                             </label>
++                             <button type="submit" class="btn btn-secondary">Añadir</button>
++                         </form>
+++                        <form class="flex items-end gap-2 md:col-span-2" @submit.prevent="saveFeed(l)">
+++                            <label class="block flex-1 text-sm">
+++                                <span class="block text-xs font-medium text-slate-500">Feed RSS o Atom</span>
+++                                <input
+++                                    v-model="itemForm[l.id].rss"
+++                                    type="url"
+++                                    maxlength="2048"
+++                                    placeholder="https://tu-blog.com/feed.xml"
+++                                    class="field"
+++                                />
+++                            </label>
+++                            <button type="submit" class="btn btn-secondary">Guardar feed</button>
+++                        </form>
+++                        <p
+++                            v-if="itemForm[l.id].rssError"
+++                            class="text-xs text-red-600 md:col-span-2"
+++                            >{{ itemForm[l.id].rssError }}</p
+++                        >
++                     </div>
++                 </section>
++             </template>
++diff --git a/tests/e2e/isolated/bootstrap.php b/tests/e2e/isolated/bootstrap.php
++index 6aff6af..36bc197 100644
++--- a/tests/e2e/isolated/bootstrap.php
+++++ b/tests/e2e/isolated/bootstrap.php
++@@ -109,6 +109,11 @@ function generalBootstrap(): Application
++         $app->instance(UrlGuard::class, new UrlGuard(fn (string $host) => $host === 'hooks.example.test' ? ['93.184.216.34'] : []));
++         generalFakeWebhooks($root);
++     }
+++    if (is_file($root.'/rss-on')) {
+++        // T-88: el feed de la autolista RSS vive en un host publico ficticio: UrlGuard lo valida y la peticion la atiende el fake (sin red).
+++        $app->instance(UrlGuard::class, new UrlGuard(fn (string $host) => $host === 'feeds.example.test' ? ['93.184.216.34'] : []));
+++        generalFakeRss();
+++    }
++     if (is_file($root.'/push-on')) {
++         $fixture = json_decode(file_get_contents($root.'/push-on'), true, flags: JSON_THROW_ON_ERROR);
++         config(['push.enabled' => true, 'push.vapid.subject' => 'mailto:e2e-push@example.test',
++diff --git a/tests/e2e/isolated/fakes.php b/tests/e2e/isolated/fakes.php
++index 734a7bc..10089e1 100644
++--- a/tests/e2e/isolated/fakes.php
+++++ b/tests/e2e/isolated/fakes.php
++@@ -251,3 +251,13 @@ function generalFakeCanva(string $root): void
++         'export-download.canva.com/*' => fn () => Http::response($png(), 200, ['Content-Type' => 'image/png']),
++     ]);
++ }
+++
+++/** T-88: feed RSS 2.0 de la bateria E2E (tres entradas, la mas reciente primero) servido sin salir nunca a la red. */
+++function generalFakeRss(): void
+++{
+++    $items = '';
+++    foreach ([3 => 'Tercera entrada E2E', 2 => 'Segunda entrada E2E', 1 => 'Primera entrada E2E'] as $n => $title) {
+++        $items .= "<item><guid isPermaLink=\"false\">e2e-rss-$n</guid><title>$title</title><link>https://blog.example.test/e2e-$n</link></item>";
+++    }
+++    Http::fake(['https://feeds.example.test/*' => Http::response('<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Blog E2E</title>'.$items.'</channel></rss>', 200, ['Content-Type' => 'application/rss+xml'])]);
+++}
++diff --git a/app/Services/Rss/RssException.php b/app/Services/Rss/RssException.php
++new file mode 100644
++index 0000000..1f52f06
++--- /dev/null
+++++ b/app/Services/Rss/RssException.php
++@@ -0,0 +1,8 @@
+++<?php
+++
+++namespace App\Services\Rss;
+++
+++use RuntimeException;
+++
+++/** Fallo al leer un feed RSS/Atom. El mensaje es legible para el usuario y no incluye datos del feed. */
+++class RssException extends RuntimeException {}
++diff --git a/app/Services/Rss/RssFetcher.php b/app/Services/Rss/RssFetcher.php
++new file mode 100644
++index 0000000..94c553a
++--- /dev/null
+++++ b/app/Services/Rss/RssFetcher.php
++@@ -0,0 +1,197 @@
+++<?php
+++
+++namespace App\Services\Rss;
+++
+++use App\Services\Media\UnsafeUrlException;
+++use App\Services\Media\UrlGuard;
+++use App\Services\Media\ValidatedUrl;
+++use App\Support\SafeUrl;
+++use GuzzleHttp\Exception\TransferException;
+++use Illuminate\Http\Client\ConnectionException;
+++use Illuminate\Http\Client\RequestException;
+++use Illuminate\Http\Client\Response;
+++use Illuminate\Support\Facades\Http;
+++use Psr\Http\Message\ResponseInterface;
+++use SimpleXMLElement;
+++
+++/**
+++ * Lector de feeds RSS 2.0 / RSS 1.0 / Atom (T-88). La URL la escribe el usuario, asi que:
+++ *  - la peticion pasa por `UrlGuard` (IP publica validada y fijada, redirecciones seguidas a mano y revalidadas, sin proxy);
+++ *  - el cuerpo tiene tope (`social.rss.max_bytes`): se corta por `Content-Length` y, sin el, en cuanto lo descargado lo pasa, sin leerlo entero;
+++ *  - la peticion tiene limite de conexion y total (`social.rss.connect_timeout` / `timeout`);
+++ *  - el XML se parsea sin DTD ni entidades (se rechaza cualquier `<!DOCTYPE`), sin red y sin expandir entidades (XXE, billion laughs).
+++ * Devuelve entradas normalizadas; los fallos son `RssException` con un mensaje legible para el usuario.
+++ */
+++class RssFetcher
+++{
+++    /** Longitud maxima del titulo y del resumen que se conservan de cada entrada. */
+++    private const MAX_TITLE = 300;
+++
+++    private const MAX_SUMMARY = 2000;
+++
+++    public function __construct(private readonly UrlGuard $guard) {}
+++
+++    /**
+++     * Descarga y lee el feed: las primeras `social.rss.max_entries` entradas, en el orden del feed (normalmente la mas reciente primero).
+++     *
+++     * @return list<array{key: string, title: string, link: ?string, summary: string}>
+++     *
+++     * @throws RssException
+++     */
+++    public function fetch(string $url): array
+++    {
+++        return $this->parse($this->download($url));
+++    }
+++
+++    /**
+++     * @return list<array{key: string, title: string, link: ?string, summary: string}>
+++     *
+++     * @throws RssException
+++     */
+++    public function parse(string $xml): array
+++    {
+++        $invalid = new RssException('La dirección no es un feed válido (RSS o Atom).');
+++
+++        // Sin DTD no hay entidades externas ni expansion exponencial: un feed legitimo casi nunca lleva DOCTYPE.
+++        if ($xml === '' || preg_match('/<!DOCTYPE|<!ENTITY/i', $xml) === 1) {
+++            throw $invalid;
+++        }
+++
+++        $previous = libxml_use_internal_errors(true);
+++
+++        try {
+++            // Sin LIBXML_NOENT / DTDLOAD / DTDATTR: no se sustituyen entidades ni se carga ningun recurso. LIBXML_NONET: nunca toca la red.
+++            $root = simplexml_load_string($xml, SimpleXMLElement::class, LIBXML_NONET | LIBXML_NOCDATA | LIBXML_NOWARNING | LIBXML_NOERROR | LIBXML_COMPACT);
+++        } finally {
+++            libxml_clear_errors();
+++            libxml_use_internal_errors($previous);
+++        }
+++
+++        if (! $root instanceof SimpleXMLElement || ! in_array(strtolower($root->getName()), ['rss', 'rdf', 'feed'], true)) {
+++            throw $invalid;
+++        }
+++
+++        $nodes = $root->xpath("//*[local-name()='item' or local-name()='entry']") ?: [];
+++        $entries = [];
+++        foreach (array_slice($nodes, 0, max(1, (int) config('social.rss.max_entries', 20))) as $node) {
+++            $entry = $this->entry($node);
+++            if ($entry !== null) {
+++                $entries[$entry['key']] = $entry; // un guid repetido dentro del feed cuenta una vez
+++            }
+++        }
+++
+++        return array_values($entries);
+++    }
+++
+++    /** @throws RssException */
+++    private function download(string $url): string
+++    {
+++        $cap = max(1024, (int) config('social.rss.max_bytes', 1_048_576));
+++        $exceeded = false;
+++
+++        try {
+++            $response = $this->guard->follow($url, function (ValidatedUrl $v) use ($cap, &$exceeded): Response {
+++                $http = Http::withHeaders(['Accept' => 'application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.8'])
+++                    ->connectTimeout(max(1, (int) config('social.rss.connect_timeout', 5)))
+++                    ->timeout(max(1, (int) config('social.rss.timeout', 10)))
+++                    ->withoutRedirecting()
+++                    // Opciones nativas de Guzzle: no cambian el manejador cURL, asi que la IP fijada sigue aplicandose (`stream => true` la rechazaria).
+++                    ->withOptions($this->guard->requestOptions($v) + [
+++                        'on_headers' => function (ResponseInterface $response) use ($cap, &$exceeded): void {
+++                            if ((int) $response->getHeaderLine('Content-Length') > $cap) {
+++                                $exceeded = true;
+++
+++                                throw new RssException('El feed es demasiado grande.');
+++                            }
+++                        },
+++                        // Abortar desde el callback de cURL llega como un fallo de conexion: `$exceeded` distingue el corte por tamano.
+++                        'progress' => function ($downloadTotal, $downloaded) use ($cap, &$exceeded): void {
+++                            if ($downloaded > $cap) {
+++                                $exceeded = true;
+++
+++                                throw new RssException('El feed es demasiado grande.');
+++                            }
+++                        },
+++                    ]);
+++
+++                return $http->get($v->url);
+++            });
+++        } catch (UnsafeUrlException) {
+++            throw new RssException('La dirección del feed no está permitida.');
+++        } catch (ConnectionException) {
+++            throw $exceeded ? new RssException('El feed es demasiado grande.') : new RssException('El feed no respondió a tiempo o no se pudo contactar.');
+++        } catch (RequestException $e) {
+++            throw new RssException('El feed respondió con un error ('.$e->response->status().').');
+++        } catch (TransferException) {
+++            // Fallo del cliente HTTP a mitad de la respuesta (p. ej. un callback de tope que lo aborta).
+++            throw $exceeded ? new RssException('El feed es demasiado grande.') : new RssException('El feed no se pudo leer.');
+++        }
+++
+++        if ($response->status() >= 300 && $response->status() < 400) {
+++            throw new RssException('El feed redirige demasiadas veces o a un destino no válido.');
+++        }
+++        if ($response->failed()) {
+++            throw new RssException('El feed respondió con un error ('.$response->status().').');
+++        }
+++        if ((int) $response->header('Content-Length') > $cap || strlen($response->body()) > $cap) {
+++            throw new RssException('El feed es demasiado grande.');
+++        }
+++
+++        return $response->body();
+++    }
+++
+++    /** @return array{key: string, title: string, link: ?string, summary: string}|null */
+++    private function entry(SimpleXMLElement $node): ?array
+++    {
+++        $title = $this->text($this->child($node, 'title'), self::MAX_TITLE);
+++        $summary = $this->text($this->child($node, 'summary') ?? $this->child($node, 'description') ?? $this->child($node, 'content'), self::MAX_SUMMARY);
+++        $link = $this->link($node);
+++        $id = trim((string) ($this->child($node, 'guid') ?? $this->child($node, 'id') ?? ''));
+++
+++        if ($title === '' && $summary === '' && $link === null) {
+++            return null;
+++        }
+++
+++        // Identidad estable: guid/id de la entrada; si no hay, su enlace; si no, el contenido (titulo + resumen). Con prefijo para que no choquen.
+++        $key = $id !== '' ? 'id:'.$id : ($link !== null ? 'link:'.$link : 'hash:'.$title."\n".$summary);
+++
+++        return ['key' => hash('sha256', $key), 'title' => $title !== '' ? $title : mb_substr($summary, 0, self::MAX_TITLE), 'link' => $link, 'summary' => $summary];
+++    }
+++
+++    private function child(SimpleXMLElement $node, string $name): ?SimpleXMLElement
+++    {
+++        $found = $node->xpath("./*[local-name()='{$name}']");
+++
+++        return $found ? $found[0] : null;
+++    }
+++
+++    /** Enlace http(s) de la entrada: el texto de `<link>` (RSS) o el `href` del `<link rel="alternate">` (Atom). Cualquier otro esquema se descarta. */
+++    private function link(SimpleXMLElement $node): ?string
+++    {
+++        foreach ($node->xpath("./*[local-name()='link']") ?: [] as $link) {
+++            $rel = strtolower(trim((string) ($link['rel'] ?? '')));
+++            if ($rel !== '' && $rel !== 'alternate') {
+++                continue;
+++            }
+++            $href = trim((string) ($link['href'] ?? '') !== '' ? (string) $link['href'] : (string) $link);
+++            if (SafeUrl::isSafe($href)) {
+++                return $href;
+++            }
+++        }
+++
+++        return null;
+++    }
+++
+++    /** Texto plano: sin etiquetas HTML ni entidades, con los espacios colapsados y recortado. */
+++    private function text(?SimpleXMLElement $node, int $max): string
+++    {
+++        if ($node === null) {
+++            return '';
+++        }
+++
+++        $text = html_entity_decode(strip_tags((string) $node), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+++        $text = (string) preg_replace('/[\p{Cc}\p{Cf}\s]+/u', ' ', $text);
+++
+++        return mb_substr(trim($text), 0, $max);
+++    }
+++}
++diff --git a/database/migrations/2026_11_27_090000_add_rss_source_to_autolists.php b/database/migrations/2026_11_27_090000_add_rss_source_to_autolists.php
++new file mode 100644
++index 0000000..dd9eeb7
++--- /dev/null
+++++ b/database/migrations/2026_11_27_090000_add_rss_source_to_autolists.php
++@@ -0,0 +1,37 @@
+++<?php
+++
+++use Illuminate\Database\Migrations\Migration;
+++use Illuminate\Database\Schema\Blueprint;
+++use Illuminate\Support\Facades\Schema;
+++
+++return new class extends Migration
+++{
+++    public function up(): void
+++    {
+++        // Origen RSS/Atom de una autolista (T-88): URL del feed y estado del ultimo sondeo (fecha y error legible, sin datos del feed).
+++        Schema::table('autolists', function (Blueprint $table) {
+++            $table->string('rss_url', 2048)->nullable()->after('slots');
+++            $table->timestamp('rss_checked_at')->nullable()->after('rss_url');
+++            $table->string('rss_error', 255)->nullable()->after('rss_checked_at');
+++        });
+++
+++        // Entradas del feed ya vistas por lista: la clave (sha256 del guid, el enlace o el contenido) es UNICA, asi que dos ejecuciones
+++        // simultaneas no duplican y una entrada quitada de la cola o editada en el feed no vuelve a entrar.
+++        Schema::create('autolist_rss_entries', function (Blueprint $table) {
+++            $table->id();
+++            $table->foreignId('autolist_id')->constrained()->cascadeOnDelete();
+++            $table->char('entry_key', 64);
+++            $table->timestamp('created_at')->nullable();
+++
+++            $table->unique(['autolist_id', 'entry_key']);
+++        });
+++    }
+++
+++    public function down(): void
+++    {
+++        Schema::dropIfExists('autolist_rss_entries');
+++        Schema::table('autolists', function (Blueprint $table) {
+++            $table->dropColumn(['rss_url', 'rss_checked_at', 'rss_error']);
+++        });
+++    }
+++};
+diff --git a/tests/Feature/Autolists/RssAutolistTest.php b/tests/Feature/Autolists/RssAutolistTest.php
+new file mode 100644
+index 0000000..b509471
+--- /dev/null
++++ b/tests/Feature/Autolists/RssAutolistTest.php
+@@ -0,0 +1,428 @@
++<?php
++
++use App\Connectors\Network;
++use App\Exceptions\PostValidationException;
++use App\Models\Autolist;
++use App\Models\AutolistItem;
++use App\Models\Brand;
++use App\Models\SocialAccount;
++use App\Models\User;
++use App\Services\AutolistService;
++use App\Services\Media\UrlGuard;
++use App\Services\Media\ValidatedUrl;
++use Illuminate\Database\QueryException;
++use Illuminate\Http\Client\ConnectionException;
++use Illuminate\Http\Client\Request;
++use Illuminate\Support\Carbon;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Http;
++
++// T-88 (F-14): autolistas con un feed RSS/Atom como origen. El feed lo escribe el usuario: pasa por UrlGuard (IP publica fijada, redirecciones
++// revalidadas), con tope de tamano y de tiempo, parseo XML sin entidades y deduplicacion con indice unico. Sin red: Http::fake y un servidor local.
++
++const RSS_URL = 'https://feeds.example.test/blog.xml';
++
++/** Guardia de test: valida como el real pero devuelve una peticion al servidor local, fijando `feeds.example.test` a 127.0.0.1. Solo existe en este fichero. */
++class RssLoopbackGuard extends UrlGuard
++{
++    public function __construct(public int $port) {}
++
++    public function validate(string $url): ValidatedUrl
++    {
++        $path = (string) (parse_url($url, PHP_URL_PATH) ?: '/');
++
++        return new ValidatedUrl("http://feeds.example.test:{$this->port}{$path}", 'https', 'feeds.example.test', $this->port, '127.0.0.1', ['127.0.0.1']);
++    }
++}
++
++beforeAll(function () {
++    $dir = sys_get_temp_dir().DIRECTORY_SEPARATOR.'rss-loopback-'.bin2hex(random_bytes(4));
++    mkdir($dir);
++
++    file_put_contents($dir.DIRECTORY_SEPARATOR.'router.php', <<<'PHP'
++<?php
++$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
++header('Content-Type: application/rss+xml');
++if ($path === '/slow.xml') {
++    sleep(4);
++    echo '<rss version="2.0"><channel></channel></rss>';
++    return;
++}
++if ($path === '/huge.xml') {
++    // Sin Content-Length (troceado): solo el tope en la lectura lo detiene. 8 MB de 64 en 64 KB.
++    echo '<rss version="2.0"><channel><item><title>';
++    for ($i = 0; $i < 128; $i++) { echo str_repeat('a', 65536); flush(); }
++    echo '</title></item></channel></rss>';
++    return;
++}
++echo '<rss version="2.0"><channel><item><guid>a</guid><title>Local</title><link>https://blog.example.test/a</link></item></channel></rss>';
++PHP);
++
++    $sock = stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr);
++    $port = (int) parse_url('tcp://'.stream_socket_get_name($sock, false), PHP_URL_PORT);
++    fclose($sock);
++
++    $proc = proc_open([PHP_BINARY, '-S', "127.0.0.1:$port", '-t', $dir, $dir.DIRECTORY_SEPARATOR.'router.php'], [0 => ['pipe', 'r'], 1 => ['file', $dir.DIRECTORY_SEPARATOR.'out.log', 'w'], 2 => ['file', $dir.DIRECTORY_SEPARATOR.'err.log', 'w']], $pipes);
++
++    for ($i = 0; $i < 50; $i++) {
++        if (($c = @fsockopen('127.0.0.1', $port)) !== false) {
++            fclose($c);
++            break;
++        }
++        usleep(100000);
++    }
++
++    $GLOBALS['rss_loopback'] = ['dir' => $dir, 'port' => $port, 'proc' => $proc];
++});
++
++afterAll(function () {
++    $l = $GLOBALS['rss_loopback'] ?? null;
++
++    if ($l === null) {
++        return;
++    }
++
++    proc_terminate($l['proc']);
++    proc_close($l['proc']);
++    foreach (glob($l['dir'].DIRECTORY_SEPARATOR.'*') ?: [] as $f) {
++        @unlink($f);
++    }
++    @rmdir($l['dir']);
++});
++
++beforeEach(function () {
++    Http::preventStrayRequests();
++    $GLOBALS['rss_faked'] = false;
++    Carbon::setTestNow('2026-11-01 12:00:00');
++    app()->instance(UrlGuard::class, new UrlGuard(fn (string $host) => ['93.184.216.34']));
++    $this->user = User::factory()->create();
++    $this->brand = Brand::factory()->for($this->user)->create(['timezone' => 'Europe/Madrid']);
++    $this->mastodon = SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::Mastodon]);
++    $this->svc = app(AutolistService::class);
++});
++
++/** @param list<array{guid?: string, title: string, link?: string}> $entries */
++function rssXml(array $entries): string
++{
++    $items = '';
++    foreach ($entries as $e) {
++        $items .= '<item>'.(isset($e['guid']) ? "<guid>{$e['guid']}</guid>" : '').'<title>'.htmlspecialchars($e['title']).'</title>'
++            .(isset($e['link']) ? "<link>{$e['link']}</link>" : '').'<description>Resumen</description></item>';
++    }
++
++    return '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Blog</title>'.$items.'</channel></rss>';
++}
++
++function rssList(?string $url = RSS_URL): Autolist
++{
++    return test()->svc->create(test()->user, test()->brand, 'Blog', [['account_id' => test()->mastodon->id, 'content_type' => 'mastodon_post']], [['day' => 2, 'time' => '10:00']], false, $url);
++}
++
++/** Fija lo que sirve el feed; el cuerpo se puede cambiar entre ejecuciones (Http::fake conserva siempre el primer stub, por eso es una funcion). */
++function rssFeed(string $body, int $status = 200, array $headers = []): void
++{
++    $GLOBALS['rss_stub'] = [$body, $status, $headers + ['Content-Type' => 'application/rss+xml']];
++    if (! ($GLOBALS['rss_faked'] ?? false)) {
++        $GLOBALS['rss_faked'] = true;
++        Http::fake([RSS_URL => fn () => Http::response(...$GLOBALS['rss_stub'])]);
++    }
++}
++
++function rssLabels(Autolist $l): array
++{
++    return AutolistItem::withoutUserScope()->where('autolist_id', $l->id)->orderBy('position')->pluck('text')->all();
++}
++
++test('RSS: las entradas nuevas del feed generan elementos de la cola, de la mas antigua a la mas reciente', function () {
++    rssFeed(rssXml([
++        ['guid' => 'g3', 'title' => 'Tercera', 'link' => 'https://blog.example.test/3'],
++        ['guid' => 'g2', 'title' => 'Segunda', 'link' => 'https://blog.example.test/2'],
++        ['guid' => 'g1', 'title' => 'Primera', 'link' => 'https://blog.example.test/1'],
++    ]));
++    $list = rssList();
++
++    $res = $this->svc->generate($list);
++
++    expect($res['rss'])->toBe(['added' => 3, 'error' => null])
++        ->and(rssLabels($list))->toBe(["Primera\nhttps://blog.example.test/1", "Segunda\nhttps://blog.example.test/2", "Tercera\nhttps://blog.example.test/3"]);
++    $fresh = $list->fresh();
++    expect($fresh->rss_error)->toBeNull()->and($fresh->rss_checked_at)->not->toBeNull();
++});
++
++test('RSS: una segunda ejecucion no duplica elementos', function () {
++    rssFeed(rssXml([['guid' => 'g1', 'title' => 'Una', 'link' => 'https://blog.example.test/1'], ['guid' => 'g2', 'title' => 'Dos']]));
++    $list = rssList();
++
++    $this->svc->generate($list);
++    $again = $this->svc->generate($list->fresh());
++
++    expect($again['rss']['added'])->toBe(0)->and(rssLabels($list))->toHaveCount(2);
++});
++
++test('RSS: las entradas ya vistas no reaparecen tras quitarlas de la cola ni tras editar el feed', function () {
++    rssFeed(rssXml([['guid' => 'g1', 'title' => 'Una'], ['guid' => 'g2', 'title' => 'Dos']]));
++    $list = rssList();
++    $this->svc->generate($list);
++    $one = AutolistItem::withoutUserScope()->where('autolist_id', $list->id)->where('text', 'Una')->firstOrFail();
++    $this->svc->removeItem($list, $one->id);
++
++    // Feed editado: «Una» sigue (con otro titulo), «Dos» desaparece y llega «Tres».
++    rssFeed(rssXml([['guid' => 'g3', 'title' => 'Tres'], ['guid' => 'g1', 'title' => 'Una (corregida)']]));
++    $res = $this->svc->generate($list->fresh());
++
++    expect($res['rss']['added'])->toBe(1)->and(rssLabels($list))->toBe(['Dos', 'Tres']);
++});
++
++test('RSS: sin guid se deduplica por el enlace y, sin enlace, por el contenido', function () {
++    rssFeed(rssXml([['title' => 'Con enlace', 'link' => 'https://blog.example.test/x'], ['title' => 'Sin nada']]));
++    $list = rssList();
++
++    $this->svc->generate($list);
++    rssFeed(rssXml([['title' => 'Con enlace (otro titulo)', 'link' => 'https://blog.example.test/x'], ['title' => 'Sin nada'], ['title' => 'Nueva']]));
++    $res = $this->svc->generate($list->fresh());
++
++    expect($res['rss']['added'])->toBe(1)->and(rssLabels($list))->toHaveCount(3);
++});
++
++test('RSS: lee un feed Atom (id y enlace alternate)', function () {
++    rssFeed(<<<'XML'
++<?xml version="1.0" encoding="utf-8"?>
++<feed xmlns="http://www.w3.org/2005/Atom"><title>Blog</title>
++  <entry><id>urn:uuid:1</id><title>Entrada Atom</title><link rel="self" href="https://blog.example.test/self"/><link rel="alternate" href="https://blog.example.test/atom-1"/><summary>Resumen</summary></entry>
++  <entry><id>urn:uuid:2</id><title type="html">Otra &amp;amp; mas</title></entry>
++</feed>
++XML);
++    $list = rssList();
++
++    $this->svc->generate($list);
++    $this->svc->generate($list->fresh());
++
++    expect(rssLabels($list))->toBe(['Otra & mas', "Entrada Atom\nhttps://blog.example.test/atom-1"]);
++});
++
++test('RSS: un enlace que no es http(s) no se copia al texto', function () {
++    rssFeed(rssXml([['guid' => 'g1', 'title' => 'Peligrosa', 'link' => 'javascript:alert(1)']]));
++    $list = rssList();
++
++    $this->svc->generate($list);
++
++    expect(rssLabels($list))->toBe(['Peligrosa']);
++});
++
++test('RSS: una redireccion a una IP privada se rechaza sin llegar a pedirla', function () {
++    Http::fake([RSS_URL => Http::response('', 302, ['Location' => 'http://10.0.0.5/feed.xml'])]);
++    $list = rssList();
++
++    $res = $this->svc->generate($list);
++
++    expect($res['rss']['added'])->toBe(0)->and($res['rss']['error'])->toContain('no está permitida')
++        ->and(rssLabels($list))->toBe([])->and($list->fresh()->rss_error)->toContain('no está permitida');
++    Http::assertSentCount(1);
++});
++
++test('RSS: un feed cuya URL resuelve a una IP privada no se pide', function () {
++    $list = rssList();
++    app()->instance(UrlGuard::class, new UrlGuard(fn (string $host) => ['192.168.1.20']));
++
++    $res = $this->svc->generate($list->fresh());
++
++    expect($res['rss']['error'])->toContain('no está permitida');
++    Http::assertNothingSent();
++});
++
++test('RSS: un cuerpo mayor que el limite se rechaza', function () {
++    config(['social.rss.max_bytes' => 2048]);
++    rssFeed(rssXml([['guid' => 'g1', 'title' => str_repeat('x', 5000)]]));
++    $list = rssList();
++
++    $res = $this->svc->generate($list);
++
++    expect($res['rss']['error'])->toContain('demasiado grande')->and(rssLabels($list))->toBe([]);
++});
++
++test('RSS: un Content-Length mayor que el limite se rechaza antes de leer el cuerpo', function () {
++    config(['social.rss.max_bytes' => 2048]);
++    rssFeed(rssXml([['guid' => 'g1', 'title' => 'x']]), 200, ['Content-Length' => '9999999']);
++    $list = rssList();
++
++    expect($this->svc->generate($list)['rss']['error'])->toContain('demasiado grande');
++});
++
++test('RSS: un feed que no responde a tiempo da un error legible y la lista sigue generando', function () {
++    Http::fake([RSS_URL => fn () => throw new ConnectionException('cURL error 28: Operation timed out')]);
++    $list = rssList();
++
++    $res = $this->svc->generate($list);
++
++    expect($res['rss']['error'])->toContain('a tiempo')->and($list->fresh()->last_generated_at)->not->toBeNull();
++});
++
++test('RSS: la peticion lleva la URL del feed', function () {
++    config(['social.rss.timeout' => 7, 'social.rss.connect_timeout' => 3]);
++    rssFeed(rssXml([]));
++    $list = rssList();
++
++    $this->svc->generate($list);
++
++    Http::assertSent(fn (Request $r) => $r->url() === RSS_URL);
++});
++
++test('RSS: un XML con entidad externa o DOCTYPE no se resuelve ni se ingiere', function () {
++    $secret = tempnam(sys_get_temp_dir(), 'xxe');
++    file_put_contents($secret, 'SECRETO-DEL-SERVIDOR');
++    $uri = 'file://'.str_replace('\\', '/', $secret);
++    rssFeed('<?xml version="1.0"?><!DOCTYPE rss [<!ENTITY xxe SYSTEM "'.$uri.'">]><rss version="2.0"><channel><item><guid>g1</guid><title>&xxe;</title></item></channel></rss>');
++    $list = rssList();
++
++    $res = $this->svc->generate($list);
++    @unlink($secret);
++
++    expect($res['rss']['error'])->toContain('no es un feed válido')->and(rssLabels($list))->toBe([]);
++    expect(AutolistItem::withoutUserScope()->where('text', 'like', '%SECRETO%')->exists())->toBeFalse();
++});
++
++test('RSS: un cuerpo que no es XML ni feed da un error legible', function () {
++    rssFeed('<html><body>no soy un feed</body></html>');
++    $list = rssList();
++
++    expect($this->svc->generate($list)['rss']['error'])->toContain('no es un feed válido');
++
++    rssFeed('esto no es xml');
++    expect($this->svc->generate($list->fresh())['rss']['error'])->toContain('no es un feed válido');
++});
++
++test('RSS: un feed con error HTTP se anota y se recupera en el siguiente sondeo', function () {
++    rssFeed('', 503);
++    $list = rssList();
++
++    expect($this->svc->generate($list)['rss']['error'])->toContain('503');
++
++    rssFeed(rssXml([['guid' => 'g1', 'title' => 'Ya funciona']]));
++    $res = $this->svc->generate($list->fresh());
++
++    expect($res['rss'])->toBe(['added' => 1, 'error' => null])->and($list->fresh()->rss_error)->toBeNull();
++});
++
++test('RSS: la deduplicacion es un indice unico: dos ejecuciones simultaneas no duplican', function () {
++    rssFeed(rssXml([['guid' => 'g1', 'title' => 'Una']]));
++    $list = rssList();
++    $this->svc->generate($list);
++
++    // Otra ejecucion que leyo el feed a la vez intenta registrar la misma entrada: la BD lo impide.
++    $key = DB::table('autolist_rss_entries')->where('autolist_id', $list->id)->value('entry_key');
++    expect(fn () => DB::table('autolist_rss_entries')->insert(['autolist_id' => $list->id, 'entry_key' => $key, 'created_at' => now()]))->toThrow(QueryException::class);
++
++    // Y el servicio, ante una entrada ya registrada por la otra ejecucion, no crea el elemento.
++    $this->svc->generate($list->fresh());
++    expect(rssLabels($list))->toHaveCount(1);
++});
++
++test('RSS: la cola llena no pierde entradas: se quedan sin ver y se avisa', function () {
++    rssFeed(rssXml([['guid' => 'g1', 'title' => 'Una'], ['guid' => 'g2', 'title' => 'Dos']]));
++    $list = rssList();
++    for ($i = 0; $i < AutolistService::MAX_ITEMS - 1; $i++) {
++        $this->svc->addItem($this->user, $list, null, "Relleno $i");
++    }
++
++    $res = $this->svc->generate($list);
++
++    expect($res['rss']['added'])->toBe(1)->and($res['rss']['error'])->toContain('cola')
++        ->and(DB::table('autolist_rss_entries')->where('autolist_id', $list->id)->count())->toBe(1);
++
++    $this->svc->removeItem($list, AutolistItem::withoutUserScope()->where('autolist_id', $list->id)->orderBy('id')->firstOrFail()->id);
++    expect($this->svc->generate($list->fresh())['rss']['added'])->toBe(1);
++});
++
++test('RSS: una lista sin feed no sondea nada y conserva el resultado clasico', function () {
++    $list = rssList(null);
++
++    expect($this->svc->generate($list))->toBe(['created' => 0, 'skipped' => 0]);
++    Http::assertNothingSent();
++});
++
++test('RSS: se limita el numero de entradas por sondeo', function () {
++    config(['social.rss.max_entries' => 2]);
++    rssFeed(rssXml([['guid' => 'g1', 'title' => 'Una'], ['guid' => 'g2', 'title' => 'Dos'], ['guid' => 'g3', 'title' => 'Tres']]));
++    $list = rssList();
++
++    $this->svc->generate($list);
++
++    // Se toman las 2 primeras del feed (las mas recientes), de la mas antigua a la mas reciente.
++    expect(rssLabels($list))->toBe(['Dos', 'Una']);
++});
++
++test('RSS web: crear, cambiar y quitar el feed; una URL privada o no http se rechaza', function () {
++    $base = ['brand_id' => $this->brand->id, 'name' => 'Web', 'targets' => [['account_id' => $this->mastodon->id, 'content_type' => 'mastodon_post']], 'slots' => [['day' => 1, 'time' => '09:00']]];
++
++    $this->actingAs($this->user)->post(route('autolists.store'), $base + ['rss_url' => 'http://127.0.0.1/feed'])->assertSessionHasErrors('rss_url');
++    $this->actingAs($this->user)->post(route('autolists.store'), $base + ['rss_url' => 'ftp://feeds.example.test/x'])->assertSessionHasErrors('rss_url');
++    $this->actingAs($this->user)->post(route('autolists.store'), $base + ['rss_url' => RSS_URL])->assertSessionHasNoErrors();
++    $list = Autolist::withoutUserScope()->firstOrFail();
++    expect($list->rss_url)->toBe(RSS_URL);
++
++    $this->actingAs($this->user)->patch(route('autolists.update', $list), ['rss_url' => 'https://feeds.example.test/otro.xml'])->assertSessionHasNoErrors();
++    expect($list->fresh()->rss_url)->toBe('https://feeds.example.test/otro.xml')->and($list->fresh()->rss_checked_at)->toBeNull();
++
++    $this->actingAs($this->user)->patch(route('autolists.update', $list), ['rss_url' => null])->assertSessionHasNoErrors();
++    expect($list->fresh()->rss_url)->toBeNull();
++});
++
++test('RSS web: la pagina expone el estado del ultimo sondeo y el error', function () {
++    rssFeed('', 503);
++    $list = rssList();
++    $this->svc->generate($list);
++
++    $this->actingAs($this->user)->get(route('autolists.index', ['brand_id' => $this->brand->id]))->assertInertia(fn ($page) => $page
++        ->where('autolists.0.rss_url', RSS_URL)->where('autolists.0.rss_error', fn ($e) => str_contains($e, '503'))->has('autolists.0.rss_checked_at'));
++});
++
++test('RSS web: «Generar ahora» sondea el feed y avisa de las entradas anadidas', function () {
++    rssFeed(rssXml([['guid' => 'g1', 'title' => 'Una']]));
++    $list = rssList();
++
++    $this->actingAs($this->user)->post(route('autolists.generate', $list))->assertSessionHas('success', fn ($m) => str_contains($m, '1 entrada'));
++    $this->actingAs($this->user)->post(route('autolists.generate', $list))->assertSessionHas('success', fn ($m) => str_contains($m, '0 entradas'));
++});
++
++test('RSS: aislamiento por usuario: nadie mas toca el feed ni ve sus entradas', function () {
++    rssFeed(rssXml([['guid' => 'g1', 'title' => 'Una']]));
++    $list = rssList();
++    $this->svc->generate($list);
++    $other = User::factory()->create();
++
++    // El UserScope hace que una lista ajena ni exista para el otro usuario (404).
++    $this->actingAs($other)->patch(route('autolists.update', $list), ['rss_url' => 'https://feeds.example.test/robado.xml'])->assertNotFound();
++    $this->actingAs($other)->post(route('autolists.generate', $list))->assertNotFound();
++    expect($list->fresh()->rss_url)->toBe(RSS_URL);
++
++    $otherBrand = Brand::factory()->for($other)->create();
++    $this->actingAs($other)->get(route('autolists.index', ['brand_id' => $otherBrand->id]))->assertInertia(fn ($page) => $page->has('autolists', 0));
++    expect(fn () => $this->svc->create($other, $this->brand, 'Ajena', [], [], false, RSS_URL))->toThrow(PostValidationException::class);
++});
++
++test('RSS manejador real: un cuerpo troceado mayor que el limite se corta sin leerlo entero', function () {
++    Http::allowStrayRequests(); // este test habla con un servidor HTTP local (127.0.0.1) a proposito
++    app()->instance(UrlGuard::class, new RssLoopbackGuard($GLOBALS['rss_loopback']['port']));
++    config(['social.rss.max_bytes' => 100_000]);
++    $list = rssList('https://feeds.example.test/huge.xml');
++    $before = memory_get_peak_usage(true);
++
++    $res = $this->svc->generate($list);
++
++    expect($res['rss']['error'])->toContain('demasiado grande')->and(rssLabels($list))->toBe([]);
++    expect(memory_get_peak_usage(true) - $before)->toBeLessThan(4 * 1024 * 1024);
++});
++
++test('RSS manejador real: un feed lento corta por tiempo y uno normal se lee', function () {
++    Http::allowStrayRequests();
++    app()->instance(UrlGuard::class, new RssLoopbackGuard($GLOBALS['rss_loopback']['port']));
++    config(['social.rss.timeout' => 1]);
++    $slow = rssList('https://feeds.example.test/slow.xml');
++
++    expect($this->svc->generate($slow)['rss']['error'])->toContain('a tiempo');
++
++    config(['social.rss.timeout' => 10]);
++    $ok = rssList('https://feeds.example.test/ok.xml');
++
++    expect($this->svc->generate($ok)['rss'])->toBe(['added' => 1, 'error' => null])->and(rssLabels($ok))->toBe(["Local\nhttps://blog.example.test/a"]);
++});
+diff --git a/tests/e2e/autolist-rss.spec.ts b/tests/e2e/autolist-rss.spec.ts
+new file mode 100644
+index 0000000..ddb5934
+--- /dev/null
++++ b/tests/e2e/autolist-rss.spec.ts
+@@ -0,0 +1,96 @@
++import { expect, test } from '@playwright/test';
++import {
++    artisan,
++    axeSeriousCritical,
++    cleanComposerBrands,
++    e2eUser,
++    expectNoOverflow,
++    loginAs,
++    seedComposerBrand,
++    settle,
++    stamp,
++    watch,
++    type ComposerBrand,
++} from './helpers';
++
++/**
++ * T-88 · Autolistas desde RSS (E2E-27). La autolista tiene un feed RSS como origen: el servidor E2E sirve el feed desde un host público ficticio
++ * (`rss-on`: UrlGuard lo valida y la petición la atiende un proveedor simulado, sin red). Se genera dos veces y la cola no duplica entradas;
++ * una dirección privada como feed se rechaza con un mensaje legible. Datos `e2e-composer-*` del usuario E2E.
++ */
++test.describe.configure({ mode: 'serial' });
++
++const FEED = 'https://feeds.example.test/blog.xml';
++
++test.describe('Autolistas RSS', { tag: '@responsive' }, () => {
++    let brand: ComposerBrand;
++
++    test.beforeEach(async ({ page }, info) => {
++        const user = e2eUser(info.project.name);
++        cleanComposerBrands(user.email);
++        brand = seedComposerBrand(user.email, `autolist-rss-${stamp()}-${info.project.name}`);
++        artisan(String.raw`file_put_contents(storage_path('rss-on'), '1');`);
++        await loginAs(page, user);
++    });
++
++    test.afterEach(async ({}, info) => {
++        try {
++            artisan(String.raw`if (is_file(storage_path('rss-on'))) unlink(storage_path('rss-on'));`);
++        } finally {
++            cleanComposerBrands(e2eUser(info.project.name).email);
++        }
++    });
++
++    test('E2E-27 · crea una autolista RSS con un feed local y genera dos veces sin duplicados', async ({
++        page,
++    }, info) => {
++        const w = watch(page);
++        await page.goto(`/autolists?brand_id=${brand.id}`);
++        await settle(page);
++        await expect(page.getByRole('heading', { name: 'Autolistas', level: 1 })).toBeVisible();
++        await page.screenshot({ path: info.outputPath('autolist-rss-inicial.png'), fullPage: true });
++
++        await page.getByLabel('Nombre', { exact: true }).fill('Blog E2E');
++        await page.getByLabel('Feed RSS o Atom (opcional)').fill(FEED);
++        await page.getByRole('checkbox', { name: 'e2e Facebook' }).check();
++        await page.getByRole('button', { name: 'Crear autolista' }).click();
++        await settle(page);
++
++        const list = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Blog E2E', level: 2 }) });
++        await expect(list).toBeVisible();
++        await expect(list).toContainText(`Feed: ${FEED}`);
++        await expect(list.getByRole('listitem')).toHaveCount(0);
++
++        // Primera generación: las tres entradas del feed entran en la cola, de la más antigua a la más reciente.
++        await list.getByRole('button', { name: 'Generar ahora' }).click();
++        await settle(page);
++        await expect(list.getByRole('listitem')).toHaveCount(3);
++        await expect(list.getByRole('listitem').nth(0)).toContainText('Primera entrada E2E');
++        await expect(list.getByRole('listitem').nth(2)).toContainText('Tercera entrada E2E');
++        await expect(list).not.toContainText('Último sondeo con error');
++        await expect(list).not.toContainText('último sondeo: nunca');
++
++        // Segunda generación: ninguna entrada se duplica.
++        await list.getByRole('button', { name: 'Generar ahora' }).click();
++        await settle(page);
++        await expect(list.getByRole('listitem')).toHaveCount(3);
++        await page.screenshot({ path: info.outputPath('autolist-rss-final.png'), fullPage: true });
++
++        await expectNoOverflow(page);
++        await axeSeriousCritical(page, 'Autolista RSS');
++        expect(w.errors).toEqual([]);
++    });
++
++    test('E2E-27 · un feed que apunta a una dirección privada se rechaza con un mensaje legible', async ({ page }) => {
++        await page.goto(`/autolists?brand_id=${brand.id}`);
++        await settle(page);
++        await page.getByLabel('Nombre', { exact: true }).fill('Blog hostil');
++        await page.getByLabel('Feed RSS o Atom (opcional)').fill('http://10.0.0.5/feed.xml');
++        await page.getByRole('checkbox', { name: 'e2e Facebook' }).check();
++        await page.getByRole('button', { name: 'Crear autolista' }).click();
++        await settle(page);
++
++        await expect(page.getByText('La URL apunta a una direccion no permitida.')).toBeVisible();
++        await expect(page.getByRole('heading', { name: 'Blog hostil', level: 2 })).toHaveCount(0);
++    });
++});

@@ -109,6 +109,11 @@ function generalBootstrap(): Application
         $app->instance(UrlGuard::class, new UrlGuard(fn (string $host) => $host === 'hooks.example.test' ? ['93.184.216.34'] : []));
         generalFakeWebhooks($root);
     }
+    if (is_file($root.'/rss-on')) {
+        // T-88: el feed de la autolista RSS vive en un host publico ficticio: UrlGuard lo valida y la peticion la atiende el fake (sin red).
+        $app->instance(UrlGuard::class, new UrlGuard(fn (string $host) => $host === 'feeds.example.test' ? ['93.184.216.34'] : []));
+        generalFakeRss();
+    }
     if (is_file($root.'/push-on')) {
         $fixture = json_decode(file_get_contents($root.'/push-on'), true, flags: JSON_THROW_ON_ERROR);
         config(['push.enabled' => true, 'push.vapid.subject' => 'mailto:e2e-push@example.test',

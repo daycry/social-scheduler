@@ -435,6 +435,19 @@ return [
     ],
 
     /*
+    | Origen RSS/Atom de las autolistas (T-88). El feed lo escribe el usuario: `max_bytes` es el tope del cuerpo (se corta la descarga al pasarlo),
+    | `timeout` / `connect_timeout` (s) el limite de la peticion y `max_entries` cuantas entradas (las mas recientes) se leen por sondeo y
+    | `initial_entries` cuantas de ellas entran en la cola en el primer sondeo (las demas se dan por vistas, sin generar elementos).
+    */
+    'rss' => [
+        'max_bytes' => max(1024, (int) env('SOCIAL_RSS_MAX_BYTES', 1_048_576)),
+        'timeout' => max(1, (int) env('SOCIAL_RSS_TIMEOUT', 10)),
+        'connect_timeout' => max(1, (int) env('SOCIAL_RSS_CONNECT_TIMEOUT', 5)),
+        'max_entries' => max(1, (int) env('SOCIAL_RSS_MAX_ENTRIES', 20)),
+        'initial_entries' => max(0, (int) env('SOCIAL_RSS_INITIAL_ENTRIES', 3)),
+    ],
+
+    /*
     | Buzon de comentarios de Instagram/Facebook (PA-10): sincronizacion periodica en la cola `poll`. Solo publicaciones
     | propias publicadas en los ultimos `post_days` dias (y como mucho `max_posts` por cuenta) para acotar las llamadas.
     */

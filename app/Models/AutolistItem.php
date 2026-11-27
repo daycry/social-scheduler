@@ -14,7 +14,7 @@ class AutolistItem extends Model
 {
     use BelongsToUser;
 
-    protected $fillable = ['post_template_id', 'text', 'media', 'position', 'times_used', 'last_used_at'];
+    protected $fillable = ['post_template_id', 'text', 'link', 'media', 'position', 'times_used', 'last_used_at'];
 
     protected function casts(): array
     {

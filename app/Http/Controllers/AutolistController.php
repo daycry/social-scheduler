@@ -49,7 +49,7 @@ class AutolistController extends Controller
         $brand = Brand::query()->findOrFail((int) $data['brand_id']); // UserScope: una marca ajena es 404
 
         try {
-            $this->autolists->create($request->user(), $brand, $data['name'], $data['targets'], $data['slots'], (bool) ($data['recycle'] ?? false));
+            $this->autolists->create($request->user(), $brand, $data['name'], $data['targets'], $data['slots'], (bool) ($data['recycle'] ?? false), $data['rss_url'] ?? null);
         } catch (PostValidationException $e) {
             return back()->withErrors($e->errors());
         }
@@ -57,12 +57,17 @@ class AutolistController extends Controller
         return redirect()->route('autolists.index', ['brand_id' => $brand->id])->with('success', 'Autolista creada. Añade contenido a la cola.');
     }
 
-    /** Activa/pausa la lista o cambia el reciclado. */
+    /** Activa/pausa la lista, cambia el reciclado o el feed RSS (vacio lo quita). */
     public function update(Request $request, Autolist $autolist): RedirectResponse
     {
         $this->authorize('update', $autolist);
-        $data = $request->validate(['active' => ['sometimes', 'boolean'], 'recycle' => ['sometimes', 'boolean']]);
-        $this->autolists->update($autolist, $data);
+        $data = $request->validate(['active' => ['sometimes', 'boolean'], 'recycle' => ['sometimes', 'boolean'], 'rss_url' => ['sometimes', ...AutolistService::RSS_URL_RULES]]);
+
+        try {
+            $this->autolists->update($autolist, $data);
+        } catch (PostValidationException $e) {
+            return back()->withErrors($e->errors());
+        }
 
         return back()->with('success', 'Autolista actualizada.');
     }
@@ -104,6 +109,10 @@ class AutolistController extends Controller
         $this->authorize('update', $autolist);
         $result = $this->autolists->generate($autolist);
 
-        return back()->with('success', "Generadas {$result['created']} publicaciones programadas".($result['skipped'] ? " ({$result['skipped']} franjas omitidas por contenido no válido)" : '').'.');
+        $rss = isset($result['rss']) ? " Feed: {$result['rss']['added']} ".($result['rss']['added'] === 1 ? 'entrada nueva' : 'entradas nuevas').'.' : '';
+
+        $failed = ($result['rss']['error'] ?? null) !== null ? $result['rss']['error'] : null;
+
+        return back()->with('error', $failed)->with('success', "Generadas {$result['created']} publicaciones programadas".($result['skipped'] ? " ({$result['skipped']} franjas omitidas por contenido no válido)" : '').'.'.$rss);
     }
 }

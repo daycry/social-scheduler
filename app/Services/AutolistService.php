@@ -14,6 +14,11 @@ use App\Models\Post;
 use App\Models\PostTemplate;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Services\Media\UnsafeUrlException;
+use App\Services\Media\UrlGuard;
+use App\Services\Rss\RssException;
+use App\Services\Rss\RssFetcher;
+use App\Services\Rss\RssText;
 use App\Support\Ownership;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,6 +31,7 @@ use Illuminate\Support\Facades\Log;
  * (dia ISO + hora en la zona de la marca). `generate()` crea PUBLICACIONES PROGRAMADAS de los proximos dias con
  * `PostService` (misma validacion de media y de cuentas que el compositor) y es idempotente: cada franja se
  * reserva en `autolist_slots` (unica por lista + instante UTC) antes de crear la publicacion.
+ * Una lista puede tener un feed RSS/Atom como origen (T-88): cada generacion lo sondea y anade a la cola las entradas nuevas.
  */
 class AutolistService
 {
@@ -34,6 +40,9 @@ class AutolistService
     public const MAX_SLOTS = 28;
 
     public const MAX_ITEMS = 200;
+
+    /** Reglas de la URL del feed (la validacion de red la hace UrlGuard al guardarla). */
+    public const RSS_URL_RULES = ['nullable', 'string', 'url:http,https', 'max:2048'];
 
     /** Margen minimo (min) entre ahora y una franja generada. */
     private const LEAD_MINUTES = 5;
@@ -50,6 +59,7 @@ class AutolistService
         return [
             'name' => ['required', 'string', 'max:120'],
             'recycle' => ['boolean'],
+            'rss_url' => self::RSS_URL_RULES,
             'targets' => ['required', 'array', 'min:1', 'max:20'],
             'targets.*.account_id' => ['required', 'integer'],
             'targets.*.content_type' => ['required', 'string'],
@@ -102,6 +112,9 @@ class AutolistService
             'targets' => $l->targets,
             'cursor' => $l->cursor,
             'last_generated_at' => $l->last_generated_at?->toIso8601String(),
+            'rss_url' => $l->rss_url,
+            'rss_checked_at' => $l->rss_checked_at?->toIso8601String(),
+            'rss_error' => $l->rss_error,
             'items' => $l->items->map(fn (AutolistItem $i) => [
                 'id' => $i->id,
                 'label' => $i->template?->name ?? mb_substr((string) $i->text, 0, 80),
@@ -111,9 +124,22 @@ class AutolistService
         ];
     }
 
-    /** Activa o pausa la lista, o cambia el reciclado. @param array{active?: bool, recycle?: bool} $data */
+    /**
+     * Activa o pausa la lista, cambia el reciclado o el feed RSS (null lo quita). @param array{active?: bool, recycle?: bool, rss_url?: ?string} $data
+     *
+     * @throws PostValidationException
+     */
     public function update(Autolist $autolist, array $data): Autolist
     {
+        if (array_key_exists('rss_url', $data)) {
+            $url = $this->normalizeFeedUrl($data['rss_url']);
+            if ($url !== $autolist->rss_url) {
+                $data['rss_url'] = $url;
+                $data += ['rss_checked_at' => null, 'rss_error' => null]; // otro feed: el estado del sondeo anterior ya no vale
+            } else {
+                unset($data['rss_url']);
+            }
+        }
         $autolist->forceFill($data)->save();
 
         return $autolist;
@@ -134,7 +160,7 @@ class AutolistService
      * @param  list<array<string, mixed>>  $targets  [{account_id, content_type}]
      * @param  list<array<string, mixed>>  $slots  [{day, time}]
      */
-    public function create(User $user, Brand $brand, string $name, array $targets, array $slots, bool $recycle = false): Autolist
+    public function create(User $user, Brand $brand, string $name, array $targets, array $slots, bool $recycle = false, ?string $rssUrl = null): Autolist
     {
         if (! Ownership::matches($brand, $user)) {
             throw new PostValidationException(['brand' => ['La marca no pertenece al usuario.']]);
@@ -148,7 +174,7 @@ class AutolistService
         }
 
         $autolist = new Autolist([
-            'name' => $name, 'active' => true, 'recycle' => $recycle,
+            'name' => $name, 'active' => true, 'recycle' => $recycle, 'rss_url' => $this->normalizeFeedUrl($rssUrl),
             'targets' => $this->normalizeTargets($user, $brand, $targets), 'slots' => $this->normalizeSlots($slots), 'cursor' => 0,
         ]);
         $autolist->user_id = $user->id;
@@ -204,7 +230,9 @@ class AutolistService
     /**
      * Genera las publicaciones programadas de los proximos `$days` dias. Idempotente.
      *
-     * @return array{created: int, skipped: int}
+     * Con feed RSS, antes sondea el feed y anade `rss` = ['added' => entradas nuevas, 'error' => motivo legible o null]; un feed roto no impide generar.
+     *
+     * @return array{created: int, skipped: int, rss?: array{added: int, error: ?string}}
      */
     public function generate(Autolist $autolist, ?int $days = null, ?CarbonImmutable $now = null): array
     {
@@ -216,6 +244,10 @@ class AutolistService
         $brand = Brand::ownedBy($autolist->user_id)->find($autolist->brand_id);
         if (! $autolist->active || ! $user || ! $brand) {
             return $result;
+        }
+
+        if ($autolist->rss_url !== null && $autolist->rss_url !== '') {
+            $result['rss'] = $this->syncFeed($autolist, $now);
         }
 
         foreach ($this->upcomingSlots($autolist, $brand, $days, $now) as $at) {
@@ -233,6 +265,105 @@ class AutolistService
         $autolist->forceFill(['last_generated_at' => $now])->save();
 
         return $result;
+    }
+
+    /**
+     * Sondea el feed de la lista y anade a la cola las entradas nuevas (de la mas antigua a la mas reciente; en la primera lectura solo las
+     * `social.rss.initial_entries` mas recientes y el resto de las actuales se dan por vistas). Cada entrada se registra en
+     * `autolist_rss_entries` (unica por lista + feed + clave) en la misma transaccion que su elemento, bajo el cerrojo de la lista: dos ejecuciones
+     * simultaneas no duplican y una entrada ya vista (aunque se quitara de la cola o se editara en el feed) no vuelve. Con la cola llena las
+     * entradas que no caben quedan sin ver y se reintentan. El resultado del sondeo queda en `rss_checked_at` / `rss_error`.
+     *
+     * @return array{added: int, error: ?string}
+     */
+    private function syncFeed(Autolist $autolist, CarbonImmutable $now): array
+    {
+        $added = 0;
+        $error = null;
+
+        try {
+            $entries = app(RssFetcher::class)->fetch((string) $autolist->rss_url);
+            $added = DB::transaction(function () use ($autolist, $entries, &$error) {
+                return $this->ingest($autolist->id, (string) $autolist->rss_url, $entries, $error);
+            });
+        } catch (RssException $e) {
+            $error = $e->getMessage();
+        } catch (QueryException $e) {
+            Log::warning('autolist.rss_failed', ['autolist_id' => $autolist->id, 'exception' => $e::class]);
+            $error = 'No se pudieron guardar las entradas del feed.';
+        }
+
+        if ($error !== null) {
+            Log::notice('autolist.rss_error', ['autolist_id' => $autolist->id, 'error' => $error]);
+        }
+        $autolist->forceFill(['rss_checked_at' => $now, 'rss_error' => $error])->save();
+
+        return ['added' => $added, 'error' => $error];
+    }
+
+    /**
+     * @param  list<array{key: string, title: string, link: ?string, summary: string}>  $entries  De la mas reciente a la mas antigua.
+     */
+    private function ingest(int $autolistId, string $url, array $entries, ?string &$error): int
+    {
+        $autolist = Autolist::withoutUserScope()->lockForUpdate()->findOrFail($autolistId);
+        if ($autolist->rss_url !== $url) {
+            return 0; // el feed de la lista cambio mientras se descargaba este: sus entradas ya no son de la lista
+        }
+        $feed = hash('sha256', $url);
+        $room = self::MAX_ITEMS - AutolistItem::withoutUserScope()->where('autolist_id', $autolistId)->count();
+        $position = (int) AutolistItem::withoutUserScope()->where('autolist_id', $autolistId)->max('position');
+        $added = 0;
+
+        $seen = DB::table('autolist_rss_entries')->where('autolist_id', $autolistId)->where('feed_hash', $feed)->whereIn('entry_key', array_column($entries, 'key'))->pluck('entry_key')->flip();
+        $fresh = array_values(array_filter($entries, fn (array $e) => ! isset($seen[$e['key']])));
+
+        // Primera lectura del feed (la lista aun no ha visto ninguna entrada): solo las mas recientes entran en la cola; las demas se registran como vistas.
+        if ($fresh !== [] && ! DB::table('autolist_rss_entries')->where('autolist_id', $autolistId)->where('feed_hash', $feed)->exists()) {
+            foreach (array_slice($fresh, max(0, (int) config('social.rss.initial_entries', 3))) as $old) {
+                DB::table('autolist_rss_entries')->insertOrIgnore(['autolist_id' => $autolistId, 'feed_hash' => $feed, 'entry_key' => $old['key'], 'created_at' => now()]);
+            }
+            $fresh = array_slice($fresh, 0, max(0, (int) config('social.rss.initial_entries', 3)));
+        }
+
+        foreach (array_reverse($fresh) as $entry) {
+            if ($added >= $room) {
+                $error = 'La cola de la autolista está llena: quita contenido para recibir las entradas nuevas del feed.';
+
+                break;
+            }
+            // La clave unica decide: si otra ejecucion registro esta entrada entre medias, no se inserta nada y no se crea el elemento.
+            if (DB::table('autolist_rss_entries')->insertOrIgnore(['autolist_id' => $autolistId, 'feed_hash' => $feed, 'entry_key' => $entry['key'], 'created_at' => now()]) !== 1) {
+                continue;
+            }
+
+            $item = new AutolistItem(['text' => $entry['title'], 'link' => $entry['link'], 'position' => ++$position]);
+            $item->user_id = $autolist->user_id;
+            $item->autolist_id = $autolistId;
+            $item->save();
+            $added++;
+        }
+
+        return $added;
+    }
+
+    /** URL del feed lista para guardar (null = sin feed): http(s) con IP publica. @throws PostValidationException */
+    private function normalizeFeedUrl(?string $url): ?string
+    {
+        $url = $url !== null ? trim($url) : null;
+        if ($url === null || $url === '') {
+            return null;
+        }
+        if (mb_strlen($url) > 2048) {
+            throw new PostValidationException(['rss_url' => ['La dirección del feed es demasiado larga.']]);
+        }
+        try {
+            app(UrlGuard::class)->validate($url);
+        } catch (UnsafeUrlException $e) {
+            throw new PostValidationException(['rss_url' => [$e->getMessage()]]);
+        }
+
+        return $url;
     }
 
     /**
@@ -420,6 +551,10 @@ class AutolistService
             ? PostTemplate::ownedBy($autolist->user_id)->with('media')->find($item->post_template_id)
             : null;
         $text = $template ? $template->text : $item->text;
+        $feedTexts = $template === null && $item->link !== null ? $this->feedTexts($item, $autolist) : null;
+        if ($feedTexts !== null) {
+            $text = $feedTexts['text'];
+        }
         $media = $template ? $template->media->pluck('id')->map(fn ($id) => (int) $id)->all() : array_map('intval', (array) $item->media);
 
         // Una plantilla de la biblioteca puede traer texto propio por destino (C-03): se conserva en los destinos de la autolista que
@@ -428,6 +563,12 @@ class AutolistService
         foreach ($template ? (array) $template->targets : [] as $tt) {
             if (isset($tt['text']) && trim((string) $tt['text']) !== '') {
                 $own[(int) ($tt['account_id'] ?? 0).'|'.($tt['content_type'] ?? '')] = (string) $tt['text'];
+            }
+        }
+        // Elemento de un feed: cada destino con limite mas holgado que el comun conserva su propio texto, mas largo.
+        foreach ($feedTexts['targets'] ?? [] as $key => $targetText) {
+            if ($targetText !== $text) {
+                $own[$key] = $targetText;
             }
         }
 
@@ -440,6 +581,29 @@ class AutolistService
                 return isset($own[$key]) ? $target + ['text' => $own[$key]] : $target;
             }, (array) $autolist->targets),
         ];
+    }
+
+    /**
+     * Texto de un elemento de feed para cada destino (titulo recortado por palabra + enlace entero, segun el limite y el conteo de su red) y el
+     * comun, que es el mas corto (el que cabe en todos).
+     *
+     * @return array{text: string, targets: array<string, string>}
+     */
+    private function feedTexts(AutolistItem $item, Autolist $autolist): array
+    {
+        $accounts = SocialAccount::ownedBy($autolist->user_id)->whereIn('id', collect((array) $autolist->targets)->pluck('account_id')->all())->get()->keyBy('id');
+        $texts = [];
+        foreach ((array) $autolist->targets as $t) {
+            $type = ContentType::tryFrom((string) $t['content_type']);
+            $account = $accounts->get((int) $t['account_id']);
+            if ($type === null || $account === null) {
+                continue;
+            }
+            $texts[(int) $t['account_id'].'|'.$t['content_type']] = RssText::fit((string) $item->text, $item->link, (array) ($this->mediaValidator->spec($type, null, $account)['text'] ?? []));
+        }
+        $common = $texts === [] ? trim($item->text."\n".$item->link) : collect($texts)->sortBy(fn (string $s) => mb_strlen($s))->first();
+
+        return ['text' => $common, 'targets' => $texts];
     }
 
     /**

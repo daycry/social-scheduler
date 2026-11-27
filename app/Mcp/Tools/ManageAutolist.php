@@ -14,7 +14,7 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
 
 #[Name('manage_autolist')]
-#[Description('Autolistas: colas de contenido con franjas semanales que generan publicaciones programadas. action: list (las del usuario, opcionalmente de una marca; paginado por cursor con limit y cursor), create (brand, name, targets [{account_id, content_type}], slots [{day 1-7, time HH:MM en la zona de la marca}], recycle), update (autolist_id; active y/o recycle), delete (autolist_id; las publicaciones ya generadas se conservan), add_item (autolist_id y post_template_id de una plantilla de la marca, o text y/o media ids propios de list_media), remove_item (autolist_id, item_id) y generate (autolist_id: crea ya las publicaciones de los proximos dias; idempotente). list requiere posts:read; el resto, posts:write.')]
+#[Description('Autolistas: colas de contenido con franjas semanales que generan publicaciones programadas. action: list (las del usuario, opcionalmente de una marca; paginado por cursor con limit y cursor), create (brand, name, targets [{account_id, content_type}], slots [{day 1-7, time HH:MM en la zona de la marca}], recycle, rss_url opcional: feed RSS/Atom cuyas entradas nuevas se anaden a la cola en cada generacion), update (autolist_id; active, recycle y/o rss_url; vacio quita el feed), delete (autolist_id; las publicaciones ya generadas se conservan), add_item (autolist_id y post_template_id de una plantilla de la marca, o text y/o media ids propios de list_media), remove_item (autolist_id, item_id) y generate (autolist_id: crea ya las publicaciones de los proximos dias; idempotente). list requiere posts:read; el resto, posts:write.')]
 class ManageAutolist extends SchedulerTool
 {
     private const ACTIONS = ['list', 'create', 'update', 'delete', 'add_item', 'remove_item', 'generate'];
@@ -43,6 +43,7 @@ class ManageAutolist extends SchedulerTool
             'name' => $schema->string()->description('create: nombre (hasta 120 caracteres)'),
             'recycle' => $schema->boolean()->description('create/update: volver a empezar la cola al acabarla'),
             'active' => $schema->boolean()->description('update: activa o pausa la lista'),
+            'rss_url' => $schema->string()->description('create/update: URL http(s) de un feed RSS o Atom publico (vacio en update lo quita). list devuelve rss_checked_at y rss_error del ultimo sondeo'),
             'targets' => $schema->array()->items($schema->object(['account_id' => $schema->integer()->required(), 'content_type' => $schema->string()->required()]))->description('create: destinos; los tipos validos salen de list_accounts'),
             'slots' => $schema->array()->items($schema->object(['day' => $schema->integer()->min(1)->max(7)->required(), 'time' => $schema->string()->description('HH:MM')->required()]))->description('create: franjas semanales (dia ISO 1=lunes)'),
             'post_template_id' => $schema->integer()->description('add_item: plantilla de la Biblioteca de la marca'),
@@ -69,7 +70,7 @@ class ManageAutolist extends SchedulerTool
 
         if ($action === 'create') {
             $data = $request->validate(AutolistService::createRules());
-            $list = $lists->create($user, $this->brandFrom($request, $user), $data['name'], $data['targets'], $data['slots'], (bool) ($data['recycle'] ?? false));
+            $list = $lists->create($user, $this->brandFrom($request, $user), $data['name'], $data['targets'], $data['slots'], (bool) ($data['recycle'] ?? false), $data['rss_url'] ?? null);
 
             return $lists->present($list->load('items.template'));
         }
@@ -79,9 +80,9 @@ class ManageAutolist extends SchedulerTool
 
         switch ($action) {
             case 'update':
-                $data = $request->validate(['active' => ['sometimes', 'boolean'], 'recycle' => ['sometimes', 'boolean']]);
+                $data = $request->validate(['active' => ['sometimes', 'boolean'], 'recycle' => ['sometimes', 'boolean'], 'rss_url' => ['sometimes', ...AutolistService::RSS_URL_RULES]]);
                 if ($data === []) {
-                    throw new InvalidArgumentException('update necesita active y/o recycle.');
+                    throw new InvalidArgumentException('update necesita active, recycle y/o rss_url.');
                 }
                 $lists->update($list, $data);
                 break;

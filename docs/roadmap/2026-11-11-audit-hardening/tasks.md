@@ -48,9 +48,9 @@ estado: en-progreso
 | Fase 5 — Frontend | 15 | 18 | 83% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
 | Fase 5b — Unificación | 4 | 8 | 50% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
 | Fase 6 — Operación y repositorio | 4 | 6 | 67% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
-| Fase 7 — Funciones nuevas | 13 | 24 | 54% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
+| Fase 7 — Funciones nuevas | 14 | 24 | 58% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **86** | **108** | **80%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
+| **TOTAL** | **87** | **108** | **81%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -4517,34 +4517,36 @@ CoberturaM3extra descubre registrodoble deListeners por autodetección+PushServi
 ### T-88 — Autolistas desde RSS
 
 - **Descripción**: Origen RSS/Atom para autolistas con `UrlGuard`, deduplicación y límites de tamaño/tiempo.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Las autolistas pueden tomar un feed RSS o Atom como fuente: las entradas más recientes se añaden solas a la cola sin duplicarse (con el texto ajustado al límite de cada red), y un feed no seguro, enorme o lento se rechaza con un aviso claro.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-87
 - **Tipo**: fullstack
-- **Archivos**: `app/Services/AutolistService.php`, `app/Services/Rss/RssFetcher.php`, `app/Support/UrlGuard.php`, `resources/js/Pages/Autolists/**`, `docs/modulos/planificacion-avanzada.md`
+- **Archivos**: `app/Services/AutolistService.php`, `app/Services/Rss/RssFetcher.php`, `resources/js/Pages/Autolists/**`, `docs/modulos/planificacion-avanzada.md`, `app/Services/Rss/RssException.php`, `app/Services/Rss/RssText.php`, `app/Models/AutolistItem.php`, `CHANGELOG.md`, `CHANGELOG.es.md`, `app/Models/Autolist.php`, `app/Http/Controllers/AutolistController.php`, `app/Mcp/Tools/ManageAutolist.php`, `config/social.php`, `database/migrations/2026_11_27_090000_add_rss_source_to_autolists.php`, `tests/Feature/Autolists/RssAutolistTest.php`, `tests/e2e/autolist-rss.spec.ts`, `tests/e2e/isolated/bootstrap.php`, `tests/e2e/isolated/fakes.php`, `docs/roadmap/2026-11-11-audit-hardening/testing/t88/**`
 - **Cubre**: F-14
 - **Cubre (tests)**: E2E-27
 - **Verificación**: `php artisan test --compact --filter=RssAutolistTest` → verde
 
 **Criterios de aceptación**
-- [ ] Las entradas nuevas del feed generan elementos sin duplicar
-- [ ] Un feed hostil (redirección privada, tamaño enorme) se rechaza
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Las entradas nuevas del feed generan elementos sin duplicar
+- [x] Un feed hostil (redirección privada, tamaño enorme) se rechaza
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M.
+
+**Cierre — 2026-11-27:** origen RSS/Atom por autolista (`rss_url`, estado `rss_checked_at`/`rss_error`) en la UI de autolistas (mismos `FormField`), en el controlador y en el MCP `ManageAutolist`. `RssFetcher` descarga con `UrlGuard::follow()` (IP fijada, redirecciones revalidadas, sin proxy), tope de bytes por `Content-Length` y por progreso sin descomprimir, timeouts de conexión y total (`social.rss.*`: 1 MB, 5/10 s, 20 entradas), parsea RSS 2.0/1.0 y Atom con `DOMDocument` y rechaza cualquier DOCTYPE (también en UTF-16/32); ordena por fecha y sanea el texto (sin HTML ni controles/bidi, conserva ZWJ) y los enlaces con `SafeUrl`. Deduplicación en `autolist_rss_entries` única por (lista, feed, clave) con `insertOrIgnore` en la transacción del elemento y bajo el cerrojo de la lista; primera lectura de cada feed limitada a `initial_entries` (3); al cambiar de feed durante una descarga no se ingiere nada. El elemento guarda título y `link`, y `RssText::fit` compone el texto por destino con `TextLength`/`MediaValidator::spec` (recorte por palabra o grafema con «…», enlace entero; si ni el enlace cabe, franja omitida con motivo). Reutiliza la cola `poll`. Revisión adversarial A+B+C en 2 intentos: intento 1 — 2 Important (entrada perdida por longitud; orden por documento) + 7 Minor, corregidos; intento 2 — 0 Critical/Important, 4 Minor (vaciado al quitar el feed → entradas por feed; carrera con `update()`; `\X` agrupaba emojis → `IntlBreakIterator`; prefijo del aviso) corregidos. Nota de método: los tests de las correcciones se escribieron junto al código, no en rojo primero. QA: Pest completo 4779 pasados / 9 omitidos (focal 40/143); `npm run build` y Prettier verdes; E2E `autolist-rss` + `pages` 134 pasados / 2 omitidos en tres tamaños (`testing/t88/t88-r2-e2e.log`). **Deuda aceptada (Minor):** `autolist_rss_entries` no se poda (crece con las entradas distintas de cada feed); los destinos solo de imagen omiten la franja de un elemento RSS (los elementos de feed son de texto).
 
 ### T-89 — Acortador propio con clics
 
@@ -5483,3 +5485,7 @@ ClaudeCodeOpus5.5 real con aceptación,corrección,seguridad,rendimiento ycalida
 ## Revisión de dos lentes — intento 3: Fase 7 (T-80) — aprobada y cerrada
 
 ClaudeCodeOpus5.5 real: aceptación,corrección,seguridad,rendimiento y calidad del código. QA,recibos nativos e integración exacta en testing/t80. Total79/108. T81 continúa en preparación aislada.
+
+## Revisión de dos lentes — intento 2: Fase 7 (T-88) — aprobada y cerrada
+
+Lentes A+B+C (C por SSRF y XML). Intento 1: I1 entrada perdida por longitud y I2 orden por documento (Important), m3–m9 y el Minor de la lente C (DOCTYPE en UTF-16, CWE-776), todos corregidos. Intento 2: lente C sin hallazgos; A+B sin Critical/Important, 4 Minor corregidos tras la revisión. Diffs en `testing/t88/reviews/r1.patch` y `r2.patch`. Total 87/108.

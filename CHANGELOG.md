@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — autolists from RSS (audit-hardening, T-88)
+
+- An autolist can now take an RSS or Atom feed as its source (set it when creating the list or with "Save feed" on it). Each time the list is generated, the newest entries of the feed join the queue as posts made of the title and the link, without duplicates, even if you delete them from the queue or the feed is edited; the first time only the 3 most recent entries are queued. The text is shortened by words to fit each network's limit (the link is never cut). A private, huge or slow feed is rejected, and the last check and any error show on the list.
+
 ### Added — Mastodon and Telegram (audit-hardening, T-87)
 
 - Connect a Mastodon account (your instance address plus a personal access token) and a Telegram channel (a bot token from BotFather plus the channel, with the bot as an administrator that can post) from Connections, with the same credentials form as Bluesky. Publish text and images to Mastodon (alt text, visibility per post, and your instance's own limits for characters, images and file size, refreshed daily) and text or a single photo with a caption to Telegram, with the right limit for each; they show up in the composer with their own counters. Tokens are stored encrypted and never logged. Real-account acceptance remains pending.

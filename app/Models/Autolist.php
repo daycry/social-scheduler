@@ -13,7 +13,7 @@ class Autolist extends Model
 {
     use BelongsToUser;
 
-    protected $fillable = ['name', 'active', 'recycle', 'targets', 'slots', 'cursor', 'last_position', 'last_item_id', 'last_generated_at'];
+    protected $fillable = ['name', 'active', 'recycle', 'targets', 'slots', 'cursor', 'last_position', 'last_item_id', 'last_generated_at', 'rss_url', 'rss_checked_at', 'rss_error'];
 
     protected function casts(): array
     {
@@ -24,6 +24,7 @@ class Autolist extends Model
             'slots' => 'array',
             'cursor' => 'integer',
             'last_generated_at' => 'datetime',
+            'rss_checked_at' => 'datetime',
         ];
     }
 

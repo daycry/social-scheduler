@@ -251,3 +251,13 @@ trailer
         'export-download.canva.com/*' => fn () => Http::response($png(), 200, ['Content-Type' => 'image/png']),
     ]);
 }
+
+/** T-88: feed RSS 2.0 de la bateria E2E (tres entradas, la mas reciente primero) servido sin salir nunca a la red. */
+function generalFakeRss(): void
+{
+    $items = '';
+    foreach ([3 => 'Tercera entrada E2E', 2 => 'Segunda entrada E2E', 1 => 'Primera entrada E2E'] as $n => $title) {
+        $items .= "<item><guid isPermaLink=\"false\">e2e-rss-$n</guid><title>$title</title><link>https://blog.example.test/e2e-$n</link></item>";
+    }
+    Http::fake(['https://feeds.example.test/*' => Http::response('<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Blog E2E</title>'.$items.'</channel></rss>', 200, ['Content-Type' => 'application/rss+xml'])]);
+}

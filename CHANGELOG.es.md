@@ -5,6 +5,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Added — autolistas desde RSS (audit-hardening, T-88)
+
+- Una autolista puede tomar un feed RSS o Atom como fuente (indícalo al crearla o con «Guardar feed» en la lista). Cada vez que se genera la lista, las entradas más recientes del feed entran en la cola como publicaciones con el título y el enlace, sin duplicados, aunque las quites de la cola o se edite el feed; la primera vez solo se encolan las 3 más recientes. El texto se acorta por palabras para caber en el límite de cada red (el enlace nunca se corta). Un feed privado, enorme o lento se rechaza, y la última comprobación y el error, si lo hay, se ven en la lista.
+
 ### Added — Mastodon y Telegram (audit-hardening, T-87)
 
 - Conecta una cuenta de Mastodon (la dirección de tu instancia y un token de acceso personal) y un canal de Telegram (el token de un bot de BotFather y el canal, con el bot como administrador con permiso para publicar) desde Conexiones, con el mismo formulario de credenciales que Bluesky. Publica texto e imágenes en Mastodon (texto alternativo, visibilidad por publicación y los límites propios de tu instancia de caracteres, imágenes y peso, que se refrescan a diario) y texto o una sola foto con pie en Telegram, con el límite correcto de cada uno; aparecen en el compositor con sus contadores. Los tokens se guardan cifrados y nunca se registran. La comprobación con cuentas reales sigue pendiente.

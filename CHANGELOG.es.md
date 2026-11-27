@@ -5,6 +5,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Added — atajos, preferencias de avisos y primeros pasos (audit-hardening, T-96)
+
+- Navega con el teclado, elige dónde recibes cada tipo de aviso y empieza, salta o repite la guía de primeros pasos.
+
 ### Added — catálogo de plantillas del Estudio (audit-hardening, T-95)
 
 - El Estudio añade 50 plantillas editables en cinco formatos, con carruseles y 25 diseños con animaciones de entrada y salida. Busca por nombre o categoría, filtra por formato y crea un diseño con los colores y la tipografía de tu marca.

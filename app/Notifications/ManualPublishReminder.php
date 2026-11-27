@@ -2,14 +2,14 @@
 
 namespace App\Notifications;
 
+use App\Services\NotificationPreferences;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * Recordatorio (T-32) de que una publicacion manual toca pronto: aviso en la app (push incluido, via `QueuePushNotification`) y correo solo con `notify_by_mail`; nada si el usuario apago `notify_manual_reminder`. Va a la cola
- * (como `ConnectionExpiring`): el correo no se envia de forma sincrona dentro del despachador del minuto. Guarda escalares, nunca tokens.
+ * Recordatorio (T-32) previo a una publicacion manual. Se encola para entregar por los canales habilitados por el usuario.
  */
 class ManualPublishReminder extends Notification implements ShouldQueue
 {
@@ -32,13 +32,7 @@ class ManualPublishReminder extends Notification implements ShouldQueue
     /** @return list<string> */
     public function via(object $notifiable): array
     {
-        return $notifiable->notify_by_mail ? ['database', 'mail'] : ['database'];
-    }
-
-    /** El worker NO vuelve a llamar a `via()`, pero si a esto por canal: la preferencia se relee al enviar, por si se apago mientras el aviso esperaba en la cola. */
-    public function shouldSend(object $notifiable, string $channel): bool
-    {
-        return (bool) $notifiable->notify_manual_reminder;
+        return NotificationPreferences::allows($notifiable, 'manual_reminder', 'mail') ? ['database', 'mail'] : ['database'];
     }
 
     public function toMail(object $notifiable): MailMessage

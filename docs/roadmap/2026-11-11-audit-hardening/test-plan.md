@@ -388,10 +388,12 @@
 - **Objetivo**: Atajos y onboarding no estorban
 - **Precondiciones**: app levantada en la URL local con la base SQLite de pruebas y datos de fábrica; proveedores simulados
 - **Pasos**:
-  1. Usar un atajo
-  2. Completar y repetir el onboarding
+  1. Abrir la ayuda con `?` y navegar con `P`.
+  2. Saltar, continuar tras recargar, completar y repetir la guía.
+  3. Escribir en un campo, cambiar el canal push de un tipo de aviso y recargar.
 - **Aserciones**:
-  - [ ] Los atajos no actúan al escribir en un campo
+  - [ ] Los atajos no actúan al escribir en un campo.
+  - [ ] La guía y la preferencia se conservan al recargar. Los diálogos reciben el foco.
 - **Capturas esperadas**: estado inicial y resultado final de la acción principal
 - **Cubre tareas**: T-96
 

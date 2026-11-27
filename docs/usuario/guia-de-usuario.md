@@ -4,6 +4,8 @@ Social Scheduler programa tus publicaciones en Instagram, Facebook, YouTube, Tik
 
 ## Primeros pasos
 
+[Guía interactiva, atajos y preferencias](primeros-pasos.md).
+
 1. Regístrate y verifica tu correo.
 2. Crea una **marca** (por ejemplo, tu proyecto o negocio). Cada marca agrupa sus cuentas, publicaciones y estadísticas.
 3. Entra en las **Conexiones** de la marca y pulsa **Conectar** en cada red. Acepta los permisos en la pantalla de la red.
@@ -226,10 +228,10 @@ El icono de avisos lista fallos de publicación y cuentas que necesitan reconexi
 
 En el menú de usuario, **Notificaciones del navegador → Qué avisos quieres recibir**, eliges qué avisos llegan:
 
-- **Resumen semanal** (apagado por defecto). Cada lunes por la mañana, en la hora de tu marca principal (la más antigua), recibes un aviso con las cifras de la semana anterior de cada marca comparadas con la previa: seguidores, visualizaciones, alcance, interacciones, publicaciones publicadas y la mejor publicación. Lo que no tiene dato aparece como «sin datos». Si tienes activado el correo, también te llega por correo, con un enlace para darte de baja de un clic. Opcionalmente puedes añadir un párrafo escrito con IA (solo si el administrador ha configurado el asistente): se envía al proveedor únicamente el nombre de tus marcas y las cifras agregadas.
-- **Recordatorio de publicación manual** (encendido por defecto). Un aviso antes de la hora de una publicación que tienes que hacer a mano. El aviso de «es la hora» se envía siempre, aunque apagues el recordatorio, porque trae el texto y la media que necesitas para publicar.
+- **Resumen semanal** (apagado por defecto). Cada lunes por la mañana, en la hora de tu marca principal (la más antigua), recibes las cifras de la semana anterior comparadas con la previa. Puedes elegir los canales y añadir un párrafo escrito con IA si está disponible. El correo incluye un enlace de baja.
+- **Publicación manual**. Puedes elegir los canales del recordatorio previo y del aviso de la hora por separado. El recordatorio previo está activado por defecto.
 
-Los avisos siempre llegan a la aplicación (y por push si lo has activado); el correo depende de la casilla de **Perfil** («Avisarme también por correo…»).
+Cada tipo indica los canales disponibles. Elige **En la app**, **Correo** o **Push** y guarda tus preferencias. Los correos de verificación, restablecimiento de contraseña y seguridad de la cuenta están siempre activos.
 
 ## Historial de actividad
 

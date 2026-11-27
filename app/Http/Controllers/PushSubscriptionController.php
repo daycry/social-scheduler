@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PushSubscription;
 use App\Services\AiAssistant;
+use App\Services\NotificationPreferences;
 use App\Services\Push\PushConfiguration;
 use App\Services\Push\PushSubscriptions;
 use Illuminate\Http\RedirectResponse;
@@ -34,7 +35,8 @@ final class PushSubscriptionController extends Controller
             'subscriptions' => $devices->all(),
             // Preferencias de avisos por tipo (T-86) y lo que condiciona su pantalla: el correo global y el asistente de IA.
             'preferences' => $request->user()->only(['notify_weekly_digest', 'weekly_digest_ai', 'notify_manual_reminder']),
-            'mailEnabled' => (bool) $request->user()->notify_by_mail,
+            'notificationChannels' => NotificationPreferences::forProfile($request->user()),
+            'notificationTypes' => array_map(fn ($type) => $type[0], NotificationPreferences::TYPES),
             'aiAvailable' => $ai->enabled(),
         ]);
     }

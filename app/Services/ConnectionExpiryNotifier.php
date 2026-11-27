@@ -11,7 +11,7 @@ use Throwable;
 /**
  * Pasada diaria (T-23, `connections:notify-expiry`): avisa a cada usuario de las conexiones que caducan en `social.expiry_notice_days`
  * (por defecto 7 y 1 dias antes). Una sola vez por umbral y por fecha de caducidad: la marca va en `meta.expiry_notice` y se invalida
- * sola al reconectar (la fecha cambia). Respeta `notify_by_mail`: sin la preferencia solo hay aviso en la app.
+ * sola al reconectar (la fecha cambia). Los canales (app, correo, push) los decide `NotificationPreferences` por tipo.
  */
 class ConnectionExpiryNotifier
 {

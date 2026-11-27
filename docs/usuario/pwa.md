@@ -16,7 +16,7 @@ El push muestra únicamente «Social Scheduler» y «Tienes nuevos avisos.». Nu
 
 Los endpoints y las claves de suscripción se guardan cifrados mediante APP_KEY. La clave privada VAPID solo se configura en el servidor y no llega a las props de la página. `app:reencrypt` incluye también endpoint y keys de push_subscriptions al rotar APP_KEY; conserva la política de copias de seguridad y claves anteriores del despliegue.
 
-El envío complementa las notificaciones guardadas en la aplicación. La cola lleva identificadores y vuelve a comprobar propietario, consentimiento, verificación y existencia de un aviso no leído. Una suscripción caducada (404/410) se elimina; los fallos transitorios se reintentan hasta tres intentos. Los fallos permanentes no reintentan el mismo aviso. Un fallo al encolar push no cancela el aviso in-app: este canal es best-effort, sin outbox durable propio ni garantía de entrega exactamente una vez ante una caída después del envío. El último aviso enviado se reconoce localmente para evitar su redelivery inmediata.
+Elige qué tipos llegan por push en las preferencias. La cola comprueba de nuevo el propietario, la suscripción, la verificación de correo y la preferencia del tipo. Si también se guardó un aviso en la aplicación, comprueba que siga sin leer. Los envíos solo por push no aparecen en la bandeja. Una suscripción caducada (404/410) se elimina y los fallos transitorios admiten hasta tres intentos. El dispositivo registra el último aviso enviado para evitar una repetición inmediata.
 
 ## Configuración del operador y aceptación pendiente
 

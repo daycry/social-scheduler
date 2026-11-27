@@ -3,10 +3,12 @@
 use App\Connectors\Network;
 use App\Enums\PostStatus;
 use App\Exceptions\PostValidationException;
+use App\Jobs\SendPushNotification;
 use App\Models\Brand;
 use App\Models\MediaAsset;
 use App\Models\Post;
 use App\Models\PostTarget;
+use App\Models\PushSubscription;
 use App\Models\SmartLink;
 use App\Models\SmartLinkBlock;
 use App\Models\SmartLinkSubscriber;
@@ -17,6 +19,7 @@ use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 
 /**
  * T-20 · SmartLinks ampliados: bloques enriquecidos, visibilidad programada, reordenar, clics por bloque y las mitigaciones
@@ -235,6 +238,30 @@ test('Formulario de email: tope por bloque, solo un formulario por pagina, expor
     expect($csv)->toStartWith("\xEF\xBB\xBF".'"Email"')->and($csv)->toContain('a@example.com')->and($csv)->toContain("\"'=cmd@example.com\"");
 
     $this->actingAs(User::factory()->create())->get(route('smartlinks.subscribers', $link))->assertNotFound();
+});
+
+test('Formulario de SmartLink: avisa una sola vez por push del tope sin bandeja en la app', function () {
+    config(['social.smartlinks.max_subscribers' => 1]);
+    Queue::fake([SendPushNotification::class]);
+    $keys = pushTestKeys();
+    $this->user->forceFill(['notification_channels' => ['smartlink_subscribers_full' => ['database' => false, 'push' => true]]])->save();
+    $endpoint = 'https://push.example.test/smartlink';
+    $device = PushSubscription::forceCreate([
+        'user_id' => $this->user->id, 'endpoint' => $endpoint, 'endpoint_hash' => hash('sha256', $endpoint),
+        'keys' => $keys, 'device_name' => 'Pruebas', 'last_seen_at' => now(),
+    ]);
+    slSave($this, [['type' => 'email', 'label' => 'Boletín']])->assertSessionHasNoErrors();
+    slPublic();
+    $url = '/l/mi-marca/subscribe/'.SmartLink::withoutUserScope()->firstOrFail()->blocks->first()->id;
+
+    $this->post($url, ['email' => 'primero@example.test'])->assertRedirect('/l/mi-marca?subscribed=1#suscripcion');
+    $this->post($url, ['email' => 'segundo@example.test'])->assertRedirect('/l/mi-marca?subscribed=1#suscripcion');
+
+    $this->assertGuest();
+    expect($this->user->notifications()->count())->toBe(0)
+        ->and(SmartLinkSubscriber::query()->count())->toBe(1);
+    Queue::assertPushed(SendPushNotification::class, fn ($job) => $job->subscriptionId === $device->id);
+    Queue::assertPushed(SendPushNotification::class, 1);
 });
 
 test('Posts recientes: solo publicadas de la marca con URL https, texto saneado y sin cruzar marcas', function () {

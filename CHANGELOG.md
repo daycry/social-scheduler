@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — keyboard shortcuts, notification preferences, and onboarding (audit-hardening, T-96)
+
+- Navigate from the keyboard, choose where each notification reaches you, and start, skip, or replay the getting-started guide.
+
 ### Added — Studio template catalog (audit-hardening, T-95)
 
 - The Studio adds 50 editable templates across five formats, including carousels and 25 designs with entrance and exit animations. Search by name or category, filter by format, and start a design using your brand colors and font.

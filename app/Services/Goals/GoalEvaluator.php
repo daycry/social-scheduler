@@ -72,7 +72,7 @@ final class GoalEvaluator
             $event = new GoalAlertEvent;
             $event->forceFill(['user_id' => $user->id, 'goal_id' => $goal->id, 'period_key' => $key, 'payload' => $payload])->save();
             Notification::sendNow($user, new GoalAlert($user->id, $payload));
-            if ($goal->mail_enabled && $user->notify_by_mail && $user->hasVerifiedEmail()) {
+            if ($goal->mail_enabled) {
                 $user->notify((new GoalAlert($user->id, $payload, mailOnly: true))->afterCommit());
             }
 

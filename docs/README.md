@@ -19,6 +19,7 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Ejecutar la validación T-43 con SQLite desechable y conectores simulados | [Pruebas aisladas de T-43](guias/pruebas-t43.md) |
 | Revisar la regresión general en los tres tamaños (502 pasados y dos omitidos previstos) | [Informe de QA](roadmap/2026-10-26-metricool-parity-3/testing/attempt-2/report.md) · [PDF](roadmap/2026-10-26-metricool-parity-3/testing/attempt-2/report.pdf) |
 | Usar la aplicación (incluye doble factor y passkeys) | [Guía de usuario](usuario/guia-de-usuario.md) |
+| Configurar una cuenta nueva y consultar los atajos | [Primeros pasos](usuario/primeros-pasos.md) |
 | Operar el doble factor y las passkeys (RP ID, `sodium`, rotar claves) | [Despliegue → Seguridad de cuenta](modulos/despliegue.md#seguridad-de-cuenta-2fa-y-passkeys) |
 | Activar el login con Google y Facebook (apps, redirect URIs, modos) | [Guía de login social](guias/login-social-google-meta.md) |
 | Conectar un asistente (Claude, Codex, OpenCode) sin API key y desplegar el OAuth del MCP | [Servidor MCP](modulos/mcp.md#autorización-oauth-21-sin-api-key) y [Despliegue → OAuth del MCP](modulos/despliegue.md#oauth-del-mcp-nginxhestia-y-redirect-uris) |

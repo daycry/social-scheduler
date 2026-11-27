@@ -413,14 +413,17 @@ class SmartLinkService
         return true;
     }
 
-    /** Avisa al propietario UNA sola vez por formulario (en la base de datos) cuando se llena. */
+    /** Reclama el aviso una sola vez por formulario, independientemente del canal de entrega. */
     private function notifyFull(SmartLink $link, SmartLinkBlock $block, int $max): void
     {
-        $owner = User::query()->find($link->user_id);
-        if (! $owner || $owner->notifications()->where('type', SmartLinkSubscribersFull::class)->where('data->block_id', $block->id)->exists()) {
-            return;
-        }
-        $owner->notify(new SmartLinkSubscribersFull($link->id, $block->id, $link->slug, $max));
+        DB::transaction(function () use ($link, $block, $max): void {
+            $claimed = DB::table('smart_link_blocks')->where('id', $block->id)->whereNull('subscriber_limit_notified_at')
+                ->update(['subscriber_limit_notified_at' => now()]);
+
+            if ($claimed === 1) {
+                User::find($link->user_id)?->notify(new SmartLinkSubscribersFull($link->id, $block->id, $link->slug, $max));
+            }
+        }, 3);
     }
 
     public function recordView(SmartLink $link): void

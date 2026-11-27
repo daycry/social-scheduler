@@ -72,9 +72,9 @@ const form = useForm({
                     data-testid="notify-by-mail"
                 />
                 <span>
-                    Avisarme también por correo cuando falle un informe programado, una exportación de video, la IA,
-                    Canva o una importación, y antes de que caduque una conexión. Los avisos siempre se muestran en
-                    Avisos.
+                    Activar por defecto el correo para fallos de trabajos, caducidad de conexiones, objetivos,
+                    recordatorios y resumen semanal. Puedes elegir los canales de cada tipo en
+                    <Link :href="route('profile.notifications')" class="underline">Notificaciones del navegador</Link>.
                 </span>
             </label>
 

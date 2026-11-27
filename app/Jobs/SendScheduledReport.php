@@ -9,6 +9,7 @@ use App\Models\ReportSchedule;
 use App\Models\ReportTemplate;
 use App\Models\User;
 use App\Services\JobFailureNotifier;
+use App\Services\NotificationPreferences;
 use App\Services\Reports\ReportBlocks;
 use App\Services\ReportService;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -58,6 +59,12 @@ class SendScheduledReport implements ShouldQueue
             return;
         }
 
+        if (! NotificationPreferences::allows($user, 'scheduled_report', 'mail')) {
+            $this->recordPreferenceSkip($schedule);
+
+            return;
+        }
+
         $recipients = array_values((array) $schedule->recipients);
         $key = 'report-mail:'.$user->id;
         $limit = (int) config('reports.mail_daily_limit', 20);
@@ -93,12 +100,24 @@ class SendScheduledReport implements ShouldQueue
         $hours = max(1, (int) config('reports.mail_link_hours', 72));
         $url = $report->signedDownloadUrl($hours * 60, $schedule->id);
 
+        if (! NotificationPreferences::allows($user->refresh(), 'scheduled_report', 'mail')) {
+            RateLimiter::decrement($key, 86400, $reserved);
+            $this->recordPreferenceSkip($schedule);
+
+            return;
+        }
+
         foreach ($recipients as $to) {
             $unsubscribe = URL::signedRoute('report-schedules.unsubscribe', ['schedule' => $schedule->id, 'email' => $to]);
             Mail::to($to)->send(new ScheduledReportMail($report, $brand->name, $url, $hours, (string) $user->name, (string) $user->email, $unsubscribe));
         }
 
         $schedule->update(['last_run_at' => now(), 'last_error' => null]);
+    }
+
+    private function recordPreferenceSkip(ReportSchedule $schedule): void
+    {
+        $schedule->update(['last_run_at' => now(), 'last_error' => 'Envío omitido por preferencias de notificación.']);
     }
 
     public function failed(\Throwable $e): void

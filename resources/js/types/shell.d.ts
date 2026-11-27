@@ -44,10 +44,13 @@ export interface SessionFlash extends FlashMessages {
     publishing_post_id?: number | string | null;
 }
 
+export type OnboardingStep = 'welcome' | 'brand' | 'connection' | 'post' | 'skipped' | 'completed';
+
 export interface ShellPageProps extends PageProps {
     canViewSystemStatus?: boolean;
     shell?: Shell | null;
-    auth: { user: { name: string; email: string } };
+    auth: { user: { name: string; email: string; email_verified_at?: string | null; single_key_shortcuts?: boolean } };
+    onboarding?: OnboardingStep | null;
     // Avisos de la sesión de Laravel compartidos por HandleInertiaRequests.
     flash?: SessionFlash;
     unreadInbox?: number;

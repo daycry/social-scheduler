@@ -5,7 +5,6 @@ import {
     filterPages,
     formatLocalDate,
     groupEntries,
-    isPaletteShortcut,
     nextIndex,
     pageCommands,
     queryLength,
@@ -125,20 +124,6 @@ test('the query is measured in code points, like the server does', () => {
     assert.equal(queryLength('😀'), 1);
     assert.equal(queryLength(' a😀 '), 2);
     assert.equal(queryLength('ab'), 2);
-});
-
-test('the shortcut is Ctrl+K, or Cmd+K on macOS, and never a modified or repeated key', () => {
-    const key = (extra) => ({ key: 'k', ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, repeat: false, isComposing: false, defaultPrevented: false, ...extra });
-    assert.equal(isPaletteShortcut(key({ ctrlKey: true }), false), true);
-    assert.equal(isPaletteShortcut(key({ ctrlKey: true, key: 'K' }), false), true);
-    assert.equal(isPaletteShortcut(key({ metaKey: true }), false), false);
-    assert.equal(isPaletteShortcut(key({ metaKey: true }), true), true);
-    assert.equal(isPaletteShortcut(key({ ctrlKey: true }), true), false, 'en macOS Ctrl+K borra hasta el final de la línea');
-    assert.equal(isPaletteShortcut(key({ ctrlKey: true, shiftKey: true }), false), false);
-    assert.equal(isPaletteShortcut(key({ ctrlKey: true, altKey: true }), false), false);
-    assert.equal(isPaletteShortcut(key({ ctrlKey: true, repeat: true }), false), false);
-    assert.equal(isPaletteShortcut(key({ ctrlKey: true, defaultPrevented: true }), false), false, 'si un editor ya lo ha gestionado');
-    assert.equal(isPaletteShortcut(key({ ctrlKey: true, key: 'j' }), false), false);
 });
 
 /** Temporizador manual y peticiones que se resuelven cuando el test lo decide. */

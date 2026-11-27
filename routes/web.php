@@ -14,6 +14,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\FirstCommentController;
 use App\Http\Controllers\FullExportController;
+use App\Http\Controllers\GettingStartedController;
 use App\Http\Controllers\GifController;
 use App\Http\Controllers\GoalController;
 use App\Http\Controllers\HashtagController;
@@ -93,6 +94,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('system', SystemStatusController::class)->name('system.index');
     Route::get('profile/notifications', [PushSubscriptionController::class, 'index'])->name('profile.notifications');
     Route::patch('profile/notification-preferences', [NotificationPreferenceController::class, 'update'])->middleware('throttle:profile.notification-preferences')->name('profile.notification-preferences');
+    Route::patch('profile/onboarding', [GettingStartedController::class, 'onboarding'])->name('profile.onboarding');
     Route::post('profile/push-subscriptions', [PushSubscriptionController::class, 'store'])->middleware('throttle:push-settings')->name('profile.push-subscriptions.store');
     Route::delete('profile/push-subscriptions/{pushSubscription}', [PushSubscriptionController::class, 'destroy'])->middleware('throttle:push-settings')->name('profile.push-subscriptions.destroy');
     // Exportacion completa de datos en ZIP (T-84): se pide, se genera en cola y se descarga con un enlace firmado (`link` lo genera al pulsar).
@@ -215,6 +217,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::patch('/profile/shortcuts', [GettingStartedController::class, 'shortcuts'])->name('profile.shortcuts');
 });
 
 require __DIR__.'/auth.php';

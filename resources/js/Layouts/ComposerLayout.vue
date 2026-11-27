@@ -1,7 +1,7 @@
 <script setup>
 import FlashBanner from '@/Components/FlashBanner.vue';
 import BrandLogo from '@/Components/BrandLogo.vue';
-import CommandPalette from '@/Components/CommandPalette.vue';
+import GlobalActions from '@/Components/GlobalActions.vue';
 import { usePage } from '@inertiajs/vue3';
 
 const page = usePage();
@@ -24,7 +24,7 @@ const page = usePage();
         <header class="sticky top-0 z-40 border-b border-slate-200 bg-white shadow-sm">
             <div class="mx-auto flex min-h-14 max-w-7xl items-center gap-3 px-3 py-2 sm:px-6">
                 <BrandLogo compact class="shrink-0" />
-                <CommandPalette light />
+                <GlobalActions light />
                 <slot name="header" />
             </div>
         </header>

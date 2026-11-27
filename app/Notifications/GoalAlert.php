@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Goal;
+use App\Services\NotificationPreferences;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -41,7 +42,8 @@ final class GoalAlert extends Notification implements ShouldQueue
             return ! $this->mailOnly;
         }
 
-        return $channel === 'mail' && $this->mailOnly && $notifiable->notify_by_mail && $notifiable->hasVerifiedEmail()
+        return $channel === 'mail' && $this->mailOnly && $notifiable->hasVerifiedEmail()
+            && NotificationPreferences::allows($notifiable, 'goal_alert', 'mail')
             && Goal::ownedBy($this->ownerId)->whereKey($this->payload['goal_id'])->where('enabled', true)->where('mail_enabled', true)->exists();
     }
 

@@ -20,7 +20,7 @@ use Throwable;
 
 /**
  * Avisa al propietario (T-23) del resultado de un trabajo ASINCRONO: informe programado, exportacion MP4/GIF, IA, Canva o importacion remota.
- * Reutiliza el aviso comun (`Notifications/Index`, `n.url`); el correo solo con `notify_by_mail` y solo en los FALLOS.
+ * Reutiliza el aviso comun (`Notifications/Index`, `n.url`); el correo solo en los FALLOS y si `NotificationPreferences` lo permite para ese tipo.
  *
  * Fallos: un aviso por EJECUCION (clave por trabajo; el informe, por fecha de ejecucion) aunque fallen la cola y el servicio; como mucho
  * `BURST` avisos por tipo, usuario y hora. Lo que corta el tope se registra en el log y se agrupa en UN aviso resumen («y N fallos más de
@@ -129,7 +129,7 @@ class JobFailureNotifier
     {
         try {
             $user = User::find($userId);
-            if ($user === null || ! Cache::add("job-done:{$userId}:{$key}", 1, now()->addDay())) {
+            if ($user === null || ! NotificationPreferences::anyChannel($user, 'job_done') || ! Cache::add("job-done:{$userId}:{$key}", 1, now()->addDay())) {
                 return;
             }
 
@@ -146,7 +146,7 @@ class JobFailureNotifier
         try {
             $user = User::find($userId);
             $jobKey = "job-failure:{$userId}:{$key}";
-            if ($user === null || Cache::has($jobKey)) {
+            if ($user === null || ! NotificationPreferences::anyChannel($user, 'job_failed') || Cache::has($jobKey)) {
                 return;
             }
 
@@ -175,6 +175,15 @@ class JobFailureNotifier
         }
 
         $noun = self::NOUNS[$kind] ?? $kind;
+        if (! NotificationPreferences::allows($user, 'job_failed', 'database')) {
+            if (NotificationPreferences::allows($user, 'job_failed', 'push')
+                && Cache::add("job-failure-summary-push:{$user->id}:{$kind}", 1, now()->addHour())) {
+                Notification::sendNow($user, new AsyncJobFailureSummary($kind, 1, $noun, $url, $brandId));
+            }
+
+            return;
+        }
+
         $row = $user->notifications()->where('data->type', 'job_failed_summary')->where('data->kind', $kind)->where('created_at', '>=', now()->subHour())->latest()->first();
 
         if ($row === null) {

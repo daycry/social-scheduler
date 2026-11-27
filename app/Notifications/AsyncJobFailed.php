@@ -2,15 +2,15 @@
 
 namespace App\Notifications;
 
+use App\Services\NotificationPreferences;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * Aviso (T-23) de que un trabajo asincrono ha fallado: informe programado, exportacion MP4/GIF, IA, Canva o importacion. Siempre en la app
- * (`database`); el correo solo si el usuario lo activo (`notify_by_mail`). Guarda escalares con el motivo ya legible, nunca tokens ni URLs
- * firmadas, y un `url` relativo que la pagina de avisos usa como enlace generico (igual que los avisos de publicacion y de series).
+ * Aviso (T-23) de que un trabajo asincrono ha fallado. La politica del usuario gobierna app, correo y push. Guarda el motivo legible y
+ * una URL relativa para abrir el trabajo desde Avisos.
  */
 class AsyncJobFailed extends Notification implements ShouldQueue
 {
@@ -34,7 +34,7 @@ class AsyncJobFailed extends Notification implements ShouldQueue
     /** @return list<string> `database` primero: es el aviso que no puede perderse. */
     public function via(object $notifiable): array
     {
-        return $notifiable->notify_by_mail ? ['database', 'mail'] : ['database'];
+        return NotificationPreferences::allows($notifiable, 'job_failed', 'mail') ? ['database', 'mail'] : ['database'];
     }
 
     public function toMail(object $notifiable): MailMessage

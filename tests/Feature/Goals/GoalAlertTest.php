@@ -205,6 +205,17 @@ test('GoalAlert: optional email is queued separately after commit while the in-a
     Mail::assertNothingSent();
 });
 
+test('GoalAlert: la preferencia de correo de objetivos prevalece sobre el valor general', function () {
+    [$owner, $brand, $account, $goal] = goalAlertFixture();
+    $owner->forceFill(['notification_channels' => ['goal_alert' => ['mail' => true]]])->save();
+    $goal->forceFill(['mail_enabled' => true])->save();
+    goalSnapshot($owner, $brand, $account, '2026-11-17', [Metric::FOLLOWERS => 1200]);
+
+    app(GoalService::class)->evaluate($owner, $goal);
+
+    Queue::assertPushed(SendQueuedNotifications::class, fn ($job) => $job->channels === ['mail'] && $job->afterCommit === true);
+});
+
 test('GoalAlert: email needs goal opt-in global preference and a verified destination', function (bool $goalMail, bool $userMail, bool $verified) {
     [$owner, $brand, $account, $goal] = goalAlertFixture();
     $owner->forceFill(['notify_by_mail' => $userMail, 'email_verified_at' => $verified ? now() : null])->save();

@@ -333,7 +333,7 @@ test('las preferencias por tipo se guardan desde la pantalla de avisos y se vali
     $this->actingAs($this->user);
     $page = $this->get('/profile/notifications')->assertOk();
     expect($page->inertiaProps('preferences'))->toBe(['notify_weekly_digest' => true, 'weekly_digest_ai' => false, 'notify_manual_reminder' => true])
-        ->and($page->inertiaProps('mailEnabled'))->toBeTrue()->and($page->inertiaProps('aiAvailable'))->toBeFalse();
+        ->and($page->inertiaProps('aiAvailable'))->toBeFalse();
 
     $this->patch(route('profile.notification-preferences'), ['notify_weekly_digest' => false, 'weekly_digest_ai' => true, 'notify_manual_reminder' => false])
         ->assertRedirect(route('profile.notifications'))->assertSessionHasNoErrors();

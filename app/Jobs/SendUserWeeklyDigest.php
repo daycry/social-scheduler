@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Mail\WeeklyDigest as WeeklyDigestMail;
 use App\Models\User;
 use App\Notifications\WeeklyDigestReady;
+use App\Services\NotificationPreferences;
 use App\Services\WeeklyDigest;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -16,10 +17,8 @@ use Throwable;
 
 /**
  * Resumen semanal (T-86) de UN usuario y UNA semana (`$week`, el lunes local). Idempotente: `WeeklyDigest::claim()` reserva la semana con un
- * UPDATE condicionado, asi un job duplicado o simultaneo no repite el envio. La semana reclamada no se pierde si el envio no llega a hacerse:
- * un error al prepararlo la devuelve en `handle()` y un timeout o kill del worker la devuelve en `failed()` (solo si aun no hay aviso de esa
- * semana: si el aviso ya se entrego, no se repite). El aviso en la app se entrega siempre (y por push, lo cuelga `QueuePushNotification`); el
- * correo solo con `notify_by_mail`, y un fallo suyo se registra sin devolver la semana (duplicaria el aviso). Cola `reports`, sin reintentos.
+ * UPDATE condicionado. Un error al preparar el resumen libera la semana. Si la entrega incluye la app, el aviso guardado confirma la
+ * entrega. La politica de canales se relee al terminar de preparar el resumen. Cola `reports`, sin reintentos.
  */
 class SendUserWeeklyDigest implements ShouldQueue
 {
@@ -39,12 +38,13 @@ class SendUserWeeklyDigest implements ShouldQueue
         $user = User::query()->find($this->userId);
         $zone = $user === null ? null : $digest->zoneFor($user);
 
-        if ($user === null || $zone === null || ! $digest->claim($user, $this->week)) {
+        if ($user === null || $zone === null || ! NotificationPreferences::anyChannel($user, 'weekly_digest') || ! $digest->claim($user, $this->week)) {
             return;
         }
 
         try {
             $data = $digest->build($user, $zone, now()->toImmutable());
+            $user->refresh();
             $user->notify(new WeeklyDigestReady($data));
         } catch (Throwable $e) {
             // Si nada llego al usuario se devuelve la semana para que la siguiente pasada lo intente de nuevo; si el aviso ya se guardo
@@ -57,7 +57,7 @@ class SendUserWeeklyDigest implements ShouldQueue
             return;
         }
 
-        if (! $user->notify_by_mail) {
+        if (! NotificationPreferences::allows($user, 'weekly_digest', 'mail')) {
             return;
         }
 
@@ -73,13 +73,13 @@ class SendUserWeeklyDigest implements ShouldQueue
         }
     }
 
-    /** Timeout, kill o error inesperado: si el aviso de la semana no llego a entregarse, la semana se libera. */
+    /** Si el resumen iba a la app y aun no hay aviso, se puede volver a intentar la semana. */
     public function failed(Throwable $e): void
     {
         $user = User::query()->find($this->userId);
         $digest = app(WeeklyDigest::class);
 
-        if ($user !== null && ! $digest->delivered($user, $this->week)) {
+        if ($user !== null && NotificationPreferences::allows($user, 'weekly_digest', 'database') && ! $digest->delivered($user, $this->week)) {
             $digest->release($user, $this->week);
         }
         Log::error('weekly_digest.job_failed', ['user_id' => $this->userId, 'exception' => $e::class]);

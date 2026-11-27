@@ -10,15 +10,15 @@ import {
     fetchResults,
     filterPages,
     groupEntries,
-    isPaletteShortcut,
     nextIndex,
     pageCommands,
     queryLength,
     restoreIndex,
 } from '@/lib/commandPalette';
 import { useNavigationContext } from '@/Composables/useNavigationContext';
+import { isApplePlatform, searchShortcut } from '@/lib/shortcuts';
 import { router } from '@inertiajs/vue3';
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 
 /**
  * Paleta de comandos (T-85, F-11): botón de la cabecera + diálogo común (`BaseDialog`: foco atrapado, Esc cierra y el foco vuelve a quien la
@@ -26,10 +26,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
  * y se filtran al instante; el contenido del usuario llega del servidor (`search`) con debounce y cancelación, ya acotado a lo que puede ver.
  * Todo se pinta como texto con `{{ }}`: nada de HTML del servidor.
  *
- * Atajo: Ctrl+K (Cmd+K en macOS) en cualquier pantalla, también en el compositor (su layout la monta igual; sus navegaciones pasan por el
- * router y las intercepta `UnsavedGuard`). Ningún editor de la app usa esa combinación (el estudio usa Z, S, A, C, V y D;
- * el compositor es un `textarea` normal), así que no se pisa nada; cede si otro diálogo modal ya está abierto o si quien lo gestiona
- * antes ya ha hecho `preventDefault`.
+ * Los atajos se registran en GlobalActions. La navegación usa el router y pasa por UnsavedGuard en el compositor.
  */
 defineProps({
     /** Botón para cabeceras claras (el compositor); por defecto, para la cabecera oscura del shell. */
@@ -43,7 +40,7 @@ const optionId = (/** @type {number} */ index) => `command-palette-option-${inde
 const open = ref(false);
 const query = ref('');
 const active = ref(0);
-const mac = ref(false);
+const shortcut = searchShortcut(isApplePlatform());
 const trigger = ref(/** @type {HTMLButtonElement | null} */ (null));
 const returnTo = ref(/** @type {HTMLButtonElement | null} */ (null));
 const remote = ref(/** @type {import('@/lib/commandPalette').RemoteState} */ ({ status: 'idle', query: '', results: [], error: '' }));
@@ -53,7 +50,6 @@ const pages = computed(() => (open.value ? pageCommands(ctx.value) : []));
 const groups = computed(() => groupEntries(filterPages(pages.value, query.value, PAGE_LIMIT), remote.value.results));
 const flat = computed(() => groups.value.flatMap((group) => group.entries));
 const typed = computed(() => queryLength(query.value));
-const shortcut = computed(() => (mac.value ? '⌘K' : 'Ctrl K'));
 
 /** Mensaje para el lector de pantalla (región `aria-live` educada); lo visible va aparte, en la propia lista. */
 const announcement = computed(() => {
@@ -80,11 +76,13 @@ watch(active, async (index) => {
     document.getElementById(optionId(index))?.scrollIntoView({ block: 'nearest' });
 });
 
-/** @param {HTMLButtonElement | null} from botón que la abre (para devolverle el foco); sin él, el foco vuelve a donde estaba */
-function openPalette(from) {
+/** @param {HTMLButtonElement | null} [from] botón que la abre; sin él, el foco vuelve a donde estaba */
+function openPalette(from = null) {
+    if (open.value) return;
     returnTo.value = from;
     open.value = true;
 }
+defineExpose({ openPalette, open });
 
 function close() {
     open.value = false;
@@ -116,23 +114,7 @@ function onNavigationKeydown(event) {
     }
 }
 
-/** @param {KeyboardEvent} event */
-function onShortcut(event) {
-    if (!isPaletteShortcut(event, mac.value)) return;
-    if (open.value) return event.preventDefault();
-    if (document.querySelector('dialog[open]')) return;
-    event.preventDefault();
-    openPalette(null);
-}
-
-onMounted(() => {
-    mac.value = /Mac|iPhone|iPad/.test(navigator.platform);
-    window.addEventListener('keydown', onShortcut);
-});
-onBeforeUnmount(() => {
-    window.removeEventListener('keydown', onShortcut);
-    search.close();
-});
+onBeforeUnmount(() => search.close());
 </script>
 
 <template>
@@ -145,10 +127,10 @@ onBeforeUnmount(() => {
                 ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 2xl:border-slate-300'
                 : 'text-slate-300 hover:bg-white/10 hover:text-white 2xl:border-white/15 2xl:bg-white/5'
         "
-        :title="`Buscar (${shortcut})`"
+        :title="`Buscar (${shortcut.keys})`"
         aria-label="Buscar en la aplicación"
         aria-haspopup="dialog"
-        aria-keyshortcuts="Control+K Meta+K"
+        :aria-keyshortcuts="shortcut.aria"
         data-testid="command-palette-trigger"
         @click="openPalette(trigger)"
     >
@@ -159,7 +141,7 @@ onBeforeUnmount(() => {
             :class="light ? 'border-slate-300 text-slate-600' : 'border-white/20 text-slate-300'"
             aria-hidden="true"
             >{{
-            shortcut
+            shortcut.keys
             }}</kbd
         >
     </button>
@@ -167,13 +149,15 @@ onBeforeUnmount(() => {
     <BaseDialog
         v-if="open"
         open
+        role="alertdialog"
         close-on-backdrop
         :return-focus-to="returnTo"
         class="dialog-panel max-w-2xl max-sm:my-0 max-sm:h-dvh max-sm:max-h-none max-sm:w-screen max-sm:max-w-none max-sm:rounded-none sm:mt-20"
         aria-labelledby="command-palette-title"
+        aria-describedby="command-palette-hint"
         @close="close"
     >
-        <div class="flex h-full min-w-0 flex-col" data-testid="command-palette">
+        <div class="relative flex h-full min-w-0 flex-col" data-testid="command-palette">
             <h2 id="command-palette-title" class="sr-only">Buscar</h2>
             <div class="flex items-center gap-2 border-b border-slate-200 px-3 py-2">
                 <Icon name="search" class="h-5 w-5 shrink-0 text-slate-500" />

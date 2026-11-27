@@ -1,7 +1,7 @@
 <script setup>
 import FlashBanner from '@/Components/FlashBanner.vue';
 import BrandLogo from '@/Components/BrandLogo.vue';
-import CommandPalette from '@/Components/CommandPalette.vue';
+import GlobalActions from '@/Components/GlobalActions.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import Icon from '@/Components/Icon.vue';
@@ -104,8 +104,7 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
                 </nav>
 
                 <div class="ms-auto flex min-w-0 items-center gap-1 sm:gap-2">
-                    <!-- Búsqueda global y paleta de comandos (Ctrl+K) -->
-                    <CommandPalette />
+                    <GlobalActions />
 
                     <!-- Selector de marca -->
                     <Dropdown align="right" width="72" class="min-w-0">

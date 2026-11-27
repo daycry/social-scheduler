@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\NotificationPreferences;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Preferencias de avisos por tipo (T-86): resumen semanal (y su parrafo de IA) y recordatorio previo de publicacion manual. El correo global
- * (`notify_by_mail`) sigue en el perfil. La baja del resumen desde el correo es un enlace firmado de un clic, igual que la de los informes
+ * se decide por tipo y canal en `NotificationPreferences` (perfil › Avisos). La baja del resumen desde el correo es un enlace firmado de un clic, igual que la de los informes
  * programados: el GET solo confirma (sin efectos, para que escaneres y prefetchers de correo no den de baja a nadie) y el POST firmado
  * (RFC 8058, fuera de CSRF en `bootstrap/app.php`) desactiva el resumen de ESE usuario. Idempotente.
  */
@@ -17,11 +20,31 @@ class NotificationPreferenceController extends Controller
 {
     public function update(Request $request): RedirectResponse
     {
-        $request->user()->update($request->validate([
+        $rules = [
             'notify_weekly_digest' => ['required', 'boolean'],
             'weekly_digest_ai' => ['required', 'boolean'],
             'notify_manual_reminder' => ['required', 'boolean'],
-        ]));
+            'notification_channels' => ['sometimes', 'array:'.implode(',', array_keys(NotificationPreferences::TYPES))],
+        ];
+        foreach (NotificationPreferences::TYPES as $type => [, $channels]) {
+            $rules["notification_channels.{$type}"] = ['sometimes', 'array:'.implode(',', $channels)];
+            foreach ($channels as $channel) {
+                $rules["notification_channels.{$type}.{$channel}"] = ['sometimes', 'boolean'];
+            }
+        }
+
+        $data = $request->validate($rules);
+        DB::transaction(function () use ($request, $data): void {
+            $user = User::query()->lockForUpdate()->findOrFail($request->user()->id);
+            $user->fill(Arr::except($data, 'notification_channels'));
+            if (! empty($data['notification_channels'])) {
+                $user->notification_channels = array_replace_recursive(
+                    $user->notification_channels ?? [],
+                    collect($data['notification_channels'])->map(fn ($channels) => array_map(fn ($value) => (bool) $value, $channels))->all(),
+                );
+            }
+            $user->save();
+        });
 
         return to_route('profile.notifications');
     }

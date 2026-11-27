@@ -1,0 +1,2389 @@
+diff --git a/CHANGELOG.es.md b/CHANGELOG.es.md
+index 5d2bc10..8a77f6c 100644
+--- a/CHANGELOG.es.md
++++ b/CHANGELOG.es.md
+@@ -5,6 +5,10 @@ # Registro de cambios
+ 
+ ## [Sin publicar]
+ 
++### Added — atajos, preferencias de avisos y primeros pasos (audit-hardening, T-96)
++
++- Navega con el teclado, elige dónde recibes cada tipo de aviso y empieza, salta o repite la guía de primeros pasos.
++
+ ### Added — catálogo de plantillas del Estudio (audit-hardening, T-95)
+ 
+ - El Estudio añade 50 plantillas editables en cinco formatos, con carruseles y 25 diseños con animaciones de entrada y salida. Busca por nombre o categoría, filtra por formato y crea un diseño con los colores y la tipografía de tu marca.
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index ea0a6a1..e6e9a85 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -5,6 +5,10 @@ # Changelog
+ 
+ ## [Unreleased]
+ 
++### Added — keyboard shortcuts, notification preferences, and onboarding (audit-hardening, T-96)
++
++- Navigate from the keyboard, choose where each notification reaches you, and start, skip, or replay the getting-started guide.
++
+ ### Added — Studio template catalog (audit-hardening, T-95)
+ 
+ - The Studio adds 50 editable templates across five formats, including carousels and 25 designs with entrance and exit animations. Search by name or category, filter by format, and start a design using your brand colors and font.
+diff --git a/app/Http/Controllers/NotificationPreferenceController.php b/app/Http/Controllers/NotificationPreferenceController.php
+index 335e753..fabcbfa 100644
+--- a/app/Http/Controllers/NotificationPreferenceController.php
++++ b/app/Http/Controllers/NotificationPreferenceController.php
+@@ -3,9 +3,12 @@
+ namespace App\Http\Controllers;
+ 
+ use App\Models\User;
++use App\Services\NotificationPreferences;
+ use Illuminate\Http\RedirectResponse;
+ use Illuminate\Http\Request;
+ use Illuminate\Http\Response as HttpResponse;
++use Illuminate\Support\Arr;
++use Illuminate\Support\Facades\DB;
+ 
+ /**
+  * Preferencias de avisos por tipo (T-86): resumen semanal (y su parrafo de IA) y recordatorio previo de publicacion manual. El correo global
+@@ -17,11 +20,31 @@ class NotificationPreferenceController extends Controller
+ {
+     public function update(Request $request): RedirectResponse
+     {
+-        $request->user()->update($request->validate([
++        $rules = [
+             'notify_weekly_digest' => ['required', 'boolean'],
+             'weekly_digest_ai' => ['required', 'boolean'],
+             'notify_manual_reminder' => ['required', 'boolean'],
+-        ]));
++            'notification_channels' => ['sometimes', 'array:'.implode(',', array_keys(NotificationPreferences::TYPES))],
++        ];
++        foreach (NotificationPreferences::TYPES as $type => [, $channels]) {
++            $rules["notification_channels.{$type}"] = ['sometimes', 'array:'.implode(',', $channels)];
++            foreach ($channels as $channel) {
++                $rules["notification_channels.{$type}.{$channel}"] = ['sometimes', 'boolean'];
++            }
++        }
++
++        $data = $request->validate($rules);
++        DB::transaction(function () use ($request, $data): void {
++            $user = User::query()->lockForUpdate()->findOrFail($request->user()->id);
++            $user->fill(Arr::except($data, 'notification_channels'));
++            if (! empty($data['notification_channels'])) {
++                $user->notification_channels = array_replace_recursive(
++                    $user->notification_channels ?? [],
++                    collect($data['notification_channels'])->map(fn ($channels) => array_map(fn ($value) => (bool) $value, $channels))->all(),
++                );
++            }
++            $user->save();
++        });
+ 
+         return to_route('profile.notifications');
+     }
+diff --git a/app/Http/Controllers/PushSubscriptionController.php b/app/Http/Controllers/PushSubscriptionController.php
+index bd3e79e..15780cd 100644
+--- a/app/Http/Controllers/PushSubscriptionController.php
++++ b/app/Http/Controllers/PushSubscriptionController.php
+@@ -4,6 +4,7 @@
+ 
+ use App\Models\PushSubscription;
+ use App\Services\AiAssistant;
++use App\Services\NotificationPreferences;
+ use App\Services\Push\PushConfiguration;
+ use App\Services\Push\PushSubscriptions;
+ use Illuminate\Http\RedirectResponse;
+@@ -34,6 +35,8 @@ public function index(Request $request, PushConfiguration $configuration, AiAssi
+             'subscriptions' => $devices->all(),
+             // Preferencias de avisos por tipo (T-86) y lo que condiciona su pantalla: el correo global y el asistente de IA.
+             'preferences' => $request->user()->only(['notify_weekly_digest', 'weekly_digest_ai', 'notify_manual_reminder']),
++            'notificationChannels' => NotificationPreferences::forProfile($request->user()),
++            'notificationTypes' => array_map(fn ($type) => $type[0], NotificationPreferences::TYPES),
+             'mailEnabled' => (bool) $request->user()->notify_by_mail,
+             'aiAvailable' => $ai->enabled(),
+         ]);
+diff --git a/app/Http/Middleware/HandleInertiaRequests.php b/app/Http/Middleware/HandleInertiaRequests.php
+index 15d45b4..03fd4fe 100644
+--- a/app/Http/Middleware/HandleInertiaRequests.php
++++ b/app/Http/Middleware/HandleInertiaRequests.php
+@@ -4,7 +4,12 @@
+ 
+ use App\Connectors\Network;
+ use App\Http\Controllers\OAuth\OAuthController;
++use App\Models\MediaAsset;
++use App\Models\Post;
++use App\Models\Site;
++use App\Models\SmartLink;
+ use App\Models\SocialAccount;
++use App\Models\Studio\Design;
+ use App\Services\InboxService;
+ use App\Support\CurrentBrand;
+ use App\Support\SystemAccess;
+@@ -57,11 +62,33 @@ public function share(Request $request): array
+             // Registro publico abierto: oculta los enlaces «Crear cuenta» cuando REGISTRATION_ENABLED=false.
+             'registrationEnabled' => (bool) config('app.registration_enabled', true),
+             'shell' => fn () => $request->user() ? $this->shell($request) : null,
++            'onboarding' => fn () => $this->onboarding($request),
+             // Marcas con un OAuth de varias cuentas sin confirmar: aviso en toda la app hasta que se elijan (o se descarten).
+             'pendingConnections' => fn () => $request->user() ? $this->pendingConnections($request) : [],
+         ];
+     }
+ 
++    private function onboarding(Request $request): ?string
++    {
++        $user = $request->user();
++        if ($user === null || ! $user->hasVerifiedEmail()) {
++            return null;
++        }
++        if ($user->onboarding_step !== null) {
++            return $user->onboarding_step;
++        }
++        if (CurrentBrand::brands($request)->isNotEmpty()) {
++            return null;
++        }
++        foreach ([Post::class, SocialAccount::class, Design::class, MediaAsset::class, SmartLink::class, Site::class] as $model) {
++            if ($model::ownedBy($user->id)->exists()) {
++                return null;
++            }
++        }
++
++        return 'welcome';
++    }
++
+     /** @return array<string, mixed> */
+     /** @return list<array{brand_id: int, brand_name: string}> */
+     private function pendingConnections(Request $request): array
+diff --git a/app/Jobs/SendPushNotification.php b/app/Jobs/SendPushNotification.php
+index 7a8ee00..c68f006 100644
+--- a/app/Jobs/SendPushNotification.php
++++ b/app/Jobs/SendPushNotification.php
+@@ -4,6 +4,7 @@
+ 
+ use App\Models\PushSubscription;
+ use App\Models\User;
++use App\Services\NotificationPreferences;
+ use App\Services\Push\PushConfiguration;
+ use App\Services\Push\PushResult;
+ use App\Services\Push\PushSender;
+@@ -24,8 +25,15 @@ final class SendPushNotification implements ShouldBeUnique, ShouldQueue
+ 
+     public int $uniqueFor = 600;
+ 
+-    public function __construct(public readonly int $userId, public readonly int $subscriptionId, public readonly string $notificationId)
+-    {
++    private ?string $pushOnlyType = null;
++
++    public function __construct(
++        public readonly int $userId,
++        public readonly int $subscriptionId,
++        public readonly string $notificationId,
++        ?string $pushOnlyType = null,
++    ) {
++        $this->pushOnlyType = $pushOnlyType;
+         $this->onQueue(config('push.queue', 'poll'));
+     }
+ 
+@@ -43,8 +51,7 @@ public function handle(PushSender $sender, PushConfiguration $configuration): vo
+             $user = User::find($this->userId);
+             $subscription = PushSubscription::ownedBy($this->userId)->whereKey($this->subscriptionId)->lockForUpdate()->first();
+             if ($user === null || ! $user->hasVerifiedEmail() || $subscription === null
+-                || $subscription->last_notification_id === $this->notificationId
+-                || ! $user->notifications()->whereKey($this->notificationId)->whereNull('read_at')->exists()) {
++                || $subscription->last_notification_id === $this->notificationId || ! $this->allowsPush($user)) {
+                 return;
+             }
+             // Marca técnica para adquirir el bloqueo de escritura SQLite antes de HTTP.
+@@ -66,6 +73,20 @@ public function handle(PushSender $sender, PushConfiguration $configuration): vo
+         });
+     }
+ 
++    private function allowsPush(User $user): bool
++    {
++        $type = $this->pushOnlyType;
++        if ($type === null) {
++            $notice = $user->unreadNotifications()->whereKey($this->notificationId)->first();
++            if ($notice === null) {
++                return false;
++            }
++            $type = NotificationPreferences::typeFor($notice->type, $notice->data['type'] ?? '');
++        }
++
++        return NotificationPreferences::allows($user, $type, 'push');
++    }
++
+     public function backoff(): array
+     {
+         return [30, 120];
+diff --git a/app/Jobs/SendScheduledReport.php b/app/Jobs/SendScheduledReport.php
+index 6f3b37e..d6fad3c 100644
+--- a/app/Jobs/SendScheduledReport.php
++++ b/app/Jobs/SendScheduledReport.php
+@@ -9,6 +9,7 @@
+ use App\Models\ReportTemplate;
+ use App\Models\User;
+ use App\Services\JobFailureNotifier;
++use App\Services\NotificationPreferences;
+ use App\Services\Reports\ReportBlocks;
+ use App\Services\ReportService;
+ use Illuminate\Contracts\Queue\ShouldQueue;
+@@ -58,6 +59,10 @@ public function handle(ReportService $reports, JobFailureNotifier $failures): vo
+             return;
+         }
+ 
++        if (! NotificationPreferences::allows($user, 'scheduled_report', 'mail')) {
++            return;
++        }
++
+         $recipients = array_values((array) $schedule->recipients);
+         $key = 'report-mail:'.$user->id;
+         $limit = (int) config('reports.mail_daily_limit', 20);
+@@ -93,6 +98,12 @@ public function handle(ReportService $reports, JobFailureNotifier $failures): vo
+         $hours = max(1, (int) config('reports.mail_link_hours', 72));
+         $url = $report->signedDownloadUrl($hours * 60, $schedule->id);
+ 
++        if (! NotificationPreferences::allows($user->refresh(), 'scheduled_report', 'mail')) {
++            RateLimiter::decrement($key, 86400, $reserved);
++
++            return;
++        }
++
+         foreach ($recipients as $to) {
+             $unsubscribe = URL::signedRoute('report-schedules.unsubscribe', ['schedule' => $schedule->id, 'email' => $to]);
+             Mail::to($to)->send(new ScheduledReportMail($report, $brand->name, $url, $hours, (string) $user->name, (string) $user->email, $unsubscribe));
+diff --git a/app/Jobs/SendUserWeeklyDigest.php b/app/Jobs/SendUserWeeklyDigest.php
+index 0065e0a..8527f7a 100644
+--- a/app/Jobs/SendUserWeeklyDigest.php
++++ b/app/Jobs/SendUserWeeklyDigest.php
+@@ -5,6 +5,7 @@
+ use App\Mail\WeeklyDigest as WeeklyDigestMail;
+ use App\Models\User;
+ use App\Notifications\WeeklyDigestReady;
++use App\Services\NotificationPreferences;
+ use App\Services\WeeklyDigest;
+ use Illuminate\Contracts\Queue\ShouldQueue;
+ use Illuminate\Foundation\Queue\Queueable;
+@@ -16,10 +17,8 @@
+ 
+ /**
+  * Resumen semanal (T-86) de UN usuario y UNA semana (`$week`, el lunes local). Idempotente: `WeeklyDigest::claim()` reserva la semana con un
+- * UPDATE condicionado, asi un job duplicado o simultaneo no repite el envio. La semana reclamada no se pierde si el envio no llega a hacerse:
+- * un error al prepararlo la devuelve en `handle()` y un timeout o kill del worker la devuelve en `failed()` (solo si aun no hay aviso de esa
+- * semana: si el aviso ya se entrego, no se repite). El aviso en la app se entrega siempre (y por push, lo cuelga `QueuePushNotification`); el
+- * correo solo con `notify_by_mail`, y un fallo suyo se registra sin devolver la semana (duplicaria el aviso). Cola `reports`, sin reintentos.
++ * UPDATE condicionado. Un error al preparar el resumen libera la semana. Si la entrega incluye la app, el aviso guardado confirma la
++ * entrega. La politica de canales se relee al terminar de preparar el resumen. Cola `reports`, sin reintentos.
+  */
+ class SendUserWeeklyDigest implements ShouldQueue
+ {
+@@ -39,12 +38,13 @@ public function handle(WeeklyDigest $digest): void
+         $user = User::query()->find($this->userId);
+         $zone = $user === null ? null : $digest->zoneFor($user);
+ 
+-        if ($user === null || $zone === null || ! $digest->claim($user, $this->week)) {
++        if ($user === null || $zone === null || ! NotificationPreferences::anyChannel($user, 'weekly_digest') || ! $digest->claim($user, $this->week)) {
+             return;
+         }
+ 
+         try {
+             $data = $digest->build($user, $zone, now()->toImmutable());
++            $user->refresh();
+             $user->notify(new WeeklyDigestReady($data));
+         } catch (Throwable $e) {
+             // Si nada llego al usuario se devuelve la semana para que la siguiente pasada lo intente de nuevo; si el aviso ya se guardo
+@@ -57,7 +57,7 @@ public function handle(WeeklyDigest $digest): void
+             return;
+         }
+ 
+-        if (! $user->notify_by_mail) {
++        if (! NotificationPreferences::allows($user, 'weekly_digest', 'mail')) {
+             return;
+         }
+ 
+@@ -73,13 +73,13 @@ public function handle(WeeklyDigest $digest): void
+         }
+     }
+ 
+-    /** Timeout, kill o error inesperado: si el aviso de la semana no llego a entregarse, la semana se libera. */
++    /** Si el resumen iba a la app y aun no hay aviso, se puede volver a intentar la semana. */
+     public function failed(Throwable $e): void
+     {
+         $user = User::query()->find($this->userId);
+         $digest = app(WeeklyDigest::class);
+ 
+-        if ($user !== null && ! $digest->delivered($user, $this->week)) {
++        if ($user !== null && NotificationPreferences::allows($user, 'weekly_digest', 'database') && ! $digest->delivered($user, $this->week)) {
+             $digest->release($user, $this->week);
+         }
+         Log::error('weekly_digest.job_failed', ['user_id' => $this->userId, 'exception' => $e::class]);
+diff --git a/app/Listeners/QueuePushNotification.php b/app/Listeners/QueuePushNotification.php
+index 76fce55..a08f7d0 100644
+--- a/app/Listeners/QueuePushNotification.php
++++ b/app/Listeners/QueuePushNotification.php
+@@ -5,6 +5,7 @@
+ use App\Jobs\SendPushNotification;
+ use App\Models\PushSubscription;
+ use App\Models\User;
++use App\Services\NotificationPreferences;
+ use App\Services\Push\PushConfiguration;
+ use Illuminate\Notifications\DatabaseNotification;
+ use Illuminate\Notifications\Events\NotificationSent;
+@@ -12,7 +13,6 @@
+ use Illuminate\Support\Facades\Log;
+ use Throwable;
+ 
+-/** Push complementa el aviso en la base de datos y nunca sustituye su entrega. */
+ final class QueuePushNotification
+ {
+     public function __construct(private readonly PushConfiguration $configuration) {}
+@@ -20,15 +20,24 @@ public function __construct(private readonly PushConfiguration $configuration) {
+     public function handle(NotificationSent $event): void
+     {
+         $user = $event->notifiable;
+-        if ($event->channel !== 'database' || ! $user instanceof User || ! $user->hasVerifiedEmail()
+-            || ! $event->response instanceof DatabaseNotification || ! $this->configuration->enabled()) {
++        if ($event->channel !== 'database' || ! $user instanceof User || ! $event->response instanceof DatabaseNotification
++            || ! NotificationPreferences::allows($user, NotificationPreferences::typeFor($event->notification), 'push')) {
++            return;
++        }
++
++        $this->queue($user, (string) $event->response->id);
++    }
++
++    /** Los avisos solo push llevan su tipo porque no tienen un aviso asociado en la bandeja. */
++    public function queue(User $user, string $notificationId, ?string $pushOnlyType = null): void
++    {
++        if (! $user->hasVerifiedEmail() || ! $this->configuration->enabled()) {
+             return;
+         }
+         $userId = (int) $user->id;
+-        $notificationId = (string) $event->response->id;
+-        DB::afterCommit(function () use ($userId, $notificationId): void {
++        DB::afterCommit(function () use ($userId, $notificationId, $pushOnlyType): void {
+             try {
+-                PushSubscription::ownedBy($userId)->select('id')->eachById(fn ($subscription) => SendPushNotification::dispatch($userId, (int) $subscription->id, $notificationId));
++                PushSubscription::ownedBy($userId)->select('id')->eachById(fn ($subscription) => SendPushNotification::dispatch($userId, (int) $subscription->id, $notificationId, $pushOnlyType));
+             } catch (Throwable $error) {
+                 Log::warning('No se pudo encolar el aviso push.', ['exception_class' => $error::class]);
+             }
+diff --git a/app/Models/User.php b/app/Models/User.php
+index 671b8b4..d73ece0 100644
+--- a/app/Models/User.php
++++ b/app/Models/User.php
+@@ -17,14 +17,14 @@
+ use Laravel\Sanctum\HasApiTokens;
+ 
+ #[Fillable(['name', 'email', 'password', 'notify_by_mail', 'notify_weekly_digest', 'weekly_digest_ai', 'notify_manual_reminder'])]
+-#[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes', 'calendar_feed_token_hash'])]
++#[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes', 'calendar_feed_token_hash', 'notification_channels', 'onboarding_step'])]
+ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
+ {
+     /** @use HasFactory<UserFactory> */
+     use HasApiTokens, HasFactory, Notifiable, PasskeyAuthenticatable;
+ 
+     /** Igual que los valores por defecto de las columnas: un usuario recien creado en memoria ya tiene sus preferencias de avisos. */
+-    protected $attributes = ['notify_weekly_digest' => false, 'weekly_digest_ai' => false, 'notify_manual_reminder' => true, 'hide_marketing_dates' => false];
++    protected $attributes = ['notify_weekly_digest' => false, 'weekly_digest_ai' => false, 'notify_manual_reminder' => true, 'hide_marketing_dates' => false, 'single_key_shortcuts' => true];
+ 
+     protected static function booted(): void
+     {
+@@ -78,6 +78,8 @@ protected function casts(): array
+             'notify_weekly_digest' => 'boolean',
+             'weekly_digest_ai' => 'boolean',
+             'notify_manual_reminder' => 'boolean',
++            'notification_channels' => 'array',
++            'single_key_shortcuts' => 'boolean',
+             'hide_marketing_dates' => 'boolean',
+             'calendar_feed_token_at' => 'datetime',
+             'weekly_digest_sent_for' => 'date',
+diff --git a/app/Notifications/AsyncJobFailed.php b/app/Notifications/AsyncJobFailed.php
+index a7fa75b..0758725 100644
+--- a/app/Notifications/AsyncJobFailed.php
++++ b/app/Notifications/AsyncJobFailed.php
+@@ -2,15 +2,15 @@
+ 
+ namespace App\Notifications;
+ 
++use App\Services\NotificationPreferences;
+ use Illuminate\Bus\Queueable;
+ use Illuminate\Contracts\Queue\ShouldQueue;
+ use Illuminate\Notifications\Messages\MailMessage;
+ use Illuminate\Notifications\Notification;
+ 
+ /**
+- * Aviso (T-23) de que un trabajo asincrono ha fallado: informe programado, exportacion MP4/GIF, IA, Canva o importacion. Siempre en la app
+- * (`database`); el correo solo si el usuario lo activo (`notify_by_mail`). Guarda escalares con el motivo ya legible, nunca tokens ni URLs
+- * firmadas, y un `url` relativo que la pagina de avisos usa como enlace generico (igual que los avisos de publicacion y de series).
++ * Aviso (T-23) de que un trabajo asincrono ha fallado. La politica del usuario gobierna app, correo y push. Guarda el motivo legible y
++ * una URL relativa para abrir el trabajo desde Avisos.
+  */
+ class AsyncJobFailed extends Notification implements ShouldQueue
+ {
+@@ -34,7 +34,7 @@ public function __construct(
+     /** @return list<string> `database` primero: es el aviso que no puede perderse. */
+     public function via(object $notifiable): array
+     {
+-        return $notifiable->notify_by_mail ? ['database', 'mail'] : ['database'];
++        return NotificationPreferences::allows($notifiable, 'job_failed', 'mail') ? ['database', 'mail'] : ['database'];
+     }
+ 
+     public function toMail(object $notifiable): MailMessage
+diff --git a/app/Notifications/ConnectionExpiring.php b/app/Notifications/ConnectionExpiring.php
+index 2960344..a6b0f05 100644
+--- a/app/Notifications/ConnectionExpiring.php
++++ b/app/Notifications/ConnectionExpiring.php
+@@ -3,6 +3,7 @@
+ namespace App\Notifications;
+ 
+ use App\Models\SocialAccount;
++use App\Services\NotificationPreferences;
+ use Illuminate\Bus\Queueable;
+ use Illuminate\Contracts\Queue\ShouldQueue;
+ use Illuminate\Notifications\Messages\MailMessage;
+@@ -10,7 +11,7 @@
+ 
+ /**
+  * Aviso (T-23) de que una conexion caduca pronto y hay que reconectarla ANTES: acceso a datos de Meta (90 dias) o token de LinkedIn sin
+- * renovacion. En la app siempre; correo solo con `notify_by_mail`. Datos escalares: nunca tokens.
++ * renovacion. Se entrega por los canales habilitados por el usuario. Datos escalares: nunca tokens.
+  */
+ class ConnectionExpiring extends Notification implements ShouldQueue
+ {
+@@ -43,7 +44,7 @@ public function __construct(SocialAccount $account, public readonly string $reas
+     /** @return list<string> */
+     public function via(object $notifiable): array
+     {
+-        return $notifiable->notify_by_mail ? ['database', 'mail'] : ['database'];
++        return NotificationPreferences::allows($notifiable, 'connection_expiring', 'mail') ? ['database', 'mail'] : ['database'];
+     }
+ 
+     public function toMail(object $notifiable): MailMessage
+diff --git a/app/Notifications/GoalAlert.php b/app/Notifications/GoalAlert.php
+index eb15795..d6d6e51 100644
+--- a/app/Notifications/GoalAlert.php
++++ b/app/Notifications/GoalAlert.php
+@@ -3,6 +3,7 @@
+ namespace App\Notifications;
+ 
+ use App\Models\Goal;
++use App\Services\NotificationPreferences;
+ use Illuminate\Bus\Queueable;
+ use Illuminate\Contracts\Queue\ShouldQueue;
+ use Illuminate\Notifications\Messages\MailMessage;
+@@ -41,7 +42,8 @@ public function shouldSend(object $notifiable, string $channel): bool
+             return ! $this->mailOnly;
+         }
+ 
+-        return $channel === 'mail' && $this->mailOnly && $notifiable->notify_by_mail && $notifiable->hasVerifiedEmail()
++        return $channel === 'mail' && $this->mailOnly && $notifiable->hasVerifiedEmail()
++            && NotificationPreferences::allows($notifiable, 'goal_alert', 'mail')
+             && Goal::ownedBy($this->ownerId)->whereKey($this->payload['goal_id'])->where('enabled', true)->where('mail_enabled', true)->exists();
+     }
+ 
+diff --git a/app/Notifications/ManualPublishReminder.php b/app/Notifications/ManualPublishReminder.php
+index c16ff7d..12f1e8b 100644
+--- a/app/Notifications/ManualPublishReminder.php
++++ b/app/Notifications/ManualPublishReminder.php
+@@ -2,14 +2,14 @@
+ 
+ namespace App\Notifications;
+ 
++use App\Services\NotificationPreferences;
+ use Illuminate\Bus\Queueable;
+ use Illuminate\Contracts\Queue\ShouldQueue;
+ use Illuminate\Notifications\Messages\MailMessage;
+ use Illuminate\Notifications\Notification;
+ 
+ /**
+- * Recordatorio (T-32) de que una publicacion manual toca pronto: aviso en la app (push incluido, via `QueuePushNotification`) y correo solo con `notify_by_mail`; nada si el usuario apago `notify_manual_reminder`. Va a la cola
+- * (como `ConnectionExpiring`): el correo no se envia de forma sincrona dentro del despachador del minuto. Guarda escalares, nunca tokens.
++ * Recordatorio (T-32) previo a una publicacion manual. Se encola para entregar por los canales habilitados por el usuario.
+  */
+ class ManualPublishReminder extends Notification implements ShouldQueue
+ {
+@@ -32,13 +32,7 @@ public function __construct(
+     /** @return list<string> */
+     public function via(object $notifiable): array
+     {
+-        return $notifiable->notify_by_mail ? ['database', 'mail'] : ['database'];
+-    }
+-
+-    /** El worker NO vuelve a llamar a `via()`, pero si a esto por canal: la preferencia se relee al enviar, por si se apago mientras el aviso esperaba en la cola. */
+-    public function shouldSend(object $notifiable, string $channel): bool
+-    {
+-        return (bool) $notifiable->notify_manual_reminder;
++        return NotificationPreferences::allows($notifiable, 'manual_reminder', 'mail') ? ['database', 'mail'] : ['database'];
+     }
+ 
+     public function toMail(object $notifiable): MailMessage
+diff --git a/app/Services/JobFailureNotifier.php b/app/Services/JobFailureNotifier.php
+index f7b8676..4b8d96b 100644
+--- a/app/Services/JobFailureNotifier.php
++++ b/app/Services/JobFailureNotifier.php
+@@ -129,7 +129,7 @@ private function done(int $userId, string $kind, string $key, string $title, str
+     {
+         try {
+             $user = User::find($userId);
+-            if ($user === null || ! Cache::add("job-done:{$userId}:{$key}", 1, now()->addDay())) {
++            if ($user === null || ! NotificationPreferences::anyChannel($user, 'job_done') || ! Cache::add("job-done:{$userId}:{$key}", 1, now()->addDay())) {
+                 return;
+             }
+ 
+@@ -146,7 +146,7 @@ private function failed(int $userId, string $kind, string $key, string $title, s
+         try {
+             $user = User::find($userId);
+             $jobKey = "job-failure:{$userId}:{$key}";
+-            if ($user === null || Cache::has($jobKey)) {
++            if ($user === null || ! NotificationPreferences::anyChannel($user, 'job_failed') || Cache::has($jobKey)) {
+                 return;
+             }
+ 
+@@ -175,6 +175,15 @@ private function capped(User $user, string $kind, string $key, string $url, ?int
+         }
+ 
+         $noun = self::NOUNS[$kind] ?? $kind;
++        if (! NotificationPreferences::allows($user, 'job_failed', 'database')) {
++            if (NotificationPreferences::allows($user, 'job_failed', 'push')
++                && Cache::add("job-failure-summary-push:{$user->id}:{$kind}", 1, now()->addHour())) {
++                Notification::sendNow($user, new AsyncJobFailureSummary($kind, 1, $noun, $url, $brandId));
++            }
++
++            return;
++        }
++
+         $row = $user->notifications()->where('data->type', 'job_failed_summary')->where('data->kind', $kind)->where('created_at', '>=', now()->subHour())->latest()->first();
+ 
+         if ($row === null) {
+diff --git a/docs/README.md b/docs/README.md
+index 50d89e9..747a096 100644
+--- a/docs/README.md
++++ b/docs/README.md
+@@ -19,6 +19,7 @@ ## Por dónde empezar
+ | Ejecutar la validación T-43 con SQLite desechable y conectores simulados | [Pruebas aisladas de T-43](guias/pruebas-t43.md) |
+ | Revisar la regresión general en los tres tamaños (502 pasados y dos omitidos previstos) | [Informe de QA](roadmap/2026-10-26-metricool-parity-3/testing/attempt-2/report.md) · [PDF](roadmap/2026-10-26-metricool-parity-3/testing/attempt-2/report.pdf) |
+ | Usar la aplicación (incluye doble factor y passkeys) | [Guía de usuario](usuario/guia-de-usuario.md) |
++| Configurar una cuenta nueva y consultar los atajos | [Primeros pasos](usuario/primeros-pasos.md) |
+ | Operar el doble factor y las passkeys (RP ID, `sodium`, rotar claves) | [Despliegue → Seguridad de cuenta](modulos/despliegue.md#seguridad-de-cuenta-2fa-y-passkeys) |
+ | Activar el login con Google y Facebook (apps, redirect URIs, modos) | [Guía de login social](guias/login-social-google-meta.md) |
+ | Conectar un asistente (Claude, Codex, OpenCode) sin API key y desplegar el OAuth del MCP | [Servidor MCP](modulos/mcp.md#autorización-oauth-21-sin-api-key) y [Despliegue → OAuth del MCP](modulos/despliegue.md#oauth-del-mcp-nginxhestia-y-redirect-uris) |
+diff --git a/docs/modulos/informes.md b/docs/modulos/informes.md
+index e4ce10d..62b04cc 100644
+--- a/docs/modulos/informes.md
++++ b/docs/modulos/informes.md
+@@ -81,16 +81,16 @@ ## Exportaciones CSV síncronas (C-03c)
+ 
+ ## Resumen semanal (T-86)
+ 
+-Además de los informes en PDF, cada usuario puede recibir un **resumen semanal** de sus marcas, como aviso en la aplicación (que también llega por push si lo tiene activado) y, si tiene `notify_by_mail`, por correo. Se activa en **Notificaciones del navegador → Qué avisos quieres recibir** (`users.notify_weekly_digest`, **apagado por defecto**: es un correo recurrente que nadie ha pedido).
++Además de los informes en PDF, cada usuario puede recibir un **resumen semanal** de sus marcas por los canales que elija. Se activa en **Notificaciones del navegador → Qué avisos quieres recibir** (`users.notify_weekly_digest`, apagado por defecto).
+ 
+ | Qué | Dónde |
+ |---|---|
+ | Programación | `SendWeeklyDigest` (`app/Jobs/SendWeeklyDigest.php`), cada hora en `routes/console.php` (`send-weekly-digest`, `withoutOverlapping`), solo reparte: encola un `SendUserWeeklyDigest` por usuario al que ya le toca (un usuario lento o con IA no retiene a los demás). Cola `reports`, sin cola ni worker nuevos. Solo reciben el resumen (aviso y correo) los usuarios con el correo verificado, como el resto de avisos push |
+ | Cuándo y zona horaria | El lunes desde las 08:00 (`ReportSchedule::SEND_HOUR`) y hasta que acabe ese día, en la zona de la **marca principal** del usuario (la más antigua): `users` no tiene zona propia y los informes programados ya usan la hora local de la marca. Esa misma zona fija la semana de todas sus marcas. Sin marcas no hay resumen |
+-| Una vez por semana | `WeeklyDigest::claim()` es un `UPDATE` condicionado sobre `users.weekly_digest_sent_for` (el lunes local de la semana): dos pasadas, aunque sean simultáneas, no duplican. Si preparar el resumen falla (`handle()`) o el job muere tras el claim por timeout o kill (`failed()`), la semana se devuelve **solo si aún no hay aviso de esa semana** (`data->week`), y la siguiente pasada de la hora lo reintenta; un fallo del correo se registra y no repite el aviso de la app |
++| Una vez por semana | `WeeklyDigest::claim()` reserva la semana con un `UPDATE` condicionado sobre `users.weekly_digest_sent_for`. Un fallo al preparar el resumen libera la reserva. En caso de timeout o kill, `failed()` puede liberar la reserva si el canal app está activo y aún no se guardó el aviso. Cuando solo se entrega por correo o push, se conserva la reserva para evitar duplicados |
+ | Contenido | Por marca propia, la semana anterior (lunes a domingo, `ReportSchedule::periodFor`) frente a la previa: seguidores, visualizaciones, alcance e interacciones (`AnalyticsService::summary`, las mismas tarjetas y comparación del panel), publicaciones publicadas (`AnalyticsService::publishedCount`, el mismo cálculo del panel: zona de cada marca y sin cuentas desconectadas) y la mejor por interacciones (`ReportService::topPosts`). Una métrica o una marca sin dato sale «sin datos», nunca un 0 inventado |
+ | Entrega | Aviso `weekly_digest` (`WeeklyDigestReady`, canal `database`, con título y enlace al panel) y el correo `App\Mail\WeeklyDigest` (HTML y texto plano, enlaces absolutos) |
+ | IA opcional | Párrafo con `AiAssistant::complete` (política de cuota única de T-82) solo si el asistente está configurado **y** el usuario activa «Añadir un párrafo escrito con IA» (`weekly_digest_ai`, apagado por defecto). Viajan al proveedor únicamente los nombres de marca (sin correos, teléfonos ni enlaces) y las cifras agregadas, como datos dentro de un JSON; nunca textos de publicaciones ni datos del usuario. Si falla o responde algo desmesurado (> 700 caracteres), el resumen sale igual sin el párrafo. La política de privacidad (`resources/views/legal/privacy.blade.php`) lo menciona |
+ | Baja | El correo lleva una URL firmada `digest/{user}/unsubscribe` y las cabeceras `List-Unsubscribe` (RFC 8058): el GET firmado confirma sin efectos y solo el POST firmado desactiva el resumen de ese usuario (`resources/views/unsubscribe.blade.php`, fuera de CSRF en `bootstrap/app.php`, 30 peticiones/min). También hay un enlace a las preferencias |
+ 
+-Preferencias por tipo (`NotificationPreferenceController`, `PATCH profile/notification-preferences`): resumen semanal (apagado por defecto), su párrafo de IA (apagado) y **recordatorio de publicación manual** (`users.notify_manual_reminder`, **encendido por defecto**, el comportamiento anterior). Sin recordatorio no hay aviso por ningún canal antes de la hora (`ManualPublishService::remindUpcoming()` lo excluye de la selección y del claim, así que reactivarlo antes de la hora aún lo recibe, y `ManualPublishReminder::shouldSend()` lo vuelve a comprobar al procesar un aviso que ya esperaba en la cola, porque el worker no llama otra vez a `via()`). El aviso «es la hora» (`notifyDue()`) **no** respeta la preferencia: entrega el texto y la media de una publicación que la aplicación no enviará sola. El correo sigue gobernado por `notify_by_mail` (Perfil). Pruebas: `tests/Feature/Notifications/WeeklyDigestTest.php` y `ManualPublishReminderTest.php`; E2E-25 en `tests/e2e/weekly-digest.spec.ts`.
++El perfil permite elegir los canales del resumen y de los informes programados. El interruptor del resumen conserva su enlace de baja firmado. Más detalles en [Preferencias por tipo y canal](publicacion.md#preferencias-por-tipo-y-canal-t-96).
+diff --git a/docs/modulos/publicacion.md b/docs/modulos/publicacion.md
+index 232f0cd..c952ec1 100644
+--- a/docs/modulos/publicacion.md
++++ b/docs/modulos/publicacion.md
+@@ -141,7 +141,17 @@ ## Estado final del borrador de TikTok
+ 
+ ## Avisos
+ 
+-`PublishFailed` (base de datos + correo, cola `poll`), `ReconnectRequired` y `FirstCommentFailed` (solo base de datos). La UI los lista en `/notifications`.
++`PublishFailed` y `ReconnectRequired` admiten correo, app y push. `FirstCommentFailed` admite app y push. La bandeja de la app está en `/notifications`.
++
++### Preferencias por tipo y canal (T-96)
++
++En **Notificaciones del navegador**, puedes elegir app, correo y push para cada tipo que ofrece esos canales. El resumen semanal y el recordatorio previo también tienen un interruptor general. El aviso de la hora de publicación manual se configura por separado. La casilla de correo del perfil establece el valor inicial de los tipos que ya dependían de ella. Los fallos de publicación, la reconexión de cuentas y los informes programados conservan el correo activado por defecto.
++
++`NotificationPreferences` define los tipos y resuelve sus canales. `ApplyNotificationPreferences` comprueba cada entrega de Laravel, incluidas las notificaciones en cola. El resumen semanal y el informe programado consultan la misma política antes de enviar sus correos. La preferencia de informes programados corresponde al propietario de la programación. Cada destinatario conserva su baja mediante el enlace del correo.
++
++Push requiere una suscripción por dispositivo y correo verificado. La cola vuelve a leer la preferencia al entregar. Si el canal app está desactivado, el dispositivo recibe el aviso genérico sin generar una fila en la bandeja. Si está activado, el push sigue asociado al aviso sin leer.
++
++Los correos de restablecimiento de contraseña, verificación de dirección y seguridad de la cuenta siempre se envían. Los avisos operativos del servidor se configuran en el despliegue.
+ 
+ ### Avisos de caducidad y de trabajos asíncronos (T-23)
+ 
+@@ -157,7 +167,7 @@ ### Avisos de caducidad y de trabajos asíncronos (T-23)
+ 
+ - **Frecuencia**: `JobFailureNotifier` avisa una sola vez por ejecución (el informe, por fecha; el resto, por trabajo, aunque fallen la cola y el servicio) y como mucho 5 avisos por tipo, usuario y hora; el resto queda en el log (`jobs.failure_notification_capped`) y en el aviso resumen, y su clave no se consume. La caducidad, una vez por umbral y fecha, y el umbral de N días se emite cuando queda N días + el intervalo de la pasada (24 h) para llegar con N días de margen.
+ - **Enlaces**: un aviso con `post_id` muestra «Ver publicación»; el resto, la etiqueta de su tipo sobre `url`.
+-- **Correo opcional**: `users.notify_by_mail` (apagado por defecto, casilla en Perfil). Con ella, estos avisos añaden el canal `mail`; sin ella solo van a la base de datos. `PublishFailed` y `ReconnectRequired` siguen enviando correo siempre.
++- **Correo opcional**. Caducidad y fallos de trabajos heredan el ajuste de correo del perfil hasta que elijas su canal en las preferencias.
+ - Los avisos de fallo de trabajos van por cola (`poll`) como `ReconnectRequired`; sin SMTP real, los tests usan `Notification::fake`.
+ 
+ ## Pruebas de contrato de los publicadores
+diff --git a/docs/roadmap/2026-11-11-audit-hardening/tasks.md b/docs/roadmap/2026-11-11-audit-hardening/tasks.md
+index 881799d..fcd6a52 100644
+--- a/docs/roadmap/2026-11-11-audit-hardening/tasks.md
++++ b/docs/roadmap/2026-11-11-audit-hardening/tasks.md
+@@ -4803,18 +4803,23 @@ ### T-95 — Estudio: más plantillas (continuación de F-23)
+ ### T-96 — Atajos globales, preferencias de notificación y onboarding
+ 
+ - **Descripción**: Atajos de teclado globales (con lista de ayuda), preferencias por tipo de notificación y onboarding guiado para usuarios nuevos.
+-- **Changelog**:
+-- **Estado**: borrador
++- **Changelog**: Navega con el teclado, elige dónde recibes cada tipo de aviso y empieza, salta o repite la guía de primeros pasos.
++- **Estado**: en-progreso
+ - **Tiempo humano**: est. 8.0h · real —
+ - **Tiempo IA (ejec.)**: est. 2.0h · real —
+ - **Supervisión**: est. 0.50h (≈25 % IA) · real —
+ - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
+ - **Dependencias**: T-95
+ - **Tipo**: fullstack
+-- **Archivos**: `resources/js/composables/useShortcuts.js`, `resources/js/Pages/Profile/Notifications.vue`, `resources/js/Components/Onboarding.vue`, `app/Models/User.php`, `docs/usuario/primeros-pasos.md`
++- **Archivos**: `app/Http/Controllers/GettingStartedController.php`, `app/Http/Controllers/NotificationPreferenceController.php`, `app/Http/Controllers/PushSubscriptionController.php`, `app/Http/Middleware/HandleInertiaRequests.php`, `app/Jobs/SendPushNotification.php`, `app/Jobs/SendScheduledReport.php`, `app/Jobs/SendUserWeeklyDigest.php`, `app/Listeners/ApplyNotificationPreferences.php`, `app/Listeners/QueuePushNotification.php`, `app/Models/User.php`, `app/Notifications/AsyncJobFailed.php`, `app/Notifications/ConnectionExpiring.php`, `app/Notifications/GoalAlert.php`, `app/Notifications/ManualPublishReminder.php`, `app/Services/JobFailureNotifier.php`, `app/Services/NotificationPreferences.php`, `CHANGELOG.es.md`, `CHANGELOG.md`, `database/migrations/2026_11_27_130100_add_delivery_and_onboarding_preferences_to_users.php`, `docs/modulos/informes.md`, `docs/modulos/publicacion.md`, `docs/README.md`, `docs/roadmap/2026-11-11-audit-hardening/test-plan.md`, `docs/usuario/buscar.md`, `docs/usuario/guia-de-usuario.md`, `docs/usuario/primeros-pasos.md`, `docs/usuario/pwa.md`, `resources/js/Components/CommandPalette.vue`, `resources/js/Components/GlobalActions.vue`, `resources/js/Components/Onboarding.vue`, `resources/js/Composables/useShortcuts.js`, `resources/js/Layouts/AuthenticatedLayout.vue`, `resources/js/Layouts/ComposerLayout.vue`, `resources/js/lib/commandPalette.js`, `resources/js/lib/shortcuts.js`, `resources/js/navigation.js`, `resources/js/Pages/Profile/Notifications.vue`, `resources/js/Pages/Profile/Partials/UpdateProfileInformationForm.vue`, `resources/js/Pages/Studio/Editor.vue`, `resources/js/Studio/canvas.js`, `resources/js/types/push.d.ts`, `resources/js/types/shell.d.ts`, `routes/web.php`, `tests/e2e/command-palette.spec.ts`, `tests/e2e/global-shortcuts-onboarding.spec.ts`, `tests/Feature/Notifications/NotificationPreferencesTest.php`, `tests/frontend/command-palette.test.mjs`, `tests/frontend/shortcuts.test.mjs`
+ - **Cubre**: F-24
+ - **Cubre (tests)**: E2E-34
+-- **Verificación**: `php artisan test --compact --filter=NotificationPreferencesTest` → verde
++- **Verificación**: `php -d memory_limit=1G vendor/bin/pest --compact --filter=NotificationPreferencesTest`, pruebas Node de atajos y E2E-34.
++- RED: `NotificationPreferencesTest` falló en 8 de 9 casos: faltaban las preferencias por canal y el estado de la guía, y salían avisos desactivados. Los tres correos de seguridad ya llegaban · 2026-11-27
++- RED: `shortcuts.test.mjs` falló en 2 de 2 casos: Ctrl+K se activaba en un campo y no había un catálogo común para la ayuda · 2026-11-27
++- **Evidencia local**: Pest focal, 13 pruebas y 246 aserciones. `GoalAlertTest`, 30 pruebas y 134 aserciones tras restaurar la comprobación de correo en `shouldSend()`. Pest completo, 4.977 aprobadas, 21 omitidas, 0 fallos y 38.461 aserciones. Node sin aislamiento, 5 pruebas de atajos, 14 de paleta y 1 de estructura del editor. Formato, lint y tipos con código 0. Pint pasó sobre 19 PHP.
++- **Sandbox**: `npm run test:unit` bloqueado en los 94 archivos por `spawn EPERM`. `npm run build` bloqueado por el mismo error al cargar la configuración de Vite.
++- **E2E-34 pendiente de ejecución**: `npm run test:e2e -- tests/e2e/global-shortcuts-onboarding.spec.ts --workers=1`.
+ 
+ **Criterios de aceptación**
+ - [ ] Los atajos no se activan al escribir en campos
+@@ -4825,13 +4830,13 @@ ### T-96 — Atajos globales, preferencias de notificación y onboarding
+ - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+ 
+ **Subtareas**
+-- [ ] Implementar (implementer)
++- [x] Implementar (implementer)
+ - [ ] Revisión adversarial A+B(+C)
+ - [ ] Corregir hallazgos de la revisión
+ - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
+ - [ ] Actualizar documentación y cerrar la tarea en este ledger
+ 
+-**Notas**: Tamaño M.
++**Notas**: El composable vive en `resources/js/Composables/`, el directorio que usa el shell. La guía se ofrece mediante un botón para las cuentas sin datos. La ayuda permite continuar y repetir, y los tres canales se pueden elegir de forma individual.
+ 
+ ### T-97 — Modo oscuro (1/2): tokens de color y layout
+ 
+diff --git a/docs/roadmap/2026-11-11-audit-hardening/test-plan.md b/docs/roadmap/2026-11-11-audit-hardening/test-plan.md
+index fe7fd4d..8134323 100644
+--- a/docs/roadmap/2026-11-11-audit-hardening/test-plan.md
++++ b/docs/roadmap/2026-11-11-audit-hardening/test-plan.md
+@@ -388,10 +388,12 @@ ### E2E-34 — Atajos, preferencias y onboarding (F-24)
+ - **Objetivo**: Atajos y onboarding no estorban
+ - **Precondiciones**: app levantada en la URL local con la base SQLite de pruebas y datos de fábrica; proveedores simulados
+ - **Pasos**:
+-  1. Usar un atajo
+-  2. Completar y repetir el onboarding
++  1. Abrir la ayuda con `?` y navegar con `P`.
++  2. Saltar, continuar tras recargar, completar y repetir la guía.
++  3. Escribir en un campo, cambiar el canal push de un tipo de aviso y recargar.
+ - **Aserciones**:
+-  - [ ] Los atajos no actúan al escribir en un campo
++  - [ ] Los atajos no actúan al escribir en un campo.
++  - [ ] La guía y la preferencia se conservan al recargar. Los diálogos reciben el foco.
+ - **Capturas esperadas**: estado inicial y resultado final de la acción principal
+ - **Cubre tareas**: T-96
+ 
+diff --git a/docs/usuario/buscar.md b/docs/usuario/buscar.md
+index b477c60..6d82884 100644
+--- a/docs/usuario/buscar.md
++++ b/docs/usuario/buscar.md
+@@ -4,7 +4,7 @@ # Buscar en la aplicación
+ 
+ ## Cómo abrirla
+ 
+-- **Con el teclado:** `Ctrl + K` (en macOS, `⌘ + K`). Ningún editor de la aplicación usa esa combinación, así que funciona también dentro del Estudio y del compositor (en el compositor, si hay cambios sin guardar, te pregunta antes de salir, igual que con cualquier otro enlace). Si ya hay otro diálogo abierto, el atajo no hace nada: ciérralo primero.
++- **Con el teclado.** Pulsa `Ctrl+K` (`⌘+K` en macOS) o `/` si tienes activados los atajos de una sola tecla. Los atajos funcionan fuera de campos de edición, del lienzo con foco y de los diálogos. Al navegar desde la paleta, el compositor sigue avisando si tienes cambios sin guardar.
+ - **Con el botón** de la lupa, en la cabecera (con el texto **Buscar** en pantallas anchas). En pantallas pequeñas la paleta ocupa toda la pantalla y tiene un botón **Cerrar**.
+ 
+ Al abrirla, el cursor ya está en el campo de búsqueda. `Esc` (o **Cerrar**, o pulsar fuera) la cierra y el foco vuelve al elemento donde estabas.
+diff --git a/docs/usuario/guia-de-usuario.md b/docs/usuario/guia-de-usuario.md
+index f52cceb..4af5cab 100644
+--- a/docs/usuario/guia-de-usuario.md
++++ b/docs/usuario/guia-de-usuario.md
+@@ -4,6 +4,8 @@ # Guía de usuario
+ 
+ ## Primeros pasos
+ 
++[Guía interactiva, atajos y preferencias](primeros-pasos.md).
++
+ 1. Regístrate y verifica tu correo.
+ 2. Crea una **marca** (por ejemplo, tu proyecto o negocio). Cada marca agrupa sus cuentas, publicaciones y estadísticas.
+ 3. Entra en las **Conexiones** de la marca y pulsa **Conectar** en cada red. Acepta los permisos en la pantalla de la red.
+@@ -226,10 +228,10 @@ ### Qué avisos recibes
+ 
+ En el menú de usuario, **Notificaciones del navegador → Qué avisos quieres recibir**, eliges qué avisos llegan:
+ 
+-- **Resumen semanal** (apagado por defecto). Cada lunes por la mañana, en la hora de tu marca principal (la más antigua), recibes un aviso con las cifras de la semana anterior de cada marca comparadas con la previa: seguidores, visualizaciones, alcance, interacciones, publicaciones publicadas y la mejor publicación. Lo que no tiene dato aparece como «sin datos». Si tienes activado el correo, también te llega por correo, con un enlace para darte de baja de un clic. Opcionalmente puedes añadir un párrafo escrito con IA (solo si el administrador ha configurado el asistente): se envía al proveedor únicamente el nombre de tus marcas y las cifras agregadas.
+-- **Recordatorio de publicación manual** (encendido por defecto). Un aviso antes de la hora de una publicación que tienes que hacer a mano. El aviso de «es la hora» se envía siempre, aunque apagues el recordatorio, porque trae el texto y la media que necesitas para publicar.
++- **Resumen semanal** (apagado por defecto). Cada lunes por la mañana, en la hora de tu marca principal (la más antigua), recibes las cifras de la semana anterior comparadas con la previa. Puedes elegir los canales y añadir un párrafo escrito con IA si está disponible. El correo incluye un enlace de baja.
++- **Publicación manual**. Puedes elegir los canales del recordatorio previo y del aviso de la hora por separado. El recordatorio previo está activado por defecto.
+ 
+-Los avisos siempre llegan a la aplicación (y por push si lo has activado); el correo depende de la casilla de **Perfil** («Avisarme también por correo…»).
++Cada tipo indica los canales disponibles. Elige **En la app**, **Correo** o **Push** y guarda tus preferencias. Los correos de verificación, restablecimiento de contraseña y seguridad de la cuenta están siempre activos.
+ 
+ ## Historial de actividad
+ 
+diff --git a/docs/usuario/pwa.md b/docs/usuario/pwa.md
+index d026c01..ceb0b9d 100644
+--- a/docs/usuario/pwa.md
++++ b/docs/usuario/pwa.md
+@@ -16,7 +16,7 @@ ## Qué se envía y qué se guarda
+ 
+ Los endpoints y las claves de suscripción se guardan cifrados mediante APP_KEY. La clave privada VAPID solo se configura en el servidor y no llega a las props de la página. `app:reencrypt` incluye también endpoint y keys de push_subscriptions al rotar APP_KEY; conserva la política de copias de seguridad y claves anteriores del despliegue.
+ 
+-El envío complementa las notificaciones guardadas en la aplicación. La cola lleva identificadores y vuelve a comprobar propietario, consentimiento, verificación y existencia de un aviso no leído. Una suscripción caducada (404/410) se elimina; los fallos transitorios se reintentan hasta tres intentos. Los fallos permanentes no reintentan el mismo aviso. Un fallo al encolar push no cancela el aviso in-app: este canal es best-effort, sin outbox durable propio ni garantía de entrega exactamente una vez ante una caída después del envío. El último aviso enviado se reconoce localmente para evitar su redelivery inmediata.
++Elige qué tipos llegan por push en las preferencias. La cola comprueba de nuevo el propietario, la suscripción, la verificación de correo y la preferencia del tipo. Si también se guardó un aviso en la aplicación, comprueba que siga sin leer. Los envíos solo por push no aparecen en la bandeja. Una suscripción caducada (404/410) se elimina y los fallos transitorios admiten hasta tres intentos. El dispositivo registra el último aviso enviado para evitar una repetición inmediata.
+ 
+ ## Configuración del operador y aceptación pendiente
+ 
+diff --git a/resources/js/Components/CommandPalette.vue b/resources/js/Components/CommandPalette.vue
+index a65d1ec..2f9df93 100644
+--- a/resources/js/Components/CommandPalette.vue
++++ b/resources/js/Components/CommandPalette.vue
+@@ -10,15 +10,15 @@ import {
+     fetchResults,
+     filterPages,
+     groupEntries,
+-    isPaletteShortcut,
+     nextIndex,
+     pageCommands,
+     queryLength,
+     restoreIndex,
+ } from '@/lib/commandPalette';
+ import { useNavigationContext } from '@/Composables/useNavigationContext';
++import { isApplePlatform, searchShortcut } from '@/lib/shortcuts';
+ import { router } from '@inertiajs/vue3';
+-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
++import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+ 
+ /**
+  * Paleta de comandos (T-85, F-11): botón de la cabecera + diálogo común (`BaseDialog`: foco atrapado, Esc cierra y el foco vuelve a quien la
+@@ -26,10 +26,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+  * y se filtran al instante; el contenido del usuario llega del servidor (`search`) con debounce y cancelación, ya acotado a lo que puede ver.
+  * Todo se pinta como texto con `{{ }}`: nada de HTML del servidor.
+  *
+- * Atajo: Ctrl+K (Cmd+K en macOS) en cualquier pantalla, también en el compositor (su layout la monta igual; sus navegaciones pasan por el
+- * router y las intercepta `UnsavedGuard`). Ningún editor de la app usa esa combinación (el estudio usa Z, S, A, C, V y D;
+- * el compositor es un `textarea` normal), así que no se pisa nada; cede si otro diálogo modal ya está abierto o si quien lo gestiona
+- * antes ya ha hecho `preventDefault`.
++ * Los atajos se registran en GlobalActions. La navegación usa el router y pasa por UnsavedGuard en el compositor.
+  */
+ defineProps({
+     /** Botón para cabeceras claras (el compositor); por defecto, para la cabecera oscura del shell. */
+@@ -43,7 +40,7 @@ const optionId = (/** @type {number} */ index) => `command-palette-option-${inde
+ const open = ref(false);
+ const query = ref('');
+ const active = ref(0);
+-const mac = ref(false);
++const shortcut = searchShortcut(isApplePlatform());
+ const trigger = ref(/** @type {HTMLButtonElement | null} */ (null));
+ const returnTo = ref(/** @type {HTMLButtonElement | null} */ (null));
+ const remote = ref(/** @type {import('@/lib/commandPalette').RemoteState} */ ({ status: 'idle', query: '', results: [], error: '' }));
+@@ -53,7 +50,6 @@ const pages = computed(() => (open.value ? pageCommands(ctx.value) : []));
+ const groups = computed(() => groupEntries(filterPages(pages.value, query.value, PAGE_LIMIT), remote.value.results));
+ const flat = computed(() => groups.value.flatMap((group) => group.entries));
+ const typed = computed(() => queryLength(query.value));
+-const shortcut = computed(() => (mac.value ? '⌘K' : 'Ctrl K'));
+ 
+ /** Mensaje para el lector de pantalla (región `aria-live` educada); lo visible va aparte, en la propia lista. */
+ const announcement = computed(() => {
+@@ -80,11 +76,12 @@ watch(active, async (index) => {
+     document.getElementById(optionId(index))?.scrollIntoView({ block: 'nearest' });
+ });
+ 
+-/** @param {HTMLButtonElement | null} from botón que la abre (para devolverle el foco); sin él, el foco vuelve a donde estaba */
+-function openPalette(from) {
++/** @param {HTMLButtonElement | null} [from] botón que la abre; sin él, el foco vuelve a donde estaba */
++function openPalette(from = null) {
+     returnTo.value = from;
+     open.value = true;
+ }
++defineExpose({ openPalette });
+ 
+ function close() {
+     open.value = false;
+@@ -116,23 +113,7 @@ function onNavigationKeydown(event) {
+     }
+ }
+ 
+-/** @param {KeyboardEvent} event */
+-function onShortcut(event) {
+-    if (!isPaletteShortcut(event, mac.value)) return;
+-    if (open.value) return event.preventDefault();
+-    if (document.querySelector('dialog[open]')) return;
+-    event.preventDefault();
+-    openPalette(null);
+-}
+-
+-onMounted(() => {
+-    mac.value = /Mac|iPhone|iPad/.test(navigator.platform);
+-    window.addEventListener('keydown', onShortcut);
+-});
+-onBeforeUnmount(() => {
+-    window.removeEventListener('keydown', onShortcut);
+-    search.close();
+-});
++onBeforeUnmount(() => search.close());
+ </script>
+ 
+ <template>
+@@ -145,10 +126,10 @@ onBeforeUnmount(() => {
+                 ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 2xl:border-slate-300'
+                 : 'text-slate-300 hover:bg-white/10 hover:text-white 2xl:border-white/15 2xl:bg-white/5'
+         "
+-        :title="`Buscar (${shortcut})`"
++        :title="`Buscar (${shortcut.keys})`"
+         aria-label="Buscar en la aplicación"
+         aria-haspopup="dialog"
+-        aria-keyshortcuts="Control+K Meta+K"
++        :aria-keyshortcuts="shortcut.aria"
+         data-testid="command-palette-trigger"
+         @click="openPalette(trigger)"
+     >
+@@ -159,7 +140,7 @@ onBeforeUnmount(() => {
+             :class="light ? 'border-slate-300 text-slate-600' : 'border-white/20 text-slate-300'"
+             aria-hidden="true"
+             >{{
+-            shortcut
++            shortcut.keys
+             }}</kbd
+         >
+     </button>
+@@ -167,13 +148,15 @@ onBeforeUnmount(() => {
+     <BaseDialog
+         v-if="open"
+         open
++        role="alertdialog"
+         close-on-backdrop
+         :return-focus-to="returnTo"
+         class="dialog-panel max-w-2xl max-sm:my-0 max-sm:h-dvh max-sm:max-h-none max-sm:w-screen max-sm:max-w-none max-sm:rounded-none sm:mt-20"
+         aria-labelledby="command-palette-title"
++        aria-describedby="command-palette-hint"
+         @close="close"
+     >
+-        <div class="flex h-full min-w-0 flex-col" data-testid="command-palette">
++        <div class="relative flex h-full min-w-0 flex-col" data-testid="command-palette">
+             <h2 id="command-palette-title" class="sr-only">Buscar</h2>
+             <div class="flex items-center gap-2 border-b border-slate-200 px-3 py-2">
+                 <Icon name="search" class="h-5 w-5 shrink-0 text-slate-500" />
+diff --git a/resources/js/Layouts/AuthenticatedLayout.vue b/resources/js/Layouts/AuthenticatedLayout.vue
+index e7d7fa7..7db2196 100644
+--- a/resources/js/Layouts/AuthenticatedLayout.vue
++++ b/resources/js/Layouts/AuthenticatedLayout.vue
+@@ -1,7 +1,7 @@
+ <script setup>
+ import FlashBanner from '@/Components/FlashBanner.vue';
+ import BrandLogo from '@/Components/BrandLogo.vue';
+-import CommandPalette from '@/Components/CommandPalette.vue';
++import GlobalActions from '@/Components/GlobalActions.vue';
+ import Dropdown from '@/Components/Dropdown.vue';
+ import DropdownLink from '@/Components/DropdownLink.vue';
+ import Icon from '@/Components/Icon.vue';
+@@ -104,8 +104,7 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
+                 </nav>
+ 
+                 <div class="ms-auto flex min-w-0 items-center gap-1 sm:gap-2">
+-                    <!-- Búsqueda global y paleta de comandos (Ctrl+K) -->
+-                    <CommandPalette />
++                    <GlobalActions />
+ 
+                     <!-- Selector de marca -->
+                     <Dropdown align="right" width="72" class="min-w-0">
+diff --git a/resources/js/Layouts/ComposerLayout.vue b/resources/js/Layouts/ComposerLayout.vue
+index 68670cb..1b77963 100644
+--- a/resources/js/Layouts/ComposerLayout.vue
++++ b/resources/js/Layouts/ComposerLayout.vue
+@@ -1,7 +1,7 @@
+ <script setup>
+ import FlashBanner from '@/Components/FlashBanner.vue';
+ import BrandLogo from '@/Components/BrandLogo.vue';
+-import CommandPalette from '@/Components/CommandPalette.vue';
++import GlobalActions from '@/Components/GlobalActions.vue';
+ import { usePage } from '@inertiajs/vue3';
+ 
+ const page = usePage();
+@@ -24,7 +24,7 @@ const page = usePage();
+         <header class="sticky top-0 z-40 border-b border-slate-200 bg-white shadow-sm">
+             <div class="mx-auto flex min-h-14 max-w-7xl items-center gap-3 px-3 py-2 sm:px-6">
+                 <BrandLogo compact class="shrink-0" />
+-                <CommandPalette light />
++                <GlobalActions light />
+                 <slot name="header" />
+             </div>
+         </header>
+diff --git a/resources/js/Pages/Profile/Notifications.vue b/resources/js/Pages/Profile/Notifications.vue
+index ded580b..687b649 100644
+--- a/resources/js/Pages/Profile/Notifications.vue
++++ b/resources/js/Pages/Profile/Notifications.vue
+@@ -3,20 +3,26 @@ import { computed, ref } from 'vue';
+ import { Head, Link, router, useForm } from '@inertiajs/vue3';
+ import Checkbox from '@/Components/Checkbox.vue';
+ import InfoNote from '@/Components/InfoNote.vue';
++import InputError from '@/Components/InputError.vue';
+ import PrimaryButton from '@/Components/PrimaryButton.vue';
+ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+ import { useConfirm } from '@/Composables/useConfirm';
+ import { activatePush, pushSupported, revokeBrowserPush } from '@/lib/push';
+ 
+-/** @import {PushState, PushDevice, NotificationPreferences} from '@/types/push' */
++/** @import {PushState, PushDevice, NotificationPreferences, NotificationChannels} from '@/types/push' */
+ const props = defineProps({
+     push: { type: /** @type {import('vue').PropType<PushState>} */ (Object), required: true },
+     subscriptions: { type: /** @type {import('vue').PropType<PushDevice[]>} */ (Array), required: true },
+     preferences: { type: /** @type {import('vue').PropType<NotificationPreferences>} */ (Object), required: true },
+-    mailEnabled: { type: Boolean, required: true },
++    notificationChannels: { type: /** @type {import('vue').PropType<NotificationChannels>} */ (Object), required: true },
++    notificationTypes: { type: /** @type {import('vue').PropType<Record<string, string>>} */ (Object), required: true },
+     aiAvailable: { type: Boolean, required: true },
+ });
+-const prefs = useForm({ ...props.preferences });
++const prefs = useForm({
++    ...props.preferences,
++    notification_channels: Object.fromEntries(Object.entries(props.notificationChannels).map(([type, channels]) => [type, { ...channels }])),
++});
++const channelNames = { database: 'En la app', push: 'Push', mail: 'Correo' };
+ const name = ref('Este navegador');
+ const busy = ref(false);
+ const messages = ref(/** @type {string[]} */ ([]));
+@@ -27,6 +33,21 @@ const dates = new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium', timeStyle:
+ /** @param {string | null} value */
+ const date = (value) => value && Number.isFinite(Date.parse(value)) ? dates.format(Date.parse(value)) : 'Aún no enviado';
+ 
++function savePreferences() {
++    prefs.transform((data) => {
++        /** @type {NotificationChannels} */
++        const changed = {};
++        for (const [type, channels] of Object.entries(data.notification_channels)) {
++            for (const channel of /** @type {(keyof typeof channelNames)[]} */ (Object.keys(channels))) {
++                if (channels[channel] !== props.notificationChannels[type]?.[channel]) {
++                    (changed[type] ??= {})[channel] = channels[channel];
++                }
++            }
++        }
++        return { ...data, notification_channels: changed };
++    }).patch(route('profile.notification-preferences'), { preserveScroll: true });
++}
++
+ async function activate() {
+     if (!canActivate.value || !props.push.public_key) return;
+     busy.value = true;
+@@ -71,10 +92,7 @@ async function revoke(device) {
+         <div class="max-w-3xl space-y-6">
+             <section class="card space-y-4 p-4 sm:p-6" aria-labelledby="prefs-title">
+                 <h2 id="prefs-title" class="text-lg font-semibold text-slate-900">Qué avisos quieres recibir</h2>
+-                <form
+-                    class="space-y-3"
+-                    @submit.prevent="prefs.patch(route('profile.notification-preferences'), { preserveScroll: true })"
+-                >
++                <form class="space-y-3" @submit.prevent="savePreferences">
+                     <label class="flex items-start gap-2 text-sm text-slate-700" for="notify_weekly_digest">
+                         <Checkbox
+                             id="notify_weekly_digest"
+@@ -83,8 +101,7 @@ async function revoke(device) {
+                         />
+                         <span
+                             >Resumen semanal: cada lunes por la mañana (hora de tu marca principal), las cifras de la
+-                            semana anterior de cada marca comparadas con la previa. Llega como aviso y, si tienes
+-                            activado el correo, también por correo.</span
++                            semana anterior de cada marca comparadas con la previa.</span
+                         >
+                     </label>
+                     <label
+@@ -111,14 +128,42 @@ async function revoke(device) {
+                         />
+                         <span
+                             >Recordatorio de publicación manual: un aviso antes de la hora de una publicación que tienes
+-                            que hacer a mano. El aviso de «es la hora» se envía siempre.</span
++                            que hacer a mano.</span
+                         >
+                     </label>
+-                    <InfoNote v-if="!mailEnabled">
+-                        El correo está desactivado: estos avisos solo llegan a la aplicación. Puedes activarlo en
+-                        <Link :href="route('profile.edit')" class="underline">tu perfil</Link>.
++                    <h3 class="pt-2 text-base font-semibold text-slate-900">Canales por tipo de aviso</h3>
++                    <InfoNote>
++                        Los correos de verificación, restablecimiento de contraseña y seguridad de la cuenta están
++                        siempre activos. Para recibir push, activa cada dispositivo más abajo.
+                     </InfoNote>
+-                    <div class="flex items-center gap-4">
++                    <fieldset
++                        v-for="(channels, type) in prefs.notification_channels"
++                        :key="type"
++                        :disabled="
++                            (type === 'weekly_digest' && !prefs.notify_weekly_digest) ||
++                            (type === 'manual_reminder' && !prefs.notify_manual_reminder)
++                        "
++                        class="min-w-0 space-y-2 rounded-md border border-slate-200 px-3 pb-2 disabled:opacity-60"
++                    >
++                        <legend class="max-w-full px-1 text-sm font-medium text-slate-800">{{
++                            notificationTypes[type]
++                        }}</legend>
++                        <div class="flex flex-wrap gap-x-4 gap-y-2">
++                            <label
++                                v-for="(_, channel) in channels"
++                                :key="channel"
++                                class="flex items-center gap-2 text-sm text-slate-700"
++                            >
++                                <Checkbox
++                                    :checked="channels[channel] ?? false"
++                                    @update:checked="channels[channel] = $event === true"
++                                />
++                                {{ channelNames[channel] }}
++                            </label>
++                        </div>
++                    </fieldset>
++                    <InputError v-for="(message, field) in prefs.errors" :key="field" :message="message" />
++                    <div class="flex flex-wrap items-center gap-4">
+                         <PrimaryButton :disabled="prefs.processing" data-testid="pref-save"
+                             >Guardar preferencias</PrimaryButton
+                         >
+@@ -132,12 +177,7 @@ async function revoke(device) {
+                     >Recibe un aviso genérico cuando haya novedades. El contenido privado se consulta al entrar en la
+                     aplicación. El permiso solo se pide al pulsar Activar.</p
+                 >
+-                <p
+-                    v-if="push.unavailable_reason"
+-                    role="status"
+-                    class="text-sm text-amber-800"
+-                    >{{ push.unavailable_reason }}</p
+-                >
++                <p v-if="push.unavailable_reason" class="text-sm text-amber-800">{{ push.unavailable_reason }}</p>
+                 <p v-else-if="!supported" role="status" class="text-sm text-amber-800"
+                     >Este navegador necesita HTTPS y compatibilidad con notificaciones push.</p
+                 >
+diff --git a/resources/js/Pages/Profile/Partials/UpdateProfileInformationForm.vue b/resources/js/Pages/Profile/Partials/UpdateProfileInformationForm.vue
+index d6d0f0e..44d720d 100644
+--- a/resources/js/Pages/Profile/Partials/UpdateProfileInformationForm.vue
++++ b/resources/js/Pages/Profile/Partials/UpdateProfileInformationForm.vue
+@@ -72,9 +72,9 @@ const form = useForm({
+                     data-testid="notify-by-mail"
+                 />
+                 <span>
+-                    Avisarme también por correo cuando falle un informe programado, una exportación de video, la IA,
+-                    Canva o una importación, y antes de que caduque una conexión. Los avisos siempre se muestran en
+-                    Avisos.
++                    Activar por defecto el correo para fallos de trabajos, caducidad de conexiones, objetivos,
++                    recordatorios y resumen semanal. Puedes elegir los canales de cada tipo en
++                    <Link :href="route('profile.notifications')" class="underline">Notificaciones del navegador</Link>.
+                 </span>
+             </label>
+ 
+diff --git a/resources/js/Pages/Studio/Editor.vue b/resources/js/Pages/Studio/Editor.vue
+index 0ff30d3..4c34c9d 100644
+--- a/resources/js/Pages/Studio/Editor.vue
++++ b/resources/js/Pages/Studio/Editor.vue
+@@ -23,6 +23,7 @@ import { useEditorDialogs } from '@/Studio/composables/useEditorDialogs';
+ import { useEditorLibrary } from '@/Studio/composables/useEditorLibrary';
+ import { useEditorCanvas } from '@/Studio/composables/useEditorCanvas';
+ import { useEditorDesignOperations } from '@/Studio/composables/useEditorDesignOperations';
++import { hasOpenModal, shortcutAction } from '@/lib/shortcuts';
+ 
+ const props = defineProps({
+     design: Object,
+@@ -457,20 +458,12 @@ function beforeUnload(event) {
+ function onKey(event) {
+     if (!contextActive.value) return;
+     if (presentationOpen.value || presentationOpening.value || automationBusy.value || fontBusy.value) return;
+-    if (
+-        /INPUT|TEXTAREA|SELECT/.test(event.target?.tagName) ||
+-        event.target?.isContentEditable ||
+-        getAdapter()?.canvas.getActiveObject()?.isEditing
+-    )
+-        return;
+-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+-        event.preventDefault();
+-        restoreHistory(event.shiftKey ? 'redo' : 'undo');
+-    }
+-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+-        event.preventDefault();
+-        saveNow();
+-    }
++    if (getAdapter()?.canvas.getActiveObject()?.isEditing) return;
++    const action = shortcutAction(event, { scope: 'studio-editor', modalOpen: hasOpenModal() });
++    if (!action) return;
++    event.preventDefault();
++    if (action === 'save') saveNow();
++    else restoreHistory(action);
+ }
+ async function releaseStage() {
+     invalidatePreview();
+diff --git a/resources/js/Studio/canvas.js b/resources/js/Studio/canvas.js
+index 8c8b1be..bcec72b 100644
+--- a/resources/js/Studio/canvas.js
++++ b/resources/js/Studio/canvas.js
+@@ -9,6 +9,7 @@ import { createChartFabric } from './chart-renderer.js';
+ import { assertChartDocumentBudget } from './chart-scene.js';
+ import { createConnectorFabric, createTableFabric } from './board-objects.js';
+ import { anchorPoints, normalizeConnector, rerouteConnector, routePoints } from './board.js';
++import { shortcutAction } from '../lib/shortcuts.js';
+ 
+ const clone = value => JSON.parse(JSON.stringify(value));
+ const round = value => Math.round((Number(value) || 0) * 1e6) / 1e6;
+@@ -810,15 +811,17 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
+     };
+ 
+     const onKey = event => {
+-        if (canvas.getActiveObject()?.isEditing || /INPUT|TEXTAREA|SELECT/.test(event.target?.tagName) || event.target?.isContentEditable) return;
+-        if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); adapter.delete(); }
+-        else if (event.key === 'Escape') { canvas.discardActiveObject(); notifySelection(); canvas.requestRenderAll(); }
+-        else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') { event.preventDefault(); choose(objects().filter(object => !object.studioLocked && object.visible)); }
+-        else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c') { event.preventDefault(); adapter.copy(); }
+-        else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'v') { event.preventDefault(); adapter.paste().catch(error => canvas.fire('studio:error', { error })); }
+-        else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd') { event.preventDefault(); adapter.duplicate().catch(error => canvas.fire('studio:error', { error })); }
+-        else if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+-            event.preventDefault();
++        if (canvas.getActiveObject()?.isEditing) return;
++        const action = shortcutAction(event, { scope: 'studio-canvas' });
++        if (!action) return;
++        if (action !== 'deselect') event.preventDefault();
++        if (action === 'delete') adapter.delete();
++        else if (action === 'deselect') { canvas.discardActiveObject(); notifySelection(); canvas.requestRenderAll(); }
++        else if (action === 'select-all') choose(objects().filter(object => !object.studioLocked && object.visible));
++        else if (action === 'copy') adapter.copy();
++        else if (action === 'paste') adapter.paste().catch(error => canvas.fire('studio:error', { error }));
++        else if (action === 'duplicate') adapter.duplicate().catch(error => canvas.fire('studio:error', { error }));
++        else if (action === 'nudge') {
+             const selected = selectedObjects(); canvas.discardActiveObject();
+             const delta = event.shiftKey ? 10 : 1;
+             selected.filter(object => !object.studioLocked).forEach(object => { object.set({ left: object.left + (event.key === 'ArrowLeft' ? -delta : event.key === 'ArrowRight' ? delta : 0), top: object.top + (event.key === 'ArrowUp' ? -delta : event.key === 'ArrowDown' ? delta : 0) }); object.setCoords(); });
+diff --git a/resources/js/lib/commandPalette.js b/resources/js/lib/commandPalette.js
+index cad4ee4..4b37792 100644
+--- a/resources/js/lib/commandPalette.js
++++ b/resources/js/lib/commandPalette.js
+@@ -184,16 +184,6 @@ export function queryLength(text) {
+     return [...text.trim()].length;
+ }
+ 
+-/**
+- * ¿Es la combinación de la paleta? Ctrl+K, o Cmd+K en macOS (allí Ctrl+K es «borrar hasta el final de la línea» en los campos de texto).
+- * @param {Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'altKey' | 'shiftKey' | 'repeat' | 'isComposing' | 'defaultPrevented'>} event
+- * @param {boolean} mac
+- */
+-export function isPaletteShortcut(event, mac) {
+-    if (event.defaultPrevented || event.repeat || event.isComposing || event.altKey || event.shiftKey) return false;
+-    return (mac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey) && event.key.toLowerCase() === 'k';
+-}
+-
+ /** @param {unknown} error */
+ function searchErrorMessage(error) {
+     if (error instanceof HttpError && error.status === 429) return 'Demasiadas búsquedas seguidas. Espera un momento.';
+diff --git a/resources/js/navigation.js b/resources/js/navigation.js
+index 3a0f5af..1e5d392 100644
+--- a/resources/js/navigation.js
++++ b/resources/js/navigation.js
+@@ -214,3 +214,14 @@ export const sideItems = (module, c) => {
+     }
+     return out;
+ };
++
++/**
++ * Destino de un módulo o entrada del mismo menú que usan el shell y la paleta.
++ * @param {NavigationContext} context @param {string} key @param {string} [itemKey]
++ */
++export function navigationDestination(context, key, itemKey) {
++    const module = visibleModules(context).find((entry) => entry.key === key);
++    if (!itemKey) return module?.href(context);
++    const group = key === ACCOUNT_MODULE.key ? ACCOUNT_MODULE : module;
++    return group && sideItems(group, context).find((item) => item.key === itemKey)?.href;
++}
+diff --git a/resources/js/types/push.d.ts b/resources/js/types/push.d.ts
+index eb68378..dc79c3a 100644
+--- a/resources/js/types/push.d.ts
++++ b/resources/js/types/push.d.ts
+@@ -17,3 +17,5 @@ export interface NotificationPreferences {
+     weekly_digest_ai: boolean;
+     notify_manual_reminder: boolean;
+ }
++
++export type NotificationChannels = Record<string, Partial<Record<'database' | 'push' | 'mail', boolean>>>;
+diff --git a/resources/js/types/shell.d.ts b/resources/js/types/shell.d.ts
+index 68b9f68..8277666 100644
+--- a/resources/js/types/shell.d.ts
++++ b/resources/js/types/shell.d.ts
+@@ -44,10 +44,13 @@ export interface SessionFlash extends FlashMessages {
+     publishing_post_id?: number | string | null;
+ }
+ 
++export type OnboardingStep = 'welcome' | 'brand' | 'connection' | 'post' | 'skipped' | 'completed';
++
+ export interface ShellPageProps extends PageProps {
+     canViewSystemStatus?: boolean;
+     shell?: Shell | null;
+-    auth: { user: { name: string; email: string } };
++    auth: { user: { name: string; email: string; email_verified_at?: string | null; single_key_shortcuts?: boolean } };
++    onboarding?: OnboardingStep | null;
+     // Avisos de la sesión de Laravel compartidos por HandleInertiaRequests.
+     flash?: SessionFlash;
+     unreadInbox?: number;
+diff --git a/routes/web.php b/routes/web.php
+index 74a04a3..ab31d4c 100644
+--- a/routes/web.php
++++ b/routes/web.php
+@@ -14,6 +14,7 @@
+ use App\Http\Controllers\ExportController;
+ use App\Http\Controllers\FirstCommentController;
+ use App\Http\Controllers\FullExportController;
++use App\Http\Controllers\GettingStartedController;
+ use App\Http\Controllers\GifController;
+ use App\Http\Controllers\GoalController;
+ use App\Http\Controllers\HashtagController;
+@@ -93,6 +94,8 @@
+     Route::get('system', SystemStatusController::class)->name('system.index');
+     Route::get('profile/notifications', [PushSubscriptionController::class, 'index'])->name('profile.notifications');
+     Route::patch('profile/notification-preferences', [NotificationPreferenceController::class, 'update'])->middleware('throttle:profile.notification-preferences')->name('profile.notification-preferences');
++    Route::patch('profile/onboarding', [GettingStartedController::class, 'onboarding'])->name('profile.onboarding');
++    Route::patch('profile/shortcuts', [GettingStartedController::class, 'shortcuts'])->name('profile.shortcuts');
+     Route::post('profile/push-subscriptions', [PushSubscriptionController::class, 'store'])->middleware('throttle:push-settings')->name('profile.push-subscriptions.store');
+     Route::delete('profile/push-subscriptions/{pushSubscription}', [PushSubscriptionController::class, 'destroy'])->middleware('throttle:push-settings')->name('profile.push-subscriptions.destroy');
+     // Exportacion completa de datos en ZIP (T-84): se pide, se genera en cola y se descarga con un enlace firmado (`link` lo genera al pulsar).
+diff --git a/tests/e2e/command-palette.spec.ts b/tests/e2e/command-palette.spec.ts
+index e8e555b..a7f5c8c 100644
+--- a/tests/e2e/command-palette.spec.ts
++++ b/tests/e2e/command-palette.spec.ts
+@@ -38,7 +38,7 @@ function seedPalette(brandId: number, other: string, word: string) {
+ }
+ 
+ const openWithShortcut = (page: Page) => page.keyboard.press('ControlOrMeta+K');
+-const paletteDialog = (page: Page) => page.getByRole('dialog', { name: 'Buscar', exact: true });
++const paletteDialog = (page: Page) => page.getByRole('alertdialog', { name: 'Buscar', exact: true });
+ 
+ test.describe('Paleta de comandos', { tag: '@responsive' }, () => {
+     test.beforeEach(async ({ page }, info) => {
+@@ -157,6 +157,7 @@ test.describe('Paleta de comandos', { tag: '@responsive' }, () => {
+         await settle(page);
+         await expectNoOverflow(page);
+         await page.locator('#text').fill('e2e paleta borrador sin guardar');
++        await page.getByTestId('command-palette-trigger').focus();
+         await openWithShortcut(page);
+         const dialog = paletteDialog(page);
+         await expect(dialog).toBeVisible();
+@@ -171,6 +172,7 @@ test.describe('Paleta de comandos', { tag: '@responsive' }, () => {
+         await expect(page).toHaveURL(new RegExp(`/brands/${brand.id}/posts/create$`));
+         await expect(page.locator('#text')).toHaveValue('e2e paleta borrador sin guardar');
+ 
++        await page.getByTestId('command-palette-trigger').focus();
+         await openWithShortcut(page);
+         await paletteDialog(page).getByRole('combobox').fill('calendario');
+         await paletteDialog(page)
+diff --git a/tests/frontend/command-palette.test.mjs b/tests/frontend/command-palette.test.mjs
+index 97c13f6..3e9741d 100644
+--- a/tests/frontend/command-palette.test.mjs
++++ b/tests/frontend/command-palette.test.mjs
+@@ -5,7 +5,6 @@ import {
+     filterPages,
+     formatLocalDate,
+     groupEntries,
+-    isPaletteShortcut,
+     nextIndex,
+     pageCommands,
+     queryLength,
+@@ -127,20 +126,6 @@ test('the query is measured in code points, like the server does', () => {
+     assert.equal(queryLength('ab'), 2);
+ });
+ 
+-test('the shortcut is Ctrl+K, or Cmd+K on macOS, and never a modified or repeated key', () => {
+-    const key = (extra) => ({ key: 'k', ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, repeat: false, isComposing: false, defaultPrevented: false, ...extra });
+-    assert.equal(isPaletteShortcut(key({ ctrlKey: true }), false), true);
+-    assert.equal(isPaletteShortcut(key({ ctrlKey: true, key: 'K' }), false), true);
+-    assert.equal(isPaletteShortcut(key({ metaKey: true }), false), false);
+-    assert.equal(isPaletteShortcut(key({ metaKey: true }), true), true);
+-    assert.equal(isPaletteShortcut(key({ ctrlKey: true }), true), false, 'en macOS Ctrl+K borra hasta el final de la línea');
+-    assert.equal(isPaletteShortcut(key({ ctrlKey: true, shiftKey: true }), false), false);
+-    assert.equal(isPaletteShortcut(key({ ctrlKey: true, altKey: true }), false), false);
+-    assert.equal(isPaletteShortcut(key({ ctrlKey: true, repeat: true }), false), false);
+-    assert.equal(isPaletteShortcut(key({ ctrlKey: true, defaultPrevented: true }), false), false, 'si un editor ya lo ha gestionado');
+-    assert.equal(isPaletteShortcut(key({ ctrlKey: true, key: 'j' }), false), false);
+-});
+-
+ /** Temporizador manual y peticiones que se resuelven cuando el test lo decide. */
+ function harness() {
+     const timers = new Map();
+diff --git a/app/Http/Controllers/GettingStartedController.php b/app/Http/Controllers/GettingStartedController.php
+new file mode 100644
+index 0000000..c58857d
+--- /dev/null
++++ b/app/Http/Controllers/GettingStartedController.php
+@@ -0,0 +1,26 @@
++<?php
++
++namespace App\Http\Controllers;
++
++use Illuminate\Http\RedirectResponse;
++use Illuminate\Http\Request;
++use Illuminate\Validation\Rule;
++
++final class GettingStartedController extends Controller
++{
++    public function onboarding(Request $request): RedirectResponse
++    {
++        $data = $request->validate(['step' => ['required', Rule::in(['brand', 'connection', 'post', 'skipped', 'completed'])]]);
++        $request->user()->forceFill(['onboarding_step' => $data['step']])->save();
++
++        return back();
++    }
++
++    public function shortcuts(Request $request): RedirectResponse
++    {
++        $data = $request->validate(['single_key_shortcuts' => ['required', 'boolean']]);
++        $request->user()->forceFill($data)->save();
++
++        return back();
++    }
++}
+diff --git a/app/Listeners/ApplyNotificationPreferences.php b/app/Listeners/ApplyNotificationPreferences.php
+new file mode 100644
+index 0000000..51f4e5f
+--- /dev/null
++++ b/app/Listeners/ApplyNotificationPreferences.php
+@@ -0,0 +1,31 @@
++<?php
++
++namespace App\Listeners;
++
++use App\Models\User;
++use App\Services\NotificationPreferences;
++use Illuminate\Notifications\Events\NotificationSending;
++
++final class ApplyNotificationPreferences
++{
++    public function __construct(private readonly QueuePushNotification $push) {}
++
++    public function handle(NotificationSending $event): ?bool
++    {
++        if (! $event->notifiable instanceof User) {
++            return null;
++        }
++
++        $user = $event->notifiable;
++        $type = NotificationPreferences::typeFor($event->notification);
++        if (NotificationPreferences::allows($user, $type, $event->channel)) {
++            return null;
++        }
++
++        if ($event->channel === 'database' && NotificationPreferences::allows($user, $type, 'push')) {
++            $this->push->queue($user, $event->notification->id, $type);
++        }
++
++        return false;
++    }
++}
+diff --git a/app/Services/NotificationPreferences.php b/app/Services/NotificationPreferences.php
+new file mode 100644
+index 0000000..c5f0889
+--- /dev/null
++++ b/app/Services/NotificationPreferences.php
+@@ -0,0 +1,125 @@
++<?php
++
++namespace App\Services;
++
++use App\Models\User;
++use App\Notifications\AsyncJobDone;
++use App\Notifications\AsyncJobFailed;
++use App\Notifications\AsyncJobFailureSummary;
++use App\Notifications\ConnectionExpiring;
++use App\Notifications\FirstCommentFailed;
++use App\Notifications\GoalAlert;
++use App\Notifications\ManualPublishReminder;
++use App\Notifications\PostMediaMissing;
++use App\Notifications\PostWorkflowActivity;
++use App\Notifications\PublishFailed;
++use App\Notifications\ReconnectRequired;
++use App\Notifications\SeriesGenerationFailed;
++use App\Notifications\SiteMessagesFull;
++use App\Notifications\SmartLinkSubscribersFull;
++use App\Notifications\StudioDesignActivity;
++use App\Notifications\WeeklyDigestReady;
++use Illuminate\Notifications\Notification;
++
++final class NotificationPreferences
++{
++    private const APP_PUSH = ['database', 'push'];
++
++    private const ALL = ['database', 'push', 'mail'];
++
++    public const TYPES = [
++        'weekly_digest' => ['Resumen semanal', self::ALL, WeeklyDigestReady::class],
++        'manual_reminder' => ['Recordatorio de publicación manual', self::ALL, ManualPublishReminder::class],
++        'manual_due' => ['Hora de publicar manualmente', self::APP_PUSH, null],
++        'approval_activity' => ['Aprobaciones de contenido', self::APP_PUSH, PostWorkflowActivity::class],
++        'collaboration' => ['Colaboración en marcas', self::APP_PUSH, null],
++        'publish_failed' => ['Fallos de publicación', self::ALL, PublishFailed::class],
++        'first_comment_failed' => ['Fallos del primer comentario', self::APP_PUSH, FirstCommentFailed::class],
++        'media_missing' => ['Archivos de publicación que faltan', self::APP_PUSH, PostMediaMissing::class],
++        'series_failed' => ['Fallos al generar series', self::APP_PUSH, SeriesGenerationFailed::class],
++        'connection_expiring' => ['Conexiones a punto de caducar', self::ALL, ConnectionExpiring::class],
++        'reconnect_required' => ['Cuentas que requieren reconexión', self::ALL, ReconnectRequired::class],
++        'job_done' => ['Trabajos en segundo plano completados', self::APP_PUSH, AsyncJobDone::class],
++        'job_failed' => ['Fallos de trabajos en segundo plano', self::ALL, AsyncJobFailed::class],
++        'goal_alert' => ['Alertas de objetivos', self::ALL, GoalAlert::class],
++        'scheduled_report' => ['Informes programados', ['mail'], null],
++        'studio_activity' => ['Actividad y colaboración en el Estudio', self::APP_PUSH, StudioDesignActivity::class],
++        'site_messages_full' => ['Límite de mensajes del sitio', self::APP_PUSH, SiteMessagesFull::class],
++        'smartlink_subscribers_full' => ['Límite de suscriptores de SmartLinks', self::APP_PUSH, SmartLinkSubscribersFull::class],
++    ];
++
++    public static function typeFor(Notification|string $notice, string $kind = ''): ?string
++    {
++        if ($notice instanceof PostWorkflowActivity) {
++            $kind = $notice->kind;
++        }
++        $class = is_string($notice) ? $notice : $notice::class;
++
++        return match ($class) {
++            PostWorkflowActivity::class => match ($kind) {
++                'manual_due' => 'manual_due',
++                'collaborator_invited', 'collaborator_revoked' => 'collaboration',
++                default => 'approval_activity',
++            },
++            AsyncJobFailureSummary::class => 'job_failed',
++            default => self::typeFromClass($class),
++        };
++    }
++
++    private static function typeFromClass(string $class): ?string
++    {
++        foreach (self::TYPES as $type => [, , $notification]) {
++            if ($notification === $class) {
++                return $type;
++            }
++        }
++
++        return null;
++    }
++
++    /** null identifies a security notification or a delivery outside the user's preferences. */
++    public static function allows(User $user, ?string $type, string $channel): bool
++    {
++        if ($type === null) {
++            return true;
++        }
++        if (! in_array($channel, self::TYPES[$type][1], true)) {
++            return false;
++        }
++        if (($type === 'weekly_digest' && ! $user->notify_weekly_digest)
++            || ($type === 'manual_reminder' && ! $user->notify_manual_reminder)) {
++            return false;
++        }
++
++        return $user->notification_channels[$type][$channel] ?? self::defaultFor($user, $type, $channel);
++    }
++
++    public static function anyChannel(User $user, string $type): bool
++    {
++        foreach (self::TYPES[$type][1] as $channel) {
++            if (self::allows($user, $type, $channel)) {
++                return true;
++            }
++        }
++
++        return false;
++    }
++
++    public static function defaultFor(User $user, string $type, string $channel): bool
++    {
++        return $channel !== 'mail' || in_array($type, ['publish_failed', 'reconnect_required', 'scheduled_report'], true)
++            || $user->notify_by_mail;
++    }
++
++    public static function forProfile(User $user): array
++    {
++        $preferences = [];
++        foreach (self::TYPES as $type => [, $channels]) {
++            foreach ($channels as $channel) {
++                $preferences[$type][$channel] = $user->notification_channels[$type][$channel] ?? self::defaultFor($user, $type, $channel);
++            }
++        }
++
++        return $preferences;
++    }
++}
+diff --git a/database/migrations/2026_11_27_130100_add_delivery_and_onboarding_preferences_to_users.php b/database/migrations/2026_11_27_130100_add_delivery_and_onboarding_preferences_to_users.php
+new file mode 100644
+index 0000000..bd73f94
+--- /dev/null
++++ b/database/migrations/2026_11_27_130100_add_delivery_and_onboarding_preferences_to_users.php
+@@ -0,0 +1,22 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    public function up(): void
++    {
++        Schema::table('users', function (Blueprint $table) {
++            $table->json('notification_channels')->nullable();
++            $table->boolean('single_key_shortcuts')->default(true);
++            $table->string('onboarding_step', 16)->nullable();
++        });
++    }
++
++    public function down(): void
++    {
++        Schema::table('users', fn (Blueprint $table) => $table->dropColumn(['notification_channels', 'single_key_shortcuts', 'onboarding_step']));
++    }
++};
+diff --git a/docs/usuario/primeros-pasos.md b/docs/usuario/primeros-pasos.md
+new file mode 100644
+index 0000000..a8f8573
+--- /dev/null
++++ b/docs/usuario/primeros-pasos.md
+@@ -0,0 +1,13 @@
++# Primeros pasos
++
++Si tu cuenta todavía está vacía, pulsa **Guía** en la cabecera. Llegarás a las mismas pantallas que usa el resto de la aplicación.
++
++1. **Crea o elige una marca.** Una marca agrupa las redes y el contenido que gestionas. Ve a **Marcas** para crearla o selecciónala en la cabecera.
++2. **Conecta una cuenta.** Abre **Conexiones** con la marca seleccionada, elige una red y sigue sus instrucciones.
++3. **Crea tu primera publicación.** Abre el compositor, prepara el contenido y guarda un borrador para revisarlo o programarlo.
++
++Puedes saltar la guía en cualquier paso. **Ayuda y atajos**, en la cabecera, permite continuar o repetirla. El paso se guarda en tu cuenta.
++
++Para ver las teclas disponibles en la pantalla actual, abre **Ayuda y atajos** o pulsa **?**. **P** lleva a Planificación, **A** a Analítica, **E** al Estudio y **N** abre una publicación nueva si tienes una marca seleccionada. Busca con **/**, **Ctrl+K** o **⌘K** en macOS. Los campos de edición, el lienzo con foco y los diálogos conservan su propio teclado. Desde la ayuda puedes desactivar los atajos globales de una sola tecla.
++
++En **Notificaciones del navegador** puedes guardar qué tipos de aviso quieres recibir en la app, por correo o por push. Activa push en cada dispositivo donde quieras recibirlo.
+diff --git a/resources/js/Components/GlobalActions.vue b/resources/js/Components/GlobalActions.vue
+new file mode 100644
+index 0000000..4353a38
+--- /dev/null
++++ b/resources/js/Components/GlobalActions.vue
+@@ -0,0 +1,143 @@
++<script setup>
++import { computed, nextTick, ref } from 'vue';
++import { router, useForm } from '@inertiajs/vue3';
++import BaseDialog from '@/Components/BaseDialog.vue';
++import Checkbox from '@/Components/Checkbox.vue';
++import CommandPalette from '@/Components/CommandPalette.vue';
++import InputError from '@/Components/InputError.vue';
++import Onboarding from '@/Components/Onboarding.vue';
++import { useNavigationContext } from '@/Composables/useNavigationContext';
++import { useShortcuts } from '@/Composables/useShortcuts';
++import { shortcutHelp } from '@/lib/shortcuts';
++import { navigationDestination } from '@/navigation';
++
++defineProps({ light: Boolean });
++const { ctx, page } = useNavigationContext();
++const palette = ref(/** @type {InstanceType<typeof CommandPalette> | null} */ (null));
++const onboarding = ref(/** @type {InstanceType<typeof Onboarding> | null} */ (null));
++const helpButton = ref(/** @type {HTMLButtonElement | null} */ (null));
++const helpOpen = ref(false);
++const form = useForm({ single_key_shortcuts: page.props.auth.user.single_key_shortcuts ?? true });
++/** @type {import('vue').ComputedRef<Record<string, string | undefined>>} */
++const links = computed(() => ({
++    analytics: navigationDestination(ctx.value, 'analytics'),
++    planning: navigationDestination(ctx.value, 'planning'),
++    studio: navigationDestination(ctx.value, 'studio'),
++    create: navigationDestination(ctx.value, 'planning', 'create'),
++}));
++
++/** @param {string} id */
++function action(id) {
++    if (id === 'help') return () => { helpOpen.value = true; };
++    if (id === 'search') return () => palette.value?.openPalette();
++    const href = links.value[id];
++    return href ? () => router.visit(href) : undefined;
++}
++
++useShortcuts({ enabled: () => page.props.auth.user.single_key_shortcuts ?? true, actions: action });
++const global = computed(() => shortcutHelp('global', { available: (id) => action(id) !== undefined }));
++const inEditor = computed(() => ctx.value.is('studio.designs.edit'));
++const groups = computed(() => [
++    { title: 'Toda la aplicación', entries: global.value },
++    ...(inEditor.value ? [
++        { title: 'Editor del Estudio', entries: shortcutHelp('studio-editor') },
++        { title: 'Con el lienzo enfocado', entries: shortcutHelp('studio-canvas') },
++    ] : []),
++]);
++const guideLabel = computed(() => {
++    const step = page.props.onboarding;
++    if (step === 'completed' || step === 'skipped') return 'Repetir guía de primeros pasos';
++    if (step === 'brand' || step === 'connection' || step === 'post') return 'Continuar guía de primeros pasos';
++    return 'Abrir guía de primeros pasos';
++});
++
++function saveShortcuts() {
++    form.patch(route('profile.shortcuts'), { preserveScroll: true });
++}
++
++async function openGuide() {
++    helpOpen.value = false;
++    await nextTick();
++    onboarding.value?.launch();
++}
++</script>
++
++<template>
++    <CommandPalette ref="palette" :light="light" />
++    <button
++        v-if="page.props.onboarding === 'welcome'"
++        type="button"
++        class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-medium"
++        :class="light ? 'bg-indigo-50 text-indigo-800' : 'bg-indigo-400/20 text-indigo-100'"
++        aria-label="Empezar guía de primeros pasos"
++        @click="openGuide"
++        >Guía</button
++    >
++    <button
++        ref="helpButton"
++        type="button"
++        class="h-9 w-8 shrink-0 rounded-lg text-base font-semibold"
++        :class="light ? 'text-slate-600 hover:bg-slate-100' : 'text-slate-300 hover:bg-white/10 hover:text-white'"
++        aria-label="Ayuda y atajos"
++        aria-haspopup="dialog"
++        :aria-keyshortcuts="page.props.auth.user.single_key_shortcuts === false ? undefined : '?'"
++        title="Ayuda y atajos"
++        @click="helpOpen = true"
++        >?</button
++    >
++    <BaseDialog
++        v-if="helpOpen"
++        open
++        close-on-backdrop
++        role="alertdialog"
++        aria-labelledby="global-help-title"
++        aria-describedby="global-help-description"
++        class="dialog-panel max-w-lg space-y-4 p-4 sm:p-6"
++        @close="helpOpen = false"
++    >
++        <h2 id="global-help-title" tabindex="-1" data-dialog-initial-focus class="text-lg font-semibold text-slate-900"
++            >Ayuda y atajos</h2
++        >
++        <p id="global-help-description" class="text-sm text-slate-600"
++            >Los atajos globales actúan fuera de los campos de edición y de los diálogos.</p
++        >
++        <form v-if="page.props.auth.user.email_verified_at" class="space-y-2" @submit.prevent="saveShortcuts">
++            <label class="flex items-center gap-2 text-sm text-slate-700">
++                <Checkbox v-model:checked="form.single_key_shortcuts" />
++                Activar los atajos globales de una sola tecla
++            </label>
++            <InputError :message="form.errors.single_key_shortcuts" />
++            <div class="flex flex-wrap items-center gap-2">
++                <button type="submit" class="btn-secondary" :disabled="form.processing || !form.isDirty"
++                    >Guardar atajos</button
++                >
++                <p v-if="form.recentlySuccessful" role="status" class="text-sm text-slate-600">Atajos guardados.</p>
++            </div>
++        </form>
++        <section v-for="group in groups" :key="group.title" class="space-y-2">
++            <h3 class="text-sm font-semibold text-slate-900">{{ group.title }}</h3>
++            <dl class="space-y-1 text-sm text-slate-700">
++                <div v-for="entry in group.entries" :key="entry.keys" class="flex justify-between gap-3">
++                    <dt>{{ entry.label }}</dt>
++                    <dd class="shrink-0">
++                        <kbd>{{ entry.keys }}</kbd>
++                        <span v-if="entry.single && page.props.auth.user.single_key_shortcuts === false">
++                            · Desactivado</span
++                        >
++                    </dd>
++                </div>
++            </dl>
++        </section>
++        <div class="flex flex-wrap justify-end gap-2">
++            <button
++                v-if="page.props.auth.user.email_verified_at"
++                type="button"
++                class="btn-secondary"
++                @click="openGuide"
++                >{{ guideLabel }}</button
++            >
++            <button type="button" class="btn-primary" @click="helpOpen = false">Cerrar ayuda</button>
++        </div>
++    </BaseDialog>
++    <Onboarding ref="onboarding" :return-focus-to="helpButton" />
++</template>
+diff --git a/resources/js/Components/Onboarding.vue b/resources/js/Components/Onboarding.vue
+new file mode 100644
+index 0000000..308e35e
+--- /dev/null
++++ b/resources/js/Components/Onboarding.vue
+@@ -0,0 +1,135 @@
++<script setup>
++import { router } from '@inertiajs/vue3';
++import { computed, nextTick, ref } from 'vue';
++import BaseDialog from '@/Components/BaseDialog.vue';
++import InputError from '@/Components/InputError.vue';
++import { useNavigationContext } from '@/Composables/useNavigationContext';
++import { navigationDestination } from '@/navigation';
++
++defineOptions({ name: 'UserOnboarding' });
++defineProps({ returnFocusTo: { type: /** @type {import('vue').PropType<HTMLButtonElement | null>} */ (Object), default: null } });
++const { ctx, page, brand } = useNavigationContext();
++const open = ref(false);
++const processing = ref(false);
++const error = ref('');
++const heading = ref(/** @type {HTMLHeadingElement | null} */ (null));
++/** @type {import('vue').ComputedRef<'brand' | 'connection' | 'post'>} */
++const step = computed(() => {
++    const current = page.props.onboarding;
++    return current === 'connection' || current === 'post' ? current : 'brand';
++});
++const content = computed(() => ({
++    brand: {
++        number: 1, title: 'Crea o elige una marca', description: 'Una marca reúne las cuentas y el contenido que gestionas.',
++        label: 'Ir a Marcas', href: navigationDestination(ctx.value, 'account', 'brands'),
++    },
++    connection: {
++        number: 2, title: 'Conecta una cuenta', description: 'Elige una red social en Conexiones para vincularla a tu marca.',
++        label: brand.value ? 'Ir a Conexiones' : 'Elegir una marca',
++        href: navigationDestination(ctx.value, 'connections'),
++    },
++    post: {
++        number: 3, title: 'Crea tu primera publicación', description: 'Prepara el texto y guarda un borrador para revisarlo antes de publicar.',
++        label: brand.value ? 'Abrir el compositor' : 'Elegir una marca',
++        href: navigationDestination(ctx.value, 'planning', 'create') ?? navigationDestination(ctx.value, 'account', 'brands'),
++    },
++})[step.value]);
++
++/** @param {Exclude<import('@/types/shell').OnboardingStep, 'welcome'>} next @param {() => void} [after] */
++function persist(next, after) {
++    if (processing.value) return;
++    processing.value = true;
++    error.value = '';
++    router.patch(route('profile.onboarding'), { step: next }, {
++        preserveScroll: true,
++        onSuccess: after,
++        onError: (errors) => { error.value = errors.step ?? 'No se pudo guardar el progreso.'; },
++        onFinish: () => { processing.value = false; },
++    });
++}
++
++function launch() {
++    error.value = '';
++    open.value = true;
++    if (!['brand', 'connection', 'post'].includes(page.props.onboarding ?? '')) {
++        persist('brand');
++    }
++}
++defineExpose({ launch });
++
++function finish() {
++    persist('completed', () => { open.value = false; });
++}
++function skip() {
++    persist('skipped', () => { open.value = false; });
++}
++function close() {
++    if (processing.value) return;
++    if (page.props.onboarding === 'welcome') skip();
++    else open.value = false;
++}
++
++function advance() {
++    if (step.value === 'post') {
++        finish();
++        return;
++    }
++    persist(step.value === 'brand' ? 'connection' : 'post', async () => {
++        await nextTick();
++        heading.value?.focus();
++    });
++}
++
++function goToStep() {
++    const href = content.value.href;
++    if (!href) return;
++    persist(step.value, () => {
++        open.value = false;
++        router.visit(href);
++    });
++}
++</script>
++
++<template>
++    <BaseDialog
++        v-if="open"
++        open
++        :return-focus-to="returnFocusTo"
++        role="alertdialog"
++        aria-labelledby="onboarding-title"
++        aria-describedby="onboarding-description"
++        class="dialog-panel max-w-lg space-y-4 p-4 sm:p-6"
++        @close="close"
++    >
++        <p class="text-sm font-medium text-slate-600">Primeros pasos · {{ content.number }} de 3</p>
++        <h2
++            id="onboarding-title"
++            ref="heading"
++            tabindex="-1"
++            data-dialog-initial-focus
++            class="text-lg font-semibold text-slate-900"
++            >{{ content.title }}</h2
++        >
++        <p id="onboarding-description" class="text-sm text-slate-600">{{ content.description }}</p>
++        <button
++            v-if="content.href"
++            type="button"
++            class="btn-secondary"
++            :disabled="processing"
++            @click="goToStep"
++            >{{ content.label }}</button
++        >
++        <p class="text-sm text-slate-600">Puedes retomar o repetir la guía en «Ayuda y atajos».</p>
++        <InputError :message="error" />
++        <div class="flex flex-wrap justify-end gap-2">
++            <button type="button" class="btn-secondary" :disabled="processing" @click="skip">Saltar guía</button>
++            <button
++                type="button"
++                class="btn-primary"
++                :disabled="processing"
++                @click="advance"
++                >{{ step === 'post' ? 'Terminar guía' : 'Siguiente' }}</button
++            >
++        </div>
++    </BaseDialog>
++</template>
+diff --git a/resources/js/Composables/useShortcuts.js b/resources/js/Composables/useShortcuts.js
+new file mode 100644
+index 0000000..9f2e3c3
+--- /dev/null
++++ b/resources/js/Composables/useShortcuts.js
+@@ -0,0 +1,20 @@
++import { onMounted, onUnmounted } from 'vue';
++import { hasOpenModal, shortcutAction } from '@/lib/shortcuts';
++
++/** @param {{enabled: () => boolean, actions: (id: string) => (() => void) | undefined}} options */
++export function useShortcuts({ enabled, actions }) {
++    /** @param {KeyboardEvent} event */
++    const onKey = (event) => {
++        const id = shortcutAction(event, {
++            singleKeys: enabled(),
++            modalOpen: hasOpenModal(),
++            available: (key) => actions(key) !== undefined,
++        });
++        const action = id && actions(id);
++        if (!action) return;
++        event.preventDefault();
++        action();
++    };
++    onMounted(() => window.addEventListener('keydown', onKey));
++    onUnmounted(() => window.removeEventListener('keydown', onKey));
++}
+diff --git a/resources/js/lib/shortcuts.js b/resources/js/lib/shortcuts.js
+new file mode 100644
+index 0000000..db94d8c
+--- /dev/null
++++ b/resources/js/lib/shortcuts.js
+@@ -0,0 +1,95 @@
++/** @typedef {'global' | 'studio-editor' | 'studio-canvas'} ShortcutScope */
++/**
++ * @typedef {{ id: string, key: string, label: string, modifier?: 'platform' | 'either',
++ * shift?: boolean | 'optional', repeat?: boolean }} Shortcut
++ */
++
++/** @type {Shortcut} */
++const searchBinding = { id: 'search', key: 'k', label: 'Buscar en la aplicación', modifier: 'platform' };
++
++/** @type {Record<ShortcutScope, Shortcut[]>} */
++const shortcuts = {
++    global: [
++        { id: 'help', key: '?', label: 'Ayuda y atajos', shift: 'optional' },
++        searchBinding,
++        { id: 'search', key: '/', label: searchBinding.label, shift: 'optional' },
++        { id: 'analytics', key: 'a', label: 'Analítica' },
++        { id: 'planning', key: 'p', label: 'Planificación' },
++        { id: 'studio', key: 'e', label: 'Estudio' },
++        { id: 'create', key: 'n', label: 'Crear publicación' },
++    ],
++    'studio-editor': [
++        { id: 'undo', key: 'z', label: 'Deshacer', modifier: 'either', repeat: true },
++        { id: 'redo', key: 'z', label: 'Rehacer', modifier: 'either', shift: true, repeat: true },
++        { id: 'save', key: 's', label: 'Guardar diseño', modifier: 'either' },
++    ],
++    'studio-canvas': [
++        { id: 'delete', key: 'Delete', label: 'Eliminar la selección', repeat: true },
++        { id: 'delete', key: 'Backspace', label: 'Eliminar la selección', repeat: true },
++        { id: 'deselect', key: 'Escape', label: 'Quitar la selección' },
++        { id: 'select-all', key: 'a', label: 'Seleccionar todo', modifier: 'either' },
++        { id: 'copy', key: 'c', label: 'Copiar', modifier: 'either' },
++        { id: 'paste', key: 'v', label: 'Pegar', modifier: 'either' },
++        { id: 'duplicate', key: 'd', label: 'Duplicar', modifier: 'either' },
++        { id: 'nudge', key: 'ArrowLeft', label: 'Mover a la izquierda', shift: 'optional', repeat: true },
++        { id: 'nudge', key: 'ArrowRight', label: 'Mover a la derecha', shift: 'optional', repeat: true },
++        { id: 'nudge', key: 'ArrowUp', label: 'Mover hacia arriba', shift: 'optional', repeat: true },
++        { id: 'nudge', key: 'ArrowDown', label: 'Mover hacia abajo', shift: 'optional', repeat: true },
++    ],
++};
++
++const editable = 'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="searchbox"], [role="combobox"]:not(button)';
++const modals = 'dialog[open], [aria-modal="true"]:not(dialog):not([hidden])';
++/** @type {Record<string, string>} */
++const keyNames = { Delete: 'Supr', Backspace: 'Retroceso', Escape: 'Esc', ArrowUp: '↑', ArrowLeft: '←', ArrowRight: '→', ArrowDown: '↓' };
++
++/** @param {Document} [root] */
++export function hasOpenModal(root = document) {
++    return [...root.querySelectorAll(modals)].some((node) => node.getClientRects().length > 0);
++}
++
++export function isApplePlatform() {
++    return typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
++}
++
++/** @param {KeyboardEvent} event @param {Shortcut} binding @param {boolean} mac */
++function matches(event, binding, mac) {
++    if (event.key.toLowerCase() !== binding.key.toLowerCase() || (event.repeat && !binding.repeat)) return false;
++    if (binding.shift !== 'optional' && event.shiftKey !== Boolean(binding.shift)) return false;
++    if (binding.modifier === 'either') return event.ctrlKey !== event.metaKey;
++    if (binding.modifier === 'platform') return mac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
++    return !event.ctrlKey && !event.metaKey;
++}
++
++/**
++ * @param {KeyboardEvent} event
++ * @param {{ scope?: ShortcutScope, mac?: boolean, singleKeys?: boolean, modalOpen?: boolean, available?: (id: string) => boolean }} [options]
++ */
++export function shortcutAction(event, {
++    scope = 'global', mac = isApplePlatform(), singleKeys = true, modalOpen = false, available = () => true,
++} = {}) {
++    if (event.defaultPrevented || event.isComposing || event.keyCode === 229 || event.altKey || modalOpen) return undefined;
++    const blockedTargets = scope === 'global' ? `${editable}, canvas` : editable;
++    if (event.composedPath().some((node) => 'closest' in node && /** @type {Element} */ (node).closest(blockedTargets))) return undefined;
++    return shortcuts[scope].find((binding) =>
++        (scope !== 'global' || singleKeys || binding.modifier) && matches(event, binding, mac) && available(binding.id),
++    )?.id;
++}
++
++/** @param {Shortcut} binding @param {boolean} mac */
++function displayKeys(binding, mac) {
++    const modifier = binding.modifier ? (mac ? '⌘' : 'Ctrl+') : '';
++    return modifier + (binding.shift === true ? 'Mayús+' : '') + (keyNames[binding.key] ?? binding.key.toUpperCase());
++}
++
++/** @param {ShortcutScope} scope @param {{mac?: boolean, available?: (id: string) => boolean}} [options] */
++export function shortcutHelp(scope, { mac = isApplePlatform(), available = () => true } = {}) {
++    return shortcuts[scope].filter((binding) => available(binding.id)).map((binding) => ({
++        id: binding.id, keys: displayKeys(binding, mac), label: binding.label, single: scope === 'global' && !binding.modifier,
++    }));
++}
++
++/** @param {boolean} mac */
++export function searchShortcut(mac) {
++    return { keys: displayKeys(searchBinding, mac), aria: `${mac ? 'Meta' : 'Control'}+${searchBinding.key.toUpperCase()}` };
++}
+diff --git a/tests/Feature/Notifications/NotificationPreferencesTest.php b/tests/Feature/Notifications/NotificationPreferencesTest.php
+new file mode 100644
+index 0000000..f948ea5
+--- /dev/null
++++ b/tests/Feature/Notifications/NotificationPreferencesTest.php
+@@ -0,0 +1,247 @@
++<?php
++
++use App\Jobs\SendPushNotification;
++use App\Jobs\SendScheduledReport;
++use App\Jobs\SendUserWeeklyDigest;
++use App\Mail\ScheduledReportMail;
++use App\Mail\WeeklyDigest as WeeklyDigestMail;
++use App\Models\Brand;
++use App\Models\Post;
++use App\Models\PostTarget;
++use App\Models\PushSubscription;
++use App\Models\Report;
++use App\Models\ReportSchedule;
++use App\Models\ReportTemplate;
++use App\Models\SocialAccount;
++use App\Models\User;
++use App\Notifications\AsyncJobDone;
++use App\Notifications\AsyncJobFailed;
++use App\Notifications\AsyncJobFailureSummary;
++use App\Notifications\ConnectionExpiring;
++use App\Notifications\FirstCommentFailed;
++use App\Notifications\GoalAlert;
++use App\Notifications\ManualPublishReminder;
++use App\Notifications\PasskeyAdded;
++use App\Notifications\PostMediaMissing;
++use App\Notifications\PostWorkflowActivity;
++use App\Notifications\PublishFailed;
++use App\Notifications\ReconnectRequired;
++use App\Notifications\SeriesGenerationFailed;
++use App\Notifications\SiteMessagesFull;
++use App\Notifications\SmartLinkSubscribersFull;
++use App\Notifications\StudioDesignActivity;
++use App\Notifications\WeeklyDigestReady;
++use App\Services\Push\PushResult;
++use App\Services\Push\PushSender;
++use Illuminate\Auth\Notifications\ResetPassword;
++use Illuminate\Auth\Notifications\VerifyEmail;
++use Illuminate\Notifications\Events\NotificationSent;
++use Illuminate\Support\Carbon;
++use Illuminate\Support\Facades\Event;
++use Illuminate\Support\Facades\Mail;
++use Illuminate\Support\Facades\Notification;
++use Illuminate\Support\Facades\Queue;
++
++function saveNotificationTypes(User $user, array $channels): void
++{
++    test()->actingAs($user)->patch('/profile/notification-preferences', [
++        'notify_weekly_digest' => true, 'weekly_digest_ai' => false, 'notify_manual_reminder' => true,
++        'notification_channels' => $channels,
++    ])->assertRedirect('/profile/notifications')->assertSessionHasNoErrors();
++}
++
++test('stores channel preferences for the authenticated account only', function () {
++    $user = User::factory()->create();
++    $other = User::factory()->create();
++    saveNotificationTypes($user, ['job_failed' => ['database' => false, 'mail' => true, 'push' => false]]);
++
++    $this->actingAs($user->refresh())->get('/profile/notifications')->assertOk()
++        ->assertInertia(fn ($page) => $page->where('notificationChannels.job_failed.database', false)
++            ->where('notificationChannels.job_failed.mail', true));
++    $this->actingAs($other)->get('/profile/notifications')->assertOk()
++        ->assertInertia(fn ($page) => $page->where('notificationChannels.job_failed.database', true)
++            ->where('notificationChannels.job_failed.mail', false));
++});
++
++function notificationPreferenceDevice(User $user): PushSubscription
++{
++    pushTestKeys();
++
++    return PushSubscription::forceCreate([
++        'user_id' => $user->id, 'endpoint' => 'https://push.example.test/preferences',
++        'endpoint_hash' => hash('sha256', 'https://push.example.test/preferences'),
++        'keys' => ['p256dh' => 'k', 'auth' => 'a'], 'device_name' => 'Pruebas', 'last_seen_at' => now(),
++    ]);
++}
++
++test('respects independent in-app, email and push delivery, including queued notifications', function (string $enabled) {
++    $user = User::factory()->create(['notify_by_mail' => true]);
++    $brand = Brand::factory()->for($user)->create();
++    notificationPreferenceDevice($user);
++    $sender = Mockery::mock(PushSender::class);
++    $sender->shouldReceive('send')->times((int) ($enabled === 'push'))->andReturn(PushResult::Delivered);
++    app()->instance(PushSender::class, $sender);
++
++    $sent = [];
++    Event::listen(NotificationSent::class, function (NotificationSent $event) use (&$sent): void {
++        $sent[] = $event->channel;
++    });
++    saveNotificationTypes($user, ['job_failed' => [
++        'database' => $enabled === 'database', 'mail' => $enabled === 'mail', 'push' => $enabled === 'push',
++    ]]);
++
++    $user->refresh()->notify(new AsyncJobFailed('canva', 'Fallo', 'Motivo', brandId: $brand->id));
++
++    expect($user->notifications()->count())->toBe((int) ($enabled === 'database'))
++        ->and(array_count_values($sent)['mail'] ?? 0)->toBe((int) ($enabled === 'mail'));
++})->with(['database', 'mail', 'push', 'none']);
++
++test('resolves every app notice type independently at dispatch and at delivery', function () {
++    $user = User::factory()->create(['notify_by_mail' => true]);
++    $brand = Brand::factory()->for($user)->create();
++    $account = SocialAccount::factory()->for($user)->create(['brand_id' => $brand->id]);
++    $post = Post::factory()->for($user)->create(['brand_id' => $brand->id]);
++    $target = PostTarget::factory()->for($post)->create(['social_account_id' => $account->id]);
++    notificationPreferenceDevice($user);
++    $notices = [
++        'weekly_digest' => [new WeeklyDigestReady(['week' => '2026-11-30', 'period' => ['label' => 'Noviembre'], 'brands' => []])],
++        'manual_reminder' => [new ManualPublishReminder($post->id, $brand->id, $brand->name, 'Recuerda')],
++        'manual_due' => [new PostWorkflowActivity('manual_due', $post->id, $brand->id, $brand->name, 'Publica')],
++        'approval_activity' => [new PostWorkflowActivity('approval_requested', $post->id, $brand->id, $brand->name, 'Revisa')],
++        'collaboration' => [new PostWorkflowActivity('collaborator_invited', null, $brand->id, $brand->name, 'Invitación')],
++        'publish_failed' => [new PublishFailed($target, 'Fallo')],
++        'first_comment_failed' => [new FirstCommentFailed($target, 'Fallo')],
++        'media_missing' => [new PostMediaMissing($post->id, [1])],
++        'series_failed' => [new SeriesGenerationFailed(1, $brand->id, $brand->name, 'Fallo')],
++        'connection_expiring' => [new ConnectionExpiring($account, 'Caduca', '30 de noviembre')],
++        'reconnect_required' => [new ReconnectRequired($account, 'Reconecta')],
++        'job_done' => [new AsyncJobDone('canva', 'Completado', 'Listo')],
++        'job_failed' => [new AsyncJobFailed('canva', 'Fallo', 'Motivo'), new AsyncJobFailureSummary('canva', 1, 'exportación')],
++        'goal_alert' => [new GoalAlert($user->id, ['goal_id' => 1, 'title' => 'Objetivo'])],
++        'studio_activity' => [new StudioDesignActivity('comment', 1, 'Diseño', 'Comentario')],
++        'site_messages_full' => [new SiteMessagesFull(1, 'Sitio', 10)],
++        'smartlink_subscribers_full' => [new SmartLinkSubscribersFull(1, 1, 'enlace', 10)],
++    ];
++    $mailTypes = ['weekly_digest', 'manual_reminder', 'publish_failed', 'connection_expiring', 'reconnect_required', 'job_failed', 'goal_alert'];
++    $disabled = [];
++    foreach (array_keys($notices) as $type) {
++        $disabled[$type] = ['database' => false, 'push' => false];
++        if (in_array($type, $mailTypes, true)) {
++            $disabled[$type]['mail'] = false;
++        }
++    }
++    saveNotificationTypes($user, $disabled);
++    Queue::fake([SendPushNotification::class]);
++    $user->refresh();
++    $sent = [];
++    Event::listen(NotificationSent::class, function (NotificationSent $event) use (&$sent): void {
++        $sent[] = $event->channel;
++    });
++    foreach ($notices as $type => $examples) {
++        $sent = [];
++        foreach ($examples as $notice) {
++            $user->notify($notice);
++        }
++        expect($sent)->toBe([], $type);
++        Queue::assertNotPushed(SendPushNotification::class);
++    }
++
++    foreach ($notices as $type => $examples) {
++        $user->notification_channels = array_replace_recursive($disabled, [$type => ['database' => true]]);
++        $user->save();
++        $before = $user->notifications()->count();
++        foreach ($examples as $notice) {
++            $user->notify($notice);
++        }
++        expect($user->notifications()->count() - $before)->toBe(count($examples), $type);
++        Queue::assertNotPushed(SendPushNotification::class);
++    }
++});
++
++test('rechecks the current push setting when a queued push runs', function (bool $keepInbox) {
++    $user = User::factory()->create();
++    notificationPreferenceDevice($user);
++    saveNotificationTypes($user, ['approval_activity' => ['database' => $keepInbox, 'push' => true]]);
++    Queue::fake([SendPushNotification::class]);
++    $user->refresh()->notify(new PostWorkflowActivity('approval_requested', null, null, '', 'Revisa'));
++    Queue::assertPushed(SendPushNotification::class, 1);
++
++    saveNotificationTypes($user, ['approval_activity' => ['push' => false]]);
++    $sender = Mockery::mock(PushSender::class);
++    $sender->shouldNotReceive('send');
++    app()->instance(PushSender::class, $sender);
++    app()->call([Queue::pushed(SendPushNotification::class)->sole(), 'handle']);
++})->with([true, false]);
++
++test('checks preferences for the digest mailable, manual reminder and immediate database sends', function () {
++    $this->travelTo(Carbon::parse('2026-11-30 09:00:00'));
++    Mail::fake();
++    $user = User::factory()->create(['notify_by_mail' => true]);
++    $brand = Brand::factory()->for($user)->create(['timezone' => 'UTC']);
++    saveNotificationTypes($user, [
++        'weekly_digest' => ['database' => false, 'mail' => false, 'push' => false],
++        'manual_reminder' => ['database' => false, 'mail' => false, 'push' => false],
++        'approval_activity' => ['database' => false, 'push' => false],
++    ]);
++
++    app()->call([new SendUserWeeklyDigest($user->id, '2026-11-30'), 'handle']);
++    $user->refresh()->notify(new ManualPublishReminder(1, $brand->id, $brand->name, 'Recuerda'));
++    Notification::sendNow($user, new PostWorkflowActivity('approval_requested', null, $brand->id, $brand->name, 'Petición'));
++
++    expect($user->notifications()->count())->toBe(0);
++    Mail::assertNotSent(WeeklyDigestMail::class);
++});
++
++test('password reset, verification and account security notices still send with mail opted out', function () {
++    $user = User::factory()->unverified()->create(['notify_by_mail' => false]);
++    $sent = [];
++    Event::listen(NotificationSent::class, function (NotificationSent $event) use (&$sent): void {
++        if ($event->channel === 'mail') {
++            $sent[] = $event->notification::class;
++        }
++    });
++    $user->sendPasswordResetNotification('test-token');
++    $user->sendEmailVerificationNotification();
++    $user->notify(new PasskeyAdded('Llave', 'Hoy', null));
++
++    expect($sent)->toBe([ResetPassword::class, VerifyEmail::class, PasskeyAdded::class]);
++});
++
++test('a disabled scheduled report email skips generation and sends nothing', function () {
++    Mail::fake();
++    $user = User::factory()->create();
++    $brand = Brand::factory()->for($user)->create();
++    $template = ReportTemplate::create([
++        'user_id' => $user->id, 'brand_id' => $brand->id, 'name' => 'Semanal', 'blocks' => [['type' => 'kpis']],
++    ]);
++    $schedule = ReportSchedule::create([
++        'user_id' => $user->id, 'brand_id' => $brand->id, 'report_template_id' => $template->id,
++        'frequency' => 'weekly', 'recipients' => ['recipient@example.test'], 'next_run_at' => now(),
++    ]);
++    saveNotificationTypes($user, ['scheduled_report' => ['mail' => false]]);
++
++    SendScheduledReport::dispatchSync($schedule->id);
++
++    Mail::assertNotSent(ScheduledReportMail::class);
++    expect(Report::ownedBy($user->id)->where('schedule_id', $schedule->id)->exists())->toBeFalse();
++});
++
++test('persists onboarding progress, skipping and restarting without affecting another user', function () {
++    $user = User::factory()->create();
++    $other = User::factory()->create();
++    $this->actingAs($user)->get('/dashboard')->assertInertia(fn ($page) => $page->where('onboarding', 'welcome'));
++
++    foreach (['connection', 'skipped', 'brand', 'post', 'completed'] as $step) {
++        $this->from('/dashboard')->patch('/profile/onboarding', ['step' => $step, 'user_id' => $other->id])
++            ->assertRedirect('/dashboard')->assertSessionHasNoErrors();
++        $this->get('/dashboard')->assertInertia(fn ($page) => $page->where('onboarding', $step));
++    }
++
++    $this->actingAs($other)->get('/dashboard')->assertInertia(fn ($page) => $page->where('onboarding', 'welcome'));
++});
++
++test('does not offer onboarding automatically when the account already has a brand', function () {
++    $user = User::factory()->create();
++    Brand::factory()->for($user)->create();
++    $this->actingAs($user)->get('/dashboard')->assertInertia(fn ($page) => $page->where('onboarding', null));
++});
+diff --git a/tests/e2e/global-shortcuts-onboarding.spec.ts b/tests/e2e/global-shortcuts-onboarding.spec.ts
+new file mode 100644
+index 0000000..a0412b4
+--- /dev/null
++++ b/tests/e2e/global-shortcuts-onboarding.spec.ts
+@@ -0,0 +1,94 @@
++import { expect, test } from '@playwright/test';
++import { artisan, expectNoOverflow, loginAs, seedComposerBrand, stamp } from './helpers';
++
++test.describe('Atajos y primeros pasos', { tag: '@responsive' }, () => {
++    test('E2E-34 · los atajos respetan la edición y las preferencias y la guía sobreviven a la recarga', async ({
++        page,
++    }, info) => {
++        const id = `primeros-pasos-${stamp()}-${info.project.name}`;
++        const user = { name: 'Primeros pasos', email: `e2e-${id}@example.test`, password: 'e2e-Guia-9-comprobar!' };
++        const email = JSON.stringify(user.email);
++        artisan(
++            String.raw`App\Models\User::factory()->create(['email' => ${email}, 'name' => 'Primeros pasos', 'password' => ${JSON.stringify(user.password)}]);`,
++        );
++
++        try {
++            await loginAs(page, user);
++            const help = page.getByRole('alertdialog', { name: 'Ayuda y atajos' });
++            const helpButton = page.getByRole('button', { name: 'Ayuda y atajos', exact: true });
++            const welcome = page.getByRole('button', { name: 'Empezar guía de primeros pasos' });
++            const brandStep = page.getByRole('alertdialog', { name: 'Crea o elige una marca' });
++            const connectionStep = page.getByRole('alertdialog', { name: 'Conecta una cuenta' });
++            const postStep = page.getByRole('alertdialog', { name: 'Crea tu primera publicación' });
++            const repeat = help.getByRole('button', { name: 'Repetir guía de primeros pasos' });
++            await expect(welcome).toBeVisible();
++            await expect(brandStep).toHaveCount(0);
++            await page.keyboard.press('?');
++            await expect(help.getByRole('heading', { name: 'Ayuda y atajos' })).toBeFocused();
++            await expect(help.getByText('Planificación', { exact: true })).toBeVisible();
++            await expectNoOverflow(page);
++            await page.screenshot({ path: info.outputPath('atajos-inicial.png') });
++            await page.keyboard.press('Escape');
++            await page.keyboard.press('p');
++            await expect(page).toHaveURL(/\/calendar/);
++
++            await welcome.click();
++            await brandStep.getByRole('button', { name: 'Saltar guía' }).click();
++            await expect(brandStep).toHaveCount(0);
++            await page.reload();
++            await expect(welcome).toHaveCount(0);
++            await helpButton.click();
++            await repeat.click();
++            await expect(brandStep.getByRole('heading')).toBeFocused();
++            await brandStep.getByRole('button', { name: 'Siguiente' }).click();
++            await expect(connectionStep.getByRole('heading')).toBeFocused();
++            await page.keyboard.press('Escape');
++            seedComposerBrand(user.email, id);
++            await page.reload();
++            await helpButton.click();
++            await help.getByRole('button', { name: 'Continuar guía de primeros pasos' }).click();
++            await expect(connectionStep.getByRole('button', { name: 'Ir a Conexiones' })).toBeVisible();
++            await connectionStep.getByRole('button', { name: 'Siguiente' }).click();
++            await expect(postStep.getByRole('button', { name: 'Abrir el compositor' })).toBeVisible();
++            await postStep.getByRole('button', { name: 'Terminar guía' }).click();
++            await expect(postStep).toHaveCount(0);
++            await page.reload();
++            await helpButton.click();
++            await repeat.click();
++            await expect(brandStep).toBeVisible();
++            await brandStep.getByRole('button', { name: 'Saltar guía' }).click();
++            await expect(brandStep).toHaveCount(0);
++
++            await page.goto('/profile/notifications');
++            const device = page.getByLabel('Nombre de este dispositivo');
++            await device.fill('');
++            await device.press('n');
++            await device.press('?');
++            await expect(device).toHaveValue('n?');
++            await expect(help).toHaveCount(0);
++            await expect(page).toHaveURL(/\/profile\/notifications$/);
++            const failurePush = page
++                .getByRole('group', { name: 'Fallos de publicación', exact: true })
++                .getByRole('checkbox', { name: 'Push', exact: true });
++            await failurePush.uncheck();
++            await page.getByRole('button', { name: 'Guardar preferencias' }).click();
++            await expect(page.getByText('Guardado.', { exact: true })).toBeVisible();
++            await page.reload();
++            await expect(failurePush).not.toBeChecked();
++            await helpButton.click();
++            await help.getByRole('checkbox', { name: 'Activar los atajos globales de una sola tecla' }).uncheck();
++            await help.getByRole('button', { name: 'Guardar atajos' }).click();
++            await expect(help.getByRole('status')).toHaveText('Atajos guardados.');
++            await page.reload();
++            await page.keyboard.press('?');
++            await expect(help).toHaveCount(0);
++            await page.keyboard.press('ControlOrMeta+K');
++            await expect(page.getByRole('alertdialog', { name: 'Buscar', exact: true })).toBeVisible();
++            await page.keyboard.press('Escape');
++            await expectNoOverflow(page);
++            await page.screenshot({ path: info.outputPath('preferencias-guardadas.png') });
++        } finally {
++            artisan(String.raw`App\Models\User::where('email', ${email})->get()->each->delete();`);
++        }
++    });
++});
+diff --git a/tests/frontend/shortcuts.test.mjs b/tests/frontend/shortcuts.test.mjs
+new file mode 100644
+index 0000000..6e2842b
+--- /dev/null
++++ b/tests/frontend/shortcuts.test.mjs
+@@ -0,0 +1,62 @@
++import assert from 'node:assert/strict';
++import test from 'node:test';
++import { hasOpenModal, searchShortcut, shortcutAction, shortcutHelp } from '../../resources/js/lib/shortcuts.js';
++
++const keyboard = (key, overrides = {}, path = []) => ({
++    key, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false,
++    defaultPrevented: false, repeat: false, isComposing: false, composedPath: () => path, ...overrides,
++});
++
++test('la búsqueda global deja el teclado al control que tiene el foco', () => {
++    for (const type of ['input', 'textarea', 'select', '[contenteditable]', '[role="textbox"]', 'canvas']) {
++        const focused = { closest: (selector) => selector.includes(type) ? focused : null };
++        assert.equal(shortcutAction(keyboard('k', { ctrlKey: true }, [focused]), { mac: false }), undefined, type);
++        assert.equal(shortcutAction(keyboard('n', {}, [focused])), undefined, type);
++    }
++});
++
++test('un diálogo visible bloquea los atajos y se ignoran modificadores ajenos, composición y repetición', () => {
++    const root = { querySelectorAll: () => [{ getClientRects: () => [1] }] };
++    assert.equal(shortcutAction(keyboard('?'), { modalOpen: hasOpenModal(root) }), undefined);
++    for (const overrides of [
++        { altKey: true }, { metaKey: true }, { ctrlKey: true }, { shiftKey: true }, { repeat: true },
++        { isComposing: true }, { keyCode: 229 }, { defaultPrevented: true },
++    ]) assert.equal(shortcutAction(keyboard('n', overrides)), undefined);
++    assert.equal(shortcutAction(keyboard('?', { shiftKey: true })), 'help');
++});
++
++test('el ajuste desactiva las teclas simples y conserva Ctrl+K o Cmd+K según la plataforma', () => {
++    assert.equal(shortcutAction(keyboard('n'), { singleKeys: false }), undefined);
++    assert.equal(shortcutAction(keyboard('k', { ctrlKey: true }), { mac: false, singleKeys: false }), 'search');
++    assert.equal(shortcutAction(keyboard('k', { ctrlKey: true }), { mac: true }), undefined);
++    assert.equal(shortcutAction(keyboard('K', { metaKey: true }), { mac: true }), 'search');
++    assert.equal(shortcutAction(keyboard('k', { ctrlKey: true, metaKey: true }), { mac: false }), undefined);
++    assert.deepEqual(searchShortcut(true), { keys: '⌘K', aria: 'Meta+K' });
++});
++
++test('la ayuda enumera las teclas activas con los mismos destinos disponibles que el manejador', () => {
++    const available = (id) => id !== 'create';
++    const options = { mac: false, available };
++    const help = shortcutHelp('global', options);
++    assert.ok(help.some(({ id }) => id === 'planning'));
++    assert.ok(help.every(({ id }) => id !== 'create'));
++    assert.equal(shortcutAction(keyboard('n'), options), undefined);
++    for (const { id, keys } of help) {
++        assert.equal(shortcutAction(keyboard(keys.at(-1), { ctrlKey: keys.startsWith('Ctrl+') }), options), id);
++    }
++});
++
++test('el Estudio conserva los atajos de edición y del lienzo en su ámbito', () => {
++    const bindings = [
++        ['studio-editor', 'z', { ctrlKey: true }, 'undo'],
++        ['studio-editor', 'z', { metaKey: true, shiftKey: true }, 'redo'],
++        ['studio-editor', 's', { ctrlKey: true }, 'save'],
++        ['studio-canvas', 'a', { ctrlKey: true }, 'select-all'],
++        ['studio-canvas', 'ArrowRight', { shiftKey: true, repeat: true }, 'nudge'],
++        ['studio-canvas', 'Delete', {}, 'delete'],
++    ];
++    for (const [scope, key, overrides, expected] of bindings) {
++        assert.equal(shortcutAction(keyboard(key, overrides), { scope, singleKeys: false }), expected);
++        assert.ok(shortcutHelp(scope).some(({ id }) => id === expected));
++    }
++});

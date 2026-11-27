@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\SocialAccount;
+use App\Services\NotificationPreferences;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -10,7 +11,7 @@ use Illuminate\Notifications\Notification;
 
 /**
  * Aviso (T-23) de que una conexion caduca pronto y hay que reconectarla ANTES: acceso a datos de Meta (90 dias) o token de LinkedIn sin
- * renovacion. En la app siempre; correo solo con `notify_by_mail`. Datos escalares: nunca tokens.
+ * renovacion. Se entrega por los canales habilitados por el usuario. Datos escalares: nunca tokens.
  */
 class ConnectionExpiring extends Notification implements ShouldQueue
 {
@@ -43,7 +44,7 @@ class ConnectionExpiring extends Notification implements ShouldQueue
     /** @return list<string> */
     public function via(object $notifiable): array
     {
-        return $notifiable->notify_by_mail ? ['database', 'mail'] : ['database'];
+        return NotificationPreferences::allows($notifiable, 'connection_expiring', 'mail') ? ['database', 'mail'] : ['database'];
     }
 
     public function toMail(object $notifiable): MailMessage

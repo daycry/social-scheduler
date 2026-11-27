@@ -184,6 +184,19 @@ test('el ZIP contiene los datos propios de cada tipo, la media original y un man
     expect(zipHaystack(exportZip($export)))->not->toContain('TERCERO-comentario-de-aprobacion')->and($entries['datos/publicaciones.json'])->toContain('approval_status');
 });
 
+test('el ZIP incluye las preferencias de avisos, atajos y primeros pasos de la cuenta', function () {
+    $channels = ['goal_alert' => ['mail' => true, 'database' => false]];
+    $this->user->forceFill(['notification_channels' => $channels, 'single_key_shortcuts' => false, 'onboarding_step' => 'skipped'])->save();
+
+    $entries = zipEntries(exportZip(runExport(requestExport($this->user, includeMedia: false))));
+    $account = json_decode($entries['datos/usuario.json'], true, flags: JSON_THROW_ON_ERROR)[0];
+
+    expect($account)->toHaveKeys(['notification_channels', 'single_key_shortcuts', 'onboarding_step'])
+        ->and($account['notification_channels'])->toBe($channels)
+        ->and((bool) $account['single_key_shortcuts'])->toBeFalse()
+        ->and($account['onboarding_step'])->toBe('skipped');
+});
+
 test('no contiene datos de otro usuario ni de una marca donde solo es colaborador', function () {
     seedExportData($this->user, 'PROPIO');
     $theirs = seedExportData($this->other, 'AJENO');

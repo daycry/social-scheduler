@@ -214,3 +214,14 @@ export const sideItems = (module, c) => {
     }
     return out;
 };
+
+/**
+ * Destino de un módulo o entrada del mismo menú que usan el shell y la paleta.
+ * @param {NavigationContext} context @param {string} key @param {string} [itemKey]
+ */
+export function navigationDestination(context, key, itemKey) {
+    const module = visibleModules(context).find((entry) => entry.key === key);
+    if (!itemKey) return module?.href(context);
+    const group = key === ACCOUNT_MODULE.key ? ACCOUNT_MODULE : module;
+    return group && sideItems(group, context).find((item) => item.key === itemKey)?.href;
+}

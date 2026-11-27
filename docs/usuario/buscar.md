@@ -4,7 +4,7 @@ La paleta de búsqueda encuentra páginas, acciones y tu contenido desde cualqui
 
 ## Cómo abrirla
 
-- **Con el teclado:** `Ctrl + K` (en macOS, `⌘ + K`). Ningún editor de la aplicación usa esa combinación, así que funciona también dentro del Estudio y del compositor (en el compositor, si hay cambios sin guardar, te pregunta antes de salir, igual que con cualquier otro enlace). Si ya hay otro diálogo abierto, el atajo no hace nada: ciérralo primero.
+- **Con el teclado.** Pulsa `Ctrl+K` (`⌘+K` en macOS) o `/` si tienes activados los atajos de una sola tecla. Los atajos funcionan fuera de campos de edición, del lienzo con foco y de los diálogos. Al navegar desde la paleta, el compositor sigue avisando si tienes cambios sin guardar.
 - **Con el botón** de la lupa, en la cabecera (con el texto **Buscar** en pantallas anchas). En pantallas pequeñas la paleta ocupa toda la pantalla y tiene un botón **Cerrar**.
 
 Al abrirla, el cursor ya está en el campo de búsqueda. `Esc` (o **Cerrar**, o pulsar fuera) la cierra y el foco vuelve al elemento donde estabas.

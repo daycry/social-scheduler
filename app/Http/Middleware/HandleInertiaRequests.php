@@ -4,7 +4,12 @@ namespace App\Http\Middleware;
 
 use App\Connectors\Network;
 use App\Http\Controllers\OAuth\OAuthController;
+use App\Models\MediaAsset;
+use App\Models\Post;
+use App\Models\Site;
+use App\Models\SmartLink;
 use App\Models\SocialAccount;
+use App\Models\Studio\Design;
 use App\Services\InboxService;
 use App\Support\CurrentBrand;
 use App\Support\SystemAccess;
@@ -57,9 +62,31 @@ class HandleInertiaRequests extends Middleware
             // Registro publico abierto: oculta los enlaces «Crear cuenta» cuando REGISTRATION_ENABLED=false.
             'registrationEnabled' => (bool) config('app.registration_enabled', true),
             'shell' => fn () => $request->user() ? $this->shell($request) : null,
+            'onboarding' => fn () => $this->onboarding($request),
             // Marcas con un OAuth de varias cuentas sin confirmar: aviso en toda la app hasta que se elijan (o se descarten).
             'pendingConnections' => fn () => $request->user() ? $this->pendingConnections($request) : [],
         ];
+    }
+
+    private function onboarding(Request $request): ?string
+    {
+        $user = $request->user();
+        if ($user === null || ! $user->hasVerifiedEmail()) {
+            return null;
+        }
+        if ($user->onboarding_step !== null) {
+            return $user->onboarding_step;
+        }
+        if (CurrentBrand::brands($request)->isNotEmpty()) {
+            return null;
+        }
+        foreach ([Post::class, SocialAccount::class, Design::class, MediaAsset::class, SmartLink::class, Site::class] as $model) {
+            if ($model::ownedBy($user->id)->exists()) {
+                return null;
+            }
+        }
+
+        return 'welcome';
     }
 
     /** @return array<string, mixed> */

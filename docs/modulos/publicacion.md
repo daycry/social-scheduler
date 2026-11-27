@@ -141,7 +141,17 @@ Por defecto el vídeo va a la bandeja de TikTok. El destino queda `publicada` co
 
 ## Avisos
 
-`PublishFailed` (base de datos + correo, cola `poll`), `ReconnectRequired` y `FirstCommentFailed` (solo base de datos). La UI los lista en `/notifications`.
+`PublishFailed` y `ReconnectRequired` admiten correo, app y push. `FirstCommentFailed` admite app y push. La bandeja de la app está en `/notifications`.
+
+### Preferencias por tipo y canal (T-96)
+
+En **Notificaciones del navegador**, puedes elegir app, correo y push para cada tipo que ofrece esos canales. El resumen semanal y el recordatorio previo también tienen un interruptor general. El aviso de la hora de publicación manual se configura por separado. La casilla de correo del perfil establece el valor inicial de los tipos que ya dependían de ella. Los fallos de publicación, la reconexión de cuentas y los informes programados conservan el correo activado por defecto.
+
+`NotificationPreferences` define los tipos y resuelve sus canales. `ApplyNotificationPreferences` comprueba cada entrega de Laravel, incluidas las notificaciones en cola. El resumen semanal y el informe programado consultan la misma política antes de enviar sus correos. La preferencia de informes programados corresponde al propietario de la programación. Cada destinatario conserva su baja mediante el enlace del correo.
+
+Push requiere una suscripción por dispositivo y correo verificado. La cola vuelve a leer la preferencia al entregar. Si el canal app está desactivado, el dispositivo recibe el aviso genérico sin generar una fila en la bandeja. Si está activado, el push sigue asociado al aviso sin leer.
+
+Los correos de restablecimiento de contraseña, verificación de dirección y seguridad de la cuenta siempre se envían. Los avisos operativos del servidor se configuran en el despliegue.
 
 ### Avisos de caducidad y de trabajos asíncronos (T-23)
 
@@ -157,7 +167,7 @@ Todos comparten la misma pantalla (`Notifications/Index`) y el mismo contrato: e
 
 - **Frecuencia**: `JobFailureNotifier` avisa una sola vez por ejecución (el informe, por fecha; el resto, por trabajo, aunque fallen la cola y el servicio) y como mucho 5 avisos por tipo, usuario y hora; el resto queda en el log (`jobs.failure_notification_capped`) y en el aviso resumen, y su clave no se consume. La caducidad, una vez por umbral y fecha, y el umbral de N días se emite cuando queda N días + el intervalo de la pasada (24 h) para llegar con N días de margen.
 - **Enlaces**: un aviso con `post_id` muestra «Ver publicación»; el resto, la etiqueta de su tipo sobre `url`.
-- **Correo opcional**: `users.notify_by_mail` (apagado por defecto, casilla en Perfil). Con ella, estos avisos añaden el canal `mail`; sin ella solo van a la base de datos. `PublishFailed` y `ReconnectRequired` siguen enviando correo siempre.
+- **Correo opcional**. Caducidad y fallos de trabajos heredan el ajuste de correo del perfil hasta que elijas su canal en las preferencias.
 - Los avisos de fallo de trabajos van por cola (`poll`) como `ReconnectRequired`; sin SMTP real, los tests usan `Notification::fake`.
 
 ## Pruebas de contrato de los publicadores

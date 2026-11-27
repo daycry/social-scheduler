@@ -65,7 +65,7 @@ class ManualPublishService
 
     /**
      * Recordatorio previo (T-32): avisa una sola vez, `social.series.manual_reminder_minutes` antes de la hora, de los destinos manuales
-     * aprobados que aun no se han recordado. Mismo claim atomico que `notifyDue()`; en la app y, con `notify_by_mail`, por correo.
+     * aprobados que aun no se han recordado. Mismo claim atomico que `notifyDue()`; por los canales que permita `NotificationPreferences` para el recordatorio.
      * Un fallo del correo se registra y no rompe el resto de la pasada.
      *
      * Solo recuerda a quien no ha apagado `notify_manual_reminder` (T-86): la preferencia entra en la propia seleccion y en el claim, asi un

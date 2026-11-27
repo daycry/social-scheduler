@@ -38,7 +38,7 @@ function seedPalette(brandId: number, other: string, word: string) {
 }
 
 const openWithShortcut = (page: Page) => page.keyboard.press('ControlOrMeta+K');
-const paletteDialog = (page: Page) => page.getByRole('dialog', { name: 'Buscar', exact: true });
+const paletteDialog = (page: Page) => page.getByRole('alertdialog', { name: 'Buscar', exact: true });
 
 test.describe('Paleta de comandos', { tag: '@responsive' }, () => {
     test.beforeEach(async ({ page }, info) => {
@@ -157,6 +157,7 @@ test.describe('Paleta de comandos', { tag: '@responsive' }, () => {
         await settle(page);
         await expectNoOverflow(page);
         await page.locator('#text').fill('e2e paleta borrador sin guardar');
+        await page.getByTestId('command-palette-trigger').focus();
         await openWithShortcut(page);
         const dialog = paletteDialog(page);
         await expect(dialog).toBeVisible();
@@ -171,6 +172,7 @@ test.describe('Paleta de comandos', { tag: '@responsive' }, () => {
         await expect(page).toHaveURL(new RegExp(`/brands/${brand.id}/posts/create$`));
         await expect(page.locator('#text')).toHaveValue('e2e paleta borrador sin guardar');
 
+        await page.getByTestId('command-palette-trigger').focus();
         await openWithShortcut(page);
         await paletteDialog(page).getByRole('combobox').fill('calendario');
         await paletteDialog(page)

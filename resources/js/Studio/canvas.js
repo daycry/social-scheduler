@@ -9,6 +9,7 @@ import { createChartFabric } from './chart-renderer.js';
 import { assertChartDocumentBudget } from './chart-scene.js';
 import { createConnectorFabric, createTableFabric } from './board-objects.js';
 import { anchorPoints, normalizeConnector, rerouteConnector, routePoints } from './board.js';
+import { shortcutAction } from '../lib/shortcuts.js';
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const round = value => Math.round((Number(value) || 0) * 1e6) / 1e6;
@@ -810,15 +811,17 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
     };
 
     const onKey = event => {
-        if (canvas.getActiveObject()?.isEditing || /INPUT|TEXTAREA|SELECT/.test(event.target?.tagName) || event.target?.isContentEditable) return;
-        if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); adapter.delete(); }
-        else if (event.key === 'Escape') { canvas.discardActiveObject(); notifySelection(); canvas.requestRenderAll(); }
-        else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') { event.preventDefault(); choose(objects().filter(object => !object.studioLocked && object.visible)); }
-        else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c') { event.preventDefault(); adapter.copy(); }
-        else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'v') { event.preventDefault(); adapter.paste().catch(error => canvas.fire('studio:error', { error })); }
-        else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd') { event.preventDefault(); adapter.duplicate().catch(error => canvas.fire('studio:error', { error })); }
-        else if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
-            event.preventDefault();
+        if (canvas.getActiveObject()?.isEditing) return;
+        const action = shortcutAction(event, { scope: 'studio-canvas' });
+        if (!action) return;
+        if (action !== 'deselect') event.preventDefault();
+        if (action === 'delete') adapter.delete();
+        else if (action === 'deselect') { canvas.discardActiveObject(); notifySelection(); canvas.requestRenderAll(); }
+        else if (action === 'select-all') choose(objects().filter(object => !object.studioLocked && object.visible));
+        else if (action === 'copy') adapter.copy();
+        else if (action === 'paste') adapter.paste().catch(error => canvas.fire('studio:error', { error }));
+        else if (action === 'duplicate') adapter.duplicate().catch(error => canvas.fire('studio:error', { error }));
+        else if (action === 'nudge') {
             const selected = selectedObjects(); canvas.discardActiveObject();
             const delta = event.shiftKey ? 10 : 1;
             selected.filter(object => !object.studioLocked).forEach(object => { object.set({ left: object.left + (event.key === 'ArrowLeft' ? -delta : event.key === 'ArrowRight' ? delta : 0), top: object.top + (event.key === 'ArrowUp' ? -delta : event.key === 'ArrowDown' ? delta : 0) }); object.setCoords(); });

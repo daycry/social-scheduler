@@ -17,3 +17,5 @@ export interface NotificationPreferences {
     weekly_digest_ai: boolean;
     notify_manual_reminder: boolean;
 }
+
+export type NotificationChannels = Record<string, Partial<Record<'database' | 'push' | 'mail', boolean>>>;

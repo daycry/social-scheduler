@@ -48,9 +48,9 @@ estado: en-progreso
 | Fase 5 — Frontend | 15 | 18 | 83% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
 | Fase 5b — Unificación | 4 | 8 | 50% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
 | Fase 6 — Operación y repositorio | 4 | 6 | 67% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
-| Fase 7 — Funciones nuevas | 21 | 24 | 88% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
+| Fase 7 — Funciones nuevas | 22 | 24 | 92% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **94** | **108** | **87%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
+| **TOTAL** | **95** | **108** | **88%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -4803,35 +4803,54 @@ CoberturaM3extra descubre registrodoble deListeners por autodetección+PushServi
 ### T-96 — Atajos globales, preferencias de notificación y onboarding
 
 - **Descripción**: Atajos de teclado globales (con lista de ayuda), preferencias por tipo de notificación y onboarding guiado para usuarios nuevos.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Navega con el teclado, elige dónde recibes cada tipo de aviso y empieza, salta o repite la guía de primeros pasos.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-95
 - **Tipo**: fullstack
-- **Archivos**: `resources/js/composables/useShortcuts.js`, `resources/js/Pages/Profile/Notifications.vue`, `resources/js/Components/Onboarding.vue`, `app/Models/User.php`, `docs/usuario/primeros-pasos.md`
+- **Archivos**: `app/Http/Controllers/GettingStartedController.php`, `app/Http/Controllers/NotificationPreferenceController.php`, `app/Http/Controllers/PushSubscriptionController.php`, `app/Http/Middleware/HandleInertiaRequests.php`, `app/Jobs/SendPushNotification.php`, `app/Jobs/SendScheduledReport.php`, `app/Jobs/SendUserWeeklyDigest.php`, `app/Listeners/ApplyNotificationPreferences.php`, `app/Listeners/QueuePushNotification.php`, `app/Models/User.php`, `app/Notifications/AsyncJobFailed.php`, `app/Notifications/ConnectionExpiring.php`, `app/Notifications/GoalAlert.php`, `app/Notifications/ManualPublishReminder.php`, `app/Services/JobFailureNotifier.php`, `app/Services/NotificationPreferences.php`, `CHANGELOG.es.md`, `CHANGELOG.md`, `database/migrations/2026_11_27_130100_add_delivery_and_onboarding_preferences_to_users.php`, `docs/modulos/informes.md`, `docs/modulos/publicacion.md`, `docs/README.md`, `docs/roadmap/2026-11-11-audit-hardening/test-plan.md`, `docs/usuario/buscar.md`, `docs/usuario/guia-de-usuario.md`, `docs/usuario/primeros-pasos.md`, `docs/usuario/pwa.md`, `resources/js/Components/CommandPalette.vue`, `resources/js/Components/GlobalActions.vue`, `resources/js/Components/Onboarding.vue`, `resources/js/Composables/useShortcuts.js`, `resources/js/Layouts/AuthenticatedLayout.vue`, `resources/js/Layouts/ComposerLayout.vue`, `resources/js/lib/commandPalette.js`, `resources/js/lib/shortcuts.js`, `resources/js/navigation.js`, `resources/js/Pages/Profile/Notifications.vue`, `resources/js/Pages/Profile/Partials/UpdateProfileInformationForm.vue`, `resources/js/Pages/Studio/Editor.vue`, `resources/js/Studio/canvas.js`, `resources/js/types/push.d.ts`, `resources/js/types/shell.d.ts`, `routes/web.php`, `tests/e2e/command-palette.spec.ts`, `tests/e2e/global-shortcuts-onboarding.spec.ts`, `tests/Feature/Notifications/NotificationPreferencesTest.php`, `tests/frontend/command-palette.test.mjs`, `tests/frontend/shortcuts.test.mjs`, `docs/roadmap/2026-11-11-audit-hardening/testing/t96/**`
 - **Cubre**: F-24
 - **Cubre (tests)**: E2E-34
-- **Verificación**: `php artisan test --compact --filter=NotificationPreferencesTest` → verde
+- **Verificación**: `php -d memory_limit=1G vendor/bin/pest --compact --filter=NotificationPreferencesTest`, pruebas Node de atajos y E2E-34.
+- RED: `NotificationPreferencesTest` falló en 8 de 9 casos: faltaban las preferencias por canal y el estado de la guía, y salían avisos desactivados. Los tres correos de seguridad ya llegaban · 2026-11-27
+- RED: `shortcuts.test.mjs` falló en 2 de 2 casos: Ctrl+K se activaba en un campo y no había un catálogo común para la ayuda · 2026-11-27
+- **Evidencia local**: Pest focal, 13 pruebas y 246 aserciones. `GoalAlertTest`, 30 pruebas y 134 aserciones tras restaurar la comprobación de correo en `shouldSend()`. Pest completo, 4.977 aprobadas, 21 omitidas, 0 fallos y 38.461 aserciones. Node sin aislamiento, 5 pruebas de atajos, 14 de paleta y 1 de estructura del editor. Formato, lint y tipos con código 0. Pint pasó sobre 19 PHP.
+- **Sandbox**: `npm run test:unit` bloqueado en los 94 archivos por `spawn EPERM`. `npm run build` bloqueado por el mismo error al cargar la configuración de Vite.
+- **E2E-34 pendiente de ejecución**: `npm run test:e2e -- tests/e2e/global-shortcuts-onboarding.spec.ts --workers=1`.
 
 **Criterios de aceptación**
-- [ ] Los atajos no se activan al escribir en campos
-- [ ] Las preferencias se respetan en todas las notificaciones
-- [ ] El onboarding se puede saltar y repetir
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Los atajos no se activan al escribir en campos
+- [x] Las preferencias se respetan en todas las notificaciones
+- [x] El onboarding se puede saltar y repetir
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
-**Notas**: Tamaño M.
+**Notas**: El composable vive en `resources/js/Composables/`, el directorio que usa el shell. La guía se ofrece mediante un botón para las cuentas sin datos. La ayuda permite continuar y repetir, y los tres canales se pueden elegir de forma individual.
+
+**Cierre — 2026-11-27:** atajos unificados en `resources/js/lib/shortcuts.js` + `resources/js/Composables/useShortcuts.js` (paleta de comandos, navegación y Estudio, sin duplicados; se borraron los antiguos), que no actúan en campos, editores ricos, lienzo en edición, diálogos abiertos, composición IME ni con Alt/AltGr/Opción; ayuda con `?` y teclas simples desactivables (WCAG 2.1.4, también sin verificar). Preferencias por tipo y canal (app, correo, push) con una única decisión en `App\Services\NotificationPreferences` aplicada a todos los envíos (listener `ApplyNotificationPreferences` y comprobaciones explícitas en objetivos, informes, resumen, recordatorios, conexiones y fallos); los avisos de seguridad siempre se envían; los valores por defecto reproducen `notify_by_mail`. El aviso de «formulario lleno» de SmartLinks se deduplica con un marcador atómico por bloque. Guía de primeros pasos (`Onboarding.vue`) para cuentas vacías, que se puede continuar, saltar o repetir desde Ayuda. Implementado por Codex (gpt-6.2-sol, high). Revisión adversarial A+B+C con Opus (effort high) en 2 intentos: intento 1 — 2 Important (correo de objetivos atado a `notify_by_mail`; push repetido de «formulario lleno» con la bandeja desactivada, CWE-770) + 5 Minor (informe omitido sin registro, teclas simples sin verificar, prop obsoleta, exportación, Ctrl+K en la paleta), corregidos; intento 2 — 0 Critical/Important. QA: Pest completo 4994 pasados / 9 omitidos; Node 858/858; build, `format:check`, ESLint, typecheck y Pint verdes; E2E atajos/onboarding + paleta + páginas + a11y + push + resumen + SmartLinks + Estudio 295/295 en tres tamaños (`testing/t96/t96-e2e2.log`). **Deuda aceptada (Minor):** el aviso de «formulario lleno» se envía una sola vez por bloque (no se reinicia si se vacía o sube el límite, como antes).
+
+**Revisión de dos lentes — intento 1 de 3 (2026-11-27)**
+
+- RED: `GoalAlertTest::la preferencia de correo de objetivos prevalece sobre el valor general` falló porque no se encoló el correo con la preferencia específica activa · 2026-11-27
+- RED: `SmartLinkBlocksTest::avisa una sola vez por push del tope sin bandeja en la app` falló con 2 envíos encolados para un dispositivo en vez de 1 en las altas sin sesión · 2026-11-27
+- RED: `NotificationPreferencesTest::el informe programado registra que se omitió el correo por preferencias` falló en sus dos casos: `schedules.0.last_run_at` era `null` antes y durante la generación · 2026-11-27
+- RED: `NotificationPreferencesTest::una cuenta sin verificar puede desactivar los atajos desde el perfil` falló con redirección a `/verify-email` en vez de `/profile` · 2026-11-27
+- RED: `FullExportTest::el ZIP incluye las preferencias de avisos, atajos y primeros pasos de la cuenta` falló porque `datos/usuario.json` no tenía `notification_channels` · 2026-11-27
+- RED: `shortcuts.test.mjs::Ctrl+K y Cmd+K se reservan para la paleta abierta aunque su buscador tenga el foco` devolvió `undefined` en vez de `search` · 2026-11-27
+- TDD n/a: retirada de la prop sin consumidor `mailEnabled` y de su aserción obsoleta.
+- **Correcciones**: `GoalEvaluator.php` deja la preferencia de correo en `NotificationPreferences` a través de `GoalAlert`. `SmartLinkService.php` reclama un marcador de tope atómico por bloque y la migración `2026_11_27_130200_add_subscriber_limit_notice_to_smart_link_blocks.php` lo rellena para los avisos previos. `SendScheduledReport.php` registra la fecha y el motivo de la omisión en Informes; si el ajuste cambia durante la generación, también devuelve el cupo reservado. `routes/web.php` y `GlobalActions.vue` permiten guardar el ajuste de atajos con cualquier cuenta autenticada. `PushSubscriptionController.php` y `WeeklyDigestTest.php` retiran `mailEnabled`. `ExportInventory.php` añade las tres preferencias al ZIP y serializa `notification_channels` como JSON estructurado. `shortcuts.js`, `useShortcuts.js` y `CommandPalette.vue` cancelan el atajo del navegador y mantienen abierta la paleta con el foco en el buscador.
+- **Verificación en serie**: Pest focal con SQLite en memoria, 109 aprobadas y 988 aserciones. Tras `php artisan config:clear`, Pest completo, 4.982 aprobadas, 21 omitidas, 0 fallos y 38.664 aserciones. Node sin aislamiento, 21 aprobadas (6 de atajos, 14 de paleta y 1 de estructura del editor). Pint `--test`, `npm run format:check`, `npm run lint` y `npm run typecheck` con código 0. Playwright fuera del alcance de este intento.
 
 ### T-97 — Modo oscuro (1/2): tokens de color y layout
 
@@ -5543,3 +5562,7 @@ Lentes A+B+C. Intento 1: 1 Important (reposo en salidas estáticas) + 5 Minor co
 ## Revisión de dos lentes — intento 3: Fase 7 (T-95) — aprobada y cerrada
 
 Lentes A+B+C (Opus, effort high). Intento 1: render sin demostrar + 3 Minor. Intento 2: 1 Important (solape introducido al ajustar alturas) corregido. Intento 3: sin hallazgos. Diffs en `testing/t95/reviews/r1.patch`–`r3.patch`. Total 94/108.
+
+## Revisión de dos lentes — intento 2: Fase 7 (T-96) — aprobada y cerrada
+
+Lentes A+B+C (Opus, effort high). Intento 1: 2 Important + 5 Minor corregidos por Codex. Intento 2: 0 Critical/Important; 1 Minor aceptado como deuda. Diffs en `testing/t96/reviews/r1.patch` y `r2.patch`. Total 95/108.

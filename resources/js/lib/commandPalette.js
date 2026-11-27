@@ -184,16 +184,6 @@ export function queryLength(text) {
     return [...text.trim()].length;
 }
 
-/**
- * ¿Es la combinación de la paleta? Ctrl+K, o Cmd+K en macOS (allí Ctrl+K es «borrar hasta el final de la línea» en los campos de texto).
- * @param {Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'altKey' | 'shiftKey' | 'repeat' | 'isComposing' | 'defaultPrevented'>} event
- * @param {boolean} mac
- */
-export function isPaletteShortcut(event, mac) {
-    if (event.defaultPrevented || event.repeat || event.isComposing || event.altKey || event.shiftKey) return false;
-    return (mac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey) && event.key.toLowerCase() === 'k';
-}
-
 /** @param {unknown} error */
 function searchErrorMessage(error) {
     if (error instanceof HttpError && error.status === 429) return 'Demasiadas búsquedas seguidas. Espera un momento.';

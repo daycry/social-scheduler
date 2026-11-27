@@ -23,6 +23,7 @@ import { useEditorDialogs } from '@/Studio/composables/useEditorDialogs';
 import { useEditorLibrary } from '@/Studio/composables/useEditorLibrary';
 import { useEditorCanvas } from '@/Studio/composables/useEditorCanvas';
 import { useEditorDesignOperations } from '@/Studio/composables/useEditorDesignOperations';
+import { hasOpenModal, shortcutAction } from '@/lib/shortcuts';
 
 const props = defineProps({
     design: Object,
@@ -457,20 +458,12 @@ function beforeUnload(event) {
 function onKey(event) {
     if (!contextActive.value) return;
     if (presentationOpen.value || presentationOpening.value || automationBusy.value || fontBusy.value) return;
-    if (
-        /INPUT|TEXTAREA|SELECT/.test(event.target?.tagName) ||
-        event.target?.isContentEditable ||
-        getAdapter()?.canvas.getActiveObject()?.isEditing
-    )
-        return;
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
-        event.preventDefault();
-        restoreHistory(event.shiftKey ? 'redo' : 'undo');
-    }
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
-        event.preventDefault();
-        saveNow();
-    }
+    if (getAdapter()?.canvas.getActiveObject()?.isEditing) return;
+    const action = shortcutAction(event, { scope: 'studio-editor', modalOpen: hasOpenModal() });
+    if (!action) return;
+    event.preventDefault();
+    if (action === 'save') saveNow();
+    else restoreHistory(action);
 }
 async function releaseStage() {
     invalidatePreview();

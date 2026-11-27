@@ -9,6 +9,7 @@ Herramientas de planificación sobre el calendario. Todo se calcula por usuario 
 | Papelera de publicaciones | `app/Services/TrashService.php`, `TrashController`, `php artisan posts:purge-trash` |
 | Autolistas | `app/Services/AutolistService.php`, `app/Jobs/GenerateAutolistPosts.php`, `app/Models/Autolist*.php` |
 | Reciclado de posts | `app/Services/Autolists/RecycleService.php`, `AutolistRecycleController`, `resources/js/Pages/Autolists/Recycle.vue` |
+| Plan de contenido | `app/Services/ContentPlanService.php`, `ContentPlanController`, `resources/js/Pages/Posts/Plan.vue` (ver `asistente-ia.md`) |
 
 ## Mejores horas
 Mapa de calor 7×24 por red con el engagement medio de las publicaciones propias, en la zona horaria de la marca. Usa la **última** lectura de cada destino (`MAX(date)` resuelto en SQL, una fila por destino) y una caché corta (`SOCIAL_BEST_TIMES_CACHE_MINUTES`). Con menos de `SOCIAL_BEST_TIMES_MIN_POSTS` publicaciones con datos responde «no disponible» en lugar de un mapa engañoso. El MCP lo expone como `get_best_times`.

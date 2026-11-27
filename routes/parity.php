@@ -7,6 +7,7 @@ use App\Http\Controllers\AutolistRecycleController;
 use App\Http\Controllers\BestTimesController;
 use App\Http\Controllers\CalendarFeedController;
 use App\Http\Controllers\CompetitorController;
+use App\Http\Controllers\ContentPlanController;
 use App\Http\Controllers\InboxController;
 use App\Http\Controllers\InboxNoteController;
 use App\Http\Controllers\LibraryController;
@@ -109,6 +110,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('ai/schedule', [AiAssistantController::class, 'schedule'])->middleware('throttle:ai.schedule')->name('ai.schedule');
     Route::post('ai/adapt', [AiAssistantController::class, 'adapt'])->middleware('throttle:ai.adapt')->name('ai.adapt');
     Route::post('ai/alt', [AiAssistantController::class, 'alt'])->middleware('throttle:ai.alt')->name('ai.alt');
+
+    // Plan de contenido en lenguaje natural (T-93): la propuesta (`ai.plan`) no crea nada; solo `content-plan.store` crea el lote confirmado.
+    Route::get('content-plan', [ContentPlanController::class, 'index'])->name('content-plan.index');
+    Route::post('ai/plan', [ContentPlanController::class, 'propose'])->middleware('throttle:ai.plan')->name('ai.plan');
+    Route::post('content-plan', [ContentPlanController::class, 'store'])->middleware('throttle:content-plan.store')->name('content-plan.store');
 });
 
 // SmartLinks publicos (PA-07): sin login, sin sesion ni cookies (ni Set-Cookie ni CSRF) y sin el middleware de Inertia

@@ -48,9 +48,9 @@ estado: en-progreso
 | Fase 5 — Frontend | 15 | 18 | 83% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
 | Fase 5b — Unificación | 4 | 8 | 50% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
 | Fase 6 — Operación y repositorio | 4 | 6 | 67% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
-| Fase 7 — Funciones nuevas | 18 | 24 | 75% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
+| Fase 7 — Funciones nuevas | 19 | 24 | 79% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **91** | **108** | **84%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
+| **TOTAL** | **92** | **108** | **85%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -4689,34 +4689,36 @@ CoberturaM3extra descubre registrodoble deListeners por autodetección+PushServi
 ### T-93 — Plan de contenido en lenguaje natural (lote)
 
 - **Descripción**: A partir de un briefing en lenguaje natural, proponer un lote de borradores con fechas (`proposeSchedule`) que el usuario revisa y confirma.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Nuevo Plan de contenido: escribe un briefing en lenguaje natural y el asistente propone un lote de publicaciones con fecha que revisas, editas y confirmas; nada se crea hasta confirmar.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-92, T-82
 - **Tipo**: fullstack
-- **Archivos**: `app/Services/ContentPlanService.php`, `app/Services/BatchService.php`, `resources/js/Pages/Posts/Plan.vue`, `docs/modulos/asistente-ia.md`
+- **Archivos**: `app/Services/ContentPlanService.php`, `app/Services/BatchService.php` (solo referencia: no se modifica), `app/Services/AiAssistant.php`, `app/Http/Controllers/ContentPlanController.php`, `resources/js/Pages/Posts/Plan.vue`, `resources/js/navigation.js`, `routes/parity.php`, `config/social.php`, `config/rate_limits.php`, `tests/Feature/Ai/ContentPlanTest.php`, `tests/e2e/content-plan.spec.ts`, `tests/e2e/isolated/fakes.php`, `docs/modulos/asistente-ia.md`, `CHANGELOG.md`, `CHANGELOG.es.md`, `docs/roadmap/2026-11-11-audit-hardening/testing/t93/**`
 - **Cubre**: F-22
 - **Cubre (tests)**: E2E-32
 - **Verificación**: `php artisan test --compact --filter=ContentPlanTest` → verde
 
 **Criterios de aceptación**
-- [ ] Nada se crea sin confirmación explícita
-- [ ] El lote respeta límites de cada red y cuotas
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Nada se crea sin confirmación explícita
+- [x] El lote respeta límites de cada red y cuotas
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
-**Notas**: Tamaño M. Qué se puede hacer ya: flujo completo con asistente falso. Queda a la espera (U): clave de IA real para el smoke. **A la espera (no bloquea la fase)**: Clave de IA real (usuario).
+**Notas**: Tamaño M. Decisiones: `BatchService` solo opera sobre publicaciones existentes, así que el lote se crea con `PostService::create` en una transacción (comparte con él el tope `MAX_ITEMS`; `ServiceThrottle` con bucket propio `content-plan`, no compartido); solo redes con un tipo de contenido sin media (Instagram/TikTok/YouTube/Pinterest quedan fuera con su motivo); el MCP no lo expone (el cliente ya es un LLM con `CreatePost`/`BatchPosts`). Qué se puede hacer ya: flujo completo con asistente falso. Queda a la espera (U): clave de IA real para el smoke. **A la espera (no bloquea la fase)**: Clave de IA real (usuario).
+
+**Cierre — 2026-11-27:** página «Plan de contenido» (Planificación) con `ContentPlanService` + `ContentPlanController` y `AiAssistant::planContent`: el briefing (≤ 1000 caracteres) se envía al proveedor con el nombre de la marca y, por cuenta, su id, red y límite (sin nombres de cuenta, posts ni media; política de privacidad y aviso en la página actualizados); la respuesta se trata como dato no confiable con esquema JSON estricto, fechas únicas y futuras en la zona de la marca dentro de `schedule_max_days`, solo cuentas activas de la marca de tipo sin media (Instagram, TikTok, YouTube y Pinterest quedan «Fuera del plan» porque exigen media incluso en borrador), tipo fijado por el servidor, tope `social.ai.plan_max_items` (10, máximo duro 20), textos que no caben marcados sin recortar y `cleanText` que conserva ZWJ y etiquetas. Proponer no crea nada y gasta cuota según la política de T-82 (409 sin IA, 404 con marca ajena; truncado por `max_tokens` → error claro, con `maximo_texto` estimado de forma conservadora y aviso si se reduce). La revisión muestra contadores y avisos por cuenta con la regla de cada red (mismo `textLength.js`) y bloquea «Confirmar»; al confirmar, el servidor revalida todo y crea en una transacción todo-o-nada (`PostService::create`, 422 por elemento), en modo borrador o programado, con `IdempotencyService` (clave renovada solo tras éxito o 422 de validación; `already_used` solo si la clave existe de verdad) y limitadores propios. Tras un corte de red la confirmación pendiente se conserva en `sessionStorage` y la página avisa de que quizá ya se creó, con enlace al calendario y confirmación antes de volver a proponer. Sin MCP (el cliente MCP ya crea cada post explícitamente). Revisión adversarial A+B+C en 3 intentos: intento 1 — 0 Critical/Important, 10 Minor (avisos y contadores por red, emojis, clave en origen no seguro, mensaje de clave reutilizada, truncado, foco y región viva, formato y docs, privacidad CWE-359) corregidos; intento 2 — 1 Important (renovar la clave tras un 422 de clave reutilizada permitía crear el lote dos veces) + 2 Minor, corregidos; intento 3 — 0 Critical/Important, 3 Minor (clave nueva tras corte de red al volver a proponer o recargar, `already_used` falso, `maximo_texto` reducido sin aviso) corregidos. QA: Pest completo verde; Node 819/819; build, `format:check`, ESLint, typecheck y Pint verdes; la primera pasada E2E falló solo en el spec nuevo (esperaba `draft` y el estado es `borrador`); E2E plan + compositor + paleta + páginas + a11y 336/336 en tres tamaños (`testing/t93/t93-e2e-r2.log`). **Pendiente del usuario:** smoke con una clave de IA real. **Deuda aceptada (Minor):** plan solo de texto; sin tests de cliente para el flujo de corte de red (no hay patrón de tests de páginas Vue).
 
 ### T-94 — Estudio: animaciones por objeto
 
@@ -5513,3 +5515,7 @@ Lentes A+B+C. Intento 1: 3 Important + 6 Minor corregidos. Intento 2: 1 Importan
 ## Revisión de dos lentes — intento 2: Fase 7 (T-92) — aprobada y cerrada
 
 Lentes A+B+C. Intento 1: 1 Important (familia rota al purgar el original) + 8 Minor corregidos. Intento 2: 0 Critical/Important; 3 Minor corregidos. Diffs en `testing/t92/reviews/r1.patch` y `r2.patch`. Total 91/108.
+
+## Revisión de dos lentes — intento 3: Fase 7 (T-93) — aprobada y cerrada
+
+Lentes A+B+C. Intento 1: 10 Minor corregidos. Intento 2: 1 Important (lote duplicado al renovar la clave tras un 422 de clave reutilizada) + 2 Minor corregidos. Intento 3: 0 Critical/Important; 3 Minor corregidos y verificados con Pest, Node y E2E. Diffs en `testing/t93/reviews/r1.patch`–`r3.patch`. Total 92/108.

@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — content plan in natural language (audit-hardening, T-93)
+
+- The new Content plan page (Planning → Content plan) turns a plain-language brief such as "next week, 3 posts about the launch of X, in the morning" into a batch of text posts with dates, written by the AI assistant. Nothing is created while you review: each proposed post shows its date, accounts and text, and you can edit it, untick it or change its accounts before confirming. A text that does not fit a network's limit is flagged for you to edit, never cut. When you confirm, the server checks everything again and creates only what you chose, as drafts with their date or scheduled, all or nothing; double-clicking "Confirm" never creates the batch twice. Only accounts of the current brand that publish text without images (Bluesky, Mastodon, Threads, LinkedIn, Facebook, Telegram) are used; the others are listed with the reason. It uses the same daily AI allowance as the rest of the assistant and shows a clear message when the AI is not configured.
+
 ### Added — smart recycling of best posts (audit-hardening, T-92)
 
 - New Planning → Recycle posts page suggests, for each brand, your published posts that performed best so you can publish them again. Posts are ranked by engagement (interactions over views, the same measure as the dashboard, so networks can be compared) and only appear when their account is still connected, they were published at least 14 days ago and they have at least 100 views. The same content is never suggested again within 60 days of its last publication or recycling, including recycled copies that are still drafts or scheduled. "Recycle" creates a draft with the same text, files and accounts for you to review (nothing is published automatically); "Dismiss" hides a suggestion until that interval has passed. The page shows the numbers behind each suggestion and why other posts were left out.

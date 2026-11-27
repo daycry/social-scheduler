@@ -8,6 +8,7 @@ use App\Connectors\Mastodon\MastodonConnector;
 use App\Connectors\Network;
 use App\Connectors\Telegram\TelegramConnector;
 use App\Models\SocialAccount;
+use Carbon\CarbonImmutable;
 use Firebase\JWT\JWT;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -133,6 +134,17 @@ function generalFakeAi(): void
                 }
 
                 return Http::response(['content' => [['type' => 'text', 'text' => json_encode(['versions' => $versions], JSON_UNESCAPED_UNICODE)]]]);
+            }
+            if (is_array($input) && isset($input['briefing'], $input['cuentas'])) {
+                // T-93 (plan de contenido): tres publicaciones de solo texto en todas las cuentas ofrecidas, una por dia a partir de pasado manana a las 09:00.
+                $base = CarbonImmutable::parse($input['ahora'])->addDays(2)->setTime(9, 0);
+                $items = array_map(fn (int $i) => [
+                    'datetime' => $base->addDays($i)->format('Y-m-d\TH:i'),
+                    'accounts' => array_column($input['cuentas'], 'id'),
+                    'text' => 'Plan e2e '.($i + 1).': '.mb_substr($input['briefing'], 0, 40),
+                ], [0, 1, 2]);
+
+                return Http::response(['content' => [['type' => 'text', 'text' => json_encode(['items' => $items], JSON_UNESCAPED_UNICODE)]]]);
             }
             if (is_array($input) && isset($input['campos'])) {
                 $rows = array_map(fn ($item) => array_combine($input['campos'], array_map(fn ($field) => $field.' de '.$item, $input['campos'])), $input['elementos']);

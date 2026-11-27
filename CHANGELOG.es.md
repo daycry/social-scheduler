@@ -5,6 +5,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Added — plan de contenido en lenguaje natural (audit-hardening, T-93)
+
+- La nueva página Plan de contenido (Planificación → Plan de contenido) convierte un briefing en lenguaje natural, como «la semana que viene, 3 posts sobre el lanzamiento de X, por la mañana», en un lote de publicaciones de texto con fecha redactadas por el asistente IA. Mientras revisas no se crea nada: cada publicación propuesta muestra su fecha, cuentas y texto, y puedes editarla, desmarcarla o cambiar sus cuentas antes de confirmar. Un texto que no cabe en el límite de una red se marca para que lo edites, nunca se recorta. Al confirmar, el servidor lo comprueba todo de nuevo y crea solo lo que elegiste, como borradores con su fecha o programadas, todo o nada; un doble clic en «Confirmar» nunca crea el lote dos veces. Solo se usan las cuentas de la marca actual que publican texto sin imágenes (Bluesky, Mastodon, Threads, LinkedIn, Facebook, Telegram); el resto se lista con su motivo. Comparte el cupo diario de IA con el resto del asistente y muestra un mensaje claro si la IA no está configurada.
+
 ### Added — reciclado inteligente de mejores posts (audit-hardening, T-92)
 
 - La nueva página Planificación → Reciclado de posts propone, por marca, tus publicaciones ya publicadas que mejor funcionaron para volver a publicarlas. Se ordenan por engagement (interacciones entre visualizaciones, la misma medida del panel, así que se pueden comparar entre redes) y solo aparecen si su cuenta sigue conectada, se publicaron hace al menos 14 días y tienen al menos 100 visualizaciones. El mismo contenido no se vuelve a proponer antes de 60 días desde su última publicación o reciclado, incluidas las copias recicladas que sigan en borrador o programadas. «Reciclar» crea un borrador con el mismo texto, archivos y cuentas para que lo revises (nada se publica solo); «Descartar» oculta la propuesta hasta que pase ese intervalo. La página muestra las cifras de cada propuesta y por qué el resto se ha quedado fuera.

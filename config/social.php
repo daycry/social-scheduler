@@ -542,5 +542,7 @@ return [
         'global_daily_limit' => (int) env('AI_ASSISTANT_GLOBAL_DAILY_LIMIT', 200),
         /* «Escribe cuando» (C-04c): la fecha propuesta no puede quedar a mas de estos dias. */
         'schedule_max_days' => (int) env('AI_ASSISTANT_SCHEDULE_MAX_DAYS', 365),
+        /* Plan de contenido (T-93): maximo de publicaciones de un plan (propuesta y confirmacion); nunca pasa de 20 (el limite de tokens de salida reduciria el texto de cada una). */
+        'plan_max_items' => (int) env('AI_ASSISTANT_PLAN_MAX_ITEMS', 10),
     ],
 ];

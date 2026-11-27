@@ -27,9 +27,9 @@ const form = useForm({
 <template>
     <section>
         <header>
-            <h2 class="text-lg font-medium text-slate-900"> Datos del perfil </h2>
+            <h2 class="text-lg font-medium text-foreground-strong"> Datos del perfil </h2>
 
-            <p class="mt-1 text-sm text-slate-600"> Actualiza tu nombre y tu correo electrónico. </p>
+            <p class="mt-1 text-sm text-foreground-muted"> Actualiza tu nombre y tu correo electrónico. </p>
         </header>
 
         <form @submit.prevent="form.patch(route('profile.update'))" class="mt-6 space-y-6">
@@ -64,7 +64,7 @@ const form = useForm({
                 </FormField>
             </div>
 
-            <label class="flex items-start gap-2 text-sm text-slate-700" for="notify_by_mail">
+            <label class="flex items-start gap-2 text-sm text-foreground-secondary" for="notify_by_mail">
                 <Checkbox
                     id="notify_by_mail"
                     name="notify_by_mail"
@@ -79,14 +79,14 @@ const form = useForm({
             </label>
 
             <div v-if="mustVerifyEmail && user.email_verified_at === null">
-                <p class="mt-2 text-sm text-slate-800">
+                <p class="mt-2 text-sm text-foreground">
                     Tu correo electrónico no está verificado.
                     <Link :href="route('verification.send')" method="post" as="button" class="link text-sm">
                         Reenviar el correo de verificación.
                     </Link>
                 </p>
 
-                <div v-show="status === 'verification-link-sent'" class="mt-2 text-sm font-medium text-emerald-700">
+                <div v-show="status === 'verification-link-sent'" class="mt-2 text-sm font-medium text-success-ink">
                     Te hemos enviado un nuevo enlace de verificación.
                 </div>
             </div>
@@ -100,7 +100,7 @@ const form = useForm({
                     leave-active-class="transition ease-in-out"
                     leave-to-class="opacity-0"
                 >
-                    <p v-if="form.recentlySuccessful" class="text-sm text-slate-600"> Guardado. </p>
+                    <p v-if="form.recentlySuccessful" class="text-sm text-foreground-muted"> Guardado. </p>
                 </Transition>
             </div>
         </form>

@@ -11,10 +11,10 @@ const props = defineProps({
 defineEmits(['dismiss']);
 
 const styles = {
-    success: 'border-emerald-200 bg-emerald-50 text-emerald-900',
-    error: 'border-red-200 bg-red-50 text-red-900',
-    info: 'border-slate-200 bg-slate-100 text-slate-800',
-    warning: 'border-amber-200 bg-amber-50 text-amber-900',
+    success: 'border-success-border bg-success-soft text-success-ink',
+    error: 'border-danger-border bg-danger-soft text-danger-ink',
+    info: 'border-border bg-surface-hover text-foreground',
+    warning: 'border-warning-border bg-warning-soft text-warning-ink',
 };
 const kinds = /** @type {(keyof typeof styles)[]} */ (Object.keys(styles));
 const hasMessages = computed(() => kinds.some(kind => props[kind]));

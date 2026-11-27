@@ -16,21 +16,21 @@ const { pending } = state;
         role="alertdialog"
         aria-labelledby="confirm-title"
         aria-describedby="confirm-message"
-        class="m-auto w-[calc(100vw_-_2rem)] max-w-md rounded-lg border-0 bg-white p-5 shadow-xl backdrop:bg-slate-900/50"
+        class="dialog-panel m-auto max-w-md p-5 backdrop:bg-overlay-strong/50"
         data-testid="confirm-dialog"
         @close="pending.cancel"
     >
-        <h2 id="confirm-title" class="text-lg font-semibold text-slate-900">{{ pending.title }}</h2>
-        <p id="confirm-message" class="mt-2 break-words text-sm text-slate-700">{{ pending.message }}</p>
+        <h2 id="confirm-title" class="text-lg font-semibold text-foreground-strong">{{ pending.title }}</h2>
+        <p id="confirm-message" class="mt-2 break-words text-sm text-foreground-secondary">{{ pending.message }}</p>
         <div class="mt-4 flex flex-wrap justify-end gap-2">
             <button
                 data-dialog-initial-focus
                 type="button"
-                class="btn btn-secondary"
+                class="btn-secondary"
                 @click="pending.cancel"
                 >{{ pending.cancelLabel }}</button
             >
-            <button type="button" class="btn btn-danger" @click="pending.accept">{{ pending.confirmLabel }}</button>
+            <button type="button" class="btn-danger" @click="pending.accept">{{ pending.confirmLabel }}</button>
         </div>
     </BaseDialog>
 </template>

@@ -29,13 +29,11 @@ defineProps({
 
 const socialNames = { google: 'Google', facebook: 'Facebook' };
 
-// Estilos de marca: Google en blanco con borde gris (su guía de botones) y Facebook en el azul de Meta #0866FF, que con texto
-// blanco da 4,8:1 (el antiguo #1877F2 se queda en 4,2:1 y no llega a AA).
 const socialButtonBase =
-    'inline-flex w-full items-center justify-center gap-3 rounded-lg px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2';
+    'inline-flex w-full items-center justify-center gap-3 rounded-lg border px-4 py-2.5 text-sm font-semibold shadow-sm transition focus-visible:ring-focus';
 const socialButtonClass = {
-    google: `${socialButtonBase} border border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-50 focus-visible:ring-slate-400`,
-    facebook: `${socialButtonBase} border border-transparent bg-[#0866FF] text-white shadow-sm hover:bg-[#0657DB] focus-visible:ring-[#0866FF]`,
+    google: `${socialButtonBase} google-sign-in`,
+    facebook: `${socialButtonBase} facebook-sign-in`,
 };
 
 // Los rechazos del login social (cancelar, identidad sin cuenta, sesión caducada) llegan por redirección con el error
@@ -109,16 +107,16 @@ const submit = () => {
     <GuestLayout>
         <Head title="Entrar" />
 
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Entra en tu cuenta</h1>
-        <p class="mb-6 mt-1 text-sm text-slate-600">Bienvenido de nuevo a Social Scheduler.</p>
+        <h1 class="text-2xl font-bold tracking-tight text-foreground-strong">Entra en tu cuenta</h1>
+        <p class="mb-6 mt-1 text-sm text-foreground-muted">Bienvenido de nuevo a Social Scheduler.</p>
 
-        <div v-if="status" class="mb-4 text-sm font-medium text-emerald-700" role="status">
+        <div v-if="status" class="mb-4 text-sm font-medium text-success-ink" role="status">
             {{ status }}
         </div>
 
         <div
             v-if="socialError"
-            class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+            class="mb-4 rounded-lg border border-danger-border bg-danger-soft p-3 text-sm text-danger-ink"
             role="alert"
             data-testid="login-error"
         >
@@ -160,7 +158,7 @@ const submit = () => {
             <div class="mt-4 block">
                 <label class="flex items-center">
                     <Checkbox name="remember" v-model:checked="form.remember" />
-                    <span class="ms-2 text-sm text-slate-600">Recordarme</span>
+                    <span class="ms-2 text-sm text-foreground-muted">Recordarme</span>
                 </label>
             </div>
 
@@ -175,7 +173,7 @@ const submit = () => {
             </div>
         </form>
 
-        <div v-if="socialProviders.length" class="mt-6 space-y-3 border-t border-slate-200 pt-6">
+        <div v-if="socialProviders.length" class="mt-6 space-y-3 border-t border-border pt-6">
             <!-- Navegación completa (no Inertia): la ruta redirige a otro origen. -->
             <a
                 v-for="provider in socialProviders"
@@ -189,22 +187,33 @@ const submit = () => {
             </a>
         </div>
 
-        <div class="mt-6 border-t border-slate-200 pt-6">
+        <div class="mt-6 border-t border-border pt-6">
             <template v-if="canUsePasskeys">
                 <SecondaryButton class="w-full" :disabled="passkeyBusy" @click="startPasskey">
                     {{ passkeyBusy ? 'Esperando a tu dispositivo…' : 'Entrar con passkey' }}
                 </SecondaryButton>
-                <p class="mt-2 text-center text-xs text-slate-500"
+                <p class="mt-2 text-center text-xs text-foreground-subtle"
                     >Sin contraseña ni código: con tu huella, tu cara o el PIN del dispositivo.</p
                 >
             </template>
-            <p v-else class="text-center text-sm text-slate-600" role="status">{{ httpsNotice }}</p>
+            <p v-else class="text-center text-sm text-foreground-muted" role="status">{{ httpsNotice }}</p>
 
-            <p class="mt-3 text-center text-sm text-red-600" role="alert" aria-live="polite">{{ passkeyMessage }}</p>
+            <p class="mt-3 text-center text-sm text-danger" role="alert" aria-live="polite">{{ passkeyMessage }}</p>
         </div>
 
-        <p v-if="$page.props.registrationEnabled" class="mt-6 text-center text-sm text-slate-600"
-            >¿Aún no tienes cuenta? <Link :href="route('register')" class="link">Crear cuenta</Link></p
+        <p v-if="$page.props.registrationEnabled" class="mt-6 text-center text-sm text-foreground-muted"
+            >¿Aún no tienes cuenta? <Link :href="route('register')" class="link underline">Crear cuenta</Link></p
         >
     </GuestLayout>
 </template>
+
+<style scoped>
+/* Cada proveedor conserva los colores de su botón de marca en ambas paletas. */
+.google-sign-in {
+    @apply border-slate-300 bg-white text-slate-800 hover:bg-slate-50;
+}
+
+.facebook-sign-in {
+    @apply border-transparent bg-[#0866ff] text-white hover:bg-[#0657db];
+}
+</style>

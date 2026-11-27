@@ -24,7 +24,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     use HasApiTokens, HasFactory, Notifiable, PasskeyAuthenticatable;
 
     /** Igual que los valores por defecto de las columnas: un usuario recien creado en memoria ya tiene sus preferencias de avisos. */
-    protected $attributes = ['notify_weekly_digest' => false, 'weekly_digest_ai' => false, 'notify_manual_reminder' => true, 'hide_marketing_dates' => false, 'single_key_shortcuts' => true];
+    protected $attributes = ['notify_weekly_digest' => false, 'weekly_digest_ai' => false, 'notify_manual_reminder' => true, 'hide_marketing_dates' => false, 'single_key_shortcuts' => true, 'theme' => 'system'];
 
     protected static function booted(): void
     {

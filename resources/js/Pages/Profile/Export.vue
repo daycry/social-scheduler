@@ -82,13 +82,13 @@ async function request() {
 <template>
     <Head title="Exportar mis datos" />
     <AuthenticatedLayout>
-        <template #header><h1 class="text-xl font-bold text-slate-900">Exportar mis datos</h1></template>
+        <template #header><h1 class="text-xl font-bold text-foreground-strong">Exportar mis datos</h1></template>
         <div class="max-w-3xl space-y-6">
             <section class="card space-y-4 p-4 sm:p-6" aria-labelledby="export-intro-title">
-                <h2 id="export-intro-title" class="text-lg font-semibold text-slate-900"
+                <h2 id="export-intro-title" class="text-lg font-semibold text-foreground-strong"
                     >Copia de seguridad completa</h2
                 >
-                <p class="text-sm text-slate-600"
+                <p class="text-sm text-foreground-muted"
                     >Descarga un ZIP con todos tus datos: marcas, publicaciones con sus destinos y textos, campañas,
                     informes y sus PDF, la biblioteca de media (los ficheros originales), los diseños del Estudio y sus
                     exportaciones, sitios, smart links, plantillas, objetivos y textos guardados. Los datos van en JSON
@@ -99,46 +99,48 @@ async function request() {
                         <li v-for="line in excluded" :key="line">{{ line }}</li>
                     </ul>
                 </InfoNote>
-                <p class="text-sm text-slate-600"
+                <p class="text-sm text-foreground-muted"
                     >El ZIP se prepara en segundo plano (máximo {{ limits.max_gb }} GB) y estará disponible
                     {{ limits.retention_hours }} horas; después se borra. Te avisaremos cuando esté listo.</p
                 >
             </section>
 
             <section class="card space-y-3 p-4 sm:p-6" aria-labelledby="export-state-title">
-                <h2 id="export-state-title" class="text-lg font-semibold text-slate-900">Tu exportación</h2>
-                <p v-if="!latest && !download" class="text-sm text-slate-600">Aún no has pedido ninguna exportación.</p>
+                <h2 id="export-state-title" class="text-lg font-semibold text-foreground-strong">Tu exportación</h2>
+                <p v-if="!latest && !download" class="text-sm text-foreground-muted"
+                    >Aún no has pedido ninguna exportación.</p
+                >
                 <div v-if="latest" class="space-y-1 text-sm" data-testid="export-state">
-                    <p class="font-medium text-slate-900"
+                    <p class="font-medium text-foreground-strong"
                         >Estado: <span data-testid="export-status">{{ STATUS[latest.status] }}</span></p
                     >
-                    <p class="text-slate-600"
+                    <p class="text-foreground-muted"
                         >Pedida el
                         {{ formatDate(latest.created_at)
                         }}{{ latest.include_media ? '' : ' · sin media' }}</p
                     >
-                    <p v-if="latest.status === 'failed' && latest.error" role="alert" class="text-red-700">{{
+                    <p v-if="latest.status === 'failed' && latest.error" role="alert" class="text-danger">{{
                         latest.error
                     }}</p>
                 </div>
                 <div v-if="download" class="space-y-1 text-sm" data-testid="export-download-info">
-                    <p class="text-slate-600"
+                    <p class="text-foreground-muted"
                         >{{ size(download.size) }} · {{ download.file_count }} ficheros{{
                             download.include_media ? '' : ' (sin media)'
                         }}
                         · disponible hasta el {{ formatDate(download.expires_at) }}</p
                     >
                     <a :href="download.url" class="btn-primary" data-testid="export-download">Descargar ZIP</a>
-                    <p class="text-xs text-slate-500"
+                    <p class="text-xs text-foreground-subtle"
                         >El enlace de descarga caduca a los {{ limits.link_minutes }} minutos y solo funciona con tu
                         sesión; pulsa Descargar para obtener uno nuevo.</p
                     >
                 </div>
                 <div v-if="pollingExhausted" class="flex flex-wrap items-center gap-2">
-                    <p role="status" class="text-sm text-slate-600">Sigue en preparación.</p>
+                    <p role="status" class="text-sm text-foreground-muted">Sigue en preparación.</p>
                     <SecondaryButton type="button" @click="restartPolling">Volver a consultar</SecondaryButton>
                 </div>
-                <label class="flex items-start gap-2 pt-1 text-sm text-slate-800" for="export-include-media">
+                <label class="flex items-start gap-2 pt-1 text-sm text-foreground" for="export-include-media">
                     <Checkbox id="export-include-media" v-model:checked="includeMedia" :disabled="active" />
                     <span
                         >Incluir archivos de media (imágenes, vídeos, informes generados y exportaciones). Sin ellos

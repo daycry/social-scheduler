@@ -48,9 +48,9 @@ estado: en-progreso
 | Fase 5 — Frontend | 15 | 18 | 83% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
 | Fase 5b — Unificación | 4 | 8 | 50% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
 | Fase 6 — Operación y repositorio | 4 | 6 | 67% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
-| Fase 7 — Funciones nuevas | 22 | 24 | 92% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
+| Fase 7 — Funciones nuevas | 23 | 24 | 96% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **95** | **108** | **88%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
+| **TOTAL** | **96** | **108** | **89%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -4855,34 +4855,50 @@ CoberturaM3extra descubre registrodoble deListeners por autodetección+PushServi
 ### T-97 — Modo oscuro (1/2): tokens de color y layout
 
 - **Descripción**: Primera mitad de F-25: variables de color, `useTheme` (sistema/claro/oscuro) y layouts. F-25 se cuenta aquí.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Elige el tema del sistema, claro u oscuro en Perfil → Apariencia. La navegación, los diálogos, los avisos y los controles comunes adoptan la paleta elegida.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-96
 - **Tipo**: frontend
-- **Archivos**: `tailwind.config.js`, `resources/css/app.css`, `resources/js/Layouts/**`, `resources/js/composables/useTheme.js`, `docs/usuario/tema.md`
+- **Archivos**: `tailwind.config.js`, `resources/css/app.css`, `resources/views/app.blade.php`, `resources/js/app.js`, `resources/js/Composables/useTheme.js`, `resources/js/Layouts/**`, `resources/js/Components/**` (controles base, navegación, diálogos, avisos, logotipo y cabecera del compositor), `resources/js/Pages/{Auth,Profile}/**`, `app/Http/Controllers/ProfileController.php`, `app/Models/User.php`, `database/migrations/2026_11_27_130300_add_theme_to_users.php`, `routes/web.php`, `tests/Feature/ThemePreferenceTest.php`, `tests/frontend/{use-theme,theme-contrast,form-and-tabs-accessibility}.test.mjs`, `tests/e2e/dark-mode.spec.ts`, `docs/guias/tokens-de-color.md`, `docs/usuario/tema.md` y sus índices, `CHANGELOG.md`, `CHANGELOG.es.md`., `docs/roadmap/2026-11-11-audit-hardening/testing/t97/**`
 - **Cubre**: F-25
 - **Cubre (tests)**: E2E-35, M-08
-- **Verificación**: `npm run build` → build correcto · `npx playwright test tests/e2e/a11y.spec.ts --workers=1` → verde (contraste incluido)
+- **Verificación**: `npm run build`, Pest (focal y completo), tests Node de tema y contraste, `npx playwright test tests/e2e/dark-mode.spec.ts tests/e2e/a11y.spec.ts --workers=1` (contraste incluido), M-08.
 
 **Criterios de aceptación**
-- [ ] El selector de tema persiste por usuario y respeta `prefers-color-scheme`
-- [ ] Layouts, navegación y formularios base legibles en oscuro
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] El selector de tema persiste por usuario y respeta `prefers-color-scheme`
+- [x] Layouts, navegación y formularios base legibles en oscuro
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. F-25 es L: dos tareas. Toca toda la UI: ejecutar después de los refactors D.
+
+**Cierre — 2026-11-28:** tokens de color semánticos en `resources/css/app.css` (`:root` y `:root.dark`, 59 tokens) expuestos en `tailwind.config.js` (`darkMode: 'class'`, `<alpha-value>`), con un test de contraste WCAG de todos los pares en ambas paletas; `useTheme` (sistema/claro/oscuro) con la preferencia guardada en la cuenta (`users.theme`, enum validado) o en `localStorage` para invitados, reacción en vivo a `prefers-color-scheme`, script con `nonce` en `app.blade.php` que aplica el tema antes de Vue (sin parpadeo), `color-scheme` y `theme-color`. Chrome común (layouts, navegación, dropdowns, diálogos, avisos, formularios base, paginación, estado vacío) y todas las pantallas de `Auth/**` y `Profile/**` tokenizadas; selector accesible en el acceso y en el perfil. En claro solo cambian bordes de controles, placeholder, hovers y foco para cumplir AA (medido). Implementado por Codex (gpt-6.2-sol, high). Revisión adversarial A+B+C con Opus (effort high) en 2 intentos: intento 1 — 1 Important (las pantallas con selector, que siguen al sistema por defecto, tenían texto ilegible en oscuro: título del login a 1,10:1) + 2 Minor (retoques del claro y de layout fuera de alcance, evidencia del ledger), corregidos; intento 2 — sin hallazgos. QA: Pest completo 4997 pasados / 9 omitidos; Node 864/864; build, `format:check`, ESLint, typecheck y Pint verdes; E2E modo oscuro (10 páginas con axe en ambas paletas) + a11y + páginas + seguridad + atajos + paleta 292/292 en tres tamaños (`testing/t97/t97-e2e2.log`; la pasada anterior tuvo un `ERR_NO_BUFFER_SPACE` de infraestructura). **Importante: T-97 no se despliega sin T-98** (el resto de páginas se tokeniza allí). **Pendiente del usuario:** M-08 (revisión visual en oscuro, tras T-98).
+
+- T-97 se despliega junto con T-98, que tokeniza el resto de las páginas y el Estudio.
+- Revisión adversarial, intento 1. Acceso, Perfil, paginación y estado vacío usan tokens semánticos. E2E-35 incluye diez páginas completas con axe en claro y oscuro, además del error de passkey. Los botones de los proveedores conservan sus colores de marca y el QR, su margen blanco.
+- El aviso de conexión pendiente es una nota estática. Su contorno alcanza un mínimo de 3,04:1 en claro y 3,65:1 en oscuro. El aviso de permisos recupera el borde ámbar original en claro. Se recuperan la geometría móvil previa y la prop `contentClasses` del desplegable con una superficie temática por defecto.
+- RED: `ThemePreferenceTest.php` falló con `auth.user.theme` ausente y HTTP 404 al guardar · 2026-11-27 (3/3).
+- RED: `use-theme.test.mjs` falló por ausencia del composable y del script de arranque previo a Vite · 2026-11-27 (3/3).
+- RED: `theme-contrast.test.mjs` falló por ausencia de los tokens `:root` y `:root.dark` · 2026-11-27 (2/2).
+- RED (revisión, intento 1): `theme-contrast.test.mjs` detectó utilidades de color fijas en las 18 vistas y componentes auditados y un contorno del aviso de conexión de 1,19:1 sobre el fondo claro, por debajo de 3:1 · 2026-11-27 (2 fallos, 1 pasada).
+- RED (revisión, intento 1): `form-and-tabs-accessibility.test.mjs` dio 2/8 en Node 22.23.2 de Windows. Vite evaluó la entrada CommonJS de Vue como ESM y falló con `module is not defined`. Cargar `useTheme.js` directamente con Vite reprodujo el error y pasó al activar `resolve.preserveSymlinks` · 2026-11-27.
+- Pest focal en SQLite: 3/3 y 87 aserciones. Suite completa tras `config:clear`: 4985 pasadas, 21 omitidas y 38751 aserciones.
+- Node sin aislamiento: 14/14 combinadas, con 100 pares de contraste por paleta. SSR aislado: 8/8 tras configurar `resolve.preserveSymlinks` en el servidor de pruebas. Salvaguardas estáticas de los specs: 3/3.
+- Pint, formato, lint y typecheck en verde. `npm run build` quedó bloqueado por `spawn EPERM` al cargar `vite.config.js`. La API de Vite compiló el frontend en memoria con 125 salidas, cinco de ellas CSS.
+- Node completo (863/863), E2E y build habían pasado antes de la corrección según el reporte de revisión. Quedan pendientes la ejecución del E2E-35 ampliado en navegador, la siguiente revisión adversarial y M-08.
+- La política del sandbox bloqueó la eliminación de `.cache/t97-ssr-baseline-*`.
 
 ### T-98 — Modo oscuro (2/2): páginas y estudio
 
@@ -5566,3 +5582,7 @@ Lentes A+B+C (Opus, effort high). Intento 1: render sin demostrar + 3 Minor. Int
 ## Revisión de dos lentes — intento 2: Fase 7 (T-96) — aprobada y cerrada
 
 Lentes A+B+C (Opus, effort high). Intento 1: 2 Important + 5 Minor corregidos por Codex. Intento 2: 0 Critical/Important; 1 Minor aceptado como deuda. Diffs en `testing/t96/reviews/r1.patch` y `r2.patch`. Total 95/108.
+
+## Revisión de dos lentes — intento 2: Fase 7 (T-97) — aprobada y cerrada
+
+Lentes A+B+C (Opus, effort high). Intento 1: 1 Important (texto ilegible en oscuro en las pantallas con selector) + 2 Minor corregidos por Codex. Intento 2: sin hallazgos. Diffs en `testing/t97/reviews/r1.patch` y `r2.patch`. Total 96/108.

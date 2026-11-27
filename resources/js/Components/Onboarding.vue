@@ -101,16 +101,16 @@ function goToStep() {
         class="dialog-panel max-w-lg space-y-4 p-4 sm:p-6"
         @close="close"
     >
-        <p class="text-sm font-medium text-slate-600">Primeros pasos · {{ content.number }} de 3</p>
+        <p class="text-sm font-medium text-foreground-muted">Primeros pasos · {{ content.number }} de 3</p>
         <h2
             id="onboarding-title"
             ref="heading"
             tabindex="-1"
             data-dialog-initial-focus
-            class="text-lg font-semibold text-slate-900"
+            class="text-lg font-semibold text-foreground-strong"
             >{{ content.title }}</h2
         >
-        <p id="onboarding-description" class="text-sm text-slate-600">{{ content.description }}</p>
+        <p id="onboarding-description" class="text-sm text-foreground-muted">{{ content.description }}</p>
         <button
             v-if="content.href"
             type="button"
@@ -119,7 +119,7 @@ function goToStep() {
             @click="goToStep"
             >{{ content.label }}</button
         >
-        <p class="text-sm text-slate-600">Puedes retomar o repetir la guía en «Ayuda y atajos».</p>
+        <p class="text-sm text-foreground-muted">Puedes retomar o repetir la guía en «Ayuda y atajos».</p>
         <InputError :message="error" />
         <div class="flex flex-wrap justify-end gap-2">
             <button type="button" class="btn-secondary" :disabled="processing" @click="skip">Saltar guía</button>

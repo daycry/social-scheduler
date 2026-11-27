@@ -2,7 +2,7 @@
 
 Aplicación web personal para programar publicaciones y consultar analítica en Instagram, Facebook, YouTube, TikTok, Bluesky, Threads, LinkedIn, Pinterest, Mastodon y Telegram. Laravel 13 + Inertia/Vue, cola `database` y media en Cloudflare R2.
 
-Última actualización: 2026-11-18
+Última actualización: 2026-11-27
 
 ## Por dónde empezar
 
@@ -20,6 +20,7 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Revisar la regresión general en los tres tamaños (502 pasados y dos omitidos previstos) | [Informe de QA](roadmap/2026-10-26-metricool-parity-3/testing/attempt-2/report.md) · [PDF](roadmap/2026-10-26-metricool-parity-3/testing/attempt-2/report.pdf) |
 | Usar la aplicación (incluye doble factor y passkeys) | [Guía de usuario](usuario/guia-de-usuario.md) |
 | Configurar una cuenta nueva y consultar los atajos | [Primeros pasos](usuario/primeros-pasos.md) |
+| Elegir el tema del sistema, claro u oscuro | [Tema de la aplicación](usuario/tema.md) |
 | Operar el doble factor y las passkeys (RP ID, `sodium`, rotar claves) | [Despliegue → Seguridad de cuenta](modulos/despliegue.md#seguridad-de-cuenta-2fa-y-passkeys) |
 | Activar el login con Google y Facebook (apps, redirect URIs, modos) | [Guía de login social](guias/login-social-google-meta.md) |
 | Conectar un asistente (Claude, Codex, OpenCode) sin API key y desplegar el OAuth del MCP | [Servidor MCP](modulos/mcp.md#autorización-oauth-21-sin-api-key) y [Despliegue → OAuth del MCP](modulos/despliegue.md#oauth-del-mcp-nginxhestia-y-redirect-uris) |
@@ -50,6 +51,7 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Módulo | Página | Código principal |
 |---|---|---|
 | Conexiones OAuth por red | [conexiones.md](modulos/conexiones.md) | `app/Connectors/`, `app/Services/SocialAccountService.php` |
+| Paletas de la interfaz y contraste | [Tokens de color](guias/tokens-de-color.md) | `resources/css/app.css`, `tailwind.config.js`, `resources/js/Composables/useTheme.js` |
 | Publicación y cola | [publicacion.md](modulos/publicacion.md) | `app/Jobs/PublishPostTarget.php`, `app/Services/PostService.php`, `app/Services/SavedTextService.php` |
 | Media, validación e importación (URL y Drive) | [media.md](modulos/media.md) | `app/Services/Media*.php`, `app/Services/Media/`, `app/Jobs/ImportRemoteMedia.php`, `config/media*.php` |
 | Calendario y cuadrícula de Instagram | [calendario.md](modulos/calendario.md) | `app/Services/CalendarService.php`, `app/Services/GridService.php` |

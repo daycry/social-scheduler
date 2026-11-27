@@ -153,16 +153,16 @@ onMounted(() => {
 <template>
     <section v-if="canUsePasskeys" aria-labelledby="passkeys-title">
         <header>
-            <h2 id="passkeys-title" class="text-lg font-medium text-slate-900">Passkeys</h2>
+            <h2 id="passkeys-title" class="text-lg font-medium text-foreground-strong">Passkeys</h2>
 
-            <p class="mt-1 text-sm text-slate-600">
+            <p class="mt-1 text-sm text-foreground-muted">
                 Entra con tu huella, tu cara o el PIN del dispositivo, sin escribir la contraseña ni el código del doble
                 factor. Cada passkey es de un dispositivo o gestor de contraseñas.
             </p>
         </header>
 
         <template v-if="canUsePasskeys">
-            <p class="mt-4 text-sm text-emerald-700" role="status" aria-live="polite">{{ notice }}</p>
+            <p class="mt-4 text-sm text-success-ink" role="status" aria-live="polite">{{ notice }}</p>
 
             <EmptyState
                 v-if="passkeys.items.length === 0"
@@ -174,15 +174,15 @@ onMounted(() => {
             </EmptyState>
 
             <div v-else class="mt-4">
-                <ul class="divide-y divide-slate-200 rounded-lg border border-slate-200" aria-label="Tus passkeys">
+                <ul class="divide-y divide-border rounded-lg border border-border" aria-label="Tus passkeys">
                     <li
                         v-for="passkey in passkeys.items"
                         :key="passkey.id"
                         class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
                     >
                         <div class="min-w-0">
-                            <p class="break-words font-medium text-slate-900">{{ passkey.name }}</p>
-                            <p class="text-sm text-slate-600">
+                            <p class="break-words font-medium text-foreground-strong">{{ passkey.name }}</p>
+                            <p class="text-sm text-foreground-muted">
                                 Añadida el {{ formatDate(passkey.created_at) }} ·
                                 <template v-if="passkey.last_used_at"
                                     >último uso el {{ formatDate(passkey.last_used_at) }}</template
@@ -221,8 +221,8 @@ onMounted(() => {
             @close="closeAdd"
         >
             <form class="p-6" novalidate @submit.prevent="submitAdd">
-                <h2 class="text-lg font-medium text-slate-900">Añadir una passkey</h2>
-                <p class="mt-1 text-sm text-slate-600">
+                <h2 class="text-lg font-medium text-foreground-strong">Añadir una passkey</h2>
+                <p class="mt-1 text-sm text-foreground-muted">
                     Ponle un nombre que te ayude a reconocerla y, al continuar, tu dispositivo te pedirá la huella, la
                     cara o el PIN.
                 </p>
@@ -265,7 +265,7 @@ onMounted(() => {
             @close="closeRename"
         >
             <form class="p-6" novalidate @submit.prevent="submitRename">
-                <h2 class="text-lg font-medium text-slate-900">Renombrar la passkey</h2>
+                <h2 class="text-lg font-medium text-foreground-strong">Renombrar la passkey</h2>
 
                 <div class="mt-6">
                     <FormField
@@ -306,8 +306,8 @@ onMounted(() => {
             @close="closeDelete"
         >
             <div class="p-6">
-                <h2 class="text-lg font-medium text-slate-900">Eliminar la passkey</h2>
-                <p class="mt-1 text-sm text-slate-600">
+                <h2 class="text-lg font-medium text-foreground-strong">Eliminar la passkey</h2>
+                <p class="mt-1 text-sm text-foreground-muted">
                     ¿Eliminar «{{ deleting?.name }}»? Dejará de servir para entrar. Podrás volver a añadirla cuando
                     quieras y seguirás pudiendo entrar con tu contraseña.
                 </p>

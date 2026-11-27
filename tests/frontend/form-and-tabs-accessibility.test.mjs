@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import vue from '@vitejs/plugin-vue';
 import { renderToString } from '@vue/server-renderer';
 import { createServer } from 'vite';
-import { createSSRApp } from 'vue';
+import { computed, createSSRApp } from 'vue';
 import { onTabsKeydown } from '../../resources/js/Composables/useTabs.js';
 import { firstGroupError } from '../../resources/js/lib/form-errors.js';
 
@@ -37,7 +37,11 @@ before(async () => {
         configFile: false,
         cacheDir: '.cache/vite-accessibility',
         ssr: { noExternal: ['@inertiajs/vue3', '@laravel/passkeys'] },
-        resolve: { alias: { '@': fileURLToPath(new URL('../../resources/js', import.meta.url)) } },
+        resolve: {
+            // La resolución nativa de rutas puede hacer que Vite cargue el entrypoint CommonJS de Vue como ESM en Windows.
+            preserveSymlinks: true,
+            alias: { '@': fileURLToPath(new URL('../../resources/js', import.meta.url)) },
+        },
         server: { middlewareMode: true, ws: false, watch: null },
         plugins: [{
             name: 'accessibility-fixtures',
@@ -59,7 +63,14 @@ async function render(file, props, directory = 'Pages') {
     const { default: component } = await server.ssrLoadModule('/resources/js/' + directory + '/' + file);
     const app = createSSRApp(component, props);
     const { confirmKey, createConfirmState } = await server.ssrLoadModule('/resources/js/Composables/useConfirm.js');
+    const { themeKey } = await server.ssrLoadModule('/resources/js/Composables/useTheme.js');
     app.provide(confirmKey, createConfirmState());
+    app.provide(themeKey, {
+        isGuest: computed(() => true),
+        preference: computed(() => 'system'),
+        dark: computed(() => false),
+        setGuestPreference() {},
+    });
     app.config.globalProperties.$page = { props: {} };
     app.config.globalProperties.route = name => '/' + name;
     return renderToString(app);

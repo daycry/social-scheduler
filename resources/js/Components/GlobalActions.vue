@@ -72,7 +72,7 @@ async function openGuide() {
         v-if="page.props.onboarding === 'welcome'"
         type="button"
         class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-medium"
-        :class="light ? 'bg-indigo-50 text-indigo-800' : 'bg-indigo-400/20 text-indigo-100'"
+        :class="light ? 'bg-accent-soft text-accent-strong' : 'bg-chrome-active/20 text-chrome-strong'"
         aria-label="Empezar guía de primeros pasos"
         @click="openGuide"
         >Guía</button
@@ -81,7 +81,7 @@ async function openGuide() {
         ref="helpButton"
         type="button"
         class="h-9 w-8 shrink-0 rounded-lg text-base font-semibold"
-        :class="light ? 'text-slate-600 hover:bg-slate-100' : 'text-slate-300 hover:bg-white/10 hover:text-white'"
+        :class="light ? 'text-foreground-muted hover:bg-surface-hover' : 'text-chrome-muted hover:bg-chrome-hover hover:text-chrome-strong'"
         aria-label="Ayuda y atajos"
         aria-haspopup="dialog"
         :aria-keyshortcuts="page.props.auth.user.single_key_shortcuts === false ? undefined : '?'"
@@ -99,14 +99,18 @@ async function openGuide() {
         class="dialog-panel max-w-lg space-y-4 p-4 sm:p-6"
         @close="helpOpen = false"
     >
-        <h2 id="global-help-title" tabindex="-1" data-dialog-initial-focus class="text-lg font-semibold text-slate-900"
+        <h2
+            id="global-help-title"
+            tabindex="-1"
+            data-dialog-initial-focus
+            class="text-lg font-semibold text-foreground-strong"
             >Ayuda y atajos</h2
         >
-        <p id="global-help-description" class="text-sm text-slate-600"
+        <p id="global-help-description" class="text-sm text-foreground-muted"
             >Los atajos globales actúan fuera de los campos de edición y de los diálogos.</p
         >
         <form class="space-y-2" @submit.prevent="saveShortcuts">
-            <label class="flex items-center gap-2 text-sm text-slate-700">
+            <label class="flex items-center gap-2 text-sm text-foreground-secondary">
                 <Checkbox v-model:checked="form.single_key_shortcuts" />
                 Activar los atajos globales de una sola tecla
             </label>
@@ -115,12 +119,14 @@ async function openGuide() {
                 <button type="submit" class="btn-secondary" :disabled="form.processing || !form.isDirty"
                     >Guardar atajos</button
                 >
-                <p v-if="form.recentlySuccessful" role="status" class="text-sm text-slate-600">Atajos guardados.</p>
+                <p v-if="form.recentlySuccessful" role="status" class="text-sm text-foreground-muted"
+                    >Atajos guardados.</p
+                >
             </div>
         </form>
         <section v-for="group in groups" :key="group.title" class="space-y-2">
-            <h3 class="text-sm font-semibold text-slate-900">{{ group.title }}</h3>
-            <dl class="space-y-1 text-sm text-slate-700">
+            <h3 class="text-sm font-semibold text-foreground-strong">{{ group.title }}</h3>
+            <dl class="space-y-1 text-sm text-foreground-secondary">
                 <div v-for="entry in group.entries" :key="entry.keys" class="flex justify-between gap-3">
                     <dt>{{ entry.label }}</dt>
                     <dd class="shrink-0">

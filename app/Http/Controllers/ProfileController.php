@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -94,6 +95,14 @@ class ProfileController extends Controller
         $request->user()->save();
 
         return Redirect::route('profile.edit');
+    }
+
+    public function updateTheme(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['theme' => ['required', 'string', Rule::in(['system', 'light', 'dark'])]]);
+        $request->user()->forceFill($data)->save();
+
+        return back()->with('success', 'Tema guardado.');
     }
 
     /**

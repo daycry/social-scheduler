@@ -193,6 +193,7 @@ function handleKeydown(event) {
     <Teleport to="body">
         <dialog
             ref="dialog"
+            class="base-dialog"
             aria-modal="true"
             v-bind="$attrs"
             @cancel="handleCancel"

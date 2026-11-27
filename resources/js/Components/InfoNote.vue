@@ -10,7 +10,7 @@ defineProps({
 
 <template>
     <div
-        class="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900"
+        class="rounded-lg border border-info-border bg-info-soft p-3 text-sm text-info-ink"
         role="note"
         data-testid="info-note"
     >

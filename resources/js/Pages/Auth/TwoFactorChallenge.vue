@@ -36,8 +36,8 @@ const submit = () => {
     <GuestLayout>
         <Head title="Verificación en dos pasos" />
 
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Verificación en dos pasos</h1>
-        <p class="mb-6 mt-1 text-sm text-slate-600">
+        <h1 class="text-2xl font-bold tracking-tight text-foreground-strong">Verificación en dos pasos</h1>
+        <p class="mb-6 mt-1 text-sm text-foreground-muted">
             <template v-if="!usingRecovery"
                 >Escribe el código de 6 dígitos que muestra tu app de autenticación.</template
             >
@@ -102,7 +102,7 @@ const submit = () => {
             </div>
         </form>
 
-        <p class="mt-6 text-center text-sm text-slate-600">
+        <p class="mt-6 text-center text-sm text-foreground-muted">
             <Link :href="route('login')" class="link">Volver al inicio de sesión</Link>
         </p>
     </GuestLayout>

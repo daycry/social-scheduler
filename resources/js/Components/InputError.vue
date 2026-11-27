@@ -8,7 +8,7 @@ defineProps({
 
 <template>
     <div :class="{ 'sr-only': !message }">
-        <p class="text-sm text-red-600" role="alert" aria-atomic="true">
+        <p class="text-sm text-danger" role="alert" aria-atomic="true">
             {{ message }}
         </p>
     </div>

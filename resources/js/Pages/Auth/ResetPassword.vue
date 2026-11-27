@@ -35,8 +35,8 @@ const submit = () => {
     <GuestLayout>
         <Head title="Nueva contraseña" />
 
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Elige una nueva contraseña</h1>
-        <p class="mb-6 mt-1 text-sm text-slate-600">Escribe una contraseña segura para tu cuenta.</p>
+        <h1 class="text-2xl font-bold tracking-tight text-foreground-strong">Elige una nueva contraseña</h1>
+        <p class="mb-6 mt-1 text-sm text-foreground-muted">Escribe una contraseña segura para tu cuenta.</p>
 
         <form @submit.prevent="submit">
             <div>

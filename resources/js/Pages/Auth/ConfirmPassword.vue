@@ -21,10 +21,10 @@ const submit = () => {
     <GuestLayout>
         <Head title="Confirmar contraseña" />
 
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Confirma tu contraseña</h1>
-        <p class="mb-6 mt-1 text-sm text-slate-600">Por seguridad, necesitamos que lo confirmes.</p>
+        <h1 class="text-2xl font-bold tracking-tight text-foreground-strong">Confirma tu contraseña</h1>
+        <p class="mb-6 mt-1 text-sm text-foreground-muted">Por seguridad, necesitamos que lo confirmes.</p>
 
-        <div class="mb-4 text-sm text-slate-600">
+        <div class="mb-4 text-sm text-foreground-muted">
             Esta es una zona segura de la aplicación. Confirma tu contraseña antes de continuar.
         </div>
 

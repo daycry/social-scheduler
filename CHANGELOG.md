@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — light, dark, and system themes (audit-hardening, T-97)
+
+- Choose a theme under Profile → Appearance. Your account remembers the choice, and navigation, dialogs, notices, and shared form controls use the selected palette.
+
 ### Added — keyboard shortcuts, notification preferences, and onboarding (audit-hardening, T-96)
 
 - Navigate from the keyboard, choose where each notification reaches you, and start, skip, or replay the getting-started guide.

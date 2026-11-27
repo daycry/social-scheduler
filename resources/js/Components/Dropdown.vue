@@ -12,7 +12,7 @@ const props = defineProps({
     },
     contentClasses: {
         type: String,
-        default: 'py-1 bg-white',
+        default: 'py-1 bg-surface-raised',
     },
 });
 
@@ -50,7 +50,7 @@ const open = ref(false);
 <template>
     <div class="relative">
         <div @click="open = !open">
-            <slot name="trigger" />
+            <slot name="trigger" :open="open" />
         </div>
 
         <!-- Full Screen Dropdown Overlay -->
@@ -71,7 +71,7 @@ const open = ref(false);
                 style="display: none"
                 @click="open = false"
             >
-                <div class="rounded-lg ring-1 ring-slate-900/10" :class="contentClasses">
+                <div class="rounded-lg ring-1 ring-border" :class="contentClasses">
                     <slot name="content" />
                 </div>
             </div>

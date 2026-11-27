@@ -6,6 +6,8 @@ Social Scheduler programa tus publicaciones en Instagram, Facebook, YouTube, Tik
 
 [Guía interactiva, atajos y preferencias](primeros-pasos.md).
 
+[Tema del sistema, claro u oscuro](tema.md).
+
 1. Regístrate y verifica tu correo.
 2. Crea una **marca** (por ejemplo, tu proyecto o negocio). Cada marca agrupa sus cuentas, publicaciones y estadísticas.
 3. Entra en las **Conexiones** de la marca y pulsa **Conectar** en cada red. Acepta los permisos en la pantalla de la red.

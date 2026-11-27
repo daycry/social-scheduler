@@ -5,6 +5,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Added — tema claro, oscuro o del sistema (audit-hardening, T-97)
+
+- Elige el tema en Perfil → Apariencia. La cuenta conserva tu elección y la navegación, los diálogos, los avisos y los controles comunes adoptan la paleta.
+
 ### Added — atajos, preferencias de avisos y primeros pasos (audit-hardening, T-96)
 
 - Navega con el teclado, elige dónde recibes cada tipo de aviso y empieza, salta o repite la guía de primeros pasos.

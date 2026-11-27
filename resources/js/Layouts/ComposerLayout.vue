@@ -14,14 +14,14 @@ const page = usePage();
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-50">
+    <div class="min-h-screen bg-canvas">
         <a
             href="#contenido"
-            class="sr-only z-[100] rounded bg-white px-3 py-2 text-sm font-medium text-indigo-700 focus:not-sr-only focus:fixed focus:left-2 focus:top-2"
+            class="sr-only z-[100] rounded bg-surface px-3 py-2 text-sm font-medium text-accent-strong focus:not-sr-only focus:fixed focus:left-2 focus:top-2"
             >Saltar al contenido</a
         >
 
-        <header class="sticky top-0 z-40 border-b border-slate-200 bg-white shadow-sm">
+        <header class="sticky top-0 z-40 border-b border-border bg-surface shadow-sm">
             <div class="mx-auto flex min-h-14 max-w-7xl items-center gap-3 px-3 py-2 sm:px-6">
                 <BrandLogo compact class="shrink-0" />
                 <GlobalActions light />

@@ -15,7 +15,7 @@ defineProps({
 
 <template>
     <div
-        class="card border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
+        class="card border-warning-panel-border bg-warning-soft p-4 text-sm text-warning-ink"
         role="alert"
         data-testid="permission-notice"
     >

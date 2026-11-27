@@ -13,13 +13,13 @@ const add = () => createCampaign(newName.value, { onCreated: () => { adding.valu
 
 <template>
     <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
-        <h1 class="min-w-0 flex-1 basis-40 truncate text-base font-bold text-slate-900 sm:text-lg">
+        <h1 class="min-w-0 flex-1 basis-40 truncate text-base font-bold text-foreground-strong sm:text-lg">
             {{ post ? 'Editar publicación' : 'Nueva publicación' }} · {{ brand.name }}
         </h1>
 
         <div class="flex min-w-0 flex-wrap items-center gap-2" data-testid="campaign-picker">
             <label class="flex min-w-0 items-center gap-2 text-sm">
-                <span class="shrink-0 text-xs font-medium text-slate-600">Campaña</span>
+                <span class="shrink-0 text-xs font-medium text-foreground-muted">Campaña</span>
                 <select
                     v-model="form.campaign_id"
                     :disabled="savingCampaign"
@@ -63,12 +63,12 @@ const add = () => createCampaign(newName.value, { onCreated: () => { adding.valu
                 >
                 <button
                     type="button"
-                    class="shrink-0 text-xs font-medium text-slate-700 underline"
+                    class="shrink-0 text-xs font-medium text-foreground-secondary underline"
                     @click="adding = false"
                     >Cancelar</button
                 >
             </form>
-            <p v-if="campaignError" class="w-full text-xs text-red-600" role="alert">{{ campaignError }}</p>
+            <p v-if="campaignError" class="w-full text-xs text-danger" role="alert">{{ campaignError }}</p>
         </div>
 
         <!-- Hueco para las notas y las acciones de las fases siguientes -->

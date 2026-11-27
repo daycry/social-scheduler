@@ -88,12 +88,16 @@ async function revoke(device) {
 <template>
     <Head title="Notificaciones del navegador" />
     <AuthenticatedLayout>
-        <template #header><h1 class="text-xl font-bold text-slate-900">Notificaciones del navegador</h1></template>
+        <template #header
+            ><h1 class="text-xl font-bold text-foreground-strong">Notificaciones del navegador</h1></template
+        >
         <div class="max-w-3xl space-y-6">
             <section class="card space-y-4 p-4 sm:p-6" aria-labelledby="prefs-title">
-                <h2 id="prefs-title" class="text-lg font-semibold text-slate-900">Qué avisos quieres recibir</h2>
+                <h2 id="prefs-title" class="text-lg font-semibold text-foreground-strong"
+                    >Qué avisos quieres recibir</h2
+                >
                 <form class="space-y-3" @submit.prevent="savePreferences">
-                    <label class="flex items-start gap-2 text-sm text-slate-700" for="notify_weekly_digest">
+                    <label class="flex items-start gap-2 text-sm text-foreground-secondary" for="notify_weekly_digest">
                         <Checkbox
                             id="notify_weekly_digest"
                             v-model:checked="prefs.notify_weekly_digest"
@@ -104,15 +108,12 @@ async function revoke(device) {
                             semana anterior de cada marca comparadas con la previa.</span
                         >
                     </label>
-                    <label
-                        class="ml-6 flex items-start gap-2 text-sm text-slate-700"
-                        for="weekly_digest_ai"
-                        :class="{ 'opacity-60': !aiAvailable }"
-                    >
+                    <label class="ml-6 flex items-start gap-2 text-sm text-foreground-secondary" for="weekly_digest_ai">
                         <Checkbox
                             id="weekly_digest_ai"
                             v-model:checked="prefs.weekly_digest_ai"
                             :disabled="!aiAvailable"
+                            class="disabled:opacity-60"
                             data-testid="pref-weekly-digest-ai"
                         />
                         <span
@@ -120,7 +121,10 @@ async function revoke(device) {
                             cifras agregadas.</span
                         >
                     </label>
-                    <label class="flex items-start gap-2 text-sm text-slate-700" for="notify_manual_reminder">
+                    <label
+                        class="flex items-start gap-2 text-sm text-foreground-secondary"
+                        for="notify_manual_reminder"
+                    >
                         <Checkbox
                             id="notify_manual_reminder"
                             v-model:checked="prefs.notify_manual_reminder"
@@ -131,7 +135,7 @@ async function revoke(device) {
                             que hacer a mano.</span
                         >
                     </label>
-                    <h3 class="pt-2 text-base font-semibold text-slate-900">Canales por tipo de aviso</h3>
+                    <h3 class="pt-2 text-base font-semibold text-foreground-strong">Canales por tipo de aviso</h3>
                     <InfoNote>
                         Los correos de verificación, restablecimiento de contraseña y seguridad de la cuenta están
                         siempre activos. Para recibir push, activa cada dispositivo más abajo.
@@ -143,19 +147,20 @@ async function revoke(device) {
                             (type === 'weekly_digest' && !prefs.notify_weekly_digest) ||
                             (type === 'manual_reminder' && !prefs.notify_manual_reminder)
                         "
-                        class="min-w-0 space-y-2 rounded-md border border-slate-200 px-3 pb-2 disabled:opacity-60"
+                        class="min-w-0 space-y-2 rounded-md border border-border px-3 pb-2"
                     >
-                        <legend class="max-w-full px-1 text-sm font-medium text-slate-800">{{
+                        <legend class="max-w-full px-1 text-sm font-medium text-foreground">{{
                             notificationTypes[type]
                         }}</legend>
                         <div class="flex flex-wrap gap-x-4 gap-y-2">
                             <label
                                 v-for="(_, channel) in channels"
                                 :key="channel"
-                                class="flex items-center gap-2 text-sm text-slate-700"
+                                class="flex items-center gap-2 text-sm text-foreground-secondary"
                             >
                                 <Checkbox
                                     :checked="channels[channel] ?? false"
+                                    class="disabled:opacity-60"
                                     @update:checked="channels[channel] = $event === true"
                                 />
                                 {{ channelNames[channel] }}
@@ -167,23 +172,25 @@ async function revoke(device) {
                         <PrimaryButton :disabled="prefs.processing" data-testid="pref-save"
                             >Guardar preferencias</PrimaryButton
                         >
-                        <p v-if="prefs.recentlySuccessful" role="status" class="text-sm text-slate-600">Guardado.</p>
+                        <p v-if="prefs.recentlySuccessful" role="status" class="text-sm text-foreground-muted"
+                            >Guardado.</p
+                        >
                     </div>
                 </form>
             </section>
             <section class="card space-y-4 p-4 sm:p-6" aria-labelledby="push-enable-title">
-                <h2 id="push-enable-title" class="text-lg font-semibold text-slate-900">Activar avisos push</h2>
-                <p class="text-sm text-slate-600"
+                <h2 id="push-enable-title" class="text-lg font-semibold text-foreground-strong">Activar avisos push</h2>
+                <p class="text-sm text-foreground-muted"
                     >Recibe un aviso genérico cuando haya novedades. El contenido privado se consulta al entrar en la
                     aplicación. El permiso solo se pide al pulsar Activar.</p
                 >
-                <p v-if="push.unavailable_reason" class="text-sm text-amber-800">{{ push.unavailable_reason }}</p>
-                <p v-else-if="!supported" role="status" class="text-sm text-amber-800"
+                <p v-if="push.unavailable_reason" class="text-sm text-warning-ink">{{ push.unavailable_reason }}</p>
+                <p v-else-if="!supported" role="status" class="text-sm text-warning-ink"
                     >Este navegador necesita HTTPS y compatibilidad con notificaciones push.</p
                 >
                 <form class="space-y-3" @submit.prevent="activate">
                     <div
-                        ><label for="push-device-name" class="text-sm font-medium text-slate-800"
+                        ><label for="push-device-name" class="text-sm font-medium text-foreground"
                             >Nombre de este dispositivo</label
                         >
                         <input
@@ -202,27 +209,31 @@ async function revoke(device) {
                         >{{ busy ? 'Procesando…' : 'Activar en este navegador' }}</button
                     >
                 </form>
-                <div v-if="messages.length" role="alert" class="text-sm text-red-700"
+                <div v-if="messages.length" role="alert" class="text-sm text-danger"
                     ><ul class="space-y-1"
                         ><li v-for="(message, index) in messages" :key="index">{{ message }}</li></ul
                     ></div
                 >
             </section>
             <section class="space-y-3" aria-labelledby="push-devices-title">
-                <h2 id="push-devices-title" class="text-lg font-semibold text-slate-900">Dispositivos suscritos</h2>
-                <p v-if="!subscriptions.length" class="text-sm text-slate-600">No tienes dispositivos suscritos.</p>
+                <h2 id="push-devices-title" class="text-lg font-semibold text-foreground-strong"
+                    >Dispositivos suscritos</h2
+                >
+                <p v-if="!subscriptions.length" class="text-sm text-foreground-muted"
+                    >No tienes dispositivos suscritos.</p
+                >
                 <article
                     v-for="device in subscriptions"
                     :key="device.id"
                     class="card flex flex-wrap items-start justify-between gap-4 p-4"
                 >
                     <div class="min-w-0"
-                        ><h3 class="break-words font-semibold text-slate-900"
+                        ><h3 class="break-words font-semibold text-foreground-strong"
                             >{{ device.device_name
                             }}<span v-if="device.current" class="text-sm font-normal"> · Este navegador</span></h3
                         >
-                        <p class="text-sm text-slate-600">Última suscripción: {{ date(device.last_seen_at) }}</p>
-                        <p class="text-sm text-slate-600">Último envío: {{ date(device.last_sent_at) }}</p></div
+                        <p class="text-sm text-foreground-muted">Última suscripción: {{ date(device.last_seen_at) }}</p>
+                        <p class="text-sm text-foreground-muted">Último envío: {{ date(device.last_sent_at) }}</p></div
                     >
                     <button
                         type="button"
@@ -234,11 +245,11 @@ async function revoke(device) {
                     >
                 </article>
             </section>
-            <p class="text-sm text-slate-600"
+            <p class="text-sm text-foreground-muted"
                 >Puedes instalar la aplicación desde el menú de tu navegador. La disponibilidad depende del navegador y
                 del dispositivo.</p
             >
-            <Link :href="route('notifications.index')" class="text-sm font-medium text-indigo-700 underline"
+            <Link :href="route('notifications.index')" class="text-sm font-medium text-accent-strong underline"
                 >Ver avisos en la aplicación</Link
             >
         </div>

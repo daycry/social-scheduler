@@ -116,9 +116,9 @@ const downloadCodes = () => {
 <template>
     <section>
         <header>
-            <h2 class="text-lg font-medium text-slate-900">Doble factor de autenticación</h2>
+            <h2 class="text-lg font-medium text-foreground-strong">Doble factor de autenticación</h2>
 
-            <p class="mt-1 text-sm text-slate-600">
+            <p class="mt-1 text-sm text-foreground-muted">
                 Añade un segundo paso al entrar: además de la contraseña, un código temporal de una app como Google
                 Authenticator, Authy o 1Password.
             </p>
@@ -127,24 +127,26 @@ const downloadCodes = () => {
         <!-- Códigos de recuperación recién generados: solo se muestran esta vez. -->
         <div
             v-if="recoveryCodes"
-            class="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4"
+            class="mt-6 rounded-lg border border-warning-panel-border bg-warning-soft p-4"
             role="region"
             aria-labelledby="recovery-title"
         >
-            <h3 id="recovery-title" class="text-sm font-semibold text-amber-900">Guarda tus códigos de recuperación</h3>
-            <p class="mt-1 text-sm text-amber-900">
+            <h3 id="recovery-title" class="text-sm font-semibold text-warning-ink"
+                >Guarda tus códigos de recuperación</h3
+            >
+            <p class="mt-1 text-sm text-warning-ink">
                 Cada código sirve una sola vez si pierdes el móvil. No volverán a mostrarse: guárdalos ahora en un lugar
                 seguro.
             </p>
 
             <ul
-                class="mt-3 grid grid-cols-1 gap-2 font-mono text-sm text-slate-900 sm:grid-cols-2"
+                class="mt-3 grid grid-cols-1 gap-2 font-mono text-sm text-foreground-strong sm:grid-cols-2"
                 aria-label="Códigos de recuperación"
             >
                 <li
                     v-for="code in recoveryCodes"
                     :key="code"
-                    class="break-all rounded bg-white px-3 py-1.5"
+                    class="break-all rounded bg-surface px-3 py-1.5"
                     >{{ code }}</li
                 >
             </ul>
@@ -153,14 +155,14 @@ const downloadCodes = () => {
                 <SecondaryButton @click="copy(recoveryCodes.join('\n'), 'codes')">Copiar códigos</SecondaryButton>
                 <SecondaryButton @click="downloadCodes">Descargar .txt</SecondaryButton>
             </div>
-            <p class="mt-2 text-sm text-amber-900" role="status" aria-live="polite">
+            <p class="mt-2 text-sm text-warning-ink" role="status" aria-live="polite">
                 <template v-if="copied === 'codes'">Códigos copiados al portapapeles.</template>
             </p>
         </div>
 
         <!-- Estado: desactivado -->
         <div v-if="!twoFactor.enabled && !twoFactor.pending" class="mt-6">
-            <p class="text-sm text-slate-700">El doble factor está <strong>desactivado</strong>.</p>
+            <p class="text-sm text-foreground-secondary">El doble factor está <strong>desactivado</strong>.</p>
             <PrimaryButton class="mt-4" :disabled="enableForm.processing" @click="enable"
                 >Activar doble factor</PrimaryButton
             >
@@ -169,7 +171,7 @@ const downloadCodes = () => {
         <!-- Estado: pendiente de confirmar -->
         <div v-else-if="!twoFactor.enabled" class="mt-6 space-y-4">
             <template v-if="setup">
-                <ol class="list-decimal space-y-1 ps-5 text-sm text-slate-700">
+                <ol class="list-decimal space-y-1 ps-5 text-sm text-foreground-secondary">
                     <li>Escanea el código QR con tu app de autenticación, o escribe la clave a mano.</li>
                     <li>Escribe el código de 6 dígitos que te muestre para terminar de activarlo.</li>
                 </ol>
@@ -180,24 +182,24 @@ const downloadCodes = () => {
                     alt="Código QR para configurar la app de autenticación. Si no puedes escanearlo, usa la clave de configuración que aparece debajo."
                     width="192"
                     height="192"
-                    class="h-48 w-48 rounded border border-slate-200 bg-white p-1"
+                    class="totp-qr h-48 w-48 rounded border border-border p-1"
                 />
 
                 <div>
-                    <p class="text-sm text-slate-600">Clave de configuración</p>
+                    <p class="text-sm text-foreground-muted">Clave de configuración</p>
                     <div class="mt-1 flex flex-wrap items-center gap-3">
                         <code
-                            class="break-all rounded bg-slate-100 px-2 py-1 font-mono text-sm text-slate-900"
+                            class="break-all rounded bg-surface-hover px-2 py-1 font-mono text-sm text-foreground-strong"
                             >{{ setup.secret }}</code
                         >
                         <SecondaryButton @click="copy(setup.secret, 'secret')">Copiar clave</SecondaryButton>
                     </div>
-                    <p class="mt-1 text-sm text-emerald-700" role="status" aria-live="polite">
+                    <p class="mt-1 text-sm text-success-ink" role="status" aria-live="polite">
                         <template v-if="copied === 'secret'">Clave copiada al portapapeles.</template>
                     </p>
                 </div>
             </template>
-            <p v-else-if="twoFactor.setupLocked" class="text-sm text-slate-700" role="status">
+            <p v-else-if="twoFactor.setupLocked" class="text-sm text-foreground-secondary" role="status">
                 Tienes una activación a medias. Por seguridad, la clave solo se muestra tras confirmar tu contraseña: si
                 ya la añadiste a tu app, escribe el código; si no, pulsa «Generar otro QR».
             </p>
@@ -233,8 +235,8 @@ const downloadCodes = () => {
 
         <!-- Estado: activo -->
         <div v-else class="mt-6">
-            <p class="text-sm text-slate-700">
-                El doble factor está <strong class="text-emerald-700">activado</strong>. Te quedan
+            <p class="text-sm text-foreground-secondary">
+                El doble factor está <strong class="text-success-ink">activado</strong>. Te quedan
                 <strong>{{ twoFactor.recoveryRemaining }}</strong>
                 {{ twoFactor.recoveryRemaining === 1 ? 'código de recuperación' : 'códigos de recuperación' }}.
             </p>
@@ -255,8 +257,8 @@ const downloadCodes = () => {
             @close="closeDisable"
         >
             <form class="p-6" @submit.prevent="disable" novalidate>
-                <h2 class="text-lg font-medium text-slate-900">Desactivar el doble factor</h2>
-                <p class="mt-1 text-sm text-slate-600"
+                <h2 class="text-lg font-medium text-foreground-strong">Desactivar el doble factor</h2>
+                <p class="mt-1 text-sm text-foreground-muted"
                     >Para confirmarlo, escribe tu contraseña y un código de tu app (o uno de recuperación).</p
                 >
 
@@ -343,3 +345,10 @@ const downloadCodes = () => {
         </BaseDialog>
     </section>
 </template>
+
+<style scoped>
+/* El margen del QR prolonga el fondo blanco de la imagen para facilitar la lectura. */
+.totp-qr {
+    background: white;
+}
+</style>

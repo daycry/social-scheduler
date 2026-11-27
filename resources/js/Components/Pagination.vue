@@ -16,7 +16,7 @@ defineProps({
 
 <template>
     <nav class="flex flex-wrap items-center justify-between gap-3 text-sm" :aria-label="label" data-testid="pagination">
-        <span v-if="page.total != null" class="text-slate-600">{{ page.total }} en total</span>
+        <span v-if="page.total != null" class="text-foreground-muted">{{ page.total }} en total</span>
         <div v-if="page.cursor || page.has_more" class="flex flex-wrap gap-2">
             <Link
                 v-if="page.cursor"

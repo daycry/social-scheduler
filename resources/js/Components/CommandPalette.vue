@@ -124,8 +124,8 @@ onBeforeUnmount(() => search.close());
         class="flex shrink-0 items-center gap-2 rounded-lg p-2 2xl:border 2xl:px-2.5 2xl:py-1.5"
         :class="
             light
-                ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 2xl:border-slate-300'
-                : 'text-slate-300 hover:bg-white/10 hover:text-white 2xl:border-white/15 2xl:bg-white/5'
+                ? 'text-foreground-muted hover:bg-surface-hover hover:text-foreground-strong 2xl:border-control-border'
+                : 'text-chrome-muted hover:bg-chrome-hover hover:text-chrome-strong 2xl:border-chrome-border 2xl:bg-chrome-strong/5'
         "
         :title="`Buscar (${shortcut.keys})`"
         aria-label="Buscar en la aplicación"
@@ -138,7 +138,7 @@ onBeforeUnmount(() => search.close());
         <span class="hidden text-sm 2xl:inline">Buscar</span>
         <kbd
             class="hidden rounded border px-1.5 text-[11px] 2xl:inline"
-            :class="light ? 'border-slate-300 text-slate-600' : 'border-white/20 text-slate-300'"
+            :class="light ? 'border-control-border text-foreground-muted' : 'border-chrome-border text-chrome-muted'"
             aria-hidden="true"
             >{{
             shortcut.keys
@@ -159,8 +159,8 @@ onBeforeUnmount(() => search.close());
     >
         <div class="relative flex h-full min-w-0 flex-col" data-testid="command-palette">
             <h2 id="command-palette-title" class="sr-only">Buscar</h2>
-            <div class="flex items-center gap-2 border-b border-slate-200 px-3 py-2">
-                <Icon name="search" class="h-5 w-5 shrink-0 text-slate-500" />
+            <div class="flex items-center gap-2 border-b border-border px-3 py-2">
+                <Icon name="search" class="h-5 w-5 shrink-0 text-foreground-subtle" />
                 <label for="command-palette-input" class="sr-only"
                     >Buscar páginas, publicaciones, marcas, archivos y más</label
                 >
@@ -182,13 +182,13 @@ onBeforeUnmount(() => search.close());
                     spellcheck="false"
                     enterkeyhint="go"
                     placeholder="Buscar…"
-                    class="min-h-11 min-w-0 flex-1 rounded-md border-0 bg-transparent px-1 text-base text-slate-900 placeholder:text-slate-500 focus:ring-2 focus:ring-inset focus:ring-indigo-500 focus:ring-offset-0 sm:text-sm"
+                    class="min-h-11 min-w-0 flex-1 rounded-md border-0 bg-transparent px-1 text-base text-foreground-strong placeholder:text-foreground-subtle focus:ring-2 focus:ring-inset focus:ring-focus focus:ring-offset-0 sm:text-sm"
                     data-testid="command-palette-input"
                     @keydown="onNavigationKeydown"
                 />
                 <button
                     type="button"
-                    class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100"
+                    class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-foreground-muted hover:bg-surface-hover"
                     aria-label="Cerrar la búsqueda"
                     data-testid="command-palette-close"
                     @click="close"
@@ -197,7 +197,7 @@ onBeforeUnmount(() => search.close());
                 </button>
             </div>
 
-            <p id="command-palette-hint" class="px-4 pt-2 text-xs text-slate-600">
+            <p id="command-palette-hint" class="px-4 pt-2 text-xs text-foreground-muted">
                 Escribe para buscar entre todas las páginas; publicaciones, marcas, archivos y diseños se buscan desde
                 {{ MIN_LENGTH }} letras.
             </p>
@@ -223,7 +223,7 @@ onBeforeUnmount(() => search.close());
                         <div
                             :id="`command-palette-group-${group.type}`"
                             role="presentation"
-                            class="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-slate-500"
+                            class="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-foreground-subtle"
                             >{{ group.label }}</div
                         >
                         <div
@@ -233,16 +233,19 @@ onBeforeUnmount(() => search.close());
                             role="option"
                             :aria-selected="entry.index === active"
                             class="flex min-h-11 cursor-pointer items-center gap-3 border-s-2 px-4 py-2"
-                            :class="entry.index === active ? 'border-indigo-600 bg-indigo-50' : 'border-transparent'"
+                            :class="entry.index === active ? 'border-accent bg-accent-soft' : 'border-transparent'"
                             data-testid="command-palette-option"
                             @click="choose(entry)"
                             @mousemove="active = entry.index"
                         >
                             <NetworkIcon v-if="entry.network !== undefined" :network="entry.network" size="sm" />
-                            <Icon v-else :name="entry.icon ?? 'grid'" class="h-5 w-5 shrink-0 text-slate-500" />
+                            <Icon v-else :name="entry.icon ?? 'grid'" class="h-5 w-5 shrink-0 text-foreground-subtle" />
                             <span class="min-w-0 flex-1">
-                                <span class="block truncate text-sm font-medium text-slate-900">{{ entry.title }}</span>
-                                <span v-if="entry.meta" class="block truncate text-xs text-slate-600">{{
+                                <span
+                                    class="block truncate text-sm font-medium text-foreground-strong"
+                                    >{{ entry.title }}</span
+                                >
+                                <span v-if="entry.meta" class="block truncate text-xs text-foreground-muted">{{
                                     entry.meta
                                 }}</span>
                             </span>
@@ -253,14 +256,14 @@ onBeforeUnmount(() => search.close());
 
                 <p
                     v-if="remote.status === 'loading'"
-                    class="px-4 py-3 text-sm text-slate-600"
+                    class="px-4 py-3 text-sm text-foreground-muted"
                     data-testid="command-palette-loading"
                     >Buscando en tu contenido…</p
                 >
                 <p
                     v-else-if="remote.status === 'error'"
                     role="alert"
-                    class="px-4 py-3 text-sm text-red-700"
+                    class="px-4 py-3 text-sm text-danger"
                     data-testid="command-palette-error"
                     >{{ remote.error }}</p
                 >
@@ -283,7 +286,7 @@ onBeforeUnmount(() => search.close());
                 data-testid="command-palette-status"
                 >{{ announcement }}</p
             >
-            <p class="hidden border-t border-slate-200 px-4 py-2 text-xs text-slate-600 sm:block">
+            <p class="hidden border-t border-border px-4 py-2 text-xs text-foreground-muted sm:block">
                 ↑ ↓ para moverte · Intro para abrir · Esc para cerrar
             </p>
         </div>

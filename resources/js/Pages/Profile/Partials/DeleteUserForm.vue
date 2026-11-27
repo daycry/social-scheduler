@@ -41,9 +41,9 @@ const closeModal = () => {
 <template>
     <section class="space-y-6">
         <header>
-            <h2 class="text-lg font-medium text-slate-900"> Eliminar cuenta </h2>
+            <h2 class="text-lg font-medium text-foreground-strong"> Eliminar cuenta </h2>
 
-            <p class="mt-1 text-sm text-slate-600">
+            <p class="mt-1 text-sm text-foreground-muted">
                 Al eliminar tu cuenta se borrarán de forma permanente todos sus recursos y datos. Antes de hacerlo,
                 descarga cualquier información que quieras conservar.
             </p>
@@ -60,9 +60,9 @@ const closeModal = () => {
             @close="closeModal"
         >
             <div class="p-6">
-                <h2 class="text-lg font-medium text-slate-900"> ¿Seguro que quieres eliminar tu cuenta? </h2>
+                <h2 class="text-lg font-medium text-foreground-strong"> ¿Seguro que quieres eliminar tu cuenta? </h2>
 
-                <p class="mt-1 text-sm text-slate-600">
+                <p class="mt-1 text-sm text-foreground-muted">
                     Esta acción es permanente. Introduce tu contraseña para confirmar que quieres eliminar tu cuenta.
                 </p>
 

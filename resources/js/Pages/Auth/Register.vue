@@ -24,8 +24,8 @@ const submit = () => {
     <GuestLayout>
         <Head title="Crear cuenta" />
 
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Crea tu cuenta</h1>
-        <p class="mb-6 mt-1 text-sm text-slate-600">Empieza a programar y medir tus redes en minutos.</p>
+        <h1 class="text-2xl font-bold tracking-tight text-foreground-strong">Crea tu cuenta</h1>
+        <p class="mb-6 mt-1 text-sm text-foreground-muted">Empieza a programar y medir tus redes en minutos.</p>
 
         <form @submit.prevent="submit">
             <div>

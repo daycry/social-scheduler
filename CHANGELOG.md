@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — marketing dates and .ics calendar feed (audit-hardening, T-90)
+
+- The calendar now shows a starter set of marketing dates (New Year, Valentine's Day, Women's Day, Father's and Mother's Day in Spain, World Book Day, Halloween, Black Friday, Cyber Monday, Christmas…), clearly set apart from your posts in the week, month and list views; you can hide them from the calendar panel and the choice is remembered for your account. The same panel creates a secret subscription link (.ics) so you can see your scheduled and published posts, and the marketing dates if they are visible, in Google Calendar, Outlook or Apple Calendar. The link is shown only once, only ever contains your own posts (a short summary: brand, networks, status and the start of the text), can be regenerated (the previous one stops working) or revoked at any time, is revoked automatically when you change or reset your password, and is never indexed or cached. The final list of dates is still to be confirmed.
+
 ### Added — own link shortener with click counts (audit-hardening, T-89)
 
 - Shorten any web address into a link of your own (`/s/CODE`) from SmartLinks → Short links, or tick "Shorten the link and count its clicks" in the composer's UTM builder. Each link shows its clicks today, in the last 7 days, in total and day by day (UTC days). You can turn a link off (visitors see a clear "this link is off" page and nothing is counted) and back on, or delete it. Only the number of clicks per day is stored: no IP, browser or any personal data; HEAD requests and browser prefetches (which announce themselves) do not count. Only http and https destinations are accepted; up to 500 links per account.

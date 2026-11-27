@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Auth\SocialLoginController;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Services\TwoFactor\TotpService;
+use App\Support\EncryptedHistory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,9 +33,7 @@ class ProfileController extends Controller
         // El historial del navegador guarda las props cifradas (secreto QR / codigos). El cifrado usa crypto.subtle, que
         // solo existe en contexto seguro: en http (salvo localhost) Inertia no podria escribir el historial y la pagina
         // se quedaria colgada, asi que alli no se activa (y entonces no hay secreto que proteger en transito tampoco).
-        if ($request->secure() || in_array($request->getHost(), ['localhost', '127.0.0.1', '[::1]'], true)) {
-            Inertia::encryptHistory();
-        }
+        EncryptedHistory::enable($request);
 
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,

@@ -5,6 +5,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Added — fechas señaladas y feed .ics del calendario (audit-hardening, T-90)
+
+- El calendario muestra ahora un conjunto inicial de fechas señaladas de marketing (Año Nuevo, San Valentín, Día de la Mujer, Día del Padre y de la Madre en España, Día del Libro, Halloween, Black Friday, Cyber Monday, Navidad…), diferenciadas de tus publicaciones en las vistas semana, mes y lista; puedes ocultarlas desde el panel del calendario y se recuerda en tu cuenta. El mismo panel crea un enlace de suscripción secreto (.ics) para ver tus publicaciones programadas y publicadas, y las fechas señaladas si están visibles, en Google Calendar, Outlook o Apple Calendar. El enlace se muestra una sola vez, solo contiene tus propias publicaciones (un resumen corto: marca, redes, estado y el inicio del texto), se puede regenerar (el anterior deja de funcionar) o revocar cuando quieras, se revoca solo al cambiar o restablecer la contraseña, y nunca se indexa ni se cachea. El listado definitivo de fechas está pendiente de confirmar.
+
 ### Added — acortador propio con clics (audit-hardening, T-89)
 
 - Acorta cualquier dirección web en un enlace tuyo (`/s/CÓDIGO`) desde SmartLinks → Enlaces cortos, o marca «Acortar el enlace y contar sus clics» en el generador de UTM del compositor. Cada enlace muestra sus clics de hoy, de los últimos 7 días, el total y el desglose por día (días UTC). Puedes desactivarlo (quien lo abra verá una página clara de «enlace desactivado» y no se cuenta nada) y reactivarlo, o borrarlo. Solo se guarda el número de clics por día: sin IP, navegador ni datos personales; las peticiones HEAD y la precarga del navegador (que se anuncian como tal) no cuentan. Solo se aceptan destinos http y https; hasta 500 enlaces por cuenta.

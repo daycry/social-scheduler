@@ -68,3 +68,13 @@ test('el calendario sin vistas ni filtros sigue igual (regresión de CalendarTes
     $this->actingAs($this->user)->get(route('calendar.index', ['date' => '2026-11-03']))
         ->assertInertia(fn (Assert $p) => $p->has('items', 3)->where('views', [])->where('active_view', null));
 });
+
+test('T-90: get_calendar devuelve las fechas señaladas del rango y respeta que el usuario las oculte', function () {
+    [$err, $mcp] = $this->callTool($this->key, 'get_calendar', ['date' => '2026-10-28', 'view' => 'month']);
+    expect($err)->toBeFalse()->and(collect($mcp['marketing_dates'])->pluck('name')->all())->toContain('Halloween')
+        ->and($mcp['marketing_dates_hidden'])->toBeFalse();
+
+    $this->user->forceFill(['hide_marketing_dates' => true])->save();
+    [$err, $mcp] = $this->callTool($this->key, 'get_calendar', ['date' => '2026-10-28', 'view' => 'month']);
+    expect($err)->toBeFalse()->and($mcp['marketing_dates'])->toBe([])->and($mcp['marketing_dates_hidden'])->toBeTrue();
+});

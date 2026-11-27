@@ -287,6 +287,13 @@ return [
         'max_rows' => (int) env('SOCIAL_EXPORT_MAX_ROWS', 5000),
     ],
 
+    /*
+    | Feed .ics del calendario (T-90): tope de publicaciones por feed. Si se supera, se priorizan las proximas y el pasado reciente usa el cupo que quede.
+    */
+    'calendar_feed' => [
+        'max_posts' => (int) env('SOCIAL_CALENDAR_FEED_MAX_POSTS', 1000),
+    ],
+
     'analytics' => [
         'queue' => env('SOCIAL_ANALYTICS_QUEUE', 'metrics'),
         /* Minutos que se cachea «Todas las marcas» por usuario y periodo (0 = sin cache). */

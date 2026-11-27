@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\CalendarFeed;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -23,6 +24,8 @@ class PasswordController extends Controller
         $request->user()->update([
             'password' => Hash::make($validated['password']),
         ]);
+        // El enlace .ics del calendario es una credencial: cambiar la contrasena (posible respuesta a un robo) lo revoca (CWE-613).
+        app(CalendarFeed::class)->revoke($request->user());
 
         return back();
     }

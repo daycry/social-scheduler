@@ -48,9 +48,9 @@ estado: en-progreso
 | Fase 5 — Frontend | 15 | 18 | 83% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
 | Fase 5b — Unificación | 4 | 8 | 50% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
 | Fase 6 — Operación y repositorio | 4 | 6 | 67% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
-| Fase 7 — Funciones nuevas | 15 | 24 | 63% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
+| Fase 7 — Funciones nuevas | 16 | 24 | 67% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **88** | **108** | **81%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
+| **TOTAL** | **89** | **108** | **82%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -4586,35 +4586,37 @@ CoberturaM3extra descubre registrodoble deListeners por autodetección+PushServi
 ### T-90 — Calendario: fechas señaladas y feed .ics
 
 - **Descripción**: Fechas señaladas (datos propios) visibles en el calendario y feed `.ics` con token por usuario.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El calendario muestra fechas señaladas ocultables y ofrece un enlace .ics secreto, regenerable y revocable para verlo en Google Calendar, Outlook o Apple Calendar.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-89
 - **Tipo**: fullstack
-- **Archivos**: `app/Services/CalendarService.php`, `app/Http/Controllers/CalendarFeedController.php`, `database/seeders/MarketingDatesSeeder.php`, `resources/js/Pages/Calendar/Index.vue`, `docs/modulos/calendario.md`
+- **Archivos**: `app/Services/CalendarService.php`, `app/Http/Controllers/CalendarFeedController.php`, `resources/js/Pages/Calendar/Index.vue`, `docs/modulos/calendario.md`, `config/marketing_dates.php`, `app/Support/MarketingDates.php`, `app/Support/IcsWriter.php`, `app/Services/CalendarFeed.php`, `app/Http/Controllers/MarketingDatesController.php`, `app/Http/Controllers/CalendarController.php`, `app/Models/User.php`, `app/Services/Export/ExportInventory.php`, `config/rate_limits.php`, `routes/web.php`, `routes/parity.php`, `database/migrations/2026_11_27_110000_add_calendar_feed_to_users.php`, `resources/js/Components/Calendar/CalendarFeedPanel.vue`, `resources/js/types/calendar.d.ts`, `tests/Feature/Calendar/CalendarIcsFeedTest.php`, `tests/Feature/Calendar/MarketingDatesTest.php`, `tests/e2e/calendar-ics-feed.spec.ts`, `CHANGELOG.md`, `CHANGELOG.es.md`, `app/Support/EncryptedHistory.php`, `app/Http/Controllers/ProfileController.php`, `app/Http/Controllers/ApiKeyController.php`, `app/Http/Controllers/Auth/PasswordController.php`, `app/Http/Controllers/Auth/NewPasswordController.php`, `app/Providers/AppServiceProvider.php`, `config/social.php`, `tests/Feature/Calendar/CalendarViewsFlowTest.php`, `docs/usuario/guia-de-usuario.md`, `docs/usuario/exportar.md`, `docs/modulos/mcp.md`, `docs/roadmap/2026-11-11-audit-hardening/testing/t90/**`
 - **Cubre**: F-17, F-18
 - **Cubre (tests)**: E2E-29
 - **Verificación**: `php artisan test --compact --filter=CalendarIcsFeedTest` → verde
 
 **Criterios de aceptación**
-- [ ] El feed .ics es válido y solo contiene los posts del usuario
-- [ ] El token se puede regenerar
-- [ ] Las fechas señaladas se pueden ocultar
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] El feed .ics es válido y solo contiene los posts del usuario
+- [x] El token se puede regenerar
+- [x] Las fechas señaladas se pueden ocultar
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
-**Notas**: Tamaño M. Qué se puede hacer ya: infraestructura y un conjunto inicial de fechas. Queda a la espera (U): el listado definitivo de fechas de interés. **A la espera (no bloquea la fase)**: Listado definitivo de fechas señaladas (usuario).
+**Notas**: Tamaño M. Implementación (sin `MarketingDatesSeeder`: las fechas viven en `config/marketing_dates.php`, versionadas y sin sembrar). Qué se puede hacer ya: infraestructura y un conjunto inicial de fechas. Queda a la espera (U): el listado definitivo de fechas de interés. **A la espera (no bloquea la fase)**: Listado definitivo de fechas señaladas (usuario).
+
+**Cierre — 2026-11-27:** fechas señaladas (F-17) como fuente única editable en `config/marketing_dates.php` (sin seeder ni tabla: se versiona y se revisa en PR), calculadas por `App\Support\MarketingDates` (fijas y móviles con `nth`, `nth: -1` = último y `offset`; 29-2 solo en bisiestos, `nth` inexistente se omite, `between()` con años contiguos); 14 fechas iniciales, distintivo fucsia en semana/mes/lista con prefijo accesible «Fecha señalada:», ocultables por usuario (`users.hide_marketing_dates`), también en el MCP `get_calendar`. Feed .ics (F-18) con `IcsWriter` (RFC 5545: CRLF, plegado a 75 octetos sin partir UTF-8, escapado, `UID` estable, UTC, días completos con `VALUE=DATE`) y `CalendarFeed`: token de 256 bits en base64url, solo su SHA-256 único en BD, URL visible una vez (flash cifrado e historial Inertia cifrado con `EncryptedHistory`, también aplicado a la clave nueva de API keys), regenerable y revocable, revocado al cambiar o restablecer la contraseña; ruta pública sin sesión con limitador propio `calendar-feed`, `no-store`, `noindex`, `no-referrer`, 404 sin pista; solo posts propios programados/en curso/publicados, tope `social.calendar_feed.max_posts` (1000) priorizando lo próximo. Revisión adversarial A+B+C en 2 intentos: intento 1 — 0 Critical/Important, 10 Minor (historial sin cifrar CWE-525, token tras cambio de contraseña CWE-613, limitador, reglas de fechas límite, tope del feed, URL perdida al cambiar la casilla, casilla desincronizada, contexto accesible, docs, MCP) corregidos; intento 2 — sin defectos de código, 2 Minor de documentación corregidos. QA: Pest completo verde; la primera pasada E2E detectó un desbordamiento horizontal en móvil de 206–221 px en el calendario, causado por el `sr-only` del distintivo sin contenedor `relative`; corregido y cubierto con `expectNoOverflow` en semana y mes con fechas señaladas; E2E feed + vistas + seguridad + páginas + a11y + exportación 288 pasados / 2 omitidos en tres tamaños (`testing/t90/t90-e2e-r2.log`). **Pendiente del usuario:** listado definitivo de fechas señaladas (editar `config/marketing_dates.php`). **Deuda aceptada (Minor):** las API keys siguen sin revocarse al cambiar la contraseña (política propia, fuera de alcance); quien pierda la URL del feed debe regenerarla.
 
 ### T-91 — Marca de agua automática y exportación en lote
 
@@ -5495,3 +5497,7 @@ Lentes A+B+C (C por SSRF y XML). Intento 1: I1 entrada perdida por longitud y I2
 ## Revisión de dos lentes — intento 3: Fase 7 (T-89) — aprobada y cerrada
 
 Lentes A+B+C. Intento 1: 0 Critical/Important, 8 Minor (incluidos el homógrafo IDN de la lente C y la carga de la lente D) corregidos. Intento 2: 1 Important (host con codificación porcentual, CWE-1007) corregido en `SafeUrl`. Intento 3: sin hallazgos. Diffs en `testing/t89/reviews/r1.patch` y `r2.patch`. Total 88/108.
+
+## Revisión de dos lentes — intento 2: Fase 7 (T-90) — aprobada y cerrada
+
+Lentes A+B+C. Intento 1: 0 Critical/Important, 10 Minor (incluidos CWE-525 y CWE-613 de la lente C) corregidos. Intento 2: sin defectos de código; 2 Minor de documentación corregidos. QA encontró y cerró un desbordamiento en móvil. Diffs en `testing/t90/reviews/r1.patch` y `r2.patch`. Total 89/108.

@@ -23,6 +23,18 @@ export interface CalendarBrand {
     timezone: string;
 }
 
+export interface MarketingDate {
+    date: string;
+    name: string;
+}
+
+/** Feed .ics (T-90): `url` solo llega justo tras crear o regenerar el enlace; la base de datos guarda únicamente su hash. */
+export interface CalendarFeedState {
+    active: boolean;
+    url: string | null;
+    generated_at: string | null;
+}
+
 export interface CalendarExportSummary {
     total: number;
     max: number;

@@ -8,6 +8,7 @@ use App\Models\Brand;
 use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\User;
+use App\Support\MarketingDates;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -66,6 +67,9 @@ class CalendarService
             'networks' => collect(Network::offered())->map(fn (Network $n) => $n->toArray())->values()->all(),
             'items' => $items->all(),
             'undated' => $undated->all(),
+            // Fechas señaladas del rango (T-90): datos propios de `config/marketing_dates.php`, salvo que el usuario las oculte.
+            'marketing_dates' => $user->hide_marketing_dates ? [] : array_map(fn (array $d) => ['date' => $d['date'], 'name' => $d['name']], MarketingDates::between($from->format('Y-m-d'), $to->subDay()->format('Y-m-d'))),
+            'marketing_dates_hidden' => (bool) $user->hide_marketing_dates,
             'truncated' => $items->count() >= self::MAX_ITEMS,
         ];
     }
@@ -185,7 +189,7 @@ class CalendarService
      * destinos con texto propio), y entonces el primer texto efectivo no vacio de sus destinos. El efectivo se resuelve con la
      * plantilla ya cargada (`text ?? plantilla`) y no con `effectiveText()`, que consultaria el post de cada destino (N+1).
      */
-    private function displayText(Post $post): string
+    public function displayText(Post $post): string
     {
         $template = (string) $post->text;
         $targets = $post->targets;

@@ -23,7 +23,7 @@ Si un fichero ya no está en el almacenamiento, se omite y queda anotado en `ski
 
 ## Qué no incluye
 
-- **Credenciales y secretos:** tokens de acceso y de renovación de las cuentas sociales, contraseñas de aplicación, claves de API y tokens, hash de tu contraseña, secreto y códigos de recuperación del doble factor, passkeys, claves de las notificaciones push, secretos y URL de los webhooks, la contraseña de acceso de los sitios y la clave de la aplicación. Tendrás que volver a conectar las cuentas al restaurar.
+- **Credenciales y secretos:** tokens de acceso y de renovación de las cuentas sociales, contraseñas de aplicación, claves de API y tokens, el enlace secreto del feed .ics del calendario, hash de tu contraseña, secreto y códigos de recuperación del doble factor, passkeys, claves de las notificaciones push, secretos y URL de los webhooks, la contraseña de acceso de los sitios y la clave de la aplicación. Tendrás que volver a conectar las cuentas al restaurar.
 - **Datos de otras personas:** las marcas de las que solo eres colaborador, los diseños que te han compartido, los colaboradores de tus marcas, los suscriptores de tus smart links, los mensajes recibidos en tus sitios y los enlaces de acceso a tus diseños.
 - **Comentarios de terceros del buzón:** son datos de quienes los escribieron en tus cuentas. Sí van tus respuestas, tus notas y tus etiquetas.
 - **Comentarios de aprobación** de tus publicaciones y diseños: los escribe un colaborador. Sí va el estado de aprobación.

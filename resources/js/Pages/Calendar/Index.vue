@@ -1,5 +1,5 @@
 <script setup>
-/** @import { CalendarBrand, CalendarExportSummary, CalendarFilters, CalendarItem, CalendarNavigation, CalendarViewMode, SavedCalendarView, ScheduledCalendarItem, UndatedCalendarItem } from '@/types/calendar' */
+/** @import { CalendarBrand, CalendarExportSummary, CalendarFeedState, CalendarFilters, CalendarItem, CalendarNavigation, CalendarViewMode, MarketingDate, SavedCalendarView, ScheduledCalendarItem, UndatedCalendarItem } from '@/types/calendar' */
 /** @import { SessionFlash, NetworkOption, ShellPageProps } from '@/types/shell' */
 import { useTabs } from '@/Composables/useTabs';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
@@ -8,6 +8,7 @@ import BestTimeSuggestion from '@/Components/BestTimeSuggestion.vue';
 import StatusBadge from '@/Components/StatusBadge.vue';
 import PublishNowConfirm from '@/Components/Calendar/PublishNowConfirm.vue';
 import CalendarToolbar from '@/Components/Calendar/CalendarToolbar.vue';
+import CalendarFeedPanel from '@/Components/Calendar/CalendarFeedPanel.vue';
 import { useCalendarPublishNow } from '@/Composables/useCalendarPublishNow';
 import BatchBar from '@/Components/Calendar/BatchBar.vue';
 import { workflowError, workflowRequest } from '@/Composables/useWorkflow';
@@ -34,6 +35,9 @@ const props = defineProps({
     items: { type: /** @type {import('vue').PropType<ScheduledCalendarItem[]>} */ (Array), required: true },
     undated: { type: /** @type {import('vue').PropType<UndatedCalendarItem[]>} */ (Array), required: true },
     truncated: Boolean,
+    marketing_dates: { type: /** @type {import('vue').PropType<MarketingDate[]>} */ (Array), default: () => [] },
+    marketing_dates_hidden: { type: Boolean, default: false },
+    feed: { type: /** @type {import('vue').PropType<CalendarFeedState>} */ (Object), required: true },
     export: { type: /** @type {import('vue').PropType<CalendarExportSummary | null>} */ (Object), default: null },
     filters: { type: /** @type {import('vue').PropType<CalendarFilters>} */ (Object), required: true },
     views: { type: /** @type {import('vue').PropType<SavedCalendarView[]>} */ (Array), default: () => [] },
@@ -78,6 +82,12 @@ const title = computed(() => {
 /** @param {string} day @param {number | null} [hour] */
 const itemsAt = (day, hour = null) =>
     props.items.filter((i) => i.local_date === day && (hour === null || Number(i.local_time.slice(0, 2)) === hour));
+
+/** Fechas señaladas de un día (no son publicaciones: no se arrastran ni se abren). @param {string} day */
+const marketingAt = (day) => props.marketing_dates.filter((d) => d.date === day);
+const longDay = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+/** @param {string} iso */
+const longDayLabel = (iso) => longDay.format(new Date(`${iso}T00:00:00Z`));
 
 // ---------------------------------------------------------------- reprogramar
 /** @type {import('vue').Ref<ScheduledCalendarItem | null>} */
@@ -219,6 +229,8 @@ const retry = async (item) => {
                     @navigate="go"
                 />
 
+                <CalendarFeedPanel :feed="feed" :marketing-hidden="marketing_dates_hidden" />
+
                 <div v-bind="panelProps(view)" class="space-y-3">
                     <EmptyState
                         v-if="items.length === 0 && undated.length === 0"
@@ -246,6 +258,24 @@ const retry = async (item) => {
                         data-testid="retry-notice"
                         >{{ retryNotice }}</p
                     >
+                    <section
+                        v-if="view === 'list' && marketing_dates.length"
+                        class="card p-3"
+                        aria-labelledby="marketing-dates-title"
+                    >
+                        <h2 id="marketing-dates-title" class="text-sm font-semibold text-slate-900"
+                            >Fechas señaladas del periodo</h2
+                        >
+                        <ul class="mt-2 space-y-1 text-sm">
+                            <li v-for="m in marketing_dates" :key="m.date + m.name" data-testid="marketing-date">
+                                <span
+                                    class="rounded border border-fuchsia-200 bg-fuchsia-50 px-1 text-xs font-medium text-fuchsia-900"
+                                    >{{ m.name }}</span
+                                >
+                                <span class="ml-2 text-slate-600">{{ longDayLabel(m.date) }}</span>
+                            </li>
+                        </ul>
+                    </section>
                     <BatchBar v-if="view === 'list'" :selected="selected" :items="allRows" @clear="selected = []" />
 
                     <p v-if="truncated" class="text-sm text-amber-700"
@@ -255,7 +285,7 @@ const retry = async (item) => {
                     <!-- SEMANA: franjas horarias -->
                     <div
                         v-if="view === 'week'"
-                        class="card overflow-x-auto"
+                        class="card relative overflow-x-auto"
                         tabindex="0"
                         role="region"
                         aria-label="Calendario semanal"
@@ -267,7 +297,14 @@ const retry = async (item) => {
                                 :key="d"
                                 class="border-b border-l border-slate-200 p-2 text-center text-xs font-medium"
                                 :class="d === today ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600'"
-                                >{{ weekdayLabel(d) }}</div
+                                >{{ weekdayLabel(d) }}
+                                <span
+                                    v-for="m in marketingAt(d)"
+                                    :key="m.name"
+                                    class="mt-1 block rounded border border-fuchsia-200 bg-fuchsia-50 px-1 text-[11px] font-medium text-fuchsia-900"
+                                    data-testid="marketing-date"
+                                    ><span class="sr-only">Fecha señalada: </span>{{ m.name }}</span
+                                ></div
                             >
                             <template v-for="h in hours" :key="h">
                                 <div class="border-b border-slate-100 pr-1 text-right text-[10px] text-slate-500"
@@ -353,7 +390,7 @@ const retry = async (item) => {
                     </div>
 
                     <!-- MES -->
-                    <div v-else-if="view === 'month'" class="card overflow-hidden">
+                    <div v-else-if="view === 'month'" class="card relative overflow-hidden">
                         <div
                             class="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-center text-xs font-medium text-slate-600"
                         >
@@ -377,6 +414,13 @@ const retry = async (item) => {
                                     class="text-xs"
                                     :class="d === today ? 'font-bold text-indigo-700' : ''"
                                     >{{ Number(d.slice(8)) }}</div
+                                >
+                                <p
+                                    v-for="m in marketingAt(d)"
+                                    :key="m.name"
+                                    class="rounded border border-fuchsia-200 bg-fuchsia-50 px-1 text-[11px] font-medium text-fuchsia-900"
+                                    data-testid="marketing-date"
+                                    ><span class="sr-only">Fecha señalada: </span>{{ m.name }}</p
                                 >
                                 <article
                                     v-for="item in itemsAt(d)"

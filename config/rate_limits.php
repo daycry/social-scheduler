@@ -33,6 +33,8 @@ return [
     // Publicar ahora consume cupo solo si se solicita. Los comentarios comparten cupo por enlace.
     'publish_now' => 30,
     'studio_link_comments' => 10,
+    // Feed .ics del calendario (T-90): peticiones por minuto por token y, como respaldo, por IP.
+    'calendar_feed' => ['per_token' => 30, 'per_ip' => 600],
     'two_factor_manage' => 10,
     // Registro OAuth por hora, agrupado por /64 para IPv6.
     'mcp_oauth_register' => 10,
@@ -103,6 +105,9 @@ return [
         'calendar-views.store' => 60,
         'calendar-views.update' => 60,
         'calendar-views.destroy' => 60,
+        'calendar-feed.store' => 10,
+        'calendar-feed.destroy' => 30,
+        'calendar.marketing-dates' => 60,
         'brands.hashtags' => 60,
         'brands.posts.import.preview' => 20,
         'brands.posts.import.confirm' => 10,

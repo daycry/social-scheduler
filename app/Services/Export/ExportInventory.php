@@ -18,7 +18,7 @@ final class ExportInventory
 
     /** @var array<string, array{table: string, only?: list<string>, except?: list<string>, json?: list<string>, where?: array<string, mixed>, by?: string, via?: array{0: string, 1: string}, order?: list<string>}> */
     public const ENTITIES = [
-        'usuario' => ['table' => 'users', 'by' => 'id', 'only' => ['id', 'name', 'email', 'notify_by_mail', 'notify_weekly_digest', 'weekly_digest_ai', 'notify_manual_reminder', 'created_at']],
+        'usuario' => ['table' => 'users', 'by' => 'id', 'only' => ['id', 'name', 'email', 'notify_by_mail', 'notify_weekly_digest', 'weekly_digest_ai', 'notify_manual_reminder', 'hide_marketing_dates', 'created_at']],
         'marcas' => ['table' => 'brands'],
         'cuentas-conectadas' => ['table' => 'social_accounts', 'only' => ['id', 'brand_id', 'network', 'external_id', 'name', 'username', 'status', 'scopes', 'connected_at', 'created_at'], 'json' => ['scopes']],
         'publicaciones' => ['table' => 'posts', 'except' => ['approval_comment']],
@@ -70,7 +70,7 @@ final class ExportInventory
 
     /** Lo que NO va en el ZIP y por qué (se copia al LEEME.txt y a docs/usuario/exportar.md). */
     public const EXCLUDED = [
-        'Credenciales y secretos: tokens de acceso y de renovación de las cuentas sociales, contraseñas de aplicación, claves de API y tokens Sanctum, hash de la contraseña, secreto y códigos de recuperación del doble factor, passkeys, endpoints y claves de las notificaciones push, secretos y URL de los webhooks, acceso con contraseña de los sitios y la clave de la aplicación. Se vuelven a crear al conectar de nuevo.',
+        'Credenciales y secretos: tokens de acceso y de renovación de las cuentas sociales, contraseñas de aplicación, claves de API y tokens Sanctum, el enlace secreto del feed .ics del calendario, hash de la contraseña, secreto y códigos de recuperación del doble factor, passkeys, endpoints y claves de las notificaciones push, secretos y URL de los webhooks, acceso con contraseña de los sitios y la clave de la aplicación. Se vuelven a crear al conectar de nuevo.',
         'Datos de otras personas: las marcas de las que solo eres colaborador, los diseños que te han compartido, los colaboradores de tus marcas, los suscriptores de tus smart links, los mensajes recibidos en tus sitios y los enlaces de acceso a tus diseños.',
         'Los comentarios que terceros han escrito en tus cuentas (buzón): son datos de esas personas. Sí van tus respuestas, tus notas y tus etiquetas.',
         'Los comentarios de aprobación de tus publicaciones y diseños (los escribe un colaborador); sí va el estado de aprobación.',

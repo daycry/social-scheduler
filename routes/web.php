@@ -5,6 +5,7 @@ use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\ApiKeyController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\CalendarFeedController;
 use App\Http\Controllers\CalendarViewController;
 use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\ConnectionController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\HashtagController;
 use App\Http\Controllers\InstagramAudioController;
 use App\Http\Controllers\InstagramGridController;
 use App\Http\Controllers\LibraryController;
+use App\Http\Controllers\MarketingDatesController;
 use App\Http\Controllers\Mcp\OAuth\AuthorizeController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\NotificationController;
@@ -120,6 +122,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('calendar/views', [CalendarViewController::class, 'store'])->middleware('throttle:calendar-views.store')->name('calendar-views.store');
     Route::put('calendar/views/{view}', [CalendarViewController::class, 'update'])->middleware('throttle:calendar-views.update')->whereNumber('view')->name('calendar-views.update');
     Route::delete('calendar/views/{view}', [CalendarViewController::class, 'destroy'])->middleware('throttle:calendar-views.destroy')->whereNumber('view')->name('calendar-views.destroy');
+    // Feed .ics por usuario y fechas señaladas (T-90).
+    Route::post('calendar/feed', [CalendarFeedController::class, 'store'])->middleware('throttle:calendar-feed.store')->name('calendar.feed.store');
+    Route::delete('calendar/feed', [CalendarFeedController::class, 'destroy'])->middleware('throttle:calendar-feed.destroy')->name('calendar.feed.destroy');
+    Route::patch('calendar/marketing-dates', [MarketingDatesController::class, 'update'])->middleware('throttle:calendar.marketing-dates')->name('calendar.marketing-dates.update');
     // Cuadricula de Instagram (C-02): solo lectura; lo publicado se lee en vivo de Graph con cache de 10 min.
     Route::get('instagram/grid', [InstagramGridController::class, 'index'])->name('instagram.grid');
 

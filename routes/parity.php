@@ -4,6 +4,7 @@ use App\Http\Controllers\AdsController;
 use App\Http\Controllers\AiAssistantController;
 use App\Http\Controllers\AutolistController;
 use App\Http\Controllers\BestTimesController;
+use App\Http\Controllers\CalendarFeedController;
 use App\Http\Controllers\CompetitorController;
 use App\Http\Controllers\InboxController;
 use App\Http\Controllers\InboxNoteController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\SmartLinkController;
 use App\Http\Controllers\TrashController;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\ShortLink;
+use App\Services\CalendarFeed;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -120,4 +122,6 @@ Route::withoutMiddleware([
     Route::get('l/{slug}/go/{block}', [PublicSmartLinkController::class, 'go'])->where(['slug' => $slug, 'block' => '[0-9]+'])->name('smartlinks.go');
     // Acortador propio (T-89): el codigo empieza por mayuscula, asi que no choca con `s/{slug}` de los sitios (slug en minusculas).
     Route::get('s/{code}', [PublicShortLinkController::class, 'go'])->where('code', ShortLink::CODE_PATTERN)->name('shortlinks.go');
+    // Feed .ics del calendario (T-90): el token identifica al usuario; sin sesion ni cookies y con su propio limitador (`calendar-feed`).
+    Route::get('calendar/feed/{token}.ics', [CalendarFeedController::class, 'show'])->where('token', CalendarFeed::TOKEN_PATTERN)->withoutMiddleware('throttle:web-public-parity')->middleware('throttle:calendar-feed')->name('calendar.feed');
 });

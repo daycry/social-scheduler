@@ -1,0 +1,1888 @@
+diff --git a/CHANGELOG.es.md b/CHANGELOG.es.md
+index e57b361..17e616e 100644
+--- a/CHANGELOG.es.md
++++ b/CHANGELOG.es.md
+@@ -5,6 +5,10 @@ # Registro de cambios
+ 
+ ## [Sin publicar]
+ 
++### Added — fechas señaladas y feed .ics del calendario (audit-hardening, T-90)
++
++- El calendario muestra ahora un conjunto inicial de fechas señaladas de marketing (Año Nuevo, San Valentín, Día de la Mujer, Día del Padre y de la Madre en España, Día del Libro, Halloween, Black Friday, Cyber Monday, Navidad…), diferenciadas de tus publicaciones en las vistas semana, mes y lista; puedes ocultarlas desde el panel del calendario y se recuerda en tu cuenta. El mismo panel crea un enlace de suscripción secreto (.ics) para ver tus publicaciones programadas y publicadas, y las fechas señaladas si están visibles, en Google Calendar, Outlook o Apple Calendar. El enlace se muestra una sola vez, solo contiene tus propias publicaciones (un resumen corto: marca, redes, estado y el inicio del texto), se puede regenerar (el anterior deja de funcionar) o revocar cuando quieras, y nunca se indexa ni se cachea. El listado definitivo de fechas está pendiente de confirmar.
++
+ ### Added — acortador propio con clics (audit-hardening, T-89)
+ 
+ - Acorta cualquier dirección web en un enlace tuyo (`/s/CÓDIGO`) desde SmartLinks → Enlaces cortos, o marca «Acortar el enlace y contar sus clics» en el generador de UTM del compositor. Cada enlace muestra sus clics de hoy, de los últimos 7 días, el total y el desglose por día (días UTC). Puedes desactivarlo (quien lo abra verá una página clara de «enlace desactivado» y no se cuenta nada) y reactivarlo, o borrarlo. Solo se guarda el número de clics por día: sin IP, navegador ni datos personales; las peticiones HEAD y la precarga del navegador (que se anuncian como tal) no cuentan. Solo se aceptan destinos http y https; hasta 500 enlaces por cuenta.
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 3a8da84..515ece3 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -5,6 +5,10 @@ # Changelog
+ 
+ ## [Unreleased]
+ 
++### Added — marketing dates and .ics calendar feed (audit-hardening, T-90)
++
++- The calendar now shows a starter set of marketing dates (New Year, Valentine's Day, Women's Day, Father's and Mother's Day in Spain, World Book Day, Halloween, Black Friday, Cyber Monday, Christmas…), clearly set apart from your posts in the week, month and list views; you can hide them from the calendar panel and the choice is remembered for your account. The same panel creates a secret subscription link (.ics) so you can see your scheduled and published posts, and the marketing dates if they are visible, in Google Calendar, Outlook or Apple Calendar. The link is shown only once, only ever contains your own posts (a short summary: brand, networks, status and the start of the text), can be regenerated (the previous one stops working) or revoked at any time, and is never indexed or cached. The final list of dates is still to be confirmed.
++
+ ### Added — own link shortener with click counts (audit-hardening, T-89)
+ 
+ - Shorten any web address into a link of your own (`/s/CODE`) from SmartLinks → Short links, or tick "Shorten the link and count its clicks" in the composer's UTM builder. Each link shows its clicks today, in the last 7 days, in total and day by day (UTC days). You can turn a link off (visitors see a clear "this link is off" page and nothing is counted) and back on, or delete it. Only the number of clicks per day is stored: no IP, browser or any personal data; HEAD requests and browser prefetches (which announce themselves) do not count. Only http and https destinations are accepted; up to 500 links per account.
+diff --git a/app/Http/Controllers/ApiKeyController.php b/app/Http/Controllers/ApiKeyController.php
+index d35bc97..52c29d6 100644
+--- a/app/Http/Controllers/ApiKeyController.php
++++ b/app/Http/Controllers/ApiKeyController.php
+@@ -5,6 +5,7 @@
+ use App\Mcp\Abilities;
+ use App\Models\PersonalAccessToken;
+ use App\Services\AuditLog;
++use App\Support\EncryptedHistory;
+ use Carbon\Carbon;
+ use Illuminate\Contracts\Encryption\DecryptException;
+ use Illuminate\Http\RedirectResponse;
+@@ -19,6 +20,11 @@ class ApiKeyController extends Controller
+ {
+     public function index(Request $request): Response
+     {
++        $newKey = $this->newKey($request);
++        if ($newKey !== null) {
++            EncryptedHistory::enable($request);
++        }
++
+         return Inertia::render('ApiKeys/Index', [
+             'keys' => $request->user()->tokens()->with('oauthClient')->latest('id')->get()->map(fn (PersonalAccessToken $t) => [
+                 'id' => $t->id,
+@@ -34,7 +40,7 @@ public function index(Request $request): Response
+             'abilities' => Abilities::all(),
+             'presets' => Abilities::presets(),
+             'endpoint' => url('/mcp'),
+-            'newKey' => $this->newKey($request),
++            'newKey' => $newKey,
+         ]);
+     }
+ 
+diff --git a/app/Http/Controllers/Auth/NewPasswordController.php b/app/Http/Controllers/Auth/NewPasswordController.php
+index 740cc51..3c03cae 100644
+--- a/app/Http/Controllers/Auth/NewPasswordController.php
++++ b/app/Http/Controllers/Auth/NewPasswordController.php
+@@ -3,6 +3,7 @@
+ namespace App\Http\Controllers\Auth;
+ 
+ use App\Http\Controllers\Controller;
++use App\Services\CalendarFeed;
+ use Illuminate\Auth\Events\PasswordReset;
+ use Illuminate\Http\RedirectResponse;
+ use Illuminate\Http\Request;
+@@ -50,6 +51,8 @@ function ($user) use ($request) {
+                     'password' => Hash::make($request->password),
+                     'remember_token' => Str::random(60),
+                 ])->save();
++                // El enlace .ics del calendario es una credencial: un restablecimiento de contrasena lo revoca (CWE-613).
++                app(CalendarFeed::class)->revoke($user);
+ 
+                 event(new PasswordReset($user));
+             }
+diff --git a/app/Http/Controllers/Auth/PasswordController.php b/app/Http/Controllers/Auth/PasswordController.php
+index 57a82b5..8c7ce77 100644
+--- a/app/Http/Controllers/Auth/PasswordController.php
++++ b/app/Http/Controllers/Auth/PasswordController.php
+@@ -3,6 +3,7 @@
+ namespace App\Http\Controllers\Auth;
+ 
+ use App\Http\Controllers\Controller;
++use App\Services\CalendarFeed;
+ use Illuminate\Http\RedirectResponse;
+ use Illuminate\Http\Request;
+ use Illuminate\Support\Facades\Hash;
+@@ -23,6 +24,8 @@ public function update(Request $request): RedirectResponse
+         $request->user()->update([
+             'password' => Hash::make($validated['password']),
+         ]);
++        // El enlace .ics del calendario es una credencial: cambiar la contrasena (posible respuesta a un robo) lo revoca (CWE-613).
++        app(CalendarFeed::class)->revoke($request->user());
+ 
+         return back();
+     }
+diff --git a/app/Http/Controllers/CalendarController.php b/app/Http/Controllers/CalendarController.php
+index a92b095..52e64fd 100644
+--- a/app/Http/Controllers/CalendarController.php
++++ b/app/Http/Controllers/CalendarController.php
+@@ -8,9 +8,12 @@
+ use App\Services\CalendarService;
+ use App\Services\CalendarViewService;
+ use App\Services\PostService;
++use App\Support\EncryptedHistory;
++use Illuminate\Contracts\Encryption\DecryptException;
+ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+ use Illuminate\Http\RedirectResponse;
+ use Illuminate\Http\Request;
++use Illuminate\Support\Facades\Crypt;
+ use Inertia\Inertia;
+ use Inertia\Response;
+ use InvalidArgumentException;
+@@ -67,6 +70,12 @@ public function index(Request $request): Response
+             abort(404, $e->getMessage());
+         }
+ 
++        // La URL secreta del feed solo viaja en este render: se cifra el historial para que «Atrás» no la muestre tras cerrar sesion (CWE-525).
++        $feed = $this->feedState($request);
++        if ($feed['url'] !== null) {
++            EncryptedHistory::enable($request);
++        }
++
+         // Exportar CSV (C-03c): solo la vista Lista; el aviso del tope llega antes de descargar.
+         $export = $data['view'] === 'list' ? $this->calendar->exportSummary($user, $filters) : null;
+ 
+@@ -79,9 +88,32 @@ public function index(Request $request): Response
+             ],
+             'views' => $this->views->list($user)->map(fn (CalendarView $v) => $this->views->toArray($v))->values(),
+             'active_view' => $active?->id,
++            'feed' => $feed,
+         ]);
+     }
+ 
++    /**
++     * Estado del feed .ics (T-90): si hay uno activo y, solo justo despues de generarlo, su URL con el token (la base de datos guarda unicamente el hash).
++     *
++     * @return array{active: bool, url: ?string, generated_at: ?string}
++     */
++    private function feedState(Request $request): array
++    {
++        $user = $request->user();
++        $flashed = $request->session()->get('calendar_feed_url');
++        try {
++            $url = is_string($flashed) ? Crypt::decryptString($flashed) : null;
++        } catch (DecryptException) {
++            $url = null;
++        }
++
++        return [
++            'active' => $user->calendar_feed_token_hash !== null,
++            'url' => $user->calendar_feed_token_hash !== null ? $url : null,
++            'generated_at' => $user->calendar_feed_token_at?->toIso8601String(),
++        ];
++    }
++
+     /** Reprograma una publicacion pendiente (arrastrar en el calendario o editar la fecha en la lista). */
+     public function reschedule(Request $request, Post $post): RedirectResponse
+     {
+diff --git a/app/Http/Controllers/ProfileController.php b/app/Http/Controllers/ProfileController.php
+index f850ca3..b7cc360 100644
+--- a/app/Http/Controllers/ProfileController.php
++++ b/app/Http/Controllers/ProfileController.php
+@@ -5,6 +5,7 @@
+ use App\Http\Controllers\Auth\SocialLoginController;
+ use App\Http\Requests\ProfileUpdateRequest;
+ use App\Services\TwoFactor\TotpService;
++use App\Support\EncryptedHistory;
+ use Illuminate\Contracts\Auth\MustVerifyEmail;
+ use Illuminate\Http\RedirectResponse;
+ use Illuminate\Http\Request;
+@@ -32,9 +33,7 @@ public function edit(Request $request, TotpService $totp): Response
+         // El historial del navegador guarda las props cifradas (secreto QR / codigos). El cifrado usa crypto.subtle, que
+         // solo existe en contexto seguro: en http (salvo localhost) Inertia no podria escribir el historial y la pagina
+         // se quedaria colgada, asi que alli no se activa (y entonces no hay secreto que proteger en transito tampoco).
+-        if ($request->secure() || in_array($request->getHost(), ['localhost', '127.0.0.1', '[::1]'], true)) {
+-            Inertia::encryptHistory();
+-        }
++        EncryptedHistory::enable($request);
+ 
+         return Inertia::render('Profile/Edit', [
+             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+diff --git a/app/Models/User.php b/app/Models/User.php
+index 5f83473..671b8b4 100644
+--- a/app/Models/User.php
++++ b/app/Models/User.php
+@@ -17,14 +17,14 @@
+ use Laravel\Sanctum\HasApiTokens;
+ 
+ #[Fillable(['name', 'email', 'password', 'notify_by_mail', 'notify_weekly_digest', 'weekly_digest_ai', 'notify_manual_reminder'])]
+-#[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
++#[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes', 'calendar_feed_token_hash'])]
+ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
+ {
+     /** @use HasFactory<UserFactory> */
+     use HasApiTokens, HasFactory, Notifiable, PasskeyAuthenticatable;
+ 
+     /** Igual que los valores por defecto de las columnas: un usuario recien creado en memoria ya tiene sus preferencias de avisos. */
+-    protected $attributes = ['notify_weekly_digest' => false, 'weekly_digest_ai' => false, 'notify_manual_reminder' => true];
++    protected $attributes = ['notify_weekly_digest' => false, 'weekly_digest_ai' => false, 'notify_manual_reminder' => true, 'hide_marketing_dates' => false];
+ 
+     protected static function booted(): void
+     {
+@@ -78,6 +78,8 @@ protected function casts(): array
+             'notify_weekly_digest' => 'boolean',
+             'weekly_digest_ai' => 'boolean',
+             'notify_manual_reminder' => 'boolean',
++            'hide_marketing_dates' => 'boolean',
++            'calendar_feed_token_at' => 'datetime',
+             'weekly_digest_sent_for' => 'date',
+             'password' => 'hashed',
+             'two_factor_secret' => 'encrypted',
+diff --git a/app/Providers/AppServiceProvider.php b/app/Providers/AppServiceProvider.php
+index 32f033c..bb4e9c9 100644
+--- a/app/Providers/AppServiceProvider.php
++++ b/app/Providers/AppServiceProvider.php
+@@ -228,6 +228,12 @@ public function boot(): void
+             : Limit::none());
+         RateLimiter::for('studio-link-comments', fn (Request $request) => Limit::perMinute((int) config('rate_limits.studio_link_comments'))
+             ->by('studio-link-comments:'.hash('sha256', (string) $request->route('token'))));
++        // Feed .ics (T-90): un cupo por token (el cliente de calendario que lo consulta) y un tope por IP de respaldo; los servicios de calendario
++        // consultan desde IPs compartidas, asi que no comparte el cupo de `web-public-parity` con SmartLinks y el acortador.
++        RateLimiter::for('calendar-feed', fn (Request $request) => [
++            Limit::perMinute((int) config('rate_limits.calendar_feed.per_token'))->by('calendar-feed:'.hash('sha256', (string) $request->route('token'))),
++            Limit::perMinute((int) config('rate_limits.calendar_feed.per_ip'))->by('calendar-feed-ip:'.self::ipKey($request->ip())),
++        ]);
+         RateLimiter::for('mcp-oauth-register', fn (Request $request) => Limit::perHour((int) config('rate_limits.mcp_oauth_register'))
+             ->by('mcp-oauth-register:'.self::ipKey($request->ip())));
+         RateLimiter::for('two-factor-manage', fn (Request $request) => Limit::perMinute((int) config('rate_limits.two_factor_manage'))
+diff --git a/app/Services/CalendarService.php b/app/Services/CalendarService.php
+index 4d6932c..244d191 100644
+--- a/app/Services/CalendarService.php
++++ b/app/Services/CalendarService.php
+@@ -8,6 +8,7 @@
+ use App\Models\Post;
+ use App\Models\PostTarget;
+ use App\Models\User;
++use App\Support\MarketingDates;
+ use Carbon\CarbonImmutable;
+ use Carbon\CarbonInterface;
+ use Illuminate\Database\Eloquent\Builder;
+@@ -66,6 +67,9 @@ public function build(User $user, array $filters): array
+             'networks' => collect(Network::offered())->map(fn (Network $n) => $n->toArray())->values()->all(),
+             'items' => $items->all(),
+             'undated' => $undated->all(),
++            // Fechas señaladas del rango (T-90): datos propios de `config/marketing_dates.php`, salvo que el usuario las oculte.
++            'marketing_dates' => $user->hide_marketing_dates ? [] : array_map(fn (array $d) => ['date' => $d['date'], 'name' => $d['name']], MarketingDates::between($from->format('Y-m-d'), $to->subDay()->format('Y-m-d'))),
++            'marketing_dates_hidden' => (bool) $user->hide_marketing_dates,
+             'truncated' => $items->count() >= self::MAX_ITEMS,
+         ];
+     }
+@@ -185,7 +189,7 @@ private function shift(string $view, CarbonImmutable $anchor, int $dir): CarbonI
+      * destinos con texto propio), y entonces el primer texto efectivo no vacio de sus destinos. El efectivo se resuelve con la
+      * plantilla ya cargada (`text ?? plantilla`) y no con `effectiveText()`, que consultaria el post de cada destino (N+1).
+      */
+-    private function displayText(Post $post): string
++    public function displayText(Post $post): string
+     {
+         $template = (string) $post->text;
+         $targets = $post->targets;
+diff --git a/app/Services/Export/ExportInventory.php b/app/Services/Export/ExportInventory.php
+index 3cbef3b..67b85d2 100644
+--- a/app/Services/Export/ExportInventory.php
++++ b/app/Services/Export/ExportInventory.php
+@@ -18,7 +18,7 @@ final class ExportInventory
+ 
+     /** @var array<string, array{table: string, only?: list<string>, except?: list<string>, json?: list<string>, where?: array<string, mixed>, by?: string, via?: array{0: string, 1: string}, order?: list<string>}> */
+     public const ENTITIES = [
+-        'usuario' => ['table' => 'users', 'by' => 'id', 'only' => ['id', 'name', 'email', 'notify_by_mail', 'notify_weekly_digest', 'weekly_digest_ai', 'notify_manual_reminder', 'created_at']],
++        'usuario' => ['table' => 'users', 'by' => 'id', 'only' => ['id', 'name', 'email', 'notify_by_mail', 'notify_weekly_digest', 'weekly_digest_ai', 'notify_manual_reminder', 'hide_marketing_dates', 'created_at']],
+         'marcas' => ['table' => 'brands'],
+         'cuentas-conectadas' => ['table' => 'social_accounts', 'only' => ['id', 'brand_id', 'network', 'external_id', 'name', 'username', 'status', 'scopes', 'connected_at', 'created_at'], 'json' => ['scopes']],
+         'publicaciones' => ['table' => 'posts', 'except' => ['approval_comment']],
+@@ -70,7 +70,7 @@ final class ExportInventory
+ 
+     /** Lo que NO va en el ZIP y por qué (se copia al LEEME.txt y a docs/usuario/exportar.md). */
+     public const EXCLUDED = [
+-        'Credenciales y secretos: tokens de acceso y de renovación de las cuentas sociales, contraseñas de aplicación, claves de API y tokens Sanctum, hash de la contraseña, secreto y códigos de recuperación del doble factor, passkeys, endpoints y claves de las notificaciones push, secretos y URL de los webhooks, acceso con contraseña de los sitios y la clave de la aplicación. Se vuelven a crear al conectar de nuevo.',
++        'Credenciales y secretos: tokens de acceso y de renovación de las cuentas sociales, contraseñas de aplicación, claves de API y tokens Sanctum, el enlace secreto del feed .ics del calendario, hash de la contraseña, secreto y códigos de recuperación del doble factor, passkeys, endpoints y claves de las notificaciones push, secretos y URL de los webhooks, acceso con contraseña de los sitios y la clave de la aplicación. Se vuelven a crear al conectar de nuevo.',
+         'Datos de otras personas: las marcas de las que solo eres colaborador, los diseños que te han compartido, los colaboradores de tus marcas, los suscriptores de tus smart links, los mensajes recibidos en tus sitios y los enlaces de acceso a tus diseños.',
+         'Los comentarios que terceros han escrito en tus cuentas (buzón): son datos de esas personas. Sí van tus respuestas, tus notas y tus etiquetas.',
+         'Los comentarios de aprobación de tus publicaciones y diseños (los escribe un colaborador); sí va el estado de aprobación.',
+diff --git a/config/rate_limits.php b/config/rate_limits.php
+index 0c58bfd..521114d 100644
+--- a/config/rate_limits.php
++++ b/config/rate_limits.php
+@@ -33,6 +33,8 @@
+     // Publicar ahora consume cupo solo si se solicita. Los comentarios comparten cupo por enlace.
+     'publish_now' => 30,
+     'studio_link_comments' => 10,
++    // Feed .ics del calendario (T-90): peticiones por minuto por token y, como respaldo, por IP.
++    'calendar_feed' => ['per_token' => 30, 'per_ip' => 600],
+     'two_factor_manage' => 10,
+     // Registro OAuth por hora, agrupado por /64 para IPv6.
+     'mcp_oauth_register' => 10,
+@@ -103,6 +105,9 @@
+         'calendar-views.store' => 60,
+         'calendar-views.update' => 60,
+         'calendar-views.destroy' => 60,
++        'calendar-feed.store' => 10,
++        'calendar-feed.destroy' => 30,
++        'calendar.marketing-dates' => 60,
+         'brands.hashtags' => 60,
+         'brands.posts.import.preview' => 20,
+         'brands.posts.import.confirm' => 10,
+diff --git a/config/social.php b/config/social.php
+index 4f73f26..bfb9317 100644
+--- a/config/social.php
++++ b/config/social.php
+@@ -287,6 +287,13 @@
+         'max_rows' => (int) env('SOCIAL_EXPORT_MAX_ROWS', 5000),
+     ],
+ 
++    /*
++    | Feed .ics del calendario (T-90): tope de publicaciones por feed. Si se supera, se priorizan las proximas y el pasado reciente usa el cupo que quede.
++    */
++    'calendar_feed' => [
++        'max_posts' => (int) env('SOCIAL_CALENDAR_FEED_MAX_POSTS', 1000),
++    ],
++
+     'analytics' => [
+         'queue' => env('SOCIAL_ANALYTICS_QUEUE', 'metrics'),
+         /* Minutos que se cachea «Todas las marcas» por usuario y periodo (0 = sin cache). */
+diff --git a/docs/modulos/calendario.md b/docs/modulos/calendario.md
+index 59f4a29..80cd016 100644
+--- a/docs/modulos/calendario.md
++++ b/docs/modulos/calendario.md
+@@ -23,6 +23,16 @@ # Calendario
+ 
+ `CalendarToolbar` reúne la navegación, el cambio de vista, los filtros y el enlace CSV. `useCalendarPublishNow` conserva la confirmación y el seguimiento del estado de un envío inmediato.
+ 
++## Fechas señaladas y feed .ics (T-90)
++
++**Fechas señaladas (F-17).** Datos propios, sin servicios externos ni tabla (por eso no hay `MarketingDatesSeeder`: una lista en config se versiona, se revisa en un PR y no exige sembrar ni migrar nada). La **fuente única y editable** es `config/marketing_dates.php` (la cabecera del fichero explica las reglas): cada entrada lleva `key` estable, `name` y una fecha fija (`month` + `day`) o un día móvil (`month` + `weekday` + `nth`, con `offset` en días; p. ej. Black Friday = cuarto jueves de noviembre + 1, Día de la Madre en España = primer domingo de mayo). `App\Support\MarketingDates` las calcula por año (`forYear()`) o por rango (`between()`). Un `day` que ese año no existe (29-2 en año no bisiesto) o un `nth` que el mes no tiene (un quinto lunes) omiten la fecha ese año; `nth: -1` es el último; el `offset` solo aplica a los días móviles y `between()` considera los años contiguos. El conjunto actual es **inicial**: el listado definitivo lo fija el equipo de producto, y basta con editar esa lista. `CalendarService::build()` envía `marketing_dates` (`{date, name}` del rango visible) y `marketing_dates_hidden`; la semana, el mes y la lista las pintan con un distintivo fucsia sin enlace ni arrastre, distinto de las publicaciones, con el prefijo para lectores de pantalla «Fecha señalada:». La herramienta MCP `get_calendar` devuelve también `marketing_dates` y `marketing_dates_hidden` (misma `build()`; es intencionado, da contexto de campañas a los agentes) y respeta la preferencia de ocultarlas. La preferencia es `users.hide_marketing_dates` (por usuario, visibles por defecto) y se cambia con `PATCH calendar/marketing-dates` (`MarketingDatesController`).
++
++**Feed .ics (F-18).** `CalendarFeedPanel` (sobre el calendario) crea, regenera y revoca el enlace de suscripción: `POST calendar/feed` (genera o regenera) y `DELETE calendar/feed` (revoca), ambos sobre el usuario autenticado y con throttle (`rate_limits.php`). El token son 32 bytes aleatorios en base64 URL-safe (43 caracteres); `users.calendar_feed_token_hash` guarda solo su SHA-256 (único, oculto en las respuestas) y se compara con `hash_equals`, así que **la URL solo se muestra una vez** (flash cifrado) y regenerar invalida la anterior. Ruta pública `GET calendar/feed/{token}.ics` (`CalendarFeedController::show`, en el grupo público de `routes/parity.php`: sin sesión ni cookies, con el throttle `web-public-parity`); un token inexistente, revocado, regenerado o mal formado responde **404 sin pista**. La respuesta es `text/calendar; charset=utf-8`, `Cache-Control: no-store, private`, `X-Robots-Tag: noindex, nofollow`.
++
++**Seguridad del enlace.** Cambiar la contraseña desde el perfil o restablecerla por correo **revoca** el enlace (se vuelve a crear a mano). La respuesta del calendario que lleva la URL recién creada cifra el historial de Inertia (`App\Support\EncryptedHistory`, el mismo patrón del perfil y de las API keys), así que «Atrás» no la muestra tras cerrar sesión. El feed tiene su limitador propio `calendar-feed` (`rate_limits.calendar_feed`: 30/min por token y 600/min por IP de respaldo), separado del de SmartLinks y el acortador porque los servicios de calendario consultan desde IPs compartidas. La URL sigue visible en el panel mientras no se salga de la página (estado local del panel; el servidor solo guarda el hash). Las claves de API siguen su propia política.
++
++**Contenido (`CalendarFeed::render()`).** Solo las publicaciones del usuario (`ownedBy`) con fecha y en estado programada, publicando, procesando o publicada (ni borradores ni fallidas), de 30 días atrás a un año adelante y con tope `social.calendar_feed.max_posts` (1000): si se supera, se priorizan las **próximas** (de ahora en adelante, de la más cercana a la más lejana) y el pasado reciente usa el cupo restante, así que lo que se recorta es lo más lejano; más, si el usuario no las ha ocultado, las fechas señaladas de ese tramo como eventos de día completo. Cada evento resume la publicación: `SUMMARY` = marca + primeros 80 caracteres del texto en una línea, `DESCRIPTION` = marca, redes, estado y hasta 300 caracteres del texto; nunca credenciales, URLs de destinos ni enlaces internos. `UID` estable (`post-{id}@host`, `marketing-{key}-{fecha}@host`), `DTSTAMP` = última modificación, `DTSTART` en UTC (`Z`) y duración de 30 minutos. `App\Support\IcsWriter` implementa RFC 5545: escapa `\`, `;`, `,` y saltos de línea, descarta los caracteres de control, pliega a 75 octetos sin partir UTF-8 y usa CRLF. Los tests están en `tests/Feature/Calendar/CalendarIcsFeedTest.php` y `MarketingDatesTest.php`; el E2E es `tests/e2e/calendar-ics-feed.spec.ts` (E2E-29).
++
+ ## Cuadrícula de Instagram (C-02)
+ 
+ Vista de solo lectura del perfil de una cuenta de Instagram: `GET instagram/grid` (`instagram.grid`, `?brand_id=&account_id=`), `InstagramGridController`, `GridService` y `Pages/Instagram/Grid.vue`; la entrada «Cuadrícula» está en el módulo Planificación de `resources/js/navigation.js`. Un `account_id` de otro usuario responde 404; una cuenta propia de otra marca cae a la primera de la marca actual.
+diff --git a/docs/modulos/mcp.md b/docs/modulos/mcp.md
+index 0656f98..a70da84 100644
+--- a/docs/modulos/mcp.md
++++ b/docs/modulos/mcp.md
+@@ -187,7 +187,7 @@ ## Herramientas (64)
+ 
+ `import_media_from_url` (`url`, ability `media:write`) importa una imagen (JPG, PNG o WebP) o un vídeo (MP4 o MOV) desde una URL pública y devuelve el asset en estado `pendiente` con su progreso (`bytes` y `total`). Usa la misma guardia SSRF que la web (`UrlGuard`): solo `http`/`https` en los puertos 80 y 443, sin credenciales, y se rechazan las direcciones internas, de bucle, de metadatos y las redirecciones hacia ellas. La descarga ocurre en segundo plano (cola `media`); `list_media` (`media:read`) acepta `status` (`listo` por defecto, `pendiente`, `invalido` o `todos`): con `status=pendiente` el agente ve el progreso (`bytes` y `total`) de la importación y con `status=invalido` el motivo del fallo (`error`, p. ej. «El servidor remoto respondió 404.»); solo la media `listo` se puede usar en `create_post`/`update_post`. Esto cubre la consulta de progreso sin añadir una herramienta, así que el recuento no sube por esto. Máximo 3 importaciones en curso por usuario.
+ 
+-Vistas del calendario (C-03a): `list_calendar_views` (ability `posts:read`, sin parámetros) devuelve las vistas guardadas del usuario (`id`, `name`, `filters`, `is_default`, `brand_name`). `get_calendar` acepta en `view` o bien `week|month|list` o bien el id de una vista guardada: con el id se aplican sus filtros (marca, red, estado y vista; mandan sobre los demás filtros) y la fecha se conserva, igual que en la web. Una vista de otro usuario responde como inexistente; cualquier otro valor da error.
++`get_calendar` devuelve además `marketing_dates` (fechas señaladas del rango, `{date, name}`) y `marketing_dates_hidden`; si el usuario las ha ocultado en el calendario, llegan vacías (T-90). Vistas del calendario (C-03a): `list_calendar_views` (ability `posts:read`, sin parámetros) devuelve las vistas guardadas del usuario (`id`, `name`, `filters`, `is_default`, `brand_name`). `get_calendar` acepta en `view` o bien `week|month|list` o bien el id de una vista guardada: con el id se aplican sus filtros (marca, red, estado y vista; mandan sobre los demás filtros) y la fecha se conserva, igual que en la web. Una vista de otro usuario responde como inexistente; cualquier otro valor da error.
+ 
+ Notas internas de comentarios del inbox: `list_comments` incluye `notes` (id, texto y fecha) por comentario y `add_comment_note` (`comment_id`, `body` de hasta 2.000 caracteres, ability `inbox:write`) añade una nota que nunca se publica ni se envía a la red. Un comentario de otro usuario responde como inexistente y la auditoría registra la herramienta y el comentario, nunca el texto de la nota.
+ 
+diff --git a/docs/roadmap/2026-11-11-audit-hardening/tasks.md b/docs/roadmap/2026-11-11-audit-hardening/tasks.md
+index 943fb60..ed44307 100644
+--- a/docs/roadmap/2026-11-11-audit-hardening/tasks.md
++++ b/docs/roadmap/2026-11-11-audit-hardening/tasks.md
+@@ -4586,7 +4586,7 @@ ### T-89 — Acortador propio con clics
+ ### T-90 — Calendario: fechas señaladas y feed .ics
+ 
+ - **Descripción**: Fechas señaladas (datos propios) visibles en el calendario y feed `.ics` con token por usuario.
+-- **Changelog**:
++- **Changelog**: El calendario muestra fechas señaladas ocultables y ofrece un enlace .ics secreto, regenerable y revocable para verlo en Google Calendar, Outlook o Apple Calendar.
+ - **Estado**: borrador
+ - **Tiempo humano**: est. 8.0h · real —
+ - **Tiempo IA (ejec.)**: est. 2.0h · real —
+@@ -4594,7 +4594,7 @@ ### T-90 — Calendario: fechas señaladas y feed .ics
+ - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
+ - **Dependencias**: T-89
+ - **Tipo**: fullstack
+-- **Archivos**: `app/Services/CalendarService.php`, `app/Http/Controllers/CalendarFeedController.php`, `database/seeders/MarketingDatesSeeder.php`, `resources/js/Pages/Calendar/Index.vue`, `docs/modulos/calendario.md`
++- **Archivos**: `app/Services/CalendarService.php`, `app/Http/Controllers/CalendarFeedController.php`, `resources/js/Pages/Calendar/Index.vue`, `docs/modulos/calendario.md`, `config/marketing_dates.php`, `app/Support/MarketingDates.php`, `app/Support/IcsWriter.php`, `app/Services/CalendarFeed.php`, `app/Http/Controllers/MarketingDatesController.php`, `app/Http/Controllers/CalendarController.php`, `app/Models/User.php`, `app/Services/Export/ExportInventory.php`, `config/rate_limits.php`, `routes/web.php`, `routes/parity.php`, `database/migrations/2026_11_27_110000_add_calendar_feed_to_users.php`, `resources/js/Components/Calendar/CalendarFeedPanel.vue`, `resources/js/types/calendar.d.ts`, `tests/Feature/Calendar/CalendarIcsFeedTest.php`, `tests/Feature/Calendar/MarketingDatesTest.php`, `tests/e2e/calendar-ics-feed.spec.ts`, `CHANGELOG.md`, `CHANGELOG.es.md`, `app/Support/EncryptedHistory.php`, `app/Http/Controllers/ProfileController.php`, `app/Http/Controllers/ApiKeyController.php`, `app/Http/Controllers/Auth/PasswordController.php`, `app/Http/Controllers/Auth/NewPasswordController.php`, `app/Providers/AppServiceProvider.php`, `config/social.php`, `tests/Feature/Calendar/CalendarViewsFlowTest.php`, `docs/usuario/guia-de-usuario.md`, `docs/usuario/exportar.md`, `docs/modulos/mcp.md`
+ - **Cubre**: F-17, F-18
+ - **Cubre (tests)**: E2E-29
+ - **Verificación**: `php artisan test --compact --filter=CalendarIcsFeedTest` → verde
+@@ -4608,13 +4608,13 @@ ### T-90 — Calendario: fechas señaladas y feed .ics
+ - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+ 
+ **Subtareas**
+-- [ ] Implementar (implementer)
++- [x] Implementar (implementer)
+ - [ ] Revisión adversarial A+B(+C)
+ - [ ] Corregir hallazgos de la revisión
+ - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
+ - [ ] Actualizar documentación y cerrar la tarea en este ledger
+ 
+-**Notas**: Tamaño M. Qué se puede hacer ya: infraestructura y un conjunto inicial de fechas. Queda a la espera (U): el listado definitivo de fechas de interés. **A la espera (no bloquea la fase)**: Listado definitivo de fechas señaladas (usuario).
++**Notas**: Tamaño M. Implementación (sin `MarketingDatesSeeder`: las fechas viven en `config/marketing_dates.php`, versionadas y sin sembrar). Qué se puede hacer ya: infraestructura y un conjunto inicial de fechas. Queda a la espera (U): el listado definitivo de fechas de interés. **A la espera (no bloquea la fase)**: Listado definitivo de fechas señaladas (usuario).
+ 
+ ### T-91 — Marca de agua automática y exportación en lote
+ 
+diff --git a/docs/usuario/exportar.md b/docs/usuario/exportar.md
+index bdd4e97..3fc6464 100644
+--- a/docs/usuario/exportar.md
++++ b/docs/usuario/exportar.md
+@@ -23,7 +23,7 @@ ## Qué incluye
+ 
+ ## Qué no incluye
+ 
+-- **Credenciales y secretos:** tokens de acceso y de renovación de las cuentas sociales, contraseñas de aplicación, claves de API y tokens, hash de tu contraseña, secreto y códigos de recuperación del doble factor, passkeys, claves de las notificaciones push, secretos y URL de los webhooks, la contraseña de acceso de los sitios y la clave de la aplicación. Tendrás que volver a conectar las cuentas al restaurar.
++- **Credenciales y secretos:** tokens de acceso y de renovación de las cuentas sociales, contraseñas de aplicación, claves de API y tokens, el enlace secreto del feed .ics del calendario, hash de tu contraseña, secreto y códigos de recuperación del doble factor, passkeys, claves de las notificaciones push, secretos y URL de los webhooks, la contraseña de acceso de los sitios y la clave de la aplicación. Tendrás que volver a conectar las cuentas al restaurar.
+ - **Datos de otras personas:** las marcas de las que solo eres colaborador, los diseños que te han compartido, los colaboradores de tus marcas, los suscriptores de tus smart links, los mensajes recibidos en tus sitios y los enlaces de acceso a tus diseños.
+ - **Comentarios de terceros del buzón:** son datos de quienes los escribieron en tus cuentas. Sí van tus respuestas, tus notas y tus etiquetas.
+ - **Comentarios de aprobación** de tus publicaciones y diseños: los escribe un colaborador. Sí va el estado de aprobación.
+diff --git a/docs/usuario/guia-de-usuario.md b/docs/usuario/guia-de-usuario.md
+index 934c86b..f52cceb 100644
+--- a/docs/usuario/guia-de-usuario.md
++++ b/docs/usuario/guia-de-usuario.md
+@@ -104,6 +104,18 @@ ## Calendario
+ 
+ Vista de semana o mes (y lista) con el estado por red. Puedes filtrar por red y reprogramar una publicación pendiente moviéndola.
+ 
++### Fechas señaladas y suscripción al calendario (.ics)
++
++El calendario marca con una etiqueta de color, distinta de tus publicaciones, algunas fechas señaladas de marketing (San Valentín, Día de la Madre, Black Friday, Navidad…). Si no las quieres, desmarca **Mostrar las fechas señaladas** en el panel sobre el calendario: se recuerda en tu cuenta.
++
++Para ver tus publicaciones en otro calendario, pulsa **Crear enlace de suscripción** en ese panel y copia la dirección:
++
++- **Google Calendar:** *Otros calendarios → Desde URL* y pega el enlace.
++- **Outlook:** *Agregar calendario → Suscribirse desde la web*.
++- **Apple Calendar:** *Archivo → Nueva suscripción de calendario*.
++
++El enlace **se muestra una sola vez**, al crearlo (si lo pierdes, regenera uno nuevo). Es secreto: quien lo tenga ve el resumen de tus publicaciones programadas y publicadas (y las fechas señaladas si las muestras), nunca las de otras personas. **Regenerar** hace que el anterior deje de funcionar y **Revocar** lo desactiva; cambiar tu contraseña también lo revoca. Los calendarios externos se actualizan cuando ellos quieren (a veces tardan horas).
++
+ ### Vistas guardadas
+ 
+ Si usas siempre los mismos filtros, guárdalos: filtra el calendario por marca, red y estado (y elige Semana, Mes o Lista), abre **Vistas**, escribe un nombre (por ejemplo «Pendientes IG») y pulsa **Guardar vista**. Más tarde, desde cualquier otro filtro, abre **Vistas** y elige esa vista: se vuelven a aplicar la marca, la red, el estado y la vista. Desde el mismo menú puedes **Renombrar**, **Borrar** o **Poner por defecto** una vista: la de por defecto se aplica sola al abrir el calendario sin filtros. Un asistente de IA (MCP) las lee con `list_calendar_views` y las usa con `get_calendar` y `view`.
+diff --git a/resources/js/Pages/Calendar/Index.vue b/resources/js/Pages/Calendar/Index.vue
+index 31a1593..7f238f9 100644
+--- a/resources/js/Pages/Calendar/Index.vue
++++ b/resources/js/Pages/Calendar/Index.vue
+@@ -1,5 +1,5 @@
+ <script setup>
+-/** @import { CalendarBrand, CalendarExportSummary, CalendarFilters, CalendarItem, CalendarNavigation, CalendarViewMode, SavedCalendarView, ScheduledCalendarItem, UndatedCalendarItem } from '@/types/calendar' */
++/** @import { CalendarBrand, CalendarExportSummary, CalendarFeedState, CalendarFilters, CalendarItem, CalendarNavigation, CalendarViewMode, MarketingDate, SavedCalendarView, ScheduledCalendarItem, UndatedCalendarItem } from '@/types/calendar' */
+ /** @import { SessionFlash, NetworkOption, ShellPageProps } from '@/types/shell' */
+ import { useTabs } from '@/Composables/useTabs';
+ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+@@ -8,6 +8,7 @@ import BestTimeSuggestion from '@/Components/BestTimeSuggestion.vue';
+ import StatusBadge from '@/Components/StatusBadge.vue';
+ import PublishNowConfirm from '@/Components/Calendar/PublishNowConfirm.vue';
+ import CalendarToolbar from '@/Components/Calendar/CalendarToolbar.vue';
++import CalendarFeedPanel from '@/Components/Calendar/CalendarFeedPanel.vue';
+ import { useCalendarPublishNow } from '@/Composables/useCalendarPublishNow';
+ import BatchBar from '@/Components/Calendar/BatchBar.vue';
+ import { workflowError, workflowRequest } from '@/Composables/useWorkflow';
+@@ -34,6 +35,9 @@ const props = defineProps({
+     items: { type: /** @type {import('vue').PropType<ScheduledCalendarItem[]>} */ (Array), required: true },
+     undated: { type: /** @type {import('vue').PropType<UndatedCalendarItem[]>} */ (Array), required: true },
+     truncated: Boolean,
++    marketing_dates: { type: /** @type {import('vue').PropType<MarketingDate[]>} */ (Array), default: () => [] },
++    marketing_dates_hidden: { type: Boolean, default: false },
++    feed: { type: /** @type {import('vue').PropType<CalendarFeedState>} */ (Object), required: true },
+     export: { type: /** @type {import('vue').PropType<CalendarExportSummary | null>} */ (Object), default: null },
+     filters: { type: /** @type {import('vue').PropType<CalendarFilters>} */ (Object), required: true },
+     views: { type: /** @type {import('vue').PropType<SavedCalendarView[]>} */ (Array), default: () => [] },
+@@ -79,6 +83,12 @@ const title = computed(() => {
+ const itemsAt = (day, hour = null) =>
+     props.items.filter((i) => i.local_date === day && (hour === null || Number(i.local_time.slice(0, 2)) === hour));
+ 
++/** Fechas señaladas de un día (no son publicaciones: no se arrastran ni se abren). @param {string} day */
++const marketingAt = (day) => props.marketing_dates.filter((d) => d.date === day);
++const longDay = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
++/** @param {string} iso */
++const longDayLabel = (iso) => longDay.format(new Date(`${iso}T00:00:00Z`));
++
+ // ---------------------------------------------------------------- reprogramar
+ /** @type {import('vue').Ref<ScheduledCalendarItem | null>} */
+ const dragging = ref(null);
+@@ -219,6 +229,8 @@ const retry = async (item) => {
+                     @navigate="go"
+                 />
+ 
++                <CalendarFeedPanel :feed="feed" :marketing-hidden="marketing_dates_hidden" />
++
+                 <div v-bind="panelProps(view)" class="space-y-3">
+                     <EmptyState
+                         v-if="items.length === 0 && undated.length === 0"
+@@ -246,6 +258,24 @@ const retry = async (item) => {
+                         data-testid="retry-notice"
+                         >{{ retryNotice }}</p
+                     >
++                    <section
++                        v-if="view === 'list' && marketing_dates.length"
++                        class="card p-3"
++                        aria-labelledby="marketing-dates-title"
++                    >
++                        <h2 id="marketing-dates-title" class="text-sm font-semibold text-slate-900"
++                            >Fechas señaladas del periodo</h2
++                        >
++                        <ul class="mt-2 space-y-1 text-sm">
++                            <li v-for="m in marketing_dates" :key="m.date + m.name" data-testid="marketing-date">
++                                <span
++                                    class="rounded border border-fuchsia-200 bg-fuchsia-50 px-1 text-xs font-medium text-fuchsia-900"
++                                    >{{ m.name }}</span
++                                >
++                                <span class="ml-2 text-slate-600">{{ longDayLabel(m.date) }}</span>
++                            </li>
++                        </ul>
++                    </section>
+                     <BatchBar v-if="view === 'list'" :selected="selected" :items="allRows" @clear="selected = []" />
+ 
+                     <p v-if="truncated" class="text-sm text-amber-700"
+@@ -267,7 +297,14 @@ const retry = async (item) => {
+                                 :key="d"
+                                 class="border-b border-l border-slate-200 p-2 text-center text-xs font-medium"
+                                 :class="d === today ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600'"
+-                                >{{ weekdayLabel(d) }}</div
++                                >{{ weekdayLabel(d) }}
++                                <span
++                                    v-for="m in marketingAt(d)"
++                                    :key="m.name"
++                                    class="mt-1 block rounded border border-fuchsia-200 bg-fuchsia-50 px-1 text-[11px] font-medium text-fuchsia-900"
++                                    data-testid="marketing-date"
++                                    ><span class="sr-only">Fecha señalada: </span>{{ m.name }}</span
++                                ></div
+                             >
+                             <template v-for="h in hours" :key="h">
+                                 <div class="border-b border-slate-100 pr-1 text-right text-[10px] text-slate-500"
+@@ -378,6 +415,13 @@ const retry = async (item) => {
+                                     :class="d === today ? 'font-bold text-indigo-700' : ''"
+                                     >{{ Number(d.slice(8)) }}</div
+                                 >
++                                <p
++                                    v-for="m in marketingAt(d)"
++                                    :key="m.name"
++                                    class="rounded border border-fuchsia-200 bg-fuchsia-50 px-1 text-[11px] font-medium text-fuchsia-900"
++                                    data-testid="marketing-date"
++                                    ><span class="sr-only">Fecha señalada: </span>{{ m.name }}</p
++                                >
+                                 <article
+                                     v-for="item in itemsAt(d)"
+                                     :key="item.id"
+diff --git a/resources/js/types/calendar.d.ts b/resources/js/types/calendar.d.ts
+index b366695..899451e 100644
+--- a/resources/js/types/calendar.d.ts
++++ b/resources/js/types/calendar.d.ts
+@@ -23,6 +23,18 @@ export interface CalendarBrand {
+     timezone: string;
+ }
+ 
++export interface MarketingDate {
++    date: string;
++    name: string;
++}
++
++/** Feed .ics (T-90): `url` solo llega justo tras crear o regenerar el enlace; la base de datos guarda únicamente su hash. */
++export interface CalendarFeedState {
++    active: boolean;
++    url: string | null;
++    generated_at: string | null;
++}
++
+ export interface CalendarExportSummary {
+     total: number;
+     max: number;
+diff --git a/routes/parity.php b/routes/parity.php
+index 8b5c0af..6c900cb 100644
+--- a/routes/parity.php
++++ b/routes/parity.php
+@@ -4,6 +4,7 @@
+ use App\Http\Controllers\AiAssistantController;
+ use App\Http\Controllers\AutolistController;
+ use App\Http\Controllers\BestTimesController;
++use App\Http\Controllers\CalendarFeedController;
+ use App\Http\Controllers\CompetitorController;
+ use App\Http\Controllers\InboxController;
+ use App\Http\Controllers\InboxNoteController;
+@@ -15,6 +16,7 @@
+ use App\Http\Controllers\TrashController;
+ use App\Http\Middleware\HandleInertiaRequests;
+ use App\Models\ShortLink;
++use App\Services\CalendarFeed;
+ use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+ use Illuminate\Cookie\Middleware\EncryptCookies;
+ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+@@ -120,4 +122,6 @@
+     Route::get('l/{slug}/go/{block}', [PublicSmartLinkController::class, 'go'])->where(['slug' => $slug, 'block' => '[0-9]+'])->name('smartlinks.go');
+     // Acortador propio (T-89): el codigo empieza por mayuscula, asi que no choca con `s/{slug}` de los sitios (slug en minusculas).
+     Route::get('s/{code}', [PublicShortLinkController::class, 'go'])->where('code', ShortLink::CODE_PATTERN)->name('shortlinks.go');
++    // Feed .ics del calendario (T-90): el token identifica al usuario; sin sesion ni cookies y con su propio limitador (`calendar-feed`).
++    Route::get('calendar/feed/{token}.ics', [CalendarFeedController::class, 'show'])->where('token', CalendarFeed::TOKEN_PATTERN)->withoutMiddleware('throttle:web-public-parity')->middleware('throttle:calendar-feed')->name('calendar.feed');
+ });
+diff --git a/routes/web.php b/routes/web.php
+index 2bf71ee..74a04a3 100644
+--- a/routes/web.php
++++ b/routes/web.php
+@@ -5,6 +5,7 @@
+ use App\Http\Controllers\ApiKeyController;
+ use App\Http\Controllers\BrandController;
+ use App\Http\Controllers\CalendarController;
++use App\Http\Controllers\CalendarFeedController;
+ use App\Http\Controllers\CalendarViewController;
+ use App\Http\Controllers\CampaignController;
+ use App\Http\Controllers\ConnectionController;
+@@ -19,6 +20,7 @@
+ use App\Http\Controllers\InstagramAudioController;
+ use App\Http\Controllers\InstagramGridController;
+ use App\Http\Controllers\LibraryController;
++use App\Http\Controllers\MarketingDatesController;
+ use App\Http\Controllers\Mcp\OAuth\AuthorizeController;
+ use App\Http\Controllers\MediaController;
+ use App\Http\Controllers\NotificationController;
+@@ -120,6 +122,10 @@
+     Route::post('calendar/views', [CalendarViewController::class, 'store'])->middleware('throttle:calendar-views.store')->name('calendar-views.store');
+     Route::put('calendar/views/{view}', [CalendarViewController::class, 'update'])->middleware('throttle:calendar-views.update')->whereNumber('view')->name('calendar-views.update');
+     Route::delete('calendar/views/{view}', [CalendarViewController::class, 'destroy'])->middleware('throttle:calendar-views.destroy')->whereNumber('view')->name('calendar-views.destroy');
++    // Feed .ics por usuario y fechas señaladas (T-90).
++    Route::post('calendar/feed', [CalendarFeedController::class, 'store'])->middleware('throttle:calendar-feed.store')->name('calendar.feed.store');
++    Route::delete('calendar/feed', [CalendarFeedController::class, 'destroy'])->middleware('throttle:calendar-feed.destroy')->name('calendar.feed.destroy');
++    Route::patch('calendar/marketing-dates', [MarketingDatesController::class, 'update'])->middleware('throttle:calendar.marketing-dates')->name('calendar.marketing-dates.update');
+     // Cuadricula de Instagram (C-02): solo lectura; lo publicado se lee en vivo de Graph con cache de 10 min.
+     Route::get('instagram/grid', [InstagramGridController::class, 'index'])->name('instagram.grid');
+ 
+diff --git a/tests/Feature/Calendar/CalendarViewsFlowTest.php b/tests/Feature/Calendar/CalendarViewsFlowTest.php
+index 3826ff8..698e5df 100644
+--- a/tests/Feature/Calendar/CalendarViewsFlowTest.php
++++ b/tests/Feature/Calendar/CalendarViewsFlowTest.php
+@@ -68,3 +68,13 @@
+     $this->actingAs($this->user)->get(route('calendar.index', ['date' => '2026-11-03']))
+         ->assertInertia(fn (Assert $p) => $p->has('items', 3)->where('views', [])->where('active_view', null));
+ });
++
++test('T-90: get_calendar devuelve las fechas señaladas del rango y respeta que el usuario las oculte', function () {
++    [$err, $mcp] = $this->callTool($this->key, 'get_calendar', ['date' => '2026-10-28', 'view' => 'month']);
++    expect($err)->toBeFalse()->and(collect($mcp['marketing_dates'])->pluck('name')->all())->toContain('Halloween')
++        ->and($mcp['marketing_dates_hidden'])->toBeFalse();
++
++    $this->user->forceFill(['hide_marketing_dates' => true])->save();
++    [$err, $mcp] = $this->callTool($this->key, 'get_calendar', ['date' => '2026-10-28', 'view' => 'month']);
++    expect($err)->toBeFalse()->and($mcp['marketing_dates'])->toBe([])->and($mcp['marketing_dates_hidden'])->toBeTrue();
++});
+diff --git a/app/Http/Controllers/CalendarFeedController.php b/app/Http/Controllers/CalendarFeedController.php
+new file mode 100644
+index 0000000..60dc90f
+--- /dev/null
++++ b/app/Http/Controllers/CalendarFeedController.php
+@@ -0,0 +1,52 @@
++<?php
++
++namespace App\Http\Controllers;
++
++use App\Services\CalendarFeed;
++use Illuminate\Http\RedirectResponse;
++use Illuminate\Http\Request;
++use Illuminate\Support\Facades\Crypt;
++use Symfony\Component\HttpFoundation\Response;
++
++/**
++ * Feed .ics del calendario (T-90). `show` es público (lo consulta la aplicación de calendario del usuario, sin sesión): el token de la URL
++ * identifica al dueño, un token desconocido, revocado o regenerado responde 404 sin pista y la respuesta no se cachea ni se indexa.
++ * `store` genera o regenera el token (el anterior deja de valer) y `destroy` lo revoca; ambos actúan siempre sobre el usuario autenticado.
++ * La URL con el token se entrega UNA vez, cifrada en el flash (la base de datos solo guarda su hash).
++ */
++class CalendarFeedController extends Controller
++{
++    public function __construct(private readonly CalendarFeed $feed) {}
++
++    public function show(string $token): Response
++    {
++        $user = $this->feed->userFor($token);
++        abort_if($user === null, 404);
++
++        return response($this->feed->render($user), 200, [
++            'Content-Type' => 'text/calendar; charset=utf-8',
++            'Content-Disposition' => 'inline; filename="calendario.ics"',
++            'Cache-Control' => 'no-store, private',
++            'X-Robots-Tag' => 'noindex, nofollow',
++            'Referrer-Policy' => 'no-referrer',
++            'X-Content-Type-Options' => 'nosniff',
++        ]);
++    }
++
++    public function store(Request $request): RedirectResponse
++    {
++        $regenerated = $request->user()->calendar_feed_token_hash !== null;
++        $url = $this->feed->issue($request->user());
++
++        return back()
++            ->with('calendar_feed_url', Crypt::encryptString($url))
++            ->with('success', $regenerated ? 'Enlace regenerado: el anterior ya no funciona.' : 'Enlace de suscripción creado.');
++    }
++
++    public function destroy(Request $request): RedirectResponse
++    {
++        $this->feed->revoke($request->user());
++
++        return back()->with('success', 'Enlace de suscripción revocado.');
++    }
++}
+diff --git a/app/Http/Controllers/MarketingDatesController.php b/app/Http/Controllers/MarketingDatesController.php
+new file mode 100644
+index 0000000..1f22ea2
+--- /dev/null
++++ b/app/Http/Controllers/MarketingDatesController.php
+@@ -0,0 +1,18 @@
++<?php
++
++namespace App\Http\Controllers;
++
++use Illuminate\Http\RedirectResponse;
++use Illuminate\Http\Request;
++
++/** Preferencia por usuario (T-90): mostrar u ocultar las fechas señaladas en el calendario y en su feed .ics. */
++class MarketingDatesController extends Controller
++{
++    public function update(Request $request): RedirectResponse
++    {
++        $data = $request->validate(['hidden' => ['required', 'boolean']]);
++        $request->user()->forceFill(['hide_marketing_dates' => (bool) $data['hidden']])->save();
++
++        return back()->with('success', $data['hidden'] ? 'Fechas señaladas ocultas.' : 'Fechas señaladas visibles.');
++    }
++}
+diff --git a/app/Services/CalendarFeed.php b/app/Services/CalendarFeed.php
+new file mode 100644
+index 0000000..5f0a38f
+--- /dev/null
++++ b/app/Services/CalendarFeed.php
+@@ -0,0 +1,135 @@
++<?php
++
++namespace App\Services;
++
++use App\Enums\PostStatus;
++use App\Models\Post;
++use App\Models\User;
++use App\Support\IcsWriter;
++use App\Support\MarketingDates;
++use Carbon\CarbonImmutable;
++use Illuminate\Database\Eloquent\Builder;
++
++/**
++ * Feed .ics del calendario (T-90). La URL secreta lleva un token aleatorio de 256 bits; la base de datos guarda solo su SHA-256
++ * (como un API token), así que el token solo se ve al generarlo y regenerarlo invalida el anterior. El feed contiene únicamente las
++ * publicaciones PROPIAS con fecha y en estado programada, en curso o publicada (ni borradores ni fallidas) de 30 días atrás a un año
++ * adelante, y las fechas señaladas de ese tramo salvo que el usuario las haya ocultado. Cada evento resume la publicación: marca,
++ * redes, estado y un extracto del texto; nunca credenciales ni enlaces internos. Con más publicaciones que `social.calendar_feed.max_posts`
++ * se prioriza lo próximo: primero las de ahora en adelante (de la más cercana a la más lejana) y el pasado reciente usa el cupo restante.
++ */
++class CalendarFeed
++{
++    /** Formato del token en la URL: 32 bytes en base64 URL-safe sin relleno. */
++    public const TOKEN_PATTERN = '[A-Za-z0-9_-]{43}';
++
++    private const PAST_DAYS = 30;
++
++    private const FUTURE_DAYS = 365;
++
++    private const EVENT_MINUTES = 30;
++
++    public function __construct(private readonly CalendarService $calendar) {}
++
++    /** Genera (o regenera) el token del usuario y devuelve la URL pública completa; el token anterior deja de valer. */
++    public function issue(User $user): string
++    {
++        $token = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
++        $user->forceFill(['calendar_feed_token_hash' => hash('sha256', $token), 'calendar_feed_token_at' => now()])->save();
++
++        return route('calendar.feed', ['token' => $token]);
++    }
++
++    public function revoke(User $user): void
++    {
++        $user->forceFill(['calendar_feed_token_hash' => null, 'calendar_feed_token_at' => null])->save();
++    }
++
++    /** Dueño del token, o nulo si no existe, está revocado o no tiene el formato esperado. */
++    public function userFor(string $token): ?User
++    {
++        if (preg_match('/\A'.self::TOKEN_PATTERN.'\z/', $token) !== 1) {
++            return null;
++        }
++
++        $hash = hash('sha256', $token);
++        $user = User::query()->where('calendar_feed_token_hash', $hash)->first();
++
++        return $user !== null && hash_equals((string) $user->calendar_feed_token_hash, $hash) ? $user : null;
++    }
++
++    public function render(User $user): string
++    {
++        $now = CarbonImmutable::now('UTC');
++        $host = (string) (parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost');
++        $ics = (new IcsWriter)
++            ->begin('VCALENDAR')
++            ->property('VERSION', '2.0')
++            ->property('PRODID', '-//'.config('app.name').'//Calendario//ES')
++            ->property('CALSCALE', 'GREGORIAN')
++            ->text('X-WR-CALNAME', config('app.name').' · Calendario');
++
++        // Tope (`social.calendar_feed.max_posts`): primero lo PROXIMO (de ahora en adelante, de más cercano a más lejano) y el pasado reciente
++        // (de más reciente a más antiguo) usa el cupo que quede; así lo que se recorta es lo más lejano, nunca lo que está a punto de publicarse.
++        $max = max(1, (int) config('social.calendar_feed.max_posts', 1000));
++        $upcoming = $this->posts($user, $now, $now->addDays(self::FUTURE_DAYS))->orderBy('scheduled_at')->orderBy('id')->limit($max)->get();
++        $recent = $upcoming->count() >= $max
++            ? collect()
++            : $this->posts($user, $now->subDays(self::PAST_DAYS), $now->subSecond())->orderByDesc('scheduled_at')->orderByDesc('id')->limit($max - $upcoming->count())->get();
++        $posts = $recent->concat($upcoming)->sortBy([['scheduled_at', 'asc'], ['id', 'asc']]);
++
++        foreach ($posts as $post) {
++            $this->postEvent($ics, $post, $host);
++        }
++
++        if (! $user->hide_marketing_dates) {
++            foreach (MarketingDates::between($now->subDays(self::PAST_DAYS)->format('Y-m-d'), $now->addDays(self::FUTURE_DAYS)->format('Y-m-d')) as $date) {
++                $day = CarbonImmutable::parse($date['date'], 'UTC');
++                $ics->begin('VEVENT')
++                    ->text('UID', "marketing-{$date['key']}-{$date['date']}@{$host}")
++                    ->property('DTSTAMP', $now->format('Ymd\THis\Z'))
++                    ->property('DTSTART', $day->format('Ymd'), ';VALUE=DATE')
++                    ->property('DTEND', $day->addDay()->format('Ymd'), ';VALUE=DATE')
++                    ->text('SUMMARY', $date['name'])
++                    ->property('TRANSP', 'TRANSPARENT')
++                    ->end('VEVENT');
++            }
++        }
++
++        return $ics->end('VCALENDAR')->render();
++    }
++
++    /** @return Builder<Post> */
++    private function posts(User $user, CarbonImmutable $from, CarbonImmutable $to)
++    {
++        return Post::ownedBy($user->id)
++            ->whereIn('status', [PostStatus::Scheduled, PostStatus::Publishing, PostStatus::Processing, PostStatus::Published])
++            ->whereBetween('scheduled_at', [$from, $to])
++            ->with(['targets' => fn ($t) => $t->withoutGlobalScopes(), 'brand' => fn ($b) => $b->withoutGlobalScopes()]);
++    }
++
++    private function postEvent(IcsWriter $ics, Post $post, string $host): void
++    {
++        $start = CarbonImmutable::instance($post->scheduled_at)->utc();
++        $text = trim($this->calendar->displayText($post));
++        $oneLine = trim((string) preg_replace('/\s+/u', ' ', $text));
++        $brand = (string) $post->brand?->name;
++        $networks = $post->targets->map(fn ($t) => $t->network->label())->unique()->implode(', ');
++        $details = array_filter([
++            $brand !== '' ? "Marca: {$brand}" : null,
++            $networks !== '' ? "Redes: {$networks}" : null,
++            'Estado: '.$post->status->label(),
++            '',
++            mb_strimwidth($text, 0, 300, '…'),
++        ], fn ($line) => $line !== null);
++
++        $ics->begin('VEVENT')
++            ->text('UID', "post-{$post->id}@{$host}")
++            ->property('DTSTAMP', CarbonImmutable::instance($post->updated_at ?? $start)->utc()->format('Ymd\THis\Z'))
++            ->property('DTSTART', $start->format('Ymd\THis\Z'))
++            ->property('DTEND', $start->addMinutes(self::EVENT_MINUTES)->format('Ymd\THis\Z'))
++            ->text('SUMMARY', ($brand !== '' ? $brand.': ' : '').($oneLine !== '' ? mb_strimwidth($oneLine, 0, 80, '…') : 'Publicación'))
++            ->text('DESCRIPTION', implode("\n", $details))
++            ->end('VEVENT');
++    }
++}
+diff --git a/app/Support/EncryptedHistory.php b/app/Support/EncryptedHistory.php
+new file mode 100644
+index 0000000..69e53a1
+--- /dev/null
++++ b/app/Support/EncryptedHistory.php
+@@ -0,0 +1,21 @@
++<?php
++
++namespace App\Support;
++
++use Illuminate\Http\Request;
++use Inertia\Inertia;
++
++/**
++ * Cifra el historial de Inertia de la respuesta actual (CWE-525): las props con un secreto (semilla 2FA, API key o enlace .ics recién
++ * creados) no deben poder leerse con «Atrás» tras cerrar sesión. El cifrado usa crypto.subtle, que solo existe en contexto seguro: en http
++ * (salvo localhost) Inertia no podría escribir el historial y la página se quedaría colgada, así que allí no se activa.
++ */
++final class EncryptedHistory
++{
++    public static function enable(Request $request): void
++    {
++        if ($request->secure() || in_array($request->getHost(), ['localhost', '127.0.0.1', '[::1]'], true)) {
++            Inertia::encryptHistory();
++        }
++    }
++}
+diff --git a/app/Support/IcsWriter.php b/app/Support/IcsWriter.php
+new file mode 100644
+index 0000000..e5474a3
+--- /dev/null
++++ b/app/Support/IcsWriter.php
+@@ -0,0 +1,79 @@
++<?php
++
++namespace App\Support;
++
++/**
++ * Escritor mínimo de iCalendar (RFC 5545) para el feed del calendario (T-90): escapa los valores de texto (§3.3.11), pliega las
++ * líneas a 75 octetos sin partir caracteres UTF-8 (§3.1) y termina cada línea en CRLF.
++ */
++final class IcsWriter
++{
++    /** @var list<string> */
++    private array $lines = [];
++
++    public function begin(string $component): self
++    {
++        return $this->raw('BEGIN:'.$component);
++    }
++
++    public function end(string $component): self
++    {
++        return $this->raw('END:'.$component);
++    }
++
++    /** Propiedad de texto: el valor se escapa. */
++    public function text(string $name, string $value): self
++    {
++        return $this->raw($name.':'.self::escape($value));
++    }
++
++    /** Propiedad con un valor ya formateado y seguro (fechas, versión...). `$params` (p. ej. `;VALUE=DATE`) nunca lleva datos del usuario. */
++    public function property(string $name, string $value, string $params = ''): self
++    {
++        return $this->raw($name.$params.':'.$value);
++    }
++
++    public function render(): string
++    {
++        return implode("\r\n", $this->lines)."\r\n";
++    }
++
++    /** `\`, `;`, `,` y los saltos de línea se escapan; el resto de caracteres de control se descarta. */
++    public static function escape(string $value): string
++    {
++        $value = str_replace(["\r\n", "\r"], "\n", $value);
++        $value = preg_replace('/[\x00-\x09\x0B-\x1F\x7F]/u', '', $value) ?? '';
++
++        return str_replace(['\\', ';', ',', "\n"], ['\\\\', '\\;', '\\,', '\\n'], $value);
++    }
++
++    /** Pliega una línea lógica en líneas de, como mucho, 75 octetos; las de continuación empiezan por un espacio. */
++    public static function fold(string $line): string
++    {
++        if (strlen($line) <= 75) {
++            return $line;
++        }
++
++        $out = [];
++        $current = '';
++        $limit = 75;
++        foreach (preg_split('//u', $line, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $char) {
++            if (strlen($current) + strlen($char) > $limit) {
++                $out[] = $current;
++                $current = '';
++                $limit = 74; // el espacio inicial de la continuación también cuenta
++            }
++            $current .= $char;
++        }
++        $out[] = $current;
++
++        return implode("\r\n ", $out);
++    }
++
++    private function raw(string $line): self
++    {
++        $this->lines[] = self::fold($line);
++
++        return $this;
++    }
++}
+diff --git a/app/Support/MarketingDates.php b/app/Support/MarketingDates.php
+new file mode 100644
+index 0000000..095a17f
+--- /dev/null
++++ b/app/Support/MarketingDates.php
+@@ -0,0 +1,89 @@
++<?php
++
++namespace App\Support;
++
++use Carbon\CarbonImmutable;
++use InvalidArgumentException;
++
++/**
++ * Fechas señaladas de marketing (T-90): calcula, para un año o un rango, las fechas de `config/marketing_dates.php` (fijas y
++ * móviles con regla). Sin base de datos ni servicios externos; la lista editable vive en esa config.
++ */
++final class MarketingDates
++{
++    /**
++     * Las fechas del año, ordenadas por día (`Y-m-d`). Las que ese año no existen (29 de febrero en un año no bisiesto, un quinto lunes
++     * que el mes no tiene) se omiten; con `offset`, la fecha puede caer en el año contiguo.
++     *
++     * @return list<array{key: string, name: string, date: string}>
++     */
++    public static function forYear(int $year): array
++    {
++        $dates = [];
++        foreach ((array) config('marketing_dates.dates') as $entry) {
++            $day = self::resolve($entry, $year);
++            if ($day !== null) {
++                $dates[] = ['key' => (string) $entry['key'], 'name' => (string) $entry['name'], 'date' => $day->format('Y-m-d')];
++            }
++        }
++        usort($dates, fn (array $a, array $b) => [$a['date'], $a['key']] <=> [$b['date'], $b['key']]);
++
++        return $dates;
++    }
++
++    /**
++     * Fechas entre dos días `Y-m-d` (ambos incluidos), también si el rango cruza de año.
++     *
++     * @return list<array{key: string, name: string, date: string}>
++     */
++    public static function between(string $from, string $to): array
++    {
++        $fromYear = (int) substr($from, 0, 4);
++        $toYear = (int) substr($to, 0, 4);
++        $found = [];
++        // Un `offset` puede llevar una fecha al año contiguo a su año de cálculo: se calculan también los años vecinos.
++        for ($year = $fromYear - 1; $year <= $toYear + 1; $year++) {
++            foreach (self::forYear($year) as $date) {
++                if ($date['date'] >= $from && $date['date'] <= $to) {
++                    $found[] = $date;
++                }
++            }
++        }
++
++        usort($found, fn (array $a, array $b) => [$a['date'], $a['key']] <=> [$b['date'], $b['key']]);
++
++        return $found;
++    }
++
++    /** @param array<string, mixed> $entry */
++    private static function resolve(array $entry, int $year): ?CarbonImmutable
++    {
++        $month = (int) $entry['month'];
++
++        if (isset($entry['day'])) {
++            if (! checkdate($month, (int) $entry['day'], $year)) {
++                return null;
++            }
++
++            return CarbonImmutable::create($year, $month, (int) $entry['day'], 0, 0, 0, 'UTC');
++        }
++
++        if (! isset($entry['weekday'], $entry['nth'])) {
++            throw new InvalidArgumentException("La fecha señalada «{$entry['key']}» necesita `day` o `weekday` + `nth`.");
++        }
++
++        $nth = (int) $entry['nth'];
++        $weekday = (int) $entry['weekday'];
++        $first = CarbonImmutable::create($year, $month, 1, 0, 0, 0, 'UTC');
++        $day = $nth === -1
++            ? $first->endOfMonth()->startOfDay()->subDays(($first->endOfMonth()->dayOfWeekIso - $weekday + 7) % 7)
++            : $first->addDays(($weekday - $first->dayOfWeekIso + 7) % 7 + 7 * ($nth - 1));
++
++        // El enésimo día de la semana que el mes no tiene (p. ej. un quinto lunes) no cae en el mes siguiente: ese año no hay fecha.
++        if ($day->month !== $month) {
++            return null;
++        }
++
++        return $day->addDays((int) ($entry['offset'] ?? 0));
++    }
++}
+diff --git a/config/marketing_dates.php b/config/marketing_dates.php
+new file mode 100644
+index 0000000..efe52b3
+--- /dev/null
++++ b/config/marketing_dates.php
+@@ -0,0 +1,40 @@
++<?php
++
++/*
++|--------------------------------------------------------------------------
++| Fechas señaladas de marketing (T-90)
++|--------------------------------------------------------------------------
++|
++| Fuente única y editable del calendario de fechas señaladas (calendario y feed .ics). Son datos propios de la aplicación, sin
++| servicios externos ni tabla: añadir, quitar o renombrar una fecha es editar esta lista (ver `docs/modulos/calendario.md`).
++| El conjunto actual es INICIAL: el listado definitivo lo fija el equipo de producto.
++|
++| Cada entrada lleva `key` (identificador único y estable: forma el UID del evento .ics, no lo cambies una vez publicado), `name`
++| (texto que ve el usuario) y UNA de estas dos reglas, que se calculan para cada año:
++|
++|   - Fecha fija:  `month` + `day`.                              Ej.: ['month' => 2, 'day' => 14]
++|   - Día móvil:   `month` + `weekday` (1 = lunes ... 7 = domingo) + `nth` (1..5, o -1 = el último), con `offset` opcional en días
++|                  (positivo o negativo) respecto a ese día. Ej.: el primer domingo de mayo → ['month' => 5, 'weekday' => 7, 'nth' => 1].
++|                  Black Friday es el día siguiente al cuarto jueves de noviembre → ['month' => 11, 'weekday' => 4, 'nth' => 4, 'offset' => 1].
++|
++| El orden de la lista da igual: se ordena por fecha.
++*/
++
++return [
++    'dates' => [
++        ['key' => 'new-year', 'name' => 'Año Nuevo', 'month' => 1, 'day' => 1],
++        ['key' => 'epiphany', 'name' => 'Día de Reyes', 'month' => 1, 'day' => 6],
++        ['key' => 'valentines-day', 'name' => 'San Valentín', 'month' => 2, 'day' => 14],
++        ['key' => 'womens-day', 'name' => 'Día de la Mujer', 'month' => 3, 'day' => 8],
++        ['key' => 'fathers-day', 'name' => 'Día del Padre (España)', 'month' => 3, 'day' => 19],
++        ['key' => 'world-book-day', 'name' => 'Día del Libro', 'month' => 4, 'day' => 23],
++        ['key' => 'labour-day', 'name' => 'Día del Trabajo', 'month' => 5, 'day' => 1],
++        ['key' => 'mothers-day', 'name' => 'Día de la Madre (España)', 'month' => 5, 'weekday' => 7, 'nth' => 1],
++        ['key' => 'halloween', 'name' => 'Halloween', 'month' => 10, 'day' => 31],
++        ['key' => 'singles-day', 'name' => 'Día del Soltero', 'month' => 11, 'day' => 11],
++        ['key' => 'black-friday', 'name' => 'Black Friday', 'month' => 11, 'weekday' => 4, 'nth' => 4, 'offset' => 1],
++        ['key' => 'cyber-monday', 'name' => 'Cyber Monday', 'month' => 11, 'weekday' => 4, 'nth' => 4, 'offset' => 4],
++        ['key' => 'christmas', 'name' => 'Navidad', 'month' => 12, 'day' => 25],
++        ['key' => 'new-years-eve', 'name' => 'Nochevieja', 'month' => 12, 'day' => 31],
++    ],
++];
+diff --git a/database/migrations/2026_11_27_110000_add_calendar_feed_to_users.php b/database/migrations/2026_11_27_110000_add_calendar_feed_to_users.php
+new file mode 100644
+index 0000000..e745933
+--- /dev/null
++++ b/database/migrations/2026_11_27_110000_add_calendar_feed_to_users.php
+@@ -0,0 +1,27 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    public function up(): void
++    {
++        Schema::table('users', function (Blueprint $table) {
++            // Feed .ics del calendario (T-90): solo se guarda el SHA-256 del token (el original se muestra una vez); nulo = sin feed.
++            $table->string('calendar_feed_token_hash', 64)->nullable()->unique();
++            $table->timestamp('calendar_feed_token_at')->nullable();
++            // Fechas señaladas ocultas (T-90): visibles por defecto.
++            $table->boolean('hide_marketing_dates')->default(false);
++        });
++    }
++
++    public function down(): void
++    {
++        Schema::table('users', function (Blueprint $table) {
++            $table->dropUnique(['calendar_feed_token_hash']);
++            $table->dropColumn(['calendar_feed_token_hash', 'calendar_feed_token_at', 'hide_marketing_dates']);
++        });
++    }
++};
+diff --git a/resources/js/Components/Calendar/CalendarFeedPanel.vue b/resources/js/Components/Calendar/CalendarFeedPanel.vue
+new file mode 100644
+index 0000000..c318c4d
+--- /dev/null
++++ b/resources/js/Components/Calendar/CalendarFeedPanel.vue
+@@ -0,0 +1,181 @@
++<script setup>
++/** @import { CalendarFeedState } from '@/types/calendar' */
++import { ref, watch } from 'vue';
++import { router } from '@inertiajs/vue3';
++import Checkbox from '@/Components/Checkbox.vue';
++import InfoNote from '@/Components/InfoNote.vue';
++import { useConfirm } from '@/Composables/useConfirm';
++
++const props = defineProps({
++    feed: { type: /** @type {import('vue').PropType<CalendarFeedState>} */ (Object), required: true },
++    marketingHidden: { type: Boolean, required: true },
++});
++
++const ask = useConfirm();
++const busy = ref(false);
++// La URL secreta llega una sola vez en las props (el servidor solo guarda el hash). Se copia a estado local para que siga visible mientras el
++// usuario no salga de la página, aunque otra petición (p. ej. cambiar la casilla) recargue las props; se descarta al revocar el enlace.
++const shownUrl = ref(props.feed.url);
++watch(
++    () => props.feed,
++    (feed) => {
++        if (feed.url) shownUrl.value = feed.url;
++        else if (!feed.active) shownUrl.value = null;
++    },
++);
++const copied = ref(false);
++const copyFailed = ref(false);
++const dates = new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
++/** @param {string | null} value */
++const generatedLabel = (value) => (value && Number.isFinite(Date.parse(value)) ? dates.format(Date.parse(value)) : '');
++
++/** @param {Event} event */
++const toggleMarketing = (event) => {
++    const input = event.currentTarget;
++    if (!(input instanceof HTMLInputElement)) return;
++    router.patch(
++        route('calendar.marketing-dates.update'),
++        { hidden: !input.checked },
++        {
++            preserveScroll: true,
++            preserveState: true,
++            // Si la petición falla, la casilla vuelve al estado del servidor en vez de quedar desincronizada.
++            onFinish: () => {
++                input.checked = !props.marketingHidden;
++            },
++        },
++    );
++};
++
++const finish = () => {
++    busy.value = false;
++};
++
++const create = () => {
++    if (busy.value) return;
++    busy.value = true;
++    copied.value = false;
++    router.post(route('calendar.feed.store'), {}, { preserveScroll: true, preserveState: true, onFinish: finish });
++};
++
++const regenerate = async () => {
++    if (busy.value) return;
++    const accepted = await ask({
++        title: 'Regenerar el enlace',
++        message: 'El enlace actual dejará de funcionar y tendrás que volver a suscribir tu calendario con el nuevo. ¿Regenerarlo?',
++        confirmLabel: 'Regenerar',
++    });
++    if (accepted) create();
++};
++
++const revoke = async () => {
++    if (busy.value) return;
++    const accepted = await ask({
++        title: 'Revocar el enlace',
++        message: 'El enlace dejará de funcionar y tu calendario externo dejará de actualizarse. ¿Revocarlo?',
++        confirmLabel: 'Revocar',
++    });
++    if (!accepted) return;
++    busy.value = true;
++    router.delete(route('calendar.feed.destroy'), { preserveScroll: true, preserveState: true, onFinish: finish });
++};
++
++/** @param {FocusEvent} event */
++const selectAll = (event) => {
++    if (event.currentTarget instanceof HTMLInputElement) event.currentTarget.select();
++};
++
++const copy = async () => {
++    try {
++        await navigator.clipboard.writeText(shownUrl.value ?? '');
++        copyFailed.value = false;
++        copied.value = true;
++    } catch {
++        // Sin Clipboard API (origen http no seguro) o permiso denegado: se dice, en vez de no hacer nada.
++        copied.value = false;
++        copyFailed.value = true;
++    }
++};
++</script>
++
++<template>
++    <section class="card space-y-3 p-3 sm:p-4" aria-labelledby="calendar-feed-title" data-testid="calendar-feed-panel">
++        <h2 id="calendar-feed-title" class="text-sm font-semibold text-slate-900">Fechas señaladas y suscripción</h2>
++
++        <label class="flex items-start gap-2 text-sm text-slate-700" for="show-marketing-dates">
++            <Checkbox id="show-marketing-dates" :checked="!marketingHidden" @change="toggleMarketing" />
++            <span>
++                Mostrar las fechas señaladas (San Valentín, Black Friday, Día de la Madre…)
++                <span class="block text-xs text-slate-600"
++                    >Se ven en el calendario y también en tu enlace de suscripción.</span
++                >
++            </span>
++        </label>
++
++        <div class="space-y-2 border-t border-slate-100 pt-3">
++            <p class="text-sm font-medium text-slate-800"
++                >Ver tus publicaciones en Google Calendar, Outlook o Apple Calendar</p
++            >
++            <InfoNote>
++                El enlace es secreto: quien lo tenga puede ver el resumen de tus publicaciones programadas y publicadas.
++                Solo contiene las tuyas.
++            </InfoNote>
++
++            <button
++                v-if="!feed.active"
++                type="button"
++                class="btn btn-secondary px-3 py-1.5 text-sm"
++                :disabled="busy"
++                @click="create"
++            >
++                Crear enlace de suscripción
++            </button>
++            <template v-else>
++                <div v-if="shownUrl" class="space-y-1" data-testid="calendar-feed-new">
++                    <label for="calendar-feed-url" class="block text-xs font-medium text-slate-700">
++                        Tu enlace (cópialo ahora: no se vuelve a mostrar)
++                    </label>
++                    <div class="flex flex-wrap items-center gap-2">
++                        <input
++                            id="calendar-feed-url"
++                            type="text"
++                            readonly
++                            class="min-w-0 flex-1 rounded-lg border-slate-300 text-xs"
++                            :value="shownUrl"
++                            @focus="selectAll"
++                        />
++                        <button type="button" class="btn btn-secondary px-3 py-1.5 text-sm" @click="copy"
++                            >Copiar enlace</button
++                        >
++                    </div>
++                    <p v-if="copied" role="status" class="text-xs text-emerald-800">Enlace copiado.</p>
++                    <p v-if="copyFailed" role="status" class="text-xs text-amber-800"
++                        >No se pudo copiar: selecciona el enlace y cópialo a mano.</p
++                    >
++                </div>
++                <p v-else class="text-xs text-slate-600" data-testid="calendar-feed-active">
++                    Enlace activo{{ feed.generated_at ? `, creado el ${generatedLabel(feed.generated_at)}` : '' }}. Por
++                    seguridad solo se muestra al crearlo: si lo has perdido, regenera uno nuevo.
++                </p>
++                <div class="flex flex-wrap items-center gap-2">
++                    <button
++                        type="button"
++                        class="btn btn-secondary px-3 py-1.5 text-sm"
++                        :disabled="busy"
++                        @click="regenerate"
++                    >
++                        Regenerar enlace
++                    </button>
++                    <button
++                        type="button"
++                        class="btn btn-secondary px-3 py-1.5 text-sm"
++                        :disabled="busy"
++                        @click="revoke"
++                    >
++                        Revocar enlace
++                    </button>
++                </div>
++            </template>
++        </div>
++    </section>
++</template>
+diff --git a/tests/Feature/Calendar/CalendarIcsFeedTest.php b/tests/Feature/Calendar/CalendarIcsFeedTest.php
+new file mode 100644
+index 0000000..2999e7e
+--- /dev/null
++++ b/tests/Feature/Calendar/CalendarIcsFeedTest.php
+@@ -0,0 +1,238 @@
++<?php
++
++use App\Models\Brand;
++use App\Models\Post;
++use App\Models\User;
++use App\Services\CalendarFeed;
++use Illuminate\Auth\Notifications\ResetPassword;
++use Illuminate\Support\Carbon;
++use Illuminate\Support\Facades\Crypt;
++use Illuminate\Support\Facades\Notification;
++use Inertia\Testing\AssertableInertia as Assert;
++
++// T-90 · F-18: feed .ics por usuario con token secreto (hash, regenerable, revocable); solo sus publicaciones.
++
++beforeEach(function () {
++    Carbon::setTestNow('2026-11-20 10:00:00');
++    $this->user = User::factory()->create();
++    $this->brand = Brand::factory()->for($this->user)->create(['name' => 'Mi Marca']);
++});
++
++/** Programa un post del usuario (sin pasar por PostService: solo importa el dato). */
++function feedPost(User $user, Brand $brand, ?string $utc, string $text = 'Hola', string $status = 'programada'): Post
++{
++    $post = new Post(['text' => $text, 'scheduled_at' => $utc ? Carbon::parse($utc, 'UTC') : null, 'status' => $status]);
++    $post->user_id = $user->id;
++    $post->brand_id = $brand->id;
++    $post->save();
++
++    return $post;
++}
++
++/** Genera el token por la ruta de la aplicación y devuelve la URL pública que ve el usuario. */
++function feedUrl(User $user): string
++{
++    test()->actingAs($user)->post(route('calendar.feed.store'))->assertRedirect()->assertSessionHas('calendar_feed_url');
++
++    return Crypt::decryptString(session('calendar_feed_url'));
++}
++
++/** Desdobla las líneas plegadas (RFC 5545 §3.1) y devuelve las líneas lógicas. */
++function icsLines(string $body): array
++{
++    return explode("\r\n", rtrim(preg_replace('/\r\n[ \t]/', '', $body), "\r\n"));
++}
++
++it('genera una URL secreta con un token de alta entropía y guarda solo su hash', function () {
++    $url = feedUrl($this->user);
++
++    expect($url)->toMatch('#/calendar/feed/[A-Za-z0-9_-]{43}\.ics$#');
++    $token = basename(parse_url($url, PHP_URL_PATH), '.ics');
++    $stored = $this->user->fresh()->calendar_feed_token_hash;
++    expect($stored)->toBe(hash('sha256', $token))->and($stored)->not->toContain($token);
++});
++
++it('el feed es un iCalendar válido: cabeceras, CRLF, UTC, UID estable y escapado', function () {
++    $post = feedPost($this->user, $this->brand, '2026-11-24 08:30:00', "Oferta, 20% dto; ¡ya!\\ y salto\nde línea");
++    $url = feedUrl($this->user);
++
++    $res = $this->get($url)->assertOk();
++    $res->assertHeader('Content-Type', 'text/calendar; charset=utf-8');
++    expect($res->headers->get('Cache-Control'))->toContain('no-store')
++        ->and($res->headers->get('X-Robots-Tag'))->toContain('noindex');
++    $body = $res->getContent();
++    expect($body)->toContain("\r\n")->and(preg_match('/(?<!\r)\n/', $body))->toBe(0);
++
++    $lines = icsLines($body);
++    expect($lines[0])->toBe('BEGIN:VCALENDAR')->and(end($lines))->toBe('END:VCALENDAR')
++        ->and($lines)->toContain('VERSION:2.0')->toContain('BEGIN:VEVENT')->toContain('END:VEVENT')
++        ->and(collect($lines)->contains(fn ($l) => str_starts_with($l, 'PRODID:')))->toBeTrue()
++        ->and($lines)->toContain('DTSTART:20261124T083000Z')
++        ->and(collect($lines)->contains(fn ($l) => preg_match('/^DTSTAMP:\d{8}T\d{6}Z$/', $l) === 1))->toBeTrue();
++    $uid = collect($lines)->first(fn ($l) => str_starts_with($l, 'UID:'));
++    expect($uid)->toContain((string) $post->id);
++    $summary = collect($lines)->first(fn ($l) => str_starts_with($l, 'SUMMARY:'));
++    $description = collect($lines)->first(fn ($l) => str_starts_with($l, 'DESCRIPTION:'));
++    expect($summary)->toContain('Oferta\\, 20% dto\\; ¡ya!\\\\ y salto de línea')
++        ->and($description)->toContain('y salto\\nde línea');
++
++    // El UID es estable entre peticiones.
++    $again = icsLines($this->get($url)->getContent());
++    expect(collect($again)->first(fn ($l) => str_starts_with($l, 'UID:')))->toBe($uid);
++});
++
++it('pliega las líneas a 75 octetos sin partir caracteres UTF-8', function () {
++    feedPost($this->user, $this->brand, '2026-11-24 08:30:00', str_repeat('ñandú ✓ 🎉 ', 40));
++    $body = $this->get(feedUrl($this->user))->assertOk()->getContent();
++
++    foreach (explode("\r\n", $body) as $line) {
++        expect(strlen($line))->toBeLessThanOrEqual(75)->and(mb_check_encoding($line, 'UTF-8'))->toBeTrue();
++    }
++    expect($body)->toContain("\r\n ");
++});
++
++it('solo incluye las publicaciones del usuario, no las de otros ni los borradores sin fecha', function () {
++    feedPost($this->user, $this->brand, '2026-11-24 08:30:00', 'Mío visible');
++    feedPost($this->user, $this->brand, null, 'Borrador sin fecha', 'borrador');
++    $other = User::factory()->create();
++    $otherBrand = Brand::factory()->for($other)->create(['name' => 'Marca Ajena']);
++    feedPost($other, $otherBrand, '2026-11-24 09:30:00', 'Secreto ajeno');
++
++    $body = $this->get(feedUrl($this->user))->assertOk()->getContent();
++
++    expect($body)->toContain('Mío visible')->not->toContain('Borrador sin fecha')->not->toContain('Secreto ajeno')->not->toContain('Marca Ajena');
++});
++
++it('resume el texto largo en vez de volcarlo entero', function () {
++    feedPost($this->user, $this->brand, '2026-11-24 08:30:00', str_repeat('palabra ', 200));
++    $body = $this->get(feedUrl($this->user))->assertOk()->getContent();
++
++    expect(strlen($body))->toBeLessThan(4000);
++});
++
++it('regenerar el token invalida el anterior', function () {
++    feedPost($this->user, $this->brand, '2026-11-24 08:30:00');
++    $old = feedUrl($this->user);
++    $this->get($old)->assertOk();
++
++    $new = feedUrl($this->user);
++
++    expect($new)->not->toBe($old);
++    $this->get($old)->assertNotFound();
++    $this->get($new)->assertOk();
++});
++
++it('revocar deja el feed sin servicio', function () {
++    $url = feedUrl($this->user);
++
++    $this->actingAs($this->user)->delete(route('calendar.feed.destroy'))->assertRedirect();
++
++    expect($this->user->fresh()->calendar_feed_token_hash)->toBeNull();
++    $this->get($url)->assertNotFound();
++});
++
++it('un token inválido, mal formado o ausente da 404 sin pista', function () {
++    feedUrl($this->user);
++    $good = 'A'.str_repeat('b', 42);
++
++    $this->get("/calendar/feed/{$good}.ics")->assertNotFound();
++    $this->get('/calendar/feed/corto.ics')->assertNotFound();
++    $this->get('/calendar/feed/'.str_repeat('é', 43).'.ics')->assertNotFound();
++    expect(app(CalendarFeed::class)->userFor(''))->toBeNull();
++});
++
++it('la ruta del feed es pública: sin cookies y con throttle', function () {
++    $url = feedUrl($this->user);
++    auth()->logout();
++
++    $res = $this->get($url)->assertOk();
++    expect($res->headers->getCookies())->toBe([])
++        ->and($res->headers->get('X-RateLimit-Limit'))->not->toBeNull();
++});
++
++it('un usuario solo regenera su propio token: el de otro no cambia', function () {
++    $other = User::factory()->create();
++    $otherUrl = feedUrl($other);
++    $before = $other->fresh()->calendar_feed_token_hash;
++
++    feedUrl($this->user);
++
++    expect($other->fresh()->calendar_feed_token_hash)->toBe($before);
++    $this->get($otherUrl)->assertOk();
++    auth()->logout();
++    $this->post(route('calendar.feed.store'))->assertRedirect(route('login'));
++});
++
++it('incluye las fechas señaladas como eventos de día completo y las omite si están ocultas', function () {
++    $url = feedUrl($this->user);
++
++    $with = $this->get($url)->assertOk()->getContent();
++    expect($with)->toContain('SUMMARY:Black Friday')->toContain('DTSTART;VALUE=DATE:20261127')->toContain('DTEND;VALUE=DATE:20261128');
++
++    $this->actingAs($this->user)->patch(route('calendar.marketing-dates.update'), ['hidden' => true]);
++    $without = $this->get($url)->assertOk()->getContent();
++    expect($without)->not->toContain('Black Friday');
++});
++
++it('el calendario informa de si hay feed activo y entrega la URL una sola vez', function () {
++    $this->actingAs($this->user)->get(route('calendar.index'))
++        ->assertInertia(fn (Assert $page) => $page->where('feed.active', false)->where('feed.url', null));
++
++    $this->actingAs($this->user)->post(route('calendar.feed.store'));
++    $this->actingAs($this->user)->get(route('calendar.index'))
++        ->assertInertia(fn (Assert $page) => $page->where('feed.active', true)->where('feed.url', fn ($url) => str_contains($url, '/calendar/feed/')));
++    $this->actingAs($this->user)->get(route('calendar.index'))
++        ->assertInertia(fn (Assert $page) => $page->where('feed.active', true)->where('feed.url', null));
++});
++
++it('con más publicaciones que el tope prioriza lo próximo y usa el cupo restante para el pasado reciente', function () {
++    config(['social.calendar_feed.max_posts' => 3]);
++    feedPost($this->user, $this->brand, '2026-11-01 08:00:00', 'pasado antiguo');
++    feedPost($this->user, $this->brand, '2026-11-18 08:00:00', 'pasado reciente');
++    feedPost($this->user, $this->brand, '2026-11-21 08:00:00', 'futuro uno');
++    feedPost($this->user, $this->brand, '2026-11-22 08:00:00', 'futuro dos');
++    feedPost($this->user, $this->brand, '2027-06-01 08:00:00', 'futuro lejano');
++
++    $body = $this->get(feedUrl($this->user))->assertOk()->getContent();
++
++    expect($body)->toContain('futuro uno')->toContain('futuro dos')->toContain('futuro lejano')
++        ->not->toContain('pasado reciente')->not->toContain('pasado antiguo');
++
++    config(['social.calendar_feed.max_posts' => 4]);
++    $body = $this->get(feedUrl($this->user))->getContent();
++    expect($body)->toContain('pasado reciente')->not->toContain('pasado antiguo');
++});
++
++it('restablecer o cambiar la contraseña revoca el enlace del feed', function () {
++    $url = feedUrl($this->user);
++    $this->actingAs($this->user)->from('/profile')->put('/password', ['current_password' => 'password', 'password' => 'new-password', 'password_confirmation' => 'new-password'])->assertSessionHasNoErrors();
++    expect($this->user->fresh()->calendar_feed_token_hash)->toBeNull();
++    $this->get($url)->assertNotFound();
++
++    Notification::fake();
++    $url = feedUrl($this->user);
++    auth()->logout();
++    $this->post('/forgot-password', ['email' => $this->user->email]);
++    Notification::assertSentTo($this->user, ResetPassword::class, function ($notification) {
++        $this->post('/reset-password', ['token' => $notification->token, 'email' => $this->user->email, 'password' => 'otra-clave-1', 'password_confirmation' => 'otra-clave-1'])->assertSessionHasNoErrors();
++
++        return true;
++    });
++    expect($this->user->fresh()->calendar_feed_token_hash)->toBeNull();
++    $this->get($url)->assertNotFound();
++});
++
++it('cifra el historial de Inertia solo cuando la respuesta lleva la URL secreta', function () {
++    $without = $this->actingAs($this->user)->get(route('calendar.index'))->getOriginalContent()->getData()['page'];
++    $this->actingAs($this->user)->post(route('calendar.feed.store'));
++    $with = $this->actingAs($this->user)->get(route('calendar.index'))->getOriginalContent()->getData()['page'];
++
++    expect($with['encryptHistory'] ?? false)->toBeTrue()->and($without['encryptHistory'] ?? false)->toBeFalse();
++});
++
++it('el feed tiene su propio limitador por token, distinto del de SmartLinks', function () {
++    $url = feedUrl($this->user);
++    auth()->logout();
++
++    expect($this->get($url)->headers->get('X-RateLimit-Limit'))->toBe((string) config('rate_limits.calendar_feed.per_token'));
++});
+diff --git a/tests/Feature/Calendar/MarketingDatesTest.php b/tests/Feature/Calendar/MarketingDatesTest.php
+new file mode 100644
+index 0000000..d14334c
+--- /dev/null
++++ b/tests/Feature/Calendar/MarketingDatesTest.php
+@@ -0,0 +1,121 @@
++<?php
++
++use App\Models\User;
++use App\Support\MarketingDates;
++use Illuminate\Support\Carbon;
++use Inertia\Testing\AssertableInertia as Assert;
++
++// T-90 · F-17: fechas señaladas propias (fijas y móviles calculadas), visibles en el calendario y ocultables por usuario.
++
++function marketingDateOf(string $key, int $year): ?string
++{
++    foreach (MarketingDates::forYear($year) as $date) {
++        if ($date['key'] === $key) {
++            return $date['date'];
++        }
++    }
++
++    return null;
++}
++
++it('calcula Black Friday y Cyber Monday: el día siguiente y el lunes posterior al cuarto jueves de noviembre', function (int $year, string $blackFriday, string $cyberMonday) {
++    expect(marketingDateOf('black-friday', $year))->toBe($blackFriday)
++        ->and(marketingDateOf('cyber-monday', $year))->toBe($cyberMonday);
++})->with([
++    [2024, '2024-11-29', '2024-12-02'],
++    [2025, '2025-11-28', '2025-12-01'],
++    [2026, '2026-11-27', '2026-11-30'],
++    [2027, '2027-11-26', '2027-11-29'],
++    [2028, '2028-11-24', '2028-11-27'],
++]);
++
++it('el Día de la Madre en España es el primer domingo de mayo', function (int $year, string $expected) {
++    expect(marketingDateOf('mothers-day', $year))->toBe($expected);
++})->with([[2025, '2025-05-04'], [2026, '2026-05-03'], [2027, '2027-05-02'], [2028, '2028-05-07']]);
++
++it('las fechas fijas caen siempre en su día', function () {
++    expect(marketingDateOf('new-year', 2027))->toBe('2027-01-01')
++        ->and(marketingDateOf('valentines-day', 2027))->toBe('2027-02-14')
++        ->and(marketingDateOf('womens-day', 2027))->toBe('2027-03-08')
++        ->and(marketingDateOf('world-book-day', 2027))->toBe('2027-04-23')
++        ->and(marketingDateOf('christmas', 2027))->toBe('2027-12-25');
++});
++
++it('devuelve cada año ordenado por fecha, con nombre y sin duplicados', function () {
++    $dates = MarketingDates::forYear(2026);
++    $days = array_column($dates, 'date');
++
++    expect($dates)->not->toBeEmpty()
++        ->and($days)->toBe(collect($days)->sort()->values()->all())
++        ->and(array_unique(array_column($dates, 'key')))->toHaveCount(count($dates));
++    foreach ($dates as $date) {
++        expect($date['name'])->toBeString()->not->toBeEmpty()->and($date['date'])->toStartWith('2026-');
++    }
++});
++
++it('between devuelve solo las fechas del rango, incluidos los extremos, también al cruzar de año', function () {
++    $days = array_column(MarketingDates::between('2026-12-24', '2027-01-06'), 'date');
++
++    expect($days)->toBe(['2026-12-25', '2026-12-31', '2027-01-01', '2027-01-06']);
++});
++
++it('el calendario envía las fechas señaladas del rango y la preferencia', function () {
++    Carbon::setTestNow('2026-11-25 12:00:00');
++    $user = User::factory()->create();
++
++    $this->actingAs($user)->get(route('calendar.index', ['view' => 'week', 'date' => '2026-11-25']))
++        ->assertInertia(fn (Assert $page) => $page
++            ->where('marketing_dates_hidden', false)
++            ->where('marketing_dates', fn ($dates) => collect($dates)->pluck('name', 'date')->all() === ['2026-11-27' => 'Black Friday']));
++});
++
++it('ocultar las fechas las quita del calendario y se recuerda por usuario', function () {
++    Carbon::setTestNow('2026-11-25 12:00:00');
++    $user = User::factory()->create();
++    $other = User::factory()->create();
++
++    $this->actingAs($user)->patch(route('calendar.marketing-dates.update'), ['hidden' => true])->assertRedirect();
++
++    expect($user->fresh()->hide_marketing_dates)->toBeTrue()->and($other->fresh()->hide_marketing_dates)->toBeFalse();
++    $this->actingAs($user)->get(route('calendar.index', ['view' => 'week', 'date' => '2026-11-25']))
++        ->assertInertia(fn (Assert $page) => $page->where('marketing_dates_hidden', true)->where('marketing_dates', []));
++    $this->actingAs($other)->get(route('calendar.index', ['view' => 'week', 'date' => '2026-11-25']))
++        ->assertInertia(fn (Assert $page) => $page->where('marketing_dates_hidden', false)->has('marketing_dates', 1));
++
++    $this->actingAs($user)->patch(route('calendar.marketing-dates.update'), ['hidden' => false])->assertRedirect();
++    expect($user->fresh()->hide_marketing_dates)->toBeFalse();
++});
++
++it('la preferencia exige un booleano y un invitado no puede cambiarla', function () {
++    $this->patch(route('calendar.marketing-dates.update'), ['hidden' => true])->assertRedirect(route('login'));
++    $this->actingAs(User::factory()->create())->patch(route('calendar.marketing-dates.update'), ['hidden' => 'quizá'])->assertSessionHasErrors('hidden');
++});
++
++it('un 29 de febrero fijo solo existe en años bisiestos', function () {
++    config(['marketing_dates.dates' => [['key' => 'leap', 'name' => 'Bisiesto', 'month' => 2, 'day' => 29]]]);
++
++    expect(MarketingDates::forYear(2028))->toBe([['key' => 'leap', 'name' => 'Bisiesto', 'date' => '2028-02-29']])
++        ->and(MarketingDates::forYear(2027))->toBe([]);
++});
++
++it('el enésimo día de la semana que el mes no tiene no cae en el mes siguiente; nth -1 es el último', function () {
++    config(['marketing_dates.dates' => [
++        ['key' => 'fifth-monday', 'name' => 'Quinto lunes', 'month' => 2, 'weekday' => 1, 'nth' => 5],
++        ['key' => 'last-friday', 'name' => 'Último viernes', 'month' => 2, 'weekday' => 5, 'nth' => -1],
++    ]]);
++
++    expect(array_column(MarketingDates::forYear(2027), 'date'))->toBe(['2027-02-26'])
++        ->and(array_column(MarketingDates::forYear(2028), 'date'))->toBe(['2028-02-25']);
++    config(['marketing_dates.dates' => [['key' => 'fifth-monday', 'name' => 'Quinto lunes', 'month' => 2, 'weekday' => 1, 'nth' => 5]]]);
++    expect(MarketingDates::forYear(2027))->toBe([]);
++});
++
++it('between incluye las fechas cuyo offset las lleva al año contiguo', function () {
++    config(['marketing_dates.dates' => [
++        ['key' => 'after-december', 'name' => 'Tras el último jueves de diciembre', 'month' => 12, 'weekday' => 4, 'nth' => -1, 'offset' => 10],
++        ['key' => 'before-january', 'name' => 'Antes del primer lunes de enero', 'month' => 1, 'weekday' => 1, 'nth' => 1, 'offset' => -10],
++    ]]);
++
++    expect(array_column(MarketingDates::between('2027-01-05', '2027-01-15'), 'date'))->toBe(['2027-01-10'])
++        ->and(array_column(MarketingDates::between('2026-12-20', '2026-12-30'), 'date'))->toBe(['2026-12-25']);
++});
+diff --git a/tests/e2e/calendar-ics-feed.spec.ts b/tests/e2e/calendar-ics-feed.spec.ts
+new file mode 100644
+index 0000000..4999e79
+--- /dev/null
++++ b/tests/e2e/calendar-ics-feed.spec.ts
+@@ -0,0 +1,170 @@
++import { expect, test, type Page } from '@playwright/test';
++import {
++    artisan,
++    axeSeriousCritical,
++    cleanComposerBrands,
++    createExtraE2eUser,
++    e2eUser,
++    expectNoOverflow,
++    loginAs,
++    seedComposerBrand,
++    settle,
++    stamp,
++    watch,
++    type ComposerBrand,
++} from './helpers';
++
++/**
++ * T-90 · Fechas señaladas y feed .ics (E2E-29). Las fechas señaladas se ven en el calendario y se ocultan (la preferencia persiste); el enlace
++ * de suscripción se crea, se descarga como iCalendar válido con SOLO las publicaciones del usuario, se regenera (el anterior da 404, tras un
++ * diálogo de confirmación) y se revoca. Usuarios `e2e-sec-*` y marcas `e2e-composer-*`: nada toca datos reales ni publica en redes.
++ */
++test.describe.configure({ mode: 'serial' });
++
++/** Deja al usuario sin feed y con las fechas señaladas visibles. */
++const resetFeed = (email: string) =>
++    artisan(
++        String.raw`App\Models\User::where('email', '${email}')->update(['calendar_feed_token_hash' => null, 'calendar_feed_token_at' => null, 'hide_marketing_dates' => false]);`,
++    );
++
++/** Una publicación propia programada en 3 días y otra de OTRO usuario con el mismo aspecto: la ajena nunca puede salir en el feed. */
++function seedPosts(brandId: number, other: string, word: string) {
++    artisan(
++        String.raw`$b = App\Models\Brand::withoutUserScope()->findOrFail(${brandId}); ` +
++            String.raw`App\Models\Post::factory()->create(['brand_id' => $b->id, 'text' => 'e2e ics propia, con coma; ${word}', 'status' => App\Enums\PostStatus::Scheduled, 'scheduled_at' => now()->addDays(3)]); ` +
++            String.raw`$o = App\Models\User::where('email', '${other}')->firstOrFail(); ` +
++            String.raw`$ob = App\Models\Brand::factory()->for($o)->create(['name' => 'e2e-composer-ajena-${word}']); ` +
++            String.raw`App\Models\Post::factory()->create(['brand_id' => $ob->id, 'text' => 'e2e ics ajena ${word}', 'status' => App\Enums\PostStatus::Scheduled, 'scheduled_at' => now()->addDays(3)]);`,
++    );
++}
++
++const panel = (page: Page) => page.getByTestId('calendar-feed-panel');
++const showDates = (page: Page) => panel(page).getByLabel(/Mostrar las fechas señaladas/);
++const blackFriday = (page: Page) => page.getByTestId('marketing-date').filter({ hasText: 'Black Friday' });
++const feedPath = (url: string) => new URL(url).pathname;
++
++async function confirmDialog(page: Page, title: string, button: string) {
++    const dialog = page.getByRole('alertdialog', { name: title, exact: true });
++    await expect(dialog).toBeVisible();
++    await dialog.getByRole('button', { name: button, exact: true }).click();
++    await expect(dialog).toBeHidden();
++    await settle(page);
++}
++
++test.describe('Fechas señaladas y feed .ics', { tag: '@responsive' }, () => {
++    let brand: ComposerBrand;
++    let otherEmail: string;
++    let word: string;
++
++    test.beforeEach(async ({ page }, info) => {
++        const user = e2eUser(info.project.name);
++        word = `ics${stamp()}`;
++        cleanComposerBrands(user.email);
++        resetFeed(user.email);
++        brand = seedComposerBrand(user.email, `${word}-${info.project.name}`);
++        otherEmail = createExtraE2eUser(`ics-${word}`);
++        cleanComposerBrands(otherEmail);
++        seedPosts(brand.id, otherEmail, word);
++        await loginAs(page, user);
++    });
++
++    test.afterEach(async ({}, info) => {
++        const user = e2eUser(info.project.name);
++        try {
++            resetFeed(user.email);
++        } finally {
++            cleanComposerBrands(user.email);
++            cleanComposerBrands(otherEmail);
++        }
++    });
++
++    test('E2E-29 · fechas señaladas visibles y ocultables; el .ics es válido, solo del usuario, regenerable y revocable', async ({
++        page,
++    }, info) => {
++        const w = watch(page);
++        await page.goto('/calendar?view=month&date=2027-11-15');
++        await settle(page);
++
++        // 1. Las fechas señaladas se ven, distinguibles de las publicaciones, y se ocultan; la preferencia sobrevive a recargar.
++        await expect(blackFriday(page)).toBeVisible();
++        await expect(showDates(page)).toBeChecked();
++        await page.screenshot({ path: info.outputPath('calendario-fechas-inicial.png'), fullPage: true });
++        await showDates(page).uncheck();
++        await settle(page);
++        await expect(blackFriday(page)).toHaveCount(0);
++        await page.reload();
++        await settle(page);
++        await expect(showDates(page)).not.toBeChecked();
++        await expect(blackFriday(page)).toHaveCount(0);
++        await showDates(page).check();
++        await settle(page);
++        await expect(blackFriday(page)).toBeVisible();
++
++        // 2. Crear el enlace: se muestra una vez y el .ics es válido y solo contiene lo del usuario.
++        await panel(page).getByRole('button', { name: 'Crear enlace de suscripción', exact: true }).click();
++        await settle(page);
++        const urlField = panel(page).getByLabel(/Tu enlace/);
++        await expect(urlField).toBeVisible();
++        const url = await urlField.inputValue();
++        expect(url).toMatch(/\/calendar\/feed\/[A-Za-z0-9_-]{43}\.ics$/);
++        await page.screenshot({ path: info.outputPath('calendario-feed-creado.png'), fullPage: true });
++
++        const feed = await page.request.get(feedPath(url));
++        expect(feed.status()).toBe(200);
++        expect(feed.headers()['content-type']).toContain('text/calendar');
++        expect(feed.headers()['content-type']).toContain('charset=utf-8');
++        expect(feed.headers()['cache-control']).toContain('no-store');
++        expect(feed.headers()['x-robots-tag']).toContain('noindex');
++        const body = await feed.text();
++        expect(body.startsWith('BEGIN:VCALENDAR\r\n')).toBe(true);
++        expect(body.endsWith('END:VCALENDAR\r\n')).toBe(true);
++        expect(body).toContain('VERSION:2.0');
++        expect(body).toMatch(/PRODID:/);
++        expect(body).toMatch(/DTSTART:\d{8}T\d{6}Z/);
++        expect(body).not.toMatch(/(?<!\r)\n/);
++        for (const line of body.split('\r\n')) expect(Buffer.byteLength(line)).toBeLessThanOrEqual(75);
++        const unfolded = body.replace(/\r\n[ \t]/g, '');
++        expect(unfolded).toContain(`e2e ics propia\\, con coma\\; ${word}`);
++        expect(unfolded).not.toContain(`e2e ics ajena ${word}`);
++        expect(unfolded).not.toContain(`e2e-composer-ajena-${word}`);
++        expect(unfolded).toContain('SUMMARY:Navidad');
++
++        // 3. Con las fechas ocultas, el feed no las lleva (las publicaciones sí).
++        await showDates(page).uncheck();
++        await settle(page);
++        const hidden = (await (await page.request.get(feedPath(url))).text()).replace(/\r\n[ \t]/g, '');
++        expect(hidden).not.toContain('SUMMARY:Navidad');
++        expect(hidden).toContain(`e2e ics propia\\, con coma\\; ${word}`);
++        await expect(urlField).toBeVisible(); // la URL recién creada sigue en el panel tras cambiar la casilla
++        await showDates(page).check();
++        await settle(page);
++
++        // 4. Tras recargar, la URL ya no se muestra (solo el hash está guardado).
++        await page.reload();
++        await settle(page);
++        await expect(panel(page).getByTestId('calendar-feed-active')).toBeVisible();
++        await expect(panel(page).getByLabel(/Tu enlace/)).toHaveCount(0);
++
++        // 5. Regenerar pide confirmación; el enlace anterior da 404 y el nuevo funciona.
++        await panel(page).getByRole('button', { name: 'Regenerar enlace', exact: true }).click();
++        await confirmDialog(page, 'Regenerar el enlace', 'Regenerar');
++        const fresh = await panel(page)
++            .getByLabel(/Tu enlace/)
++            .inputValue();
++        expect(fresh).not.toBe(url);
++        expect((await page.request.get(feedPath(url))).status()).toBe(404);
++        expect((await page.request.get(feedPath(fresh))).status()).toBe(200);
++
++        // 6. Revocar también pide confirmación y deja el feed sin servicio.
++        await panel(page).getByRole('button', { name: 'Revocar enlace', exact: true }).click();
++        await confirmDialog(page, 'Revocar el enlace', 'Revocar');
++        await expect(
++            panel(page).getByRole('button', { name: 'Crear enlace de suscripción', exact: true }),
++        ).toBeVisible();
++        expect((await page.request.get(feedPath(fresh))).status()).toBe(404);
++
++        await expectNoOverflow(page);
++        await axeSeriousCritical(page, 'Calendario con fechas señaladas');
++        expect(w.errors).toEqual([]);
++    });
++});

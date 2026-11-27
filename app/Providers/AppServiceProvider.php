@@ -228,6 +228,12 @@ class AppServiceProvider extends ServiceProvider
             : Limit::none());
         RateLimiter::for('studio-link-comments', fn (Request $request) => Limit::perMinute((int) config('rate_limits.studio_link_comments'))
             ->by('studio-link-comments:'.hash('sha256', (string) $request->route('token'))));
+        // Feed .ics (T-90): un cupo por token (el cliente de calendario que lo consulta) y un tope por IP de respaldo; los servicios de calendario
+        // consultan desde IPs compartidas, asi que no comparte el cupo de `web-public-parity` con SmartLinks y el acortador.
+        RateLimiter::for('calendar-feed', fn (Request $request) => [
+            Limit::perMinute((int) config('rate_limits.calendar_feed.per_token'))->by('calendar-feed:'.hash('sha256', (string) $request->route('token'))),
+            Limit::perMinute((int) config('rate_limits.calendar_feed.per_ip'))->by('calendar-feed-ip:'.self::ipKey($request->ip())),
+        ]);
         RateLimiter::for('mcp-oauth-register', fn (Request $request) => Limit::perHour((int) config('rate_limits.mcp_oauth_register'))
             ->by('mcp-oauth-register:'.self::ipKey($request->ip())));
         RateLimiter::for('two-factor-manage', fn (Request $request) => Limit::perMinute((int) config('rate_limits.two_factor_manage'))

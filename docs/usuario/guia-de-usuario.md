@@ -104,6 +104,18 @@ Texto de hasta 300 caracteres con hasta 4 imágenes, o un vídeo MP4 de hasta 50
 
 Vista de semana o mes (y lista) con el estado por red. Puedes filtrar por red y reprogramar una publicación pendiente moviéndola.
 
+### Fechas señaladas y suscripción al calendario (.ics)
+
+El calendario marca con una etiqueta de color, distinta de tus publicaciones, algunas fechas señaladas de marketing (San Valentín, Día de la Madre, Black Friday, Navidad…). Si no las quieres, desmarca **Mostrar las fechas señaladas** en el panel sobre el calendario: se recuerda en tu cuenta.
+
+Para ver tus publicaciones en otro calendario, pulsa **Crear enlace de suscripción** en ese panel y copia la dirección:
+
+- **Google Calendar:** *Otros calendarios → Desde URL* y pega el enlace.
+- **Outlook:** *Agregar calendario → Suscribirse desde la web*.
+- **Apple Calendar:** *Archivo → Nueva suscripción de calendario*.
+
+El enlace **se muestra una sola vez**, al crearlo (si lo pierdes, regenera uno nuevo). Es secreto: quien lo tenga ve el resumen de tus publicaciones programadas y publicadas (y las fechas señaladas si las muestras), nunca las de otras personas. **Regenerar** hace que el anterior deje de funcionar y **Revocar** lo desactiva; cambiar tu contraseña también lo revoca. Los calendarios externos se actualizan cuando ellos quieren (a veces tardan horas).
+
 ### Vistas guardadas
 
 Si usas siempre los mismos filtros, guárdalos: filtra el calendario por marca, red y estado (y elige Semana, Mes o Lista), abre **Vistas**, escribe un nombre (por ejemplo «Pendientes IG») y pulsa **Guardar vista**. Más tarde, desde cualquier otro filtro, abre **Vistas** y elige esa vista: se vuelven a aplicar la marca, la red, el estado y la vista. Desde el mismo menú puedes **Renombrar**, **Borrar** o **Poner por defecto** una vista: la de por defecto se aplica sola al abrir el calendario sin filtros. Un asistente de IA (MCP) las lee con `list_calendar_views` y las usa con `get_calendar` y `view`.

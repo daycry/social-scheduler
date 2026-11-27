@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mcp\Abilities;
 use App\Models\PersonalAccessToken;
 use App\Services\AuditLog;
+use App\Support\EncryptedHistory;
 use Carbon\Carbon;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\RedirectResponse;
@@ -19,6 +20,11 @@ class ApiKeyController extends Controller
 {
     public function index(Request $request): Response
     {
+        $newKey = $this->newKey($request);
+        if ($newKey !== null) {
+            EncryptedHistory::enable($request);
+        }
+
         return Inertia::render('ApiKeys/Index', [
             'keys' => $request->user()->tokens()->with('oauthClient')->latest('id')->get()->map(fn (PersonalAccessToken $t) => [
                 'id' => $t->id,
@@ -34,7 +40,7 @@ class ApiKeyController extends Controller
             'abilities' => Abilities::all(),
             'presets' => Abilities::presets(),
             'endpoint' => url('/mcp'),
-            'newKey' => $this->newKey($request),
+            'newKey' => $newKey,
         ]);
     }
 

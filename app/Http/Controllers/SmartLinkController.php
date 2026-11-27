@@ -8,6 +8,7 @@ use App\Models\MediaAsset;
 use App\Models\SmartLink;
 use App\Models\SmartLinkBlock;
 use App\Models\SmartLinkSubscriber;
+use App\Services\ShortLinkService;
 use App\Services\SmartLinkService;
 use App\Support\CsvWriter;
 use App\Support\CurrentBrand;
@@ -23,7 +24,7 @@ class SmartLinkController extends Controller
 {
     use AuthorizesRequests;
 
-    public function __construct(private readonly SmartLinkService $links) {}
+    public function __construct(private readonly SmartLinkService $links, private readonly ShortLinkService $shortLinks) {}
 
     public function index(Request $request): Response
     {
@@ -34,6 +35,7 @@ class SmartLinkController extends Controller
             'brand' => $brand ? ['id' => $brand->id, 'name' => $brand->name] : null,
             'link' => $link ? $this->links->present($link, $brand) : null,
             'stats' => $link ? $this->links->stats($link) : null,
+            'short_links' => $this->shortLinks->listing($request->user()),
             'subscribers' => $link ? SmartLinkSubscriber::query()->where('smart_link_id', $link->id)->orderByDesc('id')->limit(100)->get(['id', 'email', 'created_at'])->map(fn ($s) => ['id' => $s->id, 'email' => $s->email, 'at' => $s->created_at?->toIso8601String()])->values() : [],
             'images' => MediaAsset::query()->where('kind', MediaAsset::KIND_IMAGE)->where('status', MediaAsset::STATUS_READY)->latest()->limit(50)->get()->map(fn ($m) => $m->toPublicArray() + ['url' => $this->thumbUrl($m)])->values(),
             'defaults' => ['theme_color' => '#4f46e5', 'theme_mode' => 'light', 'max_blocks' => SmartLinkService::MAX_BLOCKS, 'timezone' => $brand?->timezone ?: 'UTC'],

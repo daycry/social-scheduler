@@ -80,9 +80,23 @@ final class SafeUrl
         return $host;
     }
 
+    /** ¿El host usa caracteres no ASCII o una etiqueta punycode (`xn--`)? Es el caso de los dominios internacionalizados, posibles homografos. */
+    public static function hasIdnHost(?string $url): bool
+    {
+        $host = strtolower((string) parse_url((string) $url, PHP_URL_HOST));
+
+        return preg_match('/[^\x00-\x7f]/', $host) === 1 || str_contains('.'.$host, '.xn--');
+    }
+
     /** Host ASCII (o punycode que se decodifica a una sola escritura). Rechaza la mezcla de escrituras en una misma etiqueta. */
     private static function hostIsSane(string $host): bool
     {
+        // Codificacion porcentual en el host: el navegador la decodifica (WHATWG) y «%D0%B0pple.com» llegaria a «аpple.com» sin pasar por
+        // las comprobaciones de escrituras ni por el aviso de IDN. Un host legitimo no la necesita.
+        if (str_contains($host, '%')) {
+            return false;
+        }
+
         // Espacios Unicode (NBSP, U+2000..U+200A, U+3000...) en el host: navegador y servidor podrian entenderlo distinto.
         if (preg_match('/\p{Z}/u', $host) === 1) {
             return false;

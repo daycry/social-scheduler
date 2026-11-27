@@ -48,9 +48,9 @@ estado: en-progreso
 | Fase 5 — Frontend | 15 | 18 | 83% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
 | Fase 5b — Unificación | 4 | 8 | 50% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
 | Fase 6 — Operación y repositorio | 4 | 6 | 67% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
-| Fase 7 — Funciones nuevas | 14 | 24 | 58% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
+| Fase 7 — Funciones nuevas | 15 | 24 | 63% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **87** | **108** | **81%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
+| **TOTAL** | **88** | **108** | **81%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -4551,35 +4551,37 @@ CoberturaM3extra descubre registrodoble deListeners por autodetección+PushServi
 ### T-89 — Acortador propio con clics
 
 - **Descripción**: Enlaces cortos `/s/{code}` con recuento de clics (sin datos personales) sobre `SmartLink`.
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: Acorta enlaces en uno tuyo (/s/código) desde SmartLinks o el generador de UTM del compositor, con clics por día, total, desactivar y reactivar; sin IP ni datos personales.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-88
 - **Tipo**: fullstack
-- **Archivos**: `app/Models/SmartLink.php`, `app/Services/SmartLinkService.php`, `app/Http/Controllers/ShortLinkController.php`, `resources/js/Pages/SmartLinks/**`, `docs/modulos/smartlinks.md`
+- **Archivos**: `app/Models/SmartLink.php`, `app/Services/SmartLinkService.php`, `app/Http/Controllers/ShortLinkController.php`, `resources/js/Pages/SmartLinks/**`, `docs/modulos/smartlinks.md`, `app/Models/ShortLink.php`, `app/Services/ShortLinkService.php`, `app/Policies/ShortLinkPolicy.php`, `app/Http/Controllers/PublicShortLinkController.php`, `app/Http/Controllers/SmartLinkController.php`, `app/Services/Export/ExportInventory.php`, `routes/parity.php`, `resources/views/shortlinks/notice.blade.php`, `resources/js/Components/SmartLinks/ShortLinks.vue`, `resources/js/Components/Composer/UtmModal.vue`, `database/migrations/2026_11_27_100000_create_short_links_tables.php`, `tests/Feature/Parity/ShortLinkTest.php`, `tests/e2e/short-links.spec.ts`, `CHANGELOG.md`, `CHANGELOG.es.md`, `app/Support/SafeUrl.php`, `tests/Feature/Parity/SmartLinkTest.php`, `docs/roadmap/2026-11-11-audit-hardening/testing/t89/**`
 - **Cubre**: F-15
 - **Cubre (tests)**: E2E-28
 - **Verificación**: `php artisan test --compact --filter=ShortLinkTest` → verde
 
 **Criterios de aceptación**
-- [ ] La redirección registra clics agregados por día
-- [ ] Se puede desactivar un enlace
-- [ ] Sin IP ni identificadores personales en claro
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] La redirección registra clics agregados por día
+- [x] Se puede desactivar un enlace
+- [x] Sin IP ni identificadores personales en claro
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M.
+
+**Cierre — 2026-11-27:** acortador propio por usuario (modelo `ShortLink` con `BelongsToUser`, `ownedBy()`, policy y export de datos; no dentro de SmartLink, que es un microsite por marca). `/s/{code}` con código aleatorio `[A-Z][A-Z0-9]{7}` (CSPRNG, sin caracteres ambiguos, índice único y reintento; no choca con `/s/{slug}` de Sites, en minúsculas). Redirección 302 `no-store`, sin sesión ni cookies, `no-referrer`, con throttle; inexistente 404, desactivado 410 con página legible; destino validado con `SafeUrl` al guardar y al redirigir; si el host es IDN (no ASCII o `xn--`) se muestra una página intermedia con el dominio en punycode y «Continuar» (el clic cuenta igual). Clics en `short_link_clicks(short_link_id, date, count)` único por enlace y día UTC, incremento atómico con `DailyCounter`, sin IP, UA ni tabla de eventos; HEAD y precarga anunciada no cuentan. Tope de 500 por usuario bajo cerrojo; la UI (sección «Enlaces cortos» de SmartLinks, visible también sin marca) recibe solo los últimos 30 días por día y el total agregado. El compositor puede acortar desde el modal UTM (casilla desmarcada por defecto, cancelar aborta la petición). Revisión adversarial A+B+C en 3 intentos: intento 1 — 0 Critical/Important, 8 Minor corregidos (etiqueta UTM, cancelar, visibilidad sin marca, CHANGELOG, tope atómico, throttle de update/destroy, página intermedia IDN por homógrafos CWE-601, ventana de 30 días); intento 2 — 1 Important (host con codificación porcentual saltaba la comprobación de escrituras y el aviso IDN, CWE-1007; preexistente en `SafeUrl`, también en SmartLinks), corregido rechazando `%` en el host, con test en rojo primero; intento 3 — sin hallazgos. QA: Pest completo 4801 pasados / 9 omitidos (focal 21 + SmartLinks/Sites 57); Pint y Prettier verdes; E2E acortador + SmartLinks + compositor + páginas 203 pasados / 2 omitidos en tres tamaños (`testing/t89/t89-e2e.log`). **Deuda aceptada (Minor):** `short_link_clicks` no se poda (una fila por enlace y día); los robots que previsualizan con GET sin anunciarse cuentan como clic; sin herramienta MCP ni edición del destino; un enlace creado y cancelado antes de insertarse queda en la lista.
 
 ### T-90 — Calendario: fechas señaladas y feed .ics
 
@@ -5489,3 +5491,7 @@ ClaudeCodeOpus5.5 real: aceptación,corrección,seguridad,rendimiento y calidad 
 ## Revisión de dos lentes — intento 2: Fase 7 (T-88) — aprobada y cerrada
 
 Lentes A+B+C (C por SSRF y XML). Intento 1: I1 entrada perdida por longitud y I2 orden por documento (Important), m3–m9 y el Minor de la lente C (DOCTYPE en UTF-16, CWE-776), todos corregidos. Intento 2: lente C sin hallazgos; A+B sin Critical/Important, 4 Minor corregidos tras la revisión. Diffs en `testing/t88/reviews/r1.patch` y `r2.patch`. Total 87/108.
+
+## Revisión de dos lentes — intento 3: Fase 7 (T-89) — aprobada y cerrada
+
+Lentes A+B+C. Intento 1: 0 Critical/Important, 8 Minor (incluidos el homógrafo IDN de la lente C y la carga de la lente D) corregidos. Intento 2: 1 Important (host con codificación porcentual, CWE-1007) corregido en `SafeUrl`. Intento 3: sin hallazgos. Diffs en `testing/t89/reviews/r1.patch` y `r2.patch`. Total 88/108.

@@ -207,6 +207,13 @@ test('SafeUrl: N5 rechaza ZWJ en el host y mezclas fuera de la regla highly rest
         ->and(SafeUrl::displayHost("https://b\u{00fc}cher.de"))->toBe('xn--bcher-kva.de');
 });
 
+test('SafeUrl: un host con codificacion porcentual se rechaza (el navegador lo decodifica y saltaria la comprobacion de escrituras)', function () {
+    foreach (['https://%D0%B0pple.com/', 'https://%61pple.com', 'https://evil.com%2F@good.com', 'https://ex%2Eample.com'] as $bad) {
+        expect(SafeUrl::isSafe($bad))->toBeFalse("deberia rechazar: $bad");
+    }
+    expect(SafeUrl::isSafe('https://example.com/%D0%B0?q=%2F'))->toBeTrue();
+});
+
 test('SmartLinks: C1 la pagina publica lleva aviso, enlace de denuncia y rel="nofollow noopener"', function () {
     config(['social.smartlinks.report_email' => 'abuso@example.test']);
     $this->actingAs($this->user)->post(route('smartlinks.save'), slPayload($this->brand))->assertSessionHasNoErrors();

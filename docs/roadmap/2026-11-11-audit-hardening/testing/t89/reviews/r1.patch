@@ -1,0 +1,1151 @@
+diff --git a/CHANGELOG.es.md b/CHANGELOG.es.md
+index a3c171c..34b5144 100644
+--- a/CHANGELOG.es.md
++++ b/CHANGELOG.es.md
+@@ -5,6 +5,10 @@ # Registro de cambios
+ 
+ ## [Sin publicar]
+ 
++### Added — acortador propio con clics (audit-hardening, T-89)
++
++- Acorta cualquier dirección web en un enlace tuyo (`/s/CÓDIGO`) desde SmartLinks → Enlaces cortos, o marca «Acortar el enlace y contar sus clics» en el generador de UTM del compositor. Cada enlace muestra sus clics de hoy, de los últimos 7 días, el total y el desglose por día (días UTC). Puedes desactivarlo (quien lo abra verá una página clara de «enlace desactivado» y no se cuenta nada) y reactivarlo, o borrarlo. Solo se guarda el número de clics por día: sin IP, navegador ni datos personales; las previsualizaciones y la precarga no cuentan. Solo se aceptan destinos http y https; hasta 500 enlaces por cuenta.
++
+ ### Added — autolistas desde RSS (audit-hardening, T-88)
+ 
+ - Una autolista puede tomar un feed RSS o Atom como fuente (indícalo al crearla o con «Guardar feed» en la lista). Cada vez que se genera la lista, las entradas más recientes del feed entran en la cola como publicaciones con el título y el enlace, sin duplicados, aunque las quites de la cola o se edite el feed; la primera vez solo se encolan las 3 más recientes. El texto se acorta por palabras para caber en el límite de cada red (el enlace nunca se corta). Un feed privado, enorme o lento se rechaza, y la última comprobación y el error, si lo hay, se ven en la lista.
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index d3c61df..5884906 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -5,6 +5,10 @@ # Changelog
+ 
+ ## [Unreleased]
+ 
++### Added — own link shortener with click counts (audit-hardening, T-89)
++
++- Shorten any web address into a link of your own (`/s/CODE`) from SmartLinks → Short links, or tick "Shorten the link and count its clicks" in the composer's UTM builder. Each link shows its clicks today, in the last 7 days, in total and day by day (UTC days). You can turn a link off (visitors see a clear "this link is off" page and nothing is counted) and back on, or delete it. Only the number of clicks per day is stored: no IP, browser or any personal data; previews and prefetches do not count. Only http and https destinations are accepted; up to 500 links per account.
++
+ ### Added — autolists from RSS (audit-hardening, T-88)
+ 
+ - An autolist can now take an RSS or Atom feed as its source (set it when creating the list or with "Save feed" on it). Each time the list is generated, the newest entries of the feed join the queue as posts made of the title and the link, without duplicates, even if you delete them from the queue or the feed is edited; the first time only the 3 most recent entries are queued. The text is shortened by words to fit each network's limit (the link is never cut). A private, huge or slow feed is rejected, and the last check and any error show on the list.
+diff --git a/app/Http/Controllers/SmartLinkController.php b/app/Http/Controllers/SmartLinkController.php
+index 1cc61f8..16fe3bf 100644
+--- a/app/Http/Controllers/SmartLinkController.php
++++ b/app/Http/Controllers/SmartLinkController.php
+@@ -8,6 +8,7 @@
+ use App\Models\SmartLink;
+ use App\Models\SmartLinkBlock;
+ use App\Models\SmartLinkSubscriber;
++use App\Services\ShortLinkService;
+ use App\Services\SmartLinkService;
+ use App\Support\CsvWriter;
+ use App\Support\CurrentBrand;
+@@ -23,7 +24,7 @@ class SmartLinkController extends Controller
+ {
+     use AuthorizesRequests;
+ 
+-    public function __construct(private readonly SmartLinkService $links) {}
++    public function __construct(private readonly SmartLinkService $links, private readonly ShortLinkService $shortLinks) {}
+ 
+     public function index(Request $request): Response
+     {
+@@ -34,6 +35,7 @@ public function index(Request $request): Response
+             'brand' => $brand ? ['id' => $brand->id, 'name' => $brand->name] : null,
+             'link' => $link ? $this->links->present($link, $brand) : null,
+             'stats' => $link ? $this->links->stats($link) : null,
++            'short_links' => $this->shortLinks->listing($request->user()),
+             'subscribers' => $link ? SmartLinkSubscriber::query()->where('smart_link_id', $link->id)->orderByDesc('id')->limit(100)->get(['id', 'email', 'created_at'])->map(fn ($s) => ['id' => $s->id, 'email' => $s->email, 'at' => $s->created_at?->toIso8601String()])->values() : [],
+             'images' => MediaAsset::query()->where('kind', MediaAsset::KIND_IMAGE)->where('status', MediaAsset::STATUS_READY)->latest()->limit(50)->get()->map(fn ($m) => $m->toPublicArray() + ['url' => $this->thumbUrl($m)])->values(),
+             'defaults' => ['theme_color' => '#4f46e5', 'theme_mode' => 'light', 'max_blocks' => SmartLinkService::MAX_BLOCKS, 'timezone' => $brand?->timezone ?: 'UTC'],
+diff --git a/app/Services/Export/ExportInventory.php b/app/Services/Export/ExportInventory.php
+index a4df0fe..3cbef3b 100644
+--- a/app/Services/Export/ExportInventory.php
++++ b/app/Services/Export/ExportInventory.php
+@@ -60,6 +60,8 @@ final class ExportInventory
+         'bloques-de-smart-link' => ['table' => 'smart_link_blocks', 'via' => ['smart_link_id', 'smart_links'], 'json' => ['data']],
+         'visitas-de-smart-links' => ['table' => 'smart_link_views', 'via' => ['smart_link_id', 'smart_links']],
+         'clics-de-smart-links' => ['table' => 'smart_link_clicks', 'via' => ['smart_link_id', 'smart_links']],
++        'enlaces-cortos' => ['table' => 'short_links'],
++        'clics-de-enlaces-cortos' => ['table' => 'short_link_clicks', 'via' => ['short_link_id', 'short_links']],
+         'visitas-de-sitios' => ['table' => 'site_visits', 'via' => ['site_id', 'sites']],
+         'webhooks' => ['table' => 'webhooks', 'only' => ['id', 'brand_id', 'name', 'events', 'enabled', 'created_at'], 'json' => ['events']],
+         'metricas-de-cuentas' => ['table' => 'account_snapshots', 'json' => ['metrics']],
+diff --git a/docs/modulos/smartlinks.md b/docs/modulos/smartlinks.md
+index 0436768..0e31980 100644
+--- a/docs/modulos/smartlinks.md
++++ b/docs/modulos/smartlinks.md
+@@ -27,3 +27,15 @@ ## Bloques enriquecidos (T-20)
+ - **Formulario de email**: `POST /l/{slug}/subscribe/{bloque}` con 5 altas por minuto y origen, campo trampa, respuesta uniforme, tope por bloque (`SMARTLINKS_MAX_SUBSCRIBERS`) y CSV para el propietario (`smartlinks.subscribers`, con neutralización de fórmulas). Se guarda solo el email y la fecha.
+ - **XSS**: textos saneados al guardar (`strip_tags`, sin caracteres de control/formato) y escapados al pintar; la gestión no usa `v-html`; la página pública lleva `Content-Security-Policy` sin scripts y con `frame-src` solo para YouTube nocookie.
+ - **Fuera**: paridad API/MCP (SmartLinks no tiene herramientas MCP hoy), vista previa de URL remota (se evitó a propósito) y analítica por botón de cada icono social (se cuenta por bloque).
++
++## Acortador propio (T-89)
++
++Enlaces cortos `/s/{código}` que redirigen a una dirección y cuentan clics. Se gestionan en la pantalla de SmartLinks (sección «Enlaces cortos», componente `SmartLinks/ShortLinks.vue`) y desde el generador de UTM del compositor (casilla «Acortar el enlace y contar sus clics», que crea el enlace por la misma ruta).
++
++- **Dónde viven**: modelo propio `ShortLink` (`short_links`, ligado al usuario con `BelongsToUser` y `ShortLinkPolicy`), no dentro de `SmartLink`: un SmartLink es un único microsite por marca, mientras que un acortador es una lista de muchos enlaces por usuario sin relación con la marca. Se incluyen en la exportación de datos (`enlaces-cortos`, `clics-de-enlaces-cortos`).
++- **Código**: 8 caracteres de `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (sin 0/O/1/I), el primero siempre una letra, generados con `random_int` (no secuenciales; ~8·10¹¹ combinaciones); índice único y reintento ante colisión. Va en mayúsculas a propósito: la ruta de sitios `/s/{slug}` solo admite minúsculas, así que ambas rutas nunca coinciden (lo comprueba un test).
++- **Destino**: solo `http`/`https` validado con `SafeUrl` al guardar y al redirigir; sin credenciales, sin `javascript:`/`data:`/relativas. No se resuelve el destino en el servidor. Máximo 500 enlaces por usuario; el destino no se edita (se crea otro).
++- **Redirección** (`PublicShortLinkController`, sin sesión ni cookies, `throttle:web-public-parity`): 302 con `Cache-Control: no-store` (un 301 se cachearía y se saltaría el recuento y la desactivación), `X-Robots-Tag: noindex` y `Referrer-Policy: no-referrer`; no expone al dueño. Código inexistente: 404. Enlace desactivado: 410 con la página «Este enlace está desactivado», sin redirigir ni contar.
++- **Clics**: `short_link_clicks` (`short_link_id`, `date`, `count`; único por enlace y día) con incremento atómico (`DailyCounter`). Sin IP, agente, referer, hash ni tabla de eventos por visita, y **sin deduplicar**: cada GET real cuenta. **HEAD y la precarga** (`Sec-Purpose`/`Purpose: prefetch|prerender`) redirigen pero no cuentan; los robots que hacen GET sí cuentan (no se pueden distinguir sin guardar datos personales).
++- **Zona horaria**: el día es **UTC** en la base y en el listado (hoy, 7 días y desglose por día de 30 días).
++- **Fuera**: MCP/API para el acortador (no se expone: es una pantalla personal y de bajo riesgo; se añadiría con una herramienta `ManageShortLink` si se pide) y edición del destino.
+diff --git a/docs/roadmap/2026-11-11-audit-hardening/tasks.md b/docs/roadmap/2026-11-11-audit-hardening/tasks.md
+index b06bbf9..0d7c6e8 100644
+--- a/docs/roadmap/2026-11-11-audit-hardening/tasks.md
++++ b/docs/roadmap/2026-11-11-audit-hardening/tasks.md
+@@ -4551,15 +4551,15 @@ ### T-88 — Autolistas desde RSS
+ ### T-89 — Acortador propio con clics
+ 
+ - **Descripción**: Enlaces cortos `/s/{code}` con recuento de clics (sin datos personales) sobre `SmartLink`.
+-- **Changelog**:
+-- **Estado**: borrador
++- **Changelog**: Acorta enlaces en uno tuyo (/s/código) desde SmartLinks o el generador de UTM del compositor, con clics por día, total, desactivar y reactivar; sin IP ni datos personales.
++- **Estado**: en-progreso
+ - **Tiempo humano**: est. 8.0h · real —
+ - **Tiempo IA (ejec.)**: est. 2.0h · real —
+ - **Supervisión**: est. 0.50h (≈25 % IA) · real —
+ - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
+ - **Dependencias**: T-88
+ - **Tipo**: fullstack
+-- **Archivos**: `app/Models/SmartLink.php`, `app/Services/SmartLinkService.php`, `app/Http/Controllers/ShortLinkController.php`, `resources/js/Pages/SmartLinks/**`, `docs/modulos/smartlinks.md`
++- **Archivos**: `app/Models/SmartLink.php`, `app/Services/SmartLinkService.php`, `app/Http/Controllers/ShortLinkController.php`, `resources/js/Pages/SmartLinks/**`, `docs/modulos/smartlinks.md`, `app/Models/ShortLink.php`, `app/Services/ShortLinkService.php`, `app/Policies/ShortLinkPolicy.php`, `app/Http/Controllers/PublicShortLinkController.php`, `app/Http/Controllers/SmartLinkController.php`, `app/Services/Export/ExportInventory.php`, `routes/parity.php`, `resources/views/shortlinks/inactive.blade.php`, `resources/js/Components/SmartLinks/ShortLinks.vue`, `resources/js/Components/Composer/UtmModal.vue`, `database/migrations/2026_11_27_100000_create_short_links_tables.php`, `tests/Feature/Parity/ShortLinkTest.php`, `tests/e2e/short-links.spec.ts`, `CHANGELOG.md`, `CHANGELOG.es.md`
+ - **Cubre**: F-15
+ - **Cubre (tests)**: E2E-28
+ - **Verificación**: `php artisan test --compact --filter=ShortLinkTest` → verde
+@@ -4573,7 +4573,7 @@ ### T-89 — Acortador propio con clics
+ - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+ 
+ **Subtareas**
+-- [ ] Implementar (implementer)
++- [x] Implementar (implementer)
+ - [ ] Revisión adversarial A+B(+C)
+ - [ ] Corregir hallazgos de la revisión
+ - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
+diff --git a/resources/js/Components/Composer/UtmModal.vue b/resources/js/Components/Composer/UtmModal.vue
+index 722b050..39fc029 100644
+--- a/resources/js/Components/Composer/UtmModal.vue
++++ b/resources/js/Components/Composer/UtmModal.vue
+@@ -2,9 +2,10 @@
+ import BaseDialog from '@/Components/BaseDialog.vue';
+ import { computed, nextTick, reactive, ref } from 'vue';
+ import { UTM_FIELDS, buildUtmUrl, parseHttpUrl } from '@/Composables/utm';
++import { requestJson } from '@/lib/http';
+ 
+ /**
+- * Generador de URL con UTM (C-05a). Todo ocurre en el cliente: no hay modelo ni endpoint (el acortador está aplazado). Es un diálogo
++ * Generador de URL con UTM (C-05a). La URL se construye en el cliente; si se marca «Acortar», se crea un enlace corto propio (`/s/código`, T-89) y se inserta ese. Es un diálogo
+  * modal con el foco atrapado; Escape lo cierra y el foco vuelve al botón que lo abrió (`returnFocusTo`). Al añadir, emite `insert` con
+  * la URL construida con `URL`/`URLSearchParams` y el compositor la inserta en el cursor.
+  */
+@@ -17,6 +18,9 @@ const emit = defineEmits(['insert', 'close']);
+ const blank = () => ({ url: '', utm_source: '', utm_medium: '', utm_campaign: '', utm_term: '', utm_content: '' });
+ const fields = reactive(blank());
+ const touchedUrl = ref(false);
++const shorten = ref(false);
++const shortError = ref('');
++const shortening = ref(false);
+ const urlInput = ref(null);
+ 
+ const urlOk = computed(() => parseHttpUrl(fields.url) !== null);
+@@ -25,15 +29,31 @@ const urlError = computed(() => (touchedUrl.value && fields.url.trim() !== '' &&
+ 
+ const clear = () => {
+     Object.assign(fields, blank());
++    shortError.value = '';
+     touchedUrl.value = false;
+     nextTick(() => urlInput.value?.focus());
+ };
+ const close = () => emit('close');
+-const add = () => {
+-    if (!result.value) return;
+-    emit('insert', result.value);
++const add = async () => {
++    if (!result.value || shortening.value) return;
++    let url = result.value;
++    shortError.value = '';
++    if (shorten.value) {
++        shortening.value = true;
++        try {
++            const created = await requestJson('POST', route('shortlinks.store'), { json: { url, label: fields.utm_campaign || undefined } });
++            url = created.short_url;
++        } catch (error) {
++            shortError.value = error?.message || 'No se pudo acortar el enlace.';
++            return;
++        } finally {
++            shortening.value = false;
++        }
++    }
++    emit('insert', url);
+     Object.assign(fields, blank());
+     touchedUrl.value = false;
++    shorten.value = false;
+     close();
+ };
+ 
+@@ -117,6 +137,17 @@ const addOnEnter = () => {
+                 >
+             </div>
+ 
++            <div class="mt-3">
++                <label class="flex items-center gap-2 text-sm text-slate-800">
++                    <input v-model="shorten" type="checkbox" data-testid="utm-shorten" />
++                    Acortar el enlace y contar sus clics
++                </label>
++                <p class="mt-0.5 text-xs text-slate-600"
++                    >Crea un enlace corto tuyo; lo verás con sus clics en SmartLinks.</p
++                >
++                <p class="mt-1 text-xs text-red-700" role="alert" data-testid="utm-short-error">{{ shortError }}</p>
++            </div>
++
+             <div class="mt-4 flex flex-wrap justify-end gap-2">
+                 <button type="button" class="btn btn-secondary px-3 py-1 text-sm" data-testid="utm-clear" @click="clear"
+                     >Limpiar</button
+@@ -131,7 +162,7 @@ const addOnEnter = () => {
+                 <button
+                     type="button"
+                     class="btn btn-primary px-3 py-1 text-sm"
+-                    :disabled="!result"
++                    :disabled="!result || shortening"
+                     data-testid="utm-add"
+                     @click="add"
+                     >Añadir</button
+diff --git a/resources/js/Pages/SmartLinks/Index.vue b/resources/js/Pages/SmartLinks/Index.vue
+index eb29b02..4e73f53 100644
+--- a/resources/js/Pages/SmartLinks/Index.vue
++++ b/resources/js/Pages/SmartLinks/Index.vue
+@@ -2,6 +2,7 @@
+ import FormField from '@/Components/FormField.vue';
+ import { createBlockKey, focusEditedBlock, focusFirstFormError } from '@/lib/form-errors';
+ import SmartLinkPreview from '@/Components/SmartLinks/SmartLinkPreview.vue';
++import ShortLinks from '@/Components/SmartLinks/ShortLinks.vue';
+ import SmartLinkSubscribers from '@/Components/SmartLinks/SmartLinkSubscribers.vue';
+ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+ import PrimaryButton from '@/Components/PrimaryButton.vue';
+@@ -24,6 +25,7 @@ const props = defineProps({
+     images: Array,
+     defaults: Object,
+     subscribers: { type: Array, default: () => [] },
++    short_links: { type: Array, default: () => [] },
+     block_types: { type: Array, default: () => [] },
+     social_networks: { type: Array, default: () => [] },
+ });
+@@ -535,6 +537,8 @@ const hexDraft = computed({
+ 
+                     <SmartLinkPreview :draft="form" :images="images" :default-color="defaults.theme_color" />
+                 </div>
++
++                <ShortLinks :links="short_links" />
+             </template>
+         </div>
+     </AuthenticatedLayout>
+diff --git a/routes/parity.php b/routes/parity.php
+index af70500..4861443 100644
+--- a/routes/parity.php
++++ b/routes/parity.php
+@@ -8,10 +8,13 @@
+ use App\Http\Controllers\InboxController;
+ use App\Http\Controllers\InboxNoteController;
+ use App\Http\Controllers\LibraryController;
++use App\Http\Controllers\PublicShortLinkController;
+ use App\Http\Controllers\PublicSmartLinkController;
++use App\Http\Controllers\ShortLinkController;
+ use App\Http\Controllers\SmartLinkController;
+ use App\Http\Controllers\TrashController;
+ use App\Http\Middleware\HandleInertiaRequests;
++use App\Models\ShortLink;
+ use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+ use Illuminate\Cookie\Middleware\EncryptCookies;
+ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+@@ -48,6 +51,10 @@
+     Route::get('smartlinks/{smartLink}/subscribers.csv', [SmartLinkController::class, 'subscribers'])->middleware('throttle:smartlinks.subscribers')->whereNumber('smartLink')->name('smartlinks.subscribers');
+     Route::delete('smartlinks/{smartLink}/subscribers/{subscriber}', [SmartLinkController::class, 'destroySubscriber'])->middleware('throttle:smartlinks.subscribers.destroy')->whereNumber(['smartLink', 'subscriber'])->name('smartlinks.subscribers.destroy');
+     Route::delete('smartlinks/{smartLink}/subscribers', [SmartLinkController::class, 'clearSubscribers'])->middleware('throttle:smartlinks.subscribers.clear')->whereNumber('smartLink')->name('smartlinks.subscribers.clear');
++    // Acortador propio (T-89): enlaces `/s/{code}` del usuario, en la misma pantalla.
++    Route::post('smartlinks/short', [ShortLinkController::class, 'store'])->middleware('throttle:30,1,shortlinks-store')->name('shortlinks.store');
++    Route::patch('smartlinks/short/{shortLink}', [ShortLinkController::class, 'update'])->whereNumber('shortLink')->name('shortlinks.update');
++    Route::delete('smartlinks/short/{shortLink}', [ShortLinkController::class, 'destroy'])->whereNumber('shortLink')->name('shortlinks.destroy');
+     Route::delete('smartlinks/{smartLink}', [SmartLinkController::class, 'destroy'])->whereNumber('smartLink')->name('smartlinks.destroy');
+ 
+     // Analytics · Competidores de Instagram (PA-08).
+@@ -111,4 +118,6 @@
+     Route::get('l/{slug}', [PublicSmartLinkController::class, 'show'])->where('slug', $slug)->name('smartlinks.public');
+     Route::post('l/{slug}/subscribe/{block}', [PublicSmartLinkController::class, 'subscribe'])->middleware('throttle:5,1,smartlink-subscribe')->where(['slug' => $slug, 'block' => '[0-9]+'])->name('smartlinks.subscribe');
+     Route::get('l/{slug}/go/{block}', [PublicSmartLinkController::class, 'go'])->where(['slug' => $slug, 'block' => '[0-9]+'])->name('smartlinks.go');
++    // Acortador propio (T-89): el codigo empieza por mayuscula, asi que no choca con `s/{slug}` de los sitios (slug en minusculas).
++    Route::get('s/{code}', [PublicShortLinkController::class, 'go'])->where('code', ShortLink::CODE_PATTERN)->name('shortlinks.go');
+ });
+diff --git a/app/Http/Controllers/PublicShortLinkController.php b/app/Http/Controllers/PublicShortLinkController.php
+new file mode 100644
+index 0000000..510a5e4
+--- /dev/null
++++ b/app/Http/Controllers/PublicShortLinkController.php
+@@ -0,0 +1,53 @@
++<?php
++
++namespace App\Http\Controllers;
++
++use App\Services\ShortLinkService;
++use App\Support\SafeUrl;
++use Illuminate\Http\Request;
++use Symfony\Component\HttpFoundation\Response;
++
++/**
++ * Redireccion publica `/s/{code}` (T-89). Sin sesion ni cookies (la ruta quita esos middleware) y sin guardar IP, agente ni
++ * referer: solo el contador diario. Es un 302 con `no-store` (un 301 cacheado se saltaria el recuento y la desactivacion).
++ * HEAD y la precarga del navegador (`Sec-Purpose`/`Purpose: prefetch`/`prerender`) redirigen pero NO cuentan: no son una persona.
++ * El destino se revalida con `SafeUrl` aunque se validara al guardar.
++ */
++class PublicShortLinkController extends Controller
++{
++    public function __construct(private readonly ShortLinkService $links) {}
++
++    public function go(Request $request, string $code): Response
++    {
++        $link = $this->links->find($code);
++        abort_if($link === null, 404);
++
++        if (! $link->active) {
++            return response()->view('shortlinks.inactive', [], 410)->withHeaders($this->headers());
++        }
++        abort_unless(SafeUrl::isSafe($link->url), 404);
++
++        if (! $request->isMethod('HEAD') && ! $this->isPrefetch($request)) {
++            $this->links->recordClick($link);
++        }
++
++        return redirect()->away($link->url, 302)->withHeaders($this->headers());
++    }
++
++    private function isPrefetch(Request $request): bool
++    {
++        foreach (['Sec-Purpose', 'Purpose'] as $header) {
++            if (preg_match('/prefetch|prerender/i', (string) $request->header($header)) === 1) {
++                return true;
++            }
++        }
++
++        return false;
++    }
++
++    /** @return array<string, string> */
++    private function headers(): array
++    {
++        return ['Cache-Control' => 'no-store, private', 'X-Robots-Tag' => 'noindex, nofollow', 'Referrer-Policy' => 'no-referrer', 'X-Content-Type-Options' => 'nosniff'];
++    }
++}
+diff --git a/app/Http/Controllers/ShortLinkController.php b/app/Http/Controllers/ShortLinkController.php
+new file mode 100644
+index 0000000..9242e66
+--- /dev/null
++++ b/app/Http/Controllers/ShortLinkController.php
+@@ -0,0 +1,56 @@
++<?php
++
++namespace App\Http\Controllers;
++
++use App\Exceptions\PostValidationException;
++use App\Models\ShortLink;
++use App\Services\ShortLinkService;
++use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
++use Illuminate\Http\JsonResponse;
++use Illuminate\Http\RedirectResponse;
++use Illuminate\Http\Request;
++
++/** Acortador propio (T-89) · gestion: alta, desactivar/reactivar y borrado de los enlaces `/s/{code}` del usuario. */
++class ShortLinkController extends Controller
++{
++    use AuthorizesRequests;
++
++    public function __construct(private readonly ShortLinkService $links) {}
++
++    /** Con `Accept: application/json` (compositor) devuelve el enlace corto; desde la pagina, vuelve a ella. */
++    public function store(Request $request): RedirectResponse|JsonResponse
++    {
++        $data = $request->validate(ShortLinkService::rules());
++
++        try {
++            $link = $this->links->create($request->user(), $data['url'], $data['label'] ?? null);
++        } catch (PostValidationException $e) {
++            return $request->expectsJson()
++                ? response()->json(['message' => $e->errors()['url'][0], 'errors' => $e->errors()], 422)
++                : back()->withErrors($e->errors())->withInput();
++        }
++
++        if ($request->expectsJson()) {
++            return response()->json(['id' => $link->id, 'code' => $link->code, 'short_url' => $link->shortUrl()], 201);
++        }
++
++        return back()->with('success', 'Enlace corto creado: '.$link->shortUrl());
++    }
++
++    public function update(Request $request, ShortLink $shortLink): RedirectResponse
++    {
++        $this->authorize('update', $shortLink);
++        $data = $request->validate(['active' => ['required', 'boolean']]);
++        $shortLink->update(['active' => $data['active']]);
++
++        return back()->with('success', $shortLink->active ? 'Enlace corto reactivado.' : 'Enlace corto desactivado: ya no redirige.');
++    }
++
++    public function destroy(ShortLink $shortLink): RedirectResponse
++    {
++        $this->authorize('delete', $shortLink);
++        $shortLink->delete();
++
++        return back()->with('success', 'Enlace corto eliminado.');
++    }
++}
+diff --git a/app/Models/ShortLink.php b/app/Models/ShortLink.php
+new file mode 100644
+index 0000000..a3477b3
+--- /dev/null
++++ b/app/Models/ShortLink.php
+@@ -0,0 +1,29 @@
++<?php
++
++namespace App\Models;
++
++use App\Models\Concerns\BelongsToUser;
++use Illuminate\Database\Eloquent\Model;
++
++/**
++ * Enlace corto `/s/{code}` de un usuario (T-89). Los clics viven en `short_link_clicks`, agregados por dia UTC.
++ * El `code` empieza por una letra mayuscula: asi nunca coincide con el slug en minusculas de un sitio publicado.
++ */
++class ShortLink extends Model
++{
++    use BelongsToUser;
++
++    public const CODE_PATTERN = '[A-Z][A-Z0-9]{7}';
++
++    protected $fillable = ['user_id', 'code', 'url', 'label', 'active'];
++
++    protected function casts(): array
++    {
++        return ['active' => 'boolean'];
++    }
++
++    public function shortUrl(): string
++    {
++        return url('/s/'.$this->code);
++    }
++}
+diff --git a/app/Policies/ShortLinkPolicy.php b/app/Policies/ShortLinkPolicy.php
+new file mode 100644
+index 0000000..17b6aaa
+--- /dev/null
++++ b/app/Policies/ShortLinkPolicy.php
+@@ -0,0 +1,37 @@
++<?php
++
++namespace App\Policies;
++
++use App\Models\ShortLink;
++use App\Models\User;
++use App\Support\Ownership;
++use Illuminate\Support\Facades\Log;
++
++class ShortLinkPolicy
++{
++    public function view(User $user, ShortLink $link): bool
++    {
++        return $this->owns($user, $link, 'view');
++    }
++
++    public function update(User $user, ShortLink $link): bool
++    {
++        return $this->owns($user, $link, 'update');
++    }
++
++    public function delete(User $user, ShortLink $link): bool
++    {
++        return $this->owns($user, $link, 'delete');
++    }
++
++    private function owns(User $user, ShortLink $link, string $ability): bool
++    {
++        if (Ownership::matches($link, $user)) {
++            return true;
++        }
++
++        Log::warning('access.denied', ['user_id' => $user->id, 'resource' => 'short_link', 'resource_id' => $link->id, 'ability' => $ability]);
++
++        return false;
++    }
++}
+diff --git a/app/Services/ShortLinkService.php b/app/Services/ShortLinkService.php
+new file mode 100644
+index 0000000..9053e9f
+--- /dev/null
++++ b/app/Services/ShortLinkService.php
+@@ -0,0 +1,114 @@
++<?php
++
++namespace App\Services;
++
++use App\Exceptions\PostValidationException;
++use App\Models\ShortLink;
++use App\Models\User;
++use App\Support\DailyCounter;
++use App\Support\SafeUrl;
++use Illuminate\Database\UniqueConstraintViolationException;
++use Illuminate\Support\Facades\DB;
++
++/**
++ * Acortador propio (T-89): alta con codigo aleatorio unico y clics agregados por dia UTC (sin IP, agente, referer ni hash
++ * por visita; no se deduplica: cada redireccion de un GET real cuenta). El dia es UTC en la base y en la interfaz.
++ */
++class ShortLinkService
++{
++    public const MAX_PER_USER = 500;
++
++    /** Sin 0/O ni 1/I; el primer caracter es siempre una letra (ver `ShortLink::CODE_PATTERN`). */
++    private const LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
++
++    private const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
++
++    private const ATTEMPTS = 8;
++
++    public function __construct(private readonly DailyCounter $counter) {}
++
++    /** @return array<string, mixed> */
++    public static function rules(): array
++    {
++        return [
++            'url' => ['required', 'string', 'max:2000', fn ($attribute, $value, $fail) => SafeUrl::isSafe($value) ? null : $fail('Escribe una dirección que empiece por http:// o https://.')],
++            'label' => ['nullable', 'string', 'max:100'],
++        ];
++    }
++
++    /** @throws PostValidationException si el usuario ya tiene el maximo de enlaces o no hay codigo libre. */
++    public function create(User $user, string $url, ?string $label): ShortLink
++    {
++        if (ShortLink::ownedBy($user)->count() >= self::MAX_PER_USER) {
++            throw new PostValidationException(['url' => ['Has llegado al máximo de '.self::MAX_PER_USER.' enlaces cortos. Borra alguno para crear otro.']]);
++        }
++
++        for ($i = 0; $i < self::ATTEMPTS; $i++) {
++            try {
++                return ShortLink::query()->create(['user_id' => $user->id, 'code' => $this->randomCode(), 'url' => $url, 'label' => $label]);
++            } catch (UniqueConstraintViolationException) {
++                // Colision de codigo: se prueba con otro.
++            }
++        }
++
++        throw new PostValidationException(['url' => ['No se pudo generar un código único. Inténtalo de nuevo.']]);
++    }
++
++    /** Enlace de un codigo (activo o no), o null si no existe; sin cargar al dueno. */
++    public function find(string $code): ?ShortLink
++    {
++        return ShortLink::withoutUserScope()->where('code', $code)->first(['id', 'url', 'active']);
++    }
++
++    public function recordClick(ShortLink $link): void
++    {
++        $this->counter->increment('short_link_clicks', ['short_link_id' => $link->id, 'date' => now('UTC')->toDateString()]);
++    }
++
++    /**
++     * Enlaces del usuario con sus clics: total, hoy, ultimos 7 dias y el desglose por dia de los ultimos 30 (mas reciente primero).
++     *
++     * @return list<array<string, mixed>>
++     */
++    public function listing(User $user, int $days = 30): array
++    {
++        $links = ShortLink::ownedBy($user)->orderByDesc('id')->get();
++        if ($links->isEmpty()) {
++            return [];
++        }
++
++        $today = now('UTC')->toDateString();
++        $from7 = now('UTC')->subDays(6)->toDateString();
++        $from = now('UTC')->subDays($days - 1)->toDateString();
++        $ids = $links->pluck('id');
++        $totals = DB::table('short_link_clicks')->whereIn('short_link_id', $ids)->groupBy('short_link_id')->selectRaw('short_link_id, SUM(count) as total')->pluck('total', 'short_link_id');
++        $recent = DB::table('short_link_clicks')->whereIn('short_link_id', $ids)->where('date', '>=', $from)->orderByDesc('date')->get(['short_link_id', 'date', 'count'])->groupBy('short_link_id');
++
++        return $links->map(function (ShortLink $l) use ($totals, $recent, $today, $from7) {
++            $rows = $recent->get($l->id, collect());
++
++            return [
++                'id' => $l->id,
++                'code' => $l->code,
++                'short_url' => $l->shortUrl(),
++                'url' => $l->url,
++                'label' => $l->label,
++                'active' => $l->active,
++                'total' => (int) ($totals[$l->id] ?? 0),
++                'today' => (int) $rows->where('date', $today)->sum('count'),
++                'last_7_days' => (int) $rows->where('date', '>=', $from7)->sum('count'),
++                'daily' => $rows->map(fn ($r) => ['date' => (string) $r->date, 'clicks' => (int) $r->count])->values()->all(),
++            ];
++        })->values()->all();
++    }
++
++    protected function randomCode(): string
++    {
++        $code = self::LETTERS[random_int(0, strlen(self::LETTERS) - 1)];
++        for ($i = 1; $i < 8; $i++) {
++            $code .= self::ALPHABET[random_int(0, strlen(self::ALPHABET) - 1)];
++        }
++
++        return $code;
++    }
++}
+diff --git a/database/migrations/2026_11_27_100000_create_short_links_tables.php b/database/migrations/2026_11_27_100000_create_short_links_tables.php
+new file mode 100644
+index 0000000..9d07850
+--- /dev/null
++++ b/database/migrations/2026_11_27_100000_create_short_links_tables.php
+@@ -0,0 +1,40 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    public function up(): void
++    {
++        // Acortador propio (T-89): enlaces `/s/{code}` de un usuario. El codigo es unico en toda la aplicacion.
++        Schema::create('short_links', function (Blueprint $table) {
++            $table->id();
++            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
++            $table->string('code', 8)->unique();
++            $table->string('url', 2000);
++            $table->string('label', 100)->nullable();
++            $table->boolean('active')->default(true);
++            $table->timestamps();
++
++            $table->index(['user_id', 'id']);
++        });
++
++        // Clics AGREGADOS por dia UTC: ni IP, ni agente, ni referer, ni hash, ni tabla de eventos por visita.
++        Schema::create('short_link_clicks', function (Blueprint $table) {
++            $table->id();
++            $table->foreignId('short_link_id')->constrained()->cascadeOnDelete();
++            $table->date('date');
++            $table->unsignedInteger('count')->default(0);
++
++            $table->unique(['short_link_id', 'date']);
++        });
++    }
++
++    public function down(): void
++    {
++        Schema::dropIfExists('short_link_clicks');
++        Schema::dropIfExists('short_links');
++    }
++};
+diff --git a/resources/js/Components/SmartLinks/ShortLinks.vue b/resources/js/Components/SmartLinks/ShortLinks.vue
+new file mode 100644
+index 0000000..dc92ee6
+--- /dev/null
++++ b/resources/js/Components/SmartLinks/ShortLinks.vue
+@@ -0,0 +1,151 @@
++<script setup>
++import FormField from '@/Components/FormField.vue';
++import PrimaryButton from '@/Components/PrimaryButton.vue';
++import { useConfirm } from '@/Composables/useConfirm';
++import { router, useForm } from '@inertiajs/vue3';
++
++/**
++ * Acortador propio (T-89): enlaces `/s/{código}` que redirigen al destino y cuentan clics agregados por día (UTC), sin IP ni datos
++ * personales. Un enlace desactivado deja de redirigir y muestra una página de aviso.
++ */
++defineProps({
++    links: { type: Array, default: () => [] },
++});
++
++const ask = useConfirm();
++const form = useForm({ url: '', label: '' });
++const submit = () => form.post(route('shortlinks.store'), { preserveScroll: true, onSuccess: () => form.reset() });
++const setActive = (link, active) => router.patch(route('shortlinks.update', link.id), { active }, { preserveScroll: true });
++const remove = async (link) => {
++    const target = route('shortlinks.destroy', link.id);
++    if (await ask({ message: `¿Eliminar el enlace corto ${link.code}? Dejará de funcionar y se borrarán sus clics.`, confirmLabel: 'Eliminar enlace' })) {
++        router.delete(target, { preserveScroll: true });
++    }
++};
++</script>
++
++<template>
++    <section class="card space-y-4 p-5 text-sm" data-testid="short-links" aria-labelledby="short-links-title">
++        <div>
++            <h2 id="short-links-title" class="text-base font-semibold text-slate-900">Enlaces cortos</h2>
++            <p class="mt-1 text-xs text-slate-600"
++                >Acorta una dirección y cuenta cuántas personas la abren. Solo se guarda el total de clics de cada día
++                (UTC), sin IP ni datos personales.</p
++            >
++        </div>
++
++        <form class="grid items-start gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]" @submit.prevent="submit">
++            <div>
++                <FormField id="short-url" :error="form.errors.url" v-slot="{ control }">
++                    <label for="short-url" class="block text-xs font-medium text-slate-600">Dirección de destino</label>
++                    <input
++                        v-bind="control"
++                        v-model="form.url"
++                        type="url"
++                        inputmode="url"
++                        autocomplete="off"
++                        required
++                        class="field mt-1"
++                        placeholder="https://ejemplo.com/oferta"
++                    />
++                </FormField>
++            </div>
++            <div>
++                <FormField id="short-label" :error="form.errors.label" v-slot="{ control }">
++                    <label for="short-label" class="block text-xs font-medium text-slate-600">Nombre (opcional)</label>
++                    <input
++                        v-bind="control"
++                        v-model="form.label"
++                        type="text"
++                        maxlength="100"
++                        autocomplete="off"
++                        class="field mt-1"
++                        placeholder="Campaña de otoño"
++                    />
++                </FormField>
++            </div>
++            <PrimaryButton class="sm:mt-5" :disabled="form.processing">Acortar</PrimaryButton>
++        </form>
++
++        <p v-if="!links.length" class="text-xs text-slate-600" data-testid="short-links-empty"
++            >Todavía no has acortado ningún enlace.</p
++        >
++        <ul v-else class="divide-y">
++            <li
++                v-for="link in links"
++                :key="link.id"
++                class="space-y-2 py-3"
++                :data-testid="`short-link-${link.code}`"
++                :aria-label="`Enlace corto ${link.code}`"
++            >
++                <div class="flex flex-wrap items-start justify-between gap-3">
++                    <div class="min-w-0">
++                        <p class="break-all font-medium text-slate-900">
++                            <a
++                                :href="link.short_url"
++                                target="_blank"
++                                rel="noopener"
++                                class="link"
++                                >{{ link.short_url }}</a
++                            >
++                            <span
++                                v-if="!link.active"
++                                class="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-700"
++                                >Desactivado</span
++                            >
++                        </p>
++                        <p v-if="link.label" class="text-xs text-slate-700">{{ link.label }}</p>
++                        <p class="break-all text-xs text-slate-600">→ {{ link.url }}</p>
++                    </div>
++                    <dl class="flex gap-4 text-right">
++                        <div
++                            ><dt class="text-xs text-slate-600">Hoy</dt
++                            ><dd
++                                class="font-semibold tabular-nums"
++                                data-testid="short-link-today"
++                                >{{ link.today }}</dd
++                            ></div
++                        >
++                        <div
++                            ><dt class="text-xs text-slate-600">7 días</dt
++                            ><dd class="font-semibold tabular-nums">{{ link.last_7_days }}</dd></div
++                        >
++                        <div
++                            ><dt class="text-xs text-slate-600">Total</dt
++                            ><dd
++                                class="font-semibold tabular-nums"
++                                data-testid="short-link-total"
++                                >{{ link.total }}</dd
++                            ></div
++                        >
++                    </dl>
++                </div>
++                <div class="flex flex-wrap items-center gap-3 text-xs">
++                    <button
++                        type="button"
++                        class="font-medium underline"
++                        :aria-label="`${link.active ? 'Desactivar' : 'Reactivar'} el enlace ${link.code}`"
++                        @click="setActive(link, !link.active)"
++                        >{{ link.active ? 'Desactivar' : 'Reactivar' }}</button
++                    >
++                    <button
++                        type="button"
++                        class="font-medium text-red-700 underline"
++                        :aria-label="`Eliminar el enlace ${link.code}`"
++                        @click="remove(link)"
++                        >Eliminar</button
++                    >
++                </div>
++                <details v-if="link.daily.length" class="text-xs text-slate-700">
++                    <summary class="cursor-pointer font-medium">Clics por día (UTC)</summary>
++                    <ul class="mt-1 grid gap-x-6 sm:grid-cols-2">
++                        <li v-for="d in link.daily" :key="d.date" class="flex justify-between tabular-nums">
++                            <span>{{ d.date }}</span>
++                            <span>{{ d.clicks }}</span>
++                        </li>
++                    </ul>
++                </details>
++            </li>
++        </ul>
++    </section>
++</template>
+diff --git a/resources/views/shortlinks/inactive.blade.php b/resources/views/shortlinks/inactive.blade.php
+new file mode 100644
+index 0000000..afa1439
+--- /dev/null
++++ b/resources/views/shortlinks/inactive.blade.php
+@@ -0,0 +1,22 @@
++<!DOCTYPE html>
++<html lang="es">
++<head>
++    <meta charset="utf-8">
++    <meta name="viewport" content="width=device-width, initial-scale=1">
++    <meta name="robots" content="noindex, nofollow">
++    <title>Enlace desactivado</title>
++    <style>
++        * { box-sizing: border-box; }
++        body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f9fafb; color: #111827; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
++        main { max-width: 28rem; padding: 2rem 1.25rem; text-align: center; }
++        h1 { font-size: 1.5rem; margin: 0 0 .5rem; }
++        p { color: #4b5563; margin: 0; }
++    </style>
++</head>
++<body>
++    <main>
++        <h1>Este enlace está desactivado</h1>
++        <p>Quien lo creó lo ha desactivado, así que ya no lleva a ningún sitio. Si te lo enviaron, pídele uno nuevo.</p>
++    </main>
++</body>
++</html>
+diff --git a/tests/Feature/Parity/ShortLinkTest.php b/tests/Feature/Parity/ShortLinkTest.php
+new file mode 100644
+index 0000000..c0644fb
+--- /dev/null
++++ b/tests/Feature/Parity/ShortLinkTest.php
+@@ -0,0 +1,203 @@
++<?php
++
++use App\Models\ShortLink;
++use App\Models\User;
++use App\Services\ShortLinkService;
++use Illuminate\Database\UniqueConstraintViolationException;
++use Illuminate\Http\Request;
++use Illuminate\Support\Carbon;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Schema;
++use Inertia\Testing\AssertableInertia as Assert;
++
++beforeEach(function () {
++    Carbon::setTestNow('2026-11-27 12:00:00');
++    $this->user = User::factory()->create();
++});
++
++/** Crea un enlace corto por la ruta web y devuelve su modelo. */
++function makeShort(User $user, array $over = []): ShortLink
++{
++    test()->actingAs($user)->postJson(route('shortlinks.store'), $over + ['url' => 'https://example.com/oferta?a=1', 'label' => 'Oferta'])->assertCreated();
++
++    return ShortLink::ownedBy($user)->latest('id')->firstOrFail();
++}
++
++test('ShortLinkTest: crea un enlace corto y redirige con 302 sin guardarse en cache', function () {
++    $link = makeShort($this->user);
++
++    expect($link->code)->toMatch('/^[A-Z][A-Z0-9]{7}$/')->and($link->active)->toBeTrue();
++
++    $this->get('/s/'.$link->code)
++        ->assertStatus(302)
++        ->assertRedirect('https://example.com/oferta?a=1')
++        ->assertHeader('X-Robots-Tag', 'noindex, nofollow')
++        ->assertHeader('Referrer-Policy', 'no-referrer');
++    expect($this->get('/s/'.$link->code)->headers->get('Cache-Control'))->toContain('no-store');
++});
++
++test('ShortLinkTest: la respuesta de alta devuelve la URL corta completa', function () {
++    $response = $this->actingAs($this->user)->postJson(route('shortlinks.store'), ['url' => 'https://example.com/a'])->assertCreated();
++
++    expect($response->json('short_url'))->toStartWith(url('/s').'/')->and(strlen($response->json('short_url')))->toBe(strlen(url('/s').'/') + 8);
++});
++
++test('ShortLinkTest: tres visitas son tres clics en el agregado del dia, sin tabla de eventos', function () {
++    $link = makeShort($this->user);
++
++    foreach (range(1, 3) as $i) {
++        $this->get('/s/'.$link->code)->assertRedirect();
++    }
++
++    $rows = DB::table('short_link_clicks')->where('short_link_id', $link->id)->get();
++    expect($rows)->toHaveCount(1)->and($rows[0]->date)->toBe('2026-11-27')->and((int) $rows[0]->count)->toBe(3);
++});
++
++test('ShortLinkTest: al cambiar el dia (UTC) abre un agregado nuevo', function () {
++    $link = makeShort($this->user);
++    $this->get('/s/'.$link->code);
++    $this->get('/s/'.$link->code);
++
++    Carbon::setTestNow('2026-11-27 23:59:59');
++    $this->get('/s/'.$link->code);
++    Carbon::setTestNow('2026-11-28 00:00:01');
++    $this->get('/s/'.$link->code);
++
++    expect(DB::table('short_link_clicks')->where('short_link_id', $link->id)->orderBy('date')->pluck('count', 'date')->map(fn ($c) => (int) $c)->all())
++        ->toBe(['2026-11-27' => 3, '2026-11-28' => 1]);
++});
++
++test('ShortLinkTest: HEAD y la precarga de navegadores no cuentan', function () {
++    $link = makeShort($this->user);
++
++    $this->call('HEAD', '/s/'.$link->code)->assertRedirect();
++    $this->get('/s/'.$link->code, ['Sec-Purpose' => 'prefetch'])->assertRedirect();
++    $this->get('/s/'.$link->code, ['Purpose' => 'prefetch'])->assertRedirect();
++
++    expect(DB::table('short_link_clicks')->count())->toBe(0);
++});
++
++test('ShortLinkTest: desactivado no redirige (410 legible) y no cuenta; al reactivarlo vuelve a redirigir', function () {
++    $link = makeShort($this->user);
++    $this->get('/s/'.$link->code)->assertRedirect();
++
++    $this->actingAs($this->user)->patch(route('shortlinks.update', $link), ['active' => false])->assertRedirect();
++    expect($link->fresh()->active)->toBeFalse();
++
++    $this->get('/s/'.$link->code)->assertStatus(410)->assertSee('Este enlace está desactivado')->assertDontSee('example.com');
++    expect((int) DB::table('short_link_clicks')->where('short_link_id', $link->id)->sum('count'))->toBe(1);
++
++    $this->actingAs($this->user)->patch(route('shortlinks.update', $link), ['active' => true])->assertRedirect();
++    $this->get('/s/'.$link->code)->assertRedirect('https://example.com/oferta?a=1');
++    expect((int) DB::table('short_link_clicks')->where('short_link_id', $link->id)->sum('count'))->toBe(2);
++});
++
++test('ShortLinkTest: un destino peligroso se rechaza y no se crea nada', function () {
++    foreach (['javascript:alert(1)', 'JaVaScRiPt:alert(1)', 'data:text/html,<script>1</script>', '//evil.com', '/relativa', 'ftp://x.com/a', 'https://u:p@x.com', "java\tscript:alert(1)", 'https://', '', str_repeat('a', 2001)] as $bad) {
++        $this->actingAs($this->user)->postJson(route('shortlinks.store'), ['url' => $bad])->assertUnprocessable()->assertJsonValidationErrors('url');
++    }
++
++    expect(ShortLink::ownedBy($this->user)->count())->toBe(0);
++});
++
++test('ShortLinkTest: un codigo inexistente o mal formado es 404', function () {
++    $this->get('/s/ZZZZZZZZ')->assertNotFound();
++    $this->get('/s/zzzzzzzz')->assertNotFound();
++    $this->get('/s/AB')->assertNotFound();
++});
++
++test('ShortLinkTest: el codigo no choca con la ruta de los sitios publicados', function () {
++    $routes = app('router')->getRoutes();
++
++    expect($routes->match(Request::create('/s/ABCD2345'))->getName())->toBe('shortlinks.go')
++        ->and($routes->match(Request::create('/s/abcd2345'))->getName())->toBe('sites.public')
++        ->and($routes->match(Request::create('/s/12345678'))->getName())->toBe('sites.public');
++});
++
++test('ShortLinkTest: una colision de codigo se resuelve con otro codigo', function () {
++    $taken = makeShort($this->user);
++    $service = new class([$taken->code, $taken->code, 'NUEVO234']) extends ShortLinkService
++    {
++        public function __construct(private array $codes) {}
++
++        protected function randomCode(): string
++        {
++            return array_shift($this->codes);
++        }
++    };
++
++    $created = $service->create($this->user, 'https://example.com/otro', null);
++
++    expect($created->code)->toBe('NUEVO234')->and(ShortLink::ownedBy($this->user)->count())->toBe(2);
++});
++
++test('ShortLinkTest: el codigo es unico a nivel de base de datos', function () {
++    $link = makeShort($this->user);
++
++    expect(fn () => DB::table('short_links')->insert(['user_id' => $this->user->id, 'code' => $link->code, 'url' => 'https://example.com/x', 'created_at' => now(), 'updated_at' => now()]))
++        ->toThrow(UniqueConstraintViolationException::class);
++});
++
++test('ShortLinkTest: un usuario ajeno no puede ver, desactivar ni borrar el enlace', function () {
++    $link = makeShort($this->user);
++    $other = User::factory()->create();
++
++    $this->actingAs($other)->patch(route('shortlinks.update', $link), ['active' => false])->assertNotFound();
++    $this->actingAs($other)->delete(route('shortlinks.destroy', $link))->assertNotFound();
++    expect($link->fresh()->active)->toBeTrue()->and(ShortLink::withoutUserScope()->count())->toBe(1);
++
++    $this->actingAs($other)->get(route('smartlinks.index'))->assertInertia(fn (Assert $p) => $p->component('SmartLinks/Index')->has('short_links', 0));
++});
++
++test('ShortLinkTest: el listado da los clics totales, de hoy y por dia, solo de los enlaces propios', function () {
++    $link = makeShort($this->user);
++    makeShort($this->user, ['url' => 'https://example.com/b']);
++    foreach (range(1, 2) as $i) {
++        $this->get('/s/'.$link->code);
++    }
++    Carbon::setTestNow('2026-11-28 09:00:00');
++    $this->get('/s/'.$link->code);
++
++    $this->actingAs($this->user)->get(route('smartlinks.index'))->assertInertia(fn (Assert $p) => $p
++        ->component('SmartLinks/Index')
++        ->has('short_links', 2)
++        ->where('short_links', function ($rows) use ($link) {
++            $row = collect($rows)->firstWhere('id', $link->id);
++
++            return $row['total'] === 3 && $row['today'] === 1 && $row['last_7_days'] === 3
++                && $row['daily'][0] === ['date' => '2026-11-28', 'clicks' => 1]
++                && $row['daily'][1] === ['date' => '2026-11-27', 'clicks' => 2];
++        }));
++});
++
++test('ShortLinkTest: borrar el enlace borra sus clics y deja de redirigir', function () {
++    $link = makeShort($this->user);
++    $this->get('/s/'.$link->code);
++
++    $this->actingAs($this->user)->delete(route('shortlinks.destroy', $link))->assertRedirect();
++
++    expect(DB::table('short_link_clicks')->count())->toBe(0);
++    $this->get('/s/'.$link->code)->assertNotFound();
++});
++
++test('ShortLinkTest: hay un tope de enlaces por usuario', function () {
++    foreach (range(1, ShortLinkService::MAX_PER_USER) as $i) {
++        ShortLink::query()->create(['user_id' => $this->user->id, 'code' => sprintf('A%07d', $i), 'url' => 'https://example.com/'.$i]);
++    }
++
++    $this->actingAs($this->user)->postJson(route('shortlinks.store'), ['url' => 'https://example.com/mas'])->assertUnprocessable()->assertJsonValidationErrors('url');
++});
++
++test('ShortLinkTest: la tabla de clics no tiene IP, agente ni identificadores', function () {
++    $columns = Schema::getColumnListing('short_link_clicks');
++
++    expect($columns)->toEqualCanonicalizing(['id', 'short_link_id', 'date', 'count']);
++});
++
++test('ShortLinkTest: la redireccion no envia cookies ni expone al dueno', function () {
++    $link = makeShort($this->user);
++
++    $response = $this->get('/s/'.$link->code);
++
++    expect($response->headers->getCookies())->toBe([])->and((string) $response->getContent())->not->toContain($this->user->email);
++});
+diff --git a/tests/e2e/short-links.spec.ts b/tests/e2e/short-links.spec.ts
+new file mode 100644
+index 0000000..ec082fe
+--- /dev/null
++++ b/tests/e2e/short-links.spec.ts
+@@ -0,0 +1,109 @@
++import { expect, test } from '@playwright/test';
++import {
++    artisan,
++    axeSeriousCritical,
++    cleanComposerBrands,
++    e2eUser,
++    expectNoOverflow,
++    loginAs,
++    seedComposerBrand,
++    settle,
++    stamp,
++    watch,
++    type ComposerBrand,
++} from './helpers';
++
++/**
++ * T-89 · Acortador propio (E2E-28). Se crea un enlace corto desde SmartLinks, se visita tres veces sin seguir la redirección (el destino es
++ * un dominio ficticio: no hay red) y la pantalla muestra tres clics agregados. Un enlace desactivado deja de redirigir (410 legible) y no
++ * cuenta; al reactivarlo vuelve a redirigir. Los datos llevan la etiqueta `e2e-short-*` y se borran al terminar.
++ */
++test.describe.configure({ mode: 'serial' });
++
++const DESTINO = 'https://destino.example.test/oferta?utm_source=e2e';
++
++const cleanShortLinks = () =>
++    artisan(String.raw`App\Models\ShortLink::withoutUserScope()->where('label', 'like', 'e2e-short-%')->delete();`);
++
++test.describe('Acortador propio', { tag: '@responsive' }, () => {
++    let brand: ComposerBrand;
++    let label: string;
++
++    test.beforeEach(async ({ page }, info) => {
++        const user = e2eUser(info.project.name);
++        cleanComposerBrands(user.email);
++        cleanShortLinks();
++        brand = seedComposerBrand(user.email, `short-${stamp()}-${info.project.name}`);
++        label = `e2e-short-${stamp()}-${info.project.name}`;
++        await loginAs(page, user);
++    });
++
++    test.afterEach(async ({}, info) => {
++        try {
++            cleanShortLinks();
++        } finally {
++            cleanComposerBrands(e2eUser(info.project.name).email);
++        }
++    });
++
++    test('E2E-28 · crea un enlace corto, lo visita 3 veces y ve 3 clics; desactivado no redirige ni cuenta', async ({
++        page,
++    }, info) => {
++        const w = watch(page);
++        await page.goto(`/smartlinks?brand_id=${brand.id}`);
++        await settle(page);
++        const panel = page.getByRole('region', { name: 'Enlaces cortos' });
++        await expect(panel.getByText('Todavía no has acortado ningún enlace.')).toBeVisible();
++        await page.screenshot({ path: info.outputPath('short-links-inicial.png'), fullPage: true });
++
++        await panel.getByLabel('Dirección de destino').fill('javascript:alert(1)');
++        await panel.getByLabel('Nombre (opcional)').fill(label);
++        await panel.getByRole('button', { name: 'Acortar' }).click();
++        await settle(page);
++        await expect(panel.getByText('Escribe una dirección que empiece por http:// o https://.')).toBeVisible();
++        await expect(panel.getByRole('listitem')).toHaveCount(0);
++
++        await panel.getByLabel('Dirección de destino').fill(DESTINO);
++        await panel.getByRole('button', { name: 'Acortar' }).click();
++        await settle(page);
++
++        const item = panel.getByRole('listitem').filter({ hasText: label });
++        await expect(item).toBeVisible();
++        const shortUrl = (await item.getByRole('link', { name: /\/s\/[A-Z][A-Z0-9]{7}$/ }).textContent()) ?? '';
++        expect(shortUrl).toMatch(/\/s\/[A-Z][A-Z0-9]{7}$/);
++        await expect(item.getByTestId('short-link-total')).toHaveText('0');
++
++        for (let i = 0; i < 3; i++) {
++            const res = await page.request.get(shortUrl, { maxRedirects: 0 });
++            expect(res.status()).toBe(302);
++            expect(res.headers()['location']).toBe(DESTINO);
++        }
++
++        await page.reload();
++        await settle(page);
++        await expect(item.getByTestId('short-link-total')).toHaveText('3');
++        await expect(item.getByTestId('short-link-today')).toHaveText('3');
++        await page.screenshot({ path: info.outputPath('short-links-final.png'), fullPage: true });
++
++        // Desactivado: 410 legible, sin redirección y sin contar.
++        await item.getByRole('button', { name: /^Desactivar el enlace / }).click();
++        await settle(page);
++        await expect(item.getByText('Desactivado', { exact: true })).toBeVisible();
++        const off = await page.request.get(shortUrl, { maxRedirects: 0 });
++        expect(off.status()).toBe(410);
++        expect(await off.text()).toContain('Este enlace está desactivado');
++        await page.reload();
++        await settle(page);
++        await expect(item.getByTestId('short-link-total')).toHaveText('3');
++
++        // Reactivado: vuelve a redirigir.
++        await item.getByRole('button', { name: /^Reactivar el enlace / }).click();
++        await settle(page);
++        const on = await page.request.get(shortUrl, { maxRedirects: 0 });
++        expect(on.status()).toBe(302);
++
++        await expectNoOverflow(page);
++        await axeSeriousCritical(page, 'Enlaces cortos');
++        expect(w.errors).toEqual([]);
++    });
++});

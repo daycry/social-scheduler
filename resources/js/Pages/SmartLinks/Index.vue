@@ -2,6 +2,7 @@
 import FormField from '@/Components/FormField.vue';
 import { createBlockKey, focusEditedBlock, focusFirstFormError } from '@/lib/form-errors';
 import SmartLinkPreview from '@/Components/SmartLinks/SmartLinkPreview.vue';
+import ShortLinks from '@/Components/SmartLinks/ShortLinks.vue';
 import SmartLinkSubscribers from '@/Components/SmartLinks/SmartLinkSubscribers.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
@@ -24,6 +25,7 @@ const props = defineProps({
     images: Array,
     defaults: Object,
     subscribers: { type: Array, default: () => [] },
+    short_links: { type: Array, default: () => [] },
     block_types: { type: Array, default: () => [] },
     social_networks: { type: Array, default: () => [] },
 });
@@ -536,6 +538,8 @@ const hexDraft = computed({
                     <SmartLinkPreview :draft="form" :images="images" :default-color="defaults.theme_color" />
                 </div>
             </template>
+
+            <ShortLinks :links="short_links" />
         </div>
     </AuthenticatedLayout>
 </template>

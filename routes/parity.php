@@ -8,10 +8,13 @@ use App\Http\Controllers\CompetitorController;
 use App\Http\Controllers\InboxController;
 use App\Http\Controllers\InboxNoteController;
 use App\Http\Controllers\LibraryController;
+use App\Http\Controllers\PublicShortLinkController;
 use App\Http\Controllers\PublicSmartLinkController;
+use App\Http\Controllers\ShortLinkController;
 use App\Http\Controllers\SmartLinkController;
 use App\Http\Controllers\TrashController;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Models\ShortLink;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -48,6 +51,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('smartlinks/{smartLink}/subscribers.csv', [SmartLinkController::class, 'subscribers'])->middleware('throttle:smartlinks.subscribers')->whereNumber('smartLink')->name('smartlinks.subscribers');
     Route::delete('smartlinks/{smartLink}/subscribers/{subscriber}', [SmartLinkController::class, 'destroySubscriber'])->middleware('throttle:smartlinks.subscribers.destroy')->whereNumber(['smartLink', 'subscriber'])->name('smartlinks.subscribers.destroy');
     Route::delete('smartlinks/{smartLink}/subscribers', [SmartLinkController::class, 'clearSubscribers'])->middleware('throttle:smartlinks.subscribers.clear')->whereNumber('smartLink')->name('smartlinks.subscribers.clear');
+    // Acortador propio (T-89): enlaces `/s/{code}` del usuario, en la misma pantalla.
+    Route::post('smartlinks/short', [ShortLinkController::class, 'store'])->middleware('throttle:30,1,shortlinks-store')->name('shortlinks.store');
+    Route::patch('smartlinks/short/{shortLink}', [ShortLinkController::class, 'update'])->middleware('throttle:60,1,shortlinks-update')->whereNumber('shortLink')->name('shortlinks.update');
+    Route::delete('smartlinks/short/{shortLink}', [ShortLinkController::class, 'destroy'])->middleware('throttle:60,1,shortlinks-destroy')->whereNumber('shortLink')->name('shortlinks.destroy');
     Route::delete('smartlinks/{smartLink}', [SmartLinkController::class, 'destroy'])->whereNumber('smartLink')->name('smartlinks.destroy');
 
     // Analytics · Competidores de Instagram (PA-08).
@@ -111,4 +118,6 @@ Route::withoutMiddleware([
     Route::get('l/{slug}', [PublicSmartLinkController::class, 'show'])->where('slug', $slug)->name('smartlinks.public');
     Route::post('l/{slug}/subscribe/{block}', [PublicSmartLinkController::class, 'subscribe'])->middleware('throttle:5,1,smartlink-subscribe')->where(['slug' => $slug, 'block' => '[0-9]+'])->name('smartlinks.subscribe');
     Route::get('l/{slug}/go/{block}', [PublicSmartLinkController::class, 'go'])->where(['slug' => $slug, 'block' => '[0-9]+'])->name('smartlinks.go');
+    // Acortador propio (T-89): el codigo empieza por mayuscula, asi que no choca con `s/{slug}` de los sitios (slug en minusculas).
+    Route::get('s/{code}', [PublicShortLinkController::class, 'go'])->where('code', ShortLink::CODE_PATTERN)->name('shortlinks.go');
 });

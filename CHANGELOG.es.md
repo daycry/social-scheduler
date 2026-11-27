@@ -5,6 +5,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Added — acortador propio con clics (audit-hardening, T-89)
+
+- Acorta cualquier dirección web en un enlace tuyo (`/s/CÓDIGO`) desde SmartLinks → Enlaces cortos, o marca «Acortar el enlace y contar sus clics» en el generador de UTM del compositor. Cada enlace muestra sus clics de hoy, de los últimos 7 días, el total y el desglose por día (días UTC). Puedes desactivarlo (quien lo abra verá una página clara de «enlace desactivado» y no se cuenta nada) y reactivarlo, o borrarlo. Solo se guarda el número de clics por día: sin IP, navegador ni datos personales; las peticiones HEAD y la precarga del navegador (que se anuncian como tal) no cuentan. Solo se aceptan destinos http y https; hasta 500 enlaces por cuenta.
+
 ### Added — autolistas desde RSS (audit-hardening, T-88)
 
 - Una autolista puede tomar un feed RSS o Atom como fuente (indícalo al crearla o con «Guardar feed» en la lista). Cada vez que se genera la lista, las entradas más recientes del feed entran en la cola como publicaciones con el título y el enlace, sin duplicados, aunque las quites de la cola o se edite el feed; la primera vez solo se encolan las 3 más recientes. El texto se acorta por palabras para caber en el límite de cada red (el enlace nunca se corta). Un feed privado, enorme o lento se rechaza, y la última comprobación y el error, si lo hay, se ven en la lista.

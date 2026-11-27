@@ -60,6 +60,8 @@ final class ExportInventory
         'bloques-de-smart-link' => ['table' => 'smart_link_blocks', 'via' => ['smart_link_id', 'smart_links'], 'json' => ['data']],
         'visitas-de-smart-links' => ['table' => 'smart_link_views', 'via' => ['smart_link_id', 'smart_links']],
         'clics-de-smart-links' => ['table' => 'smart_link_clicks', 'via' => ['smart_link_id', 'smart_links']],
+        'enlaces-cortos' => ['table' => 'short_links'],
+        'clics-de-enlaces-cortos' => ['table' => 'short_link_clicks', 'via' => ['short_link_id', 'short_links']],
         'visitas-de-sitios' => ['table' => 'site_visits', 'via' => ['site_id', 'sites']],
         'webhooks' => ['table' => 'webhooks', 'only' => ['id', 'brand_id', 'name', 'events', 'enabled', 'created_at'], 'json' => ['events']],
         'metricas-de-cuentas' => ['table' => 'account_snapshots', 'json' => ['metrics']],

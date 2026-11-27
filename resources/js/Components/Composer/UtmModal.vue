@@ -2,9 +2,10 @@
 import BaseDialog from '@/Components/BaseDialog.vue';
 import { computed, nextTick, reactive, ref } from 'vue';
 import { UTM_FIELDS, buildUtmUrl, parseHttpUrl } from '@/Composables/utm';
+import { requestJson } from '@/lib/http';
 
 /**
- * Generador de URL con UTM (C-05a). Todo ocurre en el cliente: no hay modelo ni endpoint (el acortador está aplazado). Es un diálogo
+ * Generador de URL con UTM (C-05a). La URL se construye en el cliente; si se marca «Acortar», se crea un enlace corto propio (`/s/código`, T-89) y se inserta ese. Es un diálogo
  * modal con el foco atrapado; Escape lo cierra y el foco vuelve al botón que lo abrió (`returnFocusTo`). Al añadir, emite `insert` con
  * la URL construida con `URL`/`URLSearchParams` y el compositor la inserta en el cursor.
  */
@@ -17,6 +18,9 @@ const emit = defineEmits(['insert', 'close']);
 const blank = () => ({ url: '', utm_source: '', utm_medium: '', utm_campaign: '', utm_term: '', utm_content: '' });
 const fields = reactive(blank());
 const touchedUrl = ref(false);
+const shorten = ref(false);
+const shortError = ref('');
+const shortening = ref(false);
 const urlInput = ref(null);
 
 const urlOk = computed(() => parseHttpUrl(fields.url) !== null);
@@ -25,15 +29,49 @@ const urlError = computed(() => (touchedUrl.value && fields.url.trim() !== '' &&
 
 const clear = () => {
     Object.assign(fields, blank());
+    shortError.value = '';
     touchedUrl.value = false;
     nextTick(() => urlInput.value?.focus());
 };
-const close = () => emit('close');
-const add = () => {
-    if (!result.value) return;
-    emit('insert', result.value);
+// Petición de acortado en curso: cerrar el diálogo la descarta, para que no se inserte un enlace tras cancelar.
+let pending = null;
+const close = () => {
+    pending?.abort();
+    pending = null;
+    shortening.value = false;
+    shortError.value = '';
+    emit('close');
+};
+const add = async () => {
+    if (!result.value || shortening.value) return;
+    let url = result.value;
+    shortError.value = '';
+    if (shorten.value) {
+        shortening.value = true;
+        const request = new AbortController();
+        pending = request;
+        try {
+            const label = fields.utm_campaign.trim().slice(0, 100);
+            const created = await requestJson('POST', route('shortlinks.store'), {
+                json: { url, label: label || undefined },
+                signal: request.signal,
+                errorMessage: (data) => data?.errors?.url?.[0] || data?.errors?.label?.[0] || data?.message || 'No se pudo acortar el enlace.',
+            });
+            url = created.short_url;
+        } catch (error) {
+            if (!request.signal.aborted) shortError.value = error?.message || 'No se pudo acortar el enlace.';
+            return;
+        } finally {
+            if (pending === request) {
+                pending = null;
+                shortening.value = false;
+            }
+        }
+    }
+    emit('insert', url);
     Object.assign(fields, blank());
     touchedUrl.value = false;
+    shorten.value = false;
     close();
 };
 
@@ -117,6 +155,17 @@ const addOnEnter = () => {
                 >
             </div>
 
+            <div class="mt-3">
+                <label class="flex items-center gap-2 text-sm text-slate-800">
+                    <input v-model="shorten" type="checkbox" data-testid="utm-shorten" />
+                    Acortar el enlace y contar sus clics
+                </label>
+                <p class="mt-0.5 text-xs text-slate-600"
+                    >Crea un enlace corto tuyo; lo verás con sus clics en SmartLinks.</p
+                >
+                <p class="mt-1 text-xs text-red-700" role="alert" data-testid="utm-short-error">{{ shortError }}</p>
+            </div>
+
             <div class="mt-4 flex flex-wrap justify-end gap-2">
                 <button type="button" class="btn btn-secondary px-3 py-1 text-sm" data-testid="utm-clear" @click="clear"
                     >Limpiar</button
@@ -131,7 +180,7 @@ const addOnEnter = () => {
                 <button
                     type="button"
                     class="btn btn-primary px-3 py-1 text-sm"
-                    :disabled="!result"
+                    :disabled="!result || shortening"
                     data-testid="utm-add"
                     @click="add"
                     >Añadir</button

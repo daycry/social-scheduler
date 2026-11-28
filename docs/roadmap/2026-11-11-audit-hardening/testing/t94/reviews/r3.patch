@@ -1,0 +1,1817 @@
+diff --git a/CHANGELOG.es.md b/CHANGELOG.es.md
+index 5d3ebea..aac6d1b 100644
+--- a/CHANGELOG.es.md
++++ b/CHANGELOG.es.md
+@@ -5,6 +5,10 @@ # Registro de cambios
+ 
+ ## [Sin publicar]
+ 
++### Added — animaciones por objeto en el Estudio (audit-hardening, T-94)
++
++- En la línea de tiempo del Estudio, selecciona un clip y dale una animación de entrada y/o de salida: fundido, deslizamiento desde o hacia cualquier lado, o zoom, con duración (0,1–10 s), retardo y curva de suavizado (lineal, acelera, frena, suave). La animación se ve en el clip de la línea de tiempo, en la previsualización al mover el cabezal, en el vídeo MP4/GIF y en la imagen exportada en el instante elegido, así que el fotograma exportado coincide con la previsualización. La entrada y la salida deben caber en el tiempo visible del objeto; al acortar un clip se descartan las fases que ya no caben. Los diseños sin animaciones se renderizan exactamente igual que antes.
++
+ ### Added — plan de contenido en lenguaje natural (audit-hardening, T-93)
+ 
+ - La nueva página Plan de contenido (Planificación → Plan de contenido) convierte un briefing en lenguaje natural, como «la semana que viene, 3 posts sobre el lanzamiento de X, por la mañana», en un lote de publicaciones de texto con fecha redactadas por el asistente IA. Mientras revisas no se crea nada: cada publicación propuesta muestra su fecha, cuentas y texto, y puedes editarla, desmarcarla o cambiar sus cuentas antes de confirmar. Un texto que no cabe en el límite de una red se marca para que lo edites, nunca se recorta. Al confirmar, el servidor lo comprueba todo de nuevo y crea solo lo que elegiste, como borradores con su fecha o programadas, todo o nada; un doble clic en «Confirmar» nunca crea el lote dos veces. Solo se usan las cuentas de la marca actual que publican texto sin imágenes (Bluesky, Mastodon, Threads, LinkedIn, Facebook, Telegram); el resto se lista con su motivo. Comparte el cupo diario de IA con el resto del asistente y muestra un mensaje claro si la IA no está configurada.
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 78423d7..ccc0d4c 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -5,6 +5,10 @@ # Changelog
+ 
+ ## [Unreleased]
+ 
++### Added — animations per object in the Studio (audit-hardening, T-94)
++
++- In the Studio timeline, select a clip and give it an entrance and/or exit animation: fade, slide from or towards any side, or zoom, with a duration (0.1–10 s), a delay and an easing curve (linear, accelerate, decelerate, smooth). The animation shows in the timeline clip, in the preview when you move the playhead, in the MP4/GIF video and in the image exported at the chosen instant, so the exported frame matches the preview. The entrance and exit must fit within the object's visible time; shortening a clip drops the phases that no longer fit. Designs without animations render exactly as before.
++
+ ### Added — content plan in natural language (audit-hardening, T-93)
+ 
+ - The new Content plan page (Planning → Content plan) turns a plain-language brief such as "next week, 3 posts about the launch of X, in the morning" into a batch of text posts with dates, written by the AI assistant. Nothing is created while you review: each proposed post shows its date, accounts and text, and you can edit it, untick it or change its accounts before confirming. A text that does not fit a network's limit is flagged for you to edit, never cut. When you confirm, the server checks everything again and creates only what you chose, as drafts with their date or scheduled, all or nothing; double-clicking "Confirm" never creates the batch twice. Only accounts of the current brand that publish text without images (Bluesky, Mastodon, Threads, LinkedIn, Facebook, Telegram) are used; the others are listed with the reason. It uses the same daily AI allowance as the rest of the assistant and shows a clear message when the AI is not configured.
+diff --git a/app/Services/Studio/StudioTimeline.php b/app/Services/Studio/StudioTimeline.php
+index a4ff989..ca364ce 100644
+--- a/app/Services/Studio/StudioTimeline.php
++++ b/app/Services/Studio/StudioTimeline.php
+@@ -18,6 +18,12 @@ public function __construct(private readonly StudioCaptionData $captionData) {}
+ 
+     private const EPS = 1e-9;
+ 
++    private const ANIMATION_PHASES = ['in', 'out'];
++
++    private const ANIMATION_TYPES = ['fade', 'slide_left', 'slide_right', 'slide_up', 'slide_down', 'zoom'];
++
++    private const ANIMATION_EASINGS = ['linear', 'ease_in', 'ease_out', 'ease_in_out'];
++
+     public function validate(User $user, Brand $brand, array $document, StudioDocument $spatial): array
+     {
+         $encoded = json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_LINE_TERMINATORS);
+@@ -117,7 +123,7 @@ private function strip(array $elements): array
+             if (! is_array($element)) {
+                 continue;
+             }
+-            unset($element['timing']);
++            unset($element['timing'], $element['animation']);
+             if (($element['type'] ?? null) === 'video') {
+                 unset($element['playbackRate'], $element['sourceOffset'], $element['loop'], $element['gainPoints']);
+             }
+@@ -141,6 +147,9 @@ private function elements(array $elements, float $duration, int $fps, string $pa
+                 $length = $this->number($element['timing']['duration'] ?? null, 0, $duration + self::EPS, $p.'.timing.duration');
+                 $this->ensure($length > 0 && $start + $length > $start && $start + $length <= $duration + self::EPS, $p.'.timing', 'La ventana debe ser positiva y quedar dentro de la página.');
+             }
++            if (array_key_exists('animation', $element)) {
++                $this->animation($element['animation'], $length, $p.'.animation');
++            }
+             if ($element['type'] === 'video') {
+                 $this->mediaFields($element, $length, $p);
+                 $uses[] = [$element['asset_id'], $element, $p, false];
+@@ -151,6 +160,31 @@ private function elements(array $elements, float $duration, int $fps, string $pa
+         }
+     }
+ 
++    /** Mismo esquema que normalizeAnimation de object-animation.js: tipos, rangos y que entrada y salida quepan en la vida del objeto. */
++    private function animation(mixed $animation, float $length, string $path): void
++    {
++        $this->keys($animation, self::ANIMATION_PHASES, $path);
++        $this->ensure($animation !== [], $path, 'Indica una entrada o una salida.');
++        $total = 0.0;
++        foreach (self::ANIMATION_PHASES as $key) {
++            if (! array_key_exists($key, $animation)) {
++                continue;
++            }
++            $phase = $animation[$key];
++            $where = "$path.$key";
++            $this->keys($phase, ['type', 'duration', 'delay', 'easing', 'clipped'], $where);
++            $this->ensure(in_array($phase['type'] ?? null, self::ANIMATION_TYPES, true), $where.'.type', 'Tipo de animación no admitido.');
++            $duration = $this->number($phase['duration'] ?? null, 0.1, 10, $where.'.duration');
++            $clipped = array_key_exists('clipped', $phase);
++            $this->ensure(! $clipped || $phase['clipped'] === true, $where.'.clipped', 'El indicador de recorte debe ser true.');
++            $delay = array_key_exists('delay', $phase) ? $this->number($phase['delay'], $clipped ? -10 : 0, 3600, $where.'.delay') : 0.0;
++            $this->ensure(! array_key_exists('easing', $phase) || in_array($phase['easing'], self::ANIMATION_EASINGS, true), $where.'.easing', 'Curva de suavizado no admitida.');
++            $span = $delay + $duration;
++            $total += $clipped ? min($length, max(0, $span)) : $span;
++        }
++        $this->ensure($total <= $length + self::EPS, $path, 'La entrada y la salida no caben en la vida del objeto.');
++    }
++
+     private function mediaFields(array $clip, float $duration, string $path): void
+     {
+         $this->number(array_key_exists('playbackRate', $clip) ? $clip['playbackRate'] : 1, 0.25, 4, $path.'.playbackRate');
+diff --git a/docs/modulos/estudio.md b/docs/modulos/estudio.md
+index 2b15a19..598a2d2 100644
+--- a/docs/modulos/estudio.md
++++ b/docs/modulos/estudio.md
+@@ -27,6 +27,18 @@ ## Editor
+ 
+ Los diálogos de Studio usan el componente modal nativo compartido. Tab y Mayús+Tab recorren los controles del diálogo activo. Escape cierra el diálogo cuando la acción lo permite. Al cerrar, el foco vuelve al control que lo abrió si sigue disponible. Si hay dos diálogos abiertos, el teclado actúa sobre el que está encima.
+ 
++### Animaciones por objeto
++
++En los documentos de versión 2, cada elemento (también dentro de grupos) admite `animation` con una fase `in`, `out` o ambas. Cada fase lleva `type` (`fade`, `slide_left`, `slide_right`, `slide_up`, `slide_down` o `zoom`), `duration` (0,1 a 10 s), `delay` opcional y `easing` opcional (`linear`, `ease_in`, `ease_out` o `ease_in_out`, que es el valor por defecto). En fases completas, el retardo va de 0 a 3600 s y la suma de retardos y duraciones debe caber en la vida del objeto. La entrada empieza tras el retardo contado desde el inicio de la ventana y la salida termina ese tiempo antes del final. El objeto es transparente antes de la entrada y después de la salida. Los deslizamientos recorren el 25 % de la página con fundido y el zoom parte del 50 % del tamaño. Un diseño sin `animation` se renderiza igual que antes, y los documentos de versión 1 la rechazan.
++
++La función pura `animationState`, en `resources/js/Studio/object-animation.js`, sirve a la previsualización, al render de servidor (MP4/GIF y fotogramas en Chromium) y a la exportación de imágenes en el instante elegido. `StudioTimeline.php` valida el mismo esquema. El panel de la línea de tiempo muestra y permite editar la entrada y la salida. La duración inicial de una fase nueva es 0,5 s o lo que quepa, con un mínimo de 0,1 s.
++
++Al dividir un clip, ambas mitades conservan la opacidad, el desplazamiento y la escala del objeto en cada instante, incluidos los tramos transparentes y los hijos de un grupo. Una fase recortada guarda `clipped: true`, mantiene su duración original y ajusta su `delay` respecto al borde correspondiente. El retardo puede ir de −10 a 3600 s y situar parte o toda la curva fuera del clip. Solo cuenta el tramo de influencia dentro de la ventana para comprobar que entrada y salida caben. Al acortar un clip desde el panel se descartan las fases que dejan de caber.
++
++Un hijo de grupo se anima dentro de la intersección de su ventana con la del grupo. Al desagrupar, solo se hereda el tramo de la fase del grupo que tiene efecto en esa ventana, con su anclaje original. Si la fase compite con la del hijo o ambas se solapan, se prioriza la del hijo y el editor muestra un aviso. Un zoom de grupo se conserva en un hijo centrado y se traslada como fundido a los hijos descentrados. El editor también avisa en ese caso y cuando la opacidad conjunta puede cambiar al separar varias capas visibles.
++
++Regla de los instantes: una salida estática (miniatura del listado, exportación en lote, PPTX, PNG/JPG/WebP de servidor o del navegador) que no recibe un instante explícito muestra el diseño **en reposo**: entradas completadas y salidas sin empezar (`animationState` con `settled`), sin tocar las ventanas `timing`. Solo con un instante explícito (`frame_times` o el fotograma escrito en el diálogo Exportar) se aplica la animación en ese instante. En el diálogo Exportar el campo «Fotograma» queda vacío si el cabezal sigue en 0 («vacío = diseño en reposo») y se rellena con el instante del cabezal si lo moviste.
++
+ ## Diseños y aprobadores de marca
+ 
+ Un aprobador invitado ve los diseños activos de esa marca en **Compartidos conmigo**. Puede abrirlos, comentar y
+diff --git a/docs/roadmap/2026-11-11-audit-hardening/tasks.md b/docs/roadmap/2026-11-11-audit-hardening/tasks.md
+index 2fbe5ba..097b6de 100644
+--- a/docs/roadmap/2026-11-11-audit-hardening/tasks.md
++++ b/docs/roadmap/2026-11-11-audit-hardening/tasks.md
+@@ -4723,18 +4723,18 @@ ### T-93 — Plan de contenido en lenguaje natural (lote)
+ ### T-94 — Estudio: animaciones por objeto
+ 
+ - **Descripción**: Animaciones de entrada/salida por objeto en la línea de tiempo y en el render MP4/GIF. F-23 se cuenta aquí; la tarea siguiente añade plantillas.
+-- **Changelog**:
+-- **Estado**: borrador
++- **Changelog**: En la línea de tiempo del Estudio puedes dar a cada objeto una animación de entrada y de salida (fundido, deslizamiento o zoom, con duración, retardo y curva) que se ve en la previsualización y en el vídeo y la imagen exportados.
++- **Estado**: en-progreso
+ - **Tiempo humano**: est. 8.0h · real —
+ - **Tiempo IA (ejec.)**: est. 2.0h · real —
+ - **Supervisión**: est. 0.50h (≈25 % IA) · real —
+ - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
+ - **Dependencias**: T-93
+ - **Tipo**: fullstack
+-- **Archivos**: `app/Services/Studio/StudioTimeline.php`, `resources/js/Studio/timeline/**`, `resources/js/Pages/Studio/Editor.vue`, `docs/modulos/estudio.md`
++- **Archivos**: `app/Services/Studio/StudioTimeline.php`, `resources/js/Studio/timeline/**`, `resources/js/Pages/Studio/Editor.vue`, `docs/modulos/estudio.md`, `resources/js/Studio/object-animation.js`, `resources/js/Studio/animation-scene.js`, `resources/js/Studio/timeline.js`, `resources/js/Studio/timeline-preview.js`, `resources/js/Studio/frame-renderer.js`, `resources/js/Studio/canvas.js`, `resources/js/Studio/composables/useTimelineEditing.js`, `resources/js/Studio/composables/useEditorCanvas.js`, `resources/js/Components/Studio/TimelinePanel.vue`, `resources/js/Components/Studio/ObjectAnimationFields.vue`, `tests/Feature/Studio/StudioObjectAnimationTest.php`, `tests/frontend/studio-object-animation.test.mjs`, `tests/frontend/studio-object-animation-flows.test.mjs`, `tests/frontend/studio-chart-exports.test.mjs`, `tests/frontend/studio-presentation-media-cancel.test.mjs`, `tests/frontend/studio-preview-frame-abort.test.mjs`, `tests/e2e/studio-object-animation.spec.ts`, `CHANGELOG.md`, `CHANGELOG.es.md`, `public/build/**`
+ - **Cubre**: F-23
+ - **Cubre (tests)**: E2E-33
+-- **Verificación**: `php artisan test --compact --filter=StudioObjectAnimationTest` → verde
++- **Verificación**: intento 2 · `php -d memory_limit=1G vendor/bin/pest --compact --filter=StudioObjectAnimationTest` → 32 pruebas, 71 aserciones · Pest completo tras `php artisan config:clear` → 4959 aprobadas, 21 omitidas, 34940 aserciones · `npm run test:unit` bloqueado por `spawn EPERM`, ejecución individual → 812 aprobadas, 37 fallidas · `npm run build` bloqueado por `spawn EPERM`, Vite con `preserveSymlinks` → aplicación y dos renderizadores compilados · formato, lint, tipos y Pint → verde
+ 
+ **Criterios de aceptación**
+ - [ ] Una animación por objeto se previsualiza y se exporta
+@@ -4744,13 +4744,17 @@ ### T-94 — Estudio: animaciones por objeto
+ - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+ 
+ **Subtareas**
+-- [ ] Implementar (implementer)
++- [x] Implementar (implementer)
+ - [ ] Revisión adversarial A+B(+C)
+ - [ ] Corregir hallazgos de la revisión
+ - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
+ - [ ] Actualizar documentación y cerrar la tarea en este ledger
+ 
+-**Notas**: Tamaño M. F-23 es L: dos tareas.
++**Notas**: Tamaño M. F-23 es L: dos tareas. Corrección del intento 2. `animation.in` y `animation.out` admiten `clipped: true` en v2 con la misma validación en JS y PHP. La duración original se conserva, el retardo admite valores de −10 a 3600 s y solo cuenta el tramo de influencia dentro de la ventana. Al desagrupar se respeta el anclaje de cada fase y se muestra un aviso si cambia su aspecto.
++
++- RED: `studio-object-animation-flows.test.mjs::splitting preserves` falló por opacidad `1` en vez de `0,995` tras perder una salida, `1` en vez de `0` antes de una entrada y discrepancias en las curvas parciales · 2026-11-27
++- RED: `studio-object-animation-flows.test.mjs::ungrouping` falló por opacidad `0,08` en vez de `1` a los `2,1 s` y por la falta de aviso al competir dos fases · 2026-11-27
++- RED: `StudioObjectAnimationTest.php::cropped phases preserve` devolvió `422` en los dos casos que esperaban `201` · 2026-11-27
+ 
+ ### T-95 — Estudio: más plantillas (continuación de F-23)
+ 
+diff --git a/resources/js/Components/Studio/ExportDialog.vue b/resources/js/Components/Studio/ExportDialog.vue
+index 7270c37..dbae8a2 100644
+--- a/resources/js/Components/Studio/ExportDialog.vue
++++ b/resources/js/Components/Studio/ExportDialog.vue
+@@ -53,15 +53,22 @@ async function nativeOptions() {
+     const existing = new Set(snapshot.document.pages.map(page => page.id));
+     const pages = pageOrder.value.filter(id => selectedPages.value.includes(id) && existing.has(id));
+     if (!pages.length) throw new Error('Selecciona al menos una página existente.');
+-    const frames = snapshot.document.schema_version === 2 ? { frame_times: pages.map(page_id => ({ page_id, time: pageFrameTimes.value[page_id] ?? 0 })) } : {};
++    const frames = explicitFrames(snapshot.document, pages);
+     const image = serverImage.value ? { transparent: transparent.value && format.value !== 'jpeg', watermark: true, ...frames } : {};
+     return { revision: snapshot.revision, format: format.value, pages, scale: Number(scale.value), quality: Number(quality.value), ...image };
+ }
++/** Solo las páginas con un instante escrito fijan fotograma; el resto se exporta en reposo (animaciones completadas). */
++function explicitFrames(document, pageIds) {
++    if (document.schema_version !== 2) return {};
++    const frame_times = pageIds.filter(id => Number.isFinite(pageFrameTimes.value[id])).map(page_id => ({ page_id, time: pageFrameTimes.value[page_id] }));
++    return frame_times.length ? { frame_times } : {};
++}
+ function initializeFrames() {
+     const times = Object.create(null);
+     if (props.document.schema_version === 2) for (const page of compileTimeline(props.document).pages) {
+         const local = props.playhead - page.start;
+-        times[page.id] = local >= 0 && local < page.source.duration ? Math.floor(local * 1e6) / 1e6 : 0;
++        // Un cabezal sin mover (0) no es un instante elegido a propósito: el campo queda vacío y se exporta en reposo.
++        times[page.id] = local > 0 && local < page.source.duration ? Math.floor(local * 1e6) / 1e6 : '';
+     }
+     pageFrameTimes.value = times;
+ }
+@@ -91,8 +98,7 @@ async function run(mode) {
+         status.value = 'Guardando la revisión del diseño…';
+         const snapshot = await props.prepare();
+         const pageIds = snapshot.document.pages.filter(page => selectedPages.value.includes(page.id)).map(page => page.id);
+-        const temporal = snapshot.document.schema_version === 2
+-            ? { frame_times: pageIds.map(page_id => ({ page_id, time: pageFrameTimes.value[page_id] ?? 0 })) } : {};
++        const temporal = explicitFrames(snapshot.document, pageIds);
+         status.value = 'Preparando fuentes, recursos y páginas…';
+         const files = await exportDesign(snapshot.document, { format: format.value, pageIds, assets: props.assets, fonts: props.fonts, chartResources: props.chartResources, scale: Number(scale.value), quality: Number(quality.value), transparent: transparent.value && format.value !== 'jpeg', title: snapshot.name, ...temporal, onProgress: ({ completed, total }) => { status.value = `Renderizadas ${completed} de ${total} páginas.`; } });
+         if (mode === 'download') {
+@@ -241,7 +247,10 @@ defineExpose({ publish });
+                                     step="0.001"
+                                     class="field w-28 text-xs"
+                                     :disabled="!selectedPages.includes(page.id)"
+-                                /><span>antes de {{ page.duration }} s</span></label
++                                /><span
++                                    >antes de {{ page.duration }} s ·
++                                    {{ Number.isFinite(pageFrameTimes[page.id]) ? 'se exporta ese instante, con sus animaciones' : 'vacío = diseño en reposo (animaciones completadas)' }}</span
++                                ></label
+                             ></div
+                         ></div
+                     ></div
+diff --git a/resources/js/Components/Studio/TimelinePanel.vue b/resources/js/Components/Studio/TimelinePanel.vue
+index 3392090..0cf02af 100644
+--- a/resources/js/Components/Studio/TimelinePanel.vue
++++ b/resources/js/Components/Studio/TimelinePanel.vue
+@@ -1,10 +1,12 @@
+ <script setup>
+ import { computed } from 'vue';
++import { animationPhaseSpan } from '@/Studio/object-animation';
+ import AudioTrackPanel from './AudioTrackPanel.vue';
+ import CaptionsPanel from './CaptionsPanel.vue';
++import ObjectAnimationFields from './ObjectAnimationFields.vue';
+ 
+ const props = defineProps({ document: Object, page: Object, pageStart: Number, selectedId: String, time: Number, duration: Number, playing: Boolean, busy: Boolean, assets: Array, selectedAudioId: String, applyCaptions: Function, fonts: Array, kitFonts: Array, brandId: Number });
+-const emit = defineEmits(['select', 'window', 'seek', 'play', 'split', 'page', 'fps', 'edit', 'audio-select', 'audio-patch', 'audio-split', 'audio-remove', 'audio-fade']);
++const emit = defineEmits(['select', 'window', 'seek', 'play', 'split', 'page', 'fps', 'edit', 'animation', 'audio-select', 'audio-patch', 'audio-split', 'audio-remove', 'audio-fade']);
+ const selected = computed(() => props.page.elements.find(element => element.id === props.selectedId));
+ const window = computed(() => selected.value?.timing ?? { start: 0, duration: props.page.duration });
+ const localTime = computed(() => props.time - props.pageStart);
+@@ -12,6 +14,11 @@ const audioDuration = computed(() => props.document.pages.reduce((total, page) =
+ const canSplit = computed(() => selected.value && localTime.value >= window.value.start + 1 / props.document.timeline.fps - 1e-9
+     && localTime.value <= window.value.start + window.value.duration - 1 / props.document.timeline.fps + 1e-9);
+ const format = value => Number(value.toFixed(3));
++const phaseShare = (clip, phase) => {
++    const length = clip.timing?.duration ?? props.page.duration;
++    const value = clip.animation?.[phase];
++    return value ? `${(animationPhaseSpan(value, length) / length) * 100}%` : null;
++};
+ </script>
+ 
+ <template>
+@@ -84,46 +91,68 @@ const format = value => Number(value.toFixed(3));
+                     :style="{ left: `${(clip.timing?.start ?? 0) / page.duration * 100}%`, width: `${(clip.timing?.duration ?? page.duration) / page.duration * 100}%` }"
+                     @click="emit('select', clip.id)"
+                 >
+-                    <span class="truncate">{{ clip.name }}</span>
++                    <span
++                        v-if="phaseShare(clip, 'in')"
++                        data-testid="timeline-animation-in"
++                        class="pointer-events-none absolute inset-y-0 left-0 bg-amber-300/60"
++                        :style="{ width: phaseShare(clip, 'in') }"
++                        aria-hidden="true"
++                    />
++                    <span
++                        v-if="phaseShare(clip, 'out')"
++                        data-testid="timeline-animation-out"
++                        class="pointer-events-none absolute inset-y-0 right-0 bg-amber-300/60"
++                        :style="{ width: phaseShare(clip, 'out') }"
++                        aria-hidden="true"
++                    />
++                    <span class="relative truncate">{{ clip.name }}</span>
+                 </button>
+             </div>
+             <p v-if="!page.elements.length" class="py-3 text-xs text-slate-500"
+                 >Añade texto, imágenes o vídeo para crear clips.</p
+             >
+         </div>
+-        <div v-if="selected" class="flex flex-wrap items-end gap-3 border-t border-slate-100 pt-3">
+-            <label class="space-y-1 text-xs text-slate-600"
+-                ><span class="block">Inicio del clip</span
+-                ><input
+-                    type="number"
+-                    min="0"
+-                    :max="page.duration - 1 / document.timeline.fps"
+-                    :step="1 / document.timeline.fps"
+-                    :value="format(window.start)"
+-                    :disabled="busy || playing"
+-                    class="w-28 rounded-lg border-slate-200 text-xs"
+-                    @change="emit('window', { start: Number($event.target.value) })"
+-            /></label>
+-            <label class="space-y-1 text-xs text-slate-600"
+-                ><span class="block">Duración del clip</span
+-                ><input
+-                    type="number"
+-                    :min="1 / document.timeline.fps"
+-                    :max="page.duration - window.start"
+-                    :step="1 / document.timeline.fps"
+-                    :value="format(window.duration)"
+-                    :disabled="busy || playing"
+-                    class="w-28 rounded-lg border-slate-200 text-xs"
+-                    @change="emit('window', { duration: Number($event.target.value) })"
+-            /></label>
+-            <button
+-                type="button"
+-                class="timeline-button"
+-                :disabled="busy || playing || !canSplit"
+-                @click="emit('split')"
+-                >Dividir clip</button
+-            >
+-        </div>
++        <template v-if="selected">
++            <div class="flex flex-wrap items-end gap-3 border-t border-slate-100 pt-3">
++                <label class="space-y-1 text-xs text-slate-600"
++                    ><span class="block">Inicio del clip</span
++                    ><input
++                        type="number"
++                        min="0"
++                        :max="page.duration - 1 / document.timeline.fps"
++                        :step="1 / document.timeline.fps"
++                        :value="format(window.start)"
++                        :disabled="busy || playing"
++                        class="w-28 rounded-lg border-slate-200 text-xs"
++                        @change="emit('window', { start: Number($event.target.value) })"
++                /></label>
++                <label class="space-y-1 text-xs text-slate-600"
++                    ><span class="block">Duración del clip</span
++                    ><input
++                        type="number"
++                        :min="1 / document.timeline.fps"
++                        :max="page.duration - window.start"
++                        :step="1 / document.timeline.fps"
++                        :value="format(window.duration)"
++                        :disabled="busy || playing"
++                        class="w-28 rounded-lg border-slate-200 text-xs"
++                        @change="emit('window', { duration: Number($event.target.value) })"
++                /></label>
++                <button
++                    type="button"
++                    class="timeline-button"
++                    :disabled="busy || playing || !canSplit"
++                    @click="emit('split')"
++                    >Dividir clip</button
++                >
++            </div>
++            <ObjectAnimationFields
++                :animation="selected.animation"
++                :step="0.1"
++                :disabled="busy || playing"
++                @change="emit('animation', $event)"
++            />
++        </template>
+         <p v-else class="text-xs text-slate-500">Selecciona un clip para ajustar sus tiempos o dividirlo.</p>
+         <AudioTrackPanel
+             :tracks="document.timeline.audio_tracks"
+diff --git a/resources/js/Pages/Studio/Editor.vue b/resources/js/Pages/Studio/Editor.vue
+index 7f2f800..0ff30d3 100644
+--- a/resources/js/Pages/Studio/Editor.vue
++++ b/resources/js/Pages/Studio/Editor.vue
+@@ -79,6 +79,7 @@ const {
+     ready,
+     busy,
+     fontBusy,
++    canvasWarning,
+     zoom,
+     drawing,
+     drawColor,
+@@ -348,6 +349,7 @@ const {
+     openTimeline,
+     applyCaptions,
+     patchClipWindow,
++    patchClipAnimation,
+     splitClip,
+     patchTimelineFps,
+     addAudioTrack,
+@@ -693,6 +695,7 @@ const {
+                     </div>
+                 </template>
+             </FlashBanner>
++            <FlashBanner :warning="canvasWarning" />
+             <FlashBanner :info="fontBusy ? 'Cargando la tipografía antes de actualizar el texto…' : ''" />
+ 
+             <div
+@@ -1022,6 +1025,7 @@ const {
+                         :busy="busy || previewBusy || automationBusy"
+                         @select="selectLayer"
+                         @window="patchClipWindow"
++                        @animation="patchClipAnimation"
+                         @seek="seekTimeline"
+                         @play="playTimeline"
+                         @split="splitClip"
+diff --git a/resources/js/Studio/canvas.js b/resources/js/Studio/canvas.js
+index b59fd6d..8c8b1be 100644
+--- a/resources/js/Studio/canvas.js
++++ b/resources/js/Studio/canvas.js
+@@ -117,6 +117,7 @@ function setIdentity(object, element) {
+     object.studioType = element.type;
+     object.studioName = element.name ?? '';
+     object.studioTiming = element.timing == null ? null : clone(element.timing);
++    object.studioAnimation = element.animation == null ? null : clone(element.animation);
+     object.studioAssetId = element.asset_id;
+     object.studioFontId = element.font_id;
+     object.studioFontFamily = element.fontFamily;
+@@ -162,6 +163,7 @@ export function studioObjectToElement(object, { absolute = false } = {}) {
+     });
+     if (object.shadow) element.shadow = { color: object.shadow.color, blur: object.shadow.blur, offsetX: object.shadow.offsetX, offsetY: object.shadow.offsetY };
+     if (object.studioTiming != null) element.timing = clone(object.studioTiming);
++    if (object.studioAnimation != null) element.animation = clone(object.studioAnimation);
+     if (type === 'text') Object.assign(element, { text: object.text, fontFamily: object.fontFamily, fontSize: object.fontSize, fontWeight: String(object.fontWeight) === 'bold' || Number(object.fontWeight) >= 600 ? 'bold' : 'normal', fontStyle: object.fontStyle === 'italic' ? 'italic' : 'normal', textAlign: object.textAlign, underline: Boolean(object.underline), lineHeight: object.lineHeight, charSpacing: object.charSpacing });
+     if (type === 'text' && object.studioFontId != null) { element.font_id = object.studioFontId; element.fontFamily = object.studioFontFamily; }
+     if (type === 'rect') element.radius = object.rx ?? 0;
+@@ -685,9 +687,22 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
+             ready(); const groups = selectedObjects().filter(object => object.studioType === 'group' && object instanceof Group && !(object instanceof ActiveSelection) && !object.studioLocked);
+             if (!groups.length) return false;
+             const restricted = new Map();
+-            for (const group of groups) if (documentData.schema_version === 2 && group.studioTiming) {
+-                for (const child of group.getObjects()) restricted.set(child, checked(restrictElementWindow(studioObjectToElement(child), group.studioTiming,
+-                    { pageDuration: currentPage.duration, sourceDuration: child.studioVideo?.duration })));
++            let animationLoss = false;
++            for (const group of groups) if (documentData.schema_version === 2 && (group.studioTiming || group.studioAnimation)) {
++                const children = group.getObjects();
++                const sharedOpacity = children.filter(child => child.visible && child.opacity > 0).length > 1;
++                for (const child of children) {
++                    const center = child.getRelativeCenterPoint();
++                    const bounded = restrictElementWindow(studioObjectToElement(child), group.studioTiming ?? { start: 0, duration: currentPage.duration }, {
++                        pageDuration: currentPage.duration,
++                        sourceDuration: child.studioVideo?.duration,
++                        parentAnimation: group.studioAnimation ?? undefined,
++                        centered: Math.abs(center.x) < 1e-9 && Math.abs(center.y) < 1e-9,
++                        sharedOpacity,
++                        onAnimationLoss: () => { if (group.visible && group.opacity > 0 && child.opacity > 0) animationLoss = true; },
++                    });
++                    restricted.set(child, checked(bounded));
++                }
+             }
+             canvas.discardActiveObject(); const released = [];
+             for (const group of groups) {
+@@ -714,7 +729,9 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
+                     child.setCoords();
+                 });
+             }
+-            choose(released); changed('ungroup'); return true;
++            choose(released); changed('ungroup');
++            if (animationLoss) canvas.fire('studio:warning', { message: 'Al desagrupar, parte de la animación del grupo puede verse distinta al aplicarse a las capas por separado.' });
++            return true;
+         },
+         align(mode) {
+             ready(); const selected = selectedObjects().filter(object => !object.studioLocked);
+diff --git a/resources/js/Studio/composables/useEditorCanvas.js b/resources/js/Studio/composables/useEditorCanvas.js
+index 7136a3e..1c0674b 100644
+--- a/resources/js/Studio/composables/useEditorCanvas.js
++++ b/resources/js/Studio/composables/useEditorCanvas.js
+@@ -31,6 +31,7 @@ export function useEditorCanvas(
+     const ready = ref(false);
+     const busy = ref(false);
+     const fontBusy = ref(false);
++    const canvasWarning = ref('');
+ 
+     const zoom = ref(50);
+     const fitMode = ref(true);
+@@ -71,6 +72,7 @@ export function useEditorCanvas(
+     }
+     async function reloadCanvas() {
+         if (!adapter) return;
++        canvasWarning.value = '';
+         invalidatePreview();
+         busy.value = true;
+         setPlaying(false);
+@@ -86,6 +88,7 @@ export function useEditorCanvas(
+     const action = (method, value) =>
+         run(async () => {
+             if (busy.value) return;
++            canvasWarning.value = '';
+             busy.value = true;
+             try {
+                 await adapter?.[method](value);
+@@ -229,6 +232,9 @@ export function useEditorCanvas(
+         adapter.canvas.on('studio:error', ({ error: e }) => {
+             if (!isDisposed() && adapter === scene) error.value = e.message;
+         });
++        adapter.canvas.on('studio:warning', ({ message }) => {
++            if (!isDisposed() && adapter === scene) canvasWarning.value = message;
++        });
+         ready.value = true;
+         refreshLayers();
+         fit();
+@@ -262,6 +268,7 @@ export function useEditorCanvas(
+         ready,
+         busy,
+         fontBusy,
++        canvasWarning,
+         zoom,
+         drawing,
+         drawColor,
+diff --git a/resources/js/Studio/composables/useTimelineEditing.js b/resources/js/Studio/composables/useTimelineEditing.js
+index bb3ce16..734244b 100644
+--- a/resources/js/Studio/composables/useTimelineEditing.js
++++ b/resources/js/Studio/composables/useTimelineEditing.js
+@@ -2,6 +2,7 @@ import { computed, ref } from 'vue';
+ import { cloneDocument, findPage, validateDocument } from '../document.js';
+ import { captionOperation } from '../captions.js';
+ import { clipMediaState, splitTimelineElement, splitTimelineAudio } from '../timeline.js';
++import { ANIMATION_DEFAULT_EASING, ANIMATION_LIMITS, animationPhaseSpan, fitAnimation } from '../object-animation.js';
+ 
+ /** Edita la cronología del documento y aplica el resultado al lienzo del editor. */
+ export function useTimelineEditing({
+@@ -44,6 +45,28 @@ export function useTimelineEditing({
+             if (patch.start !== undefined) timing.duration = Math.min(timing.duration, page.value.duration - timing.start);
+             if (clip.gainPoints && old.duration !== timing.duration) clip.gainPoints = clip.gainPoints.map(point => ({ ...point, time: point.time / old.duration * timing.duration }));
+             clip.timing = timing;
++            // Acortar la vida del clip descarta las fases de animación que ya no caben.
++            if (clip.animation) { const fitted = fitAnimation(clip.animation, timing.duration); if (fitted) clip.animation = fitted; else delete clip.animation; }
++            await applyTimelineChange(next);
++        });
++    }
++    /** `patch` null quita la fase; si no, la crea con valores por defecto o actualiza solo lo indicado. */
++    function patchClipAnimation({ phase, patch }) {
++        return run(async () => {
++            const next = cloneDocument(documentData.value);
++            const clip = findPage(next, pageId.value).elements.find(item => item.id === selectedClipId.value);
++            if (!clip) return;
++            const animation = { ...clip.animation };
++            if (patch === null) delete animation[phase];
++            else {
++                // Duración por defecto: 0,5 s o lo que quepa en la vida del clip junto a la otra fase (mínimo 0,1 s).
++                const length = clip.timing?.duration ?? page.value.duration;
++                const other = animation[phase === 'in' ? 'out' : 'in'];
++                const room = length - (other ? animationPhaseSpan(other, length) : 0) - (animation[phase]?.delay ?? 0);
++                const duration = Math.max(ANIMATION_LIMITS.minDuration, Math.min(0.5, Math.floor(room * 1000) / 1000));
++                animation[phase] = { type: 'fade', duration, easing: ANIMATION_DEFAULT_EASING, ...animation[phase], ...patch };
++            }
++            if (Object.keys(animation).length) clip.animation = animation; else delete clip.animation;
+             await applyTimelineChange(next);
+         });
+     }
+@@ -115,6 +138,6 @@ export function useTimelineEditing({
+ 
+     return {
+         selectedAudioId, selectedClipId, openTimeline, applyCaptions,
+-        patchClipWindow, splitClip, patchTimelineFps, addAudioTrack, patchAudio, fadeAudio, splitAudio, removeAudio,
++        patchClipWindow, patchClipAnimation, splitClip, patchTimelineFps, addAudioTrack, patchAudio, fadeAudio, splitAudio, removeAudio,
+     };
+ }
+diff --git a/resources/js/Studio/exports.js b/resources/js/Studio/exports.js
+index 52e0630..90a7caa 100644
+--- a/resources/js/Studio/exports.js
++++ b/resources/js/Studio/exports.js
+@@ -91,7 +91,9 @@ export async function exportPage(documentData, pageId, assets = [], options = {}
+     const times = frameTimes(document, [pageId], options.frame_times);
+     if (format === 'pdf') return exportPdf(document, [pageId], assets, options);
+     const { scale, quality, width, height } = rasterOptions(document, options);
+-    const rendering = await renderStudioFrame(document, pageId, times.get(pageId), assets, options.fonts ?? [], { chartResources: options.chartResources });
++    // Sin instante explícito para esta página, las animaciones se evalúan en reposo; con él, en ese instante.
++    const settled = !options.frame_times?.some(item => item.page_id === pageId);
++    const rendering = await renderStudioFrame(document, pageId, times.get(pageId), assets, options.fonts ?? [], { chartResources: options.chartResources, settled });
+     try {
+         if (options.transparent) {
+             rendering.canvas.backgroundColor = '#ffffff00';
+@@ -131,6 +133,7 @@ export async function exportPdf(documentData, pageIds, assets = [], options = {}
+     const document = validateDocument(documentData);
+     const pages = selectPages(document, pageIds);
+     const times = frameTimes(document, pages.map(page => page.id), options.frame_times);
++    const pinned = id => Boolean(options.frame_times?.some(item => item.page_id === id));
+     const { PDFDocument } = await import('pdf-lib').catch(cause => {
+         const error = new StudioDocumentError('No se pudo cargar el generador de PDF. Recarga la página.');
+         error.cause = cause;
+@@ -144,7 +147,7 @@ export async function exportPdf(documentData, pageIds, assets = [], options = {}
+         const pageWidth = document.width * 72 / 96;
+         const pageHeight = document.height * 72 / 96;
+         for (let i = 0; i < pages.length; i++) {
+-            const image = await exportPage(document, pages[i].id, assets, { ...options, format: 'png', frame_times: document.schema_version === 2 ? [{ page_id: pages[i].id, time: times.get(pages[i].id) }] : undefined });
++            const image = await exportPage(document, pages[i].id, assets, { ...options, format: 'png', frame_times: document.schema_version === 2 && pinned(pages[i].id) ? [{ page_id: pages[i].id, time: times.get(pages[i].id) }] : undefined });
+             const bitmap = await pdf.embedPng(await image.arrayBuffer());
+             const page = pdf.addPage([pageWidth, pageHeight]);
+             page.drawImage(bitmap, { x: 0, y: 0, width: pageWidth, height: pageHeight });
+@@ -159,6 +162,7 @@ export async function exportDesign(documentData, { format = 'png', pageIds, asse
+     const pages = selectPages(document, pageIds);
+     const target = metadata(format);
+     const times = frameTimes(document, pages.map(page => page.id), options.frame_times);
++    const pinned = id => Boolean(options.frame_times?.some(item => item.page_id === id));
+     const sampled = document.schema_version === 2 ? pages.map(page => ({ ...page, elements: frameElements(page.elements, times.get(page.id), page.duration) })) : pages;
+     const hasCharts = elements => elements.some(element => element.type === 'chart' || (element.type === 'group' && hasCharts(element.elements)));
+     if (sampled.some(page => hasCharts(page.elements))) {
+@@ -168,7 +172,7 @@ export async function exportDesign(documentData, { format = 'png', pageIds, asse
+         if (format === 'pdf') return [{ blob: await exportPdf(document, pages.map(page => page.id), assets, options), pageId: null, extension: target.extension, mime: target.mime }];
+         const output = [];
+         for (let i = 0; i < pages.length; i++) {
+-            output.push({ blob: await exportPage(document, pages[i].id, assets, { ...options, format, frame_times: document.schema_version === 2 ? [{ page_id: pages[i].id, time: times.get(pages[i].id) }] : undefined }), pageId: pages[i].id, extension: target.extension, mime: target.mime });
++            output.push({ blob: await exportPage(document, pages[i].id, assets, { ...options, format, frame_times: document.schema_version === 2 && pinned(pages[i].id) ? [{ page_id: pages[i].id, time: times.get(pages[i].id) }] : undefined }), pageId: pages[i].id, extension: target.extension, mime: target.mime });
+             options.onProgress?.({ completed: i + 1, total: pages.length });
+         }
+         return output;
+diff --git a/resources/js/Studio/frame-renderer.js b/resources/js/Studio/frame-renderer.js
+index 5669ac3..51f686b 100644
+--- a/resources/js/Studio/frame-renderer.js
++++ b/resources/js/Studio/frame-renderer.js
+@@ -2,19 +2,22 @@ import { renderStudioPage, seekVideoFrame } from './canvas.js';
+ import { frameElements } from './frames.js';
+ import { clipMediaState, compileTimeline } from './timeline.js';
+ import { attachFrameCaptions } from './captions-renderer.js';
++import { applyElementAnimation } from './animation-scene.js';
+ 
+-/** A static page frame uses the same geometry and private media as the editor; it never plays audio. */
++/** `settled`: sin instante explícito las animaciones se ven en reposo. A static page frame uses the same geometry and private media as the editor; it never plays audio. */
+ export async function renderStudioFrame(document, pageId, time, assets, fonts, options = {}) {
+-    if (document.schema_version !== 2) return renderStudioPage(document, pageId, assets, fonts, options);
++    const { settled = false, ...pageOptions } = options;
++    if (document.schema_version !== 2) return renderStudioPage(document, pageId, assets, fonts, pageOptions);
+     const page = document.pages.find(page => page.id === pageId);
+     const { transition: ignored, ...source } = page;
+     const elements = frameElements(page.elements, time, page.duration);
+-    const scene = await renderStudioPage({ ...document, timeline: { fps: document.timeline.fps, audio_tracks: [] }, pages: [{ ...source, elements }] }, pageId, assets, fonts, options);
++    const scene = await renderStudioPage({ ...document, timeline: { fps: document.timeline.fps, audio_tracks: [] }, pages: [{ ...source, elements }] }, pageId, assets, fonts, pageOptions);
+     try {
+-        const update = async (objects, layers) => {
++        const update = async (objects, layers, parent) => {
+             for (let i = 0; i < objects.length; i++) {
+                 const object = objects[i], layer = layers[i];
+-                if (layer.type === 'group') { await update(object.getObjects(), layer.elements); object.dirty = true; }
++                const window = applyElementAnimation(object, layer, time, { width: document.width, height: document.height, pageDuration: page.duration, parent, settled });
++                if (layer.type === 'group') { await update(object.getObjects(), layer.elements, window); object.dirty = true; }
+                 if (!object.studioVideo) continue;
+                 const video = object.studioVideo, state = clipMediaState(layer, time, video.duration, page.duration);
+                 video.pause(); video.muted = true;
+diff --git a/resources/js/Studio/timeline-preview.js b/resources/js/Studio/timeline-preview.js
+index 3c58611..b2d0e6e 100644
+--- a/resources/js/Studio/timeline-preview.js
++++ b/resources/js/Studio/timeline-preview.js
+@@ -4,6 +4,7 @@ import { clipMediaState, compileTimeline, sampleTimeline } from './timeline.js';
+ import { createTimelineAudio } from './timeline-audio.js';
+ import { createCaptionLayer } from './captions-renderer.js';
+ import { assertChartDocumentBudget } from './chart-scene.js';
++import { applyElementAnimation } from './animation-scene.js';
+ 
+ /** A separate, disposable scene: preview state can never leak into saved Fabric objects. */
+ export async function createTimelinePreview(output, { document: input, assets = [], fonts = [], chartResources, offline = false, renderScale = 1 } = {}) {
+@@ -89,13 +90,14 @@ export async function createTimelinePreview(output, { document: input, assets =
+             scenes.push({ ...entry, sample, source });
+         }
+         for (const { scene, elements, sample, source } of scenes) {
+-            async function update(objects, elements, inherited = true) {
++            async function update(objects, elements, inherited = true, parent) {
+                 for (let i = 0; i < objects.length; i++) {
+                     const object = objects[i], element = elements[i];
+                     const timing = element.timing ?? { start: 0, duration: source.duration };
+                     const visible = inherited && element.visible !== false && sample.localTime >= timing.start && sample.localTime < timing.start + timing.duration;
+                     object.set('visible', visible);
+-                    if (element.type === 'group') await update(object.getObjects(), element.elements, visible);
++                    const window = applyElementAnimation(object, element, sample.localTime, { width: document.width, height: document.height, pageDuration: source.duration, parent });
++                    if (element.type === 'group') await update(object.getObjects(), element.elements, visible, window);
+                     if (object.studioVideo) {
+                         const video = object.studioVideo;
+                         const state = clipMediaState(element, sample.localTime, video.duration, source.duration);
+diff --git a/resources/js/Studio/timeline.js b/resources/js/Studio/timeline.js
+index 9a3ba99..b3f733f 100644
+--- a/resources/js/Studio/timeline.js
++++ b/resources/js/Studio/timeline.js
+@@ -1,4 +1,5 @@
+ import { validateCaptions } from './captions.js';
++import { effectiveWindow, fitAnimation, normalizeAnimation, splitAnimation, ungroupAnimation } from './object-animation.js';
+ /** Time is document data. No URLs, expressions, executable filters or browser clocks are persisted. */
+ export const TIMELINE_FPS = Object.freeze([12, 15, 24, 25, 30, 50, 60]);
+ const EPS = 1e-9;
+@@ -61,6 +62,7 @@ export function normalizeTimelineDocument(input, spatialValidator) {
+         if (!plain(element)) fail(path, 'elemento no válido.');
+         const result = { ...element };
+         delete result.timing;
++        delete result.animation;
+         if (element.type === 'video') for (const key of ['playbackRate', 'sourceOffset', 'loop', 'gainPoints']) delete result[key];
+         if (element.type === 'group' && Array.isArray(element.elements)) result.elements = Array.from(element.elements, (child, i) => strip(child, `${path}.elements.${i}`));
+         return result;
+@@ -84,6 +86,7 @@ export function normalizeTimelineDocument(input, spatialValidator) {
+             if (length <= 0 || start + length <= start || start + length > duration + EPS) fail(`${path}.timing`, 'la ventana debe ser positiva y quedar dentro de la página.');
+             element.timing = { start, duration: length };
+         }
++        if (own(original, 'animation')) element.animation = normalizeAnimation(original.animation, element.timing?.duration ?? duration, `${path}.animation`);
+         if (element.type === 'video') Object.assign(element, mediaFields(original, element.timing?.duration ?? duration, path));
+         if (element.type === 'group') element.elements.forEach((child, i) => apply(child, original.elements[i], duration, `${path}.elements.${i}`));
+     };
+@@ -259,15 +262,30 @@ function checkedResult(document) {
+     return normalizeTimelineDocument(document, spatial => spatial);
+ }
+ 
++function splitElementAnimations(left, right, window, cut, pageDuration) {
++    if (left.animation) {
++        const before = clamp(cut - window.start, 0, window.duration);
++        const parts = splitAnimation(fitAnimation(left.animation, window.duration), before, window.duration - before);
++        for (const [half, animation] of [[left, parts.left], [right, parts.right]]) {
++            if (animation) half.animation = animation; else delete half.animation;
++        }
++    }
++    if (left.type === 'group') left.elements.forEach((child, index) => {
++        splitElementAnimations(child, right.elements[index], effectiveWindow(windowFor(child, pageDuration), window), cut, pageDuration);
++    });
++}
++
+ /** Remove an ancestor without changing the child's effective time, media phase or envelope. */
+-export function restrictElementWindow(element, parentWindow, { pageDuration, sourceDuration } = {}) {
++export function restrictElementWindow(element, parentWindow, { pageDuration, sourceDuration, parentAnimation, centered, sharedOpacity, onAnimationLoss } = {}) {
+     const result = JSON.parse(JSON.stringify(element));
+     const window = windowFor(element, pageDuration);
+-    const start = Math.max(window.start, parentWindow.start);
+-    const end = Math.min(window.start + window.duration, parentWindow.start + parentWindow.duration);
+-    if (end <= start) { result.visible = false; return result; }
+-    const from = start - window.start, to = end - window.start;
+-    result.timing = { start, duration: end - start };
++    const shared = effectiveWindow(window, parentWindow);
++    if (shared.duration <= 0) { result.visible = false; return result; }
++    const from = shared.start - window.start, to = from + shared.duration;
++    result.timing = shared;
++    const { animation, loss } = ungroupAnimation(element.animation, parentAnimation, parentWindow, shared, { centered, sharedOpacity });
++    if (Object.keys(animation).length) result.animation = animation; else delete result.animation;
++    if (loss && element.visible !== false) onAnimationLoss?.();
+     if (element.type === 'video') {
+         const source = sourceWindow(element, sourceDuration);
+         const position = source.offset + from * (element.playbackRate ?? 1);
+@@ -282,10 +300,12 @@ export function splitTimelineElement(document, pageId, elementId, cut, options =
+     const result = JSON.parse(JSON.stringify(document));
+     const page = result.pages.find(page => page.id === pageId);
+     if (!page) fail('page', 'la página no existe.');
+-    const find = elements => {
++    const find = (elements, parent) => {
+         for (let i = 0; i < elements.length; i++) {
+-            if (elements[i].id === elementId) return { elements, index: i, element: elements[i] };
+-            if (elements[i].type === 'group') { const child = find(elements[i].elements); if (child) return child; }
++            const element = elements[i];
++            const effective = effectiveWindow(windowFor(element, page.duration), parent);
++            if (element.id === elementId) return { elements, index: i, element, effective };
++            if (element.type === 'group') { const child = find(element.elements, effective); if (child) return child; }
+         }
+     };
+     const found = find(page.elements);
+@@ -294,6 +314,7 @@ export function splitTimelineElement(document, pageId, elementId, cut, options =
+     const { left, right, before, after } = halves(found.element, window, cut, document.timeline.fps, options.sourceDuration);
+     left.timing = { start: window.start, duration: before };
+     right.timing = { start: cut, duration: after };
++    splitElementAnimations(left, right, found.effective, cut, page.duration);
+     const ids = collectIds(document);
+     const remap = element => { element.id = uniqueId(ids, options.createId); if (element.type === 'group') element.elements.forEach(remap); };
+     remap(right);
+diff --git a/tests/frontend/studio-chart-exports.test.mjs b/tests/frontend/studio-chart-exports.test.mjs
+index 55be1f1..b320284 100644
+--- a/tests/frontend/studio-chart-exports.test.mjs
++++ b/tests/frontend/studio-chart-exports.test.mjs
+@@ -183,8 +183,8 @@ test('real frame and page render functions keep unselected chart refs offline in
+  const pageRun=new AsyncFunction('validateDocument','findPage','assertChartDocumentBudget','StudioDocumentError','createStudioFontRegistry','waitForStudioFonts','StaticCanvas','toFabricFill','elementToFabric','cleanVideos',pageBody+';return renderStudioPage;');
+  const renderStudioPage=await pageRun(x=>x,(d,id)=>d.pages.find(p=>p.id===id),assertChartDocumentBudget,Error,fontRegistry,async()=>{},CanvasMock,x=>x,async(_layer,options)=>{assert.equal(options.chartResources,registry);return {};},()=>{});
+  const frameBody=await loadBody('resources/js/Studio/frame-renderer.js');
+- const frameRun=new AsyncFunction('renderStudioPage','frameElements','compileTimeline','attachFrameCaptions',frameBody+';return renderStudioFrame;');
+- const renderStudioFrame=await frameRun(renderStudioPage,frameElements,compileTimeline,async scene=>scene);
++ const frameRun=new AsyncFunction('renderStudioPage','frameElements','compileTimeline','attachFrameCaptions','applyElementAnimation',frameBody+';return renderStudioFrame;');
++ const renderStudioFrame=await frameRun(renderStudioPage,frameElements,compileTimeline,async scene=>scene,()=>{});
+  const exportBody=await loadBody('resources/js/Studio/exports.js');
+  const exportRun=new AsyncFunction('validateDocument','selectPages','frameTimes','frameElements','renderStudioFrame','StudioDocumentError','createStudioFontRegistry','assertChartDocumentBudget','Group','FabricImage',exportBody+';return exportDesign;');
+  const exportDesign=await exportRun(x=>x,(d,ids)=>d.pages.filter(p=>ids.includes(p.id)),frameTimes,frameElements,renderStudioFrame,Error,fontRegistry,assertChartDocumentBudget,class {},class {});
+diff --git a/tests/frontend/studio-presentation-media-cancel.test.mjs b/tests/frontend/studio-presentation-media-cancel.test.mjs
+index 26b76e7..4396c2b 100644
+--- a/tests/frontend/studio-presentation-media-cancel.test.mjs
++++ b/tests/frontend/studio-presentation-media-cancel.test.mjs
+@@ -12,7 +12,7 @@ const source = await readFile(new URL('../../resources/js/Studio/timeline-previe
+ const ast = parse(source, { sourceType: 'module' });
+ const factory = ast.program.body.find(node => node.type === 'ExportNamedDeclaration' && node.declaration?.id?.name === 'createTimelinePreview').declaration;
+ const instantiate = Function('validateDocument', 'renderStudioPage', 'seekVideoFrame', 'clipMediaState', 'compileTimeline', 'sampleTimeline',
+-    'createTimelineAudio', 'createCaptionLayer', 'assertChartDocumentBudget', `return (${source.slice(factory.start, factory.end)});`);
++    'createTimelineAudio', 'createCaptionLayer', 'assertChartDocumentBudget', 'applyElementAnimation', `return (${source.slice(factory.start, factory.end)});`);
+ const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
+ const document = () => ({ schema_version: 2, width: 320, height: 180, timeline: { fps: 30, audio_tracks: [] }, pages: [
+     { id: 'a', duration: 1, background: '#ff0000', elements: [newElement('video', { id: 'clip', asset_id: 1 })] },
+@@ -34,7 +34,7 @@ function fixture() {
+             target.currentTime = time; resolvedSeek = id;
+         }, clipMediaState, compileTimeline, sampleTimeline,
+         () => ({ prepare: async () => ({ bufferingMs: 0 }), pause() {}, pauseMedia() {}, play: async () => {}, state: () => [], dispose: async () => {} }),
+-        async () => null, async () => {});
++        async () => null, async () => {}, () => {});
+     const player = createPresentationPlayer({ document: document(), output: canvas, createRenderer: (_canvas, options) => createRenderer(canvas, options),
+         now: () => now, requestFrame: cb => { callback = cb; return 1; }, cancelFrame: () => { callback = null; },
+         publish: (_canvas, state) => published.push(state) });
+diff --git a/tests/frontend/studio-preview-frame-abort.test.mjs b/tests/frontend/studio-preview-frame-abort.test.mjs
+index b05af7a..1a75176 100644
+--- a/tests/frontend/studio-preview-frame-abort.test.mjs
++++ b/tests/frontend/studio-preview-frame-abort.test.mjs
+@@ -11,7 +11,7 @@ const source = await readFile(new URL('../../resources/js/Studio/timeline-previe
+ const ast = parse(source, { sourceType: 'module' });
+ const factory = ast.program.body.find(node => node.type === 'ExportNamedDeclaration' && node.declaration?.id?.name === 'createTimelinePreview').declaration;
+ const instantiate = Function('validateDocument', 'renderStudioPage', 'seekVideoFrame', 'clipMediaState', 'compileTimeline', 'sampleTimeline',
+-    'createTimelineAudio', 'createCaptionLayer', 'assertChartDocumentBudget', 'videoFrameReady', `return (${source.slice(factory.start, factory.end)});`);
++    'createTimelineAudio', 'createCaptionLayer', 'assertChartDocumentBudget', 'videoFrameReady', 'applyElementAnimation', `return (${source.slice(factory.start, factory.end)});`);
+ const document = () => ({ schema_version: 2, width: 320, height: 180, timeline: { fps: 30, audio_tracks: [] }, pages: [
+     { id: 'a', duration: 1, background: '#ff0000', elements: [newElement('video', { id: 'clip', asset_id: 1 })] },
+ ] });
+@@ -29,7 +29,7 @@ test('disposing an offline preview aborts a video frame wait that would never pr
+         (_video, { signal }) => new Promise((_resolve, reject) => {
+             received = signal; entered();
+             signal.addEventListener('abort', () => reject(new DOMException('Carga cancelada', 'AbortError')), { once: true });
+-        }));
++        }), () => {});
+     const canvas = { getContext: () => ({}) };
+     const preview = await create(canvas, { document: document(), offline: true });
+     const frame = preview.seek(0.1).catch(error => error);
+diff --git a/resources/js/Components/Studio/ObjectAnimationFields.vue b/resources/js/Components/Studio/ObjectAnimationFields.vue
+new file mode 100644
+index 0000000..444d732
+--- /dev/null
++++ b/resources/js/Components/Studio/ObjectAnimationFields.vue
+@@ -0,0 +1,87 @@
++<script setup>
++import { ANIMATION_DEFAULT_EASING, ANIMATION_LIMITS } from '@/Studio/object-animation';
++
++defineProps({ animation: Object, disabled: Boolean, step: { type: Number, default: 0.1 } });
++const emit = defineEmits(['change']);
++const TYPES = [
++    ['fade', 'Fundido'], ['slide_left', 'Deslizar desde/hacia la izquierda'], ['slide_right', 'Deslizar desde/hacia la derecha'],
++    ['slide_up', 'Deslizar desde/hacia arriba'], ['slide_down', 'Deslizar desde/hacia abajo'], ['zoom', 'Escalar (zoom)'],
++];
++const EASINGS = [['linear', 'Lineal'], ['ease_in', 'Acelera'], ['ease_out', 'Frena'], ['ease_in_out', 'Suave']];
++const PHASES = [['in', 'Entrada'], ['out', 'Salida']];
++const format = value => Number(Number(value).toFixed(3));
++const change = (phase, patch) => emit('change', { phase, patch });
++</script>
++
++<template>
++    <fieldset class="min-w-0 space-y-2 border-t border-slate-100 pt-3" data-testid="object-animation">
++        <legend class="text-xs font-semibold text-slate-700">Animación del objeto</legend>
++        <div v-for="[phase, label] in PHASES" :key="phase" class="flex flex-wrap items-end gap-3">
++            <label class="space-y-1 text-xs text-slate-600"
++                ><span class="block">{{ label }}</span
++                ><select
++                    :value="animation?.[phase]?.type ?? ''"
++                    :disabled="disabled"
++                    :aria-label="label"
++                    :data-testid="`animation-${phase}-type`"
++                    class="w-56 rounded-lg border-slate-200 text-xs"
++                    @change="change(phase, $event.target.value ? { type: $event.target.value } : null)"
++                    ><option value="">Sin animación</option
++                    ><option v-for="[type, name] in TYPES" :key="type" :value="type">{{ name }}</option></select
++                ></label
++            >
++            <label class="space-y-1 text-xs text-slate-600"
++                ><span class="block">Duración de la {{ label.toLowerCase() }} (s)</span
++                ><input
++                    type="number"
++                    :min="ANIMATION_LIMITS.minDuration"
++                    :max="ANIMATION_LIMITS.maxDuration"
++                    :step="step"
++                    :value="animation?.[phase] ? format(animation[phase].duration) : ''"
++                    :disabled="disabled || !animation?.[phase]"
++                    :data-testid="`animation-${phase}-duration`"
++                    class="w-24 rounded-lg border-slate-200 text-xs"
++                    @change="change(phase, { duration: Number($event.target.value) })"
++            /></label>
++            <template v-if="animation?.[phase]">
++                <label class="space-y-1 text-xs text-slate-600"
++                    ><span class="block">Retardo de la {{ label.toLowerCase() }} (s)</span
++                    ><input
++                        type="number"
++                        :min="animation[phase].clipped ? -ANIMATION_LIMITS.maxDuration : 0"
++                        :step="step"
++                        :value="format(animation[phase].delay ?? 0)"
++                        :disabled="disabled"
++                        :data-testid="`animation-${phase}-delay`"
++                        class="w-24 rounded-lg border-slate-200 text-xs"
++                        @change="change(phase, { delay: Number($event.target.value) })"
++                /></label>
++                <label class="space-y-1 text-xs text-slate-600"
++                    ><span class="block">Curva de la {{ label.toLowerCase() }}</span
++                    ><select
++                        :value="animation[phase].easing ?? ANIMATION_DEFAULT_EASING"
++                        :disabled="disabled"
++                        :aria-label="`Curva de la ${label.toLowerCase()}`"
++                        :data-testid="`animation-${phase}-easing`"
++                        class="w-32 rounded-lg border-slate-200 text-xs"
++                        @change="change(phase, { easing: $event.target.value })"
++                        ><option
++                            v-for="[easing, name] in EASINGS"
++                            :key="easing"
++                            :value="easing"
++                            >{{ name }}</option
++                        ></select
++                    ></label
++                >
++            </template>
++        </div>
++        <p class="text-[10px] leading-relaxed text-slate-500"
++            >La entrada empieza tras el retardo desde el inicio del clip; la salida termina el retardo indicado antes de
++            su final. Mueve el cabezal para ver el resultado.</p
++        >
++        <p v-if="animation?.in?.clipped || animation?.out?.clipped" class="text-[10px] text-slate-500"
++            >Las fases recortadas muestran la duración original. Un retardo negativo sitúa parte de la curva fuera del
++            clip.</p
++        >
++    </fieldset>
++</template>
+diff --git a/resources/js/Studio/animation-scene.js b/resources/js/Studio/animation-scene.js
+new file mode 100644
+index 0000000..7d45290
+--- /dev/null
++++ b/resources/js/Studio/animation-scene.js
+@@ -0,0 +1,39 @@
++import { Point } from 'fabric';
++import { animationState, effectiveWindow, fitAnimation } from './object-animation.js';
++
++/**
++ * Aplica a un objeto de Fabric el estado animado de su elemento en el instante local `time`.
++ * Parte siempre de la posición base guardada la primera vez, así que repetir el instante no acumula nada.
++ * Sin `animation` no toca el objeto: los diseños antiguos se pintan exactamente igual que antes.
++ * Devuelve la ventana efectiva del elemento, para pasarla como `parent` a los hijos de un grupo.
++ */
++export function applyElementAnimation(object, element, time, { width, height, pageDuration, parent, settled = false }) {
++    // La ventana efectiva (la del grupo cortada con la propia) manda; el llamante la pasa a los hijos del grupo.
++    const window = effectiveWindow(element.timing ?? { start: 0, duration: pageDuration }, parent);
++    // En reposo (salida estática sin instante explícito) el objeto queda como se diseñó.
++    if (!element.animation || settled) return window;
++    // Las fases enteras deben caber en la ventana efectiva. Las recortadas conservan su curva original.
++    const animation = fitAnimation(element.animation, window.duration);
++    if (!animation) return window;
++    object.studioAnimationBase ??= {
++        center: object.getRelativeCenterPoint(),
++        scaleX: object.scaleX,
++        scaleY: object.scaleY,
++        opacity: object.opacity,
++    };
++    const base = object.studioAnimationBase;
++    const state = animationState(animation, time, window);
++    object.set({
++        opacity: base.opacity * state.opacity,
++        scaleX: base.scaleX * state.scale,
++        scaleY: base.scaleY * state.scale,
++    });
++    object.setPositionByOrigin(
++        new Point(base.center.x + state.offsetX * width, base.center.y + state.offsetY * height),
++        'center',
++        'center',
++    );
++    object.setCoords();
++    object.dirty = true;
++    return window;
++}
+diff --git a/resources/js/Studio/object-animation.js b/resources/js/Studio/object-animation.js
+new file mode 100644
+index 0000000..9353a2e
+--- /dev/null
++++ b/resources/js/Studio/object-animation.js
+@@ -0,0 +1,195 @@
++/**
++ * Animaciones de entrada y salida por objeto. Es la ÚNICA implementación del cálculo: la previsualización,
++ * el render MP4/GIF de servidor (Chromium) y la exportación por fotograma llaman a `animationState`.
++ * El servidor valida el mismo esquema en StudioTimeline.php (tipos, rangos y ajuste a la vida del objeto).
++ */
++export const ANIMATION_TYPES = Object.freeze(['fade', 'slide_left', 'slide_right', 'slide_up', 'slide_down', 'zoom']);
++export const ANIMATION_EASINGS = Object.freeze(['linear', 'ease_in', 'ease_out', 'ease_in_out']);
++export const ANIMATION_LIMITS = Object.freeze({
++    minDuration: 0.1,
++    maxDuration: 10,
++    maxDelay: 3600,
++    slideDistance: 0.25,
++    zoomFrom: 0.5,
++});
++export const ANIMATION_DEFAULT_EASING = 'ease_in_out';
++const PHASES = ['in', 'out'];
++const EPS = 1e-9;
++const IDENTITY = Object.freeze({ opacity: 1, offsetX: 0, offsetY: 0, scale: 1 });
++
++const plain = (value) =>
++    value !== null &&
++    typeof value === 'object' &&
++    !Array.isArray(value) &&
++    [Object.prototype, null].includes(Object.getPrototypeOf(value));
++const fail = (path, message) => {
++    throw new Error(`${path}: ${message}`);
++};
++const span = (phase) => (phase.delay ?? 0) + phase.duration;
++
++// A cropped phase can extend past either edge. Only its occupied time counts against the window.
++export const animationPhaseSpan = (phase, length) => phase.clipped ? Math.min(length, Math.max(0, span(phase))) : span(phase);
++
++/** Valida la animación de un objeto cuya vida dura `length` segundos y devuelve una copia. */
++export function normalizeAnimation(animation, length, path = 'animation') {
++    if (!plain(animation)) fail(path, 'la animación debe ser un objeto.');
++    for (const key of Object.keys(animation))
++        if (!PHASES.includes(key)) fail(`${path}.${key}`, 'propiedad de animación no admitida.');
++    if (!PHASES.some((key) => Object.hasOwn(animation, key))) fail(path, 'indica una entrada o una salida.');
++    const result = {};
++    let total = 0;
++    for (const key of PHASES) {
++        if (!Object.hasOwn(animation, key)) continue;
++        const phase = animation[key],
++            where = `${path}.${key}`;
++        if (!plain(phase)) fail(where, 'la fase debe ser un objeto.');
++        for (const name of Object.keys(phase))
++            if (!['type', 'duration', 'delay', 'easing', 'clipped'].includes(name))
++                fail(`${where}.${name}`, 'propiedad de animación no admitida.');
++        if (!ANIMATION_TYPES.includes(phase.type)) fail(`${where}.type`, 'tipo de animación no admitido.');
++        const { minDuration, maxDuration, maxDelay } = ANIMATION_LIMITS;
++        if (!Number.isFinite(phase.duration) || phase.duration < minDuration || phase.duration > maxDuration)
++            fail(`${where}.duration`, `la duración debe estar entre ${minDuration} y ${maxDuration} s.`);
++        if (Object.hasOwn(phase, 'clipped') && phase.clipped !== true)
++            fail(`${where}.clipped`, 'el indicador de recorte debe ser true.');
++        const minDelay = phase.clipped ? -maxDuration : 0;
++        if (
++            Object.hasOwn(phase, 'delay') &&
++            (!Number.isFinite(phase.delay) || phase.delay < minDelay || phase.delay > maxDelay)
++        )
++            fail(`${where}.delay`, `el retardo debe estar entre ${minDelay} y ${maxDelay} s.`);
++        if (Object.hasOwn(phase, 'easing') && !ANIMATION_EASINGS.includes(phase.easing))
++            fail(`${where}.easing`, 'curva de suavizado no admitida.');
++        result[key] = { ...phase };
++        total += animationPhaseSpan(phase, length);
++    }
++    if (total > length + EPS) fail(path, 'la entrada y la salida no caben en la vida del objeto.');
++    return result;
++}
++
++/** Descarta las fases que ya no caben tras acortar la vida del objeto; devuelve null si no queda ninguna. */
++export function fitAnimation(animation, length) {
++    if (!animation) return null;
++    const result = {};
++    let total = 0;
++    for (const key of PHASES) {
++        const phase = animation[key];
++        if (!phase) continue;
++        const occupied = animationPhaseSpan(phase, length);
++        if (occupied > 0 && total + occupied <= length + EPS) {
++            result[key] = { ...phase };
++            total += occupied;
++        }
++    }
++    return Object.keys(result).length ? result : null;
++}
++
++/** Ventana efectiva de un objeto: su `timing` (o la página) cortada por la del grupo que lo contiene. */
++export function effectiveWindow(own, parent) {
++    if (!parent) return own;
++    const start = Math.max(own.start, parent.start);
++    return { start, duration: Math.max(0, Math.min(own.start + own.duration, parent.start + parent.duration) - start) };
++}
++
++/** Reancla cada fase sin alterar la duración de su curva ni los tramos transparentes. */
++function sliceAnimation(animation, trimStart, trimEnd, length) {
++    const result = {};
++    if (length <= 0) return null;
++    for (const key of PHASES) {
++        const phase = animation?.[key];
++        if (!phase) continue;
++        const trim = key === 'in' ? trimStart : trimEnd;
++        const delay = (phase.delay ?? 0) - trim;
++        if (delay + phase.duration <= 0) continue;
++        const rebased = { ...phase };
++        if (trim > 0) rebased.delay = delay;
++        if (delay < 0 || delay + phase.duration > length + EPS) rebased.clipped = true;
++        else delete rebased.clipped;
++        result[key] = rebased;
++    }
++    return Object.keys(result).length ? result : null;
++}
++
++export function splitAnimation(animation, before, after) {
++    return {
++        left: sliceAnimation(animation, 0, after, before),
++        right: sliceAnimation(animation, before, 0, after),
++    };
++}
++
++/** Se conserva el efecto del grupo en la ventana común cuando cabe junto con la animación del hijo. */
++export function ungroupAnimation(childAnimation, parentAnimation, parentWindow, window, { centered, sharedOpacity } = {}) {
++    const { duration } = window;
++    const animation = fitAnimation(childAnimation, duration) ?? {};
++    const inherited = sliceAnimation(
++        fitAnimation(parentAnimation, parentWindow.duration),
++        window.start - parentWindow.start,
++        Math.max(0, parentWindow.start + parentWindow.duration - window.start - duration),
++        duration,
++    );
++    let loss = false;
++    for (const key of PHASES) {
++        const phase = inherited?.[key];
++        if (!phase) continue;
++        const phaseLength = animationPhaseSpan(phase, duration);
++        const own = animation[key];
++        if (own && phaseLength <= (own.delay ?? 0)) continue;
++        const other = animation[key === 'in' ? 'out' : 'in'];
++        const occupied = phaseLength + (other ? animationPhaseSpan(other, duration) : 0);
++        if (own || occupied > duration + EPS) {
++            loss = true;
++            continue;
++        }
++        const movesCenter = phase.type === 'zoom' && !centered;
++        if (movesCenter || sharedOpacity) loss = true;
++        animation[key] = movesCenter ? { ...phase, type: 'fade' } : phase;
++    }
++    return { animation, loss };
++}
++
++const curves = {
++    linear: (p) => p,
++    ease_in: (p) => p * p,
++    ease_out: (p) => 1 - (1 - p) * (1 - p),
++    ease_in_out: (p) => (p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2),
++};
++const direction = { slide_left: [-1, 0], slide_right: [1, 0], slide_up: [0, -1], slide_down: [0, 1] };
++
++/**
++ * Estado animado en el instante local `time` de la página para un objeto con ventana `window` ({start, duration}).
++ * Sin animación devuelve la identidad: el resultado no cambia respecto a un documento sin esta función.
++ * Con `settled` (salida estática sin instante explícito) el objeto se ve como se diseñó: entradas completadas y
++ * salidas sin empezar. Los desplazamientos son fracciones del ancho/alto de la página.
++ */
++export function animationState(animation, time, window, { settled = false } = {}) {
++    if (!animation || settled) return IDENTITY;
++    let opacity = 1,
++        offsetX = 0,
++        offsetY = 0,
++        scale = 1;
++    const apply = (phase, away) => {
++        const [dx, dy] = direction[phase.type] ?? [0, 0];
++        opacity *= 1 - away;
++        offsetX += dx * away * ANIMATION_LIMITS.slideDistance;
++        offsetY += dy * away * ANIMATION_LIMITS.slideDistance;
++        if (phase.type === 'zoom') scale *= 1 - (1 - ANIMATION_LIMITS.zoomFrom) * away;
++    };
++    const progress = (phase, from) => Math.min(1, Math.max(0, (time - from) / phase.duration));
++    if (animation.in) {
++        const phase = animation.in;
++        apply(
++            phase,
++            1 - curves[phase.easing ?? ANIMATION_DEFAULT_EASING](progress(phase, window.start + (phase.delay ?? 0))),
++        );
++    }
++    if (animation.out) {
++        const phase = animation.out;
++        apply(
++            phase,
++            curves[phase.easing ?? ANIMATION_DEFAULT_EASING](
++                progress(phase, window.start + window.duration - span(phase)),
++            ),
++        );
++    }
++    return { opacity, offsetX, offsetY, scale };
++}
+diff --git a/tests/Feature/Studio/StudioObjectAnimationTest.php b/tests/Feature/Studio/StudioObjectAnimationTest.php
+new file mode 100644
+index 0000000..109a60e
+--- /dev/null
++++ b/tests/Feature/Studio/StudioObjectAnimationTest.php
+@@ -0,0 +1,185 @@
++<?php
++
++use App\Models\Brand;
++use App\Models\User;
++use App\Services\Studio\StudioBatchExport;
++use App\Services\Studio\StudioDocument;
++use App\Services\Studio\StudioRenderer;
++use App\Services\Studio\StudioService;
++use Illuminate\Support\Facades\Process;
++use Illuminate\Support\Facades\Queue;
++use Illuminate\Support\Facades\Storage;
++use Illuminate\Support\Str;
++
++beforeEach(function () {
++    Queue::fake();
++    Storage::fake('local');
++    $this->user = User::factory()->create();
++    $this->brand = Brand::factory()->for($this->user)->create();
++    $this->actingAs($this->user);
++    $this->url = '/brands/'.$this->brand->id.'/studio/designs';
++});
++
++function animatedScene(array $animation, ?array $timing = ['start' => 1, 'duration' => 3]): array
++{
++    $doc = StudioDocument::blank(320, 180);
++    $doc['schema_version'] = 2;
++    $doc['timeline'] = ['fps' => 30, 'audio_tracks' => []];
++    $element = ['id' => 'title', 'type' => 'text', 'text' => 'Hola', 'x' => 10, 'y' => 10, 'width' => 200, 'height' => 40, 'animation' => $animation];
++    if ($timing !== null) {
++        $element['timing'] = $timing;
++    }
++    $doc['pages'][0]['elements'] = [$element];
++
++    return $doc;
++}
++
++test('an animation per object persists exactly and survives a later revision', function () {
++    $animation = ['in' => ['type' => 'slide_left', 'duration' => 0.5, 'delay' => 0.25, 'easing' => 'ease_out'], 'out' => ['type' => 'fade', 'duration' => 1]];
++    $doc = animatedScene($animation);
++    $created = $this->postJson($this->url, ['name' => 'Animado', 'document' => $doc])->assertCreated()->json('design');
++    expect($created['document'])->toBe($doc);
++    $this->patchJson('/studio/designs/'.$created['id'], ['name' => 'Animado', 'document' => $doc, 'revision' => 1])
++        ->assertOk()->assertJsonPath('design.document.pages.0.elements.0.animation', $animation);
++});
++
++test('cropped phases preserve their original duration and signed anchoring delay', function (array $animation) {
++    $doc = animatedScene($animation, ['start' => 1, 'duration' => 0.5]);
++    $this->postJson($this->url, ['name' => 'Recorte', 'document' => $doc])->assertCreated()
++        ->assertJsonPath('design.document.pages.0.elements.0.animation', $animation);
++})->with([
++    'entrance in progress' => [['in' => ['type' => 'slide_left', 'duration' => 2, 'delay' => -0.75, 'clipped' => true]]],
++    'exit already finished' => [['out' => ['type' => 'zoom', 'duration' => 1, 'delay' => 2, 'clipped' => true]]],
++]);
++
++test('every animation type and easing is accepted, also on an element without its own timing window', function (string $type) {
++    foreach (['linear', 'ease_in', 'ease_out', 'ease_in_out'] as $easing) {
++        $doc = animatedScene(['in' => ['type' => $type, 'duration' => 1, 'easing' => $easing]], null);
++        $this->postJson($this->url, ['name' => "$type $easing", 'document' => $doc])->assertCreated();
++    }
++})->with(['fade', 'slide_left', 'slide_right', 'slide_up', 'slide_down', 'zoom']);
++
++test('invalid animations are rejected', function (array $animation) {
++    $this->postJson($this->url, ['name' => 'Mala', 'document' => animatedScene($animation)])->assertUnprocessable();
++})->with([
++    'unknown type' => [['in' => ['type' => 'spin', 'duration' => 1]]],
++    'unknown easing' => [['in' => ['type' => 'fade', 'duration' => 1, 'easing' => 'bounce']]],
++    'unknown phase' => [['middle' => ['type' => 'fade', 'duration' => 1]]],
++    'unknown field' => [['in' => ['type' => 'fade', 'duration' => 1, 'script' => 'x']]],
++    'empty animation' => [[]],
++    'duration too short' => [['in' => ['type' => 'fade', 'duration' => 0.01]]],
++    'duration too long' => [['in' => ['type' => 'fade', 'duration' => 11]]],
++    'negative delay' => [['in' => ['type' => 'fade', 'duration' => 1, 'delay' => -1]]],
++    'string duration' => [['in' => ['type' => 'fade', 'duration' => '1']]],
++    'missing duration' => [['in' => ['type' => 'fade']]],
++    'phase is a list' => [['in' => [['type' => 'fade', 'duration' => 1]]]],
++    'in does not fit the object life' => [['in' => ['type' => 'fade', 'duration' => 2, 'delay' => 1.5]]],
++    'in and out overlap' => [['in' => ['type' => 'fade', 'duration' => 2], 'out' => ['type' => 'zoom', 'duration' => 1.5]]],
++    'cropped flag must be true' => [['in' => ['type' => 'fade', 'duration' => 1, 'clipped' => false]]],
++    'cropped delay below the limit' => [['in' => ['type' => 'fade', 'duration' => 1, 'delay' => -11, 'clipped' => true]]],
++    'cropped phases overlap' => [['in' => ['type' => 'fade', 'duration' => 2, 'delay' => -0.25, 'clipped' => true], 'out' => ['type' => 'zoom', 'duration' => 2, 'clipped' => true]]],
++]);
++
++test('an object that lives too little cannot carry the animation, but an exact fit is valid', function () {
++    $short = animatedScene(['in' => ['type' => 'fade', 'duration' => 1]], ['start' => 0, 'duration' => 0.5]);
++    $this->postJson($this->url, ['name' => 'Corto', 'document' => $short])->assertUnprocessable();
++    $exact = animatedScene(['in' => ['type' => 'fade', 'duration' => 1, 'delay' => 1], 'out' => ['type' => 'fade', 'duration' => 1]], ['start' => 0, 'duration' => 3]);
++    $this->postJson($this->url, ['name' => 'Justo', 'document' => $exact])->assertCreated();
++});
++
++test('animations also validate inside groups and v1 documents keep rejecting them', function () {
++    $doc = animatedScene(['in' => ['type' => 'fade', 'duration' => 1]]);
++    $child = $doc['pages'][0]['elements'][0];
++    $doc['pages'][0]['elements'] = [['id' => 'box', 'type' => 'group', 'x' => 0, 'y' => 0, 'width' => 300, 'height' => 100, 'elements' => [$child]]];
++    $this->postJson($this->url, ['name' => 'Grupo', 'document' => $doc])->assertCreated();
++    $doc['pages'][0]['elements'][0]['elements'][0]['animation']['in']['duration'] = 99;
++    $this->postJson($this->url, ['name' => 'Grupo malo', 'document' => $doc])->assertUnprocessable();
++    $v1 = animatedScene(['in' => ['type' => 'fade', 'duration' => 1]]);
++    unset($v1['timeline'], $v1['pages'][0]['elements'][0]['timing']);
++    $v1['schema_version'] = 1;
++    $this->postJson($this->url, ['name' => 'v1', 'document' => $v1])->assertUnprocessable();
++});
++
++test('a design without animations is stored exactly as before', function () {
++    $doc = animatedScene(['in' => ['type' => 'fade', 'duration' => 1]]);
++    unset($doc['pages'][0]['elements'][0]['animation']);
++    $created = $this->postJson($this->url, ['name' => 'Sin animar', 'document' => $doc])->assertCreated()->json('design');
++    expect($created['document'])->toBe($doc)->and(json_encode($created['document']))->not->toContain('animation');
++});
++
++test('server rendering of a frame at a chosen instant receives the animated document untouched', function () {
++    $doc = animatedScene(['in' => ['type' => 'zoom', 'duration' => 0.5], 'out' => ['type' => 'slide_right', 'duration' => 0.5]]);
++    $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Render', 'document' => $doc]);
++    $export = app(StudioRenderer::class)->export($this->user, $design, ['revision' => 1, 'format' => 'png', 'pages' => ['page_1'], 'frame_times' => [['page_id' => 'page_1', 'time' => 1.25]]]);
++    Process::fake(function ($process) use ($doc) {
++        $sent = json_decode($process->input, true);
++        expect($sent['document']['pages'][0]['elements'][0]['animation'])->toBe($doc['pages'][0]['elements'][0]['animation']);
++        $image = imagecreatetruecolor(320, 180);
++        imagepng($image, $process->command[2].DIRECTORY_SEPARATOR.'page-001.png');
++        imagedestroy($image);
++
++        return Process::result(output: '{"files":[{"name":"page-001.png","mime":"image/png"}]}');
++    });
++    app(StudioRenderer::class)->render($export->id);
++    expect($export->refresh()->status)->toBe('ready', $export->error ?? '');
++});
++
++/** Renderer falso que anota lo que recibe Chromium y devuelve una imagen del tamaño del documento. */
++function fakeAnimationRenderer(array &$inputs): void
++{
++    Process::fake(function ($process) use (&$inputs) {
++        $input = json_decode($process->input, true);
++        $inputs[] = $input;
++        $extension = $input['format'] === 'jpeg' ? 'jpg' : 'png';
++        $image = imagecreatetruecolor((int) round($input['document']['width'] * ($input['scale'] ?? 1)), (int) round($input['document']['height'] * ($input['scale'] ?? 1)));
++        $target = $process->command[2].DIRECTORY_SEPARATOR.'page-001.'.$extension;
++        $extension === 'jpg' ? imagejpeg($image, $target, 90) : imagepng($image, $target);
++
++        return Process::result(output: json_encode(['files' => [['name' => 'page-001.'.$extension, 'mime' => $extension === 'jpg' ? 'image/jpeg' : 'image/png']]]));
++    });
++}
++
++test('static outputs without an explicit instant reach the renderer with no frame time, so animations render settled', function () {
++    $doc = animatedScene(['in' => ['type' => 'fade', 'duration' => 1]]);
++    $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Reposo', 'document' => $doc]);
++    $inputs = [];
++    fakeAnimationRenderer($inputs);
++
++    // Miniatura del listado.
++    app(StudioRenderer::class)->previewPage($this->user, $this->brand, $doc, 'page_1', 200, 'studio-exports/'.$this->user->id.'/'.$design->id.'/'.Str::uuid());
++    // Imagen nativa y PPTX sin frame_times.
++    foreach (['png', 'pptx'] as $format) {
++        $export = app(StudioRenderer::class)->export($this->user, $design, ['revision' => 1, 'format' => $format, 'pages' => ['page_1']]);
++        app(StudioRenderer::class)->render($export->id);
++    }
++    // Exportación en lote.
++    $batch = app(StudioBatchExport::class)->start($this->user, $design, ['revision' => 1, 'pages' => ['page_1'], 'format' => 'png', 'mode' => 'cover', 'formats' => [['width' => 160, 'height' => 90]]]);
++    app(StudioRenderer::class)->render($batch['exports'][0]['id']);
++
++    expect($inputs)->toHaveCount(4);
++    foreach ($inputs as $input) {
++        expect($input['frame_times'] ?? [])->toBe([])
++            ->and(json_encode($input['document']))->toContain('"animation"');
++    }
++});
++
++test('an explicit instant is forwarded so that frame shows the animation in progress', function () {
++    $doc = animatedScene(['in' => ['type' => 'fade', 'duration' => 1]]);
++    $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Instante', 'document' => $doc]);
++    $inputs = [];
++    fakeAnimationRenderer($inputs);
++    $times = [['page_id' => 'page_1', 'time' => 1.5]];
++    $export = app(StudioRenderer::class)->export($this->user, $design, ['revision' => 1, 'format' => 'png', 'pages' => ['page_1'], 'frame_times' => $times]);
++    app(StudioRenderer::class)->render($export->id);
++
++    expect($inputs[0]['frame_times'])->toBe($times);
++});
++
++test('only the owner can store or edit a design with animations', function () {
++    $doc = animatedScene(['in' => ['type' => 'fade', 'duration' => 1]]);
++    $design = $this->postJson($this->url, ['name' => 'Mío', 'document' => $doc])->assertCreated()->json('design');
++    $intruder = User::factory()->create();
++    $this->actingAs($intruder);
++    $this->patchJson('/studio/designs/'.$design['id'], ['name' => 'Robado', 'document' => $doc, 'revision' => 1])->assertNotFound();
++    $this->postJson($this->url, ['name' => 'Ajena', 'document' => $doc])->assertNotFound();
++});
+diff --git a/tests/e2e/studio-object-animation.spec.ts b/tests/e2e/studio-object-animation.spec.ts
+new file mode 100644
+index 0000000..29588eb
+--- /dev/null
++++ b/tests/e2e/studio-object-animation.spec.ts
+@@ -0,0 +1,78 @@
++import { expect, test } from '@playwright/test';
++import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, stamp } from './helpers';
++
++const near = (pixel: number[], expected: number[], tolerance = 12) => pixel.every((value, i) => Math.abs(value - expected[i]) <= tolerance);
++
++test('Studio object animation: animate an object, see it in two instants of the preview and export the frame that matches', { tag: '@responsive' }, async ({ page }, info) => {
++    const user = e2eUser(info.project.name), errors: string[] = [];
++    cleanComposerBrands(user.email);
++    const brand = seedComposerBrand(user.email, `studio-animation-${stamp()}-${info.project.name}`);
++    page.on('pageerror', error => errors.push(error.message));
++    page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
++    try {
++        await loginAs(page, user); await page.goto(`/studio?brand_id=${brand.id}`);
++        const design = await page.evaluate(async brandId => {
++            const csrf = decodeURIComponent((document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '');
++            const response = await fetch(`/brands/${brandId}/studio/designs`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-XSRF-TOKEN': csrf },
++                body: JSON.stringify({ name: 'Animado', document: { schema_version: 2, width: 100, height: 100, timeline: { fps: 30, audio_tracks: [] }, pages: [
++                    { id: 'one', name: 'Una', duration: 4, background: '#ffffff', elements: [{ id: 'red', type: 'rect', name: 'Cuadro rojo', x: 0, y: 0, width: 100, height: 100, fill: '#ff0000' }] },
++                ] } }) });
++            if (!response.ok) throw new Error(await response.text());
++            return (await response.json()).design;
++        }, brand.id);
++        await page.goto(`/studio/designs/${design.id}/edit`);
++        const timeline = page.getByRole('region', { name: 'Línea de tiempo', exact: true });
++        await expect(timeline).toBeVisible();
++        await page.screenshot({ path: info.outputPath('object-animation-initial.png'), fullPage: true });
++        await timeline.getByRole('button', { name: 'Seleccionar clip Cuadro rojo', exact: true }).click();
++        // Sin animación declarada, el objeto sigue como antes.
++        await expect(timeline.getByTestId('timeline-animation-in')).toHaveCount(0);
++        await timeline.getByLabel('Entrada', { exact: true }).selectOption('fade');
++        const duration = timeline.getByLabel('Duración de la entrada (s)', { exact: true });
++        await duration.fill('1'); await duration.press('Tab');
++        await timeline.getByLabel('Curva de la entrada', { exact: true }).selectOption({ label: 'Lineal' });
++        await expect(timeline.getByTestId('timeline-animation-in')).toHaveCount(1);
++        await page.getByRole('button', { name: 'Guardar ahora', exact: true }).click();
++        await expect(page.getByTestId('studio-save-status')).toHaveText('Guardado');
++        const stored = await page.evaluate(async id => (await (await fetch(`/studio/designs/${id}`, { headers: { Accept: 'application/json' } })).json()).design.document, design.id);
++        expect(stored.pages[0].elements[0].animation).toEqual({ in: { type: 'fade', duration: 1, easing: 'linear' } });
++
++        const clock = timeline.getByLabel('Tiempo de reproducción', { exact: true });
++        const preview = page.getByLabel('Previsualización de la línea de tiempo', { exact: true });
++        const pixel = () => preview.evaluate(canvas => [...(canvas as HTMLCanvasElement).getContext('2d')!.getImageData(50, 50, 1, 1).data]);
++        // El reloj parte de 0: el primer instante debe cambiar para que se genere la previsualización.
++        const instants = [[2, [255, 0, 0, 255]], [0.5, [255, 128, 128, 255]], [0, [255, 255, 255, 255]]] as const;
++        for (const [second, expected] of instants) {
++            await clock.fill(String(second)); await clock.press('Tab');
++            await expect.poll(async () => near(await pixel(), [...expected]), { message: `previsualización en ${second} s` }).toBe(true);
++        }
++        await page.screenshot({ path: info.outputPath('object-animation-preview.png'), fullPage: true });
++
++        // El fotograma exportado en el instante elegido coincide con la previsualización.
++        await clock.fill('0.5'); await clock.press('Tab');
++        await page.getByRole('button', { name: 'Exportar', exact: true }).click();
++        const dialog = page.getByRole('dialog', { name: 'Exportar diseño', exact: true });
++        const time = dialog.getByLabel('Fotograma de Una (s)', { exact: true });
++        await expect(time).toHaveValue('0.5');
++        for (const [second, expected] of [[0.5, [255, 128, 128, 255]], [2, [255, 0, 0, 255]]] as const) {
++            await time.fill(String(second));
++            const registration = page.waitForResponse(response => response.url().endsWith(`/studio/designs/${design.id}/exports`) && response.request().method() === 'POST');
++            await dialog.getByRole('button', { name: 'Guardar en biblioteca', exact: true }).click();
++            const response = await registration; expect(response.status()).toBe(201);
++            const result = (await response.json()).export;
++            const exported = await page.evaluate(async ({ brandId, mediaId }) => {
++                const data = await (await fetch(`/brands/${brandId}/studio/assets`, { headers: { Accept: 'application/json' } })).json();
++                const asset = data.assets.find((asset: { id: number }) => asset.id === mediaId);
++                const bitmap = await createImageBitmap(await (await fetch(asset.preview_url)).blob());
++                try { const canvas = document.createElement('canvas'); canvas.width = canvas.height = 100; const context = canvas.getContext('2d')!;
++                    context.drawImage(bitmap, 0, 0); return [...context.getImageData(50, 50, 1, 1).data]; }
++                finally { bitmap.close(); }
++            }, { brandId: brand.id, mediaId: result.media_ids[0] });
++            expect(near(exported, [...expected]), `fotograma exportado en ${second} s: ${exported}`).toBe(true);
++            await expect(dialog.getByRole('status')).toContainText('biblioteca');
++            await page.screenshot({ path: info.outputPath(`object-animation-exported-${second}s.png`), fullPage: true });
++        }
++        await dialog.getByRole('button', { name: 'Cerrar exportación', exact: true }).click();
++        await expectNoOverflow(page); expect(errors).toEqual([]);
++    } finally { cleanComposerBrands(user.email); }
++});
+diff --git a/tests/frontend/studio-object-animation-flows.test.mjs b/tests/frontend/studio-object-animation-flows.test.mjs
+new file mode 100644
+index 0000000..7d63d3f
+--- /dev/null
++++ b/tests/frontend/studio-object-animation-flows.test.mjs
+@@ -0,0 +1,211 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { readFile } from 'node:fs/promises';
++import { parse } from '@babel/parser';
++import { animationState, normalizeAnimation } from '../../resources/js/Studio/object-animation.js';
++import { applyElementAnimation } from '../../resources/js/Studio/animation-scene.js';
++import { blankDocument, newElement, validateDocument } from '../../resources/js/Studio/document.js';
++import { clipMediaState, compileTimeline, restrictElementWindow, sampleTimeline, splitTimelineElement } from '../../resources/js/Studio/timeline.js';
++
++const near = (actual, expected, message) => assert.ok(Math.abs(actual - expected) < 1e-9, `${message ?? ''} ${actual} != ${expected}`);
++const window = { start: 1, duration: 4 };
++
++function scene(animation, timing = window) {
++    const doc = blankDocument(320, 180);
++    doc.schema_version = 2;
++    doc.timeline = { fps: 30, audio_tracks: [] };
++    doc.pages[0].duration = 6;
++    doc.pages[0].elements = [newElement('text', { id: 'title', text: 'Hola', ...(timing ? { timing } : {}), ...(animation ? { animation } : {}) })];
++    return doc;
++}
++
++function fakeObject() {
++    return {
++        left: 10, top: 20, scaleX: 2, scaleY: 2, opacity: 0.8, dirty: false,
++        getRelativeCenterPoint() { return { x: this.left + 50, y: this.top + 25 }; },
++        set(values) { Object.assign(this, values); },
++        setPositionByOrigin(point) { this.left = point.x - 50; this.top = point.y - 25; },
++        setCoords() {},
++    };
++}
++
++test('settled state is the identity: designed look with entrances completed and exits not started', () => {
++    const animation = { in: { type: 'zoom', duration: 1 }, out: { type: 'slide_left', duration: 1 } };
++    for (const time of [1, 1.5, 4.5]) assert.deepEqual(animationState(animation, time, window, { settled: true }), { opacity: 1, offsetX: 0, offsetY: 0, scale: 1 });
++    assert.notDeepEqual(animationState(animation, 1, window), animationState(animation, 1, window, { settled: true }));
++});
++
++test('settled applications leave the object untouched even with an animation', () => {
++    const object = fakeObject(), before = JSON.stringify(object);
++    applyElementAnimation(object, { timing: window, animation: { in: { type: 'fade', duration: 1 } } }, 1, { width: 320, height: 180, pageDuration: 6, settled: true });
++    assert.equal(JSON.stringify(object), before);
++});
++
++test('a child inside a group animates over the window shared with the group and hands that window on', () => {
++    const size = { width: 320, height: 180, pageDuration: 6 };
++    const groupWindow = applyElementAnimation(fakeObject(), { timing: { start: 1, duration: 3 } }, 2, size);
++    assert.deepEqual(groupWindow, { start: 1, duration: 3 });
++    const child = { timing: { start: 0, duration: 6 }, animation: { in: { type: 'fade', duration: 1, easing: 'linear' } } };
++    const object = fakeObject();
++    assert.deepEqual(applyElementAnimation(object, child, 1.5, { ...size, parent: groupWindow }), { start: 1, duration: 3 });
++    near(object.opacity, 0.8 * 0.5, 'la entrada del hijo parte del inicio común, no del suyo');
++});
++
++test('ungrouping keeps a group entrance and a child exit when their envelopes fit', () => {
++    const child = scene({ out: { type: 'zoom', duration: 0.5 } }).pages[0].elements[0];
++    const parentAnimation = { in: { type: 'fade', duration: 1.5 }, out: { type: 'slide_left', duration: 1 } };
++    const result = restrictElementWindow(child, { start: 0, duration: 6 }, { pageDuration: 6, parentAnimation });
++    assert.deepEqual(result.animation, { in: { type: 'fade', duration: 1.5, delay: -1, clipped: true }, out: { type: 'zoom', duration: 0.5 } });
++});
++
++test('ungrouping reports a group phase that cannot be combined with the child phase', () => {
++    const animation = { in: { type: 'fade', duration: 1 } };
++    const child = scene(animation, { start: 0, duration: 4 }).pages[0].elements[0];
++    const parentAnimation = { in: { type: 'slide_left', duration: 0.5 } };
++    let losses = 0;
++    const result = restrictElementWindow(child, { start: 0, duration: 4 }, {
++        pageDuration: 6, parentAnimation, onAnimationLoss: () => losses++,
++    });
++    assert.equal(losses, 1);
++    assert.deepEqual(result.animation, animation);
++});
++
++test('ungrouping preserves a group zoom for a centered child and reports the approximation otherwise', () => {
++    const child = scene(null, { start: 0, duration: 4 }).pages[0].elements[0];
++    const parentAnimation = { in: { type: 'zoom', duration: 1 } };
++    const parentWindow = { start: 0, duration: 4 };
++    let losses = 0;
++    const options = { pageDuration: 6, parentAnimation, onAnimationLoss: () => losses++ };
++    const centered = restrictElementWindow(child, parentWindow, { ...options, centered: true });
++    assert.deepEqual(centered.animation, parentAnimation);
++    assert.equal(losses, 0);
++    const offCenter = restrictElementWindow(child, parentWindow, options);
++    assert.deepEqual(offCenter.animation, { in: { type: 'fade', duration: 1 } });
++    assert.equal(losses, 1);
++});
++
++test('cropped phases use the same validation as the server', () => {
++    const entrance = { type: 'slide_left', duration: 2, delay: -0.75, clipped: true };
++    const exit = { type: 'zoom', duration: 1, delay: 2, clipped: true };
++    assert.deepEqual(normalizeAnimation({ in: entrance }, 0.5), { in: entrance });
++    assert.deepEqual(normalizeAnimation({ out: exit }, 0.5), { out: exit });
++    for (const animation of [
++        { in: { ...entrance, clipped: false } },
++        { in: { ...entrance, delay: -11 } },
++        { in: entrance, out: exit },
++    ]) assert.throws(() => normalizeAnimation(animation, 0.5));
++});
++
++for (const [name, animation, cut] of [
++    ['completed exit', { out: { type: 'fade', duration: 1, delay: 2 } }, 3],
++    ['delayed entrance', { in: { type: 'fade', duration: 1, delay: 2 } }, 1],
++    ['eased slide in progress', { in: { type: 'slide_left', duration: 2, delay: 0.5, easing: 'ease_in' } }, 1],
++    ['eased zoom in progress', { out: { type: 'zoom', duration: 2, delay: 0.5, easing: 'ease_out' } }, 3],
++    ['entrance with less than 0.1 s before the cut', { in: { type: 'fade', duration: 1, delay: 0.95 } }, 1],
++]) {
++    test(`splitting preserves each frame of a ${name}`, () => {
++        const timing = { start: 0, duration: 4 };
++        const doc = scene(animation, timing);
++        const result = splitTimelineElement(doc, doc.pages[0].id, 'title', cut, { createId: () => 'second_half' });
++        for (const half of result.pages[0].elements) {
++            for (let frame = 0; frame <= 60; frame++) {
++                const time = half.timing.start + half.timing.duration * frame / 60;
++                const expected = animationState(animation, time, timing);
++                const actual = animationState(half.animation, time, half.timing);
++                for (const key of Object.keys(expected)) near(actual[key], expected[key], `${key} at ${time}`);
++            }
++        }
++    });
++}
++
++test('splitting a group keeps a timed child on its original curve', () => {
++    const animation = { in: { type: 'zoom', duration: 2 } };
++    const doc = scene(animation, { start: 0, duration: 4 });
++    doc.pages[0].elements = [newElement('group', { id: 'group', timing: { start: 1, duration: 3 }, elements: doc.pages[0].elements })];
++    let id = 0;
++    const result = splitTimelineElement(doc, doc.pages[0].id, 'group', 2, { createId: () => `split_${++id}` });
++    for (const [index, time] of [1.5, 2.5].entries()) {
++        const group = result.pages[0].elements[index];
++        const object = fakeObject();
++        applyElementAnimation(object, group.elements[0], time, { width: 320, height: 180, pageDuration: 6, parent: group.timing });
++        const expected = animationState(animation, time, { start: 1, duration: 3 });
++        near(object.opacity, 0.8 * expected.opacity);
++        near(object.scaleX, 2 * expected.scale);
++    }
++});
++
++test('ungrouping does not replay a completed group entrance on a late child', () => {
++    const child = scene(null, { start: 2, duration: 2 }).pages[0].elements[0];
++    const parentAnimation = { in: { type: 'fade', duration: 0.5 } };
++    const result = restrictElementWindow(child, { start: 0, duration: 4 }, { pageDuration: 6, parentAnimation });
++    assert.equal(animationState(result.animation, 2.1, result.timing).opacity, 1);
++});
++
++test('a short clip can be animated: the default duration is whatever fits, never below 0.1 s', async () => {
++    const { ref } = await import('vue');
++    const { useTimelineEditing } = await import('../../resources/js/Studio/composables/useTimelineEditing.js');
++    const doc = scene(null, { start: 1, duration: 0.3 });
++    const documentData = ref(doc), page = ref(doc.pages[0]);
++    const editing = useTimelineEditing({
++        documentData, page, pageId: ref(doc.pages[0].id), selection: ref([{ id: 'title' }]), localAssets: ref([]),
++        timeline: ref(0), timelineDuration: ref(6), timelinePageStart: ref(0), timelineOpen: ref(true), pauseTimeline() {}, error: ref(''),
++        run: fn => fn(), commit() {}, reloadCanvas: async () => {}, selectOnCanvas() {}, isCaptionBlocked: () => false,
++    });
++    await editing.patchClipAnimation({ phase: 'in', patch: { type: 'zoom' } });
++    assert.equal(documentData.value.pages[0].elements[0].animation.in.duration, 0.3);
++});
++
++const loadBody = async relative => (await readFile(new URL('../../' + relative, import.meta.url), 'utf8')).replace(/^import .*;\r?\n/gm, '')
++    .replaceAll('export async function', 'async function').replaceAll('export function', 'function').replaceAll('export const', 'const');
++const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
++
++test('static frames render animations settled unless the page has an explicit instant', async () => {
++    const body = await loadBody('resources/js/Studio/exports.js');
++    const calls = [];
++    const rendered = { canvas: { backgroundColor: '', renderAll() {}, toSVG: () => '<svg/>', getObjects: () => [], getZoom: () => 1 }, fontFaces: () => [], async dispose() {} };
++    const factory = new AsyncFunction('validateDocument', 'frameTimes', 'renderStudioFrame', 'StudioDocumentError', body + ';return exportPage;');
++    const exportPage = await factory(x => x, () => new Map([['p', 0]]), async (...args) => { calls.push(args[5].settled); return rendered; }, Error);
++    const design = { width: 100, height: 100, pages: [] };
++    await exportPage(design, 'p', [], { format: 'svg' });
++    await exportPage(design, 'p', [], { format: 'svg', frame_times: [{ page_id: 'p', time: 0 }] });
++    await exportPage(design, 'p', [], { format: 'svg', frame_times: [{ page_id: 'other', time: 0 }] });
++    assert.deepEqual(calls, [true, false, true]);
++});
++
++test('renderStudioFrame applies animations at its instant, none when settled, and never forwards the flag to the page renderer', async () => {
++    const body = await loadBody('resources/js/Studio/frame-renderer.js');
++    const applied = [];
++    let received;
++    const rendered = { canvas: { getObjects: () => [{ id: 1 }], renderAll() {} }, async dispose() {} };
++    const run = new AsyncFunction('renderStudioPage', 'frameElements', 'compileTimeline', 'attachFrameCaptions', 'applyElementAnimation', body + ';return renderStudioFrame;');
++    const frame = await run(async (...args) => { received = args; return rendered; }, x => x, () => ({ pages: [{ id: 'p', start: 0 }] }), async s => s,
++        (_object, _layer, time, options) => { applied.push([time, options.settled]); });
++    const doc = { schema_version: 2, width: 100, height: 100, timeline: { fps: 30 }, pages: [{ id: 'p', duration: 4, elements: [{ id: 'a', type: 'rect', animation: { in: { type: 'fade', duration: 1 } } }] }] };
++    await frame(doc, 'p', 0.5, [], [], {});
++    await frame(doc, 'p', 0.5, [], [], { settled: true });
++    assert.deepEqual(applied, [[0.5, false], [0.5, true]]);
++    assert.equal(Object.hasOwn(received[4], 'settled'), false);
++});
++
++test('the offline project render (MP4/GIF) applies the animation of each object at every sampled instant', async () => {
++    const source = await readFile(new URL('../../resources/js/Studio/timeline-preview.js', import.meta.url), 'utf8');
++    const factory = parse(source, { sourceType: 'module' }).program.body.find(node => node.type === 'ExportNamedDeclaration' && node.declaration?.id?.name === 'createTimelinePreview').declaration;
++    const instantiate = Function('validateDocument', 'renderStudioPage', 'seekVideoFrame', 'videoFrameReady', 'clipMediaState', 'compileTimeline', 'sampleTimeline',
++        'createTimelineAudio', 'createCaptionLayer', 'assertChartDocumentBudget', 'applyElementAnimation', `return (${source.slice(factory.start, factory.end)});`);
++    const doc = scene({ in: { type: 'fade', duration: 1, easing: 'linear' } });
++    const object = fakeObject();
++    const seen = [];
++    const create = instantiate(validateDocument, async () => ({ canvas: { getObjects: () => [object], renderAll() {}, lowerCanvasEl: {} }, async dispose() {} }),
++        async () => {}, async () => {}, clipMediaState, compileTimeline, sampleTimeline,
++        () => ({ prepare: async () => ({ bufferingMs: 0 }), pause() {}, pauseMedia() {}, play: async () => {}, state: () => [], dispose: async () => {} }),
++        async () => null, async () => {},
++        (target, element, time, options) => { const result = applyElementAnimation(target, element, time, options); seen.push([time, target.opacity]); return result; });
++    const context = { clearRect() {}, save() {}, restore() {}, drawImage() {}, fillRect() {} };
++    const preview = await create({ getContext: () => context }, { document: doc, offline: true });
++    await preview.seek(1.5);
++    await preview.seek(3);
++    await preview.dispose();
++    assert.equal(seen.length, 2);
++    near(seen[0][0], 1.5); near(seen[0][1], 0.8 * 0.5, 'a mitad de la entrada');
++    near(seen[1][0], 3); near(seen[1][1], 0.8, 'tras la entrada');
++});
+diff --git a/tests/frontend/studio-object-animation.test.mjs b/tests/frontend/studio-object-animation.test.mjs
+new file mode 100644
+index 0000000..5c5a236
+--- /dev/null
++++ b/tests/frontend/studio-object-animation.test.mjs
+@@ -0,0 +1,184 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { animationState, fitAnimation, normalizeAnimation } from '../../resources/js/Studio/object-animation.js';
++import { applyElementAnimation } from '../../resources/js/Studio/animation-scene.js';
++import { blankDocument, newElement, validateDocument } from '../../resources/js/Studio/document.js';
++import { restrictElementWindow, splitTimelineElement } from '../../resources/js/Studio/timeline.js';
++
++const near = (actual, expected, message) =>
++    assert.ok(Math.abs(actual - expected) < 1e-9, `${message ?? ''} ${actual} != ${expected}`);
++const window = { start: 1, duration: 4 };
++
++function scene(animation, timing = window) {
++    const doc = blankDocument(320, 180);
++    doc.schema_version = 2;
++    doc.timeline = { fps: 30, audio_tracks: [] };
++    doc.pages[0].duration = 6;
++    doc.pages[0].elements = [
++        newElement('text', {
++            id: 'title',
++            text: 'Hola',
++            ...(timing ? { timing } : {}),
++            ...(animation ? { animation } : {}),
++        }),
++    ];
++    return doc;
++}
++
++test('without animation the state is the identity, so old designs render as before', () => {
++    for (const time of [0, 1, 2.5, 5])
++        assert.deepEqual(animationState(undefined, time, window), { opacity: 1, offsetX: 0, offsetY: 0, scale: 1 });
++});
++
++test('fade in: hidden before the entry, half way at the middle, fully visible at the end', () => {
++    const animation = { in: { type: 'fade', duration: 1, delay: 0.5, easing: 'linear' } };
++    near(animationState(animation, 1.2, window).opacity, 0, 'antes de la entrada');
++    near(animationState(animation, 1.5, window).opacity, 0, 'inicio de la entrada');
++    near(animationState(animation, 2, window).opacity, 0.5, 'mitad');
++    near(animationState(animation, 2.5, window).opacity, 1, 'fin');
++    near(animationState(animation, 4, window).opacity, 1, 'después');
++});
++
++test('fade out ends at the end of the window minus the delay and stays hidden afterwards', () => {
++    const animation = { out: { type: 'fade', duration: 1, delay: 0.5, easing: 'linear' } };
++    near(animationState(animation, 3.5, window).opacity, 1, 'antes de la salida');
++    near(animationState(animation, 4, window).opacity, 0.5, 'mitad de la salida');
++    near(animationState(animation, 4.5, window).opacity, 0, 'fin de la salida');
++    near(animationState(animation, 4.9, window).opacity, 0, 'retardo final');
++});
++
++test('slides move from and towards their side by a quarter of the page, zoom scales from half', () => {
++    const slide = (type) => animationState({ in: { type, duration: 1, easing: 'linear' } }, 1, window);
++    assert.deepEqual([slide('slide_left').offsetX, slide('slide_left').offsetY], [-0.25, 0]);
++    assert.deepEqual([slide('slide_right').offsetX, slide('slide_right').offsetY], [0.25, 0]);
++    assert.deepEqual([slide('slide_up').offsetX, slide('slide_up').offsetY], [0, -0.25]);
++    assert.deepEqual([slide('slide_down').offsetX, slide('slide_down').offsetY], [0, 0.25]);
++    near(animationState({ in: { type: 'zoom', duration: 1, easing: 'linear' } }, 1, window).scale, 0.5, 'zoom inicial');
++    near(
++        animationState({ in: { type: 'zoom', duration: 1, easing: 'linear' } }, 1.5, window).scale,
++        0.75,
++        'zoom a mitad',
++    );
++    const out = animationState({ out: { type: 'slide_left', duration: 1, easing: 'linear' } }, 5, window);
++    near(out.offsetX, -0.25, 'la salida se va hacia su lado');
++    near(out.opacity, 0, 'la salida termina transparente');
++});
++
++test('easing curves keep the endpoints and differ in the middle', () => {
++    const at = (easing) => animationState({ in: { type: 'fade', duration: 1, easing } }, 1.25, window).opacity;
++    near(at('linear'), 0.25);
++    assert.ok(at('ease_in') < 0.25 && at('ease_out') > 0.25 && at('ease_in_out') < 0.25);
++    for (const easing of ['linear', 'ease_in', 'ease_out', 'ease_in_out']) {
++        near(animationState({ in: { type: 'fade', duration: 1, easing } }, 1, window).opacity, 0, easing);
++        near(animationState({ in: { type: 'fade', duration: 1, easing } }, 2, window).opacity, 1, easing);
++    }
++});
++
++test('the document validator accepts valid animations and rejects the invalid ones', () => {
++    const valid = {
++        in: { type: 'slide_left', duration: 0.5, delay: 0.25, easing: 'ease_out' },
++        out: { type: 'zoom', duration: 1 },
++    };
++    assert.deepEqual(validateDocument(scene(valid)).pages[0].elements[0].animation, valid);
++    assert.equal(Object.hasOwn(validateDocument(scene(null)).pages[0].elements[0], 'animation'), false);
++    const bad = [
++        { in: { type: 'spin', duration: 1 } },
++        { in: { type: 'fade', duration: 0.01 } },
++        { in: { type: 'fade', duration: 11 } },
++        { in: { type: 'fade', duration: 1, delay: -1 } },
++        { in: { type: 'fade', duration: 1, easing: 'bounce' } },
++        { in: { type: 'fade', duration: 1, extra: 1 } },
++        { middle: { type: 'fade', duration: 1 } },
++        {},
++        { in: { type: 'fade', duration: 3, delay: 1.5 } },
++        { in: { type: 'fade', duration: 2 }, out: { type: 'fade', duration: 2.5 } },
++    ];
++    for (const animation of bad)
++        assert.throws(
++            () => validateDocument(scene(animation)),
++            /animaci|propiedad|duraci|retardo|tipo|curva|entrada|caben/i,
++            JSON.stringify(animation),
++        );
++});
++
++test('v1 documents still reject animations', () => {
++    const doc = scene({ in: { type: 'fade', duration: 1 } }, null);
++    doc.schema_version = 1;
++    delete doc.timeline;
++    assert.throws(() => validateDocument(doc), /animation|propiedad/);
++});
++
++test('fitAnimation drops the phases that no longer fit and normalizeAnimation checks the object life', () => {
++    const animation = { in: { type: 'fade', duration: 1 }, out: { type: 'fade', duration: 2 } };
++    assert.deepEqual(fitAnimation(animation, 3), animation);
++    assert.deepEqual(fitAnimation(animation, 2), { in: animation.in });
++    assert.equal(fitAnimation(animation, 0.5), null);
++    assert.throws(() => normalizeAnimation(animation, 2.9, 'animation'), /caben/);
++});
++
++test('splitting a clip keeps the entry on the first half and the exit on the second', () => {
++    const doc = scene({ in: { type: 'fade', duration: 0.5 }, out: { type: 'zoom', duration: 0.5 } });
++    const result = splitTimelineElement(doc, doc.pages[0].id, 'title', 3, { createId: () => 'second_half' });
++    const [left, right] = result.pages[0].elements;
++    assert.deepEqual(left.animation, { in: { type: 'fade', duration: 0.5 } });
++    assert.deepEqual(right.animation, { out: { type: 'zoom', duration: 0.5 } });
++});
++
++test('restricting a window removes only the phases that do not fit', () => {
++    const element = scene({ in: { type: 'fade', duration: 1 }, out: { type: 'fade', duration: 1 } }).pages[0]
++        .elements[0];
++    const result = restrictElementWindow(element, { start: 1, duration: 1.5 }, { pageDuration: 6 });
++    assert.deepEqual(result.animation, { in: { type: 'fade', duration: 1 } });
++    assert.equal(
++        Object.hasOwn(restrictElementWindow(element, { start: 1, duration: 0.5 }, { pageDuration: 6 }), 'animation'),
++        false,
++    );
++});
++
++function fakeObject() {
++    const object = {
++        left: 10,
++        top: 20,
++        scaleX: 2,
++        scaleY: 2,
++        opacity: 0.8,
++        dirty: false,
++        getRelativeCenterPoint() {
++            return { x: this.left + 50, y: this.top + 25 };
++        },
++        set(values) {
++            Object.assign(this, values);
++        },
++        setPositionByOrigin(point) {
++            this.left = point.x - 50;
++            this.top = point.y - 25;
++        },
++        setCoords() {},
++    };
++    return object;
++}
++
++test('applying the state starts from the stored base and does not accumulate when repeated', () => {
++    const element = { timing: window, animation: { in: { type: 'slide_right', duration: 1, easing: 'linear' } } };
++    const size = { width: 320, height: 180, pageDuration: 6 };
++    const object = fakeObject();
++    applyElementAnimation(object, element, 1, size);
++    near(object.opacity, 0);
++    near(object.left, 10 + 0.25 * 320);
++    applyElementAnimation(object, element, 1.5, size);
++    applyElementAnimation(object, element, 1.5, size);
++    near(object.opacity, 0.4);
++    near(object.left, 10 + 0.125 * 320);
++    applyElementAnimation(object, element, 3, size);
++    near(object.opacity, 0.8);
++    near(object.left, 10);
++    near(object.top, 20);
++});
++
++test('an element without animation leaves its object untouched', () => {
++    const object = fakeObject();
++    const before = JSON.stringify(object);
++    applyElementAnimation(object, { timing: window }, 1.5, { width: 320, height: 180, pageDuration: 6 });
++    assert.equal(JSON.stringify(object), before);
++    assert.equal(object.studioAnimationBase, undefined);
++});

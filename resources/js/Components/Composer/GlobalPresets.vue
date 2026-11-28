@@ -6,12 +6,17 @@ import ApprovalPanel from '@/Components/Composer/ApprovalPanel.vue';
 </script>
 
 <template>
-    <PresetSection id="global-presets" title="Ajustes globales" label="Ajustes globales" subtitle="Programación y organización de la publicación">
+    <PresetSection
+        id="global-presets"
+        title="Ajustes globales"
+        label="Ajustes globales"
+        subtitle="Programación y organización de la publicación"
+    >
         <ScheduleSection class="!rounded-none !border-0 !bg-transparent !p-0 !shadow-none" />
-        <div class="border-t border-slate-100 pt-5">
+        <div class="border-t border-border-subtle pt-5">
             <ApprovalPanel />
         </div>
-        <div class="border-t border-slate-100 pt-5">
+        <div class="border-t border-border-subtle pt-5">
             <NotesPanel class="!rounded-none !border-0 !bg-transparent !p-0 !shadow-none" />
         </div>
     </PresetSection>

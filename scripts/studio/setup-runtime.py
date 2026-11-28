@@ -13,7 +13,8 @@ import venv
 ROOT = Path(__file__).resolve().parents[2]
 SPEC_PATH = ROOT / 'scripts/studio/background-model.json'
 ENVIRONMENT = ROOT / 'storage/framework/studio-python'
-MODEL = ROOT / 'storage/app/private/studio-models/birefnet-general-lite.onnx'
+MODEL = ROOT / 'storage/app/private/studio-models/isnet-general-use.onnx'
+LICENSE = MODEL.parent / 'IS-Net-LICENSE.txt'
 
 
 def verified(path, spec):
@@ -81,14 +82,16 @@ def check_runtime():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true', help='Read-only verification of pinned Python packages and model')
-    parser.add_argument('--download-model', action='store_true', help='Explicitly download the pinned MIT model and license')
+    parser.add_argument('--download-model', action='store_true', help='Explicitly download the pinned Apache-2.0 model and license')
     args = parser.parse_args()
     if args.check and args.download_model:
         parser.error('--check cannot download anything')
     spec = json.loads(SPEC_PATH.read_text(encoding='utf-8'))
     if args.check:
         runtime_ok = check_runtime()
-        model_ok = verified(MODEL, spec) and verified(MODEL.parent / 'BiRefNet-LICENSE.txt', spec['license_file'])
+        model_ok = verified(MODEL, spec) and verified(LICENSE, spec['license_file'])
+        if not model_ok:
+            print('The background model %s is missing or does not match the pinned checksum: run `setup-runtime.py --download-model`.' % MODEL.name, file=sys.stderr)
         print(json.dumps({'runtime_ready': runtime_ok, 'background_model_ready': model_ok}))
         return 0 if runtime_ok and model_ok else 1
     if sys.version_info < (3, 12):
@@ -97,7 +100,7 @@ def main():
         venv.EnvBuilder(with_pip=True).create(ENVIRONMENT)
     subprocess.run([str(runtime_python()), '-m', 'pip', 'install', '--disable-pip-version-check', '-r', str(ROOT / 'requirements-studio.txt')], check=True)
     if args.download_model:
-        download_verified(MODEL.parent / 'BiRefNet-LICENSE.txt', spec['license_file'])
+        download_verified(LICENSE, spec['license_file'])
         install_model(MODEL, spec)
     print(json.dumps({'runtime_ready': check_runtime(), 'background_model_ready': verified(MODEL, spec)}))
     return 0

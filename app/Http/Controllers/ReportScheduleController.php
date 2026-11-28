@@ -8,6 +8,7 @@ use App\Models\ReportTemplate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\HtmlString;
 
 /** Informes programados (T-21): PDF semanal o mensual por email. Aislados por usuario; la plantilla debe ser de la misma marca. */
 class ReportScheduleController extends Controller
@@ -84,9 +85,9 @@ class ReportScheduleController extends Controller
     /** Pagina de confirmacion de la baja (GET firmado): sin efectos secundarios, para que escaneres y prefetchers de correo no den de baja a nadie. */
     public function confirmUnsubscribe(Request $request, int $schedule): HttpResponse
     {
-        return response()->view('reports.unsubscribe', [
-            'done' => false, 'email' => mb_strtolower(trim((string) $request->query('email'))), 'action' => $request->fullUrl(),
-        ], 200, ['X-Robots-Tag' => 'noindex']);
+        $email = mb_strtolower(trim((string) $request->query('email')));
+
+        return response()->view('unsubscribe', self::page(false, $request->fullUrl(), new HtmlString('Se quitará <strong>'.e($email).'</strong> de los destinatarios de este informe programado.')), 200, ['X-Robots-Tag' => 'noindex']);
     }
 
     /** Baja con enlace firmado (POST, sin sesion ni CSRF: RFC 8058 one-click; la firma protege): quita a ESE destinatario de ESA programacion; si no queda ninguno, la pausa. Idempotente. */
@@ -100,7 +101,16 @@ class ReportScheduleController extends Controller
             $model->update($left === [] ? ['recipients' => [], 'active' => false] : ['recipients' => $left]);
         }
 
-        return response()->view('reports.unsubscribe', ['done' => true, 'email' => $email, 'action' => ''], 200, ['X-Robots-Tag' => 'noindex']);
+        return response()->view('unsubscribe', self::page(true), 200, ['X-Robots-Tag' => 'noindex']);
+    }
+
+    /** Textos de la pagina de baja comun (`resources/views/unsubscribe.blade.php`, la misma del resumen semanal). */
+    private static function page(bool $done, string $action = '', ?HtmlString $detail = null): array
+    {
+        return [
+            'done' => $done, 'action' => $action, 'detail' => $detail, 'title' => 'Baja del informe programado',
+            'question' => '¿Dejar de recibir este informe?', 'doneText' => 'Ya no recibirás este informe programado.',
+        ];
     }
 
     /**

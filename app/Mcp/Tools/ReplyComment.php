@@ -36,7 +36,7 @@ class ReplyComment extends SchedulerTool
     protected function run(Request $request, User $user): array
     {
         /** @var InboxComment $comment */
-        $comment = $this->owned(InboxComment::class, $user, $request->get('comment_id'), 'Comentario');
+        $comment = $this->owned(InboxComment::class, $user, $request->get('comment_id'), 'Comentario', masculine: true);
         $reply = app(InboxService::class)->reply($user, $comment, (string) $request->get('text'));
 
         return ['id' => $reply->id, 'comment_id' => $comment->id, 'replied' => true];

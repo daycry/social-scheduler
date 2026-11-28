@@ -1,0 +1,220 @@
+diff --git a/t81-candidate/source/resources/js/Pages/Profile/Notifications.vue b/t81-physical/resources/js/Pages/Profile/Notifications.vue
+index 4a26eca..ef9c6cb 100644
+--- a/t81-candidate/source/resources/js/Pages/Profile/Notifications.vue
++++ b/t81-physical/resources/js/Pages/Profile/Notifications.vue
+@@ -28,6 +28,7 @@ async function activate() {
+         const subscription = await activatePush(props.push.public_key);
+         router.post(route('profile.push-subscriptions.store'), { ...subscription, device_name: name.value }, {
+             preserveScroll: true,
++            preserveState: true,
+             onError: (errors) => { messages.value = Object.values(errors); },
+             onFinish: () => { busy.value = false; },
+         });
+@@ -44,6 +45,7 @@ async function revoke(device) {
+     messages.value = [];
+     router.delete(route('profile.push-subscriptions.destroy', device.id), {
+         preserveScroll: true,
++        preserveState: true,
+         onSuccess: () => {
+             if (device.current) void revokeBrowserPush().catch(() => {
+                 messages.value = ['El servidor ha revocado el dispositivo. Revisa también el permiso de este navegador.'];
+@@ -96,8 +98,10 @@ async function revoke(device) {
+                         >{{ busy ? 'Procesando…' : 'Activar en este navegador' }}</button
+                     >
+                 </form>
+-                <ul v-if="messages.length" role="alert" class="space-y-1 text-sm text-red-700"
+-                    ><li v-for="(message, index) in messages" :key="index">{{ message }}</li></ul
++                <div v-if="messages.length" role="alert" class="text-sm text-red-700"
++                    ><ul class="space-y-1"
++                        ><li v-for="(message, index) in messages" :key="index">{{ message }}</li></ul
++                    ></div
+                 >
+             </section>
+             <section class="space-y-3" aria-labelledby="push-devices-title">
+@@ -116,7 +120,12 @@ async function revoke(device) {
+                         <p class="text-sm text-slate-600">Última suscripción: {{ date(device.last_seen_at) }}</p>
+                         <p class="text-sm text-slate-600">Último envío: {{ date(device.last_sent_at) }}</p></div
+                     >
+-                    <button type="button" class="btn-secondary" :disabled="busy" @click="revoke(device)"
++                    <button
++                        type="button"
++                        class="btn-secondary"
++                        :aria-label="`Revocar ${device.device_name}`"
++                        :disabled="busy"
++                        @click="revoke(device)"
+                         >Revocar</button
+                     >
+                 </article>
+diff --git a/t81-candidate/source/routes/web.php b/t81-physical/routes/web.php
+index d89cc27..3c9ba70 100644
+--- a/t81-candidate/source/routes/web.php
++++ b/t81-physical/routes/web.php
+@@ -216,5 +216,3 @@
+     ->whereNumber(['design', 'owner'])->middleware(['signed', 'throttle:studio.thumbnails'])->name('studio.designs.thumbnail');
+ Route::get('studio/downloads/{export}/{owner}', StudioExportDownloadController::class)
+     ->whereNumber(['export', 'owner'])->middleware(['signed', 'throttle:studio.exports.download'])->name('studio.exports.download');
+-
+-// Public, static worker: no authenticated HTML or user-specific response is cached.
+diff --git a/t81-candidate/source/tests/e2e/push.spec.ts b/t81-physical/tests/e2e/push.spec.ts
+index d647988..c6cdf76 100644
+--- a/t81-candidate/source/tests/e2e/push.spec.ts
++++ b/t81-physical/tests/e2e/push.spec.ts
+@@ -13,62 +13,62 @@ async function preparePushFixture(page: Page, user: { email: string }) {
+     `);
+     const publicKey = fixture.match(/KEY:([A-Za-z0-9_-]+)/)![1];
+     await page.addInitScript(
+-            ({ publicKey }) => {
+-                const calls: string[] = [];
+-                const key = Uint8Array.from(atob(publicKey.replace(/-/g, '+').replace(/_/g, '/')), (c) =>
+-                    c.charCodeAt(0),
+-                );
+-                const subscription = {
+-                    options: { applicationServerKey: key.buffer },
+-                    toJSON: () => ({
+-                        endpoint: 'https://push.example.test/browser',
+-                        keys: { p256dh: publicKey, auth: 'AgICAgICAgICAgICAgICAg' },
+-                    }),
+-                    unsubscribe: async () => {
+-                        calls.push('unsubscribe');
+-                        return new Promise<boolean>(() => {});
++        ({ publicKey }) => {
++            const calls: string[] = [];
++            const key = Uint8Array.from(atob(publicKey.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
++            const subscription = {
++                options: { applicationServerKey: key.buffer },
++                toJSON: () => ({
++                    endpoint: 'https://push.example.test/browser',
++                    keys: { p256dh: publicKey, auth: 'AgICAgICAgICAgICAgICAg' },
++                }),
++                unsubscribe: async () => {
++                    calls.push('unsubscribe');
++                    return new Promise<boolean>(() => {});
++                },
++            };
++            let current: typeof subscription | null = null;
++            const registration = {
++                pushManager: {
++                    getSubscription: async () => current,
++                    subscribe: async (options: { userVisibleOnly: boolean }) => {
++                        if (!options.userVisibleOnly) throw new Error('visible required');
++                        calls.push('subscribe');
++                        current = subscription;
++                        return subscription;
+                     },
+-                };
+-                let current: typeof subscription | null = null;
+-                const registration = {
+-                    pushManager: {
+-                        getSubscription: async () => current,
+-                        subscribe: async (options: { userVisibleOnly: boolean }) => {
+-                            if (!options.userVisibleOnly) throw new Error('visible required');
+-                            calls.push('subscribe');
+-                            current = subscription;
+-                            return subscription;
+-                        },
++                },
++            };
++            Object.defineProperty(window, 'Notification', {
++                configurable: true,
++                value: {
++                    requestPermission: async () => {
++                        calls.push('permission');
++                        return 'granted';
+                     },
+-                };
+-                Object.defineProperty(window, 'Notification', {
+-                    configurable: true,
+-                    value: {
+-                        requestPermission: async () => {
+-                            calls.push('permission');
+-                            return 'granted';
+-                        },
++                },
++            });
++            Object.defineProperty(window, 'PushManager', { configurable: true, value: function () {} });
++            Object.defineProperty(navigator, 'serviceWorker', {
++                configurable: true,
++                value: {
++                    register: async () => {
++                        calls.push('register');
++                        return registration;
+                     },
+-                });
+-                Object.defineProperty(window, 'PushManager', { configurable: true, value: function () {} });
+-                Object.defineProperty(navigator, 'serviceWorker', {
+-                    configurable: true,
+-                    value: {
+-                        register: async () => {
+-                            calls.push('register');
+-                            return registration;
+-                        },
+-                        ready: Promise.resolve(registration),
+-                    },
+-                });
+-                Reflect.set(window, '__pushCalls', calls);
+-            },
+-            { publicKey },
+-        );
++                    ready: Promise.resolve(registration),
++                },
++            });
++            Reflect.set(window, '__pushCalls', calls);
++        },
++        { publicKey },
++    );
+ }
+ 
+ function clearPushFixture() {
+-    artisan(String.raw`foreach(['push-on','push-receiver.ndjson','push-e2e-openssl.cnf']as$f){if(is_file(storage_path($f)))unlink(storage_path($f));}`);
++    artisan(
++        String.raw`foreach(['push-on','push-receiver.ndjson','push-e2e-openssl.cnf']as$f){if(is_file(storage_path($f)))unlink(storage_path($f));}`,
++    );
+ }
+ 
+ test('E2E-20 · ajustes push explican la falta de claves sin pedir permiso y conservan accesibilidad @responsive', async ({
+@@ -137,13 +137,15 @@ test('E2E-20 · el permiso explícito suscribe, entrega con PushSender falso y p
+     }
+ });
+ 
+-
+-test('E2E-20 · la colisión de otro propietario muestra el mensaje genérico y conserva su suscripción @responsive', async ({ page }, info) => {
++test('E2E-20 · la colisión de otro propietario muestra el mensaje genérico y conserva su suscripción @responsive', async ({
++    page,
++}, info) => {
+     const user = e2eUser(info.project.name);
+     let foreignId: number | null = null;
+     try {
+         await preparePushFixture(page, user);
+-        const seed = artisan(String.raw`$u=App\Models\User::factory()->create(['email'=>'push-foreign-'.Illuminate\Support\Str::uuid().'@example.test']);
++        const seed =
++            artisan(String.raw`$u=App\Models\User::factory()->create(['email'=>'push-foreign-'.Illuminate\Support\Str::uuid().'@example.test']);
+             $f=json_decode(file_get_contents(storage_path('push-on')),true);
+             app(App\Services\Push\PushSubscriptions::class)->subscribe($u,['endpoint'=>'https://push.example.test/browser','keys'=>['p256dh'=>$f['public'],'auth'=>'AgICAgICAgICAgICAgICAg'],'device_name'=>'Dispositivo ajeno']);
+             echo 'FOREIGN:'.$u->id;`);
+@@ -153,15 +155,23 @@ test('E2E-20 · la colisión de otro propietario muestra el mensaje genérico y
+         await page.goto('/profile/notifications');
+         const activate = page.getByRole('button', { name: 'Activar en este navegador', exact: true });
+         await activate.click();
+-        await expect(page.getByRole('alert')).toContainText('No se pudo vincular este navegador.');
++        await expect(
++            page.getByRole('region', { name: 'Activar avisos push', exact: true }).getByRole('alert'),
++        ).toContainText('No se pudo vincular este navegador.');
+         await expect(activate).toBeEnabled();
+-        expect(artisan(String.raw`$u=App\Models\User::where('email','${user.email}')->firstOrFail();echo 'OWN:'.App\Models\PushSubscription::ownedBy($u->id)->count();echo 'FOREIGN:'.App\Models\PushSubscription::ownedBy(${foreignId})->count();`)).toContain('OWN:0FOREIGN:1');
++        expect(
++            artisan(
++                String.raw`$u=App\Models\User::where('email','${user.email}')->firstOrFail();echo 'OWN:'.App\Models\PushSubscription::ownedBy($u->id)->count();echo 'FOREIGN:'.App\Models\PushSubscription::ownedBy(${foreignId})->count();`,
++            ),
++        ).toContain('OWN:0FOREIGN:1');
+         await expectNoOverflow(page);
+         await axeSeriousCritical(page, 'Colisión push sin transferencia');
+         expect(errors.errors).toEqual([]);
+     } finally {
+         try {
+             if (foreignId !== null) artisan(String.raw`App\Models\User::findOrFail(${foreignId})->delete();`);
+-        } finally { clearPushFixture(); }
++        } finally {
++            clearPushFixture();
++        }
+     }
+ });

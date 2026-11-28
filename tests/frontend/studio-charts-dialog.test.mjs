@@ -1,9 +1,10 @@
+import { createConfirmState } from '../../resources/js/Composables/useConfirm.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { parse, compileScript, compileTemplate } from '@vue/compiler-sfc';
 import * as realCore from '../../resources/js/Studio/dataset-table.js';
-import { computed, ref, shallowRef, watch, reactive, nextTick, effectScope } from 'vue';
+import { computed, defineAsyncComponent, ref, shallowRef, watch, reactive, nextTick, effectScope } from 'vue';
 
 const blank = () => ({ columns: [{ id: 'c1', label: 'Columna 1' }], rows: [{ id: 'r1', values: [''] }] });
 const fakeCore = {
@@ -24,10 +25,11 @@ function mount(client = {}, initial = {}, core = fakeCore) {
     const fakeWindow = { addEventListener: (name, fn) => windowListeners.set(name, fn), removeEventListener: name => windowListeners.delete(name) };
     const props = reactive({ modelValue: true, brandId: 3, brandName: 'Marca A', ...initial }), hooks = [], emitted = [];
     const defaults = { list: async () => ({ datasets: [], pagination: { current_page: 1, last_page: 1, total: 0 } }), ...client };
-    const factory = new Function('computed', 'nextTick', 'onBeforeUnmount', 'ref', 'shallowRef', 'watch', 'createDatasetClient', 'tableCore', 'downloadStudioBlob', 'window', compiled);
-    const component = factory(computed, nextTick, fn => hooks.push(fn), ref, shallowRef, watch, () => defaults, core, (...args) => downloads.push(args), fakeWindow);
+    const confirmation = createConfirmState();
+    const factory = new Function('computed', 'nextTick', 'onBeforeUnmount', 'ref', 'shallowRef', 'watch', 'createDatasetClient', 'tableCore', 'downloadStudioBlob', 'window', 'BaseDialog', 'useConfirm', compiled);
+    const component = factory(computed, nextTick, fn => hooks.push(fn), ref, shallowRef, watch, () => defaults, core, (...args) => downloads.push(args), fakeWindow, {}, () => confirmation.ask);
     const scope = effectScope(); const state = scope.run(() => component.setup(props, { expose() {}, emit: (...args) => emitted.push(args) }));
-    return { state, props, emitted, downloads, windowListeners, close() { hooks.forEach(hook => hook()); scope.stop(); } };
+    return { state, props, emitted, downloads, windowListeners, confirmation, close() { hooks.forEach(hook => hook()); scope.stop(); } };
 }
 const flush = async () => { await nextTick(); await new Promise(resolve => setImmediate(resolve)); };
 
@@ -76,16 +78,18 @@ test('chart rejects incompatible series and percentages instead of repairing the
  const panel=chartMount(async()=>{throw new Error('must not render invalid');});
  try{assert.ok(panel.state.draft?.value);panel.state.draft.value.style.value_labels='percentage';await panel.state.refreshPreview();assert.match(panel.state.error.value,/percentage|porcent/i);assert.equal(panel.state.canApply.value,false);}finally{panel.close();}
 });
-import { validateDocument, cloneDocument, findPage } from '../../resources/js/Studio/document.js';
-import { createHistory } from '../../resources/js/Studio/history.js';
+import { useChartFlow } from '../../resources/js/Studio/composables/useChartFlow.js';
 function editorMount() {
- const source=readFileSync(new URL('../../resources/js/Pages/Studio/Editor.vue',import.meta.url),'utf8');const {descriptor}=parse(source);
- const compiled=compileScript(descriptor,{id:'editor-chart'}).content.replace(/^import .*?;\r?$/gm,'').replace('export default','return');
- const imports=[...source.matchAll(/^import\s+(.*?)\s+from/gm)].flatMap(m=>m[1].replace(/[{}]/g,'').split(',').map(x=>x.trim())).filter(Boolean);
- const deps={computed,nextTick,ref,shallowRef,watch,onBeforeUnmount(){},onMounted(){},validateDocument,cloneDocument,findPage,createHistory};
- const names=[...new Set(imports)],values=names.map(name=>deps[name]??{});
- const component=new Function(...names,compiled)(...values);const props=reactive({design:{id:4,name:'Test',document:blankDocument(),revision:1},brand:{id:3,name:'Marca'},kit:{palette:[]},fonts:[],assets:[]});
- const scope=effectScope();const state=scope.run(()=>component.setup(props,{expose(){}}));return{state,props,close(){scope.stop();}};
+ const props = reactive({ design: { id: 4 }, brand: { id: 3 } });
+ const state = { selection: ref([]), pageId: ref('page_1'), ready: ref(false), busy: ref(false), error: ref(''), adapter: null };
+ const scope = effectScope();
+ Object.assign(state, scope.run(() => useChartFlow({
+     brandId: () => props.brand.id, designId: () => props.design.id,
+     selection: state.selection, pageId: state.pageId, ready: state.ready, busy: state.busy,
+     isDisposed: () => !scope.active, getAdapter: () => state.adapter, refreshLayers() {},
+     async run(action) { try { return await action(); } catch (error) { state.error.value = error.message; } },
+ })));
+ return { state, props, close() { scope.stop(); } };
 }
 test('editor opens a chart draft for the selected historical layer without mutation',()=>{
  const panel=editorMount();try{const chart={binding:{dataset:{id:7,revision:1,sha256:'b'.repeat(64)},category_column:'cat',series_columns:['val']}};panel.state.selection.value=[{id:'chart_1',type:'chart',chart}];

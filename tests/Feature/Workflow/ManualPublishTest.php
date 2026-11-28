@@ -1,6 +1,5 @@
 <?php
 
-use App\Connectors\ConnectorRegistry;
 use App\Connectors\Network;
 use App\Enums\PostStatus;
 use App\Jobs\DispatchDuePosts;
@@ -14,9 +13,6 @@ use App\Models\SocialAccount;
 use App\Models\User;
 use App\Services\ManualPublishService;
 use App\Services\PostService;
-use App\Services\PublishOutcomes;
-use App\Services\PublishRequestFactory;
-use App\Services\SocialAccountService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
@@ -63,7 +59,7 @@ test('un destino manual nunca se encola ni se publica; el aviso sale una sola ve
         ->and($target->fresh()->status)->toBe(PostStatus::Scheduled)->and($target->fresh()->manual_notified_at)->not->toBeNull();
 
     // El claim del job tampoco lo deja pasar aunque alguien lo encole a mano.
-    (new PublishPostTarget($target->id))->handle(app(ConnectorRegistry::class), app(PublishOutcomes::class), app(PublishRequestFactory::class), app(SocialAccountService::class));
+    app()->call([new PublishPostTarget($target->id), 'handle']);
     expect($target->fresh()->status)->toBe(PostStatus::Scheduled)->and($target->fresh()->attempts)->toBe(0);
 });
 
@@ -81,6 +77,19 @@ test('el aviso trae el contenido listo para copiar y la media descargable', func
     $this->actingAs($this->user)->get(route('posts.manual.show', $post->id))->assertOk();
     $this->actingAs($this->other)->getJson(route('workflow.manual.content', $post->id))->assertNotFound();
     $this->actingAs($this->other)->get(route('posts.manual.show', $post->id))->assertNotFound();
+});
+
+test('el contenido de varios destinos manuales conserva los textos propios y vinculados', function () {
+    $media = MediaAsset::factory()->for($this->user)->create(['width' => 400, 'height' => 400]);
+    $post = manualPost(['media' => [$media->id], 'targets' => [
+        ['account_id' => $this->fb->id, 'content_type' => 'facebook_photo', 'manual' => true],
+        ['account_id' => $this->ig->id, 'content_type' => 'instagram_image', 'manual' => true, 'text' => 'Texto propio'],
+    ]]);
+
+    $json = $this->actingAs($this->user)->getJson(route('workflow.manual.content', $post))->assertOk()->json();
+
+    expect(collect($json['targets'])->pluck('text', 'network_label')->all())
+        ->toEqual(['Facebook' => 'Texto para copiar', 'Instagram' => 'Texto propio']);
 });
 
 test('marcar como publicado: https opcional, idempotente, refleja el estado y la fecha', function () {
@@ -140,7 +149,7 @@ test('reprogramar o editar un manual rearma el aviso', function () {
 });
 
 test('las paginas de aprobaciones, series y aviso manual se renderizan con sus datos', function () {
-    $collab = BrandCollaborator::query()->create(['brand_id' => $this->brand->id, 'owner_id' => $this->user->id, 'user_id' => $this->other->id, 'role' => 'aprobador']);
+    $collab = BrandCollaborator::query()->create(['brand_id' => $this->brand->id, 'owner_id' => $this->user->id, 'user_id' => $this->other->id, 'role' => BrandCollaborator::ROLE_APPROVER]);
     $post = manualPost();
 
     $this->actingAs($this->user)->get(route('approvals.index'))->assertOk()

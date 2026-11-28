@@ -2,6 +2,18 @@
 
 Fuente de verdad operativa: `deploy/hestia/README.md` y `deploy/systemd/README.md`. Esta página resume y enlaza. Todo lo marcado **[VPS]** requiere acceso root y sigue pendiente (M-04).
 
+## Pantalla de estado del sistema
+
+`/system` es una lectura administrativa global. Configura en el servidor `SYSTEM_ADMIN_EMAILS` con los correos de los operadores, separados por comas, y regenera la caché de configuración con `php artisan config:cache`. Deben tener el correo verificado. Con la lista vacía nadie tiene acceso; cambiar el perfil a una dirección autorizada no evita verificarla. El permiso no es un campo editable del usuario. El menú de cuenta solo muestra **Estado del sistema** a quienes cumplen estas condiciones; un usuario ordinario recibe 403 también al entrar directamente.
+
+La pantalla reutiliza `HealthCheck`, las mismas comprobaciones de `app:health`, en su modalidad HTTP: las herramientas nativas pueden reutilizar su comprobación durante `HEALTH_NATIVE_CACHE_SECONDS` (300 segundos por defecto). Muestra la hora de lectura en UTC y permite actualizar manualmente. Los avisos conservan la distinción entre instalación operativa con avisos y comprobaciones fallidas; no equivale a ejecutar `app:health --strict`. La sonda de almacenamiento usa el disco configurado, incluida su comprobación de escritura/lectura temporal.
+
+Las **sondas de trabajadores** muestran cuándo `QueueProbeJob` procesó realmente una prueba de cada cola configurada, además de media y render. La última marca se conserva 24 horas. Abrir o actualizar esta página no encola nada. Una cola vacía no demuestra que haya un trabajador activo; ausencia de sonda y fallo al leer su caché se distinguen. El cron existente ejecuta `app:queue-probe` cada 15 minutos; también puede ejecutarlo un operador por CLI.
+
+Las **caducidades** son agregados por red: cuentas conectadas, fecha más temprana informada de acceso, renovación y acceso a datos, y cuentas sin fecha de acceso conocida. Un dato ausente no se interpreta como vigente ni como cero. No se seleccionan ni serializan tokens, secretos o identificadores de cuenta. Una lectura fallida se muestra como no disponible, no como ausencia de cuentas.
+
+Las **cuotas** identifican su procedencia y fecha. YouTube muestra el contador local de esta instalación y su próximo reinicio según el día del Pacífico; no conoce el gasto externo del mismo proyecto de Google. Para las demás redes, si no existe una lectura remota guardada, consumo, cupo y fecha permanecen desconocidos. No se consulta el cupo a las APIs sociales desde esta pantalla. También se muestra la política vigente de `QuotaPolicy` ante cupo agotado. Un fallo de lectura auxiliar no oculta el informe canónico de salud.
+
 ## Este despliegue
 
 | Dato | Valor |
@@ -32,21 +44,50 @@ Con la URL de ngrok de desarrollo ya registrada, añade estas **sin quitar** las
 - **Runtime del Estudio** (render, quitar fondo y MP4/GIF; detalle en la [guía del estudio](../guias/estudio-api-mcp.md) y en [Estudio](estudio.md)):
   - Node nativo y las dependencias JavaScript de ejecución (`playwright`, `fabric`, `pdf-lib`) en el host de los workers, con `npm run build` (genera `public/build/studio-renderer.js`).
   - **Chromium de Playwright** instalado en runtime (`npx playwright install --with-deps chromium`) y las fuentes del sistema que usen los diseños. `STUDIO_CHROMIUM_PATH` y `PLAYWRIGHT_BROWSERS_PATH` si se comparte la ubicación.
-  - **Python ≥ 3.12 con el modelo de quitar fondos**: `python3 scripts/studio/setup-runtime.py --download-model` y `--check` (modelo `birefnet-general-lite.onnx`, 224 MB, fuera de Git). `STUDIO_PYTHON_BINARY` si no se usa el entorno privado por defecto.
+  - **Python ≥ 3.12 con el modelo de quitar fondos**: `python3 scripts/studio/setup-runtime.py --download-model` y `--check` (modelo `isnet-general-use.onnx`, IS-Net de DIS, licencia Apache-2.0, 178 648 008 bytes ≈ 170 MiB, fuera de Git; el instalador verifica tamaño y SHA-256 y descarga también `IS-Net-LICENSE.txt`). `STUDIO_PYTHON_BINARY` si no se usa el entorno privado por defecto. **Memoria:** el modelo trabaja con entrada fija de 1024×1024 y, con la imagen máxima admitida (16 Mpx), llega a ~950 MiB de RSS en Linux (VmHWM 949 MiB, VmPeak 1264 MiB) y ~820 MiB de working set en Windows (797 MiB de commit); una foto de 512×512 queda en ~840 MiB (Linux) y ~690 MiB (Windows). Son activaciones reales, no reserva virtual. El proceso se acota a **1,25 GiB** (`RLIMIT_DATA` en Linux, Job Object en Windows; ~35 % de margen: 896 MiB ya no bastan en Linux), así que el servidor necesita **≥ 2 GiB de RAM libre** por cada quitada de fondo simultánea (un solo worker `studio-render` para esta cola). Si fijas `STUDIO_BACKGROUND_MODEL_PATH` o `STUDIO_BACKGROUND_MODEL_SHA256`, deben corresponder al modelo instalado (o quítalos). Sin el modelo, quitar fondo falla con `model_unavailable` y el resto del Estudio sigue funcionando. Un trabajo de quitar fondo guarda la ruta y el sha del modelo al crearse, pero al procesarlo se resuelve siempre el modelo vigente de la configuración (y se actualiza el trabajo); si el modelo vigente no está instalado, el trabajo falla con `model_unavailable` y su mensaje claro, sin ejecutar nada. La licencia del modelo se descarga de un commit fijo de `xuebinqin/DIS` (no de `main`), con el mismo sha-256 verificado.
   - **Worker `studio` (MP4/GIF)**: FFmpeg/ffprobe, y un kernel con **cgroupv2** (Linux ≥ 5.14, `cgroup.kill`) y una unidad systemd con `Delegate=yes`: ver [Worker de la cola studio](#worker-de-la-cola-studio-mp4-y-gif).
 - Almacenamiento de media: **disco local del servidor** (este despliegue, ver [Almacenamiento de media](#almacenamiento-de-media)) o un bucket R2 con CORS (`PUT`, `Content-Type`, exponer `ETag`).
 
 ## Pasos
 
-1. Dominio, TLS y BD con los comandos `v-add-web-domain`, `v-add-letsencrypt-domain`, `v-add-database` (plantilla `laravel`, docroot `public/`).
+1. Crea el dominio, TLS y BD con `v-add-web-domain`, `v-add-letsencrypt-domain` y `v-add-database`. Tras clonar en `app/` en el paso 3, fija `app/public/` como docroot con el [paso 2.1 de la guía de Hestia](../../deploy/hestia/README.md#21-plantilla-laravel). En un VPS existente, comprueba qué directorio contiene `artisan` y que el docroot efectivo corresponde a su subdirectorio `public/`. La comprobación del VPS está pendiente de M-06.
 2. Ajustes de Nginx (`deploy/hestia/nginx-overrides.conf`) y PHP-FPM (`upload_max_filesize=512M`, `post_max_size=512M`, `memory_limit=256M`, `max_execution_time=300`; con media local las subidas pasan por PHP).
-3. Primera instalación: clonar, `cp .env.production.example .env`, `chmod 600 .env`, `composer install --no-dev`, `key:generate`, `migrate --force`.
-4. Scheduler y workers: cuatro tareas en el cron de Hestia (más el worker `studio` si se exportan MP4/GIF, que no cabe en el cron: ver más abajo), o el scheduler en cron y los workers en systemd (ver [Cron y workers](#cron-y-workers)).
+3. Primera instalación: clona el repositorio en el directorio del checkout elegido en el paso 1. Desde allí ejecuta `cp .env.production.example .env`, `chmod 600 .env`, `composer install --no-dev`, `php artisan key:generate` y `php artisan migrate --force`.
+4. Configura el scheduler y los workers. Usa cinco tareas en el cron de Hestia o deja solo el scheduler en cron y ejecuta los workers en systemd. Ambas opciones requieren la unidad `scheduler-studio` con la configuración por defecto. Consulta [Cron y workers](#cron-y-workers).
 5. Comprobar que procesan: `app:queue-probe` y `app:health`.
 6. Despliegues repetibles: `bash deploy/hestia/deploy.sh` (`--dry-run` lista pasos).
 7. Primer usuario por consola (el registro público está cerrado): ver [Primer usuario](#primer-usuario).
 
-`deploy.sh` ejecuta: `artisan down` → pull → composer → `npm ci && npm run build` (exige `public/build/manifest.json`) → migrate → caches → `queue:restart` → `up` → reinicio de `WORKER_UNITS` → smoke con `app:health --skip-scheduler`. Si falla antes de cambiar el código, la app vuelve a subir; si falla después, se queda en mantenimiento.
+`deploy.sh` ejecuta: fetch → comprobación de CI → compilar aparte (composer, `npm ci && npm run build`; exige `public/build/manifest.json`) → `artisan down` → volcado previo → código y cambio de vendor/build → migrate → caches → `queue:restart` → `up` → reinicio de `WORKER_UNITS` → smoke con `app:health --skip-scheduler`. Si falla antes de cambiar el código, la app vuelve a subir; si falla después, se queda en mantenimiento.
+
+## Cambios incompatibles de API y MCP (`audit-hardening`, T-28/T-29)
+
+Quien use la API v1 o el MCP con claves ya emitidas debe adaptar estos puntos (no hay alias de los formatos antiguos):
+
+- **La marca va en la ruta.** `POST /api/v1/posts` pasa a `POST /api/v1/brands/{brand}/posts` y `POST /api/v1/series` a `POST /api/v1/brands/{brand}/series`. `brand_id` ya no se acepta en el cuerpo.
+- **Paginación por cursor.** Los listados de posts, media, comentarios y diseños (API y MCP: `list_media`, `list_comments`, `list_designs`) usan `limit` y `cursor` y devuelven `has_more` y `next_cursor`; desaparecen `page`, `before_id`, `current_page`, `last_page` y `total`. El cursor es opaco y solo vale para el listado que lo emitió (otro da 422). Los diseños se ordenan por id (los más recientes primero), no por última edición. La colección de diseños pasa de `data` a `designs`.
+- **409 frente a 422.** Un estado que no admite la operación (borrar o publicar una publicación ya publicada, cancelar una que ya es borrador, borrar media en uso) responde 409; 422 queda para errores de entrada. El MCP lo marca con el prefijo `409:`.
+- **Límites de ritmo por ruta.** Cada ruta con límite propio tiene su contador (por usuario o IP) y sus valores viven en `config/rate_limits.php` (antes, un `throttle:N,1` numérico compartía contador con las demás rutas y el límite propio nunca actuaba). El tope conjunto de la API sigue siendo 120 por minuto y usuario (`api-v1`); si necesitas vaciar los contadores de un usuario, usa `App\Support\RouteLimits::forget($userId)`.
+- **SmartLink.** Un `PUT /brands/{brand}/smart-link` sin `published` ya no publica: uno nuevo queda sin publicar y uno existente conserva su estado.
+- **Alta y baja de competidores (T-30).** `manage_competitor` exige la ability nueva `competitors:write` (no basta `posts:write`; las claves `*` siguen valiendo, sin alias) y la baja necesita `confirm: true` porque borra el histórico. `manage_trash delete_forever` también exige `confirm: true`. Las claves existentes que no sean `*` deben añadir `competitors:write` para dar de alta o baja competidores.
+- **Nuevas abilities** `smartlinks:read` y `smartlinks:write`: las claves existentes no las tienen; añádelas donde haga falta.
+- **Carpeta de un diseño (T-33).** `update_design` (MCP) y la actualización de diseños de la API ya no cambian la carpeta: `folder_id` se ignora. Para mover un diseño se usa `PATCH /api/v1/designs/{design}/folder` o `manage_design_folder` con `action: move`.
+
+## Fechas de migraciones
+
+El prefijo de una migración nueva usa la fecha UTC del día en que se crea. `MigrationDatesTest` comprueba el formato del nombre y rechaza los días posteriores al actual. La prueba admite por nombre las migraciones que ya estaban en el repositorio con fecha futura al introducir la regla. Conserva esos nombres para que Laravel siga reconociendo las migraciones aplicadas.
+
+Si una migración nueva lleva un prefijo anterior al de una dependencia histórica, Laravel la ejecutaría primero en una base vacía. Si necesitas ese cambio antes de que ambos prefijos puedan ordenarse por fecha, prepara el despliegue junto con la nueva migración:
+
+1. Para instalaciones nuevas, ejecuta `php artisan schema:dump --database=<conexión>` en una base desechable migrada con la versión anterior al cambio. Incluye el volcado de cada conexión usada, incluida la de SQLite para Pest. Laravel usa el ejecutable `sqlite3` para generar el volcado de SQLite. Conserva los archivos PHP de migración. Laravel carga el volcado con su historial y ejecuta después la migración nueva.
+2. Para instalaciones existentes, comprueba `php artisan migrate:status`. Si una dependencia sigue pendiente, aplícala primero con `php artisan migrate --path=database/migrations/<archivo>.php --force`, incluidas sus propias dependencias en orden. Después ejecuta el despliegue normal.
+3. Prueba la instalación vacía y la actualización desde una base de la versión anterior antes de desplegar.
+
+## Cambios de configuración
+
+- **Colas y límites (T-49).** Activa el worker de `studio-render` antes de desplegar. Redis usa un `retry_after` mínimo de 180 s y los grupos de límites de ritmo se ajustan en `config/rate_limits.php` con los valores anteriores.
+- `LINKEDIN_RECONNECT_NOTICE_DAYS` desaparece; usa `SOCIAL_EXPIRY_NOTICE_DAYS` (días de antelación separados por comas, por defecto `7,1`; vale para todas las redes con caducidad conocida) y, si quieres otra hora, `SOCIAL_EXPIRY_NOTICE_AT`. Hay que ejecutar `php artisan migrate` (nueva columna `users.notify_by_mail`) y la tarea programada `connections:notify-expiry` ya va en el scheduler.
+- **Miniaturas del estudio (T-35).** Migración nueva `2026_12_24_090000_add_thumbnail_to_studio_designs` (dos columnas, reversible): ejecuta `php artisan migrate`. El listado encola `RenderStudioThumbnail` en la cola `studio`, con su worker y Chromium; `STUDIO_THUMBNAILS=false` desactiva las miniaturas si el servidor no tiene Chromium. La exportación a PPTX (`format: "pptx"`) usa `studio-render` y no necesita `ext-zip`. No hay cambios incompatibles.
 
 ## Primer usuario
 
@@ -87,9 +128,9 @@ Hacen falta **dos cosas distintas**:
 - **Scheduler** (cron cada minuto, `schedule:run`): decide qué toca y lo **encola**: publicaciones vencidas, snapshot diario de métricas, métricas de publicaciones, comentarios, autolistas, limpiezas.
 - **Workers de cola** (`queue:work`): **ejecutan** lo encolado, incluido el histórico de métricas al conectar una cuenta. Sin ellos se encola todo y no se ejecuta nada: las publicaciones no salen y la analítica queda «no disponible».
 
-### Opción A: desde el panel de Hestia (cron), la de este despliegue
+### Opción A: cron desde el panel de Hestia
 
-En **Hestia → usuario → CRON → Añadir tarea**, cuatro tareas. `webmaster`/`social-scheduler.daycry.ovh` son los del dominio (aquí `webmaster` y `social-scheduler.daycry.ovh`) y la app está en `public_html`. Usa la ruta completa de PHP que te dé `which php` en tu sesión (aquí `/usr/bin/php`): así el cron usa el mismo PHP que tú.
+En **Hestia → usuario → CRON → Añadir tarea**, configura cinco tareas. Sustituye `/ruta/verificada/del/checkout` por el directorio que contiene `artisan` en el VPS. Los ejemplos usan `/home/webmaster/tmp` y `/usr/bin/php`. Sustituye esas rutas por el directorio de logs del usuario y el resultado de `which php` en su sesión.
 
 **Antes de crear los workers: `pcntl` en el PHP de consola.** `queue:work` usa `pcntl_signal` para cortar un job colgado (`--timeout`) y pararse limpio. Hestia lo deja en `disable_functions`, y el worker falla con `Call to undefined function Illuminate\Queue\pcntl_signal()`. Se habilita **solo en el PHP de consola** (`cli`), no en el de la web (PHP-FPM), como root:
 
@@ -107,21 +148,25 @@ Repite el `sed` si una actualización de PHP o de Hestia restaura el `php.ini`.
 | 2 | **Worker de publicación**: colas `publish` y `poll` | `*` | `*` | `*` | `*` | `*` |
 | 3 | **Worker de métricas e informes**: colas `metrics` y `reports` | `*/5` | `*` | `*` | `*` | `*` |
 | 4 | **Worker de importación de media**: cola `media` (descargas desde URL o Drive) | `*` | `*` | `*` | `*` | `*` |
+| 5 | **Worker de IA, imágenes y render estático**: cola `studio-render` | `*` | `*` | `*` | `*` | `*` |
 
 Comandos (uno por tarea, en una sola línea):
 
 ```text
 # 1. Scheduler
-cd /home/webmaster/web/social-scheduler.daycry.ovh/public_html && /usr/bin/php artisan schedule:run >> /home/webmaster/tmp/ss-schedule.log 2>&1
+cd /ruta/verificada/del/checkout && /usr/bin/php artisan schedule:run >> /home/webmaster/tmp/ss-schedule.log 2>&1
 
 # 2. Worker de publicación
-cd /home/webmaster/web/social-scheduler.daycry.ovh/public_html && flock -n /home/webmaster/tmp/ss-publish.lock /usr/bin/php artisan queue:work database --queue=publish,poll --stop-when-empty --max-time=55 --timeout=120 --tries=3 >> /home/webmaster/tmp/ss-publish.log 2>&1
+cd /ruta/verificada/del/checkout && flock -n /home/webmaster/tmp/ss-publish.lock /usr/bin/php artisan queue:work database --queue=publish,poll --stop-when-empty --max-time=55 --timeout=120 --tries=3 >> /home/webmaster/tmp/ss-publish.log 2>&1
 
 # 3. Worker de métricas e informes
-cd /home/webmaster/web/social-scheduler.daycry.ovh/public_html && flock -n /home/webmaster/tmp/ss-metrics.lock /usr/bin/php artisan queue:work database --queue=metrics,reports --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /home/webmaster/tmp/ss-metrics.log 2>&1
+cd /ruta/verificada/del/checkout && flock -n /home/webmaster/tmp/ss-metrics.lock /usr/bin/php artisan queue:work database --queue=metrics,reports --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /home/webmaster/tmp/ss-metrics.log 2>&1
 
 # 4. Worker de importación de media (URL y Drive)
-cd /home/webmaster/web/social-scheduler.daycry.ovh/public_html && flock -n /home/webmaster/tmp/ss-media.lock /usr/bin/php artisan queue:work database --queue=media --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /home/webmaster/tmp/ss-media.log 2>&1
+cd /ruta/verificada/del/checkout && flock -n /home/webmaster/tmp/ss-media.lock /usr/bin/php artisan queue:work database --queue=media --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /home/webmaster/tmp/ss-media.log 2>&1
+
+# 5. Worker de IA, imágenes y render estático del Estudio
+cd /ruta/verificada/del/checkout && flock -n /home/webmaster/tmp/ss-studio-render.lock /usr/bin/php artisan queue:work database --queue=studio-render --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /home/webmaster/tmp/ss-studio-render.log 2>&1
 ```
 
 Qué hace cada opción:
@@ -137,27 +182,27 @@ Latencia máxima: una publicación sale con hasta 1 minuto de retraso y las mét
 
 **Cola `media` (importación por URL y Drive).** El cron 4 (`ss-media`) es obligatorio para que «Desde URL» y «Google Drive» avancen: sin él, las importaciones quedan «pendientes» y la interfaz avisa tras 3 minutos. `QUEUE_NAMES` debe incluir `media` si se define en `.env` (los `.env.example` ya lo traen) y `app:queue-probe` la sondea. Cada pasada del job dura hasta 80 s y se reencola sin espera, así que un worker de 280 s encadena unas tres; el resto lo recoge el cron siguiente. Variables de ajuste en [configuración](../referencia/configuracion.md); la guía de Google en [Google Cloud: Picker de Drive](../guias/google-cloud-picker-drive.md).
 
-Al actualizar no hay que tocar las tareas: `deploy.sh` ejecuta `queue:restart` y el siguiente arranque del cron ya usa el código nuevo (no hace falta `WORKER_UNITS`).
+Antes de desplegar T-49, activa el worker de `studio-render` según la guía Hestia o la plantilla systemd. Mantén los workers de `media` y `studio` para que consuman los trabajos ya encolados. `deploy.sh` ejecuta `queue:restart` y el siguiente arranque del cron ya usa el código nuevo. `WORKER_UNITS` solo hace falta para las unidades systemd instaladas (`scheduler-studio`, o `scheduler-worker@…` en la opción B).
 
 ### Opción B: systemd (procesos siempre vivos)
 
-Requiere root. Sustituye a las tareas 2, 3 y 4 (la 1, el scheduler, se mantiene). Ver `deploy/systemd/README.md`; si la app está en `public_html` y no en `app`, corrige `WorkingDirectory` y `ReadWritePaths` de la unidad.
+Requiere root. Sustituye a las tareas 2 a 5 y conserva el scheduler en cron. Al activar `scheduler-worker@studio-render`, desactiva el cron 5 para que solo haya un worker de `studio-render`. Mantén la unidad dedicada a la cola `studio` según el apartado siguiente. Consulta `deploy/systemd/README.md` y ajusta `WorkingDirectory` y `ReadWritePaths` a la raíz real de la aplicación.
 
 Unidad plantilla `deploy/systemd/scheduler-worker@.service`; la instancia es la cola:
 
 ```bash
-sudo systemctl enable --now scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports scheduler-worker@media
+sudo systemctl enable --now scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports scheduler-worker@media scheduler-worker@studio-render
 ```
 
-La cola `studio` (MP4/GIF) **no** usa esta plantilla: tiene su propia unidad, descrita en [Worker de la cola studio](#worker-de-la-cola-studio-mp4-y-gif).
+La cola `studio` tiene su propia unidad, descrita en [Worker de la cola studio](#worker-de-la-cola-studio-mp4-y-gif).
 
-Colas de las redes nuevas: **Bluesky** y **Threads** publican por `publish` (con sondeo del vídeo en `poll`), así que el worker de 120 s de `publish,poll` cubre la subida del vídeo de Bluesky (una petición de hasta 80 s dentro del paso de 85 s del job de 110 s) y el sondeo del contenedor de Threads; las métricas de ambas van por `metrics`. El buscador de GIFs importa el MP4 por `media` (cron/worker 4). Las redes añadidas después (LinkedIn y Pinterest) también publican por `publish` y su refresco de token va por `poll`. Para esas colas no hace falta ningún worker nuevo, pero el Estudio añade uno: el de la cola `studio`. `QUEUE_NAMES` por defecto es `publish,poll,metrics,reports,media,studio` (seis colas).
+Colas de las redes nuevas: **Bluesky** y **Threads** publican por `publish` (con sondeo del vídeo en `poll`), así que el worker de 120 s de `publish,poll` cubre la subida del vídeo de Bluesky (una petición de hasta 80 s dentro del paso de 85 s del job de 110 s) y el sondeo del contenedor de Threads; las métricas de ambas van por `metrics`. El buscador de GIFs importa el MP4 por `media` (cron/worker 4). Las redes añadidas después (LinkedIn y Pinterest) también publican por `publish` y su refresco de token va por `poll`. **Mastodon y Telegram** (T-87) publican por `publish` con el mismo worker (el sondeo de una imagen que Mastodon aún procesa va dentro del paso de 85 s, sin cola nueva); no caducan, así que no usan `poll`, y no tienen métricas ni comentarios. El Estudio usa `studio` para MP4, GIF y miniaturas. `QUEUE_NAMES` por defecto es `publish,poll,metrics,reports,media,studio,studio-render`. La cola `studio-render` procesa IA, exportaciones estáticas y trabajos de imagen. Si se cambia `STUDIO_RENDER_QUEUE`, usa ese nombre en el worker y en `QUEUE_NAMES`.
 
-Parámetros: `--tries=3 --timeout=120 --max-time=3600 --max-jobs=500`, `Restart=always`, sandboxing (`ProtectSystem=strict`, escribe solo en `storage/` y `bootstrap/cache`). **Plazos encadenados**: `$timeout` de cada job (hasta 110 s; 100 s en los jobs de Canva y de fases audiovisuales) < `--timeout` del worker (120 s) < `retry_after` de la cola (180 s, `DB_QUEUE_RETRY_AFTER`), y `TimeoutStopSec` de systemd (130 s) > `--timeout`. Si el job no fuera estrictamente menor que el worker, este lo mataría antes de que el job pudiera fallar limpiamente. Operación: `systemctl status scheduler-worker@publish`, `journalctl -u scheduler-worker@publish -f`. Al actualizar: `WORKER_UNITS="scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports scheduler-worker@media" bash deploy/hestia/deploy.sh`.
+Parámetros: `--tries=3 --timeout=120 --max-time=3600 --max-jobs=500`, `Restart=always`, sandboxing (`ProtectSystem=strict`, escribe solo en `storage/` y `bootstrap/cache`). **Plazos encadenados**: el `$timeout` de cada job (hasta 110 s, o 100 s para Canva y fases audiovisuales) vence antes que los 120 s del worker. `retry_after` deja margen para que el worker termine antes de que otro reserve el trabajo. Por defecto son 180 s con `DB_QUEUE_RETRY_AFTER` y el mínimo en Redis es 180 s con `REDIS_QUEUE_RETRY_AFTER`. systemd concede 130 s con `TimeoutStopSec`. `reports.timeout` vale 100 s y se acota entre 1 y 110 s en informes nuevos. Operación: `systemctl status scheduler-worker@publish`, `journalctl -u scheduler-worker@publish -f`. Al actualizar: `WORKER_UNITS="scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports scheduler-worker@media scheduler-worker@studio-render" bash deploy/hestia/deploy.sh`. Con el worker de `studio` instalado, añade `scheduler-studio`.
 
 ### Worker de la cola studio (MP4 y GIF)
 
-Las exportaciones audiovisuales del Estudio (MP4 y GIF) se encolan en la cola **`studio`** (`config('studio.av.queue')`), separada de `media` (importaciones, exportaciones estáticas PNG/PDF, IA y Canva). Necesita su propio worker, que **no puede ir en el cron de Hestia** porque exige `Delegate=yes` y cgroupv2:
+Con la configuración por defecto, `scheduler-studio` es necesario para las exportaciones MP4/GIF, las miniaturas y la sonda que `app:queue-probe` encola cada 15 minutos. `media` atiende importaciones y trabajos de Canva. Las exportaciones estáticas, la IA y los trabajos de imagen del Estudio van por `studio-render`. Instala la unidad dedicada a `studio` con systemd, que proporciona el cgroupv2 y `Delegate=yes` que exige el render audiovisual:
 
 ```bash
 sudo cp deploy/systemd/scheduler-studio.service /etc/systemd/system/
@@ -167,6 +212,8 @@ sudo systemctl daemon-reload && sudo systemctl enable --now scheduler-studio
 ```
 
 La unidad ejecuta `queue:work database --queue=studio --tries=1 --timeout=120`, con `MemoryMax=3G`, `OOMPolicy=kill`, `KillMode=control-group` y `Delegate=yes`. Está **preparada y sin instalar** en el VPS (CS-M-07 en [pendientes manuales](../referencia/pendientes-manuales.md)). Detalle y requisitos en `deploy/systemd/README.md`.
+
+Si omites la unidad, quita `studio` de `QUEUE_NAMES` y fija `STUDIO_THUMBNAILS=false`. El scheduler deja de sondear esa cola y el listado deja de generar miniaturas. Las exportaciones MP4/GIF que se soliciten quedarán en cola y los trabajos ya pendientes podrán generar avisos de salud.
 
 ### Comprobar que los workers procesan
 
@@ -185,17 +232,17 @@ Pendientes que no bajan en una cola = su worker no está corriendo (revisa la ta
 
 ### Si algo no se ejecuta
 
-Los comandos escriben su salida en `~/tmp` del usuario (`ss-schedule.log`, `ss-publish.log`, `ss-metrics.log`, `ss-media.log`): lo primero es mirarla.
+Consulta los logs en `~/tmp` del usuario (`ss-schedule.log`, `ss-publish.log`, `ss-metrics.log`, `ss-media.log` y `ss-studio-render.log`).
 
 | Síntoma | Causa | Solución |
 |---|---|---|
-| `app:health`: `scheduler FAIL sin latido` | `schedule:run` no se ha ejecutado en los últimos 10 min (el latido caduca a los 600 s) | `tail ~/tmp/ss-schedule.log`: debe verse `Running [health-heartbeat] … DONE` cada minuto. Un `schedule:run` a mano solo lo arregla 10 minutos |
+| `app:health` indica `sin latido` o muestra un latido atrasado | El chequeo falla si el latido falta o tiene más de 180 s. La clave de caché expira a los 600 s. | Ejecuta `tail -n 50 ~/tmp/ss-schedule.log` y comprueba que `health-heartbeat` se ejecuta cada minuto. Un `schedule:run` manual refresca el latido durante unos tres minutos. |
 | `~/tmp/ss-schedule.log` no existe | El cron no ejecuta la tarea | Como root: `systemctl status cron`, `crontab -u webmaster -l`, `journalctl -u cron --since "-10 min"`; si no aparece, `v-rebuild-cron-jobs webmaster` y `systemctl restart cron`. Comprueba que la tarea no está suspendida (`v-list-cron-jobs webmaster`) |
-| Error de PHP o versión incorrecta en el log | El cron usa otro PHP | Ruta completa del binario (`which php` en tu sesión) en las cuatro tareas |
+| Error de PHP o versión incorrecta en el log | El cron usa otro PHP | Ruta completa del binario (`which php` en tu sesión) en las cinco tareas |
 | `Call to undefined function … pcntl_signal()` | `pcntl` desactivado en el PHP de consola | Ver «Antes de crear los workers» arriba |
 | Publicaciones que salen con minutos de retraso y `dispatch-due-posts` no aparece cada minuto en el log | Bloqueo de solapamiento enganchado (p. ej. tras lanzar `schedule:run` a mano a la vez que el cron) | `php artisan schedule:clear-cache` y no lanzar `schedule:run` a mano con el cron activo |
 | Un vídeo importado queda en «pendiente» y no avanza | Falta el worker de la cola `media` (cron 4) o el parcial está en `storage/app/private/media/<usuario>/*.part` | `tail ~/tmp/ss-media.log`; procesarla a mano con `php artisan queue:work database --queue=media --stop-when-empty --tries=3 --timeout=120`. Cada pasada descarga 80 s y se reencola sola; `app:media-prune` borra los `.part` de más de 24 h |
-| La cola tiene pendientes que no bajan | El worker de esa cola no corre | `tail ~/tmp/ss-publish.log`, `ss-metrics.log` o `ss-media.log`; procesarla a mano con `php artisan queue:work database --queue=<cola> --stop-when-empty --tries=3 --timeout=120` |
+| La cola tiene pendientes que no bajan | El worker de esa cola no corre | Revisa `~/tmp/ss-publish.log`, `ss-metrics.log`, `ss-media.log` o `ss-studio-render.log`. Para `studio` usa `journalctl -u scheduler-studio` y para `studio-render` con systemd usa `journalctl -u scheduler-worker@studio-render`. Comprueba el estado del cron o de la unidad que atiende esa cola. |
 
 ## Analítica «no disponible» tras conectar una cuenta
 
@@ -224,9 +271,60 @@ Si sigue en «no disponible», en este orden:
 
 ## Healthcheck
 
-- `php artisan app:health` (`--json`, `--skip-scheduler`): BD, cola, disco y latido del scheduler (falla si tiene más de 180 s).
-- `GET /health` con cabecera `X-Health-Token: <HEALTHCHECK_TOKEN>`: 200 (también degradado), 404 sin token. Limitado a 30/min. Configurar en UptimeRobot o Healthchecks.io cada 5 min.
+- `php artisan app:health` (`--json`, `--skip-scheduler`, `--strict`): BD, cola, disco, latido del scheduler (falla si falta o tiene más de 180 s), snapshots, `config`, `linkedin_version` y `native`. Solo sale con exit 1 si algo está caído; los avisos (WARN) no lo tumban salvo con `--strict`.
+- **Cola atrasada.** `queue` informa `atrasadas=<cola>:<s>s` cuando el job pendiente más viejo, disponible y sin reservar, supera el umbral. El valor general es 600 s (`HEALTH_QUEUE_MAX_AGE`). `media` y `studio` tienen 1.800 s (`HEALTH_QUEUE_MAX_AGE_NATIVE`). `studio-render` tiene 3.000 s (`HEALTH_QUEUE_MAX_AGE_STUDIO_RENDER`), también si se renombra con `STUDIO_RENDER_QUEUE`. Un único worker puede tardar hasta 2.640 s en atender el lote de un usuario (24 exportaciones de 110 s, `STUDIO_BATCH_MAX_ACTIVE`), con 360 s de margen para el relevo; con lotes simultáneos de varios usuarios o un límite mayor, sube el umbral en proporción. Si la espera supera su umbral, `/health?strict=1` devuelve 503. `app:queue-probe` se ejecuta cada 15 minutos para detectar colas sin worker incluso cuando no hay tráfico.
+- **Snapshots:** avisa si hay cuentas **activas** (las que recoge `CollectSnapshots`) y el último snapshot tiene más de 36 h (`HEALTH_SNAPSHOTS_MAX_AGE_HOURS`); una cuenta recién conectada tiene un margen de 24 h más el umbral.
+- **`native` (WARN):** `ffmpeg`, `ffprobe`, Python del estudio, Chromium (`STUDIO_CHROMIUM_PATH` o el de Playwright) y el modelo de quitar fondo. Se apaga con `HEALTH_NATIVE=false`. Por HTTP (`/health`) el resultado se cachea 5 min (`HEALTH_NATIVE_CACHE_SECONDS`) para no lanzar procesos en cada sondeo, y Chromium solo se comprueba si `STUDIO_CHROMIUM_PATH` está definido (bajo PHP-FPM no hay `HOME` ni `PLAYWRIGHT_BROWSERS_PATH`); la comprobación completa es `php artisan app:health` por CLI.
+- **`config`:** avisa si `APP_DEBUG=true` con `APP_ENV=production`.
+- **`linkedin_version` (WARN):** avisa si `LINKEDIN_API_VERSION` (`AAAAMM`, por defecto `202610`) tiene 10 meses o más (`HEALTH_LINKEDIN_VERSION_WARN_MONTHS`), está retirada (12 meses, `HEALTH_LINKEDIN_VERSION_RETIRED_MONTHS`), es futura o no tiene formato válido. LinkedIn retira cada versión a los ~12 meses: súbela a una vigente y prueba a publicar. Solo corre con LinkedIn habilitado.
+- `GET /health` con cabecera `X-Health-Token: <HEALTHCHECK_TOKEN>`: 200 (también degradado), 404 sin token. Limitado a 30/min. Configurar en UptimeRobot o Healthchecks.io cada 5 min. Con **`/health?strict=1`** cualquier aviso (job fallido en 24 h, cola atrasada, snapshots viejos, binario ausente, debug en producción) devuelve 503: úsalo en un monitor que deba avisar de degradaciones; sin `strict` el contrato no cambia.
+- **Correo al fallar un job:** con `HEALTH_ALERT_EMAIL` definido, cada job que agota sus reintentos envía un correo con el nombre del job, la cola y la clase de la excepción (nunca el payload), como máximo uno cada `HEALTH_ALERT_THROTTLE_MINUTES` (60). Requiere el correo configurado (`MAIL_*`).
 - `/up`: solo prueba que PHP responde.
+
+## Despliegue sin parada larga
+
+Detalle en [`deploy/hestia/README.md`](../../deploy/hestia/README.md#6-despliegue-repetible-un-comando). `deploy.sh` comprueba con `gh` que el commit tiene el check `tests` en verde (`--force-unverified` para saltarlo), **compila en una carpeta aparte antes de `artisan down`**, hace el volcado previo (`backup.sh --db-only`), intercambia `vendor` y `public/build` con `mv` y migra; solo `down` -> `up` es mantenimiento. `deploy.sh rollback` (ensayable con `--dry-run`) vuelve a la revisión, `vendor` y build anteriores; la BD se restaura a mano desde el volcado previo.
+
+Para volver a una revisión anterior a T-108, pon primero la aplicación en mantenimiento y revierte `database/migrations/2026_11_17_185100_separate_media_and_design_ai_abilities.php` con `php artisan migrate:rollback --path=database/migrations/2026_11_17_185100_separate_media_and_design_ai_abilities.php --force` mientras el archivo todavía esté disponible y pertenezca al último lote. Comprueba que salió del historial del lote antes de revertir el código. Consulta la [migración de permisos](mcp.md#actualizar-permisos-de-claves-y-oauth-t-108).
+
+## Protección de `main` y CI
+
+La CI estuvo 6 días en rojo en `main` sin verse (A-02). Guía: [`deploy/github/README.md`](../../deploy/github/README.md).
+
+- `bash deploy/github/protect-main.sh` (lo ejecuta el usuario con permisos de administrador; `--dry-run` primero) deja `main` con PR obligatoria (también para administradores: `ENFORCE_ADMINS=true`; para un hotfix, `ENFORCE_ADMINS=false` o `--revert`), check requerido `tests` (se muestra como `CI / tests`: workflow `CI`, job agregador `tests`) y rama al día. Es idempotente, imprime lo que va a hacer y pide confirmación explícita; `--revert` la quita.
+- **Estructura de la CI (T-15).** `.github/workflows/ci.yml` corre solo en `pull_request` y en `push` a `main` (una ejecución por commit), con `concurrency` por rama/PR (cancela las obsoletas; en `main` no cancela) y `timeout-minutes` en cada job. Jobs en paralelo: `php` (Pint y Pest; caché de `vendor` por `composer.lock`), `node` (`npm run test:unit`, sin navegador, y `npm run build`), `node-browser` (`npm run test:browser` con Chromium cacheado), `typecheck` (`npm run typecheck`), `studio-runtime` (todos los `tests/studio_runtime/test_*.py`; los de cgroup, `test_av_linux.py`, se omiten solos porque exigen `STUDIO_AV_CGROUP_TEST=1` en un cgroup delegado), `openapi` (`@redocly/cli@2.77.0 lint --extends minimal` sobre `docs/api/openapi.yaml`), `audit` (`composer audit --locked` y `npm audit --omit=dev`) y el agregador **`tests`** (el check requerido). Fuera de la CI: `ledger-lint` (vive en el plugin de agentes, no en el repo). `.github/workflows/nightly.yml` (cron 02:17 UTC y `workflow_dispatch`) ejecuta el E2E en 4 shards con `--shard` y sube como artefacto `storage/framework/testing/t43/` si falla. Detalle en [`docs/guias/testing.md`](../guias/testing.md).
+- `.github/workflows/ci-failure-notify.yml` abre una issue «CI en rojo en main» cuando `CI` falla en un push a `main` y la cierra al volver a verde.
+- `deploy.sh` se niega a desplegar un commit sin CI verde (`--force-unverified` lo salta de forma explícita).
+
+## Copias de seguridad
+
+Guía completa (configuración, rotación, restauración y `APP_KEY`): [`deploy/backup/README.md`](../../deploy/backup/README.md).
+
+- **Qué se respalda:** `mysqldump` de la BD y `storage/app` (media y adjuntos con disco local), comprimidos y cifrados (AES-256, PBKDF2 600000 iteraciones, con HMAC verificado en la restauración) con una frase guardada fuera del repo. El `.env` y la `APP_KEY` **no** van en el respaldo: guárdalos en un gestor de secretos; sin la misma `APP_KEY`, los tokens y secretos 2FA restaurados son ilegibles.
+- **Destino externo (`BACKUP_DEST`):** ruta montada, `usuario@host:ruta` (rsync) o `rclone:remoto:ruta` (R2/S3). Cron diario del usuario del dominio con `bash deploy/backup/backup.sh`.
+- **Rotación:** 14 días locales (`BACKUP_KEEP_DAYS`); en remoto, regla de ciclo de vida del bucket (el script no borra en remoto).
+- **Restaurar:** `deploy/backup/restore.sh --db … --media …` sobre una BD vacía, con confirmación explícita; ensayado con una BD de prueba (`BackupVerifyTest`). La prueba contra MySQL real y el destino externo siguen pendientes (M-04).
+- **Frescura:** `php artisan app:backup-verify` (exit 1 con más de 26 h, `BACKUP_MAX_AGE_HOURS`) y, con `BACKUP_HEALTH=true`, el check `backup` de `app:health` (solo WARN).
+- `deploy.sh` reutiliza `backup.sh --db-only` antes de `migrate` (ver [Despliegue sin parada larga](../../deploy/hestia/README.md#6-despliegue-repetible-un-comando)).
+
+## Exportación completa de datos (T-84)
+
+Los usuarios descargan un ZIP con sus datos desde **Perfil → Exportar mis datos** ([guía de usuario](../usuario/exportar.md)), con o sin los archivos de media. Operación:
+
+- **Migración:** `2026_11_26_090000_create_full_exports_table` crea `full_exports` (estado, ruta, tamaño, caducidad, error, `include_media`, `heartbeat_at`; índice único `(user_id, in_progress)` que limita a una exportación en curso por usuario). Reversible con `migrate:rollback`.
+- **Cola, conexión y worker propios:** el job `BuildFullExport` corre en la cola `exports` (`EXPORTS_QUEUE`) de la conexión de cola **`exports`** (`EXPORTS_QUEUE_CONNECTION`; `config/queue.php`: driver `database`, misma tabla `jobs`), `tries=1`, con `$timeout` `EXPORTS_TIMEOUT` (3600 s por defecto). Necesita un worker dedicado `queue:work exports --queue=exports`: unidad `deploy/systemd/scheduler-exports.service` (`--timeout=3600 --tries=1`, `TimeoutStopSec=3700`) o, en Hestia, el cron `*/5` con `flock` de [`deploy/hestia/README.md` §5.1-ter](../../deploy/hestia/README.md). Sin ese worker las exportaciones se quedan «en cola» (`exports:prune` las marca en error pasado `EXPORTS_PENDING_MINUTES`).
+- **Plazos encadenados:** el `$timeout` del job manda sobre el `--timeout` del worker, que debe ser igual o mayor, y `retry_after` de **su conexión** (`EXPORTS_QUEUE_RETRY_AFTER`, 3700 s) es siempre mayor: `config/queue.php` lo fija a como mínimo `EXPORTS_TIMEOUT` + 60. **No subas `DB_QUEUE_RETRY_AFTER`**: sigue en 180 s para `publish`/`poll`, de modo que un worker caído (OOM, SIGKILL) no retrasa una publicación programada. `EXPORTS_STUCK_MINUTES` (90) debe ser mayor que `EXPORTS_TIMEOUT`. `app:queue-probe` sondea la cola en su conexión y `/system` la lista; `HEALTH_QUEUE_MAX_AGE_EXPORTS` (4200 s) evita falsos «cola atrasada» mientras una exportación larga ocupa el worker. `deploy.sh` reinicia la unidad `scheduler-exports` con `--no-block` (el reinicio espera hasta `TimeoutStopSec` a que acabe el job en curso y no debe bloquear el despliegue).
+- **ZIP64 y tope:** el escritor (`App\Support\Zip\ZipWriter`, el mismo del PPTX del Estudio) usa ZIP64 solo cuando hace falta (tamaño desconocido o mayor de 4 GiB, o más de 65 535 ficheros) para que las entradas pequeñas las lean también descompresores antiguos, y no necesita `ext-zip`. El único tope es `EXPORTS_MAX_BYTES` (20 GiB). Con media, si los ficheros ya superan el tope falla antes de copiar nada y el aviso ofrece pedir la exportación sin media.
+- **Disco y espacio:** el ZIP se arma en `EXPORTS_TMP_DIR` (`storage/app/exports-tmp`, un `<usuario>-<id>.zip.part` por exportación) y se publica en `full-exports/<usuario>/<id>.zip` del disco privado `EXPORTS_DISK` (`local`; nunca uno con URL pública). Si ambos están en el mismo volumen (lo normal con `local`) se publica con `rename`: atómico y sin segunda copia, así que basta espacio para **un** ZIP; si están en volúmenes distintos se exige espacio en los dos, y si el disco no es local solo en el temporal. La copia anterior del usuario sigue ocupando su sitio hasta que la nueva se publica, y ya está descontada del espacio libre. Antes de empezar se exige el tamaño estimado (ficheros de media, informes, tipografías y exportaciones del Estudio, documentos de diseños y tablas de datos) más `EXPORTS_FREE_SPACE_MARGIN` (256 MiB, para el resto de JSON). Si el espacio no se puede medir, falla de forma cerrada con un error claro: un disco lleno tumbaría también la base de datos. Si aparece «No se pudo comprobar el espacio libre», el PHP del worker no puede llamar a `disk_free_space` o no puede ver el directorio: revisa que la función no esté en `disable_functions` del PHP de consola (`php -i | grep disable_functions`) y que `open_basedir`, si está activo, incluya `storage/` del checkout.
+- **Latido y atascos:** el job escribe `heartbeat_at` cada `EXPORTS_HEARTBEAT_SECONDS` (15 s) y cada MiB copiado; si la fila desaparece o deja de estar en curso, aborta sin publicar. Un timeout o kill ejecuta `failed()`, que borra el temporal y el ZIP parcial.
+- **Limpieza:** `exports:prune` (cada hora, `routes/console.php`; necesita el cron del scheduler) borra los ZIP pasadas `EXPORTS_RETENTION_HOURS` (72 h), los ZIP de `full-exports/` sin fila, los temporales sin tocar en `EXPORTS_STUCK_MINUTES`, y marca en error las exportaciones en curso sin latido en ese plazo y las pendientes que llevan más de `EXPORTS_PENDING_MINUTES` (360) en cola, liberando el cupo. Borrar la cuenta borra también sus ZIP.
+- **Ritmo:** `profile.export.store` (3/min), `profile.export.link` y `profile.export.download` (30/min) en `config/rate_limits.php`.
+
+## Resumen semanal y preferencias de avisos (T-86)
+
+- **Migración:** `2026_11_26_090100_add_notification_preferences_to_users` añade a `users` cuatro columnas (`notify_weekly_digest`, `weekly_digest_ai`, `notify_manual_reminder` y `weekly_digest_sent_for`) y es reversible: ejecuta `php artisan migrate`. Los usuarios existentes conservan el comportamiento anterior (recordatorio de publicación manual encendido, resumen semanal apagado).
+- **Tarea programada:** `send-weekly-digest` (`SendWeeklyDigest`, cada hora, `withoutOverlapping`) necesita el cron del scheduler y un worker de la cola **`reports`**, que ya existe: no hay colas ni workers nuevos. La tarea solo reparte un job `SendUserWeeklyDigest` por usuario en esa misma cola (timeout de 100 s cada uno). Cada usuario recibe como mucho un resumen por semana (marca de envío con claim atómico, que se devuelve si el job falla sin entregar), de modo que varios servidores o reintentos no duplican. Solo lo reciben los usuarios con el correo verificado. Limitación conocida: con varios workers en la misma cola, el `failed()` de un job duplicado podría liberar la semana de otro que ya la reclamó; el despliegue usa un solo worker con `flock`, así que no se da en la práctica.
+- **Correo e IA:** el correo usa el mailer ya configurado y solo se envía a quien tiene `notify_by_mail`; el párrafo de IA reutiliza `AI_ASSISTANT_ENABLED` y `ANTHROPIC_API_KEY` y el límite diario del asistente.
 
 ## Almacenamiento de media
 
@@ -257,6 +355,7 @@ Nunca pongas `MEDIA_DISK=public`: toda la media (también la no publicada y los 
 ### Requisitos con disco local
 
 - **Tamaño de subida.** El fichero pasa por Nginx y PHP-FPM: sube a la vez `client_max_body_size` (Nginx, `nginx-overrides.conf`, 512m) y `upload_max_filesize`/`post_max_size` (PHP del dominio en Hestia, 512M), y `max_execution_time=300` para vídeos grandes.
+- **IA («Adaptar a cada red»).** La petición espera al proveedor dentro de la petición web: Nginx la corta a los 60 s (`fastcgi_read_timeout` por defecto; `nginx-overrides.conf` no lo cambia). Por eso `AI_ASSISTANT_ADAPT_MAX_TIMEOUT` vale 50 s por defecto y la config nunca lo deja pasar de 55; si subes `fastcgi_read_timeout`, sube también ese tope con cuidado.
 - **Cloudflare (plan gratuito) corta las peticiones de más de 100 MB.** Con el proxy activo, un vídeo de más de 100 MB falla al subirlo. Para vídeos mayores: subir sin proxy (nube gris) o pasar a R2, que sube directo sin atravesar Cloudflare.
 - **Cloudflare no debe cachear ni retar `/storage/*`**: Meta y Google descargan la media de ahí. Va en la misma regla de *Bypass* y de omisión del WAF que `/mcp` y `/oauth/*` (ver [Cloudflare delante](#cloudflare-delante)).
 - **Espacio en disco y copias.** La media vive en el VPS: inclúyela en las copias de seguridad de Hestia (`storage/app/private`). `app:media-prune` (cada hora) borra las subidas abandonadas o inválidas.
@@ -284,6 +383,22 @@ Solo aplica con R2 (con disco local las fotos de TikTok no están disponibles, v
 | ngrok en desarrollo | `*`, con `APP_URL=https://<dominio-ngrok>` (si no, `route()` genera `http://` y el redirect OAuth no coincide) |
 
 Con Cloudflare y sin sus rangos, `request()->ip()` sería la IP de Cloudflare: todos los clientes compartirían los límites por IP (login, 2FA, registro de clientes OAuth, `/oauth/token`) y la auditoría guardaría IPs de Cloudflare. Con `*` cualquiera podría falsear su IP con `X-Forwarded-For` si alcanza el servidor sin pasar por Cloudflare. Cloudflare publica cambios en sus rangos muy de vez en cuando: revísalos al renovar el servidor.
+
+## Cabeceras HTTP en producción por HTTPS
+
+Laravel emite `Permissions-Policy` para deshabilitar cámara, micrófono, geolocalización y pagos. Las respuestas con su propia política la conservan. Las cabeceras dependen de la conexión HTTPS efectiva. Si hay terminación TLS en un proxy, configura su dirección de confianza según la sección anterior.
+
+`Permissions-Policy` se aplica desde el primer despliegue por HTTPS en producción. Desactiva cámara, micrófono, geolocalización y pagos. Valida la reproducción multimedia y los iframes admitidos durante M-06.
+
+`SECURITY_CSP_ENABLED=true` y `SECURITY_CSP_REPORT_ONLY=true` son los valores por defecto. En páginas HTML sin CSP propia emiten `Content-Security-Policy-Report-Only`. Con `SECURITY_CSP_REPORT_ONLY=false` se emite `Content-Security-Policy` y el navegador aplica la misma política, con nonce compartido por Vite y Ziggy y con informes activos. Para apagar la CSP de la aplicación y su receptor, usa `SECURITY_CSP_ENABLED=false`. Si antes usabas `SECURITY_CSP_REPORT_ONLY=false` para apagarla, cambia a esta nueva opción. Regenera la caché de configuración al cambiar estos valores. [Nonce de Vite](https://laravel.com/docs/13.x/vite#content-security-policy-csp-nonce) · [CSP3](https://www.w3.org/TR/CSP3/)
+
+`frame-src` permite `'self'` para la vista previa de Sites y `https://docs.google.com` para el iframe de Google Drive Picker. Para Picker, `script-src` permite `https://accounts.google.com/gsi/client` y `https://apis.google.com` (la biblioteca y el módulo que carga). `frame-src` admite también `https://accounts.google.com/gsi/` para Google Identity Services. Las conexiones HTTPS de Picker y GIS están cubiertas por el permiso `https:` que ya tiene `connect-src`. [Google Drive Picker](https://developers.google.com/workspace/drive/picker/guides/web-picker) · [CSP de Google Identity Services](https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid#content_security_policy)
+
+El navegador envía violaciones a `/security/csp-report` mediante `Reporting-Endpoints` o `report-uri`. El receptor registra el nombre de la directiva y el origen o tipo del recurso bloqueado en `security.csp_violation`. El canal propio se rota a diario en `storage/logs/csp-*.log` y conserva 14 días, con nivel independiente del registro general. Su límite es de 16 KiB por petición, 10 informes por lote y 30 peticiones por minuto e IP. El presupuesto conjunto es de 300 peticiones por minuto por caché compartida. Los informes llegan sin autenticación y los recuentos son una muestra. [Reporting API](https://www.w3.org/TR/reporting-1/)
+
+Mantén la observación mientras verificas la navegación, el editor, las fuentes, las vistas públicas, la vista previa de Sites, Drive Picker y las cargas y descargas multimedia. Revisa los informes de los navegadores admitidos y reproduce los avisos sobre funciones necesarias. Identifica los orígenes de almacenamiento y las conexiones del despliegue antes de restringir los permisos generales de HTTPS o modificar los estilos en línea. Valida la política aplicada en un entorno previo y revisa los informes antes de activar `SECURITY_CSP_REPORT_ONLY=false` en producción. Si se bloquea una función necesaria, vuelve a `SECURITY_CSP_REPORT_ONLY=true` y regenera la caché de configuración.
+
+`SECURITY_HSTS_MAX_AGE` se deja sin definir hasta que se confirme TLS en el VPS. Elige un emisor de HSTS para el dominio, el origen o Cloudflare. Evita configurar ambos. Si se activa en la aplicación, empieza con una duración breve y amplíala tras validar el dominio y la renovación del certificado. Regenera la caché de configuración al cambiarla. La aplicación acepta edades enteras de hasta 63.072.000 segundos. La opción afecta al dominio de la aplicación. Para retirar una política HSTS activa, configura `SECURITY_HSTS_MAX_AGE=0`. La aplicación envía `Strict-Transport-Security: max-age=0` por HTTPS y el navegador elimina la política almacenada. [RFC 6797](https://www.rfc-editor.org/rfc/rfc6797)
 
 ## Cloudflare delante
 
@@ -413,6 +528,16 @@ Cada entorno tiene su RP ID y sus passkeys; **no son transferibles entre dominio
 ### Rotar `APP_KEY` (`APP_PREVIOUS_KEYS`)
 
 Los secretos TOTP se guardan cifrados con `APP_KEY`. Si hay que rotarla, **antes** de cambiarla copia la clave actual a `APP_PREVIOUS_KEYS` (separadas por comas si hay varias) y después genera la nueva. Con `APP_PREVIOUS_KEYS` Laravel descifra con las anteriores y cifra con la nueva. Sin esto, los usuarios con doble factor no podrían superar el reto ni desactivarlo. Rotar `APP_KEY` o `PASSKEYS_USER_HANDLE_SECRET` **no** invalida las passkeys ya registradas.
+
+El recifrado abarca los tokens de redes y Canva, la credencial de Bluesky y el secreto TOTP.
+
+1. Antes de la ventana de cambio, crea una copia consistente de la base de datos según la guía de copias y comprueba que se puede restaurar. Conserva las claves vigentes en el gestor de secretos al que tiene acceso el operador.
+2. Usa una ventana de mantenimiento. Pausa los workers y las peticiones que puedan escribir credenciales o actualizar sesiones. El recifrado mantiene bloqueadas las filas revisadas hasta que termina. Configura la nueva clave en `APP_KEY` y conserva la anterior en `APP_PREVIOUS_KEYS`. Regenera la caché con `php artisan config:cache` antes de simular. Reinicia los procesos persistentes según el despliegue al terminar.
+3. Ejecuta `php artisan app:reencrypt --dry-run` desde el directorio de la aplicación. La simulación cuenta filas que aún usan una clave anterior. Si algún campo es ilegible, el mensaje indica la tabla, la columna y el id. Corrige la configuración de claves y repite la simulación.
+4. Ejecuta `php artisan app:reencrypt` y repite la simulación. El recuento final debe ser cero. El comando conserva el cifrado de los campos que ya usan la clave nueva. Si un campo no se puede descifrar, la transacción revierte todos los cambios. Corrige la configuración y repite la simulación antes de ejecutar de nuevo.
+5. Comprueba el acceso con TOTP, una conexión de red y Canva antes de reanudar los procesos. Las claves previas pueden seguir siendo necesarias para cookies, sesiones, datos temporales cifrados y trabajos pendientes en la cola. Retíralas cuando esos datos hayan expirado o hayan terminado los trabajos que las necesitan.
+
+Para volver a la clave anterior después de recifrar, configúrala como principal y conserva la nueva en `APP_PREVIOUS_KEYS`. Simula y ejecuta el comando con esa configuración para recifrar en sentido inverso. Si la base requiere restauración, recupera juntos la copia y el conjunto de claves con el que se hizo. Identifica las escrituras posteriores a la copia antes de restaurar.
 
 ### Un usuario pierde el móvil: `user:two-factor-reset`
 

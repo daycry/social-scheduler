@@ -1,6 +1,7 @@
 <?php
 
 use App\Connectors\Network;
+use App\Models\AuditLog;
 use App\Models\Brand;
 use App\Models\BrandCollaborator;
 use App\Models\Post;
@@ -24,7 +25,7 @@ beforeEach(function () {
     $this->approver = User::factory()->create();
     $this->brand = Brand::factory()->for($this->owner)->create(['timezone' => 'UTC']);
     $this->fb = SocialAccount::factory()->for($this->owner)->create(['brand_id' => $this->brand->id, 'network' => Network::Facebook]);
-    BrandCollaborator::query()->create(['brand_id' => $this->brand->id, 'owner_id' => $this->owner->id, 'user_id' => $this->approver->id, 'role' => 'aprobador']);
+    BrandCollaborator::query()->create(['brand_id' => $this->brand->id, 'owner_id' => $this->owner->id, 'user_id' => $this->approver->id, 'role' => BrandCollaborator::ROLE_APPROVER]);
     $this->ownerKey = $this->mcpKey($this->owner);
     $this->approverKey = $this->mcpKey($this->approver);
 });
@@ -84,6 +85,7 @@ test('un extrano recibe el mismo 404 en los tres canales y el MCP respeta la abi
 
     $this->actingAs($stranger)->postJson(route('workflow.approval.approve', $post->id), ['signature' => wfSig($post)])->assertNotFound();
     wfApi($key, 'POST', "/api/v1/posts/{$post->id}/approval/approve", ['signature' => 'x'])->assertNotFound();
+    expect(AuditLog::where('channel', 'api')->where('action', 'approve_post')->pluck('outcome')->all())->toBe(['denied']);
     [$err, $msg] = $this->callTool($key, 'approve_post', ['post_id' => $post->id, 'signature' => wfSig($post)]);
     [$err2, $msg2] = $this->callTool($key, 'approve_post', ['post_id' => 999999]);
     expect($err)->toBeTrue()->and($msg)->toBe($msg2);
@@ -154,7 +156,7 @@ test('series: crear, ver, editar y cancelar por API y MCP con la misma forma que
     $strip = fn (array $s) => array_diff_key($s, ['id' => 1]);
 
     $w = $this->actingAs($this->owner)->postJson(route('workflow.series.store'), $input)->assertCreated()->json('series');
-    $x = wfApi($this->ownerKey, 'POST', '/api/v1/series', $input)->assertCreated()->json('series');
+    $x = wfApi($this->ownerKey, 'POST', '/api/v1/brands/'.$this->brand->id.'/series', $input)->assertCreated()->json('series');
     [$err, $m] = $this->callTool($this->ownerKey, 'manage_post_series', ['action' => 'create'] + $input);
     expect($err)->toBeFalse();
     $norm = fn (array $s) => array_diff_key($s, ['id' => 1, 'occurrences' => 1]);
@@ -197,7 +199,7 @@ test('la API de posts acepta requires_approval y manual y los devuelve en get_po
     $body = ['text' => 'T', 'schedule' => true, 'scheduled_at' => '2026-11-12T10:00', 'brand_id' => $this->brand->id, 'requires_approval' => true,
         'targets' => [['account_id' => $this->fb->id, 'content_type' => 'facebook_text', 'manual' => true]]];
 
-    $created = wfApi($this->ownerKey, 'POST', '/api/v1/posts', $body)->assertCreated()->json();
+    $created = wfApi($this->ownerKey, 'POST', '/api/v1/brands/'.$this->brand->id.'/posts', $body)->assertCreated()->json();
     expect($created['approval_status'])->toBe('pendiente')->and($created['status'])->toBe('borrador')->and($created['targets'][0]['manual'])->toBeTrue();
 
     [, $got] = $this->callTool($this->ownerKey, 'get_post', ['post_id' => $created['id']]);

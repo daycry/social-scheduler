@@ -1,0 +1,169 @@
+{
+  "model": "claude-opus-5-5",
+  "effort": "high",
+  "packet_sha256": "70136b2f6bc0d403a737fed3ae9159fe8cb0b7f9b59633fe48bf6309c8a5b016",
+  "patch_sha256": "979cba035c8ec6e384dcac0ad7327d84dbff5d3d0ed4bfd59a9ec8d4f9cb8ca0",
+  "source_manifest_sha256": "550cbe4a0718ed0ad7c70d8d81821e5366d506422b008d9c917615dd2b3cb907",
+  "files": [
+    {
+      "path": ".env.example",
+      "sha256": "6f16d3e7e7b9632348b0aed85416b379e52637faa26d282c9aec4f811a0e618e"
+    },
+    {
+      "path": ".env.production.example",
+      "sha256": "7f676b13cdc37d221a9cb6cf7f0e3a1add462803dd4a7ee2c7769424cc0c45f2"
+    },
+    {
+      "path": "CHANGELOG.es.md",
+      "sha256": "55768f36d428b37c7e3b6a7ea143761f00bf2d89b65643e759f93f2c05966dd2"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "69d0f87c687987b7b785aab6aa2b39af30a2a141c22b4f49a52e5f847dbf68f5"
+    },
+    {
+      "path": "app/Console/Commands/ReencryptSecrets.php",
+      "sha256": "cb76ce23b1a8440c6625b9c943869fe60b348ae7bd3ff26662c37c91aedb3011"
+    },
+    {
+      "path": "app/Http/Controllers/PushSubscriptionController.php",
+      "sha256": "d0508de14bd26308f262cf05abcd1e445992a73f3e385a1632a75854ba658041"
+    },
+    {
+      "path": "app/Jobs/SendPushNotification.php",
+      "sha256": "4223eafa7b738c979f09e23804230b8458fc3adea18bacaf6eef2f0dd3945489"
+    },
+    {
+      "path": "app/Listeners/QueuePushNotification.php",
+      "sha256": "0cdb648808f720bd06027fbeeef2dc86cb34970f213228336be73dd1c17e15dc"
+    },
+    {
+      "path": "app/Listeners/RevokePushOnLogout.php",
+      "sha256": "885affafa35e1601c3198b847ac5efdc54d8e6c9b6b6f7288785600d07586e5b"
+    },
+    {
+      "path": "app/Models/PushSubscription.php",
+      "sha256": "c54c7ea5acee7865b7475fca0c08925fb133a3aedee741322a07a672c4f8800d"
+    },
+    {
+      "path": "app/Providers/PushServiceProvider.php",
+      "sha256": "78ac3e7d2d087294aa91c5a21874eafe6c026d1cde462e3eb29a0cc4410cb745"
+    },
+    {
+      "path": "app/Services/Push/PushConfiguration.php",
+      "sha256": "b4d6e9992a72b878b47dab35bfc4e8037c38788f02facf28d799b565aece6635"
+    },
+    {
+      "path": "app/Services/Push/PushHttpClient.php",
+      "sha256": "8fb0294a1ef665fb62f27dfcad722f7d2ca31d2fefd4cb23339fad130267c5c7"
+    },
+    {
+      "path": "app/Services/Push/PushResult.php",
+      "sha256": "00ccd5b235daec5661dafd7a16c3c12c3df123c91d951bb4300251bf869887b0"
+    },
+    {
+      "path": "app/Services/Push/PushSender.php",
+      "sha256": "e03bc9c4181f44756670fe673610be154853cdb4820f0c166623c5613bf86447"
+    },
+    {
+      "path": "app/Services/Push/PushSubscriptions.php",
+      "sha256": "08978920a545696e71475712a87ad1b9be1e5e3760ec857c137158612538d893"
+    },
+    {
+      "path": "app/Services/Push/WebPushSender.php",
+      "sha256": "97ce20760bfc93ce474ff4604e22f7b435dcb61ab2809794ed76ebaa9b5f596b"
+    },
+    {
+      "path": "bootstrap/providers.php",
+      "sha256": "6924a0b60cd5c5317ff48cb3b2fd92cf0781ead780d992953845a4e336d66204"
+    },
+    {
+      "path": "composer.json",
+      "sha256": "ad5f3acfde52b3fbe1addbc3ad7ad3c1df36a989373508fa4cd9adf631839aca"
+    },
+    {
+      "path": "composer.lock",
+      "sha256": "3eb2d6583ac912479c4cf05ffd6c822f460bd0f0c36e547174f6d23c375704f0"
+    },
+    {
+      "path": "config/push.php",
+      "sha256": "aadbd96b06c7398f8623a250b472a09b77718bbe123dd525760b73eec38c8d4d"
+    },
+    {
+      "path": "database/migrations/2026_11_18_093000_create_push_subscriptions_table.php",
+      "sha256": "8842f57878452a6f679a539cc4409c6fa1cf7746722b0cb5e7bdfa612c120594"
+    },
+    {
+      "path": "docs/README.md",
+      "sha256": "b585a1cfad68a44cbbdbb3472ab3cb87fb0b40f920a267f790707ac9ea1e439b"
+    },
+    {
+      "path": "docs/usuario/pwa.md",
+      "sha256": "f3b4debbfe6aec6436bf8a34f032cf47cb7c823a6e34df9c4042b75465b3bc48"
+    },
+    {
+      "path": "public/manifest.webmanifest",
+      "sha256": "7ff0e3364f3b7e8b2741965b7fb578ba609124b795a7a1969d70c6d0e975135f"
+    },
+    {
+      "path": "public/sw.js",
+      "sha256": "4d00009356cb32522b8bbee0ffdcb3078edb2a98f85bd9b5094f7e48b887aa21"
+    },
+    {
+      "path": "resources/js/Layouts/AuthenticatedLayout.vue",
+      "sha256": "f5e41932848a9a148306f3a7392349d9067a0a8ffbd226d980ba3e8f65aa5834"
+    },
+    {
+      "path": "resources/js/Pages/Profile/Notifications.vue",
+      "sha256": "36eaf2b8acfd3603e84e775f96d2a4dbf1cbbac132cb1b577f18cd505144fdf1"
+    },
+    {
+      "path": "resources/js/app.js",
+      "sha256": "c292f27ebf9d72aada9efeb9ece95c902570eac4f2b421c41d7af1106aab67fa"
+    },
+    {
+      "path": "resources/js/lib/push.js",
+      "sha256": "ea1fad9a414ef910632f79f4b87ec2d0ac77f696bec554dbe0bbe4a95c8f9b17"
+    },
+    {
+      "path": "resources/js/types/push.d.ts",
+      "sha256": "fbb431f791b44ef8b096136a7631ed43901b26dd8731ee2ceae5e5e63c3a7e9f"
+    },
+    {
+      "path": "resources/views/app.blade.php",
+      "sha256": "9349a86074da1b3fd86617b30de04c31ddc1f2cadeb158422d6846e97497dd40"
+    },
+    {
+      "path": "routes/web.php",
+      "sha256": "454ee20b0fc925407421ad9714808f4d6138c84f0b25a2d6aad032d612e54bad"
+    },
+    {
+      "path": "tests/Feature/Push/PushSubscriptionTest.php",
+      "sha256": "f2983f645f58c57a1bffda2b067d1630fc939201cb746c5ab1bc7996731bb998"
+    },
+    {
+      "path": "tests/e2e/isolated/FakePushSender.php",
+      "sha256": "fe478f3462e13892c584ea32386b64251cd7e118c6fecbb731d6e929f0e8beb1"
+    },
+    {
+      "path": "tests/e2e/isolated/bootstrap.php",
+      "sha256": "12166a989d4b45c8fef33c038f26cdaee0d5f826ce7d7edf17bbc8b9f6410d74"
+    },
+    {
+      "path": "tests/e2e/push.spec.ts",
+      "sha256": "cd35c1f11c29d2478ca4f4e4fa791f1dbe53c69d2661864dbbbf28451c53cb83"
+    },
+    {
+      "path": "tests/frontend/push-client.test.mjs",
+      "sha256": "1f9f1b9cc141fa166420ca3c76926843e2170b54568db3abad539ba562d62d97"
+    },
+    {
+      "path": "tests/frontend/service-worker.test.mjs",
+      "sha256": "a840a2a1c8abc75ad5bf7583c7629b37e71d6b4b75d1435ad8d666c2422abe27"
+    },
+    {
+      "path": "tsconfig.frontend.json",
+      "sha256": "e8ce12fb87becdc64cd46489a0a19af18f807840e0cc5d80991f35ec17be1dfe"
+    }
+  ]
+}

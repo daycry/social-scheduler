@@ -305,6 +305,6 @@ test('regresion: Threads no cambia el registro de las otras redes', function () 
             ->and($registry->insightsFor($network))->not->toBeNull($network->value)
             ->and($registry->has($network->provider()))->toBeTrue($network->value);
     }
-    expect($registry->providers())->toBe(['meta', 'google', 'tiktok', 'bluesky', 'threads'])
+    expect($registry->providers())->toBe(['meta', 'google', 'tiktok', 'bluesky', 'threads', 'mastodon', 'telegram'])
         ->and($registry->forNetwork(Network::Instagram)->provider())->toBe('meta');
 });

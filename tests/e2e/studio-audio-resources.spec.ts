@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, stamp } from './helpers';
+import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, quietFor, seedComposerBrand, stamp } from './helpers';
 
 function waveBytes() {
     const buffer = Buffer.alloc(44 + 32000);
@@ -11,7 +11,7 @@ function waveBytes() {
     return buffer;
 }
 
-test('Studio audio resources API: private binary upload, byte ranges and native browser playback', async ({ page }, info) => {
+test('Studio audio resources API: private binary upload, byte ranges and native browser playback', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `studio-audio-resource-${stamp()}-${info.project.name}`);
@@ -56,7 +56,7 @@ test('Studio audio resources API: private binary upload, byte ranges and native 
         await expect.poll(() => page.locator('#native-resource-probe').evaluate((element: HTMLAudioElement) => element.currentTime)).toBeGreaterThan(0.05);
         await page.locator('#native-resource-probe').evaluate((element: HTMLAudioElement) => element.pause());
         const paused = await page.locator('#native-resource-probe').evaluate((element: HTMLAudioElement) => element.currentTime);
-        await page.waitForTimeout(100);
+        await quietFor(page, 100); // negativa: en pausa currentTime no avanza
         expect(await page.locator('#native-resource-probe').evaluate((element: HTMLAudioElement) => element.currentTime)).toBeCloseTo(paused, 2);
         const catalogs = await page.evaluate(async brandId => ({
             audio: await (await fetch(`/brands/${brandId}/studio/audio`)).json(),

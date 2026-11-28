@@ -45,12 +45,11 @@ class HashtagStats
         $limit = max(1, (int) config('social.hashtags.limit', 15));
         $days = max(1, (int) config('social.hashtags.days', 365));
 
-        $base = PostTarget::withoutUserScope()
-            ->where('user_id', $user->id)
+        $base = PostTarget::ownedBy($user->id)
             ->where('status', PostStatus::Published->value)
             ->whereNotNull('published_at')
             ->where('published_at', '>=', now()->subDays($days))
-            ->whereIn('post_id', Post::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->select('id'))
+            ->whereIn('post_id', Post::ownedBy($user->id)->where('brand_id', $brand->id)->select('id'))
             ->when($network, fn ($q) => $q->where('network', $network->value));
 
         $targets = (clone $base)->orderBy('id')->get(['id', 'post_id', 'text']);
@@ -114,7 +113,7 @@ class HashtagStats
      */
     private function latestMetrics(User $user, Builder $targetIds): array
     {
-        $newest = PostMetricSnapshot::withoutUserScope()->where('user_id', $user->id)->whereIn('post_target_id', $targetIds)
+        $newest = PostMetricSnapshot::ownedBy($user->id)->whereIn('post_target_id', $targetIds)
             ->groupBy('post_target_id')->selectRaw('post_target_id, MAX(date) as max_date');
 
         $latest = [];

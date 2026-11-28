@@ -18,6 +18,8 @@ enum ContentType: string
     case FacebookPhoto = 'facebook_photo';
     case FacebookVideo = 'facebook_video';
     case FacebookReel = 'facebook_reel';
+    case FacebookPhotos = 'facebook_photos';
+    case FacebookStory = 'facebook_story';
     case YouTubeVideo = 'youtube_video';
     case YouTubeShort = 'youtube_short';
     case TikTokVideo = 'tiktok_video';
@@ -35,18 +37,23 @@ enum ContentType: string
     case PinterestPin = 'pinterest_pin';
     case PinterestCarousel = 'pinterest_carousel';
     case PinterestVideo = 'pinterest_video';
+    case MastodonPost = 'mastodon_post';
+    case TelegramText = 'telegram_text';
+    case TelegramPhoto = 'telegram_photo';
 
     public function network(): Network
     {
         return match ($this) {
             self::InstagramImage, self::InstagramCarousel, self::InstagramReel, self::InstagramStory => Network::Instagram,
-            self::FacebookText, self::FacebookPhoto, self::FacebookVideo, self::FacebookReel => Network::Facebook,
+            self::FacebookText, self::FacebookPhoto, self::FacebookVideo, self::FacebookReel, self::FacebookPhotos, self::FacebookStory => Network::Facebook,
             self::YouTubeVideo, self::YouTubeShort => Network::YouTube,
             self::TikTokVideo, self::TikTokPhoto => Network::TikTok,
             self::BlueskyPost, self::BlueskyVideo => Network::Bluesky,
             self::ThreadsText, self::ThreadsImage, self::ThreadsVideo, self::ThreadsCarousel => Network::Threads,
             self::LinkedInText, self::LinkedInImage, self::LinkedInCarousel, self::LinkedInVideo => Network::LinkedIn,
             self::PinterestPin, self::PinterestCarousel, self::PinterestVideo => Network::Pinterest,
+            self::MastodonPost => Network::Mastodon,
+            self::TelegramText, self::TelegramPhoto => Network::Telegram,
         };
     }
 
@@ -61,6 +68,8 @@ enum ContentType: string
             self::FacebookPhoto => 'Foto',
             self::FacebookVideo => 'Video',
             self::FacebookReel => 'Reel',
+            self::FacebookPhotos => 'Varias fotos',
+            self::FacebookStory => 'Historia',
             self::YouTubeVideo => 'Video',
             self::YouTubeShort => 'Short',
             self::TikTokVideo => 'Video',
@@ -78,6 +87,9 @@ enum ContentType: string
             self::PinterestPin => 'Pin de imagen',
             self::PinterestCarousel => 'Pin de carrusel',
             self::PinterestVideo => 'Pin de vídeo',
+            self::MastodonPost => 'Publicación',
+            self::TelegramText => 'Mensaje de texto',
+            self::TelegramPhoto => 'Foto',
         };
     }
 
@@ -93,6 +105,8 @@ enum ContentType: string
             self::FacebookPhoto => 'Una sola foto',
             self::FacebookVideo => 'Un vídeo en la página',
             self::FacebookReel => 'Vídeo vertical de 3 a 90 segundos',
+            self::FacebookPhotos => 'De 2 a 10 fotos en una sola publicación',
+            self::FacebookStory => 'Una foto o un vídeo vertical, visible 24 horas',
             self::YouTubeVideo => 'Un vídeo en MP4 o MOV',
             self::YouTubeShort => 'Vídeo vertical o cuadrado de hasta 3 minutos',
             self::TikTokVideo => 'Un vídeo de hasta 10 minutos',
@@ -110,6 +124,9 @@ enum ContentType: string
             self::PinterestPin => 'Una imagen en un tablero',
             self::PinterestCarousel => 'De 2 a 5 imágenes en un tablero',
             self::PinterestVideo => 'Un vídeo en un tablero, con portada opcional',
+            self::MastodonPost => 'Texto, con hasta 4 imágenes según tu instancia',
+            self::TelegramText => 'Solo texto, de hasta 4096 caracteres',
+            self::TelegramPhoto => 'Una foto con un pie de hasta 1024 caracteres',
         };
     }
 
@@ -125,6 +142,8 @@ enum ContentType: string
             self::InstagramCarousel => ['El carrusel necesita entre 2 y 10 archivos; todos se recortan a la proporcion del primero.'],
             self::InstagramReel => ['El reel se publica tambien en el feed salvo que lo desactives; el procesamiento del video puede tardar unos minutos.'],
             self::InstagramStory => ['Las historias no admiten texto, enlaces ni stickers desde la API: solo se publica la imagen o el video (maximo 60 s).'],
+            self::FacebookPhotos => ['Entre 2 y 10 fotos (JPEG, PNG o WebP de hasta 10 MB); se suben una a una sin publicar y luego se publican juntas, con el texto y el primer comentario si los hay.'],
+            self::FacebookStory => ['Las historias de una Página no admiten texto, enlaces ni primer comentario desde la API: solo se publica la foto o el vídeo (9:16, hasta 60 s). Duran 24 horas.'],
             self::YouTubeVideo => ['La visibilidad elegida se respeta tal cual. Cada subida gasta ~1.600 de las 10.000 unidades diarias de la API (unas 6 subidas al dia).'],
             self::YouTubeShort => ['Video vertical de hasta 3 minutos; se anade #Shorts a la descripcion. Cada subida gasta ~1.600 de las 10.000 unidades diarias de la API.'],
             self::TikTokVideo, self::TikTokPhoto => ['Sin auditoria de TikTok el contenido se envia como borrador a la bandeja de la app: el usuario termina de publicarlo desde TikTok.'],
@@ -136,6 +155,9 @@ enum ContentType: string
             self::ThreadsCarousel => ['De 2 a 20 elementos, imágenes (JPEG o PNG) o vídeos mezclados. Cuenta como una sola publicación en el límite de 250 al día.'],
             self::LinkedInText, self::LinkedInImage, self::LinkedInCarousel, self::LinkedInVideo => ['Hasta 3000 caracteres. Se publica como perfil personal o como página de empresa según la cuenta conectada; las páginas exigen el permiso de Community Management de LinkedIn.'],
             self::PinterestPin, self::PinterestCarousel, self::PinterestVideo => ['Todo pin necesita un tablero (board_id), descripción de hasta 800 caracteres, título de hasta 100 y enlace de destino opcional. Las apps nuevas de Pinterest empiezan en acceso de prueba (solo sandbox) hasta que Pinterest las aprueba.'],
+            self::MastodonPost => ['El límite de caracteres, el número de imágenes y su peso son los de tu instancia (500 y 4 por defecto). Las imágenes admiten texto alternativo. La visibilidad por defecto es pública.'],
+            self::TelegramText => ['Se publica como texto plano, sin formato, en el canal. El bot debe ser administrador del canal con permiso para publicar.'],
+            self::TelegramPhoto => ['Una sola foto (JPEG o PNG, hasta 10 MB) y el texto va como pie de foto, de hasta 1024 caracteres: si necesitas más texto usa «Mensaje de texto». Telegram no guarda texto alternativo.'],
             default => [],
         };
     }
@@ -143,12 +165,15 @@ enum ContentType: string
     /**
      * Clave de la regla en `config/media_specs.php`.
      *
-     * @param  string|null  $firstMediaKind  'image' | 'video' (solo importa en las historias de Instagram).
+     * @param  string|null  $firstMediaKind  'image' | 'video' (solo importa en las historias de Instagram y Facebook).
      */
     public function specKey(?string $firstMediaKind = null): string
     {
         if ($this === self::InstagramStory) {
             return $firstMediaKind === 'video' ? 'instagram_story_video' : 'instagram_story_image';
+        }
+        if ($this === self::FacebookStory) {
+            return $firstMediaKind === 'video' ? 'facebook_story_video' : 'facebook_story_photo';
         }
 
         return $this->value;
@@ -156,8 +181,8 @@ enum ContentType: string
 
     /**
      * ¿Se ofrece en el compositor? Las fotos de TikTok solo existen por PULL_FROM_URL, que exige un dominio
-     * verificado en TikTok (`social.tiktok.verified_domain`); sin el, el tipo no se ofrece ni se acepta. Los de Bluesky y Threads desaparecen
-     * con `BLUESKY_ENABLED=false` o `THREADS_ENABLED=false` (Threads, ademas, sin `THREADS_APP_ID`).
+     * verificado en TikTok (`social.tiktok.verified_domain`); sin el, el tipo no se ofrece ni se acepta. Los de Bluesky, Mastodon, Telegram y Threads desaparecen
+     * con `BLUESKY_ENABLED=false`, `MASTODON_ENABLED=false`, `TELEGRAM_ENABLED=false` o `THREADS_ENABLED=false` (Threads, ademas, sin `THREADS_APP_ID`).
      */
     public function isOffered(): bool
     {

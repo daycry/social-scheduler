@@ -1,12 +1,15 @@
 <?php
 
+use App\Jobs\Studio\DeleteStudioFontFile;
 use App\Models\Brand;
 use App\Models\MediaAsset;
 use App\Models\Studio\StudioFont;
 use App\Models\User;
 use App\Services\Studio\StudioDocument;
+use App\Services\Studio\StudioFonts;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\McpClient;
 
@@ -55,6 +58,47 @@ function uploadedStudioFont($test): array
 {
     return $test->post($test->fontsUrl, ['file' => studioFontUpload()], ['Accept' => 'application/json'])->assertCreated()->json('font');
 }
+
+test('Studio fonts: deletion waits for the outer transaction and preserves bytes on rollback', function (bool $commit) {
+    $font = uploadedStudioFont($this);
+    $row = StudioFont::query()->findOrFail($font['id']);
+    $disk = Storage::disk($row->disk);
+
+    DB::beginTransaction();
+    try {
+        app(StudioFonts::class)->delete($this->user, $this->brand, $row->id);
+        $this->assertModelMissing($row);
+        $disk->assertExists($row->path);
+    } finally {
+        $commit ? DB::commit() : DB::rollBack();
+    }
+
+    if ($commit) {
+        $disk->assertMissing($row->path);
+    } else {
+        $this->assertModelExists($row);
+        $disk->assertExists($row->path);
+    }
+})->with(['commit' => true, 'rollback' => false]);
+
+test('Studio fonts: storage failure after commit queues cleanup and the delete stays successful', function (bool $throws) {
+    Queue::fake();
+    $font = uploadedStudioFont($this);
+    $row = StudioFont::query()->findOrFail($font['id']);
+    $disk = Storage::disk($row->disk);
+    $unavailable = Mockery::mock($disk);
+    $delete = $unavailable->shouldReceive('delete')->once()->with($row->path);
+    $throws ? $delete->andThrow(new RuntimeException('Storage unavailable')) : $delete->andReturnFalse();
+    Storage::set($row->disk, $unavailable);
+
+    $this->deleteJson($this->fontsUrl.'/'.$row->id)->assertNoContent();
+    $this->assertModelMissing($row);
+    $disk->assertExists($row->path);
+    Queue::assertPushedOn('media', DeleteStudioFontFile::class, fn ($job) => $job->disk === $row->disk && $job->path === $row->path);
+    Storage::set($row->disk, $disk);
+    (new DeleteStudioFontFile($row->disk, $row->path))->handle();
+    $disk->assertMissing($row->path);
+})->with(['throws' => true, 'returns false' => false]);
 
 test('Studio fonts: deleting a brand or owner cascades font references without blocking unrelated brands', function (string $target) {
     $font = uploadedStudioFont($this);

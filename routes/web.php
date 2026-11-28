@@ -1,9 +1,11 @@
 <?php
 
 use App\Connectors\Network;
+use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\ApiKeyController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\CalendarFeedController;
 use App\Http\Controllers\CalendarViewController;
 use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\ConnectionController;
@@ -11,22 +13,33 @@ use App\Http\Controllers\CredentialConnectionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\FirstCommentController;
+use App\Http\Controllers\FullExportController;
+use App\Http\Controllers\GettingStartedController;
 use App\Http\Controllers\GifController;
+use App\Http\Controllers\GoalController;
 use App\Http\Controllers\HashtagController;
 use App\Http\Controllers\InstagramAudioController;
 use App\Http\Controllers\InstagramGridController;
 use App\Http\Controllers\LibraryController;
+use App\Http\Controllers\MarketingDatesController;
 use App\Http\Controllers\Mcp\OAuth\AuthorizeController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\NotificationPreferenceController;
 use App\Http\Controllers\OAuth\OAuthController;
 use App\Http\Controllers\PostController;
+use App\Http\Controllers\PostImportController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReportScheduleController;
 use App\Http\Controllers\ReportTemplateController;
 use App\Http\Controllers\SavedTextController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Studio\StudioExportDownloadController;
+use App\Http\Controllers\Studio\StudioThumbnailController;
+use App\Http\Controllers\SystemStatusController;
+use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -57,21 +70,47 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Conexiones de redes sociales por marca (T-12..T-15).
     Route::get('brands/{brand}/connections', [ConnectionController::class, 'index'])->name('brands.connections.index');
     Route::get('brands/{brand}/accounts/{account}/instagram-audio/{audio?}', InstagramAudioController::class)
-        ->whereNumber('account')->where('audio', '[0-9]{1,40}')->middleware('throttle:30,1')->name('brands.instagram-audio');
+        ->whereNumber('account')->where('audio', '[0-9]{1,40}')->middleware('throttle:brands.instagram-audio')->name('brands.instagram-audio');
     Route::post('brands/{brand}/connections/select', [ConnectionController::class, 'select'])->name('brands.connections.select');
     Route::delete('brands/{brand}/connections/pending', [ConnectionController::class, 'discardPending'])->name('brands.connections.pending.discard');
     Route::delete('brands/{brand}/connections/{account}', [ConnectionController::class, 'destroy'])->name('brands.connections.destroy');
+    Route::post('brands/{brand}/connections/{account}/pinterest-boards', [ConnectionController::class, 'refreshPinterestBoards'])->whereNumber(['brand', 'account'])->middleware('throttle:brands.connections.pinterest-boards.refresh')->name('brands.connections.pinterest-boards.refresh');
     Route::patch('brands/{brand}/connections/{account}/direct-post', [ConnectionController::class, 'directPost'])->name('brands.connections.direct-post');
-    Route::get('brands/{brand}/connections/{account}/tiktok-creator', [ConnectionController::class, 'tiktokCreator'])->middleware('throttle:30,1')->name('brands.connections.tiktok-creator');
+    Route::get('brands/{brand}/connections/{account}/tiktok-creator', [ConnectionController::class, 'tiktokCreator'])->middleware('throttle:brands.connections.tiktok-creator')->name('brands.connections.tiktok-creator');
+    Route::get('brands/{brand}/connections/{account}/places', [ConnectionController::class, 'places'])->whereNumber(['brand', 'account'])->middleware('throttle:brands.connections.places')->name('brands.connections.places');
     // POST (con CSRF): iniciar el OAuth cambia el estado de la sesion y puede reactivar cuentas; un GET
     // forzado desde otra web no debe poder lanzarlo.
     Route::post('brands/{brand}/connections/{provider}/connect', [OAuthController::class, 'redirect'])
         ->whereIn('provider', Network::providers())->name('brands.connections.connect');
     // Conexion con credenciales (Bluesky: handle + app password). Throttle propio: es un formulario con secretos.
     Route::post('brands/{brand}/connections/{provider}/credentials', [CredentialConnectionController::class, 'store'])
-        ->whereIn('provider', Network::providers())->middleware('throttle:10,1')->name('brands.connections.credentials');
+        ->whereIn('provider', Network::providers())->middleware('throttle:brands.connections.credentials')->name('brands.connections.credentials');
     Route::get('connections/{provider}/callback', [OAuthController::class, 'callback'])
         ->whereIn('provider', Network::providers())->name('connections.callback');
+
+    // Búsqueda global de la paleta de comandos (T-85): JSON, solo lo que el usuario puede ver.
+    Route::get('search', SearchController::class)->middleware('throttle:search')->name('search');
+    Route::get('activity', [ActivityController::class, 'index'])->name('activity.index');
+    Route::get('system', SystemStatusController::class)->name('system.index');
+    Route::get('profile/notifications', [PushSubscriptionController::class, 'index'])->name('profile.notifications');
+    Route::patch('profile/notification-preferences', [NotificationPreferenceController::class, 'update'])->middleware('throttle:profile.notification-preferences')->name('profile.notification-preferences');
+    Route::patch('profile/onboarding', [GettingStartedController::class, 'onboarding'])->name('profile.onboarding');
+    Route::post('profile/push-subscriptions', [PushSubscriptionController::class, 'store'])->middleware('throttle:push-settings')->name('profile.push-subscriptions.store');
+    Route::delete('profile/push-subscriptions/{pushSubscription}', [PushSubscriptionController::class, 'destroy'])->middleware('throttle:push-settings')->name('profile.push-subscriptions.destroy');
+    // Exportacion completa de datos en ZIP (T-84): se pide, se genera en cola y se descarga con un enlace firmado (`link` lo genera al pulsar).
+    Route::get('profile/export', [FullExportController::class, 'index'])->name('profile.export');
+    Route::post('profile/export', [FullExportController::class, 'store'])->middleware('throttle:profile.export.store')->name('profile.export.store');
+    Route::get('profile/export/{export}/link', [FullExportController::class, 'link'])->whereNumber('export')->middleware('throttle:profile.export.link')->name('profile.export.link');
+    Route::get('profile/export/{export}/download/{owner}', [FullExportController::class, 'download'])->whereNumber(['export', 'owner'])
+        ->middleware(['signed', 'throttle:profile.export.download'])->name('profile.export.download');
+    Route::get('webhooks', [WebhookController::class, 'index'])->name('webhooks.index');
+    Route::post('brands/{brand}/webhooks', [WebhookController::class, 'store'])->name('brands.webhooks.store')->middleware('throttle:webhook-settings');
+    Route::put('webhooks/{webhook}', [WebhookController::class, 'update'])->name('webhooks.update')->middleware('throttle:webhook-settings');
+    Route::delete('webhooks/{webhook}', [WebhookController::class, 'destroy'])->name('webhooks.destroy')->middleware('throttle:webhook-settings');
+    Route::get('goals', [GoalController::class, 'index'])->name('goals.index');
+    Route::post('brands/{brand}/goals', [GoalController::class, 'store'])->name('brands.goals.store');
+    Route::put('goals/{goal}', [GoalController::class, 'update'])->name('goals.update');
+    Route::delete('goals/{goal}', [GoalController::class, 'destroy'])->name('goals.destroy');
 
     // Avisos in-app (T-25).
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
@@ -82,9 +121,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('calendar', [CalendarController::class, 'index'])->name('calendar.index');
     Route::patch('posts/{post}/reschedule', [CalendarController::class, 'reschedule'])->name('posts.reschedule');
     // Vistas guardadas del calendario (C-03a).
-    Route::post('calendar/views', [CalendarViewController::class, 'store'])->middleware('throttle:60,1')->name('calendar-views.store');
-    Route::put('calendar/views/{view}', [CalendarViewController::class, 'update'])->middleware('throttle:60,1')->whereNumber('view')->name('calendar-views.update');
-    Route::delete('calendar/views/{view}', [CalendarViewController::class, 'destroy'])->middleware('throttle:60,1')->whereNumber('view')->name('calendar-views.destroy');
+    Route::post('calendar/views', [CalendarViewController::class, 'store'])->middleware('throttle:calendar-views.store')->name('calendar-views.store');
+    Route::put('calendar/views/{view}', [CalendarViewController::class, 'update'])->middleware('throttle:calendar-views.update')->whereNumber('view')->name('calendar-views.update');
+    Route::delete('calendar/views/{view}', [CalendarViewController::class, 'destroy'])->middleware('throttle:calendar-views.destroy')->whereNumber('view')->name('calendar-views.destroy');
+    // Feed .ics por usuario y fechas señaladas (T-90).
+    Route::post('calendar/feed', [CalendarFeedController::class, 'store'])->middleware('throttle:calendar-feed.store')->name('calendar.feed.store');
+    Route::delete('calendar/feed', [CalendarFeedController::class, 'destroy'])->middleware('throttle:calendar-feed.destroy')->name('calendar.feed.destroy');
+    Route::patch('calendar/marketing-dates', [MarketingDatesController::class, 'update'])->middleware('throttle:calendar.marketing-dates')->name('calendar.marketing-dates.update');
     // Cuadricula de Instagram (C-02): solo lectura; lo publicado se lee en vivo de Graph con cache de 10 min.
     Route::get('instagram/grid', [InstagramGridController::class, 'index'])->name('instagram.grid');
 
@@ -92,28 +135,34 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('brands/{brand}/posts/create', [PostController::class, 'create'])->name('brands.posts.create');
     Route::post('brands/{brand}/posts', [PostController::class, 'store'])->middleware('throttle:publish-now')->name('brands.posts.store');
     Route::post('brands/{brand}/posts/validate', [PostController::class, 'validatePost'])->name('brands.posts.validate');
-    Route::get('brands/{brand}/hashtags', [HashtagController::class, 'index'])->middleware('throttle:60,1')->name('brands.hashtags');
+    // Importacion masiva por CSV (T-83): vista previa sin crear nada y confirmacion de un solo uso.
+    Route::get('brands/{brand}/posts/import', [PostImportController::class, 'show'])->name('brands.posts.import.show');
+    Route::get('brands/{brand}/posts/import/sample', [PostImportController::class, 'sample'])->name('brands.posts.import.sample');
+    Route::post('brands/{brand}/posts/import/preview', [PostImportController::class, 'preview'])->middleware('throttle:brands.posts.import.preview')->name('brands.posts.import.preview');
+    Route::post('brands/{brand}/posts/import/confirm', [PostImportController::class, 'confirm'])->middleware('throttle:brands.posts.import.confirm')->name('brands.posts.import.confirm');
+    Route::get('brands/{brand}/hashtags', [HashtagController::class, 'index'])->middleware('throttle:brands.hashtags')->name('brands.hashtags');
     // «Guardar en biblioteca» con el contenido actual del compositor (sin post guardado, CA-26).
     Route::post('brands/{brand}/library', [LibraryController::class, 'storeFromComposer'])->name('brands.library.store');
     Route::get('posts/{post}/edit', [PostController::class, 'edit'])->name('posts.edit');
+    Route::post('posts/{post}/duplicate', [PostController::class, 'duplicate'])->name('posts.duplicate');
     Route::put('posts/{post}', [PostController::class, 'update'])->middleware('throttle:publish-now')->name('posts.update');
     Route::patch('posts/{post}/notes', [PostController::class, 'updateNotes'])->name('posts.notes');
     Route::patch('posts/{post}/campaign', [PostController::class, 'updateCampaign'])->name('posts.campaign');
     Route::delete('posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
     // Primer comentario (C-01b): editar el texto de un comentario `fallido` y reintentarlo. Solo web; el MCP no lo expone.
-    Route::patch('posts/{post}/targets/{target}/first-comment', [FirstCommentController::class, 'update'])->middleware('throttle:30,1')->name('posts.first-comment.update');
-    Route::post('posts/{post}/targets/{target}/first-comment/retry', [FirstCommentController::class, 'retry'])->middleware('throttle:30,1')->name('posts.first-comment.retry');
-    Route::post('posts/{post}/targets/{target}/first-comment/published', [FirstCommentController::class, 'markPublished'])->middleware('throttle:30,1')->name('posts.first-comment.published');
+    Route::patch('posts/{post}/targets/{target}/first-comment', [FirstCommentController::class, 'update'])->middleware('throttle:posts.first-comment.update')->name('posts.first-comment.update');
+    Route::post('posts/{post}/targets/{target}/first-comment/retry', [FirstCommentController::class, 'retry'])->middleware('throttle:posts.first-comment.retry')->name('posts.first-comment.retry');
+    Route::post('posts/{post}/targets/{target}/first-comment/published', [FirstCommentController::class, 'markPublished'])->middleware('throttle:posts.first-comment.published')->name('posts.first-comment.published');
     // «Publicar ahora» fuera del compositor (calendario y lista): misma validacion y mismas defensas que el compositor.
     Route::post('posts/{post}/publish-now', [PostController::class, 'publishNow'])->middleware('throttle:publish-now')->name('posts.publish-now');
 
     // Informes PDF/CSV (T-40). `link` genera un enlace firmado nuevo al pulsar Descargar (no caduca en pantalla);
     // la descarga en si (`reports.download`, mas abajo) va solo con firma, sin sesion.
     // Exportaciones CSV sincronas (C-03c): analitica de una marca o de todas.
-    Route::get('export/analytics.csv', [ExportController::class, 'analytics'])->middleware('throttle:30,1')->name('exports.analytics');
-    Route::get('export/posts.csv', [ExportController::class, 'posts'])->middleware('throttle:30,1')->name('exports.posts');
+    Route::get('export/analytics.csv', [ExportController::class, 'analytics'])->middleware('throttle:exports.analytics')->name('exports.analytics');
+    Route::get('export/posts.csv', [ExportController::class, 'posts'])->middleware('throttle:exports.posts')->name('exports.posts');
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
-    Route::post('reports', [ReportController::class, 'store'])->middleware('throttle:10,1')->name('reports.store');
+    Route::post('reports', [ReportController::class, 'store'])->middleware('throttle:reports.store')->name('reports.store');
     Route::post('reports/preview', [ReportController::class, 'preview'])->middleware('throttle:report-builder')->name('reports.preview');
     // Constructor (T-21): plantillas por marca y envios programados por email. `throttle` acota altas/cambios de destinatarios.
     Route::post('report-templates', [ReportTemplateController::class, 'store'])->middleware('throttle:report-builder')->name('report-templates.store');
@@ -152,21 +201,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('media', [MediaController::class, 'index'])->name('media.index');
     Route::post('media', [MediaController::class, 'store'])->name('media.store');
     // Importacion remota (C-04a). `import-url` antes que `{asset}` para que no lo capture el comodin.
-    Route::post('media/import-url', [MediaController::class, 'importUrl'])->middleware('throttle:10,1')->name('media.import-url');
+    Route::post('media/import-url', [MediaController::class, 'importUrl'])->middleware('throttle:media.import-url')->name('media.import-url');
     Route::get('gifs', [GifController::class, 'search'])->middleware('throttle:giphy')->name('gifs.search');
-    Route::post('media/import-gif', [GifController::class, 'import'])->middleware('throttle:10,1')->name('media.import-gif');
-    Route::post('media/import-drive', [MediaController::class, 'importDrive'])->middleware('throttle:10,1')->name('media.import-drive');
+    Route::post('media/import-gif', [GifController::class, 'import'])->middleware('throttle:media.import-gif')->name('media.import-gif');
+    Route::post('media/import-drive', [MediaController::class, 'importDrive'])->middleware('throttle:media.import-drive')->name('media.import-drive');
     Route::get('media/{asset}', [MediaController::class, 'show'])->whereNumber('asset')->name('media.show');
     Route::put('media/{asset}/upload', [MediaController::class, 'upload'])->name('media.upload');
     Route::post('media/{asset}/complete', [MediaController::class, 'complete'])->name('media.complete');
     Route::delete('media/{asset}', [MediaController::class, 'destroy'])->name('media.destroy');
     Route::get('media/{asset}/file', [MediaController::class, 'file'])->name('media.file');
+    Route::get('media/{asset}/download', [MediaController::class, 'download'])->name('media.download');
 });
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::patch('/profile/theme', [ProfileController::class, 'updateTheme'])->name('profile.theme');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::patch('/profile/shortcuts', [GettingStartedController::class, 'shortcuts'])->name('profile.shortcuts');
 });
 
 require __DIR__.'/auth.php';
@@ -176,11 +228,16 @@ require __DIR__.'/auth.php';
 // Baja de informes programados: el GET solo confirma (sin efectos); el POST firmado (RFC 8058 one-click) da de baja y
 // esta fuera de CSRF en bootstrap/app.php. Misma URL firmada para ambos.
 Route::get('report-schedules/{schedule}/unsubscribe', [ReportScheduleController::class, 'confirmUnsubscribe'])
-    ->middleware(['signed', 'throttle:30,1'])->whereNumber('schedule')->name('report-schedules.unsubscribe.confirm');
+    ->middleware(['signed', 'throttle:report-schedules.unsubscribe.confirm'])->whereNumber('schedule')->name('report-schedules.unsubscribe.confirm');
 Route::post('report-schedules/{schedule}/unsubscribe', [ReportScheduleController::class, 'unsubscribe'])
-    ->middleware(['signed', 'throttle:30,1'])->whereNumber('schedule')->name('report-schedules.unsubscribe');
+    ->middleware(['signed', 'throttle:report-schedules.unsubscribe'])->whereNumber('schedule')->name('report-schedules.unsubscribe');
+// Baja del resumen semanal (T-86): mismo patron firmado y de un clic (GET confirma sin efectos, POST firmado desactiva).
+Route::get('digest/{user}/unsubscribe', [NotificationPreferenceController::class, 'confirmUnsubscribe'])
+    ->middleware(['signed', 'throttle:digest.unsubscribe.confirm'])->whereNumber('user')->name('digest.unsubscribe.confirm');
+Route::post('digest/{user}/unsubscribe', [NotificationPreferenceController::class, 'unsubscribe'])
+    ->middleware(['signed', 'throttle:digest.unsubscribe'])->whereNumber('user')->name('digest.unsubscribe');
 Route::get('reports/{report}/download/{owner}', [ReportController::class, 'download'])
-    ->middleware(['signed', 'throttle:30,1'])->whereNumber(['report', 'owner'])->name('reports.download');
+    ->middleware(['signed', 'throttle:reports.download'])->whereNumber(['report', 'owner'])->name('reports.download');
 
 require __DIR__.'/parity.php';
 require __DIR__.'/sites.php';
@@ -188,5 +245,7 @@ require __DIR__.'/canva.php';
 require __DIR__.'/studio.php';
 require __DIR__.'/post-workflow.php';
 
+Route::get('studio/thumbnails/{design}/{owner}', StudioThumbnailController::class)
+    ->whereNumber(['design', 'owner'])->middleware(['signed', 'throttle:studio.thumbnails'])->name('studio.designs.thumbnail');
 Route::get('studio/downloads/{export}/{owner}', StudioExportDownloadController::class)
-    ->whereNumber(['export', 'owner'])->middleware(['signed', 'throttle:60,1'])->name('studio.exports.download');
+    ->whereNumber(['export', 'owner'])->middleware(['signed', 'throttle:studio.exports.download'])->name('studio.exports.download');

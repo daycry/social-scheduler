@@ -60,10 +60,10 @@ Pruebas con cuentas, claves, el VPS y juicio del usuario de la iniciativa [creat
 | CS-M-02 | **Smoke real de LinkedIn** ([guía](../guias/linkedin-pinterest.md)). Registrar la app (Share on LinkedIn y Sign In with LinkedIn using OpenID Connect; Community Management API para páginas), OAuth con perfil y con una página, publicar texto, imagen, varias imágenes y vídeo, primer comentario; probar `LINKEDIN_COMMUNITY_MANAGEMENT` y `LINKEDIN_R_MEMBER_SOCIAL` solo si LinkedIn los aprobó | Publicaciones visibles en LinkedIn; la versión `LINKEDIN_API_VERSION` sigue vigente; sin los interruptores el perfil sigue publicando | T-18 |
 | CS-M-03 | **Smoke real de Pinterest** ([guía](../guias/linkedin-pinterest.md)). Registrar la app (acceso de prueba hasta su aprobación), OAuth, publicar un pin de imagen, un carrusel y un vídeo con portada en un tablero real | Pines en el tablero elegido; sin tablero la app rechaza el destino antes de publicar | T-18 |
 | CS-M-04 | **IA del estudio con proveedores reales** ([módulo](../modulos/estudio-ia.md)). Con `OPENAI_API_KEY` y `GEMINI_API_KEY`: generar, rellenar una zona con máscara, ampliar el lienzo y crear variaciones con los modelos por defecto `gpt-image-2.5-sunburst` y `gemini-nano-banana-2.1`; probar cuota agotada, clave inválida y descripción rechazada; con `ANTHROPIC_API_KEY`, titulares, relleno de plantilla y texto alternativo | Imágenes guardadas en los recursos de la marca; mensajes de cuota y error claros; un 429 transitorio se reintenta sin duplicar cuota | T-14 |
-| CS-M-05 | **Opciones de Instagram**: publicar con `location_id` y con `user_tags` (solo imagen) en una cuenta real | La ubicación y las etiquetas aparecen en la publicación; el error de un id inválido es legible | T-18 |
+| CS-M-05 | **Opciones de Instagram y Facebook**: publicar con `location_id` y con `user_tags` (solo imagen) en una cuenta real, con el lugar elegido en la búsqueda de Meta (si la app la tiene) o con el id pegado; publicar en Facebook con `place`; vídeo de LinkedIn con portada | La ubicación y las etiquetas aparecen en la publicación; el error de un id inválido es legible; la portada sale en LinkedIn | T-18, T-34 |
 | CS-M-06 | **Inbox de Threads, YouTube y Bluesky** ([inbox](../modulos/inbox.md)): reconectar para conceder `threads_read_replies`/`threads_manage_replies` y `youtube.force-ssl`, sincronizar y responder desde la app en cada red | Los comentarios se leen y la respuesta aparece en la red; el consumo de cupo de YouTube es el esperado | T-20 |
 | CS-M-07 | **Worker `studio` en el VPS** ([despliegue](../modulos/despliegue.md#worker-de-la-cola-studio-mp4-y-gif)): instalar `deploy/systemd/scheduler-studio.service` (cgroupv2 con `Delegate=yes`), Node nativo, FFmpeg/ffprobe y Chromium de Playwright; exportar un MP4 y un GIF reales y comprobar la recuperación tras matar el worker | `systemd-analyze verify` sin errores; el MP4/GIF llega a la biblioteca; el límite de memoria corta el árbol completo | T-07, T-11 |
-| CS-M-08 | **Render del estudio, quitar fondo y fuentes en el VPS**: Chromium de Playwright, Python con el modelo `birefnet-general-lite.onnx` y las tipografías de marca en el servidor | Exportación PNG/PDF y quitar fondo reales; las fuentes subidas se ven en el render | T-07, T-10 |
+| CS-M-08 | **Render del estudio, quitar fondo y fuentes en el VPS**: Chromium de Playwright, Python con el modelo `isnet-general-use.onnx` y las tipografías de marca en el servidor | Exportación PNG/PDF y quitar fondo reales; las fuentes subidas se ven en el render | T-07, T-10 |
 
 Despliegue de esta iniciativa: ver [despliegue](../modulos/despliegue.md) (redirect URIs nuevas, colas `media` y `studio`, requisitos de runtime) y las variables nuevas en [configuración](configuracion.md).
 
@@ -96,3 +96,30 @@ Playwright está instalado. Los doce E2E originales, tres bloques API y cuatro g
 ## Decisiones de producto por confirmar
 
 Listadas en [configuración](configuracion.md#resumen-de-decisiones-por-confirmar): `PUBLISH_QUOTA_POLICY`, `max_lateness_hours`, `PUBLISH_RECONNECT_GRACE_HOURS` (72 h), `META_OAUTH_METHOD` y borrador de TikTok = publicada con nota. El diseño y las secciones del informe están aprobados por el usuario desde el 2026-10-31 y T-41 está completada. T-12 sigue `en-progreso` por M-02 y T-37 por la parte de datos reales de M-03.
+
+## Verificación en MySQL de T-06 (referencias de media con FK)
+
+> **Verificado 2026-11-13 en MySQL 8.4.3 (Laragon):** las 29 migraciones pendientes se aplicaron sobre la base de desarrollo real (con copia previa en `storage/backups/`), incluidas `create_post_target_media_tables` y `add_network_to_competitors`; y en una base vacía de prueba `laravel_migtest` las 6 últimas bajaron con `migrate:rollback --step=6` y volvieron a subir sin errores (índice de 253 caracteres y orden de únicos correctos). Queda solo repetirlo en el VPS de producción.
+
+
+| Pendiente | Detalle |
+|---|---|
+| Probar la migración `2026_12_18_090000_create_post_target_media_tables` en MySQL 8 | Revisada a mano (nombres de índice y FK por debajo de 64 caracteres, tipos de FK iguales, `dropColumn` de una columna JSON sin índice, `down()` reconstruye el JSON) pero no ejecutada: aquí no hay MySQL. Ejecutar `migrate`, `migrate:rollback --step=1` y `migrate` sobre una copia de la base de datos; revisar el log por «Migracion post_target_media» (destinos marcados fallidos por media inexistente) |
+| Borrar una cuenta con media por destino, series y autolistas | Comprobar en InnoDB que `ProfileController::destroy` no choca con las FK `restrict` (la purga previa está en `User::deleting`) |
+
+## Copias de seguridad, GitHub y despliegue (audit-hardening T-09..T-11)
+
+| Pendiente | Detalle |
+|---|---|
+| Probar `backup.sh` y `restore.sh` contra MySQL/MariaDB real y un destino externo | Solo se ensayaron con un `mysqldump` falso. En el VPS: crear `~/.backup-passphrase`, elegir `BACKUP_DEST` (R2/S3/rsync), programar el cron, restaurar en una BD vacía de prueba y comprobar `php artisan app:backup-verify`. Guía: [`deploy/backup/README.md`](../../deploy/backup/README.md) |
+| Guardar `APP_KEY` y la frase de cifrado en un gestor de secretos | Sin ellos una restauración deja ilegibles tokens y 2FA |
+| Ejecutar `deploy/github/protect-main.sh` (T-10) | Requiere ser admin del repo; no se ha ejecutado. Comprobar después con `gh api repos/:owner/:repo/branches/main/protection` |
+| Probar `deploy/hestia/deploy.sh` y `rollback` en el VPS (T-11) | Solo se probó `--dry-run` y el orden de pasos; un despliegue real y un rollback reales son del usuario. Necesita `gh` autenticado en el servidor (o `--force-unverified`) |
+
+## Verificación real de T-24 y T-25 (competidores y primer comentario)
+
+| Pendiente | Detalle |
+|---|---|
+| Probar la migración `2026_12_20_090000_add_network_to_competitors` en MySQL 8 | Sube y baja con `php artisan migrate` / `migrate:rollback --step=1` sobre una base con competidores. El orden crea el único `(brand_id, network, username)` antes de borrar el antiguo `(brand_id, username)` (el error 1553 salta si se borra el único que sostiene la FK de `brand_id`); el test solo comprueba el orden. Comprobar también que el índice con `username` de 253 caracteres cabe (utf8mb4) |
+| Smoke de competidores de Bluesky y YouTube | Seguir un handle real de Bluesky y un canal real de YouTube; ver snapshots, publicaciones destacadas y el gasto de cuota (`SOCIAL_COMPETITORS_YOUTUBE_UNITS`) |
+| Smoke del primer comentario en Threads y Bluesky | Publicar con primer comentario en ambas redes; comprobar que no se duplica en un reintento y que el hilo muestra enlaces y menciones |

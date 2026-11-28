@@ -17,10 +17,10 @@ Los pasos marcados **[VPS]** requieren acceso SSH/root y se ejecutan a mano una 
 ## 2. Dominio, BD y TLS [VPS]
 
 ```bash
-# Dominio con plantilla PHP-FPM (docroot -> public/)
+# Dominio con plantilla Nginx + PHP-FPM (el docroot se fija en 2.1 tras clonar)
 v-add-web-domain <USUARIO> <DOMINIO>
 v-add-letsencrypt-domain <USUARIO> <DOMINIO>        # TLS Let's Encrypt
-v-change-web-domain-tpl <USUARIO> <DOMINIO> laravel  # plantilla Laravel (si no existe, ver 2.1)
+v-change-web-domain-tpl <USUARIO> <DOMINIO> laravel  # plantilla Laravel de 2.1
 v-change-web-domain-proxy-tpl <USUARIO> <DOMINIO> default
 v-add-database <USUARIO> scheduler scheduler <PASSWORD>   # crea <USUARIO>_scheduler
 v-add-web-domain-redirect <USUARIO> <DOMINIO> https://<DOMINIO> 301   # opcional: forzar HTTPS
@@ -28,9 +28,17 @@ v-add-web-domain-redirect <USUARIO> <DOMINIO> https://<DOMINIO> 301   # opcional
 
 ### 2.1 Plantilla Laravel
 
-Hestia (>= 1.8) incluye la plantilla `laravel` (docroot `public/`). Si la version instalada no la trae, usar
-`default` y fijar el docroot en `public_html` apuntando al directorio `public/` de la app:
-clonar la app en `/home/<USUARIO>/web/<DOMINIO>/app` y enlazar `public_html -> app/public`.
+La raíz del checkout es `/home/<USUARIO>/web/<DOMINIO>/app`. Artisan y el despliegue se ejecutan desde ese directorio. La plantilla Nginx `laravel.tpl` y su variante HTTPS `laravel.stpl` deben usar las variables de docroot de Hestia (`%docroot%` y `%sdocroot%`, respectivamente). Si falta la plantilla Laravel, copia el par `default.tpl` y `default.stpl` de `/usr/local/hestia/data/templates/web/nginx/php-fpm/` con los nombres `laravel.tpl` y `laravel.stpl` y añade `try_files $uri $uri/ /index.php?$query_string;` a `location /` en ambas. [Plantillas web de Hestia](https://hestiacp.com/docs/server-administration/web-templates)
+
+Tras clonar en `app/` (paso 4), ejecuta como root con el usuario y dominio reales:
+
+```bash
+/usr/local/hestia/bin/v-change-web-domain-docroot "<USUARIO>" "<DOMINIO>" "<DOMINIO>" ../app/public
+```
+
+Hestia resuelve `../app/public` desde `public_html` del mismo dominio y reconstruye su configuración. Si el pool PHP-FPM aplica `open_basedir`, incluye la raíz `/home/<USUARIO>/web/<DOMINIO>/app/` en las rutas permitidas de una plantilla de backend específica del dominio para que `index.php` pueda cargar `vendor/` y escribir en `storage/`. Conserva las demás rutas permitidas y selecciona la plantilla con `v-change-web-domain-backend-tpl`. [Comando de docroot de Hestia](https://github.com/hestiacp/hestiacp/blob/main/bin/v-change-web-domain-docroot)
+
+**M-06, pendiente de verificar en el VPS.** Comprueba con `nginx -T` que la raíz de los bloques del dominio apunta a `app/public/` y que FastCGI ejecuta el `index.php` de ese directorio. Comprueba el `open_basedir` efectivo del pool, una petición HTTPS a `/up` y la ruta que contiene `artisan` antes de programar el cron. En un VPS existente, verifica esas rutas antes de adaptar los ejemplos a su checkout real.
 
 ## 3. Ajustes de Nginx / PHP-FPM versionados [VPS]
 
@@ -57,7 +65,7 @@ El scheduler (`schedule:run`, cada minuto) solo **encola** el trabajo; los **wor
 
 ### 5.1 Opción A: desde el panel de Hestia (cron), la de este despliegue
 
-En **Hestia → usuario → CRON → Añadir tarea**, cuatro tareas. `<USUARIO>`/`<DOMINIO>` son los del dominio (aquí `webmaster` y `social-scheduler.daycry.ovh`) y la app está en `public_html`. Usa la ruta completa de PHP que te dé `which php` en tu sesión (aquí `/usr/bin/php`): así el cron usa el mismo PHP que tú.
+En **Hestia → usuario → CRON → Añadir tarea**, configura cinco tareas e instala la unidad systemd de `studio` (ver 5.1-bis). `<USUARIO>` y `<DOMINIO>` son los del dominio y los cron se ejecutan desde `app/`. Usa la ruta completa de PHP que te dé `which php` en tu sesión.
 
 **Antes de crear los workers: `pcntl` en el PHP de consola.** `queue:work` usa `pcntl_signal` para cortar un job colgado (`--timeout`) y pararse limpio. Hestia lo deja en `disable_functions`, y el worker falla con `Call to undefined function Illuminate\Queue\pcntl_signal()`. Se habilita **solo en el PHP de consola** (`cli`), no en el de la web (PHP-FPM), como root:
 
@@ -75,21 +83,25 @@ Repite el `sed` si una actualización de PHP o de Hestia restaura el `php.ini`.
 | 2 | **Worker de publicación**: colas `publish` y `poll` | `*` | `*` | `*` | `*` | `*` |
 | 3 | **Worker de métricas e informes**: colas `metrics` y `reports` | `*/5` | `*` | `*` | `*` | `*` |
 | 4 | **Worker de importación de media**: cola `media` (descargas desde URL o Drive) | `*` | `*` | `*` | `*` | `*` |
+| 5 | **Worker de IA, imágenes y render estático del Estudio**: cola `studio-render` | `*` | `*` | `*` | `*` | `*` |
 
 Comandos (uno por tarea, en una sola línea):
 
 ```text
 # 1. Scheduler
-cd /home/<USUARIO>/web/<DOMINIO>/public_html && /usr/bin/php artisan schedule:run >> /home/<USUARIO>/tmp/ss-schedule.log 2>&1
+cd /home/<USUARIO>/web/<DOMINIO>/app && /usr/bin/php artisan schedule:run >> /home/<USUARIO>/tmp/ss-schedule.log 2>&1
 
 # 2. Worker de publicación
-cd /home/<USUARIO>/web/<DOMINIO>/public_html && flock -n /home/<USUARIO>/tmp/ss-publish.lock /usr/bin/php artisan queue:work database --queue=publish,poll --stop-when-empty --max-time=55 --timeout=120 --tries=3 >> /home/<USUARIO>/tmp/ss-publish.log 2>&1
+cd /home/<USUARIO>/web/<DOMINIO>/app && flock -n /home/<USUARIO>/tmp/ss-publish.lock /usr/bin/php artisan queue:work database --queue=publish,poll --stop-when-empty --max-time=55 --timeout=120 --tries=3 >> /home/<USUARIO>/tmp/ss-publish.log 2>&1
 
 # 3. Worker de métricas e informes
-cd /home/<USUARIO>/web/<DOMINIO>/public_html && flock -n /home/<USUARIO>/tmp/ss-metrics.lock /usr/bin/php artisan queue:work database --queue=metrics,reports --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /home/<USUARIO>/tmp/ss-metrics.log 2>&1
+cd /home/<USUARIO>/web/<DOMINIO>/app && flock -n /home/<USUARIO>/tmp/ss-metrics.lock /usr/bin/php artisan queue:work database --queue=metrics,reports --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /home/<USUARIO>/tmp/ss-metrics.log 2>&1
 
 # 4. Worker de importación de media (URL y Drive)
-cd /home/<USUARIO>/web/<DOMINIO>/public_html && flock -n /home/<USUARIO>/tmp/ss-media.lock /usr/bin/php artisan queue:work database --queue=media --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /home/<USUARIO>/tmp/ss-media.log 2>&1
+cd /home/<USUARIO>/web/<DOMINIO>/app && flock -n /home/<USUARIO>/tmp/ss-media.lock /usr/bin/php artisan queue:work database --queue=media --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /home/<USUARIO>/tmp/ss-media.log 2>&1
+
+# 5. Worker de IA, imágenes y render estático del Estudio
+cd /home/<USUARIO>/web/<DOMINIO>/app && flock -n /home/<USUARIO>/tmp/ss-studio-render.lock /usr/bin/php artisan queue:work database --queue=studio-render --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /home/<USUARIO>/tmp/ss-studio-render.log 2>&1
 ```
 
 Qué hace cada opción:
@@ -101,13 +113,46 @@ Qué hace cada opción:
 | `--max-time=55` / `280` | Se corta antes del siguiente arranque del cron (1 min / 5 min). El de `media` va cada minuto con `280` y el `flock` evita el solape |
 | `--timeout=120 --tries=3` | Igual que los workers de systemd: un job colgado se corta a los 120 s y se reintenta hasta 3 veces |
 
+### 5.1-bis Worker de la cola `studio` (MP4/GIF y miniaturas)
+
+La unidad `scheduler-studio` es necesaria con la configuración por defecto para MP4/GIF, miniaturas y la sonda que `app:queue-probe` encola cada 15 minutos. Instálala como root junto a los cron anteriores. El supervisor audiovisual requiere cgroupv2, `Delegate=yes` y `MemoryMax=3G`.
+
+```bash
+sudo cp deploy/systemd/scheduler-studio.service /etc/systemd/system/
+# Ajustar User=, Group=, WorkingDirectory=, ReadWritePaths= y PHP_BIN a los reales del dominio (ver deploy/systemd/README.md)
+sudo systemctl daemon-reload && sudo systemctl enable --now scheduler-studio
+```
+
+La unidad ejecuta `php artisan queue:work database --queue=studio --sleep=1 --tries=1 --timeout=120 --max-time=3600 --max-jobs=500`. Para reiniciarla en cada despliegue usa `WORKER_UNITS="scheduler-studio" bash deploy/hestia/deploy.sh`.
+
+Si omites la unidad, quita `studio` de `QUEUE_NAMES` y fija `STUDIO_THUMBNAILS=false`. Así dejan de encolarse sondas y miniaturas para `studio`. Las exportaciones MP4/GIF que se soliciten quedarán en cola, y los trabajos de `studio` que ya estén pendientes seguirán sin procesarse y podrán generar avisos de salud.
+
+El cron 2 atiende `publish,poll`, el 3 atiende `metrics,reports`, el 4 atiende `media` y el 5 atiende `studio-render`. La unidad `scheduler-studio` atiende `studio`.
+
+### 5.1-ter Worker de la cola `exports` (exportación de datos en ZIP)
+
+La exportación completa de datos (T-84) usa la cola `exports`, con jobs de hasta `EXPORTS_TIMEOUT` (3600 s). Dos formas de atenderla:
+
+```bash
+# systemd (recomendado): unidad dedicada, un job a la vez
+sudo cp deploy/systemd/scheduler-exports.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now scheduler-exports
+```
+
+```cron
+# Cron de Hestia (alternativa): cada 5 minutos, un solo worker gracias a flock
+*/5 * * * * cd /home/<USUARIO>/web/<DOMINIO>/app && flock -n /home/<USUARIO>/tmp/ss-exports.lock /usr/bin/php artisan queue:work exports --queue=exports --stop-when-empty --max-time=3600 --timeout=3600 --tries=1 >> /home/<USUARIO>/tmp/ss-exports.log 2>&1
+```
+
+El worker usa la **conexión propia `exports`** (`config/queue.php`: misma tabla `jobs`, `retry_after` `EXPORTS_QUEUE_RETRY_AFTER` = 3700 s, nunca menor que `EXPORTS_TIMEOUT` + 60). El `$timeout` del job manda sobre el `--timeout` del worker, que debe ser igual o mayor. **No subas `DB_QUEUE_RETRY_AFTER`**: sigue en 180 s para `publish`/`poll`, así que un worker caído no retrasa una publicación. `deploy.sh` reinicia `scheduler-exports` con `--no-block` para que el despliegue no espere a que acabe una exportación en curso.
+
 Latencia máxima: una publicación sale con hasta 1 minuto de retraso y las métricas o informes, con hasta 5. Para uso personal es suficiente.
 
-Al actualizar no hay que tocar las tareas: `deploy.sh` ejecuta `queue:restart` y el siguiente arranque del cron ya usa el código nuevo (no hace falta `WORKER_UNITS`).
+Antes de desplegar el cambio de cola, activa el cron 5 o la unidad `scheduler-worker@studio-render` y añade `studio-render` a `QUEUE_NAMES` si lo defines en `.env`. Mantén activos los workers anteriores para consumir los trabajos ya encolados en `media` o `studio`. `deploy.sh` ejecuta `queue:restart` y el próximo arranque carga el código nuevo. Usa `WORKER_UNITS` para las unidades systemd que tengas instaladas.
 
 ### 5.2 Opción B: systemd (procesos siempre vivos)
 
-Requiere root. Sustituye a las tareas 2 y 3 (la 1, el scheduler, se mantiene). Ver `deploy/systemd/README.md`; si la app está en `public_html` y no en `app`, corrige `WorkingDirectory` y `ReadWritePaths` de la unidad.
+Requiere root y sustituye a las tareas 2 a 5. Mantén el scheduler y la unidad `scheduler-studio` según 5.1-bis. Usa solo uno de los dos métodos para `studio-render` para evitar procesos de imagen simultáneos. Ver `deploy/systemd/README.md`. Si el checkout está en otra ruta, ajusta `WorkingDirectory` y `ReadWritePaths` a la raíz real de la aplicación.
 
 ### 5.3 Comprobar que los workers procesan
 
@@ -128,16 +173,16 @@ Si la analítica sale «no disponible» tras conectar una cuenta, ver `docs/modu
 
 ### 5.4 Si algo no se ejecuta
 
-Los comandos escriben su salida en `~/tmp` del usuario (`ss-schedule.log`, `ss-publish.log`, `ss-metrics.log`, `ss-media.log`): lo primero es mirarla.
+Consulta los logs en `~/tmp` del usuario (`ss-schedule.log`, `ss-publish.log`, `ss-metrics.log`, `ss-media.log` y `ss-studio-render.log`).
 
 | Síntoma | Causa | Solución |
 |---|---|---|
-| `app:health`: `scheduler FAIL sin latido` | `schedule:run` no se ha ejecutado en los últimos 10 min (el latido caduca a los 600 s) | `tail ~/tmp/ss-schedule.log`: debe verse `Running [health-heartbeat] … DONE` cada minuto. Un `schedule:run` a mano solo lo arregla 10 minutos |
+| `app:health` indica `sin latido` o muestra un latido atrasado | El chequeo falla si el latido falta o tiene más de 180 s. La clave de caché expira a los 600 s. | Ejecuta `tail -n 50 ~/tmp/ss-schedule.log` y comprueba que `health-heartbeat` se ejecuta cada minuto. Un `schedule:run` manual refresca el latido durante unos tres minutos. |
 | `~/tmp/ss-schedule.log` no existe | El cron no ejecuta la tarea | Como root: `systemctl status cron`, `crontab -u <USUARIO> -l`, `journalctl -u cron --since "-10 min"`; si no aparece, `v-rebuild-cron-jobs <USUARIO>` y `systemctl restart cron`. Comprueba que la tarea no está suspendida (`v-list-cron-jobs <USUARIO>`) |
-| Error de PHP o versión incorrecta en el log | El cron usa otro PHP | Ruta completa del binario (`which php` en tu sesión) en las cuatro tareas |
+| Error de PHP o versión incorrecta en el log | El cron usa otro PHP | Ruta completa del binario (`which php` en tu sesión) en las cinco tareas |
 | `Call to undefined function … pcntl_signal()` | `pcntl` desactivado en el PHP de consola | Ver «Antes de crear los workers» arriba |
 | Publicaciones que salen con minutos de retraso y `dispatch-due-posts` no aparece cada minuto en el log | Bloqueo de solapamiento enganchado (p. ej. tras lanzar `schedule:run` a mano a la vez que el cron) | `php artisan schedule:clear-cache` y no lanzar `schedule:run` a mano con el cron activo |
-| La cola tiene pendientes que no bajan | El worker de esa cola no corre | `tail ~/tmp/ss-publish.log`, `ss-metrics.log` o `ss-media.log`; procesarla a mano con `php artisan queue:work database --queue=<cola> --stop-when-empty --tries=3 --timeout=120` |
+| La cola tiene pendientes que no bajan | El worker de esa cola no corre | `tail ~/tmp/ss-publish.log`, `ss-metrics.log`, `ss-media.log` o `ss-studio-render.log` (para `studio`: `journalctl -u scheduler-studio`); procesarla a mano con `php artisan queue:work database --queue=<cola> --stop-when-empty --tries=3 --timeout=120` |
 
 ## 5 bis. Primer usuario [VPS]
 
@@ -175,15 +220,25 @@ Para cambiar la contraseña más tarde, desde **Perfil**. Si se pierde, repite e
 
 ```bash
 bash deploy/hestia/deploy.sh --dry-run   # lista los pasos sin ejecutar nada
-bash deploy/hestia/deploy.sh             # despliega: pull, composer, migrate, caches, queue:restart, health
-WORKER_UNITS="scheduler-worker@publish scheduler-worker@poll" bash deploy/hestia/deploy.sh   # ademas reinicia los workers systemd
+BACKUP_PASSFILE=$HOME/.backup-passphrase bash deploy/hestia/deploy.sh   # despliega
+WORKER_UNITS="scheduler-worker@publish scheduler-worker@poll scheduler-worker@media scheduler-studio" BACKUP_PASSFILE=... bash deploy/hestia/deploy.sh   # ademas reinicia los workers systemd
+bash deploy/hestia/deploy.sh rollback    # vuelve a la revision anterior (ensayable con --dry-run)
 ```
 
-Orden: `artisan down` -> fetch/pull -> composer -> `npm ci && npm run build` (gate: existe `public/build/manifest.json`) -> migrate -> caches
--> `queue:restart` -> `up` -> reinicio de `WORKER_UNITS` -> smoke (`manifest.json` + `app:health --skip-scheduler`).
-- Si algo falla **antes** de cambiar el codigo, la app se vuelve a levantar; si falla **despues**, se queda en mantenimiento (no se sirve codigo nuevo con
-  vendor o esquema a medias) y el script indica como volver a la revision anterior. En ambos casos se ejecuta `queue:restart`.
-- Un job fallido historico **no** rompe el deploy: `app:health` solo falla si algo esta caido (BD, cola, disco); los fallidos recientes salen como AVISO.
+Orden (la app solo esta en mantenimiento entre `down` y `up`):
+`fetch` -> **comprobar CI** (`gh`: el check `tests` del commit a desplegar debe estar en verde) -> **compilar en una carpeta aparte**
+(`git archive` + `composer install --no-scripts` + `npm ci && npm run build`; gate: `manifest.json`) -> `artisan down` -> **volcado de la BD**
+(`deploy/backup/backup.sh --db-only`, cifrado) -> `git merge --ff-only` y cambio de `vendor` y `public/build` (dos `mv`, segundos) -> `package:discover` ->
+`migrate` -> caches -> `queue:restart` -> `up` -> reinicio de `WORKER_UNITS` -> smoke (`manifest.json` + `app:health --skip-scheduler`).
+
+- **CI en verde:** el script se niega a desplegar un commit sin el check `tests` en verde (`CI_CHECK` lo cambia). `--force-unverified` lo salta de forma explicita (urgencias, o sin `gh` en el servidor; `gh auth login` una vez).
+- **Copia previa:** exige `BACKUP_PASSFILE` (ver [`deploy/backup/README.md`](../backup/README.md)); `SKIP_BACKUP=1` solo para un primer despliegue sin datos.
+- Si algo falla **antes** de cambiar el codigo (CI, build, volcado), la app no cambia y, si ya estaba en mantenimiento, se vuelve a levantar. Si falla **despues**, se queda en mantenimiento y el script indica `rollback`.
+- **Vuelta atras (`deploy.sh rollback`):** mantenimiento escribiendo `storage/framework/down` directamente (no arranca Laravel: funciona aunque la version rota no arranque) -> `git reset --keep <revision anterior>` (guardada en `storage/logs/.deploy/last-deploy`) -> restaura el `vendor` y `public/build` anteriores (`storage/logs/.deploy/previous`) -> caches -> `queue:restart` -> `up`. **La BD no se revierte sola**: si el despliegue anadio migraciones incompatibles, restaura el volcado previo (`restore.sh`, BD vacia o `--force`; se pierde lo escrito desde el despliegue) o escribe una migracion correctiva. Solo hay una version anterior guardada: tras un despliegue **completado** ya no se puede volver al anterior a ese. Si un despliegue falla y lo reejecutas, el punto de vuelta original (`prev_rev`, vendor y build previos) se conserva: `last-deploy` marca `status=incomplete` hasta que termina bien, y el rollback vuelve a la version de antes del primer intento.
+- **Rollback a una versión anterior a T-108:** con la aplicación en mantenimiento, revierte primero `2026_11_17_185100_separate_media_and_design_ai_abilities.php` mientras siga disponible en el código desplegado. El [procedimiento de permisos](../../docs/modulos/despliegue.md#despliegue-sin-parada-larga) explica cómo revertir esa migración en el último lote antes de ejecutar el rollback de código.
+- **`bootstrap/cache`:** el build usa `composer --no-scripts` (se salta `clearCompiled`), asi que antes de `package:discover` (en el despliegue y en el rollback) se borra `bootstrap/cache/*.php`; si no, un provider quitado o anadido haria reventar el descubrimiento.
+- Alternativa si el modo in situ resulta insuficiente: releases con symlink atomico (`releases/<sha>` + `current`), no implementada.
+- Un job fallido historico **no** rompe el despliegue: `app:health` solo falla si algo esta caido (BD, cola, disco); los fallidos recientes salen como AVISO.
 - `PHP_BIN` (p. ej. `PHP_BIN=php8.4`) fija el PHP CLI y debe coincidir con `Environment=PHP_BIN=` de la unidad systemd.
 
 ## 7. Verificacion manual (M-04) [VPS]
@@ -204,5 +259,5 @@ php artisan app:health                         # BD, cola, disco
 
 | Elemento | Estado |
 |---|---|
-| `deploy.sh --dry-run` | verificado en local |
+| `deploy.sh --dry-run`, orden de pasos y rollback en seco | verificado en local (`DeployScriptTest`); despliegue y rollback reales, pendientes en el VPS |
 | Dominio/TLS/BD/cron/Nginx en Hestia | pendiente: requiere el VPS (M-04) |

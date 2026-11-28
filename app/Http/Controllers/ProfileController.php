@@ -5,12 +5,14 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Auth\SocialLoginController;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Services\TwoFactor\TotpService;
+use App\Support\EncryptedHistory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,7 +21,7 @@ class ProfileController extends Controller
     /**
      * Display the user's profile form.
      */
-    public function edit(Request $request): Response
+    public function edit(Request $request, TotpService $totp): Response
     {
         $user = $request->user();
         $pending = $user->two_factor_secret !== null && ! $user->hasTwoFactorEnabled();
@@ -32,9 +34,7 @@ class ProfileController extends Controller
         // El historial del navegador guarda las props cifradas (secreto QR / codigos). El cifrado usa crypto.subtle, que
         // solo existe en contexto seguro: en http (salvo localhost) Inertia no podria escribir el historial y la pagina
         // se quedaria colgada, asi que alli no se activa (y entonces no hay secreto que proteger en transito tampoco).
-        if ($request->secure() || in_array($request->getHost(), ['localhost', '127.0.0.1', '[::1]'], true)) {
-            Inertia::encryptHistory();
-        }
+        EncryptedHistory::enable($request);
 
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
@@ -50,7 +50,7 @@ class ProfileController extends Controller
             // Activacion a medias: el secreto sale del propio usuario (cifrado en BD), nunca de un flash de sesion.
             'twoFactorSetup' => $revealSetup ? [
                 'secret' => $user->two_factor_secret,
-                'qrSvg' => app(TotpService::class)->qrSvg($user, $user->two_factor_secret),
+                'qrSvg' => $totp->qrSvg($user, $user->two_factor_secret),
             ] : null,
             // Los codigos en claro viajan una sola vez (flash).
             'recoveryCodes' => session('recoveryCodes'),
@@ -95,6 +95,14 @@ class ProfileController extends Controller
         $request->user()->save();
 
         return Redirect::route('profile.edit');
+    }
+
+    public function updateTheme(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['theme' => ['required', 'string', Rule::in(['system', 'light', 'dark'])]]);
+        $request->user()->forceFill($data)->save();
+
+        return back()->with('success', 'Tema guardado.');
     }
 
     /**

@@ -25,7 +25,7 @@ test.afterEach(async ({}, info) => {
 const row = (page: import('@playwright/test').Page, text: string) => page.locator('li').filter({ hasText: text }).first();
 const rows = (page: import('@playwright/test').Page) => page.getByTestId('select-comment');
 
-test('E2E-20a · cobertura por red, filtro por red y por estado', async ({ page }) => {
+test('E2E-20a · cobertura por red, filtro por red y por estado', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/inbox?brand_id=${brand.id}`);
     await settle(page);
@@ -33,6 +33,8 @@ test('E2E-20a · cobertura por red, filtro por red y por estado', async ({ page 
     await expect(page.getByTestId('coverage-tiktok')).toContainText('No disponible');
     await expect(page.getByTestId('coverage-tiktok')).toContainText('API pública');
     await expect(page.getByTestId('coverage-threads')).toContainText('Leer y responder');
+    await expect(page.getByTestId('coverage-linkedin')).toContainText('Community Management');
+    await expect(page.getByTestId('coverage-pinterest')).toContainText('No disponible');
     await expect(page.getByTestId('coverage-instagram')).toContainText('mensajes directos');
     await expectNoOverflow(page);
     await axeSeriousCritical(page, 'Inbox ampliado (inicio)');
@@ -57,10 +59,17 @@ test('E2E-20a · cobertura por red, filtro por red y por estado', async ({ page 
     await expect(rows(page)).toHaveCount(3);
     await expectNoOverflow(page);
     await axeSeriousCritical(page, 'Inbox ampliado (estado)');
+
+    await page.goto(`/inbox?brand_id=${brand.id}&hidden=1`);
+    const hidden = page.getByRole('checkbox', { name: 'Solo ocultos' });
+    await expect(hidden).toBeChecked();
+    await expect(rows(page)).toHaveCount(0);
+    await hidden.uncheck();
+    await expect(rows(page)).toHaveCount(4);
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-20b · etiquetas, asignación y filtros', async ({ page }) => {
+test('E2E-20b · etiquetas, asignación y filtros', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/inbox?brand_id=${brand.id}`);
     await settle(page);
@@ -98,7 +107,7 @@ test('E2E-20b · etiquetas, asignación y filtros', async ({ page }) => {
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-20c · lote (leer y cerrar) y respuestas guardadas', async ({ page }) => {
+test('E2E-20c · lote (leer y cerrar) y respuestas guardadas', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/inbox?brand_id=${brand.id}`);
     await settle(page);
@@ -135,6 +144,7 @@ test('E2E-20c · lote (leer y cerrar) y respuestas guardadas', async ({ page }) 
     await axeSeriousCritical(page, 'Inbox ampliado (respuesta guardada)');
 
     await page.getByRole('button', { name: /Eliminar la respuesta guardada Gracias/ }).click();
+    await page.getByTestId('confirm-dialog').getByRole('button', { name: 'Eliminar respuesta' }).click();
     await settle(page);
     await expect(page.getByTestId('saved-item')).toHaveCount(0);
     expect(w.errors, w.errors.join('\n')).toEqual([]);

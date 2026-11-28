@@ -4,14 +4,17 @@ namespace App\Services\Studio;
 
 use App\Models\Brand;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Validation\ValidationException;
 
 final class StudioCharts
 {
+    public function __construct(private readonly StudioDatasetActions $actions, private readonly StudioDatasets $datasets) {}
+
     /** Validation-local metadata and selections; never retain private tables on the service. */
     public function validate(User $user, Brand $brand, array $document): void
     {
-        abort_unless((int) $brand->user_id === (int) $user->id, 404);
+        Ownership::assert($brand, $user);
         $references = [];
         $pages = [];
         $walk = function (array $elements, int $page, string $path) use (&$walk, &$references, &$pages): void {
@@ -39,10 +42,9 @@ final class StudioCharts
         }
         self::check(count($references) <= 32, 'document', 'Demasiadas referencias de datos.');
         $bytes = 0;
-        $actions = app(StudioDatasetActions::class);
         foreach ($references as &$entry) {
             $ref = $entry['ref'];
-            $metadata = $actions->authorizedRevisionInfo((int) $user->id, (int) $brand->id, $ref['id'], $ref['revision']);
+            $metadata = $this->actions->authorizedRevisionInfo((int) $user->id, (int) $brand->id, $ref['id'], $ref['revision']);
             self::check(hash_equals($metadata['sha256'], $ref['sha256']), 'document', 'La huella de la revisión no coincide.');
             $entry['rows'] = (int) $metadata['row_count'];
             $bytes += (int) $metadata['json_bytes'];
@@ -62,7 +64,7 @@ final class StudioCharts
         self::check($total <= 200000, 'document', 'El documento supera el presupuesto de gráficos.');
         foreach ($references as $entry) {
             $ref = $entry['ref'];
-            $table = app(StudioDatasets::class)->read((int) $user->id, (int) $brand->id, $ref['id'], $ref['revision']);
+            $table = $this->datasets->read((int) $user->id, (int) $brand->id, $ref['id'], $ref['revision']);
             foreach ($entry['selections'] as [$spec, $path]) {
                 $this->selection($table, $spec, $path);
             }

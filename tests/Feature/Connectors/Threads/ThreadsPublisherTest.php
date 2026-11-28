@@ -12,6 +12,7 @@ use App\Enums\ContentType;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Tests\Support\FixtureRecorder;
 use Tests\Support\ThreadsFake;
 
 const TH_UID = ThreadsFake::USER_ID;
@@ -93,7 +94,8 @@ test('texto: crea el contenedor TEXT, comprueba el estado y publica con threads_
     expect($create->data())->toMatchArray(['media_type' => 'TEXT', 'text' => 'Hola Threads', 'access_token' => 'TH-LONG-TOKEN']);
     expect(thSent('POST', '/threads_publish')[0]->data())->toMatchArray(['creation_id' => 'CONT1', 'access_token' => 'TH-LONG-TOKEN']);
     expect(thCheckpoints()[0]['reference'])->toBe('CONT1');
-});
+    FixtureRecorder::assertRecorded('threads/success');
+})->group('provider-contracts');
 
 test('el token no viaja en la URL de los POST', function () {
     thFakeText();
@@ -271,13 +273,20 @@ test('credencial revocada: pide reconectar; 5xx, red y limite de uso: transitori
 
     expect(fn () => $this->publisher->publish($this->account, thRequest(ContentType::ThreadsText, 'x')))->toThrow($exception);
 })->with([
-    'token invalido' => [['error' => ['message' => 'Invalid OAuth access token', 'type' => 'OAuthException', 'code' => 190]], 400, ReconnectRequiredException::class],
     'servidor caido' => [['error' => ['message' => 'boom', 'code' => 2]], 503, TransientPublishException::class],
     'limite de uso' => [['error' => ['message' => 'limite', 'code' => 4]], 400, TransientPublishException::class],
     'demasiadas peticiones' => [['error' => ['message' => 'slow down', 'code' => 0]], 429, TransientPublishException::class],
     'permisos' => [['error' => ['message' => '(#200) Permissions error', 'code' => 200]], 403, PermanentPublishException::class],
     'contenido rechazado' => [['error' => ['message' => 'The text is too long', 'code' => 100]], 400, PermanentPublishException::class],
 ]);
+
+test('contrato de error de threads', function () {
+    Http::fake(['graph.threads.com/v1.0/'.TH_UID.'/threads' => Http::response(['error' => ['message' => 'Invalid OAuth access token', 'type' => 'OAuthException', 'code' => 190]], 400)]);
+
+    expect(fn () => $this->publisher->publish($this->account, thRequest(ContentType::ThreadsText, 'x')))->toThrow(ReconnectRequiredException::class);
+
+    FixtureRecorder::assertRecorded('threads/error');
+})->group('provider-contracts');
 
 test('un corte de red al crear el contenedor es transitorio', function () {
     Http::fake(['graph.threads.com/*' => fn () => throw new ConnectionException('timeout')]);

@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 
 /**
  * Endpoint para el healthcheck externo (UptimeRobot, Healthchecks.io, cron remoto).
- * Fuera del grupo `web` (sin sesion) y con rate limit. Requiere el token en la cabecera X-Health-Token; sin HEALTHCHECK_TOKEN configurado esta cerrado.
+ * Fuera del grupo `web` (sin sesion) y con rate limit. `?strict=1` endurece el contrato (503 con avisos). Requiere el token en la cabecera X-Health-Token; sin HEALTHCHECK_TOKEN configurado esta cerrado.
  */
 class HealthController extends Controller
 {
@@ -20,7 +20,13 @@ class HealthController extends Controller
             abort(404);
         }
 
-        $result = $health->run();
+        $result = $health->run(false, true);
+
+        // `?strict=1`: cualquier aviso (jobs fallidos recientes, cola atrasada, snapshots viejos, binario ausente...) tambien da 503.
+        if ($request->boolean('strict') && $result['status'] !== 'ok') {
+            $result['ok'] = false;
+            $result['strict'] = true;
+        }
 
         return response()->json($result, $result['ok'] ? 200 : 503);
     }

@@ -9,9 +9,9 @@ use App\Services\AggregateAnalytics;
 use App\Services\AnalyticsService;
 use App\Support\CurrentBrand;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use InvalidArgumentException;
 
 /**
  * Dashboards de analitica por marca (T-37): Summary (tarjetas con total y desglose por red + linea temporal) y
@@ -30,7 +30,7 @@ class DashboardController extends Controller
             'brands' => $brands,
             'brand' => $brand ? ['id' => $brand->id, 'name' => $brand->name] : null,
             'filters' => $filters,
-            'summary' => $brand ? $this->analytics->summary($request->user(), $brand, $period, $compare) : null,
+            'summary' => $brand ? $this->analytics->summary($request->user(), $brand, $period, $compare, cacheSnapshots: true) : null,
         ]);
     }
 
@@ -38,25 +38,18 @@ class DashboardController extends Controller
     public function allBrands(Request $request): Response
     {
         $data = $request->validate([
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d'],
             'compare' => ['nullable', 'in:'.implode(',', Period::COMPARE_MODES)],
         ]);
 
-        try {
-            // Sin marca no hay zona: los dias son dias UTC, como los snapshots.
-            $period = Period::make($data['from'] ?? null, $data['to'] ?? null);
-        } catch (InvalidArgumentException $e) {
-            abort(422, $e->getMessage());
-        }
-
         $mode = $data['compare'] ?? 'none';
+        // Sin marca no hay zona: los días son UTC, como los snapshots.
+        [$period, $compare] = $this->period($request, null, $mode);
         $brands = CurrentBrand::brands($request);
 
         return Inertia::render('Dashboard/AllBrands', [
             'brands' => $brands->map(fn (Brand $b) => ['id' => $b->id, 'name' => $b->name])->all(),
             'filters' => ['brand_id' => null, 'from' => $period->toArray()['from'], 'to' => $period->toArray()['to'], 'compare' => $mode],
-            'summary' => $brands->isEmpty() ? null : $this->aggregate->summary($request->user(), $period, $period->comparison($mode)),
+            'summary' => $brands->isEmpty() ? null : $this->aggregate->summary($request->user(), $period, $compare),
         ]);
     }
 
@@ -67,10 +60,10 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard/Network', [
             'brands' => $brands,
-            'brand' => $brand ? ['id' => $brand->id, 'name' => $brand->name] : null,
+            'brand' => $brand?->only(['id', 'name', 'timezone']),
             'filters' => $filters,
             'networks' => $brand ? $this->analytics->connectedNetworks($request->user(), $brand) : [],
-            'detail' => $brand ? $this->analytics->network($request->user(), $brand, $net, $period, $compare) : null,
+            'detail' => $brand ? $this->analytics->network($request->user(), $brand, $net, $period, $compare, cacheSnapshots: true) : null,
         ]);
     }
 
@@ -79,8 +72,6 @@ class DashboardController extends Controller
     {
         $data = $request->validate([
             'brand_id' => ['nullable', 'integer'],
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d'],
             'compare' => ['nullable', 'in:'.implode(',', Period::COMPARE_MODES)],
         ]);
 
@@ -88,20 +79,30 @@ class DashboardController extends Controller
         $all = CurrentBrand::brands($request);
         $brand = ! empty($data['brand_id']) ? ($all->firstWhere('id', (int) $data['brand_id']) ?? abort(404)) : CurrentBrand::resolve($request);
 
-        try {
-            $period = Period::make($data['from'] ?? null, $data['to'] ?? null, $brand?->timezone);
-        } catch (InvalidArgumentException $e) {
-            abort(422, $e->getMessage());
-        }
-
         $mode = $data['compare'] ?? 'none';
+        [$period, $compare] = $this->period($request, $brand?->timezone, $mode);
 
         return [
             $all->map(fn (Brand $b) => ['id' => $b->id, 'name' => $b->name])->all(),
             $brand,
             $period,
-            $period->comparison($mode),
+            $compare,
             ['brand_id' => $brand?->id, 'from' => $period->toArray()['from'], 'to' => $period->toArray()['to'], 'compare' => $mode],
         ];
+    }
+
+    /** @return array{0: Period, 1: ?Period} */
+    private function period(Request $request, ?string $timezone, string $mode): array
+    {
+        try {
+            $period = Period::fromInput($request->only(['from', 'to']), $timezone);
+
+            return [$period, $period->inputComparison($mode)];
+        } catch (ValidationException $error) {
+            if ($request->expectsJson() || $request->header('X-Inertia')) {
+                throw $error;
+            }
+            abort(422, $error->getMessage());
+        }
     }
 }

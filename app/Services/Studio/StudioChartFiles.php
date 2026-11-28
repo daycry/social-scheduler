@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\Studio\StudioDataset;
 use App\Models\Studio\StudioDatasetRevision;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
 
@@ -13,7 +14,7 @@ final class StudioChartFiles
 {
     public function materialize(User $user, Brand $brand, array $document, string $directory): array
     {
-        abort_unless(Brand::withoutUserScope()->where('user_id', $user->id)->whereKey($brand->id)->exists(), 404);
+        Ownership::ensure(Brand::ownedBy($user->id)->whereKey($brand->id)->exists());
         abort_unless(preg_match('~^studio-exports/'.(int) $user->id.'/[1-9][0-9]*/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$~D', $directory), 422);
         $refs = [];
         $walk = function (array $elements) use (&$walk, &$refs): void {
@@ -37,9 +38,9 @@ final class StudioChartFiles
             return [];
         }
         $ids = array_unique(array_column($refs, 'id'));
-        $owned = StudioDataset::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->whereIn('id', $ids)->pluck('id')->all();
-        abort_unless(count($owned) === count($ids), 404);
-        $revisions = StudioDatasetRevision::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->whereIn('dataset_id', $ids)->whereIn('revision', array_unique(array_column($refs, 'revision')))->get()->keyBy(fn ($r) => $r->dataset_id.':'.$r->revision);
+        $owned = StudioDataset::ownedBy($user->id)->where('brand_id', $brand->id)->whereIn('id', $ids)->pluck('id')->all();
+        Ownership::ensure(count($owned) === count($ids));
+        $revisions = StudioDatasetRevision::ownedBy($user->id)->where('brand_id', $brand->id)->whereIn('dataset_id', $ids)->whereIn('revision', array_unique(array_column($refs, 'revision')))->get()->keyBy(fn ($r) => $r->dataset_id.':'.$r->revision);
         $selected = [];
         $total = 0;
         foreach ($refs as $ref) {

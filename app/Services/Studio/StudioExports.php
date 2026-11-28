@@ -11,6 +11,7 @@ use App\Models\Studio\DesignExport;
 use App\Models\Studio\DesignRevision;
 use App\Models\User;
 use App\Services\PostService;
+use App\Support\Ownership;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +24,13 @@ class StudioExports
 {
     private const PUBLIC_COLUMNS = ['id', 'user_id', 'brand_id', 'design_id', 'revision', 'format', 'pages', 'media_ids', 'options', 'status', 'error', 'disk', 'path', 'render_progress', 'created_at', 'updated_at'];
 
-    public function __construct(private readonly StudioService $studio, private readonly StudioAssets $assets, private readonly PostService $posts) {}
+    public function __construct(
+        private readonly StudioService $studio,
+        private readonly StudioAssets $assets,
+        private readonly PostService $posts,
+        private readonly StudioPostMedia $postMedia,
+        private readonly StudioFrames $frames,
+    ) {}
 
     /** Register files already processed by MediaUploadService; a browser declaration alone cannot mark a new asset ready. */
     public function register(User $user, Design $design, array $data): DesignExport
@@ -44,7 +51,7 @@ class StudioExports
         if (! array_is_list($pages) || ! array_is_list($ids) || count($pages) !== count($ids) || array_diff($pages, $pageIds) !== []) {
             throw ValidationException::withMessages(['pages' => ['Selecciona páginas existentes y un archivo por página, en el mismo orden.']]);
         }
-        $frameTimes = app(StudioFrames::class)->validate($revision->document, $pages, $data['frame_times'] ?? []);
+        $frameTimes = $this->frames->validate($revision->document, $pages, $data['frame_times'] ?? []);
         $frameOptions = array_key_exists('frame_times', $data) ? ['frame_times' => $frameTimes] : [];
         $scale = (float) ($data['scale'] ?? 1);
         $width = (int) round($revision->document['width'] * $scale);
@@ -53,14 +60,14 @@ class StudioExports
             throw ValidationException::withMessages(['scale' => ['La exportación supera el tamaño seguro de 64 megapíxeles y 16000 píxeles por lado.']]);
         }
         $mime = ['png' => 'image/png', 'jpeg' => 'image/jpeg', 'webp' => 'image/webp'][$data['format']];
-        $media = MediaAsset::withoutUserScope()->where('user_id', $user->id)->whereIn('id', $ids)->get()->keyBy('id');
+        $media = MediaAsset::ownedBy($user->id)->whereIn('id', $ids)->get()->keyBy('id');
         foreach ($ids as $id) {
             $asset = $media->get($id);
             if (! $asset || ! $asset->isReady() || $asset->kind !== 'image' || $asset->mime !== $mime || $asset->width !== $width || $asset->height !== $height) {
                 throw ValidationException::withMessages(['media_ids' => ['Cada archivo debe ser propio, estar listo y coincidir con el formato y dimensiones de la revisión exportada.']]);
             }
         }
-        $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($design->brand_id);
+        $brand = Brand::ownedBy($user->id)->findOrFail($design->brand_id);
 
         return DB::transaction(function () use ($user, $brand, $design, $data, $pages, $ids, $frameOptions): DesignExport {
             foreach ($ids as $id) {
@@ -77,13 +84,13 @@ class StudioExports
     {
         $design = $this->studio->owned($user, $design);
 
-        return DesignExport::withoutUserScope()->select(self::PUBLIC_COLUMNS)->where('user_id', $user->id)->where('design_id', $design->id)->latest('id')->get();
+        return DesignExport::ownedBy($user->id)->select(self::PUBLIC_COLUMNS)->where('design_id', $design->id)->latest('id')->get();
     }
 
     public function owned(User $user, DesignExport $export): DesignExport
     {
-        $current = DesignExport::withoutUserScope()->select(self::PUBLIC_COLUMNS)->where('user_id', $user->id)->findOrFail($export->id);
-        abort_unless(Brand::withoutUserScope()->where('user_id', $user->id)->whereKey($current->brand_id)->exists(), 404);
+        $current = DesignExport::ownedBy($user->id)->select(self::PUBLIC_COLUMNS)->findOrFail($export->id);
+        Ownership::ensure(Brand::ownedBy($user->id)->whereKey($current->brand_id)->exists());
 
         return $current;
     }
@@ -93,7 +100,7 @@ class StudioExports
         $design = $this->studio->owned($user, $design);
         Validator::make(['page' => $page, 'per_page' => $perPage], ['page' => ['integer', 'min:1'], 'per_page' => ['integer', 'min:1', 'max:100']])->validate();
 
-        return DesignExport::withoutUserScope()->where('user_id', $user->id)->where('design_id', $design->id)
+        return DesignExport::ownedBy($user->id)->where('design_id', $design->id)
             ->latest('id')->paginate($perPage, self::PUBLIC_COLUMNS, 'page', $page);
     }
 
@@ -106,8 +113,17 @@ class StudioExports
     public function revision(User $user, Design $design, int $revision): DesignRevision
     {
         $design = $this->studio->owned($user, $design);
-        $snapshot = DesignRevision::withoutUserScope()->where('user_id', $user->id)->where('design_id', $design->id)->where('revision', $revision)->first();
+        $snapshot = DesignRevision::ownedBy($user->id)->where('design_id', $design->id)->where('revision', $revision)->first();
         if (! $snapshot) {
+            // Una revisión anterior a la vigente que ya no existe se fusionó (autoguardado) o se podó: el diseño cambió desde que el
+            // cliente lo abrió, es un conflicto (409) y no un dato inválido. Una revisión inventada o futura sigue siendo 422.
+            if ($revision >= 1 && $revision < $design->revision) {
+                $last = DesignRevision::withoutUserScope()->where('design_id', $design->id)->where('revision', $design->revision)->first();
+                $by = $last?->author_id !== null ? User::query()->whereKey($last->author_id)->value('name') : null;
+
+                throw new StudioDesignConflict($design->revision, $by, 'El diseño ha cambiado desde que lo abriste');
+            }
+
             throw ValidationException::withMessages(['revision' => ['La revisión indicada no existe en este diseño.']]);
         }
 
@@ -124,10 +140,10 @@ class StudioExports
     /** Validate the collection once; callers must never re-query every row during history polling. */
     public function presentMany(User $user, Collection $exports): array
     {
-        abort_if($exports->contains(fn (DesignExport $export) => (int) $export->user_id !== (int) $user->id), 404);
+        Ownership::assertAll($exports, $user);
         $brands = $exports->pluck('brand_id')->unique()->values();
         if ($brands->isNotEmpty()) {
-            abort_unless(Brand::withoutUserScope()->where('user_id', $user->id)->whereIn('id', $brands)->count() === $brands->count(), 404);
+            Ownership::ensure(Brand::ownedBy($user->id)->whereIn('id', $brands)->count() === $brands->count());
         }
 
         return $exports->map(fn (DesignExport $export) => $this->serialize($user, $export))->all();
@@ -151,13 +167,30 @@ class StudioExports
         if ($export->status !== 'ready' || empty($export->media_ids) || ! in_array($export->format, ['png', 'jpeg', 'webp', 'mp4', 'gif'], true)) {
             throw ValidationException::withMessages(['export' => ['La exportación todavía no contiene archivos publicables listos.']]);
         }
-        $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($export->brand_id);
+        $brand = Brand::ownedBy($user->id)->findOrFail($export->brand_id);
         foreach ($export->media_ids as $id) {
             $this->assets->owned($user, $brand, (int) $id);
         }
-        $data = Validator::make($data, ['text' => ['nullable', 'string', 'max:100000'], 'targets' => ['sometimes', 'array']])->validate();
+        $data = Validator::make($data, [
+            'text' => ['missing_with:post_id', 'nullable', 'string', 'max:100000'],
+            'targets' => ['missing_with:post_id', 'array'],
+            'post_id' => ['sometimes', 'required', 'integer', 'min:1'],
+        ])->validate();
+        $source = isset($data['post_id'])
+            ? Post::ownedBy($user->id)->where('brand_id', $export->brand_id)->findOrFail($data['post_id'])
+            : null;
         try {
-            return $this->posts->create($user, $brand, ['text' => $data['text'] ?? null, 'schedule' => false, 'media' => $export->media_ids, 'targets' => $data['targets'] ?? []]);
+            return DB::transaction(function () use ($user, $brand, $export, $data, $source): Post {
+                $current = DesignExport::ownedBy($user->id)->lockForUpdate()->findOrFail($export->id);
+                if ($source !== null) {
+                    return $this->postMedia->replace($user, $current, $source);
+                }
+
+                return $this->posts->create($user, $brand, [
+                    'text' => $data['text'] ?? null, 'schedule' => false,
+                    'media' => $current->media_ids, 'targets' => $data['targets'] ?? [],
+                ], sourceExport: $current);
+            });
         } catch (PostValidationException $e) {
             throw ValidationException::withMessages($e->errors());
         }

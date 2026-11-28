@@ -4,10 +4,17 @@ namespace App\Http\Middleware;
 
 use App\Connectors\Network;
 use App\Http\Controllers\OAuth\OAuthController;
+use App\Models\MediaAsset;
+use App\Models\Post;
+use App\Models\Site;
+use App\Models\SmartLink;
 use App\Models\SocialAccount;
+use App\Models\Studio\Design;
 use App\Services\InboxService;
 use App\Support\CurrentBrand;
+use App\Support\SystemAccess;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -42,6 +49,12 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'canViewSystemStatus' => fn () => SystemAccess::allows($request->user()),
+            'flash' => Inertia::always(fn () => [
+                'success' => $request->hasSession() ? $request->session()->get('success') : null,
+                'error' => $request->hasSession() ? $request->session()->get('error') : null,
+                'publishing_post_id' => $request->hasSession() ? $request->session()->get('publishing_post_id') : null,
+            ]),
             // Contador de avisos sin leer para la barra de navegacion.
             'unreadNotifications' => fn () => $request->user() ? $request->user()->unreadNotifications()->count() : 0,
             // Comentarios sin leer del Inbox (una sola consulta COUNT, lazy y solo con sesion).
@@ -49,9 +62,31 @@ class HandleInertiaRequests extends Middleware
             // Registro publico abierto: oculta los enlaces «Crear cuenta» cuando REGISTRATION_ENABLED=false.
             'registrationEnabled' => (bool) config('app.registration_enabled', true),
             'shell' => fn () => $request->user() ? $this->shell($request) : null,
+            'onboarding' => fn () => $this->onboarding($request),
             // Marcas con un OAuth de varias cuentas sin confirmar: aviso en toda la app hasta que se elijan (o se descarten).
             'pendingConnections' => fn () => $request->user() ? $this->pendingConnections($request) : [],
         ];
+    }
+
+    private function onboarding(Request $request): ?string
+    {
+        $user = $request->user();
+        if ($user === null || ! $user->hasVerifiedEmail()) {
+            return null;
+        }
+        if ($user->onboarding_step !== null) {
+            return $user->onboarding_step;
+        }
+        if (CurrentBrand::brands($request)->isNotEmpty()) {
+            return null;
+        }
+        foreach ([Post::class, SocialAccount::class, Design::class, MediaAsset::class, SmartLink::class, Site::class] as $model) {
+            if ($model::ownedBy($user->id)->exists()) {
+                return null;
+            }
+        }
+
+        return 'welcome';
     }
 
     /** @return array<string, mixed> */
@@ -101,7 +136,7 @@ class HandleInertiaRequests extends Middleware
 
         return [
             'brands' => $brands->map(fn ($b) => ['id' => $b->id, 'name' => $b->name, 'avatar_url' => $avatars[$b->id] ?? null])->values()->all(),
-            'currentBrand' => $current ? ['id' => $current->id, 'name' => $current->name, 'avatar_url' => $avatars[$current->id] ?? null] : null,
+            'currentBrand' => $current ? ['id' => $current->id, 'name' => $current->name, 'timezone' => $current->timezone, 'avatar_url' => $avatars[$current->id] ?? null] : null,
             'accounts' => (object) $accounts,
             'networks' => collect(Network::offered())->map(fn (Network $n) => $n->toArray())->values()->all(),
         ];

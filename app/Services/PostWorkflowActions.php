@@ -7,6 +7,7 @@ use App\Models\Post;
 use App\Models\PostSeries;
 use App\Models\PostTarget;
 use App\Models\User;
+use App\Support\Ownership;
 
 /**
  * Acciones del flujo de publicacion (T-19) con UNA sola forma de entrada y de salida: web, API REST y MCP las llaman aqui, asi
@@ -62,7 +63,7 @@ class PostWorkflowActions
     {
         $model = $this->owned($user, $post);
         $row = PostTarget::withoutUserScope()->where('post_id', $model->id)->find($target);
-        abort_if($row === null, 404);
+        Ownership::ensure($row !== null);
         $done = $this->manual->markPublished($user, $model, $row, $url);
 
         return ['post' => $this->presenter->present($model->fresh()), 'target' => ['id' => $done->id, 'status' => $done->status->value, 'external_url' => $done->external_url]];
@@ -90,8 +91,7 @@ class PostWorkflowActions
     /** @return array<string, mixed> */
     public function seriesIndex(User $user): array
     {
-        return ['series' => PostSeries::withoutUserScope()->where('user_id', $user->id)->orderByDesc('id')->limit(100)->get()
-            ->map(fn (PostSeries $s) => $this->series->present($s))->all()];
+        return ['series' => $this->series->presentMany(PostSeries::ownedBy($user->id)->orderByDesc('id')->limit(100)->get())];
     }
 
     /** @return array<string, mixed> */
@@ -122,6 +122,15 @@ class PostWorkflowActions
     public function seriesCancel(User $user, int $series): array
     {
         return ['series' => $this->series->present($this->series->cancel($user, $this->ownedSeries($user, $series)))];
+    }
+
+    /** @return array<string, mixed> */
+    public function seriesRecover(User $user, int $series): array
+    {
+        $model = $this->ownedSeries($user, $series);
+        $created = $this->series->recover($user, $model);
+
+        return ['recovered' => $created, 'series' => $this->series->present($model->fresh())];
     }
 
     /** @return array<string, mixed> */
@@ -158,24 +167,24 @@ class PostWorkflowActions
 
     private function owned(User $user, int $post): Post
     {
-        $model = Post::withoutUserScope()->where('user_id', $user->id)->find($post);
-        abort_if($model === null, 404);
+        $model = Post::ownedBy($user->id)->find($post);
+        Ownership::assert($model, $user);
 
         return $model;
     }
 
     private function ownedSeries(User $user, int $series): PostSeries
     {
-        $model = PostSeries::withoutUserScope()->where('user_id', $user->id)->find($series);
-        abort_if($model === null, 404);
+        $model = PostSeries::ownedBy($user->id)->find($series);
+        Ownership::assert($model, $user);
 
         return $model;
     }
 
     private function ownedBrand(User $user, int $brand): Brand
     {
-        $model = Brand::withoutUserScope()->where('user_id', $user->id)->find($brand);
-        abort_if($model === null, 404);
+        $model = Brand::ownedBy($user->id)->find($brand);
+        Ownership::assert($model, $user);
 
         return $model;
     }

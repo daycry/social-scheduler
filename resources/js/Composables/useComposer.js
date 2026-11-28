@@ -1,14 +1,19 @@
-import { computed, inject, onBeforeUnmount, provide, ref, shallowRef, watch } from 'vue';
+import { computed, inject, onBeforeUnmount, provide, ref, shallowRef, toRef, watch } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import { normalizeErrors, useLiveValidation } from '@/Composables/useLiveValidation';
 import { countChars, countHashtags } from '@/Composables/textCount';
 import { countText } from '@/Composables/textLength';
 import { MANAGED_KEYS, switchesFor } from '@/Composables/composerOptions';
+import { useComposerMedia } from '@/Composables/composer/useComposerMedia';
+import { useComposerCampaigns } from '@/Composables/composer/useComposerCampaigns';
+
+import { useConfirm } from '@/Composables/useConfirm';
 
 const KEY = Symbol('composer');
 
 /** Estado compartido del compositor: lo crea `Compose.vue` y los componentes lo leen con `useComposerContext()`. */
 export function useComposer(props) {
+    const ask = useConfirm();
     const post = computed(() => props.post);
     const brand = computed(() => props.brand);
     const accounts = computed(() => props.accounts);
@@ -26,11 +31,12 @@ export function useComposer(props) {
         notes: (props.post?.notes ?? '').replace(/\r\n?/g, '\n'),
         // Campaña del post entero (C-03); `null` = sin campaña. Solo se ofrecen las de la marca.
         campaign_id: props.post?.campaign_id ?? null,
-        scheduled_at: props.post?.scheduled_at ?? '',
+        scheduled_at: props.post ? (props.post.scheduled_at ?? '') : (props.initialScheduledAt ?? ''),
         schedule: true,
         // Aprobación (T-19): solo al crear. En un post guardado se pide con su botón (ApprovalPanel).
         requires_approval: false,
         media: (props.post?.media ?? []).map((m) => m.id),
+        detached_media: [],
         targets: (props.post?.targets ?? []).map((t) => ({
             account_id: t.account_id,
             content_type: t.content_type,
@@ -45,76 +51,31 @@ export function useComposer(props) {
         })),
     });
 
-    // Metadatos de la media elegida (para mostrar nombre/duración y la previsualización).
-    const mediaItems = ref([...(props.post?.media ?? [])]);
-    const objectUrls = [];
-    const previews = ref({});
-    onBeforeUnmount(() => objectUrls.forEach((u) => URL.revokeObjectURL(u)));
-
-    const onUploaded = (asset, file) => {
-        // Idempotente: un sondeo repetido (o un doble evento) no duplica la media en la lista ni en la publicacion.
-        if (form.media.includes(asset.id) || mediaItems.value.some((m) => m.id === asset.id)) return;
-        mediaItems.value.push(asset);
-        form.media.push(asset.id);
-        if (file && (asset.kind === 'image' || asset.kind === 'video')) {
-            const url = URL.createObjectURL(file);
-            objectUrls.push(url);
-            previews.value[asset.id] = url;
-        }
-    };
-    // Archivos que solo usa la media propia de algún destino (o que se quitaron de la común después): se resuelven por id.
-    const extraAssets = ref([...(props.post?.target_media_assets ?? [])]);
-    const removeMedia = (id) => {
-        const gone = mediaItems.value.find((m) => m.id === id);
-        if (gone && !extraAssets.value.some((m) => m.id === id)) extraAssets.value.push(gone);
-        mediaItems.value = mediaItems.value.filter((m) => m.id !== id);
-        form.media = form.media.filter((m) => m !== id);
-    };
-    const move = (index, delta) => {
-        const to = index + delta;
-        if (to < 0 || to >= form.media.length) return;
-        [form.media[index], form.media[to]] = [form.media[to], form.media[index]];
-    };
-    const mediaById = (id) => mediaItems.value.find((m) => m.id === id) ?? extraAssets.value.find((m) => m.id === id);
-
-    // Media por destino (T-17). Un destino sin `media` hereda la común; «Personalizar» la copia para editarla sola; «Volver a la común»
-    // la descarta. La media EFECTIVA de un destino es lo que se valida, se previsualiza y se publica.
-    const mediaMeta = computed(() => props.mediaMeta ?? {});
-    const altMax = computed(() => props.altMax ?? 1000);
-    const hasOwnMedia = (target) => Array.isArray(target?.media);
-    const effectiveMedia = (target) => (hasOwnMedia(target) ? target.media : form.media.map((id) => ({ id, alt: '', cover_id: null })));
-    const customizeMedia = (target) => { target.media = form.media.map((id) => ({ id, alt: '', cover_id: null })); };
-    const resetMedia = (target) => { target.media = null; };
-    const moveTargetMedia = (target, index, delta) => {
-        const to = index + delta;
-        if (!hasOwnMedia(target) || to < 0 || to >= target.media.length) return;
-        [target.media[index], target.media[to]] = [target.media[to], target.media[index]];
-    };
-    const removeTargetMedia = (target, index) => { target.media.splice(index, 1); };
-    // Biblioteca de media del usuario (la misma lista `media.index` del selector): se carga una vez, al abrir el selector de una red.
-    const libraryItems = ref([]);
-    const libraryState = ref('idle'); // idle | loading | ready | error
-    const loadLibrary = async () => {
-        if (libraryState.value === 'loading' || libraryState.value === 'ready') return;
-        libraryState.value = 'loading';
-        try {
-            const response = await fetch(route('media.index'), { credentials: 'same-origin', headers: { Accept: 'application/json' } });
-            if (!response.ok) throw new Error(String(response.status));
-            libraryItems.value = (await response.json()).media ?? [];
-            libraryState.value = 'ready';
-        } catch {
-            libraryState.value = 'error';
-        }
-    };
-    const addTargetMedia = (target, id) => {
-        if (!id || target.media.some((m) => m.id === id)) return;
-        const asset = mediaById(id) ?? libraryItems.value.find((m) => m.id === id);
-        if (asset && !mediaById(id)) extraAssets.value.push(asset);
-        target.media.push({ id, alt: '', cover_id: null });
-    };
-    // Archivos que se pueden añadir a la media propia de un destino: los de la común y los de la biblioteca que aún no están en su lista.
-    const addableMedia = (target) => [...mediaItems.value, ...libraryItems.value.filter((m) => !mediaItems.value.some((x) => x.id === m.id))]
-        .filter((m) => !target.media?.some((x) => x.id === m.id));
+    const {
+        mediaItems,
+        previews,
+        onUploaded,
+        removeMedia,
+        move,
+        mediaById,
+        mediaMeta,
+        altMax,
+        hasOwnMedia,
+        effectiveMedia,
+        customizeMedia,
+        resetMedia,
+        moveTargetMedia,
+        removeTargetMedia,
+        addTargetMedia,
+        addableMedia,
+        loadLibrary,
+        libraryState,
+    } = useComposerMedia({
+        form,
+        post,
+        mediaMetaSource: toRef(() => props.mediaMeta),
+        altMaxSource: toRef(() => props.altMax),
+    });
 
     // Cuentas -> destinos
     const targetFor = (accountId) => form.targets.find((t) => t.account_id === accountId);
@@ -131,7 +92,8 @@ export function useComposer(props) {
         for (const s of switchesFor(account, { content_type: type })) {
             if (s.remember && typeof saved[s.key] === 'boolean') out[s.key] = saved[s.key];
         }
-        if (account.network === 'instagram' && type === 'instagram_reel' && typeof saved.share_to_feed === 'boolean') out.share_to_feed = saved.share_to_feed;
+        if (account.network === 'instagram' && type === 'instagram_reel' && typeof saved.share_to_feed === 'boolean')
+            out.share_to_feed = saved.share_to_feed;
         return out;
     };
 
@@ -141,13 +103,30 @@ export function useComposer(props) {
             const account = props.accounts.find((a) => a.id === t.account_id);
             const keep = new Set(switchesFor(account, t).map((s) => s.key));
             if (account?.network === 'instagram' && t.content_type === 'instagram_reel') keep.add('instagram_audio');
-            if (account?.network === 'instagram' && ['instagram_image', 'instagram_reel', 'instagram_carousel'].includes(t.content_type)) keep.add('collaborators');
-            if (account?.network === 'facebook' && ['facebook_reel', 'facebook_video'].includes(t.content_type)) keep.add('facebook_title');
+            if (
+                account?.network === 'instagram' &&
+                ['instagram_image', 'instagram_reel', 'instagram_carousel'].includes(t.content_type)
+            )
+                keep.add('collaborators');
+            if (account?.network === 'facebook' && ['facebook_reel', 'facebook_video'].includes(t.content_type))
+                keep.add('facebook_title');
             if (account?.network === 'youtube') ['category_id', 'tags'].forEach((k) => keep.add(k));
-            if (account?.network === 'instagram' && ['instagram_image', 'instagram_reel', 'instagram_carousel'].includes(t.content_type)) keep.add('location_id');
+            if (
+                account?.network === 'instagram' &&
+                ['instagram_image', 'instagram_reel', 'instagram_carousel'].includes(t.content_type)
+            )
+                keep.add('location_id');
             if (account?.network === 'instagram' && t.content_type === 'instagram_image') keep.add('user_tags');
-            if (account?.network === 'linkedin') ['linkedin_visibility', 'linkedin_disable_reshare'].forEach((k) => keep.add(k));
-            if (account?.network === 'pinterest') ['pinterest_board_id', 'pinterest_title', 'pinterest_link'].forEach((k) => keep.add(k));
+            if (
+                account?.network === 'facebook' &&
+                ['facebook_text', 'facebook_photo', 'facebook_photos'].includes(t.content_type)
+            )
+                keep.add('place');
+            if (account?.network === 'linkedin')
+                ['linkedin_visibility', 'linkedin_disable_reshare'].forEach((k) => keep.add(k));
+            if (account?.network === 'pinterest')
+                ['pinterest_board_id', 'pinterest_title', 'pinterest_link'].forEach((k) => keep.add(k));
+            if (account?.visibilities) keep.add('mastodon_visibility');
             for (const key of MANAGED_KEYS) {
                 if (key in t.options && !keep.has(key)) delete t.options[key];
             }
@@ -181,20 +160,31 @@ export function useComposer(props) {
     pruneOptions();
     // Los presets solo se aplican al destino que se activa o cuyo tipo cambia: los demás no se tocan.
     let seen = new Map(form.targets.map((t) => [t.account_id, t.content_type]));
-    watch(() => form.targets.map((t) => `${t.account_id}:${t.content_type}`).join('|'), () => {
-        const changed = form.targets.filter((t) => seen.get(t.account_id) !== t.content_type);
-        seen = new Map(form.targets.map((t) => [t.account_id, t.content_type]));
-        pruneOptions();
-        pruneTargetMedia(changed);
-        applyPresets(changed);
-        // Un tipo que no admite primer comentario (Story, TikTok) no arrastra el texto del tipo anterior.
-        for (const t of changed) if (firstCommentMax.value[t.content_type] == null) t.first_comment = '';
-    });
+    watch(
+        () => form.targets.map((t) => `${t.account_id}:${t.content_type}`).join('|'),
+        () => {
+            const changed = form.targets.filter((t) => seen.get(t.account_id) !== t.content_type);
+            seen = new Map(form.targets.map((t) => [t.account_id, t.content_type]));
+            pruneOptions();
+            pruneTargetMedia(changed);
+            applyPresets(changed);
+            // Un tipo que no admite primer comentario (Story, TikTok) no arrastra el texto del tipo anterior.
+            for (const t of changed) if (firstCommentMax.value[t.content_type] == null) t.first_comment = '';
+        },
+    );
 
     const toggleAccount = (account, on) => {
         if (on && !targetFor(account.id)) {
             const type = typesOf(account.network)[0]?.value;
-            form.targets.push({ account_id: account.id, content_type: type, text: null, first_comment: '', manual: false, media: null, options: presetOptions(account, type) });
+            form.targets.push({
+                account_id: account.id,
+                content_type: type,
+                text: null,
+                first_comment: '',
+                manual: false,
+                media: null,
+                options: presetOptions(account, type),
+            });
         } else if (!on) {
             form.targets = form.targets.filter((t) => t.account_id !== account.id);
         }
@@ -225,32 +215,76 @@ export function useComposer(props) {
         const at = form.scheduled_at;
         if (!editable.value || !at || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(at)) return [];
         let zone = props.brand.timezone || 'UTC';
-        try { new Intl.DateTimeFormat('en-CA', { timeZone: zone }); } catch { zone = 'UTC'; }
-        const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(clock.value)).map((x) => [x.type, x.value]));
+        try {
+            new Intl.DateTimeFormat('en-CA', { timeZone: zone });
+        } catch {
+            zone = 'UTC';
+        }
+        const p = Object.fromEntries(
+            new Intl.DateTimeFormat('en-CA', {
+                timeZone: zone,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hourCycle: 'h23',
+            })
+                .formatToParts(new Date(clock.value))
+                .map((x) => [x.type, x.value]),
+        );
         const nowLocal = `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
-        return at.slice(0, 16) <= nowLocal ? normalizeErrors({ scheduled_at: ['La fecha de publicacion debe ser futura.'] }) : [];
+        return at.slice(0, 16) <= nowLocal
+            ? normalizeErrors({ scheduled_at: ['La fecha de publicacion debe ser futura.'] })
+            : [];
     });
     const errorList = computed(() => {
         const seen = new Set();
-        return [...liveErrorList.value, ...dateErrorList.value, ...normalizeErrors(form.errors, describeTarget)].filter((e) => !seen.has(e.id) && seen.add(e.id));
+        return [...liveErrorList.value, ...dateErrorList.value, ...normalizeErrors(form.errors, describeTarget)].filter(
+            (e) => !seen.has(e.id) && seen.add(e.id),
+        );
     });
     // Subida de media en curso (la reporta el uploader): no se programa, publica ni guarda en la biblioteca con la media a medias.
     const uploadingMedia = ref(false);
     const hasBlockingErrors = computed(() => liveErrorList.value.length > 0 || uploadingMedia.value);
     const scheduleBlocked = computed(() => hasBlockingErrors.value || dateErrorList.value.length > 0);
-    watch(() => [form.text, form.media, form.targets, form.scheduled_at], () => form.clearErrors(), { deep: true });
+    watch(
+        () => [form.text, form.media, form.targets, form.scheduled_at],
+        () => form.clearErrors(),
+        { deep: true },
+    );
 
     const errorsFor = (accountId) => {
         const i = targetIndex(accountId);
         if (i < 0) return [];
         const server = form.errors[`targets.${i}`];
-        return [...(liveErrors.value[`targets.${i}`] ?? []), ...(server && !(liveErrors.value[`targets.${i}`] ?? []).includes(server) ? [server] : [])];
+        return [
+            ...(liveErrors.value[`targets.${i}`] ?? []),
+            ...(server && !(liveErrors.value[`targets.${i}`] ?? []).includes(server) ? [server] : []),
+        ];
     };
 
     const send = (options = {}) => {
-        if (props.post) form.put(route('posts.update', props.post.id), { preserveScroll: true, ...options });
+        if (props.post) {
+            form.put(route('posts.update', props.post.id), {
+                preserveScroll: true,
+                ...options,
+                onSuccess: (page) => {
+                    form.detached_media = [];
+                    form.targets.forEach((target) => {
+                        target.detached_media = [];
+                    });
+                    options.onSuccess?.(page);
+                },
+            });
+        }
         // Creating a draft redirects to its saved post; a rejected creation returns to the empty-post page.
-        else form.post(route('brands.posts.store', props.brand.id), { preserveScroll: true, preserveState: (page) => !page.props.post, ...options });
+        else
+            form.post(route('brands.posts.store', props.brand.id), {
+                preserveScroll: true,
+                preserveState: (page) => !page.props.post,
+                ...options,
+            });
     };
 
     // Un envío ya en curso (clic doble, Enter repetido) no lanza otra petición.
@@ -278,11 +312,13 @@ export function useComposer(props) {
         });
     };
 
-    const remove = () => {
-        if (confirm('¿Eliminar esta publicación?')) router.delete(route('posts.destroy', props.post.id));
+    const remove = async () => {
+        const postId = props.post?.id;
+        if (postId && (await ask({ message: '¿Eliminar esta publicación?', confirmLabel: 'Eliminar publicación' })))
+            router.delete(route('posts.destroy', postId));
     };
 
-    // «Guardar en biblioteca» (CA-26): envía el contenido ACTUAL del compositor (texto, media y destinos), también sin
+    // «Guardar como plantilla» (CA-26): envía el contenido ACTUAL del compositor (texto, media y destinos), también sin
     // post guardado y con cambios pendientes. No crea ninguna publicación y no saca al usuario del compositor.
     const libraryName = ref((props.post?.text ?? '').slice(0, 60) || 'Mi plantilla');
     const savingToLibrary = ref(false);
@@ -290,20 +326,31 @@ export function useComposer(props) {
     const saveToLibrary = (name, { onSaved } = {}) => {
         const clean = (name ?? '').trim();
         if (!clean || savingToLibrary.value || uploadingMedia.value) return;
-        router.post(route('brands.library.store', props.brand.id), {
-            name: clean,
-            text: form.text,
-            campaign_id: form.campaign_id,
-            media: form.media,
-            targets: form.targets.map((t) => ({ account_id: t.account_id, content_type: t.content_type, text: t.text })),
-        }, {
-            preserveScroll: true,
-            preserveState: true,
-            onStart: () => { savingToLibrary.value = true; libraryErrors.value = {}; },
-            onSuccess: () => onSaved?.(),
-            onError: (errors) => (libraryErrors.value = errors),
-            onFinish: () => (savingToLibrary.value = false),
-        });
+        router.post(
+            route('brands.library.store', props.brand.id),
+            {
+                name: clean,
+                text: form.text,
+                campaign_id: form.campaign_id,
+                media: form.media,
+                targets: form.targets.map((t) => ({
+                    account_id: t.account_id,
+                    content_type: t.content_type,
+                    text: t.text,
+                })),
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onStart: () => {
+                    savingToLibrary.value = true;
+                    libraryErrors.value = {};
+                },
+                onSuccess: () => onSaved?.(),
+                onError: (errors) => (libraryErrors.value = errors),
+                onFinish: () => (savingToLibrary.value = false),
+            },
+        );
     };
 
     // Notas (C-09): `PATCH posts/{post}/notes` funciona aunque el post ya no sea editable y no toca los destinos. Sin post guardado
@@ -315,16 +362,32 @@ export function useComposer(props) {
     const saveNotes = () => {
         if (!props.post || savingNotes.value || [...(form.notes ?? '')].length > NOTES_MAX) return;
         const value = form.notes;
-        router.patch(route('posts.notes', props.post.id), { notes: value }, {
-            preserveScroll: true,
-            preserveState: true,
-            onStart: () => { savingNotes.value = true; notesError.value = ''; notesSaved.value = false; },
-            onSuccess: () => { form.defaults('notes', value); notesSaved.value = true; },
-            onError: (errors) => (notesError.value = errors.notes ?? 'No se pudieron guardar las notas.'),
-            onFinish: () => (savingNotes.value = false),
-        });
+        router.patch(
+            route('posts.notes', props.post.id),
+            { notes: value },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onStart: () => {
+                    savingNotes.value = true;
+                    notesError.value = '';
+                    notesSaved.value = false;
+                },
+                onSuccess: () => {
+                    form.defaults('notes', value);
+                    notesSaved.value = true;
+                },
+                onError: (errors) => (notesError.value = errors.notes ?? 'No se pudieron guardar las notas.'),
+                onFinish: () => (savingNotes.value = false),
+            },
+        );
     };
-    watch(() => form.notes, () => { notesSaved.value = false; });
+    watch(
+        () => form.notes,
+        () => {
+            notesSaved.value = false;
+        },
+    );
 
     const selectedNetwork = computed(() => {
         const first = form.targets[0];
@@ -342,7 +405,9 @@ export function useComposer(props) {
     const previewOf = (id) => previews.value[id] ?? mediaById(id)?.preview_url ?? null;
     // La vista previa de una red muestra la media EFECTIVA de su pestaña (la propia o la común) y el alt que se publicará.
     const previewTarget = computed(() => form.targets.find((t) => t.account_id === currentTab.value) ?? null);
-    const previewItems = computed(() => effectiveMedia(previewTarget.value).map((m) => ({ ...m, asset: mediaById(m.id), url: previewOf(m.id) })));
+    const previewItems = computed(() =>
+        effectiveMedia(previewTarget.value).map((m) => ({ ...m, asset: mediaById(m.id), url: previewOf(m.id) })),
+    );
     const firstPreview = computed(() => {
         const item = previewItems.value.find((m) => m.url);
         return item ? { url: item.url, kind: item.asset?.kind ?? 'image', alt: item.alt || '' } : null;
@@ -360,12 +425,34 @@ export function useComposer(props) {
     // «Editar por red»: abre las pestañas (Texto común y una por red). Se abre sola si algún destino ya tiene texto propio.
     const byNetwork = ref(form.targets.some(isUnlinked));
     const activeTab = ref('template'); // 'template' o el id de la cuenta de la pestaña activa
-    const currentTab = computed(() => (byNetwork.value && form.targets.some((t) => t.account_id === activeTab.value) ? activeTab.value : 'template'));
-    const unlink = (target) => { target.text = form.text; }; // el texto común sirve de punto de partida
-    const relink = (target) => { target.text = null; };
-    const openTargetText = (accountId) => { byNetwork.value = true; activeTab.value = accountId; };
+    const currentTab = computed(() =>
+        byNetwork.value && form.targets.some((t) => t.account_id === activeTab.value) ? activeTab.value : 'template',
+    );
+    const unlink = (target) => {
+        target.text = form.text;
+    }; // el texto común sirve de punto de partida
+    const relink = (target) => {
+        target.text = null;
+    };
+    // «Adaptar a cada red» (T-82): da a cada destino su versión como texto propio (el mismo mecanismo de «Editar por red») y abre las pestañas.
+    const applyTargetTexts = (versions) => {
+        for (const { account_id: accountId, text } of versions) {
+            const target = form.targets.find((t) => t.account_id === accountId);
+            if (target && text) target.text = text;
+        }
+        byNetwork.value = true;
+    };
+    const openTargetText = (accountId) => {
+        byNetwork.value = true;
+        activeTab.value = accountId;
+    };
     // Cada tipo cuenta a su manera (`limits[tipo].count`): caracteres, grafemas (Bluesky) o la regla de Threads; igual que el servidor.
-    const charsOf = (target) => countText(textOf(target), limits.value?.[target.content_type]?.count);
+    const charsOf = (target) =>
+        countText(
+            textOf(target),
+            limits.value?.[target.content_type]?.count,
+            props.accounts.find((a) => a.id === target.account_id)?.limits?.url_length,
+        );
     const hashtagsOf = (target) => countHashtags(textOf(target));
     const accountName = (id) => props.accounts.find((a) => a.id === id)?.name ?? 'Cuenta eliminada';
 
@@ -373,66 +460,107 @@ export function useComposer(props) {
     // red o, más adelante, el primer comentario). Cada campo se registra aquí, no en cada componente; `insertIntoActive` inserta en SU cursor.
     const savedTexts = computed(() => props.savedTexts ?? []);
     const activeField = shallowRef(null); // { insertAtCursor(text) }
-    const registerField = (field) => { activeField.value = field; };
-    const unregisterField = (field) => { if (activeField.value === field) activeField.value = null; };
+    const registerField = (field) => {
+        activeField.value = field;
+    };
+    const unregisterField = (field) => {
+        if (activeField.value === field) activeField.value = null;
+    };
     const insertIntoActive = (text, options) => {
         if (!activeField.value) return false;
         activeField.value.insertAtCursor(text, options);
         return true;
     };
 
-    // Campañas (C-03): selector del encabezado con alta en línea. El alta recarga solo la lista y deja elegida la nueva.
-    const campaigns = computed(() => props.campaigns ?? []);
-    // En un post ya no editable (destinos publicados o en vuelo) la campaña es metadato: se guarda al elegirla con
-    // `PATCH posts/{post}/campaign`, igual que las notas, sin tocar los destinos.
-    const savingCampaign = ref(false);
-    let savedCampaign = props.post?.campaign_id ?? null;
-    const saveCampaign = () => {
-        if (!props.post || editable.value || savingCampaign.value) return;
-        const value = form.campaign_id ?? null;
-        router.patch(route('posts.campaign', props.post.id), { campaign_id: value }, {
-            preserveScroll: true,
-            preserveState: true,
-            onStart: () => { savingCampaign.value = true; campaignError.value = ''; },
-            onSuccess: () => { savedCampaign = value; form.defaults('campaign_id', value); },
-            onError: (errors) => { campaignError.value = errors.campaign_id ?? 'No se pudo guardar la campaña.'; form.campaign_id = savedCampaign; },
-            onFinish: () => (savingCampaign.value = false),
-        });
-    };
-    const creatingCampaign = ref(false);
-    const campaignError = ref('');
-    const createCampaign = (name, { onCreated } = {}) => {
-        const clean = (name ?? '').trim();
-        if (!clean || creatingCampaign.value) return;
-        const known = new Set(campaigns.value.map((c) => c.id));
-        router.post(route('campaigns.store'), { brand_id: props.brand.id, name: clean, color: '#4f46e5' }, {
-            preserveScroll: true,
-            preserveState: true,
-            only: ['campaigns', 'flash'],
-            onStart: () => { creatingCampaign.value = true; campaignError.value = ''; },
-            onSuccess: () => {
-                const created = campaigns.value.find((c) => !known.has(c.id));
-                if (created) form.campaign_id = created.id;
-                onCreated?.();
-            },
-            onError: (errors) => (campaignError.value = errors.name ?? errors.brand_id ?? 'No se pudo crear la campaña.'),
-            onFinish: () => (creatingCampaign.value = false),
-        });
-    };
+    const { campaigns, creatingCampaign, campaignError, createCampaign, savingCampaign, saveCampaign } =
+        useComposerCampaigns({ form, post, brand, editable, campaignSource: toRef(() => props.campaigns) });
 
     const api = {
-        campaigns, creatingCampaign, campaignError, createCampaign, savingCampaign, saveCampaign,
-        post, brand, accounts, contentTypes, limits, drivePicker, giphyEnabled, firstCommentMax, editable, form,
-        mediaItems, previews, onUploaded, removeMedia, move, mediaById,
-        mediaMeta, altMax, hasOwnMedia, effectiveMedia, customizeMedia, resetMedia, moveTargetMedia, removeTargetMedia, addTargetMedia, addableMedia, loadLibrary, libraryState, previewItems, previewTarget,
-        targetFor, targetIndex, typesOf, typeLabel, typeInfo, toggleAccount,
-        liveErrors, errorsFor, errorList, hasBlockingErrors, scheduleBlocked, dateErrorList, uploadingMedia, submit, publishNow, sendingNow, remove,
-        NOTES_MAX, savingNotes, notesError, notesSaved, saveNotes,
-        libraryName, savingToLibrary, libraryErrors, saveToLibrary,
-        selectedNetwork, previewText, firstPreview, charCount, accountName,
-        textOf, charsOf, hashtagsOf,
-        savedTexts, activeField, registerField, unregisterField, insertIntoActive,
-        isUnlinked, hasOwnText, unlinkedCount, byNetwork, activeTab, currentTab, unlink, relink, openTargetText,
+        campaigns,
+        creatingCampaign,
+        campaignError,
+        createCampaign,
+        savingCampaign,
+        saveCampaign,
+        post,
+        brand,
+        accounts,
+        contentTypes,
+        limits,
+        drivePicker,
+        giphyEnabled,
+        firstCommentMax,
+        editable,
+        form,
+        mediaItems,
+        previews,
+        onUploaded,
+        removeMedia,
+        move,
+        mediaById,
+        mediaMeta,
+        altMax,
+        hasOwnMedia,
+        effectiveMedia,
+        customizeMedia,
+        resetMedia,
+        moveTargetMedia,
+        removeTargetMedia,
+        addTargetMedia,
+        addableMedia,
+        loadLibrary,
+        libraryState,
+        previewItems,
+        previewTarget,
+        targetFor,
+        targetIndex,
+        typesOf,
+        typeLabel,
+        typeInfo,
+        toggleAccount,
+        liveErrors,
+        errorsFor,
+        errorList,
+        hasBlockingErrors,
+        scheduleBlocked,
+        dateErrorList,
+        uploadingMedia,
+        submit,
+        publishNow,
+        sendingNow,
+        remove,
+        NOTES_MAX,
+        savingNotes,
+        notesError,
+        notesSaved,
+        saveNotes,
+        libraryName,
+        savingToLibrary,
+        libraryErrors,
+        saveToLibrary,
+        selectedNetwork,
+        previewText,
+        firstPreview,
+        charCount,
+        accountName,
+        textOf,
+        charsOf,
+        hashtagsOf,
+        savedTexts,
+        activeField,
+        registerField,
+        unregisterField,
+        insertIntoActive,
+        isUnlinked,
+        hasOwnText,
+        unlinkedCount,
+        byNetwork,
+        activeTab,
+        currentTab,
+        unlink,
+        relink,
+        applyTargetTexts,
+        openTargetText,
     };
     provide(KEY, api);
 

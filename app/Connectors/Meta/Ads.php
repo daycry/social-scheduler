@@ -17,7 +17,7 @@ class Ads
 
     private const INSIGHT_FIELDS = 'spend,impressions,clicks,ctr,cpc';
 
-    public function __construct(private readonly GraphClient $graph = new GraphClient) {}
+    public function __construct(private readonly GraphClient $graph) {}
 
     public static function hasScope(SocialAccount $account): bool
     {

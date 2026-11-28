@@ -1,7 +1,7 @@
 <?php
 
 use App\Connectors\Google\GoogleConnector;
-use App\Connectors\Google\YouTubePublisher;
+use App\Connectors\Google\YouTubeComments;
 use App\Connectors\Network;
 use App\Models\Brand;
 use App\Models\SocialAccount;
@@ -35,6 +35,6 @@ test('a YouTube account without force-ssl cannot comment but keeps publishing sc
         'scopes' => ['https://www.googleapis.com/auth/youtube', 'https://www.googleapis.com/auth/youtube.force-ssl'],
     ]);
 
-    expect(YouTubePublisher::canComment($old))->toBeFalse()
-        ->and(YouTubePublisher::canComment($new))->toBeTrue();
+    expect(YouTubeComments::canComment($old))->toBeFalse()
+        ->and(YouTubeComments::canComment($new))->toBeTrue();
 });

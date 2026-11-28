@@ -11,7 +11,7 @@ class QueueProbe extends Command
 {
     protected $signature = 'app:queue-probe {--wait=0 : Segundos a esperar a que un worker procese las pruebas}';
 
-    protected $description = 'Encola un job de prueba en cada cola (publish, poll, metrics, reports, media)';
+    protected $description = 'Encola un job de prueba en cada cola configurada';
 
     public function handle(): int
     {
@@ -31,14 +31,23 @@ class QueueProbe extends Command
             return self::FAILURE;
         }
 
-        // La cola de importacion tiene su propio worker (`ss-media`, `--queue=media`): se sondea aunque QUEUE_NAMES no la liste.
-        $names = array_values(array_unique([...$names, (string) config('media.import_queue', 'media')]));
+        // Sondea los workers de media y render aunque un QUEUE_NAMES anterior omita alguna de esas colas.
+        $names = array_values(array_unique([
+            ...$names,
+            (string) config('media.import_queue', 'media'),
+            (string) config('queue.studio_render', 'studio-render'),
+            (string) config('exports.queue', 'exports'),
+        ]));
 
         $probes = [];
 
         foreach ($names as $queue) {
             $id = (string) Str::uuid();
-            QueueProbeJob::dispatch($id)->onQueue($queue);
+            $probe = QueueProbeJob::dispatch($id)->onQueue($queue);
+            // La cola de exportaciones vive en su propia conexion (otro retry_after): se sondea ahi.
+            if ($queue === (string) config('exports.queue')) {
+                $probe->onConnection((string) config('exports.connection'));
+            }
             $probes[$queue] = $id;
             $this->line("encolado en '$queue' ($id)");
         }

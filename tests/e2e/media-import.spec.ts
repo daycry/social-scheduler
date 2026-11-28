@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { cleanComposerBrands, clearUserThrottle, e2eUser, expectNoOverflow, loginAs, postMediaSection, seedComposerBrand, animationsDone, quietFor, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * Importar media desde una URL (C-04a, E2E-08): usuarios `e2e-sec-*` y marcas `e2e-composer-*`. El rechazo de `UrlGuard` se prueba contra el servidor real:
@@ -14,6 +14,7 @@ let brand: ComposerBrand;
 test.beforeEach(async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
+    clearUserThrottle(user.email); // el cubo `throttle` del usuario lo comparten todos los specs del worker
     brand = seedComposerBrand(user.email, `mediaimp-${stamp()}-${info.project.name}`);
     await loginAs(page, user);
 });
@@ -26,14 +27,14 @@ async function axeNow(page: Page, label: string) {
     await settle(page);
     await expect(page.locator('#nprogress')).toHaveCount(0);
     await page.mouse.move(0, 0);
-    await page.waitForTimeout(400);
+    await animationsDone(page);
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     const bad = results.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
     const detail = bad.map((v) => `${v.id} [${v.impact}] ${v.help}\n   ${v.nodes.slice(0, 3).map((n) => `${n.target.join(' ')} ${n.html.slice(0, 200)}`).join('\n   ')}`).join('\n');
     expect(bad, `violaciones de accesibilidad en ${label}:\n${detail}`).toEqual([]);
 }
 
-test('E2E-08 · una URL a una IP interna se rechaza con un error en español y sin crear ningún asset', async ({ page }, info) => {
+test('E2E-08 · una URL a una IP interna se rechaza con un error en español y sin crear ningún asset', { tag: '@responsive' }, async ({ page }, info) => {
     const w = watch(page);
     const imports: string[] = [];
     page.on('request', (r) => {
@@ -75,7 +76,7 @@ test('E2E-08 · una URL a una IP interna se rechaza con un error en español y s
     expect(w.errors.filter((e) => !/Failed to load resource: the server responded with a status of 422/.test(e)), w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-08 · el botón no envía con el campo vacío y un esquema distinto de http se rechaza', async ({ page }) => {
+test('E2E-08 · el botón no envía con el campo vacío y un esquema distinto de http se rechaza', { tag: '@responsive' }, async ({ page }) => {
     await page.goto(`/brands/${brand.id}/posts/create`);
     await settle(page);
 
@@ -141,14 +142,14 @@ test('E2E-08 · el progreso avanza, un fallo suelto del sondeo se tolera y al te
 
     // Termina: el elemento de progreso desaparece y la media queda UNA sola vez en la lista de la publicación.
     await expect(item).toHaveCount(0, { timeout: 20_000 });
-    await expect(page.getByText('1. foto.jpg').first()).toBeVisible(); // la previsualizacion por red (T-17) repite el nombre
-    await expect(page.getByText('2. foto.jpg')).toHaveCount(0);
+    await expect(postMediaSection(page).getByText('1. foto.jpg')).toBeVisible();
+    await expect(postMediaSection(page).getByText('2. foto.jpg')).toHaveCount(0);
     const getsAtEnd = seen.gets;
-    await page.waitForTimeout(4000);
+    await quietFor(page, 4000); // negativa: el sondeo ya parado no vuelve a consultar
     expect(seen.gets, 'el sondeo se detiene al terminar').toBe(getsAtEnd);
 });
 
-test('E2E-08 · una importación que acaba «invalida» muestra el motivo y se puede descartar', async ({ page }) => {
+test('E2E-08 · una importación que acaba «invalida» muestra el motivo y se puede descartar', { tag: '@responsive' }, async ({ page }) => {
     await mockImport(page, [
         { asset: fakeAsset({ bytes: 100, total: 1000 }) },
         { asset: fakeAsset({ status: 'invalido', error: 'El servidor remoto respondió 404.' }) },
@@ -187,7 +188,7 @@ test('E2E-08 · una importación que lleva minutos «pendiente» sin un byte avi
 
     // Sigue comprobando, pero con intervalo largo (20 s): en 6 s no hay más de una consulta.
     const getsAtStall = seen.gets;
-    await page.waitForTimeout(6000);
+    await quietFor(page, 6000); // negativa: con el intervalo lento (20 s) no hay más de una consulta
     expect(seen.gets - getsAtStall, 'sondeo lento tras el aviso').toBeLessThanOrEqual(1);
 
     // El worker vuelve y la importación se completa: el aviso desaparece y la media se añade.
@@ -231,7 +232,7 @@ test('E2E-08 · se puede cancelar una importación en curso', async ({ page }) =
  * página (se inyecta `drivePicker` en las props de Inertia), `window.google`/`window.gapi` (stub del Picker, sin cargar ningún script de Google)
  * y `POST /media/import-drive`: nada llega a Google.
  */
-test('E2E-09 · Drive: sin GOOGLE_PICKER_API_KEY no hay botón «Google Drive» ni se cargan scripts de Google', async ({ page }, info) => {
+test('E2E-09 · Drive: sin GOOGLE_PICKER_API_KEY no hay botón «Google Drive» ni se cargan scripts de Google', { tag: '@responsive' }, async ({ page }, info) => {
     const google: string[] = [];
     page.on('request', (r) => {
         if (/accounts\.google\.com|apis\.google\.com/.test(r.url())) google.push(r.url());
@@ -295,7 +296,7 @@ async function enableFakeDrive(page: Page, seen: { token: string | null; clicks:
     }));
 }
 
-test('E2E-09 · Drive: con la clave configurada el botón aparece, se usa con teclado e importa el fichero elegido sin tocar Google', async ({ page }, info) => {
+test('E2E-09 · Drive: con la clave configurada el botón aparece, se usa con teclado e importa el fichero elegido sin tocar Google', { tag: '@responsive' }, async ({ page }, info) => {
     const seen = { token: null as string | null, clicks: 0, body: null as Record<string, string> | null };
     await enableFakeDrive(page, seen);
     await page.goto(`/brands/${brand.id}/posts/create`);
@@ -312,7 +313,7 @@ test('E2E-09 · Drive: con la clave configurada el botón aparece, se usa con te
     await expect(button).toBeFocused();
     await page.keyboard.press('Enter');
 
-    await expect(page.getByText('1. clip.mp4').first()).toBeVisible({ timeout: 20_000 }); // la previsualizacion por red (T-17) repite el nombre
+    await expect(postMediaSection(page).getByText('1. clip.mp4')).toBeVisible({ timeout: 20_000 });
     expect(seen.body).toEqual({ file_id: 'FILE_id-1', access_token: 'ya29.stub-token' });
     // El token no queda en la URL, el almacenamiento ni el DOM.
     expect(page.url()).not.toContain('ya29');

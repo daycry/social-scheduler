@@ -3,7 +3,10 @@ import path from 'node:path';
 
 // This suite owns an entirely separate database and never loads the demo session.
 const root = path.resolve(process.env.T43_RUN_ROOT ?? `storage/framework/testing/t43/run-${Date.now()}-${process.pid}`);
-const baseURL = 'http://localhost:8081';
+// T-43 keeps 8081 by default (so it can coexist with the general battery); E2E_ROADMAP_PORT overrides it.
+const port = Number(process.env.E2E_ROADMAP_PORT || 8081);
+if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('E2E_ROADMAP_PORT must be an integer between 1024 and 65535.');
+const baseURL = `http://localhost:${port}`;
 Object.assign(process.env, {
     T43_RUN_ROOT: root,
     APP_ENV: 'e2e',
@@ -29,7 +32,7 @@ export default defineConfig({
     reporter: [['list'], ['json', { outputFile: path.join(root, 'results.json') }]],
     outputDir: path.join(root, 'artifacts'),
     webServer: {
-        command: 'php tests/e2e/roadmap/cli.php init && php -S localhost:8081 -t public tests/e2e/roadmap/server.php',
+        command: `php tests/e2e/roadmap/cli.php init && php -S localhost:${port} -t public tests/e2e/roadmap/server.php`,
         url: `${baseURL}/up`, reuseExistingServer: false, timeout: 90_000,
         // Request access logs are noisy; application exceptions remain in <run>/logs/laravel.log.
         stdout: 'ignore', stderr: 'ignore',

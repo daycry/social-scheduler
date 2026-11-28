@@ -5,6 +5,205 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Changed — modo oscuro en las páginas y el Estudio (audit-hardening, T-98)
+
+- El tema elegido se aplica a las páginas sociales, los gráficos de analítica y los controles del Estudio. Los diseños conservan sus colores en el lienzo, las vistas previas y las exportaciones.
+
+### Added — tema claro, oscuro o del sistema (audit-hardening, T-97)
+
+- Elige el tema en Perfil → Apariencia. La cuenta conserva tu elección y la navegación, los diálogos, los avisos y los controles comunes adoptan la paleta.
+
+### Added — atajos, preferencias de avisos y primeros pasos (audit-hardening, T-96)
+
+- Navega con el teclado, elige dónde recibes cada tipo de aviso y empieza, salta o repite la guía de primeros pasos.
+
+### Added — catálogo de plantillas del Estudio (audit-hardening, T-95)
+
+- El Estudio añade 50 plantillas editables en cinco formatos, con carruseles y 25 diseños con animaciones de entrada y salida. Busca por nombre o categoría, filtra por formato y crea un diseño con los colores y la tipografía de tu marca.
+
+### Added — animaciones por objeto en el Estudio (audit-hardening, T-94)
+
+- En la línea de tiempo del Estudio, selecciona un clip y dale una animación de entrada y/o de salida: fundido, deslizamiento desde o hacia cualquier lado, o zoom, con duración (0,1–10 s), retardo y curva de suavizado (lineal, acelera, frena, suave). La animación se ve en el clip de la línea de tiempo, en la previsualización al mover el cabezal, en el vídeo MP4/GIF y en la imagen exportada en el instante elegido, así que el fotograma exportado coincide con la previsualización. La entrada y la salida deben caber en el tiempo visible del objeto; al acortar un clip se descartan las fases que ya no caben. Los diseños sin animaciones se renderizan exactamente igual que antes.
+
+### Added — plan de contenido en lenguaje natural (audit-hardening, T-93)
+
+- La nueva página Plan de contenido (Planificación → Plan de contenido) convierte un briefing en lenguaje natural, como «la semana que viene, 3 posts sobre el lanzamiento de X, por la mañana», en un lote de publicaciones de texto con fecha redactadas por el asistente IA. Mientras revisas no se crea nada: cada publicación propuesta muestra su fecha, cuentas y texto, y puedes editarla, desmarcarla o cambiar sus cuentas antes de confirmar. Un texto que no cabe en el límite de una red se marca para que lo edites, nunca se recorta. Al confirmar, el servidor lo comprueba todo de nuevo y crea solo lo que elegiste, como borradores con su fecha o programadas, todo o nada; un doble clic en «Confirmar» nunca crea el lote dos veces. Solo se usan las cuentas de la marca actual que publican texto sin imágenes (Bluesky, Mastodon, Threads, LinkedIn, Facebook, Telegram); el resto se lista con su motivo. Comparte el cupo diario de IA con el resto del asistente y muestra un mensaje claro si la IA no está configurada.
+
+### Added — reciclado inteligente de mejores posts (audit-hardening, T-92)
+
+- La nueva página Planificación → Reciclado de posts propone, por marca, tus publicaciones ya publicadas que mejor funcionaron para volver a publicarlas. Se ordenan por engagement (interacciones entre visualizaciones, la misma medida del panel, así que se pueden comparar entre redes) y solo aparecen si su cuenta sigue conectada, se publicaron hace al menos 14 días y tienen al menos 100 visualizaciones. El mismo contenido no se vuelve a proponer antes de 60 días desde su última publicación o reciclado, incluidas las copias recicladas que sigan en borrador o programadas. «Reciclar» crea un borrador con el mismo texto, archivos y cuentas para que lo revises (nada se publica solo); «Descartar» oculta la propuesta hasta que pase ese intervalo. La página muestra las cifras de cada propuesta y por qué el resto se ha quedado fuera.
+
+### Added — marca de agua automática y exportación en lote (audit-hardening, T-91)
+
+- Configura una marca de agua por marca en Identidad de marca: elige uno de los logotipos de la marca, su posición (esquinas o centro), opacidad, tamaño y margen, y actívala o desactívala. Las exportaciones de imagen que genera el servidor (PNG, JPG y WebP, por la API o con la nueva exportación en lote) llevan el logotipo superpuesto automáticamente, y cualquier exportación puede prescindir de ella. La nueva acción «Exportar en lote» del editor convierte un diseño en una imagen por cada formato que elijas (cuadrado, 4:5, historia, horizontal…) de una sola vez; cada archivo se guarda en la biblioteca de la marca con su tamaño y con la marca de agua si está activa, y repetir el lote nunca duplica archivos. El diálogo Exportar indica si la imagen lleva marca de agua y permite desactivarla en esa exportación.
+
+### Added — fechas señaladas y feed .ics del calendario (audit-hardening, T-90)
+
+- El calendario muestra ahora un conjunto inicial de fechas señaladas de marketing (Año Nuevo, San Valentín, Día de la Mujer, Día del Padre y de la Madre en España, Día del Libro, Halloween, Black Friday, Cyber Monday, Navidad…), diferenciadas de tus publicaciones en las vistas semana, mes y lista; puedes ocultarlas desde el panel del calendario y se recuerda en tu cuenta. El mismo panel crea un enlace de suscripción secreto (.ics) para ver tus publicaciones programadas y publicadas, y las fechas señaladas si están visibles, en Google Calendar, Outlook o Apple Calendar. El enlace se muestra una sola vez, solo contiene tus propias publicaciones (un resumen corto: marca, redes, estado y el inicio del texto), se puede regenerar (el anterior deja de funcionar) o revocar cuando quieras, se revoca solo al cambiar o restablecer la contraseña, y nunca se indexa ni se cachea. El listado definitivo de fechas está pendiente de confirmar.
+
+### Added — acortador propio con clics (audit-hardening, T-89)
+
+- Acorta cualquier dirección web en un enlace tuyo (`/s/CÓDIGO`) desde SmartLinks → Enlaces cortos, o marca «Acortar el enlace y contar sus clics» en el generador de UTM del compositor. Cada enlace muestra sus clics de hoy, de los últimos 7 días, el total y el desglose por día (días UTC). Puedes desactivarlo (quien lo abra verá una página clara de «enlace desactivado» y no se cuenta nada) y reactivarlo, o borrarlo. Solo se guarda el número de clics por día: sin IP, navegador ni datos personales; las peticiones HEAD y la precarga del navegador (que se anuncian como tal) no cuentan. Solo se aceptan destinos http y https; hasta 500 enlaces por cuenta.
+
+### Added — autolistas desde RSS (audit-hardening, T-88)
+
+- Una autolista puede tomar un feed RSS o Atom como fuente (indícalo al crearla o con «Guardar feed» en la lista). Cada vez que se genera la lista, las entradas más recientes del feed entran en la cola como publicaciones con el título y el enlace, sin duplicados, aunque las quites de la cola o se edite el feed; la primera vez solo se encolan las 3 más recientes. El texto se acorta por palabras para caber en el límite de cada red (el enlace nunca se corta). Un feed privado, enorme o lento se rechaza, y la última comprobación y el error, si lo hay, se ven en la lista.
+
+### Added — Mastodon y Telegram (audit-hardening, T-87)
+
+- Conecta una cuenta de Mastodon (la dirección de tu instancia y un token de acceso personal) y un canal de Telegram (el token de un bot de BotFather y el canal, con el bot como administrador con permiso para publicar) desde Conexiones, con el mismo formulario de credenciales que Bluesky. Publica texto e imágenes en Mastodon (texto alternativo, visibilidad por publicación y los límites propios de tu instancia de caracteres, imágenes y peso, que se refrescan a diario) y texto o una sola foto con pie en Telegram, con el límite correcto de cada uno; aparecen en el compositor con sus contadores. Los tokens se guardan cifrados y nunca se registran. La comprobación con cuentas reales sigue pendiente.
+
+### Added — resumen semanal y preferencias de avisos (audit-hardening, T-86)
+
+- Recibe cada lunes por la mañana (en la zona horaria de tu marca principal) un resumen con los seguidores, visualizaciones, alcance, interacciones, publicaciones publicadas y la mejor publicación de la semana anterior de cada marca, comparados con la previa, como aviso en la aplicación (y por push si lo tienes activado) y por correo si activaste los avisos por correo, con un enlace de baja de un clic. Las marcas sin datos salen como «sin datos». Viene apagado por defecto; un párrafo opcional escrito con IA (solo si el asistente está configurado) envía únicamente el nombre de tus marcas y las cifras agregadas. Las nuevas preferencias de avisos, en Notificaciones del navegador, permiten activar o desactivar el resumen y el recordatorio de publicación manual (encendido por defecto); el aviso de «es la hora» se envía siempre.
+
+### Added — búsqueda global y paleta de comandos (audit-hardening, T-85)
+
+- Pulsa Ctrl+K (Cmd+K en macOS) o el botón Buscar de la cabecera para abrir una paleta que se maneja con el teclado y encuentra al momento las páginas y acciones de la aplicación y, desde dos letras, tus publicaciones, marcas, archivos de la biblioteca, diseños del Estudio, campañas, plantillas, sitios y smart links, con la marca, la fecha en la zona horaria de la marca y el estado. Solo devuelve lo que ya ves en el resto de la aplicación (como aprobador de una marca ajena, las publicaciones pendientes de tu aprobación y los diseños de esa marca), con un máximo de 5 resultados por tipo y 20 en total.
+
+### Added — exportación completa de datos (audit-hardening, T-84)
+
+- Descarga un ZIP con todos tus datos desde Perfil → Exportar mis datos: marcas, publicaciones con destinos y textos, campañas, informes y sus PDF, los ficheros de la biblioteca, diseños del Estudio y sus exportaciones, sitios, smart links, plantillas y objetivos, en JSON legible y un manifiesto con el SHA-256 de cada fichero. Elige si incluir los archivos de media (un ZIP solo de datos es mucho más pequeño; hasta 20 GB, con ZIP64). Se prepara en segundo plano, te avisa en la aplicación (y por correo si falla y tienes activados los avisos por correo) y el enlace de descarga está firmado, caduca a los 10 minutos y solo sirve con tu sesión. Nunca incluye credenciales, datos de otras personas ni los comentarios de terceros del buzón; el ZIP se borra a las 72 horas.
+
+### Added — importación masiva de publicaciones por CSV (audit-hardening, T-83)
+
+- Importa muchas publicaciones a una marca desde un CSV: revisa cada fila con sus errores antes (no se crea nada) y confirma para crear solo las válidas, con la misma validación que el compositor. Descarga un CSV de ejemplo desde la página; los límites son 200 filas y 1 MB. Una confirmación solo se puede usar una vez, así que un doble clic nunca duplica publicaciones.
+
+### Added — adaptar el texto a cada red con IA (audit-hardening, T-82)
+
+- Adapta el texto común a cada red elegida con una sola petición a la IA y revisa una versión por red antes de aplicarla; las versiones que superan el texto o los hashtags de su red se rechazan, no se recortan. Genera desde el compositor el texto alternativo de una imagen y edítalo antes de guardar. Con el asistente sin configurar, ambos botones quedan inactivos y explican por qué.
+
+### Added — avisos del navegador (audit-hardening, T-81)
+
+- Instala la aplicación desde navegadores compatibles y activa avisos push genéricos por dispositivo. Las suscripciones se cifran y se pueden revocar; el envío usa VAPID, reintentos acotados y elimina las suscripciones caducadas. La aceptación real en HTTPS y dispositivos sigue pendiente.
+- Corregido: los envíos reales de push y de webhooks nunca salían del servidor (el cliente HTTP cambiaba a un manejador que rechaza la IP fijada). Ahora la respuesta se descarta sin leerla.
+
+### Added — webhooks salientes firmados (audit-hardening, T-80)
+
+- Configura receptores HTTPS de tus marcas para eventos de publicación e inbox. Envía firmas HMAC con marca de tiempo, reintentos acotados, protección de URLs, recuperación de cola y estado visible; el secreto permanece cifrado y privado.
+
+### Added — objetivos y alertas (audit-hardening, T-79)
+
+- Crea, edita y pausa objetivos por marca o cuenta propia. La evaluación diaria local avisa de hitos, caídas y caducidades conocidas una vez por regla o periodo; las métricas ausentes siguen desconocidas y el correo opcional respeta las preferencias del usuario.
+
+### Added — estado del sistema para operadores (audit-hardening, T-78)
+
+- Los operadores verificados autorizados por el servidor pueden consultar salud, sondas de trabajadores, caducidades agregadas y cuotas con su fecha. Los datos desconocidos o fallidos se explican sin exponer credenciales ni consultar las APIs sociales.
+
+### Added — duplicar publicaciones (audit-hardening, T-77)
+
+- Duplica publicaciones guardadas o publicadas como borradores independientes en la misma marca u otra propia. Conserva contenido y media compatibles, explica los destinos omitidos y reinicia el historial y las elecciones ligadas a la cuenta o a cada publicación.
+
+### Added — propuesta de mejor hora (audit-hardening, T-76)
+
+- Usa las métricas de la marca para rellenar una fecha futura en el compositor o abrir uno nuevo desde el calendario. Si faltan datos, se explica el motivo y se conserva la fecha actual.
+
+### Added — historial de actividad (audit-hardening, T-75)
+
+- El menú de cuenta permite consultar el historial de actividad, paginado y filtrable por marca, usuario, acción y fechas. Muestra la actividad personal y la atribuida a marcas propias, junto con el plazo de conservación configurado.
+
+### Fixed — filtros de la bandeja (`audit-hardening`, T-68)
+
+- La casilla «Solo ocultos» refleja el filtro activo al abrir o recargar una URL de la bandeja. Al desmarcarla vuelven a aparecer todos los comentarios.
+
+### Changed — permisos de archivos e IA del Estudio (`audit-hardening`, T-108)
+
+- REST y MCP usan `media:read` y `media:write` para la biblioteca y `designs:ai` para la IA del Estudio. La migración actualiza los permisos de claves existentes y autorizaciones OAuth pendientes.
+
+### Fixed — vistas previas de informes y búsqueda del calendario (`audit-hardening`, T-65)
+
+- Al cambiar de marca se cancela la vista previa pendiente para que el informe anterior no reaparezca. El campo de búsqueda del calendario tiene un nombre accesible.
+
+### Changed — aprobadores de marca y diseños de Estudio (audit-hardening, T-105)
+
+- Los aprobadores invitados pueden revisar diseños de su marca y decidir en la bandeja de Aprobaciones. HTTP y MCP usan `approver` en las invitaciones. Actualiza los clientes que envían la clave anterior.
+
+### Fixed — cargas y contexto del editor de Estudio (`audit-hardening`, T-63)
+
+- Estudio pone en cola los archivos elegidos mientras se ocupa el lienzo y conserva cada carga de audio recuperable para reintentar. Si cambia el diseño o la marca, el editor anterior deja de aceptar cambios y de enviar guardados. Los diálogos de presentación y gráficos usan los controles compartidos.
+
+### Added — rotación de la clave de aplicación (`audit-hardening`, T-70)
+
+- `app:reencrypt` permite simular y recifrar las credenciales de redes, Canva y doble factor tras cambiar la clave de aplicación.
+
+### Fixed — ancho y autoguardado del editor de Estudio (`audit-hardening`, T-62)
+
+- El editor de Estudio usa todo el ancho disponible. Al salir, se cancelan los autoguardados pendientes.
+
+### Fixed — cronología y rutas de tablas de Estudio (`audit-hardening`, T-61)
+
+- Estudio reutiliza el plan compilado de la cronología. Las acciones de las tablas funcionan cuando la aplicación se instala en un subdirectorio.
+
+### Added — archivos compartidos en el compositor y Estudio (`audit-hardening`, T-106)
+
+- Sube un archivo una sola vez y úsalo en el compositor y en Recursos de la marca. Abre una imagen en Estudio en otra pestaña para conservar el borrador abierto.
+
+### Added — vínculo entre Estudio y publicaciones (`audit-hardening`, T-101)
+
+- Reexportar un diseño vinculado actualiza la publicación editable y conserva sus adjuntos independientes. Las imágenes y los vídeos importados de Canva aparecen en Recursos de la marca y reutilizan el recurso si coincide el contenido.
+
+### Fixed — accesibilidad de formularios y pestañas (`audit-hardening`, T-60)
+
+- Los errores de validación se anuncian junto a su campo o grupo. Las pestañas de Calendario, MCP, Studio y el compositor admiten flechas, Inicio y Fin.
+
+### Fixed — listas paginadas (`audit-hardening`, T-59)
+
+- La papelera, las plantillas de publicación, los avisos, los informes y los diseños muestran el total y permiten recorrer todo el listado.
+
+### Fixed — avisos de la aplicación (`audit-hardening`, T-58)
+
+- La aplicación usa un aviso común para confirmar acciones y mostrar errores, incluidas la creación de diseños y la gestión de API keys.
+
+### Changed — confirmaciones accesibles (`audit-hardening`, T-57)
+
+- Las acciones destructivas y el aviso de primer comentario duplicado usan un diálogo común. Los botones nombran la acción, el foco entra en «Cancelar» y Escape cancela la acción.
+
+### Changed — actualización de estados e IA del compositor (`audit-hardening`, T-55)
+
+- Informes y Canva pausan la actualización cuando se oculta la pestaña y permiten reanudarla manualmente al llegar al límite. El compositor comparte el estado y la cuota del asistente.
+
+### Fixed — foco de los diálogos (`audit-hardening`, T-56)
+
+- Los diálogos de Studio, el perfil, el compositor y el calendario comparten el manejo del foco y del cierre con Escape. Al cerrar, el foco vuelve al control que abrió el diálogo si sigue disponible.
+
+### Changed — horas de marca y textos (`audit-hardening`, T-54)
+
+- La interfaz muestra las fechas y horas en la zona de la marca. Los contenidos guardados se agrupan en «Plantillas de publicación» y los archivos siguen en «Biblioteca».
+
+### Changed — carga del editor de Estudio (`audit-hardening`, T-52)
+
+- El editor carga cada diálogo al abrirlo por primera vez y carga la biblioteca de PDF al generar un PDF. Los fallos de carga muestran un mensaje legible y permiten seguir usando el editor.
+
+### Changed — workers de cola (`audit-hardening`, T-49)
+
+- Activa el worker `studio-render` antes de actualizar para procesar IA, imágenes y exportaciones estáticas. Redis espera al menos 180 segundos antes de volver a entregar un trabajo.
+
+### Changed — analítica (`audit-hardening`, T-47)
+
+- El panel, la exportación, los informes y MCP identifican el campo de fecha incorrecto o el rango inválido con mensajes coherentes. El panel por marca reutiliza los snapshots diarios y los vuelve a consultar tras recoger datos de esa marca.
+
+### Fixed — subidas reanudables (`audit-hardening`, T-37)
+
+- TikTok y YouTube aplazan el siguiente trozo cuando la pasada de subida agota su tiempo, también si el margen mínimo configurado es cero.
+
+### Changed — publicación en Instagram (`audit-hardening`, T-36)
+
+- Un contenedor de Instagram que termina en error o caduca deja la publicación fallida con un código que indica la causa (`contenedor_error`, `contenedor_caducado`) en vez del genérico `rechazada`, igual que Threads.
+
+### Changed — API v1 y MCP, cambios incompatibles (`audit-hardening`, T-28/T-29)
+
+- `POST /api/v1/posts` pasa a `POST /api/v1/brands/{brand}/posts` y `POST /api/v1/series` a `POST /api/v1/brands/{brand}/series`: la marca va siempre en la ruta.
+- La paginación de posts, media, comentarios y diseños (API y MCP) es por cursor (`limit`, `cursor`, `has_more`, `next_cursor`); desaparecen `page`, `before_id` y `total`.
+- Un estado que no admite la operación (p. ej. borrar una publicación ya publicada) responde 409; 422 queda para errores de entrada.
+- Los límites de ritmo por ruta tienen ahora su propio contador y se configuran en `config/rate_limits.php`.
+- Un `PUT` del SmartLink sin `published` ya no lo publica.
+- Un único OpenAPI (`docs/api/openapi.yaml`) describe toda la API.
+
+### Added — opciones de publicación y estudio (`audit-hardening`, T-34/T-35)
+
+- **T-34 — Opciones de publicación: portada LinkedIn, lugares IG, `place` FB, editor de `user_tags`.** El compositor deja elegir un lugar para Instagram y Facebook (buscándolo o pegando su id), etiquetar usuarios en una imagen de Instagram pulsando sobre ella y poner portada a los vídeos de LinkedIn.
+- **T-35 — Estudio: PPTX, miniaturas por diseño y traducción de subtítulos.** El estudio exporta un diseño a PowerPoint (una diapositiva por página), enseña una miniatura de cada diseño en el listado y traduce los subtítulos con el asistente de IA cuando está activado.
+
 ### Added — iniciativa `creative-social-suite` (2026-11-03)
 
 - **T-01 — Inventario y evidencia de referencia** El inventario de funciones de referencia queda actualizado con el estado real de la aplicación: para cada función, si está cubierta, parcial o fuera, la tarea que la cubre y su prueba.

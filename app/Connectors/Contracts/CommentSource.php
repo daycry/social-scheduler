@@ -15,6 +15,14 @@ interface CommentSource
     public function hasScopes(SocialAccount $account, bool $write = false): bool;
 
     /**
+     * Permisos de LECTURA que faltan a la cuenta, para decir exactamente cual activar. Vacio si no se conocen por permiso
+     * (YouTube, Bluesky) o si no falta ninguno.
+     *
+     * @return list<string>
+     */
+    public function missingScopes(SocialAccount $account): array;
+
+    /**
      * Comentarios (y respuestas) normalizados, mas recientes primero.
      *
      * @return list<array{external_id: string, parent_external_id: ?string, author_name: ?string, text: ?string, is_own: bool, hidden: bool, commented_at: ?CarbonImmutable}>

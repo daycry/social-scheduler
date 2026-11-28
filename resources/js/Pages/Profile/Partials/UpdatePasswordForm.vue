@@ -1,5 +1,5 @@
 <script setup>
-import InputError from '@/Components/InputError.vue';
+import FormField from '@/Components/FormField.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -36,67 +36,66 @@ const updatePassword = () => {
 <template>
     <section>
         <header>
-            <h2 class="text-lg font-medium text-slate-900">
-                Cambiar contraseña
-            </h2>
+            <h2 class="text-lg font-medium text-foreground-strong"> Cambiar contraseña </h2>
 
-            <p class="mt-1 text-sm text-slate-600">
+            <p class="mt-1 text-sm text-foreground-muted">
                 Usa una contraseña larga y aleatoria para mantener tu cuenta segura.
             </p>
         </header>
 
         <form @submit.prevent="updatePassword" class="mt-6 space-y-6">
             <div>
-                <InputLabel for="current_password" value="Contraseña actual" />
-
-                <TextInput
+                <FormField
                     id="current_password"
-                    ref="currentPasswordInput"
-                    v-model="form.current_password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    autocomplete="current-password"
-                />
+                    :error="form.errors.current_password"
+                    error-class="mt-2"
+                    v-slot="{ control }"
+                >
+                    <InputLabel for="current_password" value="Contraseña actual" />
 
-                <InputError
-                    :message="form.errors.current_password"
-                    class="mt-2"
-                />
+                    <TextInput
+                        v-bind="control"
+                        ref="currentPasswordInput"
+                        v-model="form.current_password"
+                        type="password"
+                        class="mt-1 block w-full"
+                        autocomplete="current-password"
+                    />
+                </FormField>
             </div>
 
             <div>
-                <InputLabel for="password" value="Nueva contraseña" />
+                <FormField id="password" :error="form.errors.password" error-class="mt-2" v-slot="{ control }">
+                    <InputLabel for="password" value="Nueva contraseña" />
 
-                <TextInput
-                    id="password"
-                    ref="passwordInput"
-                    v-model="form.password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    autocomplete="new-password"
-                />
-
-                <InputError :message="form.errors.password" class="mt-2" />
+                    <TextInput
+                        v-bind="control"
+                        ref="passwordInput"
+                        v-model="form.password"
+                        type="password"
+                        class="mt-1 block w-full"
+                        autocomplete="new-password"
+                    />
+                </FormField>
             </div>
 
             <div>
-                <InputLabel
-                    for="password_confirmation"
-                    value="Confirmar contraseña"
-                />
-
-                <TextInput
+                <FormField
                     id="password_confirmation"
-                    v-model="form.password_confirmation"
-                    type="password"
-                    class="mt-1 block w-full"
-                    autocomplete="new-password"
-                />
+                    :error="form.errors.password_confirmation"
+                    error-class="mt-2"
+                    v-slot="{ control }"
+                >
+                    <InputLabel for="password_confirmation" value="Confirmar contraseña" />
 
-                <InputError
-                    :message="form.errors.password_confirmation"
-                    class="mt-2"
-                />
+                    <TextInput
+                        v-bind="control"
+                        v-model="form.password_confirmation"
+                        type="password"
+                        class="mt-1 block w-full"
+                        autocomplete="new-password"
+                    />
+                </FormField>
             </div>
 
             <div class="flex items-center gap-4">
@@ -108,12 +107,7 @@ const updatePassword = () => {
                     leave-active-class="transition ease-in-out"
                     leave-to-class="opacity-0"
                 >
-                    <p
-                        v-if="form.recentlySuccessful"
-                        class="text-sm text-slate-600"
-                    >
-                        Guardado.
-                    </p>
+                    <p v-if="form.recentlySuccessful" class="text-sm text-foreground-muted"> Guardado. </p>
                 </Transition>
             </div>
         </form>

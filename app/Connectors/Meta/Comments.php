@@ -2,6 +2,8 @@
 
 namespace App\Connectors\Meta;
 
+use App\Connectors\Contracts\CommentSource;
+use App\Connectors\Contracts\HidesComments;
 use App\Connectors\Exceptions\CommentNotAllowedException;
 use App\Connectors\Exceptions\CommentSearchInconclusiveException;
 use App\Connectors\Exceptions\PermanentPublishException;
@@ -18,7 +20,7 @@ use Throwable;
  *  - Facebook:  `pages_read_user_content` (leer comentarios de usuarios) y `pages_manage_engagement` (responder y ocultar).
  * No toca mensajes directos.
  */
-class Comments
+class Comments implements CommentSource, HidesComments
 {
     /** Permisos necesarios por red para LEER y para MODERAR (responder/ocultar). */
     public const READ_SCOPES = ['instagram' => ['instagram_manage_comments'], 'facebook' => ['pages_read_user_content']];
@@ -32,11 +34,16 @@ class Comments
     public function __construct(private readonly GraphClient $graph = new GraphClient) {}
 
     /** ¿La cuenta tiene concedidos los permisos? `$write` = responder/ocultar en vez de solo leer. */
-    public static function hasScopes(SocialAccount $account, bool $write = false): bool
+    public function hasScopes(SocialAccount $account, bool $write = false): bool
     {
         $needed = ($write ? self::WRITE_SCOPES : self::READ_SCOPES)[$account->network->value] ?? null;
 
         return $needed !== null && array_diff($needed, (array) $account->scopes) === [];
+    }
+
+    public function missingScopes(SocialAccount $account): array
+    {
+        return array_values(array_diff(self::READ_SCOPES[$account->network->value] ?? [], (array) $account->scopes));
     }
 
     /**
@@ -151,7 +158,7 @@ class Comments
     {
         $this->assertId($postExternalId);
 
-        if (! self::hasScopes($account, true)) {
+        if (! $this->hasScopes($account, true)) {
             throw new PermanentPublishException('Falta el permiso para comentar en '.$account->network->label().'. Reconecta la cuenta y acepta todos los permisos.', 'permisos');
         }
 
@@ -234,7 +241,6 @@ class Comments
         return trim((string) preg_replace('/\s+/u', ' ', $text));
     }
 
-    /** Oculta (o vuelve a mostrar) un comentario. */
     public function setHidden(SocialAccount $account, string $commentId, bool $hidden): void
     {
         $this->assertId($commentId);

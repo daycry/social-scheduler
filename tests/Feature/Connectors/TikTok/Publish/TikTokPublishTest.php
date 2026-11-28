@@ -24,6 +24,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\FakeHttp;
+use Tests\Support\FixtureRecorder;
 
 const TT_UPLOAD = 'https://open-upload.tiktokapis.com/video/?upload_id=U1&upload_token=T';
 const TT_MB = 1024 * 1024;
@@ -75,7 +76,8 @@ test('TikTokPublish: por defecto sube como borrador a la bandeja con un unico tr
 
     $puts = $this->http->callsTo('PUT', '#upload_id=U1#');
     expect($puts)->toHaveCount(1)->and($puts[0]['headers']['content-range'])->toBe('bytes 0-'.($size - 1).'/'.$size)->and($puts[0]['body_length'])->toBe($size);
-});
+    FixtureRecorder::assertRecorded('tiktok/success');
+})->group('provider-contracts');
 
 test('TikTokPublish: un video grande va en trozos de 10 MB y el ultimo absorbe el resto, siempre en streaming', function () {
     ttInit($this->http);
@@ -175,6 +177,14 @@ test('TikTokPublish: errores de la API se clasifican (cuota, credenciales, trans
     'sin red' => [new ConnectionException('t'), TransientPublishException::class],
     'desconocido' => [['status' => 400, 'json' => ['error' => ['code' => 'invalid_params', 'message' => 'bad']]], PermanentPublishException::class],
 ]);
+
+test('contrato de error de tiktok', function () {
+    $this->http->on('POST', '#inbox/video/init/$#', ['status' => 429, 'json' => ['error' => ['code' => 'rate_limit_exceeded', 'message' => 'Slow down']]]);
+
+    expect(fn () => $this->tt->publish($this->account, ttRequest(ttAsset(TT_MB))))->toThrow(TransientPublishException::class);
+
+    FixtureRecorder::assertRecorded('tiktok/error');
+})->group('provider-contracts');
 
 test('TikTokPublish: la upload_url debe ser de TikTok y un trozo rechazado falla', function () {
     $this->http->on('POST', '#inbox/video/init/$#', ['json' => ['data' => ['publish_id' => 'p', 'upload_url' => 'https://evil.test/up'], 'error' => ['code' => 'ok']]]);

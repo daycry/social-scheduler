@@ -244,16 +244,17 @@ test('comparte el límite diario con las sugerencias de texto y devuelve el cupo
         ->and(fn () => $this->ai->proposeSchedule($this->user, $this->brand, 'el viernes'))->toThrow(PostValidationException::class, 'límite diario');
 });
 
-test('si no hay conexión se devuelve el cupo y el error es legible', function () {
+test('si no hay conexión el error es legible y el uso se gasta (un timeout puede haberse cobrado)', function () {
     Http::fake(['api.anthropic.com/*' => fn () => throw new ConnectionException('timeout')]);
 
     expect(fn () => $this->ai->proposeSchedule($this->user, $this->brand, 'el viernes'))->toThrow(PostValidationException::class, 'no responde');
-    expect($this->ai->remaining($this->user))->toBe(20);
+    expect($this->ai->remaining($this->user))->toBe(19);
 });
 
-test('una respuesta que no se entiende gasta el cupo (la llamada se hizo) y no fuerza ninguna fecha', function () {
+test('una respuesta que no se entiende no fuerza ninguna fecha y gasta el uso (la llamada se pagó)', function () {
     aiReply('no lo sé');
 
     expect(fn () => $this->ai->proposeSchedule($this->user, $this->brand, 'cuando te venga bien'))->toThrow(PostValidationException::class, 'No he podido');
-    expect($this->ai->remaining($this->user))->toBe(19);
+    expect($this->ai->remaining($this->user))->toBe(19)
+        ->and((int) Cache::get('ai:global:'.now('UTC')->toDateString()))->toBe(1);
 });

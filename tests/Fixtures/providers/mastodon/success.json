@@ -1,0 +1,14 @@
+{
+  "source": "https://docs.joinmastodon.org/methods/statuses/",
+  "method": "POST",
+  "host": "mastodon.example",
+  "path": "/api/v1/statuses",
+  "status": 200,
+  "headers": {},
+  "body": {
+    "id": "110000000000000001",
+    "created_at": "2026-11-26T10:00:00.000Z",
+    "url": "https://mastodon.example/@ana/110000000000000001",
+    "uri": "https://mastodon.example/users/ana/statuses/110000000000000001"
+  }
+}

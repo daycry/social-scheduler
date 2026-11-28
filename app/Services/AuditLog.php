@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AuditLog as AuditLogEntry;
+use App\Models\Brand;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -20,13 +21,17 @@ class AuditLog
 
     public const ERROR = 'error';
 
-    public function record(?User $user, string $action, string $outcome, ?string $resource = null, int|string|null $resourceId = null, ?string $detail = null, string $channel = 'mcp'): void
+    public function record(?User $user, string $action, string $outcome, ?string $resource = null, int|string|null $resourceId = null, ?string $detail = null, string $channel = 'mcp', ?int $brandId = null): void
     {
         $tokenId = $user?->currentAccessToken()?->id ?? null;
 
         try {
             AuditLogEntry::create([
                 'user_id' => $user?->id,
+                // Solo contexto verificado por el llamante; las referencias antiguas pueden ser ambiguas.
+                'brand_id' => $user !== null && $brandId !== null && $outcome !== self::DENIED
+                    ? Brand::ownedBy($user->id)->whereKey($brandId)->value('id')
+                    : null,
                 'token_id' => $tokenId,
                 'channel' => $channel,
                 'action' => $action,

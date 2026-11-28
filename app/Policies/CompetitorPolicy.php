@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Competitor;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Support\Facades\Log;
 
 class CompetitorPolicy
@@ -20,7 +21,7 @@ class CompetitorPolicy
 
     private function owns(User $user, Competitor $competitor, string $ability): bool
     {
-        if ($competitor->user_id === $user->id) {
+        if (Ownership::matches($competitor, $user)) {
             return true;
         }
 

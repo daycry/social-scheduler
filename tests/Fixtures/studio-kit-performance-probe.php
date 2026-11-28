@@ -25,7 +25,7 @@ for ($pageIndex = 0; $pageIndex < 6; $pageIndex++) {
     }
     $document['pages'][] = $page;
 }
-(new StudioDocument)->validate($user, $brand, $document);
+app(StudioDocument::class)->validate($user, $brand, $document);
 $service = (new ReflectionClass(StudioAutomation::class))->newInstanceWithoutConstructor();
 $started = hrtime(true);
 $result = (new ReflectionMethod($service, 'applyKit'))->invoke($service, $user, $brand, $document, [], ['palette' => ['#111111', '#222222'], 'fonts' => [], 'logos' => []]);

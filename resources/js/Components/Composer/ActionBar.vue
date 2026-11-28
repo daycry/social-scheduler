@@ -1,4 +1,5 @@
 <script setup>
+import BaseDialog from '@/Components/BaseDialog.vue';
 import { BRANDED_CONTENT_URL, MUSIC_USAGE_URL } from '@/Composables/tiktokCreator';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import DangerButton from '@/Components/DangerButton.vue';
@@ -6,8 +7,8 @@ import { useComposerContext } from '@/Composables/useComposer';
 
 /**
  * Barra de acciones: botón dividido. El botón principal programa; el menú (`aria-haspopup="menu"`, flechas, Inicio/Fin y Escape)
- * trae Guardar borrador, Guardar en biblioteca y Publicar ahora. Programar y Publicar ahora se deshabilitan mientras haya
- * errores en vivo (`ErrorsPanel`); Guardar borrador y Guardar en biblioteca siguen disponibles. Enviar a revisión y
+ * trae Guardar borrador, Guardar como plantilla y Publicar ahora. Programar y Publicar ahora se deshabilitan mientras haya
+ * errores en vivo (`ErrorsPanel`); Guardar borrador y Guardar como plantilla siguen disponibles. Enviar a revisión y
  * publicaciones recurrentes quedan fuera del alcance.
  */
 const { post, form, accounts, editable, submit, remove, publishNow, sendingNow, hasBlockingErrors, scheduleBlocked, uploadingMedia, libraryName, savingToLibrary, libraryErrors, saveToLibrary } = useComposerContext();
@@ -29,7 +30,7 @@ const canPublishNow = computed(() => !busy.value && !hasBlockingErrors.value && 
 
 const items = computed(() => [
     { key: 'draft', label: 'Guardar borrador', disabled: busy.value || uploadingMedia.value, run: () => submit(false) },
-    { key: 'library', label: 'Guardar en biblioteca', disabled: savingToLibrary.value || uploadingMedia.value, run: () => openLibrary() },
+    { key: 'library', label: 'Guardar como plantilla', disabled: savingToLibrary.value || uploadingMedia.value, run: () => openLibrary() },
     { key: 'now', label: 'Publicar ahora', disabled: !canPublishNow.value, run: () => publishNow() },
 ]);
 
@@ -67,42 +68,28 @@ const onOutside = (e) => { if (open.value && root.value && !root.value.contains(
 onMounted(() => document.addEventListener('mousedown', onOutside));
 onBeforeUnmount(() => document.removeEventListener('mousedown', onOutside));
 
-// ---- Guardar en biblioteca: pide un nombre (no crea ninguna publicación)
+// ---- Guardar como plantilla: pide un nombre (no crea ninguna publicación)
 const libraryOpen = ref(false);
 const nameInput = ref(null);
-const libraryDialog = ref(null);
-const openLibrary = async () => {
-    libraryOpen.value = true;
-    await nextTick();
-    nameInput.value?.focus();
-    nameInput.value?.select();
-};
-const closeLibrary = () => {
-    libraryOpen.value = false;
-    nextTick(() => toggle.value?.focus());
-};
+const openLibrary = () => { libraryOpen.value = true; };
+const closeLibrary = () => { libraryOpen.value = false; };
 const confirmLibrary = () => saveToLibrary(libraryName.value, { onSaved: closeLibrary });
-const onLibraryKey = (e) => {
-    if (e.key === 'Escape') {
-        e.preventDefault();
-        closeLibrary();
-    } else if (e.key === 'Tab') {
-        const els = [...libraryDialog.value.querySelectorAll('button:not([disabled]), input')];
-        if (e.shiftKey && document.activeElement === els[0]) { e.preventDefault(); els[els.length - 1].focus(); }
-        else if (!e.shiftKey && document.activeElement === els[els.length - 1]) { e.preventDefault(); els[0].focus(); }
-    }
-};
 </script>
 
 <template>
     <div v-if="editable" class="flex flex-wrap items-center gap-3" data-testid="action-bar">
         <div ref="root" class="relative inline-flex">
-            <button type="submit" class="btn-primary rounded-r-none" :disabled="blocked">{{ sendingNow ? 'Enviando…' : 'Programar' }}</button>
+            <button
+                type="submit"
+                class="btn-primary rounded-r-none"
+                :disabled="blocked"
+                >{{ sendingNow ? 'Enviando…' : 'Programar' }}</button
+            >
             <button
                 id="actions-menu-button"
                 ref="toggle"
                 type="button"
-                class="btn-primary rounded-l-none border-l border-indigo-400 px-2.5"
+                class="btn-primary rounded-l-none border-l border-focus px-2.5"
                 aria-haspopup="menu"
                 aria-controls="actions-menu"
                 :aria-expanded="open"
@@ -110,38 +97,97 @@ const onLibraryKey = (e) => {
                 :disabled="busy"
                 @click="open ? closeMenu() : openMenu()"
                 @keydown="onToggleKey"
-            ><span aria-hidden="true">▾</span></button>
+                ><span aria-hidden="true">▾</span></button
+            >
 
-            <ul v-show="open" id="actions-menu" ref="menu" role="menu" aria-labelledby="actions-menu-button" class="absolute left-0 top-full z-30 mt-1 min-w-[14rem] rounded-lg border border-slate-200 bg-white py-1 shadow-lg" @keydown="onMenuKey">
+            <ul
+                v-show="open"
+                id="actions-menu"
+                ref="menu"
+                role="menu"
+                aria-labelledby="actions-menu-button"
+                class="absolute left-0 top-full z-30 mt-1 min-w-[14rem] rounded-lg border border-border bg-surface py-1 shadow-lg"
+                @keydown="onMenuKey"
+            >
                 <li v-for="item in items" :key="item.key" role="none">
-                    <button type="button" role="menuitem" tabindex="-1" :disabled="item.disabled" class="block w-full px-4 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none disabled:cursor-not-allowed disabled:text-slate-500" @click="choose(item)">{{ item.label }}</button>
+                    <button
+                        type="button"
+                        role="menuitem"
+                        tabindex="-1"
+                        :disabled="item.disabled"
+                        class="block w-full px-4 py-2 text-left text-sm text-foreground hover:bg-surface-hover focus:bg-surface-hover focus:outline-none disabled:cursor-not-allowed disabled:text-foreground-subtle"
+                        @click="choose(item)"
+                        >{{ item.label }}</button
+                    >
                 </li>
             </ul>
         </div>
 
-        <p v-if="tiktokDirect.length" class="basis-full text-xs text-slate-700" data-testid="tiktok-consent">
+        <p v-if="tiktokDirect.length" class="basis-full text-xs text-foreground-secondary" data-testid="tiktok-consent">
             Al publicar en TikTok, aceptas
-            <template v-if="tiktokBranded">la <a :href="BRANDED_CONTENT_URL" target="_blank" rel="noopener noreferrer" class="underline">Política de contenido de marca (Branded Content Policy)</a> y </template>la
-            <a :href="MUSIC_USAGE_URL" target="_blank" rel="noopener noreferrer" class="underline">Confirmación de uso de música de TikTok (Music Usage Confirmation)</a>.
+            <template v-if="tiktokBranded"
+                >la
+                <a :href="BRANDED_CONTENT_URL" target="_blank" rel="noopener noreferrer" class="underline"
+                    >Política de contenido de marca (Branded Content Policy)</a
+                >
+                y </template
+            >la
+            <a :href="MUSIC_USAGE_URL" target="_blank" rel="noopener noreferrer" class="underline"
+                >Confirmación de uso de música de TikTok (Music Usage Confirmation)</a
+            >.
         </p>
-        <p v-if="uploadingMedia" role="status" class="text-sm text-slate-700" data-testid="uploading-note">Espera a que termine la subida.</p>
-        <p v-if="sendingNow" role="status" class="text-sm text-slate-700" data-testid="sending-now">Enviando… no cierres esta página.</p>
+        <p v-if="uploadingMedia" role="status" class="text-sm text-foreground-secondary" data-testid="uploading-note"
+            >Espera a que termine la subida.</p
+        >
+        <p v-if="sendingNow" role="status" class="text-sm text-foreground-secondary" data-testid="sending-now"
+            >Enviando… no cierres esta página.</p
+        >
         <DangerButton v-if="post" type="button" class="ml-auto" @click="remove">Eliminar</DangerButton>
     </div>
 
-    <div v-if="libraryOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4" data-testid="library-dialog">
-        <div ref="libraryDialog" role="dialog" aria-modal="true" aria-labelledby="library-title" class="w-full max-w-md rounded-lg bg-white p-5 shadow-xl" @keydown="onLibraryKey">
-            <h2 id="library-title" class="text-lg font-semibold text-slate-900">Guardar en la biblioteca</h2>
-            <p class="mt-1 text-sm text-slate-700">Se guarda una copia del texto, los archivos y las redes actuales. No se crea ninguna publicación.</p>
-            <label class="mt-3 block text-sm">
-                <span class="block text-xs font-medium text-slate-700">Nombre de la plantilla</span>
-                <input ref="nameInput" v-model="libraryName" type="text" maxlength="120" class="field" :aria-invalid="!!libraryErrors.name" aria-describedby="library-error" @keydown.enter.prevent="confirmLibrary" />
-            </label>
-            <p id="library-error" class="mt-1 min-h-[1.25rem] text-sm text-red-700" role="alert">{{ libraryErrors.name ?? libraryErrors.campaign_id ?? libraryErrors.brand ?? '' }}</p>
-            <div class="mt-3 flex flex-wrap justify-end gap-2">
-                <button type="button" class="btn btn-secondary" @click="closeLibrary">Cancelar</button>
-                <button type="button" class="btn btn-primary" :disabled="savingToLibrary || !libraryName.trim()" @click="confirmLibrary">Guardar</button>
-            </div>
+    <BaseDialog
+        v-if="libraryOpen"
+        :open="libraryOpen"
+        :return-focus-to="toggle"
+        aria-labelledby="library-title"
+        class="m-auto w-[calc(100vw_-_2rem)] max-w-md rounded-lg border-0 bg-surface p-5 shadow-xl backdrop:bg-overlay-strong/50"
+        data-testid="library-dialog"
+        @close="closeLibrary"
+        @opened="nameInput?.select()"
+    >
+        <h2 id="library-title" class="text-lg font-semibold text-foreground-strong">Guardar como plantilla</h2>
+        <p class="mt-1 text-sm text-foreground-secondary"
+            >Se guarda una copia del texto, los archivos y las redes actuales. No se crea ninguna publicación.</p
+        >
+        <label class="mt-3 block text-sm">
+            <span class="block text-xs font-medium text-foreground-secondary">Nombre de la plantilla</span>
+            <input
+                ref="nameInput"
+                data-dialog-initial-focus
+                v-model="libraryName"
+                type="text"
+                maxlength="120"
+                class="field"
+                :aria-invalid="!!libraryErrors.name"
+                aria-describedby="library-error"
+                @keydown.enter.prevent="confirmLibrary"
+            />
+        </label>
+        <p
+            id="library-error"
+            class="mt-1 min-h-[1.25rem] text-sm text-danger"
+            role="alert"
+            >{{ libraryErrors.name ?? libraryErrors.campaign_id ?? libraryErrors.brand ?? '' }}</p
+        >
+        <div class="mt-3 flex flex-wrap justify-end gap-2">
+            <button type="button" class="btn btn-secondary" @click="closeLibrary">Cancelar</button>
+            <button
+                type="button"
+                class="btn btn-primary"
+                :disabled="savingToLibrary || !libraryName.trim()"
+                @click="confirmLibrary"
+                >Guardar</button
+            >
         </div>
-    </div>
+    </BaseDialog>
 </template>

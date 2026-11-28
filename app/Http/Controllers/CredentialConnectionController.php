@@ -13,8 +13,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 /**
- * Conexion con credenciales escritas por el usuario (Bluesky: handle + app password; D1). Es el equivalente de
- * OAuthController para los proveedores que NO redirigen. La contrasena viaja solo en el cuerpo del POST: nunca se
+ * Conexion con credenciales escritas por el usuario (Bluesky: handle + app password, D1; Mastodon: instancia + token; Telegram: token del bot + canal).
+ * Es el equivalente de OAuthController para los proveedores que NO redirigen. El secreto viaja solo en el cuerpo del POST: nunca se
  * devuelve, no se vuelve a mostrar en el formulario (ni siquiera tras un error) y no se registra.
  */
 class CredentialConnectionController extends Controller
@@ -33,14 +33,12 @@ class CredentialConnectionController extends Controller
         $connector = $this->connectors->forProvider($provider);
         abort_unless($connector instanceof CredentialConnector, 404);
 
-        // Validacion manual: `validate()` reflejaria la entrada en la sesion (old input) y la app password quedaria alli.
-        $validator = Validator::make($request->only(['handle', 'app_password']), [
-            'handle' => ['required', 'string', 'max:255'],
-            'app_password' => ['required', 'string', 'max:255'],
-        ], [
-            'handle.required' => 'Escribe tu handle de Bluesky (por ejemplo tunombre.bsky.social).',
-            'app_password.required' => 'Escribe la app password de Bluesky.',
-        ]);
+        // Los campos son los que declara el conector (Bluesky: handle y app password; Mastodon: instancia y token; Telegram: token del bot y canal).
+        // Validacion manual: `validate()` reflejaria la entrada en la sesion (old input) y el secreto quedaria alli.
+        $fields = array_column($connector->credentialFields(), 'label', 'name');
+        $validator = Validator::make($request->only(array_keys($fields)), array_map(fn () => ['required', 'string', 'max:255'], $fields), [
+            'required' => 'Completa el campo «:attribute».',
+        ], $fields);
 
         $back = redirect()->route('brands.connections.index', $brand);
 

@@ -6,16 +6,17 @@ import path from 'node:path';
 import setup from '../global-setup';
 import teardown from '../global-teardown';
 import { artisan, AUTH_FILE, READONLY } from '../helpers';
-import { environment, runRoot } from './runtime';
+import { baseURL, environment, runRoot } from './runtime';
 
 test('setup and teardown preserve a protected fake DEMO and foreign prefixed user', async ({ browser }, info) => {
     const sentinel = 'protected-fake-demo@example.test';
     process.env.DEMO_USER_EMAIL = sentinel;
     process.env.DEMO_USER_PASSWORD = 'E2e-Protected-Fake-Aa1!';
     artisan(`$u = App\\Models\\User::factory()->create(['email' => '${sentinel}', 'password' => Illuminate\\Support\\Facades\\Hash::make('E2e-Protected-Fake-Aa1!')]); App\\Models\\Brand::factory()->for($u)->create(['name' => 'e2e-protected-sentinel']); App\\Models\\User::factory()->create(['email' => 'e2e-sec-foreign@example.test']);`);
+    process.env.E2E_PURGE = '0'; // the guard calls teardown() directly: never purge the real testing directory from it
     await setup(info.config);
     expect(JSON.parse(artisan(`echo json_encode(App\\Models\\User::pluck('email')->all());`))).toHaveLength(6);
-    const context = await browser.newContext({ baseURL: 'http://localhost:8080', storageState: AUTH_FILE });
+    const context = await browser.newContext({ baseURL, storageState: AUTH_FILE });
     const page = await context.newPage();
     await page.goto('/profile');
     await expect(page.getByLabel('Correo electrónico', { exact: true }).first()).toHaveValue(READONLY.email);

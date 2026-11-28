@@ -20,7 +20,7 @@ beforeEach(function () {
 function slPayload(Brand $brand, array $over = []): array
 {
     return array_merge([
-        'brand_id' => $brand->id, 'slug' => 'mi-marca', 'title' => 'Mi marca', 'bio' => 'Hola mundo', 'theme_color' => '#112233', 'theme_mode' => 'dark',
+        'brand_id' => $brand->id, 'slug' => 'mi-marca', 'title' => 'Mi marca', 'published' => true, 'bio' => 'Hola mundo', 'theme_color' => '#112233', 'theme_mode' => 'dark',
         'blocks' => [
             ['type' => 'header', 'label' => 'Novedades'],
             ['type' => 'link', 'label' => 'Mi web', 'url' => 'https://example.com/a?b=1'],
@@ -205,6 +205,13 @@ test('SafeUrl: N5 rechaza ZWJ en el host y mezclas fuera de la regla highly rest
     }
     expect(SafeUrl::displayHost('https://xn--pple-43d.com/x'))->toBe('xn--pple-43d.com')
         ->and(SafeUrl::displayHost("https://b\u{00fc}cher.de"))->toBe('xn--bcher-kva.de');
+});
+
+test('SafeUrl: un host con codificacion porcentual se rechaza (el navegador lo decodifica y saltaria la comprobacion de escrituras)', function () {
+    foreach (['https://%D0%B0pple.com/', 'https://%61pple.com', 'https://evil.com%2F@good.com', 'https://ex%2Eample.com'] as $bad) {
+        expect(SafeUrl::isSafe($bad))->toBeFalse("deberia rechazar: $bad");
+    }
+    expect(SafeUrl::isSafe('https://example.com/%D0%B0?q=%2F'))->toBeTrue();
 });
 
 test('SmartLinks: C1 la pagina publica lleva aviso, enlace de denuncia y rel="nofollow noopener"', function () {

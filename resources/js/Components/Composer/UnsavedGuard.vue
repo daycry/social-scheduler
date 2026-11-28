@@ -1,5 +1,6 @@
 <script setup>
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import BaseDialog from '@/Components/BaseDialog.vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { setBackHandler } from '@/Composables/backGuard';
 import { useComposerContext } from '@/Composables/useComposer';
@@ -16,8 +17,6 @@ const { form } = useComposerContext();
 
 const BACK = '__back__';
 const pending = ref(null); // URL a la que se quería ir (o BACK si fue el botón Atrás)
-const dialog = ref(null);
-const keepEditing = ref(null);
 let leaving = false;
 let opener = null;
 let removeBefore = null;
@@ -37,7 +36,6 @@ const onBefore = (event) => {
     if (leaving || !form.isDirty || visit.method !== 'get' || samePage(visit.url)) return;
     opener = document.activeElement;
     pending.value = visit.url.toString();
-    nextTick(() => keepEditing.value?.focus());
     return false; // cancela la visita
 };
 
@@ -53,7 +51,6 @@ const onPopState = (event) => {
     history.go(1); // deshace el retroceso: la URL y el formulario siguen como estaban
     opener = document.activeElement;
     pending.value = BACK;
-    nextTick(() => keepEditing.value?.focus());
 };
 
 const onBeforeUnload = (event) => {
@@ -64,7 +61,6 @@ const onBeforeUnload = (event) => {
 
 const stay = () => {
     pending.value = null;
-    nextTick(() => opener?.focus?.());
 };
 const leave = () => {
     const url = pending.value;
@@ -82,25 +78,6 @@ const leave = () => {
     });
 };
 
-// Escape cancela y el Tab no sale del diálogo.
-const onKeydown = (e) => {
-    if (e.key === 'Escape') {
-        e.preventDefault();
-        stay();
-    } else if (e.key === 'Tab') {
-        const buttons = [...dialog.value.querySelectorAll('button')];
-        const first = buttons[0];
-        const last = buttons[buttons.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
-            e.preventDefault();
-            last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-            e.preventDefault();
-            first.focus();
-        }
-    }
-};
-
 onMounted(() => {
     removeBefore = router.on('before', onBefore);
     window.addEventListener('beforeunload', onBeforeUnload);
@@ -114,22 +91,26 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div v-if="pending" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4" data-testid="unsaved-guard">
-        <div
-            ref="dialog"
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="unsaved-title"
-            aria-describedby="unsaved-desc"
-            class="w-full max-w-md rounded-lg bg-white p-5 shadow-xl"
-            @keydown="onKeydown"
+    <BaseDialog
+        v-if="pending"
+        :open="Boolean(pending)"
+        :return-focus-to="opener"
+        role="alertdialog"
+        aria-labelledby="unsaved-title"
+        aria-describedby="unsaved-desc"
+        class="m-auto w-[calc(100vw_-_2rem)] max-w-md rounded-lg border-0 bg-surface p-5 shadow-xl backdrop:bg-overlay-strong/50"
+        data-testid="unsaved-guard"
+        @close="stay"
+    >
+        <h2 id="unsaved-title" class="text-lg font-semibold text-foreground-strong">¿Salir sin guardar?</h2>
+        <p id="unsaved-desc" class="mt-2 text-sm text-foreground-secondary"
+            >Tienes cambios sin guardar en esta publicación. Si sales ahora, se perderán.</p
         >
-            <h2 id="unsaved-title" class="text-lg font-semibold text-slate-900">¿Salir sin guardar?</h2>
-            <p id="unsaved-desc" class="mt-2 text-sm text-slate-700">Tienes cambios sin guardar en esta publicación. Si sales ahora, se perderán.</p>
-            <div class="mt-4 flex flex-wrap justify-end gap-2">
-                <button ref="keepEditing" type="button" class="btn btn-primary" @click="stay">Seguir editando</button>
-                <button type="button" class="btn btn-secondary" @click="leave">Salir sin guardar</button>
-            </div>
+        <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <button data-dialog-initial-focus type="button" class="btn btn-primary" @click="stay"
+                >Seguir editando</button
+            >
+            <button type="button" class="btn btn-secondary" @click="leave">Salir sin guardar</button>
         </div>
-    </div>
+    </BaseDialog>
 </template>

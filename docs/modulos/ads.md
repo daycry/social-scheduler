@@ -10,4 +10,4 @@ La conexión origen pertenece a la marca seleccionada y al propietario. La cach�
 | Servicio | `app/Services/AdsService.php` (caché `SOCIAL_ADS_CACHE_MINUTES`) |
 | UI | `AdsController`, `resources/js/Pages/Ads/Index.vue` (`/ads`) |
 
-Requiere el permiso `ads_read`: actívalo en la app de Meta, añádelo a `META_EXTRA_SCOPES` y reconecta. Sin él la página explica qué activar (nunca un 0 engañoso). Las cuentas se leen con `me/adaccounts` y el token va siempre en `Authorization: Bearer`.
+Requiere el permiso `ads_read`: actívalo en la app de Meta, añádelo a `META_EXTRA_SCOPES` y reconecta. Sin él la página muestra el aviso común de permisos (`PermissionNotice`, el mismo del inbox) con los pasos y el enlace a Conexiones (nunca un 0 engañoso). Las cuentas se leen con `me/adaccounts` y el token va siempre en `Authorization: Bearer`.

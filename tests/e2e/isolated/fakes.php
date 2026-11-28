@@ -4,22 +4,74 @@ declare(strict_types=1);
 
 use App\Connectors\Bluesky\BlueskyConnector;
 use App\Connectors\Data\RefreshResult;
+use App\Connectors\Mastodon\MastodonConnector;
 use App\Connectors\Network;
+use App\Connectors\Telegram\TelegramConnector;
 use App\Models\SocialAccount;
+use Carbon\CarbonImmutable;
+use Firebase\JWT\JWT;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+
+/** Receptor virtual de E2E, activado únicamente por el bootstrap aislado con bandera propia. */
+function generalFakeWebhooks(string $root): void
+{
+    Http::fake(['https://hooks.example.test/*' => function (Request $request) use ($root) {
+        $header = $request->header('X-SocialScheduler-Signature')[0] ?? '';
+        $matches = [];
+        $format = preg_match('/\At=(\d+),v1=([a-f0-9]{64})\z/D', $header, $matches) === 1;
+        $body = json_decode($request->body(), true);
+        $valid = $format && abs(now()->timestamp - (int) $matches[1]) <= 300
+            && hash_equals(hash_hmac('sha256', $matches[1].'.'.$request->body(), 'e2e-webhook-signing-key-0123456789abcdef'), $matches[2])
+            && is_array($body) && isset($body['id'], $body['event'], $body['occurred_at']);
+        file_put_contents($root.'/webhook-receiver.ndjson', json_encode([
+            'event_id' => is_array($body) ? ($body['id'] ?? null) : null,
+            'signature_valid' => $valid, 'body_sha256' => hash('sha256', $request->body()),
+        ], JSON_THROW_ON_ERROR)."\n", FILE_APPEND | LOCK_EX);
+
+        return Http::response('', $valid ? 204 : 401);
+    }]);
+}
 
 /** Keep the real credential-form contract while ensuring connection and refresh cannot contact a PDS. */
 class GeneralBlueskyConnector extends BlueskyConnector
 {
     public function connectWithCredentials(array $input): array
     {
-        return (new T43Connector('bluesky', [Network::Bluesky]))->exchangeCode('fake-local-code', 'http://localhost:8080');
+        return (new T43Connector('bluesky', [Network::Bluesky]))->exchangeCode('fake-local-code', (string) getenv('APP_URL'));
     }
 
     public function refresh(SocialAccount $account): RefreshResult
     {
         return new RefreshResult('general-fake-access', 'general-fake-refresh', now()->addDays(60));
+    }
+}
+
+/** T-87: el formulario de credenciales de Mastodon es el real (campos e introduccion); conectar y renovar no salen nunca a la instancia. */
+class GeneralMastodonConnector extends MastodonConnector
+{
+    public function connectWithCredentials(array $input): array
+    {
+        return (new T43Connector('mastodon', [Network::Mastodon]))->exchangeCode('fake-local-code', (string) getenv('APP_URL'));
+    }
+
+    public function refresh(SocialAccount $account): RefreshResult
+    {
+        return new RefreshResult('general-fake-access');
+    }
+}
+
+/** T-87: el formulario de credenciales de Telegram es el real; conectar y renovar no salen nunca a la Bot API. */
+class GeneralTelegramConnector extends TelegramConnector
+{
+    public function connectWithCredentials(array $input): array
+    {
+        return (new T43Connector('telegram', [Network::Telegram]))->exchangeCode('fake-local-code', (string) getenv('APP_URL'));
+    }
+
+    public function refresh(SocialAccount $account): RefreshResult
+    {
+        return new RefreshResult('general-fake-access');
     }
 }
 
@@ -72,6 +124,28 @@ function generalFakeAi(): void
                 return Http::response(['content' => [['type' => 'text', 'text' => 'Un círculo amarillo sobre un fondo violeta liso']]]);
             }
             $input = json_decode((string) $content, true);
+            if (is_array($input) && isset($input['destinos'])) {
+                // T-82 («Adaptar a cada red»): una version corta por destino; con «e2e-excede» en el texto, Bluesky devuelve una que no cabe (301 > 300).
+                $versions = [];
+                foreach ($input['destinos'] as $destino) {
+                    $versions[$destino['id']] = $destino['red'] === 'bluesky' && str_contains($input['texto'], 'e2e-excede')
+                        ? str_repeat('a', 301)
+                        : 'Adaptado a '.$destino['red'].': '.mb_substr($input['texto'], 0, 40);
+                }
+
+                return Http::response(['content' => [['type' => 'text', 'text' => json_encode(['versions' => $versions], JSON_UNESCAPED_UNICODE)]]]);
+            }
+            if (is_array($input) && isset($input['briefing'], $input['cuentas'])) {
+                // T-93 (plan de contenido): tres publicaciones de solo texto en todas las cuentas ofrecidas, una por dia a partir de pasado manana a las 09:00.
+                $base = CarbonImmutable::parse($input['ahora'])->addDays(2)->setTime(9, 0);
+                $items = array_map(fn (int $i) => [
+                    'datetime' => $base->addDays($i)->format('Y-m-d\TH:i'),
+                    'accounts' => array_column($input['cuentas'], 'id'),
+                    'text' => 'Plan e2e '.($i + 1).': '.mb_substr($input['briefing'], 0, 40),
+                ], [0, 1, 2]);
+
+                return Http::response(['content' => [['type' => 'text', 'text' => json_encode(['items' => $items], JSON_UNESCAPED_UNICODE)]]]);
+            }
             if (is_array($input) && isset($input['campos'])) {
                 $rows = array_map(fn ($item) => array_combine($input['campos'], array_map(fn ($field) => $field.' de '.$item, $input['campos'])), $input['elementos']);
 
@@ -83,9 +157,49 @@ function generalFakeAi(): void
     ]);
 }
 
+/** Par RSA del Canva falso (`<run root>/canva-jwt.pem`, lo crea la primera llamada): firma el `correlation_jwt` y publica su clave publica. */
+function generalCanvaKey(string $root): OpenSSLAsymmetricKey
+{
+    $file = $root.'/canva-jwt.pem';
+    if (! is_file($file)) {
+        $options = generalCanvaOpenSsl($root);
+        openssl_pkey_export(openssl_pkey_new($options), $pem, null, $options);
+        file_put_contents($file, $pem);
+    }
+
+    return openssl_pkey_get_private((string) file_get_contents($file));
+}
+
+/** Configuracion minima de OpenSSL: en Windows puede no encontrar su `openssl.cnf`. @return array<string, mixed> */
+function generalCanvaOpenSsl(string $root): array
+{
+    $config = $root.'/canva-openssl.cnf';
+    is_file($config) || file_put_contents($config, "[req]\ndistinguished_name = dn\n[dn]\n");
+
+    return ['config' => $config, 'private_key_type' => OPENSSL_KEYTYPE_RSA, 'private_key_bits' => 2048];
+}
+
+/** @return array{keys: list<array<string, string>>} las claves publicas (JWKS) que Canva publica en `/connect/keys`. */
+function generalCanvaJwks(string $root): array
+{
+    $rsa = openssl_pkey_get_details(generalCanvaKey($root))['rsa'];
+    $b64 = static fn (string $raw) => rtrim(strtr(base64_encode($raw), '+/', '-_'), '=');
+
+    return ['keys' => [['kty' => 'RSA', 'use' => 'sig', 'kid' => 'e2e-canva-key', 'n' => $b64($rsa['n']), 'e' => $b64($rsa['e'])]]];
+}
+
+/** `correlation_jwt` firmado RS256 con la clave del fake; `$claims` completa o sustituye las reclamaciones validas por defecto. */
+function generalCanvaJwt(string $root, array $claims): string
+{
+    openssl_pkey_export(generalCanvaKey($root), $pem, null, generalCanvaOpenSsl($root));
+
+    return JWT::encode($claims + ['type' => 'rti', 'aud' => (string) config('services.canva.client_id'), 'exp' => time() + 3600], $pem, 'RS256', 'e2e-canva-key');
+}
+
 /**
  * T-16: Canva falso para la bateria E2E. Atiende OAuth (token, revocacion), perfil, capacidades, disenos (listar, buscar, crear), exportaciones
- * y la descarga del fichero exportado (PNG real de 96x96) sin salir nunca a la red. `<run root>/canva-pro` anade la capacidad de PNG transparente.
+ * y la descarga del fichero exportado (PNG real de 96x96 o un PDF pequeño) sin salir nunca a la red. `<run root>/canva-pro` anade la capacidad de
+ * PNG transparente y `canva-templates` las de plantillas de marca y Autofill. Tambien publica las claves de `/connect/keys` (T-26).
  */
 function generalFakeCanva(string $root): void
 {
@@ -107,18 +221,55 @@ function generalFakeCanva(string $root): void
         'api.canva.com/rest/v1/oauth/token' => Http::response(['access_token' => 'e2e-canva-access', 'refresh_token' => 'e2e-canva-refresh', 'token_type' => 'Bearer', 'expires_in' => 14400, 'scope' => implode(' ', (array) config('services.canva.scopes'))]),
         'api.canva.com/rest/v1/oauth/revoke' => Http::response('', 200),
         'api.canva.com/rest/v1/users/me/profile' => Http::response(['profile' => ['display_name' => 'Cuenta Canva E2E']]),
-        'api.canva.com/rest/v1/users/me/capabilities' => fn () => Http::response(['capabilities' => is_file($root.'/canva-pro') ? ['export_png_transparency'] : []]),
+        'api.canva.com/rest/v1/users/me/capabilities' => fn () => Http::response(['capabilities' => [
+            ...(is_file($root.'/canva-pro') ? ['export_png_transparency'] : []),
+            ...(is_file($root.'/canva-templates') ? ['brand_template', 'autofill'] : []),
+        ]]),
+        'api.canva.com/rest/v1/connect/keys' => fn () => Http::response(generalCanvaJwks($root)),
+        'api.canva.com/rest/v1/brand-templates/BTe2eCiudad1/dataset' => Http::response(['dataset' => ['CITY' => ['type' => 'text'], 'TEMPERATURE' => ['type' => 'text'], 'BACKGROUND' => ['type' => 'image']]]),
+        'api.canva.com/rest/v1/brand-templates*' => function (Request $request) {
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+            $template = fn (string $id, string $title) => ['id' => $id, 'title' => $title, 'view_url' => "https://www.canva.com/brand/$id/view", 'created_at' => 1790000000];
+
+            return isset($query['continuation'])
+                ? Http::response(['items' => [$template('BTe2eSemana2', 'Semana E2E')]])
+                : Http::response(['items' => [$template('BTe2eCiudad1', 'Ciudad del día E2E')], 'continuation' => 'e2e-page-2']);
+        },
+        'api.canva.com/rest/v1/autofills' => Http::response(['job' => ['id' => 'e2e-autofill-1', 'status' => 'in_progress']]),
+        'api.canva.com/rest/v1/autofills/*' => Http::response(['job' => ['id' => 'e2e-autofill-1', 'status' => 'success', 'result' => ['type' => 'create_design', 'design' => $design('DAFe2eAutof4', 'Ciudad de hoy E2E')]]]),
         'api.canva.com/rest/v1/designs*' => function (Request $request) use ($all, $design) {
             if ($request->method() === 'POST') {
                 return Http::response(['design' => $design('DAFe2eNuevo3', (string) ($request['title'] ?? 'Nuevo')) + ['thumbnail' => null]]);
+            }
+            if (preg_match('~/designs/([A-Za-z0-9_-]+)$~', (string) parse_url($request->url(), PHP_URL_PATH), $one)) {
+                return Http::response(['design' => $design($one[1], $one[1] === 'DAFe2eAutof4' ? 'Ciudad de hoy E2E' : 'Diseño E2E')]);
             }
             parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
             $needle = mb_strtolower((string) ($query['query'] ?? ''));
 
             return Http::response(['items' => array_values(array_filter($all, fn ($d) => $needle === '' || str_contains(mb_strtolower($d['title']), $needle)))]);
         },
-        'api.canva.com/rest/v1/exports' => Http::response(['job' => ['id' => 'e2e-export-1', 'status' => 'in_progress']]),
+        'api.canva.com/rest/v1/exports' => fn (Request $request) => Http::response(['job' => ['id' => ($request['format']['type'] ?? 'png') === 'pdf' ? 'e2e-export-pdf' : 'e2e-export-1', 'status' => 'in_progress']]),
+        'api.canva.com/rest/v1/exports/e2e-export-pdf' => Http::response(['job' => ['id' => 'e2e-export-pdf', 'status' => 'success', 'urls' => ['https://export-download.canva.com/e2e/Rebajas%20E2E.pdf?X-Amz-Signature=e2e']]]),
         'api.canva.com/rest/v1/exports/*' => Http::response(['job' => ['id' => 'e2e-export-1', 'status' => 'success', 'urls' => ['https://export-download.canva.com/e2e/rebajas.png?X-Amz-Signature=e2e']]]),
+        'export-download.canva.com/*.pdf*' => fn () => Http::response('%PDF-1.4
+1 0 obj
+<< /Type /Catalog >>
+endobj
+trailer
+<< /Root 1 0 R >>
+%%EOF
+', 200, ['Content-Type' => 'application/pdf']),
         'export-download.canva.com/*' => fn () => Http::response($png(), 200, ['Content-Type' => 'image/png']),
     ]);
+}
+
+/** T-88: feed RSS 2.0 de la bateria E2E (tres entradas, la mas reciente primero) servido sin salir nunca a la red. */
+function generalFakeRss(): void
+{
+    $items = '';
+    foreach ([3 => 'Tercera entrada E2E', 2 => 'Segunda entrada E2E', 1 => 'Primera entrada E2E'] as $n => $title) {
+        $items .= "<item><guid isPermaLink=\"false\">e2e-rss-$n</guid><title>$title</title><link>https://blog.example.test/e2e-$n</link></item>";
+    }
+    Http::fake(['https://feeds.example.test/*' => Http::response('<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Blog E2E</title>'.$items.'</channel></rss>', 200, ['Content-Type' => 'application/rss+xml'])]);
 }

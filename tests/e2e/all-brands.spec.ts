@@ -24,7 +24,7 @@ test.afterEach(async ({}, info) => {
     cleanComposerBrands(e2eUser(info.project.name).email);
 });
 
-test('E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de periodo', async ({ page }) => {
+test('E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de periodo', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto('/dashboard');
     await settle(page);
@@ -60,4 +60,18 @@ test('E2E-04 · Todas las marcas: totales, tabla por marca, gráfica y cambio de
     await expect(page.locator('[data-card="views"]')).toContainText('No disponible');
     await expectNoOverflow(page);
     expect(w.errors, 'errores de consola').toEqual([]);
+});
+
+test('el selector muestra el error del rango y lo limpia al corregir las fechas', { tag: '@responsive' }, async ({ page }) => {
+    await page.goto('/dashboard/todas-las-marcas?from=2026-10-01&to=2026-10-02');
+    await page.getByLabel('Desde').fill('2026-10-03');
+
+    const error = page.getByRole('alert').filter({ hasText: 'la fecha final es anterior a la inicial' });
+    await expect(error).toBeVisible();
+    await expect(page.getByLabel('Desde')).toHaveAttribute('aria-invalid', 'true');
+    await expect(page.getByRole('heading', { name: 'Todas las marcas' })).toBeVisible();
+
+    await page.getByRole('button', { name: '7 días' }).click();
+    await expect(error).toBeHidden();
+    await expect(page.getByLabel('Desde')).not.toHaveAttribute('aria-invalid', 'true');
 });

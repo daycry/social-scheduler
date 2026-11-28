@@ -43,9 +43,9 @@ class StudioAutomation
         $data = $this->input($action, $data);
 
         return DB::transaction(function () use ($user, $source, $action, $data, $api): array {
-            $source = Design::withoutUserScope()->where('user_id', $user->id)->lockForUpdate()->findOrFail($source->id);
+            $source = Design::ownedBy($user->id)->lockForUpdate()->findOrFail($source->id);
             abort_if($source->revision !== (int) $data['revision'], 409, 'El diseño cambió en otra sesión. Guarda o recarga la versión actual antes de continuar.');
-            $brand = Brand::withoutUserScope()->where('user_id', $user->id)->findOrFail($source->brand_id);
+            $brand = Brand::ownedBy($user->id)->findOrFail($source->brand_id);
             $document = $this->documents->validate($user, $brand, $source->document);
             $reference = StudioService::reference($source->kit_reference);
             if ($action === 'instantiate') {
@@ -65,7 +65,7 @@ class StudioAutomation
                 $reference = $kit;
             }
             if ($action === 'resize' || ($action === 'instantiate' && isset($data['width']))) {
-                $document = $this->resized($document, $data);
+                $document = self::resize($document, (int) $data['width'], (int) $data['height'], $data['mode'] ?? 'contain');
             }
             if (in_array($action, ['resize', 'apply-kit'], true)) {
                 $updated = $this->studio->update($user, $source, ['revision' => $source->revision, 'name' => $source->name, 'document' => $document], $reference);
@@ -77,7 +77,7 @@ class StudioAutomation
             $bytes = 0;
             $elements = 0;
             foreach ($variants as $variant) {
-                $copy = $variant === null ? $document : $this->resized($document, $variant);
+                $copy = $variant === null ? $document : self::resize($document, (int) $variant['width'], (int) $variant['height'], $variant['mode'] ?? 'contain');
                 $copy = $this->independent($copy);
                 $copy = $this->documents->validate($user, $brand, $copy);
                 $bytes += strlen(json_encode($copy, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_LINE_TERMINATORS));
@@ -209,11 +209,9 @@ class StudioAutomation
         return $document;
     }
 
-    private function resized(array $document, array $data): array
+    /** Lleva el documento a otro lienzo: `canvas` solo cambia su tamaño, `contain` escala sin recortar y `cover` llena el lienzo. */
+    public static function resize(array $document, int $width, int $height, string $mode = 'contain'): array
     {
-        $width = (int) $data['width'];
-        $height = (int) $data['height'];
-        $mode = $data['mode'] ?? 'contain';
         if ($mode !== 'canvas') {
             $ratios = [$width / $document['width'], $height / $document['height']];
             $scale = $mode === 'cover' ? max($ratios) : min($ratios);

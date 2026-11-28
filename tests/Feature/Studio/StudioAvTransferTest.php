@@ -5,9 +5,12 @@ use App\Models\MediaAsset;
 use App\Models\Studio\DesignExport;
 use App\Models\Studio\StudioAvWorkspace;
 use App\Models\User;
+use App\Services\Studio\StudioAvAcceptance;
 use App\Services\Studio\StudioAvCheckpointCorrupt;
+use App\Services\Studio\StudioAvLeases;
+use App\Services\Studio\StudioAvLifecycle;
 use App\Services\Studio\StudioAvProcessFailed;
-use App\Services\Studio\StudioAvState;
+use App\Services\Studio\StudioAvRegistrationState;
 use App\Services\Studio\StudioAvTransfer;
 use App\Services\Studio\StudioService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -22,31 +25,30 @@ beforeEach(function () {
     config(['filesystems.media' => 'local']);
     $this->user = User::factory()->create();
     $this->brand = Brand::factory()->for($this->user)->create();
-    $this->state = app(StudioAvState::class);
     $this->prepare = function (string $bytes) {
         $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Transfer', 'document' => [
             'schema_version' => 2, 'width' => 100, 'height' => 80, 'timeline' => ['fps' => 12, 'audio_tracks' => []],
             'pages' => [['id' => 'one', 'duration' => 1, 'background' => '#ffffff', 'elements' => []]]]]);
         $export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $design->id,
             'revision' => 1, 'format' => 'mp4', 'pages' => ['one'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
-        $this->export = $this->state->initialize($this->user, $export);
+        $this->export = app(StudioAvLifecycle::class)->initialize($this->user, $export);
         $generation = $this->export->render_state['generation'];
-        $this->state->accept($this->state->claim($export->id, $generation), [
+        app(StudioAvAcceptance::class)->accept(app(StudioAvLeases::class)->claim($export->id, $generation), [
             'frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 24, 'segmentCount' => 1,
             'selection' => ['one'], 'assetIds' => [], 'fontIds' => [], 'audioAssetIds' => [],
             'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]]);
-        $render = $this->state->claim($export->id, $generation, 1);
-        $this->state->accept($render, ['file' => 'segments/'.$render->id.'/video-000000.mp4', 'namespace' => $render->id,
+        $render = app(StudioAvLeases::class)->claim($export->id, $generation, 1);
+        app(StudioAvAcceptance::class)->accept($render, ['file' => 'segments/'.$render->id.'/video-000000.mp4', 'namespace' => $render->id,
             'size' => 1, 'sha256' => hash('sha256', 'x')], 1);
-        $this->source = $this->state->claim($export->id, $generation, strlen($bytes));
+        $this->source = app(StudioAvLeases::class)->claim($export->id, $generation, strlen($bytes));
         $this->result = ['file' => 'outputs/'.$this->source->id.'/project.mp4', 'namespace' => $this->source->id,
             'size' => strlen($bytes), 'sha256' => hash('sha256', $bytes), 'width' => 100, 'height' => 80, 'duration' => 1,
             'fps' => 12, 'frameCount' => 12, 'videoCodec' => 'h264', 'audioCodec' => null, 'scale' => 1, 'quality' => 0.94,
             'chunk_size' => 16 * 1024 ** 2, 'chunk_sha256' => array_map(fn ($part) => hash('sha256', $part), str_split($bytes, 16 * 1024 ** 2))];
-        $this->state->accept($this->source, $this->result, strlen($bytes));
+        app(StudioAvAcceptance::class)->accept($this->source, $this->result, strlen($bytes));
         $this->root = 'studio-exports/'.$this->user->id.'/'.$export->id.'/'.$this->export->render_state['workspace'];
         Storage::disk('local')->put($this->root.'/'.$this->result['file'], $bytes);
-        $this->lease = $this->state->claim($export->id, $generation);
+        $this->lease = app(StudioAvLeases::class)->claim($export->id, $generation);
     };
     $this->finish = function (int $passes = 12) {
         $result = null;
@@ -65,7 +67,7 @@ test('AV local transfer publishes a separately durable verified copy before acce
     $media = MediaAsset::withoutUserScope()->findOrFail($result['media_id']);
     expect($media->status)->toBe(MediaAsset::STATUS_PENDING)->and($media->import_state['verified_bytes'])->toBe(14);
     expect(Storage::disk('local')->get($media->path))->toBe('rendered bytes');
-    expect($this->state->accept($this->lease, $result))->toBeTrue();
+    expect(app(StudioAvAcceptance::class)->accept($this->lease, $result))->toBeTrue();
     expect(StudioAvWorkspace::withoutUserScope()->findOrFail($this->lease->workspace_id)->media_reserved_bytes)->toBe(0);
     Storage::disk('local')->deleteDirectory($this->root);
     expect(Storage::disk('local')->get($media->path))->toBe('rendered bytes')->and($media->refresh()->isReady())->toBeTrue();
@@ -77,8 +79,8 @@ test('AV local transfer resumes one 16MiB part per call without copying or expos
     expect(app(StudioAvTransfer::class)->run($this->lease))->toBeNull();
     $media = MediaAsset::withoutUserScope()->sole();
     expect($media->import_state['bytes'])->toBe(strlen($first))->and($media->isReady())->toBeFalse();
-    $this->state->defer($this->lease);
-    $this->lease = $this->state->claim($this->export->id, $this->export->render_state['generation']);
+    app(StudioAvLeases::class)->defer($this->lease);
+    $this->lease = app(StudioAvLeases::class)->claim($this->export->id, $this->export->render_state['generation']);
     $result = ($this->finish)();
     expect($result)->toBe(['media_id' => $media->id])->and(MediaAsset::withoutUserScope()->count())->toBe(1);
     expect(hash_file('sha256', Storage::disk('local')->path($media->path)))->toBe($this->result['sha256']);
@@ -169,7 +171,7 @@ test('AV cancellation during an R2 part cannot checkpoint or publish a late ackn
     app(StudioAvTransfer::class)->run($this->lease);
     $r2->after = function ($name) {
         if ($name === 'UploadPart') {
-            $this->state->cancel($this->user, $this->export);
+            app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
         }
     };
     expect(fn () => app(StudioAvTransfer::class)->run($this->lease))->toThrow(ModelNotFoundException::class);
@@ -218,7 +220,7 @@ test('AV local transfer verifies actual destination bytes after copying', functi
 
 test('AV local registration checkpoints serialize SQLite writers and respect the caller deadline', function (bool $shortDeadline, bool $commitReader, string $mutation = 'checkpoint') {
     ($this->prepare)('rendered bytes');
-    $media = $mutation === 'allocate' ? null : $this->state->allocateRegistration($this->lease);
+    $media = $mutation === 'allocate' ? null : app(StudioAvRegistrationState::class)->allocateRegistration($this->lease);
     $originalConnection = config('database.default');
     $directory = storage_path('framework/testing/t11-register-debug-'.Str::uuid());
     mkdir($directory, 0700, true);
@@ -288,17 +290,17 @@ PHP, $database, $marker, $commitReader ? '2' : ($shortDeadline ? '1' : '0')]);
     });
     try {
         if ($mutation === 'allocate') {
-            $media = $this->state->allocateRegistration($this->lease);
+            $media = app(StudioAvRegistrationState::class)->allocateRegistration($this->lease);
         } elseif ($mutation === 'bind') {
             $location = ['driver' => 'local', 'root' => rtrim(Storage::disk('local')->path(''), '/\\')];
-            $this->state->bindRegistrationLocation($this->lease, $location);
+            app(StudioAvRegistrationState::class)->bindRegistrationLocation($this->lease, $location);
             expect(StudioAvWorkspace::withoutUserScope()->findOrFail($this->lease->workspace_id)->media_receipt['location'])->toBe($location);
         } elseif ($shortDeadline || $commitReader) {
             // Test the DB wait budget directly; the competing lock is already held.
             Storage::disk('local')->put($media->path.'.part', 'rendered bytes');
             $startWriter();
             $started = microtime(true);
-            expect(fn () => $this->state->checkpointRegistration($this->lease, ['bytes' => 14, 'stage' => 'copying'], deadline: $started + 0.15))
+            expect(fn () => app(StudioAvRegistrationState::class)->checkpointRegistration($this->lease, ['bytes' => 14, 'stage' => 'copying'], deadline: $started + 0.15))
                 ->toThrow(StudioAvProcessFailed::class);
             expect(microtime(true) - $started)->toBeLessThan(0.3);
         } else {
@@ -328,7 +330,7 @@ PHP, $database, $marker, $commitReader ? '2' : ($shortDeadline ? '1' : '0')]);
 
 test('AV registration preserves caller transaction nesting rollback and after commit callbacks', function () {
     ($this->prepare)('rendered bytes');
-    $media = $this->state->allocateRegistration($this->lease);
+    $media = app(StudioAvRegistrationState::class)->allocateRegistration($this->lease);
     $connection = DB::connection();
     $level = $connection->transactionLevel();
     $callbacks = 0;
@@ -365,6 +367,6 @@ test('AV registration preserves caller transaction nesting rollback and after co
     $connection->beforeExecuting(function ($sql) use (&$queries) {
         $queries[] = $sql;
     });
-    expect($this->state->workingExport($this->lease)->id)->toBe($this->export->id);
+    expect(app(StudioAvLeases::class)->workingExport($this->lease)->id)->toBe($this->export->id);
     expect(array_values(array_filter($queries, fn ($sql) => str_starts_with($sql, 'update '))))->toBe([]);
 });

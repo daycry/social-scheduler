@@ -3,35 +3,250 @@
 @tailwind utilities;
 
 @layer base {
+    /* Canales RGB para que las utilidades de Tailwind admitan opacidad. */
+    :root {
+        color-scheme: light;
+        --chart-brand-share: 96%;
+        --color-canvas: 248 250 252;
+        --color-surface: 255 255 255;
+        --color-surface-raised: 255 255 255;
+        --color-surface-hover: 241 245 249;
+        --color-surface-pressed: 226 232 240;
+        --color-border: 226 232 240;
+        --color-border-subtle: 241 245 249;
+        --color-control-border: 124 138 157;
+        --color-foreground: 30 41 59;
+        --color-foreground-strong: 15 23 42;
+        --color-foreground-secondary: 51 65 85;
+        --color-foreground-muted: 71 85 105;
+        --color-foreground-subtle: 94 110 133;
+        --color-accent: 79 70 229;
+        --color-accent-strong: 67 56 202;
+        --color-accent-soft: 238 242 255;
+        --color-accent-marker: 224 231 255;
+        --color-accent-fill: 79 70 229;
+        --color-accent-hover: 96 98 237;
+        --color-accent-active: 67 56 202;
+        --color-on-accent: 255 255 255;
+        --color-accent-secondary-ink: 109 40 217;
+        --color-accent-secondary-soft: 245 243 255;
+        --color-accent-secondary-marker: 237 233 254;
+        --color-accent-secondary-border: 196 181 253;
+        --color-accent-secondary-fill: 109 40 217;
+        --color-accent-secondary-hover: 91 33 182;
+        --color-on-accent-secondary: 255 255 255;
+        --color-check: 79 70 229;
+        --color-danger: 209 33 33;
+        --color-danger-fill: 220 38 38;
+        --color-danger-hover: 224 40 40;
+        --color-danger-active: 185 28 28;
+        --color-danger-badge: 190 18 60;
+        --color-on-danger: 255 255 255;
+        --color-danger-ink: 127 29 29;
+        --color-danger-soft: 254 242 242;
+        --color-danger-border: 254 202 202;
+        --color-success-ink: 6 78 59;
+        --color-success-soft: 236 253 245;
+        --color-success-border: 167 243 208;
+        --color-success-fill: 4 120 87;
+        --color-on-success: 255 255 255;
+        --color-warning-ink: 120 53 15;
+        --color-warning-soft: 255 251 235;
+        --color-warning-border: 253 230 138;
+        --color-warning-panel-border: 252 211 77;
+        --color-warning-outline: 217 119 6;
+        --color-info-ink: 12 74 110;
+        --color-info-soft: 240 249 255;
+        --color-info-border: 186 230 253;
+        --color-calendar-event-ink: 112 26 117;
+        --color-calendar-event-soft: 253 244 255;
+        --color-calendar-event-border: 245 208 254;
+        --color-editor-stage: 238 240 245;
+        --color-editor-stage-dot: 197 201 211;
+        --color-focus: 99 102 241;
+        --color-overlay: 107 114 128;
+        --color-overlay-strong: 15 23 42;
+        --color-chrome: 15 23 42;
+        --color-chrome-panel: 22 32 51;
+        --color-chrome-hover: 39 46 63;
+        --color-chrome-border: 101 116 139;
+        --color-chrome-text: 226 232 240;
+        --color-chrome-muted: 203 213 225;
+        --color-chrome-strong: 255 255 255;
+        --color-chrome-accent: 165 180 252;
+        --color-chrome-avatar-start: 79 70 229;
+        --color-chrome-avatar-end: 15 118 110;
+        --color-chrome-active: 129 140 248;
+        --color-chrome-decoration: 99 102 241;
+        --color-chrome-teal: 45 212 191;
+        --color-chrome-sky: 56 189 248;
+        --color-progress: 75 85 99;
+    }
+
+    :root.dark {
+        color-scheme: dark;
+        --chart-brand-share: 53%;
+        --color-canvas: 15 23 42;
+        --color-surface: 22 32 51;
+        --color-surface-raised: 30 41 59;
+        --color-surface-hover: 40 54 77;
+        --color-surface-pressed: 49 65 89;
+        --color-border: 60 76 100;
+        --color-border-subtle: 46 59 82;
+        --color-control-border: 122 142 169;
+        --color-foreground: 226 232 240;
+        --color-foreground-strong: 248 250 252;
+        --color-foreground-secondary: 203 213 225;
+        --color-foreground-muted: 174 189 209;
+        --color-foreground-subtle: 161 178 202;
+        --color-accent: 165 180 252;
+        --color-accent-strong: 199 210 254;
+        --color-accent-soft: 40 45 80;
+        --color-accent-marker: 48 58 102;
+        --color-accent-fill: 165 180 252;
+        --color-accent-hover: 199 210 254;
+        --color-accent-active: 129 140 248;
+        --color-on-accent: 15 23 42;
+        --color-accent-secondary-ink: 221 214 254;
+        --color-accent-secondary-soft: 44 34 73;
+        --color-accent-secondary-marker: 55 42 92;
+        --color-accent-secondary-border: 116 96 163;
+        --color-accent-secondary-fill: 196 181 253;
+        --color-accent-secondary-hover: 221 214 254;
+        --color-on-accent-secondary: 27 19 52;
+        --color-check: 99 102 241;
+        --color-danger: 252 165 165;
+        --color-danger-fill: 248 113 113;
+        --color-danger-hover: 252 165 165;
+        --color-danger-active: 244 100 100;
+        --color-danger-badge: 253 164 175;
+        --color-on-danger: 53 13 24;
+        --color-danger-ink: 254 202 202;
+        --color-danger-soft: 61 32 40;
+        --color-danger-border: 142 71 90;
+        --color-success-ink: 167 243 208;
+        --color-success-soft: 21 54 46;
+        --color-success-border: 67 123 102;
+        --color-success-fill: 110 231 183;
+        --color-on-success: 8 42 32;
+        --color-warning-ink: 253 230 138;
+        --color-warning-soft: 51 43 29;
+        --color-warning-border: 167 122 57;
+        --color-warning-panel-border: 167 122 57;
+        --color-warning-outline: 167 122 57;
+        --color-info-ink: 186 230 253;
+        --color-info-soft: 24 50 72;
+        --color-info-border: 72 120 143;
+        --color-calendar-event-ink: 245 208 254;
+        --color-calendar-event-soft: 58 33 64;
+        --color-calendar-event-border: 118 72 128;
+        --color-editor-stage: 12 19 34;
+        --color-editor-stage-dot: 60 76 100;
+        --color-focus: 165 180 252;
+        --color-overlay: 2 6 23;
+        --color-overlay-strong: 2 6 23;
+        --color-chrome: 10 16 32;
+        --color-chrome-panel: 15 23 42;
+        --color-chrome-hover: 35 48 74;
+        --color-chrome-border: 107 126 154;
+        --color-chrome-text: 220 230 243;
+        --color-chrome-muted: 190 205 225;
+        --color-chrome-strong: 255 255 255;
+        --color-chrome-accent: 199 210 254;
+        --color-chrome-avatar-start: 79 70 229;
+        --color-chrome-avatar-end: 15 118 110;
+        --color-chrome-active: 165 180 252;
+        --color-chrome-decoration: 129 140 248;
+        --color-chrome-teal: 45 212 191;
+        --color-chrome-sky: 56 189 248;
+        --color-progress: 165 180 252;
+    }
+
     html {
         -webkit-text-size-adjust: 100%;
     }
 
     body {
-        @apply bg-slate-50 text-slate-800;
+        @apply bg-canvas text-foreground;
+    }
+
+    /* El plugin forms fija un fondo y un SVG claros incluso bajo color-scheme: dark. */
+    :where(:root.dark)
+        :is(
+            :where(input):not([type]),
+            [type='text'],
+            [type='email'],
+            [type='url'],
+            [type='password'],
+            [type='number'],
+            [type='date'],
+            [type='datetime-local'],
+            [type='month'],
+            [type='search'],
+            [type='tel'],
+            [type='time'],
+            [type='week'],
+            select,
+            textarea
+        ) {
+        @apply border-control-border bg-surface text-foreground-strong placeholder:text-foreground-subtle focus:border-focus focus:ring-focus;
+    }
+
+    :where(:root.dark) select:not([multiple]) {
+        appearance: auto;
+        background-image: none;
+        padding-inline-end: 0.75rem;
+    }
+
+    :where(:root.dark) :is([type='checkbox'], [type='radio']) {
+        @apply border-control-border bg-surface text-check focus:ring-focus focus:ring-offset-surface;
+    }
+
+    :where(:root.dark) :is([type='checkbox'], [type='radio']):checked {
+        background-color: currentColor;
     }
 
     /* Foco visible y consistente para teclado. */
     :focus-visible {
-        @apply outline-none ring-2 ring-indigo-500 ring-offset-2;
+        @apply outline-none ring-2 ring-focus ring-offset-2 ring-offset-canvas;
     }
 }
 
 @layer components {
+    .base-dialog {
+        @apply bg-surface-raised text-foreground;
+    }
+
+    .base-dialog::backdrop {
+        @apply bg-overlay/75;
+    }
+
+    .dialog-panel {
+        @apply mx-auto my-6 max-h-[calc(100dvh_-_3rem)] w-[calc(100vw_-_2rem)] overflow-y-auto rounded-lg border-0 p-0 shadow-xl;
+    }
+
+    body:has(> dialog:modal) {
+        overflow: hidden;
+    }
+
     .card {
-        @apply rounded-xl border border-slate-200 bg-white shadow-card;
+        @apply rounded-xl border border-border bg-surface shadow-card;
     }
 
     .field {
-        @apply block w-full rounded-lg border-slate-300 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-indigo-500 focus:ring-indigo-500;
+        @apply block w-full max-w-full rounded-lg border-control-border bg-surface text-sm text-foreground-strong shadow-sm placeholder:text-foreground-subtle focus:border-focus focus:ring-focus;
+    }
+
+    .dropdown-item {
+        @apply block w-full px-4 py-2 text-start text-sm leading-5 text-foreground-secondary transition hover:bg-surface-hover focus:bg-surface-hover focus-visible:ring-inset focus-visible:ring-offset-0;
     }
 
     .composer-preset-section {
-        @apply min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm;
+        @apply min-w-0 rounded-2xl border border-border bg-surface shadow-sm;
     }
 
     .composer-preset-heading {
-        @apply flex cursor-pointer list-none items-center gap-3 rounded-2xl px-4 py-3.5 transition-colors hover:bg-slate-50 sm:px-5;
+        @apply flex cursor-pointer list-none items-center gap-3 rounded-2xl px-4 py-3.5 transition-colors hover:bg-canvas sm:px-5;
     }
 
     .composer-preset-heading::-webkit-details-marker {
@@ -47,24 +262,25 @@
     }
 
     .composer-preset-body {
-        @apply space-y-5 border-t border-slate-100 px-4 py-5 sm:px-5;
+        @apply space-y-5 border-t border-border-subtle px-4 py-5 sm:px-5;
     }
 
     .composer-setting-row {
-        @apply flex cursor-pointer items-center justify-between gap-4 text-sm leading-5 text-slate-700;
+        @apply flex cursor-pointer items-center justify-between gap-4 text-sm leading-5 text-foreground-secondary;
     }
 
     .composer-preset-toggle {
-        @apply relative h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full border-0 bg-slate-300 shadow-inner transition-colors checked:bg-violet-600 focus:ring-violet-500 disabled:cursor-not-allowed disabled:opacity-50;
+        @apply relative h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full border-0 bg-control-border shadow-inner transition-colors checked:bg-accent-secondary-fill focus:ring-focus disabled:cursor-not-allowed disabled:opacity-50;
         background-image: none !important;
     }
 
     .composer-preset-toggle::after {
         content: '';
-        @apply absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform;
+        @apply absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-surface shadow-sm transition-transform;
     }
 
     .composer-preset-toggle:checked::after {
+        @apply bg-on-accent-secondary;
         transform: translateX(1rem);
     }
 
@@ -83,18 +299,58 @@
     }
 
     .btn-primary {
-        @apply btn bg-indigo-600 text-white shadow-sm hover:bg-indigo-500 active:bg-indigo-700;
+        @apply btn bg-accent-fill text-on-accent shadow-sm hover:bg-accent-hover active:bg-accent-active;
+    }
+
+    .btn-secondary-accent {
+        @apply btn bg-accent-secondary-fill text-on-accent-secondary shadow-sm hover:bg-accent-secondary-hover;
     }
 
     .btn-secondary {
-        @apply btn border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50;
+        @apply btn border border-control-border bg-surface text-foreground-secondary shadow-sm hover:bg-canvas;
     }
 
     .btn-danger {
-        @apply btn bg-red-600 text-white shadow-sm hover:bg-red-500 active:bg-red-700;
+        @apply btn bg-danger-fill text-on-danger shadow-sm hover:bg-danger-hover active:bg-danger-active;
     }
 
     .link {
-        @apply rounded font-medium text-indigo-600 underline-offset-2 hover:text-indigo-500 hover:underline;
+        @apply rounded font-medium text-accent underline-offset-2 hover:text-accent-strong hover:underline;
+    }
+}
+
+/* Indicador de navegacion (Composables/navigationProgress.js): barra indeterminada de 2 px; sin animacion si se pide menos movimiento. */
+#nprogress {
+    pointer-events: none;
+}
+
+#nprogress .bar {
+    position: fixed;
+    z-index: 1031;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: rgb(var(--color-progress));
+    transform-origin: 0 50%;
+    animation: nprogress-indeterminate 1.4s ease-in-out infinite;
+}
+
+@keyframes nprogress-indeterminate {
+    0% {
+        transform: scaleX(0.05);
+    }
+    60% {
+        transform: scaleX(0.85);
+    }
+    100% {
+        transform: scaleX(0.95);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #nprogress .bar {
+        animation: none;
+        transform: scaleX(0.5);
     }
 }

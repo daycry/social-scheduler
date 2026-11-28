@@ -19,11 +19,13 @@ enum Network: string
     case Threads = 'threads';
     case LinkedIn = 'linkedin';
     case Pinterest = 'pinterest';
+    case Mastodon = 'mastodon';
+    case Telegram = 'telegram';
 
     /** Conexion por redireccion OAuth. */
     public const AUTH_OAUTH = 'oauth';
 
-    /** Conexion con credenciales escritas por el usuario (handle + app password). */
+    /** Conexion con credenciales escritas por el usuario (Bluesky: handle + app password; Mastodon: instancia + token; Telegram: token del bot + canal). */
     public const AUTH_CREDENTIALS = 'credentials';
 
     public function provider(): string
@@ -36,6 +38,8 @@ enum Network: string
             self::Threads => 'threads',
             self::LinkedIn => 'linkedin',
             self::Pinterest => 'pinterest',
+            self::Mastodon => 'mastodon',
+            self::Telegram => 'telegram',
         };
     }
 
@@ -50,6 +54,8 @@ enum Network: string
             self::Threads => 'Threads',
             self::LinkedIn => 'LinkedIn',
             self::Pinterest => 'Pinterest',
+            self::Mastodon => 'Mastodon',
+            self::Telegram => 'Telegram',
         };
     }
 
@@ -65,6 +71,8 @@ enum Network: string
             self::Threads => 'TH',
             self::LinkedIn => 'LI',
             self::Pinterest => 'PI',
+            self::Mastodon => 'MA',
+            self::Telegram => 'TG',
         };
     }
 
@@ -80,6 +88,8 @@ enum Network: string
             self::Threads => '#000000',
             self::LinkedIn => '#0a66c2',
             self::Pinterest => '#e60023',
+            self::Mastodon => '#6364ff',
+            self::Telegram => '#229ed9',
         };
     }
 
@@ -87,7 +97,7 @@ enum Network: string
     public function authKind(): string
     {
         return match ($this) {
-            self::Bluesky => self::AUTH_CREDENTIALS,
+            self::Bluesky, self::Mastodon, self::Telegram => self::AUTH_CREDENTIALS,
             default => self::AUTH_OAUTH,
         };
     }
@@ -112,7 +122,7 @@ enum Network: string
     }
 
     /**
-     * ¿Se puede usar esta red en esta instalacion? Bluesky se apaga con `BLUESKY_ENABLED=false` y Threads con `THREADS_ENABLED=false` o
+     * ¿Se puede usar esta red en esta instalacion? Bluesky, Mastodon y Telegram se apagan con `BLUESKY_ENABLED=false`, `MASTODON_ENABLED=false` y `TELEGRAM_ENABLED=false`, y Threads con `THREADS_ENABLED=false` o
      * sin `THREADS_APP_ID` (red no configurada): sus cuentas siguen conectadas, pero no se pueden elegir en el compositor, ni reprogramar,
      * ni usar desde el MCP, y la red no sale en Conexiones ni en los filtros.
      */
@@ -124,6 +134,8 @@ enum Network: string
             // LinkedIn y Pinterest (T-18): sin las credenciales de su app (config/env, vacias por defecto) la red sale «no configurada».
             self::LinkedIn => (bool) config('social.linkedin.enabled', true) && (string) config('services.linkedin.client_id') !== '',
             self::Pinterest => (bool) config('social.pinterest.enabled', true) && (string) config('services.pinterest.client_id') !== '',
+            self::Mastodon => (bool) config('social.mastodon.enabled', true),
+            self::Telegram => (bool) config('social.telegram.enabled', true),
             default => true,
         };
     }

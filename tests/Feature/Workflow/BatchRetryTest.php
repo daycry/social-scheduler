@@ -27,7 +27,7 @@ beforeEach(function () {
     $this->approver = User::factory()->create();
     $this->brand = Brand::factory()->for($this->user)->create(['timezone' => 'UTC']);
     $this->fb = SocialAccount::factory()->for($this->user)->create(['brand_id' => $this->brand->id, 'network' => Network::Facebook]);
-    BrandCollaborator::query()->create(['brand_id' => $this->brand->id, 'owner_id' => $this->user->id, 'user_id' => $this->approver->id, 'role' => 'aprobador']);
+    BrandCollaborator::query()->create(['brand_id' => $this->brand->id, 'owner_id' => $this->user->id, 'user_id' => $this->approver->id, 'role' => BrandCollaborator::ROLE_APPROVER]);
 });
 
 function batchPost(array $over = [], ?User $as = null, ?Brand $brand = null, ?SocialAccount $acc = null): Post

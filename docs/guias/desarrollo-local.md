@@ -22,12 +22,22 @@ El host virtual de Laragon debe apuntar a `public/`; recarga Apache desde Larago
 
 ## Procesos en segundo plano
 
+En Windows, `composer dev` llama a `php artisan dev`, que ejecuta `concurrently`. En Linux y macOS Laravel usa `@laravel/multiplex`. Con npm 12.0.2 en Windows, `npm ci` puede dejar `react` como paquete sobrante de Multiplex. Si `npm ls --depth=0` muestra `react extraneous`, puedes retirar esa copia local de `node_modules`. El lockfile mantiene React para las plataformas que usan Multiplex.
+
 La cola es `database`, así que sin worker nada se publica. En local:
 
 ```bash
-php artisan queue:work database --queue=publish,poll,metrics,reports,media,studio
+php artisan queue:work database --queue=publish,poll,metrics,reports,media,studio,studio-render
 php artisan schedule:work          # sustituye al cron de producción
 ```
+
+La exportación completa de datos (T-84) va en su propia conexión de cola, `exports`, con un tiempo límite largo. El worker anterior no la recoge: para probarla en local arranca también
+
+```bash
+php artisan queue:work exports --queue=exports --timeout=3600 --tries=1
+```
+
+Sin ese worker la exportación se queda «en cola» y `exports:prune` la da por fallida a las 6 h (`EXPORTS_PENDING_MINUTES`).
 
 `php artisan app:queue-probe --wait=60` encola un job por cola y comprueba que se procesan. `php artisan app:health` revisa BD, cola, disco y latido del scheduler.
 
@@ -48,30 +58,67 @@ Con Laragon (`https://metricool.test`) el RP ID de las passkeys sale de `APP_URL
 ```bash
 composer test            # Pest, SQLite en memoria
 vendor/bin/pint --test   # estilo
+npm run lint             # ESLint en componentes Vue
+npm run format:check     # comprueba el formato de Vue
 npm run build            # compila assets
 ```
 
+Usa `npm run format` para aplicar Prettier a los componentes Vue. CI ejecuta `lint` y `format:check` antes de los tests de Node.
+
+Cuando dos elementos en línea necesitan un espacio entre ellos, `&#32;` permite conservarlo al partir los elementos en líneas distintas. Se usa en la insignia de notas del calendario, las respuestas guardadas del inbox y la marca «Nuevo» de los mensajes del sitio.
+
 Los tests usan conectores simulados: no tocan las redes. Estructura de `tests/Feature/`: `Analytics`, `Auth`, `Backfill`, `Calendar`, `Connections`, `Connectors`, `Dashboard`, `Infra`, `Isolation`, `Jobs`, `Mcp`, `Media`, `Notifications`, `Posts`, `Publishing`, `Reports`, `Snapshots`.
+
+## Peticiones HTTP de la interfaz
+
+Para pedir JSON en rutas de Laravel desde Vue, usa `requestJson()` de `resources/js/lib/http.js`. Un error HTTP incluye `status`, `data` y los errores de validación en `errors`. Pasa el `AbortSignal` cuando una navegación o una petición posterior pueda invalidar el resultado. Para un cuerpo que se consume fuera del cliente, como una descarga o un formulario multipart, usa `sessionFetch()`.
+
+`uploadMedia()` centraliza la preparación de la subida, el envío local o al almacenamiento firmado y la confirmación. Admite progreso y cancelación. Las peticiones al almacenamiento firmado omiten la sesión de Laravel.
+
+## Diálogos
+
+`BaseDialog.vue` abre un diálogo nativo con el estado `open` y emite `close` cuando la persona pide cerrarlo. El componente padre actualiza su propio estado y puede mantener el diálogo abierto, por ejemplo mientras confirma el descarte. `closeable` permite impedir el cierre y `close-on-backdrop` lo habilita desde el fondo. `opened` se emite cuando el estado abre el diálogo. Define el nombre accesible con `aria-labelledby` o `aria-label` y marca el primer control con `data-dialog-initial-focus` cuando importe una acción concreta. Si existe un botón de apertura específico, pásalo a `return-focus-to` como elemento o componente. Los diálogos anidados usan el cierre y foco propios de cada diálogo. Monta los resultados y avisos de una acción dentro de su diálogo para que se puedan usar mientras el resto de la página está inerte.
+
+Para confirmar una acción destructiva, obtén la función de `useConfirm()` y espera su resultado antes de enviar la mutación. Captura antes de la confirmación los identificadores que dependan de las props de la vista, como la marca o el sitio activo. Usa una etiqueta que nombre la acción confirmada. Puedes pasar el mensaje directamente o configurar el título y las etiquetas. El diálogo común coloca el foco en la cancelación y resuelve en falso si la vista que abrió la confirmación se desmonta.
+
+## Comprobación de tipos
+
+Ejecuta `npm run typecheck` después de instalar las dependencias de Composer y npm. `tsc` comprueba Playwright. `vue-tsc` comprueba los módulos de `tsconfig.frontend.json` y sus dependencias con `checkJs`. El alcance incluye utilidades HTTP, componentes comunes, navegación, las tres vistas de Analítica, Calendario, Inbox e Informes. Los contratos de las props compartidas y las respuestas JSON se definen en `resources/js/types`. Al cambiarlos, comprueba la forma que entrega el controlador o servicio de Laravel y sus casos con datos y sin ellos.
+
+Ziggy genera los nombres y parámetros de rutas a partir de Laravel en `storage/framework/cache/typecheck`. Los tipos se regeneran con cada comprobación y quedan en la caché local. Ejecuta el comando tras clonar el proyecto para que el editor pueda resolverlos. TypeScript 6.0.3 mantiene la compatibilidad con `vue-tsc` mientras se completa el tipado de las vistas.
+
+En el Compositor y el listado de Estudio, `vue-tsc` comprueba las claves y valores por defecto de las declaraciones de props. Las pruebas de contrato contrastan esas formas con Laravel. Las declaraciones no comprueban su uso dentro de los SFC y sus dependencias.
+
+Las recargas de Inertia con `router.reload` ya conservan el desplazamiento y el estado. Pasa las props necesarias en `only` al actualizar resultados o hacer sondeo.
 
 ## Pruebas E2E (Playwright)
 
-La batería está en `tests/e2e` (proyectos `desktop`, `mobile` 375 px y `mobile-360`). Necesita `npm run build` y las credenciales del usuario demo (`DEMO_USER_*` en `.env`, sembrado con `php artisan db:seed --class=DemoSeeder`).
+La batería está en `tests/e2e` (proyectos `desktop`, `mobile` 375 px y `mobile-360`; los dos móviles solo ejecutan lo etiquetado `@responsive`, ver [testing](testing.md#e2e-en-paralelo-workers-shard-y-responsive)). Necesita `npm run build` y las credenciales del usuario demo (`DEMO_USER_*` en `.env`, sembrado con `php artisan db:seed --class=DemoSeeder`).
 
 ```bash
-npm run test:e2e                                  # arranca el servidor de pruebas y corre los 3 proyectos
+npm run test:e2e                                  # arranca un servidor por worker (2 por defecto) y corre los 3 proyectos
+E2E_WORKERS=4 npm run test:e2e                    # más workers (≈ 1,5 GB de RAM libre por worker)
+npx playwright test --shard=1/4                   # un cuarto de los ficheros (CI)
 npx playwright test tests/e2e/security.spec.ts    # solo 2FA y passkeys
-E2E_NO_SERVER=1 npm run test:e2e                  # el servidor ya está en marcha (ver abajo)
+E2E_PORT=18080 npm run test:e2e                   # fija el puerto del servidor del worker 0 (el resto, libres)
+npm run test:e2e:roadmap                          # la batería de T-43 (localhost:8081, E2E_ROADMAP_PORT)
 E2E_JSON_REPORT=ruta/results.json npm run test:e2e   # además escribe el informe json
 npx tsc --noEmit -p .                             # tipos de tests/e2e
+npm run test:unit                                 # tests de Node sin navegador
+npm run test:browser                              # tests de Node con Chromium
 ```
 
-**Servidor de pruebas.** Playwright lo lanza solo (`webServer` de `playwright.config.ts`) en `http://localhost:8080` con variables del proceso, sin tocar el `.env`:
+Los tests de Node y la purga de `storage/framework/testing` (se ejecuta sola al acabar la batería E2E; `E2E_PURGE=0` la desactiva) están en [testing](testing.md).
+
+La prueba de exportación de subtítulos de Estudio utiliza `ffmpeg`, `ffprobe` y `pdftoppm` (Poppler) del `PATH` para verificar los píxeles de los archivos descargados. El job E2E nocturno instala esos binarios.
+
+**Servidor de pruebas.** Playwright lo lanza solo (`webServer` de `playwright.config.ts`) en `http://localhost:<puerto>` con variables del proceso, sin tocar el `.env`. Hay **un servidor, una SQLite y un `runRoot` (`run-general-<uuid>`) por worker** de Playwright (`E2E_WORKERS`, 2 por defecto, de 1 a 16; ver [testing](testing.md#e2e-en-paralelo-workers-shard-y-responsive)). El puerto del worker 0 es `E2E_PORT` si lo defines (entero entre 1024 y 65535); los demás, y el del worker 0 si no defines nada, son puertos libres que elige el SO al arrancar (ya no se intenta `8080`: dos ejecuciones simultáneas se lo disputaban); se fijan una vez (`E2E_SLOTS`) y los heredan los workers, `global-setup` comprueba antes de los tests que cada servidor es el de SU ejecución y SU slot, y cada worker lo vuelve a comprobar al arrancar. `APP_URL` y `WEBAUTHN_ORIGINS` salen de ese puerto; el RP ID es `localhost` siempre (no lleva puerto). Así la batería no falla porque un puerto esté ocupado:
 
 | Variable | Valor E2E | Por qué |
 |---|---|---|
-| `APP_URL` | `http://localhost:8080` | `McpGuard` acepta el `Origin` del navegador si es `APP_URL` (el E2E de API keys hace «Probar conexión») |
+| `APP_URL` | `http://localhost:<puerto>` | `McpGuard` acepta el `Origin` del navegador si es `APP_URL` (el E2E de API keys hace «Probar conexión») |
 | `WEBAUTHN_RP_ID` | `localhost` | WebAuthn no admite una IP como RP ID: por eso `localhost` y no `127.0.0.1` |
-| `WEBAUTHN_ORIGINS` | `http://localhost:8080` | origen exacto que firma el autenticador |
+| `WEBAUTHN_ORIGINS` | `http://localhost:<puerto>` | origen exacto que firma el autenticador |
 | `SESSION_SECURE_COOKIE` | `false` | la cookie de sesión viaja por http |
 | `TRUSTED_PROXIES` | vacío | sin proxies de confianza: anula el `*` que el `.env` pone para ngrok |
 | `MCP_OAUTH_REGISTER_GLOBAL_PER_HOUR` | `100000` | sube el tope GLOBAL de registros DCR del servidor E2E; la batería ya no lo reinicia |
@@ -80,7 +127,14 @@ npx tsc --noEmit -p .                             # tipos de tests/e2e
 
 **No corras la batería mientras pruebas con tráfico real por ngrok:** los tests reinician los contadores de DCR y `/oauth/token` de `127.0.0.1` y `::1` (el tráfico de ngrok puede llegar con esa IP), y borran solo la auditoría `oauth.*` sin usuario ligada a clientes `e2e-%`.
 
-`php artisan serve` descarta las variables del entorno cuando existe `.env` salvo con `--no-reload`, que es lo que usa el `webServer`. Para arrancarlo a mano (y usar `E2E_NO_SERVER=1`), con las mismas variables:
+**Ya no se puede apuntar la batería a un servidor arrancado a mano.** El arnés general (`tests/e2e/isolated/`) exige su propio servidor desechable: `E2E_NO_SERVER` y un `E2E_BASE_URL` distinto del suyo hacen que `runtime.ts` falle, y `global-setup` comprueba que el servidor que responde en el puerto es el de su ejecución. Para depurar un spec usa el servidor gestionado, con un puerto fijo si lo necesitas:
+
+```bash
+E2E_WORKERS=1 E2E_PORT=18080 npx playwright test tests/e2e/security.spec.ts --workers=1 --project=desktop --headed
+E2E_PURGE=0 npm run test:e2e   # sin purgar ejecuciones antiguas al terminar
+```
+
+Si solo quieres explorar a mano la app con el entorno E2E (sin Playwright), `php artisan serve` descarta las variables del entorno cuando existe `.env` salvo con `--no-reload`; arráncalo con las mismas variables, en el puerto que quieras (no lo usa la batería):
 
 ```bash
 MCP_OAUTH_REGISTER_GLOBAL_PER_HOUR=100000 APP_ENV=e2e GOOGLE_LOGIN_CLIENT_ID=e2e-google-id GOOGLE_LOGIN_CLIENT_SECRET=e2e-google-secret META_LOGIN_APP_ID=e2e-meta-id META_LOGIN_APP_SECRET=e2e-meta-secret APP_URL=http://localhost:8080 WEBAUTHN_RP_ID=localhost WEBAUTHN_ORIGINS=http://localhost:8080 SESSION_SECURE_COOKIE=false TRUSTED_PROXIES= php artisan serve --host=localhost --port=8080 --no-reload

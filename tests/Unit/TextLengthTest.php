@@ -52,3 +52,53 @@ test('Threads cuenta de forma conservadora los grafemas con emoji y rechaza 250 
         ->and(TextLength::count('漢字', 'threads'))->toBe(2)
         ->and(TextLength::count(str_repeat($flag, 250), 'threads'))->toBeGreaterThan(500);
 });
+
+/** @return list<array{string, ?int, int}> texto, reserva por URL (null = 23) y longitud esperada en modo `mastodon`. */
+function mastodonCases(): array
+{
+    $family = "\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}\u{200D}\u{1F466}";
+
+    return [
+        ['', null, 0],
+        ['  hola  ', null, 4],
+        ['https://bit.ly/3xYz', null, 23],
+        ['https://ejemplo.org/'.str_repeat('a', 200).'?utm=x', null, 23],
+        ['hola https://x.io/a y http://x.io', null, 5 + 23 + 3 + 23],
+        ['https://x.io/a', 30, 30],
+        ['hola @ana@mastodon.social!', null, 10],
+        ['@ana', null, 4],
+        ['@ana@mastodon.social @luis@otra.example', null, 4 + 1 + 5],
+        ['correo ana@example.org', null, 22],
+        ['https://x.io/@ana@mastodon.social', null, 23],
+        [$family, null, 1],
+        ['é', null, 1],
+        ['canción 😀', null, 9],
+        // La puntuacion final no es parte de la URL (como en twitter-text): punto, coma, cierre de parentesis o comillas.
+        ['ver https://x.io/a.', null, 4 + 23 + 1],
+        ['(https://x.io/a), fin', null, 1 + 23 + 6],
+        ['«https://x.io/a»', null, 1 + 23 + 1],
+        ['https://x.io/a.b?c=1', null, 23],
+    ];
+}
+
+test('Mastodon cuenta grafemas, cada URL como su reserva y una mencion remota como @usuario', function () {
+    foreach (mastodonCases() as [$text, $url, $expected]) {
+        expect(TextLength::count($text, TextLength::MASTODON, $url))->toBe($expected, $text);
+    }
+    expect(TextLength::MODES)->toContain('mastodon');
+});
+
+test('el espejo JavaScript (textLength.js) da lo mismo que PHP en modo mastodon', function () {
+    $node = (new ExecutableFinder)->find('node');
+    if ($node === null) {
+        $this->markTestSkipped('node no esta disponible');
+    }
+
+    $script = "import('./resources/js/Composables/textLength.js').then(m => {"
+        .'const cases = JSON.parse(process.argv[1]);'
+        .'console.log(JSON.stringify(cases.map(([text, url]) => m.countText(text, "mastodon", url ?? undefined))));});';
+    $process = new Process([$node, '-e', $script, json_encode(array_map(fn ($c) => [$c[0], $c[1]], mastodonCases()), JSON_UNESCAPED_UNICODE)], dirname(__DIR__, 2));
+    $process->mustRun();
+
+    expect(json_decode(trim($process->getOutput()), true))->toBe(array_map(fn ($c) => $c[2], mastodonCases()));
+});

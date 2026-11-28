@@ -5,6 +5,7 @@ use App\Models\User;
 use App\Services\MediaProbe;
 use App\Services\MediaStorage;
 use App\Services\MediaUploadService;
+use App\Services\Studio\StudioAudioProbe;
 use Aws\CommandInterface;
 use Aws\MockHandler;
 use Aws\Result;
@@ -120,7 +121,8 @@ test('MediaUpload: en R2 un fichero pequeno usa una URL prefirmada de un solo PU
 
 test('MediaUpload: un video grande se sube por multipart con una URL prefirmada por parte y se finaliza', function () {
     $calls = fakeR2([new Result(['UploadId' => 'up-1']), new Result([])]);
-    app()->instance(MediaProbe::class, new class(app(MediaStorage::class)) extends MediaProbe
+    $storage = app(MediaStorage::class);
+    app()->instance(MediaProbe::class, new class($storage, new StudioAudioProbe($storage)) extends MediaProbe
     {
         public function inspect(MediaAsset $asset): array
         {

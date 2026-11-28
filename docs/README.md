@@ -1,15 +1,16 @@
 # Social Scheduler — documentación
 
-Aplicación web personal para programar publicaciones y consultar analítica en Instagram, Facebook, YouTube, TikTok, Bluesky, Threads, LinkedIn y Pinterest. Laravel 13 + Inertia/Vue, cola `database` y media en Cloudflare R2.
+Aplicación web personal para programar publicaciones y consultar analítica en Instagram, Facebook, YouTube, TikTok, Bluesky, Threads, LinkedIn, Pinterest, Mastodon y Telegram. Laravel 13 + Inertia/Vue, cola `database` y media en Cloudflare R2.
 
-Última actualización: 2026-11-10
+Última actualización: 2026-11-27
 
 ## Por dónde empezar
 
 | Si quieres… | Lee |
 |---|---|
 | Diseñar contenido por marca y reutilizarlo en una publicación | [Estudio creativo](guias/estudio-creativo.md) |
-| Automatizar diseños, recursos y exportación desde API o MCP | [API v1 y MCP del estudio](guias/estudio-api-mcp.md) · [OpenAPI](api/creative-suite.openapi.yaml) |
+| Usar la API v1 (publicaciones, media, buzón, informes, SmartLinks, sitios) | [API v1](guias/api-v1.md) · [OpenAPI](api/openapi.yaml) |
+| Automatizar diseños, recursos y exportación desde API o MCP | [API v1 y MCP del estudio](guias/estudio-api-mcp.md) · [OpenAPI](api/openapi.yaml) |
 | Revisar cobertura, cálculos y recolección de métricas | [Auditoría de métricas](roadmap/2026-11-03-creative-social-suite/testing/metrics/audit-2026-11-03.md) |
 | Entender cómo encaja todo | [Arquitectura](arquitectura.md) y [Stack](stack.md) |
 | Saber qué se decidió por red (Meta, YouTube, TikTok, Bluesky, Threads, LinkedIn, Pinterest) | [Decisiones por red](referencia/decisiones-por-red.md) |
@@ -18,11 +19,14 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Ejecutar la validación T-43 con SQLite desechable y conectores simulados | [Pruebas aisladas de T-43](guias/pruebas-t43.md) |
 | Revisar la regresión general en los tres tamaños (502 pasados y dos omitidos previstos) | [Informe de QA](roadmap/2026-10-26-metricool-parity-3/testing/attempt-2/report.md) · [PDF](roadmap/2026-10-26-metricool-parity-3/testing/attempt-2/report.pdf) |
 | Usar la aplicación (incluye doble factor y passkeys) | [Guía de usuario](usuario/guia-de-usuario.md) |
+| Configurar una cuenta nueva y consultar los atajos | [Primeros pasos](usuario/primeros-pasos.md) |
+| Elegir el tema del sistema, claro u oscuro | [Tema de la aplicación](usuario/tema.md) |
 | Operar el doble factor y las passkeys (RP ID, `sodium`, rotar claves) | [Despliegue → Seguridad de cuenta](modulos/despliegue.md#seguridad-de-cuenta-2fa-y-passkeys) |
 | Activar el login con Google y Facebook (apps, redirect URIs, modos) | [Guía de login social](guias/login-social-google-meta.md) |
 | Conectar un asistente (Claude, Codex, OpenCode) sin API key y desplegar el OAuth del MCP | [Servidor MCP](modulos/mcp.md#autorización-oauth-21-sin-api-key) y [Despliegue → OAuth del MCP](modulos/despliegue.md#oauth-del-mcp-nginxhestia-y-redirect-uris) |
 | Activar «Google Drive» en el compositor y reconectar YouTube para el primer comentario | [Guía de Google Cloud](guias/google-cloud-picker-drive.md) |
 | Conectar Bluesky con una app password (alta, email verificado para vídeo, revocación) | [Guía de Bluesky](guias/bluesky-app-password.md) |
+| Conectar Mastodon (token personal) y un canal de Telegram (bot), con sus límites | [Guía de Mastodon y Telegram](guias/mastodon-telegram.md) |
 | Conectar Threads con una app de Meta (ID y secreto de Threads, URI de redirección, tester y App Review) | [Guía de Threads](guias/threads-app-meta.md) |
 | Activar el buscador de GIFs (clave de Giphy, límites, atribución «Powered by GIPHY» y términos) | [Guía de Giphy](guias/giphy-api-key.md) |
 | Conectar LinkedIn (perfil y páginas) y Pinterest (tablero obligatorio) | [LinkedIn y Pinterest](guias/linkedin-pinterest.md) |
@@ -31,6 +35,15 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Aprobaciones, series, lotes, colaboradores, publicación manual y reintento | [Flujo de trabajo](modulos/workflow-publicaciones.md) |
 | Dar a un destino su propia media, alt y portada | [Media por destino](modulos/media-por-destino.md) |
 | Publicar una web de la marca en `/s/{slug}` | [Sitios](modulos/sitios.md) |
+| Proponer una fecha futura con métricas de la marca | [Planificar](usuario/planificar.md) |
+| Crear un borrador independiente de una publicación guardada | [Duplicar](usuario/duplicar.md) |
+| Importar muchas publicaciones de una marca desde un CSV | [Importar CSV](usuario/importar-csv.md) |
+| Buscar páginas, publicaciones, marcas, archivos y diseños con Ctrl+K | [Buscar](usuario/buscar.md) |
+| Descargar una copia completa de mis datos en un ZIP | [Exportar mis datos](usuario/exportar.md) |
+| Recibir eventos firmados en tu propio receptor HTTPS | [Webhooks salientes](api/webhooks.md) |
+| Configurar hitos, caídas y avisos de caducidad por marca/cuenta | [Objetivos y alertas](modulos/analitica.md#objetivos-y-alertas-t-79) |
+| Consultar salud, trabajadores, caducidades y cuotas como operador | [Estado del sistema](modulos/despliegue.md#pantalla-de-estado-del-sistema) |
+| Consultar acciones de la cuenta, filtros y conservación | [Actividad](usuario/actividad.md) |
 | Saber qué falta por hacer a mano | [Pendientes manuales](referencia/pendientes-manuales.md) |
 
 ## Módulos (documentación técnica)
@@ -38,6 +51,7 @@ Aplicación web personal para programar publicaciones y consultar analítica en 
 | Módulo | Página | Código principal |
 |---|---|---|
 | Conexiones OAuth por red | [conexiones.md](modulos/conexiones.md) | `app/Connectors/`, `app/Services/SocialAccountService.php` |
+| Paletas de la interfaz y contraste | [Tokens de color](guias/tokens-de-color.md) | `resources/css/app.css`, `tailwind.config.js`, `resources/js/Composables/useTheme.js` |
 | Publicación y cola | [publicacion.md](modulos/publicacion.md) | `app/Jobs/PublishPostTarget.php`, `app/Services/PostService.php`, `app/Services/SavedTextService.php` |
 | Media, validación e importación (URL y Drive) | [media.md](modulos/media.md) | `app/Services/Media*.php`, `app/Services/Media/`, `app/Jobs/ImportRemoteMedia.php`, `config/media*.php` |
 | Calendario y cuadrícula de Instagram | [calendario.md](modulos/calendario.md) | `app/Services/CalendarService.php`, `app/Services/GridService.php` |
@@ -84,3 +98,5 @@ Las comprobaciones con cuentas y servidor reales siguen en [Pendientes manuales]
 - Confluence: no se publica (opt-in no configurado).
 
 - [Ajustes del compositor](guias/ajustes-compositor.md) · paneles globales y por red, colaboradores, IA, título de Facebook y errores; inventario observado y pendientes.
+
+- [Instalar la aplicación y configurar avisos push](usuario/pwa.md).

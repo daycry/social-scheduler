@@ -1,0 +1,93 @@
+{
+  "model": "claude-opus-5-5",
+  "effort": "high",
+  "packet_sha256": "858566db0def6b477fb170d7095504ce3dca489a1d090efa74bb94e64f4d70e6",
+  "patch_sha256": "03f5a4b613500129f13f9ef90b4a35d1f95b00e82bee45f7604f8d53e187680d",
+  "files": [
+    {
+      "path": ".env.example",
+      "sha256": "194083e86b249458d19884bfe66529a589ed2761bcf973d7a7d3dbe1d84960b7"
+    },
+    {
+      "path": ".env.production.example",
+      "sha256": "4537e729e57583b7f2c83f2583196e1a25e2cefd99955ef539570664d0fec4fa"
+    },
+    {
+      "path": "CHANGELOG.es.md",
+      "sha256": "1d4be1ca01a3a859d6d80441a89a1d817546e7112913565b5e953f1891493595"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "be4838f487e370502456e6ef29d3bd99bca0f7fda3083232685490bec2448ed9"
+    },
+    {
+      "path": "app/Http/Controllers/SystemStatusController.php",
+      "sha256": "662adc18137ffa3a9ab8e38d1e4cb6ae48b85a6481d62bcd187c9b9bf5789474"
+    },
+    {
+      "path": "app/Http/Middleware/HandleInertiaRequests.php",
+      "sha256": "b068c8e7c171285f376d5380f35191571ff9ed839efb35f1a3991507d741ad59"
+    },
+    {
+      "path": "app/Jobs/QueueProbeJob.php",
+      "sha256": "64ba30e7fe4e3dde4e1d6b13c580bb11905db894e34eea3a1aae7c8231f6d79e"
+    },
+    {
+      "path": "app/Services/SystemStatus.php",
+      "sha256": "5bde71855765525ec74a80cc5b9531e41d70aea25414df78f40ff4f7f5018b8f"
+    },
+    {
+      "path": "app/Support/SystemAccess.php",
+      "sha256": "f5736417a3c9f68831b2dcf82668121a0ad11bf0c550c05f4f62e44c0062fd67"
+    },
+    {
+      "path": "config/health.php",
+      "sha256": "b5f09569fc6759ead73eb267ddb97fd75f81aa3ad4da9eb42634a6cc60716551"
+    },
+    {
+      "path": "docs/README.md",
+      "sha256": "b4de601952a5ef3b0998f7bc5cfb554da3cac99d8ebfb8026b72f75de7113c3b"
+    },
+    {
+      "path": "docs/modulos/despliegue.md",
+      "sha256": "05f3965f3adce7ef866fdf7251cdac5bced58d7c1ff57fd4b8552fde7a2ecb99"
+    },
+    {
+      "path": "resources/js/Layouts/AuthenticatedLayout.vue",
+      "sha256": "0fa7020b46f7cd350f76aabe77558ba7cab2166027f5db8582aaea234edf2b11"
+    },
+    {
+      "path": "resources/js/Pages/System/Index.vue",
+      "sha256": "557b638cf3accebe34a5c9627e90df3cf30d983982257a7d50089dea557bf687"
+    },
+    {
+      "path": "resources/js/types/shell.d.ts",
+      "sha256": "59bca34d9b855be02cf64ff173057a3790886dc7e832fb9ca2ebbedb46e8b643"
+    },
+    {
+      "path": "resources/js/types/system-status.d.ts",
+      "sha256": "b305064886157612fb8d274c2942d43b21ee9fa401e22005ebba929f90d92cad"
+    },
+    {
+      "path": "routes/web.php",
+      "sha256": "9521f708b7ae2f1f88ae2e4126faf771f772c8de5215db407c834901e03115b3"
+    },
+    {
+      "path": "tests/Feature/System/SystemStatusTest.php",
+      "sha256": "a74443ef50d351376b4e2215dc3d838a955dbb261505959d339d77ad544720a1"
+    },
+    {
+      "path": "tests/e2e/isolated/runtime.ts",
+      "sha256": "87850865b83dd35ab6fa6e7074c93165996594ee409a0ed8242767966fddc175"
+    },
+    {
+      "path": "tests/e2e/system-status.spec.ts",
+      "sha256": "1be2ecdf763246ec1300faa3826b30075a12391e9dc7db260dce9af08c889512"
+    },
+    {
+      "path": "tsconfig.frontend.json",
+      "sha256": "63942ed584d4723956014cf54337535ffe24d252357b5a5e87b2f37ae5e86add"
+    }
+  ],
+  "source_manifest_sha256": "aa7608ebb6aebca774789bde525043ad6eadb63e2c47131be9f162094c13b388"
+}

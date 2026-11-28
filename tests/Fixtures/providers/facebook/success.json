@@ -1,0 +1,11 @@
+{
+  "source": "https://developers.facebook.com/docs/graph-api/reference/page/feed/",
+  "method": "POST",
+  "host": "graph.facebook.com",
+  "path": "/v23.0/100000000000010/feed",
+  "status": 200,
+  "headers": {},
+  "body": {
+    "id": "100000000000001_100000000000002"
+  }
+}

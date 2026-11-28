@@ -3,6 +3,7 @@
 namespace App\Jobs\Studio;
 
 use App\Models\Studio\StudioAiJob;
+use App\Services\JobFailureNotifier;
 use App\Services\Studio\StudioAi;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -18,7 +19,7 @@ class RunStudioAiJob implements ShouldQueue
 
     public function __construct(public readonly int $aiJobId)
     {
-        $this->onQueue('media');
+        $this->onQueue((string) config('queue.studio_render', 'studio-render'));
     }
 
     public function handle(StudioAi $ai): void
@@ -28,7 +29,11 @@ class RunStudioAiJob implements ShouldQueue
 
     public function failed(?\Throwable $exception): void
     {
-        StudioAiJob::withoutUserScope()->whereKey($this->aiJobId)->whereIn('status', ['queued', 'processing'])
+        $closed = StudioAiJob::withoutUserScope()->whereKey($this->aiJobId)->whereIn('status', ['queued', 'processing'])
             ->update(['status' => 'failed', 'error_code' => 'processing_interrupted', 'error' => StudioAi::errorMessage('processing_interrupted')]);
+
+        if ($closed === 1 && $job = StudioAiJob::withoutUserScope()->find($this->aiJobId)) {
+            app(JobFailureNotifier::class)->ai($job);
+        }
     }
 }

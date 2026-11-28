@@ -4,13 +4,14 @@ namespace App\Policies;
 
 use App\Models\Report;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Support\Facades\Log;
 
 class ReportPolicy
 {
     public function view(User $user, Report $report): bool
     {
-        if ($report->user_id === $user->id) {
+        if (Ownership::matches($report, $user)) {
             return true;
         }
 

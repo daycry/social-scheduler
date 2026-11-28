@@ -3,6 +3,7 @@
 use App\Jobs\Studio\RenderStudioDesign;
 use App\Mcp\Servers\SchedulerServer;
 use App\Models\Brand;
+use App\Models\BrandCollaborator;
 use App\Models\MediaAsset;
 use App\Models\Studio\DesignExport;
 use App\Models\User;
@@ -38,7 +39,7 @@ test('Studio API: bearer and scoped abilities protect shared design services', f
     $url = '/api/v1/brands/'.$this->brand->id.'/designs';
     $this->getJson($url)->assertUnauthorized();
     $readKey = $this->mcpKey($this->user, ['designs:read']);
-    $this->getJson($url, studioApiHeaders($readKey))->assertOk()->assertJsonPath('data.0.name', 'Diseño API');
+    $this->getJson($url, studioApiHeaders($readKey))->assertOk()->assertJsonPath('designs.0.name', 'Diseño API');
     $this->postJson($url, ['name' => 'Denegado', 'document' => StudioDocument::blank()], studioApiHeaders($readKey))->assertForbidden();
     $created = $this->postJson($url, ['name' => 'Creado', 'document' => StudioDocument::blank()], studioApiHeaders($this->key))
         ->assertCreated()->assertJsonPath('revision', 1)->json();
@@ -62,7 +63,7 @@ test('Studio API: ownership, kit, registered assets and archive follow the nativ
 test('Studio API: boolean query filters accept their OpenAPI wire representation', function () {
     app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Plantilla', 'document' => StudioDocument::blank(), 'is_template' => true]);
     $url = '/api/v1/brands/'.$this->brand->id.'/designs?templates=true&archived=false';
-    $this->getJson($url, studioApiHeaders($this->key))->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.name', 'Plantilla');
+    $this->getJson($url, studioApiHeaders($this->key))->assertOk()->assertJsonCount(1, 'designs')->assertJsonPath('designs.0.name', 'Plantilla');
 });
 
 test('Studio API: analytics shares metrics service and preserves unavailable values', function () {
@@ -75,6 +76,7 @@ test('Studio API: analytics shares metrics service and preserves unavailable val
 
 test('Studio MCP: native tools are discoverable across tools list pagination', function () {
     $names = [];
+    $collaboratorsSchema = null;
     $cursor = null;
     do {
         $page = $this->rpc($this->key, 'tools/list', $cursor ? ['cursor' => $cursor] : [])->assertOk()->json('result');
@@ -82,13 +84,38 @@ test('Studio MCP: native tools are discoverable across tools list pagination', f
             expect($page['tools'])->toHaveCount(30)->and($page['nextCursor'])->not->toBeNull();
         }
         $names = [...$names, ...array_column($page['tools'], 'name')];
+        $collaborators = collect($page['tools'])->firstWhere('name', 'manage_brand_collaborators');
+        if ($collaborators !== null) {
+            $collaboratorsSchema = $collaborators['inputSchema']['properties']['role']['enum'];
+        }
         $cursor = $page['nextCursor'] ?? null;
     } while ($cursor !== null);
+    expect($collaboratorsSchema)->toBe(['approver']);
     $registeredTools = (new ReflectionClass(SchedulerServer::class))->getDefaultProperties()['tools'];
     expect($names)->toHaveCount(count($registeredTools))->toContain('list_designs', 'get_design', 'create_design', 'update_design', 'export_design', 'manage_brand_kit', 'attach_design_asset', 'manage_design', 'manage_design_export', 'manage_design_captions', 'manage_design_folder', 'manage_studio_font', 'process_studio_image', 'manage_studio_audio', 'manage_studio_dataset')
         ->and(count($names))->toBe(count(array_unique($names)))->and(array_count_values($names)['get_stats'])->toBe(1);
     $instructions = $this->rpc($this->key, 'initialize', ['protocolVersion' => '2025-06-18', 'capabilities' => (object) [], 'clientInfo' => ['name' => 'test', 'version' => '1']])->assertOk()->json('result.instructions');
     expect($instructions)->toContain('list_designs', 'attach_design_asset', 'nextCursor', 'manage_studio_font', 'process_studio_image', 'font_id');
+});
+
+test('Studio MCP: a brand approver reads its design without owner resources', function () {
+    $reviewer = User::factory()->create();
+    $grant = BrandCollaborator::query()->create([
+        'brand_id' => $this->brand->id, 'owner_id' => $this->user->id,
+        'user_id' => $reviewer->id, 'role' => BrandCollaborator::ROLE_APPROVER,
+    ]);
+    $key = $this->mcpKey($reviewer, ['designs:read']);
+    [$error, $design] = $this->callTool($key, 'get_design', ['design_id' => $this->design->id]);
+    expect($error)->toBeFalse()
+        ->and($design['role'])->toBe('approver')
+        ->and($design['document'])->toBe(StudioDocument::blank())
+        ->and($design['assets'])->toBe([])
+        ->and($design['exports'])->toBe([])
+        ->and($design['kit']['palette'])->toBe([]);
+    $grant->delete();
+
+    [$error] = $this->callTool($key, 'get_design', ['design_id' => $this->design->id]);
+    expect($error)->toBeTrue();
 });
 
 test('Studio MCP: management duplicates independent revisions and restores only the owned archived design', function () {
@@ -149,7 +176,7 @@ test('Studio API contract: nullable properties emitted by real responses agree w
     $export = $this->postJson('/api/v1/designs/'.$this->design->id.'/exports', ['revision' => 1, 'format' => 'png', 'pages' => ['page_1']], studioApiHeaders($this->key))->assertAccepted()->json();
     $kit = $this->putJson('/api/v1/brands/'.$this->brand->id.'/brand-kit', ['guidelines' => null, 'voice' => null], studioApiHeaders($this->key))->assertOk()->json();
     $design = $this->getJson('/api/v1/designs/'.$this->design->id, studioApiHeaders($this->key))->assertOk()->json();
-    $source = file_get_contents(base_path('docs/api/creative-suite.openapi.yaml'));
+    $source = file_get_contents(base_path('docs/api/openapi.yaml'));
     // Contract regression for nullable fields: inspect the canonical inline property declarations,
     // then validate the values actually returned by the endpoint, rather than fabricated samples.
     foreach ([['Export', $export, ['media_ids', 'error', 'download_url']], ['BrandKit', $kit, ['guidelines', 'voice']], ['CreateDesign', $design, ['folder_id']]] as [$component, $response, $fields]) {
@@ -185,14 +212,17 @@ test('Studio API and MCP: export history is bounded and pages do not duplicate i
     $this->getJson($url.'/exports?per_page=101', studioApiHeaders($this->key))->assertUnprocessable();
 });
 
-test('Studio MCP: list_designs honors the explicit page argument', function () {
+test('Studio MCP: list_designs pages with the common cursor contract', function () {
     for ($i = 0; $i < 25; $i++) {
         app(StudioService::class)->create($this->user, $this->brand, ['name' => 'Paginado '.$i, 'document' => StudioDocument::blank()]);
     }
-    [$error, $first] = $this->callTool($this->key, 'list_designs', ['brand_id' => $this->brand->id, 'page' => 1]);
-    [$secondError, $second] = $this->callTool($this->key, 'list_designs', ['brand_id' => $this->brand->id, 'page' => 2]);
-    expect($error)->toBeFalse()->and($secondError)->toBeFalse()->and($second['current_page'])->toBe(2)
-        ->and($second['data'])->toHaveCount(2)->and(array_intersect(array_column($first['data'], 'id'), array_column($second['data'], 'id')))->toBe([]);
+    [$error, $first] = $this->callTool($this->key, 'list_designs', ['brand_id' => $this->brand->id]);
+    expect($error)->toBeFalse()->and($first['designs'])->toHaveCount(24)->and($first['has_more'])->toBeTrue()->and($first['next_cursor'])->toBeString();
+    [$secondError, $second] = $this->callTool($this->key, 'list_designs', ['brand_id' => $this->brand->id, 'cursor' => $first['next_cursor']]);
+    expect($secondError)->toBeFalse()->and($second['designs'])->toHaveCount(2)->and($second['has_more'])->toBeFalse()->and($second['next_cursor'])->toBeNull()
+        ->and(array_intersect(array_column($first['designs'], 'id'), array_column($second['designs'], 'id')))->toBe([]);
+    [$bad] = $this->callTool($this->key, 'list_designs', ['brand_id' => $this->brand->id, 'cursor' => 'no-es-un-cursor']);
+    expect($bad)->toBeTrue();
 });
 
 test('Studio MCP: own ready media can be registered for a native image design end to end', function () {

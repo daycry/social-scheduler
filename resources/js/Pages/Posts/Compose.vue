@@ -12,29 +12,17 @@ import PostStatusHeader from '@/Components/Composer/PostStatusHeader.vue';
 import PreviewPanel from '@/Components/Composer/PreviewPanel.vue';
 import TargetStatusPanel from '@/Components/Composer/TargetStatusPanel.vue';
 import UnsavedGuard from '@/Components/Composer/UnsavedGuard.vue';
+import DuplicatePost from '@/Components/Composer/DuplicatePost.vue';
+import { provideAiStatus } from '@/Composables/useAiStatus';
 import { useComposer } from '@/Composables/useComposer';
 import { Head } from '@inertiajs/vue3';
+import { composeProps } from './compose-props';
 
-const props = defineProps({
-    brand: Object,
-    accounts: Array,
-    contentTypes: Object,
-    typeLabels: { type: Object, default: () => ({}) },
-    limits: Object,
-    firstCommentMax: { type: Object, default: () => ({}) },
-    mediaMeta: { type: Object, default: () => ({}) },
-    altMax: { type: Number, default: 1000 },
-    presets: Object,
-    drivePicker: { type: Object, default: null },
-    giphy: { type: Object, default: () => ({ enabled: false }) },
-    savedTexts: { type: Array, default: () => [] },
-    campaigns: { type: Array, default: () => [] },
-    post: Object,
-    flash: Object,
-});
+const props = defineProps(composeProps);
 
 // El estado vive en `useComposer` y se comparte con los componentes por provide/inject.
-const { submit } = useComposer(props);
+provideAiStatus();
+const { submit, form } = useComposer(props);
 </script>
 
 <template>
@@ -42,17 +30,31 @@ const { submit } = useComposer(props);
 
     <ComposerLayout>
         <template #header>
-            <ComposerHeader />
+            <ComposerHeader>
+                <DuplicatePost
+                    v-if="post"
+                    :post-id="post.id"
+                    :brand-id="brand.id"
+                    :dirty="form.isDirty"
+                    :saving="form.processing"
+                />
+            </ComposerHeader>
         </template>
 
         <div>
+            <p
+                v-if="bestTimeNotice"
+                role="alert"
+                data-testid="best-time-notice"
+                class="mb-4 rounded-lg border border-warning-border bg-warning-soft px-4 py-3 text-sm text-warning-ink"
+                >{{ bestTimeNotice }}</p
+            >
             <div class="grid gap-6 lg:grid-cols-3">
                 <form class="min-w-0 space-y-6 lg:col-span-2" @submit.prevent="submit(true)">
-                    <p v-if="flash?.success" class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800" role="status">{{ flash.success }}</p>
                     <PostStatusHeader />
                     <NetworkPicker />
                     <TextSection />
-                    <MediaSection />
+                    <MediaSection :studio-origin-url="post?.studio_origin_url" :csrf-token="csrfToken" />
                     <div class="space-y-3" data-testid="composer-presets">
                         <GlobalPresets />
                         <TargetOptions />

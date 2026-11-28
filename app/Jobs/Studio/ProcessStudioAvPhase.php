@@ -2,8 +2,8 @@
 
 namespace App\Jobs\Studio;
 
+use App\Services\Studio\StudioAvLifecycle;
 use App\Services\Studio\StudioAvRunner;
-use App\Services\Studio\StudioAvState;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -27,6 +27,6 @@ class ProcessStudioAvPhase implements ShouldQueue
 
     public function failed(?\Throwable $exception): void
     {
-        app(StudioAvState::class)->fail((object) ['id' => $this->leaseId], 'phase_failed');
+        app(StudioAvLifecycle::class)->fail((object) ['id' => $this->leaseId], 'phase_failed');
     }
 }

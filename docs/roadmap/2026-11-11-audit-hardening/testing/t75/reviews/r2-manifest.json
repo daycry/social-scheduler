@@ -1,0 +1,102 @@
+{
+  "task": "T-75",
+  "review_model": "claude-opus-5-5",
+  "review_effort": "high",
+  "packet_sha256": "7e5961ac6558be36c16338beb92a2522331ec97690f5c0e465b8d6a23c335a06",
+  "patch_sha256": "5ce8c2d9b1a44f1f52c2f82dd4a24fdd5f529cc946b2bfaee8d7e72b21ffb87a",
+  "files": [
+    {
+      "path": "app/Http/Controllers/ActivityController.php",
+      "sha256": "2870c44dfe0047330d6c415fef2bee50ee17e87bdb9ee1abdc7cadd3918a3dec"
+    },
+    {
+      "path": "app/Http/Controllers/Api/ApiController.php",
+      "sha256": "c96e6ac0918235bda80afd31c71031a999d6cd2159d3d17c7f0ed2c9cb310870"
+    },
+    {
+      "path": "app/Http/Controllers/Api/PostApiController.php",
+      "sha256": "50c5ea5ea3478c840e38a08af6d4853a3f4006e617e9375e96f822b1d993bd9c"
+    },
+    {
+      "path": "app/Mcp/Tools/GetCalendar.php",
+      "sha256": "139c084004a3e704d747f2efc95bf4caae23bd58dbbaee8d64f94f7f9c522807"
+    },
+    {
+      "path": "app/Mcp/Tools/SchedulerTool.php",
+      "sha256": "f6b55a871e40eb510f367dd4c44fbe1c70facf2d54cc202078b0f537c447f70a"
+    },
+    {
+      "path": "app/Services/AuditLog.php",
+      "sha256": "fc1c14f129a5c16904dc5238a92ca340507db47de38567e8811b6fe247a6a3d5"
+    },
+    {
+      "path": "CHANGELOG.es.md",
+      "sha256": "4056fcbbf7f349251a67991c63ec3761be93f310952b17cb646dfe95bbc2e0c2"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "d13b520d276b0b65ea9bfa7ecd96c192649dda25cb88f4e3353564ee287ab4f4"
+    },
+    {
+      "path": "database/migrations/2026_11_17_193000_add_brand_to_audit_logs.php",
+      "sha256": "2e8883e54f48ca6250612d0988e11486f99df4342e111d26ce94b2e4d50848ad"
+    },
+    {
+      "path": "docs/README.md",
+      "sha256": "94f97fb2ad9df284b6ecd9c8e8a4f596a56b9bd951d72236dd607497b9a9e5bb"
+    },
+    {
+      "path": "docs/usuario/actividad.md",
+      "sha256": "a4a2dcb5cad50be37559d2b3ca831ff1ae293862495b42cf5ef53b01a3735eb3"
+    },
+    {
+      "path": "docs/usuario/guia-de-usuario.md",
+      "sha256": "4160d67c9479a374dc665218c9843e11eca3b1822022ebeb17dc5f9ad8b55f8b"
+    },
+    {
+      "path": "resources/js/Layouts/AuthenticatedLayout.vue",
+      "sha256": "401a7747294d5eec52011a998bb1ba4912ee48c10dac460d9da7dbca70cc5895"
+    },
+    {
+      "path": "resources/js/navigation.js",
+      "sha256": "c2deba8b39a436a7ce94364743873905968155f266c5da80ca194e779d22003d"
+    },
+    {
+      "path": "resources/js/Pages/Activity/Index.vue",
+      "sha256": "b0036b46f07f4a55ff6f9349eca31076e730fbdaefbe202487e4e58fa5adbd35"
+    },
+    {
+      "path": "resources/js/types/activity.d.ts",
+      "sha256": "85e872cfac1324476bbb8f67af12d8b13f4e8186cdeeeca1dd379edcd3692ef2"
+    },
+    {
+      "path": "routes/web.php",
+      "sha256": "9bfbd2f134a24d9922bc36a8567a24bae3a9055999131554a573e7256c8e3963"
+    },
+    {
+      "path": "tests/e2e/activity.spec.ts",
+      "sha256": "30f1e47306d264004957028cf651a05a563f5b142162a553f6dfe148c1dccc47"
+    },
+    {
+      "path": "tests/e2e/helpers.ts",
+      "sha256": "2ede22c7bb19e62e01befb206745b0d28a0e3aad6e7b558043e3c83a6f18c6fa"
+    },
+    {
+      "path": "tests/Feature/Activity/ActivityLogTest.php",
+      "sha256": "89ebf824ed098c6e457fb95be0dd3e24a2df27acb1922dc5b6fdd9d1a7304967"
+    },
+    {
+      "path": "tsconfig.frontend.json",
+      "sha256": "548c9dcce7fb3da4e6ad5c7ffec42742f9f58fb4605177d3d3b4f411281340c3"
+    }
+  ],
+  "checks": [
+    "acceptance",
+    "correctness",
+    "security",
+    "performance",
+    "code_quality"
+  ],
+  "runtime_verification": "testing/t75/verification.json",
+  "status": "waiting_for_2026-11-18T00:00:00+01:00_quota_reset"
+}

@@ -1,14 +1,18 @@
 <?php
 
+use App\Exceptions\OwnershipException;
+use App\Http\Controllers\CspReportController;
 use App\Http\Controllers\HealthController;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LimitStudioDatasetPayload;
 use App\Http\Middleware\McpGuard;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\TrustProxiesFromConfig;
 use App\Support\CrossUserAccessLogger;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
@@ -23,6 +27,8 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function (): void {
             // /health fuera del grupo `web` (sin sesion en BD) y con rate limit.
             Route::get('/health', HealthController::class)->middleware('throttle:30,1')->name('health');
+            Route::post('/security/csp-report', CspReportController::class)
+                ->middleware('throttle:csp-report')->name('security.csp-report');
             Route::middleware('api')->group(base_path('routes/studio-api.php'));
         },
     )
@@ -33,11 +39,13 @@ return Application::configure(basePath: dirname(__DIR__))
             && ($request->is('studio*', 'brands/*/studio*', 'api/v1/*')
                 || ($request->is('mcp*') && ($request->input('params.name') === 'manage_studio_dataset' || is_array($request->input('params.arguments.document'))
                     || is_array($request->input('params.arguments.fields')))));
-        $middleware->trimStrings(except: [$studioJson]);
-        $middleware->convertEmptyStringsToNull(except: [$studioJson]);
+        // El receptor comprueba el tamaño antes de decodificar el JSON crudo.
+        $keepRawJson = static fn (Request $request): bool => $request->is('security/csp-report') || $studioJson($request);
+        $middleware->trimStrings(except: [$keepRawJson]);
+        $middleware->convertEmptyStringsToNull(except: [$keepRawJson]);
 
-        // Baja one-click de informes (RFC 8058): el cliente de correo no tiene token CSRF; la firma de la URL protege la peticion.
-        $middleware->validateCsrfTokens(except: ['report-schedules/*/unsubscribe']);
+        // Baja one-click de informes y del resumen semanal (RFC 8058): el cliente de correo no tiene token CSRF; la firma de la URL protege la peticion.
+        $middleware->validateCsrfTokens(except: ['report-schedules/*/unsubscribe', 'digest/*/unsubscribe']);
 
         $middleware->web(append: [
             HandleInertiaRequests::class,
@@ -52,13 +60,31 @@ return Application::configure(basePath: dirname(__DIR__))
         // X-Forwarded-Host falso no puede envenenar URLs absolutas (p. ej. el enlace de reset).
         $middleware->trustHosts();
         // /mcp: Origin + limite por IP + log de 401, antes de la autenticacion (ver McpGuard).
-        $middleware->append(McpGuard::class);
+        $middleware->append([SecurityHeaders::class, McpGuard::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // Acceso cruzado entre usuarios: el UserScope devuelve 404 en el binding antes
-        // que la Policy, asi que se registra aqui sin cambiar la respuesta al cliente.
+        // La web y la API reciben el mismo 404 de un recurso inexistente.
+        $exceptions->map(OwnershipException::class, fn () => new NotFoundHttpException);
+
+        // Registra el acceso cruzado cuando el binding del UserScope devuelve 404 antes de la Policy.
         $exceptions->render(function (NotFoundHttpException $e): void {
             CrossUserAccessLogger::log($e);
+        });
+
+        // 429 de `throttle`: el mensaje de Laravel sale en ingles ("Too Many Attempts."). En JSON (web con fetch/axios, API v1 y MCP)
+        // se devuelve en castellano y con el tiempo de espera de Retry-After; las cabeceras originales se conservan.
+        $exceptions->render(function (ThrottleRequestsException $e, Request $request) {
+            if (! ($request->is('api/*', 'mcp') || $request->expectsJson())) {
+                return null;
+            }
+            $headers = $e->getHeaders();
+            $retry = (int) ($headers['Retry-After'] ?? 0);
+
+            return response()->json([
+                'message' => $retry > 0
+                    ? trans_choice('Demasiados intentos. Espera :seconds segundo y vuelve a probar.|Demasiados intentos. Espera :seconds segundos y vuelve a probar.', $retry, ['seconds' => $retry])
+                    : 'Demasiados intentos. Espera unos segundos y vuelve a probar.',
+            ], 429, $headers);
         });
 
         $exceptions->shouldRenderJsonWhen(

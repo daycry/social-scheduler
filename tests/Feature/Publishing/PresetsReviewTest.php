@@ -4,6 +4,7 @@ use App\Connectors\Data\PublishMedia;
 use App\Connectors\Data\PublishRequest;
 use App\Connectors\Exceptions\PermanentPublishException;
 use App\Connectors\Google\YouTubePublisher;
+use App\Connectors\Google\YouTubeVideoMetadata;
 use App\Connectors\Network;
 use App\Connectors\TikTok\TikTokPublisher;
 use App\Enums\ContentType;
@@ -81,7 +82,7 @@ test('PresetsReview: 0 y "0" no cuentan como pedidos en TikTok (borrador y marca
     expect(prSaved())->toBe(['brand_content_toggle' => false]);
 })->with([[0], ['0']]);
 
-test('PresetsReview: por MCP, brand_content_toggle 0/"0" se acepta y 1/"1" sin visibilidad sigue siendo privado', function () {
+test('PresetsReview: por MCP, brand_content_toggle normaliza 0/"0" y 1/"1"; el borrador admite privacidad pendiente pero no SELF_ONLY', function () {
     foreach ([0, '0'] as $zero) {
         [$err] = $this->callTool($this->key, 'create_post', [
             'brand_id' => $this->brand->id, 'text' => 'Hola', 'schedule' => false, 'media_ids' => [$this->video->id],
@@ -94,6 +95,11 @@ test('PresetsReview: por MCP, brand_content_toggle 0/"0" se acepta y 1/"1" sin v
         [$err, $msg] = $this->callTool($this->key, 'create_post', [
             'brand_id' => $this->brand->id, 'text' => 'Hola', 'schedule' => false, 'media_ids' => [$this->video->id],
             'targets' => [['account_id' => $this->tt->id, 'content_type' => 'tiktok_video', 'options' => ['brand_content_toggle' => $one]]],
+        ]);
+        expect($err)->toBeFalse()->and($msg['targets'][0]['options']['brand_content_toggle'])->toBeTrue();
+        [$err, $msg] = $this->callTool($this->key, 'create_post', [
+            'brand_id' => $this->brand->id, 'text' => 'Hola', 'schedule' => false, 'media_ids' => [$this->video->id],
+            'targets' => [['account_id' => $this->tt->id, 'content_type' => 'tiktok_video', 'options' => ['brand_content_toggle' => $one, 'privacy_level' => 'SELF_ONLY']]],
         ]);
         expect($err)->toBeTrue()->and(json_encode($msg))->toContain('no puede ser privado');
     }
@@ -209,9 +215,9 @@ test('PresetsReview: sin visibilidad pedida y sin SELF_ONLY usa la mas restricti
 // --- Extra: tags de YouTube sin saltos de linea ni caracteres de control ---
 
 test('PresetsReview: los tags de YouTube no llevan saltos de linea ni caracteres de control y el marcador sigue primero', function () {
-    $tags = YouTubePublisher::tagsFor(77, ["uno\ndos", "tres\r\ncuatro", "cin\x00co\x07", "\n\t", 'normal']);
+    $tags = YouTubeVideoMetadata::tagsFor(77, ["uno\ndos", "tres\r\ncuatro", "cin\x00co\x07", "\n\t", 'normal']);
 
-    expect($tags[0])->toBe(YouTubePublisher::targetTag(77))
+    expect($tags[0])->toBe(YouTubeVideoMetadata::targetTag(77))
         ->and(array_slice($tags, 1))->toBe(['uno dos', 'tres cuatro', 'cin co', 'normal']);
     foreach ($tags as $tag) {
         expect(preg_match('/[\x00-\x1F\x7F]/', $tag))->toBe(0);

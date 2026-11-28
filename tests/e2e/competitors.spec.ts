@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { axeSeriousCritical, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedCompetitors, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { axeSeriousCritical, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedBlueskyCompetitor, seedComposerBrand, seedCompetitors, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * T-20 · Competidores: comparativa por rango, ranking por métrica, publicaciones destacadas y CSV. Los datos se siembran por
@@ -24,7 +24,7 @@ test.afterEach(async ({}, info) => {
 const rivals = (page: import('@playwright/test').Page) => page.getByTestId('competitor-row').filter({ hasText: 'rival_' });
 const names = (page: import('@playwright/test').Page) => rivals(page).locator('p.font-medium');
 
-test('E2E-20d · competidores: rango, ranking por métrica, publicaciones destacadas y CSV', async ({ page }) => {
+test('E2E-20d · competidores: rango, ranking por métrica, publicaciones destacadas y CSV', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/competitors?brand_id=${brand.id}`);
     await settle(page);
@@ -73,5 +73,43 @@ test('E2E-20d · competidores: rango, ranking por métrica, publicaciones destac
     expect(text).toContain('"Cuenta";"Posición"');
     expect(text).toContain('rival_grande');
     expect(text).toContain('rival_rapido');
+    expect(w.errors, w.errors.join('\n')).toEqual([]);
+});
+
+test('E2E-40 · competidores multi-red: elegir la red muestra sus competidores y sus textos', { tag: '@responsive' }, async ({ page }) => {
+    const w = watch(page);
+    seedBlueskyCompetitor(brand.id);
+    await page.goto(`/competitors?brand_id=${brand.id}`);
+    await settle(page);
+    // Instagram por defecto: no se mezclan los competidores de otras redes.
+    await expect(page.getByTestId('competitor-networks')).toBeVisible();
+    await expect(page.getByTestId('competitor-network-instagram')).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByText('Usuario de Instagram (cuenta Business o Creator)')).toBeVisible();
+    await expect(rivals(page)).toHaveCount(2);
+    await expect(page.getByText('rival_bsky')).toHaveCount(0);
+    await expectNoOverflow(page);
+
+    // Bluesky: su propio competidor, sin necesitar cuenta propia conectada, y el formulario cambia de red.
+    await page.getByTestId('competitor-network-bluesky').click();
+    await settle(page);
+    await expect(page).toHaveURL(/network=bluesky/);
+    await expect(page.getByTestId('competitor-network-bluesky')).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByText('Usuario de Bluesky (por ejemplo ana.bsky.social)')).toBeVisible();
+    await expect(page.getByTestId('competitor-row')).toHaveCount(1);
+    await expect(page.getByTestId('competitor-row')).toContainText('@rival_bsky.bsky.social');
+    await expect(page.getByTestId('competitor-row')).toContainText('520');
+    await expect(page.getByText('rival_grande')).toHaveCount(0);
+    await page.getByTestId('show-posts').click();
+    await settle(page);
+    await expect(page.getByTestId('top-posts')).toContainText('e2e post bluesky');
+    await expect(page.getByTestId('top-posts')).toContainText('ver en Bluesky');
+    await expectNoOverflow(page);
+    await axeSeriousCritical(page, 'Competidores (Bluesky)');
+
+    // YouTube sin canal propio: se pide conectarlo en vez de dejar añadir.
+    await page.getByTestId('competitor-network-youtube').click();
+    await settle(page);
+    await expect(page.getByRole('heading', { name: 'Conecta YouTube para comparar competidores' })).toBeVisible();
+    await axeSeriousCritical(page, 'Competidores (YouTube sin canal)');
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });

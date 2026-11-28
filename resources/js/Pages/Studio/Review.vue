@@ -48,28 +48,86 @@ const roleText = computed(() => props.access.role_label.toLowerCase());
     <Head :title="`${design.name} · Revisión`" />
     <component :is="Shell">
         <div class="space-y-4" data-testid="studio-review">
-            <header class="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-                <Link v-if="!link" :href="route('studio.index', { brand_id: brand.id })" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50" aria-label="Volver al estudio">←</Link>
+            <header class="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-surface p-4">
+                <Link
+                    v-if="!link"
+                    :href="route('studio.index', { brand_id: brand.id })"
+                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-foreground-subtle hover:bg-canvas"
+                    aria-label="Volver al estudio"
+                    >←</Link
+                >
                 <div class="min-w-0 flex-1">
                     <h1 class="truncate text-lg font-semibold tracking-tight">{{ design.name }}</h1>
-                    <p class="text-xs text-slate-500" role="status">Acceso de {{ roleText }}{{ access.is_guest ? ' por enlace' : '' }} · {{ access.is_guest ? brand.name : `de ${access.owner_name} (${brand.name})` }} · Versión {{ design.revision }}</p>
+                    <p class="text-xs text-foreground-subtle"
+                        >Acceso de {{ roleText }}{{ access.is_guest ? ' por enlace' : '' }} ·
+                        {{ access.is_guest ? brand.name : `de ${access.owner_name} (${brand.name})` }} · Versión
+                        {{ design.revision }}</p
+                    >
                 </div>
-                <p class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">Solo {{ access.can_comment ? 'lectura y comentarios' : 'lectura' }}</p>
+                <p class="rounded-full bg-surface-hover px-3 py-1 text-xs font-medium text-foreground-secondary"
+                    >Solo {{ access.can_comment ? 'lectura y comentarios' : 'lectura' }}</p
+                >
             </header>
             <div class="grid min-w-0 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
                 <section class="min-w-0 space-y-3" aria-label="Diseño">
                     <nav v-if="pages.length > 1" class="flex flex-wrap gap-2" aria-label="Páginas">
-                        <button v-for="item in pages" :key="item.id" type="button" class="rounded-lg border px-3 py-2 text-xs font-medium" :class="item.id === pageId ? 'border-violet-600 bg-violet-50 text-violet-900' : 'border-slate-200 bg-white text-slate-700'" :aria-pressed="item.id === pageId" @click="pageId = item.id">{{ item.name }}</button>
+                        <button
+                            v-for="item in pages"
+                            :key="item.id"
+                            type="button"
+                            class="rounded-lg border px-3 py-2 text-xs font-medium"
+                            :class="item.id === pageId ? 'border-accent-secondary-fill bg-accent-secondary-soft text-accent-secondary-ink' : 'border-border bg-surface text-foreground-secondary'"
+                            :aria-pressed="item.id === pageId"
+                            @click="pageId = item.id"
+                            >{{ item.name }}</button
+                        >
                     </nav>
-                    <div class="overflow-auto rounded-2xl border border-slate-200 bg-slate-100 p-3 sm:p-6">
-                        <img v-if="images[pageId]" :src="images[pageId]" :alt="`${design.name}, ${pages.find(item => item.id === pageId)?.name}`" class="mx-auto h-auto max-w-full bg-white shadow-lg" data-testid="studio-review-page" />
-                        <p v-else-if="failed[pageId]" role="alert" class="py-10 text-center text-sm text-red-800">No se ha podido dibujar esta página.</p>
-                        <p v-else role="status" class="py-10 text-center text-sm text-slate-600">{{ rendering ? 'Preparando la página…' : 'Página no disponible.' }}</p>
+                    <div class="overflow-auto rounded-2xl border border-border bg-surface-hover p-3 sm:p-6">
+                        <img
+                            v-if="images[pageId]"
+                            :src="images[pageId]"
+                            :alt="`${design.name}, ${pages.find(item => item.id === pageId)?.name}`"
+                            class="mx-auto h-auto max-w-full bg-white shadow-lg"
+                            data-testid="studio-review-page"
+                        />
+                        <p v-else-if="failed[pageId]" role="alert" class="py-10 text-center text-sm text-danger-ink"
+                            >No se ha podido dibujar esta página.</p
+                        >
+                        <p
+                            v-else
+                            role="status"
+                            class="py-10 text-center text-sm text-foreground-muted"
+                            >{{ rendering ? 'Preparando la página…' : 'Página no disponible.' }}</p
+                        >
                     </div>
-                    <div v-if="access.can_comment && elements.length" class="space-y-1 text-xs"><label class="block" for="review-element">Elemento al que se refiere el comentario (opcional)</label><select id="review-element" v-model="elementId" class="field w-full text-xs"><option value="">Ninguno</option><option v-for="item in elements" :key="item.id" :value="item.id">{{ item.label }}</option></select></div>
+                    <div v-if="access.can_comment && elements.length" class="space-y-1 text-xs"
+                        ><label class="block" for="review-element"
+                            >Elemento al que se refiere el comentario (opcional)</label
+                        ><select id="review-element" v-model="elementId" class="field w-full text-xs"
+                            ><option value="">Ninguno</option
+                            ><option
+                                v-for="item in elements"
+                                :key="item.id"
+                                :value="item.id"
+                                >{{ item.label }}</option
+                            ></select
+                        ></div
+                    >
                 </section>
-                <aside class="min-w-0 rounded-2xl border border-slate-200 bg-white p-4" aria-label="Comentarios y versiones">
-                    <StudioCollabPanel :design-id="design.id" :link="link" :access="access" :pages="pages" :page-id="pageId" :element-id="elementId || null" :revision="design.revision" id-prefix="review" />
+                <aside
+                    class="min-w-0 rounded-2xl border border-border bg-surface p-4"
+                    aria-label="Comentarios y versiones"
+                >
+                    <StudioCollabPanel
+                        :design-id="design.id"
+                        :link="link"
+                        :access="access"
+                        :pages="pages"
+                        :page-id="pageId"
+                        :element-id="elementId || null"
+                        :revision="design.revision"
+                        id-prefix="review"
+                    />
                 </aside>
             </div>
         </div>

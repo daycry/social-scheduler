@@ -2,9 +2,13 @@
 
 Informes por marca y rango de fechas, con comparación opcional. Se generan en la cola `reports`.
 
-La selección inicial respeta la marca del contexto o `brand_id` y calcula el periodo en su zona horaria. Al generar conserva esa marca. El historial reciente sigue siendo del usuario completo; no se presenta como una lista exclusiva de la marca seleccionada.
+La selección inicial respeta la marca del contexto o `brand_id` y calcula el periodo en su zona horaria. Al generar conserva esa marca. El próximo envío y el último envío se muestran en la zona de la marca del informe programado. El historial reciente sigue siendo del usuario completo; no se presenta como una lista exclusiva de la marca seleccionada.
+
+Si hay informes pendientes, la página consulta su estado hasta 40 veces por ciclo. Empieza a los 4 segundos y amplía la espera hasta 30. Pausa al ocultar la pestaña. Al llegar al límite, «Volver a consultar» inicia un ciclo nuevo.
 
 ## Piezas
+
+El historial reciente se recorre por páginas y muestra el total de informes de la cuenta. La selección de marca sigue controlando la preparación de un informe nuevo.
 
 | Pieza | Ruta |
 |---|---|
@@ -41,6 +45,8 @@ CSV en formato largo con cabecera `seccion,red,elemento,metrica,fecha,valor,ante
 
 La interfaz pide un enlace nuevo con `GET reports/{report}/link`. La descarga `reports/{report}/download/{owner}` va solo con firma, sin sesión, para que la use también un agente MCP. La firma cubre informe y dueño; el controlador comprueba que coinciden y que el informe está `ready`, y audita el acceso.
 
+La página de informes delega el resultado de la vista previa y el listado de informes recientes a sus componentes. `useReportPreview` gestiona la petición y la cancela al cambiar de marca. `ReportsRecent` refresca el listado mientras hay informes en proceso.
+
 ## Constructor de informes y envío programado (T-21)
 
 Además del informe clásico, la pantalla **Informes** permite componer un informe con bloques, guardarlo como plantilla y programar su envío por email.
@@ -51,7 +57,7 @@ Además del informe clásico, la pantalla **Informes** permite componer un infor
 | Plantillas | `report-templates` (`ReportTemplateController`, rutas `report-templates.store/update/destroy`): hasta 50 por usuario, nombre único por marca, con `range_days` y `compare`. Limitador `report-builder` (30/min) |
 | Programaciones | `report-schedules` (`ReportScheduleController`, rutas `report-schedules.store/update/destroy`): `weekly` o `monthly`, hasta 10 por usuario y hasta 5 destinatarios (`reports.max_recipients`). La plantilla debe ser de la misma marca (si no, 404). Limitador `report-schedules` (10/min) |
 | Envío | `php artisan reports:send-scheduled` (`SendScheduledReports`), programado **cada hora** (`routes/console.php`, `withoutOverlapping`). Encola `SendScheduledReport` en la cola `reports` para cada programación cuya fecha `next_run_at` ya pasó; el correo lleva el enlace de descarga firmado |
-| Desuscripción | Cada correo incluye una URL firmada `report-schedules/{schedule}/unsubscribe`. El GET firmado muestra una página de confirmación (`resources/views/reports/unsubscribe.blade.php`) sin efectos; solo el POST firmado da de baja al destinatario. El POST admite one-click (RFC 8058) y está excluido de CSRF (`bootstrap/app.php`). 30 peticiones/min |
+| Desuscripción | Cada correo incluye una URL firmada `report-schedules/{schedule}/unsubscribe`. El GET firmado muestra una página de confirmación (`resources/views/unsubscribe.blade.php`, la misma página de baja que usa el resumen semanal) sin efectos; solo el POST firmado da de baja al destinatario. El POST admite one-click (RFC 8058) y está excluido de CSRF (`bootstrap/app.php`). 30 peticiones/min |
 
 Al reactivar una programación no se envía lo atrasado: `next_run_at` se recalcula desde ahora. Pruebas en `tests/Feature/Reports/`.
 
@@ -72,3 +78,21 @@ Además del informe en segundo plano, hay dos descargas CSV inmediatas (`ExportC
 - **Tope.** `social.export.max_rows` (`SOCIAL_EXPORT_MAX_ROWS`, 5.000 filas). Por encima el CSV se corta en el tope; la Lista avisa antes de descargar (propiedad `export` con `total`, `max`, `truncated`) y la respuesta lleva `X-Export-Total` y `X-Export-Truncated`. A diferencia de la Lista en pantalla (500 publicaciones), el CSV no tiene ese límite.
 - **Aislamiento.** Solo datos del usuario: una marca o una vista guardada ajena responde 404.
 - **Alcance.** El CSV no tiene herramienta MCP (`generate_report` ya devuelve CSV).
+
+## Resumen semanal (T-86)
+
+Además de los informes en PDF, cada usuario puede recibir un **resumen semanal** de sus marcas por los canales que elija. Se activa en **Notificaciones del navegador → Qué avisos quieres recibir** (`users.notify_weekly_digest`, apagado por defecto).
+
+| Qué | Dónde |
+|---|---|
+| Programación | `SendWeeklyDigest` (`app/Jobs/SendWeeklyDigest.php`), cada hora en `routes/console.php` (`send-weekly-digest`, `withoutOverlapping`), solo reparte: encola un `SendUserWeeklyDigest` por usuario al que ya le toca (un usuario lento o con IA no retiene a los demás). Cola `reports`, sin cola ni worker nuevos. Solo reciben el resumen (aviso y correo) los usuarios con el correo verificado, como el resto de avisos push |
+| Cuándo y zona horaria | El lunes desde las 08:00 (`ReportSchedule::SEND_HOUR`) y hasta que acabe ese día, en la zona de la **marca principal** del usuario (la más antigua): `users` no tiene zona propia y los informes programados ya usan la hora local de la marca. Esa misma zona fija la semana de todas sus marcas. Sin marcas no hay resumen |
+| Una vez por semana | `WeeklyDigest::claim()` reserva la semana con un `UPDATE` condicionado sobre `users.weekly_digest_sent_for`. Un fallo al preparar el resumen libera la reserva. En caso de timeout o kill, `failed()` puede liberar la reserva si el canal app está activo y aún no se guardó el aviso. Cuando solo se entrega por correo o push, se conserva la reserva para evitar duplicados |
+| Contenido | Por marca propia, la semana anterior (lunes a domingo, `ReportSchedule::periodFor`) frente a la previa: seguidores, visualizaciones, alcance e interacciones (`AnalyticsService::summary`, las mismas tarjetas y comparación del panel), publicaciones publicadas (`AnalyticsService::publishedCount`, el mismo cálculo del panel: zona de cada marca y sin cuentas desconectadas) y la mejor por interacciones (`ReportService::topPosts`). Una métrica o una marca sin dato sale «sin datos», nunca un 0 inventado |
+| Entrega | Aviso `weekly_digest` (`WeeklyDigestReady`, canal `database`, con título y enlace al panel) y el correo `App\Mail\WeeklyDigest` (HTML y texto plano, enlaces absolutos) |
+| IA opcional | Párrafo con `AiAssistant::complete` (política de cuota única de T-82) solo si el asistente está configurado **y** el usuario activa «Añadir un párrafo escrito con IA» (`weekly_digest_ai`, apagado por defecto). Viajan al proveedor únicamente los nombres de marca (sin correos, teléfonos ni enlaces) y las cifras agregadas, como datos dentro de un JSON; nunca textos de publicaciones ni datos del usuario. Si falla o responde algo desmesurado (> 700 caracteres), el resumen sale igual sin el párrafo. La política de privacidad (`resources/views/legal/privacy.blade.php`) lo menciona |
+| Baja | El correo lleva una URL firmada `digest/{user}/unsubscribe` y las cabeceras `List-Unsubscribe` (RFC 8058): el GET firmado confirma sin efectos y solo el POST firmado desactiva el resumen de ese usuario (`resources/views/unsubscribe.blade.php`, fuera de CSRF en `bootstrap/app.php`, 30 peticiones/min). También hay un enlace a las preferencias |
+
+El perfil permite elegir los canales del resumen y de los informes programados. El interruptor del resumen conserva su enlace de baja firmado. Más detalles en [Preferencias por tipo y canal](publicacion.md#preferencias-por-tipo-y-canal-t-96).
+
+Cuando el correo de informes programados está desactivado, la programación sigue activa. La pantalla de informes muestra la fecha del último intento y el aviso «Envío omitido por preferencias de notificación».

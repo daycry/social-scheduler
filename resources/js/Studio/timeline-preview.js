@@ -1,9 +1,10 @@
 import { validateDocument } from './document.js';
-import { renderStudioPage, seekVideoFrame } from './canvas.js';
+import { renderStudioPage, seekVideoFrame, videoFrameReady } from './canvas.js';
 import { clipMediaState, compileTimeline, sampleTimeline } from './timeline.js';
 import { createTimelineAudio } from './timeline-audio.js';
 import { createCaptionLayer } from './captions-renderer.js';
 import { assertChartDocumentBudget } from './chart-scene.js';
+import { applyElementAnimation } from './animation-scene.js';
 
 /** A separate, disposable scene: preview state can never leak into saved Fabric objects. */
 export async function createTimelinePreview(output, { document: input, assets = [], fonts = [], chartResources, offline = false, renderScale = 1 } = {}) {
@@ -17,6 +18,7 @@ export async function createTimelinePreview(output, { document: input, assets = 
     output.width = Math.round(document.width * renderScale); output.height = Math.round(document.height * renderScale);
     const captions = await createCaptionLayer(document, fonts, { renderScale });
     const cache = new Map();
+    const lifecycle = new AbortController();
     let disposed = false, playing = false, generation = 0, tail = Promise.resolve(), media = [];
     const walk = (objects, visit) => objects.forEach(object => { visit(object); if (object.getObjects) walk(object.getObjects(), visit); });
     const pauseMedia = () => {
@@ -88,13 +90,14 @@ export async function createTimelinePreview(output, { document: input, assets = 
             scenes.push({ ...entry, sample, source });
         }
         for (const { scene, elements, sample, source } of scenes) {
-            async function update(objects, elements, inherited = true) {
+            async function update(objects, elements, inherited = true, parent) {
                 for (let i = 0; i < objects.length; i++) {
                     const object = objects[i], element = elements[i];
                     const timing = element.timing ?? { start: 0, duration: source.duration };
                     const visible = inherited && element.visible !== false && sample.localTime >= timing.start && sample.localTime < timing.start + timing.duration;
                     object.set('visible', visible);
-                    if (element.type === 'group') await update(object.getObjects(), element.elements, visible);
+                    const window = applyElementAnimation(object, element, sample.localTime, { width: document.width, height: document.height, pageDuration: source.duration, parent });
+                    if (element.type === 'group') await update(object.getObjects(), element.elements, visible, window);
                     if (object.studioVideo) {
                         const video = object.studioVideo;
                         const state = clipMediaState(element, sample.localTime, video.duration, source.duration);
@@ -111,6 +114,8 @@ export async function createTimelinePreview(output, { document: input, assets = 
                             if (from >= end) throw new Error('El recorte del vídeo no contiene un fotograma disponible.');
                             const last = end - Math.min(0.0001, (end - from) / 2);
                             await seekVideoFrame(video, Math.min(state.sourceTime, last), { positionTolerance: Math.min(0.0001, (end - from) / 4), endTolerance: 0 });
+                            // Exportar: el fotograma tiene que estar decodificado antes de capturar (si no, el primero sale en blanco a veces).
+                            await videoFrameReady(video, { signal: lifecycle.signal });
                         } else if (!playing || video.paused || Math.abs(video.currentTime - state.sourceTime) > 0.08) await seekVideoFrame(video, state.sourceTime);
                         if (disposed || request !== generation) { video.pause(); return; }
                         if (visualPlay && video.paused) await video.play();
@@ -161,7 +166,7 @@ export async function createTimelinePreview(output, { document: input, assets = 
         pause,
         mediaState: () => [...media.map(item => ({ ...item })), ...audio.state()],
         async dispose() {
-            disposed = true; ++generation; pause();
+            disposed = true; lifecycle.abort(); ++generation; pause();
             await Promise.all([tail.catch(() => {}), audio.dispose()]);
             for (const entry of cache.values()) await entry.scene.dispose();
             await captions?.dispose();

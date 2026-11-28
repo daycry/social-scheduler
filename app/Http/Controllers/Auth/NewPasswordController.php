@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\CalendarFeed;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -50,6 +51,8 @@ class NewPasswordController extends Controller
                     'password' => Hash::make($request->password),
                     'remember_token' => Str::random(60),
                 ])->save();
+                // El enlace .ics del calendario es una credencial: un restablecimiento de contrasena lo revoca (CWE-613).
+                app(CalendarFeed::class)->revoke($user);
 
                 event(new PasswordReset($user));
             }

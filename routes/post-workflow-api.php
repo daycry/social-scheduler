@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 
 // API REST de aprobaciones, publicacion manual, series, lotes y colaboradores (T-19): el mismo controlador que la web y los mismos
 // servicios que el MCP. Se carga desde routes/studio-api.php (middleware `api`, sin segundo prefijo).
-Route::prefix('api/v1')->name('api.')->middleware(['auth:sanctum', 'throttle:120,1'])->group(function () {
+Route::prefix('api/v1')->name('api.')->middleware(['auth:sanctum', 'throttle:api-v1'])->group(function () {
     Route::middleware(RequireApiAbility::class.':posts:read')->group(function () {
         Route::get('approvals', [PostWorkflowController::class, 'pending'])->name('approvals.pending');
         Route::get('posts/{post}/manual', [PostWorkflowController::class, 'manualContent'])->whereNumber('post')->name('manual.content');
@@ -24,10 +24,11 @@ Route::prefix('api/v1')->name('api.')->middleware(['auth:sanctum', 'throttle:120
     Route::middleware(RequireApiAbility::class.':posts:write')->group(function () {
         Route::post('posts/{post}/approval/request', [PostWorkflowController::class, 'requestApproval'])->whereNumber('post')->name('approval.request');
         Route::post('posts/{post}/targets/{target}/manual-published', [PostWorkflowController::class, 'markPublished'])->whereNumber(['post', 'target'])->name('manual.published');
-        Route::post('posts/{post}/retry', [PostWorkflowController::class, 'retry'])->whereNumber('post')->middleware('throttle:30,1')->name('retry');
+        Route::post('posts/{post}/retry', [PostWorkflowController::class, 'retry'])->whereNumber('post')->middleware('throttle:api.retry')->name('retry');
         Route::post('posts/batch', [PostWorkflowController::class, 'batch'])->middleware('throttle:post-batches')->name('batch');
-        Route::post('series', [PostWorkflowController::class, 'seriesStore'])->middleware('throttle:30,1')->name('series.store');
+        Route::post('brands/{brand}/series', [PostWorkflowController::class, 'seriesStore'])->whereNumber('brand')->middleware('throttle:api.series.store')->name('series.store');
         Route::patch('series/{series}', [PostWorkflowController::class, 'seriesUpdate'])->whereNumber('series')->name('series.update');
+        Route::post('series/{series}/recover', [PostWorkflowController::class, 'seriesRecover'])->whereNumber('series')->name('series.recover');
         Route::delete('series/{series}', [PostWorkflowController::class, 'seriesCancel'])->whereNumber('series')->name('series.cancel');
     });
 });

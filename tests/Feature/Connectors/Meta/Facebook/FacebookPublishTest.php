@@ -22,8 +22,9 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\FakeGraph;
+use Tests\Support\FixtureRecorder;
 
-const PAGE_ID = '1065269806670394';
+const PAGE_ID = '100000000000010';
 
 beforeEach(function () {
     Carbon::setTestNow('2026-11-01 12:00:00');
@@ -60,7 +61,8 @@ test('FacebookPublish: texto con enlace usa /feed con message y link y devuelve 
     expect($r->isPublished())->toBeTrue()->and($r->externalId)->toBe(PAGE_ID.'_555')->and($r->url)->toBe('https://www.facebook.com/'.PAGE_ID.'/posts/555');
     expect($this->graph->callsTo('POST', '#/feed$#')[0]['params'])->toMatchArray(['message' => 'Mira esto', 'link' => 'https://ejemplo.test/post'])->not->toHaveKey('access_token');
     expect($this->graph->callsTo('POST', '#/feed$#')[0]['authorization'])->toBe('Bearer page-token-xyz');
-});
+    FixtureRecorder::assertRecorded('facebook/success');
+})->group('provider-contracts');
 
 test('FacebookPublish: la foto usa /photos con url y caption (como el spike) y devuelve el post_id', function () {
     $this->graph->on('POST', '#^'.PAGE_ID.'/photos$#', ['id' => '7001', 'post_id' => PAGE_ID.'_7002']);
@@ -129,12 +131,19 @@ test('FacebookPublish: los errores de Graph se mapean a transitorios o permanent
     expect(fn () => $this->fb->publish($this->account, fbRequest(ContentType::FacebookPhoto, [fbPhoto()])))->toThrow($class);
 })->with([
     'token (190)' => [fn () => FakeGraph::error(190, 'Invalid OAuth access token', null, 401), ReconnectRequiredException::class],
-    'sin permiso (200)' => [fn () => FakeGraph::error(200, '(#200) Requires pages_manage_posts permission'), PermanentPublishException::class],
     'rate limit (32)' => [fn () => FakeGraph::error(32, 'Page request limit reached'), TransientPublishException::class],
     'servidor (503)' => [fn () => FakeGraph::error(2, 'Unavailable', null, 503), TransientPublishException::class],
     'parametro (100)' => [fn () => FakeGraph::error(100, 'Invalid parameter'), PermanentPublishException::class],
     'timeout' => [fn () => new ConnectionException('cURL error 28'), TransientPublishException::class],
 ]);
+
+test('contrato de error de facebook', function () {
+    $this->graph->on('POST', '#/photos$#', FakeGraph::error(200, '(#200) Requires pages_manage_posts permission'));
+
+    expect(fn () => $this->fb->publish($this->account, fbRequest(ContentType::FacebookPhoto, [fbPhoto()])))->toThrow(PermanentPublishException::class);
+
+    FixtureRecorder::assertRecorded('facebook/error');
+})->group('provider-contracts');
 
 test('FacebookPublish: findPublished reconoce lo ya publicado por texto y hora, y un video por su ID', function () {
     $this->graph->on('GET', '#^'.PAGE_ID.'/posts$#', ['data' => [

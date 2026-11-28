@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Connectors\Google\YouTubePublisher;
+use App\Connectors\Google\YouTubeComments;
 use App\Connectors\LinkedIn\LinkedInPostOptions;
 use App\Connectors\LinkedIn\LinkedInPublisher;
+use App\Connectors\Mastodon\MastodonLimits;
+use App\Connectors\Mastodon\MastodonPostOptions;
 use App\Connectors\Meta\Instagram\InstagramAudio;
 use App\Connectors\Meta\Instagram\InstagramPostOptions;
 use App\Connectors\Network;
@@ -24,9 +26,11 @@ use App\Services\ComposerPresetService;
 use App\Services\Media\DriveFileSource;
 use App\Services\Media\GiphyClient;
 use App\Services\MediaValidator;
+use App\Services\Posts\PostDuplicator;
 use App\Services\PostService;
 use App\Services\SavedTextService;
 use App\Services\SocialAccountService;
+use App\Support\LocalDateTime;
 use App\Support\TargetMedia;
 use App\Support\TextLength;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -82,6 +86,30 @@ class PostController extends Controller
         $this->authorize('update', $post);
 
         return $this->compose($request, Brand::withoutUserScope()->findOrFail($post->brand_id), $post);
+    }
+
+    public function duplicate(Request $request, Post $post, PostDuplicator $duplicator): RedirectResponse
+    {
+        $this->authorize('update', $post);
+        $data = $request->validateWithBag('duplicate', ['brand_id' => ['sometimes', 'required', 'integer', 'min:1']]);
+        $brand = Brand::ownedBy($request->user()->id)->findOrFail($data['brand_id'] ?? $post->brand_id);
+        $this->authorize('update', $brand);
+
+        try {
+            $result = $duplicator->duplicate($request->user(), $post, $brand);
+        } catch (PostValidationException $e) {
+            return back()->withErrors($e->errors(), 'duplicate');
+        }
+        $message = 'Publicación duplicada como borrador.';
+        if ($result->omitted > 0) {
+            $message .= ' '.$result->omitted.' destino'.($result->omitted === 1 ? '' : 's').' sin copiar: sin una cuenta compatible inequívoca o con contenido u opciones que ya no se admiten. Revisa las cuentas del borrador.';
+        }
+        $labels = ['instagram_audio' => 'el audio de Instagram', 'privacy_level' => 'la visibilidad de TikTok'];
+        foreach ($result->resetOptions as $option) {
+            $message .= ' Elige de nuevo '.($labels[$option] ?? 'las opciones de la cuenta').'.';
+        }
+
+        return redirect()->route('posts.edit', $result->post)->with('success', $message);
     }
 
     public function update(PostRequest $request, Post $post): RedirectResponse
@@ -172,7 +200,7 @@ class PostController extends Controller
     public function validatePost(PostRequest $request, Brand $brand): JsonResponse
     {
         $this->authorize('update', $brand);
-        // Es una consulta en segundo plano: no debe gastar el aviso flash (p. ej. «Guardado en la biblioteca.») que una
+        // Es una consulta en segundo plano: no debe gastar el aviso flash (p. ej. «Plantilla guardada.») que una
         // redirección acaba de dejar para la siguiente página, o el aviso se pierde si esta petición se cuela entre ambas.
         $request->session()->reflash();
 
@@ -198,9 +226,22 @@ class PostController extends Controller
     private function compose(Request $request, Brand $brand, ?Post $post): Response
     {
         $user = $request->user();
+        $initialScheduledAt = null;
+        $bestTimeNotice = null;
+        if ($post === null && $request->query->has('best_time')) {
+            $suggested = $request->query('best_time');
+            $at = is_string($suggested) ? LocalDateTime::parseUnique($suggested, $brand->timezone ?: 'UTC') : null;
+            if ($at !== null && $at->gt(now())) {
+                $initialScheduledAt = $suggested;
+            } else {
+                $bestTimeNotice = 'La fecha sugerida del enlace no es válida. Elige otra fecha o consulta Mejor hora.';
+            }
+        }
 
         return Inertia::render('Posts/Compose', [
             'brand' => $brand->only(['id', 'name', 'timezone']),
+            'initialScheduledAt' => $initialScheduledAt,
+            'bestTimeNotice' => $bestTimeNotice,
             'accounts' => $this->accounts->listForBrand($user, $brand)->map(fn (SocialAccount $a) => [
                 'id' => $a->id,
                 'network' => $a->network->value,
@@ -212,6 +253,9 @@ class PostController extends Controller
                 'instagram_presets' => $a->network === Network::Instagram ? InstagramPostOptions::capabilities() : null,
                 'linkedin' => $a->network === Network::LinkedIn ? LinkedInPostOptions::capabilities($a) : null,
                 'pinterest' => $a->network === Network::Pinterest ? PinterestPostOptions::capabilities($a) : null,
+                'visibilities' => $a->network === Network::Mastodon ? MastodonPostOptions::capabilities() : null,
+                // Limites propios de la cuenta (Mastodon: los de su instancia): mandan sobre `limits` del tipo en contadores y avisos.
+                'limits' => $a->network === Network::Mastodon ? MastodonLimits::forComposer($a) : null,
                 'instagram_audio' => $a->network === Network::Instagram ? [
                     'available' => InstagramAudio::unavailableReason($a) === null,
                     'reason' => InstagramAudio::unavailableReason($a),
@@ -219,7 +263,7 @@ class PostController extends Controller
                 'direct_post' => $a->network === Network::TikTok && ($a->meta['direct_post'] ?? false) === true,
                 // Primer comentario (C-01b): YouTube lo necesita el permiso `youtube.force-ssl`; sin el, el canal debe reconectarse.
                 'can_comment' => match ($a->network) {
-                    Network::YouTube => YouTubePublisher::canComment($a),
+                    Network::YouTube => YouTubeComments::canComment($a),
                     Network::LinkedIn => LinkedInPublisher::canComment($a),
                     default => true,
                 },
@@ -273,7 +317,23 @@ class PostController extends Controller
                 ->filter(fn (Campaign $c) => ! $c->isArchived() || ($post && $c->id === $post->campaign_id))
                 ->map(fn (Campaign $c) => ['id' => $c->id, 'name' => $c->name, 'color' => $c->color, 'archived' => $c->isArchived()])->values(),
             'post' => $post ? $this->postProps($post) : null,
-            'flash' => ['success' => $request->session()->get('success')],
+            'csrfToken' => fn () => $request->session()->token(),
+        ]);
+    }
+
+    private function studioOriginUrl(Post $post): ?string
+    {
+        if ($post->design_export_id === null) {
+            return null;
+        }
+
+        $designId = $post->designExport()->where('user_id', $post->user_id)->where('brand_id', $post->brand_id)
+            ->whereHas('design', fn ($design) => $design->where('user_id', $post->user_id)
+                ->where('brand_id', $post->brand_id)->whereNull('deleted_at'))
+            ->value('design_id');
+
+        return $designId === null ? null : route('studio.designs.edit', [
+            'design' => $designId, 'brand_id' => $post->brand_id, 'post_id' => $post->id,
         ]);
     }
 
@@ -291,6 +351,7 @@ class PostController extends Controller
             'approval_status' => $post->approval_status,
             'approval_comment' => $post->approval_comment,
             'series_id' => $post->series_id,
+            'studio_origin_url' => $this->studioOriginUrl($post),
             'status' => $post->status->value,
             'status_label' => $post->status->label(),
             // Valor de <input type="datetime-local"> en la zona de la marca.
@@ -298,7 +359,7 @@ class PostController extends Controller
             'editable' => ! $targets->contains(fn (PostTarget $t) => $t->status->isInFlight() || $t->status->isFinal()),
             'media' => $post->media()->get()->map->toPublicArray()->values(),
             // Archivos que usa la media propia de algun destino (y sus portadas): el cliente los resuelve por id para mostrarlos (T-17).
-            'target_media_assets' => MediaAsset::withoutUserScope()->where('user_id', $post->user_id)
+            'target_media_assets' => MediaAsset::ownedBy($post->user_id)
                 ->whereIn('id', $targets->flatMap(fn (PostTarget $t) => collect($t->media ?? [])->flatMap(fn ($m) => [$m['id'] ?? null, $m['cover_id'] ?? null]))->filter()->unique()->all())
                 ->get()->map->toPublicArray()->values(),
             'targets' => $targets->map(fn (PostTarget $t) => [

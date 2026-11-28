@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
-import { cleanComposerBrands } from './helpers';
+import { cleanComposerBrands, quietFor } from './helpers';
 import { setup, read, web } from './support/studio-chart-ui';
 import { armPresentationCloseObserver, readPresentationCloseObservation } from './support/studio-presentation-observer.mjs';
 
@@ -162,14 +162,14 @@ test('E2E-29 P3 timer uses a real own WAV with native start pause resume reset v
         await modal(page).getByLabel('Volumen de la música', { exact: true }).fill('0.2'); await modal(page).getByLabel('Silenciar música', { exact: true }).check();
         snapshot = await saveNative(page, info, 'timer-muted'); expect(snapshot.media[0]).toMatchObject({ volume: .2, muted: true });
         await button(page, 'Pausar temporizador').click(); await mutedAndPaused(page); const remaining = await modal(page).getByLabel('Tiempo restante', { exact: true }).textContent();
-        await page.waitForTimeout(350); await expect(modal(page).getByLabel('Tiempo restante', { exact: true })).toHaveText(remaining!);
+        await quietFor(page, 350); /* negativa: pausado, el tiempo restante no cambia */ await expect(modal(page).getByLabel('Tiempo restante', { exact: true })).toHaveText(remaining!);
         const paused = await saveNative(page, info, 'timer-paused'); const songPosition = paused.media[0].currentTime;
         await button(page, 'Iniciar temporizador').click(); await expect.poll(() => page.evaluate(() => (window as any).__presentationProbe.nodes.filter((n: HTMLMediaElement) => !n.paused).length)).toBe(1);
         snapshot = await saveNative(page, info, 'timer-resumed'); expect(snapshot.media).toHaveLength(1); expect(snapshot.media[0].id).toBe(paused.media[0].id);
         const resumeCall = snapshot.events.filter((e: any) => e.event === 'call:play' && e.id === paused.media[0].id).at(-1); expect(resumeCall.time).toBe(songPosition);
         const visible = modal(page).getByLabel('Mostrar temporizador a la audiencia', { exact: true }); await visible.uncheck();
         const canvas = current(page); await expect.poll(() => pixel(canvas, .95, .05)).toEqual([0, 0, 255, 255]);
-        const base = await image(canvas); await page.waitForTimeout(250); expect(await image(canvas)).toBe(base);
+        const base = await image(canvas); await quietFor(page, 250); /* negativa: con el temporizador oculto el lienzo no cambia */ expect(await image(canvas)).toBe(base);
         expect((await nativeSnapshot(page)).media.some((n: any) => !n.paused)).toBe(true); await visible.check(); await expect.poll(() => image(canvas)).not.toBe(base);
         await page.screenshot({ path: info.outputPath('timer-own-music.png'), fullPage: true });
         await button(page, 'Reiniciar temporizador').click(); await mutedAndPaused(page); await expect(modal(page).getByLabel('Tiempo restante', { exact: true })).toHaveText('00:30');
@@ -177,7 +177,7 @@ test('E2E-29 P3 timer uses a real own WAV with native start pause resume reset v
         await expect(modal(page).getByTestId('presentation-notes')).toHaveText('PRIVATE TOOLS NOTES Ω'); await expect(button(page, 'Reproducir presentación')).toBeVisible();
         await button(page, 'Cerrar presentación').evaluate(armPresentationCloseObserver); await button(page, 'Cerrar presentación').click();
         const close = await page.evaluate(readPresentationCloseObservation); expect(close?.trusted).toBe(true); expect(Number.isFinite(close?.at)).toBe(true);
-        await page.waitForTimeout(250); snapshot = await saveNative(page, info, 'timer-finished-closed'); expect(snapshot.events.slice(close.eventIndex).filter((e: any) => ['call:play', 'play', 'playing'].includes(e.event))).toEqual([]);
+        await quietFor(page, 250); /* negativa: con el temporizador oculto el lienzo no cambia */ snapshot = await saveNative(page, info, 'timer-finished-closed'); expect(snapshot.events.slice(close.eventIndex).filter((e: any) => ['call:play', 'play', 'playing'].includes(e.event))).toEqual([]);
         await Promise.all(responseWrites); expect(responses.some(r => [200, 206].includes(r.status) && r.bytes > 0)).toBe(true); fs.writeFileSync(info.outputPath('timer-responses.json'), JSON.stringify(responses, null, 2));
         expect((await read(page, id)).document.timeline.audio_tracks).toHaveLength(0);
     } finally { cleanComposerBrands(user.email); }
@@ -206,7 +206,7 @@ test('E2E-29 P3 pending own timer audio is cancelled by a real close and cannot 
         const outputs = await modal(page).locator('canvas').evaluateAll(nodes => nodes.map(n => (window as any).__presentationProbe.id(n)));
         await button(page, 'Cerrar presentación').evaluate(armPresentationCloseObserver); await button(page, 'Cerrar presentación').click();
         const close = await page.evaluate(readPresentationCloseObservation); expect(close?.trusted).toBe(true); expect(Number.isFinite(close?.at)).toBe(true); expect(Number.isSafeInteger(close?.eventIndex)).toBe(true);
-        await expect(modal(page)).toHaveCount(0); await mutedAndPaused(page); release(); await Promise.all(routes); await page.waitForTimeout(350);
+        await expect(modal(page)).toHaveCount(0); await mutedAndPaused(page); release(); await Promise.all(routes); await quietFor(page, 350); /* negativa: pausado, el tiempo restante no cambia */
         const data = await saveNative(page, info, 'pending-timer-closed');
         expect(data.events.slice(close.eventIndex).filter((e: any) => ['call:play', 'play', 'playing'].includes(e.event))).toEqual([]);
         expect(data.draws.filter((d: any) => outputs.includes(d.target) && d.at > close.at)).toEqual([]); expect(data.media.every((n: any) => n.paused)).toBe(true);

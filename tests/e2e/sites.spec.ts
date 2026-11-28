@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type BrowserContext, type Page, type TestInfo } from '@playwright/test';
-import { artisan, axeSeriousCritical, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, settle, stamp, watch, type ComposerBrand } from './helpers';
+import { artisan, axeSeriousCritical, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, quietFor, seedComposerBrand, settle, stamp, watch, type ComposerBrand } from './helpers';
 
 /**
  * T-15 · Sitios: construir un sitio de 2 páginas con navegación y bloques (incluido uno interactivo), vista previa en
@@ -58,7 +58,7 @@ test.afterEach(async ({}, info) => {
     cleanMedia(email);
 });
 
-test('E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo publicado, proteger y revocar', async ({ page, browser }, info) => {
+test('E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo publicado, proteger y revocar', { tag: '@responsive' }, async ({ page, browser }, info) => {
     test.setTimeout(240_000);
     const w = watch(page);
     page.on('dialog', (d) => d.accept().catch(() => {}));
@@ -104,14 +104,21 @@ test('E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo 
     await page.getByLabel('Opción 2 de la encuesta 9', { exact: true }).fill('No');
 
     // Reordenar: el título sube/baja (no cambia el contenido) y un video con host falso se rechaza en el servidor.
-    await page.getByRole('button', { name: 'Bajar bloque 1' }).click();
+    await page.getByRole('button', { name: 'Bajar bloque 1', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Bajar bloque 2', exact: true })).toBeFocused();
     await expect(page.getByLabel('Texto del bloque 2', { exact: true }).first()).toHaveValue('Bienvenida al sitio E2E');
     await page.getByRole('button', { name: 'Subir bloque 2' }).click();
     await expect(page.getByLabel('Texto del bloque 1', { exact: true }).first()).toHaveValue('Bienvenida al sitio E2E');
     await expectNoOverflow(page);
+    await page.getByTestId('page-tab-1').click();
+    await expect(page.getByTestId('page-title')).toHaveValue('Contacto');
     await page.getByTestId('save-draft').click();
     await settle(page);
     await expect(page.getByText('Usa la URL de un video de YouTube')).toBeVisible();
+    const invalidUrl = page.getByLabel('URL del video 6', { exact: true });
+    await expect(invalidUrl).toHaveAttribute('aria-invalid', 'true');
+    await expect(invalidUrl).toBeFocused();
+    await expect(invalidUrl).toHaveAccessibleDescription(/Usa la URL de un video de YouTube/);
     await page.getByLabel('URL del video 6', { exact: true }).fill('https://youtu.be/dQw4w9WgXcQ');
     await expectNoOverflow(page);
     await axeSeriousCritical(page, 'Sitios (editor con bloques)');
@@ -198,7 +205,7 @@ test('E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo 
     await pub.getByLabel('Mensaje').fill('Quiero más información');
     await expectNoOverflow(pub);
     await axeSeriousCritical(pub, 'Sitio público (contacto)');
-    await pub.waitForTimeout(2500); // tiempo mínimo anti-bot
+    await quietFor(pub, 2500); // el servidor rechaza envíos antes de 2 s desde que se pintó el formulario: no hay evento que esperar
     await pub.getByRole('button', { name: 'Enviar' }).click();
     await settle(pub);
     await expect(pub.getByRole('status')).toContainText('hemos recibido tu mensaje');
@@ -271,6 +278,7 @@ test('E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo 
     await expect(viaToken.getByRole('heading', { level: 1, name: 'Contacto' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Revocar el enlace Cliente E2E' }).click();
+    await page.getByTestId('confirm-dialog').getByRole('button', { name: 'Revocar enlace' }).click();
     await settle(page);
     await expect(page.getByTestId('token-list')).toContainText('Revocado');
     const denied = await viaToken.reload();
@@ -299,7 +307,7 @@ test('E2E-15 · Sitios: construir, previsualizar, publicar, editar sin tocar lo 
     expect(w.errors, 'errores de consola en el editor').toEqual([]);
 });
 
-test('E2E-15b · Sitios: la lista y el editor son responsive y accesibles sin sitios ni bloques', async ({ page }) => {
+test('E2E-15b · Sitios: la lista y el editor son responsive y accesibles sin sitios ni bloques', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto(`/sites?brand_id=${brand.id}`);
     await settle(page);
@@ -310,6 +318,6 @@ test('E2E-15b · Sitios: la lista y el editor son responsive y accesibles sin si
     await page.getByTestId('new-site-slug').fill('AB');
     await page.getByRole('button', { name: 'Crear sitio' }).click();
     await settle(page);
-    await expect(page.getByText(/Usa de 3 a 40 caracteres/).first()).toBeVisible();
+    await expect(page.getByLabel('Dirección', { exact: true })).toHaveAccessibleDescription(/Usa de 3 a 40 caracteres/);
     expect(w.errors).toEqual([]);
 });

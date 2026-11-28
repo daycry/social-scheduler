@@ -1,0 +1,120 @@
+{
+  "duration_api_ms": 145868,
+  "stop_reason": "end_turn",
+  "session_id": "6760f5a2-5c06-4cbf-806e-56e71877d09b",
+  "total_cost_usd": 1.723156,
+  "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 179331,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 14425,
+    "output_tokens_details": {
+      "thinking_tokens": 9726
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 179331,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 14425,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 179331,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 179331
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 14425,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 179331,
+      "webSearchRequests": 0,
+      "costUSD": 1.723156,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 9726,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 179331,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 1,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "# Revisión adversarial T-80, intento 3/3: reevaluación de I-4, M-9 y N-1 sobre el parche final\n\n## Veredicto\n\n**Se puede cerrar.**\n\n- **Correcciones.** I-4, M-9 y N-1 están corregidos.\n- **Hallazgos abiertos.** No quedan Critical ni Important.\n- **Gates.** Los gates finales que se declaran (PHP completo, módulo 44/293 en SQLite y MySQL 8.4.3, Node, tipos, estilo y build, navegador amplio y focal sobre el árbol definitivo, 5 rondas concurrentes) cubren el diff revisado. Los acepto sin pedir que se repitan.\n- **Hallazgos nuevos.** Son Minor o Nit y ninguno bloquea el criterio «Revisión adversarial sin Critical/Important abiertos».\n\nLo aceptado en R2 (I-1, I-2, núcleo de I-3, M-1..M-8 y las opciones de calidad) no se reabre: no hay evidencia nueva.\n\n---\n\n## Reevaluación\n\n### I-4 · Caducidad por edad de cola: **cerrado**\n\n**Código.** `DeliverWebhook.php:17-20` deja `$tries = 0`, no tiene `retryUntil()` y no hay fecha persistida en el payload.\n\n**Lectura del framework.**\n- `Queue.php:182,188` serializa `maxTries=0` y `retryUntil=null`.\n- En `Worker.php:730-742`, `$job->maxTries()` devuelve 0, que no es null, así que prevalece sobre `--tries` del worker.\n- Con `retryUntil` nulo y `maxTries === 0`, la función retorna sin hacer nada.\n- `Worker.php:798` exige `$maxTries > 0`, así que el camino de excepción tampoco falla el job por intentos.\n\n**Consecuencia.** Ninguna entrega caduca por esperar en cola. `markFailed` (`WebhookDeliveryRunner.php:135-140`) solo se alcanza por `failJob`, que ahora solo dispara `maxExceptions`.\n\n**Prueba.** `WebhookDeliveryTest.php:97-106` usa `QueueManager`/database y `Worker::runNextJob` reales. Avanza 4 h antes del primer pop y obtiene `delivered`, `attempts = 1` y 1 HTTP. Es exactamente el escenario de R2. El RED r58 se describe como fallo funcional y es coherente con el código anterior.\n\n**Documentación.** `docs/api/webhooks.md:90` dice ahora «no caduca por el tiempo que pasa en cola», sin TTL inventado. Es consistente.\n\n### M-9 · Amplificación de caídas por DNS lento: **cerrado con API nativa**\n\nEl hecho que faltaba en R2 está aportado: el atributo de clase `#[Illuminate\\Queue\\Attributes\\CountCrashesAsExceptions]` (`CountCrashesAsExceptions.php:7-8`), que `Queue.php:185` lee para el payload.\n\n**Comportamiento verificado sobre las fuentes adjuntas:**\n\n- **Muerte dura** (SIGKILL u OOM). La marca `job-processing:{uuid}` sobrevive. El siguiente pop la detecta en `Worker.php:768` y la cuenta como excepción en `:772`.\n- **Timeout pcntl.** `Worker.php:343-345` incrementa el contador y `:359-361` borra la marca antes del `kill`, así que no hay doble conteo con kill activo.\n- **Releases de negocio.** `handle()` → `release()` borra la marca en `:656-658`. Con el driver database el UUID del payload se conserva al liberar, así que el contador abarca toda la vida de la entrega.\n- **Cota.** Como máximo 3 ejecuciones interrumpidas o excepciones no controladas por entrega. Antes eran unas 60 en 3 h.\n\n**Pruebas:**\n- `:108-122`: 3 excepciones llevan a `worker_failed`, `attempts = 0` y la cola vacía.\n- `:124-138`: el preflight con contador 2 más la marca pendiente falla sin HTTP. Reproduce marcas de caché y no mata un proceso; la documentación lo declara honestamente.\n- `:59-83`: 1 excepción más 5 respuestas 503 conserva los 5 intentos de entrega.\n\n**Dependencia de caché documentada.** `webhooks.md:90` exige una caché compartida persistente, y `.env.production.example:24` declara `CACHE_STORE=database`. `WorkCommand.php:151` inyecta esa caché en el worker.\n\n### N-1 · **Cerrado**\n\n`webhooks.md:96` distingue ahora entre handlers directos, Worker/QueueManager reales en proceso, y ausencia de daemon, de señal pcntl real y de receptor externo.\n\n---\n\n## Hallazgos nuevos (todos no bloqueantes)\n\n### M-10 · Minor (B/A, preexistente, no es regresión de R3): un fallo DNS transitorio al entregar bloquea la entrega de forma terminal\n\n**Ubicación:**\n- `WebhookDeliveryRunner.php:96-100, 59-60`\n- `UrlGuard.php:271-276, 290-303`\n\n**Escenario:**\n1. El VPS se reinicia. Es el mismo contexto que motivó I-4.\n2. El supervisor arranca los workers antes de que el resolver esté listo, o el upstream DNS da SERVFAIL durante unos segundos.\n3. `@dns_get_record` devuelve `false`, el resultado es `[]` y se lanza `UnsafeUrlException(NOT_ALLOWED)`.\n4. `prepareUrl` devuelve `'unsafe_url'` y el runner marca la entrega `blocked` con `attempts = 1`.\n5. Todas las entregas que se procesen en esa ventana quedan bloqueadas para siempre.\n6. La UI muestra «La URL ya no apunta a una dirección pública permitida». Ni el barrido ni la reactivación las recuperan.\n\n**Por qué es Minor y no Important:**\n- El comportamiento es coherente con la decisión deliberada de `UrlGuard` (CWE-204) de no distinguir «no resuelve» de «privada».\n- Encaja con la regla documentada en `webhooks.md:72`: «URL que deje de ser segura → Bloqueada».\n- Ningún criterio de aceptación queda incumplido literalmente.\n\nAun así contradice la expectativa razonable de que un fallo de resolución es un error de conexión reintentable.\n\n**Corrección barata y sin coste de seguridad:** al entregar, clasificar `unsafe_url` como `pending` con backoff, igual que `connection_error`.\n- Se siguen consumiendo los 5 intentos y nunca se envía HTTP a una IP no validada.\n- Una IP privada persistente acabaría en `exhausted/unsafe_url` en unos 81 min, en vez de en `blocked` inmediato.\n- Habría que ajustar el test `:316-323` y la línea 72 de la documentación.\n- **Alternativa de política:** documentar explícitamente que un fallo DNS al entregar se trata como URL insegura y termina en Bloqueada.\n\n### M-11 · Minor (D, optimización opcional): acumulación de barridos y de jobs duplicados tras una caída larga de workers\n\n**Ubicación:**\n- `DispatchPendingWebhooks.php:20`\n- `routes/console.php` (entrada `dispatch-pending-webhooks`)\n- `DeliverWebhook.php:24`\n\n**Escenario.** Los workers están caídos 4 h y el cron sigue activo.\n1. **Barridos acumulados.** `withoutOverlapping` solo evita solapes del propio scheduler. El lock único del barrido expira a los 120 s, así que se encolan unos 30 `DispatchPendingWebhooks` por hora: unos 120 en total.\n2. **Duplicados de entrega.** Pasadas 2 h expira el lock único de cada `DeliverWebhook` (`uniqueFor = 7200`). Cada barrido encola entonces un duplicado por entrega pendiente.\n3. **Al volver los workers.** Se ejecutan unos 120 barridos, cada uno con hasta 500 lecturas e intentos de lock.\n\nNo hay HTTP duplicado: el lock de fila y `next_attempt_at` lo impiden, y los duplicados solo hacen `release`. El coste es de cola y de consultas, no de corrección. I-4 convierte este camino en el camino normal de recuperación, por eso lo señalo ahora.\n\n**Mejora opcional:** `ShouldBeUniqueUntilProcessing` en el barrido, o un `uniqueFor` más largo. No bloquea.\n\n### N-2 · Nit (E, test): la prueba original de Worker no usa el helper ni la caché\n\n**Ubicación:** `WebhookDeliveryTest.php:59-64`\n\n**Escenario.** El test construye su propio `Worker` sin `setCache`, así que en él `maxExceptions` y `CountCrashesAsExceptions` están desactivados (`Worker.php:762,813`). La respuesta R3 afirma que las fixtures repetidas se extrajeron a `nativeWebhookWorker`, pero esta no se migró.\n\nEl resultado no cambiaría (1 excepción < 3). Usar `nativeWebhookWorker()` haría que esa regresión ejercite la configuración real de producción.\n\n### Hecho no verificable (sin hallazgo)\n\nDesconozco el valor por defecto de `Worker::$killOnTimeout` en la versión instalada. Si fuera `false`, `Worker.php:343-356` lanza la excepción tras contarla y `handleJobException` (`:688`) la contaría una segunda vez. En ese caso bastarían 2 timeouts para llegar a `worker_failed`.\n\nEs comportamiento del framework, sigue acotado y no cambia el veredicto. Como mucho merece una línea en la documentación si se confirma.\n\n---\n\n## Ejes\n\n### A · Aceptación\n\nSe cumplen los tres criterios funcionales:\n- **Firma HMAC con marca de tiempo** sobre los bytes persistidos.\n- **`UrlGuard`** bloquea IP privadas y redirecciones, al crear y al entregar.\n- **Reintentos que se agotan y se registran.** Lo que R2 marcaba como incumplido queda resuelto por I-4: 5 intentos de entrega, más una cota independiente de 3 fallos del ejecutor, con motivo `worker_failed`.\n\nLos gates finales declarados son suficientes: el navegador amplio 45/45 se ejecutó antes de cambios que solo tocaban metadatos del job, el test PHP y la documentación, y el focal 6/6 corre sobre el árbol definitivo. Con este informe se cumple la condición de revisión adversarial sin Critical ni Important abiertos.\n\n### B · Corrección\n\n- Sin defectos abiertos de severidad alta.\n- Los releases de negocio y las excepciones del ejecutor quedan desacoplados de forma correcta, y la interacción con el lock único es correcta (se libera en `failed`).\n- Una caída tras el HTTP y antes del commit revierte `attempts++` y repite la petición. Está documentado como petición ambigua deduplicable por UUID.\n- Queda M-10 (Minor).\n\n### C · Seguridad\n\n- Sin hallazgos.\n- La prelectura sigue fuera de la transacción y la propiedad se revalida bajo lock.\n- La corrección de M-9 no envía nunca a una URL no validada.\n- Corregir M-10 como propongo no afloja el guard.\n\n### D · Rendimiento y disponibilidad\n\n- M-9 resuelto: muertes de worker acotadas a 3 por entrega.\n- M-11 es una optimización opcional.\n- El coste de la caché database (lectura, `add` y `forget` por ejecución) es despreciable frente al HTTP.\n\n### E · Calidad\n\n- `DeliverWebhook` queda declarativo, con atributo y propiedades nativas, sin lógica temporal propia.\n- Las pruebas nativas son claras y el helper está bien nombrado.\n- Queda N-2.\n- Persisten los menores ya aceptados: el closure de `run()`, el `last_error` duplicado y el `RequestException` muerto.\n\n---\n\n## Política opcional (no son defectos contra el contrato)\n\n- Etiqueta de estado distinta de «Reintentos agotados» para `worker_failed` con `attempts = 0`. El motivo ya lo explica.\n- Retención y poda (M-3).\n- Cola dedicada (M-4).\n- Reactivar entregas canceladas o bloqueadas.\n- Rotación del secreto con doble firma.\n- Tratamiento de DNS no resoluble al entregar (M-10): reintentable, o terminal pero documentado.\n\n---\n\n## Para cerrar\n\n1. **Bloqueante:** ninguno. La tarea puede marcar la revisión adversarial como superada y pasar a cierre e integración según el procedimiento del ledger, que depende de que los padres T77/T78/T79 estén aprobados.\n2. **Recomendado antes o después de integrar:**\n   - M-10: hacer reintentable `unsafe_url` al entregar, o documentarlo.\n   - N-2: migrar el test `:59-83` a `nativeWebhookWorker()`.\n3. **Opcional:** M-11.",
+  "ttft_ms": 103234,
+  "type": "result",
+  "duration_ms": 145989,
+  "uuid": "240a4756-9f7a-41d2-b3b8-285103be22af",
+  "ttft_stream_ms": 1642,
+  "time_to_request_ms": 118,
+  "first_content_frame_ms": 1642,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "model_usage_since_last_result": {
+    "claude-opus-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 14425,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 179331,
+      "webSearchRequests": 0,
+      "costUSD": 1.723156,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 9726,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 179331,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "credential_expires_at": "2026-12-13T13:54:13.42Z"
+}

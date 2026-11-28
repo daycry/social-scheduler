@@ -5,11 +5,26 @@ $python = base_path('storage/framework/studio-python/'.(PHP_OS_FAMILY === 'Windo
 return [
     'node' => env('STUDIO_NODE_BINARY', 'node'),
     'python' => env('STUDIO_PYTHON_BINARY', is_file($python) ? $python : (PHP_OS_FAMILY === 'Windows' ? 'python' : 'python3')),
+    // Ruta de Chromium para el renderizado (la leen los scripts Node por STUDIO_CHROMIUM_PATH); vacia = el de Playwright.
+    'chromium_path' => env('STUDIO_CHROMIUM_PATH'),
+    'thumbnail_queue' => 'studio',
     'av' => [
         'queue' => 'studio',
         'lease_seconds' => 180,
         'disk' => ['snapshot' => 8 * 1024 ** 3, 'pcm' => 8 * 1024 ** 3, 'segment' => 8 * 1024 ** 3, 'output' => 8 * 1024 ** 3],
     ],
+    // Autoguardado (A-07): un autoguardado del mismo autor dentro de este intervalo (s) reescribe la revision reciente en vez de crear otra.
+    // Dias durante los que un export listo bloquea el borrado de su media (0 = nunca); los exports mas antiguos no la protegen.
+    'export_media_guard_days' => (int) env('STUDIO_EXPORT_MEDIA_GUARD_DAYS', 30),
+    // Miniaturas del listado (T-35): se renderizan bajo demanda en su cola configurada.
+    'thumbnails' => ['enabled' => (bool) env('STUDIO_THUMBNAILS', true)],
+    // Exportación en lote (T-91): formatos por lote y exportaciones en curso por usuario (comparten la cola `studio-render`).
+    'batch' => ['max_formats' => (int) env('STUDIO_BATCH_MAX_FORMATS', 8), 'max_active' => (int) env('STUDIO_BATCH_MAX_ACTIVE', 24)],
+    // Marca de agua (T-91): la superposición se hace en memoria con GD; las imágenes mayores no la admiten.
+    // Tamaño máximo (bytes) de cada fichero de imagen exportado por el servidor.
+    'export' => ['max_file_bytes' => 64_000_000],
+    'watermark' => ['max_pixels' => 25_000_000, 'logo_max_pixels' => 16_000_000],
+    'revisions' => ['min_interval_seconds' => (int) env('STUDIO_REVISION_MIN_INTERVAL', 300)],
     'fonts' => [
         'disk' => env('STUDIO_FONT_DISK', 'local'),
         'max_bytes' => 8 * 1024 * 1024,
@@ -17,8 +32,8 @@ return [
         'probe_timeout' => 20,
     ],
     'images' => [
-        'model_path' => env('STUDIO_BACKGROUND_MODEL_PATH', storage_path('app/private/studio-models/birefnet-general-lite.onnx')),
-        'model_sha256' => env('STUDIO_BACKGROUND_MODEL_SHA256', '5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333'),
+        'model_path' => env('STUDIO_BACKGROUND_MODEL_PATH', storage_path('app/private/studio-models/isnet-general-use.onnx')),
+        'model_sha256' => env('STUDIO_BACKGROUND_MODEL_SHA256', '60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a'),
         'timeout' => 85,
         'max_pixels' => 16000000,
         'max_bytes' => 30 * 1024 * 1024,

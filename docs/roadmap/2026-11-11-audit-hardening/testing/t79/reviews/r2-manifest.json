@@ -1,0 +1,129 @@
+{
+  "model": "claude-opus-5-5",
+  "effort": "high",
+  "packet_sha256": "b9b627a3e4d304ec6626d06f6cb3feab734f9a85376a3f1c5803294bbce00c64",
+  "patch_sha256": "70d9a2f35e6ccd9ce4351b533acd843b8723b9370034c23dd6bac118eeb24252",
+  "source_manifest_sha256": "e82554fddd58692cc4609d5c421b2aa1d64bb6edd8a181b04ed2e2649a14e0cc",
+  "files": [
+    {
+      "path": ".env.example",
+      "sha256": "2ffc38b2ca26110414d86fa4175f90f61d9210f2155a07776f5c13418da959e0"
+    },
+    {
+      "path": ".env.production.example",
+      "sha256": "b9f6c9883305ff95fd2146d20b985a08cddb32565c04c097cb58ea40ab815181"
+    },
+    {
+      "path": "CHANGELOG.es.md",
+      "sha256": "48d5f5fca257c9efd26b0d63046cbcb1424d6086d512738b56a0966826508da0"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "3d23613516264cb53b7ff38b932a85e667ce693bbe519c56f42fce637856a8f9"
+    },
+    {
+      "path": "app/Http/Controllers/GoalController.php",
+      "sha256": "63fdadde204556bc9a68fb1e83b5381cd1d690fae082ff045d966c4021c6891d"
+    },
+    {
+      "path": "app/Jobs/EvaluateGoals.php",
+      "sha256": "a5740d61e467c6e3f3d93730bbb3547c338c9dce96f9a9c46e2c9c622d79637c"
+    },
+    {
+      "path": "app/Models/Goal.php",
+      "sha256": "f4208454da42936b0afa5cdaf8ddf222260dbb52308e2b17b9a872a38a3d5147"
+    },
+    {
+      "path": "app/Models/GoalAlertEvent.php",
+      "sha256": "5d108ed05e813c53d6e7c142ccffc9e7d2ee5ea28505769005bc5492b9e38612"
+    },
+    {
+      "path": "app/Notifications/GoalAlert.php",
+      "sha256": "b11925be75d9e6f3dce92c58d7e6cb102ad2df31415f067b74a3d28f35b0d866"
+    },
+    {
+      "path": "app/Services/ConnectionExpiry.php",
+      "sha256": "618375cdca83383f1a838fe5c484e1a7cea61bdaf7af62b7e38c28fc03307d16"
+    },
+    {
+      "path": "app/Services/GoalService.php",
+      "sha256": "b392e788ed83d19db303dc928f01ecc369110b1cf5554878c019e45bb1b63e69"
+    },
+    {
+      "path": "app/Services/Goals/GoalEvaluator.php",
+      "sha256": "0f12ced7d97b22e204b52dd83f2b523c18bd387879b857b2b1c712f1d8ba36d3"
+    },
+    {
+      "path": "app/Services/Goals/GoalObservations.php",
+      "sha256": "3f9dd404d9cc44730dedea083ab4ac9062dab4b6373abf220c93743a609ee573"
+    },
+    {
+      "path": "config/goals.php",
+      "sha256": "dbf5e94f2f92e9d33a761baa2459e9b0e46c86b5156d8de0a16264eb1e3cf5e9"
+    },
+    {
+      "path": "database/migrations/2026_11_18_091000_create_goals_table.php",
+      "sha256": "00a95d962240b7cdfd11ce90eb7bb508b1a65237fe0f0afcfc8c818ac2ba4925"
+    },
+    {
+      "path": "database/migrations/2026_11_18_091100_add_evaluation_to_goals_and_create_goal_alerts.php",
+      "sha256": "fefd780d592338e5d9e3b1c7bb67bdb9b145acf5f6cc2d0bf9ffdaaff0d550a5"
+    },
+    {
+      "path": "docs/README.md",
+      "sha256": "373ee94d0255773b14e79c4dfb8edb425b145e1a393b631f73a4b717b3a60608"
+    },
+    {
+      "path": "docs/modulos/analitica.md",
+      "sha256": "55c6c49af6a4f81c32271a5a0b52d2d295061f86209e2185d46d2d6dc04c8764"
+    },
+    {
+      "path": "docs/referencia/configuracion.md",
+      "sha256": "d0bec025be1255fa2c5ee11adc213c9db4878d300b1d44873c7fb9fc63fcbd4c"
+    },
+    {
+      "path": "resources/js/Layouts/AuthenticatedLayout.vue",
+      "sha256": "36c22d135628064e95b088954c536ab6fe448b2ca7cb21395ce2a7104581e62b"
+    },
+    {
+      "path": "resources/js/Pages/Goals/Index.vue",
+      "sha256": "503627d97e1c02c0b927e27b126d26c8adaad3f047e5224d70c6b9d1c4ebab06"
+    },
+    {
+      "path": "resources/js/Pages/Notifications/Index.vue",
+      "sha256": "ad79cb88aeaf378ff1129b5815425dee443d694bd74029a94aa0c8b0a76dbe05"
+    },
+    {
+      "path": "resources/js/types/goals.d.ts",
+      "sha256": "b5b1262b76cd838a1a282bec47e54528486e123e0b595f76588eb5880c9e8f6d"
+    },
+    {
+      "path": "routes/console.php",
+      "sha256": "18fbb1383b2369c87804529847dd2ebef63ec5c1ec60c3ec011ed1846b56be78"
+    },
+    {
+      "path": "routes/web.php",
+      "sha256": "c69aab011ca130a396c25f2761f38c6e2e2f2c19b3414fbac7b893e586cc20cd"
+    },
+    {
+      "path": "tests/Feature/Goals/GoalAlertTest.php",
+      "sha256": "38dc2fa23886e3eeacb280575bd01f9db73b3d8d9a1cb9af7d399c829f3adb8a"
+    },
+    {
+      "path": "tests/Feature/Goals/GoalScheduleTest.php",
+      "sha256": "e02741c4f7a705d438e541b8b43948bd7bc0491a669e73e4904c08f13c604e0f"
+    },
+    {
+      "path": "tests/Feature/Goals/GoalsTest.php",
+      "sha256": "562cd964874de6ea6da4915da540e2ea2a50e3fe8efca8a3db3cebbbd5305549"
+    },
+    {
+      "path": "tests/e2e/goals.spec.ts",
+      "sha256": "5d8ecf4134523d93b5d0da0efad4deadf9f5b2de8a53fd5d77e6bfb2257f8b54"
+    },
+    {
+      "path": "tsconfig.frontend.json",
+      "sha256": "d2ed8d8730993178a183af1c239c09a60f25b1a7cd4d62c3c22ab9adee8730b6"
+    }
+  ]
+}

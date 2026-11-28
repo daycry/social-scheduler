@@ -5,6 +5,8 @@ namespace App\Services\Studio;
 /** Restricted plain SRT/WebVTT: no markup, cue settings, CSS, URLs or process execution. */
 class StudioCaptionCodec
 {
+    public function __construct(private readonly StudioCaptionData $captionData) {}
+
     public function parse(string $text, string $format): array
     {
         $this->format($format);
@@ -53,13 +55,13 @@ class StudioCaptionCodec
         }
 
         // Validate independently; the document service also applies its actual duration atomically.
-        return ['cues' => app(StudioCaptionData::class)->validate(['style' => [], 'cues' => $cues], PHP_FLOAT_MAX)['cues'], 'warnings' => array_values(array_unique($warnings))];
+        return ['cues' => $this->captionData->validate(['style' => [], 'cues' => $cues], PHP_FLOAT_MAX)['cues'], 'warnings' => array_values(array_unique($warnings))];
     }
 
     public function encode(array $cues, string $format): string
     {
         $this->format($format);
-        $cues = app(StudioCaptionData::class)->validate(['style' => [], 'cues' => $cues], PHP_FLOAT_MAX)['cues'];
+        $cues = $this->captionData->validate(['style' => [], 'cues' => $cues], PHP_FLOAT_MAX)['cues'];
         $output = $format === 'vtt' ? "WEBVTT\n\n" : '';
         foreach ($cues as $index => $cue) {
             if ($cue['end'] * 1000 > 9007199254740991) {

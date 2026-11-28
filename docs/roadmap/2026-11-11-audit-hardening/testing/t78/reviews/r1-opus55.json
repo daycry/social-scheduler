@@ -1,0 +1,120 @@
+{
+  "duration_api_ms": 118858,
+  "stop_reason": "end_turn",
+  "session_id": "a123ab6b-a27f-4e42-bd2b-047d6800e184",
+  "total_cost_usd": 0.727264,
+  "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 60172,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 12294,
+    "output_tokens_details": {
+      "thinking_tokens": 7522
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 60172,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 12294,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 60172,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 60172
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 12294,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 60172,
+      "webSearchRequests": 0,
+      "costUSD": 0.727264,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 7522,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 60172,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 1,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "# Revisión independiente T78, intento 1 de 3 (estática)\n\n## Veredicto\n\nEl diff es **aceptable en lo estático** frente al contrato aprobado. No encuentro defectos Critical ni Important confirmados. Hay hallazgos Minor y tres hechos condicionales que no puedo verificar con el material aportado.\n\n**No procede integrar todavía.** Faltan resultados para este diff rebasado:\n- type-check y build;\n- browser 15 casos.\n\nEl browser 9/9 y el QA verde previos al rebase no se atribuyen al diff actual, como indica la propia evidencia.\n\n## A. Aceptación frente al contrato\n\n| Requisito | Estado | Evidencia estática |\n|---|---|---|\n| Permiso solo de servidor, lista vacía = nadie, correo verificado | Cumple | `SystemAccess.php:12-24`, `config/health.php` (`admin_emails`), tests 47-52 y 157-163 |\n| Perfil limpia la verificación al cambiar email; sin autoescalada | Cumple | `ProfileController.php:91-93`; `is_admin` ignorado al no estar en `rules()`; test 147-155 |\n| Vista, servicio y middleware reutilizan SystemAccess | Cumple | `SystemStatus.php:31`, `HandleInertiaRequests.php:47`, controlador vía servicio |\n| HealthCheck en modo HTTP con caché nativa y edad máxima visible | Cumple | `SystemStatus.php:36` llama a `run(false, true)`; `:69`; `Index.vue:52-55` |\n| GET no encola ni consulta redes | Cumple | No hay `dispatch` en la ruta; tests con `Queue::fake` y `Http::preventStrayRequests`; E2E compara el recuento de `jobs` |\n| Sonda: fecha en cada proceso; 24 h separadas de 10 min | Cumple | `QueueProbeJob.php:34-35` |\n| SQL proyectado y agregado, sin columnas cifradas | Cumple | `SystemStatus.php:105-109` |\n| YouTube como contador local etiquetado; resto no disponible; sin porcentaje | Cumple | `SystemStatus.php:39-56`, `Index.vue:149-171` |\n| Estado global, no de un tenant | Cumple | `DB::table` sin `UserScope`, intencionado y agregado por red |\n| Fallos auxiliares explícitos, no convertidos en 0 | Cumple | `tokens_available`, `available`, `unavailable_reason` |\n| Accesibilidad y tamaños | Pendiente | Hay `axe` y `expectNoOverflow` en el spec `@responsive`, pero sin resultado para el rebase |\n| Componente y DTO en TS estricto | Cumple con matiz | DTO `.d.ts` y página JS con JSDoc incluida en `tsconfig.frontend.json` (ver E-1) |\n\n## B. Corrección y robustez\n\n**B-1 · Minor (condicional) · `app/Services/SystemStatus.php:126`**\n- `CarbonImmutable::parse($date, 'UTC')` supone que las columnas `*_expires_at` se guardan en UTC.\n- Escenario: si `config('app.timezone')` es, por ejemplo, `Europe/Madrid`, Eloquent guarda las fechas en hora local. La UI mostraría la caducidad desplazada 1-2 h y la etiquetaría como UTC.\n- Hecho faltante: el valor de `app.timezone` en `config/app.php`.\n- Corrección propuesta: `parse($date, config('app.timezone'))->utc()`.\n\n**B-2 · Minor (condicional) · `app/Jobs/QueueProbeJob.php:35` y `SystemStatus.php:82-86`**\n- La documentación afirma que la página muestra sondas «de cada cola configurada, además de media y render».\n- Escenario: si `app:queue-probe` solo itera `config('queue.names')` y no incluye `media` ni `studio-render`, esas tarjetas mostrarán siempre «Sin sonda procesada en las últimas 24 horas». La afirmación sería veraz, pero el operador nunca podría obtener evidencia de esas colas.\n- Escenario análogo: si el comando despacha sin `onQueue()` hacia una cola por defecto distinta de `default`, la marca queda en la clave `default` y no en la de la cola real.\n- Hecho faltante: el código fuente de `app:queue-probe`.\n\n**B-3 · Minor (condicional) · `SystemStatus.php:105`**\n- `DB::table('social_accounts')` no aplica `SoftDeletes`.\n- Escenario: si `SocialAccount` usa borrado lógico, las cuentas borradas pero no desconectadas inflan `account_count` y adelantan `MIN(token_expires_at)`.\n- Hecho faltante: si el modelo usa `SoftDeletes` y si existe `deleted_at`.\n\n**B-4 · Minor · `SystemStatus.php:105-109`**\n- `groupBy` sin `orderBy`, así que el orden de las tarjetas de caducidad depende del motor (SQLite frente a MySQL) y puede cambiar entre lecturas.\n- Las cuotas sí siguen el orden del enum.\n- Corrección: añadir `->orderBy('network')`.\n\n**B-5 · Minor (optativo) · `SystemStatus.php:88-98`**\n- Un único `try` envuelve todas las lecturas.\n- Escenario: un fallo puntual en una clave marca todas las colas como «No se pudo leer», aunque las demás se leyeran bien.\n- Con un almacén de caché caído el resultado es correcto; con un fallo intermitente pierde granularidad. Es mejora, no defecto del contrato.\n\n**B-6 · Minor · `resources/js/Pages/System/Index.vue:120` y `:137`**\n- Escenario: con una sola cuenta se muestra «Instagram · 1 cuentas» y «1 cuentas sin fecha…».\n- Es un error gramatical visible para el operador. Corrección: pluralización condicional.\n\nLo demás es correcto:\n- La autorización ocurre antes de ejecutar HealthCheck (test 39-45 con `shouldNotReceive`).\n- Los fallos de cuota, tokens y sonda solo registran la clase de la excepción.\n- El estado `not_recorded` frente a `read_failed` se distingue en la UI.\n\n## C. Seguridad introducida\n\nNo hay vulnerabilidad confirmada.\n- La proyección SQL no toca `access_token` ni `refresh_token`.\n- El informe no contiene identidades: solo red, recuentos y fechas mínimas.\n- `auth.user` ya se compartía antes (preexistente).\n- La lista de permitidos es solo de servidor: valida entradas, normaliza mayúsculas y espacios, y no hay campo editable.\n- El entorno E2E fija `SYSTEM_ADMIN_EMAILS` explícitamente y no hereda el del host.\n\n**C-1 · Hecho faltante (riesgo condicional) · `app/Support/SystemAccess.php:12`**\n- La garantía depende de que `email_verified_at` solo se fije tras probar la posesión del buzón.\n- Escenario: si `SocialLoginController` crea o vincula usuarios marcando `email_verified_at = now()` con el email de un proveedor que no verifica correos, alguien podría registrarse con la dirección de un operador sin controlar su buzón.\n- Escenario análogo: cualquier otra vía de cambio de email (API, MCP) que no limpie la verificación.\n- Solo se ha mostrado `ProfileController`. Antes de integrar hay que confirmar:\n  - el manejo de `email_verified` en el login social;\n  - que no existen otras rutas que muten `email`.\n- No lo califico como defecto porque el contrato aprobado acepta «correo verificado» como criterio.\n\n## D. Rendimiento\n\n- La prop compartida `canViewSystemStatus` es un bucle sobre una configuración pequeña, sin consultas. Coste despreciable en cada respuesta Inertia.\n- Cada GET de `/system` ejecuta lo siguiente:\n  - la batería HealthCheck: varios `COUNT`, una escritura y lectura en el disco de media (hasta 5 s de timeout en S3) y, con la caché nativa vacía, hasta 3 procesos de 5 s;\n  - una consulta agregada sobre `social_accounts`;\n  - unas pocas lecturas de caché.\n- Es aceptable para una página solo de operadores con actualización manual, y está documentado.\n- No hay N+1 ni carga de modelos.\n\n## E. Calidad del código\n\n**E-1 · Política opcional, no defecto · `resources/js/Pages/System/Index.vue:1-10`**\n- La página es `<script setup>` en JS con JSDoc y `checkJs`, no `lang=\"ts\"`. Sigue la convención ya aceptada en `Activity/Index.vue`, con el DTO en `.d.ts`.\n- Solo sería defecto si el contrato exigiera literalmente `lang=\"ts\"`. Hecho faltante: la redacción exacta de «TS estricto» en el contrato.\n\n**E-2 · Minor · `tests/e2e/isolated/runtime.ts` (hunks @@ 8-199)**\n- Más del 95 % del diff de este fichero es reformateo de Prettier, sin cambio de comportamiento. Solo hay una línea funcional: `SYSTEM_ADMIN_EMAILS` en `buildEnvironment`.\n- Mezclar formateo masivo con un cambio funcional dificulta la revisión y la trazabilidad (blame). Lo recomendable es separarlo en un commit propio o revertir el reformateo.\n\n**E-3 · Minor (optativo) · `config/health.php` y `.env.example:95`**\n- La autorización de operadores vive en el espacio de configuración `health`.\n- Además, la variable se insertó entre `HEALTH_ALERT_EMAIL` y `HEALTH_ALERT_THROTTLE_MINUTES`, lo que parte ese grupo.\n- La lista se recorta en la configuración y otra vez en `SystemAccess`. La duplicación es inocua.\n\n**E-4 · Minor · `Index.vue:60` y `:62`**\n- Hay ternarios anidados duplicados para la clase y el texto del estado de salud.\n- Un mapa `{ ok, degraded, down } → { label, class }` sería más mantenible.\n\n### Pruebas (calidad)\n\n**T-1 · Minor · `tests/Feature/System/SystemStatusTest.php:77`**\n- Las credenciales se guardan cifradas, así que comprobar que la respuesta no contiene el texto en claro demuestra poco sobre «no seleccionar columnas cifradas». Una regresión con `select *` sobre el modelo y su serialización pasaría igualmente si el campo estuviera oculto.\n- Mejora: capturar las consultas con `DB::listen` y comprobar que ninguna contiene `access_token` o `refresh_token`.\n\n**T-2 · Minor · `SystemStatusTest.php:82-95`**\n- No se prueban las TTL separadas.\n- Escenario sin cubrir: un cambio de 86400 a 600 en `QueueProbeJob.php:35` no rompería ningún test.\n- Mejora: avanzar el reloj (`travel`) 11 min y 25 h y comprobar los valores.\n\n**T-3 · Minor · tests de feature**\n- Faltan casos para:\n  - la exclusión de cuentas `STATUS_DISCONNECTED`;\n  - `native_cache_seconds` en el informe.\n\n**T-4 · Minor · `tests/e2e/system-status.spec.ts:55`**\n- `toHaveCount(7)` acopla el test al número de casos de `Network`. Añadir una red romperá el E2E sin que haya regresión.\n- Mejora: derivar el número del enum o comprobar `>= 1` más la tarjeta de YouTube.\n\n**T-5 · Hecho faltante · `system-status.spec.ts:37`**\n- La aserción «Cron · Fallo» depende de que ningún scheduler regenere el latido en el slot E2E. Si existe, el test sería intermitente.\n\n## Hechos faltantes concretos (no buscados)\n\n1. Código de `app:queue-probe`: qué colas cubre y si usa `onQueue` (B-2).\n2. Valor de `config('app.timezone')` (B-1).\n3. Si `SocialAccount` usa `SoftDeletes` (B-3).\n4. Manejo de `email_verified_at` en el login social y otras vías de cambio de email (C-1).\n5. Resultados de type-check, build y browser 15 casos sobre el rebase (A).\n\n## Decisiones del padre no reabiertas\n\nNo reabro sin evidencia nueva:\n- la lista de servidor sin `is_admin`;\n- el estado global;\n- YouTube como contador local;\n- la ejecución de la sonda de almacenamiento en el GET, heredada de HealthCheck y documentada.\n\n## Resultado\n\n| Área | Valoración |\n|---|---|\n| A. Aceptación | Aprobable estáticamente; bloqueada para integrar por la verificación del rebase pendiente |\n| B. Corrección | Sin defectos Important; 6 Minor, 3 de ellos condicionados a hechos faltantes |\n| C. Seguridad | Sin hallazgos introducidos; confirmar C-1 antes de cerrar |\n| D. Rendimiento | Correcto |\n| E. Calidad | Buena separación de responsabilidades; Minor E-2 (ruido de formato) y huecos de test T-1 y T-2 |",
+  "ttft_ms": 75858,
+  "type": "result",
+  "duration_ms": 118984,
+  "uuid": "e79b97d4-917d-4e23-83da-c6d6fceabdbe",
+  "ttft_stream_ms": 935,
+  "time_to_request_ms": 124,
+  "first_content_frame_ms": 935,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "model_usage_since_last_result": {
+    "claude-opus-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 12294,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 60172,
+      "webSearchRequests": 0,
+      "costUSD": 0.727264,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 7522,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 60172,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "credential_expires_at": "2026-12-13T13:54:13.42Z"
+}

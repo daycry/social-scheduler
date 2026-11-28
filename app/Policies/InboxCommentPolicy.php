@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\InboxComment;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Support\Facades\Log;
 
 class InboxCommentPolicy
@@ -20,7 +21,7 @@ class InboxCommentPolicy
 
     private function owns(User $user, InboxComment $comment, string $ability): bool
     {
-        if ($comment->user_id === $user->id) {
+        if (Ownership::matches($comment, $user)) {
             return true;
         }
 

@@ -1,0 +1,115 @@
+{
+  "files": [
+    {
+      "path": "CHANGELOG.es.md",
+      "sha256": "1b054836c9215f3c4b9e751ca24e0739a8749472da7bf686d803963cd8c6e04c",
+      "root_before_sha256": "4a94ca4df657e0f6c5edccaf267283832e03e3c6465f48a1fc73b152770b3c1b"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "84108531912881de1179d7c6ed4d5a957efe5d818814d9d7be7ff00563ac8f36",
+      "root_before_sha256": "a5a206f2658b5d38620f6bb26325285612122940ac2c525138b798735f39f4d5"
+    },
+    {
+      "path": "app/Http/Controllers/PostController.php",
+      "sha256": "cdd7ff1251ad8e9b0366005cdf9c6cbb357a4b56aba57d945a88a573408ec3c3",
+      "root_before_sha256": "127d7ca914d550419ff18016be472a9fa09b6052cd016e89e571e2b5b3f99a5a"
+    },
+    {
+      "path": "app/Services/Posts/DuplicatePostResult.php",
+      "sha256": "03f3b9e07c69d1022ad24540f5b0aad7cab7d7ea8696bb07bf9ad27dc67a2c58",
+      "root_before_sha256": null
+    },
+    {
+      "path": "app/Services/Posts/PostDuplicator.php",
+      "sha256": "3b8d31b5bb3379c39373721a0e2865269d14e700aa39b0a8f99fa699ceaa30ea",
+      "root_before_sha256": null
+    },
+    {
+      "path": "app/Services/Posts/PostPlanner.php",
+      "sha256": "155ab768289e5f9a77a2796181b615cb608e8068f1c7b83ced32a206a6d299db",
+      "root_before_sha256": "e2f4303bfaab407c1326e8c7b97ad5a5dfa220759223582136c12a4fb4788fa2"
+    },
+    {
+      "path": "docs/README.md",
+      "sha256": "bbf25eb22fdacb6b44ce7402e909c18f3345041721b9f94b6397482cfdf11b77",
+      "root_before_sha256": "502d6d563495dfb4ecc9d443bb0c565bb259c8236643580c261c05504e93385b"
+    },
+    {
+      "path": "docs/usuario/duplicar.md",
+      "sha256": "552db72f61372da2ba9c8bcd5c515b0d6f5f424797f0e9bbf80675a48e048962",
+      "root_before_sha256": null
+    },
+    {
+      "path": "docs/usuario/guia-de-usuario.md",
+      "sha256": "16f7c0ae9f9379cd5cd3596727378f0f61dfc29abab6cf840a196308a7e42237",
+      "root_before_sha256": "2e5fad0fb17f309d96feb1dba09fc60fec8f62b185b5cb950d48d7edb9ecc4bf"
+    },
+    {
+      "path": "resources/js/Components/Composer/DuplicatePost.vue",
+      "sha256": "6339273e09e37982e3d99d3ce366f372a63b13316693631c26996d997c5ba756",
+      "root_before_sha256": null
+    },
+    {
+      "path": "resources/js/Pages/Posts/Compose.vue",
+      "sha256": "5e3474b2201295c992ffea6b7e1ed9f5cd995a31d4a2b96ed6f9b5ccf5cc0d61",
+      "root_before_sha256": "3440988985fd9cada6c48de07553096db6d4bb3971e9d67bed7cf48bb9209eba"
+    },
+    {
+      "path": "routes/web.php",
+      "sha256": "c4894dfb1412b04ff6611208029386e1718f6e89d48feae0864d81f3b72b0e5b",
+      "root_before_sha256": "9bfbd2f134a24d9922bc36a8567a24bae3a9055999131554a573e7256c8e3963"
+    },
+    {
+      "path": "tests/Feature/Connectors/Google/Publish/YouTubeClientTest.php",
+      "sha256": "0d3a8368785617a34b658304a9121df0d2deaecb9efd353cf609b62722443b46",
+      "root_before_sha256": "2e1fe68cc087b2b6b048c85a1a798727734ed16a26d0b09ca49fab4be9f7cb77"
+    },
+    {
+      "path": "tests/Feature/Library/LibraryTargetTextTest.php",
+      "sha256": "c8788209aba14ace88e090417de5a8e7e5a05155dc4aba899dbc88889adbe6a9",
+      "root_before_sha256": "29de1184a409690fda90165a3f0be12e714cc15fbbe25630ff3f8cb15f9232d7"
+    },
+    {
+      "path": "tests/Feature/Mcp/Tools/McpOptionsTest.php",
+      "sha256": "1aea8e8daaa4dac5d3fa2b67153e5349979d162bb491e83a65eca4626964f3cf",
+      "root_before_sha256": "668d2dbb60b4dab1898211c32c0d35bd83cc94f5d3949f2fcf23012eb8662f58"
+    },
+    {
+      "path": "tests/Feature/Posts/DuplicatePostTest.php",
+      "sha256": "c175f01d8b8db775c80df3341013633bfb47f8dec632e401b6e9207b3fc6fe4f",
+      "root_before_sha256": null
+    },
+    {
+      "path": "tests/Feature/Publishing/PresetsReviewTest.php",
+      "sha256": "7c0d2540104889d7bfd260914edc3947f56df1e0bf7fd6b6d9512afa7626b162",
+      "root_before_sha256": "430e3d28b5edc5b05039f7576bc930049a8e5a153e22cbcc388d1a24a3c7aae6"
+    },
+    {
+      "path": "tests/Feature/Publishing/TikTokOptionsTest.php",
+      "sha256": "fcf08aa3cfaeb24e4f011c606a10f0392476ddcb72bb0cf2625dc716eaf13cfd",
+      "root_before_sha256": "e5cbcbc1665eba801327549746ebd6d206a5b832925f20a65b9738742434a29e"
+    },
+    {
+      "path": "tests/e2e/duplicate-post.spec.ts",
+      "sha256": "46e4fd5bfa48ace56992c8e51a86ee9274ed6decf92beba9d618d77c5c270898",
+      "root_before_sha256": null
+    },
+    {
+      "path": "tsconfig.frontend.json",
+      "sha256": "76bcdc1d1ec8a41e2c0569ff4ff5f965bbc3a4b2214b8581b0cce08a9ff3f36c",
+      "root_before_sha256": "548c9dcce7fb3da4e6ad5c7ffec42742f9f58fb4605177d3d3b4f411281340c3"
+    }
+  ],
+  "changes_after_r3": [
+    "CHANGELOG.es.md",
+    "CHANGELOG.md",
+    "tests/Feature/Posts/DuplicatePostTest.php"
+  ],
+  "new_tests_after_r3": [
+    "tests/Feature/Mcp/Tools/McpOptionsTest.php",
+    "tests/Feature/Publishing/PresetsReviewTest.php",
+    "tests/Feature/Publishing/TikTokOptionsTest.php"
+  ],
+  "patch_sha256": "52c85cfd24c8494b78990b9418398bd66154785d44fee12c8fda9671dea5c921"
+}

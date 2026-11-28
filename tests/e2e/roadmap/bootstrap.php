@@ -2,8 +2,12 @@
 
 declare(strict_types=1);
 use App\Analytics\Metric;
+use App\Connectors\Bluesky\BlueskyComments;
 use App\Connectors\ConnectorRegistry;
+use App\Connectors\Google\YouTubeComments;
+use App\Connectors\Meta\Comments;
 use App\Connectors\Network;
+use App\Connectors\Threads\ThreadsComments;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Application;
@@ -94,6 +98,12 @@ function t43Bootstrap(): Application
             $registry->registerInsights($network, $insights);
         }
     }
+    // Inbox (T-43): las fuentes de comentarios reales (HTTP simulado por cada spec), como en AppServiceProvider.
+    $meta = $app->make(Comments::class);
+    $registry->registerComments(Network::Instagram, $meta)->registerComments(Network::Facebook, $meta)
+        ->registerComments(Network::Threads, $app->make(ThreadsComments::class))
+        ->registerComments(Network::Bluesky, $app->make(BlueskyComments::class))
+        ->registerComments(Network::YouTube, $app->make(YouTubeComments::class));
     $app->instance(ConnectorRegistry::class, $registry);
     Event::listen(NotificationSent::class, function ($event) use ($root): void {
         if ($event->notification instanceof ResetPassword) {

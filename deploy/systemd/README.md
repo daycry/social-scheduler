@@ -3,7 +3,7 @@
 ## Workers systemd
 
 `scheduler-worker@.service` es una unidad plantilla: la instancia es la cola que atiende
-(`publish`, `poll`, `metrics`, `reports`). Parametros: `--max-time=3600 --max-jobs=500` (el worker se recicla
+(`publish`, `poll`, `metrics`, `reports`, `media` y `studio-render`). `studio` tiene su propia unidad para MP4, GIF y miniaturas. Parametros: `--max-time=3600 --max-jobs=500` (el worker se recicla
 solo para evitar fugas de memoria), `Restart=always`, `RestartSec=5`. La unidad va sandboxeada
 (`NoNewPrivileges`, `PrivateTmp`, `ProtectSystem=strict`, `ProtectHome=read-only`): solo escribe en `storage/` y `bootstrap/cache`
 (`ReadWritePaths=`). El PHP CLI se fija con `Environment=PHP_BIN=` (mismo valor que `PHP_BIN` en `deploy.sh`).
@@ -17,11 +17,13 @@ sudo sed -i 's#USUARIO#<usuario hestia>#g; s#DOMINIO#<dominio>#g; s#PHP_BIN=php#
 sudo systemctl edit --full scheduler-worker@.service   # revisar
 systemd-analyze verify /etc/systemd/system/scheduler-worker@.service   # sin errores
 sudo systemctl daemon-reload
-sudo systemctl enable --now scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports
+sudo systemctl enable --now scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports scheduler-worker@media scheduler-worker@studio-render
 ```
 
 Con varios workers sobre la misma cola, exigir MariaDB >= 10.6 / MySQL >= 8.0 (`SKIP LOCKED`);
 `php artisan app:health` lo indica. Con una version anterior, un solo worker por cola.
+
+`scheduler-worker@studio-render` procesa IA, imágenes y exportaciones estáticas. Activa el worker antes de desplegar y conserva los workers `media` y `studio` para los trabajos que ya están encolados. Si configuras `STUDIO_RENDER_QUEUE`, usa ese nombre para la instancia y para `QUEUE_NAMES`.
 
 Para exportaciones estáticas con varias páginas, Studio utiliza PHP `ZipArchive` cuando está disponible. Si falta, el empaquetado usa `scripts/studio/archive.py` con el Python configurado por `STUDIO_PYTHON_BINARY` y su biblioteca estándar: no requiere instalar el modelo de imágenes ni sus paquetes. El fallback escribe ZIP64 por bloques, valida archivos del directorio privado y conserva los límites del renderer. Debe poder ejecutarse ese Python desde el proceso PHP; los fallos de empaquetado conservan la exportación en error y no entregan un ZIP parcial. Las pruebas locales no sustituyen la comprobación del VPS a cargo del usuario.
 
@@ -37,7 +39,9 @@ Para exportaciones estáticas con varias páginas, Studio utiliza PHP `ZipArchiv
 
 ## Worker audiovisual de Studio (preparado, sin instalar)
 
-`scheduler-studio.service` es una unidad dedicada a la cola `database/studio`, separada de las colas actuales y del modelo de quitar fondos. Requiere cgroupv2 con `cgroup.kill` (Linux≥5.14), usuario sin privilegios y delegación de su propio subárbol. `MemoryMax=3G` limita todo el worker/guardián/procesos de fase; `MemorySwapMax=0`, `OOMPolicy=kill` y `KillMode=control-group` cierran el árbol completo ante OOM o parada de la unidad. No reserva3GiB al arrancar.
+Con la configuración por defecto, `scheduler-studio` es necesario para MP4/GIF, miniaturas y la sonda de `app:queue-probe` cada 15 minutos. La unidad atiende `database/studio` (`queue:work database --queue=studio`). Requiere cgroupv2 con `cgroup.kill` (Linux ≥ 5.14), usuario sin privilegios y delegación de su propio subárbol. `MemoryMax=3G` limita todo el worker, el guardián y los procesos de fase. `MemorySwapMax=0`, `OOMPolicy=kill` y `KillMode=control-group` cierran el árbol completo ante OOM o parada de la unidad.
+
+Si omites la unidad, quita `studio` de `QUEUE_NAMES` y fija `STUDIO_THUMBNAILS=false` para dejar de encolar sondas y miniaturas. Las solicitudes de MP4/GIF quedarán en cola y los trabajos pendientes que no se procesen podrán generar avisos de salud.
 
 `Delegate=yes` permite crear únicamente subgrupos UUID en la raíz de esa unidad. Por ello su `ProtectControlGroups=no` difiere del worker genérico; los permisos kernel de usuario siguen impidiendo tocar los cgroups de otras unidades. El supervisor verifica propietario, límite heredado y disponibilidad de kill antes de abrir Node. La limpieza usa `cgroup.kill` del subgrupo propio, nunca nombres de procesos ni un kill global. Los workers existentes no cambian.
 
@@ -46,6 +50,10 @@ Antes de instalar, ajustar User/Group/rutas/PHP_BIN y disponer de Node nativo, F
 Para validar la plantilla preparada, `systemd-analyze verify deploy/systemd/scheduler-studio.service` comprueba su sintaxis. No ejecuta el worker ni acredita permisos de la instalación real.
 
 Las pruebas de cgroup son de integración y requieren `STUDIO_AV_CGROUP_TEST=1` dentro de una unidad temporal delegada y limitada. Sin esa opción se omiten explícitamente; no cuentan como aceptación Linux. Un ejecutable Python mínimo verifica el contrato del supervisor/exec; no sustituye una exportación real mediante Node/FFmpeg/Chromium. Las pruebas del VPS siguen a cargo del usuario.
+
+## Worker de exportaciones de datos (`scheduler-exports`)
+
+`scheduler-exports.service` atiende la cola `exports` (ZIP completo de datos del usuario, T-84) con un job de hasta 3600 s: `queue:work exports --queue=exports --timeout=3600 --tries=1`, `TimeoutStopSec=3700`. Usa su propia conexión de cola `exports` (`retry_after` 3700 s), así que **no** hay que tocar `DB_QUEUE_RETRY_AFTER`. Instálalo igual que `scheduler-worker@` (copiar, sustituir `USUARIO`/`DOMINIO`/`PHP_BIN`, `daemon-reload`, `enable --now scheduler-exports`) y necesita espacio libre en `storage/` para el ZIP completo; ver [Exportación completa de datos](../../docs/modulos/despliegue.md#exportación-completa-de-datos-t-84). Puedes ponerlo en `WORKER_UNITS`: `deploy.sh` lo reinicia con `--no-block` para no esperar a una exportación en curso.
 
 ## Healthcheck
 
@@ -69,6 +77,8 @@ mkdir -p -m 700 ~/.cache/sched
 ```cron
 * * * * * cd /home/USUARIO/web/DOMINIO/app && flock -n $HOME/.cache/sched/publish.lock php artisan queue:work database --queue=publish,poll --stop-when-empty --max-time=55 --timeout=120 --tries=3 >> /dev/null 2>&1
 */5 * * * * cd /home/USUARIO/web/DOMINIO/app && flock -n $HOME/.cache/sched/metrics.lock php artisan queue:work database --queue=metrics,reports --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /dev/null 2>&1
+* * * * * cd /home/USUARIO/web/DOMINIO/app && flock -n $HOME/.cache/sched/media.lock php artisan queue:work database --queue=media --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /dev/null 2>&1
+* * * * * cd /home/USUARIO/web/DOMINIO/app && flock -n $HOME/.cache/sched/studio-render.lock php artisan queue:work database --queue=studio-render --stop-when-empty --max-time=280 --timeout=120 --tries=3 >> /dev/null 2>&1
 ```
 
 Latencia maxima de publicacion = 1 minuto. Es suficiente para el uso personal, pero preferible usar systemd. En cron, usar la ruta absoluta del PHP deseado en lugar de `php`.

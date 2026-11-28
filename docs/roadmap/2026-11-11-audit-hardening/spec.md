@@ -3,7 +3,7 @@ spec: audit-hardening
 descripcion: Dejar la aplicación perfectamente implementada, con todas las funciones operativas, y ampliarla, a partir de la auditoría integral del 2026-11-11
 estado: borrador
 creado: 2026-11-11
-actualizado: 2026-11-11
+actualizado: 2026-11-12
 evaluacion: n/a
 design: n/a
 plan: improvement-plan.md
@@ -41,6 +41,8 @@ Sin Docker; sin proveedores reales ni red externa en las pruebas; no editar `.en
 - [ ] Cada tarea cerrada tiene su `Verificación` ejecutada, revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos y documentación actualizada.
 - [ ] Lo que depende de terceros queda implementado hasta donde es posible, con lo pendiente anotado en la tarea y sin bloquear la fase.
 - [ ] `DECISIONES.md` recoge cada decisión pendiente del usuario con opciones, coste y recomendación.
+- [ ] **Criterio transversal de unidad:** ninguna pantalla nueva o tocada puede introducir componentes, estilos, diálogos ni términos propios del estudio o de la parte social si ya existe uno común; la revisión adversarial lo trata como un gap ([`audit-unificacion.md`](audit-unificacion.md), U-01..U-25).
+- [ ] **Criterio transversal de código limpio:** nada obsoleto ni de compatibilidad hacia atrás. Al sustituir config, abilities, rutas, componentes o APIs internas se borra lo antiguo y se actualizan todos sus usos (con una migración de datos si hay datos guardados), y los cambios quedan en las notas de despliegue. Sin alias, shims, avisos de deprecación ni ramas para formatos antiguos; la revisión adversarial lo trata como un gap.
 
 ## Pruebas
 
@@ -49,4 +51,5 @@ Pest (filtros por tarea, fakes de red), Playwright (`test-plan.md`: E2E-xx autom
 ## Referencias
 
 - [`audit.md`](audit.md) — fuente única de hallazgos.
+- [`audit-unificacion.md`](audit-unificacion.md) — auditoría de unidad (U-01..U-25), incorporada en la Fase 5b.
 - `docs/roadmap/2026-11-03-creative-social-suite/` — suite previa y su retro (lecciones GOT-005/GOT-006).

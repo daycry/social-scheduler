@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Autolist;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Support\Facades\Log;
 
 class AutolistPolicy
@@ -25,7 +26,7 @@ class AutolistPolicy
 
     private function owns(User $user, Autolist $autolist, string $ability): bool
     {
-        if ($autolist->user_id === $user->id) {
+        if (Ownership::matches($autolist, $user)) {
             return true;
         }
 

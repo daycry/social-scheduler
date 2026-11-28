@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { artisan, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, settle, stamp } from './helpers';
 
-test('Presets: global and network panels keep values and reveal collapsed validation fields', async ({ page }, info) => {
+test('Presets: global and network panels keep values and reveal collapsed validation fields', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `presets-${stamp()}-${info.project.name}`);
@@ -77,7 +77,7 @@ test('Presets: global and network panels keep values and reveal collapsed valida
     }
 });
 
-test('Presets: validation opens a collapsed global panel and focuses its date field', async ({ page }, info) => {
+test('Presets: validation opens a collapsed global panel and focuses its date field', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `presets-error-${stamp()}-${info.project.name}`);
@@ -101,7 +101,7 @@ test('Presets: validation opens a collapsed global panel and focuses its date fi
     }
 });
 
-test('Presets: errors panel can collapse and retains correction links', async ({ page }, info) => {
+test('Presets: errors panel can collapse and retains correction links', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `presets-errors-${stamp()}-${info.project.name}`);

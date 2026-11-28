@@ -138,6 +138,15 @@ class UrlGuard
     }
 
     /**
+     * Cliente para una entrega saliente (webhook, push): como client(), y la respuesta remota se descarta sin leerla ni
+     * guardarla. No usa `stream => true`: Guzzle cambiaría al manejador de streams, que rechaza la IP fijada por cURL.
+     */
+    public function deliveryClient(ValidatedUrl $v): PendingRequest
+    {
+        return $this->client($v)->withOptions(['sink' => new DiscardedBody]);
+    }
+
+    /**
      * Pide `$url` con `$send` y sigue a mano hasta 5 redirecciones: cada destino se valida de nuevo (DNS incluido) ANTES
      * de pedirlo, asi que una redireccion a una IP interna nunca llega a hacerse.
      *

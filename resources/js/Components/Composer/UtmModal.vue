@@ -1,13 +1,15 @@
 <script setup>
-import { computed, nextTick, reactive, ref, watch } from 'vue';
+import BaseDialog from '@/Components/BaseDialog.vue';
+import { computed, nextTick, reactive, ref } from 'vue';
 import { UTM_FIELDS, buildUtmUrl, parseHttpUrl } from '@/Composables/utm';
+import { requestJson } from '@/lib/http';
 
 /**
- * Generador de URL con UTM (C-05a). Todo ocurre en el cliente: no hay modelo ni endpoint (el acortador está aplazado). Es un diálogo
+ * Generador de URL con UTM (C-05a). La URL se construye en el cliente; si se marca «Acortar», se crea un enlace corto propio (`/s/código`, T-89) y se inserta ese. Es un diálogo
  * modal con el foco atrapado; Escape lo cierra y el foco vuelve al botón que lo abrió (`returnFocusTo`). Al añadir, emite `insert` con
  * la URL construida con `URL`/`URLSearchParams` y el compositor la inserta en el cursor.
  */
-const props = defineProps({
+defineProps({
     open: { type: Boolean, default: false },
     returnFocusTo: { type: Object, default: null },
 });
@@ -16,7 +18,9 @@ const emit = defineEmits(['insert', 'close']);
 const blank = () => ({ url: '', utm_source: '', utm_medium: '', utm_campaign: '', utm_term: '', utm_content: '' });
 const fields = reactive(blank());
 const touchedUrl = ref(false);
-const root = ref(null);
+const shorten = ref(false);
+const shortError = ref('');
+const shortening = ref(false);
 const urlInput = ref(null);
 
 const urlOk = computed(() => parseHttpUrl(fields.url) !== null);
@@ -25,93 +29,163 @@ const urlError = computed(() => (touchedUrl.value && fields.url.trim() !== '' &&
 
 const clear = () => {
     Object.assign(fields, blank());
+    shortError.value = '';
     touchedUrl.value = false;
     nextTick(() => urlInput.value?.focus());
 };
+// Petición de acortado en curso: cerrar el diálogo la descarta, para que no se inserte un enlace tras cancelar.
+let pending = null;
 const close = () => {
+    pending?.abort();
+    pending = null;
+    shortening.value = false;
+    shortError.value = '';
     emit('close');
-    nextTick(() => props.returnFocusTo?.focus?.());
 };
-const add = () => {
-    if (!result.value) return;
-    emit('insert', result.value);
+const add = async () => {
+    if (!result.value || shortening.value) return;
+    let url = result.value;
+    shortError.value = '';
+    if (shorten.value) {
+        shortening.value = true;
+        const request = new AbortController();
+        pending = request;
+        try {
+            const label = fields.utm_campaign.trim().slice(0, 100);
+            const created = await requestJson('POST', route('shortlinks.store'), {
+                json: { url, label: label || undefined },
+                signal: request.signal,
+                errorMessage: (data) => data?.errors?.url?.[0] || data?.errors?.label?.[0] || data?.message || 'No se pudo acortar el enlace.',
+            });
+            url = created.short_url;
+        } catch (error) {
+            if (!request.signal.aborted) shortError.value = error?.message || 'No se pudo acortar el enlace.';
+            return;
+        } finally {
+            if (pending === request) {
+                pending = null;
+                shortening.value = false;
+            }
+        }
+    }
+    emit('insert', url);
     Object.assign(fields, blank());
     touchedUrl.value = false;
+    shorten.value = false;
     close();
 };
 
-// Enter en un campo del modal nunca envía el formulario del compositor (el modal vive dentro): añade el enlace si está listo.
+// Enter añade el enlace si está listo.
 const addOnEnter = () => {
     if (result.value) add();
-};
-
-watch(() => props.open, async (isOpen) => {
-    if (isOpen) {
-        await nextTick();
-        urlInput.value?.focus();
-    }
-});
-
-const onKeydown = (e) => {
-    if (e.key === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-        close();
-    }
-};
-// Atrapa el foco dentro del diálogo mientras está abierto.
-const onTab = (e) => {
-    const focusable = [...root.value.querySelectorAll('button, input')].filter((el) => !el.disabled);
-    if (!focusable.length) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-    }
 };
 </script>
 
 <template>
-    <div v-if="open" class="fixed inset-0 z-40 flex items-end justify-center bg-slate-900/40 p-3 sm:items-center" @mousedown.self="close">
-        <div
-            ref="root"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="utm-title"
-            class="max-h-full w-full max-w-lg overflow-y-auto rounded-lg bg-white p-4 shadow-xl"
-            data-testid="utm-modal"
-            @keydown="onKeydown"
-            @keydown.tab="onTab"
-        >
-            <h2 id="utm-title" class="text-base font-semibold text-slate-900">Generar enlace con UTM</h2>
-            <p class="mt-1 text-xs text-slate-600">Añade parámetros de seguimiento a un enlace. Se inserta en el texto, donde tengas el cursor.</p>
+    <BaseDialog
+        v-if="open"
+        :open="open"
+        :return-focus-to="returnFocusTo"
+        close-on-backdrop
+        aria-labelledby="utm-title"
+        class="bottom-3 top-auto mx-auto my-0 max-h-[calc(100dvh_-_1.5rem)] w-[calc(100vw_-_1.5rem)] max-w-lg overflow-y-auto rounded-lg border-0 bg-surface p-0 shadow-xl backdrop:bg-overlay-strong/40 sm:inset-y-0 sm:my-auto"
+        data-testid="utm-modal"
+        @close="close"
+    >
+        <div class="p-4">
+            <h2 id="utm-title" class="text-base font-semibold text-foreground-strong">Generar enlace con UTM</h2>
+            <p class="mt-1 text-xs text-foreground-muted"
+                >Añade parámetros de seguimiento a un enlace. Se inserta en el texto, donde tengas el cursor.</p
+            >
 
             <div class="mt-3">
-                <label for="utm-url" class="block text-sm font-medium text-slate-800">Dirección (URL) <span class="text-red-700" aria-hidden="true">*</span></label>
-                <input id="utm-url" ref="urlInput" v-model="fields.url" type="url" inputmode="url" autocomplete="off" required class="field mt-1" placeholder="https://ejemplo.com/oferta" :aria-invalid="!!urlError" aria-describedby="utm-url-error" @blur="touchedUrl = true" @keydown.enter.prevent="addOnEnter" />
-                <p id="utm-url-error" class="mt-1 text-xs text-red-700" role="alert" data-testid="utm-url-error">{{ urlError }}</p>
+                <label for="utm-url" class="block text-sm font-medium text-foreground"
+                    >Dirección (URL) <span class="text-danger" aria-hidden="true">*</span></label
+                >
+                <input
+                    id="utm-url"
+                    ref="urlInput"
+                    data-dialog-initial-focus
+                    v-model="fields.url"
+                    type="url"
+                    inputmode="url"
+                    autocomplete="off"
+                    required
+                    class="field mt-1"
+                    placeholder="https://ejemplo.com/oferta"
+                    :aria-invalid="!!urlError"
+                    aria-describedby="utm-url-error"
+                    @blur="touchedUrl = true"
+                    @keydown.enter.prevent="addOnEnter"
+                />
+                <p
+                    id="utm-url-error"
+                    class="mt-1 text-xs text-danger"
+                    role="alert"
+                    data-testid="utm-url-error"
+                    >{{ urlError }}</p
+                >
             </div>
 
             <div v-for="f in UTM_FIELDS" :key="f.key" class="mt-3">
-                <label :for="`utm-${f.key}`" class="block text-sm font-medium text-slate-800">{{ f.label }} <span class="font-normal text-slate-600">({{ f.key }})</span><span v-if="f.required" class="text-red-700" aria-hidden="true"> *</span></label>
-                <input :id="`utm-${f.key}`" v-model="fields[f.key]" type="text" autocomplete="off" :required="f.required" class="field mt-1" @keydown.enter.prevent="addOnEnter" :aria-describedby="`utm-${f.key}-hint`" />
-                <p :id="`utm-${f.key}-hint`" class="mt-0.5 text-xs text-slate-600">{{ f.hint }}</p>
+                <label :for="`utm-${f.key}`" class="block text-sm font-medium text-foreground"
+                    >{{ f.label }} <span class="font-normal text-foreground-muted">({{ f.key }})</span
+                    ><span v-if="f.required" class="text-danger" aria-hidden="true"> *</span></label
+                >
+                <input
+                    :id="`utm-${f.key}`"
+                    v-model="fields[f.key]"
+                    type="text"
+                    autocomplete="off"
+                    :required="f.required"
+                    class="field mt-1"
+                    @keydown.enter.prevent="addOnEnter"
+                    :aria-describedby="`utm-${f.key}-hint`"
+                />
+                <p :id="`utm-${f.key}-hint`" class="mt-0.5 text-xs text-foreground-muted">{{ f.hint }}</p>
             </div>
 
             <div class="mt-3">
-                <p class="text-sm font-medium text-slate-800">Resultado</p>
-                <p class="mt-1 min-h-[2.5rem] break-all rounded border border-slate-200 bg-slate-50 p-2 text-xs text-slate-800" data-testid="utm-result" aria-live="polite">{{ result || 'Completa la dirección y los campos obligatorios para ver el enlace.' }}</p>
+                <p class="text-sm font-medium text-foreground">Resultado</p>
+                <p
+                    class="mt-1 min-h-[2.5rem] break-all rounded border border-border bg-canvas p-2 text-xs text-foreground"
+                    data-testid="utm-result"
+                    aria-live="polite"
+                    >{{ result || 'Completa la dirección y los campos obligatorios para ver el enlace.' }}</p
+                >
+            </div>
+
+            <div class="mt-3">
+                <label class="flex items-center gap-2 text-sm text-foreground">
+                    <input v-model="shorten" type="checkbox" data-testid="utm-shorten" />
+                    Acortar el enlace y contar sus clics
+                </label>
+                <p class="mt-0.5 text-xs text-foreground-muted"
+                    >Crea un enlace corto tuyo; lo verás con sus clics en SmartLinks.</p
+                >
+                <p class="mt-1 text-xs text-danger" role="alert" data-testid="utm-short-error">{{ shortError }}</p>
             </div>
 
             <div class="mt-4 flex flex-wrap justify-end gap-2">
-                <button type="button" class="btn btn-secondary px-3 py-1 text-sm" data-testid="utm-clear" @click="clear">Limpiar</button>
-                <button type="button" class="btn btn-secondary px-3 py-1 text-sm" data-testid="utm-cancel" @click="close">Cancelar</button>
-                <button type="button" class="btn btn-primary px-3 py-1 text-sm" :disabled="!result" data-testid="utm-add" @click="add">Añadir</button>
+                <button type="button" class="btn btn-secondary px-3 py-1 text-sm" data-testid="utm-clear" @click="clear"
+                    >Limpiar</button
+                >
+                <button
+                    type="button"
+                    class="btn btn-secondary px-3 py-1 text-sm"
+                    data-testid="utm-cancel"
+                    @click="close"
+                    >Cancelar</button
+                >
+                <button
+                    type="button"
+                    class="btn btn-primary px-3 py-1 text-sm"
+                    :disabled="!result || shortening"
+                    data-testid="utm-add"
+                    @click="add"
+                    >Añadir</button
+                >
             </div>
         </div>
-    </div>
+    </BaseDialog>
 </template>

@@ -1,4 +1,3 @@
-import { PDFDocument } from 'pdf-lib';
 import { FabricImage, Group } from 'fabric';
 import { selectPages, validateDocument, StudioDocumentError } from './document.js';
 import { renderStudioFrame } from './frame-renderer.js';
@@ -92,7 +91,9 @@ export async function exportPage(documentData, pageId, assets = [], options = {}
     const times = frameTimes(document, [pageId], options.frame_times);
     if (format === 'pdf') return exportPdf(document, [pageId], assets, options);
     const { scale, quality, width, height } = rasterOptions(document, options);
-    const rendering = await renderStudioFrame(document, pageId, times.get(pageId), assets, options.fonts ?? [], { chartResources: options.chartResources });
+    // Sin instante explícito para esta página, las animaciones se evalúan en reposo; con él, en ese instante.
+    const settled = !options.frame_times?.some(item => item.page_id === pageId);
+    const rendering = await renderStudioFrame(document, pageId, times.get(pageId), assets, options.fonts ?? [], { chartResources: options.chartResources, settled });
     try {
         if (options.transparent) {
             rendering.canvas.backgroundColor = '#ffffff00';
@@ -132,6 +133,12 @@ export async function exportPdf(documentData, pageIds, assets = [], options = {}
     const document = validateDocument(documentData);
     const pages = selectPages(document, pageIds);
     const times = frameTimes(document, pages.map(page => page.id), options.frame_times);
+    const pinned = id => Boolean(options.frame_times?.some(item => item.page_id === id));
+    const { PDFDocument } = await import('pdf-lib').catch(cause => {
+        const error = new StudioDocumentError('No se pudo cargar el generador de PDF. Recarga la página.');
+        error.cause = cause;
+        throw error;
+    });
     const sampled = document.schema_version === 2 ? pages.map(page => ({ ...page, elements: frameElements(page.elements, times.get(page.id), page.duration) })) : pages;
     return withExportFonts(sampled, options.fonts ?? [], async () => {
         const pdf = await PDFDocument.create();
@@ -140,7 +147,7 @@ export async function exportPdf(documentData, pageIds, assets = [], options = {}
         const pageWidth = document.width * 72 / 96;
         const pageHeight = document.height * 72 / 96;
         for (let i = 0; i < pages.length; i++) {
-            const image = await exportPage(document, pages[i].id, assets, { ...options, format: 'png', frame_times: document.schema_version === 2 ? [{ page_id: pages[i].id, time: times.get(pages[i].id) }] : undefined });
+            const image = await exportPage(document, pages[i].id, assets, { ...options, format: 'png', frame_times: document.schema_version === 2 && pinned(pages[i].id) ? [{ page_id: pages[i].id, time: times.get(pages[i].id) }] : undefined });
             const bitmap = await pdf.embedPng(await image.arrayBuffer());
             const page = pdf.addPage([pageWidth, pageHeight]);
             page.drawImage(bitmap, { x: 0, y: 0, width: pageWidth, height: pageHeight });
@@ -155,6 +162,7 @@ export async function exportDesign(documentData, { format = 'png', pageIds, asse
     const pages = selectPages(document, pageIds);
     const target = metadata(format);
     const times = frameTimes(document, pages.map(page => page.id), options.frame_times);
+    const pinned = id => Boolean(options.frame_times?.some(item => item.page_id === id));
     const sampled = document.schema_version === 2 ? pages.map(page => ({ ...page, elements: frameElements(page.elements, times.get(page.id), page.duration) })) : pages;
     const hasCharts = elements => elements.some(element => element.type === 'chart' || (element.type === 'group' && hasCharts(element.elements)));
     if (sampled.some(page => hasCharts(page.elements))) {
@@ -164,21 +172,9 @@ export async function exportDesign(documentData, { format = 'png', pageIds, asse
         if (format === 'pdf') return [{ blob: await exportPdf(document, pages.map(page => page.id), assets, options), pageId: null, extension: target.extension, mime: target.mime }];
         const output = [];
         for (let i = 0; i < pages.length; i++) {
-            output.push({ blob: await exportPage(document, pages[i].id, assets, { ...options, format, frame_times: document.schema_version === 2 ? [{ page_id: pages[i].id, time: times.get(pages[i].id) }] : undefined }), pageId: pages[i].id, extension: target.extension, mime: target.mime });
+            output.push({ blob: await exportPage(document, pages[i].id, assets, { ...options, format, frame_times: document.schema_version === 2 && pinned(pages[i].id) ? [{ page_id: pages[i].id, time: times.get(pages[i].id) }] : undefined }), pageId: pages[i].id, extension: target.extension, mime: target.mime });
             options.onProgress?.({ completed: i + 1, total: pages.length });
         }
         return output;
     });
-}
-
-export function downloadBlob(blob, filename) {
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.rel = 'noopener';
-    document.body.append(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 30000);
 }

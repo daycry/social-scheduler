@@ -1,0 +1,120 @@
+{
+  "duration_api_ms": 178663,
+  "stop_reason": "end_turn",
+  "session_id": "60f81cf2-4f30-4704-abbf-84619bea6730",
+  "total_cost_usd": 1.940848,
+  "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 197790,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 17926,
+    "output_tokens_details": {
+      "thinking_tokens": 13125
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 197790,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 17926,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 197790,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 197790
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-opus-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 17926,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 197790,
+      "webSearchRequests": 0,
+      "costUSD": 1.940848,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 13125,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 197790,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 1,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "# Revisión adversarial T-80, intento 2/3: reevaluación de R1 y del parche corregido\n\n## Veredicto\n\n**Todavía no se puede cerrar.** Hay dos motivos.\n\n1. **Un Important nuevo (I-4).** La propia corrección de I-3 lo introduce: el `retryUntil` fijo de 3 h convierte una caída o un atasco largo de workers en la pérdida terminal de entregas sin ningún intento HTTP.\n2. **Gates pendientes.** Faltan los finales de PHP completo, MySQL 41/279 y navegador sobre el diff corregido. No les atribuyo los resultados de R1 ni el 33/240 previo.\n\nI-1, I-2 e I-3 (en su núcleo) quedan cerrados. Las correcciones M-1, M-2, M-5 (parcial), M-6 y M-8 son correctas.\n\n---\n\n## Reevaluación de los hallazgos de R1\n\n### I-1 · Atomicidad del outbox en publicación: cerrado\n\nEl hecho que faltaba se ha aportado.\n\n- `PostTransitions.php:50-58` envuelve la transición en `DB::transaction`, relee con lock y llama a `apply → save`. El observer se dispara dentro de esa transacción.\n- `PublishOutcomes::published/failed`, `PollPublishStatus` y `PublishRecovery` pasan todos por `PostService::transition`.\n- Las llamadas directas a `apply` de `PostScheduling` están dentro de `DB::transaction`.\n- No veo ningún `update()` masivo sobre `status`. `PublishPostTarget.php:120` solo actualiza `progress`, y `:182` solo `status_note`.\n\nLa prueba `WebhookDeliveryTest.php:96-116` comprueba que el destino sigue en `Publishing` y que no quedan eventos, entregas ni jobs. Es cobertura válida. No pido RED porque el comportamiento ya era correcto.\n\nConsecuencia aceptable: un fallo del outbox deja el destino en `publicando`. Lo recupera `PublishRecovery::resumeStuck`, que consulta la red antes de republicar (`PublishPostTarget.php:124-126`).\n\n### I-2 · SQLite en producción: cerrado como Minor documentado\n\n- `.env.production.example:14-15` declara MySQL/MariaDB.\n- `docs/api/webhooks.md:78` documenta el bloqueo global de escritura de SQLite y desaconseja ese motor para producción.\n\nNo es un defecto contra el contrato.\n\n### I-3 · DNS dentro de la transacción y acoplamiento tries/intentos: núcleo cerrado, residuo Minor (M-9)\n\n**DNS fuera de la transacción.**\n- `WebhookDeliveryRunner.php:29,85-101` resuelve el DNS antes de abrir la transacción.\n- La elegibilidad se reevalúa bajo lock en `:42`.\n- La reactivación durante la prelectura no envía una URL sin validar (`:53-55`).\n- La prueba `WebhookDeliveryTest.php:44-56` verifica a la vez el nivel de transacción y la pausa durante la resolución.\n\n**`$tries` desacoplado de `MAX_ATTEMPTS`.**\n- `DeliverWebhook.php:17` fija `$tries = 0`, y `:31-34` define `retryUntil`.\n- El límite de negocio sigue en el runner (`:47, :72`).\n- La prueba con `Worker` y `QueueManager` reales (`:58-82`) acredita 1 error inesperado + 5 respuestas 503, con resultado `exhausted/http_error` y 5 intentos.\n- Mi lectura de `Worker.php:730-747, 790-801` es coherente con ese resultado.\n\n**`retry_after`.** Es 180 s en `config/queue.php:52,81`, mayor que el `timeout` de 20 s. No hay riesgo de redelivery concurrente por timeout.\n\n### M-1 · Cerrado\n\n`Runner.php:117` captura también la `TransferException` de Guzzle. Capturar `Illuminate\\Http\\Client\\RequestException` es código muerto, porque solo se lanza con `->throw()`, pero es inocuo.\n\n### Resto de hallazgos menores\n\n| Hallazgo | Estado |\n|---|---|\n| M-2 | Cerrado (`WebhookDomainObserver.php:24,38`) |\n| M-3 | Política opcional aceptada |\n| M-4 | Política opcional aceptada |\n| M-5 | Aceptado como opcional (ver eje E) |\n| M-6 | Cerrado |\n| M-7 | Cerrado salvo el hueco que abre I-4 |\n| M-8 | Cerrado (`webhooks.spec.ts:33`, `artisan` separado y primero) |\n\n---\n\n## Hallazgos nuevos\n\n### I-4 · Important (regresión introducida en R2): una caída de workers de más de 3 h termina entregas sin ningún intento y el barrido no las recupera\n\n**Ubicación:**\n- `app/Jobs/DeliverWebhook.php:27,31-34,53-56`\n- `app/Services/Webhooks/WebhookDeliveryRunner.php:135-140`\n- `vendor/.../Queue/Worker.php:730-747`\n- `docs/api/webhooks.md:76,90`\n\n**Escenario:**\n1. A las 10:00 se publica un post y se encola `DeliverWebhook`. El payload persiste `retryUntil` = 13:00.\n2. El VPS o el supervisor de workers cae a las 10:01. El sistema ya contempla este caso: `PublishRecovery` existe precisamente «al volver de una caída del VPS».\n3. Los workers vuelven a las 14:00. Al hacer pop, `markJobAsFailedIfAlreadyExceedsMaxAttempts` detecta `now > retryUntil` y llama a `failJob` sin ejecutar `handle()`.\n4. `failed()` → `markFailed` deja la entrega en `exhausted/worker_failed` con `attempts = 0` y `last_http_status = null`.\n5. `DispatchPendingWebhooks` solo selecciona `pending`, así que el evento se pierde de forma definitiva. La UI muestra «Reintentos agotados» cuando no hubo ningún reintento.\n\n**Variantes del mismo defecto:**\n- **Cola atascada.** Una cola `poll` compartida con más de unas 3 h de cola acumulada tiene el mismo efecto (relacionado con M-4).\n- **Caída a mitad del calendario.** Tras el 4.º intento (unos T0+21 min), el release de 3600 s conserva el payload original. Una caída de los workers entre unos T0+80 min y T0+3 h termina la entrega con 4 intentos.\n\n**Por qué es regresión:** con `$tries = 5` (R1) el job, al hacer pop tras la caída, simplemente se ejecutaba.\n\n**Por qué choca con el contrato:**\n- El criterio de aceptación pide que los reintentos «se agotan y se registran».\n- `docs/api/webhooks.md:76` presenta el outbox como recuperable tras fallos de infraestructura.\n- `:90` habla de «fallos de infraestructura durante tres horas», no de una vida máxima de la entrega.\n\n**Corrección propuesta:**\n- No convertir en terminal por plazo del job una entrega con `attempts < MAX_ATTEMPTS`.\n- En `markFailed`, si la entrega es reciente (por ejemplo, `created_at` posterior a `now - 24 h`, configurable), solo poner `next_attempt_at = now()` y dejarla `pending`. El lock único se libera al fallar el job, así que el barrido la reencola con un plazo nuevo.\n- Marcar `worker_failed` solo cuando se supere esa vida máxima de la entrega. Esto mantiene la cota frente a errores deterministas.\n\n**Test que falta:** con el mismo `Worker` real, avanzar `Carbon` 3 h + 1 s antes del primer `runNextJob` y comprobar dos cosas:\n- la entrega sigue `pending`;\n- tras ejecutar el barrido, se envía 1 HTTP y queda `attempts = 1`.\n\n**Alternativa de política:** si producto decide que la vida total de una entrega es de 3 h, debe:\n- documentarlo como tal en `webhooks.md:76,90`;\n- usar un motivo distinto de «Reintentos agotados», como `expired`.\n\nEn ese caso el hallazgo baja a Minor. Hoy la documentación no lo dice.\n\n### M-9 · Minor (D/C, disponibilidad): más muertes de worker por DNS lento\n\n**Ubicación:**\n- `DeliverWebhook.php:17,21`\n- `WebhookDeliveryRunner.php:29`\n- `UrlGuard.php:290-303`\n\n**Escenario:**\n1. Un usuario configura su propio DNS autoritativo para que no responda.\n2. Las consultas A y AAAA del stub resolver suman unos 20 s.\n3. La alarma pcntl mata el worker. El job no falla, porque `retryUntil` está en el futuro y `failOnTimeout` es falso.\n4. Laravel lo reentrega cada 180 s (`retry_after`) durante 3 h: unas 60 muertes por entrega.\n5. Con 20 receptores y eventos frecuentes, el worker único de `QUEUE_NAMES` (que también publica) se reinicia de forma continua.\n\nEn R1 la cota era de 5 muertes por entrega, de modo que es una amplificación nueva. Ya no hay locks retenidos durante el DNS, así que el impacto se limita a la disponibilidad.\n\n**Corrección:** contar las caídas como excepciones con `maxExceptions` (por ejemplo, 3) más el mecanismo `countCrashesAsExceptions`. `Worker.php:359,656,762-779` lee la clave de payload correspondiente.\n\n**Hecho que falta:** el nombre exacto de la propiedad o atributo del job que activa `countCrashesAsExceptions` en la versión instalada.\n\n**Alternativa:** documentar este coste junto a `webhooks.md:90`.\n\n### N-1 · Nit (documentación)\n\n`docs/api/webhooks.md:96` dice «Los handlers se invocan directamente». Hoy existe una prueba con `Worker::runNextJob` real en proceso. Conviene matizarlo: hay worker en proceso, pero no hay daemon del sistema operativo ni señal pcntl real.\n\n---\n\n## Ejes\n\n### A · Conformidad con el contrato\n\nSe cumplen:\n- HMAC sobre los bytes persistidos.\n- SSRF con validación al crear y en cada intento.\n- IP fijada, sin redirecciones ni proxy.\n- Secreto cifrado y en `app:reencrypt`.\n- Límites de suscripciones y de cambios por minuto.\n- Backoff 60/300/900/3600 s.\n- Outbox atómico tanto en publicación (I-1 verificado) como en inbox.\n\n**No se cumple:** los reintentos «se agotan y se registran» bajo una caída larga (I-4).\n\n**Pendiente:** los gates finales de PHP completo, MySQL 41/279 y navegador sobre este diff, y la segunda revisión real. El rollback y la nueva aplicación de las migraciones en MySQL 8.4.3 se aceptan; el error del probe queda explicado y no se cambió código de migración.\n\n### B · Corrección\n\n- La máquina de estados, la idempotencia y la serialización bajo lock son correctas.\n- La reentrada mediante `return 1` es acotada.\n- Las excepciones no clasificadas ya no consumen intentos de negocio.\n- El defecto abierto es I-4.\n\n### C · Seguridad\n\n- Sin Critical ni Important.\n- La prelectura fuera de la transacción usa `ownedBy($delivery->user_id)`, y la propiedad y la marca se revalidan bajo lock antes del HTTP.\n- La URL es inmutable, así que no hay TOCTOU explotable.\n- Solo queda la parte de disponibilidad de M-9.\n\n### D · Rendimiento\n\n- Corregido: ya no hay lock de fila durante el DNS.\n- Corregido: menos consultas sin suscriptores.\n- Queda M-9.\n- La doble comprobación de suscriptores (observer y dispatcher) es una consulta extra aceptable y está justificada.\n\n### E · Calidad del código\n\nMejoras aplicadas:\n- Mejora clara con `prepareUrl`, `eligible`, `send` y `classify`, y con el resultado tipado.\n- Casts `brand_id` en ambos modelos.\n- Validación HTTPS y límite centralizados.\n\nPuntos menores que quedan:\n- `run()` sigue siendo un closure de unas 50 líneas.\n- `last_error` se asigna en `:63` y otra vez en `finish()`.\n\nOpcional y aceptado como política:\n- enum de estados;\n- observers separados;\n- `dontFlash`.\n\n---\n\n## Política opcional (no son defectos)\n\n- Retención y poda de eventos y entregas (M-3).\n- Cola dedicada por defecto (M-4).\n- Vida máxima explícita de una entrega, si se adopta para I-4.\n- Reactivar entregas canceladas.\n- Rotación del secreto con dos firmas simultáneas.\n\n---\n\n## Para cerrar\n\n1. Corregir I-4 con su test de Worker real, o adoptar y documentar la política alternativa con su propio motivo de estado.\n2. Decidir M-9: añadir `maxExceptions` más el conteo de caídas, o documentar el coste.\n3. Repetir los gates finales de PHP completo, MySQL 41/279 y navegador sobre el diff definitivo.\n4. Hacer la segunda revisión real.",
+  "ttft_ms": 135168,
+  "type": "result",
+  "duration_ms": 178819,
+  "uuid": "f5818a2d-ca04-42d0-b7ec-b454b6257974",
+  "ttft_stream_ms": 1356,
+  "time_to_request_ms": 153,
+  "first_content_frame_ms": 1356,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "model_usage_since_last_result": {
+    "claude-opus-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 17926,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 197790,
+      "webSearchRequests": 0,
+      "costUSD": 1.940848,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 13125,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 197790,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "credential_expires_at": "2026-12-13T13:54:13.42Z"
+}

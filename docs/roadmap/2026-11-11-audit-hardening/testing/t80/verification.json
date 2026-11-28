@@ -1,0 +1,107 @@
+{
+  "task": "T-80",
+  "date": "2026-11-18",
+  "status": "completed",
+  "candidate_files": 37,
+  "source_files": 1832,
+  "integrated_byte_exact": true,
+  "reverse_patch_check": true,
+  "source_verified_after_qa_and_integration": true,
+  "pest": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 4450,
+    "passed": 4441,
+    "assertions": 29815,
+    "duration_ms": 362947,
+    "skipped": 9,
+    "raw": [
+      "{\"peak_php_bytes\":467664896,\"memory_limit\":\"512M\"}",
+      "allocator_peak_bytes=501219328"
+    ]
+  },
+  "sqlite_focal_with_rotation": {
+    "passed": 44,
+    "assertions": 293
+  },
+  "mysql_focal_with_rotation": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 44,
+    "passed": 44,
+    "assertions": 293,
+    "duration_ms": 9939,
+    "version": "8.4.3",
+    "disposable": true
+  },
+  "sqlite_real_process_probe": {
+    "rounds": 5,
+    "processes_per_round": 2,
+    "one_request_and_committed_attempt_per_round": true
+  },
+  "migration_rollback_and_reapply": true,
+  "node": {
+    "passed": 789,
+    "failed": 0,
+    "same_JS_TS_bytes_as_r52": true
+  },
+  "typecheck": {
+    "errors": 0,
+    "includes_E2E": true
+  },
+  "style_build": "Pint/ESLint/Prettier/type/build r61 green",
+  "playwright_expanded": {
+    "stats": {
+      "startTime": "2026-11-18T06:23:53.583Z",
+      "duration": 338515.931,
+      "expected": 45,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "qa_gate": "VERDE",
+    "report": "C:\\laragon\\www\\metricool\\.cache\\t80-physical\\storage\\framework\\testing\\t43\\run-general-2dc424f2-3a78-414b-a69c-d41b86583a4e\\results.json",
+    "sha256": "4e6ed70103bfe2ced18f26bd9770e6b780c7793890ef3effbfaca199f029169b"
+  },
+  "playwright_final": {
+    "stats": {
+      "startTime": "2026-11-18T06:32:11.270Z",
+      "duration": 62245.735,
+      "expected": 6,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "qa_gate": "VERDE",
+    "report": "C:\\laragon\\www\\metricool\\.cache\\t80-physical\\storage\\framework\\testing\\t43\\run-general-8655321c-311a-4bfc-8fe4-8780798c9eeb\\results.json",
+    "sha256": "57bdff93648424f372d78c0e142a6bbbb1683a900013533e1a8f74b348327169"
+  },
+  "review": {
+    "requested_model": "claude-opus-5-5",
+    "actual_model": "claude-opus-5-5",
+    "rounds": 3,
+    "effort": "high",
+    "includes_code_quality": true,
+    "critical_open": 0,
+    "important_open": 0,
+    "post_review_changed_files": [
+      "docs/api/webhooks.md",
+      "tests/Feature/Webhooks/WebhookDeliveryTest.php"
+    ],
+    "remaining_minor_policies": "M10 DNS terminal documented; M11 queue accumulation documented; optional quality choices accepted",
+    "static_only": true,
+    "final_report": "reviews/r3-report.md",
+    "receipt": "reviews/r3-opus55.json"
+  },
+  "limits": [
+    "Global4441/9 precedes only the reviewer-directed native Worker fixture and explicit DNS/queue policy documentation; all runtime PHP/JS/TS bytes unchanged. Final44/293 SQLite/MySQL verify the final fixture.",
+    "Broad45 precedes only job retry metadata, PHP test coverage and docs; final6 focal runs final source. Counts overlap and are not summed.",
+    "Node789 r52 precedes only PHP/doc changes; JS/TS bytes identical.",
+    "Native QueueManager/Worker tests run in-process; crash markers simulated, no OS daemon/pcntl signal claimed.",
+    "Two real PHP processes compete over disposable SQLite with fake HTTP. MySQL module/rollback use owned MySQL8.4.3.",
+    "Production MySQL/MariaDB; SQLite global writer lock during HTTP documented as development/test limitation.",
+    "Persistent shared worker cache required for maxExceptions/CountCrashesAsExceptions; framework counters expire after one day.",
+    "Receiver deduplicates stable event id after ambiguous crashes; no exactly-once or real remote receiver claim.",
+    "No private env, production DB, user28, commit, push or merge."
+  ]
+}

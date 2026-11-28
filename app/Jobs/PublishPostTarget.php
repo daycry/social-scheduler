@@ -16,7 +16,7 @@ use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\PublishAttempt;
 use App\Models\SocialAccount;
-use App\Services\PostService;
+use App\Services\Posts\PostTransitions;
 use App\Services\PublishOutcomes;
 use App\Services\PublishRequestFactory;
 use App\Services\QuotaPolicy;
@@ -72,8 +72,10 @@ class PublishPostTarget implements ShouldBeUnique, ShouldQueue
         PublishOutcomes $outcomes,
         PublishRequestFactory $requests,
         SocialAccountService $accounts,
+        PostTransitions $transitions,
+        QuotaPolicy $quota,
     ): void {
-        $claim = $this->claim($outcomes);
+        $claim = $this->claim($outcomes, $transitions);
 
         if ($claim === null) {
             return; // ya publicada, en vuelo en otro worker, aplazada o replanificada
@@ -136,7 +138,7 @@ class PublishPostTarget implements ShouldBeUnique, ShouldQueue
         } catch (ReconnectRequiredException $e) {
             $this->requireReconnection($accounts, $outcomes, $account, $target, $attempt, $e->getMessage());
         } catch (QuotaExceededException $e) {
-            app(QuotaPolicy::class)->apply($target, $e, $attempt);
+            $quota->apply($target, $e, $attempt);
         } catch (PermanentPublishException $e) {
             $outcomes->failed($target, $e->errorCode ?? 'rechazada', $e->getMessage(), $attempt);
         } catch (TransientPublishException|ConnectorException $e) {
@@ -191,9 +193,9 @@ class PublishPostTarget implements ShouldBeUnique, ShouldQueue
      *
      * @return array{0: PostTarget, 1: PublishAttempt, 2: bool}|null
      */
-    private function claim(PublishOutcomes $outcomes): ?array
+    private function claim(PublishOutcomes $outcomes, PostTransitions $transitions): ?array
     {
-        return DB::transaction(function () use ($outcomes): ?array {
+        return DB::transaction(function () use ($outcomes, $transitions): ?array {
             $exhausted = false;
             $target = PostTarget::withoutUserScope()->lockForUpdate()->find($this->targetId);
             $post = $target ? Post::withoutUserScope()->find($target->post_id) : null;
@@ -213,7 +215,7 @@ class PublishPostTarget implements ShouldBeUnique, ShouldQueue
                     return null;
                 }
 
-                $target = app(PostService::class)->transition($target, PostStatus::Publishing, ['attempts' => $target->attempts + 1]);
+                $target = $transitions->transition($target, PostStatus::Publishing, ['attempts' => $target->attempts + 1]);
             } elseif ($target->status === PostStatus::Publishing) {
                 // En vuelo en otro worker: no tocar. Colgado: se retoma como un reintento mas.
                 $stuckAfter = (int) config('publishing.stuck_after_minutes', 10);

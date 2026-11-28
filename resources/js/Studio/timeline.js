@@ -1,4 +1,5 @@
 import { validateCaptions } from './captions.js';
+import { effectiveWindow, fitAnimation, normalizeAnimation, splitAnimation, ungroupAnimation } from './object-animation.js';
 /** Time is document data. No URLs, expressions, executable filters or browser clocks are persisted. */
 export const TIMELINE_FPS = Object.freeze([12, 15, 24, 25, 30, 50, 60]);
 const EPS = 1e-9;
@@ -61,6 +62,7 @@ export function normalizeTimelineDocument(input, spatialValidator) {
         if (!plain(element)) fail(path, 'elemento no válido.');
         const result = { ...element };
         delete result.timing;
+        delete result.animation;
         if (element.type === 'video') for (const key of ['playbackRate', 'sourceOffset', 'loop', 'gainPoints']) delete result[key];
         if (element.type === 'group' && Array.isArray(element.elements)) result.elements = Array.from(element.elements, (child, i) => strip(child, `${path}.elements.${i}`));
         return result;
@@ -84,6 +86,7 @@ export function normalizeTimelineDocument(input, spatialValidator) {
             if (length <= 0 || start + length <= start || start + length > duration + EPS) fail(`${path}.timing`, 'la ventana debe ser positiva y quedar dentro de la página.');
             element.timing = { start, duration: length };
         }
+        if (own(original, 'animation')) element.animation = normalizeAnimation(original.animation, element.timing?.duration ?? duration, `${path}.animation`);
         if (element.type === 'video') Object.assign(element, mediaFields(original, element.timing?.duration ?? duration, path));
         if (element.type === 'group') element.elements.forEach((child, i) => apply(child, original.elements[i], duration, `${path}.elements.${i}`));
     };
@@ -259,15 +262,30 @@ function checkedResult(document) {
     return normalizeTimelineDocument(document, spatial => spatial);
 }
 
+function splitElementAnimations(left, right, window, cut, pageDuration) {
+    if (left.animation) {
+        const before = clamp(cut - window.start, 0, window.duration);
+        const parts = splitAnimation(fitAnimation(left.animation, window.duration), before, window.duration - before);
+        for (const [half, animation] of [[left, parts.left], [right, parts.right]]) {
+            if (animation) half.animation = animation; else delete half.animation;
+        }
+    }
+    if (left.type === 'group') left.elements.forEach((child, index) => {
+        splitElementAnimations(child, right.elements[index], effectiveWindow(windowFor(child, pageDuration), window), cut, pageDuration);
+    });
+}
+
 /** Remove an ancestor without changing the child's effective time, media phase or envelope. */
-export function restrictElementWindow(element, parentWindow, { pageDuration, sourceDuration } = {}) {
+export function restrictElementWindow(element, parentWindow, { pageDuration, sourceDuration, parentAnimation, centered, sharedOpacity, onAnimationLoss } = {}) {
     const result = JSON.parse(JSON.stringify(element));
     const window = windowFor(element, pageDuration);
-    const start = Math.max(window.start, parentWindow.start);
-    const end = Math.min(window.start + window.duration, parentWindow.start + parentWindow.duration);
-    if (end <= start) { result.visible = false; return result; }
-    const from = start - window.start, to = end - window.start;
-    result.timing = { start, duration: end - start };
+    const shared = effectiveWindow(window, parentWindow);
+    if (shared.duration <= 0) { result.visible = false; return result; }
+    const from = shared.start - window.start, to = from + shared.duration;
+    result.timing = shared;
+    const { animation, loss } = ungroupAnimation(element.animation, parentAnimation, parentWindow, shared, { centered, sharedOpacity });
+    if (Object.keys(animation).length) result.animation = animation; else delete result.animation;
+    if (loss && element.visible !== false) onAnimationLoss?.();
     if (element.type === 'video') {
         const source = sourceWindow(element, sourceDuration);
         const position = source.offset + from * (element.playbackRate ?? 1);
@@ -282,10 +300,12 @@ export function splitTimelineElement(document, pageId, elementId, cut, options =
     const result = JSON.parse(JSON.stringify(document));
     const page = result.pages.find(page => page.id === pageId);
     if (!page) fail('page', 'la página no existe.');
-    const find = elements => {
+    const find = (elements, parent) => {
         for (let i = 0; i < elements.length; i++) {
-            if (elements[i].id === elementId) return { elements, index: i, element: elements[i] };
-            if (elements[i].type === 'group') { const child = find(elements[i].elements); if (child) return child; }
+            const element = elements[i];
+            const effective = effectiveWindow(windowFor(element, page.duration), parent);
+            if (element.id === elementId) return { elements, index: i, element, effective };
+            if (element.type === 'group') { const child = find(element.elements, effective); if (child) return child; }
         }
     };
     const found = find(page.elements);
@@ -294,6 +314,7 @@ export function splitTimelineElement(document, pageId, elementId, cut, options =
     const { left, right, before, after } = halves(found.element, window, cut, document.timeline.fps, options.sourceDuration);
     left.timing = { start: window.start, duration: before };
     right.timing = { start: cut, duration: after };
+    splitElementAnimations(left, right, found.effective, cut, page.duration);
     const ids = collectIds(document);
     const remap = element => { element.id = uniqueId(ids, options.createId); if (element.type === 'group') element.elements.forEach(remap); };
     remap(right);

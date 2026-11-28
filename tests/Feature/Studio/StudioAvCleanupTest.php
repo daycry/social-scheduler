@@ -7,11 +7,14 @@ use App\Models\Studio\StudioAvLease;
 use App\Models\Studio\StudioAvWorkspace;
 use App\Models\User;
 use App\Services\Studio\StudioAssets;
+use App\Services\Studio\StudioAvAcceptance;
 use App\Services\Studio\StudioAvCheckpointCorrupt;
 use App\Services\Studio\StudioAvCleanup;
 use App\Services\Studio\StudioAvFiles;
-use App\Services\Studio\StudioAvState;
+use App\Services\Studio\StudioAvLeases;
+use App\Services\Studio\StudioAvLifecycle;
 use App\Services\Studio\StudioAvStorage;
+use App\Services\Studio\StudioAvStore;
 use App\Services\Studio\StudioService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -32,14 +35,13 @@ beforeEach(function () {
     $design = app(StudioService::class)->create($this->user, $this->brand, ['name' => 'AV cleanup', 'document' => $document]);
     $export = DesignExport::create(['user_id' => $this->user->id, 'brand_id' => $this->brand->id, 'design_id' => $design->id,
         'revision' => 1, 'format' => 'mp4', 'pages' => ['one'], 'options' => ['scale' => 1, 'quality' => 0.94], 'status' => 'pending']);
-    $this->state = app(StudioAvState::class);
-    $this->export = $this->state->initialize($this->user, $export);
+    $this->export = app(StudioAvLifecycle::class)->initialize($this->user, $export);
     $this->plan = ['frameCount' => 12, 'fps' => 12, 'duration' => 1, 'sampleRate' => 48000, 'segmentFrames' => 12, 'segmentCount' => 1,
         'selection' => ['one'], 'assetIds' => [$this->media->id], 'fontIds' => [], 'audioAssetIds' => [],
         'render' => ['width' => 100, 'height' => 80, 'paddedWidth' => 100, 'paddedHeight' => 80, 'scale' => 1, 'quality' => 0.94]];
     $this->generation = $this->export->render_state['generation'];
-    $this->state->accept($this->state->claim($export->id, $this->generation), $this->plan);
-    $this->lease = $this->state->claim($export->id, $this->generation, strlen($bytes));
+    app(StudioAvAcceptance::class)->accept(app(StudioAvLeases::class)->claim($export->id, $this->generation), $this->plan);
+    $this->lease = app(StudioAvLeases::class)->claim($export->id, $this->generation, strlen($bytes));
     $this->result = app(StudioAvFiles::class)->snapshot($this->lease);
     $this->workspace = StudioAvWorkspace::withoutUserScope()->findOrFail($this->export->render_state['allocation_id']);
     $this->root = 'studio-exports/'.$this->user->id.'/'.$export->id.'/'.$this->workspace->uuid;
@@ -49,7 +51,7 @@ test('AV cleanup releases abandoned reservations only after their private files 
     $cleanup = app(StudioAvCleanup::class);
     expect($cleanup->lease($this->lease->id))->toBeFalse();
     Storage::disk('local')->assertExists($this->root.'/'.$this->result['file']);
-    $this->state->cancel($this->user, $this->export);
+    app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
     expect($cleanup->lease($this->lease->id))->toBeFalse();
     $this->travel(181)->seconds();
     expect($cleanup->lease($this->lease->id))->toBeTrue();
@@ -60,7 +62,7 @@ test('AV cleanup releases abandoned reservations only after their private files 
 });
 
 test('AV cleanup removes concat controls from its own lease while preserving controls of other deliveries', function () {
-    $this->state->cancel($this->user, $this->export);
+    app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
     $this->travel(181)->seconds();
     $own = $this->root.'/'.$this->lease->id.'-'.Str::uuid().'.video.txt';
     $other = $this->root.'/'.Str::uuid().'-'.Str::uuid().'.audio.txt';
@@ -90,7 +92,7 @@ test('AV filesystem mutex refuses a second holder and protects snapshot readers 
     $storage = app(StudioAvStorage::class);
     expect(fn () => $storage->locked($this->workspace->id, fn () => $storage->locked($this->workspace->id, fn () => true)))
         ->toThrow(RuntimeException::class);
-    $this->state->accept($this->lease, $this->result, $this->result['size']);
+    app(StudioAvAcceptance::class)->accept($this->lease, $this->result, $this->result['size']);
     $storage->locked($this->workspace->id, function () {
         expect(fn () => app(StudioAvFiles::class)->verify($this->lease))->toThrow(RuntimeException::class);
     });
@@ -99,65 +101,65 @@ test('AV filesystem mutex refuses a second holder and protects snapshot readers 
 
 test('AV corrupt checkpoint recovery blocks every generation until physical retirement then restores the source', function () {
     $files = app(StudioAvFiles::class);
-    $this->state->accept($this->lease, $this->result, $this->result['size']);
+    app(StudioAvAcceptance::class)->accept($this->lease, $this->result, $this->result['size']);
     $files->publishSource($this->lease);
     Storage::disk('local')->put($this->root.'/'.$this->result['file'], str_repeat('x', $this->result['size']));
-    $this->state->cancel($this->user, $this->export);
-    $retry = $this->state->retry($this->user, $this->export);
+    app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
+    $retry = app(StudioAvLifecycle::class)->retry($this->user, $this->export);
     $generation = $retry->render_state['generation'];
-    $this->state->accept($this->state->claim($retry->id, $generation), $this->plan);
-    $verification = $this->state->claim($retry->id, $generation);
+    app(StudioAvAcceptance::class)->accept(app(StudioAvLeases::class)->claim($retry->id, $generation), $this->plan);
+    $verification = app(StudioAvLeases::class)->claim($retry->id, $generation);
     expect($verification->phase)->toBe('verify');
     expect(fn () => $files->verify($this->lease))->toThrow(RuntimeException::class);
     $position = $retry->refresh()->render_state['position'];
-    expect($this->state->rejectCheckpoint($verification))->toBeTrue();
+    expect(app(StudioAvAcceptance::class)->rejectCheckpoint($verification))->toBeTrue();
     expect($this->lease->refresh()->status)->toBe('invalid');
     expect($retry->refresh()->render_state['position'])->toBe($position);
-    expect($this->state->task($retry))->toBe(['phase' => 'asset', 'index' => $this->media->id]);
-    expect($this->state->claim($retry->id, $generation, $this->result['size']))->toBeNull();
-    expect($this->state->rejectCheckpoint($verification))->toBeFalse();
+    expect(app(StudioAvStore::class)->task($retry))->toBe(['phase' => 'asset', 'index' => $this->media->id]);
+    expect(app(StudioAvLeases::class)->claim($retry->id, $generation, $this->result['size']))->toBeNull();
+    expect(app(StudioAvAcceptance::class)->rejectCheckpoint($verification))->toBeFalse();
     // A second explicit retry must not bypass the source-retirement barrier.
-    $this->state->cancel($this->user, $retry);
-    $retry = $this->state->retry($this->user, $retry);
+    app(StudioAvLifecycle::class)->cancel($this->user, $retry);
+    $retry = app(StudioAvLifecycle::class)->retry($this->user, $retry);
     $generation = $retry->render_state['generation'];
-    $this->state->accept($this->state->claim($retry->id, $generation), $this->plan);
-    expect($this->state->claim($retry->id, $generation, $this->result['size']))->toBeNull();
+    app(StudioAvAcceptance::class)->accept(app(StudioAvLeases::class)->claim($retry->id, $generation), $this->plan);
+    expect(app(StudioAvLeases::class)->claim($retry->id, $generation, $this->result['size']))->toBeNull();
     $this->travel(181)->seconds();
     expect(app(StudioAvCleanup::class)->lease($this->lease->id))->toBeTrue();
     Storage::disk('local')->assertMissing($this->root.'/assets/'.$this->media->id.'.bin');
-    $replacement = $this->state->claim($retry->id, $generation, $this->result['size']);
+    $replacement = app(StudioAvLeases::class)->claim($retry->id, $generation, $this->result['size']);
     $result = $files->snapshot($replacement);
     expect($result['sha256'])->toBe($this->result['sha256']);
-    expect($this->state->accept($replacement, $result, $result['size']))->toBeTrue();
+    expect(app(StudioAvAcceptance::class)->accept($replacement, $result, $result['size']))->toBeTrue();
     $files->publishSource($replacement);
     expect(Storage::disk('local')->get($this->root.'/assets/'.$this->media->id.'.bin'))->toBe('private snapshot');
 });
 
 test('AV corruption has a distinct failure from a busy workspace so only damaged checkpoints are retired', function () {
-    $this->state->accept($this->lease, $this->result, $this->result['size']);
+    app(StudioAvAcceptance::class)->accept($this->lease, $this->result, $this->result['size']);
     Storage::disk('local')->put($this->root.'/'.$this->result['file'], str_repeat('x', $this->result['size']));
     expect(fn () => app(StudioAvFiles::class)->verify($this->lease))->toThrow(StudioAvCheckpointCorrupt::class);
 });
 
 test('AV recovery cannot mix a changed original resource with segments already pinned to its previous bytes', function () {
-    $this->state->accept($this->lease, $this->result, $this->result['size']);
-    $this->state->cancel($this->user, $this->export);
-    $retry = $this->state->retry($this->user, $this->export);
+    app(StudioAvAcceptance::class)->accept($this->lease, $this->result, $this->result['size']);
+    app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
+    $retry = app(StudioAvLifecycle::class)->retry($this->user, $this->export);
     $generation = $retry->render_state['generation'];
-    $this->state->accept($this->state->claim($retry->id, $generation), $this->plan);
-    $verification = $this->state->claim($retry->id, $generation);
-    expect($this->state->rejectCheckpoint($verification))->toBeTrue();
+    app(StudioAvAcceptance::class)->accept(app(StudioAvLeases::class)->claim($retry->id, $generation), $this->plan);
+    $verification = app(StudioAvLeases::class)->claim($retry->id, $generation);
+    expect(app(StudioAvAcceptance::class)->rejectCheckpoint($verification))->toBeTrue();
     $this->travel(181)->seconds();
     expect(app(StudioAvCleanup::class)->lease($this->lease->id))->toBeTrue();
     Storage::disk('local')->put('source.bin', str_repeat('z', $this->result['size']));
-    $replacement = $this->state->claim($retry->id, $generation, $this->result['size']);
+    $replacement = app(StudioAvLeases::class)->claim($retry->id, $generation, $this->result['size']);
     expect(fn () => app(StudioAvFiles::class)->snapshot($replacement))->toThrow(RuntimeException::class);
     expect($replacement->refresh()->status)->toBe('running');
     Storage::disk('local')->assertMissing($this->root.'/imports/'.$replacement->id.'/asset-'.$this->media->id.'.bin');
 });
 
 test('AV cleanup preserves accepted inputs and cannot reclaim a workspace whose export still exists', function () {
-    $this->state->accept($this->lease, $this->result, $this->result['size']);
+    app(StudioAvAcceptance::class)->accept($this->lease, $this->result, $this->result['size']);
     app(StudioAvFiles::class)->publishSource($this->lease);
     $this->travel(181)->seconds();
     expect(app(StudioAvCleanup::class)->lease($this->lease->id))->toBeFalse();
@@ -168,16 +170,16 @@ test('AV cleanup preserves accepted inputs and cannot reclaim a workspace whose 
 });
 
 test('AV source pin lookup uses resource-specific index keys rather than scanning the snapshot category', function () {
-    $this->state->accept($this->lease, $this->result, $this->result['size']);
-    $this->state->cancel($this->user, $this->export);
-    $retry = $this->state->retry($this->user, $this->export);
+    app(StudioAvAcceptance::class)->accept($this->lease, $this->result, $this->result['size']);
+    app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
+    $retry = app(StudioAvLifecycle::class)->retry($this->user, $this->export);
     $generation = $retry->render_state['generation'];
-    $this->state->accept($this->state->claim($retry->id, $generation), $this->plan);
-    $verify = $this->state->claim($retry->id, $generation);
-    $this->state->rejectCheckpoint($verify);
+    app(StudioAvAcceptance::class)->accept(app(StudioAvLeases::class)->claim($retry->id, $generation), $this->plan);
+    $verify = app(StudioAvLeases::class)->claim($retry->id, $generation);
+    app(StudioAvAcceptance::class)->rejectCheckpoint($verify);
     $this->travel(181)->seconds();
     app(StudioAvCleanup::class)->lease($this->lease->id);
-    $replacement = $this->state->claim($retry->id, $generation, $this->result['size']);
+    $replacement = app(StudioAvLeases::class)->claim($retry->id, $generation, $this->result['size']);
     DB::enableQueryLog();
     try {
         app(StudioAvFiles::class)->snapshot($replacement);
@@ -200,12 +202,12 @@ test('AV cleanup refuses a busy workspace then reclaims an expired running deliv
         Storage::disk('local')->assertExists($this->root.'/'.$this->result['file']);
     });
     expect(app(StudioAvCleanup::class)->lease($this->lease->id))->toBeTrue();
-    expect($this->state->accept($this->lease, $this->result, $this->result['size']))->toBeFalse();
-    expect($this->state->claim($this->export->id, $this->generation, $this->result['size']))->not->toBeNull();
+    expect(app(StudioAvAcceptance::class)->accept($this->lease, $this->result, $this->result['size']))->toBeFalse();
+    expect(app(StudioAvLeases::class)->claim($this->export->id, $this->generation, $this->result['size']))->not->toBeNull();
 });
 
 test('AV cleanup retains accounting after an I/O error and never holds database locks across file removal', function () {
-    $this->state->cancel($this->user, $this->export);
+    app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
     $this->travel(181)->seconds();
     $storage = Mockery::mock(StudioAvStorage::class)->makePartial();
     $storage->shouldReceive('removeLease')->once()->andReturnUsing(function ($workspace, $lease) {
@@ -236,7 +238,7 @@ test('AV workspace lock is enforced by a second PHP process and remains the same
 });
 
 test('AV a refused nested filesystem lock cannot revoke the original holders cleanup capability', function () {
-    $this->state->cancel($this->user, $this->export);
+    app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
     $this->travel(181)->seconds();
     $storage = app(StudioAvStorage::class);
     expect(fn () => $storage->removeLease($this->workspace, $this->lease->refresh()))->toThrow(RuntimeException::class);
@@ -249,7 +251,7 @@ test('AV a refused nested filesystem lock cannot revoke the original holders cle
 });
 
 test('AV cleanup refuses linked descendants and retains the journal until a safe retry completes', function () {
-    $this->state->cancel($this->user, $this->export);
+    app(StudioAvLifecycle::class)->cancel($this->user, $this->export);
     $this->travel(181)->seconds();
     Storage::disk('local')->put('outside/keep.txt', 'do not delete');
     $target = Storage::disk('local')->path('outside');

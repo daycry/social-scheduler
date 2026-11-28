@@ -9,6 +9,7 @@ import { createChartFabric } from './chart-renderer.js';
 import { assertChartDocumentBudget } from './chart-scene.js';
 import { createConnectorFabric, createTableFabric } from './board-objects.js';
 import { anchorPoints, normalizeConnector, rerouteConnector, routePoints } from './board.js';
+import { shortcutAction } from '../lib/shortcuts.js';
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const round = value => Math.round((Number(value) || 0) * 1e6) / 1e6;
@@ -39,6 +40,45 @@ export async function seekVideoFrame(video, seconds, { timeout = 10000, signal, 
         signal?.addEventListener('abort', cancelled, { once: true });
         try { video.currentTime = seek; } catch { failed(); }
     });
+}
+
+/**
+ * Espera a que el navegador tenga YA un fotograma decodificado y pintable del vídeo (no un temporizador). `seeked`/`loadeddata` no lo
+ * garantizan: tras cargar o sin mover la posición (fotograma 0) Chromium puede aún no haber presentado el primer fotograma, y
+ * `drawImage(video)` dibuja entonces nada. Se comprueba pintando 1 px en un lienzo y mirando su alfa; se reintenta en cada
+ * `requestAnimationFrame`, que es cuando el compositor presenta fotogramas. Si el lienzo no se puede leer (origen cruzado), basta `readyState`.
+ */
+export async function videoFrameReady(video, { timeout = 10000, signal } = {}) {
+    const probe = document.createElement('canvas');
+    probe.width = probe.height = 1;
+    const context = probe.getContext('2d', { willReadFrequently: true });
+    // El límite es un temporizador REAL, no `performance.now()` comprobado en cada `requestAnimationFrame`: con la pestaña oculta el
+    // navegador no dispara rAF, y la espera no se cumpliría ni se podría abortar. `limit` rechaza por tiempo o por `signal`.
+    let timer, onAbort, frame = 0;
+    const limit = new Promise((resolve, reject) => {
+        timer = setTimeout(() => reject(new StudioDocumentError('No se pudo preparar el fotograma del vídeo.')), timeout);
+        onAbort = () => reject(new DOMException('Carga cancelada', 'AbortError'));
+        if (signal?.aborted) onAbort(); else signal?.addEventListener('abort', onAbort, { once: true });
+    });
+    limit.catch(() => {});
+    try {
+        for (;;) {
+            if (signal?.aborted) throw new DOMException('Carga cancelada', 'AbortError');
+            if (video.error) throw new StudioDocumentError('No se pudo preparar el fotograma del vídeo.');
+            if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+                try {
+                    context.clearRect(0, 0, 1, 1);
+                    context.drawImage(video, 0, 0, 1, 1);
+                    if (context.getImageData(0, 0, 1, 1).data[3] > 0) return;
+                } catch { return; }
+            }
+            await Promise.race([new Promise(resolve => { frame = requestAnimationFrame(() => resolve()); }), limit]);
+        }
+    } finally {
+        clearTimeout(timer);
+        signal?.removeEventListener('abort', onAbort);
+        if (frame) cancelAnimationFrame(frame);
+    }
 }
 
 function toFabricFill(fill, width, height) {
@@ -78,6 +118,7 @@ function setIdentity(object, element) {
     object.studioType = element.type;
     object.studioName = element.name ?? '';
     object.studioTiming = element.timing == null ? null : clone(element.timing);
+    object.studioAnimation = element.animation == null ? null : clone(element.animation);
     object.studioAssetId = element.asset_id;
     object.studioFontId = element.font_id;
     object.studioFontFamily = element.fontFamily;
@@ -123,6 +164,7 @@ export function studioObjectToElement(object, { absolute = false } = {}) {
     });
     if (object.shadow) element.shadow = { color: object.shadow.color, blur: object.shadow.blur, offsetX: object.shadow.offsetX, offsetY: object.shadow.offsetY };
     if (object.studioTiming != null) element.timing = clone(object.studioTiming);
+    if (object.studioAnimation != null) element.animation = clone(object.studioAnimation);
     if (type === 'text') Object.assign(element, { text: object.text, fontFamily: object.fontFamily, fontSize: object.fontSize, fontWeight: String(object.fontWeight) === 'bold' || Number(object.fontWeight) >= 600 ? 'bold' : 'normal', fontStyle: object.fontStyle === 'italic' ? 'italic' : 'normal', textAlign: object.textAlign, underline: Boolean(object.underline), lineHeight: object.lineHeight, charSpacing: object.charSpacing });
     if (type === 'text' && object.studioFontId != null) { element.font_id = object.studioFontId; element.fontFamily = object.studioFontFamily; }
     if (type === 'rect') element.radius = object.rx ?? 0;
@@ -646,9 +688,22 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
             ready(); const groups = selectedObjects().filter(object => object.studioType === 'group' && object instanceof Group && !(object instanceof ActiveSelection) && !object.studioLocked);
             if (!groups.length) return false;
             const restricted = new Map();
-            for (const group of groups) if (documentData.schema_version === 2 && group.studioTiming) {
-                for (const child of group.getObjects()) restricted.set(child, checked(restrictElementWindow(studioObjectToElement(child), group.studioTiming,
-                    { pageDuration: currentPage.duration, sourceDuration: child.studioVideo?.duration })));
+            let animationLoss = false;
+            for (const group of groups) if (documentData.schema_version === 2 && (group.studioTiming || group.studioAnimation)) {
+                const children = group.getObjects();
+                const sharedOpacity = children.filter(child => child.visible && child.opacity > 0).length > 1;
+                for (const child of children) {
+                    const center = child.getRelativeCenterPoint();
+                    const bounded = restrictElementWindow(studioObjectToElement(child), group.studioTiming ?? { start: 0, duration: currentPage.duration }, {
+                        pageDuration: currentPage.duration,
+                        sourceDuration: child.studioVideo?.duration,
+                        parentAnimation: group.studioAnimation ?? undefined,
+                        centered: Math.abs(center.x) < 1e-9 && Math.abs(center.y) < 1e-9,
+                        sharedOpacity,
+                        onAnimationLoss: () => { if (group.visible && group.opacity > 0 && child.opacity > 0) animationLoss = true; },
+                    });
+                    restricted.set(child, checked(bounded));
+                }
             }
             canvas.discardActiveObject(); const released = [];
             for (const group of groups) {
@@ -675,7 +730,9 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
                     child.setCoords();
                 });
             }
-            choose(released); changed('ungroup'); return true;
+            choose(released); changed('ungroup');
+            if (animationLoss) canvas.fire('studio:warning', { message: 'Al desagrupar, parte de la animación del grupo puede verse distinta al aplicarse a las capas por separado.' });
+            return true;
         },
         align(mode) {
             ready(); const selected = selectedObjects().filter(object => !object.studioLocked);
@@ -754,15 +811,17 @@ export async function createStudioCanvas(canvasElement, { document: initialDocum
     };
 
     const onKey = event => {
-        if (canvas.getActiveObject()?.isEditing || /INPUT|TEXTAREA|SELECT/.test(event.target?.tagName) || event.target?.isContentEditable) return;
-        if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); adapter.delete(); }
-        else if (event.key === 'Escape') { canvas.discardActiveObject(); notifySelection(); canvas.requestRenderAll(); }
-        else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') { event.preventDefault(); choose(objects().filter(object => !object.studioLocked && object.visible)); }
-        else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c') { event.preventDefault(); adapter.copy(); }
-        else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'v') { event.preventDefault(); adapter.paste().catch(error => canvas.fire('studio:error', { error })); }
-        else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd') { event.preventDefault(); adapter.duplicate().catch(error => canvas.fire('studio:error', { error })); }
-        else if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
-            event.preventDefault();
+        if (canvas.getActiveObject()?.isEditing) return;
+        const action = shortcutAction(event, { scope: 'studio-canvas' });
+        if (!action) return;
+        if (action !== 'deselect') event.preventDefault();
+        if (action === 'delete') adapter.delete();
+        else if (action === 'deselect') { canvas.discardActiveObject(); notifySelection(); canvas.requestRenderAll(); }
+        else if (action === 'select-all') choose(objects().filter(object => !object.studioLocked && object.visible));
+        else if (action === 'copy') adapter.copy();
+        else if (action === 'paste') adapter.paste().catch(error => canvas.fire('studio:error', { error }));
+        else if (action === 'duplicate') adapter.duplicate().catch(error => canvas.fire('studio:error', { error }));
+        else if (action === 'nudge') {
             const selected = selectedObjects(); canvas.discardActiveObject();
             const delta = event.shiftKey ? 10 : 1;
             selected.filter(object => !object.studioLocked).forEach(object => { object.set({ left: object.left + (event.key === 'ArrowLeft' ? -delta : event.key === 'ArrowRight' ? delta : 0), top: object.top + (event.key === 'ArrowUp' ? -delta : event.key === 'ArrowDown' ? delta : 0) }); object.setCoords(); });

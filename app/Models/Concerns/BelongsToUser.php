@@ -39,6 +39,16 @@ trait BelongsToUser
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Filas de un usuario concreto, sin depender del usuario autenticado (API, MCP, jobs, comandos).
+     * Sustituye al par de escape global y filtro por `user_id`.
+     */
+    public function scopeOwnedBy(Builder $query, User|int $user): Builder
+    {
+        return $query->withoutGlobalScope(UserScope::class)
+            ->where($this->qualifyColumn('user_id'), $user instanceof User ? $user->getKey() : $user);
+    }
+
     /** Escape explicito para jobs/comandos que operan con un user_id conocido. */
     public static function withoutUserScope(): Builder
     {

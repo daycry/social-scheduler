@@ -41,7 +41,7 @@ test.afterEach(async ({}, info) => {
     cleanComposerBrands(e2eUser(info.project.name).email);
 });
 
-test('E2E-05 · exportar CSV de la lista: BOM, ; y las publicaciones del filtro con la fórmula neutralizada', async ({ page }) => {
+test('E2E-05 · exportar CSV de la lista: BOM, ; y las publicaciones del filtro con la fórmula neutralizada', { tag: '@responsive' }, async ({ page }) => {
     const w = watch(page);
     await page.goto('/calendar?view=list');
     await settle(page);

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Analytics\Calculator;
 use App\Analytics\ComparisonQuality;
+use App\Analytics\DashboardSnapshotCache;
 use App\Analytics\Metric;
 use App\Analytics\MetricCoverage;
 use App\Analytics\Period;
@@ -15,6 +16,7 @@ use App\Models\PostMetricSnapshot;
 use App\Models\PostTarget;
 use App\Models\SocialAccount;
 use App\Models\User;
+use App\Support\Ownership;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -68,9 +70,13 @@ class AnalyticsService
         'bluesky' => [Metric::FOLLOWERS, Metric::POST_COUNT],
         // Visitas al perfil (no visualizaciones: Threads no da `views` de cuenta, null y nunca 0) y los totales del dia.
         'threads' => [Metric::FOLLOWERS, Metric::PROFILE_VIEWS, Metric::INTERACTIONS, Metric::LIKES, Metric::COMMENTS, Metric::SHARES, Metric::CLICKS],
-        // Solo publican (T-18): sin lector de metricas, ninguna metrica esta soportada (unsupported, null; nunca un 0 ni un no_data eterno).
+        // LinkedIn solo publica (T-18): sin lector de metricas, ninguna esta soportada (unsupported, null; nunca un 0 ni un no_data eterno).
         'linkedin' => [],
-        'pinterest' => [],
+        // Pinterest (T-21): impresiones (views), interacciones y clics de salida; seguidores y pines del perfil. Sin alcance ni reacciones de cuenta.
+        'pinterest' => [Metric::FOLLOWERS, Metric::VIEWS, Metric::INTERACTIONS, Metric::CLICKS, Metric::POST_COUNT],
+        // Mastodon y Telegram solo publican (T-87): sin lector de metricas, ninguna esta soportada.
+        'mastodon' => [],
+        'telegram' => [],
     ];
 
     /** Publicaciones que lista la pagina de una red por defecto (las de mas interacciones); ver `social.analytics.dashboard_posts`. */
@@ -81,11 +87,15 @@ class AnalyticsService
     {
         $this->assertOwns($user, $brand);
 
-        return SocialAccount::withoutUserScope()
-            ->where('user_id', $user->id)->where('brand_id', $brand->id)
+        return SocialAccount::ownedBy($user->id)->where('brand_id', $brand->id)
             ->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)
             ->get()
-            ->groupBy(fn (SocialAccount $a) => $a->network->value)
+            ->pipe($this->groupNetworks(...));
+    }
+
+    private function groupNetworks(Collection $accounts): array
+    {
+        return $accounts->groupBy(fn (SocialAccount $a) => $a->network->value)
             ->map(fn ($accounts, $network) => [
                 'value' => $network,
                 'label' => Network::from($network)->label(),
@@ -99,11 +109,19 @@ class AnalyticsService
      *
      * @return array<string, mixed>
      */
-    public function summary(User $user, Brand $brand, Period $period, ?Period $compare = null): array
+    public function summary(User $user, Brand $brand, Period $period, ?Period $compare = null, bool $cacheSnapshots = false): array
     {
-        $networks = $this->connectedNetworks($user, $brand);
-        $coverageAccounts = SocialAccount::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)
+        $this->assertOwns($user, $brand);
+        $coverageAccounts = SocialAccount::ownedBy($user->id)->where('brand_id', $brand->id)
             ->get(['id', 'network', 'status']);
+        $compute = fn () => $this->summarize($user, $brand, $period, $compare, $coverageAccounts);
+
+        return $cacheSnapshots ? DashboardSnapshotCache::remember($user, $brand, $period, $compare, null, $coverageAccounts, $compute) : $compute();
+    }
+
+    private function summarize(User $user, Brand $brand, Period $period, ?Period $compare, Collection $coverageAccounts): array
+    {
+        $networks = $this->groupNetworks($coverageAccounts->where('status', '!=', SocialAccount::STATUS_DISCONNECTED));
         $snapshots = null;
         $current = $this->networkSeries($user, $brand, $period, null, $snapshots);
         $previousSnapshots = null;
@@ -168,15 +186,34 @@ class AnalyticsService
      *
      * @return array<string, mixed>
      */
-    public function network(User $user, Brand $brand, Network $network, Period $period, ?Period $compare = null): array
+    public function network(User $user, Brand $brand, Network $network, Period $period, ?Period $compare = null, bool $cacheSnapshots = false): array
     {
         $this->assertOwns($user, $brand);
 
-        $coverageAccounts = SocialAccount::withoutUserScope()
-            ->where('user_id', $user->id)->where('brand_id', $brand->id)->where('network', $network->value)
+        $coverageAccounts = SocialAccount::ownedBy($user->id)->where('brand_id', $brand->id)->where('network', $network->value)
             ->orderBy('name')->get();
         $accounts = $coverageAccounts->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)->values();
+        $compute = fn () => $this->networkMetrics($user, $brand, $network, $period, $compare, $coverageAccounts, $accounts);
+        $daily = $cacheSnapshots ? DashboardSnapshotCache::remember($user, $brand, $period, $compare, $network, $coverageAccounts, $compute) : $compute();
+        $stats = $this->postStats($user, $brand, $accounts, $period);
 
+        return [
+            'network' => ['value' => $network->value, 'label' => $network->label()],
+            'accounts' => $accounts->map(fn (SocialAccount $a) => ['id' => $a->id, 'name' => $a->name, 'username' => $a->username, 'status' => $a->status])->all(),
+            'period' => $period->toArray(),
+            'comparison' => $compare?->toArray(),
+            'growth' => $daily['growth'],
+            'metrics' => $daily['metrics'],
+            'kpis' => $daily['kpis'] + ['per_post' => $stats['kpis']],
+            'posts' => $stats['posts'],
+            'posts_total' => $stats['total'],
+            'posts_limit' => $stats['limit'],
+            'posts_truncated' => $stats['total'] > count($stats['posts']),
+        ];
+    }
+
+    private function networkMetrics(User $user, Brand $brand, Network $network, Period $period, ?Period $compare, Collection $coverageAccounts, Collection $accounts): array
+    {
         $dates = $period->dates();
         // Solo se carga la red pedida (no las cuatro).
         $snapshots = null;
@@ -204,8 +241,6 @@ class AnalyticsService
             ] + $metadata;
         }
 
-        $stats = $this->postStats($user, $brand, $accounts, $period);
-
         $growthSeries = $current[Metric::FOLLOWERS] ?? [];
         $previousGrowthSeries = $previous[Metric::FOLLOWERS] ?? [];
         foreach ($accounts as $account) {
@@ -214,32 +249,23 @@ class AnalyticsService
         }
 
         return [
-            'network' => ['value' => $network->value, 'label' => $network->label()],
-            'accounts' => $accounts->map(fn (SocialAccount $a) => ['id' => $a->id, 'name' => $a->name, 'username' => $a->username, 'status' => $a->status])->all(),
-            'period' => $period->toArray(),
-            'comparison' => $compare?->toArray(),
             // Crecimiento = suma de la variacion de CADA cuenta entre su primer y ultimo dato del periodo (sin saltos por altas/bajas).
             'growth' => Calculator::growthAcross($growthSeries) + [
                 'previous' => $compare ? Calculator::growthAcross($previousGrowthSeries) : null,
             ],
             'metrics' => $metrics,
-            'kpis' => $this->kpis($combined, $stats['kpis'], $current),
-            'posts' => $stats['posts'],
-            'posts_total' => $stats['total'],
-            'posts_limit' => $stats['limit'],
-            'posts_truncated' => $stats['total'] > count($stats['posts']),
+            'kpis' => $this->dailyKpis($combined, $current),
         ];
     }
 
     /**
-     * KPIs derivados: por dia (sobre la serie de la cuenta) y por publicacion (agregados en SQL sobre TODAS las del periodo).
+     * KPIs diarios calculados a partir de las series de cuenta.
      *
      * @param  array<string, array<string, int|float|null>>  $series  serie combinada por metrica
-     * @param  array<string, mixed>  $perPost
      * @param  array<string, array<int, array<string, int|float|null>>>  $accounts
      * @return array<string, mixed>
      */
-    private function kpis(array $series, array $perPost, array $accounts): array
+    private function dailyKpis(array $series, array $accounts): array
     {
         $interactions = $series[Metric::INTERACTIONS] ?? [];
         $views = $series[Metric::VIEWS] ?? [];
@@ -255,7 +281,6 @@ class AnalyticsService
                 return ['basis' => 'days_with_data', 'observed_days' => $observed, 'requested_days' => count($daily), 'missing_days' => count($daily) - $observed];
             }, ['interactions' => $interactions, 'views' => $views]),
             'engagement_rate' => Calculator::engagementAcross($accounts[Metric::INTERACTIONS] ?? [], $accounts[Metric::VIEWS] ?? []),
-            'per_post' => $perPost,
         ];
     }
 
@@ -277,11 +302,7 @@ class AnalyticsService
 
         [$from, $to] = $this->bounds($brand, $period);
 
-        $query = fn (): Builder => self::withLatestSnapshot(PostTarget::withoutUserScope()
-            ->where('post_targets.user_id', $user->id)
-            ->whereIn('post_targets.social_account_id', $accounts->pluck('id'))
-            ->where('post_targets.status', PostStatus::Published->value)
-            ->where('post_targets.published_at', '>=', $from)->where('post_targets.published_at', '<', $to), $user->id);
+        $query = fn (): Builder => self::withLatestSnapshot($this->publishedTargets($user, $accounts->pluck('id'), $from, $to), $user->id);
 
         $grammar = DB::connection((new PostTarget)->getConnectionName())->getQueryGrammar();
         // Un `null` JSON es "no disponible": NULLIF evita que MySQL lo lea como la cadena 'null' (que casteada seria 0).
@@ -343,10 +364,32 @@ class AnalyticsService
 
         return $query
             ->leftJoinSub(
-                PostMetricSnapshot::withoutUserScope()->where('user_id', $userId)->whereIn('post_target_id', $scope)->selectRaw('post_target_id, MAX(date) as last_date')->groupBy('post_target_id'),
+                PostMetricSnapshot::ownedBy($userId)->whereIn('post_target_id', $scope)->selectRaw('post_target_id, MAX(date) as last_date')->groupBy('post_target_id'),
                 'lm', 'lm.post_target_id', '=', 'post_targets.id',
             )
             ->leftJoin('post_metric_snapshots as pm', fn ($j) => $j->on('pm.post_target_id', '=', 'lm.post_target_id')->on('pm.date', '=', 'lm.last_date'));
+    }
+
+    /**
+     * Publicaciones (destinos) publicadas en el periodo por una marca: las mismas que cuenta el panel (`kpis.posts`), con las cuentas no
+     * desconectadas y los dias en la zona de la marca.
+     */
+    public function publishedCount(User $user, Brand $brand, Period $period): int
+    {
+        $this->assertOwns($user, $brand);
+        $accounts = SocialAccount::ownedBy($user->id)->where('brand_id', $brand->id)->where('status', '!=', SocialAccount::STATUS_DISCONNECTED)->pluck('id');
+        [$from, $to] = $this->bounds($brand, $period);
+
+        return $this->publishedTargets($user, $accounts, $from, $to)->count();
+    }
+
+    /** Destinos publicados de esas cuentas con `published_at` en [desde, hasta). */
+    private function publishedTargets(User $user, iterable $accountIds, CarbonImmutable $from, CarbonImmutable $to): Builder
+    {
+        return PostTarget::ownedBy($user)
+            ->whereIn('post_targets.social_account_id', $accountIds)
+            ->where('post_targets.status', PostStatus::Published->value)
+            ->where('post_targets.published_at', '>=', $from)->where('post_targets.published_at', '<', $to);
     }
 
     /**
@@ -365,10 +408,9 @@ class AnalyticsService
      *
      * @return array<string, array<string, array<int, array<string, int|float|null>>>> [red][metrica][cuenta] = [fecha => valor]
      */
-    private function networkSeries(User $user, Brand $brand, Period $period, ?Network $only = null, ?Collection &$snapshots = null): array
+    private function networkSeries(User $user, Brand $brand, Period $period, ?Network $only, ?Collection &$snapshots): array
     {
-        $rows = AccountSnapshot::withoutUserScope()
-            ->where('user_id', $user->id)->where('brand_id', $brand->id)
+        $rows = AccountSnapshot::ownedBy($user->id)->where('brand_id', $brand->id)
             ->when($only, fn ($q) => $q->where('network', $only->value))
             ->whereBetween('date', [$period->from->format('Y-m-d'), $period->to->format('Y-m-d')])
             ->get(['social_account_id', 'network', 'date', 'metrics', 'collected_at']);
@@ -418,7 +460,7 @@ class AnalyticsService
 
     private function assertOwns(User $user, Brand $brand): void
     {
-        if ($brand->user_id !== $user->id) {
+        if (! Ownership::matches($brand, $user)) {
             throw new InvalidArgumentException('La marca no pertenece al usuario.');
         }
     }

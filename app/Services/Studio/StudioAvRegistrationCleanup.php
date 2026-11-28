@@ -4,7 +4,6 @@ namespace App\Services\Studio;
 
 use App\Models\MediaAsset;
 use App\Models\Studio\DesignExport;
-use App\Models\Studio\StudioAsset;
 use App\Models\Studio\StudioAvLease;
 use App\Models\Studio\StudioAvWorkspace;
 use Aws\Exception\AwsException;
@@ -113,7 +112,7 @@ class StudioAvRegistrationCleanup
 
     private function referenced(MediaAsset $media): bool
     {
-        return $media->usedByPosts() || StudioAsset::withoutUserScope()->where('media_asset_id', $media->id)->exists();
+        return $media->usageReason() !== null;
     }
 
     private function remote(StudioAvWorkspace $workspace, array $receipt, float $deadline): bool

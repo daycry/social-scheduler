@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PostStatus;
 use App\Models\Concerns\BelongsToUser;
+use App\Models\Studio\DesignExport;
 use App\Scopes\UserScope;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -68,6 +69,8 @@ class Post extends Model
             'approval_requested_at' => 'datetime',
             'approval_decided_at' => 'datetime',
             'series_exception' => 'boolean',
+            'recycle_family_id' => 'integer',
+            'recycle_dismissed_at' => 'datetime',
         ];
     }
 
@@ -84,6 +87,11 @@ class Post extends Model
     public function targets(): HasMany
     {
         return $this->hasMany(PostTarget::class)->withoutGlobalScope(UserScope::class);
+    }
+
+    public function designExport(): BelongsTo
+    {
+        return $this->belongsTo(DesignExport::class);
     }
 
     public function media(): BelongsToMany

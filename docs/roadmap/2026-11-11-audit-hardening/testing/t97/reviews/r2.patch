@@ -1,0 +1,3173 @@
+diff --git a/CHANGELOG.es.md b/CHANGELOG.es.md
+index 8a77f6c..d4acd72 100644
+--- a/CHANGELOG.es.md
++++ b/CHANGELOG.es.md
+@@ -5,6 +5,10 @@ # Registro de cambios
+ 
+ ## [Sin publicar]
+ 
++### Added — tema claro, oscuro o del sistema (audit-hardening, T-97)
++
++- Elige el tema en Perfil → Apariencia. La cuenta conserva tu elección y la navegación, los diálogos, los avisos y los controles comunes adoptan la paleta.
++
+ ### Added — atajos, preferencias de avisos y primeros pasos (audit-hardening, T-96)
+ 
+ - Navega con el teclado, elige dónde recibes cada tipo de aviso y empieza, salta o repite la guía de primeros pasos.
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index e6e9a85..da6823b 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -5,6 +5,10 @@ # Changelog
+ 
+ ## [Unreleased]
+ 
++### Added — light, dark, and system themes (audit-hardening, T-97)
++
++- Choose a theme under Profile → Appearance. Your account remembers the choice, and navigation, dialogs, notices, and shared form controls use the selected palette.
++
+ ### Added — keyboard shortcuts, notification preferences, and onboarding (audit-hardening, T-96)
+ 
+ - Navigate from the keyboard, choose where each notification reaches you, and start, skip, or replay the getting-started guide.
+diff --git a/app/Http/Controllers/ProfileController.php b/app/Http/Controllers/ProfileController.php
+index b7cc360..f82228c 100644
+--- a/app/Http/Controllers/ProfileController.php
++++ b/app/Http/Controllers/ProfileController.php
+@@ -12,6 +12,7 @@
+ use Illuminate\Support\Facades\Auth;
+ use Illuminate\Support\Facades\Date;
+ use Illuminate\Support\Facades\Redirect;
++use Illuminate\Validation\Rule;
+ use Inertia\Inertia;
+ use Inertia\Response;
+ 
+@@ -96,6 +97,14 @@ public function update(ProfileUpdateRequest $request): RedirectResponse
+         return Redirect::route('profile.edit');
+     }
+ 
++    public function updateTheme(Request $request): RedirectResponse
++    {
++        $data = $request->validate(['theme' => ['required', 'string', Rule::in(['system', 'light', 'dark'])]]);
++        $request->user()->forceFill($data)->save();
++
++        return back()->with('success', 'Tema guardado.');
++    }
++
+     /**
+      * Delete the user's account.
+      */
+diff --git a/app/Models/User.php b/app/Models/User.php
+index d73ece0..6d67042 100644
+--- a/app/Models/User.php
++++ b/app/Models/User.php
+@@ -24,7 +24,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
+     use HasApiTokens, HasFactory, Notifiable, PasskeyAuthenticatable;
+ 
+     /** Igual que los valores por defecto de las columnas: un usuario recien creado en memoria ya tiene sus preferencias de avisos. */
+-    protected $attributes = ['notify_weekly_digest' => false, 'weekly_digest_ai' => false, 'notify_manual_reminder' => true, 'hide_marketing_dates' => false, 'single_key_shortcuts' => true];
++    protected $attributes = ['notify_weekly_digest' => false, 'weekly_digest_ai' => false, 'notify_manual_reminder' => true, 'hide_marketing_dates' => false, 'single_key_shortcuts' => true, 'theme' => 'system'];
+ 
+     protected static function booted(): void
+     {
+diff --git a/docs/README.md b/docs/README.md
+index 747a096..71f323d 100644
+--- a/docs/README.md
++++ b/docs/README.md
+@@ -2,7 +2,7 @@ # Social Scheduler — documentación
+ 
+ Aplicación web personal para programar publicaciones y consultar analítica en Instagram, Facebook, YouTube, TikTok, Bluesky, Threads, LinkedIn, Pinterest, Mastodon y Telegram. Laravel 13 + Inertia/Vue, cola `database` y media en Cloudflare R2.
+ 
+-Última actualización: 2026-11-18
++Última actualización: 2026-11-27
+ 
+ ## Por dónde empezar
+ 
+@@ -20,6 +20,7 @@ ## Por dónde empezar
+ | Revisar la regresión general en los tres tamaños (502 pasados y dos omitidos previstos) | [Informe de QA](roadmap/2026-10-26-metricool-parity-3/testing/attempt-2/report.md) · [PDF](roadmap/2026-10-26-metricool-parity-3/testing/attempt-2/report.pdf) |
+ | Usar la aplicación (incluye doble factor y passkeys) | [Guía de usuario](usuario/guia-de-usuario.md) |
+ | Configurar una cuenta nueva y consultar los atajos | [Primeros pasos](usuario/primeros-pasos.md) |
++| Elegir el tema del sistema, claro u oscuro | [Tema de la aplicación](usuario/tema.md) |
+ | Operar el doble factor y las passkeys (RP ID, `sodium`, rotar claves) | [Despliegue → Seguridad de cuenta](modulos/despliegue.md#seguridad-de-cuenta-2fa-y-passkeys) |
+ | Activar el login con Google y Facebook (apps, redirect URIs, modos) | [Guía de login social](guias/login-social-google-meta.md) |
+ | Conectar un asistente (Claude, Codex, OpenCode) sin API key y desplegar el OAuth del MCP | [Servidor MCP](modulos/mcp.md#autorización-oauth-21-sin-api-key) y [Despliegue → OAuth del MCP](modulos/despliegue.md#oauth-del-mcp-nginxhestia-y-redirect-uris) |
+@@ -50,6 +51,7 @@ ## Módulos (documentación técnica)
+ | Módulo | Página | Código principal |
+ |---|---|---|
+ | Conexiones OAuth por red | [conexiones.md](modulos/conexiones.md) | `app/Connectors/`, `app/Services/SocialAccountService.php` |
++| Paletas de la interfaz y contraste | [Tokens de color](guias/tokens-de-color.md) | `resources/css/app.css`, `tailwind.config.js`, `resources/js/Composables/useTheme.js` |
+ | Publicación y cola | [publicacion.md](modulos/publicacion.md) | `app/Jobs/PublishPostTarget.php`, `app/Services/PostService.php`, `app/Services/SavedTextService.php` |
+ | Media, validación e importación (URL y Drive) | [media.md](modulos/media.md) | `app/Services/Media*.php`, `app/Services/Media/`, `app/Jobs/ImportRemoteMedia.php`, `config/media*.php` |
+ | Calendario y cuadrícula de Instagram | [calendario.md](modulos/calendario.md) | `app/Services/CalendarService.php`, `app/Services/GridService.php` |
+diff --git a/docs/roadmap/2026-11-11-audit-hardening/tasks.md b/docs/roadmap/2026-11-11-audit-hardening/tasks.md
+index 3499eb5..e34433c 100644
+--- a/docs/roadmap/2026-11-11-audit-hardening/tasks.md
++++ b/docs/roadmap/2026-11-11-audit-hardening/tasks.md
+@@ -4855,18 +4855,18 @@ ### T-96 — Atajos globales, preferencias de notificación y onboarding
+ ### T-97 — Modo oscuro (1/2): tokens de color y layout
+ 
+ - **Descripción**: Primera mitad de F-25: variables de color, `useTheme` (sistema/claro/oscuro) y layouts. F-25 se cuenta aquí.
+-- **Changelog**:
+-- **Estado**: borrador
++- **Changelog**: Elige el tema del sistema, claro u oscuro en Perfil → Apariencia. La navegación, los diálogos, los avisos y los controles comunes adoptan la paleta elegida.
++- **Estado**: en-progreso
+ - **Tiempo humano**: est. 8.0h · real —
+ - **Tiempo IA (ejec.)**: est. 2.0h · real —
+ - **Supervisión**: est. 0.50h (≈25 % IA) · real —
+ - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
+ - **Dependencias**: T-96
+ - **Tipo**: frontend
+-- **Archivos**: `tailwind.config.js`, `resources/css/app.css`, `resources/js/Layouts/**`, `resources/js/composables/useTheme.js`, `docs/usuario/tema.md`
++- **Archivos**: `tailwind.config.js`, `resources/css/app.css`, `resources/views/app.blade.php`, `resources/js/app.js`, `resources/js/Composables/useTheme.js`, `resources/js/Layouts/**`, `resources/js/Components/**` (controles base, navegación, diálogos, avisos, logotipo y cabecera del compositor), `resources/js/Pages/{Auth,Profile}/**`, `app/Http/Controllers/ProfileController.php`, `app/Models/User.php`, `database/migrations/2026_11_27_130300_add_theme_to_users.php`, `routes/web.php`, `tests/Feature/ThemePreferenceTest.php`, `tests/frontend/{use-theme,theme-contrast,form-and-tabs-accessibility}.test.mjs`, `tests/e2e/dark-mode.spec.ts`, `docs/guias/tokens-de-color.md`, `docs/usuario/tema.md` y sus índices, `CHANGELOG.md`, `CHANGELOG.es.md`.
+ - **Cubre**: F-25
+ - **Cubre (tests)**: E2E-35, M-08
+-- **Verificación**: `npm run build` → build correcto · `npx playwright test tests/e2e/a11y.spec.ts --workers=1` → verde (contraste incluido)
++- **Verificación**: `npm run build`, Pest (focal y completo), tests Node de tema y contraste, `npx playwright test tests/e2e/dark-mode.spec.ts tests/e2e/a11y.spec.ts --workers=1` (contraste incluido), M-08.
+ 
+ **Criterios de aceptación**
+ - [ ] El selector de tema persiste por usuario y respeta `prefers-color-scheme`
+@@ -4876,7 +4876,7 @@ ### T-97 — Modo oscuro (1/2): tokens de color y layout
+ - [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+ 
+ **Subtareas**
+-- [ ] Implementar (implementer)
++- [x] Implementar (implementer)
+ - [ ] Revisión adversarial A+B(+C)
+ - [ ] Corregir hallazgos de la revisión
+ - [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
+@@ -4884,6 +4884,20 @@ ### T-97 — Modo oscuro (1/2): tokens de color y layout
+ 
+ **Notas**: Tamaño M. F-25 es L: dos tareas. Toca toda la UI: ejecutar después de los refactors D.
+ 
++- T-97 se despliega junto con T-98, que tokeniza el resto de las páginas y el Estudio.
++- Revisión adversarial, intento 1. Acceso, Perfil, paginación y estado vacío usan tokens semánticos. E2E-35 incluye diez páginas completas con axe en claro y oscuro, además del error de passkey. Los botones de los proveedores conservan sus colores de marca y el QR, su margen blanco.
++- El aviso de conexión pendiente es una nota estática. Su contorno alcanza un mínimo de 3,04:1 en claro y 3,65:1 en oscuro. El aviso de permisos recupera el borde ámbar original en claro. Se recuperan la geometría móvil previa y la prop `contentClasses` del desplegable con una superficie temática por defecto.
++- RED: `ThemePreferenceTest.php` falló con `auth.user.theme` ausente y HTTP 404 al guardar · 2026-11-27 (3/3).
++- RED: `use-theme.test.mjs` falló por ausencia del composable y del script de arranque previo a Vite · 2026-11-27 (3/3).
++- RED: `theme-contrast.test.mjs` falló por ausencia de los tokens `:root` y `:root.dark` · 2026-11-27 (2/2).
++- RED (revisión, intento 1): `theme-contrast.test.mjs` detectó utilidades de color fijas en las 18 vistas y componentes auditados y un contorno del aviso de conexión de 1,19:1 sobre el fondo claro, por debajo de 3:1 · 2026-11-27 (2 fallos, 1 pasada).
++- RED (revisión, intento 1): `form-and-tabs-accessibility.test.mjs` dio 2/8 en Node 22.23.2 de Windows. Vite evaluó la entrada CommonJS de Vue como ESM y falló con `module is not defined`. Cargar `useTheme.js` directamente con Vite reprodujo el error y pasó al activar `resolve.preserveSymlinks` · 2026-11-27.
++- Pest focal en SQLite: 3/3 y 87 aserciones. Suite completa tras `config:clear`: 4985 pasadas, 21 omitidas y 38751 aserciones.
++- Node sin aislamiento: 14/14 combinadas, con 100 pares de contraste por paleta. SSR aislado: 8/8 tras configurar `resolve.preserveSymlinks` en el servidor de pruebas. Salvaguardas estáticas de los specs: 3/3.
++- Pint, formato, lint y typecheck en verde. `npm run build` quedó bloqueado por `spawn EPERM` al cargar `vite.config.js`. La API de Vite compiló el frontend en memoria con 125 salidas, cinco de ellas CSS.
++- Node completo (863/863), E2E y build habían pasado antes de la corrección según el reporte de revisión. Quedan pendientes la ejecución del E2E-35 ampliado en navegador, la siguiente revisión adversarial y M-08.
++- La política del sandbox bloqueó la eliminación de `.cache/t97-ssr-baseline-*`.
++
+ ### T-98 — Modo oscuro (2/2): páginas y estudio
+ 
+ - **Descripción**: Segunda mitad de F-25: revisar todas las páginas y el estudio en oscuro (contraste y gráficos).
+diff --git a/docs/usuario/guia-de-usuario.md b/docs/usuario/guia-de-usuario.md
+index 4af5cab..7514013 100644
+--- a/docs/usuario/guia-de-usuario.md
++++ b/docs/usuario/guia-de-usuario.md
+@@ -6,6 +6,8 @@ ## Primeros pasos
+ 
+ [Guía interactiva, atajos y preferencias](primeros-pasos.md).
+ 
++[Tema del sistema, claro u oscuro](tema.md).
++
+ 1. Regístrate y verifica tu correo.
+ 2. Crea una **marca** (por ejemplo, tu proyecto o negocio). Cada marca agrupa sus cuentas, publicaciones y estadísticas.
+ 3. Entra en las **Conexiones** de la marca y pulsa **Conectar** en cada red. Acepta los permisos en la pantalla de la red.
+diff --git a/resources/css/app.css b/resources/css/app.css
+index f088b09..0929338 100644
+--- a/resources/css/app.css
++++ b/resources/css/app.css
+@@ -3,27 +3,158 @@
+ @tailwind utilities;
+ 
+ @layer base {
++    /* Canales RGB para que las utilidades de Tailwind admitan opacidad. */
++    :root {
++        color-scheme: light;
++        --color-canvas: 248 250 252;
++        --color-surface: 255 255 255;
++        --color-surface-raised: 255 255 255;
++        --color-surface-hover: 241 245 249;
++        --color-border: 226 232 240;
++        --color-border-subtle: 241 245 249;
++        --color-control-border: 124 138 157;
++        --color-foreground: 30 41 59;
++        --color-foreground-strong: 15 23 42;
++        --color-foreground-secondary: 51 65 85;
++        --color-foreground-muted: 71 85 105;
++        --color-foreground-subtle: 94 110 133;
++        --color-accent: 79 70 229;
++        --color-accent-strong: 67 56 202;
++        --color-accent-soft: 238 242 255;
++        --color-accent-marker: 224 231 255;
++        --color-accent-fill: 79 70 229;
++        --color-accent-hover: 96 98 237;
++        --color-accent-active: 67 56 202;
++        --color-on-accent: 255 255 255;
++        --color-check: 79 70 229;
++        --color-danger: 209 33 33;
++        --color-danger-fill: 220 38 38;
++        --color-danger-hover: 224 40 40;
++        --color-danger-active: 185 28 28;
++        --color-danger-badge: 190 18 60;
++        --color-on-danger: 255 255 255;
++        --color-danger-ink: 127 29 29;
++        --color-danger-soft: 254 242 242;
++        --color-danger-border: 254 202 202;
++        --color-success-ink: 6 78 59;
++        --color-success-soft: 236 253 245;
++        --color-success-border: 167 243 208;
++        --color-warning-ink: 120 53 15;
++        --color-warning-soft: 255 251 235;
++        --color-warning-border: 253 230 138;
++        --color-warning-panel-border: 252 211 77;
++        --color-warning-outline: 217 119 6;
++        --color-info-ink: 12 74 110;
++        --color-info-soft: 240 249 255;
++        --color-info-border: 186 230 253;
++        --color-focus: 99 102 241;
++        --color-overlay: 107 114 128;
++        --color-overlay-strong: 15 23 42;
++        --color-chrome: 15 23 42;
++        --color-chrome-panel: 22 32 51;
++        --color-chrome-hover: 39 46 63;
++        --color-chrome-border: 101 116 139;
++        --color-chrome-text: 226 232 240;
++        --color-chrome-muted: 203 213 225;
++        --color-chrome-strong: 255 255 255;
++        --color-chrome-accent: 165 180 252;
++        --color-chrome-avatar-start: 79 70 229;
++        --color-chrome-avatar-end: 15 118 110;
++        --color-chrome-active: 129 140 248;
++        --color-chrome-decoration: 99 102 241;
++        --color-chrome-teal: 45 212 191;
++        --color-chrome-sky: 56 189 248;
++        --color-progress: 75 85 99;
++    }
++
++    :root.dark {
++        color-scheme: dark;
++        --color-canvas: 15 23 42;
++        --color-surface: 22 32 51;
++        --color-surface-raised: 30 41 59;
++        --color-surface-hover: 40 54 77;
++        --color-border: 60 76 100;
++        --color-border-subtle: 46 59 82;
++        --color-control-border: 122 142 169;
++        --color-foreground: 226 232 240;
++        --color-foreground-strong: 248 250 252;
++        --color-foreground-secondary: 203 213 225;
++        --color-foreground-muted: 174 189 209;
++        --color-foreground-subtle: 161 178 202;
++        --color-accent: 165 180 252;
++        --color-accent-strong: 199 210 254;
++        --color-accent-soft: 40 45 80;
++        --color-accent-marker: 48 58 102;
++        --color-accent-fill: 165 180 252;
++        --color-accent-hover: 199 210 254;
++        --color-accent-active: 129 140 248;
++        --color-on-accent: 15 23 42;
++        --color-check: 99 102 241;
++        --color-danger: 252 165 165;
++        --color-danger-fill: 248 113 113;
++        --color-danger-hover: 252 165 165;
++        --color-danger-active: 244 100 100;
++        --color-danger-badge: 253 164 175;
++        --color-on-danger: 53 13 24;
++        --color-danger-ink: 254 202 202;
++        --color-danger-soft: 61 32 40;
++        --color-danger-border: 142 71 90;
++        --color-success-ink: 167 243 208;
++        --color-success-soft: 21 54 46;
++        --color-success-border: 67 123 102;
++        --color-warning-ink: 253 230 138;
++        --color-warning-soft: 51 43 29;
++        --color-warning-border: 167 122 57;
++        --color-warning-panel-border: 167 122 57;
++        --color-warning-outline: 167 122 57;
++        --color-info-ink: 186 230 253;
++        --color-info-soft: 24 50 72;
++        --color-info-border: 72 120 143;
++        --color-focus: 165 180 252;
++        --color-overlay: 2 6 23;
++        --color-overlay-strong: 2 6 23;
++        --color-chrome: 10 16 32;
++        --color-chrome-panel: 15 23 42;
++        --color-chrome-hover: 35 48 74;
++        --color-chrome-border: 107 126 154;
++        --color-chrome-text: 220 230 243;
++        --color-chrome-muted: 190 205 225;
++        --color-chrome-strong: 255 255 255;
++        --color-chrome-accent: 199 210 254;
++        --color-chrome-avatar-start: 79 70 229;
++        --color-chrome-avatar-end: 15 118 110;
++        --color-chrome-active: 165 180 252;
++        --color-chrome-decoration: 129 140 248;
++        --color-chrome-teal: 45 212 191;
++        --color-chrome-sky: 56 189 248;
++        --color-progress: 165 180 252;
++    }
++
+     html {
+         -webkit-text-size-adjust: 100%;
+     }
+ 
+     body {
+-        @apply bg-slate-50 text-slate-800;
++        @apply bg-canvas text-foreground;
+     }
+ 
+     /* Foco visible y consistente para teclado. */
+     :focus-visible {
+-        @apply outline-none ring-2 ring-indigo-500 ring-offset-2;
++        @apply outline-none ring-2 ring-focus ring-offset-2 ring-offset-canvas;
+     }
+ }
+ 
+ @layer components {
+-    .dialog-panel {
+-        @apply mx-auto my-6 max-h-[calc(100dvh_-_3rem)] w-[calc(100vw_-_2rem)] overflow-y-auto rounded-lg border-0 bg-white p-0 shadow-xl;
++    .base-dialog {
++        @apply bg-surface-raised text-foreground;
++    }
++
++    .base-dialog::backdrop {
++        @apply bg-overlay/75;
+     }
+ 
+-    .dialog-panel::backdrop {
+-        @apply bg-gray-500/75;
++    .dialog-panel {
++        @apply mx-auto my-6 max-h-[calc(100dvh_-_3rem)] w-[calc(100vw_-_2rem)] overflow-y-auto rounded-lg border-0 p-0 shadow-xl;
+     }
+ 
+     body:has(> dialog:modal) {
+@@ -31,11 +162,22 @@ @layer components {
+     }
+ 
+     .card {
+-        @apply rounded-xl border border-slate-200 bg-white shadow-card;
++        @apply rounded-xl border border-border bg-surface shadow-card;
+     }
+ 
+     .field {
+-        @apply block w-full max-w-full rounded-lg border-slate-300 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-indigo-500 focus:ring-indigo-500;
++        @apply block w-full max-w-full rounded-lg border-control-border bg-surface text-sm text-foreground-strong shadow-sm placeholder:text-foreground-subtle focus:border-focus focus:ring-focus;
++    }
++
++    :root.dark select.field:not([multiple]) {
++        /* El SVG del plugin forms fija un color claro. La flecha nativa sigue color-scheme. */
++        appearance: auto;
++        background-image: none;
++        padding-inline-end: 0.75rem;
++    }
++
++    .dropdown-item {
++        @apply block w-full px-4 py-2 text-start text-sm leading-5 text-foreground-secondary transition hover:bg-surface-hover focus:bg-surface-hover focus-visible:ring-inset focus-visible:ring-offset-0;
+     }
+ 
+     .composer-preset-section {
+@@ -95,19 +237,19 @@ @layer components {
+     }
+ 
+     .btn-primary {
+-        @apply btn bg-indigo-600 text-white shadow-sm hover:bg-indigo-500 active:bg-indigo-700;
++        @apply btn bg-accent-fill text-on-accent shadow-sm hover:bg-accent-hover active:bg-accent-active;
+     }
+ 
+     .btn-secondary {
+-        @apply btn border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50;
++        @apply btn border border-control-border bg-surface text-foreground-secondary shadow-sm hover:bg-canvas;
+     }
+ 
+     .btn-danger {
+-        @apply btn bg-red-600 text-white shadow-sm hover:bg-red-500 active:bg-red-700;
++        @apply btn bg-danger-fill text-on-danger shadow-sm hover:bg-danger-hover active:bg-danger-active;
+     }
+ 
+     .link {
+-        @apply rounded font-medium text-indigo-600 underline-offset-2 hover:text-indigo-500 hover:underline;
++        @apply rounded font-medium text-accent underline-offset-2 hover:text-accent-strong hover:underline;
+     }
+ }
+ 
+@@ -123,7 +265,7 @@ #nprogress .bar {
+     left: 0;
+     width: 100%;
+     height: 2px;
+-    background: #4b5563;
++    background: rgb(var(--color-progress));
+     transform-origin: 0 50%;
+     animation: nprogress-indeterminate 1.4s ease-in-out infinite;
+ }
+diff --git a/resources/js/Components/BaseDialog.vue b/resources/js/Components/BaseDialog.vue
+index eff24e8..99a9465 100644
+--- a/resources/js/Components/BaseDialog.vue
++++ b/resources/js/Components/BaseDialog.vue
+@@ -193,6 +193,7 @@ function handleKeydown(event) {
+     <Teleport to="body">
+         <dialog
+             ref="dialog"
++            class="base-dialog"
+             aria-modal="true"
+             v-bind="$attrs"
+             @cancel="handleCancel"
+diff --git a/resources/js/Components/BrandLogo.vue b/resources/js/Components/BrandLogo.vue
+index 5c71f56..6dbbc6b 100644
+--- a/resources/js/Components/BrandLogo.vue
++++ b/resources/js/Components/BrandLogo.vue
+@@ -10,9 +10,9 @@ defineProps({ dark: { type: Boolean, default: false }, compact: { type: Boolean,
+         <ApplicationLogo class="h-8 w-8 shrink-0" />
+         <span
+             class="text-base font-bold tracking-tight"
+-            :class="[compact ? 'hidden sm:inline' : '', dark ? 'text-white' : 'text-slate-900']"
++            :class="[compact ? 'hidden sm:inline' : '', dark ? 'text-chrome-strong' : 'text-foreground-strong']"
+         >
+-            Social<span :class="dark ? 'text-indigo-300' : 'text-indigo-600'"> Scheduler</span>
++            Social<span :class="dark ? 'text-chrome-accent' : 'text-accent'"> Scheduler</span>
+         </span>
+     </span>
+ </template>
+diff --git a/resources/js/Components/Checkbox.vue b/resources/js/Components/Checkbox.vue
+index c6cfec3..1b7d57d 100644
+--- a/resources/js/Components/Checkbox.vue
++++ b/resources/js/Components/Checkbox.vue
+@@ -29,6 +29,6 @@ const proxyChecked = computed({
+         type="checkbox"
+         :value="value"
+         v-model="proxyChecked"
+-        class="rounded border-slate-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
++        class="rounded border-control-border bg-surface text-check shadow-sm focus:ring-focus focus:ring-offset-surface"
+     />
+ </template>
+diff --git a/resources/js/Components/CommandPalette.vue b/resources/js/Components/CommandPalette.vue
+index 630bcf7..f5bb014 100644
+--- a/resources/js/Components/CommandPalette.vue
++++ b/resources/js/Components/CommandPalette.vue
+@@ -124,8 +124,8 @@ onBeforeUnmount(() => search.close());
+         class="flex shrink-0 items-center gap-2 rounded-lg p-2 2xl:border 2xl:px-2.5 2xl:py-1.5"
+         :class="
+             light
+-                ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 2xl:border-slate-300'
+-                : 'text-slate-300 hover:bg-white/10 hover:text-white 2xl:border-white/15 2xl:bg-white/5'
++                ? 'text-foreground-muted hover:bg-surface-hover hover:text-foreground-strong 2xl:border-control-border'
++                : 'text-chrome-muted hover:bg-chrome-hover hover:text-chrome-strong 2xl:border-chrome-border 2xl:bg-chrome-strong/5'
+         "
+         :title="`Buscar (${shortcut.keys})`"
+         aria-label="Buscar en la aplicación"
+@@ -138,7 +138,7 @@ onBeforeUnmount(() => search.close());
+         <span class="hidden text-sm 2xl:inline">Buscar</span>
+         <kbd
+             class="hidden rounded border px-1.5 text-[11px] 2xl:inline"
+-            :class="light ? 'border-slate-300 text-slate-600' : 'border-white/20 text-slate-300'"
++            :class="light ? 'border-control-border text-foreground-muted' : 'border-chrome-border text-chrome-muted'"
+             aria-hidden="true"
+             >{{
+             shortcut.keys
+@@ -159,8 +159,8 @@ onBeforeUnmount(() => search.close());
+     >
+         <div class="relative flex h-full min-w-0 flex-col" data-testid="command-palette">
+             <h2 id="command-palette-title" class="sr-only">Buscar</h2>
+-            <div class="flex items-center gap-2 border-b border-slate-200 px-3 py-2">
+-                <Icon name="search" class="h-5 w-5 shrink-0 text-slate-500" />
++            <div class="flex items-center gap-2 border-b border-border px-3 py-2">
++                <Icon name="search" class="h-5 w-5 shrink-0 text-foreground-subtle" />
+                 <label for="command-palette-input" class="sr-only"
+                     >Buscar páginas, publicaciones, marcas, archivos y más</label
+                 >
+@@ -182,13 +182,13 @@ onBeforeUnmount(() => search.close());
+                     spellcheck="false"
+                     enterkeyhint="go"
+                     placeholder="Buscar…"
+-                    class="min-h-11 min-w-0 flex-1 rounded-md border-0 bg-transparent px-1 text-base text-slate-900 placeholder:text-slate-500 focus:ring-2 focus:ring-inset focus:ring-indigo-500 focus:ring-offset-0 sm:text-sm"
++                    class="min-h-11 min-w-0 flex-1 rounded-md border-0 bg-transparent px-1 text-base text-foreground-strong placeholder:text-foreground-subtle focus:ring-2 focus:ring-inset focus:ring-focus focus:ring-offset-0 sm:text-sm"
+                     data-testid="command-palette-input"
+                     @keydown="onNavigationKeydown"
+                 />
+                 <button
+                     type="button"
+-                    class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100"
++                    class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-foreground-muted hover:bg-surface-hover"
+                     aria-label="Cerrar la búsqueda"
+                     data-testid="command-palette-close"
+                     @click="close"
+@@ -197,7 +197,7 @@ onBeforeUnmount(() => search.close());
+                 </button>
+             </div>
+ 
+-            <p id="command-palette-hint" class="px-4 pt-2 text-xs text-slate-600">
++            <p id="command-palette-hint" class="px-4 pt-2 text-xs text-foreground-muted">
+                 Escribe para buscar entre todas las páginas; publicaciones, marcas, archivos y diseños se buscan desde
+                 {{ MIN_LENGTH }} letras.
+             </p>
+@@ -223,7 +223,7 @@ onBeforeUnmount(() => search.close());
+                         <div
+                             :id="`command-palette-group-${group.type}`"
+                             role="presentation"
+-                            class="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-slate-500"
++                            class="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-foreground-subtle"
+                             >{{ group.label }}</div
+                         >
+                         <div
+@@ -233,16 +233,19 @@ onBeforeUnmount(() => search.close());
+                             role="option"
+                             :aria-selected="entry.index === active"
+                             class="flex min-h-11 cursor-pointer items-center gap-3 border-s-2 px-4 py-2"
+-                            :class="entry.index === active ? 'border-indigo-600 bg-indigo-50' : 'border-transparent'"
++                            :class="entry.index === active ? 'border-accent bg-accent-soft' : 'border-transparent'"
+                             data-testid="command-palette-option"
+                             @click="choose(entry)"
+                             @mousemove="active = entry.index"
+                         >
+                             <NetworkIcon v-if="entry.network !== undefined" :network="entry.network" size="sm" />
+-                            <Icon v-else :name="entry.icon ?? 'grid'" class="h-5 w-5 shrink-0 text-slate-500" />
++                            <Icon v-else :name="entry.icon ?? 'grid'" class="h-5 w-5 shrink-0 text-foreground-subtle" />
+                             <span class="min-w-0 flex-1">
+-                                <span class="block truncate text-sm font-medium text-slate-900">{{ entry.title }}</span>
+-                                <span v-if="entry.meta" class="block truncate text-xs text-slate-600">{{
++                                <span
++                                    class="block truncate text-sm font-medium text-foreground-strong"
++                                    >{{ entry.title }}</span
++                                >
++                                <span v-if="entry.meta" class="block truncate text-xs text-foreground-muted">{{
+                                     entry.meta
+                                 }}</span>
+                             </span>
+@@ -253,14 +256,14 @@ onBeforeUnmount(() => search.close());
+ 
+                 <p
+                     v-if="remote.status === 'loading'"
+-                    class="px-4 py-3 text-sm text-slate-600"
++                    class="px-4 py-3 text-sm text-foreground-muted"
+                     data-testid="command-palette-loading"
+                     >Buscando en tu contenido…</p
+                 >
+                 <p
+                     v-else-if="remote.status === 'error'"
+                     role="alert"
+-                    class="px-4 py-3 text-sm text-red-700"
++                    class="px-4 py-3 text-sm text-danger"
+                     data-testid="command-palette-error"
+                     >{{ remote.error }}</p
+                 >
+@@ -283,7 +286,7 @@ onBeforeUnmount(() => search.close());
+                 data-testid="command-palette-status"
+                 >{{ announcement }}</p
+             >
+-            <p class="hidden border-t border-slate-200 px-4 py-2 text-xs text-slate-600 sm:block">
++            <p class="hidden border-t border-border px-4 py-2 text-xs text-foreground-muted sm:block">
+                 ↑ ↓ para moverte · Intro para abrir · Esc para cerrar
+             </p>
+         </div>
+diff --git a/resources/js/Components/Composer/ComposerHeader.vue b/resources/js/Components/Composer/ComposerHeader.vue
+index 03ce1d8..5926665 100644
+--- a/resources/js/Components/Composer/ComposerHeader.vue
++++ b/resources/js/Components/Composer/ComposerHeader.vue
+@@ -13,13 +13,13 @@ const add = () => createCampaign(newName.value, { onCreated: () => { adding.valu
+ 
+ <template>
+     <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
+-        <h1 class="min-w-0 flex-1 basis-40 truncate text-base font-bold text-slate-900 sm:text-lg">
++        <h1 class="min-w-0 flex-1 basis-40 truncate text-base font-bold text-foreground-strong sm:text-lg">
+             {{ post ? 'Editar publicación' : 'Nueva publicación' }} · {{ brand.name }}
+         </h1>
+ 
+         <div class="flex min-w-0 flex-wrap items-center gap-2" data-testid="campaign-picker">
+             <label class="flex min-w-0 items-center gap-2 text-sm">
+-                <span class="shrink-0 text-xs font-medium text-slate-600">Campaña</span>
++                <span class="shrink-0 text-xs font-medium text-foreground-muted">Campaña</span>
+                 <select
+                     v-model="form.campaign_id"
+                     :disabled="savingCampaign"
+@@ -63,12 +63,12 @@ const add = () => createCampaign(newName.value, { onCreated: () => { adding.valu
+                 >
+                 <button
+                     type="button"
+-                    class="shrink-0 text-xs font-medium text-slate-700 underline"
++                    class="shrink-0 text-xs font-medium text-foreground-secondary underline"
+                     @click="adding = false"
+                     >Cancelar</button
+                 >
+             </form>
+-            <p v-if="campaignError" class="w-full text-xs text-red-600" role="alert">{{ campaignError }}</p>
++            <p v-if="campaignError" class="w-full text-xs text-danger" role="alert">{{ campaignError }}</p>
+         </div>
+ 
+         <!-- Hueco para las notas y las acciones de las fases siguientes -->
+diff --git a/resources/js/Components/ConfirmDialog.vue b/resources/js/Components/ConfirmDialog.vue
+index 02ed9a0..5a338fd 100644
+--- a/resources/js/Components/ConfirmDialog.vue
++++ b/resources/js/Components/ConfirmDialog.vue
+@@ -16,21 +16,21 @@ const { pending } = state;
+         role="alertdialog"
+         aria-labelledby="confirm-title"
+         aria-describedby="confirm-message"
+-        class="m-auto w-[calc(100vw_-_2rem)] max-w-md rounded-lg border-0 bg-white p-5 shadow-xl backdrop:bg-slate-900/50"
++        class="dialog-panel m-auto max-w-md p-5 backdrop:bg-overlay-strong/50"
+         data-testid="confirm-dialog"
+         @close="pending.cancel"
+     >
+-        <h2 id="confirm-title" class="text-lg font-semibold text-slate-900">{{ pending.title }}</h2>
+-        <p id="confirm-message" class="mt-2 break-words text-sm text-slate-700">{{ pending.message }}</p>
++        <h2 id="confirm-title" class="text-lg font-semibold text-foreground-strong">{{ pending.title }}</h2>
++        <p id="confirm-message" class="mt-2 break-words text-sm text-foreground-secondary">{{ pending.message }}</p>
+         <div class="mt-4 flex flex-wrap justify-end gap-2">
+             <button
+                 data-dialog-initial-focus
+                 type="button"
+-                class="btn btn-secondary"
++                class="btn-secondary"
+                 @click="pending.cancel"
+                 >{{ pending.cancelLabel }}</button
+             >
+-            <button type="button" class="btn btn-danger" @click="pending.accept">{{ pending.confirmLabel }}</button>
++            <button type="button" class="btn-danger" @click="pending.accept">{{ pending.confirmLabel }}</button>
+         </div>
+     </BaseDialog>
+ </template>
+diff --git a/resources/js/Components/Dropdown.vue b/resources/js/Components/Dropdown.vue
+index c834f30..a16d967 100644
+--- a/resources/js/Components/Dropdown.vue
++++ b/resources/js/Components/Dropdown.vue
+@@ -12,7 +12,7 @@ const props = defineProps({
+     },
+     contentClasses: {
+         type: String,
+-        default: 'py-1 bg-white',
++        default: 'py-1 bg-surface-raised',
+     },
+ });
+ 
+@@ -50,7 +50,7 @@ const open = ref(false);
+ <template>
+     <div class="relative">
+         <div @click="open = !open">
+-            <slot name="trigger" />
++            <slot name="trigger" :open="open" />
+         </div>
+ 
+         <!-- Full Screen Dropdown Overlay -->
+@@ -71,7 +71,7 @@ const open = ref(false);
+                 style="display: none"
+                 @click="open = false"
+             >
+-                <div class="rounded-lg ring-1 ring-slate-900/10" :class="contentClasses">
++                <div class="rounded-lg ring-1 ring-border" :class="contentClasses">
+                     <slot name="content" />
+                 </div>
+             </div>
+diff --git a/resources/js/Components/DropdownLink.vue b/resources/js/Components/DropdownLink.vue
+index 7b7cb8a..8a5a464 100644
+--- a/resources/js/Components/DropdownLink.vue
++++ b/resources/js/Components/DropdownLink.vue
+@@ -10,10 +10,7 @@ defineProps({
+ </script>
+ 
+ <template>
+-    <Link
+-        :href="href"
+-        class="block w-full px-4 py-2 text-start text-sm leading-5 text-slate-700 transition hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
+-    >
++    <Link :href="href" class="dropdown-item">
+         <slot />
+     </Link>
+ </template>
+diff --git a/resources/js/Components/EmptyState.vue b/resources/js/Components/EmptyState.vue
+index 797f89b..1ff37d9 100644
+--- a/resources/js/Components/EmptyState.vue
++++ b/resources/js/Components/EmptyState.vue
+@@ -7,9 +7,9 @@ defineProps({
+ 
+ <template>
+     <div class="card flex flex-col items-center px-6 py-12 text-center">
+-        <div v-if="$slots.icon" class="mb-4 text-indigo-500"><slot name="icon" /></div>
+-        <h2 class="text-lg font-semibold text-slate-900">{{ title }}</h2>
+-        <p v-if="description" class="mt-1 max-w-md text-sm text-slate-600">{{ description }}</p>
++        <div v-if="$slots.icon" class="mb-4 text-accent"><slot name="icon" /></div>
++        <h2 class="text-lg font-semibold text-foreground-strong">{{ title }}</h2>
++        <p v-if="description" class="mt-1 max-w-md text-sm text-foreground-muted">{{ description }}</p>
+         <div v-if="$slots.default" class="mt-5 flex flex-wrap justify-center gap-3"><slot /></div>
+     </div>
+ </template>
+diff --git a/resources/js/Components/FlashBanner.vue b/resources/js/Components/FlashBanner.vue
+index 5891850..b7af239 100644
+--- a/resources/js/Components/FlashBanner.vue
++++ b/resources/js/Components/FlashBanner.vue
+@@ -11,10 +11,10 @@ const props = defineProps({
+ defineEmits(['dismiss']);
+ 
+ const styles = {
+-    success: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+-    error: 'border-red-200 bg-red-50 text-red-900',
+-    info: 'border-slate-200 bg-slate-100 text-slate-800',
+-    warning: 'border-amber-200 bg-amber-50 text-amber-900',
++    success: 'border-success-border bg-success-soft text-success-ink',
++    error: 'border-danger-border bg-danger-soft text-danger-ink',
++    info: 'border-border bg-surface-hover text-foreground',
++    warning: 'border-warning-border bg-warning-soft text-warning-ink',
+ };
+ const kinds = /** @type {(keyof typeof styles)[]} */ (Object.keys(styles));
+ const hasMessages = computed(() => kinds.some(kind => props[kind]));
+diff --git a/resources/js/Components/GlobalActions.vue b/resources/js/Components/GlobalActions.vue
+index 560871c..7bd7199 100644
+--- a/resources/js/Components/GlobalActions.vue
++++ b/resources/js/Components/GlobalActions.vue
+@@ -72,7 +72,7 @@ async function openGuide() {
+         v-if="page.props.onboarding === 'welcome'"
+         type="button"
+         class="shrink-0 rounded-lg px-2 py-1.5 text-xs font-medium"
+-        :class="light ? 'bg-indigo-50 text-indigo-800' : 'bg-indigo-400/20 text-indigo-100'"
++        :class="light ? 'bg-accent-soft text-accent-strong' : 'bg-chrome-active/20 text-chrome-strong'"
+         aria-label="Empezar guía de primeros pasos"
+         @click="openGuide"
+         >Guía</button
+@@ -81,7 +81,7 @@ async function openGuide() {
+         ref="helpButton"
+         type="button"
+         class="h-9 w-8 shrink-0 rounded-lg text-base font-semibold"
+-        :class="light ? 'text-slate-600 hover:bg-slate-100' : 'text-slate-300 hover:bg-white/10 hover:text-white'"
++        :class="light ? 'text-foreground-muted hover:bg-surface-hover' : 'text-chrome-muted hover:bg-chrome-hover hover:text-chrome-strong'"
+         aria-label="Ayuda y atajos"
+         aria-haspopup="dialog"
+         :aria-keyshortcuts="page.props.auth.user.single_key_shortcuts === false ? undefined : '?'"
+@@ -99,14 +99,18 @@ async function openGuide() {
+         class="dialog-panel max-w-lg space-y-4 p-4 sm:p-6"
+         @close="helpOpen = false"
+     >
+-        <h2 id="global-help-title" tabindex="-1" data-dialog-initial-focus class="text-lg font-semibold text-slate-900"
++        <h2
++            id="global-help-title"
++            tabindex="-1"
++            data-dialog-initial-focus
++            class="text-lg font-semibold text-foreground-strong"
+             >Ayuda y atajos</h2
+         >
+-        <p id="global-help-description" class="text-sm text-slate-600"
++        <p id="global-help-description" class="text-sm text-foreground-muted"
+             >Los atajos globales actúan fuera de los campos de edición y de los diálogos.</p
+         >
+         <form class="space-y-2" @submit.prevent="saveShortcuts">
+-            <label class="flex items-center gap-2 text-sm text-slate-700">
++            <label class="flex items-center gap-2 text-sm text-foreground-secondary">
+                 <Checkbox v-model:checked="form.single_key_shortcuts" />
+                 Activar los atajos globales de una sola tecla
+             </label>
+@@ -115,12 +119,14 @@ async function openGuide() {
+                 <button type="submit" class="btn-secondary" :disabled="form.processing || !form.isDirty"
+                     >Guardar atajos</button
+                 >
+-                <p v-if="form.recentlySuccessful" role="status" class="text-sm text-slate-600">Atajos guardados.</p>
++                <p v-if="form.recentlySuccessful" role="status" class="text-sm text-foreground-muted"
++                    >Atajos guardados.</p
++                >
+             </div>
+         </form>
+         <section v-for="group in groups" :key="group.title" class="space-y-2">
+-            <h3 class="text-sm font-semibold text-slate-900">{{ group.title }}</h3>
+-            <dl class="space-y-1 text-sm text-slate-700">
++            <h3 class="text-sm font-semibold text-foreground-strong">{{ group.title }}</h3>
++            <dl class="space-y-1 text-sm text-foreground-secondary">
+                 <div v-for="entry in group.entries" :key="entry.keys" class="flex justify-between gap-3">
+                     <dt>{{ entry.label }}</dt>
+                     <dd class="shrink-0">
+diff --git a/resources/js/Components/InfoNote.vue b/resources/js/Components/InfoNote.vue
+index 18c0cf9..adb4c91 100644
+--- a/resources/js/Components/InfoNote.vue
++++ b/resources/js/Components/InfoNote.vue
+@@ -10,7 +10,7 @@ defineProps({
+ 
+ <template>
+     <div
+-        class="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900"
++        class="rounded-lg border border-info-border bg-info-soft p-3 text-sm text-info-ink"
+         role="note"
+         data-testid="info-note"
+     >
+diff --git a/resources/js/Components/InputError.vue b/resources/js/Components/InputError.vue
+index 835ff10..a82b4c0 100644
+--- a/resources/js/Components/InputError.vue
++++ b/resources/js/Components/InputError.vue
+@@ -8,7 +8,7 @@ defineProps({
+ 
+ <template>
+     <div :class="{ 'sr-only': !message }">
+-        <p class="text-sm text-red-600" role="alert" aria-atomic="true">
++        <p class="text-sm text-danger" role="alert" aria-atomic="true">
+             {{ message }}
+         </p>
+     </div>
+diff --git a/resources/js/Components/InputLabel.vue b/resources/js/Components/InputLabel.vue
+index b7aa699..6ed1705 100644
+--- a/resources/js/Components/InputLabel.vue
++++ b/resources/js/Components/InputLabel.vue
+@@ -7,7 +7,7 @@ defineProps({
+ </script>
+ 
+ <template>
+-    <label class="block text-sm font-medium text-slate-700">
++    <label class="block text-sm font-medium text-foreground-secondary">
+         <span v-if="value">{{ value }}</span>
+         <span v-else><slot /></span>
+     </label>
+diff --git a/resources/js/Components/Onboarding.vue b/resources/js/Components/Onboarding.vue
+index 308e35e..3e2625c 100644
+--- a/resources/js/Components/Onboarding.vue
++++ b/resources/js/Components/Onboarding.vue
+@@ -101,16 +101,16 @@ function goToStep() {
+         class="dialog-panel max-w-lg space-y-4 p-4 sm:p-6"
+         @close="close"
+     >
+-        <p class="text-sm font-medium text-slate-600">Primeros pasos · {{ content.number }} de 3</p>
++        <p class="text-sm font-medium text-foreground-muted">Primeros pasos · {{ content.number }} de 3</p>
+         <h2
+             id="onboarding-title"
+             ref="heading"
+             tabindex="-1"
+             data-dialog-initial-focus
+-            class="text-lg font-semibold text-slate-900"
++            class="text-lg font-semibold text-foreground-strong"
+             >{{ content.title }}</h2
+         >
+-        <p id="onboarding-description" class="text-sm text-slate-600">{{ content.description }}</p>
++        <p id="onboarding-description" class="text-sm text-foreground-muted">{{ content.description }}</p>
+         <button
+             v-if="content.href"
+             type="button"
+@@ -119,7 +119,7 @@ function goToStep() {
+             @click="goToStep"
+             >{{ content.label }}</button
+         >
+-        <p class="text-sm text-slate-600">Puedes retomar o repetir la guía en «Ayuda y atajos».</p>
++        <p class="text-sm text-foreground-muted">Puedes retomar o repetir la guía en «Ayuda y atajos».</p>
+         <InputError :message="error" />
+         <div class="flex flex-wrap justify-end gap-2">
+             <button type="button" class="btn-secondary" :disabled="processing" @click="skip">Saltar guía</button>
+diff --git a/resources/js/Components/Pagination.vue b/resources/js/Components/Pagination.vue
+index c0e46ab..ec3f553 100644
+--- a/resources/js/Components/Pagination.vue
++++ b/resources/js/Components/Pagination.vue
+@@ -16,7 +16,7 @@ defineProps({
+ 
+ <template>
+     <nav class="flex flex-wrap items-center justify-between gap-3 text-sm" :aria-label="label" data-testid="pagination">
+-        <span v-if="page.total != null" class="text-slate-600">{{ page.total }} en total</span>
++        <span v-if="page.total != null" class="text-foreground-muted">{{ page.total }} en total</span>
+         <div v-if="page.cursor || page.has_more" class="flex flex-wrap gap-2">
+             <Link
+                 v-if="page.cursor"
+diff --git a/resources/js/Components/PermissionNotice.vue b/resources/js/Components/PermissionNotice.vue
+index e4a32e0..58acca3 100644
+--- a/resources/js/Components/PermissionNotice.vue
++++ b/resources/js/Components/PermissionNotice.vue
+@@ -15,7 +15,7 @@ defineProps({
+ 
+ <template>
+     <div
+-        class="card border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
++        class="card border-warning-panel-border bg-warning-soft p-4 text-sm text-warning-ink"
+         role="alert"
+         data-testid="permission-notice"
+     >
+diff --git a/resources/js/Layouts/AuthenticatedLayout.vue b/resources/js/Layouts/AuthenticatedLayout.vue
+index 7db2196..a24dd85 100644
+--- a/resources/js/Layouts/AuthenticatedLayout.vue
++++ b/resources/js/Layouts/AuthenticatedLayout.vue
+@@ -58,19 +58,19 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
+ </script>
+ 
+ <template>
+-    <div class="min-h-screen bg-slate-50">
++    <div class="min-h-screen bg-canvas">
+         <a
+             href="#contenido"
+-            class="sr-only z-[100] rounded bg-white px-3 py-2 text-sm font-medium text-indigo-700 focus:not-sr-only focus:fixed focus:left-2 focus:top-2"
++            class="sr-only z-[100] rounded bg-surface px-3 py-2 text-sm font-medium text-accent-strong focus:not-sr-only focus:fixed focus:left-2 focus:top-2"
+             >Saltar al contenido</a
+         >
+ 
+         <!-- Barra superior -->
+-        <header class="sticky top-0 z-40 bg-night-900 text-slate-200 shadow-md">
++        <header class="sticky top-0 z-40 bg-chrome text-chrome-text shadow-md">
+             <div class="flex h-14 items-center gap-2 px-3 sm:gap-3 sm:px-5">
+                 <button
+                     type="button"
+-                    class="rounded-md p-2 text-slate-300 hover:bg-white/10 hover:text-white lg:hidden"
++                    class="rounded-md p-2 text-chrome-muted hover:bg-chrome-hover hover:text-chrome-strong lg:hidden"
+                     aria-label="Abrir menú"
+                     :aria-expanded="mobileOpen"
+                     @click="mobileOpen = !mobileOpen"
+@@ -88,15 +88,15 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
+                         :key="m.key"
+                         :href="m.href"
+                         :title="m.label"
+-                        class="rounded-md px-2 py-1.5 text-sm font-medium transition hover:bg-white/10 hover:text-white nav:px-3"
+-                        :class="activeKey === m.key ? 'bg-white/10 text-white shadow-[inset_0_-2px_0_0_#818cf8]' : 'text-slate-300'"
++                        class="rounded-md px-2 py-1.5 text-sm font-medium transition hover:bg-chrome-hover hover:text-chrome-strong nav:px-3"
++                        :class="activeKey === m.key ? 'bg-chrome-hover text-chrome-strong shadow-chrome-active' : 'text-chrome-muted'"
+                         :aria-current="activeKey === m.key ? 'page' : undefined"
+                         ><Icon :name="m.icon" class="h-5 w-5 nav:hidden" /><span class="sr-only nav:not-sr-only">{{
+                             m.label
+                         }}</span
+                         ><span
+                             v-if="m.badge"
+-                            class="ms-1.5 rounded-full bg-rose-700 px-1.5 py-0.5 text-[10px] font-bold text-white"
++                            class="ms-1.5 rounded-full bg-danger-badge px-1.5 py-0.5 text-[10px] font-bold text-on-danger"
+                             data-testid="inbox-badge"
+                             >{{ m.badge > 99 ? '99+' : m.badge }}</span
+                         ></Link
+@@ -108,11 +108,12 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
+ 
+                     <!-- Selector de marca -->
+                     <Dropdown align="right" width="72" class="min-w-0">
+-                        <template #trigger>
++                        <template #trigger="{ open }">
+                             <button
+                                 type="button"
+-                                class="flex max-w-[7rem] items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2 py-1.5 text-sm text-white hover:bg-white/10 min-[420px]:max-w-[10rem] sm:max-w-[16rem] sm:gap-2 sm:px-2.5"
++                                class="flex max-w-[7rem] items-center gap-1.5 rounded-lg border border-chrome-border bg-chrome-strong/5 px-2 py-1.5 text-sm text-chrome-strong hover:bg-chrome-hover min-[420px]:max-w-[10rem] sm:max-w-[16rem] sm:gap-2 sm:px-2.5"
+                                 aria-label="Cambiar de marca"
++                                :aria-expanded="open"
+                                 :title="brand?.name"
+                                 data-testid="brand-switcher"
+                             >
+@@ -124,23 +125,24 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
+                                 />
+                                 <span
+                                     v-else
+-                                    class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-indigo-500 text-xs font-bold"
++                                    class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent-fill text-xs font-bold text-on-accent"
+                                     aria-hidden="true"
+                                     >{{ (brand?.name ?? '+').slice(0, 1).toUpperCase() }}</span
+                                 >
+                                 <span class="truncate">{{ brand?.name ?? 'Sin marca' }}</span>
+-                                <Icon name="chevronDown" class="h-4 w-4 shrink-0 text-slate-400" />
++                                <Icon name="chevronDown" class="h-4 w-4 shrink-0 text-chrome-muted" />
+                             </button>
+                         </template>
+                         <template #content>
+-                            <p class="px-4 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-500"
++                            <p
++                                class="px-4 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-foreground-subtle"
+                                 >Tus marcas</p
+                             >
+                             <button
+                                 v-for="b in shell.brands"
+                                 :key="b.id"
+                                 type="button"
+-                                class="flex w-full items-center gap-2 px-4 py-2 text-start text-sm text-slate-700 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
++                                class="dropdown-item flex items-center gap-2"
+                                 @click="switchBrand(b.id)"
+                             >
+                                 <img
+@@ -152,17 +154,17 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
+                                 />
+                                 <span
+                                     v-else
+-                                    class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-indigo-100 text-xs font-bold text-indigo-700"
++                                    class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent-marker text-xs font-bold text-accent-strong"
+                                     aria-hidden="true"
+                                     >{{ b.name.slice(0, 1).toUpperCase() }}</span
+                                 >
+                                 <span class="min-w-0 flex-1 truncate">{{ b.name }}</span>
+-                                <Icon v-if="brand && brand.id === b.id" name="check" class="h-4 w-4 text-indigo-600" />
++                                <Icon v-if="brand && brand.id === b.id" name="check" class="h-4 w-4 text-accent" />
+                             </button>
+-                            <p v-if="shell.brands.length === 0" class="px-4 py-2 text-sm text-slate-500"
++                            <p v-if="shell.brands.length === 0" class="px-4 py-2 text-sm text-foreground-subtle"
+                                 >Aún no tienes marcas.</p
+                             >
+-                            <div class="mt-1 border-t border-slate-100 pt-1">
++                            <div class="mt-1 border-t border-border-subtle pt-1">
+                                 <DropdownLink :href="route('brands.index')">Gestionar marcas</DropdownLink>
+                                 <DropdownLink :href="route('brands.create')">Crear marca</DropdownLink>
+                             </div>
+@@ -172,13 +174,13 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
+                     <!-- Avisos -->
+                     <Link
+                         :href="route('notifications.index')"
+-                        class="relative rounded-lg p-2 text-slate-300 hover:bg-white/10 hover:text-white"
++                        class="relative rounded-lg p-2 text-chrome-muted hover:bg-chrome-hover hover:text-chrome-strong"
+                         :aria-label="unread ? `Avisos, ${unread} sin leer` : 'Avisos'"
+                     >
+                         <Icon name="bell" class="h-5 w-5" />
+                         <span
+                             v-if="unread"
+-                            class="absolute -end-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-700 px-1 text-[10px] font-bold text-white"
++                            class="absolute -end-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-danger-badge px-1 text-[10px] font-bold text-on-danger"
+                             data-testid="unread-badge"
+                             >{{ unread > 99 ? '99+' : unread }}</span
+                         >
+@@ -186,22 +188,23 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
+ 
+                     <!-- Usuario -->
+                     <Dropdown align="right" width="48">
+-                        <template #trigger>
++                        <template #trigger="{ open }">
+                             <button
+                                 type="button"
+-                                class="flex shrink-0 items-center gap-2 rounded-lg p-1 hover:bg-white/10"
++                                class="flex shrink-0 items-center gap-2 rounded-lg p-1 hover:bg-chrome-hover"
+                                 aria-label="Menú de usuario"
++                                :aria-expanded="open"
+                             >
+                                 <span
+-                                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-teal-500 text-xs font-bold text-white"
++                                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-chrome-avatar-start to-chrome-avatar-end text-xs font-bold text-chrome-strong"
+                                     >{{ initials }}</span
+                                 >
+                             </button>
+                         </template>
+                         <template #content>
+-                            <div class="border-b border-slate-100 px-4 py-2">
+-                                <p class="truncate text-sm font-medium text-slate-900">{{ user.name }}</p>
+-                                <p class="truncate text-xs text-slate-500">{{ user.email }}</p>
++                            <div class="border-b border-border-subtle px-4 py-2">
++                                <p class="truncate text-sm font-medium text-foreground-strong">{{ user.name }}</p>
++                                <p class="truncate text-xs text-foreground-subtle">{{ user.email }}</p>
+                             </div>
+                             <DropdownLink :href="route('profile.edit')">Perfil</DropdownLink>
+                             <DropdownLink :href="route('saved-texts.index')">Textos guardados</DropdownLink>
+@@ -217,13 +220,7 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
+                             <DropdownLink v-if="page.props.canViewSystemStatus" :href="route('system.index')"
+                                 >Estado del sistema</DropdownLink
+                             >
+-                            <Link
+-                                :href="route('logout')"
+-                                method="post"
+-                                as="button"
+-                                class="block w-full px-4 py-2 text-start text-sm leading-5 text-slate-700 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
+-                                >Salir</Link
+-                            >
++                            <DropdownLink :href="route('logout')" method="post" as="button">Salir</DropdownLink>
+                         </template>
+                     </Dropdown>
+                 </div>
+@@ -232,26 +229,26 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
+             <!-- Menú móvil -->
+             <div
+                 v-show="mobileOpen"
+-                class="border-t border-white/10 bg-night-800 px-3 pb-4 pt-2 lg:hidden"
++                class="border-t border-chrome-strong/10 bg-chrome-panel px-3 pb-4 pt-2 lg:hidden"
+                 data-testid="mobile-menu"
+             >
+-                <p class="px-2 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-300">Módulos</p>
++                <p class="px-2 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-chrome-muted">Módulos</p>
+                 <Link
+                     v-for="m in modules"
+                     :key="m.key"
+                     :href="m.href"
+                     class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium"
+-                    :class="activeKey === m.key ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5'"
++                    :class="activeKey === m.key ? 'bg-chrome-hover text-chrome-strong' : 'text-chrome-muted hover:bg-chrome-strong/5'"
+                 >
+                     <Icon :name="m.icon" class="h-5 w-5" />{{ m.label
+                     }}<span
+                         v-if="m.badge"
+-                        class="ms-auto rounded-full bg-rose-700 px-1.5 py-0.5 text-[10px] font-bold text-white"
++                        class="ms-auto rounded-full bg-danger-badge px-1.5 py-0.5 text-[10px] font-bold text-on-danger"
+                         >{{ m.badge > 99 ? '99+' : m.badge }}</span
+                     >
+                 </Link>
+                 <p
+-                    class="px-2 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-slate-300"
++                    class="px-2 pb-1 pt-4 text-xs font-semibold uppercase tracking-wide text-chrome-muted"
+                     >{{ moduleTitle }}</p
+                 >
+                 <Link
+@@ -259,11 +256,11 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
+                     :key="i.key"
+                     :href="i.href"
+                     class="flex items-center gap-3 rounded-md px-3 py-2 text-sm"
+-                    :class="i.active ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5'"
++                    :class="i.active ? 'bg-chrome-hover text-chrome-strong' : 'text-chrome-muted hover:bg-chrome-strong/5'"
+                 >
+                     <NetworkIcon v-if="i.network !== undefined" :network="i.network" size="sm" />
+                     <Icon v-else :name="i.icon" class="h-5 w-5" />
+-                    {{ i.label }}<span v-if="i.plus" class="ms-auto text-lg leading-none text-indigo-300">+</span>
++                    {{ i.label }}<span v-if="i.plus" class="ms-auto text-lg leading-none text-chrome-accent">+</span>
+                 </Link>
+             </div>
+         </header>
+@@ -271,13 +268,13 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
+         <div class="flex">
+             <!-- Barra lateral contextual (escritorio) -->
+             <aside
+-                class="sticky top-14 hidden h-[calc(100vh-3.5rem)] shrink-0 flex-col border-e border-slate-200 bg-white transition-[width] duration-200 lg:flex"
++                class="sticky top-14 hidden h-[calc(100vh-3.5rem)] shrink-0 flex-col border-e border-border bg-surface transition-[width] duration-200 lg:flex"
+                 :class="collapsed ? 'w-16' : 'w-60'"
+                 aria-label="Navegación del módulo"
+             >
+                 <p
+                     v-if="!collapsed"
+-                    class="px-4 pb-1 pt-5 text-xs font-semibold uppercase tracking-wide text-slate-500"
++                    class="px-4 pb-1 pt-5 text-xs font-semibold uppercase tracking-wide text-foreground-subtle"
+                     >{{ moduleTitle }}</p
+                 >
+                 <nav class="flex-1 space-y-0.5 overflow-y-auto px-2 py-2">
+@@ -287,7 +284,7 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
+                         :href="i.href"
+                         :title="collapsed ? i.label : undefined"
+                         class="group flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition"
+-                        :class="[i.active ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900', collapsed ? 'justify-center' : '']"
++                        :class="[i.active ? 'bg-accent-soft text-accent-strong' : 'text-foreground-muted hover:bg-surface-hover hover:text-foreground-strong', collapsed ? 'justify-center' : '']"
+                         :aria-current="i.active ? 'page' : undefined"
+                     >
+                         <NetworkIcon
+@@ -300,14 +297,13 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
+                             <span class="block truncate">{{ i.label }}</span>
+                             <span
+                                 v-if="i.sub"
+-                                class="block truncate text-xs font-normal"
+-                                :class="'text-slate-600'"
++                                class="block truncate text-xs font-normal text-foreground-muted"
+                                 >{{ i.sub }}</span
+                             >
+                         </span>
+                         <span
+                             v-if="i.plus && !collapsed"
+-                            class="flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-slate-500 group-hover:bg-indigo-600 group-hover:text-white"
++                            class="flex h-5 w-5 items-center justify-center rounded-full bg-surface-hover text-foreground-subtle group-hover:bg-accent-fill group-hover:text-on-accent"
+                             aria-hidden="true"
+                             ><Icon name="plus" class="h-3.5 w-3.5"
+                         /></span>
+@@ -315,7 +311,7 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
+                 </nav>
+                 <button
+                     type="button"
+-                    class="m-2 flex items-center justify-center gap-2 rounded-lg px-2 py-2 text-xs font-medium text-slate-500 hover:bg-slate-100"
++                    class="m-2 flex items-center justify-center gap-2 rounded-lg px-2 py-2 text-xs font-medium text-foreground-subtle hover:bg-surface-hover"
+                     :aria-label="collapsed ? 'Expandir barra lateral' : 'Contraer barra lateral'"
+                     @click="collapsed = !collapsed"
+                 >
+@@ -326,7 +322,7 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
+             </aside>
+ 
+             <div class="min-w-0 flex-1">
+-                <div v-if="$slots.header" class="border-b border-slate-200 bg-white">
++                <div v-if="$slots.header" class="border-b border-border bg-surface">
+                     <div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+                         <slot name="header" />
+                     </div>
+@@ -346,8 +342,8 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
+                     <div
+                         v-for="p in pendingConnections"
+                         :key="p.brand_id"
+-                        class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border-2 border-amber-400 bg-amber-50 p-3 text-sm text-amber-900"
+-                        role="status"
++                        class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border-2 border-warning-outline bg-warning-soft p-3 text-sm text-warning-ink"
++                        role="note"
+                         data-pending-connection
+                     >
+                         <span
+diff --git a/resources/js/Layouts/ComposerLayout.vue b/resources/js/Layouts/ComposerLayout.vue
+index 1b77963..4a4175c 100644
+--- a/resources/js/Layouts/ComposerLayout.vue
++++ b/resources/js/Layouts/ComposerLayout.vue
+@@ -14,14 +14,14 @@ const page = usePage();
+ </script>
+ 
+ <template>
+-    <div class="min-h-screen bg-slate-50">
++    <div class="min-h-screen bg-canvas">
+         <a
+             href="#contenido"
+-            class="sr-only z-[100] rounded bg-white px-3 py-2 text-sm font-medium text-indigo-700 focus:not-sr-only focus:fixed focus:left-2 focus:top-2"
++            class="sr-only z-[100] rounded bg-surface px-3 py-2 text-sm font-medium text-accent-strong focus:not-sr-only focus:fixed focus:left-2 focus:top-2"
+             >Saltar al contenido</a
+         >
+ 
+-        <header class="sticky top-0 z-40 border-b border-slate-200 bg-white shadow-sm">
++        <header class="sticky top-0 z-40 border-b border-border bg-surface shadow-sm">
+             <div class="mx-auto flex min-h-14 max-w-7xl items-center gap-3 px-3 py-2 sm:px-6">
+                 <BrandLogo compact class="shrink-0" />
+                 <GlobalActions light />
+diff --git a/resources/js/Layouts/GuestLayout.vue b/resources/js/Layouts/GuestLayout.vue
+index 164de5a..13d85fc 100644
+--- a/resources/js/Layouts/GuestLayout.vue
++++ b/resources/js/Layouts/GuestLayout.vue
+@@ -1,5 +1,6 @@
+ <script setup>
+ import BrandLogo from '@/Components/BrandLogo.vue';
++import ThemePreference from '@/Components/ThemePreference.vue';
+ import { Link } from '@inertiajs/vue3';
+ </script>
+ 
+@@ -7,46 +8,48 @@ import { Link } from '@inertiajs/vue3';
+     <div class="grid min-h-screen lg:grid-cols-2">
+         <!-- Panel de marca (solo escritorio) -->
+         <aside
+-            class="relative hidden overflow-hidden bg-night-900 p-12 text-white lg:flex lg:flex-col lg:justify-between"
++            class="relative hidden overflow-hidden bg-chrome p-12 text-chrome-strong lg:flex lg:flex-col lg:justify-between"
+         >
+             <div
+-                class="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-indigo-500/30 blur-3xl"
++                class="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-chrome-decoration/30 blur-3xl"
+             ></div>
+             <div
+-                class="pointer-events-none absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-teal-500/20 blur-3xl"
++                class="pointer-events-none absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-chrome-teal/20 blur-3xl"
+             ></div>
+             <Link href="/" class="relative z-10 w-fit" aria-label="Social Scheduler, inicio"><BrandLogo dark /></Link>
+             <div class="relative z-10 max-w-md">
+                 <h2 class="text-3xl font-bold leading-tight"
+                     >Programa, publica y mide tus redes desde un solo sitio.</h2
+                 >
+-                <p class="mt-4 text-slate-300"
++                <p class="mt-4 text-chrome-muted"
+                     >Instagram, Facebook, YouTube y TikTok con calendario, analítica por red, informes y un agente MCP
+                     para automatizarlo.</p
+                 >
+-                <ul class="mt-8 space-y-3 text-sm text-slate-300">
++                <ul class="mt-8 space-y-3 text-sm text-chrome-muted">
+                     <li class="flex items-center gap-3"
+-                        ><span class="h-2 w-2 rounded-full bg-teal-400"></span>Calendario con arrastrar y soltar</li
++                        ><span class="h-2 w-2 rounded-full bg-chrome-teal"></span>Calendario con arrastrar y soltar</li
+                     >
+                     <li class="flex items-center gap-3"
+-                        ><span class="h-2 w-2 rounded-full bg-indigo-400"></span>Estadísticas con comparación de
++                        ><span class="h-2 w-2 rounded-full bg-chrome-active"></span>Estadísticas con comparación de
+                         periodos</li
+                     >
+                     <li class="flex items-center gap-3"
+-                        ><span class="h-2 w-2 rounded-full bg-sky-400"></span>Informes PDF y CSV por marca</li
++                        ><span class="h-2 w-2 rounded-full bg-chrome-sky"></span>Informes PDF y CSV por marca</li
+                     >
+                 </ul>
+             </div>
+-            <p class="relative z-10 text-xs text-slate-300">© {{ new Date().getFullYear() }} Social Scheduler</p>
++            <p class="relative z-10 text-xs text-chrome-muted">© {{ new Date().getFullYear() }} Social Scheduler</p>
+         </aside>
+ 
+-        <main class="flex flex-col items-center justify-center bg-slate-50 px-4 py-10 sm:px-6">
++        <main class="flex flex-col items-center justify-center bg-canvas px-4 py-10 sm:px-6">
+             <Link href="/" class="mb-8 lg:hidden" aria-label="Social Scheduler, inicio"><BrandLogo /></Link>
+             <div class="card w-full max-w-md p-6 sm:p-8">
+                 <slot />
+             </div>
+-            <p class="mt-6 text-xs text-slate-500">
+-                <a href="/privacy" class="link">Privacidad</a> · <a href="/terms" class="link">Condiciones</a>
++            <ThemePreference class="mt-6 w-full max-w-40" />
++            <p class="mt-6 text-xs text-foreground-subtle">
++                <a href="/privacy" class="link underline">Privacidad</a> ·
++                <a href="/terms" class="link underline">Condiciones</a>
+             </p>
+         </main>
+     </div>
+diff --git a/resources/js/Layouts/PublicShareLayout.vue b/resources/js/Layouts/PublicShareLayout.vue
+index 60d37d0..59d77af 100644
+--- a/resources/js/Layouts/PublicShareLayout.vue
++++ b/resources/js/Layouts/PublicShareLayout.vue
+@@ -3,13 +3,13 @@ import BrandLogo from '@/Components/BrandLogo.vue';
+ </script>
+ 
+ <template>
+-    <div class="min-h-screen bg-slate-50 text-slate-800">
++    <div class="min-h-screen bg-canvas text-foreground">
+         <a
+             href="#contenido-compartido"
+-            class="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2"
++            class="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2"
+             >Saltar al contenido</a
+         >
+-        <header class="border-b border-slate-200 bg-white px-4 py-3 sm:px-6"><BrandLogo /></header>
++        <header class="border-b border-border bg-surface px-4 py-3 sm:px-6"><BrandLogo /></header>
+         <main id="contenido-compartido" class="mx-auto max-w-[1400px] px-3 py-5 sm:px-6">
+             <slot />
+         </main>
+diff --git a/resources/js/Pages/Auth/ConfirmPassword.vue b/resources/js/Pages/Auth/ConfirmPassword.vue
+index 6b3579d..d2a1c44 100644
+--- a/resources/js/Pages/Auth/ConfirmPassword.vue
++++ b/resources/js/Pages/Auth/ConfirmPassword.vue
+@@ -21,10 +21,10 @@ const submit = () => {
+     <GuestLayout>
+         <Head title="Confirmar contraseña" />
+ 
+-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Confirma tu contraseña</h1>
+-        <p class="mb-6 mt-1 text-sm text-slate-600">Por seguridad, necesitamos que lo confirmes.</p>
++        <h1 class="text-2xl font-bold tracking-tight text-foreground-strong">Confirma tu contraseña</h1>
++        <p class="mb-6 mt-1 text-sm text-foreground-muted">Por seguridad, necesitamos que lo confirmes.</p>
+ 
+-        <div class="mb-4 text-sm text-slate-600">
++        <div class="mb-4 text-sm text-foreground-muted">
+             Esta es una zona segura de la aplicación. Confirma tu contraseña antes de continuar.
+         </div>
+ 
+diff --git a/resources/js/Pages/Auth/ForgotPassword.vue b/resources/js/Pages/Auth/ForgotPassword.vue
+index aa2c67f..5e9abd3 100644
+--- a/resources/js/Pages/Auth/ForgotPassword.vue
++++ b/resources/js/Pages/Auth/ForgotPassword.vue
+@@ -25,14 +25,14 @@ const submit = () => {
+     <GuestLayout>
+         <Head title="Recuperar contraseña" />
+ 
+-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Recupera tu contraseña</h1>
+-        <p class="mb-6 mt-1 text-sm text-slate-600">Te enviaremos un enlace por correo.</p>
++        <h1 class="text-2xl font-bold tracking-tight text-foreground-strong">Recupera tu contraseña</h1>
++        <p class="mb-6 mt-1 text-sm text-foreground-muted">Te enviaremos un enlace por correo.</p>
+ 
+-        <div class="mb-4 text-sm text-slate-600">
++        <div class="mb-4 text-sm text-foreground-muted">
+             Indícanos tu correo electrónico y te enviaremos un enlace para elegir una nueva.
+         </div>
+ 
+-        <div v-if="status" class="mb-4 text-sm font-medium text-emerald-700">
++        <div v-if="status" class="mb-4 text-sm font-medium text-success-ink">
+             {{ status }}
+         </div>
+ 
+diff --git a/resources/js/Pages/Auth/Login.vue b/resources/js/Pages/Auth/Login.vue
+index 6504ec7..17732ba 100644
+--- a/resources/js/Pages/Auth/Login.vue
++++ b/resources/js/Pages/Auth/Login.vue
+@@ -29,13 +29,11 @@ defineProps({
+ 
+ const socialNames = { google: 'Google', facebook: 'Facebook' };
+ 
+-// Estilos de marca: Google en blanco con borde gris (su guía de botones) y Facebook en el azul de Meta #0866FF, que con texto
+-// blanco da 4,8:1 (el antiguo #1877F2 se queda en 4,2:1 y no llega a AA).
+ const socialButtonBase =
+-    'inline-flex w-full items-center justify-center gap-3 rounded-lg px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2';
++    'inline-flex w-full items-center justify-center gap-3 rounded-lg border px-4 py-2.5 text-sm font-semibold shadow-sm transition focus-visible:ring-focus';
+ const socialButtonClass = {
+-    google: `${socialButtonBase} border border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-50 focus-visible:ring-slate-400`,
+-    facebook: `${socialButtonBase} border border-transparent bg-[#0866FF] text-white shadow-sm hover:bg-[#0657DB] focus-visible:ring-[#0866FF]`,
++    google: `${socialButtonBase} google-sign-in`,
++    facebook: `${socialButtonBase} facebook-sign-in`,
+ };
+ 
+ // Los rechazos del login social (cancelar, identidad sin cuenta, sesión caducada) llegan por redirección con el error
+@@ -109,16 +107,16 @@ const submit = () => {
+     <GuestLayout>
+         <Head title="Entrar" />
+ 
+-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Entra en tu cuenta</h1>
+-        <p class="mb-6 mt-1 text-sm text-slate-600">Bienvenido de nuevo a Social Scheduler.</p>
++        <h1 class="text-2xl font-bold tracking-tight text-foreground-strong">Entra en tu cuenta</h1>
++        <p class="mb-6 mt-1 text-sm text-foreground-muted">Bienvenido de nuevo a Social Scheduler.</p>
+ 
+-        <div v-if="status" class="mb-4 text-sm font-medium text-emerald-700" role="status">
++        <div v-if="status" class="mb-4 text-sm font-medium text-success-ink" role="status">
+             {{ status }}
+         </div>
+ 
+         <div
+             v-if="socialError"
+-            class="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
++            class="mb-4 rounded-lg border border-danger-border bg-danger-soft p-3 text-sm text-danger-ink"
+             role="alert"
+             data-testid="login-error"
+         >
+@@ -160,7 +158,7 @@ const submit = () => {
+             <div class="mt-4 block">
+                 <label class="flex items-center">
+                     <Checkbox name="remember" v-model:checked="form.remember" />
+-                    <span class="ms-2 text-sm text-slate-600">Recordarme</span>
++                    <span class="ms-2 text-sm text-foreground-muted">Recordarme</span>
+                 </label>
+             </div>
+ 
+@@ -175,7 +173,7 @@ const submit = () => {
+             </div>
+         </form>
+ 
+-        <div v-if="socialProviders.length" class="mt-6 space-y-3 border-t border-slate-200 pt-6">
++        <div v-if="socialProviders.length" class="mt-6 space-y-3 border-t border-border pt-6">
+             <!-- Navegación completa (no Inertia): la ruta redirige a otro origen. -->
+             <a
+                 v-for="provider in socialProviders"
+@@ -189,22 +187,33 @@ const submit = () => {
+             </a>
+         </div>
+ 
+-        <div class="mt-6 border-t border-slate-200 pt-6">
++        <div class="mt-6 border-t border-border pt-6">
+             <template v-if="canUsePasskeys">
+                 <SecondaryButton class="w-full" :disabled="passkeyBusy" @click="startPasskey">
+                     {{ passkeyBusy ? 'Esperando a tu dispositivo…' : 'Entrar con passkey' }}
+                 </SecondaryButton>
+-                <p class="mt-2 text-center text-xs text-slate-500"
++                <p class="mt-2 text-center text-xs text-foreground-subtle"
+                     >Sin contraseña ni código: con tu huella, tu cara o el PIN del dispositivo.</p
+                 >
+             </template>
+-            <p v-else class="text-center text-sm text-slate-600" role="status">{{ httpsNotice }}</p>
++            <p v-else class="text-center text-sm text-foreground-muted" role="status">{{ httpsNotice }}</p>
+ 
+-            <p class="mt-3 text-center text-sm text-red-600" role="alert" aria-live="polite">{{ passkeyMessage }}</p>
++            <p class="mt-3 text-center text-sm text-danger" role="alert" aria-live="polite">{{ passkeyMessage }}</p>
+         </div>
+ 
+-        <p v-if="$page.props.registrationEnabled" class="mt-6 text-center text-sm text-slate-600"
+-            >¿Aún no tienes cuenta? <Link :href="route('register')" class="link">Crear cuenta</Link></p
++        <p v-if="$page.props.registrationEnabled" class="mt-6 text-center text-sm text-foreground-muted"
++            >¿Aún no tienes cuenta? <Link :href="route('register')" class="link underline">Crear cuenta</Link></p
+         >
+     </GuestLayout>
+ </template>
++
++<style scoped>
++/* Cada proveedor conserva los colores de su botón de marca en ambas paletas. */
++.google-sign-in {
++    @apply border-slate-300 bg-white text-slate-800 hover:bg-slate-50;
++}
++
++.facebook-sign-in {
++    @apply border-transparent bg-[#0866ff] text-white hover:bg-[#0657db];
++}
++</style>
+diff --git a/resources/js/Pages/Auth/Register.vue b/resources/js/Pages/Auth/Register.vue
+index 6e0c5f0..e85b62b 100644
+--- a/resources/js/Pages/Auth/Register.vue
++++ b/resources/js/Pages/Auth/Register.vue
+@@ -24,8 +24,8 @@ const submit = () => {
+     <GuestLayout>
+         <Head title="Crear cuenta" />
+ 
+-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Crea tu cuenta</h1>
+-        <p class="mb-6 mt-1 text-sm text-slate-600">Empieza a programar y medir tus redes en minutos.</p>
++        <h1 class="text-2xl font-bold tracking-tight text-foreground-strong">Crea tu cuenta</h1>
++        <p class="mb-6 mt-1 text-sm text-foreground-muted">Empieza a programar y medir tus redes en minutos.</p>
+ 
+         <form @submit.prevent="submit">
+             <div>
+diff --git a/resources/js/Pages/Auth/ResetPassword.vue b/resources/js/Pages/Auth/ResetPassword.vue
+index 740561b..8101c37 100644
+--- a/resources/js/Pages/Auth/ResetPassword.vue
++++ b/resources/js/Pages/Auth/ResetPassword.vue
+@@ -35,8 +35,8 @@ const submit = () => {
+     <GuestLayout>
+         <Head title="Nueva contraseña" />
+ 
+-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Elige una nueva contraseña</h1>
+-        <p class="mb-6 mt-1 text-sm text-slate-600">Escribe una contraseña segura para tu cuenta.</p>
++        <h1 class="text-2xl font-bold tracking-tight text-foreground-strong">Elige una nueva contraseña</h1>
++        <p class="mb-6 mt-1 text-sm text-foreground-muted">Escribe una contraseña segura para tu cuenta.</p>
+ 
+         <form @submit.prevent="submit">
+             <div>
+diff --git a/resources/js/Pages/Auth/TwoFactorChallenge.vue b/resources/js/Pages/Auth/TwoFactorChallenge.vue
+index f31d56c..3edeca1 100644
+--- a/resources/js/Pages/Auth/TwoFactorChallenge.vue
++++ b/resources/js/Pages/Auth/TwoFactorChallenge.vue
+@@ -36,8 +36,8 @@ const submit = () => {
+     <GuestLayout>
+         <Head title="Verificación en dos pasos" />
+ 
+-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Verificación en dos pasos</h1>
+-        <p class="mb-6 mt-1 text-sm text-slate-600">
++        <h1 class="text-2xl font-bold tracking-tight text-foreground-strong">Verificación en dos pasos</h1>
++        <p class="mb-6 mt-1 text-sm text-foreground-muted">
+             <template v-if="!usingRecovery"
+                 >Escribe el código de 6 dígitos que muestra tu app de autenticación.</template
+             >
+@@ -102,7 +102,7 @@ const submit = () => {
+             </div>
+         </form>
+ 
+-        <p class="mt-6 text-center text-sm text-slate-600">
++        <p class="mt-6 text-center text-sm text-foreground-muted">
+             <Link :href="route('login')" class="link">Volver al inicio de sesión</Link>
+         </p>
+     </GuestLayout>
+diff --git a/resources/js/Pages/Auth/VerifyEmail.vue b/resources/js/Pages/Auth/VerifyEmail.vue
+index 5d885bd..4cfd6a0 100644
+--- a/resources/js/Pages/Auth/VerifyEmail.vue
++++ b/resources/js/Pages/Auth/VerifyEmail.vue
+@@ -25,15 +25,15 @@ const verificationLinkSent = computed(
+     <GuestLayout>
+         <Head title="Verifica tu correo" />
+ 
+-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Verifica tu correo</h1>
+-        <p class="mb-6 mt-1 text-sm text-slate-600">Un último paso antes de entrar.</p>
++        <h1 class="text-2xl font-bold tracking-tight text-foreground-strong">Verifica tu correo</h1>
++        <p class="mb-6 mt-1 text-sm text-foreground-muted">Un último paso antes de entrar.</p>
+ 
+-        <div class="mb-4 text-sm text-slate-600">
++        <div class="mb-4 text-sm text-foreground-muted">
+             ¡Gracias por registrarte! Antes de empezar, verifica tu correo electrónico pulsando el enlace que te
+             acabamos de enviar. Si no lo has recibido, te enviamos otro encantados.
+         </div>
+ 
+-        <div class="mb-4 text-sm font-medium text-emerald-700" v-if="verificationLinkSent">
++        <div class="mb-4 text-sm font-medium text-success-ink" v-if="verificationLinkSent">
+             Te hemos enviado un nuevo enlace de verificación al correo con el que te registraste.
+         </div>
+ 
+diff --git a/resources/js/Pages/Profile/Edit.vue b/resources/js/Pages/Profile/Edit.vue
+index 49c8318..16326f6 100644
+--- a/resources/js/Pages/Profile/Edit.vue
++++ b/resources/js/Pages/Profile/Edit.vue
+@@ -1,5 +1,6 @@
+ <script setup>
+ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
++import ThemePreference from '@/Components/ThemePreference.vue';
+ import DeleteUserForm from './Partials/DeleteUserForm.vue';
+ import LinkedAccountsForm from './Partials/LinkedAccountsForm.vue';
+ import PasskeysForm from './Partials/PasskeysForm.vue';
+@@ -50,11 +51,16 @@ const { canUsePasskeys, httpsNotice } = useSecureContext();
+ 
+     <AuthenticatedLayout>
+         <template #header>
+-            <h1 class="text-xl font-bold text-slate-900">Perfil</h1>
++            <h1 class="text-xl font-bold text-foreground-strong">Perfil</h1>
+         </template>
+ 
+         <div>
+             <div class="w-full max-w-3xl space-y-6">
++                <section class="card p-4 sm:p-8" aria-labelledby="appearance-title">
++                    <h2 id="appearance-title" class="mb-3 text-lg font-medium text-foreground-strong">Apariencia</h2>
++                    <ThemePreference class="max-w-xs" />
++                </section>
++
+                 <div class="card p-4 sm:p-8">
+                     <UpdateProfileInformationForm
+                         :must-verify-email="mustVerifyEmail"
+@@ -67,7 +73,7 @@ const { canUsePasskeys, httpsNotice } = useSecureContext();
+                     <UpdatePasswordForm class="max-w-xl" />
+                 </div>
+ 
+-                <div class="card p-4 sm:p-8" aria-label="Seguridad">
++                <section class="card p-4 sm:p-8" aria-label="Seguridad">
+                     <TwoFactorForm
+                         :two-factor="twoFactor"
+                         :setup="twoFactorSetup"
+@@ -78,27 +84,29 @@ const { canUsePasskeys, httpsNotice } = useSecureContext();
+                     <PasskeysForm
+                         v-if="canUsePasskeys"
+                         :passkeys="passkeys"
+-                        class="mt-10 max-w-xl border-t border-slate-200 pt-8"
++                        class="mt-10 max-w-xl border-t border-border pt-8"
+                     />
+-                    <p v-else class="mt-8 max-w-xl text-xs text-slate-500" role="note">{{ httpsNotice }}</p>
+-                </div>
++                    <p v-else class="mt-8 max-w-xl text-xs text-foreground-subtle" role="note">{{ httpsNotice }}</p>
++                </section>
+ 
+                 <div class="card p-4 sm:p-8">
+                     <LinkedAccountsForm :accounts="socialAccounts" :status="status" class="max-w-xl" />
+                 </div>
+ 
+-                <div class="card p-4 sm:p-8" aria-labelledby="export-data-title">
+-                    <section class="max-w-xl space-y-2">
+-                        <h2 id="export-data-title" class="text-lg font-medium text-slate-900">Exportar mis datos</h2>
+-                        <p class="text-sm text-slate-600"
++                <section class="card p-4 sm:p-8" aria-labelledby="export-data-title">
++                    <div class="max-w-xl space-y-2">
++                        <h2 id="export-data-title" class="text-lg font-medium text-foreground-strong"
++                            >Exportar mis datos</h2
++                        >
++                        <p class="text-sm text-foreground-muted"
+                             >Descarga una copia completa de tus datos (marcas, publicaciones, informes, media y diseños)
+                             en un ZIP.</p
+                         >
+                         <Link :href="route('profile.export')" class="btn-secondary inline-block"
+                             >Ir a la exportación</Link
+                         >
+-                    </section>
+-                </div>
++                    </div>
++                </section>
+ 
+                 <div class="card p-4 sm:p-8">
+                     <DeleteUserForm class="max-w-xl" />
+diff --git a/resources/js/Pages/Profile/Export.vue b/resources/js/Pages/Profile/Export.vue
+index 194ff0c..15a8b3f 100644
+--- a/resources/js/Pages/Profile/Export.vue
++++ b/resources/js/Pages/Profile/Export.vue
+@@ -82,13 +82,13 @@ async function request() {
+ <template>
+     <Head title="Exportar mis datos" />
+     <AuthenticatedLayout>
+-        <template #header><h1 class="text-xl font-bold text-slate-900">Exportar mis datos</h1></template>
++        <template #header><h1 class="text-xl font-bold text-foreground-strong">Exportar mis datos</h1></template>
+         <div class="max-w-3xl space-y-6">
+             <section class="card space-y-4 p-4 sm:p-6" aria-labelledby="export-intro-title">
+-                <h2 id="export-intro-title" class="text-lg font-semibold text-slate-900"
++                <h2 id="export-intro-title" class="text-lg font-semibold text-foreground-strong"
+                     >Copia de seguridad completa</h2
+                 >
+-                <p class="text-sm text-slate-600"
++                <p class="text-sm text-foreground-muted"
+                     >Descarga un ZIP con todos tus datos: marcas, publicaciones con sus destinos y textos, campañas,
+                     informes y sus PDF, la biblioteca de media (los ficheros originales), los diseños del Estudio y sus
+                     exportaciones, sitios, smart links, plantillas, objetivos y textos guardados. Los datos van en JSON
+@@ -99,46 +99,48 @@ async function request() {
+                         <li v-for="line in excluded" :key="line">{{ line }}</li>
+                     </ul>
+                 </InfoNote>
+-                <p class="text-sm text-slate-600"
++                <p class="text-sm text-foreground-muted"
+                     >El ZIP se prepara en segundo plano (máximo {{ limits.max_gb }} GB) y estará disponible
+                     {{ limits.retention_hours }} horas; después se borra. Te avisaremos cuando esté listo.</p
+                 >
+             </section>
+ 
+             <section class="card space-y-3 p-4 sm:p-6" aria-labelledby="export-state-title">
+-                <h2 id="export-state-title" class="text-lg font-semibold text-slate-900">Tu exportación</h2>
+-                <p v-if="!latest && !download" class="text-sm text-slate-600">Aún no has pedido ninguna exportación.</p>
++                <h2 id="export-state-title" class="text-lg font-semibold text-foreground-strong">Tu exportación</h2>
++                <p v-if="!latest && !download" class="text-sm text-foreground-muted"
++                    >Aún no has pedido ninguna exportación.</p
++                >
+                 <div v-if="latest" class="space-y-1 text-sm" data-testid="export-state">
+-                    <p class="font-medium text-slate-900"
++                    <p class="font-medium text-foreground-strong"
+                         >Estado: <span data-testid="export-status">{{ STATUS[latest.status] }}</span></p
+                     >
+-                    <p class="text-slate-600"
++                    <p class="text-foreground-muted"
+                         >Pedida el
+                         {{ formatDate(latest.created_at)
+                         }}{{ latest.include_media ? '' : ' · sin media' }}</p
+                     >
+-                    <p v-if="latest.status === 'failed' && latest.error" role="alert" class="text-red-700">{{
++                    <p v-if="latest.status === 'failed' && latest.error" role="alert" class="text-danger">{{
+                         latest.error
+                     }}</p>
+                 </div>
+                 <div v-if="download" class="space-y-1 text-sm" data-testid="export-download-info">
+-                    <p class="text-slate-600"
++                    <p class="text-foreground-muted"
+                         >{{ size(download.size) }} · {{ download.file_count }} ficheros{{
+                             download.include_media ? '' : ' (sin media)'
+                         }}
+                         · disponible hasta el {{ formatDate(download.expires_at) }}</p
+                     >
+                     <a :href="download.url" class="btn-primary" data-testid="export-download">Descargar ZIP</a>
+-                    <p class="text-xs text-slate-500"
++                    <p class="text-xs text-foreground-subtle"
+                         >El enlace de descarga caduca a los {{ limits.link_minutes }} minutos y solo funciona con tu
+                         sesión; pulsa Descargar para obtener uno nuevo.</p
+                     >
+                 </div>
+                 <div v-if="pollingExhausted" class="flex flex-wrap items-center gap-2">
+-                    <p role="status" class="text-sm text-slate-600">Sigue en preparación.</p>
++                    <p role="status" class="text-sm text-foreground-muted">Sigue en preparación.</p>
+                     <SecondaryButton type="button" @click="restartPolling">Volver a consultar</SecondaryButton>
+                 </div>
+-                <label class="flex items-start gap-2 pt-1 text-sm text-slate-800" for="export-include-media">
++                <label class="flex items-start gap-2 pt-1 text-sm text-foreground" for="export-include-media">
+                     <Checkbox id="export-include-media" v-model:checked="includeMedia" :disabled="active" />
+                     <span
+                         >Incluir archivos de media (imágenes, vídeos, informes generados y exportaciones). Sin ellos
+diff --git a/resources/js/Pages/Profile/Notifications.vue b/resources/js/Pages/Profile/Notifications.vue
+index 687b649..3ffa016 100644
+--- a/resources/js/Pages/Profile/Notifications.vue
++++ b/resources/js/Pages/Profile/Notifications.vue
+@@ -88,12 +88,16 @@ async function revoke(device) {
+ <template>
+     <Head title="Notificaciones del navegador" />
+     <AuthenticatedLayout>
+-        <template #header><h1 class="text-xl font-bold text-slate-900">Notificaciones del navegador</h1></template>
++        <template #header
++            ><h1 class="text-xl font-bold text-foreground-strong">Notificaciones del navegador</h1></template
++        >
+         <div class="max-w-3xl space-y-6">
+             <section class="card space-y-4 p-4 sm:p-6" aria-labelledby="prefs-title">
+-                <h2 id="prefs-title" class="text-lg font-semibold text-slate-900">Qué avisos quieres recibir</h2>
++                <h2 id="prefs-title" class="text-lg font-semibold text-foreground-strong"
++                    >Qué avisos quieres recibir</h2
++                >
+                 <form class="space-y-3" @submit.prevent="savePreferences">
+-                    <label class="flex items-start gap-2 text-sm text-slate-700" for="notify_weekly_digest">
++                    <label class="flex items-start gap-2 text-sm text-foreground-secondary" for="notify_weekly_digest">
+                         <Checkbox
+                             id="notify_weekly_digest"
+                             v-model:checked="prefs.notify_weekly_digest"
+@@ -104,15 +108,12 @@ async function revoke(device) {
+                             semana anterior de cada marca comparadas con la previa.</span
+                         >
+                     </label>
+-                    <label
+-                        class="ml-6 flex items-start gap-2 text-sm text-slate-700"
+-                        for="weekly_digest_ai"
+-                        :class="{ 'opacity-60': !aiAvailable }"
+-                    >
++                    <label class="ml-6 flex items-start gap-2 text-sm text-foreground-secondary" for="weekly_digest_ai">
+                         <Checkbox
+                             id="weekly_digest_ai"
+                             v-model:checked="prefs.weekly_digest_ai"
+                             :disabled="!aiAvailable"
++                            class="disabled:opacity-60"
+                             data-testid="pref-weekly-digest-ai"
+                         />
+                         <span
+@@ -120,7 +121,10 @@ async function revoke(device) {
+                             cifras agregadas.</span
+                         >
+                     </label>
+-                    <label class="flex items-start gap-2 text-sm text-slate-700" for="notify_manual_reminder">
++                    <label
++                        class="flex items-start gap-2 text-sm text-foreground-secondary"
++                        for="notify_manual_reminder"
++                    >
+                         <Checkbox
+                             id="notify_manual_reminder"
+                             v-model:checked="prefs.notify_manual_reminder"
+@@ -131,7 +135,7 @@ async function revoke(device) {
+                             que hacer a mano.</span
+                         >
+                     </label>
+-                    <h3 class="pt-2 text-base font-semibold text-slate-900">Canales por tipo de aviso</h3>
++                    <h3 class="pt-2 text-base font-semibold text-foreground-strong">Canales por tipo de aviso</h3>
+                     <InfoNote>
+                         Los correos de verificación, restablecimiento de contraseña y seguridad de la cuenta están
+                         siempre activos. Para recibir push, activa cada dispositivo más abajo.
+@@ -143,19 +147,20 @@ async function revoke(device) {
+                             (type === 'weekly_digest' && !prefs.notify_weekly_digest) ||
+                             (type === 'manual_reminder' && !prefs.notify_manual_reminder)
+                         "
+-                        class="min-w-0 space-y-2 rounded-md border border-slate-200 px-3 pb-2 disabled:opacity-60"
++                        class="min-w-0 space-y-2 rounded-md border border-border px-3 pb-2"
+                     >
+-                        <legend class="max-w-full px-1 text-sm font-medium text-slate-800">{{
++                        <legend class="max-w-full px-1 text-sm font-medium text-foreground">{{
+                             notificationTypes[type]
+                         }}</legend>
+                         <div class="flex flex-wrap gap-x-4 gap-y-2">
+                             <label
+                                 v-for="(_, channel) in channels"
+                                 :key="channel"
+-                                class="flex items-center gap-2 text-sm text-slate-700"
++                                class="flex items-center gap-2 text-sm text-foreground-secondary"
+                             >
+                                 <Checkbox
+                                     :checked="channels[channel] ?? false"
++                                    class="disabled:opacity-60"
+                                     @update:checked="channels[channel] = $event === true"
+                                 />
+                                 {{ channelNames[channel] }}
+@@ -167,23 +172,25 @@ async function revoke(device) {
+                         <PrimaryButton :disabled="prefs.processing" data-testid="pref-save"
+                             >Guardar preferencias</PrimaryButton
+                         >
+-                        <p v-if="prefs.recentlySuccessful" role="status" class="text-sm text-slate-600">Guardado.</p>
++                        <p v-if="prefs.recentlySuccessful" role="status" class="text-sm text-foreground-muted"
++                            >Guardado.</p
++                        >
+                     </div>
+                 </form>
+             </section>
+             <section class="card space-y-4 p-4 sm:p-6" aria-labelledby="push-enable-title">
+-                <h2 id="push-enable-title" class="text-lg font-semibold text-slate-900">Activar avisos push</h2>
+-                <p class="text-sm text-slate-600"
++                <h2 id="push-enable-title" class="text-lg font-semibold text-foreground-strong">Activar avisos push</h2>
++                <p class="text-sm text-foreground-muted"
+                     >Recibe un aviso genérico cuando haya novedades. El contenido privado se consulta al entrar en la
+                     aplicación. El permiso solo se pide al pulsar Activar.</p
+                 >
+-                <p v-if="push.unavailable_reason" class="text-sm text-amber-800">{{ push.unavailable_reason }}</p>
+-                <p v-else-if="!supported" role="status" class="text-sm text-amber-800"
++                <p v-if="push.unavailable_reason" class="text-sm text-warning-ink">{{ push.unavailable_reason }}</p>
++                <p v-else-if="!supported" role="status" class="text-sm text-warning-ink"
+                     >Este navegador necesita HTTPS y compatibilidad con notificaciones push.</p
+                 >
+                 <form class="space-y-3" @submit.prevent="activate">
+                     <div
+-                        ><label for="push-device-name" class="text-sm font-medium text-slate-800"
++                        ><label for="push-device-name" class="text-sm font-medium text-foreground"
+                             >Nombre de este dispositivo</label
+                         >
+                         <input
+@@ -202,27 +209,31 @@ async function revoke(device) {
+                         >{{ busy ? 'Procesando…' : 'Activar en este navegador' }}</button
+                     >
+                 </form>
+-                <div v-if="messages.length" role="alert" class="text-sm text-red-700"
++                <div v-if="messages.length" role="alert" class="text-sm text-danger"
+                     ><ul class="space-y-1"
+                         ><li v-for="(message, index) in messages" :key="index">{{ message }}</li></ul
+                     ></div
+                 >
+             </section>
+             <section class="space-y-3" aria-labelledby="push-devices-title">
+-                <h2 id="push-devices-title" class="text-lg font-semibold text-slate-900">Dispositivos suscritos</h2>
+-                <p v-if="!subscriptions.length" class="text-sm text-slate-600">No tienes dispositivos suscritos.</p>
++                <h2 id="push-devices-title" class="text-lg font-semibold text-foreground-strong"
++                    >Dispositivos suscritos</h2
++                >
++                <p v-if="!subscriptions.length" class="text-sm text-foreground-muted"
++                    >No tienes dispositivos suscritos.</p
++                >
+                 <article
+                     v-for="device in subscriptions"
+                     :key="device.id"
+                     class="card flex flex-wrap items-start justify-between gap-4 p-4"
+                 >
+                     <div class="min-w-0"
+-                        ><h3 class="break-words font-semibold text-slate-900"
++                        ><h3 class="break-words font-semibold text-foreground-strong"
+                             >{{ device.device_name
+                             }}<span v-if="device.current" class="text-sm font-normal"> · Este navegador</span></h3
+                         >
+-                        <p class="text-sm text-slate-600">Última suscripción: {{ date(device.last_seen_at) }}</p>
+-                        <p class="text-sm text-slate-600">Último envío: {{ date(device.last_sent_at) }}</p></div
++                        <p class="text-sm text-foreground-muted">Última suscripción: {{ date(device.last_seen_at) }}</p>
++                        <p class="text-sm text-foreground-muted">Último envío: {{ date(device.last_sent_at) }}</p></div
+                     >
+                     <button
+                         type="button"
+@@ -234,11 +245,11 @@ async function revoke(device) {
+                     >
+                 </article>
+             </section>
+-            <p class="text-sm text-slate-600"
++            <p class="text-sm text-foreground-muted"
+                 >Puedes instalar la aplicación desde el menú de tu navegador. La disponibilidad depende del navegador y
+                 del dispositivo.</p
+             >
+-            <Link :href="route('notifications.index')" class="text-sm font-medium text-indigo-700 underline"
++            <Link :href="route('notifications.index')" class="text-sm font-medium text-accent-strong underline"
+                 >Ver avisos en la aplicación</Link
+             >
+         </div>
+diff --git a/resources/js/Pages/Profile/Partials/DeleteUserForm.vue b/resources/js/Pages/Profile/Partials/DeleteUserForm.vue
+index 7137e91..367f264 100644
+--- a/resources/js/Pages/Profile/Partials/DeleteUserForm.vue
++++ b/resources/js/Pages/Profile/Partials/DeleteUserForm.vue
+@@ -41,9 +41,9 @@ const closeModal = () => {
+ <template>
+     <section class="space-y-6">
+         <header>
+-            <h2 class="text-lg font-medium text-slate-900"> Eliminar cuenta </h2>
++            <h2 class="text-lg font-medium text-foreground-strong"> Eliminar cuenta </h2>
+ 
+-            <p class="mt-1 text-sm text-slate-600">
++            <p class="mt-1 text-sm text-foreground-muted">
+                 Al eliminar tu cuenta se borrarán de forma permanente todos sus recursos y datos. Antes de hacerlo,
+                 descarga cualquier información que quieras conservar.
+             </p>
+@@ -60,9 +60,9 @@ const closeModal = () => {
+             @close="closeModal"
+         >
+             <div class="p-6">
+-                <h2 class="text-lg font-medium text-slate-900"> ¿Seguro que quieres eliminar tu cuenta? </h2>
++                <h2 class="text-lg font-medium text-foreground-strong"> ¿Seguro que quieres eliminar tu cuenta? </h2>
+ 
+-                <p class="mt-1 text-sm text-slate-600">
++                <p class="mt-1 text-sm text-foreground-muted">
+                     Esta acción es permanente. Introduce tu contraseña para confirmar que quieres eliminar tu cuenta.
+                 </p>
+ 
+diff --git a/resources/js/Pages/Profile/Partials/LinkedAccountsForm.vue b/resources/js/Pages/Profile/Partials/LinkedAccountsForm.vue
+index 75f6b7e..3091e34 100644
+--- a/resources/js/Pages/Profile/Partials/LinkedAccountsForm.vue
++++ b/resources/js/Pages/Profile/Partials/LinkedAccountsForm.vue
+@@ -44,9 +44,9 @@ const confirmUnlink = () => {
+ <template>
+     <section aria-labelledby="linked-accounts-title">
+         <header>
+-            <h2 id="linked-accounts-title" class="text-lg font-medium text-slate-900">Cuentas vinculadas</h2>
++            <h2 id="linked-accounts-title" class="text-lg font-medium text-foreground-strong">Cuentas vinculadas</h2>
+ 
+-            <p class="mt-1 text-sm text-slate-600">
++            <p class="mt-1 text-sm text-foreground-muted">
+                 Vincula tu cuenta de Google o de Facebook para entrar con un clic. Solo se vinculan cuentas que ya
+                 tienen acceso a esta aplicación; el segundo factor, si lo tienes activo, se sigue pidiendo.
+             </p>
+@@ -54,17 +54,14 @@ const confirmUnlink = () => {
+ 
+         <p
+             v-if="status && /vinculado/.test(status)"
+-            class="mt-4 text-sm text-emerald-700"
++            class="mt-4 text-sm text-success-ink"
+             role="status"
+             aria-live="polite"
+             >{{ status }}</p
+         >
+         <FormField :error="error" error-class="mt-4" />
+ 
+-        <ul
+-            class="mt-4 divide-y divide-slate-200 rounded-lg border border-slate-200"
+-            aria-label="Tus cuentas vinculadas"
+-        >
++        <ul class="mt-4 divide-y divide-border rounded-lg border border-border" aria-label="Tus cuentas vinculadas">
+             <li
+                 v-for="account in accounts"
+                 :key="account.provider"
+@@ -73,20 +70,22 @@ const confirmUnlink = () => {
+             >
+                 <div class="flex min-w-0 items-start gap-3">
+                     <span
+-                        class="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white"
++                        class="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-surface"
+                     >
+                         <SocialProviderIcon :provider="account.provider" />
+                     </span>
+                     <div class="min-w-0">
+-                        <p class="font-medium text-slate-900">{{ nameOf(account.provider) }}</p>
+-                        <p v-if="account.linked" class="break-words text-sm text-slate-600">
++                        <p class="font-medium text-foreground-strong">{{ nameOf(account.provider) }}</p>
++                        <p v-if="account.linked" class="break-words text-sm text-foreground-muted">
+                             Vinculada<template v-if="account.linked_at">
+                                 el {{ formatDate(account.linked_at) }}</template
+                             >
+                             <template v-if="account.email"> · {{ account.email }}</template>
+                         </p>
+-                        <p v-else-if="account.enabled" class="text-sm text-slate-600">Sin vincular</p>
+-                        <p v-else class="text-sm text-slate-500">No disponible: este acceso no está configurado.</p>
++                        <p v-else-if="account.enabled" class="text-sm text-foreground-muted">Sin vincular</p>
++                        <p v-else class="text-sm text-foreground-subtle"
++                            >No disponible: este acceso no está configurado.</p
++                        >
+                     </div>
+                 </div>
+                 <div class="flex flex-wrap gap-2">
+@@ -117,8 +116,10 @@ const confirmUnlink = () => {
+             @close="unlinking = null"
+         >
+             <div class="p-6">
+-                <h2 class="text-lg font-medium text-slate-900">Desvincular {{ nameOf(unlinking?.provider) }}</h2>
+-                <p class="mt-1 text-sm text-slate-600">
++                <h2 class="text-lg font-medium text-foreground-strong"
++                    >Desvincular {{ nameOf(unlinking?.provider) }}</h2
++                >
++                <p class="mt-1 text-sm text-foreground-muted">
+                     Dejarás de poder entrar con esa cuenta y no se volverá a vincular sola. Podrás vincularla de nuevo
+                     desde aquí cuando quieras.
+                 </p>
+diff --git a/resources/js/Pages/Profile/Partials/PasskeysForm.vue b/resources/js/Pages/Profile/Partials/PasskeysForm.vue
+index 66f56d6..fce2895 100644
+--- a/resources/js/Pages/Profile/Partials/PasskeysForm.vue
++++ b/resources/js/Pages/Profile/Partials/PasskeysForm.vue
+@@ -153,16 +153,16 @@ onMounted(() => {
+ <template>
+     <section v-if="canUsePasskeys" aria-labelledby="passkeys-title">
+         <header>
+-            <h2 id="passkeys-title" class="text-lg font-medium text-slate-900">Passkeys</h2>
++            <h2 id="passkeys-title" class="text-lg font-medium text-foreground-strong">Passkeys</h2>
+ 
+-            <p class="mt-1 text-sm text-slate-600">
++            <p class="mt-1 text-sm text-foreground-muted">
+                 Entra con tu huella, tu cara o el PIN del dispositivo, sin escribir la contraseña ni el código del doble
+                 factor. Cada passkey es de un dispositivo o gestor de contraseñas.
+             </p>
+         </header>
+ 
+         <template v-if="canUsePasskeys">
+-            <p class="mt-4 text-sm text-emerald-700" role="status" aria-live="polite">{{ notice }}</p>
++            <p class="mt-4 text-sm text-success-ink" role="status" aria-live="polite">{{ notice }}</p>
+ 
+             <EmptyState
+                 v-if="passkeys.items.length === 0"
+@@ -174,15 +174,15 @@ onMounted(() => {
+             </EmptyState>
+ 
+             <div v-else class="mt-4">
+-                <ul class="divide-y divide-slate-200 rounded-lg border border-slate-200" aria-label="Tus passkeys">
++                <ul class="divide-y divide-border rounded-lg border border-border" aria-label="Tus passkeys">
+                     <li
+                         v-for="passkey in passkeys.items"
+                         :key="passkey.id"
+                         class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+                     >
+                         <div class="min-w-0">
+-                            <p class="break-words font-medium text-slate-900">{{ passkey.name }}</p>
+-                            <p class="text-sm text-slate-600">
++                            <p class="break-words font-medium text-foreground-strong">{{ passkey.name }}</p>
++                            <p class="text-sm text-foreground-muted">
+                                 Añadida el {{ formatDate(passkey.created_at) }} ·
+                                 <template v-if="passkey.last_used_at"
+                                     >último uso el {{ formatDate(passkey.last_used_at) }}</template
+@@ -221,8 +221,8 @@ onMounted(() => {
+             @close="closeAdd"
+         >
+             <form class="p-6" novalidate @submit.prevent="submitAdd">
+-                <h2 class="text-lg font-medium text-slate-900">Añadir una passkey</h2>
+-                <p class="mt-1 text-sm text-slate-600">
++                <h2 class="text-lg font-medium text-foreground-strong">Añadir una passkey</h2>
++                <p class="mt-1 text-sm text-foreground-muted">
+                     Ponle un nombre que te ayude a reconocerla y, al continuar, tu dispositivo te pedirá la huella, la
+                     cara o el PIN.
+                 </p>
+@@ -265,7 +265,7 @@ onMounted(() => {
+             @close="closeRename"
+         >
+             <form class="p-6" novalidate @submit.prevent="submitRename">
+-                <h2 class="text-lg font-medium text-slate-900">Renombrar la passkey</h2>
++                <h2 class="text-lg font-medium text-foreground-strong">Renombrar la passkey</h2>
+ 
+                 <div class="mt-6">
+                     <FormField
+@@ -306,8 +306,8 @@ onMounted(() => {
+             @close="closeDelete"
+         >
+             <div class="p-6">
+-                <h2 class="text-lg font-medium text-slate-900">Eliminar la passkey</h2>
+-                <p class="mt-1 text-sm text-slate-600">
++                <h2 class="text-lg font-medium text-foreground-strong">Eliminar la passkey</h2>
++                <p class="mt-1 text-sm text-foreground-muted">
+                     ¿Eliminar «{{ deleting?.name }}»? Dejará de servir para entrar. Podrás volver a añadirla cuando
+                     quieras y seguirás pudiendo entrar con tu contraseña.
+                 </p>
+diff --git a/resources/js/Pages/Profile/Partials/TwoFactorForm.vue b/resources/js/Pages/Profile/Partials/TwoFactorForm.vue
+index 7dd9bd2..66cf883 100644
+--- a/resources/js/Pages/Profile/Partials/TwoFactorForm.vue
++++ b/resources/js/Pages/Profile/Partials/TwoFactorForm.vue
+@@ -116,9 +116,9 @@ const downloadCodes = () => {
+ <template>
+     <section>
+         <header>
+-            <h2 class="text-lg font-medium text-slate-900">Doble factor de autenticación</h2>
++            <h2 class="text-lg font-medium text-foreground-strong">Doble factor de autenticación</h2>
+ 
+-            <p class="mt-1 text-sm text-slate-600">
++            <p class="mt-1 text-sm text-foreground-muted">
+                 Añade un segundo paso al entrar: además de la contraseña, un código temporal de una app como Google
+                 Authenticator, Authy o 1Password.
+             </p>
+@@ -127,24 +127,26 @@ const downloadCodes = () => {
+         <!-- Códigos de recuperación recién generados: solo se muestran esta vez. -->
+         <div
+             v-if="recoveryCodes"
+-            class="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4"
++            class="mt-6 rounded-lg border border-warning-panel-border bg-warning-soft p-4"
+             role="region"
+             aria-labelledby="recovery-title"
+         >
+-            <h3 id="recovery-title" class="text-sm font-semibold text-amber-900">Guarda tus códigos de recuperación</h3>
+-            <p class="mt-1 text-sm text-amber-900">
++            <h3 id="recovery-title" class="text-sm font-semibold text-warning-ink"
++                >Guarda tus códigos de recuperación</h3
++            >
++            <p class="mt-1 text-sm text-warning-ink">
+                 Cada código sirve una sola vez si pierdes el móvil. No volverán a mostrarse: guárdalos ahora en un lugar
+                 seguro.
+             </p>
+ 
+             <ul
+-                class="mt-3 grid grid-cols-1 gap-2 font-mono text-sm text-slate-900 sm:grid-cols-2"
++                class="mt-3 grid grid-cols-1 gap-2 font-mono text-sm text-foreground-strong sm:grid-cols-2"
+                 aria-label="Códigos de recuperación"
+             >
+                 <li
+                     v-for="code in recoveryCodes"
+                     :key="code"
+-                    class="break-all rounded bg-white px-3 py-1.5"
++                    class="break-all rounded bg-surface px-3 py-1.5"
+                     >{{ code }}</li
+                 >
+             </ul>
+@@ -153,14 +155,14 @@ const downloadCodes = () => {
+                 <SecondaryButton @click="copy(recoveryCodes.join('\n'), 'codes')">Copiar códigos</SecondaryButton>
+                 <SecondaryButton @click="downloadCodes">Descargar .txt</SecondaryButton>
+             </div>
+-            <p class="mt-2 text-sm text-amber-900" role="status" aria-live="polite">
++            <p class="mt-2 text-sm text-warning-ink" role="status" aria-live="polite">
+                 <template v-if="copied === 'codes'">Códigos copiados al portapapeles.</template>
+             </p>
+         </div>
+ 
+         <!-- Estado: desactivado -->
+         <div v-if="!twoFactor.enabled && !twoFactor.pending" class="mt-6">
+-            <p class="text-sm text-slate-700">El doble factor está <strong>desactivado</strong>.</p>
++            <p class="text-sm text-foreground-secondary">El doble factor está <strong>desactivado</strong>.</p>
+             <PrimaryButton class="mt-4" :disabled="enableForm.processing" @click="enable"
+                 >Activar doble factor</PrimaryButton
+             >
+@@ -169,7 +171,7 @@ const downloadCodes = () => {
+         <!-- Estado: pendiente de confirmar -->
+         <div v-else-if="!twoFactor.enabled" class="mt-6 space-y-4">
+             <template v-if="setup">
+-                <ol class="list-decimal space-y-1 ps-5 text-sm text-slate-700">
++                <ol class="list-decimal space-y-1 ps-5 text-sm text-foreground-secondary">
+                     <li>Escanea el código QR con tu app de autenticación, o escribe la clave a mano.</li>
+                     <li>Escribe el código de 6 dígitos que te muestre para terminar de activarlo.</li>
+                 </ol>
+@@ -180,24 +182,24 @@ const downloadCodes = () => {
+                     alt="Código QR para configurar la app de autenticación. Si no puedes escanearlo, usa la clave de configuración que aparece debajo."
+                     width="192"
+                     height="192"
+-                    class="h-48 w-48 rounded border border-slate-200 bg-white p-1"
++                    class="totp-qr h-48 w-48 rounded border border-border p-1"
+                 />
+ 
+                 <div>
+-                    <p class="text-sm text-slate-600">Clave de configuración</p>
++                    <p class="text-sm text-foreground-muted">Clave de configuración</p>
+                     <div class="mt-1 flex flex-wrap items-center gap-3">
+                         <code
+-                            class="break-all rounded bg-slate-100 px-2 py-1 font-mono text-sm text-slate-900"
++                            class="break-all rounded bg-surface-hover px-2 py-1 font-mono text-sm text-foreground-strong"
+                             >{{ setup.secret }}</code
+                         >
+                         <SecondaryButton @click="copy(setup.secret, 'secret')">Copiar clave</SecondaryButton>
+                     </div>
+-                    <p class="mt-1 text-sm text-emerald-700" role="status" aria-live="polite">
++                    <p class="mt-1 text-sm text-success-ink" role="status" aria-live="polite">
+                         <template v-if="copied === 'secret'">Clave copiada al portapapeles.</template>
+                     </p>
+                 </div>
+             </template>
+-            <p v-else-if="twoFactor.setupLocked" class="text-sm text-slate-700" role="status">
++            <p v-else-if="twoFactor.setupLocked" class="text-sm text-foreground-secondary" role="status">
+                 Tienes una activación a medias. Por seguridad, la clave solo se muestra tras confirmar tu contraseña: si
+                 ya la añadiste a tu app, escribe el código; si no, pulsa «Generar otro QR».
+             </p>
+@@ -233,8 +235,8 @@ const downloadCodes = () => {
+ 
+         <!-- Estado: activo -->
+         <div v-else class="mt-6">
+-            <p class="text-sm text-slate-700">
+-                El doble factor está <strong class="text-emerald-700">activado</strong>. Te quedan
++            <p class="text-sm text-foreground-secondary">
++                El doble factor está <strong class="text-success-ink">activado</strong>. Te quedan
+                 <strong>{{ twoFactor.recoveryRemaining }}</strong>
+                 {{ twoFactor.recoveryRemaining === 1 ? 'código de recuperación' : 'códigos de recuperación' }}.
+             </p>
+@@ -255,8 +257,8 @@ const downloadCodes = () => {
+             @close="closeDisable"
+         >
+             <form class="p-6" @submit.prevent="disable" novalidate>
+-                <h2 class="text-lg font-medium text-slate-900">Desactivar el doble factor</h2>
+-                <p class="mt-1 text-sm text-slate-600"
++                <h2 class="text-lg font-medium text-foreground-strong">Desactivar el doble factor</h2>
++                <p class="mt-1 text-sm text-foreground-muted"
+                     >Para confirmarlo, escribe tu contraseña y un código de tu app (o uno de recuperación).</p
+                 >
+ 
+@@ -343,3 +345,10 @@ const downloadCodes = () => {
+         </BaseDialog>
+     </section>
+ </template>
++
++<style scoped>
++/* El margen del QR prolonga el fondo blanco de la imagen para facilitar la lectura. */
++.totp-qr {
++    background: white;
++}
++</style>
+diff --git a/resources/js/Pages/Profile/Partials/UpdatePasswordForm.vue b/resources/js/Pages/Profile/Partials/UpdatePasswordForm.vue
+index 79c1311..7466c56 100644
+--- a/resources/js/Pages/Profile/Partials/UpdatePasswordForm.vue
++++ b/resources/js/Pages/Profile/Partials/UpdatePasswordForm.vue
+@@ -36,9 +36,9 @@ const updatePassword = () => {
+ <template>
+     <section>
+         <header>
+-            <h2 class="text-lg font-medium text-slate-900"> Cambiar contraseña </h2>
++            <h2 class="text-lg font-medium text-foreground-strong"> Cambiar contraseña </h2>
+ 
+-            <p class="mt-1 text-sm text-slate-600">
++            <p class="mt-1 text-sm text-foreground-muted">
+                 Usa una contraseña larga y aleatoria para mantener tu cuenta segura.
+             </p>
+         </header>
+@@ -107,7 +107,7 @@ const updatePassword = () => {
+                     leave-active-class="transition ease-in-out"
+                     leave-to-class="opacity-0"
+                 >
+-                    <p v-if="form.recentlySuccessful" class="text-sm text-slate-600"> Guardado. </p>
++                    <p v-if="form.recentlySuccessful" class="text-sm text-foreground-muted"> Guardado. </p>
+                 </Transition>
+             </div>
+         </form>
+diff --git a/resources/js/Pages/Profile/Partials/UpdateProfileInformationForm.vue b/resources/js/Pages/Profile/Partials/UpdateProfileInformationForm.vue
+index 44d720d..16dbf80 100644
+--- a/resources/js/Pages/Profile/Partials/UpdateProfileInformationForm.vue
++++ b/resources/js/Pages/Profile/Partials/UpdateProfileInformationForm.vue
+@@ -27,9 +27,9 @@ const form = useForm({
+ <template>
+     <section>
+         <header>
+-            <h2 class="text-lg font-medium text-slate-900"> Datos del perfil </h2>
++            <h2 class="text-lg font-medium text-foreground-strong"> Datos del perfil </h2>
+ 
+-            <p class="mt-1 text-sm text-slate-600"> Actualiza tu nombre y tu correo electrónico. </p>
++            <p class="mt-1 text-sm text-foreground-muted"> Actualiza tu nombre y tu correo electrónico. </p>
+         </header>
+ 
+         <form @submit.prevent="form.patch(route('profile.update'))" class="mt-6 space-y-6">
+@@ -64,7 +64,7 @@ const form = useForm({
+                 </FormField>
+             </div>
+ 
+-            <label class="flex items-start gap-2 text-sm text-slate-700" for="notify_by_mail">
++            <label class="flex items-start gap-2 text-sm text-foreground-secondary" for="notify_by_mail">
+                 <Checkbox
+                     id="notify_by_mail"
+                     name="notify_by_mail"
+@@ -79,14 +79,14 @@ const form = useForm({
+             </label>
+ 
+             <div v-if="mustVerifyEmail && user.email_verified_at === null">
+-                <p class="mt-2 text-sm text-slate-800">
++                <p class="mt-2 text-sm text-foreground">
+                     Tu correo electrónico no está verificado.
+                     <Link :href="route('verification.send')" method="post" as="button" class="link text-sm">
+                         Reenviar el correo de verificación.
+                     </Link>
+                 </p>
+ 
+-                <div v-show="status === 'verification-link-sent'" class="mt-2 text-sm font-medium text-emerald-700">
++                <div v-show="status === 'verification-link-sent'" class="mt-2 text-sm font-medium text-success-ink">
+                     Te hemos enviado un nuevo enlace de verificación.
+                 </div>
+             </div>
+@@ -100,7 +100,7 @@ const form = useForm({
+                     leave-active-class="transition ease-in-out"
+                     leave-to-class="opacity-0"
+                 >
+-                    <p v-if="form.recentlySuccessful" class="text-sm text-slate-600"> Guardado. </p>
++                    <p v-if="form.recentlySuccessful" class="text-sm text-foreground-muted"> Guardado. </p>
+                 </Transition>
+             </div>
+         </form>
+diff --git a/resources/js/app.js b/resources/js/app.js
+index 186f945..812abb9 100644
+--- a/resources/js/app.js
++++ b/resources/js/app.js
+@@ -1,13 +1,14 @@
+ import '../css/app.css';
+ import './bootstrap';
+ 
+-import { createInertiaApp } from '@inertiajs/vue3';
++import { createInertiaApp, usePage } from '@inertiajs/vue3';
+ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+-import { createApp, h } from 'vue';
++import { createApp, h, provide } from 'vue';
+ import { ZiggyVue } from '../../vendor/tightenco/ziggy';
+ 
+ import ConfirmDialog from './Components/ConfirmDialog.vue';
+ import { confirmKey, createConfirmState } from './Composables/useConfirm';
++import { themeKey, useTheme } from './Composables/useTheme';
+ import { installBackGuard } from './Composables/backGuard';
+ import { installNavigationProgress } from './Composables/navigationProgress';
+ 
+@@ -24,7 +25,14 @@ createInertiaApp({
+     title: (title) => `${title} - ${appName}`,
+     resolve: (name) => resolvePageComponent(`./Pages/${name}.vue`, import.meta.glob('./Pages/**/*.vue')),
+     setup({ el, App, props, plugin }) {
+-        return createApp({ render: () => [h(App, props), h(ConfirmDialog)] })
++        return createApp({
++            setup() {
++                const page = usePage();
++                provide(themeKey, useTheme(() => (page.props ?? props.initialPage.props).auth?.user?.theme));
++
++                return () => [h(App, props), h(ConfirmDialog)];
++            },
++        })
+             .provide(confirmKey, createConfirmState())
+             .use(plugin)
+             .use(ZiggyVue)
+diff --git a/resources/views/app.blade.php b/resources/views/app.blade.php
+index 87196a3..2062c91 100644
+--- a/resources/views/app.blade.php
++++ b/resources/views/app.blade.php
+@@ -1,8 +1,28 @@
+ <!DOCTYPE html>
+-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
++<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" @auth data-account-theme="{{ auth()->user()->theme }}" @endauth>
+     <head>
+         <meta charset="utf-8">
+         <meta name="viewport" content="width=device-width, initial-scale=1">
++        <meta name="theme-color" content="#0f172a" data-light="#0f172a" data-dark="#0a1020">
++        <script nonce="{{ Vite::cspNonce() }}">
++            (() => {
++                const root = document.documentElement;
++                let preference = root.dataset.accountTheme;
++                if (!preference) {
++                    try {
++                        preference = window.localStorage.getItem('ss.theme');
++                    } catch {
++                        // El navegador puede bloquear el almacenamiento local.
++                    }
++                }
++                const dark = preference === 'dark' || (preference !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
++                const scheme = dark ? 'dark' : 'light';
++                root.classList.toggle('dark', dark);
++                root.style.colorScheme = scheme;
++                const meta = document.querySelector('meta[name="theme-color"]');
++                meta.content = meta.dataset[scheme];
++            })();
++        </script>
+ 
+         <title inertia>{{ config('app.name', 'Social Scheduler') }}</title>
+ 
+@@ -15,7 +35,6 @@
+         <link rel="icon" href="/favicon.ico" sizes="48x48">
+         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+         <link rel="manifest" href="/manifest.webmanifest">
+-        <meta name="theme-color" content="#0f172a">
+ 
+         <!-- Scripts -->
+         @routes(nonce: Vite::cspNonce())
+diff --git a/routes/web.php b/routes/web.php
+index 42e4ca9..33cca12 100644
+--- a/routes/web.php
++++ b/routes/web.php
+@@ -216,6 +216,7 @@
+ Route::middleware('auth')->group(function () {
+     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
++    Route::patch('/profile/theme', [ProfileController::class, 'updateTheme'])->name('profile.theme');
+     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+     Route::patch('/profile/shortcuts', [GettingStartedController::class, 'shortcuts'])->name('profile.shortcuts');
+ });
+diff --git a/tailwind.config.js b/tailwind.config.js
+index a95acd1..3e7429d 100644
+--- a/tailwind.config.js
++++ b/tailwind.config.js
+@@ -1,8 +1,71 @@
+ import defaultTheme from 'tailwindcss/defaultTheme';
+ import forms from '@tailwindcss/forms';
+ 
++const colorTokens = [
++    'canvas',
++    'surface',
++    'surface-raised',
++    'surface-hover',
++    'border',
++    'border-subtle',
++    'control-border',
++    'foreground',
++    'foreground-strong',
++    'foreground-secondary',
++    'foreground-muted',
++    'foreground-subtle',
++    'accent',
++    'accent-strong',
++    'accent-soft',
++    'accent-marker',
++    'accent-fill',
++    'accent-hover',
++    'accent-active',
++    'on-accent',
++    'check',
++    'danger',
++    'danger-fill',
++    'danger-hover',
++    'danger-active',
++    'danger-badge',
++    'on-danger',
++    'danger-ink',
++    'danger-soft',
++    'danger-border',
++    'success-ink',
++    'success-soft',
++    'success-border',
++    'warning-ink',
++    'warning-soft',
++    'warning-border',
++    'warning-panel-border',
++    'warning-outline',
++    'info-ink',
++    'info-soft',
++    'info-border',
++    'focus',
++    'overlay',
++    'overlay-strong',
++    'chrome',
++    'chrome-panel',
++    'chrome-hover',
++    'chrome-border',
++    'chrome-text',
++    'chrome-muted',
++    'chrome-strong',
++    'chrome-accent',
++    'chrome-avatar-start',
++    'chrome-avatar-end',
++    'chrome-active',
++    'chrome-decoration',
++    'chrome-teal',
++    'chrome-sky',
++    'progress',
++];
++
+ /** @type {import('tailwindcss').Config} */
+ export default {
++    darkMode: 'class',
+     content: [
+         './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
+         './storage/framework/views/*.php',
+@@ -18,11 +81,13 @@ export default {
+                 sans: ['Inter', ...defaultTheme.fontFamily.sans],
+             },
+             colors: {
++                ...Object.fromEntries(colorTokens.map((name) => [name, `rgb(var(--color-${name}) / <alpha-value>)`])),
+                 // Identidad propia: azul-noche para la barra, indigo como acento, teal de apoyo.
+                 night: { 800: '#162033', 900: '#0f172a', 950: '#0a1020' },
+             },
+             boxShadow: {
+                 card: '0 1px 2px rgb(15 23 42 / 0.04), 0 1px 3px rgb(15 23 42 / 0.06)',
++                'chrome-active': 'inset 0 -2px rgb(var(--color-chrome-active))',
+             },
+         },
+     },
+diff --git a/tests/frontend/form-and-tabs-accessibility.test.mjs b/tests/frontend/form-and-tabs-accessibility.test.mjs
+index e9e8271..3633906 100644
+--- a/tests/frontend/form-and-tabs-accessibility.test.mjs
++++ b/tests/frontend/form-and-tabs-accessibility.test.mjs
+@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
+ import vue from '@vitejs/plugin-vue';
+ import { renderToString } from '@vue/server-renderer';
+ import { createServer } from 'vite';
+-import { createSSRApp } from 'vue';
++import { computed, createSSRApp } from 'vue';
+ import { onTabsKeydown } from '../../resources/js/Composables/useTabs.js';
+ import { firstGroupError } from '../../resources/js/lib/form-errors.js';
+ 
+@@ -37,7 +37,11 @@ before(async () => {
+         configFile: false,
+         cacheDir: '.cache/vite-accessibility',
+         ssr: { noExternal: ['@inertiajs/vue3', '@laravel/passkeys'] },
+-        resolve: { alias: { '@': fileURLToPath(new URL('../../resources/js', import.meta.url)) } },
++        resolve: {
++            // La resolución nativa de rutas puede hacer que Vite cargue el entrypoint CommonJS de Vue como ESM en Windows.
++            preserveSymlinks: true,
++            alias: { '@': fileURLToPath(new URL('../../resources/js', import.meta.url)) },
++        },
+         server: { middlewareMode: true, ws: false, watch: null },
+         plugins: [{
+             name: 'accessibility-fixtures',
+@@ -59,7 +63,14 @@ async function render(file, props, directory = 'Pages') {
+     const { default: component } = await server.ssrLoadModule('/resources/js/' + directory + '/' + file);
+     const app = createSSRApp(component, props);
+     const { confirmKey, createConfirmState } = await server.ssrLoadModule('/resources/js/Composables/useConfirm.js');
++    const { themeKey } = await server.ssrLoadModule('/resources/js/Composables/useTheme.js');
+     app.provide(confirmKey, createConfirmState());
++    app.provide(themeKey, {
++        isGuest: computed(() => true),
++        preference: computed(() => 'system'),
++        dark: computed(() => false),
++        setGuestPreference() {},
++    });
+     app.config.globalProperties.$page = { props: {} };
+     app.config.globalProperties.route = name => '/' + name;
+     return renderToString(app);
+diff --git a/database/migrations/2026_11_27_130300_add_theme_to_users.php b/database/migrations/2026_11_27_130300_add_theme_to_users.php
+new file mode 100644
+index 0000000..dc4dd65
+--- /dev/null
++++ b/database/migrations/2026_11_27_130300_add_theme_to_users.php
+@@ -0,0 +1,18 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    public function up(): void
++    {
++        Schema::table('users', fn (Blueprint $table) => $table->string('theme', 6)->default('system'));
++    }
++
++    public function down(): void
++    {
++        Schema::table('users', fn (Blueprint $table) => $table->dropColumn('theme'));
++    }
++};
+diff --git a/docs/guias/tokens-de-color.md b/docs/guias/tokens-de-color.md
+new file mode 100644
+index 0000000..69f4f3e
+--- /dev/null
++++ b/docs/guias/tokens-de-color.md
+@@ -0,0 +1,22 @@
++# Tokens de color para la interfaz
++
++Las paletas están en [app.css](../../resources/css/app.css), en `:root` y `:root.dark`. Los valores son tres canales RGB y [Tailwind](../../tailwind.config.js) los expone como colores con opacidad opcional. Cada utilidad cambia de valor con el tema del documento.
++
++| Uso | Utilidades |
++| --- | --- |
++| Fondo general, paneles y menús o diálogos | `bg-canvas`, `bg-surface`, `bg-surface-raised`, `hover:bg-surface-hover` |
++| Separadores e identificación de controles | `border-border`, `border-border-subtle`, `border-control-border` |
++| Títulos, texto general, etiquetas, ayuda | `text-foreground-strong`, `text-foreground`, `text-foreground-secondary`, `text-foreground-muted`, `text-foreground-subtle` |
++| Enlaces, selección y acciones | `text-accent`, `text-accent-strong`, `bg-accent-soft`, `bg-accent-fill text-on-accent` |
++| Error textual y acción destructiva | `text-danger`, `bg-danger-fill text-on-danger` |
++| Avisos | `bg-{success,danger,warning,info}-soft` con `text-…-ink` y `border-…-border` del mismo estado. `border-warning-panel-border` en las tarjetas de permisos y recuperación. `border-warning-outline` cuando el contorno debe alcanzar 3:1 |
++| Foco y fondo modal | `ring-focus`, `bg-overlay/75` |
++| Cabecera y panel de navegación de marca | `bg-chrome`, `bg-chrome-panel`, `text-chrome-muted`, `text-chrome-strong` |
++
++Para T-98, usa `card`, `field`, `btn-primary`, `btn-secondary`, `btn-danger` y `link` donde encajen. Reutiliza `FormField` con `InputLabel` para enlazar errores y controles. En los diálogos, `BaseDialog` aporta superficie, texto y overlay, y `dialog-panel` aporta la geometría. Elige tokens por el uso del elemento y comprueba el par de colores cuando cambies su fondo o su opacidad.
++
++En gráficos y controles del Estudio que dibujan la interfaz en canvas, lee el token del documento con `getComputedStyle(document.documentElement).getPropertyValue('--color-…')` al dibujar. Inyecta `themeKey` desde `useTheme.js` y observa `dark` para volver a dibujar cuando cambie la paleta. Conserva los colores de marca y del contenido del diseño en el documento y las exportaciones.
++
++El arranque de Blade aplica el esquema antes de Vue. `useTheme` lo mantiene sincronizado con la preferencia de la cuenta, la selección local del invitado y los cambios en `prefers-color-scheme`.
++
++Comprueba 4,5:1 en texto normal y 3:1 en texto grande, controles y foco. Amplía los pares en [theme-contrast.test.mjs](../../tests/frontend/theme-contrast.test.mjs) si añades una combinación. E2E-35 y M-08 cubren el contraste en navegador y la revisión visual.
+diff --git a/docs/usuario/tema.md b/docs/usuario/tema.md
+new file mode 100644
+index 0000000..1778fa1
+--- /dev/null
++++ b/docs/usuario/tema.md
+@@ -0,0 +1,13 @@
++# Tema de la aplicación
++
++Abre el menú de usuario y entra en **Perfil → Apariencia**. Elige una opción en **Tema** y pulsa **Guardar tema**.
++
++- **Sistema** sigue el tema de tu dispositivo y se actualiza si lo cambias con la aplicación abierta.
++- **Claro** mantiene el tema claro.
++- **Oscuro** aplica la paleta oscura.
++
++La elección se guarda en tu cuenta y se aplica al iniciar sesión en otros navegadores o dispositivos.
++
++Antes de iniciar sesión, puedes cambiar el tema desde el selector de la pantalla de acceso. El cambio se aplica enseguida y se guarda en ese navegador. Si el navegador bloquea el almacenamiento, se conserva hasta que recargues o cierres la página.
++
++La primera etapa cubre la navegación, los diálogos, los avisos y los controles comunes. La adaptación de las páginas y del Estudio forma parte de T-98.
+diff --git a/resources/js/Components/ThemePreference.vue b/resources/js/Components/ThemePreference.vue
+new file mode 100644
+index 0000000..4fa49f7
+--- /dev/null
++++ b/resources/js/Components/ThemePreference.vue
+@@ -0,0 +1,46 @@
++<script setup>
++import FormField from '@/Components/FormField.vue';
++import InputLabel from '@/Components/InputLabel.vue';
++import { themeKey } from '@/Composables/useTheme';
++import { useForm } from '@inertiajs/vue3';
++import { computed, inject, watch } from 'vue';
++
++const theme = inject(themeKey);
++if (!theme) throw new Error('Falta el tema de la aplicación.');
++
++const { isGuest, preference, setGuestPreference } = theme;
++const form = useForm({ theme: preference.value });
++watch(preference, (value) => form.defaults('theme', value).reset('theme'));
++
++const selection = computed({
++    get: () => (isGuest.value ? preference.value : form.theme),
++    set: (value) => {
++        if (isGuest.value) setGuestPreference(value);
++        else form.theme = value;
++    },
++});
++
++function save() {
++    if (!isGuest.value && form.isDirty && !form.processing) {
++        form.patch(route('profile.theme'), { preserveScroll: true });
++    }
++}
++</script>
++
++<template>
++    <form class="space-y-3" @submit.prevent="save">
++        <FormField :error="form.errors.theme" v-slot="{ id, control }">
++            <InputLabel :for="id" value="Tema" />
++            <select v-bind="control" v-model="selection" class="field mt-1" :disabled="form.processing">
++                <option value="system">Sistema</option>
++                <option value="light">Claro</option>
++                <option value="dark">Oscuro</option>
++            </select>
++        </FormField>
++        <div v-if="!isGuest" class="flex flex-wrap items-center gap-2">
++            <button type="submit" class="btn-secondary" :disabled="form.processing || !form.isDirty"
++                >Guardar tema</button
++            >
++        </div>
++    </form>
++</template>
+diff --git a/resources/js/Composables/useTheme.js b/resources/js/Composables/useTheme.js
+new file mode 100644
+index 0000000..1a7ecf2
+--- /dev/null
++++ b/resources/js/Composables/useTheme.js
+@@ -0,0 +1,66 @@
++import { computed, onScopeDispose, ref, watch } from 'vue';
++
++/** @typedef {'system' | 'light' | 'dark'} ThemePreference */
++
++export const themeKey = /** @type {import('vue').InjectionKey<ReturnType<typeof useTheme>>} */ (Symbol('theme'));
++const storageKey = 'ss.theme';
++
++/** @param {unknown} value @returns {ThemePreference} */
++function normalize(value) {
++    return value === 'light' || value === 'dark' ? value : 'system';
++}
++
++/**
++ * Sincroniza el documento durante la vida de la app. La prop de Inertia es la fuente de la cuenta.
++ * @param {() => unknown} accountPreference `null` o `undefined` cuando no hay sesión.
++ * @param {Window} browser
++ */
++export function useTheme(accountPreference, browser = window) {
++    const media = browser.matchMedia('(prefers-color-scheme: dark)');
++    const systemDark = ref(media.matches);
++    const guestPreference = ref(/** @type {ThemePreference | null} */ (null));
++    const account = computed(accountPreference);
++    const isGuest = computed(() => account.value == null);
++    const preference = computed(() => {
++        if (!isGuest.value) return normalize(account.value);
++        if (guestPreference.value !== null) return guestPreference.value;
++        try {
++            return normalize(browser.localStorage.getItem(storageKey));
++        } catch {
++            return 'system';
++        }
++    });
++    const dark = computed(() => preference.value === 'dark' || (preference.value === 'system' && systemDark.value));
++    const root = browser.document.documentElement;
++    const meta = /** @type {HTMLMetaElement | null} */ (browser.document.querySelector('meta[name="theme-color"]'));
++
++    watch(
++        dark,
++        (enabled) => {
++            const scheme = enabled ? 'dark' : 'light';
++            root.classList.toggle('dark', enabled);
++            root.style.colorScheme = scheme;
++            if (meta) meta.content = meta.dataset[scheme] ?? meta.content;
++        },
++        { immediate: true, flush: 'sync' },
++    );
++
++    const syncSystem = () => {
++        systemDark.value = media.matches;
++    };
++    media.addEventListener('change', syncSystem);
++    onScopeDispose(() => media.removeEventListener('change', syncSystem));
++
++    /** @param {ThemePreference} value */
++    function setGuestPreference(value) {
++        if (!isGuest.value) return;
++        guestPreference.value = normalize(value);
++        try {
++            browser.localStorage.setItem(storageKey, guestPreference.value);
++        } catch {
++            // El tema permanece activo en el documento.
++        }
++    }
++
++    return { isGuest, preference, dark, setGuestPreference };
++}
+diff --git a/tests/Feature/ThemePreferenceTest.php b/tests/Feature/ThemePreferenceTest.php
+new file mode 100644
+index 0000000..c3a1e66
+--- /dev/null
++++ b/tests/Feature/ThemePreferenceTest.php
+@@ -0,0 +1,40 @@
++<?php
++
++use App\Models\User;
++use Inertia\Testing\AssertableInertia as Assert;
++
++it('shares system as the default account theme and no account for guests', function () {
++    $this->get('/login')->assertInertia(fn (Assert $page) => $page->where('auth.user', null));
++
++    $this->actingAs(User::factory()->create())->get('/profile')
++        ->assertInertia(fn (Assert $page) => $page->where('auth.user.theme', 'system'))
++        ->assertSee('data-account-theme="system"', false);
++});
++
++it('persists the selected theme only for the signed-in account', function () {
++    $user = User::factory()->create();
++    $other = User::factory()->create();
++
++    foreach (['dark', 'light', 'system'] as $theme) {
++        $this->actingAs($user)->from('/profile')->patch('/profile/theme', ['theme' => $theme, 'user_id' => $other->id])
++            ->assertRedirect('/profile');
++        expect($user->refresh()->theme)->toBe($theme)
++            ->and($other->refresh()->theme)->toBe('system');
++        $this->get('/profile')
++            ->assertInertia(fn (Assert $page) => $page->where('auth.user.theme', $theme))
++            ->assertSee('data-account-theme="'.$theme.'"', false);
++    }
++
++    $this->actingAs($other)->get('/profile')
++        ->assertInertia(fn (Assert $page) => $page->where('auth.user.theme', 'system'));
++});
++
++it('rejects invalid themes and guest writes', function () {
++    $this->patchJson('/profile/theme', ['theme' => 'dark'])->assertUnauthorized();
++
++    $user = User::factory()->create();
++    foreach ([[], ['theme' => 'sepia'], ['theme' => ['dark']]] as $payload) {
++        $this->actingAs($user)->patchJson('/profile/theme', $payload)->assertUnprocessable()->assertJsonValidationErrors('theme');
++    }
++    expect($user->refresh()->theme)->toBe('system');
++});
+diff --git a/tests/e2e/dark-mode.spec.ts b/tests/e2e/dark-mode.spec.ts
+new file mode 100644
+index 0000000..da6ba30
+--- /dev/null
++++ b/tests/e2e/dark-mode.spec.ts
+@@ -0,0 +1,238 @@
++import AxeBuilder from '@axe-core/playwright';
++import { expect, test, type Page, type Route } from '@playwright/test';
++import {
++    animationsDone,
++    artisan,
++    enableTwoFactorDirect,
++    expectNoOverflow,
++    loginAs,
++    loginUntilChallenge,
++    seedComposerBrand,
++    stamp,
++    totp,
++} from './helpers';
++
++async function auditAxe(page: Page, ...selectors: string[]) {
++    await expect(page.locator('#nprogress')).toHaveCount(0);
++    await page.mouse.move(0, 0);
++    await animationsDone(page);
++    const axe = new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']);
++    for (const selector of selectors) axe.include(selector);
++    const { violations } = await axe.analyze();
++    const scheme = await page.locator('html').evaluate((root) => getComputedStyle(root).colorScheme);
++    expect(
++        violations.map(({ id, nodes }) => ({ id, targets: nodes.map((node) => node.target) })),
++        `axe en ${new URL(page.url()).pathname} (${scheme})`,
++    ).toEqual([]);
++    await expectNoOverflow(page);
++}
++
++async function auditPage(page: Page, path: string, heading: string, scheme: 'light' | 'dark') {
++    await page.goto(path);
++    await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
++    await expectScheme(page, scheme);
++    await auditAxe(page);
++}
++
++async function auditSystemThemes(page: Page) {
++    await page.emulateMedia({ colorScheme: 'light' });
++    await expectScheme(page, 'light');
++    await auditAxe(page);
++    await page.emulateMedia({ colorScheme: 'dark' });
++    await expectScheme(page, 'dark');
++    await auditAxe(page);
++}
++
++async function auditGuestPages(page: Page, scheme: 'light' | 'dark') {
++    await auditPage(page, '/login', 'Entra en tu cuenta', scheme);
++    await page.getByRole('button', { name: 'Entrar con passkey' }).click();
++    await expect(page.getByRole('alert').filter({ hasText: 'No se pudo iniciar la passkey.' })).toBeVisible();
++    await auditAxe(page);
++
++    await auditPage(page, '/register', 'Crea tu cuenta', scheme);
++    await auditPage(page, '/forgot-password', 'Recupera tu contraseña', scheme);
++    await auditPage(
++        page,
++        '/reset-password/e2e-theme?email=e2e-theme@example.test',
++        'Elige una nueva contraseña',
++        scheme,
++    );
++}
++
++async function expectScheme(page: Page, scheme: 'light' | 'dark') {
++    const root = page.locator('html');
++    if (scheme === 'dark') await expect(root).toHaveClass(/\bdark\b/);
++    else await expect(root).not.toHaveClass(/\bdark\b/);
++    await expect(root).toHaveCSS('color-scheme', scheme);
++    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
++        'content',
++        scheme === 'dark' ? '#0a1020' : '#0f172a',
++    );
++}
++
++async function saveTheme(page: Page, preference: 'light' | 'dark' | 'system') {
++    await page.getByLabel('Tema', { exact: true }).selectOption(preference);
++    await page.getByRole('button', { name: 'Guardar tema', exact: true }).click();
++    await expect(page.getByTestId('flash').getByRole('status').filter({ hasText: 'Tema guardado.' })).toBeVisible();
++}
++
++test.describe('E2E-35 · tema del layout y controles comunes', { tag: '@responsive' }, () => {
++    test.use({ colorScheme: 'light' });
++
++    test('persiste por cuenta y aplica el oscuro incluso antes de cargar Vue', async ({ page }, info) => {
++        const id = `theme-${stamp()}-${info.project.name}`;
++        const user = { name: 'Apariencia E2E', email: `e2e-${id}@example.test`, password: 'E2e-Theme-Disposable-7!' };
++        const email = JSON.stringify(user.email);
++        artisan(
++            String.raw`App\Models\User::factory()->create(['email' => ${email}, 'name' => 'Apariencia E2E', 'password' => ${JSON.stringify(user.password)}]);`,
++        );
++        try {
++            const brand = seedComposerBrand(user.email, id);
++            const sharedToken = artisan(String.raw`
++                $u = App\Models\User::where('email', ${email})->firstOrFail();
++                $doc = App\Services\Studio\StudioDocument::blank(320, 240);
++                $d = App\Models\Studio\Design::unguarded(fn () => App\Models\Studio\Design::create([
++                    'user_id' => $u->id, 'brand_id' => ${brand.id}, 'name' => 'Revisión E2E',
++                    'document' => $doc, 'width' => 320, 'height' => 240, 'page_count' => 1, 'revision' => 1,
++                ]));
++                [, $token] = app(App\Services\Studio\StudioCollab::class)->createLink($u, $d, 'reader');
++                echo $token;
++            `).trim();
++            await loginAs(page, user);
++            await page.goto('/profile');
++            await expect(page.getByLabel('Tema', { exact: true })).toHaveValue('system');
++            await expectScheme(page, 'light');
++            await page.screenshot({ path: info.outputPath('tema-inicial.png') });
++            await saveTheme(page, 'dark');
++            await expectScheme(page, 'dark');
++            await auditAxe(page, '[data-flash-kind="success"]');
++
++            const withoutBundle = (route: Route) =>
++                route.request().resourceType() === 'script' ? route.abort() : route.continue();
++            await page.route('**/*', withoutBundle);
++            try {
++                await page.reload();
++                await expectScheme(page, 'dark');
++                await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(15, 23, 42)');
++                await expect(page.getByLabel('Tema', { exact: true })).toHaveCount(0);
++            } finally {
++                await page.unroute('**/*', withoutBundle);
++            }
++            await page.reload();
++            await expect(page.getByLabel('Tema', { exact: true })).toHaveValue('dark');
++            await page.screenshot({ path: info.outputPath('tema-oscuro-guardado.png') });
++
++            for (const scheme of ['dark', 'light'] as const) {
++                await page.goto('/profile');
++                if (scheme === 'light') await saveTheme(page, 'light');
++                await expectScheme(page, scheme);
++                await auditAxe(page);
++                const header = 'header.sticky';
++                for (const name of ['Abrir menú', 'Cambiar de marca', 'Menú de usuario']) {
++                    const trigger = page.getByRole('button', { name, exact: true });
++                    if (name === 'Abrir menú' && !(await trigger.isVisible())) continue;
++                    await trigger.click();
++                    await expect(trigger).toHaveAttribute('aria-expanded', 'true');
++                    await auditAxe(page, header);
++                    if (name === 'Abrir menú') await trigger.click();
++                    else await page.keyboard.press('Escape');
++                    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
++                }
++
++                await page.getByRole('button', { name: 'Ayuda y atajos', exact: true }).click();
++                const help = page.getByRole('alertdialog', { name: 'Ayuda y atajos', exact: true });
++                await expect(help.getByRole('checkbox')).toBeVisible();
++                await auditAxe(page, 'dialog[aria-labelledby="global-help-title"]');
++                await help.getByRole('button', { name: 'Cerrar ayuda' }).click();
++
++                await auditPage(page, '/profile/notifications', 'Notificaciones del navegador', scheme);
++                await auditPage(page, '/profile/export', 'Exportar mis datos', scheme);
++                await auditPage(page, '/confirm-password', 'Confirma tu contraseña', scheme);
++
++                await page.goto('/brands');
++                await page.getByRole('button', { name: 'Eliminar', exact: true }).click();
++                const confirm = page.getByTestId('confirm-dialog');
++                await expect(confirm).toBeVisible();
++                await auditAxe(page, '[data-testid="confirm-dialog"]');
++                await confirm.getByRole('button', { name: 'Cancelar', exact: true }).click();
++
++                await page.goto(`/brands/${brand.id}/posts/create`);
++                await expect(page.getByTestId('composer-close')).toBeVisible();
++                await auditAxe(page, header);
++
++                await page.goto(`/d/${sharedToken}`);
++                await expect(page.getByTestId('studio-review')).toBeVisible();
++                await auditAxe(page, 'header:has(+ #contenido-compartido)');
++            }
++
++            await page.goto('/profile');
++            await saveTheme(page, 'system');
++            await page.emulateMedia({ colorScheme: 'dark' });
++            await expectScheme(page, 'dark');
++            await page.reload();
++            await expect(page.getByLabel('Tema', { exact: true })).toHaveValue('system');
++            await expectScheme(page, 'dark');
++            await page.emulateMedia({ colorScheme: 'light' });
++            await expectScheme(page, 'light');
++        } finally {
++            artisan(String.raw`App\Models\User::where('email', ${email})->get()->each->delete();`);
++        }
++    });
++
++    test('el invitado conserva su elección y las páginas de acceso pasan axe con ambas paletas', async ({ page }) => {
++        await page.addInitScript(() => {
++            PublicKeyCredential.isConditionalMediationAvailable = async () => false;
++        });
++        await page.route('**/passkeys/login/options', (route) =>
++            route.fulfill({ status: 503, json: { message: 'No se pudo iniciar la passkey.' } }),
++        );
++        await page.goto('/login');
++        const theme = page.getByLabel('Tema', { exact: true });
++        await expect(theme).toHaveValue('system');
++        await auditGuestPages(page, 'light');
++
++        await theme.selectOption('dark');
++        await page.reload();
++        await expect(theme).toHaveValue('dark');
++        await auditGuestPages(page, 'dark');
++
++        await page.goto('/login');
++        await page.getByLabel('Correo electrónico').fill('e2e-tema-inexistente@example.test');
++        await page.getByLabel('Contraseña', { exact: true }).fill('No-existe-28#');
++        await page.getByRole('button', { name: 'Entrar', exact: true }).click();
++        const email = page.getByLabel('Correo electrónico');
++        await expect(email).toHaveAccessibleDescription(/.+/);
++        await auditAxe(page);
++    });
++
++    test('el reto 2FA y la verificación de correo pasan axe con ambas paletas', async ({ page }, info) => {
++        const user = {
++            name: 'Verificación E2E',
++            email: `e2e-theme-verification-${stamp()}-${info.project.name}@example.test`,
++            password: 'E2e-Theme-Disposable-7!',
++        };
++        const email = JSON.stringify(user.email);
++        artisan(String.raw`App\Models\User::factory()->unverified()->create([
++            'email' => ${email}, 'name' => ${JSON.stringify(user.name)}, 'password' => ${JSON.stringify(user.password)},
++        ]);`);
++        try {
++            const { secret } = enableTwoFactorDirect(user.email);
++            await loginUntilChallenge(page, user);
++            await expect(page.getByRole('heading', { name: 'Verificación en dos pasos' })).toBeVisible();
++            await auditSystemThemes(page);
++
++            await page.getByRole('button', { name: 'Usar un código de recuperación' }).click();
++            await expect(page.getByLabel('Código de recuperación')).toBeVisible();
++            await auditSystemThemes(page);
++
++            await page.reload();
++            await page.getByLabel('Código de verificación').fill(totp(secret));
++            await page.getByRole('button', { name: 'Verificar', exact: true }).click();
++            await expect(page).toHaveURL(/\/verify-email$/);
++            await expect(page.getByRole('heading', { name: 'Verifica tu correo' })).toBeVisible();
++            await auditSystemThemes(page);
++        } finally {
++            artisan(String.raw`App\Models\User::where('email', ${email})->get()->each->delete();`);
++        }
++    });
++});
+diff --git a/tests/frontend/theme-contrast.test.mjs b/tests/frontend/theme-contrast.test.mjs
+new file mode 100644
+index 0000000..f357ed1
+--- /dev/null
++++ b/tests/frontend/theme-contrast.test.mjs
+@@ -0,0 +1,120 @@
++import assert from 'node:assert/strict';
++import { readdirSync, readFileSync } from 'node:fs';
++import { test } from 'node:test';
++
++const css = readFileSync(new URL('../../resources/css/app.css', import.meta.url), 'utf8');
++const surfaces = ['canvas', 'surface', 'surface-raised', 'surface-hover', 'accent-soft'];
++const vue = new URL('../../resources/js/', import.meta.url);
++
++test('Auth, Profile, Pagination and EmptyState use semantic colors for their UI', () => {
++    const pages = ['Auth', 'Profile'].flatMap((area) => {
++        const directory = new URL(`Pages/${area}/`, vue);
++        return readdirSync(directory, { recursive: true })
++            .filter((file) => file.endsWith('.vue'))
++            .map((file) => `Pages/${area}/${file.replaceAll('\\', '/')}`);
++    });
++    const files = [...pages, 'Components/Pagination.vue', 'Components/EmptyState.vue'];
++    const fixedPalette =
++        /\b(?:text|bg|border|divide|ring|outline|fill|stroke|from|via|to)-(?:white|black|(?:slate|gray|zinc|neutral|stone|red|rose|amber|yellow|emerald|green|sky|blue|indigo|violet|teal|orange)-\d+|\[#[\da-f]+\])(?=[\s/"'`;,]|$)/gi;
++    const violations = files.flatMap((file) => {
++        const source = readFileSync(new URL(file, vue), 'utf8').split('<style')[0];
++        return [...new Set(source.match(fixedPalette))].map((utility) => `${file}: ${utility}`);
++    });
++    assert.deepEqual(violations, []);
++});
++
++const pairs = [
++    ...surfaces.flatMap((background) =>
++        [
++            'foreground',
++            'foreground-strong',
++            'foreground-secondary',
++            'foreground-muted',
++            'foreground-subtle',
++            'accent',
++            'accent-strong',
++            'danger',
++        ].map((foreground) => [foreground, background, 4.5]),
++    ),
++    ...['canvas', 'surface', 'surface-raised', 'surface-hover', 'accent-soft'].flatMap((background) =>
++        ['control-border', 'focus'].map((foreground) => [foreground, background, 3]),
++    ),
++    ...['accent-fill', 'accent-hover', 'accent-active'].map((background) => ['on-accent', background, 4.5]),
++    ...['danger-fill', 'danger-hover', 'danger-active', 'danger-badge'].map((background) => [
++        'on-danger',
++        background,
++        4.5,
++    ]),
++    ...['success', 'danger', 'warning', 'info'].map((status) => [`${status}-ink`, `${status}-soft`, 4.5]),
++    ...['surface', 'surface-raised'].flatMap((background) =>
++        ['success-ink', 'warning-ink'].map((foreground) => [foreground, background, 4.5]),
++    ),
++    ...['warning-soft', 'info-soft'].map((background) => ['accent', background, 4.5]),
++    ...['canvas', 'surface', 'surface-raised'].flatMap((background) =>
++        ['accent-fill', 'danger-fill', 'check'].map((foreground) => [foreground, background, 3]),
++    ),
++    ['chrome-strong', 'check', 3], // Marca blanca del plugin forms.
++    ['accent-strong', 'accent-marker', 4.5],
++    ...['chrome', 'chrome-panel', 'chrome-hover'].flatMap((background) =>
++        ['chrome-text', 'chrome-muted', 'chrome-strong', 'chrome-accent'].map((foreground) => [
++            foreground,
++            background,
++            4.5,
++        ]),
++    ),
++    ['chrome-border', 'chrome', 3],
++    ['chrome-active', 'chrome-hover', 3],
++    ['chrome-strong', 'chrome-avatar-start', 4.5],
++    ['chrome-strong', 'chrome-avatar-end', 4.5],
++    ['focus', 'chrome', 3],
++    ['focus', 'chrome-panel', 3],
++    ['focus', 'chrome-hover', 3],
++];
++
++function luminance(rgb) {
++    const [red, green, blue] = rgb.map((channel) => {
++        const srgb = channel / 255;
++        return srgb <= 0.04045 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4;
++    });
++    return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
++}
++
++function contrast(first, second) {
++    const a = luminance(first);
++    const b = luminance(second);
++    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
++}
++
++for (const [theme, selector] of [
++    ['light', ':root'],
++    ['dark', ':root.dark'],
++]) {
++    test(`semantic tokens meet WCAG AA in ${theme}`, () => {
++        const block = css.match(new RegExp(`${selector.replace('.', '\\.')}\\s*\\{([^}]+)\\}`));
++        assert.ok(block, `Missing ${selector} theme tokens`);
++        const tokens = Object.fromEntries(
++            [...block[1].matchAll(/--color-([\w-]+):\s*(\d+) (\d+) (\d+);/g)].map(([, name, ...rgb]) => [
++                name,
++                rgb.map(Number),
++            ]),
++        );
++
++        for (const [foreground, background, minimum] of pairs) {
++            assert.ok(tokens[foreground], `Missing --color-${foreground} in ${theme}`);
++            assert.ok(tokens[background], `Missing --color-${background} in ${theme}`);
++            const ratio = contrast(tokens[foreground], tokens[background]);
++            assert.ok(ratio >= minimum, `${foreground} / ${background}: ${ratio.toFixed(2)} < ${minimum} in ${theme}`);
++        }
++
++        const pendingConnection = readFileSync(new URL('Layouts/AuthenticatedLayout.vue', vue), 'utf8').match(
++            /<div\b[^>]*\bclass="([^"]+)"[^>]*\bdata-pending-connection\b/,
++        );
++        assert.ok(pendingConnection, 'Missing pending connection notice');
++        const outline = pendingConnection[1].match(/\bborder-(warning-[\w-]+)\b/)?.[1];
++        assert.ok(tokens[outline], `Missing pending connection outline token in ${theme}`);
++        for (const background of ['canvas', 'surface', 'warning-soft']) {
++            const ratio = contrast(tokens[outline], tokens[background]);
++            assert.ok(ratio >= 3, `${outline} / ${background}: ${ratio.toFixed(2)} < 3 in ${theme}`);
++        }
++    });
++}
+diff --git a/tests/frontend/use-theme.test.mjs b/tests/frontend/use-theme.test.mjs
+new file mode 100644
+index 0000000..56ef560
+--- /dev/null
++++ b/tests/frontend/use-theme.test.mjs
+@@ -0,0 +1,125 @@
++import assert from 'node:assert/strict';
++import { existsSync, readFileSync } from 'node:fs';
++import { test } from 'node:test';
++import { runInNewContext } from 'node:vm';
++import { effectScope, ref } from 'vue';
++
++const moduleUrl = new URL('../../resources/js/Composables/useTheme.js', import.meta.url);
++const blade = readFileSync(new URL('../../resources/views/app.blade.php', import.meta.url), 'utf8');
++
++function browser({ account, stored, dark = false, blocked = false } = {}) {
++    const media = new EventTarget();
++    media.matches = dark;
++    const classes = new Set();
++    const meta = { content: '#0f172a', dataset: { light: '#0f172a', dark: '#0a1020' } };
++    const root = {
++        dataset: account ? { accountTheme: account } : {},
++        style: {},
++        classList: { toggle: (name, enabled) => (enabled ? classes.add(name) : classes.delete(name)) },
++    };
++    let saved = stored;
++    const window = {
++        document: { documentElement: root, querySelector: () => meta },
++        matchMedia(query) {
++            assert.equal(query, '(prefers-color-scheme: dark)');
++            return media;
++        },
++        get localStorage() {
++            if (blocked) throw new Error('Storage denied');
++            return {
++                getItem(key) {
++                    assert.equal(key, 'ss.theme');
++                    return saved;
++                },
++                setItem(key, value) {
++                    assert.equal(key, 'ss.theme');
++                    saved = value;
++                },
++            };
++        },
++    };
++
++    return {
++        window,
++        changeSystem(matches) {
++            media.matches = matches;
++            media.dispatchEvent(new Event('change'));
++        },
++        assertTheme(scheme) {
++            assert.equal(classes.has('dark'), scheme === 'dark');
++            assert.equal(root.style.colorScheme, scheme);
++            assert.equal(meta.content, meta.dataset[scheme]);
++        },
++        saved: () => saved,
++    };
++}
++
++async function startTheme(t, account, client) {
++    assert.ok(existsSync(moduleUrl), 'The application has no theme composable yet');
++    const { useTheme } = await import(moduleUrl);
++    const scope = effectScope();
++    t.after(() => scope.stop());
++    return { theme: scope.run(() => useTheme(() => account.value, client.window)), stop: () => scope.stop() };
++}
++
++test('account selection overrides guest storage and follows system changes only in system mode', async (t) => {
++    const account = ref('system');
++    const client = browser({ stored: 'dark' });
++    const { theme, stop } = await startTheme(t, account, client);
++    client.assertTheme('light');
++    client.changeSystem(true);
++    client.assertTheme('dark');
++    account.value = 'light';
++    client.assertTheme('light');
++    client.changeSystem(false);
++    client.changeSystem(true);
++    client.assertTheme('light');
++    account.value = 'dark';
++    client.changeSystem(false);
++    client.assertTheme('dark');
++    theme.setGuestPreference('light');
++    assert.equal(client.saved(), 'dark');
++    account.value = 'system';
++    client.assertTheme('light');
++    stop();
++    client.changeSystem(true);
++    client.assertTheme('light');
++});
++
++test('guest selection survives navigation and blocked storage keeps the current session usable', async (t) => {
++    const account = ref(null);
++    const available = browser({ stored: 'dark' });
++    const { theme } = await startTheme(t, account, available);
++    available.assertTheme('dark');
++    theme.setGuestPreference('light');
++    available.assertTheme('light');
++    assert.equal(available.saved(), 'light');
++    account.value = 'dark';
++    available.assertTheme('dark');
++    account.value = null;
++    available.assertTheme('light');
++
++    const denied = browser({ blocked: true, dark: true });
++    const { theme: fallback } = await startTheme(t, account, denied);
++    denied.assertTheme('dark');
++    fallback.setGuestPreference('light');
++    denied.assertTheme('light');
++});
++
++test('the nonce-bearing bootstrap applies the first theme before Vite loads', () => {
++    const script = blade.match(/<script nonce="\{\{ Vite::cspNonce\(\) \}\}">([\s\S]+?)<\/script>/);
++    assert.ok(script, 'No synchronous theme is applied in the root Blade template');
++    assert.ok(script.index < blade.indexOf('@vite('));
++    for (const [options, scheme] of [
++        [{ account: 'light', stored: 'dark', dark: true }, 'light'],
++        [{ account: 'dark', blocked: true }, 'dark'],
++        [{ account: 'system', stored: 'dark' }, 'light'],
++        [{ stored: 'dark' }, 'dark'],
++        [{ stored: 'sepia', dark: true }, 'dark'],
++        [{ blocked: true }, 'light'],
++    ]) {
++        const client = browser(options);
++        runInNewContext(script[1], { window: client.window, document: client.window.document });
++        client.assertTheme(scheme);
++    }
++});

@@ -4,6 +4,8 @@ namespace App\Analytics;
 
 use App\Connectors\Network;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 /** Rango de fechas (inclusivo, dias UTC como los snapshots) del selector de periodo del dashboard. */
@@ -14,6 +16,21 @@ final class Period
     public const COMPARE_MODES = ['none', 'previous', 'year'];
 
     private function __construct(public readonly CarbonImmutable $from, public readonly CarbonImmutable $to) {}
+
+    /** Valida el rango de entrada con los mismos campos y mensajes en todos los canales. */
+    public static function fromInput(array $input, ?string $timezone = null, bool $required = false): self
+    {
+        $rules = [$required ? 'required' : 'nullable', 'date_format:Y-m-d'];
+        $dates = Validator::make($input, ['from' => $rules, 'to' => $rules], [
+            'date_format' => 'La fecha no es válida. Usa AAAA-MM-DD.',
+        ])->validate();
+
+        try {
+            return self::make($dates['from'] ?? null, $dates['to'] ?? null, $timezone);
+        } catch (InvalidArgumentException $error) {
+            throw ValidationException::withMessages(['from' => $error->getMessage()]);
+        }
+    }
 
     public static function between(CarbonImmutable $from, CarbonImmutable $to): self
     {
@@ -104,6 +121,16 @@ final class Period
             'year' => self::between($this->from->subYearNoOverflow(), $this->from->subYearNoOverflow()->addDays($this->days() - 1)),
             default => null,
         };
+    }
+
+    /** Mantiene los errores de rango de una comparación ligada a datos de entrada en el campo from. */
+    public function inputComparison(string $mode): ?self
+    {
+        try {
+            return $this->comparison($mode);
+        } catch (InvalidArgumentException $error) {
+            throw ValidationException::withMessages(['from' => $error->getMessage()]);
+        }
     }
 
     /** @return list<string> Todas las fechas del periodo (Y-m-d). */

@@ -49,6 +49,9 @@ it('Dashboard: con 30 dias de snapshots el resumen muestra seguidores, visualiza
 it('Dashboard: sin marcas muestra la pantalla vacia sin romper', function () {
     $this->actingAs(User::factory()->create())->get(route('dashboard'))
         ->assertOk()->assertInertia(fn (Assert $p) => $p->component('Dashboard/Index')->where('brand', null)->where('summary', null));
+    $this->get(route('dashboard.network', ['network' => 'instagram']))->assertOk()
+        ->assertInertia(fn (Assert $p) => $p->component('Dashboard/Network')
+            ->where('brand', null)->where('detail', null)->has('networks', 0));
 });
 
 it('Dashboard: el periodo y la comparacion llegan por la query', function () {
@@ -61,8 +64,8 @@ it('Dashboard: el periodo y la comparacion llegan por la query', function () {
 });
 
 it('Dashboard: rechaza periodos invalidos', function () {
-    $this->actingAs($this->user)->get(route('dashboard', ['from' => '2026-10-10', 'to' => '2026-10-01']))->assertStatus(422);
-    $this->actingAs($this->user)->get(route('dashboard', ['from' => 'ayer']))->assertSessionHasErrors('from');
+    $this->actingAs($this->user)->get(route('dashboard', ['from' => '2026-10-10', 'to' => '2026-10-01']))->assertUnprocessable();
+    $this->get(route('dashboard', ['from' => 'ayer']), ['X-Inertia' => 'true'])->assertSessionHasErrors('from');
     $this->actingAs($this->user)->get(route('dashboard', ['compare' => 'otro']))->assertSessionHasErrors('compare');
 });
 
@@ -79,7 +82,7 @@ it('Dashboard: la pagina por red muestra crecimiento y no disponible', function 
 });
 
 it('Dashboard: red desconocida o sin cuentas', function () {
-    $this->actingAs($this->user)->get('/dashboard/mastodon')->assertNotFound();
+    $this->actingAs($this->user)->get('/dashboard/gopher')->assertNotFound();
 
     $this->actingAs($this->user)->get(route('dashboard.network', ['network' => 'youtube']))
         ->assertOk()->assertInertia(fn (Assert $p) => $p->has('detail.accounts', 0));

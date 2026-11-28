@@ -11,30 +11,67 @@ const props = defineProps({
 });
 
 const networks = useNetworks();
-const bg = computed(() => props.color ?? networks.color(props.network));
+const brandColor = computed(() => props.color ?? networks.find(props.network)?.color);
 const dim = computed(() => ({ sm: 'h-5 w-5', md: 'h-7 w-7', lg: 'h-10 w-10' })[props.size] ?? 'h-7 w-7');
 </script>
 
 <template>
-    <span class="inline-flex shrink-0 items-center justify-center rounded-lg text-white" :class="dim" :style="{ backgroundColor: bg }" aria-hidden="true">
-        <svg viewBox="0 0 24 24" class="h-[62%] w-[62%]" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <span
+        class="inline-flex shrink-0 items-center justify-center rounded-lg"
+        :class="[dim, brandColor ? 'text-white' : 'bg-accent-fill text-on-accent']"
+        :style="{ backgroundColor: brandColor }"
+        aria-hidden="true"
+    >
+        <svg
+            viewBox="0 0 24 24"
+            class="h-[62%] w-[62%]"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+        >
             <template v-if="network === 'instagram'">
                 <rect x="4" y="4" width="16" height="16" rx="5" />
                 <circle cx="12" cy="12" r="3.6" />
                 <circle cx="17" cy="7" r="0.6" fill="currentColor" />
             </template>
-            <path v-else-if="network === 'facebook'" d="M14 8h2V4.5h-2.4C11 4.5 10 6 10 8v2H8v3.5h2V20h3.5v-6.5H16l.5-3.5h-3V8.6c0-.4.2-.6.5-.6z" fill="currentColor" stroke="none" />
+            <path
+                v-else-if="network === 'facebook'"
+                d="M14 8h2V4.5h-2.4C11 4.5 10 6 10 8v2H8v3.5h2V20h3.5v-6.5H16l.5-3.5h-3V8.6c0-.4.2-.6.5-.6z"
+                fill="currentColor"
+                stroke="none"
+            />
             <template v-else-if="network === 'youtube'">
                 <rect x="3" y="6" width="18" height="12" rx="4" />
                 <path d="M10.5 9.5v5l4.2-2.5z" fill="currentColor" />
             </template>
             <path v-else-if="network === 'tiktok'" d="M14 4v10.2a3.2 3.2 0 11-3.2-3.2M14 4c.4 2.4 1.9 3.9 4.5 4.1" />
-            <path v-else-if="network === 'bluesky'" d="M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566.944 1.561 1.266.902 1.565.139 1.908 0 3.08 0 3.768c0 .69.378 5.65.624 6.479.815 2.736 3.713 3.66 6.383 3.364.136-.02.275-.039.415-.056-.138.022-.276.04-.415.056-3.912.58-7.387 2.005-2.83 7.078 5.013 5.19 6.87-1.113 7.823-4.308.953 3.195 2.05 9.271 7.733 4.308 4.267-4.308 1.172-6.498-2.74-7.078a8.741 8.741 0 0 1-.415-.056c.14.017.279.036.415.056 2.67.297 5.568-.628 6.383-3.364.246-.828.624-5.79.624-6.478 0-.69-.139-1.861-.902-2.206-.659-.298-1.664-.62-4.3 1.24C16.046 4.748 13.087 8.687 12 10.8Z" fill="currentColor" stroke="none" />
-            <path v-else-if="network === 'threads'" d="M16.6 11.4C16.3 8.9 14.8 7.4 12.1 7.4c-2.8 0-4.6 2-4.6 5.1s1.8 5.1 4.6 5.1c2.4 0 3.9-1.2 3.9-2.9 0-1.7-1.5-2.5-3.7-2.5-1.6 0-2.5.6-2.5 1.5s.8 1.4 1.9 1.4c1.6 0 2.6-1.1 2.6-3.3v-.3" />
+            <path
+                v-else-if="network === 'bluesky'"
+                d="M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566.944 1.561 1.266.902 1.565.139 1.908 0 3.08 0 3.768c0 .69.378 5.65.624 6.479.815 2.736 3.713 3.66 6.383 3.364.136-.02.275-.039.415-.056-.138.022-.276.04-.415.056-3.912.58-7.387 2.005-2.83 7.078 5.013 5.19 6.87-1.113 7.823-4.308.953 3.195 2.05 9.271 7.733 4.308 4.267-4.308 1.172-6.498-2.74-7.078a8.741 8.741 0 0 1-.415-.056c.14.017.279.036.415.056 2.67.297 5.568-.628 6.383-3.364.246-.828.624-5.79.624-6.478 0-.69-.139-1.861-.902-2.206-.659-.298-1.664-.62-4.3 1.24C16.046 4.748 13.087 8.687 12 10.8Z"
+                fill="currentColor"
+                stroke="none"
+            />
+            <path
+                v-else-if="network === 'threads'"
+                d="M16.6 11.4C16.3 8.9 14.8 7.4 12.1 7.4c-2.8 0-4.6 2-4.6 5.1s1.8 5.1 4.6 5.1c2.4 0 3.9-1.2 3.9-2.9 0-1.7-1.5-2.5-3.7-2.5-1.6 0-2.5.6-2.5 1.5s.8 1.4 1.9 1.4c1.6 0 2.6-1.1 2.6-3.3v-.3"
+            />
             <template v-else-if="network === 'linkedin'">
                 <path d="M7 10v7M7 7v.01M11 17v-7M11 13c0-2 1.2-3 2.8-3S17 11 17 13v4" />
             </template>
-            <path v-else-if="network === 'pinterest'" d="M12 4.5a6.5 6.5 0 00-2.4 12.5M10.4 19.5l1.5-6.3M12 4.5c3.6 0 6 2.2 6 5.2 0 3-1.9 4.8-4 4.8-1.1 0-1.9-.7-1.9-1.7" />
+            <path
+                v-else-if="network === 'pinterest'"
+                d="M12 4.5a6.5 6.5 0 00-2.4 12.5M10.4 19.5l1.5-6.3M12 4.5c3.6 0 6 2.2 6 5.2 0 3-1.9 4.8-4 4.8-1.1 0-1.9-.7-1.9-1.7"
+            />
+            <template v-else-if="network === 'mastodon'">
+                <path d="M6 8a3 3 0 013-3h6a3 3 0 013 3v5a3 3 0 01-3 3h-3l-3.5 3v-3H9a3 3 0 01-3-3z" />
+                <path d="M9.5 13v-3.5a1.2 1.2 0 012.4 0V13M11.9 9.5a1.2 1.2 0 012.4 0V13" />
+            </template>
+            <path
+                v-else-if="network === 'telegram'"
+                d="M20 5L3.5 11.6l5 1.8 1.7 5.4 2.9-3.3 4.4 3.2L20 5zM8.5 13.4L20 5"
+            />
             <circle v-else cx="12" cy="12" r="6" />
         </svg>
     </span>

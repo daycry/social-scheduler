@@ -4,6 +4,7 @@ namespace App\Services\Studio;
 
 use App\Exceptions\PostValidationException;
 use App\Models\Brand;
+use App\Models\MediaAsset;
 use App\Models\Studio\Design;
 use App\Models\User;
 use App\Services\AiAssistant;
@@ -94,16 +95,24 @@ class StudioAiText
         return ['design_id' => $design->id, 'revision' => (int) $design->revision, 'fields' => $fields, 'rows' => $rows];
     }
 
-    /** Texto alternativo (maximo 200 caracteres) de una imagen propia de la marca. Envia la imagen reducida a Claude, solo si el usuario lo pide. */
+    /** Texto alternativo de una imagen vinculada a los Recursos de la marca (estudio). */
     public function altText(User $user, Brand $brand, int $mediaId): string
+    {
+        return $this->describe($user, $this->assets->owned($user, $brand, $mediaId));
+    }
+
+    /**
+     * Texto alternativo (maximo 200 caracteres) de una imagen YA autorizada por el llamante (propia del usuario: estudio por Recursos de la marca,
+     * compositor por propietario). Envia la imagen reducida a Claude, solo si el usuario lo pide.
+     */
+    public function describe(User $user, MediaAsset $media): string
     {
         if (! (bool) config('social.ai.vision', true)) {
             throw ValidationException::withMessages(['media_id' => ['El modelo configurado no admite imágenes.']]);
         }
-        $media = $this->assets->owned($user, $brand, $mediaId);
-        if ($media->kind !== 'image' || ! in_array($media->mime, ['image/png', 'image/jpeg', 'image/webp'], true) || $media->width * $media->height > (int) config('studio.images.max_pixels', 16000000)
+        if (! $media->isReady() || $media->kind !== 'image' || ! in_array($media->mime, ['image/png', 'image/jpeg', 'image/webp'], true) || $media->width * $media->height > (int) config('studio.images.max_pixels', 16000000)
             || (int) $media->size > (int) config('studio.ai.max_input_bytes', 20 * 1024 * 1024)) {
-            throw ValidationException::withMessages(['media_id' => ['Selecciona una imagen PNG, JPEG o WebP propia de la marca.']]);
+            throw ValidationException::withMessages(['media_id' => ['Selecciona una imagen PNG, JPEG o WebP propia.']]);
         }
         [$png] = ImageCanvas::normalize((string) Storage::disk($media->disk)->get($media->path), 1024);
         $system = 'Escribes texto alternativo (alt text) accesible para imágenes de redes sociales. Describe lo que se ve de forma objetiva en una sola frase de máximo 200 caracteres, '

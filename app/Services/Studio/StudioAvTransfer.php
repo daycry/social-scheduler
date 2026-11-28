@@ -6,6 +6,7 @@ use App\Models\MediaAsset;
 use App\Models\Studio\StudioAvLease;
 use App\Models\Studio\StudioAvWorkspace;
 use Aws\Exception\AwsException;
+use Aws\S3\S3ClientInterface;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Filesystem\AwsS3V3Adapter;
 use Illuminate\Support\Facades\Storage;
@@ -15,7 +16,7 @@ class StudioAvTransfer
 {
     private const PART_BYTES = 16 * 1024 ** 2;
 
-    public function __construct(private readonly StudioAvState $state, private readonly StudioAvStorage $storage) {}
+    public function __construct(private readonly StudioAvLeases $leases, private readonly StudioAvRegistrationState $registration, private readonly StudioAvStore $store, private readonly StudioAvStorage $storage) {}
 
     public function run(StudioAvLease $lease, ?float $deadline = null): ?array
     {
@@ -23,8 +24,8 @@ class StudioAvTransfer
         $this->remaining($deadline);
 
         return $this->storage->locked($lease->workspace_id, function (StudioAvWorkspace $workspace) use ($lease, $deadline) {
-            $export = $this->state->workingExport($lease);
-            $source = $this->state->checkpoints($export, ['assemble'])->sole();
+            $export = $this->leases->workingExport($lease);
+            $source = $this->store->checkpoints($export, ['assemble'])->sole();
             $proof = $source->result;
             if (($proof['chunk_size'] ?? null) !== self::PART_BYTES || ! is_array($proof['chunk_sha256'] ?? null)
                 || ! array_is_list($proof['chunk_sha256']) || count($proof['chunk_sha256']) !== (int) ceil($proof['size'] / self::PART_BYTES)
@@ -36,12 +37,12 @@ class StudioAvTransfer
                     throw new StudioAvCheckpointCorrupt('El manifiesto de integridad está incompleto.');
                 }
             }
-            $media = $this->state->allocateRegistration($lease);
+            $media = $this->registration->allocateRegistration($lease);
             $disk = Storage::disk($media->disk);
             $location = $disk instanceof AwsS3V3Adapter
                 ? ['driver' => 's3', 'bucket' => $disk->getConfig()['bucket'], 'key' => $disk->path($media->path), 'endpoint' => (string) $disk->getClient()->getEndpoint()]
                 : ['driver' => 'local', 'root' => rtrim($disk->path(''), '/\\')];
-            $this->state->bindRegistrationLocation($lease, $location);
+            $this->registration->bindRegistrationLocation($lease, $location);
             if ($disk instanceof AwsS3V3Adapter) {
                 return $this->remote($lease, $workspace, $source, $media, $disk, $deadline);
             }
@@ -74,20 +75,7 @@ class StudioAvTransfer
         } elseif (in_array($journal['stage'] ?? '', ['verifying', 'done'], true) || $journal['complete']) {
             throw new StudioAvCheckpointCorrupt('El objeto final verificado ya no existe.');
         } elseif (! $media->upload_id) {
-            // A creation response may have been lost. Reuse the upload with this exact generated key.
-            $this->save($lease, $media, ['stage' => 'creating'], deadline: $deadline);
-            $listed = $client->listMultipartUploads(['Bucket' => $address['Bucket'], 'Prefix' => $address['Key'], 'MaxUploads' => 10] + $this->http($deadline));
-            $matches = array_values(array_filter($listed['Uploads'] ?? [], fn ($upload) => ($upload['Key'] ?? null) === $address['Key']));
-            if (($listed['IsTruncated'] ?? false) || count($matches) > 1) {
-                throw new RuntimeException('La recuperación de multipart necesita limpiar asignaciones adicionales.');
-            }
-            $id = $matches[0]['UploadId'] ?? null;
-            if ($id === null) {
-                $created = $client->createMultipartUpload($address + ['ContentType' => $media->mime,
-                    'Metadata' => ['studio-sha256' => $journal['sha256'], 'studio-workspace' => $journal['studio_av']]] + $this->http($deadline));
-                $id = $created['UploadId'];
-            }
-            $this->save($lease, $media, ['stage' => 'copying'], $id, deadline: $deadline);
+            $this->openMultipart($lease, $media, $client, $address, $deadline);
 
             return null;
         }
@@ -115,8 +103,33 @@ class StudioAvTransfer
             $head = $client->headObject($address + $this->http($deadline))->toArray();
             $this->assertHead($media, $head);
             $this->save($lease, $media, ['stage' => 'verifying', 'object_etag' => $head['ETag']], deadline: $deadline);
-            $journal = $media->import_state;
         }
+
+        return $this->verifyAndFinalizeRemote(lease: $lease, source: $source, media: $media, client: $client, address: $address, head: $head, deadline: $deadline);
+    }
+
+    private function openMultipart(StudioAvLease $lease, MediaAsset $media, S3ClientInterface $client, array $address, float $deadline): void
+    {
+        $journal = $media->import_state;
+        // A creation response may have been lost. Reuse the upload with this exact generated key.
+        $this->save($lease, $media, ['stage' => 'creating'], deadline: $deadline);
+        $listed = $client->listMultipartUploads(['Bucket' => $address['Bucket'], 'Prefix' => $address['Key'], 'MaxUploads' => 10] + $this->http($deadline));
+        $matches = array_values(array_filter($listed['Uploads'] ?? [], fn ($upload) => ($upload['Key'] ?? null) === $address['Key']));
+        if (($listed['IsTruncated'] ?? false) || count($matches) > 1) {
+            throw new RuntimeException('La recuperación de multipart necesita limpiar asignaciones adicionales.');
+        }
+        $id = $matches[0]['UploadId'] ?? null;
+        if ($id === null) {
+            $created = $client->createMultipartUpload($address + ['ContentType' => $media->mime,
+                'Metadata' => ['studio-sha256' => $journal['sha256'], 'studio-workspace' => $journal['studio_av']]] + $this->http($deadline));
+            $id = $created['UploadId'];
+        }
+        $this->save($lease, $media, ['stage' => 'copying'], $id, deadline: $deadline);
+    }
+
+    private function verifyAndFinalizeRemote(StudioAvLease $lease, StudioAvLease $source, MediaAsset $media, S3ClientInterface $client, array $address, ?array $head, float $deadline): ?array
+    {
+        $journal = $media->import_state;
         if ($head === null) {
             throw new StudioAvCheckpointCorrupt('Falta el objeto final de la transferencia.');
         }
@@ -192,29 +205,7 @@ class StudioAvTransfer
                 throw new StudioAvCheckpointCorrupt('El destino final apareció antes de completar su transferencia.');
             }
             $bytes = $this->sourcePart($workspace, $source, $journal['bytes'], $deadline);
-            $stream = @fopen($part, 'c+b');
-            if ($stream === false) {
-                throw new RuntimeException('No se pudo abrir la copia parcial privada.');
-            }
-            try {
-                // The durable journal wins over an unacknowledged tail after a worker crash.
-                if (fstat($stream)['size'] < $journal['bytes'] || ! ftruncate($stream, $journal['bytes']) || fseek($stream, $journal['bytes']) !== 0) {
-                    throw new StudioAvCheckpointCorrupt('La copia parcial perdió bytes ya registrados.');
-                }
-                for ($offset = 0; $offset < strlen($bytes);) {
-                    $this->remaining($deadline);
-                    $written = fwrite($stream, substr($bytes, $offset, min(1024 ** 2, strlen($bytes) - $offset)));
-                    if ($written === false || $written === 0) {
-                        throw new RuntimeException('La copia parcial no pudo escribirse.');
-                    }
-                    $offset += $written;
-                }
-                if (! fflush($stream) || (function_exists('fsync') && ! fsync($stream))) {
-                    throw new RuntimeException('No se pudo confirmar la copia parcial en disco.');
-                }
-            } finally {
-                fclose($stream);
-            }
+            $this->writeLocalPart($part, $journal['bytes'], $bytes, $deadline);
             $this->save($lease, $media, ['bytes' => $journal['bytes'] + strlen($bytes), 'stage' => 'copying'], deadline: $deadline);
 
             return null;
@@ -242,6 +233,33 @@ class StudioAvTransfer
         $this->save($lease, $media, ['stage' => 'done', 'complete' => true], deadline: $deadline);
 
         return ['media_id' => $media->id];
+    }
+
+    private function writeLocalPart(string $part, int $offset, string $bytes, float $deadline): void
+    {
+        $stream = @fopen($part, 'c+b');
+        if ($stream === false) {
+            throw new RuntimeException('No se pudo abrir la copia parcial privada.');
+        }
+        try {
+            // The durable journal wins over an unacknowledged tail after a worker crash.
+            if (fstat($stream)['size'] < $offset || ! ftruncate($stream, $offset) || fseek($stream, $offset) !== 0) {
+                throw new StudioAvCheckpointCorrupt('La copia parcial perdió bytes ya registrados.');
+            }
+            for ($cursor = 0; $cursor < strlen($bytes);) {
+                $this->remaining($deadline);
+                $written = fwrite($stream, substr($bytes, $cursor, min(1024 ** 2, strlen($bytes) - $cursor)));
+                if ($written === false || $written === 0) {
+                    throw new RuntimeException('La copia parcial no pudo escribirse.');
+                }
+                $cursor += $written;
+            }
+            if (! fflush($stream) || (function_exists('fsync') && ! fsync($stream))) {
+                throw new RuntimeException('No se pudo confirmar la copia parcial en disco.');
+            }
+        } finally {
+            fclose($stream);
+        }
     }
 
     private function sourcePart(StudioAvWorkspace $workspace, StudioAvLease $source, int $offset, float $deadline): string
@@ -288,7 +306,7 @@ class StudioAvTransfer
     private function save(StudioAvLease $lease, MediaAsset $media, array $progress, ?string $uploadId = null, float $deadline = 0): void
     {
         $this->remaining($deadline);
-        if (! $this->state->checkpointRegistration($lease, $progress, $uploadId, $deadline)) {
+        if (! $this->registration->checkpointRegistration($lease, $progress, $uploadId, $deadline)) {
             throw (new ModelNotFoundException)->setModel(StudioAvLease::class, [$lease->id]);
         }
         $media->refresh();

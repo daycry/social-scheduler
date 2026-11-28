@@ -1,4 +1,5 @@
 <script setup>
+/** @import { BrandRef } from '@/types/shell' */
 import FeatureEmpty from '@/Components/FeatureEmpty.vue';
 import { router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
@@ -8,8 +9,8 @@ import { computed, ref } from 'vue';
  * el OAuth (POST existente) y tres tarjetas de valor (FeatureEmpty).
  */
 const props = defineProps({
-    network: { type: Object, required: true }, // { value, label, provider }
-    brand: { type: Object, required: true },
+    network: { type: /** @type {import('vue').PropType<Pick<import('@/types/shell').NetworkOption, 'value' | 'label' | 'provider'>>} */ (Object), required: true },
+    brand: { type: /** @type {import('vue').PropType<BrandRef>} */ (Object), required: true },
 });
 
 const busy = ref(false);
@@ -18,6 +19,7 @@ const connect = () => {
     router.post(route('brands.connections.connect', { brand: props.brand.id, provider: props.network.provider }), {}, { onFinish: () => (busy.value = false) });
 };
 
+/** @type {import('vue').ComputedRef<import('@/Components/FeatureEmpty.vue').FeatureCard[]>} */
 const cards = computed(() => [
     { title: 'Mide tu crecimiento', text: `Seguidores, visualizaciones y alcance de ${props.network.label} en un solo panel, con comparación de periodos.`, kind: 'chart' },
     { title: 'Programa sin salir de aquí', text: `Prepara publicaciones para ${props.network.label}, revisa su estado y reprograma arrastrando en el calendario.`, kind: 'calendar' },
@@ -34,7 +36,9 @@ const cards = computed(() => [
             :cards="cards"
         >
             <template #cta>
-                <button type="button" class="btn-primary" :disabled="busy" @click="connect">Conectar {{ network.label }}</button>
+                <button type="button" class="btn-primary" :disabled="busy" @click="connect"
+                    >Conectar {{ network.label }}</button
+                >
             </template>
         </FeatureEmpty>
     </div>

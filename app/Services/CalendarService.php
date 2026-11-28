@@ -8,6 +8,7 @@ use App\Models\Brand;
 use App\Models\Post;
 use App\Models\PostTarget;
 use App\Models\User;
+use App\Support\MarketingDates;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -33,7 +34,7 @@ class CalendarService
     {
         ['view' => $view, 'brands' => $brands, 'brand' => $brand, 'network' => $network, 'status' => $status, 'tz' => $tz, 'anchor' => $anchor, 'from' => $from, 'to' => $to] = $this->resolve($user, $filters);
 
-        $query = Post::withoutUserScope()->where('user_id', $user->id)
+        $query = Post::ownedBy($user->id)
             ->whereBetween('scheduled_at', [$from->utc(), $to->utc()->subSecond()])
             ->when($brand, fn ($q) => $q->where('brand_id', $brand->id))
             ->when($network, fn ($q) => $q->whereHas('targets', fn ($t) => $t->withoutGlobalScopes()->where('network', $network->value)))
@@ -47,7 +48,7 @@ class CalendarService
 
         // Borradores sin fecha: solo en la lista (no tienen hueco en el calendario).
         $undated = $view === 'list'
-            ? Post::withoutUserScope()->where('user_id', $user->id)->whereNull('scheduled_at')
+            ? Post::ownedBy($user->id)->whereNull('scheduled_at')
                 ->when($brand, fn ($q) => $q->where('brand_id', $brand->id))
                 ->with(['targets' => fn ($t) => $t->withoutGlobalScopes()->with(['account' => fn ($a) => $a->withoutGlobalScopes()]), 'brand' => fn ($b) => $b->withoutGlobalScopes()])
                 ->latest('id')->limit(100)->get()->map(fn (Post $p) => $this->item($p, $tz, $network))->values()
@@ -66,6 +67,9 @@ class CalendarService
             'networks' => collect(Network::offered())->map(fn (Network $n) => $n->toArray())->values()->all(),
             'items' => $items->all(),
             'undated' => $undated->all(),
+            // Fechas señaladas del rango (T-90): datos propios de `config/marketing_dates.php`, salvo que el usuario las oculte.
+            'marketing_dates' => $user->hide_marketing_dates ? [] : array_map(fn (array $d) => ['date' => $d['date'], 'name' => $d['name']], MarketingDates::between($from->format('Y-m-d'), $to->subDay()->format('Y-m-d'))),
+            'marketing_dates_hidden' => (bool) $user->hide_marketing_dates,
             'truncated' => $items->count() >= self::MAX_ITEMS,
         ];
     }
@@ -79,7 +83,7 @@ class CalendarService
     private function resolve(User $user, array $filters): array
     {
         $view = in_array($filters['view'] ?? null, self::VIEWS, true) ? $filters['view'] : 'week';
-        $brands = Brand::withoutUserScope()->where('user_id', $user->id)->orderBy('name')->get();
+        $brands = Brand::ownedBy($user->id)->orderBy('name')->get();
         $brand = null;
 
         if (! empty($filters['brand_id'])) {
@@ -114,20 +118,19 @@ class CalendarService
     {
         ['brand' => $brand, 'network' => $network, 'status' => $status, 'tz' => $tz, 'from' => $from, 'to' => $to] = $this->resolve($user, ['view' => 'list'] + $filters);
 
-        $dated = Post::withoutUserScope()->where('user_id', $user->id)
+        $dated = Post::ownedBy($user->id)
             ->whereBetween('scheduled_at', [$from->utc(), $to->utc()->subSecond()])
             ->when($brand, fn ($q) => $q->where('brand_id', $brand->id))
             ->when($network, fn ($q) => $q->whereHas('targets', fn ($t) => $t->withoutGlobalScopes()->where('network', $network->value)))
             ->when($status, fn ($q) => $q->whereHas('targets', fn ($t) => $t->withoutGlobalScopes()->where('status', $status->value)))
             ->when(! empty($filters['q']), fn ($q) => $q->where('text', 'like', '%'.addcslashes((string) $filters['q'], '%_\\').'%'))
             ->select('id');
-        $undated = Post::withoutUserScope()->where('user_id', $user->id)->whereNull('scheduled_at')
+        $undated = Post::ownedBy($user->id)->whereNull('scheduled_at')
             ->when($brand, fn ($q) => $q->where('brand_id', $brand->id))
             ->select('id');
 
         $query = AnalyticsService::withLatestSnapshot(
-            PostTarget::withoutUserScope()
-                ->where('post_targets.user_id', $user->id)
+            PostTarget::ownedBy($user)
                 ->where(fn ($w) => $w->whereIn('post_targets.post_id', $dated)->orWhereIn('post_targets.post_id', $undated))
                 ->when($network, fn ($q) => $q->where('post_targets.network', $network->value)),
             $user->id,
@@ -186,7 +189,7 @@ class CalendarService
      * destinos con texto propio), y entonces el primer texto efectivo no vacio de sus destinos. El efectivo se resuelve con la
      * plantilla ya cargada (`text ?? plantilla`) y no con `effectiveText()`, que consultaria el post de cada destino (N+1).
      */
-    private function displayText(Post $post): string
+    public function displayText(Post $post): string
     {
         $template = (string) $post->text;
         $targets = $post->targets;
@@ -233,7 +236,9 @@ class CalendarService
             'approval_status' => $post->approval_status,
             'approval_signature' => $post->approval_signature,
             'series_id' => $post->series_id,
-            'can_retry' => $post->isPublishable() && $post->targets->contains(fn (PostTarget $t) => $t->status === PostStatus::Failed),
+            'can_retry' => $post->isPublishable() && $post->targets->contains(fn (PostTarget $t) => $t->status === PostStatus::Failed && $t->error_code !== PostService::MEDIA_MISSING),
+            // Motivo por el que no se puede reintentar (falta un archivo de la media de un destino): la UI lo explica en vez de ocultar el boton.
+            'retry_blocked' => $post->targets->contains(fn (PostTarget $t) => $t->status === PostStatus::Failed && $t->error_code === PostService::MEDIA_MISSING) ? PostService::MEDIA_MISSING_RETRY : null,
             'has_manual' => $post->targets->contains(fn (PostTarget $t) => $t->manual),
             'manual_pending' => $post->targets->contains(fn (PostTarget $t) => $t->manual && $t->manual_notified_at !== null && $t->status === PostStatus::Scheduled),
             'targets' => $targets->map(fn (PostTarget $t) => [

@@ -1,6 +1,10 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { studioRequest } from '@/Studio/api';
+import { onTabsKeydown, useTabs } from '@/Composables/useTabs';
+import { useConfirm } from '@/Composables/useConfirm';
+
+const ask = useConfirm();
 
 const props = defineProps({
     designId: { type: Number, default: null },
@@ -16,11 +20,15 @@ const props = defineProps({
 const emit = defineEmits(['restored', 'comments']);
 
 const guest = computed(() => !!props.link);
-const tab = ref(props.initialTab);
-const tabs = computed(() => [['comments', 'Comentarios'], ...(props.access.is_owner ? [['share', 'Compartir']] : []), ...(guest.value ? [] : [['versions', 'Versiones']])]);
+const requestedTab = ref(props.initialTab);
+const tabs = computed(() => [['comments', 'Comentarios'], ...(props.access.is_owner && !guest.value ? [['share', 'Compartir']] : []), ...(guest.value ? [] : [['versions', 'Versiones']])]);
+const tab = computed(() => tabs.value.some(([id]) => id === requestedTab.value) ? requestedTab.value : 'comments');
+const { tabProps, panelProps } = useTabs(tab);
 const error = ref('');
 const notice = ref('');
 const busy = ref(false);
+let designContext = 0;
+watch([() => props.designId, () => props.link?.token], () => { designContext++; }, { flush: 'sync' });
 
 const comments = ref([]);
 const showResolved = ref(false);
@@ -103,8 +111,27 @@ const setResolved = (comment, resolved) => run(async () => {
     notice.value = resolved ? 'Hilo resuelto.' : 'Hilo reabierto.';
     await loadComments();
 });
-const removeComment = comment => run(async () => {
-    await studioRequest('DELETE', url('comments.destroy', { comment: comment.id }));
+async function confirmRemoval(name, params, question, afterRemoval) {
+    if (busy.value) return;
+    const context = designContext;
+    const target = url(name, params);
+    if (!(await ask(question)) || context !== designContext) return;
+    if (busy.value) {
+        error.value = 'Hay otra operación en curso. Vuelve a intentarlo cuando termine.';
+        return;
+    }
+    return run(async () => {
+        try {
+            await studioRequest('DELETE', target);
+        } catch (failure) {
+            if (context === designContext) throw failure;
+            return;
+        }
+        if (context === designContext) await afterRemoval();
+    });
+}
+
+const removeComment = comment => confirmRemoval('comments.destroy', { comment: comment.id }, { message: '¿Eliminar este comentario?', confirmLabel: 'Eliminar comentario' }, async () => {
     notice.value = 'Comentario eliminado.';
     await loadComments();
 });
@@ -119,8 +146,7 @@ const changeRole = (item, role) => run(async () => {
     notice.value = 'Rol actualizado.';
     await loadShare();
 });
-const revokeShare = item => run(async () => {
-    await studioRequest('DELETE', url('shares.destroy', { share: item.id }));
+const revokeShare = item => confirmRemoval('shares.destroy', { share: item.id }, { message: `¿Quitar el acceso de ${item.email} a este diseño?`, confirmLabel: 'Quitar acceso' }, async () => {
     notice.value = `Acceso de ${item.email} revocado.`;
     await loadShare();
 });
@@ -131,8 +157,7 @@ const createLink = () => run(async () => {
     linkExpires.value = '';
     await loadShare();
 });
-const revokeLink = item => run(async () => {
-    await studioRequest('DELETE', url('links.destroy', { link: item.id }));
+const revokeLink = item => confirmRemoval('links.destroy', { link: item.id }, { message: '¿Revocar este enlace de acceso al diseño?', confirmLabel: 'Revocar enlace' }, async () => {
     notice.value = 'Enlace revocado: ya no da acceso.';
     if (createdLink.value?.id === item.id) createdLink.value = null;
     await loadShare();
@@ -151,86 +176,316 @@ const restore = version => run(async () => {
 
 <template>
     <div class="space-y-4 text-sm">
-        <div class="flex gap-1 rounded-lg bg-slate-100 p-1" role="tablist" aria-label="Colaboración">
-            <button v-for="[id, label] in tabs" :key="id" type="button" role="tab" :aria-selected="tab === id" class="flex-1 rounded-md px-2 py-2 text-xs font-medium" :class="tab === id ? 'bg-white shadow-sm text-slate-900' : 'text-slate-600'" @click="tab = id">{{ label }}</button>
+        <div
+            class="flex gap-1 rounded-lg bg-surface-hover p-1"
+            role="tablist"
+            aria-label="Colaboración"
+            @keydown="onTabsKeydown"
+        >
+            <button
+                v-for="[id, label] in tabs"
+                :key="id"
+                type="button"
+                v-bind="tabProps(id)"
+                class="flex-1 rounded-md px-2 py-2 text-xs font-medium"
+                :class="tab === id ? 'bg-surface shadow-sm text-foreground-strong' : 'text-foreground-muted'"
+                @click="requestedTab = id"
+                >{{ label }}</button
+            >
         </div>
-        <p v-if="error" role="alert" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">{{ error }}</p>
-        <p v-if="notice" role="status" class="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800">{{ notice }}</p>
+        <p
+            v-if="error"
+            role="alert"
+            class="rounded-lg border border-danger-border bg-danger-soft px-3 py-2 text-xs text-danger-ink"
+            >{{ error }}</p
+        >
+        <p
+            v-if="notice"
+            role="status"
+            class="rounded-lg bg-success-soft px-3 py-2 text-xs text-success-ink"
+            >{{ notice }}</p
+        >
 
-        <section v-show="tab === 'comments'" class="space-y-4" aria-label="Comentarios del diseño">
-            <label v-if="resolvedCount" class="flex items-center gap-2 text-xs text-slate-600"><input v-model="showResolved" type="checkbox" class="rounded border-slate-300" /> Mostrar hilos resueltos ({{ resolvedCount }})</label>
-            <p v-if="!threads.length" class="rounded-lg bg-slate-50 px-3 py-4 text-xs text-slate-500">{{ comments.length ? 'No hay hilos abiertos.' : 'Todavía no hay comentarios.' }}</p>
+        <section v-show="tab === 'comments'" class="space-y-4" v-bind="panelProps('comments')">
+            <label v-if="resolvedCount" class="flex items-center gap-2 text-xs text-foreground-muted"
+                ><input v-model="showResolved" type="checkbox" class="rounded border-control-border" /> Mostrar hilos
+                resueltos ({{ resolvedCount }})</label
+            >
+            <p
+                v-if="!threads.length"
+                class="rounded-lg bg-canvas px-3 py-4 text-xs text-foreground-subtle"
+                >{{ comments.length ? 'No hay hilos abiertos.' : 'Todavía no hay comentarios.' }}</p
+            >
             <ul class="space-y-3">
-                <li v-for="thread in threads" :key="thread.root.id" data-testid="studio-comment-thread" class="space-y-2 rounded-xl border border-slate-200 p-3" :class="thread.root.resolved ? 'bg-slate-50' : 'bg-white'">
-                    <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-500"><span class="rounded-full bg-violet-50 px-2 py-0.5 font-medium text-violet-800">{{ anchorLabel(thread.root) }}</span><span v-if="thread.root.resolved" class="rounded-full bg-emerald-50 px-2 py-0.5 font-medium text-emerald-800">Resuelto{{ thread.root.resolved_by ? ` por ${thread.root.resolved_by}` : '' }}</span></div>
+                <li
+                    v-for="thread in threads"
+                    :key="thread.root.id"
+                    data-testid="studio-comment-thread"
+                    class="space-y-2 rounded-xl border border-border p-3"
+                    :class="thread.root.resolved ? 'bg-canvas' : 'bg-surface'"
+                >
+                    <div class="flex flex-wrap items-center gap-2 text-[11px] text-foreground-subtle"
+                        ><span
+                            class="rounded-full bg-accent-secondary-soft px-2 py-0.5 font-medium text-accent-secondary-ink"
+                            >{{ anchorLabel(thread.root) }}</span
+                        ><span
+                            v-if="thread.root.resolved"
+                            class="rounded-full bg-success-soft px-2 py-0.5 font-medium text-success-ink"
+                            >Resuelto{{ thread.root.resolved_by ? ` por ${thread.root.resolved_by}` : '' }}</span
+                        ></div
+                    >
                     <article v-for="item in [thread.root, ...thread.replies]" :key="item.id" class="space-y-1">
-                        <p class="text-[11px] text-slate-500"><strong class="font-semibold text-slate-700">{{ item.author_name }}</strong><span v-if="item.is_guest"> (invitado)</span> · {{ when(item.created_at) }}</p>
-                        <p class="whitespace-pre-wrap break-words text-sm text-slate-800">{{ item.body }}</p>
-                        <button v-if="item.can_delete" type="button" class="text-[11px] font-medium text-red-700 hover:underline" :disabled="busy" @click="removeComment(item)">Eliminar<span class="sr-only"> comentario de {{ item.author_name }}</span></button>
+                        <p class="text-[11px] text-foreground-subtle"
+                            ><strong class="font-semibold text-foreground-secondary">{{ item.author_name }}</strong
+                            ><span v-if="item.is_guest"> (invitado)</span> · {{ when(item.created_at) }}</p
+                        >
+                        <p class="whitespace-pre-wrap break-words text-sm text-foreground">{{ item.body }}</p>
+                        <button
+                            v-if="item.can_delete"
+                            type="button"
+                            class="text-[11px] font-medium text-danger hover:underline"
+                            :disabled="busy"
+                            @click="removeComment(item)"
+                            >Eliminar<span class="sr-only"> comentario de {{ item.author_name }}</span></button
+                        >
                     </article>
                     <div class="flex flex-wrap gap-3 pt-1 text-xs font-medium">
-                        <button v-if="access.can_comment" type="button" class="text-violet-800 hover:underline" @click="replyTo = replyTo === thread.root.id ? null : thread.root.id">Responder</button>
-                        <button v-if="thread.root.can_resolve && !thread.root.resolved" type="button" class="text-emerald-800 hover:underline" :disabled="busy" @click="setResolved(thread.root, true)">Resolver</button>
-                        <button v-if="thread.root.can_resolve && thread.root.resolved" type="button" class="text-slate-700 hover:underline" :disabled="busy" @click="setResolved(thread.root, false)">Reabrir</button>
+                        <button
+                            v-if="access.can_comment"
+                            type="button"
+                            class="text-accent-secondary-ink hover:underline"
+                            @click="replyTo = replyTo === thread.root.id ? null : thread.root.id"
+                            >Responder</button
+                        >
+                        <button
+                            v-if="thread.root.can_resolve && !thread.root.resolved"
+                            type="button"
+                            class="text-success-ink hover:underline"
+                            :disabled="busy"
+                            @click="setResolved(thread.root, true)"
+                            >Resolver</button
+                        >
+                        <button
+                            v-if="thread.root.can_resolve && thread.root.resolved"
+                            type="button"
+                            class="text-foreground-secondary hover:underline"
+                            :disabled="busy"
+                            @click="setResolved(thread.root, false)"
+                            >Reabrir</button
+                        >
                     </div>
                     <form v-if="replyTo === thread.root.id" class="space-y-2" @submit.prevent="sendReply(thread.root)">
                         <label class="block text-xs" :for="`${idPrefix}-reply-${thread.root.id}`">Respuesta</label>
-                        <textarea :id="`${idPrefix}-reply-${thread.root.id}`" v-model="replyBody" rows="2" maxlength="2000" class="field w-full text-xs" required />
-                        <button type="submit" class="btn-secondary text-xs" :disabled="busy || !replyBody.trim()">Publicar respuesta</button>
+                        <textarea
+                            :id="`${idPrefix}-reply-${thread.root.id}`"
+                            v-model="replyBody"
+                            rows="2"
+                            maxlength="2000"
+                            class="field w-full text-xs"
+                            required
+                        />
+                        <button type="submit" class="btn-secondary text-xs" :disabled="busy || !replyBody.trim()"
+                            >Publicar respuesta</button
+                        >
                     </form>
                 </li>
             </ul>
-            <form v-if="access.can_comment" class="space-y-2 rounded-xl border border-slate-200 p-3" @submit.prevent="addComment">
-                <label v-if="guest" class="block space-y-1 text-xs" :for="`${idPrefix}-guest`">Tu nombre<input :id="`${idPrefix}-guest`" v-model="guestName" maxlength="80" class="field w-full text-xs" required /></label>
+            <form
+                v-if="access.can_comment"
+                class="space-y-2 rounded-xl border border-border p-3"
+                @submit.prevent="addComment"
+            >
+                <label v-if="guest" class="block space-y-1 text-xs" :for="`${idPrefix}-guest`"
+                    >Tu nombre<input
+                        :id="`${idPrefix}-guest`"
+                        v-model="guestName"
+                        maxlength="80"
+                        class="field w-full text-xs"
+                        required
+                /></label>
                 <label class="block text-xs" :for="`${idPrefix}-body`">Nuevo comentario</label>
-                <textarea :id="`${idPrefix}-body`" v-model="body" rows="3" maxlength="2000" class="field w-full text-xs" required />
-                <div class="space-y-1 text-xs"><label class="block" :for="`${idPrefix}-anchor`">Dónde se aplica</label><select :id="`${idPrefix}-anchor`" v-model="anchor" class="field w-full text-xs"><option value="design">Todo el diseño</option><option value="page" :disabled="!pageId">Página actual{{ pageId ? ` (${pageName(pageId)})` : '' }}</option><option value="element" :disabled="!elementId">Elemento seleccionado{{ elementId ? ` (${elementId})` : '' }}</option></select></div>
-                <button type="submit" class="btn-primary text-xs" :disabled="busy || !body.trim() || (guest && !guestName.trim())">Publicar comentario</button>
+                <textarea
+                    :id="`${idPrefix}-body`"
+                    v-model="body"
+                    rows="3"
+                    maxlength="2000"
+                    class="field w-full text-xs"
+                    required
+                />
+                <div class="space-y-1 text-xs"
+                    ><label class="block" :for="`${idPrefix}-anchor`">Dónde se aplica</label
+                    ><select :id="`${idPrefix}-anchor`" v-model="anchor" class="field w-full text-xs"
+                        ><option value="design">Todo el diseño</option
+                        ><option value="page" :disabled="!pageId"
+                            >Página actual{{ pageId ? ` (${pageName(pageId)})` : '' }}</option
+                        ><option value="element" :disabled="!elementId"
+                            >Elemento seleccionado{{ elementId ? ` (${elementId})` : '' }}</option
+                        ></select
+                    ></div
+                >
+                <button
+                    type="submit"
+                    class="btn-primary text-xs"
+                    :disabled="busy || !body.trim() || (guest && !guestName.trim())"
+                    >Publicar comentario</button
+                >
             </form>
-            <p v-else class="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">Tu acceso es de solo lectura: puedes ver los comentarios pero no escribir.</p>
+            <p v-else class="rounded-lg bg-canvas px-3 py-2 text-xs text-foreground-muted"
+                >Tu acceso es de solo lectura: puedes ver los comentarios pero no escribir.</p
+            >
         </section>
 
-        <section v-if="access.is_owner && !guest" v-show="tab === 'share'" class="space-y-5" aria-label="Compartir el diseño">
+        <section
+            v-if="access.is_owner && !guest"
+            v-show="tab === 'share'"
+            class="space-y-5"
+            v-bind="panelProps('share')"
+        >
             <form class="space-y-2" @submit.prevent="share">
-                <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Invitar a un usuario registrado</h3>
-                <label class="block space-y-1 text-xs" :for="`${idPrefix}-email`">Email<input :id="`${idPrefix}-email`" v-model="shareEmail" type="email" autocomplete="off" class="field w-full text-xs" required /></label>
-                <div class="space-y-1 text-xs"><label class="block" :for="`${idPrefix}-role`">Rol</label><select :id="`${idPrefix}-role`" v-model="shareRole" class="field w-full text-xs"><option v-for="[id, label] in roles" :key="id" :value="id">{{ label }}</option></select></div>
-                <button type="submit" class="btn-primary text-xs" :disabled="busy || !shareEmail.trim()">Compartir</button>
+                <h3 class="text-xs font-semibold uppercase tracking-wide text-foreground-subtle"
+                    >Invitar a un usuario registrado</h3
+                >
+                <label class="block space-y-1 text-xs" :for="`${idPrefix}-email`"
+                    >Correo electrónico<input
+                        :id="`${idPrefix}-email`"
+                        v-model="shareEmail"
+                        type="email"
+                        autocomplete="off"
+                        class="field w-full text-xs"
+                        required
+                /></label>
+                <div class="space-y-1 text-xs"
+                    ><label class="block" :for="`${idPrefix}-role`">Rol</label
+                    ><select :id="`${idPrefix}-role`" v-model="shareRole" class="field w-full text-xs"
+                        ><option v-for="[id, label] in roles" :key="id" :value="id">{{ label }}</option></select
+                    ></div
+                >
+                <button type="submit" class="btn-primary text-xs" :disabled="busy || !shareEmail.trim()"
+                    >Compartir</button
+                >
             </form>
             <ul class="space-y-2" aria-label="Personas con acceso">
-                <li v-if="!shares.length" class="rounded-lg bg-slate-50 px-3 py-3 text-xs text-slate-500">Nadie más tiene acceso todavía.</li>
-                <li v-for="item in shares" :key="item.id" data-testid="studio-share-row" class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 p-2 text-xs">
-                    <span class="min-w-0 flex-1 truncate"><strong class="font-semibold">{{ item.name }}</strong> · {{ item.email }}</span>
-                    <select :aria-label="`Rol de ${item.email}`" class="field text-xs" :value="item.role" :disabled="busy" @change="changeRole(item, $event.target.value)"><option v-for="[id, label] in roles" :key="id" :value="id">{{ label }}</option></select>
-                    <button type="button" class="font-medium text-red-700 hover:underline" :disabled="busy" @click="revokeShare(item)">Quitar acceso<span class="sr-only"> a {{ item.email }}</span></button>
+                <li v-if="!shares.length" class="rounded-lg bg-canvas px-3 py-3 text-xs text-foreground-subtle"
+                    >Nadie más tiene acceso todavía.</li
+                >
+                <li
+                    v-for="item in shares"
+                    :key="item.id"
+                    data-testid="studio-share-row"
+                    class="flex flex-wrap items-center gap-2 rounded-lg border border-border p-2 text-xs"
+                >
+                    <span class="min-w-0 flex-1 truncate"
+                        ><strong class="font-semibold">{{ item.name }}</strong> · {{ item.email }}</span
+                    >
+                    <select
+                        :aria-label="`Rol de ${item.email}`"
+                        class="field text-xs"
+                        :value="item.role"
+                        :disabled="busy"
+                        @change="changeRole(item, $event.target.value)"
+                        ><option v-for="[id, label] in roles" :key="id" :value="id">{{ label }}</option></select
+                    >
+                    <button
+                        type="button"
+                        class="font-medium text-danger hover:underline"
+                        :disabled="busy"
+                        @click="revokeShare(item)"
+                        >Quitar acceso<span class="sr-only"> a {{ item.email }}</span></button
+                    >
                 </li>
             </ul>
-            <form class="space-y-2 border-t border-slate-200 pt-4" @submit.prevent="createLink">
-                <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Enlace público</h3>
-                <div class="space-y-1 text-xs"><label class="block" :for="`${idPrefix}-link-role`">Permiso del enlace</label><select :id="`${idPrefix}-link-role`" v-model="linkRole" class="field w-full text-xs"><option value="reader">Solo lectura</option><option value="commenter">Lectura y comentarios</option></select></div>
-                <label class="block space-y-1 text-xs" :for="`${idPrefix}-link-expires`">Caduca el (opcional)<input :id="`${idPrefix}-link-expires`" v-model="linkExpires" type="date" class="field w-full text-xs" /></label>
+            <form class="space-y-2 border-t border-border pt-4" @submit.prevent="createLink">
+                <h3 class="text-xs font-semibold uppercase tracking-wide text-foreground-subtle">Enlace público</h3>
+                <div class="space-y-1 text-xs"
+                    ><label class="block" :for="`${idPrefix}-link-role`">Permiso del enlace</label
+                    ><select :id="`${idPrefix}-link-role`" v-model="linkRole" class="field w-full text-xs"
+                        ><option value="reader">Solo lectura</option
+                        ><option value="commenter">Lectura y comentarios</option></select
+                    ></div
+                >
+                <label class="block space-y-1 text-xs" :for="`${idPrefix}-link-expires`"
+                    >Caduca el (opcional)<input
+                        :id="`${idPrefix}-link-expires`"
+                        v-model="linkExpires"
+                        type="date"
+                        class="field w-full text-xs"
+                /></label>
                 <button type="submit" class="btn-secondary text-xs" :disabled="busy">Crear enlace</button>
             </form>
-            <div v-if="createdLink" class="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs">
-                <p class="text-amber-900">Copia el enlace ahora: no se podrá volver a ver.</p>
+            <div
+                v-if="createdLink"
+                class="space-y-2 rounded-lg border border-warning-border bg-warning-soft p-3 text-xs"
+            >
+                <p class="text-warning-ink">Copia el enlace ahora: no se podrá volver a ver.</p>
                 <label class="block" :for="`${idPrefix}-created-link`">Enlace creado</label>
-                <input :id="`${idPrefix}-created-link`" data-testid="studio-created-link" readonly class="field w-full text-xs" :value="createdLink.url" @focus="$event.target.select()" />
+                <input
+                    :id="`${idPrefix}-created-link`"
+                    data-testid="studio-created-link"
+                    readonly
+                    class="field w-full text-xs"
+                    :value="createdLink.url"
+                    @focus="$event.target.select()"
+                />
                 <button type="button" class="btn-secondary text-xs" @click="copyLink">Copiar enlace</button>
             </div>
             <ul class="space-y-2" aria-label="Enlaces creados">
-                <li v-for="item in links" :key="item.id" data-testid="studio-link-row" class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 p-2 text-xs">
-                    <span class="flex-1">{{ item.role === 'reader' ? 'Solo lectura' : 'Comentarios' }} · <span :class="item.status === 'active' ? 'text-emerald-800' : 'text-slate-500'">{{ item.status === 'active' ? 'Activo' : item.status === 'revoked' ? 'Revocado' : 'Caducado' }}</span><span v-if="item.expires_at"> · caduca {{ when(item.expires_at) }}</span></span>
-                    <button v-if="item.status === 'active'" type="button" class="font-medium text-red-700 hover:underline" :disabled="busy" @click="revokeLink(item)">Revocar<span class="sr-only"> enlace creado {{ when(item.created_at) }}</span></button>
+                <li
+                    v-for="item in links"
+                    :key="item.id"
+                    data-testid="studio-link-row"
+                    class="flex flex-wrap items-center gap-2 rounded-lg border border-border p-2 text-xs"
+                >
+                    <span class="flex-1"
+                        >{{ item.role === 'reader' ? 'Solo lectura' : 'Comentarios' }} ·
+                        <span
+                            :class="item.status === 'active' ? 'text-success-ink' : 'text-foreground-subtle'"
+                            >{{ item.status === 'active' ? 'Activo' : item.status === 'revoked' ? 'Revocado' : 'Caducado' }}</span><span
+                            v-if="item.expires_at"
+                        >
+                            · caduca {{ when(item.expires_at) }}</span
+                        ></span
+                    >
+                    <button
+                        v-if="item.status === 'active'"
+                        type="button"
+                        class="font-medium text-danger hover:underline"
+                        :disabled="busy"
+                        @click="revokeLink(item)"
+                        >Revocar<span class="sr-only"> enlace creado {{ when(item.created_at) }}</span></button
+                    >
                 </li>
             </ul>
         </section>
 
-        <section v-if="!guest" v-show="tab === 'versions'" class="space-y-3" aria-label="Historial de versiones">
-            <p class="text-xs text-slate-500">Restaurar crea una versión nueva con el contenido de la elegida; el historial no se reescribe.</p>
+        <section v-if="!guest" v-show="tab === 'versions'" class="space-y-3" v-bind="panelProps('versions')">
+            <p class="text-xs text-foreground-subtle"
+                >Restaurar crea una versión nueva con el contenido de la elegida; el historial no se reescribe.</p
+            >
             <ul class="space-y-2">
-                <li v-for="item in versions" :key="item.revision" data-testid="studio-version-row" class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 p-2 text-xs">
-                    <span class="min-w-0 flex-1"><strong class="font-semibold">Versión {{ item.revision }}</strong><span v-if="item.current" class="ml-1 rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-800">Actual</span><br /><span class="text-slate-500">{{ item.author ?? 'Autor desconocido' }} · {{ when(item.created_at) }}</span></span>
-                    <button v-if="access.can_edit && !item.current" type="button" class="btn-secondary text-xs" :disabled="busy" @click="restore(item)">Restaurar<span class="sr-only"> versión {{ item.revision }}</span></button>
+                <li
+                    v-for="item in versions"
+                    :key="item.revision"
+                    data-testid="studio-version-row"
+                    class="flex flex-wrap items-center gap-2 rounded-lg border border-border p-2 text-xs"
+                >
+                    <span class="min-w-0 flex-1"
+                        ><strong class="font-semibold">Versión {{ item.revision }}</strong
+                        ><span
+                            v-if="item.current"
+                            class="ml-1 rounded-full bg-success-soft px-2 py-0.5 text-success-ink"
+                            >Actual</span
+                        ><br /><span class="text-foreground-subtle"
+                            >{{ item.author ?? 'Autor desconocido' }} · {{ when(item.created_at) }}</span
+                        ></span
+                    >
+                    <button
+                        v-if="access.can_edit && !item.current"
+                        type="button"
+                        class="btn-secondary text-xs"
+                        :disabled="busy"
+                        @click="restore(item)"
+                        >Restaurar<span class="sr-only"> versión {{ item.revision }}</span></button
+                    >
                 </li>
             </ul>
         </section>

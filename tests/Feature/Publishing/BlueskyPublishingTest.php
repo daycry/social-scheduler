@@ -110,10 +110,13 @@ test('regresion: el registro mantiene los publicadores y lectores de las otras r
             continue; // Threads, LinkedIn y Pinterest solo se registran con su app configurada (ThreadsConnectorTest, LinkedInConnectorTest, PinterestConnectorTest)
         }
         expect($registry->publisherFor($network))->not->toBeNull($network->value)
-            ->and($registry->insightsFor($network))->not->toBeNull($network->value)
             ->and($registry->has($network->provider()))->toBeTrue($network->value);
+        // Mastodon y Telegram (T-87) solo publican: sin lector de metricas.
+        if (! in_array($network, [Network::Mastodon, Network::Telegram], true)) {
+            expect($registry->insightsFor($network))->not->toBeNull($network->value);
+        }
     }
-    expect($registry->providers())->toBe(['meta', 'google', 'tiktok', 'bluesky'])
+    expect($registry->providers())->toBe(['meta', 'google', 'tiktok', 'bluesky', 'mastodon', 'telegram'])
         ->and($registry->forNetwork(Network::Bluesky))->toBeInstanceOf(BlueskyConnector::class);
 });
 

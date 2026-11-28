@@ -1,0 +1,14 @@
+{
+  "source": "https://docs.joinmastodon.org/methods/statuses/",
+  "method": "POST",
+  "host": "mastodon.example",
+  "path": "/api/v1/statuses",
+  "status": 422,
+  "headers": {},
+  "body": {
+    "error": "Validation failed: Text character limit of 500 exceeded"
+  },
+  "fixed": [
+    "error"
+  ]
+}

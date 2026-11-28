@@ -1,0 +1,17 @@
+{
+  "source": "https://developers.tiktok.com/docs/en/content-posting-api-reference-upload-video",
+  "method": "POST",
+  "host": "open.tiktokapis.com",
+  "path": "/v2/post/publish/inbox/video/init/",
+  "status": 429,
+  "headers": {},
+  "body": {
+    "error": {
+      "code": "rate_limit_exceeded",
+      "message": "Rate limit reached"
+    }
+  },
+  "fixed": [
+    "error.code"
+  ]
+}

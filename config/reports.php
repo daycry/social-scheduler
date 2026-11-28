@@ -14,7 +14,7 @@ return [
 
     'queue' => env('REPORTS_QUEUE', 'reports'),
 
-    // Presupuesto del job (s). Debe quedar por debajo del --timeout del worker (120 s).
+    // Presupuesto en segundos de generación y envío programado. Los jobs lo acotan a 1–110 s.
     'timeout' => 100,
 
     // Dias que se conservan los informes (fila + fichero); `reports:prune` (diario) los purga pasado el plazo.

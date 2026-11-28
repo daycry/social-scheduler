@@ -16,7 +16,9 @@ const over = computed(() => length.value > NOTES_MAX);
 <template>
     <section class="card min-w-0 p-4" data-testid="notes-panel">
         <InputLabel for="notes" value="Notas internas" />
-        <p id="notes-hint" class="mt-1 text-xs text-slate-600">Solo las ves tú y tu equipo. No se publican en ninguna red.</p>
+        <p id="notes-hint" class="mt-1 text-xs text-foreground-muted"
+            >Solo las ves tú y tu equipo. No se publican en ninguna red.</p
+        >
         <textarea
             id="notes"
             v-model="form.notes"
@@ -27,7 +29,13 @@ const over = computed(() => length.value > NOTES_MAX);
             data-testid="notes-input"
         ></textarea>
         <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <p id="notes-count" class="text-xs" :class="over ? 'font-medium text-red-700' : 'text-slate-600'" data-testid="notes-count">{{ length }} / {{ NOTES_MAX }} caracteres<span v-if="over"> · supera el máximo</span></p>
+            <p
+                id="notes-count"
+                class="text-xs"
+                :class="over ? 'font-medium text-danger' : 'text-foreground-muted'"
+                data-testid="notes-count"
+                >{{ length }} / {{ NOTES_MAX }} caracteres<span v-if="over"> · supera el máximo</span></p
+            >
             <button
                 v-if="post"
                 type="button"
@@ -35,9 +43,12 @@ const over = computed(() => length.value > NOTES_MAX);
                 :disabled="savingNotes || over"
                 data-testid="notes-save"
                 @click="saveNotes"
-            >{{ savingNotes ? 'Guardando…' : 'Guardar notas' }}</button>
+                >{{ savingNotes ? 'Guardando…' : 'Guardar notas' }}</button
+            >
         </div>
-        <p v-if="notesSaved && post" class="mt-1 text-xs text-emerald-800" role="status" data-testid="notes-saved">Notas guardadas.</p>
-        <p v-if="notesError" class="mt-1 text-xs text-red-700" role="alert">{{ notesError }}</p>
+        <p v-if="notesSaved && post" class="mt-1 text-xs text-success-ink" role="status" data-testid="notes-saved"
+            >Notas guardadas.</p
+        >
+        <p v-if="notesError" class="mt-1 text-xs text-danger" role="alert">{{ notesError }}</p>
     </section>
 </template>

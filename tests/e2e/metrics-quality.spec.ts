@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedAnalyticsSnapshots, seedComposerBrand, stamp, watch } from './helpers';
 
-test('Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison', async ({ page }, info) => {
+test('Metrics: zero activity retains partial coverage, stale dates and suppressed unequal comparison', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `metric-quality-${stamp()}-${info.project.name}`);

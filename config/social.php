@@ -133,6 +133,44 @@ return [
     ],
 
     /*
+    | Mastodon (T-87): se conecta con la URL de la instancia y un token personal (scopes `write:statuses`, `write:media` y `read:accounts`); no caduca
+    | ni se renueva. Los limites (caracteres, imagenes, peso, tipos y texto alternativo) son de CADA instancia: se leen de `GET /api/v2/instance` al
+    | conectar y se refrescan al publicar si el dato tiene mas de `limits_ttl_hours`. Sin dato se aplican los `default_*` (prudentes, no son los de la
+    | instancia). El estado de una imagen que Mastodon aun procesa (202) se sondea `media_poll_attempts` veces, `media_poll_delay_ms` entre cada una.
+    */
+    'mastodon' => [
+        /* Apagar Mastodon sin tocar codigo: la red desaparece de Conexiones, el compositor y los filtros. */
+        'enabled' => (bool) env('MASTODON_ENABLED', true),
+        'limits_ttl_hours' => (int) env('MASTODON_LIMITS_TTL_HOURS', 24),
+        'default_max_characters' => 500,
+        'default_max_media' => 4,
+        'default_image_bytes' => 8 * 1024 * 1024,
+        'default_mime_types' => ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+        'media_poll_attempts' => (int) env('MASTODON_MEDIA_POLL_ATTEMPTS', 5),
+        'media_poll_delay_ms' => (int) env('MASTODON_MEDIA_POLL_DELAY_MS', 1500),
+        /* Tope (bytes) del cuerpo de cualquier respuesta de una instancia: una instancia hostil no puede agotar la memoria del worker. */
+        'max_response_bytes' => (int) env('MASTODON_MAX_RESPONSE_BYTES', 1_048_576),
+    ],
+
+    /*
+    | Telegram (T-87): el bot publica en UN canal (el bot debe ser administrador con permiso para publicar). La Bot API es siempre `https://api.telegram.org`
+    | (no es configurable); el token del bot viaja en la ruta de cada peticion y nunca se registra.
+    */
+    'telegram' => [
+        /* Apagar Telegram sin tocar codigo: la red desaparece de Conexiones, el compositor y los filtros. */
+        'enabled' => (bool) env('TELEGRAM_ENABLED', true),
+    ],
+
+    /*
+    | Aviso de caducidad de conexiones (T-23): dias de antelacion (coma-separados, de mayor a menor) con que se avisa una sola vez por umbral
+    | de que hay que reconectar una cuenta cuya caducidad el sistema no puede renovar (acceso a datos de Meta de 90 dias, token de LinkedIn
+    | sin refresh_token). El umbral mayor es tambien la ventana del «Reconecta antes de» de Conexiones. Hora de la pasada diaria en `expiry_notice_at`.
+    */
+    'expiry_notice_days' => array_values(array_filter(array_map('intval', explode(',', (string) env('SOCIAL_EXPIRY_NOTICE_DAYS', '7,1'))))),
+    'expiry_notice_at' => env('SOCIAL_EXPIRY_NOTICE_AT', '09:00'),
+    'expiry_notice_interval_hours' => 24, // la pasada es diaria; ver `ConnectionExpiry::intervalSeconds()`
+
+    /*
     | Threads (C-02, T1: conector propio). Hosts verificados en la documentacion de Meta el 2026-10-27 y configurables por si vuelven a
     | cambiar (la doc admite tambien graph.threads.net). Valores de T-54 en docs/referencia/decisiones-por-red.md. El plazo de procesado es el de `config/publishing.php` (`poll_max_minutes`).
     */
@@ -145,7 +183,7 @@ return [
         'enabled' => (bool) env('LINKEDIN_ENABLED', true),
         'auth_host' => env('LINKEDIN_AUTH_HOST', 'https://www.linkedin.com'),
         'api_host' => env('LINKEDIN_API_HOST', 'https://api.linkedin.com'),
-        'api_version' => env('LINKEDIN_API_VERSION', '202511'),
+        'api_version' => env('LINKEDIN_API_VERSION', '202610'),
         'scopes' => ['openid', 'profile', 'w_member_social'],
         'page_scopes' => ['w_organization_social', 'r_organization_social', 'rw_organization_admin'],
         // Community Management API (paginas): LinkedIn la aprueba aparte. Sin ella (por defecto) solo se pide el perfil y no se listan paginas.
@@ -153,8 +191,6 @@ return [
         // `r_member_social` (leer publicaciones/comentarios del perfil): LinkedIn solo lo da a apps aprobadas. Sin el no hay busqueda de
         // idempotencia ni primer comentario en perfiles personales.
         'member_read' => (bool) env('LINKEDIN_R_MEMBER_SOCIAL', false),
-        // Dias de antelacion con que la UI avisa «reconecta antes de» en cuentas cuyo token no se puede renovar.
-        'reconnect_notice_days' => (int) env('LINKEDIN_RECONNECT_NOTICE_DAYS', 7),
         'text_max' => 3000,
         'image_max_bytes' => 36152320,
         'video_max_bytes' => 500 * 1024 * 1024,
@@ -174,7 +210,12 @@ return [
         'description_max' => 800,
         'alt_max' => 500,
         'link_max' => 2048,
-        'upload_timeout' => (int) env('PINTEREST_UPLOAD_TIMEOUT', 60),
+        /* Segundos de UNA subida de video en streaming: dentro de los 110 s del job (el tope de `media_specs.pinterest_video` esta calculado para ello). */
+        'upload_timeout' => (int) env('PINTEREST_UPLOAD_TIMEOUT', 100),
+        /* Minimo (s) de subida para intentarla: con menos presupuesto en el paso se reprograma sin registrar un media nuevo. */
+        'upload_min_seconds' => 15,
+        /* Vigencia (min) de la URL prefirmada guardada para reutilizarla en un reintento: pasada, se registra otro media. */
+        'upload_url_ttl_minutes' => (int) env('PINTEREST_UPLOAD_URL_TTL', 20),
     ],
 
     'threads' => [
@@ -195,6 +236,13 @@ return [
     'tiktok' => [
         // video.publish solo es util tras la auditoria de TikTok (decision G1: borrador por defecto).
         'scopes' => ['user.info.basic', 'video.upload', 'video.publish'],
+
+        /*
+        | Scopes ADICIONALES que se piden al conectar (coma-separados), p. ej. `user.info.stats,video.list` para la analitica
+        | (decision G1). Solo ponerlos cuando TikTok los haya aprobado en la auditoria de la app, o el consentimiento falla;
+        | las cuentas ya conectadas hay que RECONECTARLAS para que el token los incluya. Se ignora lo que no sea un scope valido.
+        */
+        'extra_scopes' => array_values(array_filter(array_map('trim', explode(',', (string) env('TIKTOK_EXTRA_SCOPES', ''))), fn ($s) => preg_match('/^[a-z][a-z0-9_.]*$/D', $s) === 1)),
 
         /*
         | Dominio VERIFICADO en TikTok (URL prefix) que sirve la media por PULL_FROM_URL. Solo con esto se ofrece el tipo
@@ -239,6 +287,13 @@ return [
         'max_rows' => (int) env('SOCIAL_EXPORT_MAX_ROWS', 5000),
     ],
 
+    /*
+    | Feed .ics del calendario (T-90): tope de publicaciones por feed. Si se supera, se priorizan las proximas y el pasado reciente usa el cupo que quede.
+    */
+    'calendar_feed' => [
+        'max_posts' => (int) env('SOCIAL_CALENDAR_FEED_MAX_POSTS', 1000),
+    ],
+
     'analytics' => [
         'queue' => env('SOCIAL_ANALYTICS_QUEUE', 'metrics'),
         /* Minutos que se cachea «Todas las marcas» por usuario y periodo (0 = sin cache). */
@@ -264,6 +319,9 @@ return [
             // Sin lector de metricas todavia (T-18): la zona es la de referencia.
             'linkedin' => 'UTC',
             'pinterest' => 'UTC',
+            // Mastodon y Telegram solo publican (T-87): sin lector de metricas, la zona es la de referencia.
+            'mastodon' => 'UTC',
+            'telegram' => 'UTC',
         ],
         /*
         | Dias anteriores al ultimo cerrado que se reintentan mientras su snapshot no este completo (faltan flujos
@@ -297,7 +355,10 @@ return [
             // La serie de cuenta de Threads admite rango (desde 2024-04-13); se pide por tramos.
             'threads' => (int) env('SOCIAL_BACKFILL_DAYS_THREADS', 30),
             'linkedin' => 0,
-            'pinterest' => 0,
+            // Pinterest (T-21): `user_account/analytics` admite rango (<= 90 dias atras y de rango); se piden 30 y por tramos de 30.
+            'pinterest' => (int) env('SOCIAL_BACKFILL_DAYS_PINTEREST', 30),
+            'mastodon' => 0,
+            'telegram' => 0,
         ],
         /* Presupuesto (s) de una pasada de backfill; si no acaba, el job se reencola y continua. */
         'backfill_budget_seconds' => (int) env('SOCIAL_BACKFILL_BUDGET', 80),
@@ -354,6 +415,21 @@ return [
         'posts_limit' => (int) env('SOCIAL_COMPETITORS_POSTS_LIMIT', 25),
         'posts_at' => env('SOCIAL_COMPETITORS_POSTS_AT', '13:30'),
         'max_per_brand' => (int) env('SOCIAL_COMPETITORS_MAX', 10),
+        /* YouTube (T-25): unidades de cuota/dia que pueden gastar los competidores (channels/playlistItems/videos.list = 1 ud cada una),
+           aparte del cupo global de `YouTubeQuota`, para no dejar sin cupo las subidas (~1.600 ud). */
+        'youtube_daily_units' => (int) env('SOCIAL_COMPETITORS_YOUTUBE_UNITS', 300),
+        /* Tope POR USUARIO dentro del global: un usuario no agota el cupo de los demas (~3 ud por competidor y dia: ~20 competidores). */
+        'youtube_user_daily_units' => (int) env('SOCIAL_COMPETITORS_YOUTUBE_USER_UNITS', 60),
+    ],
+
+    /*
+    | Series recurrentes (T-32). `recovery_days`: margen (1-7 dias) dentro del cual «Recuperar fechas perdidas» rehace una fecha que no se
+    | pudo generar mientras la serie fallaba; mas antiguas no se reconstruyen. `manual_reminder_minutes`: antelacion del recordatorio de
+    | un destino de publicacion manual (en la app y, con `notify_by_mail`, por correo).
+    */
+    'series' => [
+        'recovery_days' => max(1, min(7, (int) env('SOCIAL_SERIES_RECOVERY_DAYS', 2))),
+        'manual_reminder_minutes' => max(5, (int) env('SOCIAL_MANUAL_REMINDER_MINUTES', 60)),
     ],
 
     /*
@@ -363,6 +439,33 @@ return [
         'daily_at' => env('SOCIAL_AUTOLISTS_DAILY_AT', '02:00'),
         'horizon_days' => (int) env('SOCIAL_AUTOLISTS_HORIZON_DAYS', 7),
         'queue' => env('SOCIAL_AUTOLISTS_QUEUE', 'poll'),
+    ],
+
+    /*
+    | Reciclado inteligente (T-92): propone los posts publicados con mejor engagement. `min_views` = visualizaciones minimas del ultimo snapshot
+    | de un destino; `min_age_days` = dias desde la publicacion para que sus metricas hayan madurado; `min_interval_days` = dias minimos entre dos
+    | usos del MISMO contenido (publicacion, reciclado o descarte); `window_days` = antiguedad maxima de lo que se mira; `limit` = propuestas mostradas; `max_targets` = tope de destinos analizados por peticion (los mas recientes primero).
+    */
+    'recycle' => [
+        'min_views' => max(1, (int) env('SOCIAL_RECYCLE_MIN_VIEWS', 100)),
+        'min_age_days' => max(0, (int) env('SOCIAL_RECYCLE_MIN_AGE_DAYS', 14)),
+        'min_interval_days' => max(1, (int) env('SOCIAL_RECYCLE_MIN_INTERVAL_DAYS', 60)),
+        'window_days' => max(1, (int) env('SOCIAL_RECYCLE_WINDOW_DAYS', 365)),
+        'limit' => max(1, (int) env('SOCIAL_RECYCLE_LIMIT', 20)),
+        'max_targets' => max(1, (int) env('SOCIAL_RECYCLE_MAX_TARGETS', 2000)),
+    ],
+
+    /*
+    | Origen RSS/Atom de las autolistas (T-88). El feed lo escribe el usuario: `max_bytes` es el tope del cuerpo (se corta la descarga al pasarlo),
+    | `timeout` / `connect_timeout` (s) el limite de la peticion y `max_entries` cuantas entradas (las mas recientes) se leen por sondeo y
+    | `initial_entries` cuantas de ellas entran en la cola en el primer sondeo (las demas se dan por vistas, sin generar elementos).
+    */
+    'rss' => [
+        'max_bytes' => max(1024, (int) env('SOCIAL_RSS_MAX_BYTES', 1_048_576)),
+        'timeout' => max(1, (int) env('SOCIAL_RSS_TIMEOUT', 10)),
+        'connect_timeout' => max(1, (int) env('SOCIAL_RSS_CONNECT_TIMEOUT', 5)),
+        'max_entries' => max(1, (int) env('SOCIAL_RSS_MAX_ENTRIES', 20)),
+        'initial_entries' => max(0, (int) env('SOCIAL_RSS_INITIAL_ENTRIES', 3)),
     ],
 
     /*
@@ -428,11 +531,18 @@ return [
         'model' => env('AI_ASSISTANT_MODEL', 'claude-sonnet-5-5'),
         'max_tokens' => (int) env('AI_ASSISTANT_MAX_TOKENS', 600),
         'timeout' => (int) env('AI_ASSISTANT_TIMEOUT', 30),
+        /* «Adaptar a cada red» (T-82): tope de tokens de salida de una adaptacion (se dimensiona por la entrada y las redes, sin pasar de esto). */
+        'adapt_max_tokens' => (int) env('AI_ASSISTANT_ADAPT_MAX_TOKENS', 8000),
+        /* «Adaptar a cada red»: tope del tiempo de espera (s); crece desde `timeout` con los tokens a generar. Nunca pasa de 55: Nginx corta a los
+           60 s (`fastcgi_read_timeout`, deploy/hestia/nginx-overrides.conf) y la peticion moriria antes que la llamada. */
+        'adapt_max_timeout' => min(55, (int) env('AI_ASSISTANT_ADAPT_MAX_TIMEOUT', 50)),
         /* Limite por usuario: peticiones al dia. */
         'daily_limit' => (int) env('AI_ASSISTANT_DAILY_LIMIT', 20),
         /* Tope diario GLOBAL (todos los usuarios) de sugerencias; 0 = sin tope. Protege el gasto de la clave compartida. */
         'global_daily_limit' => (int) env('AI_ASSISTANT_GLOBAL_DAILY_LIMIT', 200),
         /* «Escribe cuando» (C-04c): la fecha propuesta no puede quedar a mas de estos dias. */
         'schedule_max_days' => (int) env('AI_ASSISTANT_SCHEDULE_MAX_DAYS', 365),
+        /* Plan de contenido (T-93): maximo de publicaciones de un plan (propuesta y confirmacion); nunca pasa de 20 (el limite de tokens de salida reduciria el texto de cada una). */
+        'plan_max_items' => (int) env('AI_ASSISTANT_PLAN_MAX_ITEMS', 10),
     ],
 ];

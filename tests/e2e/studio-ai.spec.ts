@@ -34,7 +34,7 @@ const runLatestJob = (brandId: number) => artisan(String.raw`$j = App\Models\Stu
 const documentJson = (page: Page, id: number) => page.evaluate(async designId => JSON.stringify((await (await fetch(`/studio/designs/${designId}`, { headers: { Accept: 'application/json' } })).json()).design.document), id);
 const axeClean = async (page: Page) => expect((await new AxeBuilder({ page }).include('[aria-label="IA creativa"]').analyze()).violations).toEqual([]);
 
-test('Studio IA: sin clave la funcion aparece como no configurada y no hay botones de generacion', async ({ page }, info) => {
+test('Studio IA: sin clave la funcion aparece como no configurada y no hay botones de generacion', { tag: '@responsive' }, async ({ page }, info) => {
     fs.writeFileSync(flagTextOff, 'asistente de texto apagado');
     const errors = watchErrors(page);
     const owner = e2eUser(info.project.name);
@@ -56,7 +56,7 @@ test('Studio IA: sin clave la funcion aparece como no configurada y no hay boton
     expect(errors).toEqual([]);
 });
 
-test('Studio IA: generar, ver estados, insertar en el diseño, guardar y reabrir; errores de cuota y alt text', async ({ page }, info) => {
+test('Studio IA: generar, ver estados, insertar en el diseño, guardar y reabrir; errores de cuota y alt text', { tag: '@responsive' }, async ({ page }, info) => {
     test.setTimeout(240_000);
     fs.writeFileSync(flagOn, 'proveedores de IA falsos');
     const errors = watchErrors(page);
@@ -138,7 +138,7 @@ test('Studio IA: generar, ver estados, insertar en el diseño, guardar y reabrir
     expect(errors).toEqual([]);
 });
 
-test('Studio IA: titulares y copies, y relleno de plantilla desde una lista con Claude', async ({ page }, info) => {
+test('Studio IA: titulares y copies, y relleno de plantilla desde una lista con Claude', { tag: '@responsive' }, async ({ page }, info) => {
     test.setTimeout(180_000);
     fs.writeFileSync(flagOn, 'proveedores de IA falsos');
     const errors = watchErrors(page);

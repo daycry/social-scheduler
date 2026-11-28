@@ -46,7 +46,7 @@ test('Trash: borrar envia a la papelera (soft delete) y deja de verse en el rest
     $this->actingAs($this->user)->get(route('trash.index'))->assertOk()->assertSee('Para borrar');
 });
 
-test('Trash: lo publicado o en vuelo NO se envia a la papelera (lockEditableTargets)', function () {
+test('Trash: lo publicado o en vuelo NO se envia a la papelera (PostTransitions::lockEditable)', function () {
     foreach ([PostStatus::Publishing, PostStatus::Processing, PostStatus::Published] as $status) {
         $post = trashPost();
         PostTarget::withoutUserScope()->where('post_id', $post->id)->update(['status' => $status->value]);

@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedCampaignPanel, seedComposerBrand, seedOtherBrandCampaign, settle, stamp, watch, type CampaignSeed, type ComposerBrand } from './helpers';
+import { cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedCampaignPanel, seedComposerBrand, seedOtherBrandCampaign, animationsDone, settle, stamp, watch, type CampaignSeed, type ComposerBrand } from './helpers';
 
 /**
  * Campañas (C-03, E2E-06 y E2E-07): usuarios `e2e-sec-*`, marcas `e2e-composer-*` y campañas `e2e-camp-*`. No publica ni lee nada de una red real:
@@ -25,7 +25,7 @@ async function axeNow(page: Page, label: string) {
     await settle(page);
     await expect(page.locator('#nprogress')).toHaveCount(0);
     await page.mouse.move(0, 0);
-    await page.waitForTimeout(400);
+    await animationsDone(page);
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
     const bad = results.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
     const detail = bad.map((v) => `${v.id} [${v.impact}] ${v.help}\n   ${v.nodes.slice(0, 3).map((n) => `${n.target.join(' ')} ${n.html.slice(0, 200)}`).join('\n   ')}`).join('\n');
@@ -34,7 +34,7 @@ async function axeNow(page: Page, label: string) {
 
 const rows = (page: Page) => page.getByTestId('campaign-row');
 
-test('E2E-06 · gestión de campañas: alta con color y fechas, selector del compositor solo con las de la marca, alta en línea y archivo', async ({ page }, info) => {
+test('E2E-06 · gestión de campañas: alta con color y fechas, selector del compositor solo con las de la marca, alta en línea y archivo', { tag: '@responsive' }, async ({ page }, info) => {
     const w = watch(page);
     const user = e2eUser(info.project.name);
     seedOtherBrandCampaign(user.email, `${stamp()}-${info.project.name}`);
@@ -98,7 +98,7 @@ test('E2E-06 · gestión de campañas: alta con color y fechas, selector del com
     expect(w.errors, w.errors.join('\n')).toEqual([]);
 });
 
-test('E2E-07 · panel de campaña: KPIs de los últimos snapshots, «No disponible» distinto de 0, alcance acumulado y aviso de 30 días', async ({ page }, info) => {
+test('E2E-07 · panel de campaña: KPIs de los últimos snapshots, «No disponible» distinto de 0, alcance acumulado y aviso de 30 días', { tag: '@responsive' }, async ({ page }, info) => {
     const w = watch(page);
     const seed: CampaignSeed = seedCampaignPanel(e2eUser(info.project.name).email, brand.id);
 

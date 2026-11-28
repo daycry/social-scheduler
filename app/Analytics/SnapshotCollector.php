@@ -48,7 +48,12 @@ class SnapshotCollector
             $fresh = Metric::blankAccount();
         }
 
-        return $this->store($account, $day, $fresh);
+        $snapshot = $this->store($account, $day, $fresh);
+        if ($this->changedForDashboard($snapshot)) {
+            DashboardSnapshotCache::invalidateAfterCommit($account->brand_id);
+        }
+
+        return $snapshot;
     }
 
     /**
@@ -84,11 +89,26 @@ class SnapshotCollector
             $byDay = [];
         }
 
-        foreach ($pending as $day) {
-            $this->store($account, $day, Metric::clean($byDay[$day->format('Y-m-d')] ?? [], Metric::ACCOUNT));
+        $saved = 0;
+        $changed = false;
+        try {
+            foreach ($pending as $day) {
+                $snapshot = $this->store($account, $day, Metric::clean($byDay[$day->format('Y-m-d')] ?? [], Metric::ACCOUNT));
+                $changed = $changed || $this->changedForDashboard($snapshot);
+                $saved++;
+            }
+        } finally {
+            if ($changed) {
+                DashboardSnapshotCache::invalidateAfterCommit($account->brand_id);
+            }
         }
 
-        return count($pending);
+        return $saved;
+    }
+
+    private function changedForDashboard(AccountSnapshot $snapshot): bool
+    {
+        return $snapshot->wasRecentlyCreated || $snapshot->wasChanged(['brand_id', 'user_id', 'network', 'metrics', 'collected_at']);
     }
 
     /** Lector con soporte de rango para esta cuenta, o `null` (se leera dia a dia). */

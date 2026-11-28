@@ -8,6 +8,6 @@ const { post, editable } = useComposerContext();
 <template>
     <div v-if="post" class="flex items-center gap-2 text-sm">
         <StatusBadge :status="post.status" :label="post.status_label" />
-        <span v-if="!editable" class="text-slate-600">Esta publicación ya no se puede editar.</span>
+        <span v-if="!editable" class="text-foreground-muted">Esta publicación ya no se puede editar.</span>
     </div>
 </template>

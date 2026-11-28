@@ -10,6 +10,7 @@ use App\Services\MediaProbe;
 use App\Services\MediaStorage;
 use App\Services\MediaUploadService;
 use App\Services\MediaValidator;
+use App\Services\Studio\StudioAudioProbe;
 use Aws\CommandInterface;
 use Aws\Result;
 use Aws\S3\S3Client;
@@ -261,7 +262,7 @@ function recordingProbe(array &$ranges): MediaProbe
     {
         public function __construct(MediaStorage $storage, private array &$log)
         {
-            parent::__construct($storage);
+            parent::__construct($storage, new StudioAudioProbe($storage));
         }
 
         protected function fetchRange(MediaChunkReader $reader, int $offset, int $length): string

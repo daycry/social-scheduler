@@ -25,12 +25,35 @@ beforeEach(function () {
 it('incluye las notas de cada comentario en orden cronológico', function () {
     $this->actingAs($this->user)->get(route('inbox.index'))->assertOk()
         ->assertInertia(fn (Assert $p) => $p->component('Inbox/Index')
-            ->has('comments.data', 2)
+            ->has('comments.data', 2, fn (Assert $comment) => $comment
+                ->hasAll(['id', 'network', 'author', 'text', 'commented_at', 'read', 'hidden', 'closed', 'can_hide',
+                    'assigned_user_id', 'labels', 'notes', 'is_reply', 'account', 'post_text', 'post_url', 'my_replies']))
             ->where('comments.data.1.text', 'con nota')
             ->has('comments.data.1.notes', 2)
             ->where('comments.data.1.notes.0.body', 'primera')->where('comments.data.1.notes.1.body', 'segunda')
             ->has('comments.data.0.notes', 0)
             ->where('note_max', 2000));
+});
+
+it('mantiene el filtro de comentarios ocultos al cargar una URL con 0 o 1', function () {
+    $this->second->update(['hidden' => true]);
+    $this->actingAs($this->user);
+
+    $this->get(route('inbox.index', ['hidden' => 1]))->assertOk()
+        ->assertInertia(fn (Assert $p) => $p->where('filters.hidden', true)
+            ->has('comments.data', 1)->where('comments.data.0.id', $this->second->id));
+    $this->get(route('inbox.index', ['hidden' => 0]))->assertOk()
+        ->assertInertia(fn (Assert $p) => $p->where('filters.hidden', false)
+            ->has('comments.data', 1)->where('comments.data.0.id', $this->first->id));
+    $this->get(route('inbox.index'))->assertOk()
+        ->assertInertia(fn (Assert $p) => $p->where('filters.hidden', null)->has('comments.data', 2));
+});
+
+it('mantiene las props de la bandeja cuando el usuario no tiene marca', function () {
+    $this->actingAs(User::factory()->create())->get(route('inbox.index'))->assertOk()
+        ->assertInertia(fn (Assert $p) => $p->component('Inbox/Index')
+            ->where('brand', null)->where('unread_count', 0)->has('accounts', 0)
+            ->has('comments.data', 0)->where('comments.prev_page_url', null)->where('comments.next_page_url', null));
 });
 
 it('el filtro has_notes deja solo los comentarios con notas', function () {

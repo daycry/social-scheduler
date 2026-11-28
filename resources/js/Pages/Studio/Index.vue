@@ -1,8 +1,15 @@
 <script setup>
-import { computed, ref } from 'vue';
+import Pagination from '@/Components/Pagination.vue';
+import { createDateFormatter, createZonedDateFormatter } from '@/lib/format';
+import { useStudioCreation } from '@/Composables/useStudioCreation';
+import { studioIndexProps } from './index-props';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Icon from '@/Components/Icon.vue';
+import EmptyState from '@/Components/EmptyState.vue';
+import PrimaryButton from '@/Components/PrimaryButton.vue';
+import FlashBanner from '@/Components/FlashBanner.vue';
 import TemplatePreview from '@/Components/Studio/TemplatePreview.vue';
 import StudioDialog from '@/Components/Studio/StudioDialog.vue';
 import TemplateInstanceDialog from '@/Components/Studio/TemplateInstanceDialog.vue';
@@ -11,20 +18,43 @@ import StudioDatasetsDialog from '@/Components/Studio/StudioDatasetsDialog.vue';
 import { blankDocument } from '@/Studio/document';
 import { STUDIO_TEMPLATES, createFromTemplate } from '@/Studio/templates';
 import { studioRequest } from '@/Studio/api';
+import { workflowError, workflowRequest } from '@/Composables/useWorkflow';
 import { STUDIO_FORMAT_PRESETS } from '@/Studio/format-presets';
 
-const props = defineProps({ brand: Object, designs: Object, kit: Object, assets: Array, folders: Array, filters: Object, fonts: { type: Array, default: () => [] }, shared: { type: Array, default: () => [] } });
-const createOpen = ref(false);
+import { useConfirm } from '@/Composables/useConfirm';
+
+const ask = useConfirm();
+
+const props = defineProps(studioIndexProps);
 const kitOpen = ref(!!props.brand && new URLSearchParams(location.search).get('tab') === 'brand');
 const error = ref('');
 const busy = ref(false);
 const query = ref(props.filters?.query ?? '');
-const createName = ref('Diseño sin título');
-const width = ref(1080);
-const height = ref(1080);
 const selectedFolder = ref(props.filters?.folder_id ?? '');
+const {
+    createOpen, createError, openDesignError, createdDesign, creationNotice, createName, width, height,
+    createNameInput, openCreatedButton, openCreatedBannerButton, create, visitCreatedDesign, startAnotherDesign,
+} = useStudioCreation({
+    getBrandId: () => props.brand?.id,
+    router, busy, error,
+    async save({ brandId, template, name, width: documentWidth, height: documentHeight }) {
+        const { design, message } = await studioRequest('POST', route('studio.designs.store', brandId), {
+            name,
+            document: template ? createFromTemplate(template.key, props.kit) : blankDocument(documentWidth, documentHeight),
+            folder_id: selectedFolder.value ? Number(selectedFolder.value) : null,
+            is_template: false,
+        });
+        return { href: route('studio.designs.edit', design.id, false), message };
+    },
+});
 const newFolder = ref('');
 const folderOpen = ref(false);
+const foldersOpen = ref(false);
+const renaming = ref(null);
+const renameName = ref('');
+const moving = ref(null);
+const moveOpen = ref(false);
+const moveTarget = ref('');
 const instanceOpen = ref(false);
 const instanceTemplate = ref(null);
 const paletteText = ref((props.kit?.palette ?? ['#7c3aed', '#111827', '#ffffff']).join(', '));
@@ -36,31 +66,77 @@ const selectedKitFonts = ref((props.kit?.font_ids ?? []).filter(id => Number.isI
 const kitFontChoices = computed(() => localFonts.value.filter(font => !font.archived_at || selectedKitFonts.value.includes(font.id)));
 const selectedLogos = ref([...(props.kit?.logos ?? [])]);
 const logoAssets = computed(() => (props.assets ?? []).filter(asset => asset.kind === 'image'));
+const WATERMARK_POSITIONS = [
+    { value: 'top-left', label: 'Arriba a la izquierda' }, { value: 'top-right', label: 'Arriba a la derecha' },
+    { value: 'bottom-left', label: 'Abajo a la izquierda' }, { value: 'bottom-right', label: 'Abajo a la derecha' }, { value: 'center', label: 'Centro' },
+];
+const watermark = ref({ enabled: false, logo_id: null, position: 'bottom-right', opacity: 70, size: 20, margin: 3, ...props.kit?.watermark });
+const watermarkLogos = computed(() => logoAssets.value.filter(asset => selectedLogos.value.includes(asset.id)));
+// Sin logotipo seleccionado no hay marca de agua posible: se desactiva sola en vez de dejar una casilla marcada y bloqueada.
+watch(watermarkLogos, logos => { if (!logos.length) watermark.value.enabled = false; });
 const guidelines = ref(props.kit?.guidelines ?? '');
 const voice = ref(props.kit?.voice ?? '');
-const rows = computed(() => props.designs?.data ?? []);
+const pageError = computed(() => {
+    if (folderOpen.value || foldersOpen.value || moveOpen.value || kitOpen.value) return '';
+    return error.value || (createOpen.value ? '' : openDesignError.value);
+});
+const rows = computed(() => props.designs?.designs ?? []);
 const archived = computed(() => !!props.filters?.archived);
+// Miniaturas (T-35): se generan en segundo plano por la cola; mientras falten, se recarga el listado unas pocas veces (la caducada se regenera sola).
+const missingThumbnails = computed(() => rows.value.some(design => design.thumbnail_status === 'pending'));
+let thumbnailTimer = null, thumbnailTries = 0;
+const pollThumbnails = () => {
+    thumbnailTimer = setTimeout(() => {
+        if (thumbnailTries++ >= 3 || !missingThumbnails.value) return;
+        router.reload({ only: ['designs'], onFinish: pollThumbnails });
+    }, 8000);
+};
+watch([folderOpen, foldersOpen, moveOpen, kitOpen], (open, previous) => {
+    if (open.some((visible, index) => visible && !previous[index])) error.value = '';
+});
+watch(missingThumbnails, missing => { clearTimeout(thumbnailTimer); thumbnailTries = 0; if (missing) pollThumbnails(); }, { immediate: true });
+onBeforeUnmount(() => clearTimeout(thumbnailTimer));
 const templatesOnly = computed(() => !!props.filters?.templates);
 const presets = STUDIO_FORMAT_PRESETS;
+const catalogFormat = ref('');
+const catalogSearch = ref('');
+const catalogFormats = presets.filter(({ w, h }) => STUDIO_TEMPLATES.some(template => template.width === w && template.height === h));
+const searchText = value => value.trim().normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+const catalogResults = computed(() => {
+    const format = catalogFormats.find(preset => preset.key === catalogFormat.value);
+    const term = searchText(catalogSearch.value);
+    return STUDIO_TEMPLATES.filter(template =>
+        (!format || (template.width === format.w && template.height === format.h))
+        && searchText(`${template.name} ${template.category}`).includes(term),
+    );
+});
+const pagination = computed(() => ({
+    total: props.designs.total,
+    cursor: props.filters?.cursor,
+    limit: props.filters?.limit,
+    has_more: props.designs.has_more,
+    next_cursor: props.designs.next_cursor,
+}));
+const listingParams = computed(() => ({
+    brand_id: props.brand?.id,
+    query: props.filters?.query || undefined,
+    folder_id: props.filters?.folder_id || undefined,
+    templates: templatesOnly.value ? 1 : undefined,
+    archived: archived.value ? 1 : undefined,
+}));
 
 const filter = (patch = {}) => router.get(route('studio.index'), {
     brand_id: props.brand?.id, query: query.value || undefined, folder_id: selectedFolder.value || undefined,
-    templates: templatesOnly.value ? 1 : undefined, archived: archived.value ? 1 : undefined, ...patch,
+    templates: templatesOnly.value ? 1 : undefined, archived: archived.value ? 1 : undefined, limit: props.filters?.limit, ...patch,
 }, { preserveScroll: true, preserveState: true });
 
-const create = async (template = null) => {
-    if (!props.brand || busy.value) return;
-    busy.value = true; error.value = '';
-    try {
-        const document = template ? createFromTemplate(template.key, props.kit) : blankDocument(Number(width.value), Number(height.value));
-        const result = await studioRequest('POST', route('studio.designs.store', props.brand.id), {
-            name: template ? template.name : createName.value.trim() || 'Diseño sin título', document,
-            folder_id: selectedFolder.value ? Number(selectedFolder.value) : null, is_template: false,
-        });
-        router.visit(route('studio.designs.edit', result.design.id));
-    } catch (e) { error.value = e.message; } finally { busy.value = false; }
-};
 const mutate = async (design, action) => {
+    if (busy.value) return;
+    if (action === 'archive' && !(await ask({
+        title: 'Mover a papelera',
+        message: `¿Mover el diseño «${design.name}» a la papelera? Podrás restaurarlo después.`,
+        confirmLabel: 'Mover a papelera',
+    }))) return;
     if (busy.value) return;
     busy.value = true; error.value = '';
     try {
@@ -68,6 +144,18 @@ const mutate = async (design, action) => {
         if (action === 'duplicate') router.visit(route('studio.designs.edit', result.design.id));
         else router.reload({ only: ['designs'] });
     } catch (e) { error.value = e.message; } finally { busy.value = false; }
+};
+const requestApproval = async design => {
+    if (busy.value) return;
+    busy.value = true;
+    error.value = '';
+    try {
+        const result = await workflowRequest('POST', route('workflow.design-approval.request', design.id));
+        if (result.ok) router.visit(route('approvals.index'));
+        else error.value = workflowError(result);
+    } finally {
+        busy.value = false;
+    }
 };
 const useTemplate = async design => {
     if (busy.value) return;
@@ -93,6 +181,7 @@ const saveKit = async () => {
             palette: paletteText.value.split(',').map(s => s.trim()).filter(Boolean), fonts: families,
             font_ids: families.map(family => localFonts.value.find(font => font.family === family && selectedKitFonts.value.includes(font.id))?.id ?? null),
             logos: selectedLogos.value, guidelines: guidelines.value, voice: voice.value,
+            watermark: { ...watermark.value, logo_id: selectedLogos.value.includes(watermark.value.logo_id) ? watermark.value.logo_id : null },
         });
         kitOpen.value = false; router.reload({ only: ['kit'] });
     } catch (e) { error.value = e.message; } finally { busy.value = false; }
@@ -119,46 +208,166 @@ const createFolder = async () => {
         folderOpen.value = false; newFolder.value = ''; router.reload({ only: ['folders'] });
     } catch (e) { error.value = e.message; } finally { busy.value = false; }
 };
-const date = value => new Intl.DateTimeFormat('es', { day: 'numeric', month: 'short' }).format(new Date(value));
+const focusFolder = (id, selector) => nextTick(() => document.querySelector(`[data-testid="folder-${id}"] ${selector}`)?.focus());
+const startRename = folder => { renaming.value = folder.id; renameName.value = folder.name; error.value = ''; focusFolder(folder.id, '[data-testid="folder-rename-input"]'); };
+const cancelRename = folder => { renaming.value = null; focusFolder(folder.id, '[data-testid="folder-rename"]'); };
+const renameFolder = async folder => {
+    if (!renameName.value.trim() || busy.value) return;
+    busy.value = true; error.value = '';
+    try {
+        await studioRequest('PATCH', route('studio.folders.update', folder.id), { name: renameName.value.trim() });
+        renaming.value = null; router.reload({ only: ['folders'], onSuccess: () => focusFolder(folder.id, '[data-testid="folder-rename"]') });
+    } catch (e) { error.value = e.message; } finally { busy.value = false; }
+};
+const askDelete = async folder => {
+    if (busy.value) return;
+    const count = folder.designs_count;
+    const where = count === 1 ? 'Su diseño se conserva y pasa a «Sin carpeta».' : `Sus ${count} diseños se conservan y pasan a «Sin carpeta».`;
+    if (!(await ask({
+        title: 'Borrar carpeta',
+        message: `¿Borrar la carpeta «${folder.name}»?${count ? ` ${where}` : ''}`,
+        confirmLabel: 'Borrar carpeta',
+    })) || busy.value) return;
+
+    const id = folder.id;
+    busy.value = true; error.value = '';
+    try {
+        await studioRequest('DELETE', route('studio.folders.destroy', id));
+        if (String(selectedFolder.value) === String(id)) { selectedFolder.value = ''; filter({ folder_id: undefined }); } else router.reload({ only: ['folders', 'designs'] });
+    } catch (e) { error.value = e.message; } finally { busy.value = false; }
+};
+const askMove = design => { moving.value = design; moveTarget.value = design.folder_id ?? ''; error.value = ''; moveOpen.value = true; };
+const moveDesign = async () => {
+    if (!moving.value || busy.value) return;
+    busy.value = true; error.value = '';
+    try {
+        await studioRequest('PATCH', route('studio.designs.move', moving.value.id), { folder_id: moveTarget.value ? Number(moveTarget.value) : null });
+        moveOpen.value = false; moving.value = null; router.reload({ only: ['designs', 'folders'] });
+    } catch (e) { error.value = e.message; } finally { busy.value = false; }
+};
+const designDateOptions = { day: 'numeric', month: 'short' };
+const date = computed(() => createDateFormatter(props.brand?.timezone, designDateOptions));
+const sharedDate = createZonedDateFormatter(designDateOptions);
 </script>
 
 <template>
     <Head title="Estudio creativo" />
     <AuthenticatedLayout>
         <div class="mx-auto max-w-[1500px] space-y-8">
-            <section class="relative overflow-hidden rounded-3xl bg-[#ede8ff] px-6 py-8 sm:px-9">
-                <div class="pointer-events-none absolute -right-14 -top-24 h-80 w-80 rounded-full bg-violet-300/30 blur-3xl" aria-hidden="true" />
+            <section class="relative overflow-hidden rounded-3xl bg-accent-secondary-marker px-6 py-8 sm:px-9">
+                <div
+                    class="pointer-events-none absolute -right-14 -top-24 h-80 w-80 rounded-full bg-accent-secondary-border/30 blur-3xl"
+                    aria-hidden="true"
+                />
                 <div class="relative flex flex-wrap items-center justify-between gap-5">
                     <div>
-                        <p class="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-violet-800"><Icon name="palette" class="h-4 w-4" /> {{ brand?.name ?? 'Tu espacio de diseño' }}</p>
-                        <h1 class="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">Estudio creativo</h1>
-                        <p class="mt-3 max-w-xl text-sm leading-relaxed text-slate-600">Dale forma a tu próxima publicación. Diseños, plantillas y recursos en el espacio de cada marca.</p>
+                        <p
+                            class="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-accent-secondary-ink"
+                            ><Icon name="palette" class="h-4 w-4" /> {{ brand?.name ?? 'Tu espacio de diseño' }}</p
+                        >
+                        <h1 class="text-3xl font-semibold tracking-tight text-foreground-strong sm:text-4xl"
+                            >Estudio creativo</h1
+                        >
+                        <p class="mt-3 max-w-xl text-sm leading-relaxed text-foreground-muted"
+                            >Dale forma a tu próxima publicación. Diseños, plantillas y recursos en el espacio de cada
+                            marca.</p
+                        >
                     </div>
-                    <button v-if="brand" type="button" class="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-violet-800" @click="createOpen = true"><Icon name="plus" class="h-5 w-5" />Nuevo diseño</button>
+                    <PrimaryButton v-if="brand" type="button" class="gap-2" :disabled="busy" @click="createOpen = true">
+                        <Icon name="plus" class="h-5 w-5" />{{ createdDesign ? 'Ver diseño creado' : 'Nuevo diseño' }}
+                    </PrimaryButton>
                     <Link v-else :href="route('brands.create')" class="btn-primary">Crear una marca</Link>
                 </div>
             </section>
 
-            <p v-if="error" role="alert" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{{ error }}</p>
-            <section v-if="shared.length" class="space-y-3" aria-labelledby="studio-shared-title" data-testid="studio-shared">
+            <FlashBanner :info="!createOpen ? creationNotice : ''" :error="pageError">
+                <template #info>
+                    <button
+                        ref="openCreatedBannerButton"
+                        type="button"
+                        class="btn-secondary aria-disabled:opacity-60"
+                        :aria-disabled="busy"
+                        @click="visitCreatedDesign"
+                        >Abrir diseño</button
+                    >
+                    <button
+                        type="button"
+                        class="btn-secondary aria-disabled:opacity-60"
+                        :aria-disabled="busy"
+                        @click="startAnotherDesign"
+                        >Crear otro diseño</button
+                    >
+                </template>
+            </FlashBanner>
+            <section
+                v-if="shared.length"
+                class="space-y-3"
+                aria-labelledby="studio-shared-title"
+                data-testid="studio-shared"
+            >
                 <h2 id="studio-shared-title" class="text-xl font-semibold tracking-tight">Compartidos conmigo</h2>
                 <ul class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     <li v-for="item in shared" :key="item.id">
-                        <Link :href="route('studio.designs.edit', item.id)" class="block rounded-2xl border border-slate-200 bg-white p-4 hover:border-violet-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600">
+                        <Link
+                            :href="route('studio.designs.edit', item.id)"
+                            class="block rounded-2xl border border-border bg-surface p-4 hover:border-accent-secondary-border focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
+                        >
                             <span class="block truncate text-sm font-semibold">{{ item.name }}</span>
-                            <span class="mt-1 block text-xs text-slate-600">De {{ item.owner_name }} · {{ item.role_label }}</span>
-                            <span class="mt-1 block text-[11px] text-slate-500">{{ item.page_count }} {{ item.page_count === 1 ? 'página' : 'páginas' }} · {{ date(item.updated_at) }}</span>
+                            <span class="mt-1 block text-xs text-foreground-muted"
+                                >De {{ item.owner_name }} · {{ item.role_label }}</span
+                            >
+                            <span class="mt-1 block text-[11px] text-foreground-subtle"
+                                >{{ item.page_count }} {{ item.page_count === 1 ? 'página' : 'páginas' }} ·
+                                {{ sharedDate(item.updated_at, item.timezone) }}</span
+                            >
                         </Link>
                     </li>
                 </ul>
             </section>
             <template v-if="brand">
                 <section class="space-y-4" aria-label="Formatos de diseño">
-                    <div class="flex flex-wrap items-center justify-between gap-3"><h2 class="text-lg font-semibold tracking-tight">¿Qué vas a crear?</h2><div class="flex flex-wrap gap-4"><button type="button" class="text-sm font-medium text-violet-700" @click="datasetsOpen = true">Tablas de datos</button><button type="button" class="text-sm font-medium text-violet-700" @click="fontsOpen = true">Tipografías de marca</button><button type="button" class="text-sm font-medium text-violet-700" @click="kitOpen = true">Identidad de marca <span aria-hidden="true">↗</span></button></div></div>
+                    <div class="flex flex-wrap items-center justify-between gap-3"
+                        ><h2 class="text-lg font-semibold tracking-tight">¿Qué vas a crear?</h2
+                        ><div class="flex flex-wrap gap-4"
+                            ><button
+                                type="button"
+                                class="text-sm font-medium text-accent-secondary-ink"
+                                @click="datasetsOpen = true"
+                                >Tablas de datos</button
+                            ><button
+                                type="button"
+                                class="text-sm font-medium text-accent-secondary-ink"
+                                @click="fontsOpen = true"
+                                >Tipografías de marca</button
+                            ><button
+                                type="button"
+                                class="text-sm font-medium text-accent-secondary-ink"
+                                @click="kitOpen = true"
+                                >Identidad de marca <span aria-hidden="true">↗</span></button
+                            ></div
+                        ></div
+                    >
                     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-                        <button v-for="preset in presets" :key="preset.label" type="button" class="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-sm" @click="width = preset.w; height = preset.h; createOpen = true">
-                            <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-50 group-hover:bg-violet-50"><span class="block max-h-8 max-w-8 rounded border-2 border-violet-500 bg-violet-100" :style="{ width: preset.w >= preset.h ? '28px' : `${28 * preset.w / preset.h}px`, height: preset.h >= preset.w ? '28px' : `${28 * preset.h / preset.w}px` }" /></span>
-                            <span><span class="block text-xs font-semibold leading-snug">{{ preset.label }}</span><span class="mt-1 block text-[10px] text-slate-500">{{ preset.w }} × {{ preset.h }}</span></span>
+                        <button
+                            v-for="preset in presets"
+                            :key="preset.label"
+                            type="button"
+                            class="group flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 text-left transition hover:-translate-y-0.5 hover:border-accent-secondary-border hover:shadow-sm"
+                            :disabled="busy || !!createdDesign"
+                            @click="width = preset.w; height = preset.h; createOpen = true"
+                        >
+                            <span
+                                class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-canvas group-hover:bg-accent-secondary-soft"
+                                ><span
+                                    class="block max-h-8 max-w-8 rounded border-2 border-accent-secondary-fill bg-accent-secondary-marker"
+                                    :style="{ width: preset.w >= preset.h ? '28px' : `${28 * preset.w / preset.h}px`, height: preset.h >= preset.w ? '28px' : `${28 * preset.h / preset.w}px` }"
+                            /></span>
+                            <span
+                                ><span class="block text-xs font-semibold leading-snug">{{ preset.label }}</span
+                                ><span class="mt-1 block text-[10px] text-foreground-subtle"
+                                    >{{ preset.w }} × {{ preset.h }}</span
+                                ></span
+                            >
                         </button>
                     </div>
                 </section>
@@ -166,64 +375,592 @@ const date = value => new Intl.DateTimeFormat('es', { day: 'numeric', month: 'sh
                 <section class="space-y-5" aria-labelledby="studio-designs-title">
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <div class="flex items-center gap-5">
-                            <h2 id="studio-designs-title" class="text-xl font-semibold tracking-tight">{{ archived ? 'Papelera' : templatesOnly ? 'Tus plantillas' : 'Mis diseños' }}</h2>
-                            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">{{ designs?.total ?? 0 }}</span>
+                            <h2
+                                id="studio-designs-title"
+                                class="text-xl font-semibold tracking-tight"
+                                >{{ archived ? 'Papelera' : templatesOnly ? 'Tus plantillas' : 'Mis diseños' }}</h2
+                            >
                         </div>
-                        <form class="flex w-full max-w-sm items-center gap-2" role="search" @submit.prevent="filter()"><label class="sr-only" for="studio-search">Buscar diseños</label><input id="studio-search" v-model="query" class="field min-w-0" type="search" placeholder="Buscar en esta marca…" /><button type="submit" class="btn-secondary px-3">Buscar</button></form>
+                        <form class="flex w-full max-w-sm items-center gap-2" role="search" @submit.prevent="filter()"
+                            ><label class="sr-only" for="studio-search">Buscar diseños</label
+                            ><input
+                                id="studio-search"
+                                v-model="query"
+                                class="field min-w-0"
+                                type="search"
+                                placeholder="Buscar en esta marca…"
+                            /><button type="submit" class="btn-secondary px-3">Buscar</button></form
+                        >
                     </div>
                     <div class="flex flex-wrap items-center gap-2 text-xs">
-                        <button type="button" class="rounded-full border px-3 py-2" :class="!templatesOnly && !archived ? 'border-violet-300 bg-violet-50 text-violet-800' : 'border-slate-200 bg-white'" @click="filter({ templates: undefined, archived: undefined })">Todos</button>
-                        <button type="button" class="rounded-full border px-3 py-2" :class="templatesOnly ? 'border-violet-300 bg-violet-50 text-violet-800' : 'border-slate-200 bg-white'" @click="filter({ templates: 1, archived: undefined })">Plantillas</button>
-                        <button type="button" class="rounded-full border px-3 py-2" :class="archived ? 'border-violet-300 bg-violet-50 text-violet-800' : 'border-slate-200 bg-white'" @click="filter({ archived: 1, templates: undefined })">Papelera</button>
-                        <label class="sr-only" for="studio-folder-filter">Carpeta</label><select id="studio-folder-filter" v-model="selectedFolder" class="rounded-full border-slate-200 py-2 pl-3 pr-8 text-xs" @change="filter()"><option value="">Todas las carpetas</option><option v-for="folder in folders" :key="folder.id" :value="folder.id">{{ folder.name }}</option></select>
-                        <button type="button" class="ml-auto inline-flex items-center gap-1 rounded-full px-3 py-2 text-slate-600 hover:bg-slate-100" @click="folderOpen = true"><Icon name="folder" class="h-4 w-4" />Nueva carpeta</button>
+                        <button
+                            type="button"
+                            class="rounded-full border px-3 py-2"
+                            :class="!templatesOnly && !archived ? 'border-accent-secondary-border bg-accent-secondary-soft text-accent-secondary-ink' : 'border-border bg-surface'"
+                            @click="filter({ templates: undefined, archived: undefined })"
+                            >Todos</button
+                        >
+                        <button
+                            type="button"
+                            class="rounded-full border px-3 py-2"
+                            :class="templatesOnly ? 'border-accent-secondary-border bg-accent-secondary-soft text-accent-secondary-ink' : 'border-border bg-surface'"
+                            @click="filter({ templates: 1, archived: undefined })"
+                            >Plantillas de diseño</button
+                        >
+                        <button
+                            type="button"
+                            class="rounded-full border px-3 py-2"
+                            :class="archived ? 'border-accent-secondary-border bg-accent-secondary-soft text-accent-secondary-ink' : 'border-border bg-surface'"
+                            @click="filter({ archived: 1, templates: undefined })"
+                            >Papelera de diseños</button
+                        >
+                        <label class="sr-only" for="studio-folder-filter">Carpeta</label
+                        ><select
+                            id="studio-folder-filter"
+                            v-model="selectedFolder"
+                            class="rounded-full border-border py-2 pl-3 pr-8 text-xs"
+                            @change="filter()"
+                            ><option value="">Todas las carpetas</option
+                            ><option
+                                v-for="folder in folders"
+                                :key="folder.id"
+                                :value="folder.id"
+                                >{{ folder.name }}</option
+                            ></select
+                        >
+                        <button
+                            type="button"
+                            class="ml-auto inline-flex items-center gap-1 rounded-full px-3 py-2 text-foreground-muted hover:bg-surface-hover"
+                            data-testid="folders-manage"
+                            @click="foldersOpen = true"
+                            ><Icon name="folder" class="h-4 w-4" />Gestionar carpetas</button
+                        >
+                        <button
+                            type="button"
+                            class="inline-flex items-center gap-1 rounded-full px-3 py-2 text-foreground-muted hover:bg-surface-hover"
+                            @click="folderOpen = true"
+                            ><Icon name="folder" class="h-4 w-4" />Nueva carpeta</button
+                        >
                     </div>
-                    <div v-if="rows.length" class="grid grid-cols-1 gap-5 min-[440px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    <div
+                        v-if="rows.length"
+                        class="grid grid-cols-1 gap-5 min-[440px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                    >
                         <article v-for="design in rows" :key="design.id" class="group min-w-0">
-                            <Link v-if="!archived" :href="route('studio.designs.edit', design.id)" class="flex aspect-[4/3] items-center justify-center rounded-2xl border border-slate-200 bg-white p-6 transition group-hover:border-violet-300 group-hover:shadow-sm" :aria-label="`Editar ${design.name}`">
-                                <div class="flex h-full max-w-full items-center justify-center rounded border border-slate-200 bg-slate-50 px-5 text-center" :style="{ aspectRatio: `${design.width ?? 1080} / ${design.height ?? 1080}` }"><span class="text-xs font-medium leading-relaxed text-slate-500">{{ design.name }}<span class="mt-2 block text-[10px] font-normal">{{ design.width }} × {{ design.height }} · {{ design.page_count }} {{ design.page_count === 1 ? 'página' : 'páginas' }}</span></span></div>
+                            <Link
+                                v-if="!archived"
+                                :href="route('studio.designs.edit', design.id)"
+                                class="flex aspect-[4/3] items-center justify-center rounded-2xl border border-border bg-surface p-6 transition group-hover:border-accent-secondary-border group-hover:shadow-sm"
+                                :aria-label="`Editar ${design.name}`"
+                            >
+                                <img
+                                    v-if="design.thumbnail_url"
+                                    :src="design.thumbnail_url"
+                                    alt=""
+                                    loading="lazy"
+                                    class="max-h-full max-w-full rounded border border-border object-contain"
+                                    :style="{ aspectRatio: `${design.width ?? 1080} / ${design.height ?? 1080}` }"
+                                    data-testid="design-thumbnail"
+                                />
+                                <div
+                                    v-else
+                                    class="flex h-full max-w-full items-center justify-center rounded border border-border bg-canvas px-5 text-center"
+                                    :style="{ aspectRatio: `${design.width ?? 1080} / ${design.height ?? 1080}` }"
+                                    data-testid="design-thumbnail-pending"
+                                    ><span class="text-xs font-medium leading-relaxed text-foreground-subtle"
+                                        >{{ design.name
+                                        }}<span class="mt-2 block text-[10px] font-normal"
+                                            >{{ design.width }} × {{ design.height }} · {{ design.page_count }}
+                                            {{ design.page_count === 1 ? 'página' : 'páginas' }}</span
+                                        ></span
+                                    ></div
+                                >
                             </Link>
-                            <div v-else class="flex aspect-[4/3] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-100"><Icon name="trash" class="h-8 w-8 text-slate-400" /></div>
-                            <div class="mt-3 flex items-start gap-2"><div class="min-w-0 flex-1"><h3 class="truncate text-sm font-semibold">{{ design.name }}</h3><p class="mt-1 text-xs text-slate-500">{{ date(design.updated_at) }}<span v-if="design.is_template"> · Plantilla</span></p></div><details class="relative"><summary class="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-lg hover:bg-slate-100" :aria-label="`Opciones de ${design.name}`">•••</summary><div class="absolute right-0 z-20 mt-1 min-w-40 rounded-xl border border-slate-200 bg-white p-1 shadow-lg"><button v-if="!archived" type="button" class="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-50" :disabled="busy" @click="mutate(design, 'duplicate')">Duplicar diseño</button><button type="button" class="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-50" :disabled="busy" @click="mutate(design, archived ? 'restore' : 'archive')">{{ archived ? 'Restaurar' : 'Mover a papelera' }}</button></div></details></div>
-                            <button v-if="design.is_template && !archived" type="button" class="mt-3 w-full rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-semibold text-violet-800 hover:border-violet-300 hover:bg-violet-100 disabled:opacity-50" :disabled="busy" @click="useTemplate(design)">Usar plantilla</button>
+                            <div
+                                v-else
+                                class="flex aspect-[4/3] items-center justify-center rounded-2xl border border-dashed border-control-border bg-surface-hover"
+                                ><Icon name="trash" class="h-8 w-8 text-foreground-subtle"
+                            /></div>
+                            <div class="mt-3 flex items-start gap-2"
+                                ><div class="min-w-0 flex-1"
+                                    ><h3 class="truncate text-sm font-semibold">{{ design.name }}</h3
+                                    ><p class="mt-1 text-xs text-foreground-subtle"
+                                        >{{ date(design.updated_at)
+                                        }}<span v-if="design.is_template"> · Plantilla</span></p
+                                    ></div
+                                ><details class="relative"
+                                    ><summary
+                                        class="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-lg hover:bg-surface-hover"
+                                        :aria-label="`Opciones de ${design.name}`"
+                                        >•••</summary
+                                    ><div
+                                        class="absolute right-0 z-20 mt-1 min-w-40 rounded-xl border border-border bg-surface p-1 shadow-lg"
+                                        ><button
+                                            v-if="!archived"
+                                            type="button"
+                                            class="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-canvas"
+                                            :disabled="busy"
+                                            @click="mutate(design, 'duplicate')"
+                                            >Duplicar diseño</button
+                                        ><button
+                                            v-if="!archived"
+                                            type="button"
+                                            class="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-canvas"
+                                            :disabled="busy"
+                                            @click="requestApproval(design)"
+                                            >Solicitar aprobación</button
+                                        ><button
+                                            v-if="!archived"
+                                            type="button"
+                                            class="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-canvas"
+                                            :disabled="busy"
+                                            data-testid="design-move"
+                                            @click="askMove(design)"
+                                            >Mover a carpeta</button
+                                        ><button
+                                            type="button"
+                                            class="block w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-canvas"
+                                            :disabled="busy"
+                                            @click="mutate(design, archived ? 'restore' : 'archive')"
+                                            >{{ archived ? 'Restaurar' : 'Mover a papelera' }}</button
+                                        ></div
+                                    ></details
+                                ></div
+                            >
+                            <button
+                                v-if="design.is_template && !archived"
+                                type="button"
+                                class="mt-3 w-full rounded-xl border border-accent-secondary-border bg-accent-secondary-soft px-4 py-2.5 text-sm font-semibold text-accent-secondary-ink hover:border-accent-secondary-border hover:bg-accent-secondary-marker disabled:opacity-50"
+                                :disabled="busy"
+                                @click="useTemplate(design)"
+                                >Usar plantilla</button
+                            >
                         </article>
                     </div>
-                    <div v-else class="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-12 text-center"><Icon :name="archived ? 'trash' : 'palette'" class="mx-auto mb-4 h-8 w-8 text-violet-400" /><h3 class="text-base font-semibold">{{ query ? 'No hay diseños con esa búsqueda' : archived ? 'La papelera está vacía' : 'Aquí empieza tu próxima idea' }}</h3><p class="mt-2 text-sm text-slate-500">{{ query ? 'Prueba con otro nombre o carpeta.' : 'Crea un diseño o elige una plantilla para empezar.' }}</p><button v-if="!archived" type="button" class="mt-5 rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white" @click="createOpen = true">Crear mi primer diseño</button></div>
-                    <nav v-if="(designs?.last_page ?? 1) > 1" class="flex flex-wrap justify-center gap-2" aria-label="Paginación de diseños"><template v-for="(link, i) in designs.links" :key="i"><Link v-if="link.url" :href="link.url" class="rounded-lg border px-3 py-2 text-xs" :class="link.active ? 'border-violet-300 bg-violet-50' : 'border-slate-200 bg-white'">{{ i === 0 ? 'Anterior' : i === designs.links.length - 1 ? 'Siguiente' : i }}</Link></template></nav>
+                    <EmptyState
+                        v-else
+                        :title="query ? 'No hay diseños con esa búsqueda' : archived ? 'La papelera está vacía' : 'Aquí empieza tu próxima idea'"
+                        :description="query ? 'Prueba con otro nombre o carpeta.' : 'Crea un diseño o elige una plantilla para empezar.'"
+                    >
+                        <template #icon>
+                            <Icon :name="archived ? 'trash' : 'palette'" class="h-8 w-8" />
+                        </template>
+                        <template v-if="!archived" #default>
+                            <PrimaryButton type="button" :disabled="busy || !!createdDesign" @click="createOpen = true"
+                                >Crear mi primer diseño</PrimaryButton
+                            >
+                        </template>
+                    </EmptyState>
+                    <Pagination
+                        :page="pagination"
+                        route-name="studio.index"
+                        :params="listingParams"
+                        label="Paginación de diseños"
+                    />
                 </section>
 
-                <section v-if="!archived" class="space-y-4" aria-labelledby="studio-templates-title"><div><h2 id="studio-templates-title" class="text-xl font-semibold tracking-tight">Una idea para empezar</h2><p class="mt-1 text-sm text-slate-500">Plantillas editables que puedes adaptar a tu marca.</p></div><div class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5"><button v-for="template in STUDIO_TEMPLATES" :key="template.key" type="button" class="text-left transition hover:-translate-y-1" :disabled="busy" @click="create(template)"><TemplatePreview :template="template" :kit="kit" :fonts="localFonts" /><span class="mt-2 block text-sm font-semibold">{{ template.name }}</span><span class="mt-1 block text-xs text-slate-500">{{ template.category }} · {{ template.width }} × {{ template.height }}</span></button></div></section>
+                <section v-if="!archived" class="space-y-4" aria-labelledby="studio-templates-title"
+                    ><div
+                        ><h2 id="studio-templates-title" class="text-xl font-semibold tracking-tight"
+                            >Una idea para empezar</h2
+                        ><p class="mt-1 text-sm text-foreground-subtle"
+                            >Plantillas editables que puedes adaptar a tu marca.</p
+                        ></div
+                    ><div class="grid gap-3 sm:grid-cols-2"
+                        ><label class="min-w-0 text-sm font-medium"
+                            >Buscar plantillas
+                            <input
+                                v-model="catalogSearch"
+                                type="search"
+                                class="mt-1 block w-full rounded-xl border-control-border text-sm"
+                            />
+                        </label>
+                        <label class="min-w-0 text-sm font-medium"
+                            >Formato de plantilla
+                            <select
+                                v-model="catalogFormat"
+                                class="mt-1 block w-full rounded-xl border-control-border text-sm"
+                            >
+                                <option value="">Todos los formatos</option>
+                                <option
+                                    v-for="format in catalogFormats"
+                                    :key="format.key"
+                                    :value="format.key"
+                                    >{{ format.label }}</option
+                                >
+                            </select>
+                        </label></div
+                    ><p
+                        role="status"
+                        class="text-sm text-foreground-muted"
+                        >{{ catalogResults.length === 0 ? 'No se encontraron plantillas.' : catalogResults.length === 1 ? '1 plantilla' : `${catalogResults.length} plantillas` }}</p
+                    ><div class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5"
+                        ><button
+                            v-for="template in catalogResults"
+                            :key="template.key"
+                            type="button"
+                            class="min-w-0 break-words rounded-xl text-left transition hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                            :disabled="busy || !!createdDesign"
+                            @click="create(template)"
+                            ><TemplatePreview :template="template" :kit="kit" :fonts="localFonts" /><span
+                                class="mt-2 block text-sm font-semibold"
+                                >{{ template.name }}</span
+                            ><span class="mt-1 block text-xs text-foreground-subtle"
+                                >{{ template.category }} · {{ template.width }} ×
+                                {{ template.height
+                                }}<span v-if="template.motion"> · Animada</span></span
+                            ></button
+                        ></div
+                    ></section
+                >
             </template>
         </div>
 
-        <StudioDialog v-model="createOpen" title="Nuevo diseño">
-            <form class="space-y-5" @submit.prevent="create()"><div><label class="mb-1 block text-sm font-medium" for="studio-create-name">Nombre</label><input id="studio-create-name" v-model="createName" class="field" maxlength="255" autofocus required /></div><div class="grid grid-cols-2 gap-4"><label class="space-y-1 text-sm font-medium">Ancho<input v-model.number="width" type="number" min="40" max="8000" class="field" required /></label><label class="space-y-1 text-sm font-medium">Alto<input v-model.number="height" type="number" min="40" max="8000" class="field" required /></label></div><p class="text-xs text-slate-500">Dimensiones en píxeles. Podrás adaptarlas desde el editor.</p><p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p><div class="flex justify-end gap-2"><button type="button" class="btn-secondary" @click="createOpen = false">Cancelar</button><button type="submit" class="btn-primary bg-violet-700" :disabled="busy">{{ busy ? 'Creando…' : 'Crear diseño' }}</button></div></form>
+        <StudioDialog v-model="createOpen" :title="createdDesign ? 'Diseño creado' : 'Nuevo diseño'">
+            <form class="space-y-5" @submit.prevent="create()"
+                ><fieldset v-if="!createdDesign" class="min-w-0 space-y-5">
+                    <div
+                        ><label class="mb-1 block text-sm font-medium" for="studio-create-name">Nombre</label
+                        ><input
+                            id="studio-create-name"
+                            ref="createNameInput"
+                            v-model="createName"
+                            class="field"
+                            maxlength="255"
+                            autofocus
+                            required /></div
+                    ><div class="grid grid-cols-2 gap-4"
+                        ><label class="space-y-1 text-sm font-medium"
+                            >Ancho<input
+                                v-model.number="width"
+                                type="number"
+                                min="40"
+                                max="8000"
+                                class="field"
+                                required /></label
+                        ><label class="space-y-1 text-sm font-medium"
+                            >Alto<input
+                                v-model.number="height"
+                                type="number"
+                                min="40"
+                                max="8000"
+                                class="field"
+                                required /></label></div
+                    ><p class="text-xs text-foreground-subtle"
+                        >Dimensiones en píxeles. Podrás adaptarlas desde el editor.</p
+                    >
+                </fieldset>
+                <FlashBanner :info="createOpen ? creationNotice : ''" :error="createError || openDesignError">
+                    <template #info>
+                        <button
+                            ref="openCreatedButton"
+                            type="button"
+                            class="btn-secondary aria-disabled:opacity-60"
+                            :aria-disabled="busy"
+                            @click="visitCreatedDesign"
+                            >Abrir diseño</button
+                        >
+                        <button
+                            type="button"
+                            class="btn-secondary aria-disabled:opacity-60"
+                            :aria-disabled="busy"
+                            @click="startAnotherDesign"
+                            >Crear otro diseño</button
+                        >
+                    </template> </FlashBanner
+                ><div v-if="!createdDesign" class="flex justify-end gap-2"
+                    ><button type="button" class="btn-secondary" @click="createOpen = false">Cancelar</button
+                    ><button
+                        type="submit"
+                        class="btn-secondary-accent"
+                        :disabled="busy"
+                        >{{ busy ? 'Creando…' : 'Crear diseño' }}</button
+                    ></div
+                ></form
+            >
         </StudioDialog>
-        <StudioDialog v-model="folderOpen" title="Nueva carpeta"><form class="space-y-4" @submit.prevent="createFolder"><label class="block text-sm font-medium">Nombre de la carpeta<input v-model="newFolder" class="field mt-1" maxlength="255" required autofocus /></label><p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p><button type="submit" class="btn-primary" :disabled="busy">Crear carpeta</button></form></StudioDialog>
-        <TemplateInstanceDialog v-model="instanceOpen" :template="instanceTemplate" :busy="busy" :error="error" @create="instantiateTemplate" />
+        <StudioDialog v-model="folderOpen" title="Nueva carpeta"
+            ><form class="space-y-4" @submit.prevent="createFolder"
+                ><label class="block text-sm font-medium"
+                    >Nombre de la carpeta<input
+                        v-model="newFolder"
+                        class="field mt-1"
+                        maxlength="255"
+                        required
+                        autofocus /></label
+                ><FlashBanner :error="error" /><button type="submit" class="btn-primary" :disabled="busy"
+                    >Crear carpeta</button
+                ></form
+            ></StudioDialog
+        >
+        <StudioDialog v-model="foldersOpen" title="Carpetas">
+            <p v-if="!folders?.length" class="text-sm text-foreground-muted">Todavía no hay carpetas en esta marca.</p>
+            <ul v-else class="space-y-2">
+                <li
+                    v-for="folder in folders"
+                    :key="folder.id"
+                    class="rounded-xl border border-border p-3"
+                    :data-testid="`folder-${folder.id}`"
+                >
+                    <form
+                        v-if="renaming === folder.id"
+                        class="flex flex-wrap items-end gap-2"
+                        @submit.prevent="renameFolder(folder)"
+                    >
+                        <label class="min-w-0 flex-1 text-sm font-medium"
+                            >Nuevo nombre<input
+                                v-model="renameName"
+                                class="field mt-1"
+                                maxlength="255"
+                                required
+                                data-testid="folder-rename-input"
+                                @keydown.esc.prevent.stop="cancelRename(folder)"
+                        /></label>
+                        <button type="submit" class="btn-primary px-3" :disabled="busy" data-testid="folder-rename-save"
+                            >Guardar</button
+                        >
+                        <button type="button" class="btn-secondary px-3" @click="cancelRename(folder)">Cancelar</button>
+                    </form>
+                    <div v-else class="flex flex-wrap items-center gap-2">
+                        <span class="min-w-0 flex-1 truncate text-sm font-medium">{{ folder.name }}</span>
+                        <span class="text-xs text-foreground-subtle"
+                            >{{ folder.designs_count }} {{ folder.designs_count === 1 ? 'diseño' : 'diseños' }}</span
+                        >
+                        <button
+                            type="button"
+                            class="btn-secondary px-3 py-1 text-xs"
+                            :aria-label="`Renombrar la carpeta ${folder.name}`"
+                            data-testid="folder-rename"
+                            @click="startRename(folder)"
+                            >Renombrar</button
+                        >
+                        <button
+                            type="button"
+                            class="btn-secondary px-3 py-1 text-xs text-danger"
+                            :aria-label="`Borrar la carpeta ${folder.name}`"
+                            data-testid="folder-delete"
+                            @click="askDelete(folder)"
+                            >Borrar</button
+                        >
+                    </div>
+                </li>
+            </ul>
+            <FlashBanner :error="error" />
+        </StudioDialog>
+        <StudioDialog v-model="moveOpen" title="Mover a carpeta">
+            <form class="space-y-4" @submit.prevent="moveDesign">
+                <label class="block text-sm font-medium" for="studio-move-target"
+                    >Carpeta de «{{ moving?.name }}»</label
+                >
+                <select id="studio-move-target" v-model="moveTarget" class="field" data-testid="move-target"
+                    ><option value="">Sin carpeta</option
+                    ><option
+                        v-for="folder in folders"
+                        :key="folder.id"
+                        :value="folder.id"
+                        >{{ folder.name }}</option
+                    ></select
+                >
+                <FlashBanner :error="error" />
+                <button type="submit" class="btn-primary" :disabled="busy" data-testid="move-confirm">Mover</button>
+            </form>
+        </StudioDialog>
+        <TemplateInstanceDialog
+            v-model="instanceOpen"
+            :template="instanceTemplate"
+            :busy="busy"
+            :error="error"
+            @create="instantiateTemplate"
+        />
         <StudioFontsDialog v-if="brand" v-model="fontsOpen" :brand-id="brand.id" @changed="updateFonts" />
         <StudioDatasetsDialog v-if="brand" v-model="datasetsOpen" :brand-id="brand.id" :brand-name="brand.name" />
         <StudioDialog v-model="kitOpen" title="Identidad de marca">
             <form class="space-y-4" @submit.prevent="saveKit">
-                <p class="text-sm text-slate-500">Los estilos pertenecen a {{ brand?.name }} y se aplican a los diseños de esta marca.</p>
+                <p class="text-sm text-foreground-subtle"
+                    >Los estilos pertenecen a {{ brand?.name }} y se aplican a los diseños de esta marca.</p
+                >
                 <fieldset class="min-w-0 space-y-4" :disabled="busy">
-                    <label class="block text-sm font-medium">Paleta de colores<input v-model="paletteText" class="field mt-1" placeholder="#7c3aed, #111827, #ffffff" /><span class="mt-1 block text-xs font-normal text-slate-500">Colores hexadecimales separados por comas.</span></label>
-                    <div class="flex flex-wrap gap-2"><span v-for="color in paletteText.split(',').map(s => s.trim()).filter(s => /^#[0-9a-f]{3,8}$/i.test(s))" :key="color" class="h-8 w-8 rounded-full border border-slate-200" :style="{ background: color }" /></div>
-                    <label class="block text-sm font-medium">Tipografías<input v-model="fontsText" aria-label="Tipografías" class="field mt-1" /><span class="mt-1 block text-xs font-normal text-slate-500">Familias locales separadas por comas. Selecciona debajo los archivos propios de esta marca.</span></label>
-                    <fieldset class="space-y-2 rounded-xl border border-slate-200 p-3"><legend class="px-1 text-sm font-medium">Archivos tipográficos del kit</legend><label v-for="font in kitFontChoices" :key="font.id" class="flex min-w-0 items-start gap-2 text-sm"><input type="checkbox" class="mt-1" :checked="selectedKitFonts.includes(font.id)" :aria-label="`Incluir tipografía ${font.name} en la identidad`" @change="toggleKitFont(font,$event.target.checked)" /><span class="min-w-0 break-words">{{ font.name }}<span class="block text-xs text-slate-500">{{ font.family }} · {{ font.style }} · {{ font.weight }}{{ font.archived_at ? ' · Archivada, ya vinculada' : '' }}</span></span></label><p v-if="!kitFontChoices.length" class="text-xs leading-relaxed text-slate-500">Sube una tipografía desde Tipografías de marca para vincular el archivo a tu identidad.</p><p v-else class="text-xs leading-relaxed text-slate-500">Un archivo por familia en la identidad; puedes elegir otras variantes en cada texto del editor.</p></fieldset>
-                    <fieldset class="min-w-0 space-y-3 rounded-xl border border-slate-200 p-4" aria-label="Logotipos de marca">
+                    <label class="block text-sm font-medium"
+                        >Paleta de colores<input
+                            v-model="paletteText"
+                            class="field mt-1"
+                            placeholder="#7c3aed, #111827, #ffffff"
+                        /><span class="mt-1 block text-xs font-normal text-foreground-subtle"
+                            >Colores hexadecimales separados por comas.</span
+                        ></label
+                    >
+                    <div class="flex flex-wrap gap-2"
+                        ><span
+                            v-for="color in paletteText.split(',').map(s => s.trim()).filter(s => /^#[0-9a-f]{3,8}$/i.test(s))"
+                            :key="color"
+                            class="h-8 w-8 rounded-full border border-border"
+                            :style="{ background: color }"
+                    /></div>
+                    <label class="block text-sm font-medium"
+                        >Tipografías<input v-model="fontsText" aria-label="Tipografías" class="field mt-1" /><span
+                            class="mt-1 block text-xs font-normal text-foreground-subtle"
+                            >Familias locales separadas por comas. Selecciona debajo los archivos propios de esta
+                            marca.</span
+                        ></label
+                    >
+                    <fieldset class="space-y-2 rounded-xl border border-border p-3"
+                        ><legend class="px-1 text-sm font-medium">Archivos tipográficos del kit</legend
+                        ><label
+                            v-for="font in kitFontChoices"
+                            :key="font.id"
+                            class="flex min-w-0 items-start gap-2 text-sm"
+                            ><input
+                                type="checkbox"
+                                class="mt-1"
+                                :checked="selectedKitFonts.includes(font.id)"
+                                :aria-label="`Incluir tipografía ${font.name} en la identidad`"
+                                @change="toggleKitFont(font,$event.target.checked)"
+                            /><span class="min-w-0 break-words"
+                                >{{ font.name
+                                }}<span class="block text-xs text-foreground-subtle"
+                                    >{{ font.family }} · {{ font.style }} ·
+                                    {{ font.weight
+                                    }}{{ font.archived_at ? ' · Archivada, ya vinculada' : '' }}</span
+                                ></span
+                            ></label
+                        ><p v-if="!kitFontChoices.length" class="text-xs leading-relaxed text-foreground-subtle"
+                            >Sube una tipografía desde Tipografías de marca para vincular el archivo a tu identidad.</p
+                        ><p v-else class="text-xs leading-relaxed text-foreground-subtle"
+                            >Un archivo por familia en la identidad; puedes elegir otras variantes en cada texto del
+                            editor.</p
+                        ></fieldset
+                    >
+                    <fieldset
+                        class="min-w-0 space-y-3 rounded-xl border border-border p-4"
+                        aria-label="Logotipos de marca"
+                    >
                         <legend class="px-1 text-sm font-medium">Logotipos de marca</legend>
-                        <p class="text-xs leading-relaxed text-slate-500">Selecciona hasta 30 imágenes de esta marca, en el orden en que quieras vincularlas al kit. Puedes subirlas desde Recursos en cualquier diseño.</p>
-                        <div v-if="logoAssets.length" class="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2">
-                            <label v-for="asset in logoAssets" :key="asset.id" class="flex min-w-0 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 p-2" :class="selectedLogos.includes(asset.id) ? 'border-violet-300 bg-violet-50' : ''"><input v-model="selectedLogos" type="checkbox" :value="asset.id" :aria-label="`Logo de marca ${asset.name}`" :disabled="!selectedLogos.includes(asset.id) && selectedLogos.length >= 30" /><img :src="asset.preview_url" alt="" class="h-10 w-10 shrink-0 rounded bg-white object-contain" loading="lazy" /><span class="min-w-0 break-words text-xs">{{ asset.name }}<span v-if="selectedLogos.includes(asset.id)" class="mt-1 block text-[10px] font-medium text-violet-700">Posición {{ selectedLogos.indexOf(asset.id) + 1 }}</span></span></label>
+                        <p class="text-xs leading-relaxed text-foreground-subtle"
+                            >Selecciona hasta 30 imágenes de esta marca, en el orden en que quieras vincularlas al kit.
+                            Puedes subirlas desde Recursos en cualquier diseño.</p
+                        >
+                        <div
+                            v-if="logoAssets.length"
+                            class="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2"
+                        >
+                            <label
+                                v-for="asset in logoAssets"
+                                :key="asset.id"
+                                class="flex min-w-0 cursor-pointer items-center gap-2 rounded-lg border border-border p-2"
+                                :class="selectedLogos.includes(asset.id) ? 'border-accent-secondary-border bg-accent-secondary-soft' : ''"
+                                ><input
+                                    v-model="selectedLogos"
+                                    type="checkbox"
+                                    :value="asset.id"
+                                    :aria-label="`Logo de marca ${asset.name}`"
+                                    :disabled="!selectedLogos.includes(asset.id) && selectedLogos.length >= 30"
+                                /><img
+                                    :src="asset.preview_url"
+                                    alt=""
+                                    class="h-10 w-10 shrink-0 rounded bg-surface object-contain"
+                                    loading="lazy"
+                                /><span class="min-w-0 break-words text-xs"
+                                    >{{ asset.name
+                                    }}<span
+                                        v-if="selectedLogos.includes(asset.id)"
+                                        class="mt-1 block text-[10px] font-medium text-accent-secondary-ink"
+                                        >Posición {{ selectedLogos.indexOf(asset.id) + 1 }}</span
+                                    ></span
+                                ></label
+                            >
                         </div>
-                        <p v-else class="rounded-lg bg-slate-50 p-3 text-xs text-slate-500">Todavía no hay imágenes en la biblioteca de esta marca.</p>
-                        <p class="text-xs text-slate-500">{{ selectedLogos.length }}/30 seleccionados</p>
+                        <p v-else class="rounded-lg bg-canvas p-3 text-xs text-foreground-subtle"
+                            >Todavía no hay imágenes en la biblioteca de esta marca.</p
+                        >
+                        <p class="text-xs text-foreground-subtle">{{ selectedLogos.length }}/30 seleccionados</p>
                     </fieldset>
-                    <label class="block text-sm font-medium">Guía de estilo<textarea v-model="guidelines" class="field mt-1" rows="3" maxlength="10000" /></label>
-                    <label class="block text-sm font-medium">Voz de la marca<textarea v-model="voice" class="field mt-1" rows="2" maxlength="5000" /></label>
+                    <fieldset class="min-w-0 space-y-3 rounded-xl border border-border p-4">
+                        <legend class="px-1 text-sm font-medium">Marca de agua</legend>
+                        <p class="text-xs leading-relaxed text-foreground-subtle"
+                            >Superpone un logotipo del kit en las exportaciones de imagen de esta marca (PNG, JPG y
+                            WebP; las del diálogo Exportar pasan por el servidor mientras esté activa y la exportación
+                            en lote la aplica siempre que lo esté). Se puede desactivar en cada exportación.</p
+                        >
+                        <label class="flex items-center gap-2 text-sm font-medium"
+                            ><input
+                                v-model="watermark.enabled"
+                                type="checkbox"
+                                :disabled="!watermarkLogos.length"
+                            />Aplicar marca de agua automáticamente</label
+                        >
+                        <p v-if="!watermarkLogos.length" class="rounded-lg bg-canvas p-3 text-xs text-foreground-subtle"
+                            >Selecciona antes un logotipo de marca para poder usarlo como marca de agua.</p
+                        >
+                        <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <label class="block min-w-0 text-sm font-medium"
+                                >Logotipo<select
+                                    v-model.number="watermark.logo_id"
+                                    aria-label="Logotipo de la marca de agua"
+                                    class="field mt-1"
+                                    ><option :value="null">Elige un logotipo</option
+                                    ><option
+                                        v-for="asset in watermarkLogos"
+                                        :key="asset.id"
+                                        :value="asset.id"
+                                        >{{ asset.name }}</option
+                                    ></select
+                                ></label
+                            >
+                            <label class="block min-w-0 text-sm font-medium"
+                                >Posición<select
+                                    v-model="watermark.position"
+                                    aria-label="Posición de la marca de agua"
+                                    class="field mt-1"
+                                    ><option
+                                        v-for="item in WATERMARK_POSITIONS"
+                                        :key="item.value"
+                                        :value="item.value"
+                                        >{{ item.label }}</option
+                                    ></select
+                                ></label
+                            >
+                            <label class="block min-w-0 text-sm font-medium"
+                                >Opacidad ({{ watermark.opacity }} %)<input
+                                    v-model.number="watermark.opacity"
+                                    aria-label="Opacidad de la marca de agua"
+                                    class="mt-1 w-full"
+                                    type="range"
+                                    min="5"
+                                    max="100"
+                                    step="5"
+                            /></label>
+                            <label class="block min-w-0 text-sm font-medium"
+                                >Tamaño ({{ watermark.size }} % del ancho)<input
+                                    v-model.number="watermark.size"
+                                    aria-label="Tamaño de la marca de agua"
+                                    class="mt-1 w-full"
+                                    type="range"
+                                    min="5"
+                                    max="50"
+                                    step="1"
+                            /></label>
+                            <label class="block min-w-0 text-sm font-medium"
+                                >Margen ({{ watermark.margin }} %)<input
+                                    v-model.number="watermark.margin"
+                                    aria-label="Margen de la marca de agua"
+                                    class="mt-1 w-full"
+                                    type="range"
+                                    min="0"
+                                    max="20"
+                                    step="1"
+                            /></label>
+                        </div>
+                    </fieldset>
+                    <label class="block text-sm font-medium"
+                        >Guía de estilo<textarea v-model="guidelines" class="field mt-1" rows="3" maxlength="10000" />
+                    </label>
+                    <label class="block text-sm font-medium"
+                        >Voz de la marca<textarea v-model="voice" class="field mt-1" rows="2" maxlength="5000" />
+                    </label>
                 </fieldset>
-                <p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p><div class="flex justify-end"><button type="submit" class="btn-primary bg-violet-700" :disabled="busy">Guardar identidad</button></div>
+                <FlashBanner :error="error" /><div class="flex justify-end"
+                    ><button type="submit" class="btn-secondary-accent" :disabled="busy">Guardar identidad</button></div
+                >
             </form>
         </StudioDialog>
     </AuthenticatedLayout>

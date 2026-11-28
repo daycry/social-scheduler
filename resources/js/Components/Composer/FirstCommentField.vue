@@ -3,7 +3,8 @@ import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import InputLabel from '@/Components/InputLabel.vue';
 import { useComposerContext } from '@/Composables/useComposer';
-import { countChars, padForInsert } from '@/Composables/textCount';
+import { padForInsert } from '@/Composables/textCount';
+import { countText } from '@/Composables/textLength';
 
 /**
  * Primer comentario de un destino (C-01b): se publica como comentario propio justo después de la publicación. Solo en los tipos que
@@ -11,11 +12,12 @@ import { countChars, padForInsert } from '@/Composables/textCount';
  * En YouTube necesita el permiso `youtube.force-ssl`: sin él se desactiva y se pide reconectar el canal.
  */
 const props = defineProps({ account: { type: Object, required: true } });
-const { brand, editable, targetFor, firstCommentMax, registerField, unregisterField } = useComposerContext();
+const { brand, editable, targetFor, firstCommentMax, limits, registerField, unregisterField } = useComposerContext();
 
 const target = computed(() => targetFor(props.account.id));
 const max = computed(() => (target.value ? (firstCommentMax.value[target.value.content_type] ?? null) : null));
-const length = computed(() => countChars(target.value?.first_comment ?? ''));
+// Cuenta como el texto de esa red (grafemas en Bluesky, regla de Threads), igual que el servidor.
+const length = computed(() => countText(target.value?.first_comment ?? '', limits.value?.[target.value?.content_type]?.count));
 const over = computed(() => max.value !== null && length.value > max.value);
 const blocked = computed(() => props.account.can_comment === false);
 const area = ref(null);
@@ -39,11 +41,21 @@ onBeforeUnmount(() => unregisterField(self));
 <template>
     <div v-if="target && max !== null" class="space-y-1" data-testid="first-comment">
         <InputLabel :for="id" value="Primer comentario (opcional)" />
-        <p :id="`${id}-hint`" class="text-xs text-slate-600">Se publica como comentario de la cuenta justo después de publicar. No se guarda en la biblioteca.</p>
-        <p v-if="blocked" class="rounded border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900" role="status" data-testid="first-comment-reconnect">
+        <p :id="`${id}-hint`" class="text-xs text-foreground-muted"
+            >Se publica como comentario de la cuenta justo después de publicar. No se guarda en la biblioteca.</p
+        >
+        <p
+            v-if="blocked"
+            class="rounded border border-warning-panel-border bg-warning-soft p-2 text-xs text-warning-ink"
+            role="status"
+            data-testid="first-comment-reconnect"
+        >
             <template v-if="account.comment_note">{{ account.comment_note }}</template>
-            <template v-else>Reconecta el canal para comentar: la conexión actual no tiene el permiso de comentarios. En Conexiones, pulsa «+ Conectar» en la tarjeta de YouTube.
-            <Link :href="route('brands.connections.index', brand.id)" class="link">Ir a conexiones</Link></template>
+            <template v-else
+                >Reconecta el canal para comentar: la conexión actual no tiene el permiso de comentarios. En Conexiones,
+                pulsa «+ Conectar» en la tarjeta de YouTube.
+                <Link :href="route('brands.connections.index', brand.id)" class="link">Ir a conexiones</Link></template
+            >
         </p>
         <textarea
             :id="id"
@@ -56,7 +68,13 @@ onBeforeUnmount(() => unregisterField(self));
             :aria-invalid="over ? 'true' : undefined"
             @focus="registerField(self)"
         ></textarea>
-        <p :id="`${id}-count`" class="text-right text-xs" :class="over ? 'font-medium text-red-700' : 'text-slate-600'" aria-live="polite" data-testid="first-comment-count">
+        <p
+            :id="`${id}-count`"
+            class="text-right text-xs"
+            :class="over ? 'font-medium text-danger' : 'text-foreground-muted'"
+            aria-live="polite"
+            data-testid="first-comment-count"
+        >
             {{ length }} / {{ max }}<template v-if="over"> · supera el máximo de {{ account.network_label }}</template>
         </p>
     </div>

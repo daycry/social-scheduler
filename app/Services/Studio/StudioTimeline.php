@@ -6,14 +6,23 @@ use App\Models\Brand;
 use App\Models\Studio\StudioAsset;
 use App\Models\Studio\StudioFont;
 use App\Models\User;
+use App\Support\Ownership;
 use Illuminate\Validation\ValidationException;
 
 /** Version 2 reuses version 1 geometry, ownership and font validation without discarding time data. */
 class StudioTimeline
 {
+    public function __construct(private readonly StudioCaptionData $captionData) {}
+
     private const FPS = [12, 15, 24, 25, 30, 50, 60];
 
     private const EPS = 1e-9;
+
+    private const ANIMATION_PHASES = ['in', 'out'];
+
+    private const ANIMATION_TYPES = ['fade', 'slide_left', 'slide_right', 'slide_up', 'slide_down', 'zoom'];
+
+    private const ANIMATION_EASINGS = ['linear', 'ease_in', 'ease_out', 'ease_in_out'];
 
     public function validate(User $user, Brand $brand, array $document, StudioDocument $spatial): array
     {
@@ -83,19 +92,19 @@ class StudioTimeline
             $uses[] = [$asset, $track, $path, true];
         }
         if (array_key_exists('captions', $timeline)) {
-            $document['timeline']['captions'] = app(StudioCaptionData::class)->validate($timeline['captions'], $total, array_keys($ids));
+            $document['timeline']['captions'] = $this->captionData->validate($timeline['captions'], $total, array_keys($ids));
             $style = $document['timeline']['captions']['style'];
             if (isset($style['font_id'])) {
-                $font = StudioFont::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)->where('status', 'ready')->find($style['font_id']);
+                $font = StudioFont::ownedBy($user->id)->where('brand_id', $brand->id)->where('status', 'ready')->find($style['font_id']);
                 $this->ensure($font !== null && (! isset($style['fontFamily']) || $style['fontFamily'] === $font->family), 'timeline.captions.style.font_id', 'La fuente o su familia no está disponible en esta marca.');
             }
         }
         if ($uses !== []) {
-            $links = StudioAsset::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)
+            $links = StudioAsset::ownedBy($user->id)->where('brand_id', $brand->id)
                 ->whereIn('media_asset_id', array_unique(array_column($uses, 0)))->with('media')->get()->keyBy('media_asset_id');
             foreach ($uses as [$id, $clip, $path, $audio]) {
                 $asset = $links->get($id)?->media;
-                $this->ensure($asset !== null && (int) $asset->user_id === (int) $user->id && $asset->isReady(), $path.'.asset_id', 'El recurso no está listo en esta marca.');
+                $this->ensure(Ownership::matches($asset, $user) && $asset->isReady(), $path.'.asset_id', 'El recurso no está listo en esta marca.');
                 $this->ensure($audio ? in_array($asset->kind, ['audio', 'video'], true) && filled($asset->audio_codec) : $asset->kind === 'video', $path.'.asset_id', 'El recurso no contiene la pista requerida.');
                 $this->ensure($asset->duration !== null && is_finite((float) $asset->duration) && $asset->duration > 0, $path.'.asset_id', 'Falta la duración sondeada del recurso.');
                 $start = $clip['trimStart'] ?? 0;
@@ -114,7 +123,7 @@ class StudioTimeline
             if (! is_array($element)) {
                 continue;
             }
-            unset($element['timing']);
+            unset($element['timing'], $element['animation']);
             if (($element['type'] ?? null) === 'video') {
                 unset($element['playbackRate'], $element['sourceOffset'], $element['loop'], $element['gainPoints']);
             }
@@ -138,6 +147,9 @@ class StudioTimeline
                 $length = $this->number($element['timing']['duration'] ?? null, 0, $duration + self::EPS, $p.'.timing.duration');
                 $this->ensure($length > 0 && $start + $length > $start && $start + $length <= $duration + self::EPS, $p.'.timing', 'La ventana debe ser positiva y quedar dentro de la página.');
             }
+            if (array_key_exists('animation', $element)) {
+                $this->animation($element['animation'], $length, $p.'.animation');
+            }
             if ($element['type'] === 'video') {
                 $this->mediaFields($element, $length, $p);
                 $uses[] = [$element['asset_id'], $element, $p, false];
@@ -146,6 +158,33 @@ class StudioTimeline
                 $this->elements($element['elements'], $duration, $fps, $p.'.elements', $ids, $uses);
             }
         }
+    }
+
+    /** Mismo esquema que normalizeAnimation de object-animation.js: tipos, rangos y que entrada y salida quepan en la vida del objeto. */
+    private function animation(mixed $animation, float $length, string $path): void
+    {
+        $this->keys($animation, self::ANIMATION_PHASES, $path);
+        $this->ensure($animation !== [], $path, 'Indica una entrada o una salida.');
+        $total = 0.0;
+        foreach (self::ANIMATION_PHASES as $key) {
+            if (! array_key_exists($key, $animation)) {
+                continue;
+            }
+            $phase = $animation[$key];
+            $where = "$path.$key";
+            $this->keys($phase, ['type', 'duration', 'delay', 'easing', 'clipped'], $where);
+            $this->ensure(in_array($phase['type'] ?? null, self::ANIMATION_TYPES, true), $where.'.type', 'Tipo de animación no admitido.');
+            $duration = $this->number($phase['duration'] ?? null, 0.1, 10, $where.'.duration');
+            $clipped = array_key_exists('clipped', $phase);
+            $this->ensure(! $clipped || $phase['clipped'] === true, $where.'.clipped', 'El indicador de recorte debe ser true.');
+            $delay = array_key_exists('delay', $phase) ? $this->number($phase['delay'], $clipped ? -10 : 0, 3600, $where.'.delay') : 0.0;
+            // Una fase recortada cuya curva acaba antes de que empiece el clip no haría nada: se rechaza (mismo criterio en `object-animation.js`).
+            $this->ensure(! $clipped || $delay > -$duration, $where.'.delay', 'El retardo deja la fase recortada entera antes del clip.');
+            $this->ensure(! array_key_exists('easing', $phase) || in_array($phase['easing'], self::ANIMATION_EASINGS, true), $where.'.easing', 'Curva de suavizado no admitida.');
+            $span = $delay + $duration;
+            $total += $clipped ? min($length, max(0, $span)) : $span;
+        }
+        $this->ensure($total <= $length + self::EPS, $path, 'La entrada y la salida no caben en la vida del objeto.');
     }
 
     private function mediaFields(array $clip, float $duration, string $path): void

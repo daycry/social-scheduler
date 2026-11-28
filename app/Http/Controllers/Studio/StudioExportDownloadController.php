@@ -12,7 +12,7 @@ class StudioExportDownloadController extends Controller
     /** The temporary signature grants access to one export; no cookie or API token is forwarded. */
     public function __invoke(int $export, int $owner): StreamedResponse
     {
-        $record = DesignExport::withoutUserScope()->where('user_id', $owner)->where('status', 'ready')->findOrFail($export);
+        $record = DesignExport::ownedBy($owner)->where('status', 'ready')->findOrFail($export);
         abort_unless($record->disk === 'local' && is_string($record->path)
             && str_starts_with($record->path, 'studio-exports/'.$owner.'/'.$record->id.'/')
             && ! str_contains($record->path, '..'), 404);

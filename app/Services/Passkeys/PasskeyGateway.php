@@ -32,7 +32,7 @@ use Webauthn\PublicKeyCredentialRequestOptions;
  * Regla del ADR-003: al subir de version hay que releer las Actions (firmas, esquema de `credential`, eventos) y
  * volver a pasar `PasskeyGatewayTest` y `PasskeyCeremonyTest`; un 0.x puede romper la API sin avisar.
  *
- * Las Actions se resuelven del contenedor en cada llamada, asi que un test puede sustituirlas con `bind`.
+ * El contenedor inyecta las Actions al construir el gateway. Las pruebas registran sus dobles antes de resolverlo.
  *
  * Las opciones de cada ceremonia viven en la sesion, por reto: una lista acotada de ceremonias vigentes
  * (`MAX_PENDING`) con caducidad de servidor (`passkeys.challenge_ttl`). La respuesta del navegador lleva el reto en su
@@ -52,12 +52,20 @@ class PasskeyGateway
     /** Ceremonias pendientes por sesion y tipo (autofill + boton + alguna pestaña mas). */
     public const MAX_PENDING = 5;
 
+    public function __construct(
+        private readonly GenerateRegistrationOptions $registration,
+        private readonly StorePasskey $storePasskey,
+        private readonly GenerateVerificationOptions $verification,
+        private readonly VerifyPasskey $verifyPasskey,
+        private readonly DeletePasskey $deletePasskey,
+    ) {}
+
     /** Opciones de alta (JSON para el navegador). Excluye los autenticadores que el usuario ya tiene registrados. */
     public function registrationOptions(User $user): array
     {
         $this->warnIfHandleSecretMissing();
 
-        $options = app(GenerateRegistrationOptions::class)($user);
+        $options = ($this->registration)($user);
 
         $this->storeOptions(self::REGISTRATION_SESSION_KEY, $options->challenge, WebAuthn::toJson($options));
 
@@ -78,7 +86,7 @@ class PasskeyGateway
         $this->assertAllowedOrigin($parsed, $user->id);
 
         try {
-            return app(StorePasskey::class)($user, $name, $parsed, $options);
+            return ($this->storePasskey)($user, $name, $parsed, $options);
         } catch (Throwable $e) {
             throw match (true) {
                 $this->isDomainMismatch($e) => $this->domainFailure($user->id),
@@ -95,7 +103,7 @@ class PasskeyGateway
     /** Opciones de login sin usuario conocido (credencial discoverable), JSON para el navegador. */
     public function loginOptions(): array
     {
-        $options = app(GenerateVerificationOptions::class)();
+        $options = ($this->verification)();
 
         $this->storeOptions(self::VERIFICATION_SESSION_KEY, $options->challenge, WebAuthn::toJson($options));
 
@@ -125,7 +133,7 @@ class PasskeyGateway
         $this->assertRelyingPartyHash($parsed, null);
 
         try {
-            return app(VerifyPasskey::class)($parsed, $options);
+            return ($this->verifyPasskey)($parsed, $options);
         } catch (Throwable $e) {
             if (! $this->isExpected($e)) {
                 throw $this->serverFailure($e, 'login', null);
@@ -150,7 +158,7 @@ class PasskeyGateway
     /** Borra la passkey (dispara `PasskeyDeleted`). */
     public function delete(User $user, Passkey $passkey): void
     {
-        app(DeletePasskey::class)($user, $passkey);
+        ($this->deletePasskey)($user, $passkey);
     }
 
     /** Guarda las opciones de la ceremonia bajo su reto; poda las caducadas y conserva las `MAX_PENDING` mas recientes. */

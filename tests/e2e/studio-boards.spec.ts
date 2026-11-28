@@ -33,13 +33,15 @@ const download = async (page: Page, path: string) => {
 };
 const layer = (page: Page, index: number) => page.getByTestId('studio-layer').nth(index).getByRole('button').first();
 
-test('Studio: whiteboard with a table, glued connectors and free drawing persists and exports PNG, SVG and PDF', async ({ page }, info) => {
+test('Studio: whiteboard with a table, glued connectors and free drawing persists and exports PNG, SVG and PDF', { tag: '@responsive' }, async ({ page }, info) => {
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
     const brand = seedComposerBrand(user.email, `studio-board-${stamp()}-${info.project.name}`);
     try {
         await loginAs(page, user);
         await page.goto(`/studio?brand_id=${brand.id}`);
+        const content = page.locator('main#contenido');
+        await expect(content).toHaveCSS('max-width', '1280px');
         await page.getByRole('button', { name: /^Pizarra/ }).click();
         const creation = page.getByRole('dialog', { name: 'Nuevo diseño' });
         await expect(creation.getByLabel('Ancho', { exact: true })).toHaveValue('3200');
@@ -47,6 +49,10 @@ test('Studio: whiteboard with a table, glued connectors and free drawing persist
         await creation.getByRole('button', { name: 'Crear diseño', exact: true }).click();
         await expect(page).toHaveURL(/\/studio\/designs\/\d+\/edit$/);
         await expect(page.getByRole('button', { name: 'Añadir tabla', exact: true })).toBeEnabled();
+        await expect(content).toHaveCSS('max-width', 'none');
+        const diff = await content.evaluate(element => Math.abs(element.getBoundingClientRect().width
+            - element.parentElement!.getBoundingClientRect().width));
+        expect(diff).toBeLessThan(1);
 
         // Table: edit a cell, grow it by one row and one column.
         await page.getByRole('button', { name: 'Añadir tabla', exact: true }).click();
@@ -260,7 +266,7 @@ test('Studio: a chart bound to a saved table is inserted, saved, reopened and ex
     } finally { cleanComposerBrands(user.email); }
 });
 
-test('Studio: a chart bound to a saved table is exported on the server as SVG, PNG and PDF', async ({ page, browser }, info) => {
+test('Studio: a chart bound to a saved table is exported on the server as SVG, PNG and PDF', { tag: '@responsive' }, async ({ page, browser }, info) => {
     test.setTimeout(180_000);
     const user = e2eUser(info.project.name);
     cleanComposerBrands(user.email);
@@ -330,7 +336,7 @@ test('Studio: a chart bound to a saved table is exported on the server as SVG, P
         const foreign = (await page.request.get(`/brands/${otherBrand.id}/studio/datasets/${dataset.data.dataset.id}/table`, { headers: { Accept: 'application/json' } })).status();
         expect(foreign).toBe(404);
         // Actor boundary: another user cannot queue a render of this design nor read its export.
-        const context = await browser.newContext({ baseURL: 'http://localhost:8080' });
+        const context = await browser.newContext({ baseURL: info.project.use.baseURL });
         try {
             const actor = await context.newPage();
             await loginAs(actor, e2eUser(info.project.name === 'desktop' ? 'mobile' : 'desktop'));

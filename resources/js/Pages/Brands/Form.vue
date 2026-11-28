@@ -1,6 +1,6 @@
 <script setup>
+import FormField from '@/Components/FormField.vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -29,7 +29,7 @@ const submit = () => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="text-xl font-bold text-slate-900">
+            <h1 class="text-xl font-bold text-foreground-strong">
                 {{ brand ? 'Editar marca' : 'Nueva marca' }}
             </h1>
         </template>
@@ -38,31 +38,53 @@ const submit = () => {
             <div class="max-w-xl card p-6">
                 <form class="space-y-6" @submit.prevent="submit">
                     <div>
-                        <InputLabel for="name" value="Nombre" />
-                        <TextInput id="name" v-model="form.name" class="mt-1 block w-full" required />
-                        <InputError class="mt-2" :message="form.errors.name" />
+                        <FormField id="name" :error="form.errors.name" error-class="mt-2" v-slot="{ control }">
+                            <InputLabel for="name" value="Nombre" />
+                            <TextInput v-bind="control" v-model="form.name" class="mt-1 block w-full" required />
+                        </FormField>
                     </div>
                     <div>
-                        <InputLabel for="description" value="Descripción" />
-                        <TextInput id="description" v-model="form.description" class="mt-1 block w-full" />
-                        <InputError class="mt-2" :message="form.errors.description" />
+                        <FormField
+                            id="description"
+                            :error="form.errors.description"
+                            error-class="mt-2"
+                            v-slot="{ control }"
+                        >
+                            <InputLabel for="description" value="Descripción" />
+                            <TextInput v-bind="control" v-model="form.description" class="mt-1 block w-full" />
+                        </FormField>
                     </div>
                     <div>
-                        <InputLabel for="timezone" value="Zona horaria" />
-                        <TextInput id="timezone" v-model="form.timezone" class="mt-1 block w-full" required />
-                        <InputError class="mt-2" :message="form.errors.timezone" />
+                        <FormField id="timezone" :error="form.errors.timezone" error-class="mt-2" v-slot="{ control }">
+                            <InputLabel for="timezone" value="Zona horaria" />
+                            <TextInput v-bind="control" v-model="form.timezone" class="mt-1 block w-full" required />
+                        </FormField>
                     </div>
                     <div>
-                        <InputLabel for="avatar_media_id" value="Avatar (imagen de tu biblioteca de medios)" />
-                        <div class="mt-1 flex items-center gap-3">
-                            <img v-if="avatar_url && form.avatar_media_id === brand?.avatar_media_id" :src="avatar_url" alt="Avatar actual de la marca" class="h-10 w-10 rounded-lg object-cover" />
-                            <select id="avatar_media_id" v-model="form.avatar_media_id" class="field">
-                                <option :value="null">Sin avatar (inicial del nombre)</option>
-                                <option v-for="m in images" :key="m.id" :value="m.id">{{ m.name }}</option>
-                            </select>
-                        </div>
-                        <p v-if="images.length === 0" class="mt-1 text-xs text-slate-600">Aún no has subido imágenes; súbelas desde el editor de publicaciones.</p>
-                        <InputError class="mt-2" :message="form.errors.avatar_media_id" />
+                        <FormField
+                            id="avatar_media_id"
+                            :error="form.errors.avatar_media_id"
+                            error-class="mt-2"
+                            v-slot="{ control }"
+                        >
+                            <InputLabel for="avatar_media_id" value="Avatar (imagen de tu biblioteca de medios)" />
+                            <div class="mt-1 flex items-center gap-3">
+                                <img
+                                    loading="lazy"
+                                    v-if="avatar_url && form.avatar_media_id === brand?.avatar_media_id"
+                                    :src="avatar_url"
+                                    alt="Avatar actual de la marca"
+                                    class="h-10 w-10 rounded-lg object-cover"
+                                />
+                                <select v-bind="control" v-model="form.avatar_media_id" class="field">
+                                    <option :value="null">Sin avatar (inicial del nombre)</option>
+                                    <option v-for="m in images" :key="m.id" :value="m.id">{{ m.name }}</option>
+                                </select>
+                            </div>
+                            <p v-if="images.length === 0" class="mt-1 text-xs text-foreground-muted"
+                                >Aún no has subido imágenes; súbelas desde el editor de publicaciones.</p
+                            >
+                        </FormField>
                     </div>
                     <PrimaryButton :disabled="form.processing">Guardar</PrimaryButton>
                 </form>

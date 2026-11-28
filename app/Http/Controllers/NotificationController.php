@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\CursorPage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -12,10 +13,21 @@ class NotificationController extends Controller
 {
     public function index(Request $request): Response
     {
+        $filters = $request->validate(CursorPage::RULES);
+        $user = $request->user();
+        $query = $user->notifications()->getQuery()->reorder()->orderByDesc('created_at')->orderByDesc('id');
+        [$notifications, $pagination] = CursorPage::fetch(
+            $query, $filters['limit'] ?? null, $filters['cursor'] ?? null,
+            'notifications:u'.$user->id, withTotal: true, cursorRules: ['id' => ['required', 'uuid']],
+        );
+
         return Inertia::render('Notifications/Index', [
-            'notifications' => $request->user()->notifications()->latest()->limit(100)->get()->map(fn ($n) => [
+            'pagination' => $pagination + $filters,
+            'notifications' => $notifications->map(fn ($n) => [
                 'id' => $n->id,
                 'type' => $n->data['type'] ?? 'info',
+                'title' => $n->data['title'] ?? null,
+                'count' => $n->data['count'] ?? null,
                 'message' => $n->data['message'] ?? '',
                 'network_label' => $n->data['network_label'] ?? ($n->data['network'] ?? null),
                 'account_name' => $n->data['account_name'] ?? null,

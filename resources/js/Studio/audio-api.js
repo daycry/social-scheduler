@@ -1,7 +1,7 @@
+import { fieldErrorDetails, readJson, sessionFetch } from '../lib/http.js';
 import { StudioApiError, studioRequest } from './api.js';
 
 export const isStudioAudio = file => file.type.startsWith('audio/') || /\.(mp3|wav|m4a|aac|ogg)$/i.test(file.name);
-const csrf = () => decodeURIComponent((document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/) ?? [])[1] ?? '');
 
 export async function completeStudioAudio(ticket) {
     try {
@@ -19,11 +19,11 @@ export async function uploadStudioAudio(brandId, file, onStatus = () => {}) {
     const { upload } = ticket;
     if (upload.mode === 'local') {
         onStatus('Subiendo y validando el audio…');
-        const response = await fetch(upload.url, { method: 'PUT', credentials: 'same-origin', headers: {
-            Accept: 'application/json', 'X-XSRF-TOKEN': csrf(), 'Content-Type': mime }, body: file });
-        const result = await response.json().catch(() => ({}));
-        if (response.ok && result.asset?.status === 'listo') return result.asset;
-        const error = new StudioApiError(result.message || result.asset?.error || 'No se pudo validar el audio.', response.status);
+        const response = await sessionFetch('PUT', upload.url, { body: file, headers: { 'Content-Type': mime } });
+        const result = await readJson(response);
+        if (response.ok && result?.asset?.status === 'listo') return result.asset;
+        const message = fieldErrorDetails(result) || result?.message || result?.asset?.error || 'No se pudo validar el audio.';
+        const error = new StudioApiError(message, response.status, result);
         if (response.status === 503) error.audioTicket = ticket;
         throw error;
     }

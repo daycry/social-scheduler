@@ -12,7 +12,14 @@ const uid = `logo-${Math.random().toString(36).slice(2, 8)}`;
             </linearGradient>
         </defs>
         <rect width="32" height="32" rx="8" :fill="`url(#${uid})`" />
-        <path d="M9 21l5-5 3 3 6-8" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+        <path
+            d="M9 21l5-5 3 3 6-8"
+            fill="none"
+            stroke="#fff"
+            stroke-width="2.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+        />
         <circle cx="23" cy="11" r="2" fill="#fff" />
     </svg>
 </template>

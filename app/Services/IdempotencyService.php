@@ -6,6 +6,7 @@ use App\Exceptions\PostValidationException;
 use App\Models\IdempotencyKey;
 use App\Models\User;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
@@ -23,12 +24,13 @@ class IdempotencyService
     /**
      * @param  array<string, mixed>  $payload  lo que identifica la peticion (accion, ids, parametros)
      * @param  callable(): array<string, mixed>  $run
+     * @param  callable(array<string, mixed>): bool|null  $canReplay  valida que el resultado siga disponible
      * @return array{result: array<string, mixed>, replayed: bool}
      */
-    public function run(User $user, string $scope, ?string $key, array $payload, callable $run): array
+    public function run(User $user, string $scope, ?string $key, array $payload, callable $run, bool $atomic = false, ?callable $canReplay = null): array
     {
         if ($key === null || $key === '') {
-            return ['result' => $run(), 'replayed' => false];
+            return ['result' => $atomic ? DB::transaction($run) : $run(), 'replayed' => false];
         }
         if (strlen($key) > 120 || ! preg_match('/^[A-Za-z0-9._:\-]+$/', $key)) {
             throw new PostValidationException(['idempotency_key' => ['La clave de idempotencia debe tener hasta 120 caracteres (letras, numeros, . _ : -).']]);
@@ -49,23 +51,39 @@ class IdempotencyService
             if ($existing->response === null && $existing->created_at !== null && $existing->created_at->lt(now()->subMinutes(self::STALE_MINUTES))) {
                 $existing->delete(); // reserva huerfana: se retoma
 
-                return $this->run($user, $scope, $key, $payload, $run);
+                return $this->run($user, $scope, $key, $payload, $run, $atomic, $canReplay);
             }
             if ($existing->response === null) {
                 abort(409, 'La peticion con esta clave de idempotencia sigue en curso.');
             }
 
-            return ['result' => json_decode($existing->response, true), 'replayed' => true];
+            $result = json_decode($existing->response, true);
+            if ($canReplay !== null && ! $canReplay($result)) {
+                $existing->delete();
+
+                return $this->run($user, $scope, $key, $payload, $run, $atomic, $canReplay);
+            }
+
+            return ['result' => $result, 'replayed' => true];
         }
 
+        $persist = fn (array $result) => $row->forceFill(['response' => json_encode($result, JSON_UNESCAPED_UNICODE)])->save();
         try {
-            $result = $run();
+            // La reserva queda visible. Solo la mutación y su respuesta se confirman juntas en el modo atómico.
+            $result = $atomic ? DB::transaction(function () use ($run, $persist): array {
+                $result = $run();
+                $persist($result);
+
+                return $result;
+            }) : $run();
         } catch (Throwable $e) {
             $row->delete();
 
             throw $e;
         }
-        $row->forceFill(['response' => json_encode($result, JSON_UNESCAPED_UNICODE)])->save();
+        if (! $atomic) {
+            $persist($result);
+        }
 
         return ['result' => $result, 'replayed' => false];
     }

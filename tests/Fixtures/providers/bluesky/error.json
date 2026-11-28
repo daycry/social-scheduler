@@ -1,0 +1,15 @@
+{
+  "source": "https://github.com/bluesky-social/atproto/blob/main/packages/pds/src/api/com/atproto/repo/createRecord.ts",
+  "method": "POST",
+  "host": "pds.example.com",
+  "path": "/xrpc/com.atproto.repo.createRecord",
+  "status": 400,
+  "headers": {},
+  "body": {
+    "error": "InvalidRequest",
+    "message": "Record failed validation"
+  },
+  "fixed": [
+    "error"
+  ]
+}

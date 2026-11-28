@@ -2,23 +2,36 @@
 
 namespace App\Providers;
 
+use App\Connectors\Bluesky\BlueskyComments;
+use App\Connectors\Bluesky\BlueskyCompetitors;
 use App\Connectors\Bluesky\BlueskyConnector;
 use App\Connectors\Bluesky\BlueskyInsights;
 use App\Connectors\Bluesky\BlueskyPublisher;
+use App\Connectors\CompetitorSources;
 use App\Connectors\ConnectorRegistry;
 use App\Connectors\Google\Analytics as YouTubeAnalytics;
 use App\Connectors\Google\GoogleConnector;
+use App\Connectors\Google\YouTubeComments;
+use App\Connectors\Google\YouTubeCompetitors;
 use App\Connectors\Google\YouTubePublisher;
 use App\Connectors\LinkedIn\LinkedInConnector;
 use App\Connectors\LinkedIn\LinkedInPublisher;
+use App\Connectors\Mastodon\MastodonConnector;
+use App\Connectors\Mastodon\MastodonPublisher;
+use App\Connectors\Meta\Comments;
 use App\Connectors\Meta\Facebook\FacebookPublisher;
 use App\Connectors\Meta\GraphClient;
 use App\Connectors\Meta\Insights as MetaInsights;
 use App\Connectors\Meta\Instagram\InstagramPublisher;
+use App\Connectors\Meta\InstagramCompetitors;
 use App\Connectors\Meta\MetaConnector;
 use App\Connectors\Network;
 use App\Connectors\Pinterest\PinterestConnector;
+use App\Connectors\Pinterest\PinterestInsightsReader;
 use App\Connectors\Pinterest\PinterestPublisher;
+use App\Connectors\Telegram\TelegramConnector;
+use App\Connectors\Telegram\TelegramPublisher;
+use App\Connectors\Threads\ThreadsComments;
 use App\Connectors\Threads\ThreadsConnector;
 use App\Connectors\Threads\ThreadsInsights;
 use App\Connectors\Threads\ThreadsPublisher;
@@ -30,13 +43,20 @@ use App\Models\Brand;
 use App\Models\PersonalAccessToken;
 use App\Models\Report;
 use App\Models\User;
+use App\Notifications\QueueJobFailedAlert;
 use App\Services\Auth\Social\FakeSocialiteProvider;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Console\AboutCommand;
 use Illuminate\Http\Request;
+use Illuminate\Queue\Events\JobFailed;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Passkeys\Events\PasskeyDeleted;
 use Laravel\Passkeys\Events\PasskeyRegistered;
@@ -46,6 +66,7 @@ use Laravel\Sanctum\Sanctum;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\FacebookProvider;
 use Laravel\Socialite\Two\GoogleProvider;
+use Throwable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -57,6 +78,13 @@ class AppServiceProvider extends ServiceProvider
         // Passkeys (T-08): las rutas del paquete no se cargan; las propias (routes/auth.php) llaman a sus Actions
         // a traves de PasskeyGateway. Hay que ignorarlas antes de que arranque el provider del paquete.
         Passkeys::ignoreRoutes();
+
+        // Fuentes de competidores (T-25), una por red detras del contrato `CompetitorSource`.
+        $this->app->singleton(CompetitorSources::class, fn ($app) => new CompetitorSources([
+            $app->make(InstagramCompetitors::class),
+            $app->make(BlueskyCompetitors::class),
+            $app->make(YouTubeCompetitors::class),
+        ]));
 
         // Los conectores de cada proveedor se registran aqui (T-12 Meta, T-13 Google, T-14 TikTok).
         $this->app->singleton(ConnectorRegistry::class, function () {
@@ -95,8 +123,26 @@ class AppServiceProvider extends ServiceProvider
                 $registry->register($this->app->make(LinkedInConnector::class))->registerPublisher(Network::LinkedIn, $linkedin);
             }
             if (Network::Pinterest->isAvailable()) {
-                $registry->register($this->app->make(PinterestConnector::class))->registerPublisher(Network::Pinterest, $this->app->make(PinterestPublisher::class));
+                $registry->register($this->app->make(PinterestConnector::class))
+                    ->registerPublisher(Network::Pinterest, $this->app->make(PinterestPublisher::class))
+                    ->registerInsights(Network::Pinterest, $this->app->make(PinterestInsightsReader::class));
             }
+
+            // Mastodon y Telegram (T-87): se conectan con credenciales y solo publican (sin comentarios ni metricas). Se apagan con MASTODON_ENABLED / TELEGRAM_ENABLED.
+            if (Network::Mastodon->isAvailable()) {
+                $registry->register($this->app->make(MastodonConnector::class))->registerPublisher(Network::Mastodon, $this->app->make(MastodonPublisher::class));
+            }
+            if (Network::Telegram->isAvailable()) {
+                $registry->register($this->app->make(TelegramConnector::class))->registerPublisher(Network::Telegram, $this->app->make(TelegramPublisher::class));
+            }
+
+            // Comentarios del inbox (T-43): una fuente por red; Meta sirve a Instagram y Facebook y es la unica que oculta. El inbox, el MCP y la
+            // cobertura derivan sus redes y `can_hide` de este registro: una red nueva con `CommentSource` aparece sin tocar `InboxService`.
+            $meta = $this->app->make(Comments::class);
+            $registry->registerComments(Network::Instagram, $meta)->registerComments(Network::Facebook, $meta)
+                ->registerComments(Network::Threads, $this->app->make(ThreadsComments::class))
+                ->registerComments(Network::Bluesky, $this->app->make(BlueskyComments::class))
+                ->registerComments(Network::YouTube, $this->app->make(YouTubeComments::class));
 
             return $registry;
         });
@@ -107,7 +153,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Vite::prefetch(concurrency: 3);
+        Model::preventLazyLoading(! $this->app->isProduction());
+
+        Builder::macro('whereLikeEscaped', function (string $column, string $text, string $boolean = 'and'): Builder {
+            $column = $this->getGrammar()->wrap($column);
+            $literal = strtr($text, ['!' => '!!', '%' => '!%', '_' => '!_']);
+
+            return $this->whereRaw("{$column} LIKE ? ESCAPE '!'", ['%'.$literal.'%'], $boolean);
+        });
 
         // Login social (ADR-004): drivers con las credenciales PROPIAS del login (services.*_login), distintas de las de los conectores.
         Socialite::extend('google-login', fn () => Socialite::buildProvider(GoogleProvider::class, (array) config('services.google_login')));
@@ -134,55 +187,67 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(PasskeyVerified::class, [AuditPasskeyEvents::class, 'verified']);
         Event::listen(PasskeyDeleted::class, [AuditPasskeyEvents::class, 'deleted']);
 
+        // Salud (A-09): un job que agota sus reintentos avisa por correo al administrador (HEALTH_ALERT_EMAIL), como mucho una vez
+        // por intervalo para no inundar. Un fallo del propio aviso nunca debe afectar al worker.
+        Queue::failing(function (JobFailed $event): void {
+            $email = (string) config('health.alert_email');
+            if ($email === '') {
+                return;
+            }
+            try {
+                $ttl = max(1, (int) config('health.alert_throttle_minutes', 60));
+                if (! Cache::add('health:failed-job-alert', 1, now()->addMinutes($ttl))) {
+                    return;
+                }
+                Notification::route('mail', $email)->notifyNow(new QueueJobFailedAlert($event->job->resolveName(), (string) $event->job->getQueue(), $event->exception::class));
+            } catch (Throwable $e) {
+                Log::warning('health.failed_job_alert_error', ['exception' => $e::class]);
+            }
+        });
+
         // Informes (M-9): los FK en cascada no disparan eventos de modelo; se borran antes los ficheros de la marca/usuario.
         Brand::deleting(fn (Brand $b) => Report::purgeFor('brand_id', $b->id));
         User::deleting(fn (User $u) => Report::purgeFor('user_id', $u->id));
 
-        // MCP (T-28/T-30): limite por API key (tras autenticar) y por IP (antes, contra adivinacion de keys).
-        // «Publicar ahora»: 30/min por usuario compartido entre posts.publish-now y las rutas del compositor (store/update) cuando
-        // llevan `publish_now`; guardar un borrador o programar normal no gasta ese cupo.
-        RateLimiter::for('publish-now', fn (Request $request) => $request->boolean('publish_now') || $request->routeIs('posts.publish-now')
-            ? Limit::perMinute(30)->by('publish-now:'.($request->user()?->id ?? $request->ip()))
-            : Limit::none());
-        // Estudio: crear enlaces públicos de un diseño (10/min por usuario) y abrirlos o comentar sin sesión (60/min por IP).
-        // Constructor de informes (T-21): cada grupo con su propia cuenta por usuario (un `throttle:N,1` anonimo comparte cubo entre rutas).
-        RateLimiter::for('report-builder', fn (Request $request) => Limit::perMinute(30)->by('report-builder:'.($request->user()?->id ?? $request->ip())));
-        RateLimiter::for('report-schedules', fn (Request $request) => Limit::perMinute(10)->by('report-schedules:'.($request->user()?->id ?? $request->ip())));
+        // Las rutas por nombre y los grupos comparten el criterio usuario/IP, con un contador por nombre.
+        foreach (['groups', 'limits'] as $section) {
+            foreach ((array) config("rate_limits.{$section}") as $name => $default) {
+                RateLimiter::for($name, fn (Request $request) => Limit::perMinute((int) (config("rate_limits.{$section}")[$name] ?? $default))
+                    ->by($name.':'.($request->user()?->id ?? $request->ip())));
+            }
+        }
 
-        // IA creativa del estudio (T-14): cada llamada puede costar dinero al proveedor; limite por usuario ademas de la cuota diaria.
-        RateLimiter::for('studio-ai', fn (Request $request) => Limit::perMinute(6)->by('studio-ai:'.($request->user()?->id ?? $request->ip())));
-        // Canva (T-16): llamadas a la API de Canva por usuario; conectar/retorno mas estricto.
-        RateLimiter::for('canva', fn (Request $request) => Limit::perMinute(30)->by('canva:'.($request->user()?->id ?? $request->ip())));
-        RateLimiter::for('canva-connect', fn (Request $request) => Limit::perMinute(10)->by('canva-connect:'.($request->user()?->id ?? $request->ip())));
-        RateLimiter::for('studio-ai-text', fn (Request $request) => Limit::perMinute(12)->by('studio-ai-text:'.($request->user()?->id ?? $request->ip())));
-        RateLimiter::for('studio-links', fn (Request $request) => Limit::perMinute(10)->by('studio-links:'.($request->user()?->id ?? $request->ip())));
-        // Colaboradores de marca (T-19): invitaciones 10/min por usuario; lotes de publicaciones 10/min por usuario.
-        RateLimiter::for('brand-collaborators', fn (Request $request) => Limit::perMinute(10)->by('brand-collaborators:'.($request->user()?->id ?? $request->ip())));
-        RateLimiter::for('post-batches', fn (Request $request) => Limit::perMinute(10)->by('post-batches:'.($request->user()?->id ?? $request->ip())));
-        RateLimiter::for('studio-shares', fn (Request $request) => Limit::perMinute(10)->by('studio-shares:'.($request->user()?->id ?? $request->ip())));
-        RateLimiter::for('studio-copies', fn (Request $request) => Limit::perMinute(10)->by('studio-copies:'.($request->user()?->id ?? $request->ip())));
-        RateLimiter::for('studio-link-comments', fn (Request $request) => Limit::perMinute(10)->by('studio-link-comments:'.hash('sha256', (string) $request->route('token'))));
-        RateLimiter::for('studio-link-view', fn (Request $request) => Limit::perMinute(60)->by('studio-link-view:'.$request->ip()));
+        foreach ((array) config('rate_limits.per_ip') as $name => $default) {
+            RateLimiter::for($name, fn (Request $request) => Limit::perMinute((int) config("rate_limits.per_ip.{$name}", $default))
+                ->by($name.':'.$request->ip()));
+        }
+
+        // Guardar o programar sin publicar ahora no consume el cupo.
+        RateLimiter::for('publish-now', fn (Request $request) => $request->boolean('publish_now') || $request->routeIs('posts.publish-now')
+            ? Limit::perMinute((int) config('rate_limits.publish_now'))->by('publish-now:'.($request->user()?->id ?? $request->ip()))
+            : Limit::none());
+        RateLimiter::for('studio-link-comments', fn (Request $request) => Limit::perMinute((int) config('rate_limits.studio_link_comments'))
+            ->by('studio-link-comments:'.hash('sha256', (string) $request->route('token'))));
+        // Feed .ics (T-90): un cupo por token (el cliente de calendario que lo consulta) y un tope por IP de respaldo; los servicios de calendario
+        // consultan desde IPs compartidas, asi que no comparte el cupo de `web-public-parity` con SmartLinks y el acortador.
+        RateLimiter::for('calendar-feed', fn (Request $request) => [
+            Limit::perMinute((int) config('rate_limits.calendar_feed.per_token'))->by('calendar-feed:'.hash('sha256', (string) $request->route('token'))),
+            Limit::perMinute((int) config('rate_limits.calendar_feed.per_ip'))->by('calendar-feed-ip:'.self::ipKey($request->ip())),
+        ]);
+        RateLimiter::for('mcp-oauth-register', fn (Request $request) => Limit::perHour((int) config('rate_limits.mcp_oauth_register'))
+            ->by('mcp-oauth-register:'.self::ipKey($request->ip())));
+        RateLimiter::for('two-factor-manage', fn (Request $request) => Limit::perMinute((int) config('rate_limits.two_factor_manage'))
+            ->by('2fa-manage:'.($request->user()?->id ?? $request->ip())));
+
+        // Los límites que ya tienen configuración de dominio conservan sus claves y variables de entorno.
         RateLimiter::for('giphy', fn (Request $request) => Limit::perMinute((int) config('social.giphy.per_user_per_minute', 20))
             ->by('giphy:'.($request->user()?->id ?? $request->ip())));
-
         RateLimiter::for('mcp', fn (Request $request) => Limit::perMinute((int) config('services.mcp.per_minute', 60))
             ->by('mcp:'.($request->user()?->currentAccessToken()?->id ?? $request->ip())));
-        // Gestion del 2FA: contador propio por usuario (el `throttle:10,1` anonimo comparte clave con otras rutas).
-        RateLimiter::for('two-factor-manage', fn (Request $request) => Limit::perMinute(10)->by('2fa-manage:'.($request->user()?->id ?? $request->ip())));
-        // Login con passkey (guest), por IP y con contadores separados: el envio de la assertion (10/min, CA-21) y el GET de
-        // opciones (30/min: el autofill lo pide en cada carga de Login y no debe gastar el cupo del envio).
-        RateLimiter::for('passkey-login', fn (Request $request) => Limit::perMinute(10)->by('passkey-login:'.$request->ip()));
-        RateLimiter::for('passkey-login-options', fn (Request $request) => Limit::perMinute(30)->by('passkey-login-options:'.$request->ip()));
-        // Gestion de passkeys (perfil): contador propio por usuario, no compartido con el 2FA ni con el login.
-        RateLimiter::for('passkey-manage', fn (Request $request) => Limit::perMinute(20)->by('passkey-manage:'.($request->user()?->id ?? $request->ip())));
-        // Callback del login social (ADR-004), por IP: 20/min.
-        RateLimiter::for('social-login', fn (Request $request) => Limit::perMinute(20)->by('social-login:'.$request->ip()));
-        // Servidor OAuth del MCP (ADR-004): DCR abierto a Internet, 10/h por IP; token endpoint, 30/min por IP.
-        RateLimiter::for('mcp-oauth-register', fn (Request $request) => Limit::perHour(10)->by('mcp-oauth-register:'.self::ipKey($request->ip())));
-        // Consentimiento OAuth: 30/min por usuario.
-        RateLimiter::for('mcp-oauth-authorize', fn (Request $request) => Limit::perMinute(30)->by('mcp-oauth-authorize:'.($request->user()?->id ?? $request->ip())));
-        RateLimiter::for('mcp-oauth-token', fn (Request $request) => Limit::perMinute(30)->by('mcp-oauth-token:'.$request->ip()));
+        RateLimiter::for('csp-report', fn (Request $request) => [
+            Limit::perMinute(30)->by('ip:'.$request->ip()),
+            Limit::perMinute((int) config('security.csp_report_global_per_minute'))->by('global'),
+        ]);
         RateLimiter::for('mcp-ip', fn (Request $request) => Limit::perMinute((int) config('services.mcp.per_minute_ip', 120))->by('mcp-ip:'.$request->ip()));
     }
 

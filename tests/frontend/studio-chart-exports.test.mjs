@@ -183,8 +183,8 @@ test('real frame and page render functions keep unselected chart refs offline in
  const pageRun=new AsyncFunction('validateDocument','findPage','assertChartDocumentBudget','StudioDocumentError','createStudioFontRegistry','waitForStudioFonts','StaticCanvas','toFabricFill','elementToFabric','cleanVideos',pageBody+';return renderStudioPage;');
  const renderStudioPage=await pageRun(x=>x,(d,id)=>d.pages.find(p=>p.id===id),assertChartDocumentBudget,Error,fontRegistry,async()=>{},CanvasMock,x=>x,async(_layer,options)=>{assert.equal(options.chartResources,registry);return {};},()=>{});
  const frameBody=await loadBody('resources/js/Studio/frame-renderer.js');
- const frameRun=new AsyncFunction('renderStudioPage','frameElements','compileTimeline','attachFrameCaptions',frameBody+';return renderStudioFrame;');
- const renderStudioFrame=await frameRun(renderStudioPage,frameElements,compileTimeline,async scene=>scene);
+ const frameRun=new AsyncFunction('renderStudioPage','frameElements','compileTimeline','attachFrameCaptions','applyElementAnimation',frameBody+';return renderStudioFrame;');
+ const renderStudioFrame=await frameRun(renderStudioPage,frameElements,compileTimeline,async scene=>scene,()=>{});
  const exportBody=await loadBody('resources/js/Studio/exports.js');
  const exportRun=new AsyncFunction('validateDocument','selectPages','frameTimes','frameElements','renderStudioFrame','StudioDocumentError','createStudioFontRegistry','assertChartDocumentBudget','Group','FabricImage',exportBody+';return exportDesign;');
  const exportDesign=await exportRun(x=>x,(d,ids)=>d.pages.filter(p=>ids.includes(p.id)),frameTimes,frameElements,renderStudioFrame,Error,fontRegistry,assertChartDocumentBudget,class {},class {});

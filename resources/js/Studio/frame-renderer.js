@@ -2,19 +2,22 @@ import { renderStudioPage, seekVideoFrame } from './canvas.js';
 import { frameElements } from './frames.js';
 import { clipMediaState, compileTimeline } from './timeline.js';
 import { attachFrameCaptions } from './captions-renderer.js';
+import { applyElementAnimation } from './animation-scene.js';
 
-/** A static page frame uses the same geometry and private media as the editor; it never plays audio. */
+/** `settled`: sin instante explícito las animaciones se ven en reposo. A static page frame uses the same geometry and private media as the editor; it never plays audio. */
 export async function renderStudioFrame(document, pageId, time, assets, fonts, options = {}) {
-    if (document.schema_version !== 2) return renderStudioPage(document, pageId, assets, fonts, options);
+    const { settled = false, ...pageOptions } = options;
+    if (document.schema_version !== 2) return renderStudioPage(document, pageId, assets, fonts, pageOptions);
     const page = document.pages.find(page => page.id === pageId);
     const { transition: ignored, ...source } = page;
     const elements = frameElements(page.elements, time, page.duration);
-    const scene = await renderStudioPage({ ...document, timeline: { fps: document.timeline.fps, audio_tracks: [] }, pages: [{ ...source, elements }] }, pageId, assets, fonts, options);
+    const scene = await renderStudioPage({ ...document, timeline: { fps: document.timeline.fps, audio_tracks: [] }, pages: [{ ...source, elements }] }, pageId, assets, fonts, pageOptions);
     try {
-        const update = async (objects, layers) => {
+        const update = async (objects, layers, parent) => {
             for (let i = 0; i < objects.length; i++) {
                 const object = objects[i], layer = layers[i];
-                if (layer.type === 'group') { await update(object.getObjects(), layer.elements); object.dirty = true; }
+                const window = applyElementAnimation(object, layer, time, { width: document.width, height: document.height, pageDuration: page.duration, parent, settled });
+                if (layer.type === 'group') { await update(object.getObjects(), layer.elements, window); object.dirty = true; }
                 if (!object.studioVideo) continue;
                 const video = object.studioVideo, state = clipMediaState(layer, time, video.duration, page.duration);
                 video.pause(); video.muted = true;

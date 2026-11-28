@@ -1,4 +1,5 @@
 import { blankDocument, duplicatePage, newElement, validateDocument } from './document.js';
+import { SOCIAL_TEMPLATES, buildSocialTemplate } from './templates-social.js';
 
 /** Original layouts. No stock images, proprietary Canva designs or premium assets. */
 export const STUDIO_TEMPLATES = Object.freeze([
@@ -16,9 +17,19 @@ export const STUDIO_TEMPLATES = Object.freeze([
     { key: 'deck-cover', name: 'Una gran presentación', category: 'Presentaciones', width: 1920, height: 1080, accent: '#386f67', background: '#eef4f0', description: 'Portada panorámica con una composición geométrica.', pages: 1 },
     { key: 'deck-agenda', name: 'El siguiente paso', category: 'Presentaciones', width: 1920, height: 1080, accent: '#b4573c', background: '#f7f0e9', description: 'Tres diapositivas de portada, agenda y cierre.', pages: 3 },
     { key: 'video-title', name: 'En movimiento', category: 'Vídeo', width: 1920, height: 1080, accent: '#d7ef62', background: '#151b20', description: 'Una tarjeta de apertura para tu próxima pieza.', pages: 1 },
+    ...SOCIAL_TEMPLATES,
 ]);
 
 const hex = value => typeof value === 'string' && /^#(?:[a-f\d]{3}|[a-f\d]{4}|[a-f\d]{6}|[a-f\d]{8})$/i.test(value);
+
+function templateElements(page, { dark, font, fontReference }) {
+    const add = (type, patch) => page.elements.push(newElement(type, patch));
+    return {
+        rect: (x, y, width, height, fill, patch = {}) => add('rect', { x, y, width, height, fill, ...patch }),
+        ellipse: (x, y, width, height, fill, patch = {}) => add('ellipse', { x, y, width, height, fill, ...patch }),
+        text: (value, x, y, width, size, fill = dark, patch = {}) => add('text', { text: value, x, y, width, height: size * 1.4, fontSize: size, fontFamily: font, ...fontReference, fill, lineHeight: 1.1, ...patch }),
+    };
+}
 
 export function createFromTemplate(key, kit = {}) {
     const template = STUDIO_TEMPLATES.find(item => item.key === key);
@@ -31,15 +42,18 @@ export function createFromTemplate(key, kit = {}) {
     const font = Array.isArray(kit.fonts) && typeof kit.fonts[0] === 'string' ? kit.fonts[0] : 'Arial';
     const fontReference = Number.isSafeInteger(kit.font_ids?.[0]) && kit.font_ids[0] > 0 ? { font_id: kit.font_ids[0] } : {};
     const document = blankDocument(template.width, template.height);
+    const draw = page => templateElements(page, { dark, font, fontReference });
+    if (template.layout) {
+        buildSocialTemplate(document, template, { dark, accent, paper }, draw);
+        return validateDocument(document);
+    }
+
     const page = document.pages[0];
     page.name = template.name;
     page.background = paper;
     const w = template.width;
     const h = template.height;
-    const elements = page.elements;
-    const rect = (x, y, width, height, fill, patch = {}) => elements.push(newElement('rect', { x, y, width, height, fill, ...patch }));
-    const ellipse = (x, y, width, height, fill, patch = {}) => elements.push(newElement('ellipse', { x, y, width, height, fill, ...patch }));
-    const text = (value, x, y, width, size, fill = dark, patch = {}) => elements.push(newElement('text', { text: value, x, y, width, height: size * 1.4, fontSize: size, fontFamily: font, ...fontReference, fill, lineHeight: 1.1, ...patch }));
+    const { rect, ellipse, text } = draw(page);
     const label = (value, x = 80, y = 70, fill = dark) => text(value, x, y, w - 160, 24, fill, { charSpacing: 160, fontWeight: 'bold' });
     const footer = (value = 'TU MARCA · HECHO CON INTENCIÓN', fill = dark) => text(value, 80, h - 90, w - 160, 21, fill, { charSpacing: 80 });
     const gradient = (from, to, angle = 45) => ({ type: 'linear', angle, stops: [{ offset: 0, color: from }, { offset: 1, color: to }] });

@@ -1,0 +1,1924 @@
+diff --git a/CHANGELOG.es.md b/CHANGELOG.es.md
+index e6dd710..cbb4eed 100644
+--- a/CHANGELOG.es.md
++++ b/CHANGELOG.es.md
+@@ -5,6 +5,10 @@ # Registro de cambios
+ 
+ ## [Sin publicar]
+ 
++### Added — exportación completa de datos (audit-hardening, T-84)
++
++- Descarga un ZIP con todos tus datos desde Perfil → Exportar mis datos: marcas, publicaciones con destinos y textos, campañas, informes y sus PDF, los ficheros de la biblioteca, diseños del Estudio y sus exportaciones, sitios, smart links, plantillas y objetivos, en JSON legible y un manifiesto con el SHA-256 de cada fichero. Se prepara en segundo plano, te avisa en la aplicación (y por correo si lo tienes activado) y el enlace de descarga está firmado, caduca a los 10 minutos y solo sirve con tu sesión. Nunca incluye credenciales, datos de otras personas ni los comentarios de terceros del buzón; el ZIP se borra a las 72 horas.
++
+ ### Added — importación masiva de publicaciones por CSV (audit-hardening, T-83)
+ 
+ - Importa muchas publicaciones a una marca desde un CSV: revisa cada fila con sus errores antes (no se crea nada) y confirma para crear solo las válidas, con la misma validación que el compositor. Descarga un CSV de ejemplo desde la página; los límites son 200 filas y 1 MB. Una confirmación solo se puede usar una vez, así que un doble clic nunca duplica publicaciones.
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 309668c..dc0da9a 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -5,6 +5,10 @@ # Changelog
+ 
+ ## [Unreleased]
+ 
++### Added — full data export (audit-hardening, T-84)
++
++- Download a ZIP with all your own data from Profile → Export my data: brands, posts with targets and texts, campaigns, reports and their PDFs, the media library files, Studio designs and exports, sites, smart links, templates and goals, as readable JSON plus a manifest with SHA-256 hashes. It is built in the background, you get an in-app notice (and an email if enabled), and the download link is signed, expires in 10 minutes and only works for your own session. Credentials, other people's data and third-party inbox comments are never included; the ZIP is deleted after 72 hours.
++
+ ### Added — bulk post import from CSV (audit-hardening, T-83)
+ 
+ - Import many posts into a brand from a CSV: review every row with its errors first (nothing is created), then confirm to create only the valid ones with the same validation as the composer. Download a sample CSV from the page; limits are 200 rows and 1 MB. A confirmation can only be used once, so a double click never duplicates posts.
+diff --git a/app/Models/User.php b/app/Models/User.php
+index 0e7c41f..8da3017 100644
+--- a/app/Models/User.php
++++ b/app/Models/User.php
+@@ -35,6 +35,8 @@ protected static function booted(): void
+             foreach (['studio-thumbnails', 'studio-exports'] as $directory) {
+                 Storage::disk('local')->deleteDirectory($directory.'/'.$user->id);
+             }
++            // Los ZIP de la exportacion completa viven en su propio disco privado.
++            Storage::disk((string) config('exports.disk'))->deleteDirectory('full-exports/'.$user->id);
+         });
+     }
+ 
+diff --git a/config/rate_limits.php b/config/rate_limits.php
+index 58ed7c0..cf57db4 100644
+--- a/config/rate_limits.php
++++ b/config/rate_limits.php
+@@ -119,6 +119,9 @@
+         'report-schedules.unsubscribe' => 30,
+         'reports.download' => 30,
+         'studio.exports.download' => 60,
++        'profile.export.store' => 3,
++        'profile.export.link' => 30,
++        'profile.export.download' => 30,
+         'studio.thumbnails' => 600,
+     ],
+ ];
+diff --git a/docs/README.md b/docs/README.md
+index fdfd911..4861d2a 100644
+--- a/docs/README.md
++++ b/docs/README.md
+@@ -35,6 +35,7 @@ ## Por dónde empezar
+ | Proponer una fecha futura con métricas de la marca | [Planificar](usuario/planificar.md) |
+ | Crear un borrador independiente de una publicación guardada | [Duplicar](usuario/duplicar.md) |
+ | Importar muchas publicaciones de una marca desde un CSV | [Importar CSV](usuario/importar-csv.md) |
++| Descargar una copia completa de mis datos en un ZIP | [Exportar mis datos](usuario/exportar.md) |
+ | Recibir eventos firmados en tu propio receptor HTTPS | [Webhooks salientes](api/webhooks.md) |
+ | Configurar hitos, caídas y avisos de caducidad por marca/cuenta | [Objetivos y alertas](modulos/analitica.md#objetivos-y-alertas-t-79) |
+ | Consultar salud, trabajadores, caducidades y cuotas como operador | [Estado del sistema](modulos/despliegue.md#pantalla-de-estado-del-sistema) |
+diff --git a/docs/knowledge/journal/README.md b/docs/knowledge/journal/README.md
+index 2d64c23..0b41e7d 100644
+--- a/docs/knowledge/journal/README.md
++++ b/docs/knowledge/journal/README.md
+@@ -1,8 +1,9 @@
+ # `docs/knowledge/journal/` — bitácora de sesión (memoria episódica)
+ 
+ Una entrada por sesión, **generada** por `agent-kits/shared/journal.py` (hook `SessionEnd`; la
+-última se reinyecta al arrancar/retomar). Cronológica y **no curada**: lo que merezca doctrina
+-se promueve a `adr/`, `gotchas/` o `lessons/` con el umbral de `knowledge-write.md`. **Excluida de
++última se reinyecta al arrancar/retomar). Cronológica y **no curada**: lo que cumpla el umbral de
++`knowledge-write.md` se propone mediante `knowledge-curation.py propose`; `knowledge-curator`
++decide antes de publicar en `approved/`. **Excluida de
+ Confluence** (`docs/knowledge/journal/**`). Nombre: `AAAA-MM-DD-<iniciativa activa | sesion>.md` (sufijo `-2`
+ si otra sesión del día ya lo usó). **Las entradas se versionan** (memoria del proyecto, como ADR y lecciones);
+ quien no quiera versionarlas añade `docs/knowledge/journal/*.md` (no este README) a su `.gitignore`.
+@@ -17,10 +18,20 @@ # `docs/knowledge/journal/` — bitácora de sesión (memoria episódica)
+ | `reason` | motivo del envelope (`clear`, `resume`, `logout`, `prompt_input_exit`, `other`) o `orphan_recovery` | Motivo de cierre; `orphan_recovery` = nunca hubo envelope |
+ | `derivados_en` | `replay` | `ficheros_tocados`/`tareas_cambiadas` se calculan con git al materializar (también para huérfanas), nunca en el teardown de `SessionEnd` (CA-01) |
+ | `materializado_en` | timestamp ISO UTC | Cuándo se escribió la entrada final; la `fecha` es la del cierre (`captured_at`) |
++| `log_hasta` | timestamp ISO UTC (solo `recuperado_sin_cierre`) | mtime del log de prompts con el que se recuperó; si el log cambia después, `recover` rehace la entrada |
++| `objetivo` · `punto_actual` · `siguientes_pasos` · `bloqueos` · `descartados` | texto · texto · lista · lista · lista (opcionales) | Continuidad declarada con `--enrich`; clave ausente = nunca declarada, vacía = vaciada a propósito |
+ 
+ | Fecha | Iniciativa | Resumen | Fuente |
+ |---|---|---|---|
+-| [2026-10-31](2026-10-31-social-scheduler.md) | social-scheduler | continua | hook |
+-| [2026-10-27](2026-10-23-social-scheduler.md) | social-scheduler | <agent-message from="a02b055c63343b667"> [Subagent hand-back] The text below is the final report of… | hook |
++| [2026-11-18](2026-11-18-social-scheduler.md) | social-scheduler | This is an app-generated request for a suggested next user message. The user did not write this mes… | hook |
++| [2026-11-17](2026-10-23-social-scheduler.md) | social-scheduler | <task-notification> <task-id>bj57wyvon</task-id> <tool-use-id>toolu_01FVibKU5cBRMkYujqVqeeDL</tool-… | hook |
++| [2026-11-16](2026-11-16-audit-hardening-2.md) | audit-hardening | This is an app-generated request for a suggested next user message. The user did not write this mes… | hook |
++| [2026-11-16](2026-11-16-audit-hardening.md) | audit-hardening | This is an app-generated request for a suggested next user message. The user did not write this mes… | hook |
++| [2026-11-16](2026-11-16-social-scheduler-5.md) | social-scheduler | Sesión sobre social-scheduler | hook |
++| [2026-11-16](2026-11-16-social-scheduler-4.md) | social-scheduler | This is an app-generated request for a suggested next user message. The user did not write this mes… | hook |
++| [2026-11-16](2026-11-16-social-scheduler-3.md) | social-scheduler | This is an app-generated request for a suggested next user message. The user did not write this mes… | hook |
++| [2026-11-16](2026-11-16-social-scheduler-2.md) | social-scheduler | This is an app-generated request for a suggested next user message. The user did not write this mes… | hook |
++| [2026-11-16](2026-11-16-social-scheduler.md) | social-scheduler | This is an app-generated request for a suggested next user message. The user did not write this mes… | hook |
++| [2026-11-07](2026-10-31-social-scheduler.md) | social-scheduler | continua | hook |
+ | [2026-10-21](2026-10-21-social-scheduler.md) | social-scheduler | <agent-message from="a2f5a01efa4b8d629"> [Subagent hand-back] The text below is the final report of… | recover |
+ | [2026-10-19](2026-10-19-sesion.md) | n/a | al ser una herramienta local, van a haber problemas con la api de las redes sociales? | hook |
+diff --git a/docs/modulos/despliegue.md b/docs/modulos/despliegue.md
+index a502bfd..7d4365b 100644
+--- a/docs/modulos/despliegue.md
++++ b/docs/modulos/despliegue.md
+@@ -305,6 +305,16 @@ ## Copias de seguridad
+ - **Frescura:** `php artisan app:backup-verify` (exit 1 con más de 26 h, `BACKUP_MAX_AGE_HOURS`) y, con `BACKUP_HEALTH=true`, el check `backup` de `app:health` (solo WARN).
+ - `deploy.sh` reutiliza `backup.sh --db-only` antes de `migrate` (ver [Despliegue sin parada larga](../../deploy/hestia/README.md#6-despliegue-repetible-un-comando)).
+ 
++## Exportación completa de datos (T-84)
++
++Los usuarios descargan un ZIP con sus datos desde **Perfil → Exportar mis datos** ([guía de usuario](../usuario/exportar.md)). Operación:
++
++- **Migración:** `2026_11_26_090000_create_full_exports_table` crea `full_exports` (estado, ruta, tamaño, caducidad, error; índice único `(user_id, in_progress)` que limita a una exportación en curso por usuario). Reversible con `migrate:rollback`.
++- **Cola:** el job `BuildFullExport` corre en la cola `media` (`EXPORTS_QUEUE`), sin reintentos. Su `$timeout` (`EXPORTS_TIMEOUT`, 110 s por defecto) debe ser menor que el `--timeout` del worker (120 s) y que `retry_after` (180 s). Los ZIP grandes no caben en 110 s: usa un worker propio para esa cola con `--timeout` y `DB_QUEUE_RETRY_AFTER` mayores y sube `EXPORTS_TIMEOUT` a la vez. El aviso de fin va por la cola `poll`.
++- **Disco:** ZIP en `full-exports/<usuario>/<id>.zip` del disco privado `EXPORTS_DISK` (`local`; nunca uno con URL pública). Se escribe a un fichero temporal del sistema (`sys_get_temp_dir()`, con espacio para el ZIP completo) y solo se publica al terminar. El tope es `EXPORTS_MAX_BYTES` (1 GiB; máximo 4 GB, el ZIP no usa ZIP64). No necesita `ext-zip`: lo escribe en streaming con zlib.
++- **Limpieza:** `exports:prune` (programado cada hora en `routes/console.php`, cron del scheduler) borra los ZIP pasadas `EXPORTS_RETENTION_HOURS` (72 h) y marca en error las exportaciones sin avances tras `EXPORTS_STUCK_MINUTES` (30), liberando el cupo. Borrar la cuenta borra también sus ZIP.
++- **Ritmo:** `profile.export.store` (3/min), `profile.export.link` y `profile.export.download` (30/min) en `config/rate_limits.php`.
++
+ ## Almacenamiento de media
+ 
+ **Este despliegue usa el disco local del servidor** (`MEDIA_DISK=local`, decisión del 2026-10-23). R2 sigue soportado: para usarlo, `MEDIA_DISK=r2` y las variables `R2_*`.
+diff --git a/resources/js/Layouts/AuthenticatedLayout.vue b/resources/js/Layouts/AuthenticatedLayout.vue
+index 56276ae..9b4e5ee 100644
+--- a/resources/js/Layouts/AuthenticatedLayout.vue
++++ b/resources/js/Layouts/AuthenticatedLayout.vue
+@@ -219,6 +219,7 @@ const initials = computed(() => (user.value?.name ?? '?').split(/\s+/).map((p) =
+                             <DropdownLink :href="route('profile.notifications')"
+                                 >Notificaciones del navegador</DropdownLink
+                             >
++                            <DropdownLink :href="route('profile.export')">Exportar mis datos</DropdownLink>
+                             <DropdownLink :href="route('activity.index')">Actividad</DropdownLink>
+                             <DropdownLink :href="route('goals.index')">Objetivos</DropdownLink>
+                             <DropdownLink :href="route('webhooks.index')">Webhooks</DropdownLink>
+diff --git a/resources/js/Pages/Notifications/Index.vue b/resources/js/Pages/Notifications/Index.vue
+index 553738c..5c105d6 100644
+--- a/resources/js/Pages/Notifications/Index.vue
++++ b/resources/js/Pages/Notifications/Index.vue
+@@ -42,10 +42,12 @@ const LINK = {
+     job_failed_canva: 'Abrir Canva',
+     job_failed_import: 'Ver biblioteca',
+     job_failed_summary: 'Ver detalle',
++    job_failed_full_export: 'Ver exportación',
+     job_done_studio_export: 'Abrir diseño',
+     job_done_studio_ai: 'Abrir el estudio',
+     job_done_canva: 'Abrir Canva',
+     job_done_import: 'Ver biblioteca',
++    job_done_full_export: 'Ver exportación',
+ };
+ // Un aviso de una publicación lleva siempre «Ver publicación» (aunque traiga también `url`); el resto, la etiqueta de su tipo.
+ const linkLabel = (n) => (n.post_id ? 'Ver publicación' : (LINK[n.type] ?? 'Abrir'));
+diff --git a/resources/js/Pages/Profile/Edit.vue b/resources/js/Pages/Profile/Edit.vue
+index e58c1b0..49c8318 100644
+--- a/resources/js/Pages/Profile/Edit.vue
++++ b/resources/js/Pages/Profile/Edit.vue
+@@ -7,7 +7,7 @@ import TwoFactorForm from './Partials/TwoFactorForm.vue';
+ import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
+ import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm.vue';
+ import { useSecureContext } from '@/Composables/useSecureContext';
+-import { Head } from '@inertiajs/vue3';
++import { Head, Link } from '@inertiajs/vue3';
+ 
+ defineProps({
+     mustVerifyEmail: {
+@@ -87,6 +87,19 @@ const { canUsePasskeys, httpsNotice } = useSecureContext();
+                     <LinkedAccountsForm :accounts="socialAccounts" :status="status" class="max-w-xl" />
+                 </div>
+ 
++                <div class="card p-4 sm:p-8" aria-labelledby="export-data-title">
++                    <section class="max-w-xl space-y-2">
++                        <h2 id="export-data-title" class="text-lg font-medium text-slate-900">Exportar mis datos</h2>
++                        <p class="text-sm text-slate-600"
++                            >Descarga una copia completa de tus datos (marcas, publicaciones, informes, media y diseños)
++                            en un ZIP.</p
++                        >
++                        <Link :href="route('profile.export')" class="btn-secondary inline-block"
++                            >Ir a la exportación</Link
++                        >
++                    </section>
++                </div>
++
+                 <div class="card p-4 sm:p-8">
+                     <DeleteUserForm class="max-w-xl" />
+                 </div>
+diff --git a/routes/console.php b/routes/console.php
+index d5785f9..e7ef4c2 100644
+--- a/routes/console.php
++++ b/routes/console.php
+@@ -55,6 +55,9 @@
+ // Informes programados (T-21): cada hora encola los envios por email (semanal/mensual) cuya fecha ya paso. Cola `reports`.
+ Schedule::command('reports:send-scheduled')->hourly()->name('reports-send-scheduled')->withoutOverlapping();
+ 
++// Exportacion completa de datos (T-84): borra los ZIP caducados (exports.retention_hours) y libera las exportaciones atascadas.
++Schedule::command('exports:prune')->hourly()->name('exports-prune')->withoutOverlapping();
++
+ // Papelera (PA-06): elimina las publicaciones con mas de 30 dias en la papelera.
+ Schedule::command('posts:purge-trash')->dailyAt('04:30')->name('posts-purge-trash')->withoutOverlapping();
+ 
+diff --git a/routes/web.php b/routes/web.php
+index 6d1f1c9..7718b43 100644
+--- a/routes/web.php
++++ b/routes/web.php
+@@ -12,6 +12,7 @@
+ use App\Http\Controllers\DashboardController;
+ use App\Http\Controllers\ExportController;
+ use App\Http\Controllers\FirstCommentController;
++use App\Http\Controllers\FullExportController;
+ use App\Http\Controllers\GifController;
+ use App\Http\Controllers\GoalController;
+ use App\Http\Controllers\HashtagController;
+@@ -87,6 +88,12 @@
+     Route::get('profile/notifications', [PushSubscriptionController::class, 'index'])->name('profile.notifications');
+     Route::post('profile/push-subscriptions', [PushSubscriptionController::class, 'store'])->middleware('throttle:push-settings')->name('profile.push-subscriptions.store');
+     Route::delete('profile/push-subscriptions/{pushSubscription}', [PushSubscriptionController::class, 'destroy'])->middleware('throttle:push-settings')->name('profile.push-subscriptions.destroy');
++    // Exportacion completa de datos en ZIP (T-84): se pide, se genera en cola y se descarga con un enlace firmado (`link` lo genera al pulsar).
++    Route::get('profile/export', [FullExportController::class, 'index'])->name('profile.export');
++    Route::post('profile/export', [FullExportController::class, 'store'])->middleware('throttle:profile.export.store')->name('profile.export.store');
++    Route::get('profile/export/{export}/link', [FullExportController::class, 'link'])->whereNumber('export')->middleware('throttle:profile.export.link')->name('profile.export.link');
++    Route::get('profile/export/{export}/download/{owner}', [FullExportController::class, 'download'])->whereNumber(['export', 'owner'])
++        ->middleware(['signed', 'throttle:profile.export.download'])->name('profile.export.download');
+     Route::get('webhooks', [WebhookController::class, 'index'])->name('webhooks.index');
+     Route::post('brands/{brand}/webhooks', [WebhookController::class, 'store'])->name('brands.webhooks.store')->middleware('throttle:webhook-settings');
+     Route::put('webhooks/{webhook}', [WebhookController::class, 'update'])->name('webhooks.update')->middleware('throttle:webhook-settings');
+diff --git a/app/Console/Commands/PruneFullExports.php b/app/Console/Commands/PruneFullExports.php
+new file mode 100644
+index 0000000..2272297
+--- /dev/null
++++ b/app/Console/Commands/PruneFullExports.php
+@@ -0,0 +1,37 @@
++<?php
++
++namespace App\Console\Commands;
++
++use App\Models\DataExport;
++use App\Services\Export\FullExport;
++use Illuminate\Console\Command;
++
++class PruneFullExports extends Command
++{
++    protected $signature = 'exports:prune';
++
++    protected $description = 'Borra los ZIP de exportación caducados (exports.retention_hours) y marca en error las exportaciones atascadas';
++
++    public function handle(FullExport $exports): int
++    {
++        $stuck = 0;
++        DataExport::withoutUserScope()->whereIn('status', [DataExport::STATUS_PENDING, DataExport::STATUS_PROCESSING])
++            ->where('updated_at', '<', now()->subMinutes((int) config('exports.stuck_minutes')))
++            ->each(function (DataExport $export) use ($exports, &$stuck): void {
++                $exports->fail($export, FullExport::STUCK_ERROR);
++                $stuck++;
++            });
++
++        $expired = 0;
++        DataExport::withoutUserScope()->where('status', DataExport::STATUS_READY)->where('expires_at', '<', now())
++            ->each(function (DataExport $export) use (&$expired): void {
++                $export->deleteFile();
++                $export->forceFill(['status' => DataExport::STATUS_EXPIRED, 'size' => null, 'file_count' => null])->save();
++                $expired++;
++            });
++
++        $this->info("Exportaciones atascadas marcadas: {$stuck}. Caducadas y borradas: {$expired}.");
++
++        return self::SUCCESS;
++    }
++}
+diff --git a/app/Http/Controllers/FullExportController.php b/app/Http/Controllers/FullExportController.php
+new file mode 100644
+index 0000000..2673b4e
+--- /dev/null
++++ b/app/Http/Controllers/FullExportController.php
+@@ -0,0 +1,89 @@
++<?php
++
++namespace App\Http\Controllers;
++
++use App\Jobs\BuildFullExport;
++use App\Models\DataExport;
++use App\Services\AuditLog;
++use App\Services\Export\ExportInventory;
++use Illuminate\Database\UniqueConstraintViolationException;
++use Illuminate\Http\RedirectResponse;
++use Illuminate\Http\Request;
++use Inertia\Inertia;
++use Inertia\Response;
++use Symfony\Component\HttpFoundation\StreamedResponse;
++
++/**
++ * Exportación completa de los datos del usuario en un ZIP (T-84, F-10). Se pide desde el perfil, se genera en cola (`BuildFullExport`) y se
++ * descarga con un enlace firmado y de vida corta que además exige la sesión del propio usuario. Solo una exportación en curso por usuario.
++ */
++class FullExportController extends Controller
++{
++    public function index(Request $request): Response
++    {
++        $export = DataExport::ownedBy($request->user())->latest('id')->first();
++
++        return Inertia::render('Profile/Export', [
++            'latest' => $export === null ? null : [
++                'id' => $export->id,
++                'status' => $export->status,
++                'size' => $export->size,
++                'file_count' => $export->file_count,
++                'error' => $export->error,
++                'created_at' => $export->created_at->toIso8601String(),
++                'completed_at' => $export->completed_at?->toIso8601String(),
++                'expires_at' => $export->expires_at?->toIso8601String(),
++                'download_url' => $export->isDownloadable() ? route('profile.export.link', $export) : null,
++            ],
++            'excluded' => ExportInventory::EXCLUDED,
++            'limits' => [
++                'max_mb' => intdiv((int) config('exports.max_bytes'), 1_048_576),
++                'retention_hours' => (int) config('exports.retention_hours'),
++                'link_minutes' => (int) config('exports.link_minutes'),
++            ],
++        ]);
++    }
++
++    public function store(Request $request): RedirectResponse
++    {
++        $user = $request->user();
++        if (DataExport::ownedBy($user)->where('in_progress', true)->exists()) {
++            return to_route('profile.export')->with('error', 'Ya tienes una exportación en curso. Espera a que termine.');
++        }
++        // La nueva sustituye a la anterior (lista, fallida o caducada): no se acumulan ZIP antiguos.
++        DataExport::ownedBy($user)->get()->each(function (DataExport $old): void {
++            $old->deleteFile();
++            $old->delete();
++        });
++        try {
++            $export = DataExport::create(['user_id' => $user->id, 'status' => DataExport::STATUS_PENDING, 'in_progress' => true]);
++        } catch (UniqueConstraintViolationException) {
++            return to_route('profile.export')->with('error', 'Ya tienes una exportación en curso. Espera a que termine.');
++        }
++        BuildFullExport::dispatch($export->id);
++
++        return to_route('profile.export')->with('success', 'Estamos preparando tu exportación. Te avisaremos cuando esté lista.');
++    }
++
++    /** Genera un enlace firmado nuevo al pulsar Descargar: el botón nunca lleva un enlace caducado. */
++    public function link(DataExport $export): RedirectResponse
++    {
++        abort_unless($export->isDownloadable(), 404);
++
++        return redirect()->to($export->signedDownloadUrl());
++    }
++
++    /** La firma cubre el id y el dueño; además la sesión debe ser la de ese dueño, así que un enlace filtrado no sirve a nadie más. */
++    public function download(Request $request, int $export, int $owner, AuditLog $audit): StreamedResponse
++    {
++        abort_unless($request->user()->id === $owner, 403);
++        $record = DataExport::ownedBy($owner)->findOrFail($export);
++        abort_unless($record->isDownloadable() && DataExport::disk()->exists($record->path), 404);
++
++        $audit->record($request->user(), 'full_export_download', AuditLog::OK, 'full_export', $record->id, null, 'web');
++
++        return DataExport::disk()->download($record->path, 'exportacion-'.now()->format('Y-m-d').'.zip', [
++            'Content-Type' => 'application/zip', 'X-Content-Type-Options' => 'nosniff', 'Cache-Control' => 'private, no-store',
++        ]);
++    }
++}
+diff --git a/app/Jobs/BuildFullExport.php b/app/Jobs/BuildFullExport.php
+new file mode 100644
+index 0000000..83003f7
+--- /dev/null
++++ b/app/Jobs/BuildFullExport.php
+@@ -0,0 +1,47 @@
++<?php
++
++namespace App\Jobs;
++
++use App\Models\DataExport;
++use App\Services\Export\FullExport;
++use Illuminate\Contracts\Queue\ShouldQueue;
++use Illuminate\Foundation\Queue\Queueable;
++use Illuminate\Queue\InteractsWithQueue;
++use Throwable;
++
++/**
++ * Genera el ZIP de la exportación completa de un usuario (T-84). Sin reintentos: un fallo deja la exportación en error (y avisa) y el usuario
++ * la vuelve a pedir. `$timeout` configurable (`exports.timeout`): debe ser menor que el del worker y que `retry_after` de la cola.
++ */
++class BuildFullExport implements ShouldQueue
++{
++    use InteractsWithQueue, Queueable;
++
++    public int $tries = 1;
++
++    public int $timeout;
++
++    public function __construct(public readonly int $exportId)
++    {
++        $this->timeout = max(1, (int) config('exports.timeout'));
++        $this->onQueue((string) config('exports.queue'));
++    }
++
++    public function handle(FullExport $exports): void
++    {
++        // Job sin usuario autenticado: sale explícitamente del UserScope.
++        $export = DataExport::withoutUserScope()->find($this->exportId);
++        if ($export !== null) {
++            $exports->run($export);
++        }
++    }
++
++    /** Un timeout o un kill del worker no pasa por el `catch` de `run()`. */
++    public function failed(Throwable $e): void
++    {
++        $export = DataExport::withoutUserScope()->find($this->exportId);
++        if ($export !== null) {
++            app(FullExport::class)->fail($export, FullExport::GENERIC_ERROR);
++        }
++    }
++}
+diff --git a/app/Models/DataExport.php b/app/Models/DataExport.php
+new file mode 100644
+index 0000000..2673156
+--- /dev/null
++++ b/app/Models/DataExport.php
+@@ -0,0 +1,78 @@
++<?php
++
++namespace App\Models;
++
++use App\Models\Concerns\BelongsToUser;
++use Illuminate\Contracts\Filesystem\Filesystem;
++use Illuminate\Database\Eloquent\Model;
++use Illuminate\Support\Facades\Storage;
++use Illuminate\Support\Facades\URL;
++
++/**
++ * Exportación completa de los datos de un usuario en un ZIP (T-84). El fichero vive en el disco privado `exports.disk` y solo se
++ * entrega con un enlace firmado y de vida corta (`signedDownloadUrl`). `in_progress` es 1 mientras está en cola o en curso y NULL después:
++ * su índice único con `user_id` limita a una exportación activa por usuario.
++ */
++class DataExport extends Model
++{
++    use BelongsToUser;
++
++    protected $table = 'full_exports';
++
++    public const STATUS_PENDING = 'pending';
++
++    public const STATUS_PROCESSING = 'processing';
++
++    public const STATUS_READY = 'ready';
++
++    public const STATUS_FAILED = 'failed';
++
++    public const STATUS_EXPIRED = 'expired';
++
++    protected $fillable = ['user_id', 'status', 'in_progress', 'path', 'size', 'file_count', 'error', 'started_at', 'completed_at', 'expires_at'];
++
++    protected $attributes = ['status' => self::STATUS_PENDING];
++
++    protected function casts(): array
++    {
++        return ['in_progress' => 'boolean', 'size' => 'integer', 'file_count' => 'integer', 'started_at' => 'datetime', 'completed_at' => 'datetime', 'expires_at' => 'datetime'];
++    }
++
++    /** Listo y todavía dentro de su plazo de conservación. */
++    public function isDownloadable(): bool
++    {
++        return $this->status === self::STATUS_READY && $this->path !== null && $this->expires_at?->isFuture() === true;
++    }
++
++    /** Enlace firmado y con caducidad, atado al usuario (`owner` va en la firma y debe ser el de la sesión). */
++    public function signedDownloadUrl(): string
++    {
++        return URL::temporarySignedRoute('profile.export.download', now()->addMinutes((int) config('exports.link_minutes')), ['export' => $this->id, 'owner' => $this->user_id]);
++    }
++
++    public static function disk(): Filesystem
++    {
++        return Storage::disk((string) config('exports.disk'));
++    }
++
++    /** Borra el fichero (si existe) y olvida su ruta. */
++    public function deleteFile(): void
++    {
++        if ($this->path !== null) {
++            self::disk()->delete($this->path);
++            $this->path = null;
++        }
++    }
++
++    /** Ruta definitiva del ZIP de una exportación: por usuario, para poder borrar el directorio entero con la cuenta. */
++    public static function pathFor(int $userId, int $id): string
++    {
++        return 'full-exports/'.$userId.'/'.$id.'.zip';
++    }
++
++    /** Una exportación que ya no está en curso libera el cupo del usuario. */
++    public function release(string $status, ?string $error = null): void
++    {
++        $this->forceFill(['status' => $status, 'in_progress' => null, 'error' => $error])->save();
++    }
++}
+diff --git a/app/Notifications/FullExportReady.php b/app/Notifications/FullExportReady.php
+new file mode 100644
+index 0000000..9c02ee2
+--- /dev/null
++++ b/app/Notifications/FullExportReady.php
+@@ -0,0 +1,61 @@
++<?php
++
++namespace App\Notifications;
++
++use Illuminate\Bus\Queueable;
++use Illuminate\Contracts\Queue\ShouldQueue;
++use Illuminate\Notifications\Messages\MailMessage;
++use Illuminate\Notifications\Notification;
++
++/**
++ * Aviso (T-84) de que la exportación completa de datos está lista. Siempre en la app (`database`) y por correo solo si el usuario lo activó
++ * (`notify_by_mail`). No lleva enlace de descarga (un correo reenviado no debe dar acceso): enlaza a la página, que genera el enlace firmado
++ * al pulsar «Descargar». Mismo contrato que los demás avisos: `type`, `title`, `message` y un `url` relativo.
++ */
++class FullExportReady extends Notification implements ShouldQueue
++{
++    use Queueable;
++
++    public int $tries = 3;
++
++    public int $backoff = 120;
++
++    public function __construct(public readonly int $exportId)
++    {
++        $this->onQueue((string) config('social.refresh_queue', 'poll'));
++    }
++
++    /** @return list<string> */
++    public function via(object $notifiable): array
++    {
++        return $notifiable->notify_by_mail ? ['database', 'mail'] : ['database'];
++    }
++
++    public function toMail(object $notifiable): MailMessage
++    {
++        return (new MailMessage)->subject($this->title())->line($this->title().'.')->line($this->message())->action('Ir a mi exportación', route('profile.export'));
++    }
++
++    /** @return array<string, mixed> */
++    public function toArray(object $notifiable): array
++    {
++        return [
++            'type' => 'job_done_full_export',
++            'title' => $this->title(),
++            'message' => $this->message(),
++            'excerpt' => '',
++            'brand_id' => null,
++            'url' => route('profile.export', [], false),
++        ];
++    }
++
++    private function title(): string
++    {
++        return 'Tu exportación de datos está lista';
++    }
++
++    private function message(): string
++    {
++        return 'Ya puedes descargar el ZIP con tus datos. Estará disponible '.(int) config('exports.retention_hours').' horas.';
++    }
++}
+diff --git a/app/Services/Export/ExportInventory.php b/app/Services/Export/ExportInventory.php
+new file mode 100644
+index 0000000..104a959
+--- /dev/null
++++ b/app/Services/Export/ExportInventory.php
+@@ -0,0 +1,71 @@
++<?php
++
++namespace App\Services\Export;
++
++/**
++ * Inventario de la exportación completa (T-84): qué tablas del usuario van en el ZIP, con qué columnas y qué se deja fuera a propósito.
++ * Se parte de los modelos con `BelongsToUser`/`ownedBy()` (filas con `user_id`) más las tablas hijas que cuelgan de ellas (sin `user_id`).
++ *
++ * Cada entidad: `table`; `only` (lista blanca de columnas, en lo sensible) o `except` (lista negra); `json` (columnas que se guardan
++ * como JSON y se escriben como estructura legible); `where` (filtro extra); `by` (columna del propietario, `user_id` por defecto);
++ * `via` ([columna, tabla padre]) para tablas hijas. Además `SECRET_COLUMN` descarta SIEMPRE por nombre cualquier columna con pinta de
++ * credencial, aunque una lista se olvide de ella.
++ */
++final class ExportInventory
++{
++    /** Cualquier columna que case se omite de todas las entidades. */
++    public const SECRET_COLUMN = '/token|secret|password|passkey|credential|signature|endpoint|api_key|remember/i';
++
++    /** @var array<string, array{table: string, only?: list<string>, except?: list<string>, json?: list<string>, where?: array<string, mixed>, by?: string, via?: array{0: string, 1: string}}> */
++    public const ENTITIES = [
++        'usuario' => ['table' => 'users', 'by' => 'id', 'only' => ['id', 'name', 'email', 'notify_by_mail', 'created_at']],
++        'marcas' => ['table' => 'brands'],
++        'cuentas-conectadas' => ['table' => 'social_accounts', 'only' => ['id', 'brand_id', 'network', 'external_id', 'name', 'username', 'status', 'scopes', 'connected_at', 'created_at'], 'json' => ['scopes']],
++        'publicaciones' => ['table' => 'posts'],
++        'destinos-de-publicacion' => ['table' => 'post_targets', 'json' => ['options']],
++        'medios-de-publicacion' => ['table' => 'post_media', 'via' => ['post_id', 'posts']],
++        'medios-de-destino' => ['table' => 'post_target_media', 'via' => ['post_target_id', 'post_targets']],
++        'series' => ['table' => 'post_series', 'json' => ['weekdays', 'payload']],
++        'plantillas-de-publicacion' => ['table' => 'post_templates', 'json' => ['targets']],
++        'campanas' => ['table' => 'campaigns'],
++        'autolistas' => ['table' => 'autolists', 'json' => ['targets', 'slots', 'cursor']],
++        'elementos-de-autolista' => ['table' => 'autolist_items', 'json' => ['media']],
++        'huecos-de-autolista' => ['table' => 'autolist_slots'],
++        'objetivos' => ['table' => 'goals'],
++        'textos-guardados' => ['table' => 'saved_texts'],
++        'vistas-de-calendario' => ['table' => 'calendar_views', 'json' => ['filters']],
++        'ajustes-del-compositor' => ['table' => 'composer_presets', 'json' => ['options']],
++        'competidores' => ['table' => 'competitors'],
++        'respuestas-guardadas-del-buzon' => ['table' => 'inbox_saved_replies'],
++        'comentarios-propios-del-buzon' => ['table' => 'inbox_comments', 'where' => ['is_own' => 1]],
++        'notas-del-buzon' => ['table' => 'inbox_comment_notes'],
++        'etiquetas-del-buzon' => ['table' => 'inbox_comment_labels'],
++        'informes' => ['table' => 'reports', 'except' => ['path'], 'json' => ['blocks']],
++        'plantillas-de-informe' => ['table' => 'report_templates', 'json' => ['blocks']],
++        'programaciones-de-informe' => ['table' => 'report_schedules', 'json' => ['recipients']],
++        'biblioteca-de-media' => ['table' => 'media_assets', 'except' => ['disk', 'path', 'upload_id', 'source_ref', 'import_state', 'origin']],
++        'disenos' => ['table' => 'studio_designs', 'except' => ['document', 'thumbnail_path']],
++        'carpetas-de-disenos' => ['table' => 'studio_design_folders'],
++        'exportaciones-del-estudio' => ['table' => 'studio_design_exports', 'except' => ['disk', 'path', 'render_state'], 'json' => ['pages', 'media_ids', 'options']],
++        'kits-de-marca' => ['table' => 'studio_brand_kits', 'json' => ['palette', 'fonts', 'logos', 'guidelines', 'voice', 'font_ids']],
++        'tablas-de-datos' => ['table' => 'studio_datasets'],
++        'tipografias' => ['table' => 'studio_fonts', 'except' => ['disk', 'path', 'source_sha256']],
++        'recursos-del-estudio' => ['table' => 'studio_assets'],
++        'sitios' => ['table' => 'sites', 'json' => ['draft', 'published']],
++        'smart-links' => ['table' => 'smart_links'],
++        'bloques-de-smart-link' => ['table' => 'smart_link_blocks', 'via' => ['smart_link_id', 'smart_links'], 'json' => ['data']],
++        'webhooks' => ['table' => 'webhooks', 'only' => ['id', 'brand_id', 'name', 'events', 'enabled', 'created_at'], 'json' => ['events']],
++        'metricas-de-cuentas' => ['table' => 'account_snapshots', 'json' => ['metrics']],
++        'metricas-de-publicaciones' => ['table' => 'post_metric_snapshots', 'json' => ['metrics']],
++    ];
++
++    /** Lo que NO va en el ZIP y por qué (se copia al LEEME.txt y a docs/usuario/exportar.md). */
++    public const EXCLUDED = [
++        'Credenciales y secretos: tokens de acceso y de renovación de las cuentas sociales, contraseñas de aplicación, claves de API y tokens Sanctum, hash de la contraseña, secreto y códigos de recuperación del doble factor, passkeys, endpoints y claves de las notificaciones push, secretos y URL de los webhooks, acceso con contraseña de los sitios y la clave de la aplicación. Se vuelven a crear al conectar de nuevo.',
++        'Datos de otras personas: las marcas de las que solo eres colaborador, los diseños que te han compartido, los colaboradores de tus marcas, los suscriptores de tus smart links, los mensajes recibidos en tus sitios y los enlaces de acceso a tus diseños.',
++        'Los comentarios que terceros han escrito en tus cuentas (buzón): son datos de esas personas. Sí van tus respuestas, tus notas y tus etiquetas.',
++        'Los datos públicos de los competidores que sigues (publicaciones y seguidores): solo va la lista que has configurado.',
++        'Registros técnicos: intentos de publicación, entregas de webhooks, actividad y auditoría, sesiones, claves de idempotencia, trabajos de IA, imágenes y audio del estudio, y el historial de revisiones de los diseños (va la versión actual).',
++        'Las miniaturas, que se vuelven a generar.',
++    ];
++}
+diff --git a/app/Services/Export/ExportTooLarge.php b/app/Services/Export/ExportTooLarge.php
+new file mode 100644
+index 0000000..1aea45a
+--- /dev/null
++++ b/app/Services/Export/ExportTooLarge.php
+@@ -0,0 +1,8 @@
++<?php
++
++namespace App\Services\Export;
++
++use RuntimeException;
++
++/** La exportación supera el tope de tamaño (`exports.max_bytes`) o los límites del formato ZIP sin ZIP64. */
++final class ExportTooLarge extends RuntimeException {}
+diff --git a/app/Services/Export/FullExport.php b/app/Services/Export/FullExport.php
+new file mode 100644
+index 0000000..c13d602
+--- /dev/null
++++ b/app/Services/Export/FullExport.php
+@@ -0,0 +1,321 @@
++<?php
++
++namespace App\Services\Export;
++
++use App\Models\DataExport;
++use App\Models\MediaAsset;
++use App\Models\Report;
++use App\Models\User;
++use App\Notifications\AsyncJobFailed;
++use App\Notifications\FullExportReady;
++use Illuminate\Contracts\Filesystem\Filesystem;
++use Illuminate\Database\Query\Builder;
++use Illuminate\Notifications\Notification;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Log;
++use Illuminate\Support\Facades\Schema;
++use Illuminate\Support\Facades\Storage;
++use Illuminate\Support\Str;
++use RuntimeException;
++use Throwable;
++
++/**
++ * Genera el ZIP con todos los datos propios de un usuario (T-84). Un fichero JSON por entidad (`datos/`), los ficheros originales en
++ * carpetas (`medios/`, `informes/`, `estudio/`), un `LEEME.txt` y un `manifest.json` con la lista de ficheros y su SHA-256.
++ *
++ * Todo se lee con el `user_id` del propietario (nunca el usuario autenticado: corre en cola) y por lotes, y se escribe en streaming a un
++ * fichero temporal: la media nunca se carga entera en memoria. El ZIP solo se publica en el disco privado cuando está completo; si algo falla
++ * (o se supera el tope de tamaño) no queda nada en el disco ni en el directorio temporal.
++ */
++final class FullExport
++{
++    /** Versión del formato del ZIP: sube si cambia la estructura de carpetas o del manifiesto. */
++    public const FORMAT_VERSION = 1;
++
++    private const CHUNK = 500;
++
++    /** @var list<array{path: string, size: int, sha256: string}> */
++    private array $files = [];
++
++    /** @var array<string, int> */
++    private array $counts = [];
++
++    /** @var list<array{path: string, reason: string}> */
++    private array $skipped = [];
++
++    public const GENERIC_ERROR = 'No se pudo preparar la exportación. Inténtalo de nuevo; si se repite, avisa al administrador.';
++
++    public const STUCK_ERROR = 'La exportación se quedó sin terminar. Inténtalo de nuevo.';
++
++    /**
++     * Ejecuta la exportación pendiente: la marca en curso, genera el ZIP y la deja lista y avisada, o en error y avisada. Un fallo que no es de
++     * tamaño se relanza para que el worker lo registre; en ningún caso queda un ZIP a medias ni la exportación en curso.
++     */
++    public function run(DataExport $export): void
++    {
++        if ($export->status !== DataExport::STATUS_PENDING) {
++            return;
++        }
++        $export->forceFill(['status' => DataExport::STATUS_PROCESSING, 'started_at' => now()])->save();
++        try {
++            $result = $this->archive($export);
++        } catch (ExportTooLarge) {
++            $this->fail($export, 'El archivo supera el tope de '.max(1, intdiv((int) config('exports.max_bytes'), 1_048_576)).' MB. Elimina media que ya no necesites y vuelve a intentarlo, o pide al administrador que suba el tope.');
++
++            return;
++        } catch (Throwable $e) {
++            Log::error('full_export.failed', ['export_id' => $export->id, 'exception' => $e::class, 'message' => $e->getMessage()]);
++            $this->fail($export, self::GENERIC_ERROR);
++
++            throw $e;
++        }
++        $export->forceFill($result + ['status' => DataExport::STATUS_READY, 'in_progress' => null, 'error' => null, 'completed_at' => now(), 'expires_at' => now()->addHours((int) config('exports.retention_hours'))])->save();
++        $this->notify($export, new FullExportReady($export->id));
++    }
++
++    /** Deja la exportación en error, libera el cupo del usuario, borra cualquier resto y avisa una sola vez. */
++    public function fail(DataExport $export, string $reason): void
++    {
++        $export->refresh();
++        if (! $export->in_progress) {
++            return;
++        }
++        DataExport::disk()->delete(DataExport::pathFor($export->user_id, $export->id));
++        $export->forceFill(['path' => null, 'size' => null, 'file_count' => null, 'completed_at' => now()])->release(DataExport::STATUS_FAILED, $reason);
++        $this->notify($export, new AsyncJobFailed('full_export', 'No se pudo preparar tu exportación', $reason, route('profile.export', [], false)));
++    }
++
++    private function notify(DataExport $export, Notification $notification): void
++    {
++        try {
++            User::find($export->user_id)?->notify($notification);
++        } catch (Throwable $e) {
++            Log::error('full_export.notification_failed', ['export_id' => $export->id, 'exception' => $e::class]);
++        }
++    }
++
++    /** @return array{path: string, size: int, file_count: int} */
++    private function archive(DataExport $export): array
++    {
++        $this->files = $this->skipped = $this->counts = [];
++        $user = User::findOrFail($export->user_id);
++        $temporary = sys_get_temp_dir().DIRECTORY_SEPARATOR.'fullexport-'.Str::random(24);
++        $handle = fopen($temporary, 'w+b');
++        if ($handle === false) {
++            throw new RuntimeException('No se pudo crear el fichero temporal de la exportación.');
++        }
++        $disk = DataExport::disk();
++        $path = DataExport::pathFor($user->id, $export->id);
++        try {
++            $zip = new ZipStream($handle, (int) config('exports.max_bytes'));
++            foreach (ExportInventory::ENTITIES as $name => $entity) {
++                $this->addEntity($zip, $name, $entity, $user->id);
++            }
++            $this->addFiles($zip, $user->id);
++            $zip->addString('LEEME.txt', $this->readme());
++            $zip->addString('manifest.json', $this->manifest());
++            $size = $zip->finish();
++
++            rewind($handle);
++            try {
++                if (! $disk->writeStream($path, $handle)) {
++                    throw new RuntimeException('No se pudo guardar el ZIP en el disco privado.');
++                }
++            } catch (Throwable $e) {
++                $disk->delete($path);
++                throw $e;
++            }
++
++            return ['path' => $path, 'size' => $size, 'file_count' => count($this->files) + 2];
++        } finally {
++            fclose($handle);
++            @unlink($temporary);
++        }
++    }
++
++    // ------------------------------------------------------------------ datos en JSON
++
++    /** @param  array{table: string, only?: list<string>, except?: list<string>, json?: list<string>, where?: array<string, mixed>, by?: string, via?: array{0: string, 1: string}}  $entity */
++    private function addEntity(ZipStream $zip, string $name, array $entity, int $userId): void
++    {
++        $columns = $this->columns($entity);
++        $json = array_flip($entity['json'] ?? []);
++        $stream = fopen('php://temp/maxmemory:8388608', 'w+b');
++        $count = 0;
++        try {
++            fwrite($stream, "[\n");
++            $this->query($entity, $userId)->select($columns)->chunkById(self::CHUNK, function ($rows) use ($stream, $json, &$count): void {
++                foreach ($rows as $row) {
++                    $row = (array) $row;
++                    foreach ($json as $column => $_) {
++                        if (isset($row[$column]) && is_string($row[$column])) {
++                            $row[$column] = json_decode($row[$column], true) ?? $row[$column];
++                        }
++                    }
++                    fwrite($stream, ($count++ > 0 ? ",\n" : '').$this->encode($row));
++                }
++            }, 'id');
++            fwrite($stream, "\n]\n");
++            rewind($stream);
++            $this->record($zip->addStream('datos/'.$name.'.json', $stream), 'datos/'.$name.'.json');
++        } finally {
++            fclose($stream);
++        }
++        $this->counts[$name] = $count;
++    }
++
++    /** @param  array<string, mixed>  $entity */
++    private function query(array $entity, int $userId): Builder
++    {
++        $query = DB::table($entity['table']);
++        if (isset($entity['via'])) {
++            [$column, $parent] = $entity['via'];
++            $query->whereIn($column, DB::table($parent)->where('user_id', $userId)->select('id'));
++        } else {
++            $query->where($entity['by'] ?? 'user_id', $userId);
++        }
++        foreach ($entity['where'] ?? [] as $column => $value) {
++            $query->where($column, $value);
++        }
++
++        return $query;
++    }
++
++    /**
++     * Columnas a exportar: las de la lista blanca (o todas menos la lista negra) sin ninguna que parezca una credencial.
++     *
++     * @param  array<string, mixed>  $entity
++     * @return list<string>
++     */
++    private function columns(array $entity): array
++    {
++        $columns = $entity['only'] ?? array_values(array_diff(Schema::getColumnListing($entity['table']), $entity['except'] ?? []));
++
++        return array_values(array_filter($columns, fn (string $column) => ! preg_match(ExportInventory::SECRET_COLUMN, $column)));
++    }
++
++    /** @param  array<string, mixed>  $value */
++    private function encode(array $value): string
++    {
++        return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR);
++    }
++
++    // ------------------------------------------------------------------ ficheros
++
++    private function addFiles(ZipStream $zip, int $userId): void
++    {
++        $media = DB::table('media_assets')->where('user_id', $userId)->where('status', MediaAsset::STATUS_READY);
++        $media->select(['id', 'disk', 'path', 'original_name'])->chunkById(self::CHUNK, function ($rows) use ($zip): void {
++            foreach ($rows as $row) {
++                $this->addFile($zip, 'medios/'.$row->id.'-'.$this->safeName($row->original_name, $row->path), Storage::disk($row->disk), $row->path);
++            }
++        }, 'id');
++
++        $reports = DB::table('reports')->where('user_id', $userId)->where('status', Report::STATUS_READY)->whereNotNull('path');
++        $reports->select(['id', 'format', 'path'])->chunkById(self::CHUNK, function ($rows) use ($zip): void {
++            foreach ($rows as $row) {
++                $this->addFile($zip, 'informes/'.$row->id.'.'.$row->format, Storage::disk((string) config('filesystems.media')), $row->path);
++            }
++        }, 'id');
++
++        $exports = DB::table('studio_design_exports')->where('user_id', $userId)->where('status', 'ready')->whereNotNull('path');
++        $exports->select(['id', 'disk', 'path'])->chunkById(self::CHUNK, function ($rows) use ($zip): void {
++            foreach ($rows as $row) {
++                $this->addFile($zip, 'estudio/exportaciones/'.$row->id.'/'.$this->safeName(basename($row->path), $row->path), Storage::disk($row->disk ?? 'local'), $row->path);
++            }
++        }, 'id');
++
++        $fonts = DB::table('studio_fonts')->where('user_id', $userId)->whereNotNull('path');
++        $fonts->select(['id', 'disk', 'path', 'name'])->chunkById(self::CHUNK, function ($rows) use ($zip): void {
++            foreach ($rows as $row) {
++                $this->addFile($zip, 'estudio/tipografias/'.$row->id.'-'.$this->safeName($row->name, $row->path), Storage::disk($row->disk), $row->path);
++            }
++        }, 'id');
++
++        // Solo la revisión vigente de cada tabla de datos del Estudio.
++        DB::table('studio_dataset_revisions as r')->join('studio_datasets as d', fn ($join) => $join->on('d.id', '=', 'r.dataset_id')->on('d.revision', '=', 'r.revision'))
++            ->where('r.user_id', $userId)->select(['r.id', 'r.dataset_id', 'r.path'])->orderBy('r.id')->chunkById(self::CHUNK, function ($rows) use ($zip): void {
++                foreach ($rows as $row) {
++                    $this->addFile($zip, 'estudio/tablas-de-datos/'.$row->dataset_id.'.json', Storage::disk('local'), $row->path);
++                }
++            }, 'r.id', 'id');
++
++        DB::table('studio_designs')->where('user_id', $userId)->select(['id', 'document'])->chunkById(50, function ($rows) use ($zip): void {
++            foreach ($rows as $row) {
++                $document = json_decode((string) $row->document, true) ?? [];
++                $this->record($zip->addString('estudio/disenos/'.$row->id.'.json', $this->encode($document)), 'estudio/disenos/'.$row->id.'.json');
++            }
++        }, 'id');
++    }
++
++    /** Copia un fichero del disco al ZIP en streaming. Si ya no existe se anota en el manifiesto y se sigue. */
++    private function addFile(ZipStream $zip, string $entry, Filesystem $disk, string $path): void
++    {
++        if ($path === '' || str_contains($path, '..')) {
++            $this->skipped[] = ['path' => $entry, 'reason' => 'Ruta no válida.'];
++
++            return;
++        }
++        $source = $disk->readStream($path);
++        if (! is_resource($source)) {
++            $this->skipped[] = ['path' => $entry, 'reason' => 'El fichero ya no está en el almacenamiento.'];
++
++            return;
++        }
++        try {
++            $this->record($zip->addStream($entry, $source), $entry);
++        } finally {
++            fclose($source);
++        }
++    }
++
++    /** Nombre de entrada seguro: sin directorios, sin caracteres de control y acotado. */
++    private function safeName(?string $name, string $fallback): string
++    {
++        $name = trim(preg_replace('/[\x00-\x1F\x7F\\\\\/:*?"<>|]+/u', '_', basename((string) ($name !== null && $name !== '' ? $name : $fallback))) ?? '');
++
++        return Str::limit($name !== '' ? $name : 'fichero', 100, '');
++    }
++
++    /** @param  array{size: int, sha256: string}  $written */
++    private function record(array $written, string $path): void
++    {
++        $this->files[] = ['path' => $path] + $written;
++    }
++
++    // ------------------------------------------------------------------ manifiesto y léeme
++
++    private function manifest(): string
++    {
++        return $this->encode([
++            'generated_at' => now()->toIso8601String(),
++            'format_version' => self::FORMAT_VERSION,
++            'app' => (string) config('app.name'),
++            'entities' => $this->counts,
++            'skipped' => $this->skipped,
++            'files' => $this->files,
++        ]);
++    }
++
++    private function readme(): string
++    {
++        $lines = [
++            config('app.name').' · exportación completa de tus datos',
++            'Generada el '.now()->toIso8601String().' (UTC) · formato '.self::FORMAT_VERSION,
++            '',
++            'CONTENIDO',
++            '  datos/      Un fichero JSON por tipo de dato (marcas, publicaciones, informes, sitios...). Cada fila lleva sus identificadores.',
++            '  medios/     Los ficheros originales de tu biblioteca, como «<id>-<nombre>».',
++            '  informes/   Los informes PDF o CSV ya generados.',
++            '  estudio/    El documento JSON de cada diseño, sus exportaciones, tus tipografías y las tablas de datos.',
++            '  manifest.json  La lista de ficheros con su tamaño y su SHA-256 (sha256sum -c o Get-FileHash para comprobarlos).',
++            '',
++            'NO INCLUIDO (por seguridad y privacidad)',
++        ];
++        foreach (ExportInventory::EXCLUDED as $line) {
++            $lines[] = '  - '.$line;
++        }
++
++        return implode("\n", $lines)."\n";
++    }
++}
+diff --git a/app/Services/Export/ZipStream.php b/app/Services/Export/ZipStream.php
+new file mode 100644
+index 0000000..0f3dbd5
+--- /dev/null
++++ b/app/Services/Export/ZipStream.php
+@@ -0,0 +1,120 @@
++<?php
++
++namespace App\Services\Export;
++
++use RuntimeException;
++
++/**
++ * Escritor ZIP en streaming (T-84): cada entrada se comprime con deflate a medida que se lee (descriptor de datos tras el contenido), así
++ * que nunca se carga un fichero entero en memoria ni hace falta conocer su tamaño antes. No depende de `ext-zip` (solo de zlib). Sin ZIP64:
++ * el tope de bytes y de entradas se comprueba mientras se escribe y lanza `ExportTooLarge`. Devuelve de cada entrada su tamaño y su SHA-256
++ * para el manifiesto.
++ */
++final class ZipStream
++{
++    /** Límite del formato sin ZIP64. */
++    public const FORMAT_MAX_BYTES = 4_000_000_000;
++
++    private const MAX_ENTRIES = 65000;
++
++    /** @var resource */
++    private $handle;
++
++    /** @var list<array{name: string, crc: int, compressed: int, size: int, offset: int}> */
++    private array $entries = [];
++
++    private int $offset = 0;
++
++    private int $maxBytes;
++
++    private int $dosTime;
++
++    private int $dosDate;
++
++    /** @param  resource  $handle  Flujo de escritura del ZIP. */
++    public function __construct($handle, int $maxBytes)
++    {
++        $this->handle = $handle;
++        $this->maxBytes = min($maxBytes, self::FORMAT_MAX_BYTES);
++        $now = getdate();
++        $this->dosTime = ($now['hours'] << 11) | ($now['minutes'] << 5) | intdiv($now['seconds'], 2);
++        $this->dosDate = ((max(1980, $now['year']) - 1980) << 9) | ($now['mon'] << 5) | $now['mday'];
++    }
++
++    /** @return array{size: int, sha256: string} */
++    public function addString(string $name, string $content): array
++    {
++        $stream = fopen('php://temp/maxmemory:8388608', 'w+b');
++        fwrite($stream, $content);
++        rewind($stream);
++        try {
++            return $this->addStream($name, $stream);
++        } finally {
++            fclose($stream);
++        }
++    }
++
++    /**
++     * @param  resource  $source
++     * @return array{size: int, sha256: string}
++     */
++    public function addStream(string $name, $source): array
++    {
++        if (count($this->entries) >= self::MAX_ENTRIES) {
++            throw new ExportTooLarge('Demasiados ficheros para un único ZIP.');
++        }
++        $offset = $this->offset;
++        $this->write(pack('VvvvvvVVVvv', 0x04034B50, 20, 0x0808, 8, $this->dosTime, $this->dosDate, 0, 0, 0, strlen($name), 0).$name);
++        $deflate = deflate_init(ZLIB_ENCODING_RAW, ['level' => 1]);
++        $crc = hash_init('crc32b');
++        $sha = hash_init('sha256');
++        $size = 0;
++        $compressed = 0;
++        while (! feof($source)) {
++            $chunk = fread($source, 1_048_576);
++            if ($chunk === false) {
++                throw new RuntimeException('No se pudo leer un fichero para el ZIP.');
++            }
++            if ($chunk === '') {
++                continue;
++            }
++            hash_update($crc, $chunk);
++            hash_update($sha, $chunk);
++            $size += strlen($chunk);
++            $compressed += $this->write((string) deflate_add($deflate, $chunk, ZLIB_NO_FLUSH));
++        }
++        $compressed += $this->write((string) deflate_add($deflate, '', ZLIB_FINISH));
++        $crcValue = (int) hexdec(hash_final($crc));
++        $this->write(pack('VVVV', 0x08074B50, $crcValue, $compressed, $size));
++        $this->entries[] = ['name' => $name, 'crc' => $crcValue, 'compressed' => $compressed, 'size' => $size, 'offset' => $offset];
++
++        return ['size' => $size, 'sha256' => hash_final($sha)];
++    }
++
++    /** Escribe el directorio central y devuelve el tamaño total del ZIP. */
++    public function finish(): int
++    {
++        $start = $this->offset;
++        foreach ($this->entries as $entry) {
++            $this->write(pack('VvvvvvvVVVvvvvvVV', 0x02014B50, 20, 20, 0x0808, 8, $this->dosTime, $this->dosDate, $entry['crc'], $entry['compressed'], $entry['size'], strlen($entry['name']), 0, 0, 0, 0, 0, $entry['offset']).$entry['name']);
++        }
++        $count = count($this->entries);
++        $this->write(pack('VvvvvVVv', 0x06054B50, 0, 0, $count, $count, $this->offset - $start, $start, 0));
++
++        return $this->offset;
++    }
++
++    private function write(string $bytes): int
++    {
++        $length = strlen($bytes);
++        if ($this->offset + $length > $this->maxBytes) {
++            throw new ExportTooLarge('El archivo supera el tamaño máximo permitido.');
++        }
++        if ($length > 0 && fwrite($this->handle, $bytes) !== $length) {
++            throw new RuntimeException('No se pudo escribir el ZIP (¿disco lleno?).');
++        }
++        $this->offset += $length;
++
++        return $length;
++    }
++}
+diff --git a/config/exports.php b/config/exports.php
+new file mode 100644
+index 0000000..d9a2a4a
+--- /dev/null
++++ b/config/exports.php
+@@ -0,0 +1,31 @@
++<?php
++
++/*
++| Exportación completa de los datos del usuario en un ZIP (T-84, F-10). Documentada en docs/usuario/exportar.md y en docs/modulos/despliegue.md.
++|
++| El ZIP se genera en cola, se guarda en un disco PRIVADO (nunca el público) y se borra al caducar (`exports:prune`, cada hora).
++*/
++return [
++    // Disco privado donde viven los ZIP. Debe ser un disco que no sirva ficheros por URL pública.
++    'disk' => env('EXPORTS_DISK', 'local'),
++
++    // Cola del job. Por defecto `media`, que ya tiene worker en todos los despliegues.
++    'queue' => env('EXPORTS_QUEUE', 'media'),
++
++    // Segundos máximos del job. Debe ser menor que `--timeout` del worker y que `retry_after` de la cola (ver despliegue.md): para archivos
++    // grandes, usa un worker propio con más margen y sube estos tres valores a la vez.
++    'timeout' => (int) env('EXPORTS_TIMEOUT', 110),
++
++    // Tope de tamaño del ZIP (bytes del ZIP ya comprimido). Si se supera, la exportación termina en error y no se publica nada. Máximo 4 000 000 000
++    // (sin ZIP64).
++    'max_bytes' => (int) env('EXPORTS_MAX_BYTES', 1_073_741_824),
++
++    // Horas que se conserva el ZIP desde que está listo; después `exports:prune` borra el fichero.
++    'retention_hours' => (int) env('EXPORTS_RETENTION_HOURS', 72),
++
++    // Minutos de validez del enlace firmado de descarga. Se genera uno nuevo al pulsar «Descargar».
++    'link_minutes' => (int) env('EXPORTS_LINK_MINUTES', 10),
++
++    // Minutos tras los que una exportación en curso sin avances se da por atascada (worker caído): `exports:prune` la marca en error y libera el cupo.
++    'stuck_minutes' => (int) env('EXPORTS_STUCK_MINUTES', 30),
++];
+diff --git a/database/migrations/2026_11_26_090000_create_full_exports_table.php b/database/migrations/2026_11_26_090000_create_full_exports_table.php
+new file mode 100644
+index 0000000..2bb861a
+--- /dev/null
++++ b/database/migrations/2026_11_26_090000_create_full_exports_table.php
+@@ -0,0 +1,37 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++// T-84: estado de la exportación completa de datos (ZIP) de cada usuario. `in_progress` vale 1 solo mientras la exportación está en
++// cola o en curso y NULL en el resto de estados: el índice único (user_id, in_progress) garantiza una sola en curso por usuario aunque
++// lleguen dos peticiones a la vez (los NULL no chocan entre sí, en MySQL ni en SQLite).
++return new class extends Migration
++{
++    public function up(): void
++    {
++        Schema::create('full_exports', function (Blueprint $table) {
++            $table->id();
++            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
++            $table->string('status', 16)->default('pending');
++            $table->boolean('in_progress')->nullable();
++            $table->string('path')->nullable();
++            $table->unsignedBigInteger('size')->nullable();
++            $table->unsignedInteger('file_count')->nullable();
++            $table->string('error', 500)->nullable();
++            $table->timestamp('started_at')->nullable();
++            $table->timestamp('completed_at')->nullable();
++            $table->timestamp('expires_at')->nullable();
++            $table->timestamps();
++
++            $table->unique(['user_id', 'in_progress']);
++            $table->index(['status', 'expires_at']);
++        });
++    }
++
++    public function down(): void
++    {
++        Schema::dropIfExists('full_exports');
++    }
++};
+diff --git a/docs/usuario/exportar.md b/docs/usuario/exportar.md
+new file mode 100644
+index 0000000..6883ad6
+--- /dev/null
++++ b/docs/usuario/exportar.md
+@@ -0,0 +1,41 @@
++# Exportar mis datos
++
++Descarga una copia completa de tus datos en un ZIP. Entra en **Perfil → Exportar mis datos** (también en el menú de tu cuenta).
++
++## Flujo
++
++1. **Pide la exportación.** Se prepara en segundo plano (puede tardar según el tamaño de tu biblioteca). Solo puedes tener **una exportación en curso** a la vez; al pedir otra, sustituye a la anterior y borra su ZIP.
++2. **Te avisamos.** Al terminar recibes un aviso en la aplicación («Tu exportación de datos está lista») que enlaza a la página y, si tienes activados los avisos por correo, también un correo. Si falla (o supera el tope de tamaño) recibes un aviso con el motivo y no queda ningún ZIP a medias.
++3. **Descarga.** Pulsa **Descargar ZIP**. Cada pulsación genera un enlace firmado nuevo que caduca a los 10 minutos y solo funciona con **tu** sesión: un enlace reenviado o filtrado no sirve a otra persona.
++
++## Qué incluye
++
++Un fichero JSON legible por tipo de dato en `datos/`, los ficheros originales en carpetas y, en la raíz, `LEEME.txt` y `manifest.json` (fecha, versión del formato y la lista de ficheros con su tamaño y su **SHA-256**; compruébalos con `sha256sum` o `Get-FileHash`).
++
++| Carpeta o fichero | Contenido |
++|---|---|
++| `datos/` | Tu perfil (nombre, correo, aviso por correo), marcas, cuentas conectadas (solo nombre, red y estado), publicaciones con sus destinos y textos, series, plantillas, campañas, autolistas, objetivos, textos guardados, vistas del calendario, ajustes del compositor, competidores que sigues, tus respuestas, notas y etiquetas del buzón, informes (definiciones, plantillas y programaciones), biblioteca de media (metadatos), diseños del Estudio y sus exportaciones, kits de marca, tipografías, tablas de datos, sitios, smart links y sus bloques, webhooks (nombre y eventos) y las métricas diarias de cuentas y publicaciones. |
++| `medios/` | Los ficheros originales de tu biblioteca, como `<id>-<nombre>`. |
++| `informes/` | Los informes PDF o CSV que ya estaban generados (los informes se conservan 30 días). |
++| `estudio/` | El documento JSON de cada diseño, sus exportaciones renderizadas, tus tipografías y la versión vigente de tus tablas de datos. |
++
++Si un fichero ya no está en el almacenamiento, se omite y queda anotado en `skipped` del manifiesto.
++
++## Qué no incluye
++
++- **Credenciales y secretos:** tokens de acceso y de renovación de las cuentas sociales, contraseñas de aplicación, claves de API y tokens, hash de tu contraseña, secreto y códigos de recuperación del doble factor, passkeys, claves de las notificaciones push, secretos y URL de los webhooks, la contraseña de acceso de los sitios y la clave de la aplicación. Tendrás que volver a conectar las cuentas al restaurar.
++- **Datos de otras personas:** las marcas de las que solo eres colaborador, los diseños que te han compartido, los colaboradores de tus marcas, los suscriptores de tus smart links, los mensajes recibidos en tus sitios y los enlaces de acceso a tus diseños.
++- **Comentarios de terceros del buzón:** son datos de quienes los escribieron en tus cuentas. Sí van tus respuestas, tus notas y tus etiquetas.
++- **Datos públicos de los competidores** (publicaciones y seguidores): solo va la lista que has configurado.
++- **Registros técnicos:** intentos de publicación, entregas de webhooks, actividad y auditoría, sesiones, trabajos de IA, imágenes y audio del Estudio, y el historial de revisiones de los diseños (va la versión actual). Las miniaturas se vuelven a generar.
++
++## Límites y caducidad
++
++| Dato | Valor (configurable en `config/exports.php`) |
++|---|---|
++| Tamaño máximo del ZIP | 1024 MB (`EXPORTS_MAX_BYTES`). Si se supera, la exportación termina en error y no se guarda nada: elimina media que ya no necesites y repite. |
++| Conservación del ZIP | 72 horas desde que está listo (`EXPORTS_RETENTION_HOURS`); después se borra solo. |
++| Validez del enlace de descarga | 10 minutos (`EXPORTS_LINK_MINUTES`); pulsa Descargar para obtener otro mientras el ZIP exista. |
++| Ritmo | 3 peticiones de exportación por minuto. |
++
++Para operar el servidor (cola, programación de la limpieza y disco) consulta [Despliegue](../modulos/despliegue.md#exportación-completa-de-datos-t-84).
+diff --git a/resources/js/Pages/Profile/Export.vue b/resources/js/Pages/Profile/Export.vue
+new file mode 100644
+index 0000000..1e575a2
+--- /dev/null
++++ b/resources/js/Pages/Profile/Export.vue
+@@ -0,0 +1,129 @@
++<script setup>
++import { computed } from 'vue';
++import { Head, router } from '@inertiajs/vue3';
++import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
++import InfoNote from '@/Components/InfoNote.vue';
++import SecondaryButton from '@/Components/SecondaryButton.vue';
++import { usePolling } from '@/Composables/usePolling';
++import { createDateFormatter } from '@/lib/format';
++
++/** @import {FullExportState, FullExportLimits} from '@/types/full-export' */
++const props = defineProps({
++    latest: { type: /** @type {import('vue').PropType<FullExportState | null>} */ (Object), default: null },
++    excluded: { type: /** @type {import('vue').PropType<string[]>} */ (Array), required: true },
++    limits: { type: /** @type {import('vue').PropType<FullExportLimits>} */ (Object), required: true },
++});
++
++// Sin marca de por medio, la hora se muestra en la zona del navegador (patrón de T-54).
++const formatDate = createDateFormatter(null, { dateStyle: 'medium', timeStyle: 'short' }, '—');
++const active = computed(() => props.latest?.status === 'pending' || props.latest?.status === 'processing');
++const ready = computed(() => props.latest?.download_url != null);
++
++const STATUS = {
++    pending: 'En cola',
++    processing: 'Preparando el ZIP…',
++    ready: 'Lista para descargar',
++    failed: 'No se pudo completar',
++    expired: 'Caducada',
++};
++
++/** @param {number | null} bytes */
++const size = (bytes) => {
++    if (!bytes) return '';
++    return bytes > 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
++};
++
++/** @param {AbortSignal} signal @returns {Promise<void>} */
++function refresh(signal) {
++    return new Promise((resolve) => {
++        /** @type {(() => void) | undefined} */
++        let cancel;
++        const abort = () => cancel?.();
++        signal.addEventListener('abort', abort, { once: true });
++        router.reload({
++            only: ['latest'],
++            onCancelToken: (token) => {
++                cancel = token.cancel;
++                if (signal.aborted) abort();
++            },
++            onFinish: () => {
++                signal.removeEventListener('abort', abort);
++                resolve();
++            },
++        });
++    });
++}
++
++const { exhausted: pollingExhausted, restart: restartPolling } = usePolling(active, refresh, {
++    initialDelay: 3000,
++    maxDelay: 30000,
++    maxAttempts: 40,
++});
++
++function request() {
++    router.post(route('profile.export.store'), {}, { preserveScroll: true });
++}
++</script>
++
++<template>
++    <Head title="Exportar mis datos" />
++    <AuthenticatedLayout>
++        <template #header><h1 class="text-xl font-bold text-slate-900">Exportar mis datos</h1></template>
++        <div class="max-w-3xl space-y-6">
++            <section class="card space-y-4 p-4 sm:p-6" aria-labelledby="export-intro-title">
++                <h2 id="export-intro-title" class="text-lg font-semibold text-slate-900"
++                    >Copia de seguridad completa</h2
++                >
++                <p class="text-sm text-slate-600"
++                    >Descarga un ZIP con todos tus datos: marcas, publicaciones con sus destinos y textos, campañas,
++                    informes y sus PDF, la biblioteca de media (los ficheros originales), los diseños del Estudio y sus
++                    exportaciones, sitios, smart links, plantillas, objetivos y textos guardados. Los datos van en JSON
++                    legible, un fichero por tipo, y un manifiesto con el SHA-256 de cada fichero.</p
++                >
++                <InfoNote title="Qué no incluye">
++                    <ul class="list-disc space-y-1 pl-5">
++                        <li v-for="line in excluded" :key="line">{{ line }}</li>
++                    </ul>
++                </InfoNote>
++                <p class="text-sm text-slate-600"
++                    >El ZIP se prepara en segundo plano (máximo {{ limits.max_mb }} MB) y estará disponible
++                    {{ limits.retention_hours }} horas; después se borra. Te avisaremos cuando esté listo.</p
++                >
++            </section>
++
++            <section class="card space-y-3 p-4 sm:p-6" aria-labelledby="export-state-title">
++                <h2 id="export-state-title" class="text-lg font-semibold text-slate-900">Tu exportación</h2>
++                <p v-if="!latest" class="text-sm text-slate-600">Aún no has pedido ninguna exportación.</p>
++                <div v-else class="space-y-1 text-sm" data-testid="export-state">
++                    <p class="font-medium text-slate-900"
++                        >Estado: <span data-testid="export-status">{{ STATUS[latest.status] }}</span></p
++                    >
++                    <p class="text-slate-600">Pedida el {{ formatDate(latest.created_at) }}</p>
++                    <p v-if="ready" class="text-slate-600"
++                        >{{ size(latest.size) }} · {{ latest.file_count }} ficheros · disponible hasta el
++                        {{ formatDate(latest.expires_at) }}</p
++                    >
++                    <p v-if="latest.status === 'failed' && latest.error" role="alert" class="text-red-700">{{
++                        latest.error
++                    }}</p>
++                </div>
++                <div v-if="pollingExhausted" class="flex flex-wrap items-center gap-2">
++                    <p role="status" class="text-sm text-slate-600">Sigue en preparación.</p>
++                    <SecondaryButton type="button" @click="restartPolling">Volver a consultar</SecondaryButton>
++                </div>
++                <div class="flex flex-wrap items-center gap-3 pt-1">
++                    <a v-if="ready" :href="latest?.download_url ?? ''" class="btn-primary" data-testid="export-download"
++                        >Descargar ZIP</a
++                    >
++                    <button type="button" class="btn-secondary" :disabled="active" @click="request">{{
++                        active ? 'Exportación en curso…' : latest ? 'Pedir una exportación nueva' : 'Pedir exportación'
++                    }}</button>
++                </div>
++                <p v-if="ready" class="text-xs text-slate-500"
++                    >El enlace de descarga caduca a los {{ limits.link_minutes }} minutos y solo funciona con tu sesión;
++                    pulsa Descargar para obtener uno nuevo.</p
++                >
++            </section>
++        </div>
++    </AuthenticatedLayout>
++</template>
+diff --git a/resources/js/types/full-export.d.ts b/resources/js/types/full-export.d.ts
+new file mode 100644
+index 0000000..17905a4
+--- /dev/null
++++ b/resources/js/types/full-export.d.ts
+@@ -0,0 +1,19 @@
++export type FullExportStatus = 'pending' | 'processing' | 'ready' | 'failed' | 'expired';
++
++export interface FullExportState {
++    id: number;
++    status: FullExportStatus;
++    size: number | null;
++    file_count: number | null;
++    error: string | null;
++    created_at: string;
++    completed_at: string | null;
++    expires_at: string | null;
++    download_url: string | null;
++}
++
++export interface FullExportLimits {
++    max_mb: number;
++    retention_hours: number;
++    link_minutes: number;
++}
+diff --git a/tests/Feature/Export/FullExportTest.php b/tests/Feature/Export/FullExportTest.php
+new file mode 100644
+index 0000000..d8c4270
+--- /dev/null
++++ b/tests/Feature/Export/FullExportTest.php
+@@ -0,0 +1,361 @@
++<?php
++
++use App\Jobs\BuildFullExport;
++use App\Models\Brand;
++use App\Models\BrandCollaborator;
++use App\Models\Campaign;
++use App\Models\DataExport;
++use App\Models\MediaAsset;
++use App\Models\Post;
++use App\Models\PostTarget;
++use App\Models\Report;
++use App\Models\SavedText;
++use App\Models\Site;
++use App\Models\SmartLink;
++use App\Models\SmartLinkBlock;
++use App\Models\SocialAccount;
++use App\Models\Studio\Design;
++use App\Models\Studio\DesignExport;
++use App\Models\User;
++use App\Models\Webhook;
++use App\Notifications\FullExportReady;
++use App\Services\Export\FullExport;
++use Illuminate\Console\Scheduling\Schedule;
++use Illuminate\Database\UniqueConstraintViolationException;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Notification;
++use Illuminate\Support\Facades\Schema;
++use Illuminate\Support\Facades\Storage;
++use Inertia\Testing\AssertableInertia as Assert;
++
++/**
++ * T-84 (F-10) · exportación completa en ZIP: solo datos propios, sin secretos, en cola, con aviso, enlace firmado y limpieza.
++ * Los marcadores `PROPIO-*` deben aparecer en el ZIP; `AJENO-*` y los secretos `SECRETO-*` no pueden aparecer en NINGÚN byte descomprimido.
++ */
++beforeEach(function () {
++    Storage::fake('local');
++    $this->user = User::factory()->create(['notify_by_mail' => false]);
++    $this->other = User::factory()->create();
++});
++
++/** Lee un ZIP sin ext-zip: directorio central, inflado y comprobación de CRC y tamaños. @return array<string, string> */
++function zipEntries(string $zip): array
++{
++    $end = strrpos($zip, "PK\x05\x06");
++    expect($end)->not->toBeFalse();
++    $eocd = unpack('vdisk/vcd/ventriesDisk/ventries/Vsize/Voffset/vcomment', substr($zip, $end + 4, 18));
++    $position = $eocd['offset'];
++    $entries = [];
++    for ($i = 0; $i < $eocd['entries']; $i++) {
++        $c = unpack('Vsig/vmade/vneed/vflags/vmethod/vtime/vdate/Vcrc/Vcsize/Vsize/vnlen/velen/vclen/vdisk/vint/Vext/Voff', substr($zip, $position, 46));
++        expect($c['sig'])->toBe(0x02014B50);
++        $name = substr($zip, $position + 46, $c['nlen']);
++        $position += 46 + $c['nlen'] + $c['elen'] + $c['clen'];
++        $local = unpack('vnlen/velen', substr($zip, $c['off'] + 26, 4));
++        $data = substr($zip, $c['off'] + 30 + $local['nlen'] + $local['elen'], $c['csize']);
++        $raw = $c['method'] === 8 ? gzinflate($data) : $data;
++        expect(strlen($raw))->toBe($c['size'])->and(hexdec(hash('crc32b', $raw)))->toBe($c['crc']);
++        $entries[$name] = $raw;
++    }
++
++    return $entries;
++}
++
++/** Todo el texto del ZIP descomprimido (y los bytes del propio ZIP), para buscar dentro de los bytes. */
++function zipHaystack(string $zip): string
++{
++    return $zip."\n".implode("\n", zipEntries($zip));
++}
++
++/** Datos propios de cada tipo, con un marcador `$tag-*` en cada texto, más los secretos que NUNCA deben salir. @return array<string, mixed> */
++function seedExportData(User $user, string $tag, bool $secrets = true): array
++{
++    $brand = Brand::factory()->for($user)->create(['name' => "$tag-marca"]);
++    $account = SocialAccount::factory()->create(['brand_id' => $brand->id, 'name' => "$tag-cuenta", 'access_token' => $secrets ? 'SECRETO-ACCESS-TOKEN' : 'x', 'refresh_token' => $secrets ? 'SECRETO-REFRESH-TOKEN' : 'x', 'credential_secret' => $secrets ? 'SECRETO-APP-PASSWORD' : null]);
++    $post = Post::factory()->create(['brand_id' => $brand->id, 'text' => "$tag-publicacion"]);
++    PostTarget::factory()->create(['post_id' => $post->id, 'social_account_id' => $account->id, 'text' => "$tag-texto-destino"]);
++    Campaign::factory()->create(['brand_id' => $brand->id, 'name' => "$tag-campana"]);
++    SavedText::factory()->create(['user_id' => $user->id, 'title' => "$tag-texto-guardado"]);
++
++    Storage::disk('local')->put("media/$tag/foto.jpg", "$tag-BYTES-DE-MEDIA");
++    $media = MediaAsset::factory()->create(['user_id' => $user->id, 'disk' => 'local', 'path' => "media/$tag/foto.jpg", 'original_name' => "$tag-foto.jpg", 'size' => 40]);
++
++    Storage::disk('local')->put("reports/$tag/informe.pdf", "$tag-BYTES-DE-INFORME");
++    Report::factory()->create(['user_id' => $user->id, 'brand_id' => $brand->id, 'format' => 'pdf', 'status' => Report::STATUS_READY, 'path' => "reports/$tag/informe.pdf", 'size' => 30]);
++    DB::table('report_templates')->insert(['user_id' => $user->id, 'brand_id' => $brand->id, 'name' => "$tag-plantilla-informe", 'blocks' => '[]']);
++
++    $design = Design::unguarded(fn () => Design::create(['user_id' => $user->id, 'brand_id' => $brand->id, 'name' => "$tag-diseno", 'document' => ['pages' => [], 'nota' => "$tag-documento"], 'width' => 10, 'height' => 10, 'page_count' => 1, 'revision' => 1]));
++    $designExport = DesignExport::create(['user_id' => $user->id, 'brand_id' => $brand->id, 'design_id' => $design->id, 'revision' => 1, 'format' => 'png', 'pages' => ['p1'], 'media_ids' => [], 'status' => 'ready', 'disk' => 'local', 'path' => "studio-exports/{$user->id}/1/page-001.png"]);
++    Storage::disk('local')->put($designExport->path, "$tag-BYTES-DE-EXPORTACION");
++
++    Site::create(['user_id' => $user->id, 'brand_id' => $brand->id, 'slug' => strtolower($tag).'-sitio', 'title' => "$tag-sitio", 'draft' => ['hero' => "$tag-contenido"], 'password_hash' => $secrets ? 'SECRETO-HASH-DEL-SITIO' : null]);
++    $link = (new SmartLink)->forceFill(['user_id' => $user->id, 'brand_id' => $brand->id, 'slug' => strtolower($tag).'-link', 'title' => "$tag-smartlink"]);
++    $link->save();
++    (new SmartLinkBlock)->forceFill(['smart_link_id' => $link->id, 'type' => 'link', 'label' => "$tag-bloque", 'url' => 'https://example.com'])->save();
++    DB::table('post_templates')->insert(['user_id' => $user->id, 'brand_id' => $brand->id, 'name' => "$tag-plantilla"]);
++    DB::table('goals')->insert(['user_id' => $user->id, 'brand_id' => $brand->id, 'name' => "$tag-objetivo", 'kind' => 'milestone', 'threshold' => 10]);
++
++    if ($secrets) {
++        (new Webhook)->forceFill(['user_id' => $user->id, 'brand_id' => $brand->id, 'name' => "$tag-webhook", 'url' => 'https://example.com/SECRETO-URL-DE-WEBHOOK', 'events' => ['post.published'], 'secret' => 'SECRETO-DEL-WEBHOOK'])->save();
++        DB::table('passkeys')->insert(['user_id' => $user->id, 'name' => "$tag-passkey", 'credential_id' => "SECRETO-PASSKEY-ID-$tag", 'credential' => 'SECRETO-PASSKEY-CREDENCIAL']);
++        DB::table('push_subscriptions')->insert(['user_id' => $user->id, 'endpoint_hash' => sha1("$tag-endpoint"), 'endpoint' => encrypt('https://push.example.com/SECRETO-ENDPOINT'), 'keys' => encrypt('SECRETO-CLAVES-PUSH'), 'device_name' => "$tag-movil", 'last_seen_at' => now()]);
++        $user->forceFill(['two_factor_secret' => 'SECRETO-2FA', 'two_factor_recovery_codes' => ['SECRETO-CODIGO-RECUPERACION'], 'two_factor_confirmed_at' => now()])->save();
++    }
++
++    return ['brand' => $brand, 'media' => $media, 'design' => $design];
++}
++
++/** Pide la exportación por la ruta real (la cola no ejecuta nada) y devuelve la fila creada. */
++function requestExport(User $user): DataExport
++{
++    Bus::fake([BuildFullExport::class]);
++    test()->actingAs($user)->post(route('profile.export.store'))->assertRedirect();
++
++    return DataExport::ownedBy($user)->latest('id')->firstOrFail();
++}
++
++function runExport(DataExport $export): DataExport
++{
++    (new BuildFullExport($export->id))->handle(app(FullExport::class));
++
++    return $export->refresh();
++}
++
++function exportZip(DataExport $export): string
++{
++    return Storage::disk('local')->get($export->path);
++}
++
++test('el ZIP contiene los datos propios de cada tipo, la media original y un manifiesto con SHA-256', function () {
++    seedExportData($this->user, 'PROPIO');
++    $export = runExport(requestExport($this->user));
++
++    expect($export->status)->toBe(DataExport::STATUS_READY)->and($export->path)->toStartWith('full-exports/'.$this->user->id.'/')->and($export->size)->toBeGreaterThan(0)
++        ->and($export->expires_at->isFuture())->toBeTrue();
++    $entries = zipEntries(exportZip($export));
++    $text = implode("\n", array_filter($entries, fn ($content, $name) => str_ends_with($name, '.json'), ARRAY_FILTER_USE_BOTH));
++
++    foreach (['marca', 'cuenta', 'publicacion', 'texto-destino', 'campana', 'texto-guardado', 'plantilla-informe', 'diseno', 'documento', 'sitio', 'contenido', 'smartlink', 'bloque', 'plantilla', 'objetivo', 'foto.jpg'] as $marker) {
++        expect($text)->toContain("PROPIO-$marker");
++    }
++    expect(implode('', array_keys($entries)))->toContain('LEEME.txt')->and($entries)->toHaveKey('manifest.json');
++    $files = collect($entries)->filter(fn ($c, $n) => preg_match('#^(medios|informes|estudio/exportaciones)/#', $n));
++    expect($files->values()->all())->toContain('PROPIO-BYTES-DE-MEDIA')->toContain('PROPIO-BYTES-DE-INFORME')->toContain('PROPIO-BYTES-DE-EXPORTACION');
++
++    $manifest = json_decode($entries['manifest.json'], true, flags: JSON_THROW_ON_ERROR);
++    expect($manifest)->toHaveKeys(['generated_at', 'format_version', 'app', 'files'])->and($manifest['files'])->not->toBeEmpty();
++    foreach ($manifest['files'] as $file) {
++        expect($entries)->toHaveKey($file['path'])->and(hash('sha256', $entries[$file['path']]))->toBe($file['sha256'])->and(strlen($entries[$file['path']]))->toBe($file['size']);
++    }
++    expect(collect($manifest['files'])->pluck('path'))->not->toContain('manifest.json');
++});
++
++test('no contiene datos de otro usuario ni de una marca donde solo es colaborador', function () {
++    seedExportData($this->user, 'PROPIO');
++    $theirs = seedExportData($this->other, 'AJENO');
++    BrandCollaborator::create(['brand_id' => $theirs['brand']->id, 'owner_id' => $this->other->id, 'user_id' => $this->user->id, 'role' => BrandCollaborator::ROLE_APPROVER]);
++    DB::table('inbox_comments')->insert(['user_id' => $this->other->id, 'brand_id' => $theirs['brand']->id, 'social_account_id' => SocialAccount::withoutUserScope()->where('user_id', $this->other->id)->value('id'),
++        'network' => 'instagram', 'external_id' => 'c-ajeno', 'author_name' => 'AJENO-autor', 'text' => 'AJENO-comentario']);
++
++    $haystack = zipHaystack(exportZip(runExport(requestExport($this->user))));
++
++    expect($haystack)->toContain('PROPIO-marca')->not->toContain('AJENO')->not->toContain($this->other->email);
++});
++
++test('no contiene ningún secreto ni credencial, ni en claro ni cifrados en bruto', function () {
++    $this->user->createToken('clave', ['*']);
++    $plainToken = $this->user->createToken('otra', ['*'])->plainTextToken;
++    seedExportData($this->user, 'PROPIO');
++    $user = $this->user->refresh();
++    $raw = fn (string $table, string $column) => (string) DB::table($table)->where('user_id', $user->id)->value($column);
++
++    $haystack = zipHaystack(exportZip(runExport(requestExport($this->user))));
++
++    foreach (['SECRETO-ACCESS-TOKEN', 'SECRETO-REFRESH-TOKEN', 'SECRETO-APP-PASSWORD', 'SECRETO-HASH-DEL-SITIO', 'SECRETO-URL-DE-WEBHOOK', 'SECRETO-DEL-WEBHOOK', 'SECRETO-PASSKEY', 'SECRETO-ENDPOINT', 'SECRETO-CLAVES-PUSH', 'SECRETO-2FA', 'SECRETO-CODIGO-RECUPERACION', $plainToken, explode('|', $plainToken)[1],
++        $raw('social_accounts', 'access_token'), $raw('webhooks', 'secret'), $raw('push_subscriptions', 'endpoint'), (string) DB::table('users')->where('id', $user->id)->value('two_factor_secret'),
++        (string) DB::table('users')->where('id', $user->id)->value('password'), (string) DB::table('personal_access_tokens')->where('tokenable_id', $user->id)->value('token'), config('app.key')] as $secret) {
++        expect($secret)->not->toBe('')->and($haystack)->not->toContain($secret);
++    }
++    expect($haystack)->toContain('PROPIO-cuenta');
++});
++
++test('los comentarios recibidos de terceros no van en el ZIP, sí las respuestas propias', function () {
++    $seed = seedExportData($this->user, 'PROPIO');
++    $account = SocialAccount::withoutUserScope()->where('user_id', $this->user->id)->value('id');
++    foreach ([['c1', 'TERCERO-autor', 'TERCERO-comentario', 0], ['c2', 'PROPIO-autor', 'PROPIO-respuesta', 1]] as [$id, $author, $text, $own]) {
++        DB::table('inbox_comments')->insert(['user_id' => $this->user->id, 'brand_id' => $seed['brand']->id, 'social_account_id' => $account, 'network' => 'instagram', 'external_id' => $id, 'author_name' => $author, 'text' => $text, 'is_own' => $own]);
++    }
++
++    $haystack = zipHaystack(exportZip(runExport(requestExport($this->user))));
++
++    expect($haystack)->toContain('PROPIO-respuesta')->not->toContain('TERCERO');
++});
++
++test('el job avisa al terminar con la notificación de la app y enlaza a la página', function () {
++    seedExportData($this->user, 'PROPIO');
++    runExport(requestExport($this->user));
++
++    $notice = $this->user->notifications()->where('data->type', 'job_done_full_export')->first();
++    expect($notice)->not->toBeNull()->and($notice->data['url'])->toBe(route('profile.export', [], false))->and($notice->data['title'])->not->toBeEmpty();
++});
++
++test('el aviso de fin sale también por correo solo si el usuario lo tiene activado', function () {
++    expect((new FullExportReady(1))->via($this->user))->toBe(['database']);
++    $this->user->forceFill(['notify_by_mail' => true])->save();
++    $notice = new FullExportReady(1);
++    expect($notice->via($this->user))->toBe(['database', 'mail'])->and($notice->toMail($this->user)->actionUrl)->toBe(route('profile.export'));
++
++    Notification::fake();
++    runExport(requestExport($this->user));
++    Notification::assertSentTo($this->user, FullExportReady::class);
++});
++
++test('solo puede haber una exportación en curso por usuario', function () {
++    $first = requestExport($this->user);
++    expect($first->status)->toBe(DataExport::STATUS_PENDING)->and($first->in_progress)->toBeTrue();
++    Bus::assertDispatchedTimes(BuildFullExport::class, 1);
++
++    Bus::fake([BuildFullExport::class]);
++    $this->actingAs($this->user)->post(route('profile.export.store'))->assertRedirect()->assertSessionHas('error');
++    Bus::assertNothingDispatched();
++    expect(DataExport::ownedBy($this->user)->count())->toBe(1);
++
++    // La restricción vive en la base de datos: ni siquiera una carrera puede crear otra en curso.
++    expect(fn () => DataExport::create(['user_id' => $this->user->id, 'status' => DataExport::STATUS_PENDING, 'in_progress' => true]))->toThrow(UniqueConstraintViolationException::class);
++    // Otro usuario no está bloqueado por el primero.
++    expect(requestExport($this->other)->user_id)->toBe($this->other->id);
++
++    // Terminada, se puede pedir otra; la anterior se sustituye y su fichero se borra.
++    runExport($first);
++    $oldPath = $first->path;
++    $second = requestExport($this->user);
++    expect($second->id)->not->toBe($first->id)->and(DataExport::ownedBy($this->user)->count())->toBe(1);
++    Storage::disk('local')->assertMissing($oldPath);
++});
++
++test('el enlace firmado descarga el ZIP y caduca', function () {
++    seedExportData($this->user, 'PROPIO');
++    $export = runExport(requestExport($this->user));
++
++    $signed = $this->actingAs($this->user)->get(route('profile.export.link', $export))->assertRedirect()->headers->get('Location');
++    $this->actingAs($this->user)->get($signed)->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff');
++    expect($signed)->toContain('signature=')->and($signed)->toContain('expires=');
++
++    $this->travel(config('exports.link_minutes') + 1)->minutes();
++    $this->actingAs($this->user)->get($signed)->assertForbidden();
++});
++
++test('el enlace de otro usuario no sirve, ni su botón, ni un enlace manipulado', function () {
++    $export = runExport(requestExport($this->user));
++    $signed = $this->actingAs($this->user)->get(route('profile.export.link', $export))->headers->get('Location');
++
++    $this->actingAs($this->other)->get(route('profile.export.link', $export))->assertNotFound();
++    $this->actingAs($this->other)->get($signed)->assertForbidden();
++    auth()->logout();
++    $this->get($signed)->assertRedirect(route('login'));
++
++    $tampered = str_replace('/download/'.$this->user->id, '/download/'.$this->other->id, $signed);
++    expect($tampered)->not->toBe($signed);
++    $this->actingAs($this->other)->get($tampered)->assertForbidden();
++    $this->actingAs($this->user)->get($signed.'0')->assertForbidden();
++});
++
++test('un ZIP caducado o aún en curso no se descarga', function () {
++    $export = requestExport($this->user);
++    $this->actingAs($this->user)->get(route('profile.export.link', $export))->assertNotFound();
++
++    runExport($export);
++    $this->travel(config('exports.retention_hours') + 1)->hours();
++    $this->actingAs($this->user)->get(route('profile.export.link', $export))->assertNotFound();
++});
++
++test('superar el tope de tamaño deja el estado en error, avisa y no publica ningún ZIP', function () {
++    seedExportData($this->user, 'PROPIO');
++    Storage::disk('local')->put('media/grande.bin', random_bytes(60_000));
++    MediaAsset::factory()->create(['user_id' => $this->user->id, 'disk' => 'local', 'path' => 'media/grande.bin', 'original_name' => 'grande.bin', 'size' => 60_000]);
++    config(['exports.max_bytes' => 20_000]);
++    $export = requestExport($this->user);
++    $temporales = count(glob(sys_get_temp_dir().'/fullexport-*'));
++
++    runExport($export);
++
++    expect($export->status)->toBe(DataExport::STATUS_FAILED)->and($export->path)->toBeNull()->and($export->in_progress)->toBeNull()->and($export->error)->toContain('tope');
++    expect(Storage::disk('local')->allFiles('full-exports'))->toBe([])->and(count(glob(sys_get_temp_dir().'/fullexport-*')))->toBe($temporales);
++    $notice = $this->user->notifications()->where('data->type', 'job_failed_full_export')->first();
++    expect($notice)->not->toBeNull()->and($notice->data['url'])->toBe(route('profile.export', [], false));
++    // Fallado, se puede volver a pedir.
++    expect(requestExport($this->user)->id)->not->toBe($export->id);
++});
++
++test('un fallo del job deja el estado en error, avisa y no deja ficheros huérfanos', function () {
++    seedExportData($this->user, 'PROPIO');
++    MediaAsset::factory()->create(['user_id' => $this->user->id, 'disk' => 'disco-que-no-existe', 'path' => 'media/x.jpg', 'original_name' => 'x.jpg']);
++    $export = requestExport($this->user);
++    $temporales = count(glob(sys_get_temp_dir().'/fullexport-*'));
++
++    expect(fn () => (new BuildFullExport($export->id))->handle(app(FullExport::class)))->toThrow(InvalidArgumentException::class);
++
++    $export->refresh();
++    expect($export->status)->toBe(DataExport::STATUS_FAILED)->and($export->path)->toBeNull()->and($export->in_progress)->toBeNull()->and($export->error)->not->toContain('disco-que-no-existe');
++    expect(Storage::disk('local')->allFiles('full-exports'))->toBe([])->and(count(glob(sys_get_temp_dir().'/fullexport-*')))->toBe($temporales);
++    expect($this->user->notifications()->where('data->type', 'job_failed_full_export')->count())->toBe(1);
++});
++
++test('failed() del job cubre un timeout: marca el error, borra restos y avisa una sola vez', function () {
++    $export = requestExport($this->user);
++    Storage::disk('local')->put("full-exports/{$this->user->id}/{$export->id}.zip", 'a medias');
++
++    (new BuildFullExport($export->id))->failed(new RuntimeException('timeout'));
++    (new BuildFullExport($export->id))->failed(new RuntimeException('timeout'));
++
++    expect($export->refresh()->status)->toBe(DataExport::STATUS_FAILED)->and(Storage::disk('local')->allFiles('full-exports'))->toBe([])
++        ->and($this->user->notifications()->where('data->type', 'job_failed_full_export')->count())->toBe(1);
++});
++
++test('la limpieza borra los caducados y libera los atascados', function () {
++    seedExportData($this->user, 'PROPIO');
++    $old = runExport(requestExport($this->user));
++    $oldPath = $old->path;
++    $old->forceFill(['expires_at' => now()->subMinute()])->save();
++    $keep = runExport(requestExport($this->other));
++    $stuck = DataExport::create(['user_id' => User::factory()->create()->id, 'status' => DataExport::STATUS_PROCESSING, 'in_progress' => true]);
++    $stuck->forceFill(['updated_at' => now()->subMinutes(config('exports.stuck_minutes') + 1)])->saveQuietly();
++
++    $this->artisan('exports:prune')->assertSuccessful();
++
++    Storage::disk('local')->assertMissing($oldPath);
++    Storage::disk('local')->assertExists($keep->path);
++    expect($old->refresh()->status)->toBe(DataExport::STATUS_EXPIRED)->and($old->path)->toBeNull()
++        ->and($keep->refresh()->status)->toBe(DataExport::STATUS_READY)
++        ->and($stuck->refresh()->status)->toBe(DataExport::STATUS_FAILED)->and($stuck->in_progress)->toBeNull();
++    expect(collect(app(Schedule::class)->events())->contains(fn ($e) => str_contains($e->command, 'exports:prune')))->toBeTrue();
++});
++
++test('la página muestra el estado y un enlace de descarga solo cuando está lista', function () {
++    $this->actingAs($this->user)->get(route('profile.export'))->assertInertia(fn (Assert $page) => $page->component('Profile/Export')->where('latest', null)
++        ->where('limits.retention_hours', config('exports.retention_hours'))->has('limits.max_mb'));
++
++    $export = runExport(requestExport($this->user));
++    $this->actingAs($this->user)->get(route('profile.export'))->assertInertia(fn (Assert $page) => $page->where('latest.status', 'ready')->where('latest.download_url', route('profile.export.link', $export))
++        ->missing('latest.path'));
++    $this->actingAs($this->other)->get(route('profile.export'))->assertInertia(fn (Assert $page) => $page->where('latest', null));
++});
++
++test('la migración de full_exports se puede deshacer', function () {
++    $migration = require database_path('migrations/2026_11_26_090000_create_full_exports_table.php');
++
++    $migration->down();
++    expect(Schema::hasTable('full_exports'))->toBeFalse();
++    $migration->up();
++    expect(Schema::hasTable('full_exports'))->toBeTrue()->and(Schema::hasColumns('full_exports', ['user_id', 'status', 'path', 'size', 'expires_at', 'error', 'in_progress']))->toBeTrue();
++});
++
++test('borrar la cuenta borra sus exportaciones y sus ficheros', function () {
++    $export = runExport(requestExport($this->user));
++    Storage::disk('local')->assertExists($export->path);
++
++    $this->user->delete();
++
++    expect(DataExport::withoutUserScope()->count())->toBe(0);
++    Storage::disk('local')->assertMissing($export->path);
++});
+diff --git a/tests/e2e/full-export.spec.ts b/tests/e2e/full-export.spec.ts
+new file mode 100644
+index 0000000..a993898
+--- /dev/null
++++ b/tests/e2e/full-export.spec.ts
+@@ -0,0 +1,148 @@
++import { expect, test } from '@playwright/test';
++import fs from 'node:fs';
++import zlib from 'node:zlib';
++import {
++    artisan,
++    axeSeriousCritical,
++    cleanComposerBrands,
++    createExtraE2eUser,
++    e2eUser,
++    expectNoOverflow,
++    loginAs,
++    seedComposerBrand,
++    seedComposerPosts,
++    settle,
++    stamp,
++    watch,
++    type ComposerBrand,
++} from './helpers';
++
++/**
++ * Exportación completa de datos en ZIP (T-84, E2E-23): se pide, el job de la cola se procesa desde el spec, llega el aviso, se descarga el
++ * ZIP y solo contiene datos del usuario y ningún secreto. Usuarios `e2e-*` y marcas `e2e-composer-*`: no toca datos reales.
++ */
++test.describe.configure({ mode: 'serial' });
++
++const label = `full-export-${stamp()}`;
++
++/** Lee un ZIP con el directorio central (sin dependencias): nombre de entrada a contenido ya inflado. */
++function readZip(buffer: Buffer): Map<string, Buffer> {
++    const end = buffer.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
++    expect(end, 'directorio central del ZIP').toBeGreaterThan(-1);
++    const total = buffer.readUInt16LE(end + 10);
++    let position = buffer.readUInt32LE(end + 16);
++    const entries = new Map<string, Buffer>();
++    for (let i = 0; i < total; i++) {
++        expect(buffer.readUInt32LE(position)).toBe(0x02014b50);
++        const method = buffer.readUInt16LE(position + 10);
++        const compressed = buffer.readUInt32LE(position + 20);
++        const nameLength = buffer.readUInt16LE(position + 28);
++        const extraLength = buffer.readUInt16LE(position + 30);
++        const commentLength = buffer.readUInt16LE(position + 32);
++        const offset = buffer.readUInt32LE(position + 42);
++        const name = buffer.toString('utf8', position + 46, position + 46 + nameLength);
++        const start = offset + 30 + buffer.readUInt16LE(offset + 26) + buffer.readUInt16LE(offset + 28);
++        const data = buffer.subarray(start, start + compressed);
++        entries.set(name, method === 8 ? zlib.inflateRawSync(data) : data);
++        position += 46 + nameLength + extraLength + commentLength;
++    }
++    return entries;
++}
++
++/** Procesa de forma síncrona las colas del job y del aviso, como haría un worker. */
++const runQueue = () =>
++    artisan(
++        "Illuminate\\Support\\Facades\\Artisan::call('queue:work',['connection'=>'database','--queue'=>'media,poll','--stop-when-empty'=>true,'--tries'=>1,'--timeout'=>100,'--sleep'=>0]);",
++    );
++
++/** Deja al usuario sin exportaciones ni avisos de pruebas anteriores. */
++const cleanExports = (email: string) =>
++    artisan(
++        String.raw`$u = App\Models\User::where('email', '${email}')->first(); if ($u) { App\Models\DataExport::withoutUserScope()->where('user_id', $u->id)->get()->each(function ($e) { $e->deleteFile(); $e->delete(); }); $u->notifications()->delete(); } echo 'CLEAN';`,
++    );
++
++/** Valor que NO debe aparecer en el ZIP: lo lee la base de pruebas (secretos descifrados y hash de la contraseña). */
++const secretsOf = (email: string): string[] =>
++    JSON.parse(
++        artisan(
++            String.raw`$u = App\Models\User::where('email', '${email}')->firstOrFail(); echo 'SECRETS:' . json_encode(array_values(array_filter([$u->password, ...App\Models\SocialAccount::withoutUserScope()->where('user_id', $u->id)->get()->flatMap(fn ($a) => [$a->access_token, $a->refresh_token])->all()])));`,
++        ).match(/SECRETS:(\[.*\])/)![1],
++    );
++
++let brand: ComposerBrand;
++let other: ComposerBrand;
++let otherEmail: string;
++
++test.describe('Exportar mis datos', { tag: '@responsive' }, () => {
++    test.beforeEach(async ({ page }, info) => {
++        const user = e2eUser(info.project.name);
++        cleanComposerBrands(user.email);
++        cleanExports(user.email);
++        brand = seedComposerBrand(user.email, `${label}-${info.project.name}`);
++        seedComposerPosts(user.email, brand.id);
++        otherEmail = createExtraE2eUser(`export-${info.project.name}`);
++        cleanComposerBrands(otherEmail);
++        other = seedComposerBrand(otherEmail, `${label}-ajena-${info.project.name}`);
++        seedComposerPosts(otherEmail, other.id);
++        await loginAs(page, user);
++    });
++
++    test.afterEach(async ({}, info) => {
++        const user = e2eUser(info.project.name);
++        cleanExports(user.email);
++        cleanComposerBrands(user.email);
++        cleanComposerBrands(otherEmail);
++    });
++
++    test('E2E-23 · exportar mis datos: se pide, llega el aviso y el ZIP descargado solo trae datos propios y ningún secreto', async ({
++        page,
++    }, info) => {
++        const w = watch(page);
++        const user = e2eUser(info.project.name);
++        await page.goto('/profile/export');
++        await settle(page);
++        await expect(page.getByRole('heading', { level: 1, name: 'Exportar mis datos', exact: true })).toBeVisible();
++        await expect(page.getByText('Aún no has pedido ninguna exportación.', { exact: true })).toBeVisible();
++        await expect(page.getByTestId('info-note')).toContainText('Credenciales y secretos');
++        await expectNoOverflow(page);
++        await axeSeriousCritical(page, 'Exportar mis datos: estado inicial');
++        await page.screenshot({ path: info.outputPath('full-export-initial.png'), fullPage: true });
++
++        await page.getByRole('button', { name: 'Pedir exportación', exact: true }).click();
++        await expect(page.getByTestId('export-status')).toHaveText('En cola');
++        await expect(page.getByRole('button', { name: 'Exportación en curso…', exact: true })).toBeDisabled();
++
++        runQueue();
++
++        await page.goto('/notifications');
++        await settle(page);
++        const notice = page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Tu exportación de datos está lista', exact: true }) });
++        await expect(notice).toContainText('Ya puedes descargar el ZIP con tus datos.');
++        await notice.getByRole('link', { name: 'Ver exportación', exact: true }).click();
++        await page.waitForURL(/\/profile\/export$/);
++        await expect(page.getByTestId('export-status')).toHaveText('Lista para descargar');
++        await expectNoOverflow(page);
++        await axeSeriousCritical(page, 'Exportar mis datos: lista');
++
++        const [download] = await Promise.all([
++            page.waitForEvent('download'),
++            page.getByRole('link', { name: 'Descargar ZIP', exact: true }).click(),
++        ]);
++        expect(download.suggestedFilename()).toMatch(/^exportacion-\d{4}-\d{2}-\d{2}\.zip$/);
++        const entries = readZip(fs.readFileSync((await download.path())!));
++        const text = [...entries.values()].map((content) => content.toString('utf8')).join('\n');
++
++        expect(entries.has('LEEME.txt') && entries.has('manifest.json')).toBe(true);
++        expect(entries.get('datos/marcas.json')!.toString('utf8')).toContain(brand.name);
++        expect(entries.get('datos/publicaciones.json')!.toString('utf8')).toContain('e2e borrador de calendario');
++        expect(text, 'datos de otro usuario').not.toContain(other.name);
++        expect(text, 'datos de otro usuario').not.toContain(otherEmail);
++        for (const secret of secretsOf(user.email)) expect(text, 'secreto en el ZIP').not.toContain(secret);
++        const manifest = JSON.parse(entries.get('manifest.json')!.toString('utf8'));
++        expect(manifest.format_version).toBe(1);
++
++        await expect(page.getByTestId('export-status')).toHaveText('Lista para descargar');
++        await page.screenshot({ path: info.outputPath('full-export-final.png'), fullPage: true });
++        expect(w.errors, 'errores de consola').toEqual([]);
++    });
++});

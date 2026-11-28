@@ -14,7 +14,9 @@ const text = computed(() => props.label ?? (page.props.shell?.networks ?? []).fi
 </script>
 
 <template>
-    <span class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white py-0.5 pe-2.5 ps-0.5 text-xs font-medium text-slate-700">
+    <span
+        class="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface py-0.5 pe-2.5 ps-0.5 text-xs font-medium text-foreground-secondary"
+    >
         <NetworkIcon :network="network" size="sm" />{{ text }}
     </span>
 </template>

@@ -45,7 +45,11 @@ it('Reports: el job genera el fichero (sync) y la lista ofrece descarga firmada'
 
     $this->actingAs($this->user)->get(route('reports.index'))->assertOk()
         ->assertInertia(fn (Assert $p) => $p->component('Reports/Index')
-            ->where('reports.0.status', 'ready')->where('reports.0.format', 'csv')
+            ->has('reports', 1, fn (Assert $row) => $row
+                ->where('brand', 'Marca A')
+                ->where('status', 'ready')
+                ->where('format', 'csv')
+                ->hasAll(['id', 'from', 'to', 'compare', 'size', 'error', 'created_at', 'download_url', 'deletable']))
             ->where('reports.0.download_url', fn ($u) => str_contains($u, '/link')));
 });
 
@@ -104,7 +108,14 @@ it('Reports: aislamiento, otro usuario no ve ni borra un informe ajeno ni genera
     $report = readyReport($this->user, $this->brand);
     $other = User::factory()->create();
 
-    $this->actingAs($other)->get(route('reports.index'))->assertInertia(fn (Assert $p) => $p->has('reports', 0)->has('brands', 0));
+    $this->actingAs($other)->get(route('reports.index'))->assertInertia(fn (Assert $p) => $p->component('Reports/Index')
+        ->has('reports', 0)
+        ->has('brands', 0)
+        ->where('pagination.has_more', false)
+        ->where('pagination.next_cursor', null)
+        ->where('pagination.total', 0)
+        ->where('defaults.brand_id', null)
+        ->hasAll(['defaults.from', 'defaults.to', 'defaults.compare']));
     $this->actingAs($other)->delete(route('reports.destroy', $report))->assertNotFound();
     expect(Report::withoutUserScope()->count())->toBe(1);
 

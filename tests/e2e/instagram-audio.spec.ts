@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { artisan, chooseContentType, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, settle, stamp } from './helpers';
+import { artisan, chooseContentType, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, quietFor, seedComposerBrand, settle, stamp } from './helpers';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -27,7 +27,7 @@ async function saveDraft(page: Page) {
     await settle(page);
 }
 
-test('Audio Reel: search select volumes save reopen and remove', async ({ page }, info) => {
+test('Audio Reel: search select volumes save reopen and remove', { tag: '@responsive' }, async ({ page }, info) => {
     const queries: string[] = [];
     const track = { audio_id: '587784541076604', title: 'Canción de prueba', artist: 'Artista de prueba', audio_type: 'music', duration_ms: 30000, preview_url: null, artwork_url: null, platform_url: null };
     await page.route(/\/instagram-audio(?:\/[0-9]+)?(?:\?.*)?$/, async route => {
@@ -79,7 +79,7 @@ test('Audio Reel: empty errors and closing preserve the existing choice', async 
     await expect(add).toBeFocused();
 });
 
-test('Audio Reel: typing searches and loading more preserves results with retry and filter reset', async ({ page }, info) => {
+test('Audio Reel: typing searches and loading more preserves results with retry and filter reset', { tag: '@responsive' }, async ({ page }, info) => {
     const queries: { q: string; type: string; cursor: string | null }[] = [];
     const track = (id: string, title: string) => ({ audio_id: id, title, artist: 'Fixture', preview_url: null });
     let failNextPage = true;
@@ -145,12 +145,12 @@ test('Audio Reel: changing a query invalidates slow responses and closing cancel
     await input.fill('Actual');
     await expect(page.getByRole('button', { name: 'Elegir Actual', exact: true })).toBeVisible();
     releaseOld();
-    await page.waitForTimeout(450);
+    await quietFor(page, 450); // negativa: la respuesta vieja, ya liberada, no debe pintar (debounce < 450 ms)
     await expect(page.getByRole('button', { name: 'Elegir Anterior', exact: true })).toHaveCount(0);
     await input.fill('Cancelada');
     await page.keyboard.press('Escape');
     await expect(add).toBeFocused();
-    await page.waitForTimeout(450);
+    await quietFor(page, 450); // negativa: la búsqueda cancelada con Escape no debe llegar a lanzarse (debounce < 450 ms)
     expect(queries).not.toContain('Cancelada');
 });
 

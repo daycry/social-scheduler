@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Canva;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Canva\CanvaConnection;
+use App\Services\Canva\CanvaBrandTemplates;
 use App\Services\Canva\CanvaConnections;
 use App\Services\Canva\CanvaDesigns;
 use App\Services\Canva\CanvaException;
 use App\Services\Canva\CanvaIntegration;
 use App\Services\Canva\CanvaJobs;
+use App\Support\Ownership;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,6 +30,7 @@ class CanvaController extends Controller
         private readonly CanvaConnections $connections,
         private readonly CanvaDesigns $designs,
         private readonly CanvaJobs $jobs,
+        private readonly CanvaBrandTemplates $templates,
         private readonly CanvaIntegration $integration,
     ) {}
 
@@ -38,7 +41,6 @@ class CanvaController extends Controller
         return Inertia::render('Canva/Index', [
             'brand' => ['id' => $brand->id, 'name' => $brand->name],
             'canva' => $this->state($request, $brand),
-            'flash' => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error')],
             'focus' => preg_match('/^[A-Za-z0-9_-]{4,40}$/', (string) $request->query('design')) ? (string) $request->query('design') : null,
         ]);
     }
@@ -74,7 +76,7 @@ class CanvaController extends Controller
 
             return redirect()->route('brands.index')->with('error', 'La sesión de conexión con Canva ha caducado o no es válida. Vuelve a intentarlo.');
         }
-        $brand = Brand::withoutUserScope()->where('user_id', $user->id)->find($attempt['brand_id']);
+        $brand = Brand::ownedBy($user->id)->find($attempt['brand_id']);
         abort_if($brand === null, 404);
         $back = fn (string $type, string $message): RedirectResponse => redirect()->route('canva.index', $brand)->with($type, $message);
 
@@ -166,6 +168,36 @@ class CanvaController extends Controller
         )], 202));
     }
 
+    public function templates(Request $request, Brand $brand): JsonResponse
+    {
+        $this->owned($request, $brand);
+        $data = $request->validate(['query' => ['nullable', 'string', 'max:255'], 'continuation' => ['nullable', 'string', 'max:500']]);
+
+        return $this->guard(fn () => response()->json($this->templates->list($this->active($request, $brand), $data['query'] ?? null, $data['continuation'] ?? null)));
+    }
+
+    public function templateDataset(Request $request, Brand $brand, string $template): JsonResponse
+    {
+        $this->owned($request, $brand);
+
+        return $this->guard(fn () => response()->json(['fields' => $this->templates->dataset($this->active($request, $brand), $template)]));
+    }
+
+    public function storeAutofill(Request $request, Brand $brand): JsonResponse
+    {
+        $this->owned($request, $brand);
+        $data = $request->validate([
+            'brand_template_id' => ['required', 'string', 'regex:'.CanvaBrandTemplates::ID_PATTERN],
+            'fields' => ['required', 'array', 'min:1', 'max:50'],
+            'fields.*' => ['nullable', 'string', 'max:2000'],
+            'title' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        return $this->guard(fn () => response()->json(['job' => $this->jobs->present(
+            $this->jobs->startAutofill($request->user(), $brand, $this->active($request, $brand), $data['brand_template_id'], $data['fields'], $data['title'] ?? null),
+        )], 202));
+    }
+
     public function showJob(Request $request, Brand $brand, int $job): JsonResponse
     {
         $this->owned($request, $brand);
@@ -181,7 +213,7 @@ class CanvaController extends Controller
 
     private function owned(Request $request, Brand $brand): void
     {
-        abort_unless((int) $brand->user_id === (int) $request->user()->id, 404);
+        Ownership::assert($brand, $request->user());
     }
 
     private function active(Request $request, Brand $brand): CanvaConnection

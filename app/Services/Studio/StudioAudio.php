@@ -8,6 +8,7 @@ use App\Models\Studio\StudioAsset;
 use App\Models\User;
 use App\Services\MediaStorage;
 use App\Services\MediaUploadService;
+use App\Support\Ownership;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -74,12 +75,11 @@ class StudioAudio
         $this->assets->assertBrand($user, $brand);
         $filters = Validator::make($filters, ['query' => ['sometimes', 'nullable', 'string', 'max:120'],
             'page' => ['sometimes', 'integer', 'min:1'], 'per_page' => ['sometimes', 'integer', 'min:1', 'max:100']])->validate();
-        $query = MediaAsset::withoutUserScope()->select('media_assets.*')->join('studio_assets', 'studio_assets.media_asset_id', '=', 'media_assets.id')
-            ->where('media_assets.user_id', $user->id)->where('studio_assets.user_id', $user->id)->where('studio_assets.brand_id', $brand->id)
+        $query = MediaAsset::ownedBy($user)->select('media_assets.*')->join('studio_assets', 'studio_assets.media_asset_id', '=', 'media_assets.id')
+            ->where('studio_assets.user_id', $user->id)->where('studio_assets.brand_id', $brand->id)
             ->where('media_assets.kind', MediaAsset::KIND_AUDIO)->where('media_assets.status', MediaAsset::STATUS_READY);
         if (filled($filters['query'] ?? null)) {
-            $term = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], trim($filters['query'])).'%';
-            $query->whereRaw("media_assets.original_name LIKE ? ESCAPE '!'", [$term]);
+            $query->whereLikeEscaped('media_assets.original_name', trim($filters['query']));
         }
         $page = $query->orderByDesc('media_assets.id')->paginate($filters['per_page'] ?? 20, ['media_assets.*'], 'page', $filters['page'] ?? 1);
 
@@ -91,9 +91,10 @@ class StudioAudio
     public function owned(User $user, Brand $brand, int $media): MediaAsset
     {
         $this->assets->assertBrand($user, $brand);
-        $link = StudioAsset::withoutUserScope()->where('user_id', $user->id)->where('brand_id', $brand->id)
+        $link = StudioAsset::ownedBy($user->id)->where('brand_id', $brand->id)
             ->where('media_asset_id', $media)->with('media')->firstOrFail();
-        abort_unless($link->media && (int) $link->media->user_id === (int) $user->id && $link->media->kind === MediaAsset::KIND_AUDIO, 404);
+        Ownership::assert($link->media, $user);
+        Ownership::ensure($link->media->kind === MediaAsset::KIND_AUDIO);
 
         return $link->media;
     }

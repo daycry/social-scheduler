@@ -1,4 +1,5 @@
 <script setup>
+/** @import { ChartSeries } from '@/types/analytics' */
 import { computed, ref } from 'vue';
 import { fmt, shortDate, UNAVAILABLE } from './format';
 
@@ -7,7 +8,7 @@ import { fmt, shortDate, UNAVAILABLE } from './format';
  * series: [{ name, color, points: [{ date, value }] }]
  */
 const props = defineProps({
-    series: { type: Array, required: true },
+    series: { type: /** @type {import('vue').PropType<ChartSeries[]>} */ (Array), required: true },
     height: { type: Number, default: 200 },
 });
 
@@ -27,13 +28,17 @@ const scale = computed(() => {
     return { lo, hi };
 });
 
+/** @param {number} i */
 const x = (i) => PAD.left + (dates.value.length <= 1 ? (W - PAD.left - PAD.right) / 2 : (i * (W - PAD.left - PAD.right)) / (dates.value.length - 1));
+/** @param {number} v */
 const y = (v) => PAD.top + (1 - (v - scale.value.lo) / (scale.value.hi - scale.value.lo)) * (props.height - PAD.top - PAD.bottom);
 
 // Segmentos continuos (se parten en los null).
 const paths = computed(() =>
     props.series.map((s) => {
+        /** @type {[number, number][][]} */
         const segments = [];
+        /** @type {[number, number][]} */
         let current = [];
         s.points.forEach((p, i) => {
             if (p.value === null) {
@@ -61,8 +66,10 @@ const xLabels = computed(() => {
 });
 
 // Tooltip sencillo: dia bajo el cursor.
-const hover = ref(null);
+const hover = ref(/** @type {number | null} */ (null));
+/** @param {MouseEvent} e */
 const onMove = (e) => {
+    if (!(e.currentTarget instanceof SVGSVGElement)) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const px = ((e.clientX - rect.left) / rect.width) * W;
     const n = dates.value.length;
@@ -70,42 +77,114 @@ const onMove = (e) => {
     const i = Math.round(((px - PAD.left) / (W - PAD.left - PAD.right)) * (n - 1));
     hover.value = Math.min(n - 1, Math.max(0, i));
 };
-const hoverRows = computed(() =>
-    hover.value === null ? [] : props.series.map((s) => ({ name: s.name, color: s.color, value: s.points[hover.value]?.value ?? null })),
-);
+const hoverRows = computed(() => {
+    const index = hover.value;
+    return index === null ? [] : props.series.map((s) => ({ name: s.name, color: s.color, value: s.points[index]?.value ?? null }));
+});
 </script>
 
 <template>
     <div>
-        <div v-if="!hasData" class="flex items-center justify-center rounded border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500" :style="{ height: `${height}px` }">
+        <div
+            v-if="!hasData"
+            class="flex items-center justify-center rounded border border-dashed border-control-border bg-canvas text-sm text-foreground-subtle"
+            :style="{ height: `${height}px` }"
+        >
             {{ UNAVAILABLE }} en este periodo
         </div>
         <div v-else class="relative">
-            <svg :viewBox="`0 0 ${W} ${height}`" class="w-full" role="img" aria-label="Gráfico de evolución" @mousemove="onMove" @mouseleave="hover = null">
+            <svg
+                :viewBox="`0 0 ${W} ${height}`"
+                class="w-full"
+                role="img"
+                aria-label="Gráfico de evolución"
+                @mousemove="onMove"
+                @mouseleave="hover = null"
+            >
                 <g v-for="t in ticks" :key="t.y">
-                    <line :x1="PAD.left" :x2="W - PAD.right" :y1="t.y" :y2="t.y" stroke="#e2e8f0" />
-                    <text :x="PAD.left - 6" :y="t.y + 3" text-anchor="end" font-size="10" fill="#64748b">{{ t.label }}</text>
+                    <line :x1="PAD.left" :x2="W - PAD.right" :y1="t.y" :y2="t.y" class="stroke-border" />
+                    <text
+                        :x="PAD.left - 6"
+                        :y="t.y + 3"
+                        text-anchor="end"
+                        font-size="10"
+                        class="fill-foreground-subtle"
+                    >
+                        {{ t.label }}
+                    </text>
                 </g>
-                <text v-for="l in xLabels" :key="l.x" :x="l.x" :y="height - 6" text-anchor="middle" font-size="10" fill="#64748b">{{ l.label }}</text>
-                <g v-for="p in paths" :key="p.name">
-                    <polyline v-for="(seg, i) in p.segments.filter((s) => s.length > 1)" :key="i" :points="seg.map((pt) => pt.join(',')).join(' ')" fill="none" :stroke="p.color" stroke-width="2" stroke-linejoin="round" />
-                    <circle v-for="(seg, i) in p.dots" :key="`d${i}`" :cx="seg[0][0]" :cy="seg[0][1]" r="3" :fill="p.color" />
+                <text
+                    v-for="l in xLabels"
+                    :key="l.x"
+                    :x="l.x"
+                    :y="height - 6"
+                    text-anchor="middle"
+                    font-size="10"
+                    class="fill-foreground-subtle"
+                >
+                    {{ l.label }}
+                </text>
+                <g v-for="p in paths" :key="p.name" class="chart-series" :style="{ '--series-color': p.color }">
+                    <polyline
+                        v-for="(seg, i) in p.segments.filter((s) => s.length > 1)"
+                        :key="i"
+                        :points="seg.map((pt) => pt.join(',')).join(' ')"
+                        fill="none"
+                        class="stroke-[color:var(--chart-series)]"
+                        stroke-width="2"
+                        stroke-linejoin="round"
+                    />
+                    <circle
+                        v-for="(seg, i) in p.dots"
+                        :key="`d${i}`"
+                        :cx="seg[0][0]"
+                        :cy="seg[0][1]"
+                        r="3"
+                        class="fill-[color:var(--chart-series)]"
+                    />
                 </g>
-                <line v-if="hover !== null" :x1="x(hover)" :x2="x(hover)" :y1="PAD.top" :y2="height - PAD.bottom" stroke="#94a3b8" stroke-dasharray="3 3" />
+                <line
+                    v-if="hover !== null"
+                    :x1="x(hover)"
+                    :x2="x(hover)"
+                    :y1="PAD.top"
+                    :y2="height - PAD.bottom"
+                    class="stroke-control-border"
+                    stroke-dasharray="3 3"
+                />
             </svg>
-            <div v-if="hover !== null" class="pointer-events-none absolute right-2 top-1 rounded border border-slate-200 bg-white/95 px-2 py-1 text-xs shadow">
-                <div class="font-medium text-slate-700">{{ dates[hover] }}</div>
+            <div
+                v-if="hover !== null"
+                class="pointer-events-none absolute right-2 top-1 rounded border border-border bg-surface-raised px-2 py-1 text-xs shadow"
+            >
+                <div class="font-medium text-foreground-secondary">{{ dates[hover] }}</div>
                 <div v-for="r in hoverRows" :key="r.name" class="flex items-center gap-1">
-                    <span class="inline-block h-2 w-2 rounded-full" :style="{ backgroundColor: r.color }"></span>
-                    <span class="text-slate-600">{{ r.name }}:</span>
-                    <span :class="r.value === null ? 'text-slate-500' : 'text-slate-900'">{{ fmt(r.value) }}</span>
+                    <span
+                        class="chart-series inline-block h-2 w-2 rounded-full bg-[color:var(--chart-series)]"
+                        :style="{ '--series-color': r.color }"
+                    ></span>
+                    <span class="text-foreground-muted">{{ r.name }}:</span>
+                    <span
+                        :class="r.value === null ? 'text-foreground-subtle' : 'text-foreground-strong'"
+                        >{{ fmt(r.value) }}</span
+                    >
                 </div>
             </div>
-            <div v-if="series.length > 1" class="mt-1 flex flex-wrap gap-3 text-xs text-slate-600">
+            <div v-if="series.length > 1" class="mt-1 flex flex-wrap gap-3 text-xs text-foreground-muted">
                 <span v-for="s in series" :key="s.name" class="flex items-center gap-1">
-                    <span class="inline-block h-2 w-2 rounded-full" :style="{ backgroundColor: s.color }"></span>{{ s.name }}
+                    <span
+                        class="chart-series inline-block h-2 w-2 rounded-full bg-[color:var(--chart-series)]"
+                        :style="{ '--series-color': s.color }"
+                    ></span
+                    >{{ s.name }}
                 </span>
             </div>
         </div>
     </div>
 </template>
+
+<style scoped>
+.chart-series {
+    --chart-series: color-mix(in srgb, var(--series-color) var(--chart-brand-share), rgb(var(--color-foreground-strong)));
+}
+</style>

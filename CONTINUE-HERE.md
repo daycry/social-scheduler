@@ -1,3 +1,18 @@
+# Punto de reanudación — 2026-11-27
+
+- Proyecto: `C:\laragon\www\metricool`, rama existente `feature/audit-hardening`.
+- Ledger actual: `docs/roadmap/2026-11-11-audit-hardening/tasks.md` (manda sobre los resúmenes).
+- **99/108 cerradas (Fases 6 y 7 completas). T-81 cerrada e integrada el 2026-11-20** (rojo R60 resuelto, nits R2 aplicados, R3 aprobado sin gaps; evidencias en `testing/t81/`). Migraciones pendientes aplicadas en la MySQL de desarrollo con copia `storage/backups/pre-migrate-20261120-133549.sql`.
+- Próximo: T-52, T-56 y T-60 (revisadas: faltan correcciones y cierre; T-52 con el criterio reformulado a −40 % del grafo, decidido por el usuario), después la Fase 5b (T-102, T-103, T-104, T-107) y la Fase 8 (T-99, T-100). El E2E `studio-captions` necesita `pdftoppm` (Poppler) en la máquina. Desde T-95 implementa Codex (`codex exec -m gpt-6.2-sol -c model_reasoning_effort="high" -s workspace-write --add-dir <TEMP>`) y revisa Claude Opus con effort high; el sandbox de Codex bloquea procesos hijos (`spawn EPERM`), así que Node, build y Pest completo los paso yo fuera. En el VPS hay que activar el worker `exports` de T-84. Las migraciones de T-88 a T-96 (`2026_11_27_130100_add_delivery_and_onboarding_preferences_to_users`, `2026_11_27_130200_add_subscriber_limit_notice_to_smart_link_blocks`, `2026_11_27_090000_add_rss_source_to_autolists`, `2026_11_27_100000_create_short_links_tables`, `2026_11_27_110000_add_calendar_feed_to_users`, `2026_11_27_120000_add_watermark_to_studio_brand_kits`, `2026_11_27_130000_add_recycling_to_posts_table`) están pendientes en la MySQL de desarrollo: copia de seguridad antes de `migrate`.
+- No usar bucles `until grep …; do sleep` para esperar a Pest: ejecutarlo en segundo plano y esperar el aviso (dos bucles quedaron colgados 17 h el 2026-11-26).
+- La copia aislada no tiene `.env`: para Pest en `.cache/t8x-physical` hace falta `APP_KEY` efímera por proceso y `storage/framework/{views,cache/data,sessions}`.
+- Pest completo en local: `php artisan config:clear; php -d memory_limit=1G vendor/bin/pest --compact` (con `artisan test` el proceso hijo hereda el 512M del php.ini y se agota hacia el test 4500). Pasarlo antes de cerrar cada tarea: el CI de T-84 cayó por dos tests estáticos que el Pest focal no cubre.
+- Una sola ejecución Playwright a la vez; nunca modificar su copia física mientras ejecuta. Sin Docker/proveedores reales, `.env` privado, producción ni usuario 28. Commit y push a `feature/audit-hardening` al cerrar cada tarea (pedido por el usuario el 2026-11-20); merges del usuario. Conservar cambios existentes del workspace.
+
+---
+
+## Resumen histórico anterior (2026-11-10)
+
 # Continuar la suite social y creativa
 
 Actualizado: 2026-11-10. El [ledger canónico](docs/roadmap/2026-11-03-creative-social-suite/tasks.md) manda sobre este resumen.

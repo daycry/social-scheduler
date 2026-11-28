@@ -1,4 +1,6 @@
-import { createFromTemplate } from './templates';
+import { STUDIO_TEMPLATES, createFromTemplate } from './templates';
+
+const MAX_CACHED_PREVIEWS = STUDIO_TEMPLATES.length;
 const cache = new Map();
 const waiting = [];
 let active = 0;
@@ -27,6 +29,6 @@ export function templatePreview(key, kit = {}, fonts = []) {
     });
     cache.set(identity, pending);
     pending.catch(() => cache.delete(identity));
-    if (cache.size > 40) cache.delete(cache.keys().next().value);
+    if (cache.size > MAX_CACHED_PREVIEWS) cache.delete(cache.keys().next().value);
     return pending;
 }

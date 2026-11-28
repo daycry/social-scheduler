@@ -15,10 +15,16 @@ class StudioDesignActivity extends Notification
         return ['database'];
     }
 
-    /** @return array<string, mixed> */
+    /** @return array<string, mixed> `url` genérico (`Notifications/Index` lo usa como enlace): al diseño, salvo si se retiró el acceso (ya no podría abrirlo). */
     public function toArray(object $notifiable): array
     {
+        $url = match ($this->kind) {
+            'revoked' => null,
+            'approval_requested', 'approval_approved', 'approval_rejected' => route('approvals.index', [], false),
+            default => route('studio.designs.edit', $this->designId, false),
+        };
+
         return ['type' => 'studio_design_'.$this->kind, 'design_id' => $this->designId, 'excerpt' => mb_substr($this->designName, 0, 80),
-            'message' => $this->message, 'url' => route('studio.designs.edit', $this->designId, false)];
+            'message' => $this->message, 'url' => $url];
     }
 }

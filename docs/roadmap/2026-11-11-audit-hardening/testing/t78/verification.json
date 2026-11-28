@@ -1,0 +1,89 @@
+{
+  "task": "T-78",
+  "status": "completed",
+  "date": "2026-11-18",
+  "source_files": 1780,
+  "source_hashes": "source-hashes.json",
+  "source_verified_after_browser": true,
+  "candidate_files": 21,
+  "pest": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 4367,
+    "passed": 4358,
+    "assertions": 29306,
+    "duration_ms": 374477,
+    "skipped": 9,
+    "raw": [
+      "{\"peak_php_bytes\":463470592,\"memory_limit\":\"512M\"}",
+      "allocator_peak_bytes=497025024"
+    ]
+  },
+  "sqlite_focal": {
+    "passed": 91,
+    "assertions": 567,
+    "includes_auth_social_and_email_verification": true
+  },
+  "mysql_focal": {
+    "tool": "pest",
+    "result": "passed",
+    "tests": 30,
+    "passed": 30,
+    "assertions": 200,
+    "duration_ms": 8920,
+    "version": "8.4.3",
+    "disposable": true
+  },
+  "feature_tests": {
+    "passed": 11,
+    "assertions": 129
+  },
+  "node": {
+    "passed": 789,
+    "failed": 0,
+    "log": "metricool-t78-r47-node-full.log"
+  },
+  "typecheck": {
+    "errors": 0,
+    "includes_final_e2e_ts": true,
+    "log": "metricool-t78-r47-typecheck.log"
+  },
+  "style_build": "Pint,ESLint,Prettier and production build passed r20",
+  "playwright": {
+    "stats": {
+      "startTime": "2026-11-18T05:02:04.923Z",
+      "duration": 112964.197,
+      "expected": 15,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "qa_gate": "VERDE",
+    "report": "C:\\laragon\\www\\metricool\\.cache\\t76-physical\\storage\\framework\\testing\\t43\\run-general-744f264e-a654-466e-a18d-a068d63c5c41\\results.json",
+    "sha256": "f53a64ace70923bb964f9b218a9f3f3e5007a973ffb998d80a6f0660a4a064c1"
+  },
+  "review": {
+    "requested_model": "claude-opus-5-5",
+    "includes_code_quality": true,
+    "status": "r3_approved_final_process_gate_closed",
+    "findings": null,
+    "critical_open": 0,
+    "important_open": 0,
+    "minor_open": 0,
+    "static_only": true,
+    "receipt": "reviews/r3-opus55.json",
+    "final_gates": "reviews/r3-final-gates.md"
+  },
+  "limits": [
+    "Health probe job handler called directly in tests; no native worker, real provider or production acceptance inferred.",
+    "Runtime.ts retains inherited formatting with exactly one functional fixture line; excluded from whole-file Prettier deliberately per reviewer.",
+    "ESLint configuration ignores TypeScript E2E; final spec checked by strict tsc, Prettier, Node guards and browser.",
+    "The full PHP run precedes only the final TypeScript E2E fixture adjustment; reviewed PHP/UI unchanged.",
+    "No commit, push, merge, private env, production DB or user28 changes."
+  ],
+  "source_verified_after_browser_and_mysql": true,
+  "parent": "T77 completed actual OpusR3, integrated exact",
+  "integrated_byte_exact": true,
+  "reverse_patch_check": true,
+  "source_verified_after_qa_and_integration": true
+}

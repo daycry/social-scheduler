@@ -17,9 +17,11 @@ test('cada red del catalogo declara etiqueta, nombre corto, color hex, proveedor
     }
 });
 
-test('Bluesky se conecta con credenciales y las demas por OAuth', function () {
+test('Bluesky, Mastodon y Telegram se conectan con credenciales y las demas por OAuth', function () {
     expect(Network::Bluesky->authKind())->toBe('credentials')
-        ->and(Network::Bluesky->provider())->toBe('bluesky');
+        ->and(Network::Bluesky->provider())->toBe('bluesky')
+        ->and(Network::Mastodon->authKind())->toBe('credentials')->and(Network::Mastodon->provider())->toBe('mastodon')
+        ->and(Network::Telegram->authKind())->toBe('credentials')->and(Network::Telegram->provider())->toBe('telegram');
 
     foreach ([Network::Instagram, Network::Facebook, Network::YouTube, Network::TikTok] as $network) {
         expect($network->authKind())->toBe('oauth');
@@ -27,7 +29,7 @@ test('Bluesky se conecta con credenciales y las demas por OAuth', function () {
 });
 
 test('providers() se deriva de los casos, sin repetidos', function () {
-    expect(Network::providers())->toBe(['meta', 'google', 'tiktok', 'bluesky', 'threads', 'linkedin', 'pinterest']);
+    expect(Network::providers())->toBe(['meta', 'google', 'tiktok', 'bluesky', 'threads', 'linkedin', 'pinterest', 'mastodon', 'telegram']);
 });
 
 test('offered() solo incluye las redes con conector registrado', function () {
@@ -41,9 +43,13 @@ test('offered() solo incluye las redes con conector registrado', function () {
 test('listing() enumera las redes del catalogo para el MCP y la IA', function () {
     config(['social.bluesky.enabled' => true, 'social.threads.enabled' => false]);
 
-    expect(Network::listing())->toBe('instagram, facebook, youtube, tiktok o bluesky');
+    expect(Network::listing())->toBe('instagram, facebook, youtube, tiktok, bluesky, mastodon o telegram');
 
     config(['social.threads.enabled' => true, 'services.threads.client_id' => 'THAPP1']);
+
+    expect(Network::listing())->toBe('instagram, facebook, youtube, tiktok, bluesky, threads, mastodon o telegram');
+
+    config(['social.mastodon.enabled' => false, 'social.telegram.enabled' => false]);
 
     expect(Network::listing())->toBe('instagram, facebook, youtube, tiktok, bluesky o threads');
 });

@@ -1,6 +1,6 @@
 <script setup>
 import GuestLayout from '@/Layouts/GuestLayout.vue';
-import InputError from '@/Components/InputError.vue';
+import FormField from '@/Components/FormField.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -36,55 +36,59 @@ const submit = () => {
     <GuestLayout>
         <Head title="Verificación en dos pasos" />
 
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Verificación en dos pasos</h1>
-        <p class="mb-6 mt-1 text-sm text-slate-600">
-            <template v-if="!usingRecovery">Escribe el código de 6 dígitos que muestra tu app de autenticación.</template>
-            <template v-else>Escribe uno de los códigos de recuperación que guardaste al activar el doble factor. Cada uno solo sirve una vez.</template>
+        <h1 class="text-2xl font-bold tracking-tight text-foreground-strong">Verificación en dos pasos</h1>
+        <p class="mb-6 mt-1 text-sm text-foreground-muted">
+            <template v-if="!usingRecovery"
+                >Escribe el código de 6 dígitos que muestra tu app de autenticación.</template
+            >
+            <template v-else
+                >Escribe uno de los códigos de recuperación que guardaste al activar el doble factor. Cada uno solo
+                sirve una vez.</template
+            >
         </p>
 
         <form @submit.prevent="submit" novalidate>
             <div v-if="!usingRecovery">
-                <InputLabel for="code" value="Código de verificación" />
-                <TextInput
-                    id="code"
-                    ref="codeInput"
-                    v-model="form.code"
-                    type="text"
-                    inputmode="numeric"
-                    pattern="[0-9]*"
-                    maxlength="8"
-                    autocomplete="one-time-code"
-                    class="mt-1 block w-full tracking-widest"
-                    autofocus
-                    required
-                    :aria-invalid="form.errors.code ? 'true' : undefined"
-                    aria-describedby="code-error"
-                />
-                <div id="code-error" aria-live="polite">
-                    <InputError class="mt-2" :message="form.errors.code" />
-                </div>
+                <FormField id="code" :error="form.errors.code" error-class="mt-2" v-slot="{ control }">
+                    <InputLabel for="code" value="Código de verificación" />
+                    <TextInput
+                        v-bind="control"
+                        ref="codeInput"
+                        v-model="form.code"
+                        type="text"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        maxlength="8"
+                        autocomplete="one-time-code"
+                        class="mt-1 block w-full tracking-widest"
+                        autofocus
+                        required
+                    />
+                </FormField>
             </div>
 
             <div v-else>
-                <InputLabel for="recovery_code" value="Código de recuperación" />
-                <TextInput
+                <FormField
                     id="recovery_code"
-                    ref="recoveryInput"
-                    v-model="form.recovery_code"
-                    type="text"
-                    maxlength="32"
-                    autocomplete="off"
-                    autocapitalize="none"
-                    spellcheck="false"
-                    class="mt-1 block w-full"
-                    autofocus
-                    required
-                    :aria-invalid="form.errors.recovery_code ? 'true' : undefined"
-                    aria-describedby="recovery-error"
-                />
-                <div id="recovery-error" aria-live="polite">
-                    <InputError class="mt-2" :message="form.errors.recovery_code" />
-                </div>
+                    :error="form.errors.recovery_code"
+                    error-class="mt-2"
+                    v-slot="{ control }"
+                >
+                    <InputLabel for="recovery_code" value="Código de recuperación" />
+                    <TextInput
+                        v-bind="control"
+                        ref="recoveryInput"
+                        v-model="form.recovery_code"
+                        type="text"
+                        maxlength="32"
+                        autocomplete="off"
+                        autocapitalize="none"
+                        spellcheck="false"
+                        class="mt-1 block w-full"
+                        autofocus
+                        required
+                    />
+                </FormField>
             </div>
 
             <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
@@ -98,7 +102,7 @@ const submit = () => {
             </div>
         </form>
 
-        <p class="mt-6 text-center text-sm text-slate-600">
+        <p class="mt-6 text-center text-sm text-foreground-muted">
             <Link :href="route('login')" class="link">Volver al inicio de sesión</Link>
         </p>
     </GuestLayout>

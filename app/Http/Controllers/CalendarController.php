@@ -8,9 +8,12 @@ use App\Models\Post;
 use App\Services\CalendarService;
 use App\Services\CalendarViewService;
 use App\Services\PostService;
+use App\Support\EncryptedHistory;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Inertia\Inertia;
 use Inertia\Response;
 use InvalidArgumentException;
@@ -67,6 +70,12 @@ class CalendarController extends Controller
             abort(404, $e->getMessage());
         }
 
+        // La URL secreta del feed solo viaja en este render: se cifra el historial para que «Atrás» no la muestre tras cerrar sesion (CWE-525).
+        $feed = $this->feedState($request);
+        if ($feed['url'] !== null) {
+            EncryptedHistory::enable($request);
+        }
+
         // Exportar CSV (C-03c): solo la vista Lista; el aviso del tope llega antes de descargar.
         $export = $data['view'] === 'list' ? $this->calendar->exportSummary($user, $filters) : null;
 
@@ -79,8 +88,30 @@ class CalendarController extends Controller
             ],
             'views' => $this->views->list($user)->map(fn (CalendarView $v) => $this->views->toArray($v))->values(),
             'active_view' => $active?->id,
-            'flash' => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error'), 'publishing_post_id' => $request->session()->get('publishing_post_id')],
+            'feed' => $feed,
         ]);
+    }
+
+    /**
+     * Estado del feed .ics (T-90): si hay uno activo y, solo justo despues de generarlo, su URL con el token (la base de datos guarda unicamente el hash).
+     *
+     * @return array{active: bool, url: ?string, generated_at: ?string}
+     */
+    private function feedState(Request $request): array
+    {
+        $user = $request->user();
+        $flashed = $request->session()->get('calendar_feed_url');
+        try {
+            $url = is_string($flashed) ? Crypt::decryptString($flashed) : null;
+        } catch (DecryptException) {
+            $url = null;
+        }
+
+        return [
+            'active' => $user->calendar_feed_token_hash !== null,
+            'url' => $user->calendar_feed_token_hash !== null ? $url : null,
+            'generated_at' => $user->calendar_feed_token_at?->toIso8601String(),
+        ];
     }
 
     /** Reprograma una publicacion pendiente (arrastrar en el calendario o editar la fecha en la lista). */

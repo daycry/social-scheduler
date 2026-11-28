@@ -12,7 +12,7 @@ const source = await readFile(new URL('../../resources/js/Studio/timeline-previe
 const ast = parse(source, { sourceType: 'module' });
 const factory = ast.program.body.find(node => node.type === 'ExportNamedDeclaration' && node.declaration?.id?.name === 'createTimelinePreview').declaration;
 const instantiate = Function('validateDocument', 'renderStudioPage', 'seekVideoFrame', 'clipMediaState', 'compileTimeline', 'sampleTimeline',
-    'createTimelineAudio', 'createCaptionLayer', 'assertChartDocumentBudget', `return (${source.slice(factory.start, factory.end)});`);
+    'createTimelineAudio', 'createCaptionLayer', 'assertChartDocumentBudget', 'applyElementAnimation', `return (${source.slice(factory.start, factory.end)});`);
 const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
 const document = () => ({ schema_version: 2, width: 320, height: 180, timeline: { fps: 30, audio_tracks: [] }, pages: [
     { id: 'a', duration: 1, background: '#ff0000', elements: [newElement('video', { id: 'clip', asset_id: 1 })] },
@@ -34,7 +34,7 @@ function fixture() {
             target.currentTime = time; resolvedSeek = id;
         }, clipMediaState, compileTimeline, sampleTimeline,
         () => ({ prepare: async () => ({ bufferingMs: 0 }), pause() {}, pauseMedia() {}, play: async () => {}, state: () => [], dispose: async () => {} }),
-        async () => null, async () => {});
+        async () => null, async () => {}, () => {});
     const player = createPresentationPlayer({ document: document(), output: canvas, createRenderer: (_canvas, options) => createRenderer(canvas, options),
         now: () => now, requestFrame: cb => { callback = cb; return 1; }, cancelFrame: () => { callback = null; },
         publish: (_canvas, state) => published.push(state) });

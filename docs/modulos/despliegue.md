@@ -50,10 +50,10 @@ Con la URL de ngrok de desarrollo ya registrada, añade estas **sin quitar** las
 
 ## Pasos
 
-1. Crea el dominio, TLS y BD con `v-add-web-domain`, `v-add-letsencrypt-domain` y `v-add-database`. En una instalación nueva, la guía de Hestia usa `app/` para el checkout y `app/public/` como docroot. En un VPS existente, comprueba qué directorio contiene `artisan` y que el docroot efectivo corresponde a su subdirectorio `public/`. La ruta efectiva de este VPS está pendiente de M-06.
+1. Crea el dominio, TLS y BD con `v-add-web-domain`, `v-add-letsencrypt-domain` y `v-add-database`. Tras clonar en `app/` en el paso 3, fija `app/public/` como docroot con el [paso 2.1 de la guía de Hestia](../../deploy/hestia/README.md#21-plantilla-laravel). En un VPS existente, comprueba qué directorio contiene `artisan` y que el docroot efectivo corresponde a su subdirectorio `public/`. La comprobación del VPS está pendiente de M-06.
 2. Ajustes de Nginx (`deploy/hestia/nginx-overrides.conf`) y PHP-FPM (`upload_max_filesize=512M`, `post_max_size=512M`, `memory_limit=256M`, `max_execution_time=300`; con media local las subidas pasan por PHP).
 3. Primera instalación: clona el repositorio en el directorio del checkout elegido en el paso 1. Desde allí ejecuta `cp .env.production.example .env`, `chmod 600 .env`, `composer install --no-dev`, `php artisan key:generate` y `php artisan migrate --force`.
-4. Scheduler y workers: cinco tareas en el cron de Hestia (más el worker `studio` si se exportan MP4/GIF, que no cabe en el cron: ver más abajo), o el scheduler en cron y los workers en systemd (ver [Cron y workers](#cron-y-workers)).
+4. Configura el scheduler y los workers. Usa cinco tareas en el cron de Hestia o deja solo el scheduler en cron y ejecuta los workers en systemd. Ambas opciones requieren la unidad `scheduler-studio` con la configuración por defecto. Consulta [Cron y workers](#cron-y-workers).
 5. Comprobar que procesan: `app:queue-probe` y `app:health`.
 6. Despliegues repetibles: `bash deploy/hestia/deploy.sh` (`--dry-run` lista pasos).
 7. Primer usuario por consola (el registro público está cerrado): ver [Primer usuario](#primer-usuario).
@@ -186,7 +186,7 @@ Antes de desplegar T-49, activa el worker de `studio-render` según la guía Hes
 
 ### Opción B: systemd (procesos siempre vivos)
 
-Requiere root. Sustituye a las tareas 2 a 5 y conserva el scheduler en cron. Al activar `scheduler-worker@studio-render`, desactiva el cron 5 para que solo haya un worker de `studio-render`. La cola `studio` va siempre por su unidad. Consulta `deploy/systemd/README.md` y ajusta `WorkingDirectory` y `ReadWritePaths` a la raíz real de la aplicación.
+Requiere root. Sustituye a las tareas 2 a 5 y conserva el scheduler en cron. Al activar `scheduler-worker@studio-render`, desactiva el cron 5 para que solo haya un worker de `studio-render`. Mantén la unidad dedicada a la cola `studio` según el apartado siguiente. Consulta `deploy/systemd/README.md` y ajusta `WorkingDirectory` y `ReadWritePaths` a la raíz real de la aplicación.
 
 Unidad plantilla `deploy/systemd/scheduler-worker@.service`; la instancia es la cola:
 
@@ -194,7 +194,7 @@ Unidad plantilla `deploy/systemd/scheduler-worker@.service`; la instancia es la 
 sudo systemctl enable --now scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports scheduler-worker@media scheduler-worker@studio-render
 ```
 
-La cola `studio` (MP4/GIF) **no** usa esta plantilla: tiene su propia unidad, descrita en [Worker de la cola studio](#worker-de-la-cola-studio-mp4-y-gif).
+La cola `studio` tiene su propia unidad, descrita en [Worker de la cola studio](#worker-de-la-cola-studio-mp4-y-gif).
 
 Colas de las redes nuevas: **Bluesky** y **Threads** publican por `publish` (con sondeo del vídeo en `poll`), así que el worker de 120 s de `publish,poll` cubre la subida del vídeo de Bluesky (una petición de hasta 80 s dentro del paso de 85 s del job de 110 s) y el sondeo del contenedor de Threads; las métricas de ambas van por `metrics`. El buscador de GIFs importa el MP4 por `media` (cron/worker 4). Las redes añadidas después (LinkedIn y Pinterest) también publican por `publish` y su refresco de token va por `poll`. **Mastodon y Telegram** (T-87) publican por `publish` con el mismo worker (el sondeo de una imagen que Mastodon aún procesa va dentro del paso de 85 s, sin cola nueva); no caducan, así que no usan `poll`, y no tienen métricas ni comentarios. El Estudio usa `studio` para MP4, GIF y miniaturas. `QUEUE_NAMES` por defecto es `publish,poll,metrics,reports,media,studio,studio-render`. La cola `studio-render` procesa IA, exportaciones estáticas y trabajos de imagen. Si se cambia `STUDIO_RENDER_QUEUE`, usa ese nombre en el worker y en `QUEUE_NAMES`.
 
@@ -202,7 +202,7 @@ Parámetros: `--tries=3 --timeout=120 --max-time=3600 --max-jobs=500`, `Restart=
 
 ### Worker de la cola studio (MP4 y GIF)
 
-Las exportaciones audiovisuales del Estudio (MP4 y GIF) se encolan en la cola **`studio`** (`config('studio.av.queue')`), separada de `media` (importaciones, exportaciones estáticas PNG/PDF, IA y Canva). Necesita su propio worker, que **no puede ir en el cron de Hestia** porque exige `Delegate=yes` y cgroupv2:
+Con la configuración por defecto, `scheduler-studio` es necesario para las exportaciones MP4/GIF, las miniaturas y la sonda que `app:queue-probe` encola cada 15 minutos. `media` atiende importaciones y trabajos de Canva. Las exportaciones estáticas, la IA y los trabajos de imagen del Estudio van por `studio-render`. Instala la unidad dedicada a `studio` con systemd, que proporciona el cgroupv2 y `Delegate=yes` que exige el render audiovisual:
 
 ```bash
 sudo cp deploy/systemd/scheduler-studio.service /etc/systemd/system/
@@ -212,6 +212,8 @@ sudo systemctl daemon-reload && sudo systemctl enable --now scheduler-studio
 ```
 
 La unidad ejecuta `queue:work database --queue=studio --tries=1 --timeout=120`, con `MemoryMax=3G`, `OOMPolicy=kill`, `KillMode=control-group` y `Delegate=yes`. Está **preparada y sin instalar** en el VPS (CS-M-07 en [pendientes manuales](../referencia/pendientes-manuales.md)). Detalle y requisitos en `deploy/systemd/README.md`.
+
+Si omites la unidad, quita `studio` de `QUEUE_NAMES` y fija `STUDIO_THUMBNAILS=false`. El scheduler deja de sondear esa cola y el listado deja de generar miniaturas. Las exportaciones MP4/GIF que se soliciten quedarán en cola y los trabajos ya pendientes podrán generar avisos de salud.
 
 ### Comprobar que los workers procesan
 
@@ -240,7 +242,7 @@ Consulta los logs en `~/tmp` del usuario (`ss-schedule.log`, `ss-publish.log`, `
 | `Call to undefined function … pcntl_signal()` | `pcntl` desactivado en el PHP de consola | Ver «Antes de crear los workers» arriba |
 | Publicaciones que salen con minutos de retraso y `dispatch-due-posts` no aparece cada minuto en el log | Bloqueo de solapamiento enganchado (p. ej. tras lanzar `schedule:run` a mano a la vez que el cron) | `php artisan schedule:clear-cache` y no lanzar `schedule:run` a mano con el cron activo |
 | Un vídeo importado queda en «pendiente» y no avanza | Falta el worker de la cola `media` (cron 4) o el parcial está en `storage/app/private/media/<usuario>/*.part` | `tail ~/tmp/ss-media.log`; procesarla a mano con `php artisan queue:work database --queue=media --stop-when-empty --tries=3 --timeout=120`. Cada pasada descarga 80 s y se reencola sola; `app:media-prune` borra los `.part` de más de 24 h |
-| La cola tiene pendientes que no bajan | El worker de esa cola no corre | `tail ~/tmp/ss-publish.log`, `ss-metrics.log` o `ss-media.log`; procesarla a mano con `php artisan queue:work database --queue=<cola> --stop-when-empty --tries=3 --timeout=120` |
+| La cola tiene pendientes que no bajan | El worker de esa cola no corre | Revisa `~/tmp/ss-publish.log`, `ss-metrics.log`, `ss-media.log` o `ss-studio-render.log`. Para `studio` usa `journalctl -u scheduler-studio` y para `studio-render` con systemd usa `journalctl -u scheduler-worker@studio-render`. Comprueba el estado del cron o de la unidad que atiende esa cola. |
 
 ## Analítica «no disponible» tras conectar una cuenta
 
@@ -270,7 +272,7 @@ Si sigue en «no disponible», en este orden:
 ## Healthcheck
 
 - `php artisan app:health` (`--json`, `--skip-scheduler`, `--strict`): BD, cola, disco, latido del scheduler (falla si falta o tiene más de 180 s), snapshots, `config`, `linkedin_version` y `native`. Solo sale con exit 1 si algo está caído; los avisos (WARN) no lo tumban salvo con `--strict`.
-- **Cola atrasada:** `queue` informa `atrasadas=<cola>:<s>s` cuando el job pendiente más viejo (disponible y sin reservar) de una cola supera su umbral: 600 s (`HEALTH_QUEUE_MAX_AGE`) y 1800 s para `media` y `studio` (`HEALTH_QUEUE_MAX_AGE_NATIVE`). Indica que falta el worker de esa cola. `app:queue-probe` está programado cada 15 min, así que una cola sin worker acaba visible aunque no tenga tráfico.
+- **Cola atrasada.** `queue` informa `atrasadas=<cola>:<s>s` cuando el job pendiente más viejo, disponible y sin reservar, supera el umbral. El valor general es 600 s (`HEALTH_QUEUE_MAX_AGE`). `media` y `studio` tienen 1.800 s (`HEALTH_QUEUE_MAX_AGE_NATIVE`). `studio-render` tiene 3.000 s (`HEALTH_QUEUE_MAX_AGE_STUDIO_RENDER`), también si se renombra con `STUDIO_RENDER_QUEUE`. Un único worker puede tardar hasta 2.640 s en atender el lote de un usuario (24 exportaciones de 110 s, `STUDIO_BATCH_MAX_ACTIVE`), con 360 s de margen para el relevo; con lotes simultáneos de varios usuarios o un límite mayor, sube el umbral en proporción. Si la espera supera su umbral, `/health?strict=1` devuelve 503. `app:queue-probe` se ejecuta cada 15 minutos para detectar colas sin worker incluso cuando no hay tráfico.
 - **Snapshots:** avisa si hay cuentas **activas** (las que recoge `CollectSnapshots`) y el último snapshot tiene más de 36 h (`HEALTH_SNAPSHOTS_MAX_AGE_HOURS`); una cuenta recién conectada tiene un margen de 24 h más el umbral.
 - **`native` (WARN):** `ffmpeg`, `ffprobe`, Python del estudio, Chromium (`STUDIO_CHROMIUM_PATH` o el de Playwright) y el modelo de quitar fondo. Se apaga con `HEALTH_NATIVE=false`. Por HTTP (`/health`) el resultado se cachea 5 min (`HEALTH_NATIVE_CACHE_SECONDS`) para no lanzar procesos en cada sondeo, y Chromium solo se comprueba si `STUDIO_CHROMIUM_PATH` está definido (bajo PHP-FPM no hay `HOME` ni `PLAYWRIGHT_BROWSERS_PATH`); la comprobación completa es `php artisan app:health` por CLI.
 - **`config`:** avisa si `APP_DEBUG=true` con `APP_ENV=production`.
@@ -388,9 +390,13 @@ Laravel emite `Permissions-Policy` para deshabilitar cámara, micrófono, geoloc
 
 `Permissions-Policy` se aplica desde el primer despliegue por HTTPS en producción. Desactiva cámara, micrófono, geolocalización y pagos. Valida la reproducción multimedia y los iframes admitidos durante M-06.
 
-`SECURITY_CSP_REPORT_ONLY` activa por defecto la observación en páginas HTML sin CSP propia. Vite y Ziggy comparten un nonce distinto por respuesta. El navegador envía violaciones a `/security/csp-report` mediante `Reporting-Endpoints` o el mecanismo anterior `report-uri`. El receptor registra el nombre de la directiva y el origen o tipo del recurso bloqueado en `security.csp_violation`. El canal propio se rota a diario en `storage/logs/csp-*.log` y conserva 14 días, con el nivel del registro general independiente. Su límite es de 16 KiB por petición, 10 informes por lote y 30 peticiones por minuto e IP. El presupuesto conjunto es de 300 peticiones por minuto por caché compartida. Los informes llegan sin autenticación y los recuentos son una muestra. Confirma los casos en el navegador antes de modificar la política. [Nonce de Vite](https://laravel.com/docs/13.x/vite#content-security-policy-csp-nonce) · [CSP3](https://www.w3.org/TR/CSP3/) · [Reporting API](https://www.w3.org/TR/reporting-1/)
+`SECURITY_CSP_ENABLED=true` y `SECURITY_CSP_REPORT_ONLY=true` son los valores por defecto. En páginas HTML sin CSP propia emiten `Content-Security-Policy-Report-Only`. Con `SECURITY_CSP_REPORT_ONLY=false` se emite `Content-Security-Policy` y el navegador aplica la misma política, con nonce compartido por Vite y Ziggy y con informes activos. Para apagar la CSP de la aplicación y su receptor, usa `SECURITY_CSP_ENABLED=false`. Si antes usabas `SECURITY_CSP_REPORT_ONLY=false` para apagarla, cambia a esta nueva opción. Regenera la caché de configuración al cambiar estos valores. [Nonce de Vite](https://laravel.com/docs/13.x/vite#content-security-policy-csp-nonce) · [CSP3](https://www.w3.org/TR/CSP3/)
 
-Mantén la observación mientras se verifica la navegación, el editor, las fuentes, las vistas públicas y las cargas y descargas multimedia. Revisa los informes de los navegadores admitidos y reproduce los avisos sobre funciones necesarias. Identifica los orígenes de almacenamiento y conexiones utilizados por este despliegue. Sustituye las concesiones generales de HTTPS por los orígenes verificados y migra los estilos en línea que requieran cambios. Prueba la política resultante en observación antes de aplicarla a un entorno previo. Para activar `Content-Security-Policy` en producción, repite la batería y revisa los informes del entorno previo. Si se bloquea una función necesaria, vuelve a desplegar la política de observación.
+`frame-src` permite `'self'` para la vista previa de Sites y `https://docs.google.com` para el iframe de Google Drive Picker. Para Picker, `script-src` permite `https://accounts.google.com/gsi/client` y `https://apis.google.com` (la biblioteca y el módulo que carga). `frame-src` admite también `https://accounts.google.com/gsi/` para Google Identity Services. Las conexiones HTTPS de Picker y GIS están cubiertas por el permiso `https:` que ya tiene `connect-src`. [Google Drive Picker](https://developers.google.com/workspace/drive/picker/guides/web-picker) · [CSP de Google Identity Services](https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid#content_security_policy)
+
+El navegador envía violaciones a `/security/csp-report` mediante `Reporting-Endpoints` o `report-uri`. El receptor registra el nombre de la directiva y el origen o tipo del recurso bloqueado en `security.csp_violation`. El canal propio se rota a diario en `storage/logs/csp-*.log` y conserva 14 días, con nivel independiente del registro general. Su límite es de 16 KiB por petición, 10 informes por lote y 30 peticiones por minuto e IP. El presupuesto conjunto es de 300 peticiones por minuto por caché compartida. Los informes llegan sin autenticación y los recuentos son una muestra. [Reporting API](https://www.w3.org/TR/reporting-1/)
+
+Mantén la observación mientras verificas la navegación, el editor, las fuentes, las vistas públicas, la vista previa de Sites, Drive Picker y las cargas y descargas multimedia. Revisa los informes de los navegadores admitidos y reproduce los avisos sobre funciones necesarias. Identifica los orígenes de almacenamiento y las conexiones del despliegue antes de restringir los permisos generales de HTTPS o modificar los estilos en línea. Valida la política aplicada en un entorno previo y revisa los informes antes de activar `SECURITY_CSP_REPORT_ONLY=false` en producción. Si se bloquea una función necesaria, vuelve a `SECURITY_CSP_REPORT_ONLY=true` y regenera la caché de configuración.
 
 `SECURITY_HSTS_MAX_AGE` se deja sin definir hasta que se confirme TLS en el VPS. Elige un emisor de HSTS para el dominio, el origen o Cloudflare. Evita configurar ambos. Si se activa en la aplicación, empieza con una duración breve y amplíala tras validar el dominio y la renovación del certificado. Regenera la caché de configuración al cambiarla. La aplicación acepta edades enteras de hasta 63.072.000 segundos. La opción afecta al dominio de la aplicación. Para retirar una política HSTS activa, configura `SECURITY_HSTS_MAX_AGE=0`. La aplicación envía `Strict-Transport-Security: max-age=0` por HTTPS y el navegador elimina la política almacenada. [RFC 6797](https://www.rfc-editor.org/rfc/rfc6797)
 

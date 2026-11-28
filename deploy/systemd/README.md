@@ -39,7 +39,9 @@ Para exportaciones estáticas con varias páginas, Studio utiliza PHP `ZipArchiv
 
 ## Worker audiovisual de Studio (preparado, sin instalar)
 
-`scheduler-studio.service` es una unidad dedicada a la cola `database/studio` (`queue:work database --queue=studio`), separada de las colas actuales y del modelo de quitar fondos. Requiere cgroupv2 con `cgroup.kill` (Linux≥5.14), usuario sin privilegios y delegación de su propio subárbol. `MemoryMax=3G` limita todo el worker/guardián/procesos de fase; `MemorySwapMax=0`, `OOMPolicy=kill` y `KillMode=control-group` cierran el árbol completo ante OOM o parada de la unidad. No reserva3GiB al arrancar.
+Con la configuración por defecto, `scheduler-studio` es necesario para MP4/GIF, miniaturas y la sonda de `app:queue-probe` cada 15 minutos. La unidad atiende `database/studio` (`queue:work database --queue=studio`). Requiere cgroupv2 con `cgroup.kill` (Linux ≥ 5.14), usuario sin privilegios y delegación de su propio subárbol. `MemoryMax=3G` limita todo el worker, el guardián y los procesos de fase. `MemorySwapMax=0`, `OOMPolicy=kill` y `KillMode=control-group` cierran el árbol completo ante OOM o parada de la unidad.
+
+Si omites la unidad, quita `studio` de `QUEUE_NAMES` y fija `STUDIO_THUMBNAILS=false` para dejar de encolar sondas y miniaturas. Las solicitudes de MP4/GIF quedarán en cola y los trabajos pendientes que no se procesen podrán generar avisos de salud.
 
 `Delegate=yes` permite crear únicamente subgrupos UUID en la raíz de esa unidad. Por ello su `ProtectControlGroups=no` difiere del worker genérico; los permisos kernel de usuario siguen impidiendo tocar los cgroups de otras unidades. El supervisor verifica propietario, límite heredado y disponibilidad de kill antes de abrir Node. La limpieza usa `cgroup.kill` del subgrupo propio, nunca nombres de procesos ni un kill global. Los workers existentes no cambian.
 

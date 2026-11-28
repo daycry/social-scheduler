@@ -177,6 +177,7 @@ Otros ajustes de `config/publishing.php` sin variable en `.env.example`: `PUBLIS
 |---|---|---|
 | `HEALTH_QUEUE_MAX_AGE` | `600` | Segundos que puede esperar el job pendiente más viejo de una cola antes de avisar de «cola atrasada» |
 | `HEALTH_QUEUE_MAX_AGE_NATIVE` | `1800` | Igual para las colas `media` y `studio` |
+| `HEALTH_QUEUE_MAX_AGE_STUDIO_RENDER` | `3000` | Espera máxima del pendiente más antiguo en la cola `STUDIO_RENDER_QUEUE` antes de avisar. Da margen para el lote de **un** usuario (`STUDIO_BATCH_MAX_ACTIVE`, 24 exportaciones de hasta 110 s) con un solo worker; si varios usuarios lanzan lotes a la vez o se sube ese límite, súbelo en proporción (≈ exportaciones activas totales × 110 s + 360 s) o `/health?strict=1` dará 503 aunque el worker funcione. |
 | `HEALTH_SNAPSHOTS_MAX_AGE_HOURS` | `36` | Horas sin snapshots nuevos tras las que `app:health` avisa (con cuentas conectadas) |
 | `HEALTH_LINKEDIN_VERSION_WARN_MONTHS`, `HEALTH_LINKEDIN_VERSION_RETIRED_MONTHS` | `10` y `12` | Meses de antigüedad de `LINKEDIN_API_VERSION` a partir de los cuales `app:health` avisa y la da por retirada |
 | `HEALTH_NATIVE` | `true` | Comprueba ffmpeg, ffprobe, Python, Chromium y el modelo (WARN); `false` lo desactiva |
@@ -189,6 +190,16 @@ Otros ajustes de `config/publishing.php` sin variable en `.env.example`: `PUBLIS
 | `STUDIO_CHROMIUM_PATH` | vacío | Ruta de Chromium para el estudio (si no, el de Playwright) |
 
 Ver [despliegue](../modulos/despliegue.md#healthcheck) para `/health?strict=1`.
+
+## Seguridad HTTP (T-69)
+
+| Variable | Defecto | Explicación |
+|---|---|---|
+| `SECURITY_CSP_ENABLED` | `true` | `false` desactiva la CSP de la aplicación y su receptor de informes (no recomendado) |
+| `SECURITY_CSP_REPORT_ONLY` | `true` | `true` envía `Content-Security-Policy-Report-Only` (solo informa). **`false` aplica la política** (`Content-Security-Policy`) con el mismo nonce e informes. Ojo: antes de T-69 `false` quitaba la CSP; si heredas `false`, al desplegar se empieza a aplicar |
+| `SECURITY_HSTS_MAX_AGE` | vacío | Segundos de `Strict-Transport-Security` en producción por HTTPS (0–63 072 000). Vacío = no se envía; `0` envía `max-age=0` para revocarla. Actívala solo tras comprobar HTTPS en el VPS |
+
+Ver [despliegue](../modulos/despliegue.md) para pasar de Report-Only a la política aplicada.
 
 ## Retención y revisiones del estudio
 

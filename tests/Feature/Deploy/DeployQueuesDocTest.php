@@ -88,3 +88,17 @@ test('systemd incluye scheduler-worker@media y la unidad de studio existe', func
     expect(file_exists(base_path('deploy/systemd/scheduler-studio.service')))->toBeTrue();
     expect(deployDoc('deploy/systemd/scheduler-studio.service'))->toContain('--queue=studio');
 });
+
+test('documenta el worker de studio y los efectos de omitirlo en cada guía', function (string $path) {
+    $doc = deployDoc($path);
+
+    expect(preg_match('/`scheduler-studio`[^\r\n]*miniaturas[^\r\n]*sonda[^\r\n]*cada 15 minutos/', $doc))
+        ->toBe(1, "$path debe documentar el worker de miniaturas y la frecuencia de la sonda de studio");
+    expect(preg_match('/`studio`[^\r\n]*`QUEUE_NAMES`[^\r\n]*`STUDIO_THUMBNAILS=false`/', $doc))
+        ->toBe(1, "$path debe documentar los dos ajustes para omitir el worker de studio");
+})->with(['deploy/hestia/README.md', 'deploy/systemd/README.md', 'docs/modulos/despliegue.md']);
+
+test('el ejemplo de la unidad genérica activa el worker de studio-render', function () {
+    expect(deployDoc('deploy/systemd/scheduler-worker@.service'))
+        ->toMatch('/systemctl enable --now[^\r\n]*scheduler-worker@studio-render\b/');
+});

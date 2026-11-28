@@ -17,10 +17,10 @@ Los pasos marcados **[VPS]** requieren acceso SSH/root y se ejecutan a mano una 
 ## 2. Dominio, BD y TLS [VPS]
 
 ```bash
-# Dominio con plantilla PHP-FPM (docroot -> public/)
+# Dominio con plantilla Nginx + PHP-FPM (el docroot se fija en 2.1 tras clonar)
 v-add-web-domain <USUARIO> <DOMINIO>
 v-add-letsencrypt-domain <USUARIO> <DOMINIO>        # TLS Let's Encrypt
-v-change-web-domain-tpl <USUARIO> <DOMINIO> laravel  # plantilla Laravel (si no existe, ver 2.1)
+v-change-web-domain-tpl <USUARIO> <DOMINIO> laravel  # plantilla Laravel de 2.1
 v-change-web-domain-proxy-tpl <USUARIO> <DOMINIO> default
 v-add-database <USUARIO> scheduler scheduler <PASSWORD>   # crea <USUARIO>_scheduler
 v-add-web-domain-redirect <USUARIO> <DOMINIO> https://<DOMINIO> 301   # opcional: forzar HTTPS
@@ -28,9 +28,17 @@ v-add-web-domain-redirect <USUARIO> <DOMINIO> https://<DOMINIO> 301   # opcional
 
 ### 2.1 Plantilla Laravel
 
-La raíz de la aplicación en los ejemplos es `/home/<USUARIO>/web/<DOMINIO>/app`. Desde ahí se ejecutan Artisan y el despliegue. El docroot de Nginx y PHP-FPM debe apuntar a `app/public/`.
+La raíz del checkout es `/home/<USUARIO>/web/<DOMINIO>/app`. Artisan y el despliegue se ejecutan desde ese directorio. La plantilla Nginx `laravel.tpl` y su variante HTTPS `laravel.stpl` deben usar las variables de docroot de Hestia (`%docroot%` y `%sdocroot%`, respectivamente). Si falta la plantilla Laravel, copia el par `default.tpl` y `default.stpl` de `/usr/local/hestia/data/templates/web/nginx/php-fpm/` con los nombres `laravel.tpl` y `laravel.stpl` y añade `try_files $uri $uri/ /index.php?$query_string;` a `location /` en ambas. [Plantillas web de Hestia](https://hestiacp.com/docs/server-administration/web-templates)
 
-Comprueba el docroot efectivo del dominio y el directorio que contiene `artisan` antes de adaptar las rutas en un VPS existente. Si el docroot se llama `public_html`, verifica que resuelve al subdirectorio `public/` del checkout. Si la instalación nueva usa `app/`, esas dos rutas deben resolver a `app/public/`.
+Tras clonar en `app/` (paso 4), ejecuta como root con el usuario y dominio reales:
+
+```bash
+/usr/local/hestia/bin/v-change-web-domain-docroot "<USUARIO>" "<DOMINIO>" "<DOMINIO>" ../app/public
+```
+
+Hestia resuelve `../app/public` desde `public_html` del mismo dominio y reconstruye su configuración. Si el pool PHP-FPM aplica `open_basedir`, incluye la raíz `/home/<USUARIO>/web/<DOMINIO>/app/` en las rutas permitidas de una plantilla de backend específica del dominio para que `index.php` pueda cargar `vendor/` y escribir en `storage/`. Conserva las demás rutas permitidas y selecciona la plantilla con `v-change-web-domain-backend-tpl`. [Comando de docroot de Hestia](https://github.com/hestiacp/hestiacp/blob/main/bin/v-change-web-domain-docroot)
+
+**M-06, pendiente de verificar en el VPS.** Comprueba con `nginx -T` que la raíz de los bloques del dominio apunta a `app/public/` y que FastCGI ejecuta el `index.php` de ese directorio. Comprueba el `open_basedir` efectivo del pool, una petición HTTPS a `/up` y la ruta que contiene `artisan` antes de programar el cron. En un VPS existente, verifica esas rutas antes de adaptar los ejemplos a su checkout real.
 
 ## 3. Ajustes de Nginx / PHP-FPM versionados [VPS]
 
@@ -57,7 +65,7 @@ El scheduler (`schedule:run`, cada minuto) solo **encola** el trabajo; los **wor
 
 ### 5.1 Opción A: desde el panel de Hestia (cron), la de este despliegue
 
-En **Hestia → usuario → CRON → Añadir tarea**, configura cinco tareas. El worker audiovisual `studio` usa su unidad systemd (ver 5.1-bis). `<USUARIO>` y `<DOMINIO>` son los del dominio y los cron se ejecutan desde `app/`. Usa la ruta completa de PHP que te dé `which php` en tu sesión.
+En **Hestia → usuario → CRON → Añadir tarea**, configura cinco tareas e instala la unidad systemd de `studio` (ver 5.1-bis). `<USUARIO>` y `<DOMINIO>` son los del dominio y los cron se ejecutan desde `app/`. Usa la ruta completa de PHP que te dé `which php` en tu sesión.
 
 **Antes de crear los workers: `pcntl` en el PHP de consola.** `queue:work` usa `pcntl_signal` para cortar un job colgado (`--timeout`) y pararse limpio. Hestia lo deja en `disable_functions`, y el worker falla con `Call to undefined function Illuminate\Queue\pcntl_signal()`. Se habilita **solo en el PHP de consola** (`cli`), no en el de la web (PHP-FPM), como root:
 
@@ -105,9 +113,9 @@ Qué hace cada opción:
 | `--max-time=55` / `280` | Se corta antes del siguiente arranque del cron (1 min / 5 min). El de `media` va cada minuto con `280` y el `flock` evita el solape |
 | `--timeout=120 --tries=3` | Igual que los workers de systemd: un job colgado se corta a los 120 s y se reintenta hasta 3 veces |
 
-### 5.1-bis Worker de la cola `studio` (MP4/GIF)
+### 5.1-bis Worker de la cola `studio` (MP4/GIF y miniaturas)
 
-La cola `studio` (exportaciones audiovisuales del Estudio) tiene su propio worker y **no puede ir en el cron de Hestia**: el supervisor de fases exige cgroupv2 con `Delegate=yes` y `MemoryMax=3G`, que solo da una unidad systemd. Instálalo, como root, junto a los cron anteriores (el cron 4 sigue atendiendo `media`):
+La unidad `scheduler-studio` es necesaria con la configuración por defecto para MP4/GIF, miniaturas y la sonda que `app:queue-probe` encola cada 15 minutos. Instálala como root junto a los cron anteriores. El supervisor audiovisual requiere cgroupv2, `Delegate=yes` y `MemoryMax=3G`.
 
 ```bash
 sudo cp deploy/systemd/scheduler-studio.service /etc/systemd/system/
@@ -115,7 +123,9 @@ sudo cp deploy/systemd/scheduler-studio.service /etc/systemd/system/
 sudo systemctl daemon-reload && sudo systemctl enable --now scheduler-studio
 ```
 
-La unidad ejecuta `php artisan queue:work database --queue=studio --sleep=1 --tries=1 --timeout=120 --max-time=3600 --max-jobs=500`. Sin ella, las exportaciones MP4/GIF quedan «en cola». Si el VPS no puede ofrecer cgroupv2, esas exportaciones no están disponibles; el resto de colas no depende de ella. Para reiniciarla en cada despliegue: `WORKER_UNITS="scheduler-studio" bash deploy/hestia/deploy.sh`.
+La unidad ejecuta `php artisan queue:work database --queue=studio --sleep=1 --tries=1 --timeout=120 --max-time=3600 --max-jobs=500`. Para reiniciarla en cada despliegue usa `WORKER_UNITS="scheduler-studio" bash deploy/hestia/deploy.sh`.
+
+Si omites la unidad, quita `studio` de `QUEUE_NAMES` y fija `STUDIO_THUMBNAILS=false`. Así dejan de encolarse sondas y miniaturas para `studio`. Las exportaciones MP4/GIF que se soliciten quedarán en cola, y los trabajos de `studio` que ya estén pendientes seguirán sin procesarse y podrán generar avisos de salud.
 
 El cron 2 atiende `publish,poll`, el 3 atiende `metrics,reports`, el 4 atiende `media` y el 5 atiende `studio-render`. La unidad `scheduler-studio` atiende `studio`.
 
@@ -142,7 +152,7 @@ Antes de desplegar el cambio de cola, activa el cron 5 o la unidad `scheduler-wo
 
 ### 5.2 Opción B: systemd (procesos siempre vivos)
 
-Requiere root y sustituye a las tareas 2 a 5. Mantén el scheduler y la unidad `studio` para MP4, GIF y miniaturas (5.1-bis). Usa solo uno de los dos métodos para `studio-render` para evitar procesos de imagen simultáneos. Ver `deploy/systemd/README.md`. Si el checkout está en otra ruta, ajusta `WorkingDirectory` y `ReadWritePaths` a la raíz real de la aplicación.
+Requiere root y sustituye a las tareas 2 a 5. Mantén el scheduler y la unidad `scheduler-studio` según 5.1-bis. Usa solo uno de los dos métodos para `studio-render` para evitar procesos de imagen simultáneos. Ver `deploy/systemd/README.md`. Si el checkout está en otra ruta, ajusta `WorkingDirectory` y `ReadWritePaths` a la raíz real de la aplicación.
 
 ### 5.3 Comprobar que los workers procesan
 

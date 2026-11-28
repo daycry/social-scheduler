@@ -12,6 +12,8 @@ return [
         'default' => (int) env('HEALTH_QUEUE_MAX_AGE', 600),
         'media' => (int) env('HEALTH_QUEUE_MAX_AGE_NATIVE', 1800),
         'studio' => (int) env('HEALTH_QUEUE_MAX_AGE_NATIVE', 1800),
+        // Un solo worker: hasta 24 exportaciones de 110 s, con margen para el relevo del worker.
+        (trim((string) env('STUDIO_RENDER_QUEUE')) ?: 'studio-render') => (int) env('HEALTH_QUEUE_MAX_AGE_STUDIO_RENDER', 3000),
         // Una exportacion de datos puede tardar hasta exports.timeout (1 h): otra pendiente detras no es una cola atrasada.
         'exports' => (int) env('HEALTH_QUEUE_MAX_AGE_EXPORTS', 4200),
     ],

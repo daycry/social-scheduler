@@ -13,7 +13,7 @@
 #   sudo cp deploy/systemd/scheduler-worker@.service /etc/systemd/system/
 #   sudo sed -i 's#USUARIO#<usuario hestia>#g; s#DOMINIO#<dominio>#g; s#PHP_BIN=php#PHP_BIN=<php8.4>#' /etc/systemd/system/scheduler-worker@.service
 #   sudo systemctl daemon-reload
-#   sudo systemctl enable --now scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports scheduler-worker@media
+#   sudo systemctl enable --now scheduler-worker@publish scheduler-worker@poll scheduler-worker@metrics scheduler-worker@reports scheduler-worker@media scheduler-worker@studio-render
 # --timeout=120 debe ser MAYOR que el $timeout del job mas largo (RefreshSocialAccount: 100 s) y MENOR que
 # retry_after de la cola (config/queue.php, 180 s); si no, un job lento se reencola mientras sigue en curso.
 [Unit]

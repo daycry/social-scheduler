@@ -15,8 +15,8 @@ final class SecurityHeaders
             return $next($request);
         }
 
-        $response = config('security.csp_report_only')
-            ? $this->observePolicy($request, $next)
+        $response = config('security.csp_enabled')
+            ? $this->withContentSecurityPolicy($request, $next)
             : $next($request);
 
         $age = config('security.hsts_max_age');
@@ -33,7 +33,7 @@ final class SecurityHeaders
         return $response;
     }
 
-    private function observePolicy(Request $request, Closure $next): Response
+    private function withContentSecurityPolicy(Request $request, Closure $next): Response
     {
         $previous = Vite::getFacadeRoot();
         $vite = clone $previous;
@@ -53,15 +53,16 @@ final class SecurityHeaders
         }
 
         $report = route('security.csp-report', absolute: false);
-        $response->headers->set('Content-Security-Policy-Report-Only', implode('; ', [
+        $header = config('security.csp_report_only') ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy';
+        $response->headers->set($header, implode('; ', [
             "default-src 'self'",
-            "script-src 'self' 'nonce-{$nonce}'",
+            "script-src 'self' 'nonce-{$nonce}' https://accounts.google.com/gsi/client https://apis.google.com",
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "font-src 'self' data: https://fonts.gstatic.com",
             "img-src 'self' https: data: blob:",
             "media-src 'self' https: blob:",
             "connect-src 'self' https:",
-            'frame-src https://www.youtube-nocookie.com https://www.youtube.com',
+            "frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com https://docs.google.com https://accounts.google.com/gsi/",
             "worker-src 'self' blob:",
             "object-src 'none'",
             "base-uri 'self'",

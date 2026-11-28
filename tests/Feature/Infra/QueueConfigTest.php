@@ -50,10 +50,12 @@ test('Redis leaves enough room for long jobs', function () {
 });
 
 test('database health reports a stalled render queue omitted from legacy queue names', function () {
-    config(['queue.names' => ['media', 'studio'], 'health.queue_max_age.default' => 600]);
+    $this->freezeTime();
+    config(['queue.names' => ['media', 'studio']]);
+    $stalledSince = now()->subSeconds(config('health.queue_max_age.studio-render') + 1)->timestamp;
     DB::table('jobs')->insert([
         'queue' => 'studio-render', 'payload' => '{}', 'attempts' => 0, 'reserved_at' => null,
-        'available_at' => now()->timestamp - 601, 'created_at' => now()->timestamp - 601,
+        'available_at' => $stalledSince, 'created_at' => $stalledSince,
     ]);
 
     $result = app(HealthCheck::class)->queue();

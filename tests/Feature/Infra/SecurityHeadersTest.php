@@ -179,16 +179,76 @@ test('HSTS descarta booleanos, valores negativos y edades mayores de dos años',
     }
 });
 
-test('la observación reconoce HTML sin distinguir mayúsculas y se puede desactivar', function () {
+test('la CSP permite el iframe de Sites del mismo origen', function () {
+    $this->app['env'] = 'production';
+    config(['app.url' => 'https://metricool.test']);
+
+    $response = $this->get('https://metricool.test/')->assertOk();
+
+    expect($response->headers->get('Content-Security-Policy-Report-Only'))
+        ->toMatch("/(?:^|; )frame-src[^;]* 'self'(?: |;|$)/");
+});
+
+test('la CSP admite los scripts y el iframe de Google Drive Picker', function () {
+    $this->app['env'] = 'production';
+    config(['app.url' => 'https://metricool.test']);
+
+    $response = $this->get('https://metricool.test/')->assertOk();
+    $policy = $response->headers->get('Content-Security-Policy-Report-Only');
+
+    expect($policy)->toMatch('~(?:^|; )script-src[^;]* https://accounts\.google\.com/gsi/client(?: |;|$)~')
+        ->toMatch('~(?:^|; )script-src[^;]* https://apis\.google\.com(?: |;|$)~')
+        ->toMatch('~(?:^|; )frame-src[^;]* https://docs\.google\.com(?: |;|$)~')
+        ->toMatch('~(?:^|; )frame-src[^;]* https://accounts\.google\.com/gsi/(?: |;|$)~');
+});
+
+test('la CSP aplicada usa la misma política que la observación y conserva el nonce y los informes', function () {
+    $this->app['env'] = 'production';
+    config(['app.url' => 'https://metricool.test', 'security.csp_report_only' => true]);
+    $this->withVite();
+    $hotFile = tmpfile();
+    fwrite($hotFile, 'https://assets.example.test');
+    fflush($hotFile);
+    Vite::useHotFile(stream_get_meta_data($hotFile)['uri']);
+
+    try {
+        $observed = $this->get('https://metricool.test/')->assertOk()
+            ->headers->get('Content-Security-Policy-Report-Only');
+
+        config(['security.csp_report_only' => false]);
+        $response = $this->get('https://metricool.test/')->assertOk()
+            ->assertHeaderMissing('Content-Security-Policy-Report-Only')
+            ->assertHeader('Content-Security-Policy')
+            ->assertHeader('Reporting-Endpoints', 'metricool-csp="https://metricool.test/security/csp-report"');
+        $applied = $response->headers->get('Content-Security-Policy');
+        expect(preg_match("/'nonce-([A-Za-z0-9]+)'/", $applied, $matches))->toBe(1);
+        expect(preg_replace("/'nonce-[A-Za-z0-9]+'/", "'nonce-test'", $applied))
+            ->toBe(preg_replace("/'nonce-[A-Za-z0-9]+'/", "'nonce-test'", $observed));
+        expect($response->getContent())
+            ->toMatch('/<script[^>]* nonce="'.preg_quote($matches[1], '/').'"[^>]*>[^<]*Ziggy/s')
+            ->toMatch('/<script[^>]*src="[^"]+\/resources\/js\/app\.js"[^>]* nonce="'.preg_quote($matches[1], '/').'"/');
+        expect(Vite::cspNonce())->toBeNull();
+
+        $this->call('POST', 'https://metricool.test/security/csp-report', server: ['CONTENT_TYPE' => 'application/reports+json'], content: '[]')
+            ->assertNoContent();
+    } finally {
+        fclose($hotFile);
+    }
+});
+
+test('la observación reconoce HTML sin distinguir mayúsculas y la CSP se puede desactivar explícitamente', function () {
     $this->app['env'] = 'production';
     config(['app.url' => 'https://metricool.test']);
     Route::get('/html-content-type-fixture', fn () => response('<html></html>', 200, ['Content-Type' => 'Text/HTML']));
     $this->get('https://metricool.test/html-content-type-fixture')->assertOk()
         ->assertHeader('Content-Security-Policy-Report-Only');
 
-    config(['security.csp_report_only' => false]);
+    config(['security.csp_enabled' => false]);
     $this->get('https://metricool.test/html-content-type-fixture')->assertOk()
-        ->assertHeaderMissing('Content-Security-Policy-Report-Only');
+        ->assertHeaderMissing('Content-Security-Policy-Report-Only')
+        ->assertHeaderMissing('Content-Security-Policy')
+        ->assertHeaderMissing('Reporting-Endpoints')
+        ->assertHeader('Permissions-Policy');
     $this->call('POST', 'https://metricool.test/security/csp-report', server: ['CONTENT_TYPE' => 'application/csp-report'], content: '{}')
         ->assertNotFound();
 });

@@ -14,7 +14,7 @@ final class CspReportController
 
     public function __invoke(Request $request): Response
     {
-        if (! app()->isProduction() || ! $request->isSecure() || ! config('security.csp_report_only')) {
+        if (! app()->isProduction() || ! $request->isSecure() || ! config('security.csp_enabled')) {
             return response('', 404);
         }
 

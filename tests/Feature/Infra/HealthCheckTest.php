@@ -44,6 +44,20 @@ test('queues within their threshold do not warn', function () {
     expect(app(HealthCheck::class)->queue())->not->toHaveKey('warn');
 });
 
+test('/health strict tolera un lote de studio-render y detecta si supera su umbral propio', function () {
+    $this->freezeTime();
+    $queue = config('queue.studio_render');
+    pendingJob($queue, 3000);
+
+    $this->get('/health?strict=1', ['X-Health-Token' => 'secreto'])
+        ->assertOk()->assertJsonPath('status', 'ok');
+
+    pendingJob($queue, 3001);
+    $this->get('/health?strict=1', ['X-Health-Token' => 'secreto'])
+        ->assertStatus(503)->assertJsonPath('checks.queue.warn', true);
+    expect(app(HealthCheck::class)->lateQueues())->toBe([$queue => 3001]);
+});
+
 test('stale snapshots warn only when accounts are connected', function () {
     expect(app(HealthCheck::class)->snapshots())->toMatchArray(['ok' => true, 'detail' => 'sin cuentas activas con antiguedad suficiente']);
 

@@ -47,10 +47,10 @@ estado: en-progreso
 | Fase 4 — Refactor del backend | 15 | 15 | 100% | 0 / 90.0h | 0 / 22.8h | 0 / 5.7h | 0 / 4350k |
 | Fase 5 — Frontend | 15 | 18 | 83% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
 | Fase 5b — Unificación | 4 | 8 | 50% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
-| Fase 6 — Operación y repositorio | 4 | 6 | 67% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
+| Fase 6 — Operación y repositorio | 6 | 6 | 100% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
 | Fase 7 — Funciones nuevas | 24 | 24 | 100% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **97** | **108** | **90%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
+| **TOTAL** | **99** | **108** | **92%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -3556,32 +3556,32 @@ El Pest global detectó un fixture de catálogo de audio que aún pedía `brands
 
 - **Descripción**: HSTS, `Permissions-Policy` y CSP en modo `Report-Only` con nonce de Vite, con endpoint de informes y plan para pasarla a estricta.
 - **Changelog**: La aplicación puede emitir HSTS por HTTPS y recoge informes de su política de contenido sin bloquear la navegación.
-- **Estado**: en-revision
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-11
 - **Tipo**: devops
-- **Archivos**: `deploy/hestia/nginx-overrides.conf`, `app/Http/Middleware/SecurityHeaders.php`, `config/security.php`, `docs/modulos/despliegue.md`, `config/logging.php`, `resources/views/app.blade.php`
+- **Archivos**: `deploy/hestia/nginx-overrides.conf`, `app/Http/Middleware/SecurityHeaders.php`, `config/security.php`, `docs/modulos/despliegue.md`, `config/logging.php`, `resources/views/app.blade.php`, `docs/roadmap/2026-11-11-audit-hardening/testing/t73-t69/**`
 - **Cubre**: E-05
 - **Cubre (tests)**: E2E-39, M-06
 - **Verificación**: `php artisan test --compact --filter=SecurityHeadersTest` → verde · `npx playwright test tests/e2e/security.spec.ts --workers=1` → verde
 
 **Criterios de aceptación**
 - [x] Las cabeceras se envían solo en producción/HTTPS
-- [ ] La CSP `Report-Only` recoge violaciones sin romper ninguna pantalla
+- [x] La CSP `Report-Only` recoge violaciones sin romper ninguna pantalla
 - [x] Documentado el paso a CSP estricta
 - [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
 - [x] Revisión adversarial A+B(+C)
 - [x] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Qué se puede hacer ya: middleware, config y nginx. Queda a la espera (U): activar HSTS y pasar a CSP estricta tras observar informes reales en el VPS. **A la espera (no bloquea la fase)**: HSTS y CSP estricta tras observar informes en el VPS (usuario).
 
@@ -3592,6 +3592,11 @@ El Pest global detectó un fixture de catálogo de audio que aún pedía `brands
 Se integró R2 tras la aprobación local de aceptación y calidad con Claude Code Opus 5.5. Se añadió un presupuesto de informes agregado junto al límite por IP, se rechazaron booleanos y edades HSTS fuera de rango con revocación explícita en cero, y se verificó el apagado de la observación. La sonda TLS local R2 comprobó 200/204/413, nonce compartido y registro saneado. La rama pasó 76 pruebas y 315 aserciones, más Pint. La política sigue en observación. Quedan el recorrido general de navegador y M-06 en el VPS real. Evidencias `%TEMP%/metricool-t69-r2-saneamiento-opus55.json`, `%TEMP%/metricool-t69-r2-tls-smoke.log` y `%TEMP%/metricool-t69-r2-main-pest.log`.
 
 Playwright de seguridad sobre la rama pasó 16/16 recorridos en una ejecución serial, con qa-gate VERDE. Incluye TOTP y Passkeys en 375 y 360 px y escritorio. La suite usa entorno testing. La comprobación HTTPS local de R2 acredita HSTS y CSP en condiciones de producción de la copia. Sigue pendiente M-06 en el VPS. Evidencia %TEMP%/metricool-t69-main-security-browser.log.
+
+- RED: `SecurityHeadersTest` falló por faltar `'self'` en `frame-src`, faltar el script GIS de Picker, faltar la cabecera aplicada al desactivar la observación y persistir la cabecera de observación al pedir el apagado explícito · 2026-11-28.
+- Correcciones Opus 1/3: se admiten el iframe del mismo origen de Sites y los scripts y marcos de Drive Picker. `SECURITY_CSP_REPORT_ONLY=false` aplica la misma política con nonce e informes. `SECURITY_CSP_ENABLED=false` apaga la CSP de la aplicación y su receptor. La guía recoge los orígenes y los modos.
+
+**Cierre — 2026-11-28:** cabeceras `SecurityHeaders` verificadas contra el código actual (nonce del script de tema de T-97, feed .ics, SmartLinks y acortador públicos). Revisión adversarial A+B+C con Opus (effort high) en 2 intentos: intento 1 — 2 Important (al pasar a CSP estricta se romperían la vista previa de Sites, sin `'self'` en `frame-src`, y Google Drive Picker, sin sus orígenes) + 1 Minor (`SECURITY_CSP_REPORT_ONLY=false` quitaba la CSP en vez de aplicarla), corregidos por Codex: `frame-src 'self'`, orígenes mínimos de Google (`accounts.google.com/gsi/…`, `apis.google.com`, `docs.google.com`), `false` aplica la misma política con nonce e informes y `SECURITY_CSP_ENABLED=false` la desactiva; intento 2 — sin regresiones; 1 Minor (variables `SECURITY_*` sin documentar) corregido en `docs/referencia/configuracion.md` y `.env.production.example`. QA: Pest completo 5005 / 9 omitidos; E2E seguridad + Sites + estado del sistema + compositor 94/94 (`testing/t73-t69/t69-e2e.log`). **Pendiente del usuario (no bloquea):** activar HSTS y pasar a CSP aplicada tras observar informes en el VPS; comprobar en M-06 si Google Identity necesita `accounts.google.com/gsi/style` en `style-src`.
 
 ### T-70 — Rotación de `APP_KEY` y comando `app:reencrypt`
 
@@ -3710,14 +3715,14 @@ Revisión de aceptación y calidad con Claude Code Opus 5.5, R4: aprobada con la
 
 - **Descripción**: Unificar latido (600 s frente a 180 s) y docroot de Hestia en la doc de despliegue.
 - **Changelog**: La guía de despliegue distingue el umbral del chequeo de latido del TTL de la caché y explica cómo verificar las rutas antes de instalar el cron.
-- **Estado**: en-revision
+- **Estado**: completado
 - **Tiempo humano**: est. 3.0h · real —
 - **Tiempo IA (ejec.)**: est. 0.8h · real —
 - **Supervisión**: est. 0.20h (≈25 % IA) · real —
 - **Previsión IA**: 120k in / 35k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-03
 - **Tipo**: docs
-- **Archivos**: `docs/modulos/despliegue.md`, `deploy/hestia/README.md`
+- **Archivos**: `docs/modulos/despliegue.md`, `deploy/hestia/README.md`, `docs/roadmap/2026-11-11-audit-hardening/testing/t73-t69/**`
 - **Cubre**: E-18
 - **Cubre (tests)**: M-06
 - **Verificación**: `rg -n 'latido|180 s|600 s' docs/modulos/despliegue.md deploy/hestia/README.md` → el umbral de 180 s coincide con `HealthCheck::HEARTBEAT_MAX_AGE`; los 600 s describen el TTL de caché o la antigüedad de cola, según el contexto. M-06 confirma el docroot efectivo y la raíz del checkout en el VPS.
@@ -3725,16 +3730,16 @@ Revisión de aceptación y calidad con Claude Code Opus 5.5, R4: aprobada con la
 **Criterios de aceptación**
 - [x] Ningún valor contradictorio de latido o docroot entre los dos documentos
 - [x] Los valores coinciden con `config/*` y el código
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
 - [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
 - [x] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño S. Qué se puede hacer ya: unificar con el código. Queda a la espera (V/U): verificar el docroot en el VPS real. **A la espera (no bloquea la fase)**: Verificar el docroot en el VPS (usuario).
 
@@ -3745,6 +3750,11 @@ Revisión de aceptación y calidad con Claude Code Opus 5.5, R4: aprobada con la
 - Tercera revisión: Opus 5.5 aprobó la documentación sin Critical ni Important. La sonda local cotejó el umbral de 180 s, el TTL de 600 s y los cinco marcadores del cron con el código. Pest ampliado, incluidos los tests de despliegue y latido, pasó 193/193. La ruta y el docroot reales quedan a la espera de la verificación M-06 en el VPS. Informe en `%TEMP%/metricool-t73-opus55-r3.json`.
 - `DeployQueuesDocTest|InfraTest` pasó 34/34 y 114 aserciones. La verificación de navegador que corresponde a este cambio documental es M-06 en el VPS.
 - Diff para Opus preparado en `%TEMP%/metricool-t73-review-r1.txt`.
+
+- RED: `DeployQueuesDocTest` falló en las tres guías por faltar el uso de `scheduler-studio` para miniaturas y sonda, y en el ejemplo systemd por omitir `studio-render`. `HealthCheckTest` obtuvo 503 en `/health?strict=1` para un pendiente de `studio-render` de 3.000 s, donde se esperaba 200 · 2026-11-28.
+- Correcciones Opus 1/3: las guías explican la unidad `scheduler-studio`, la sonda y las consecuencias de omitirla. Se corrigen el reparto `media`/`studio-render`, los logs y la orden systemd. Se documenta y prueba el umbral de 3.000 s de `studio-render`. La orden Hestia fija `app/public/` tras clonar. Queda por verificar en M-06.
+
+**Cierre — 2026-11-28:** documentación de despliegue cotejada con el código (latido 180 s/TTL 600 s, colas de `config/queue.php`, crons y unidades). Revisión adversarial A+B+C con Opus (effort high) en 2 intentos: intento 1 — 1 Important (la guía presentaba la unidad `studio` como opcional aunque la usan las miniaturas y la sonda de colas: sin ella `/health?strict=1` daría 503) + 5 Minor (`media` frente a `studio-render`, logs en la tabla de síntomas, `enable --now` sin `studio-render`, umbral propio de `studio-render` —ahora 3000 s, `HEALTH_QUEUE_MAX_AGE_STUDIO_RENDER`—, orden `v-change-web-domain-docroot` para el docroot `app/public`), corregidos por Codex con test; intento 2 — sin regresiones; 1 Minor (el umbral se calcula para el lote de un usuario) aclarado en la referencia de configuración y en la guía. QA: la del cierre de T-69. **Pendiente del usuario (no bloquea):** verificar el docroot en el VPS (M-06).
 
 ### T-74 — Fixtures grabados por red y test de contrato
 

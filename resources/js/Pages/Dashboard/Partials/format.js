@@ -1,5 +1,5 @@
 /** Color del total agregado. El de cada red sale del catalogo del servidor (`useNetworks().color`). */
-export const TOTAL_COLOR = '#4f46e5';
+export const TOTAL_COLOR = 'rgb(var(--color-accent-fill))';
 
 export const UNAVAILABLE = 'No disponible';
 
@@ -19,8 +19,8 @@ export const fmtPct = (v) => {
 
 /** @param {number | null | undefined} v */
 export const deltaClass = (v) => {
-    if (v === null || v === undefined || v === 0) return 'bg-slate-100 text-slate-600';
-    return v > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+    if (v === null || v === undefined || v === 0) return 'bg-surface-hover text-foreground-muted';
+    return v > 0 ? 'bg-success-soft text-success-ink' : 'bg-danger-soft text-danger-ink';
 };
 
 /** @param {string} iso */

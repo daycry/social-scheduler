@@ -46,7 +46,7 @@ const { submit, form } = useComposer(props);
                 v-if="bestTimeNotice"
                 role="alert"
                 data-testid="best-time-notice"
-                class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+                class="mb-4 rounded-lg border border-warning-border bg-warning-soft px-4 py-3 text-sm text-warning-ink"
                 >{{ bestTimeNotice }}</p
             >
             <div class="grid gap-6 lg:grid-cols-3">

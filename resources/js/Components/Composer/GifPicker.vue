@@ -87,7 +87,7 @@ const pick = (gif) => emit('pick', { id: gif.id, title: gif.title, mp4: gif.mp4 
     >
         <div class="p-4 sm:p-6" data-testid="gif-picker" role="group" aria-labelledby="gif-picker-title">
             <div class="flex items-start justify-between gap-2">
-                <h2 id="gif-picker-title" class="text-lg font-medium text-slate-900">Buscar un GIF</h2>
+                <h2 id="gif-picker-title" class="text-lg font-medium text-foreground-strong">Buscar un GIF</h2>
                 <button type="button" class="btn btn-secondary" data-testid="gif-picker-close" @click="emit('close')"
                     >Cerrar</button
                 >
@@ -95,7 +95,9 @@ const pick = (gif) => emit('pick', { id: gif.id, title: gif.title, mp4: gif.mp4 
 
             <form class="mt-3 flex flex-wrap items-end gap-2" novalidate @submit.prevent="load()">
                 <div class="min-w-0 flex-1 basis-48">
-                    <label for="gif-picker-q" class="mb-1 block text-sm font-medium text-slate-900">Buscar GIFs</label>
+                    <label for="gif-picker-q" class="mb-1 block text-sm font-medium text-foreground-strong"
+                        >Buscar GIFs</label
+                    >
                     <input
                         id="gif-picker-q"
                         data-dialog-initial-focus
@@ -110,23 +112,17 @@ const pick = (gif) => emit('pick', { id: gif.id, title: gif.title, mp4: gif.mp4 
                 </div>
                 <button type="submit" class="btn btn-secondary" :disabled="loading">Buscar</button>
             </form>
-            <p id="gif-picker-hint" class="mt-1 text-xs text-slate-600">
+            <p id="gif-picker-hint" class="mt-1 text-xs text-foreground-muted">
                 Sin texto verás los GIF del momento. Se importa como vídeo MP4. Los GIF suelen durar menos de 3 s: los
                 Reels de Instagram y TikTok los rechazan.
             </p>
 
-            <p
-                v-if="error"
-                role="alert"
-                class="mt-3 text-sm text-red-700"
-                data-testid="gif-picker-error"
-                >{{ error }}</p
-            >
-            <p v-else-if="loading" role="status" class="mt-3 text-sm text-slate-700">Buscando GIFs…</p>
+            <p v-if="error" role="alert" class="mt-3 text-sm text-danger" data-testid="gif-picker-error">{{ error }}</p>
+            <p v-else-if="loading" role="status" class="mt-3 text-sm text-foreground-secondary">Buscando GIFs…</p>
             <p
                 v-else-if="!results.length"
                 role="status"
-                class="mt-3 text-sm text-slate-700"
+                class="mt-3 text-sm text-foreground-secondary"
                 data-testid="gif-picker-empty"
             >
                 {{ searched ? `No hay GIFs para «${searched}». Prueba con otra palabra.` : 'No hay GIFs ahora mismo.' }}
@@ -140,7 +136,7 @@ const pick = (gif) => emit('pick', { id: gif.id, title: gif.title, mp4: gif.mp4 
                 <li v-for="gif in results" :key="gif.id">
                     <button
                         type="button"
-                        class="block w-full overflow-hidden rounded border border-slate-200 bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                        class="block w-full overflow-hidden rounded border border-border bg-surface-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                         :aria-label="`Elegir el GIF ${gif.title || gif.id}`"
                         data-testid="gif-result"
                         @click="pick(gif)"
@@ -164,7 +160,7 @@ const pick = (gif) => emit('pick', { id: gif.id, title: gif.title, mp4: gif.mp4 
             </div>
 
             <p
-                class="mt-4 border-t border-slate-200 pt-3 text-sm font-semibold text-slate-800"
+                class="mt-4 border-t border-border pt-3 text-sm font-semibold text-foreground"
                 data-testid="giphy-attribution"
                 >Powered by GIPHY</p
             >

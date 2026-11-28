@@ -100,20 +100,22 @@ const copy = async () => {
 
 <template>
     <section class="card space-y-3 p-3 sm:p-4" aria-labelledby="calendar-feed-title" data-testid="calendar-feed-panel">
-        <h2 id="calendar-feed-title" class="text-sm font-semibold text-slate-900">Fechas señaladas y suscripción</h2>
+        <h2 id="calendar-feed-title" class="text-sm font-semibold text-foreground-strong"
+            >Fechas señaladas y suscripción</h2
+        >
 
-        <label class="flex items-start gap-2 text-sm text-slate-700" for="show-marketing-dates">
+        <label class="flex items-start gap-2 text-sm text-foreground-secondary" for="show-marketing-dates">
             <Checkbox id="show-marketing-dates" :checked="!marketingHidden" @change="toggleMarketing" />
             <span>
                 Mostrar las fechas señaladas (San Valentín, Black Friday, Día de la Madre…)
-                <span class="block text-xs text-slate-600"
+                <span class="block text-xs text-foreground-muted"
                     >Se ven en el calendario y también en tu enlace de suscripción.</span
                 >
             </span>
         </label>
 
-        <div class="space-y-2 border-t border-slate-100 pt-3">
-            <p class="text-sm font-medium text-slate-800"
+        <div class="space-y-2 border-t border-border-subtle pt-3">
+            <p class="text-sm font-medium text-foreground"
                 >Ver tus publicaciones en Google Calendar, Outlook o Apple Calendar</p
             >
             <InfoNote>
@@ -132,7 +134,7 @@ const copy = async () => {
             </button>
             <template v-else>
                 <div v-if="shownUrl" class="space-y-1" data-testid="calendar-feed-new">
-                    <label for="calendar-feed-url" class="block text-xs font-medium text-slate-700">
+                    <label for="calendar-feed-url" class="block text-xs font-medium text-foreground-secondary">
                         Tu enlace (cópialo ahora: no se vuelve a mostrar)
                     </label>
                     <div class="flex flex-wrap items-center gap-2">
@@ -140,7 +142,7 @@ const copy = async () => {
                             id="calendar-feed-url"
                             type="text"
                             readonly
-                            class="min-w-0 flex-1 rounded-lg border-slate-300 text-xs"
+                            class="min-w-0 flex-1 rounded-lg border-control-border text-xs"
                             :value="shownUrl"
                             @focus="selectAll"
                         />
@@ -148,12 +150,12 @@ const copy = async () => {
                             >Copiar enlace</button
                         >
                     </div>
-                    <p v-if="copied" role="status" class="text-xs text-emerald-800">Enlace copiado.</p>
-                    <p v-if="copyFailed" role="status" class="text-xs text-amber-800"
+                    <p v-if="copied" role="status" class="text-xs text-success-ink">Enlace copiado.</p>
+                    <p v-if="copyFailed" role="status" class="text-xs text-warning-ink"
                         >No se pudo copiar: selecciona el enlace y cópialo a mano.</p
                     >
                 </div>
-                <p v-else class="text-xs text-slate-600" data-testid="calendar-feed-active">
+                <p v-else class="text-xs text-foreground-muted" data-testid="calendar-feed-active">
                     Enlace activo{{ feed.generated_at ? `, creado el ${generatedLabel(feed.generated_at)}` : '' }}. Por
                     seguridad solo se muestra al crearlo: si lo has perdido, regenera uno nuevo.
                 </p>

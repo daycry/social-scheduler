@@ -51,7 +51,7 @@ function duplicate() {
             @click="start"
             >Duplicar</button
         >
-        <p v-if="dirty" id="duplicate-post-dirty" class="text-xs text-slate-600"
+        <p v-if="dirty" id="duplicate-post-dirty" class="text-xs text-foreground-muted"
             >Guarda los cambios antes de duplicar.</p
         >
     </div>
@@ -59,17 +59,17 @@ function duplicate() {
         :open="open"
         :closeable="!form.processing"
         aria-labelledby="duplicate-post-title"
-        class="w-[calc(100vw-2rem)] max-w-lg rounded-xl p-6 shadow-xl backdrop:bg-slate-900/40"
+        class="w-[calc(100vw-2rem)] max-w-lg rounded-xl p-6 shadow-xl backdrop:bg-overlay-strong/40"
         @close="open = false"
     >
         <form class="space-y-4" @submit.prevent="duplicate">
-            <h2 id="duplicate-post-title" class="text-lg font-semibold text-slate-900">Duplicar publicación</h2>
-            <p class="text-sm text-slate-600"
+            <h2 id="duplicate-post-title" class="text-lg font-semibold text-foreground-strong">Duplicar publicación</h2>
+            <p class="text-sm text-foreground-muted"
                 >Crea un borrador independiente a partir de la versión guardada. Revisa las cuentas de destino antes de
                 programarlo.</p
             >
             <div class="space-y-1">
-                <label for="duplicate-brand" class="block text-sm font-medium text-slate-800">Marca de destino</label>
+                <label for="duplicate-brand" class="block text-sm font-medium text-foreground">Marca de destino</label>
                 <select
                     id="duplicate-brand"
                     v-model.number="form.brand_id"
@@ -80,7 +80,7 @@ function duplicate() {
                     <option v-for="brand in brands" :key="brand.id" :value="brand.id">{{ brand.name }}</option>
                 </select>
             </div>
-            <div v-if="errors.length" role="alert" class="text-sm text-red-700">
+            <div v-if="errors.length" role="alert" class="text-sm text-danger">
                 <p v-for="[field, error] in errors" :key="field">{{ error }}</p>
             </div>
             <div class="flex flex-wrap justify-end gap-2">

@@ -11,11 +11,11 @@ const ask = useConfirm();
 
 // Primer comentario (C-01b): solo un comentario `fallido` se edita y se reintenta; el estado del destino no cambia.
 const COMMENT_STYLES = {
-    pendiente: 'bg-sky-50 text-sky-800 ring-sky-200',
-    comentando: 'bg-amber-50 text-amber-800 ring-amber-200',
-    publicado: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
-    fallido: 'bg-red-50 text-red-800 ring-red-200',
-    no_admitido: 'bg-slate-100 text-slate-700 ring-slate-200',
+    pendiente: 'bg-info-soft text-info-ink ring-info-border',
+    comentando: 'bg-warning-soft text-warning-ink ring-warning-border',
+    publicado: 'bg-success-soft text-success-ink ring-success-border',
+    fallido: 'bg-danger-soft text-danger-ink ring-danger-border',
+    no_admitido: 'bg-surface-hover text-foreground-secondary ring-border',
 };
 const edit = reactive({}); // id de destino -> { open, text, busy }
 
@@ -77,22 +77,22 @@ const askForce = async (target) => {
 
 <template>
     <div v-if="post && post.targets.length" class="card p-4">
-        <h2 class="mb-2 font-medium text-slate-900">Estado por red</h2>
+        <h2 class="mb-2 font-medium text-foreground-strong">Estado por red</h2>
         <ul class="space-y-2 text-sm">
             <li v-for="t in post.targets" :key="`${t.account_id}-${t.content_type}`">
                 <span class="font-medium">{{ accountName(t.account_id) }}</span>
                 <StatusBadge class="ml-2" :status="t.status" :label="t.status_label" />
                 <a v-if="t.external_url" :href="t.external_url" target="_blank" rel="noopener" class="link ml-2">Ver</a>
-                <p v-if="t.status_note" class="text-xs text-amber-700">{{ t.status_note }}</p>
-                <p v-if="t.error_message" class="text-xs text-red-600">{{ t.error_message }}</p>
+                <p v-if="t.status_note" class="text-xs text-warning-ink">{{ t.status_note }}</p>
+                <p v-if="t.error_message" class="text-xs text-danger">{{ t.error_message }}</p>
 
                 <!-- Primer comentario (C-01b) -->
                 <div
                     v-if="t.first_comment_status"
-                    class="mt-1 border-l-2 border-slate-200 pl-2"
+                    class="mt-1 border-l-2 border-border pl-2"
                     data-testid="first-comment-status"
                 >
-                    <p class="text-xs text-slate-700">
+                    <p class="text-xs text-foreground-secondary">
                         Primer comentario:
                         <span
                             class="ml-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset"
@@ -103,20 +103,20 @@ const askForce = async (target) => {
                     </p>
                     <p
                         v-if="t.first_comment"
-                        class="mt-0.5 line-clamp-3 whitespace-pre-line text-xs text-slate-600 [overflow-wrap:anywhere]"
+                        class="mt-0.5 line-clamp-3 whitespace-pre-line text-xs text-foreground-muted [overflow-wrap:anywhere]"
                         >{{ t.first_comment }}</p
                     >
                     <p
                         v-if="t.first_comment_error && t.first_comment_status !== 'publicado'"
                         class="text-xs"
-                        :class="t.first_comment_status === 'fallido' ? 'text-red-700' : 'text-slate-600'"
+                        :class="t.first_comment_status === 'fallido' ? 'text-danger' : 'text-foreground-muted'"
                         data-testid="first-comment-error"
                         >{{ t.first_comment_error }}</p
                     >
 
                     <div v-if="t.first_comment_status === 'fallido'" class="mt-1">
                         <div v-if="edit[t.id]?.open" class="space-y-1">
-                            <label :for="`fc-edit-${t.id}`" class="block text-xs font-medium text-slate-800"
+                            <label :for="`fc-edit-${t.id}`" class="block text-xs font-medium text-foreground"
                                 >Texto del primer comentario</label
                             >
                             <textarea
@@ -131,7 +131,7 @@ const askForce = async (target) => {
                             <p
                                 :id="`fc-edit-count-${t.id}`"
                                 class="text-right text-xs"
-                                :class="overMax(t) ? 'font-medium text-red-700' : 'text-slate-600'"
+                                :class="overMax(t) ? 'font-medium text-danger' : 'text-foreground-muted'"
                                 aria-live="polite"
                                 >{{ countChars(edit[t.id].text) }} / {{ maxOf(t) }}</p
                             >

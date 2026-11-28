@@ -7,7 +7,7 @@ const { size, previewSrc, sizes } = useSitePreview(() => props.site, () => props
 
 <template>
     <section class="card space-y-3 p-4" aria-labelledby="s-preview">
-        <h2 id="s-preview" class="text-base font-semibold text-slate-900">Vista previa</h2>
+        <h2 id="s-preview" class="text-base font-semibold text-foreground-strong">Vista previa</h2>
         <div class="flex flex-wrap gap-2" role="group" aria-label="Tamaño de la vista previa">
             <button
                 v-for="(v, k) in sizes"
@@ -21,10 +21,10 @@ const { size, previewSrc, sizes } = useSitePreview(() => props.site, () => props
                 >{{ v[0] }}</button
             >
         </div>
-        <p class="text-xs text-slate-600"
+        <p class="text-xs text-foreground-muted"
             >Muestra el último borrador guardado con el mismo render del sitio publicado.</p
         >
-        <div class="overflow-hidden rounded border border-slate-300 bg-slate-50">
+        <div class="overflow-hidden rounded border border-control-border bg-canvas">
             <iframe
                 :key="previewSrc"
                 :src="previewSrc"

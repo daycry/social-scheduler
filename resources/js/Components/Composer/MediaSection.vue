@@ -204,21 +204,21 @@ onBeforeUnmount(() => {
     <!-- Media -->
     <section class="card p-4">
         <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <h2 id="media-title" tabindex="-1" class="font-medium text-slate-900">Imágenes y vídeos</h2>
+            <h2 id="media-title" tabindex="-1" class="font-medium text-foreground-strong">Imágenes y vídeos</h2>
             <Link v-if="studioOriginUrl" :href="studioOriginUrl" class="btn-secondary">Editar en el Estudio</Link>
         </div>
-        <p v-if="!form.media.length" class="text-sm text-slate-600"
+        <p v-if="!form.media.length" class="text-sm text-foreground-muted"
             >Todavía no has añadido archivos. Usa «Añadir imagen o vídeo» en la barra del editor.</p
         >
         <ul v-if="form.media.length" class="mb-3 space-y-1">
             <li
                 v-for="(id, i) in form.media"
                 :key="id"
-                class="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-200 px-2 py-1 text-sm"
+                class="flex flex-wrap items-center justify-between gap-2 rounded border border-border px-2 py-1 text-sm"
             >
                 <span
                     >{{ i + 1 }}. {{ mediaById(id)?.name ?? `Archivo ${id}` }}
-                    <span class="text-slate-500"
+                    <span class="text-foreground-subtle"
                         >({{ mediaById(id)?.kind === 'video' ? `vídeo ${mediaById(id)?.duration ?? '?'} s` : 'imagen'
                         }}<template v-if="mediaById(id)?.width">
                             · {{ mediaById(id).width }}×{{ mediaById(id).height }}</template
@@ -229,7 +229,7 @@ onBeforeUnmount(() => {
                         :href="mediaById(id).origin.url"
                         target="_blank"
                         rel="noopener noreferrer"
-                        class="ml-1 text-xs text-violet-700 underline"
+                        class="ml-1 text-xs text-accent-secondary-ink underline"
                         data-testid="media-origin"
                         >Origen: {{ mediaById(id).origin.label }}</a
                     >
@@ -238,19 +238,19 @@ onBeforeUnmount(() => {
                 <span v-if="editable" class="space-x-2">
                     <button
                         type="button"
-                        class="text-slate-600"
+                        class="text-foreground-muted"
                         :aria-label="`Subir el archivo ${i + 1}`"
                         @click="move(i, -1)"
                         >↑</button
                     >
                     <button
                         type="button"
-                        class="text-slate-600"
+                        class="text-foreground-muted"
                         :aria-label="`Bajar el archivo ${i + 1}`"
                         @click="move(i, 1)"
                         >↓</button
                     >
-                    <button type="button" class="text-red-600" @click="removeMedia(id)">Quitar</button>
+                    <button type="button" class="text-danger" @click="removeMedia(id)">Quitar</button>
                 </span>
             </li>
         </ul>
@@ -274,10 +274,10 @@ onBeforeUnmount(() => {
         />
 
         <!-- Importar desde una URL pública (C-04a) -->
-        <div v-if="editable" class="mt-3 border-t border-slate-200 pt-3" data-testid="media-import">
+        <div v-if="editable" class="mt-3 border-t border-border pt-3" data-testid="media-import">
             <form class="flex flex-wrap items-end gap-2" novalidate @submit.prevent="startImport">
                 <div class="min-w-0 flex-1 basis-56">
-                    <label for="media-import-url" class="mb-1 block text-sm font-medium text-slate-900"
+                    <label for="media-import-url" class="mb-1 block text-sm font-medium text-foreground-strong"
                         >Desde URL</label
                     >
                     <input
@@ -324,7 +324,7 @@ onBeforeUnmount(() => {
                 >
             </form>
             <GifPicker v-if="giphyEnabled" :show="gifOpen" @close="gifOpen = false" @pick="importGif" />
-            <p id="media-import-help" class="mt-1 text-xs text-slate-600"
+            <p id="media-import-help" class="mt-1 text-xs text-foreground-muted"
                 >Enlace público a una imagen JPG, PNG o WebP, o a un vídeo MP4 o MOV.<template v-if="drive.available()">
                     También puedes elegir un fichero de Google Drive.</template
                 ><template v-if="giphyEnabled"> O busca un GIF en Giphy.</template></p
@@ -332,7 +332,7 @@ onBeforeUnmount(() => {
             <p
                 id="media-import-error"
                 role="alert"
-                class="mt-1 text-sm text-red-700"
+                class="mt-1 text-sm text-danger"
                 data-testid="media-import-error"
                 >{{ error }}</p
             >
@@ -341,20 +341,20 @@ onBeforeUnmount(() => {
                 <li
                     v-for="item in imports"
                     :key="item.id"
-                    class="rounded border border-slate-200 px-2 py-1 text-sm"
+                    class="rounded border border-border px-2 py-1 text-sm"
                     data-testid="media-import-item"
                 >
                     <template v-if="item.status === 'pendiente' && !item.stalled">
                         <span class="break-all"
                             >Importando {{ item.name }}…
                             <span
-                                class="text-slate-600"
+                                class="text-foreground-muted"
                                 >{{ percent(item) !== null ? `${percent(item)} %` : megabytes(item.bytes) }}</span
                             >
                         </span>
                         <button
                             type="button"
-                            class="ml-2 text-slate-700 underline"
+                            class="ml-2 text-foreground-secondary underline"
                             :disabled="item.cancelling"
                             :aria-label="`Cancelar la importación de ${item.name}`"
                             @click="cancel(item)"
@@ -368,23 +368,23 @@ onBeforeUnmount(() => {
                         />
                     </template>
                     <template v-else-if="item.stalled">
-                        <span class="break-all text-red-700" role="alert"
+                        <span class="break-all text-danger" role="alert"
                             >La cola de importación no está procesando la descarga de {{ item.name }}. Inténtalo de
                             nuevo más tarde o descártala.</span
                         >
                         <button
                             type="button"
-                            class="ml-2 text-slate-700 underline"
+                            class="ml-2 text-foreground-secondary underline"
                             :disabled="item.cancelling"
                             @click="cancel(item)"
                             >Descartar</button
                         >
                     </template>
                     <template v-else>
-                        <span class="break-all text-red-700" role="alert"
+                        <span class="break-all text-danger" role="alert"
                             >No se pudo importar {{ item.name }}: {{ item.error }}</span
                         >
-                        <button type="button" class="ml-2 text-slate-700 underline" @click="dismiss(item.id)"
+                        <button type="button" class="ml-2 text-foreground-secondary underline" @click="dismiss(item.id)"
                             >Descartar</button
                         >
                     </template>

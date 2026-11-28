@@ -6,12 +6,12 @@ const { firstPreview, mediaById, previewText, previewItems, previewTarget, accou
 
 <template>
     <div class="card p-4" data-testid="preview-panel">
-        <h2 class="mb-2 font-medium text-slate-900"
+        <h2 class="mb-2 font-medium text-foreground-strong"
             >Previsualización<template v-if="previewTarget">
                 de {{ accountName(previewTarget.account_id) }}</template
             ></h2
         >
-        <div class="space-y-2 rounded border border-slate-200 p-3">
+        <div class="space-y-2 rounded border border-border p-3">
             <video
                 v-if="firstPreview?.kind === 'video'"
                 :key="firstPreview.url"
@@ -30,12 +30,12 @@ const { firstPreview, mediaById, previewText, previewItems, previewTarget, accou
             />
             <p
                 v-else-if="previewItems.length"
-                class="rounded bg-slate-100 p-6 text-center text-sm text-slate-600"
+                class="rounded bg-surface-hover p-6 text-center text-sm text-foreground-muted"
                 >{{ previewItems[0].asset?.kind === 'video' ? 'Vídeo' : 'Imagen' }}</p
             >
             <ol
                 v-if="previewItems.length"
-                class="space-y-1 text-xs text-slate-700"
+                class="space-y-1 text-xs text-foreground-secondary"
                 aria-label="Media que publica esta red"
                 data-testid="preview-media-list"
             >
@@ -55,7 +55,7 @@ const { firstPreview, mediaById, previewText, previewItems, previewTarget, accou
                     >
                 </li>
             </ol>
-            <p class="whitespace-pre-line [overflow-wrap:anywhere] text-sm text-slate-800">{{ previewText }}</p>
+            <p class="whitespace-pre-line [overflow-wrap:anywhere] text-sm text-foreground">{{ previewText }}</p>
         </div>
     </div>
 </template>

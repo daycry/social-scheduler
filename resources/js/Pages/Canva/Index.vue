@@ -217,7 +217,7 @@ onMounted(() => {
     <AuthenticatedLayout>
         <template #header>
             <div class="flex items-center justify-between">
-                <h1 class="text-xl font-bold text-slate-900">Canva · {{ brand.name }}</h1>
+                <h1 class="text-xl font-bold text-foreground-strong">Canva · {{ brand.name }}</h1>
                 <Link :href="route('brands.connections.index', brand.id)" class="link text-sm"
                     >Conexiones de la marca</Link
                 >
@@ -226,8 +226,8 @@ onMounted(() => {
 
         <div class="max-w-4xl space-y-5">
             <section v-if="!canva.configured" class="card space-y-2 p-6" data-testid="canva-unconfigured">
-                <h2 class="font-semibold text-slate-900">Canva: no configurada</h2>
-                <p class="text-sm text-slate-700"
+                <h2 class="font-semibold text-foreground-strong">Canva: no configurada</h2>
+                <p class="text-sm text-foreground-secondary"
                     >Esta instalación no tiene las credenciales de la app de Canva, así que la integración no está
                     disponible. Quien administre el servidor puede activarla registrando la app en Canva Developers y
                     definiendo <code>CANVA_CLIENT_ID</code> y <code>CANVA_CLIENT_SECRET</code>.</p
@@ -236,10 +236,10 @@ onMounted(() => {
 
             <section v-else-if="!connected" class="card space-y-3 p-6" data-testid="canva-disconnected">
                 <h2
-                    class="font-semibold text-slate-900"
+                    class="font-semibold text-foreground-strong"
                     >{{ canva.status === 'expired' ? 'La conexión con Canva ha caducado' : 'Conecta tu cuenta de Canva' }}</h2
                 >
-                <p class="text-sm text-slate-700"
+                <p class="text-sm text-foreground-secondary"
                     >Autoriza a esta marca a ver tus diseños de Canva, exportarlos a la biblioteca y enviarle recursos.
                     Nunca compra nada ni publica por ti: todo lo que importas queda en la biblioteca para que decidas
                     qué hacer.</p
@@ -257,15 +257,17 @@ onMounted(() => {
                     data-testid="canva-connected"
                 >
                     <div>
-                        <h2 class="font-semibold text-slate-900">Canva conectado</h2>
-                        <p class="text-sm text-slate-700">Cuenta: {{ canva.name ?? 'sin nombre visible' }}</p>
+                        <h2 class="font-semibold text-foreground-strong">Canva conectado</h2>
+                        <p class="text-sm text-foreground-secondary"
+                            >Cuenta: {{ canva.name ?? 'sin nombre visible' }}</p
+                        >
                     </div>
                     <SecondaryButton type="button" @click="disconnect">Desconectar</SecondaryButton>
                 </section>
 
                 <p
                     v-if="focus"
-                    class="rounded-lg border border-violet-200 bg-violet-50 p-3 text-sm text-violet-900"
+                    class="rounded-lg border border-accent-secondary-border bg-accent-secondary-soft p-3 text-sm text-accent-secondary-ink"
                     role="status"
                     data-testid="canva-returned"
                     >Has vuelto de Canva. Tu diseño aparece resaltado más abajo: ya puedes exportarlo a la
@@ -273,26 +275,26 @@ onMounted(() => {
                 >
                 <p
                     v-if="error"
-                    class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+                    class="rounded-lg border border-danger-border bg-danger-soft p-3 text-sm text-danger-ink"
                     role="alert"
                     data-testid="canva-error"
                     >{{ error }}</p
                 >
                 <p
                     v-if="notice"
-                    class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"
+                    class="rounded-lg border border-success-border bg-success-soft p-3 text-sm text-success-ink"
                     role="status"
                     data-testid="canva-notice"
                     >{{ notice }}</p
                 >
 
                 <section class="card space-y-2 p-6" aria-labelledby="canva-plan">
-                    <h2 id="canva-plan" class="font-semibold text-slate-900">Qué permite tu plan de Canva</h2>
-                    <p v-if="!canva.capabilities_known" class="text-xs text-amber-700"
+                    <h2 id="canva-plan" class="font-semibold text-foreground-strong">Qué permite tu plan de Canva</h2>
+                    <p v-if="!canva.capabilities_known" class="text-xs text-warning-ink"
                         >No se han podido consultar las capacidades de tu plan; las funciones que las necesitan aparecen
                         desactivadas.</p
                     >
-                    <ul class="divide-y divide-slate-100 text-sm">
+                    <ul class="divide-y divide-border-subtle text-sm">
                         <li
                             v-for="f in canva.features"
                             :key="f.key"
@@ -300,17 +302,22 @@ onMounted(() => {
                             :data-testid="`canva-feature-${f.key}`"
                             :data-available="f.available"
                         >
-                            <span :class="f.available ? 'text-slate-900' : 'text-slate-500'">{{ f.label }}</span>
-                            <span v-if="f.available" class="text-xs font-medium text-emerald-700">Disponible</span>
-                            <span v-else class="max-w-md text-xs text-slate-600">No disponible: {{ f.reason }}</span>
+                            <span
+                                :class="f.available ? 'text-foreground-strong' : 'text-foreground-subtle'"
+                                >{{ f.label }}</span
+                            >
+                            <span v-if="f.available" class="text-xs font-medium text-success-ink">Disponible</span>
+                            <span v-else class="max-w-md text-xs text-foreground-muted"
+                                >No disponible: {{ f.reason }}</span
+                            >
                         </li>
                     </ul>
                 </section>
 
                 <section class="card space-y-3 p-6" aria-labelledby="canva-create">
-                    <h2 id="canva-create" class="font-semibold text-slate-900">Crear en Canva</h2>
+                    <h2 id="canva-create" class="font-semibold text-foreground-strong">Crear en Canva</h2>
                     <form class="flex flex-wrap items-end gap-3" @submit.prevent="createDesign">
-                        <label class="text-sm font-medium text-slate-900"
+                        <label class="text-sm font-medium text-foreground-strong"
                             >Formato
                             <select
                                 v-model="createFormat"
@@ -323,7 +330,7 @@ onMounted(() => {
                                 >
                             </select>
                         </label>
-                        <label class="min-w-0 flex-1 basis-48 text-sm font-medium text-slate-900"
+                        <label class="min-w-0 flex-1 basis-48 text-sm font-medium text-foreground-strong"
                             >Título (opcional)
                             <input
                                 v-model="createTitle"
@@ -338,10 +345,10 @@ onMounted(() => {
                     </form>
                     <p
                         v-if="!features.create?.available"
-                        class="text-xs text-slate-600"
+                        class="text-xs text-foreground-muted"
                         >{{ features.create?.reason }}</p
                     >
-                    <p v-if="created" class="text-sm text-slate-800" data-testid="canva-created">
+                    <p v-if="created" class="text-sm text-foreground" data-testid="canva-created">
                         Diseño creado: «{{ created.title }}».
                         <a
                             v-if="created.open_url"
@@ -355,9 +362,9 @@ onMounted(() => {
                 </section>
 
                 <section class="card space-y-3 p-6" aria-labelledby="canva-designs">
-                    <h2 id="canva-designs" class="font-semibold text-slate-900">Tus diseños de Canva</h2>
+                    <h2 id="canva-designs" class="font-semibold text-foreground-strong">Tus diseños de Canva</h2>
                     <form class="flex flex-wrap items-end gap-2" role="search" @submit.prevent="loadDesigns()">
-                        <label class="min-w-0 flex-1 basis-56 text-sm font-medium text-slate-900"
+                        <label class="min-w-0 flex-1 basis-56 text-sm font-medium text-foreground-strong"
                             >Buscar
                             <input
                                 v-model="query"
@@ -369,10 +376,10 @@ onMounted(() => {
                         </label>
                         <SecondaryButton type="submit" :disabled="loading">Buscar</SecondaryButton>
                     </form>
-                    <p v-if="loading" class="text-sm text-slate-600" role="status">Cargando diseños…</p>
+                    <p v-if="loading" class="text-sm text-foreground-muted" role="status">Cargando diseños…</p>
                     <p
                         v-else-if="loaded && !designs.length"
-                        class="text-sm text-slate-600"
+                        class="text-sm text-foreground-muted"
                         data-testid="canva-no-designs"
                         >No hay diseños que coincidan.</p
                     >
@@ -381,12 +388,13 @@ onMounted(() => {
                             v-for="d in designs"
                             :key="d.id"
                             class="rounded-lg border p-3 text-sm"
-                            :class="d.id === focus ? 'border-violet-500 bg-violet-50' : 'border-slate-200'"
+                            :class="d.id === focus ? 'border-accent-secondary-fill bg-accent-secondary-soft' : 'border-border'"
+                            :aria-current="d.id === focus ? 'true' : undefined"
                             :data-testid="`canva-design-${d.id}`"
                         >
                             <div class="flex flex-wrap items-center justify-between gap-3">
                                 <div class="min-w-0">
-                                    <p class="break-words font-medium text-slate-900">{{ d.title }}</p>
+                                    <p class="break-words font-medium text-foreground-strong">{{ d.title }}</p>
                                     <a
                                         v-if="d.open_url"
                                         :href="d.open_url"
@@ -397,7 +405,7 @@ onMounted(() => {
                                     >
                                 </div>
                                 <form class="flex flex-wrap items-end gap-2" @submit.prevent="startExport(d)">
-                                    <label class="text-xs font-medium text-slate-700"
+                                    <label class="text-xs font-medium text-foreground-secondary"
                                         >Formato de {{ d.title }}
                                         <select
                                             class="field mt-1 block"
@@ -415,7 +423,7 @@ onMounted(() => {
                                     </label>
                                     <label
                                         v-if="formatOf(d.id) === 'png'"
-                                        class="flex items-center gap-1 text-xs text-slate-700"
+                                        class="flex items-center gap-1 text-xs text-foreground-secondary"
                                     >
                                         <input
                                             v-model="transparent[d.id]"
@@ -424,7 +432,7 @@ onMounted(() => {
                                             :aria-label="`Fondo transparente de ${d.title}`"
                                         />
                                         Fondo transparente
-                                        <span v-if="!features.transparent_png?.available" class="text-slate-500"
+                                        <span v-if="!features.transparent_png?.available" class="text-foreground-subtle"
                                             >(no disponible en tu plan)</span
                                         >
                                     </label>
@@ -446,13 +454,15 @@ onMounted(() => {
                     aria-labelledby="canva-templates"
                     data-testid="canva-templates"
                 >
-                    <h2 id="canva-templates" class="font-semibold text-slate-900">Plantillas de marca (Autofill)</h2>
-                    <p class="text-xs text-slate-600"
+                    <h2 id="canva-templates" class="font-semibold text-foreground-strong"
+                        >Plantillas de marca (Autofill)</h2
+                    >
+                    <p class="text-xs text-foreground-muted"
                         >Elige una plantilla de tu marca en Canva y rellena sus campos de texto: Canva crea un diseño
                         nuevo que puedes abrir y exportar.</p
                     >
                     <form class="flex flex-wrap items-end gap-2" role="search" @submit.prevent="loadTemplates()">
-                        <label class="min-w-0 flex-1 basis-56 text-sm font-medium text-slate-900"
+                        <label class="min-w-0 flex-1 basis-56 text-sm font-medium text-foreground-strong"
                             >Buscar plantilla
                             <input
                                 v-model="templateQuery"
@@ -466,7 +476,7 @@ onMounted(() => {
                     </form>
                     <p
                         v-if="templatesLoaded && !templates.length"
-                        class="text-sm text-slate-600"
+                        class="text-sm text-foreground-muted"
                         data-testid="canva-no-templates"
                         >No hay plantillas de marca que coincidan.</p
                     >
@@ -475,10 +485,10 @@ onMounted(() => {
                             v-for="t in templates"
                             :key="t.id"
                             class="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3 text-sm"
-                            :class="template?.id === t.id ? 'border-violet-500 bg-violet-50' : 'border-slate-200'"
+                            :class="template?.id === t.id ? 'border-accent-secondary-fill bg-accent-secondary-soft' : 'border-border'"
                             :data-testid="`canva-template-${t.id}`"
                         >
-                            <span class="min-w-0 break-words font-medium text-slate-900">{{ t.title }}</span>
+                            <span class="min-w-0 break-words font-medium text-foreground-strong">{{ t.title }}</span>
                             <SecondaryButton
                                 type="button"
                                 :disabled="!features.autofill?.available"
@@ -497,29 +507,35 @@ onMounted(() => {
                     >
                     <p
                         v-if="!features.autofill?.available"
-                        class="text-xs text-slate-600"
+                        class="text-xs text-foreground-muted"
                         data-testid="canva-autofill-unavailable"
                         >Autofill no disponible: {{ features.autofill?.reason }}</p
                     >
                     <form
                         v-if="template && features.autofill?.available"
-                        class="space-y-3 border-t border-slate-100 pt-3"
+                        class="space-y-3 border-t border-border-subtle pt-3"
                         data-testid="canva-autofill-form"
                         @submit.prevent="startAutofill"
                     >
-                        <h3 class="text-sm font-semibold text-slate-900">Campos de «{{ template.title }}»</h3>
-                        <p v-if="!textFields.length" class="text-xs text-slate-600"
+                        <h3 class="text-sm font-semibold text-foreground-strong">Campos de «{{ template.title }}»</h3>
+                        <p v-if="!textFields.length" class="text-xs text-foreground-muted"
                             >Esta plantilla no tiene campos de texto que rellenar desde aquí.</p
                         >
-                        <label v-for="f in textFields" :key="f.name" class="block text-sm font-medium text-slate-900"
+                        <label
+                            v-for="f in textFields"
+                            :key="f.name"
+                            class="block text-sm font-medium text-foreground-strong"
                             >{{ f.name }}
                             <input v-model="fieldValues[f.name]" class="field mt-1 w-full" maxlength="2000" />
                         </label>
-                        <p v-if="otherFields.length" class="text-xs text-slate-600" data-testid="canva-autofill-skipped"
+                        <p
+                            v-if="otherFields.length"
+                            class="text-xs text-foreground-muted"
+                            data-testid="canva-autofill-skipped"
                             >Se conserva el valor de la plantilla en los campos que no son de texto:
                             {{ otherFields.map(f => `${f.name} (${f.type})`).join(', ') }}.</p
                         >
-                        <label class="block text-sm font-medium text-slate-900"
+                        <label class="block text-sm font-medium text-foreground-strong"
                             >Título del diseño (opcional)
                             <input v-model="autofillTitle" class="field mt-1 w-full" maxlength="255" />
                         </label>
@@ -530,10 +546,14 @@ onMounted(() => {
                 </section>
 
                 <section class="card space-y-3 p-6" aria-labelledby="canva-send">
-                    <h2 id="canva-send" class="font-semibold text-slate-900">Enviar a Canva</h2>
-                    <p v-if="!features.send?.available" class="text-xs text-slate-600">{{ features.send?.reason }}</p>
+                    <h2 id="canva-send" class="font-semibold text-foreground-strong">Enviar a Canva</h2>
+                    <p
+                        v-if="!features.send?.available"
+                        class="text-xs text-foreground-muted"
+                        >{{ features.send?.reason }}</p
+                    >
                     <form v-else class="flex flex-wrap items-end gap-2" @submit.prevent="sendToCanva">
-                        <label class="min-w-0 flex-1 basis-56 text-sm font-medium text-slate-900"
+                        <label class="min-w-0 flex-1 basis-56 text-sm font-medium text-foreground-strong"
                             >Recurso de la biblioteca
                             <select v-model="sendId" class="field mt-1 w-full">
                                 <option value="">Elige un recurso…</option>
@@ -545,31 +565,35 @@ onMounted(() => {
                 </section>
 
                 <section class="card space-y-3 p-6" aria-labelledby="canva-jobs">
-                    <h2 id="canva-jobs" class="font-semibold text-slate-900">Trabajos recientes</h2>
+                    <h2 id="canva-jobs" class="font-semibold text-foreground-strong">Trabajos recientes</h2>
                     <div :class="pollingExhausted ? 'flex flex-wrap items-center gap-2' : 'sr-only'">
                         <p
                             role="status"
-                            class="text-sm text-slate-600"
+                            class="text-sm text-foreground-muted"
                             >{{ pollingExhausted ? 'Todavía hay trabajos pendientes.' : '' }}</p
                         >
                         <SecondaryButton v-if="pollingExhausted" type="button" @click="restartPolling"
                             >Volver a consultar</SecondaryButton
                         >
                     </div>
-                    <p v-if="!jobs.length" class="text-sm text-slate-600">Todavía no has exportado ni enviado nada.</p>
+                    <p v-if="!jobs.length" class="text-sm text-foreground-muted"
+                        >Todavía no has exportado ni enviado nada.</p
+                    >
                     <ul class="space-y-2">
                         <li
                             v-for="j in jobs"
                             :key="j.id"
-                            class="rounded-lg border border-slate-200 p-3 text-sm"
+                            class="rounded-lg border border-border p-3 text-sm"
                             :data-testid="`canva-job-${j.id}`"
                             :data-status="j.status"
                         >
-                            <p class="font-medium text-slate-900"
+                            <p class="font-medium text-foreground-strong"
                                 >{{ JOB_KIND[j.kind] ?? j.kind }}: {{ j.title || j.design_id }}
-                                <span v-if="j.format" class="uppercase text-slate-500">{{ j.format }}</span></p
+                                <span v-if="j.format" class="uppercase text-foreground-subtle">{{ j.format }}</span></p
                             >
-                            <p role="status" :class="j.status === 'failed' ? 'text-red-700' : 'text-slate-700'"
+                            <p
+                                role="status"
+                                :class="j.status === 'failed' ? 'text-danger' : 'text-foreground-secondary'"
                                 >{{ STATUS[j.status] ?? j.status
                                 }}<template v-if="j.status === 'failed' && j.error">: {{ j.error }}</template></p
                             >
@@ -579,7 +603,8 @@ onMounted(() => {
                                         ><PdfAsset :asset="m"
                                     /></li>
                                     <li v-else data-testid="canva-imported">
-                                        {{ m.name }} <span class="text-slate-500">({{ m.width }}×{{ m.height }})</span>
+                                        {{ m.name }}
+                                        <span class="text-foreground-subtle">({{ m.width }}×{{ m.height }})</span>
                                         <a
                                             v-if="m.origin?.url"
                                             :href="m.origin.url"
@@ -602,7 +627,9 @@ onMounted(() => {
                                     >Abrir el diseño en Canva (pestaña nueva)</a
                                 >
                             </p>
-                            <p v-if="j.canva_asset_id && j.status === 'ready'" class="mt-1 text-xs text-slate-600"
+                            <p
+                                v-if="j.canva_asset_id && j.status === 'ready'"
+                                class="mt-1 text-xs text-foreground-muted"
                                 >Ya está en tu biblioteca de Canva.</p
                             >
                         </li>
@@ -615,7 +642,7 @@ onMounted(() => {
                     aria-labelledby="canva-documents"
                     data-testid="canva-documents"
                 >
-                    <h2 id="canva-documents" class="font-semibold text-slate-900">Documentos PDF</h2>
+                    <h2 id="canva-documents" class="font-semibold text-foreground-strong">Documentos PDF</h2>
                     <InfoNote title="Los PDF no se publican en redes"
                         >Los PDF se guardan para verlos y descargarlos; no se pueden adjuntar a una publicación. Para
                         publicar, exporta el diseño como PNG, JPG o MP4.</InfoNote
@@ -624,7 +651,7 @@ onMounted(() => {
                         <li
                             v-for="d in documents"
                             :key="d.id"
-                            class="rounded-lg border border-slate-200 p-3 text-sm"
+                            class="rounded-lg border border-border p-3 text-sm"
                             :data-testid="`canva-document-${d.id}`"
                             ><PdfAsset :asset="d" removable @remove="removeDocument"
                         /></li>

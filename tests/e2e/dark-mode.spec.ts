@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page, type Route } from '@playwright/test';
+import { expect, test, type Locator, type Page, type Route } from '@playwright/test';
 import {
     animationsDone,
     artisan,
@@ -7,7 +7,11 @@ import {
     expectNoOverflow,
     loginAs,
     loginUntilChallenge,
+    seedAnalyticsSnapshots,
+    seedCampaignPanel,
     seedComposerBrand,
+    seedComposerPosts,
+    seedInboxComment,
     stamp,
     totp,
 } from './helpers';
@@ -27,11 +31,34 @@ async function auditAxe(page: Page, ...selectors: string[]) {
     await expectNoOverflow(page);
 }
 
-async function auditPage(page: Page, path: string, heading: string, scheme: 'light' | 'dark') {
+async function auditPage(page: Page, path: string, heading: string, scheme: 'light' | 'dark', content?: Locator) {
     await page.goto(path);
     await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
+    if (content) await expect(content).toBeVisible();
     await expectScheme(page, scheme);
     await auditAxe(page);
+}
+
+function seedHeatmap(brandId: number) {
+    artisan(String.raw`
+        $account = App\Models\SocialAccount::withoutUserScope()->where('brand_id', ${brandId})->where('network', 'instagram')->firstOrFail();
+        $day = now()->subDays(4)->startOfDay();
+        $interactions = [5, 25, 45, 65, 100];
+        App\Models\Post::factory()->count(max(5, (int) config('social.best_times.min_posts')))->create([
+            'user_id' => $account->user_id, 'brand_id' => ${brandId}, 'status' => App\Enums\PostStatus::Published,
+            'scheduled_at' => null,
+        ])->each(function ($post, $index) use ($account, $day, $interactions) {
+            $slot = $index % count($interactions);
+            $target = App\Models\PostTarget::factory()->create([
+                'post_id' => $post->id, 'user_id' => $post->user_id, 'social_account_id' => $account->id,
+                'status' => App\Enums\PostStatus::Published, 'published_at' => $day->copy()->setTime(10 + $slot, 0),
+            ]);
+            App\Models\PostMetricSnapshot::withoutUserScope()->create([
+                'user_id' => $post->user_id, 'post_target_id' => $target->id, 'social_account_id' => $account->id,
+                'network' => 'instagram', 'date' => $day->toDateString(), 'metrics' => ['interactions' => $interactions[$slot]],
+            ]);
+        });
+    `);
 }
 
 async function auditSystemThemes(page: Page) {
@@ -235,4 +262,122 @@ test.describe('E2E-35 · tema del layout y controles comunes', { tag: '@responsi
             artisan(String.raw`App\Models\User::where('email', ${email})->get()->each->delete();`);
         }
     });
+});
+
+test.describe('E2E-35 · páginas principales y Estudio', { tag: '@responsive' }, () => {
+    for (const scheme of ['light', 'dark'] as const) {
+        test(`contraste y desbordamiento en ${scheme}`, async ({ page }, info) => {
+            test.slow();
+            const id = `theme-pages-${stamp()}-${info.project.name}`;
+            const user = {
+                name: 'Páginas E2E',
+                email: `e2e-${id}@example.test`,
+                password: 'E2e-Theme-Pages-Disposable-7!',
+            };
+            const email = JSON.stringify(user.email);
+            artisan(String.raw`App\Models\User::factory()->create([
+                'email' => ${email}, 'name' => 'Páginas E2E', 'password' => ${JSON.stringify(user.password)},
+                'theme' => '${scheme}',
+            ]);`);
+            try {
+                const brand = seedComposerBrand(user.email, id);
+                const { scheduledDate } = seedComposerPosts(user.email, brand.id);
+                const { from, to } = seedAnalyticsSnapshots(brand.id, 120, 85);
+                const { campaignId } = seedCampaignPanel(user.email, brand.id);
+                seedHeatmap(brand.id);
+                seedInboxComment(brand.id, 'Comentario E2E de contraste');
+                const designId = Number(
+                    artisan(String.raw`
+                    $u = App\Models\User::where('email', ${email})->firstOrFail();
+                    $doc = App\Services\Studio\StudioDocument::blank(320, 240);
+                    $doc['pages'][0]['background'] = '#345678';
+                    $d = App\Models\Studio\Design::unguarded(fn () => App\Models\Studio\Design::create([
+                        'user_id' => $u->id, 'brand_id' => ${brand.id}, 'name' => 'Diseño E2E de contraste',
+                        'document' => $doc, 'width' => 320, 'height' => 240, 'page_count' => 1, 'revision' => 1,
+                    ]));
+                    echo $d->id;
+                `).trim(),
+                );
+                expect(designId).toBeGreaterThan(0);
+                await loginAs(page, user);
+
+                const period = `brand_id=${brand.id}&from=${from}&to=${to}`;
+                const calendar = `brand_id=${brand.id}&date=${scheduledDate}`;
+                const heatmap = page.getByRole('table', { name: 'Mapa de calor de engagement medio por día y hora' });
+                // Una serie plana puede tener una caja de altura cero aunque el SVG esté visible.
+                const seriesLine = page.locator('polyline[points]:not([points=""])');
+                const instagramViews = page
+                    .locator('[data-metric="views"]')
+                    .getByRole('img', { name: 'Gráfico de evolución', exact: true })
+                    .filter({ has: seriesLine });
+                const campaignViews = page
+                    .getByRole('region', { name: 'Evolución diaria' })
+                    .locator('.card')
+                    .filter({
+                        has: page.getByRole('heading', { name: 'Visualizaciones leídas por día' }),
+                    })
+                    .getByRole('img', { name: 'Gráfico de evolución', exact: true })
+                    .filter({ has: seriesLine.or(page.locator('circle[cx][cy]')) });
+                const pages: [path: string, heading: string, content?: Locator][] = [
+                    [`/dashboard?${period}`, `Resumen · ${brand.name}`],
+                    [`/calendar?view=week&${calendar}`, 'Calendario'],
+                    [`/calendar?view=list&${calendar}`, 'Calendario'],
+                    [`/dashboard/instagram?${period}`, `Instagram · ${brand.name}`, instagramViews],
+                    [
+                        `/best-times?brand_id=${brand.id}&network=instagram`,
+                        'Mejores horas para publicar',
+                        heatmap.getByRole('cell', { name: '100', exact: true }),
+                    ],
+                    [`/campaigns/${campaignId}`, 'e2e-camp-panel', campaignViews],
+                    ['/inbox', 'Inbox de comentarios'],
+                    ['/reports', 'Informes'],
+                    ['/autolists', 'Autolistas'],
+                    ['/autolists/recycle', 'Reciclado de posts'],
+                    ['/content-plan', 'Plan de contenido'],
+                    ['/smartlinks', 'SmartLinks'],
+                    [`/brands/${brand.id}/connections`, `Conexiones · ${brand.name}`],
+                    ['/brands', 'Marcas'],
+                    [`/studio?brand_id=${brand.id}`, 'Estudio creativo'],
+                    ['/settings/saved-texts', 'Textos guardados'],
+                    ['/trash', 'Papelera de publicaciones'],
+                    ['/notifications', 'Avisos'],
+                ];
+                for (const [path, heading, content] of pages) {
+                    await test.step(path, () => auditPage(page, path, heading, scheme, content));
+                }
+
+                await test.step('Compositor', async () => {
+                    await page.goto(`/brands/${brand.id}/posts/create`);
+                    await expect(page.getByTestId('composer-close')).toBeVisible();
+                    await expectScheme(page, scheme);
+                    await auditAxe(page);
+                });
+
+                await test.step('Editor, lienzo y diálogo de exportación', async () => {
+                    await page.goto(`/studio/designs/${designId}/edit`);
+                    await expect(page.getByLabel('Nombre del diseño')).toHaveValue('Diseño E2E de contraste');
+                    await expectScheme(page, scheme);
+                    const editor = page.getByRole('region', { name: 'Editor de diseño', exact: true });
+                    const canvas = editor.locator('canvas.lower-canvas');
+                    await expect(canvas).toBeVisible();
+                    const exportButton = page.getByRole('button', { name: 'Exportar', exact: true });
+                    await expect(exportButton).toBeEnabled();
+                    const pixel = await canvas.evaluate((element: HTMLCanvasElement) => {
+                        const { width, height } = element;
+                        const context = element.getContext('2d');
+                        return Array.from(
+                            context!.getImageData(Math.floor(width / 2), Math.floor(height / 2), 1, 1).data,
+                        );
+                    });
+                    expect(pixel).toEqual([52, 86, 120, 255]);
+                    await auditAxe(page);
+                    await exportButton.click();
+                    await expect(page.getByRole('dialog', { name: 'Exportar diseño', exact: true })).toBeVisible();
+                    await auditAxe(page);
+                });
+            } finally {
+                artisan(String.raw`App\Models\User::where('email', ${email})->get()->each->delete();`);
+            }
+        });
+    }
 });

@@ -88,19 +88,19 @@ const addOnEnter = () => {
         :return-focus-to="returnFocusTo"
         close-on-backdrop
         aria-labelledby="utm-title"
-        class="bottom-3 top-auto mx-auto my-0 max-h-[calc(100dvh_-_1.5rem)] w-[calc(100vw_-_1.5rem)] max-w-lg overflow-y-auto rounded-lg border-0 bg-white p-0 shadow-xl backdrop:bg-slate-900/40 sm:inset-y-0 sm:my-auto"
+        class="bottom-3 top-auto mx-auto my-0 max-h-[calc(100dvh_-_1.5rem)] w-[calc(100vw_-_1.5rem)] max-w-lg overflow-y-auto rounded-lg border-0 bg-surface p-0 shadow-xl backdrop:bg-overlay-strong/40 sm:inset-y-0 sm:my-auto"
         data-testid="utm-modal"
         @close="close"
     >
         <div class="p-4">
-            <h2 id="utm-title" class="text-base font-semibold text-slate-900">Generar enlace con UTM</h2>
-            <p class="mt-1 text-xs text-slate-600"
+            <h2 id="utm-title" class="text-base font-semibold text-foreground-strong">Generar enlace con UTM</h2>
+            <p class="mt-1 text-xs text-foreground-muted"
                 >Añade parámetros de seguimiento a un enlace. Se inserta en el texto, donde tengas el cursor.</p
             >
 
             <div class="mt-3">
-                <label for="utm-url" class="block text-sm font-medium text-slate-800"
-                    >Dirección (URL) <span class="text-red-700" aria-hidden="true">*</span></label
+                <label for="utm-url" class="block text-sm font-medium text-foreground"
+                    >Dirección (URL) <span class="text-danger" aria-hidden="true">*</span></label
                 >
                 <input
                     id="utm-url"
@@ -120,7 +120,7 @@ const addOnEnter = () => {
                 />
                 <p
                     id="utm-url-error"
-                    class="mt-1 text-xs text-red-700"
+                    class="mt-1 text-xs text-danger"
                     role="alert"
                     data-testid="utm-url-error"
                     >{{ urlError }}</p
@@ -128,9 +128,9 @@ const addOnEnter = () => {
             </div>
 
             <div v-for="f in UTM_FIELDS" :key="f.key" class="mt-3">
-                <label :for="`utm-${f.key}`" class="block text-sm font-medium text-slate-800"
-                    >{{ f.label }} <span class="font-normal text-slate-600">({{ f.key }})</span
-                    ><span v-if="f.required" class="text-red-700" aria-hidden="true"> *</span></label
+                <label :for="`utm-${f.key}`" class="block text-sm font-medium text-foreground"
+                    >{{ f.label }} <span class="font-normal text-foreground-muted">({{ f.key }})</span
+                    ><span v-if="f.required" class="text-danger" aria-hidden="true"> *</span></label
                 >
                 <input
                     :id="`utm-${f.key}`"
@@ -142,13 +142,13 @@ const addOnEnter = () => {
                     @keydown.enter.prevent="addOnEnter"
                     :aria-describedby="`utm-${f.key}-hint`"
                 />
-                <p :id="`utm-${f.key}-hint`" class="mt-0.5 text-xs text-slate-600">{{ f.hint }}</p>
+                <p :id="`utm-${f.key}-hint`" class="mt-0.5 text-xs text-foreground-muted">{{ f.hint }}</p>
             </div>
 
             <div class="mt-3">
-                <p class="text-sm font-medium text-slate-800">Resultado</p>
+                <p class="text-sm font-medium text-foreground">Resultado</p>
                 <p
-                    class="mt-1 min-h-[2.5rem] break-all rounded border border-slate-200 bg-slate-50 p-2 text-xs text-slate-800"
+                    class="mt-1 min-h-[2.5rem] break-all rounded border border-border bg-canvas p-2 text-xs text-foreground"
                     data-testid="utm-result"
                     aria-live="polite"
                     >{{ result || 'Completa la dirección y los campos obligatorios para ver el enlace.' }}</p
@@ -156,14 +156,14 @@ const addOnEnter = () => {
             </div>
 
             <div class="mt-3">
-                <label class="flex items-center gap-2 text-sm text-slate-800">
+                <label class="flex items-center gap-2 text-sm text-foreground">
                     <input v-model="shorten" type="checkbox" data-testid="utm-shorten" />
                     Acortar el enlace y contar sus clics
                 </label>
-                <p class="mt-0.5 text-xs text-slate-600"
+                <p class="mt-0.5 text-xs text-foreground-muted"
                     >Crea un enlace corto tuyo; lo verás con sus clics en SmartLinks.</p
                 >
-                <p class="mt-1 text-xs text-red-700" role="alert" data-testid="utm-short-error">{{ shortError }}</p>
+                <p class="mt-1 text-xs text-danger" role="alert" data-testid="utm-short-error">{{ shortError }}</p>
             </div>
 
             <div class="mt-4 flex flex-wrap justify-end gap-2">

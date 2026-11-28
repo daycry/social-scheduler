@@ -22,7 +22,7 @@ const remove = async (brand) => {
     <AuthenticatedLayout>
         <template #header>
             <div class="flex items-center justify-between gap-3">
-                <h1 class="text-xl font-bold text-slate-900">Marcas</h1>
+                <h1 class="text-xl font-bold text-foreground-strong">Marcas</h1>
                 <Link :href="route('brands.create')" class="btn-primary">Nueva marca</Link>
             </div>
         </template>
@@ -36,7 +36,7 @@ const remove = async (brand) => {
         </EmptyState>
 
         <div v-else class="card overflow-hidden">
-            <ul class="divide-y divide-slate-200">
+            <ul class="divide-y divide-border">
                 <li
                     v-for="brand in brands"
                     :key="brand.id"
@@ -52,17 +52,17 @@ const remove = async (brand) => {
                         />
                         <span
                             v-else
-                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-100 font-bold text-indigo-700"
+                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent-marker font-bold text-accent-strong"
                             aria-hidden="true"
                             >{{ brand.name.slice(0, 1).toUpperCase() }}</span
                         >
                         <div class="min-w-0">
                             <Link
                                 :href="route('brands.show', brand.id)"
-                                class="block truncate font-medium text-slate-900 hover:text-indigo-700"
+                                class="block truncate font-medium text-foreground-strong hover:text-accent-strong"
                                 >{{ brand.name }}</Link
                             >
-                            <p class="text-sm text-slate-500">{{ brand.timezone }}</p>
+                            <p class="text-sm text-foreground-subtle">{{ brand.timezone }}</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-4 text-sm">
@@ -70,7 +70,7 @@ const remove = async (brand) => {
                         <Link :href="route('brands.edit', brand.id)" class="link">Editar</Link>
                         <button
                             type="button"
-                            class="rounded font-medium text-red-600 hover:underline"
+                            class="rounded font-medium text-danger hover:underline"
                             @click="remove(brand)"
                             >Eliminar</button
                         >

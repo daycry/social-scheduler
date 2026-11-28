@@ -94,16 +94,16 @@ onBeforeUnmount(()=>{disposed=true;invalidate();invalidateData();disposeScene();
 <template>
     <StudioDialog :model-value="modelValue" title="Diseñar gráfico" wide @update:model-value="close">
         <div class="space-y-5 min-w-0">
-            <nav class="flex gap-2 rounded-xl bg-slate-100 p-1" aria-label="Pasos del gráfico"
+            <nav class="flex gap-2 rounded-xl bg-surface-hover p-1" aria-label="Pasos del gráfico"
                 ><button
                     type="button"
-                    class="btn-secondary flex-1 px-3 text-xs aria-pressed:border-violet-300 aria-pressed:text-violet-700"
+                    class="btn-secondary flex-1 px-3 text-xs aria-pressed:border-accent-secondary-border aria-pressed:text-accent-secondary-ink"
                     :aria-pressed="tab==='data'"
                     @click="tab='data'"
                     >1 · Datos</button
                 ><button
                     type="button"
-                    class="btn-secondary flex-1 px-3 text-xs aria-pressed:border-violet-300 aria-pressed:text-violet-700"
+                    class="btn-secondary flex-1 px-3 text-xs aria-pressed:border-accent-secondary-border aria-pressed:text-accent-secondary-ink"
                     :aria-pressed="tab==='style'"
                     @click="tab='style'"
                     >2 · Estilo</button
@@ -111,7 +111,7 @@ onBeforeUnmount(()=>{disposed=true;invalidate();invalidateData();disposeScene();
             >
             <template v-if="draft">
                 <section v-show="tab==='data'" class="space-y-4" aria-label="Datos del gráfico">
-                    <div class="rounded-xl border border-violet-200 bg-violet-50 p-4"
+                    <div class="rounded-xl border border-accent-secondary-border bg-accent-secondary-soft p-4"
                         ><p class="text-sm font-semibold"
                             >Tabla {{ draft.binding.dataset.id }} · Revisión
                             {{ draft.binding.dataset.revision }} fija</p
@@ -121,14 +121,14 @@ onBeforeUnmount(()=>{disposed=true;invalidate();invalidateData();disposeScene();
                             class="btn-secondary px-3 text-xs mt-3"
                             @click="emit('choose-data',copy(draft))"
                             >Elegir otra revisión guardada</button
-                        ><p class="mt-2 text-xs text-slate-600"
+                        ><p class="mt-2 text-xs text-foreground-muted"
                             >La revisión sólo cambia al elegirla y aplicar el gráfico. Puedes deshacer ese cambio.</p
                         ></div
                     >
                     <button type="button" class="btn-secondary px-3 text-xs" :disabled="dataBusy" @click="viewData"
                         >Ver datos del gráfico</button
                     >
-                    <p v-if="!columns.length" class="text-sm text-slate-600"
+                    <p v-if="!columns.length" class="text-sm text-foreground-muted"
                         >Abre «Ver datos del gráfico» para cargar las columnas de esta revisión histórica.</p
                     >
                     <label class="block text-sm font-medium"
@@ -152,15 +152,18 @@ onBeforeUnmount(()=>{disposed=true;invalidate();invalidateData();disposeScene();
                             ><option v-for="c in columns" :key="c.id" :value="c.id">{{ c.label }}</option></select
                         ></label
                     >
-                    <p v-if="missingCategory" role="status" class="rounded-lg bg-amber-50 p-3 text-sm text-amber-900"
+                    <p
+                        v-if="missingCategory"
+                        role="status"
+                        class="rounded-lg bg-warning-soft p-3 text-sm text-warning-ink"
                         >La categoría {{ draft.binding.category_column }} no está disponible en esta revisión. Elige su
                         nueva columna en el selector de categoría.</p
                     >
                     <section
                         v-if="unavailableSeries.length"
-                        class="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-3"
+                        class="space-y-2 rounded-xl border border-warning-border bg-warning-soft p-3"
                         aria-label="Series que necesitan asignación"
-                        ><p class="text-sm text-amber-900"
+                        ><p class="text-sm text-warning-ink"
                             >Estas columnas no están disponibles como series numéricas en esta revisión. Retíralas y
                             elige sus sustitutas entre las series de abajo. El estilo se conserva.</p
                         ><div
@@ -177,7 +180,7 @@ onBeforeUnmount(()=>{disposed=true;invalidate();invalidateData();disposeScene();
                             ></div
                         ></section
                     >
-                    <fieldset class="rounded-xl border border-slate-200 p-3"
+                    <fieldset class="rounded-xl border border-border p-3"
                         ><legend class="px-1 text-sm font-semibold">Series numéricas · entre 1 y 12</legend
                         ><label v-for="c in numericColumns" :key="c.id" class="flex gap-2 py-2 text-sm"
                             ><input
@@ -201,7 +204,7 @@ onBeforeUnmount(()=>{disposed=true;invalidate();invalidateData();disposeScene();
                     >
                 </section>
                 <section v-show="tab==='style'" class="space-y-4" aria-label="Estilo del gráfico">
-                    <fieldset class="grid min-w-0 gap-4 rounded-xl border border-slate-200 p-4"
+                    <fieldset class="grid min-w-0 gap-4 rounded-xl border border-border p-4"
                         ><legend class="px-1.5 text-sm font-semibold">Texto y tipografía</legend
                         ><label
                             v-for="[field,label] in [['title','Título'],['subtitle','Subtítulo'],['source','Fuente de datos'],['x_title','Título del eje X'],['y_title','Título del eje Y']]"
@@ -254,7 +257,7 @@ onBeforeUnmount(()=>{disposed=true;invalidate();invalidateData();disposeScene();
                             ></label
                         >
                     </fieldset>
-                    <fieldset class="grid min-w-0 gap-4 rounded-xl border border-slate-200 p-4"
+                    <fieldset class="grid min-w-0 gap-4 rounded-xl border border-border p-4"
                         ><legend class="px-1.5 text-sm font-semibold">Colores</legend
                         ><label class="block text-sm font-medium"
                             >Paleta propia · hex separados por comas<input
@@ -276,11 +279,11 @@ onBeforeUnmount(()=>{disposed=true;invalidate();invalidateData();disposeScene();
                                 v-model="draft.style[field]"
                                 class="field font-mono"
                                 placeholder="#11223388" /></label
-                        ><p class="text-xs text-slate-500"
+                        ><p class="text-xs text-foreground-subtle"
                             >Se conserva la transparencia de los colores hexadecimales.</p
                         ></fieldset
                     >
-                    <fieldset class="grid min-w-0 gap-4 rounded-xl border border-slate-200 p-4"
+                    <fieldset class="grid min-w-0 gap-4 rounded-xl border border-border p-4"
                         ><legend class="px-1.5 text-sm font-semibold">Ejes, leyenda y etiquetas</legend
                         ><label
                             v-for="[field,label] in [['legend','Mostrar leyenda'],['show_grid','Mostrar rejilla'],['show_axis','Mostrar ejes'],['category_labels','Mostrar categorías']]"
@@ -317,7 +320,7 @@ onBeforeUnmount(()=>{disposed=true;invalidate();invalidateData();disposeScene();
                                 max="80"
                                 class="field mt-1.5 block" /></label
                     ></fieldset>
-                    <fieldset class="grid min-w-0 gap-4 rounded-xl border border-slate-200 p-4"
+                    <fieldset class="grid min-w-0 gap-4 rounded-xl border border-border p-4"
                         ><legend class="px-1.5 text-sm font-semibold">Rango y separación</legend
                         ><label
                             v-for="[field,label] in [['domain_min','Mínimo del dominio'],['domain_max','Máximo del dominio']]"
@@ -350,24 +353,22 @@ onBeforeUnmount(()=>{disposed=true;invalidate();invalidateData();disposeScene();
                                 class="field mt-1.5 block" /></label
                     ></fieldset>
                 </section>
-                <section
-                    class="rounded-xl border border-slate-200 bg-slate-50 p-3"
-                    aria-label="Vista previa del gráfico"
+                <section class="rounded-xl border border-border bg-canvas p-3" aria-label="Vista previa del gráfico"
                     ><p v-if="previewBusy" role="status" class="text-sm">Preparando vista previa…</p
                     ><img
                         v-if="previewUrl"
                         :src="previewUrl"
                         alt="Vista previa del gráfico con los datos guardados"
                         class="w-full rounded-lg"
-                    /><p v-else class="py-8 text-center text-sm text-slate-500"
+                    /><p v-else class="py-8 text-center text-sm text-foreground-subtle"
                         >La vista previa aparecerá al validar los datos.</p
-                    ><ul v-if="warnings.length" class="mt-2 space-y-1 text-xs text-amber-800"
+                    ><ul v-if="warnings.length" class="mt-2 space-y-1 text-xs text-warning-ink"
                         ><li v-for="(warning,index) in warnings" :key="index">{{warningLabel(warning)}}</li></ul
                     ></section
                 >
                 <section
                     v-if="dataOpen && dataTable"
-                    class="space-y-3 bg-white"
+                    class="space-y-3 bg-surface"
                     aria-label="Tabla accesible del gráfico"
                     ><h3 class="font-semibold">Datos originales de la revisión {{draft.binding.dataset.revision}}</h3
                     ><div
@@ -430,14 +431,14 @@ onBeforeUnmount(()=>{disposed=true;invalidate();invalidateData();disposeScene();
             <p
                 v-if="error || configuration.error"
                 role="alert"
-                class="rounded-xl bg-red-50 p-3 text-sm text-red-800"
+                class="rounded-xl bg-danger-soft p-3 text-sm text-danger-ink"
                 >{{error || configuration.error}}</p
             >
-            <footer class="sticky bottom-0 flex flex-wrap justify-end gap-2 border-t bg-white py-3"
+            <footer class="sticky bottom-0 flex flex-wrap justify-end gap-2 border-t bg-surface py-3"
                 ><button type="button" class="btn-secondary px-3 text-xs" @click="close">Cancelar</button
                 ><button
                     type="button"
-                    class="btn-primary bg-violet-700 transition-none hover:bg-violet-600 disabled:opacity-40"
+                    class="btn-secondary-accent transition-none hover:bg-accent-secondary-hover disabled:opacity-40"
                     :disabled="!canApply"
                     @click="apply"
                     >{{chart?'Aplicar gráfico':'Insertar gráfico'}}</button

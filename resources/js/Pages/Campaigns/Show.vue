@@ -44,20 +44,20 @@ const range = computed(() => {
         <template #header>
             <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span
-                    class="h-4 w-4 shrink-0 rounded-full border border-slate-400"
+                    class="h-4 w-4 shrink-0 rounded-full border border-control-border"
                     :style="{ backgroundColor: campaign.color }"
                     aria-hidden="true"
                 ></span>
-                <h1 class="min-w-0 break-words text-xl font-bold text-slate-900">{{ campaign.name }}</h1>
+                <h1 class="min-w-0 break-words text-xl font-bold text-foreground-strong">{{ campaign.name }}</h1>
                 <span
                     v-if="campaign.archived"
-                    class="rounded bg-slate-200 px-1.5 py-0.5 text-xs font-medium text-slate-700"
+                    class="rounded bg-surface-pressed px-1.5 py-0.5 text-xs font-medium text-foreground-secondary"
                     >Archivada</span
                 >
-                <span class="text-sm text-slate-600">{{ brand?.name }} · {{ range }}</span>
+                <span class="text-sm text-foreground-muted">{{ brand?.name }} · {{ range }}</span>
                 <Link
                     :href="route('campaigns.index', { brand_id: campaign.brand_id })"
-                    class="ms-auto text-sm font-medium text-indigo-700 underline"
+                    class="ms-auto text-sm font-medium text-accent-strong underline"
                     >Todas las campañas</Link
                 >
             </div>
@@ -65,7 +65,7 @@ const range = computed(() => {
 
         <div class="space-y-5">
             <p
-                class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+                class="rounded-lg border border-warning-border bg-warning-soft p-3 text-sm text-warning-ink"
                 data-testid="campaign-frozen-note"
             >
                 Las métricas de cada publicación se actualizan durante {{ summary.frozen_days }} días tras publicarla;
@@ -79,24 +79,24 @@ const range = computed(() => {
                 data-testid="campaign-kpis"
             >
                 <div v-for="c in cards" :key="c.key" class="card p-4" :data-testid="`kpi-${c.key}`">
-                    <p class="text-xs font-medium text-slate-600">{{ c.label }}</p>
+                    <p class="text-xs font-medium text-foreground-muted">{{ c.label }}</p>
                     <p
                         class="mt-1 font-semibold"
-                        :class="c.none ? 'text-base text-slate-600' : 'text-2xl text-slate-900'"
+                        :class="c.none ? 'text-base text-foreground-muted' : 'text-2xl text-foreground-strong'"
                         >{{ c.value }}</p
                     >
-                    <p v-if="c.hint" class="mt-1 text-xs text-slate-600">{{ c.hint }}</p>
+                    <p v-if="c.hint" class="mt-1 text-xs text-foreground-muted">{{ c.hint }}</p>
                 </div>
             </section>
 
-            <p v-if="k.posts === 0" class="card p-5 text-sm text-slate-600"
+            <p v-if="k.posts === 0" class="card p-5 text-sm text-foreground-muted"
                 >Esta campaña aún no tiene publicaciones. Asígnala desde el compositor para ver aquí sus métricas.</p
             >
 
             <template v-else>
                 <section class="card p-5" aria-labelledby="camp-network">
-                    <h2 id="camp-network" class="text-sm font-medium text-slate-700">Por red</h2>
-                    <p v-if="summary.by_network.length === 0" class="mt-2 text-sm text-slate-600"
+                    <h2 id="camp-network" class="text-sm font-medium text-foreground-secondary">Por red</h2>
+                    <p v-if="summary.by_network.length === 0" class="mt-2 text-sm text-foreground-muted"
                         >Ninguna publicación de la campaña está publicada todavía.</p
                     >
                     <div
@@ -107,7 +107,7 @@ const range = computed(() => {
                         aria-label="Métricas de la campaña por red"
                     >
                         <table class="min-w-full text-sm" data-testid="campaign-by-network">
-                            <thead class="text-left text-xs text-slate-600">
+                            <thead class="text-left text-xs text-foreground-muted">
                                 <tr>
                                     <th class="py-1 pr-3">Red</th><th class="pr-3 text-right">Destinos</th
                                     ><th class="pr-3 text-right">Visualiz.</th>
@@ -116,7 +116,11 @@ const range = computed(() => {
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="n in summary.by_network" :key="n.network" class="border-t border-gray-100">
+                                <tr
+                                    v-for="n in summary.by_network"
+                                    :key="n.network"
+                                    class="border-t border-border-subtle"
+                                >
                                     <th scope="row" class="py-1.5 pr-3 text-left font-medium">{{ n.network_label }}</th>
                                     <td class="pr-3 text-right">{{ fmt(n.targets) }}</td>
                                     <td class="pr-3 text-right">{{ fmt(n.views) }}</td>
@@ -129,18 +133,18 @@ const range = computed(() => {
                     </div>
                 </section>
 
-                <p class="text-xs text-slate-600" data-testid="campaign-daily-note">
+                <p class="text-xs text-foreground-muted" data-testid="campaign-daily-note">
                     La evolución diaria suma lo leído cada día de cada destino; un destino sin lectura ese día (p. ej.
                     ya congelado) no suma, así que su último punto puede no coincidir con los totales de arriba, que
                     usan el último dato de cada destino.
                 </p>
                 <section class="grid gap-4 lg:grid-cols-2" aria-label="Evolución diaria">
                     <div class="card p-5">
-                        <h2 class="text-sm font-medium text-slate-700">Visualizaciones leídas por día</h2>
+                        <h2 class="text-sm font-medium text-foreground-secondary">Visualizaciones leídas por día</h2>
                         <div class="mt-3"><LineChart :series="chart('views', 'Visualizaciones')" :height="180" /></div>
                     </div>
                     <div class="card p-5">
-                        <h2 class="text-sm font-medium text-slate-700">Interacciones leídas por día</h2>
+                        <h2 class="text-sm font-medium text-foreground-secondary">Interacciones leídas por día</h2>
                         <div class="mt-3"
                             ><LineChart :series="chart('interactions', 'Interacciones')" :height="180"
                         /></div>
@@ -148,11 +152,10 @@ const range = computed(() => {
                 </section>
 
                 <section class="card p-5" aria-labelledby="camp-posts">
-                    <h2 id="camp-posts" class="text-sm font-medium text-slate-700">Publicaciones</h2>
+                    <h2 id="camp-posts" class="text-sm font-medium text-foreground-secondary">Publicaciones</h2>
                     <p
                         v-if="summary.posts_truncated"
-                        class="mt-2 rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900"
-                        role="status"
+                        class="mt-2 rounded border border-warning-border bg-warning-soft p-2 text-xs text-warning-ink"
                         data-testid="campaign-posts-truncated"
                     >
                         Se muestran las {{ summary.posts_limit }} publicaciones más recientes de
@@ -163,10 +166,10 @@ const range = computed(() => {
                             <div class="flex flex-wrap items-baseline justify-between gap-2">
                                 <Link
                                     :href="route('posts.edit', p.id)"
-                                    class="min-w-0 break-words font-medium text-indigo-700 underline"
+                                    class="min-w-0 break-words font-medium text-accent-strong underline"
                                     >{{ p.text || 'Sin texto' }}</Link
                                 >
-                                <span class="text-xs text-slate-600"
+                                <span class="text-xs text-foreground-muted"
                                     >{{ p.status_label }} ·
                                     {{ p.scheduled_local ? `${p.scheduled_local} (${p.timezone})` : 'Sin fecha' }}</span
                                 >
@@ -179,7 +182,7 @@ const range = computed(() => {
                                 :aria-label="`Métricas por destino de la publicación ${p.id}`"
                             >
                                 <table class="min-w-full text-xs">
-                                    <thead class="text-left text-slate-600">
+                                    <thead class="text-left text-foreground-muted">
                                         <tr
                                             ><th class="py-1 pr-3">Destino</th><th class="pr-3 text-right">Visualiz.</th
                                             ><th class="pr-3 text-right">Alcance</th
@@ -188,20 +191,20 @@ const range = computed(() => {
                                         >
                                     </thead>
                                     <tbody>
-                                        <tr v-for="t in p.targets" :key="t.id" class="border-t border-gray-100">
+                                        <tr v-for="t in p.targets" :key="t.id" class="border-t border-border-subtle">
                                             <th scope="row" class="py-1 pr-3 text-left font-medium">
                                                 <a
                                                     v-if="t.url"
                                                     :href="t.url"
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    class="text-indigo-700 underline"
+                                                    class="text-accent-strong underline"
                                                     >{{ t.network_label }}</a
                                                 >
                                                 <template v-else>{{ t.network_label }}</template>
                                                 <span
                                                     v-if="t.status !== 'publicada'"
-                                                    class="ms-1 font-normal text-slate-600"
+                                                    class="ms-1 font-normal text-foreground-muted"
                                                     >({{ t.status_label }})</span
                                                 >
                                             </th>

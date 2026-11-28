@@ -109,14 +109,14 @@ const summary = (v) =>
             ref="panel"
             role="dialog"
             aria-label="Vistas guardadas"
-            class="absolute inset-x-3 z-30 mt-1 rounded-lg border border-slate-200 bg-white p-3 text-sm shadow-lg sm:inset-x-auto sm:right-0 sm:top-full sm:w-96"
+            class="absolute inset-x-3 z-30 mt-1 rounded-lg border border-border bg-surface p-3 text-sm shadow-lg sm:inset-x-auto sm:right-0 sm:top-full sm:w-96"
             data-testid="views-menu"
             @keydown="onKeydown"
         >
-            <p v-if="views.length === 0" class="text-slate-600" data-testid="views-empty"
+            <p v-if="views.length === 0" class="text-foreground-muted" data-testid="views-empty"
                 >Aún no tienes vistas guardadas. Filtra el calendario y pulsa «Guardar vista».</p
             >
-            <ul v-else class="max-h-64 divide-y divide-slate-100 overflow-y-auto" aria-label="Vistas">
+            <ul v-else class="max-h-64 divide-y divide-border-subtle overflow-y-auto" aria-label="Vistas">
                 <li v-for="v in views" :key="v.id" class="py-2" data-testid="view-row">
                     <form v-if="editing === v.id" class="space-y-1" @submit.prevent="doRename(v)">
                         <FormField :error="rename.errors.name" v-slot="{ control }">
@@ -149,20 +149,20 @@ const summary = (v) =>
                     <template v-else>
                         <button
                             type="button"
-                            class="block w-full rounded px-2 py-1 text-start hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                            class="block w-full rounded px-2 py-1 text-start hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                             :aria-current="activeView === v.id ? 'true' : undefined"
                             data-testid="view-apply"
                             @click="apply(v)"
                         >
-                            <span class="block font-medium text-slate-900"
+                            <span class="block font-medium text-foreground-strong"
                                 >{{ v.name
                                 }}<span
                                     v-if="v.is_default"
-                                    class="ms-1 rounded-full bg-indigo-100 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-900"
+                                    class="ms-1 rounded-full bg-accent-marker px-1.5 py-0.5 text-[10px] font-semibold text-accent-strong"
                                     >por defecto</span
                                 ></span
                             >
-                            <span class="block truncate text-xs text-slate-600">{{ summary(v) }}</span>
+                            <span class="block truncate text-xs text-foreground-muted">{{ summary(v) }}</span>
                         </button>
                         <span class="mt-1 flex flex-wrap gap-3 px-2 text-xs">
                             <button type="button" class="underline" data-testid="view-rename" @click="startRename(v)"
@@ -179,7 +179,7 @@ const summary = (v) =>
                             >
                             <button
                                 type="button"
-                                class="text-red-700 underline"
+                                class="text-danger underline"
                                 data-testid="view-delete"
                                 @click="remove(v)"
                                 >Borrar<span class="sr-only"> {{ v.name }}</span></button
@@ -189,11 +189,11 @@ const summary = (v) =>
                 </li>
             </ul>
 
-            <form class="mt-2 space-y-1 border-t border-slate-100 pt-2" @submit.prevent="save">
+            <form class="mt-2 space-y-1 border-t border-border-subtle pt-2" @submit.prevent="save">
                 <div data-testid="view-save-error" class="space-y-1">
                     <FormField :error="form.errors.name" v-slot="{ control }">
                         <label class="block">
-                            <span class="text-xs font-medium text-slate-700"
+                            <span class="text-xs font-medium text-foreground-secondary"
                                 >Guardar los filtros actuales como vista</span
                             >
                             <input

@@ -152,7 +152,7 @@ const fmt = computed(() => createDateFormatter(props.brand?.timezone, { dateStyl
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="text-xl font-bold text-slate-900">Inbox de comentarios</h1>
+            <h1 class="text-xl font-bold text-foreground-strong">Inbox de comentarios</h1>
         </template>
 
         <div class="space-y-5">
@@ -174,13 +174,13 @@ const fmt = computed(() => createDateFormatter(props.brand?.timezone, { dateStyl
                     :items="blocked.map((a) => ({ id: a.id, name: a.name, help: a.help, brand_id: a.brand_id }))"
                     data-testid="inbox-unavailable"
                 />
-                <p v-if="reconnect.length" class="text-sm text-amber-800" role="alert"
+                <p v-if="reconnect.length" class="text-sm text-warning-ink" role="alert"
                     >Reconecta {{ reconnect.map((a) => a.name).join(', ') }} para seguir sincronizando.</p
                 >
 
                 <div class="card flex flex-wrap items-center gap-3 p-4 text-sm">
                     <label class="flex items-center gap-2">
-                        <span class="text-xs font-medium text-slate-500">Red</span>
+                        <span class="text-xs font-medium text-foreground-subtle">Red</span>
                         <select
                             class="field w-auto"
                             data-testid="filter-network"
@@ -192,7 +192,7 @@ const fmt = computed(() => createDateFormatter(props.brand?.timezone, { dateStyl
                         </select>
                     </label>
                     <label class="flex items-center gap-2">
-                        <span class="text-xs font-medium text-slate-500">Estado</span>
+                        <span class="text-xs font-medium text-foreground-subtle">Estado</span>
                         <select
                             class="field w-auto"
                             data-testid="filter-status"
@@ -205,7 +205,7 @@ const fmt = computed(() => createDateFormatter(props.brand?.timezone, { dateStyl
                         </select>
                     </label>
                     <label class="flex items-center gap-2">
-                        <span class="text-xs font-medium text-slate-500">Asignado</span>
+                        <span class="text-xs font-medium text-foreground-subtle">Asignado</span>
                         <select
                             class="field w-auto"
                             data-testid="filter-assigned"
@@ -218,7 +218,7 @@ const fmt = computed(() => createDateFormatter(props.brand?.timezone, { dateStyl
                         </select>
                     </label>
                     <label v-if="labels.length" class="flex items-center gap-2">
-                        <span class="text-xs font-medium text-slate-500">Etiqueta</span>
+                        <span class="text-xs font-medium text-foreground-subtle">Etiqueta</span>
                         <select
                             class="field w-auto"
                             data-testid="filter-label"
@@ -265,7 +265,7 @@ const fmt = computed(() => createDateFormatter(props.brand?.timezone, { dateStyl
                         <input type="checkbox" data-testid="select-all" :checked="allSelected" @change="toggleAll" />
                         Seleccionar todos
                     </label>
-                    <span class="text-xs text-slate-600" role="status">{{ selected.length }} seleccionados</span>
+                    <span class="text-xs text-foreground-muted" role="status">{{ selected.length }} seleccionados</span>
                     <button
                         type="button"
                         class="btn btn-secondary"
@@ -293,7 +293,7 @@ const fmt = computed(() => createDateFormatter(props.brand?.timezone, { dateStyl
                 </div>
 
                 <section class="card">
-                    <p v-if="list.length === 0" class="p-5 text-sm text-slate-500"
+                    <p v-if="list.length === 0" class="p-5 text-sm text-foreground-subtle"
                         >No hay comentarios que mostrar. Se sincronizan cada pocos minutos desde tus publicaciones ya
                         publicadas.</p
                     >
@@ -302,7 +302,7 @@ const fmt = computed(() => createDateFormatter(props.brand?.timezone, { dateStyl
                             v-for="c in list"
                             :key="c.id"
                             class="space-y-2 px-5 py-4 text-sm"
-                            :class="c.read ? '' : 'bg-indigo-50/40'"
+                            :class="c.read ? '' : 'bg-accent-soft/40'"
                         >
                             <div class="flex flex-wrap items-start justify-between gap-3">
                                 <div class="flex min-w-0 items-start gap-3">
@@ -316,36 +316,38 @@ const fmt = computed(() => createDateFormatter(props.brand?.timezone, { dateStyl
                                     />
                                     <NetworkIcon :network="c.network" size="sm" />
                                     <div class="min-w-0">
-                                        <p class="font-medium text-slate-900">
+                                        <p class="font-medium text-foreground-strong">
                                             {{ c.author || 'Anónimo' }}
                                             <span
                                                 v-if="!c.read"
-                                                class="ms-1 rounded-full bg-indigo-600 px-1.5 py-0.5 text-[10px] font-semibold text-white"
+                                                class="ms-1 rounded-full bg-accent-fill px-1.5 py-0.5 text-[10px] font-semibold text-on-accent"
                                                 >nuevo</span
                                             >
                                             <span
                                                 v-if="c.notes.length"
-                                                class="ms-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900"
+                                                class="ms-1 rounded-full bg-warning-soft px-1.5 py-0.5 text-[10px] font-semibold text-warning-ink"
                                                 data-testid="note-badge"
                                                 >con nota</span
                                             >
                                             <span
                                                 v-if="c.hidden"
-                                                class="ms-1 rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] text-slate-700"
+                                                class="ms-1 rounded-full bg-surface-pressed px-1.5 py-0.5 text-[10px] text-foreground-secondary"
                                                 >oculto</span
                                             >
                                             <span
                                                 v-if="c.closed"
-                                                class="ms-1 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-900"
+                                                class="ms-1 rounded-full bg-success-soft px-1.5 py-0.5 text-[10px] font-semibold text-success-ink"
                                                 data-testid="closed-badge"
                                                 >cerrado</span
                                             >
-                                            <span v-if="c.is_reply" class="ms-1 text-xs font-normal text-slate-500"
+                                            <span
+                                                v-if="c.is_reply"
+                                                class="ms-1 text-xs font-normal text-foreground-subtle"
                                                 >(respuesta en un hilo)</span
                                             >
                                         </p>
-                                        <p class="whitespace-pre-line text-slate-700">{{ c.text }}</p>
-                                        <p class="mt-1 text-xs text-slate-500">
+                                        <p class="whitespace-pre-line text-foreground-secondary">{{ c.text }}</p>
+                                        <p class="mt-1 text-xs text-foreground-subtle">
                                             {{ fmt(c.commented_at) }} · {{ c.account }}
                                             <template v-if="c.post_text"> · en «{{ c.post_text }}»</template>
                                             <a
@@ -379,16 +381,16 @@ const fmt = computed(() => createDateFormatter(props.brand?.timezone, { dateStyl
                                     <button
                                         v-if="c.can_hide"
                                         type="button"
-                                        class="text-red-600 underline"
+                                        class="text-danger underline"
                                         @click="toggleHide(c)"
                                         >{{ c.hidden ? 'Mostrar' : 'Ocultar' }}</button
                                     >
                                 </div>
                             </div>
 
-                            <ul v-if="c.my_replies.length" class="ms-8 space-y-1 border-s-2 border-teal-300 ps-3">
-                                <li v-for="r in c.my_replies" :key="r.id" class="text-slate-600"
-                                    ><span class="text-xs text-teal-700">Tú · {{ fmt(r.at) }}</span
+                            <ul v-if="c.my_replies.length" class="ms-8 space-y-1 border-s-2 border-success-border ps-3">
+                                <li v-for="r in c.my_replies" :key="r.id" class="text-foreground-muted"
+                                    ><span class="text-xs text-success-ink">Tú · {{ fmt(r.at) }}</span
                                     ><br />{{ r.text }}</li
                                 >
                             </ul>
@@ -397,7 +399,7 @@ const fmt = computed(() => createDateFormatter(props.brand?.timezone, { dateStyl
                                 <span
                                     v-for="l in c.labels"
                                     :key="l"
-                                    class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-slate-800"
+                                    class="inline-flex items-center gap-1 rounded-full bg-surface-hover px-2 py-0.5 text-foreground"
                                     data-testid="label-chip"
                                 >
                                     {{ l }}
@@ -424,7 +426,7 @@ const fmt = computed(() => createDateFormatter(props.brand?.timezone, { dateStyl
                                     <button type="submit" class="underline" data-testid="label-add">Añadir</button>
                                 </form>
                                 <label v-if="assignees.length" class="flex items-center gap-1">
-                                    <span class="text-slate-600">Asignado a</span>
+                                    <span class="text-foreground-muted">Asignado a</span>
                                     <select
                                         class="field w-auto py-1 text-xs"
                                         data-testid="assign-select"
@@ -460,7 +462,7 @@ const fmt = computed(() => createDateFormatter(props.brand?.timezone, { dateStyl
                                         >Enviar respuesta</button
                                     >
                                     <label v-if="saved_replies.length" class="flex items-center gap-1 text-xs">
-                                        <span class="text-slate-600">Respuesta guardada</span>
+                                        <span class="text-foreground-muted">Respuesta guardada</span>
                                         <select
                                             class="field w-auto py-1 text-xs"
                                             data-testid="saved-select"
@@ -511,7 +513,7 @@ const fmt = computed(() => createDateFormatter(props.brand?.timezone, { dateStyl
                 </section>
 
                 <section class="card space-y-3 p-5 text-sm" data-testid="saved-replies">
-                    <h2 class="text-base font-semibold text-slate-900">Respuestas guardadas</h2>
+                    <h2 class="text-base font-semibold text-foreground-strong">Respuestas guardadas</h2>
                     <ul v-if="saved_replies.length" class="space-y-1">
                         <li
                             v-for="r in saved_replies"
@@ -521,24 +523,24 @@ const fmt = computed(() => createDateFormatter(props.brand?.timezone, { dateStyl
                         >
                             <span class="min-w-0"
                                 ><strong>{{ r.title }}</strong
-                                >&#32;<span class="text-slate-600">{{ r.body.slice(0, 80) }}</span></span
+                                >&#32;<span class="text-foreground-muted">{{ r.body.slice(0, 80) }}</span></span
                             >
                             <button
                                 type="button"
-                                class="text-xs text-red-700 underline"
+                                class="text-xs text-danger underline"
                                 :aria-label="`Eliminar la respuesta guardada ${r.title}`"
                                 @click="removeSaved(r)"
                                 >Eliminar</button
                             >
                         </li>
                     </ul>
-                    <p v-else class="text-slate-600"
+                    <p v-else class="text-foreground-muted"
                         >Aún no tienes ninguna. Guarda una desde el cuadro de respuesta o créala aquí.</p
                     >
                     <form class="space-y-2" @submit.prevent="saveReply">
                         <FormField :error="savedForm.errors.title" v-slot="{ control }">
                             <label class="block">
-                                <span class="block text-xs font-medium text-slate-600">Título</span>
+                                <span class="block text-xs font-medium text-foreground-muted">Título</span>
                                 <input
                                     v-bind="control"
                                     v-model="savedForm.title"
@@ -552,7 +554,7 @@ const fmt = computed(() => createDateFormatter(props.brand?.timezone, { dateStyl
                         </FormField>
                         <FormField :error="savedForm.errors.body" v-slot="{ control }">
                             <label class="block">
-                                <span class="block text-xs font-medium text-slate-600">Texto</span>
+                                <span class="block text-xs font-medium text-foreground-muted">Texto</span>
                                 <textarea
                                     v-bind="control"
                                     v-model="savedForm.body"
@@ -575,7 +577,7 @@ const fmt = computed(() => createDateFormatter(props.brand?.timezone, { dateStyl
                 </section>
 
                 <section class="card p-5 text-sm" data-testid="coverage">
-                    <h2 class="text-base font-semibold text-slate-900">Cobertura por red</h2>
+                    <h2 class="text-base font-semibold text-foreground-strong">Cobertura por red</h2>
                     <ul class="mt-2 space-y-1">
                         <li
                             v-for="c in coverage"
@@ -586,10 +588,10 @@ const fmt = computed(() => createDateFormatter(props.brand?.timezone, { dateStyl
                             <strong class="w-24 shrink-0">{{ c.label }}</strong>
                             <span
                                 class="font-medium"
-                                :class="c.read ? 'text-emerald-800' : 'text-slate-700'"
+                                :class="c.read ? 'text-success-ink' : 'text-foreground-secondary'"
                                 >{{ c.read ? (c.hide ? 'Leer, responder y ocultar' : 'Leer y responder') : 'No disponible' }}</span
                             >
-                            <span class="min-w-0 text-slate-600">{{ c.note }}</span>
+                            <span class="min-w-0 text-foreground-muted">{{ c.note }}</span>
                         </li>
                     </ul>
                 </section>

@@ -43,8 +43,10 @@ function setCoordinate(tag, key, raw) {
 
 <template>
     <div class="space-y-2" data-testid="instagram-user-tags">
-        <p class="text-sm font-medium text-slate-900">Etiquetar usuarios en la imagen</p>
-        <p v-if="!image" class="text-xs text-slate-600">Adjunta una imagen a este destino para etiquetar usuarios.</p>
+        <p class="text-sm font-medium text-foreground-strong">Etiquetar usuarios en la imagen</p>
+        <p v-if="!image" class="text-xs text-foreground-muted"
+            >Adjunta una imagen a este destino para etiquetar usuarios.</p
+        >
         <template v-else>
             <div class="flex flex-wrap gap-2">
                 <div class="min-w-0 flex-1 basis-40">
@@ -66,10 +68,10 @@ function setCoordinate(tag, key, raw) {
                     >Añadir en el centro</button
                 >
             </div>
-            <p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p>
+            <p v-if="error" role="alert" class="text-sm text-danger">{{ error }}</p>
             <!-- La imagen es un área de clic para ratón y táctil; los campos x/y de abajo son la alternativa de teclado. -->
             <div
-                class="relative mx-auto w-full max-w-sm overflow-hidden rounded-xl border border-slate-200 bg-slate-100"
+                class="relative mx-auto w-full max-w-sm overflow-hidden rounded-xl border border-border bg-surface-hover"
                 :class="editable ? 'cursor-crosshair' : ''"
                 :data-testid="`${base}-canvas`"
                 @click="onImageClick"
@@ -84,13 +86,13 @@ function setCoordinate(tag, key, raw) {
                 <span
                     v-for="tag in tags"
                     :key="tag.username"
-                    class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-slate-900/90 px-2 py-0.5 text-[11px] font-medium text-white"
+                    class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-chrome/90 px-2 py-0.5 text-[11px] font-medium text-chrome-strong"
                     :style="{ left: `${tag.x * 100}%`, top: `${tag.y * 100}%` }"
                     :data-testid="`${base}-marker-${tag.username}`"
                     >@{{ tag.username }}</span
                 >
             </div>
-            <p class="text-xs leading-relaxed text-slate-600"
+            <p class="text-xs leading-relaxed text-foreground-muted"
                 >Escribe el usuario y pulsa sobre la imagen donde quieras la etiqueta (hasta {{ max }}). Instagram solo
                 etiqueta cuentas públicas y rechaza la publicación si alguna no existe.</p
             >
@@ -98,7 +100,7 @@ function setCoordinate(tag, key, raw) {
                 <li
                     v-for="tag in tags"
                     :key="tag.username"
-                    class="flex flex-wrap items-end gap-2 rounded-lg border border-slate-200 px-2 py-2 text-sm"
+                    class="flex flex-wrap items-end gap-2 rounded-lg border border-border px-2 py-2 text-sm"
                 >
                     <span class="min-w-0 flex-1 basis-24 break-all font-medium">@{{ tag.username }}</span>
                     <label class="text-xs"

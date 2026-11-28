@@ -36,15 +36,15 @@ const focusControl = (id) => {
     <div aria-live="polite" data-testid="errors-panel" class="sticky bottom-3 z-30 min-w-0">
         <section
             v-if="errorList.length"
-            class="rounded-xl border border-red-200 bg-white shadow-lg shadow-slate-900/5"
+            class="rounded-xl border border-danger-border bg-surface shadow-lg shadow-overlay-strong/5"
             aria-labelledby="errors-title"
         >
             <details open class="group">
                 <summary
-                    class="flex cursor-pointer list-none items-center gap-2 rounded-xl bg-red-50 px-3 py-3 text-red-900 [&::-webkit-details-marker]:hidden"
+                    class="flex cursor-pointer list-none items-center gap-2 rounded-xl bg-danger-soft px-3 py-3 text-danger-ink [&::-webkit-details-marker]:hidden"
                 >
                     <svg
-                        class="h-5 w-5 shrink-0 text-red-600"
+                        class="h-5 w-5 shrink-0 text-danger"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
@@ -71,17 +71,17 @@ const focusControl = (id) => {
                         <path d="m5 8 5 5 5-5" />
                     </svg>
                 </summary>
-                <ul class="max-h-[35vh] space-y-3 overflow-y-auto border-t border-red-100 px-3 py-3">
+                <ul class="max-h-[35vh] space-y-3 overflow-y-auto border-t border-danger-border px-3 py-3">
                     <li
                         v-for="e in errorList"
                         :key="e.id"
-                        class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 text-sm text-slate-800"
+                        class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 text-sm text-foreground"
                         data-testid="error-item"
                     >
                         <NetworkIcon v-if="e.network" :network="e.network" size="sm" class="mt-1" />
                         <svg
                             v-else
-                            class="mt-1 h-5 w-5 text-slate-600"
+                            class="mt-1 h-5 w-5 text-foreground-muted"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -99,7 +99,7 @@ const focusControl = (id) => {
                         <button
                             v-if="e.focusId"
                             type="button"
-                            class="inline-flex min-h-8 min-w-8 items-center justify-center rounded-lg border border-slate-200 bg-white px-2 text-xs font-medium text-indigo-700 hover:bg-indigo-50"
+                            class="inline-flex min-h-8 min-w-8 items-center justify-center rounded-lg border border-border bg-surface px-2 text-xs font-medium text-accent-strong hover:bg-accent-soft"
                             :aria-label="`Ir al control con el error${e.accountName ? ' de ' + e.accountName : ''}: ${e.message}`"
                             @click="focusError(e)"
                             >Ir</button

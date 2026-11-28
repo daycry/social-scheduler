@@ -98,12 +98,12 @@ onBeforeUnmount(() => {
         role="alertdialog"
         aria-labelledby="unsaved-title"
         aria-describedby="unsaved-desc"
-        class="m-auto w-[calc(100vw_-_2rem)] max-w-md rounded-lg border-0 bg-white p-5 shadow-xl backdrop:bg-slate-900/50"
+        class="m-auto w-[calc(100vw_-_2rem)] max-w-md rounded-lg border-0 bg-surface p-5 shadow-xl backdrop:bg-overlay-strong/50"
         data-testid="unsaved-guard"
         @close="stay"
     >
-        <h2 id="unsaved-title" class="text-lg font-semibold text-slate-900">¿Salir sin guardar?</h2>
-        <p id="unsaved-desc" class="mt-2 text-sm text-slate-700"
+        <h2 id="unsaved-title" class="text-lg font-semibold text-foreground-strong">¿Salir sin guardar?</h2>
+        <p id="unsaved-desc" class="mt-2 text-sm text-foreground-secondary"
             >Tienes cambios sin guardar en esta publicación. Si sales ahora, se perderán.</p
         >
         <div class="mt-4 flex flex-wrap justify-end gap-2">

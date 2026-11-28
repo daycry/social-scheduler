@@ -67,12 +67,12 @@ const onTab = (e) => {
         ref="root"
         role="dialog"
         aria-label="Selector de emoji"
-        class="absolute inset-x-0 top-full z-30 mt-1 sm:inset-x-auto sm:left-0 sm:w-[22rem] sm:max-w-[calc(100vw-1.5rem)] rounded-lg border border-slate-200 bg-white p-3 shadow-lg"
+        class="absolute inset-x-0 top-full z-30 mt-1 sm:inset-x-auto sm:left-0 sm:w-[22rem] sm:max-w-[calc(100vw-1.5rem)] rounded-lg border border-border bg-surface p-3 shadow-lg"
         data-testid="emoji-picker"
         @keydown="onKeydown"
         @keydown.tab="onTab"
     >
-        <label class="block text-xs font-medium text-slate-600" for="emoji-search">Buscar emoji</label>
+        <label class="block text-xs font-medium text-foreground-muted" for="emoji-search">Buscar emoji</label>
         <input
             id="emoji-search"
             ref="searchInput"
@@ -92,13 +92,13 @@ const onTab = (e) => {
                 :aria-pressed="category === c.id"
                 :aria-label="c.label"
                 :title="c.label"
-                class="rounded px-2 py-1 text-lg leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                :class="category === c.id ? 'bg-indigo-100' : 'hover:bg-slate-100'"
+                class="rounded px-2 py-1 text-lg leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                :class="category === c.id ? 'bg-accent-marker' : 'hover:bg-surface-hover'"
                 @click="category = c.id"
                 ><span aria-hidden="true">{{ c.icon }}</span></button
             >
         </div>
-        <p v-if="!results" class="mt-2 text-xs font-medium text-slate-600">{{ current.label }}</p>
+        <p v-if="!results" class="mt-2 text-xs font-medium text-foreground-muted">{{ current.label }}</p>
 
         <ul class="mt-1 grid max-h-48 grid-cols-7 gap-0.5 overflow-y-auto" aria-label="Emojis">
             <li v-for="e in visible" :key="e.char + e.name">
@@ -106,19 +106,20 @@ const onTab = (e) => {
                     type="button"
                     :aria-label="e.name"
                     :title="e.name"
-                    class="flex h-9 w-9 items-center justify-center rounded text-xl leading-none hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    class="flex h-9 w-9 items-center justify-center rounded text-xl leading-none hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                     @click="pick(e.char)"
                     ><span aria-hidden="true">{{ e.char }}</span></button
                 >
             </li>
         </ul>
-        <p v-if="results && !results.length" class="mt-2 text-sm text-slate-600" role="status"
+        <p v-if="results && !results.length" class="mt-2 text-sm text-foreground-muted" role="status"
             >No hay emojis con ese nombre.</p
         >
 
-        <p class="mt-2 border-t border-slate-100 pt-2 text-xs text-slate-600">
-            Para ver todos los emojis, en Windows pulsa <kbd class="rounded border border-slate-300 px-1">Win</kbd> +
-            <kbd class="rounded border border-slate-300 px-1">.</kbd>
+        <p class="mt-2 border-t border-border-subtle pt-2 text-xs text-foreground-muted">
+            Para ver todos los emojis, en Windows pulsa
+            <kbd class="rounded border border-control-border px-1">Win</kbd> +
+            <kbd class="rounded border border-control-border px-1">.</kbd>
         </p>
     </div>
 </template>

@@ -22,11 +22,11 @@ const revokeAll = async () => {
 
 <template>
     <section class="card space-y-3 p-4 text-sm" aria-labelledby="s-acceso">
-        <h2 id="s-acceso" class="text-base font-semibold text-slate-900">Acceso</h2>
+        <h2 id="s-acceso" class="text-base font-semibold text-foreground-strong">Acceso</h2>
         <form class="space-y-3" @submit.prevent="saveAccess">
             <FormField :error="access.errors.access_mode" v-slot="{ control }">
                 <label class="block"
-                    ><span class="block text-xs font-medium text-slate-600">Quién puede verlo</span>
+                    ><span class="block text-xs font-medium text-foreground-muted">Quién puede verlo</span>
                     <select v-bind="control" v-model="access.access_mode" class="field" data-testid="access-mode"
                         ><option v-for="(l, k) in MODES" :key="k" :value="k">{{ l }}</option></select
                     >
@@ -34,7 +34,7 @@ const revokeAll = async () => {
             </FormField>
             <FormField v-if="access.access_mode === 'password'" :error="access.errors.password" v-slot="{ control }">
                 <label class="block"
-                    ><span class="block text-xs font-medium text-slate-600"
+                    ><span class="block text-xs font-medium text-foreground-muted"
                         >Contraseña {{ site.has_password ? '(déjala vacía para conservar la actual)' : '' }}</span
                     >
 
@@ -53,12 +53,12 @@ const revokeAll = async () => {
                 ><input
                     v-model="access.noindex"
                     type="checkbox"
-                    class="rounded border-slate-300"
+                    class="rounded border-control-border"
                     data-testid="access-noindex"
                 />
                 No indexar en buscadores (noindex)</label
             >
-            <p class="text-xs text-slate-600"
+            <p class="text-xs text-foreground-muted"
                 >Cambiar el modo o la contraseña cierra las sesiones de acceso ya abiertas. Los sitios con contraseña o
                 token nunca se indexan.</p
             >
@@ -68,8 +68,12 @@ const revokeAll = async () => {
         </form>
 
         <div v-if="access.access_mode === 'token' || tokens.length" class="space-y-2 border-t pt-3">
-            <h3 class="text-sm font-semibold text-slate-900">Enlaces con token</h3>
-            <div v-if="newToken" class="rounded border border-emerald-300 bg-emerald-50 p-2" data-testid="new-token">
+            <h3 class="text-sm font-semibold text-foreground-strong">Enlaces con token</h3>
+            <div
+                v-if="newToken"
+                class="rounded border border-success-border bg-success-soft p-2"
+                data-testid="new-token"
+            >
                 <p class="text-xs font-medium"
                     >Enlace «{{ newToken.label }}» (cópialo ahora; no se vuelve a mostrar):</p
                 >
@@ -124,7 +128,7 @@ const revokeAll = async () => {
                             :data-state="t.state"
                             >{{ t.state === 'active' ? 'Activo' : t.state === 'revoked' ? 'Revocado' : 'Caducado' }}</span><span
                             v-if="t.expires_at"
-                            class="text-xs text-slate-600"
+                            class="text-xs text-foreground-muted"
                         >
                             · caduca {{ t.expires_at.slice(0, 10) }}</span
                         ></span
@@ -132,7 +136,7 @@ const revokeAll = async () => {
                     <button
                         v-if="t.state === 'active'"
                         type="button"
-                        class="text-xs font-medium text-red-700 underline"
+                        class="text-xs font-medium text-danger underline"
                         :aria-label="`Revocar el enlace ${t.label}`"
                         @click="revoke(t)"
                         >Revocar</button
@@ -142,7 +146,7 @@ const revokeAll = async () => {
         </div>
         <button
             type="button"
-            class="text-xs font-medium text-red-700 underline"
+            class="text-xs font-medium text-danger underline"
             data-testid="revoke-all"
             @click="revokeAll"
             >Revocar todo el acceso</button

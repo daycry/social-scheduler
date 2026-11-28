@@ -117,13 +117,15 @@ const reset = () => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="text-xl font-semibold text-slate-900">Importar publicaciones por CSV · {{ brand.name }}</h1>
+            <h1 class="text-xl font-semibold text-foreground-strong"
+                >Importar publicaciones por CSV · {{ brand.name }}</h1
+            >
         </template>
 
         <div class="max-w-5xl space-y-6">
             <p
                 v-if="error"
-                class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+                class="rounded-lg border border-danger-border bg-danger-soft p-3 text-sm text-danger-ink"
                 role="alert"
                 data-testid="import-error"
                 >{{ error }}</p
@@ -139,7 +141,7 @@ const reset = () => {
 
             <template v-else>
                 <section v-if="!preview && !outcome" class="card space-y-4 p-4" aria-labelledby="import-upload">
-                    <h2 id="import-upload" class="text-base font-semibold text-slate-900">Subir el fichero</h2>
+                    <h2 id="import-upload" class="text-base font-semibold text-foreground-strong">Subir el fichero</h2>
                     <InfoNote>
                         Sube un CSV con las columnas <strong>{{ columns.join(', ') }}</strong> (obligatorias:
                         {{ required.join(', ') }}). Máximo {{ limits.max_rows }} filas y {{ limits.max_kb }} KB. Primero
@@ -149,7 +151,7 @@ const reset = () => {
                     <form class="space-y-3" @submit.prevent="analyze">
                         <div>
                             <FormField id="import-file" :error="fileError" error-class="mt-1" v-slot="{ control }">
-                                <label for="import-file" class="block text-sm font-medium text-slate-800"
+                                <label for="import-file" class="block text-sm font-medium text-foreground"
                                     >Fichero CSV</label
                                 >
                                 <input
@@ -177,14 +179,16 @@ const reset = () => {
                     </form>
 
                     <div>
-                        <h3 class="text-sm font-semibold text-slate-900">Cómo escribir las cuentas de esta marca</h3>
-                        <p class="mt-1 text-sm text-slate-600"
+                        <h3 class="text-sm font-semibold text-foreground-strong"
+                            >Cómo escribir las cuentas de esta marca</h3
+                        >
+                        <p class="mt-1 text-sm text-foreground-muted"
                             >Copia el identificador en la columna <code>cuentas</code>; con varias, sepáralas con
                             <code>|</code>.</p
                         >
-                        <ul class="mt-2 space-y-1 text-sm text-slate-800">
+                        <ul class="mt-2 space-y-1 text-sm text-foreground">
                             <li v-for="a in accounts" :key="a.id" class="flex flex-wrap items-center gap-2"
-                                ><code class="rounded bg-slate-100 px-1">{{ a.identifier }}</code>
+                                ><code class="rounded bg-surface-hover px-1">{{ a.identifier }}</code>
                                 <NetworkChip :network="a.network" :label="a.network_label" /> {{ a.name }}</li
                             >
                         </ul>
@@ -192,23 +196,27 @@ const reset = () => {
                 </section>
 
                 <section v-if="preview" class="space-y-4" aria-labelledby="import-preview">
-                    <h2 id="import-preview" ref="heading" tabindex="-1" class="text-base font-semibold text-slate-900"
+                    <h2
+                        id="import-preview"
+                        ref="heading"
+                        tabindex="-1"
+                        class="text-base font-semibold text-foreground-strong"
                         >Vista previa</h2
                     >
-                    <p class="text-sm text-slate-700" role="status" data-testid="import-summary">
+                    <p class="text-sm text-foreground-secondary" role="status" data-testid="import-summary">
                         {{ preview.summary.total }} {{ preview.summary.total === 1 ? 'fila' : 'filas' }}:
                         {{ preview.summary.valid }} {{ preview.summary.valid === 1 ? 'válida' : 'válidas' }} y
                         {{ preview.summary.invalid }} con errores. Todavía no se ha creado nada.
                     </p>
                     <div
-                        class="card overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+                        class="card overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                         role="region"
                         aria-label="Filas del CSV con su estado"
                         tabindex="0"
                     >
                         <table class="w-full text-left text-sm" data-testid="import-preview-table">
                             <caption class="sr-only">Filas del CSV con su estado</caption>
-                            <thead class="border-b border-slate-200 text-xs uppercase text-slate-600">
+                            <thead class="border-b border-border text-xs uppercase text-foreground-muted">
                                 <tr>
                                     <th scope="col" class="px-3 py-2">Fila</th>
                                     <th scope="col" class="px-3 py-2">Fecha ({{ brand.timezone ?? 'UTC' }})</th>
@@ -221,7 +229,7 @@ const reset = () => {
                                 <tr
                                     v-for="r in preview.rows"
                                     :key="r.row"
-                                    class="border-b border-slate-100 align-top"
+                                    class="border-b border-border-subtle align-top"
                                     :data-testid="`import-row-${r.row}`"
                                 >
                                     <td class="px-3 py-2">{{ r.row }}</td>
@@ -237,10 +245,10 @@ const reset = () => {
                                         >
                                     </td>
                                     <td class="px-3 py-2">
-                                        <span v-if="r.valid" class="font-medium text-emerald-800">Válida</span>
+                                        <span v-if="r.valid" class="font-medium text-success-ink">Válida</span>
                                         <template v-else>
-                                            <span class="font-medium text-red-800">Con errores (no se creará)</span>
-                                            <ul class="mt-1 list-disc space-y-0.5 pl-4 text-red-800">
+                                            <span class="font-medium text-danger-ink">Con errores (no se creará)</span>
+                                            <ul class="mt-1 list-disc space-y-0.5 pl-4 text-danger-ink">
                                                 <li v-for="(e, i) in r.errors" :key="i" class="break-words">{{ e }}</li>
                                             </ul>
                                         </template>
@@ -267,24 +275,28 @@ const reset = () => {
                 </section>
 
                 <section v-if="outcome" class="space-y-4" aria-labelledby="import-result">
-                    <h2 id="import-result" ref="heading" tabindex="-1" class="text-base font-semibold text-slate-900"
+                    <h2
+                        id="import-result"
+                        ref="heading"
+                        tabindex="-1"
+                        class="text-base font-semibold text-foreground-strong"
                         >Resultado de la importación</h2
                     >
-                    <p class="text-sm text-slate-700" role="status" data-testid="import-outcome">
+                    <p class="text-sm text-foreground-secondary" role="status" data-testid="import-outcome">
                         {{ outcome.summary.created }}
                         {{ outcome.summary.created === 1 ? 'publicación creada' : 'publicaciones creadas' }} y
                         {{ outcome.summary.skipped }}
                         {{ outcome.summary.skipped === 1 ? 'fila omitida' : 'filas omitidas' }}.
                     </p>
                     <div
-                        class="card overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+                        class="card overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                         role="region"
                         aria-label="Resultado de cada fila"
                         tabindex="0"
                     >
                         <table class="w-full text-left text-sm" data-testid="import-result-table">
                             <caption class="sr-only">Resultado de cada fila</caption>
-                            <thead class="border-b border-slate-200 text-xs uppercase text-slate-600">
+                            <thead class="border-b border-border text-xs uppercase text-foreground-muted">
                                 <tr>
                                     <th scope="col" class="px-3 py-2">Fila</th>
                                     <th scope="col" class="px-3 py-2">Texto</th>
@@ -295,7 +307,7 @@ const reset = () => {
                                 <tr
                                     v-for="r in outcome.rows"
                                     :key="r.row"
-                                    class="border-b border-slate-100 align-top"
+                                    class="border-b border-border-subtle align-top"
                                     :data-testid="`import-result-${r.row}`"
                                 >
                                     <td class="px-3 py-2">{{ r.row }}</td>
@@ -308,8 +320,8 @@ const reset = () => {
                                             >Creada: abrir publicación</Link
                                         >
                                         <template v-else>
-                                            <span class="font-medium text-red-800">Omitida</span>
-                                            <ul class="mt-1 list-disc space-y-0.5 pl-4 text-red-800">
+                                            <span class="font-medium text-danger-ink">Omitida</span>
+                                            <ul class="mt-1 list-disc space-y-0.5 pl-4 text-danger-ink">
                                                 <li v-for="(e, i) in r.errors" :key="i" class="break-words">{{ e }}</li>
                                             </ul>
                                         </template>

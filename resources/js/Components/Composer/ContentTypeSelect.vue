@@ -106,7 +106,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onOutside));
     <!-- Una sola opción: etiqueta fija, sin desplegable -->
     <span
         v-if="fixed"
-        class="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700"
+        class="inline-flex items-center gap-1.5 rounded-md border border-border bg-canvas px-2 py-1 text-xs text-foreground-secondary"
         :title="current?.description"
     >
         <svg
@@ -135,7 +135,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onOutside));
             :aria-controls="open ? `${uid}-list` : undefined"
             :aria-labelledby="`${labelId} ${btnId}`"
             :disabled="disabled"
-            class="inline-flex max-w-full items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60"
+            class="inline-flex max-w-full items-center gap-1.5 rounded-md border border-control-border bg-surface px-2 py-1 text-xs font-medium text-foreground-secondary hover:bg-canvas focus:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
             @click="toggle"
             @keydown="onButtonKey"
         >
@@ -165,7 +165,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onOutside));
             tabindex="-1"
             :aria-labelledby="labelId"
             :aria-activedescendant="open ? optionId(active) : undefined"
-            class="absolute inset-x-0 z-30 mt-1 max-h-72 overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg focus:outline-none sm:inset-x-auto sm:left-0 sm:w-72 sm:max-w-[calc(100vw-2rem)]"
+            class="absolute inset-x-0 z-30 mt-1 max-h-72 overflow-auto rounded-lg border border-border bg-surface py-1 shadow-lg focus:outline-none sm:inset-x-auto sm:left-0 sm:w-72 sm:max-w-[calc(100vw-2rem)]"
             @keydown="onListKey"
         >
             <li
@@ -175,12 +175,12 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onOutside));
                 role="option"
                 :aria-selected="t.value === modelValue"
                 class="flex cursor-pointer items-start gap-2 px-3 py-2"
-                :class="i === active ? 'bg-indigo-50' : ''"
+                :class="i === active ? 'bg-accent-soft' : ''"
                 @mouseenter="active = i"
                 @click="choose(i)"
             >
                 <svg
-                    class="mt-0.5 h-5 w-5 shrink-0 text-slate-600"
+                    class="mt-0.5 h-5 w-5 shrink-0 text-foreground-muted"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -192,12 +192,12 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onOutside));
                     <path :d="iconPath(t.value)" />
                 </svg>
                 <span class="min-w-0 flex-1">
-                    <span class="block text-sm font-medium text-slate-900">{{ t.label }}</span>
-                    <span class="block text-xs text-slate-600">{{ t.description }}</span>
+                    <span class="block text-sm font-medium text-foreground-strong">{{ t.label }}</span>
+                    <span class="block text-xs text-foreground-muted">{{ t.description }}</span>
                 </span>
                 <svg
                     v-if="t.value === modelValue"
-                    class="mt-0.5 h-4 w-4 shrink-0 text-indigo-600"
+                    class="mt-0.5 h-4 w-4 shrink-0 text-accent"
                     viewBox="0 0 20 20"
                     fill="currentColor"
                     aria-hidden="true"

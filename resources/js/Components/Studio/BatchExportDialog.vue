@@ -82,7 +82,7 @@ onBeforeUnmount(() => { disposed = true; monitor.stop(); emit('busy', false); })
         @update:model-value="value => { if (!busy) emit('update:modelValue', value); }"
     >
         <form class="space-y-5" @submit.prevent="start">
-            <p class="text-sm leading-relaxed text-slate-500"
+            <p class="text-sm leading-relaxed text-foreground-subtle"
                 >Genera de una vez un archivo por formato a partir de este diseño. Cada archivo se prepara en segundo
                 plano y se guarda en la biblioteca de esta marca. Repetir el lote no duplica los archivos que ya
                 están.</p
@@ -95,7 +95,7 @@ onBeforeUnmount(() => { disposed = true; monitor.stop(); emit('busy', false); })
                             v-for="preset in STUDIO_FORMAT_PRESETS"
                             :key="preset.key"
                             class="flex min-w-0 cursor-pointer items-center gap-3 rounded-xl border p-3 transition"
-                            :class="selected.includes(preset.key) ? 'border-violet-300 bg-violet-50' : 'border-slate-200 hover:border-violet-200'"
+                            :class="selected.includes(preset.key) ? 'border-accent-secondary-border bg-accent-secondary-soft' : 'border-border hover:border-accent-secondary-border'"
                             ><input
                                 v-model="selected"
                                 type="checkbox"
@@ -104,7 +104,10 @@ onBeforeUnmount(() => { disposed = true; monitor.stop(); emit('busy', false); })
                                 :disabled="!selected.includes(preset.key) && selected.length >= MAX_FORMATS"
                             /><span class="min-w-0"
                                 ><span class="block text-sm font-medium">{{ preset.label }}</span
-                                ><span class="mt-1 block text-xs text-slate-500">{{ sizeLabel(preset) }}</span></span
+                                ><span
+                                    class="mt-1 block text-xs text-foreground-subtle"
+                                    >{{ sizeLabel(preset) }}</span
+                                ></span
                             ></label
                         ></div
                     ></fieldset
@@ -126,8 +129,8 @@ onBeforeUnmount(() => { disposed = true; monitor.stop(); emit('busy', false); })
                 >
                 <fieldset v-if="document.pages.length > 1" class="space-y-2"
                     ><legend class="mb-2 text-sm font-medium">Páginas</legend
-                    ><p class="text-xs text-slate-500">Cada formato incluye un archivo por página elegida.</p
-                    ><div class="max-h-40 space-y-2 overflow-y-auto rounded-xl border border-slate-200 p-3"
+                    ><p class="text-xs text-foreground-subtle">Cada formato incluye un archivo por página elegida.</p
+                    ><div class="max-h-40 space-y-2 overflow-y-auto rounded-xl border border-border p-3"
                         ><label
                             v-for="(page, index) in document.pages"
                             :key="page.id"
@@ -138,56 +141,63 @@ onBeforeUnmount(() => { disposed = true; monitor.stop(); emit('busy', false); })
                         ></div
                     ></fieldset
                 >
-                <div class="rounded-xl border border-slate-200 p-3"
+                <div class="rounded-xl border border-border p-3"
                     ><label class="flex items-center gap-2 text-sm font-medium"
                         ><input v-model="applyWatermark" type="checkbox" :disabled="!watermarkAvailable" />Aplicar la
                         marca de agua de la marca</label
-                    ><p class="mt-1 text-xs leading-relaxed text-slate-500">{{ watermarkAvailable
+                    ><p class="mt-1 text-xs leading-relaxed text-foreground-subtle">{{ watermarkAvailable
                             ? 'Se superpone el logotipo del kit con la posición, opacidad y tamaño configurados en Identidad de marca.'
                             : 'Configura un logotipo para la marca de agua en Identidad de marca para poder aplicarla.' }}</p></div
                 >
             </fieldset>
             <section v-if="items.length" aria-label="Estado del lote" class="space-y-3">
-                <p role="status" class="rounded-xl bg-violet-50 p-3 text-sm text-violet-800">{{ summary }}</p>
+                <p
+                    role="status"
+                    class="rounded-xl bg-accent-secondary-soft p-3 text-sm text-accent-secondary-ink"
+                    >{{ summary }}</p
+                >
                 <ul class="space-y-2"
                     ><li
                         v-for="item in items"
                         :key="item.export.id"
-                        class="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                        class="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-xl border border-border px-4 py-3 text-sm"
                         ><span class="min-w-0 break-words"
                             >{{ item.preset.label }}
-                            <span class="text-xs text-slate-500">· {{ sizeLabel(item.preset) }}</span></span
+                            <span class="text-xs text-foreground-subtle">· {{ sizeLabel(item.preset) }}</span></span
                         ><span
                             class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
-                            :class="item.export.status === 'ready' ? 'bg-emerald-50 text-emerald-800' : ['failed', 'cancelled'].includes(item.export.status) ? 'bg-red-50 text-red-800' : 'bg-slate-100 text-slate-700'"
+                            :class="item.export.status === 'ready' ? 'bg-success-soft text-success-ink' : ['failed', 'cancelled'].includes(item.export.status) ? 'bg-danger-soft text-danger-ink' : 'bg-surface-hover text-foreground-secondary'"
                             >{{ labels[item.export.status] ?? item.export.status }}</span
                         ><span
                             v-if="item.export.error"
-                            class="w-full text-xs text-red-700"
+                            class="w-full text-xs text-danger"
                             >{{ item.export.error }}</span
                         ></li
                     ></ul
                 >
-                <p v-if="tracking.error" role="alert" class="rounded-xl bg-amber-50 p-3 text-sm text-amber-800"
+                <p v-if="tracking.error" role="alert" class="rounded-xl bg-warning-soft p-3 text-sm text-warning-ink"
                     >{{ tracking.error }}
                     <button type="button" class="font-medium underline" @click="monitor.start()"
                         >Actualizar estado</button
                     ></p
                 >
-                <p v-else-if="tracking.paused && working" class="text-xs text-slate-500"
+                <p v-else-if="tracking.paused && working" class="text-xs text-foreground-subtle"
                     >Dejamos de consultar el estado. El lote sigue en segundo plano.
-                    <button type="button" class="font-medium text-violet-700 underline" @click="monitor.start()"
+                    <button
+                        type="button"
+                        class="font-medium text-accent-secondary-ink underline"
+                        @click="monitor.start()"
                         >Actualizar estado</button
                     ></p
                 >
             </section>
-            <p v-if="error" role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-800">{{ error }}</p>
-            <div class="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4"
+            <p v-if="error" role="alert" class="rounded-xl bg-danger-soft p-3 text-sm text-danger-ink">{{ error }}</p>
+            <div class="flex flex-wrap justify-end gap-2 border-t border-border-subtle pt-4"
                 ><button type="button" class="btn-secondary" :disabled="busy" @click="emit('update:modelValue', false)"
                     >Cerrar exportación en lote</button
                 ><button
                     type="submit"
-                    class="btn-primary bg-violet-700"
+                    class="btn-secondary-accent"
                     :disabled="busy || working"
                     data-dialog-initial-focus
                     >{{ busy ? 'Preparando…' : failed.length ? 'Reintentar los fallidos' : items.length ? 'Exportar de nuevo' : 'Exportar en lote' }}</button

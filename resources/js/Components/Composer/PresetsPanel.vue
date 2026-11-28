@@ -62,7 +62,7 @@ const setCategory = (value) => {
 
         <fieldset
             v-if="switches().length"
-            class="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200/80 p-0"
+            class="divide-y divide-border-subtle overflow-hidden rounded-xl border border-border/80 p-0"
             :disabled="!editable"
         >
             <legend class="sr-only">Interruptores de {{ account.network_label }} ({{ account.name }})</legend>
@@ -79,25 +79,27 @@ const setCategory = (value) => {
                         @change="set(s, $event.target.checked)"
                     />
                 </label>
-                <p v-if="lockedByTiktok(s)" class="mt-1.5 text-xs leading-relaxed text-slate-600"
+                <p v-if="lockedByTiktok(s)" class="mt-1.5 text-xs leading-relaxed text-foreground-muted"
                     >Desactivado en los ajustes de tu cuenta de TikTok.</p
                 >
                 <p
                     v-if="s.hint && checked(s)"
                     :id="`hint-${account.id}-${s.key}`"
-                    class="mt-1.5 text-xs leading-relaxed text-slate-600"
+                    class="mt-1.5 text-xs leading-relaxed text-foreground-muted"
                     role="status"
                     >{{ s.hint }}</p
                 >
                 <p
                     v-if="s.warning && checked(s)"
-                    class="mt-1.5 text-xs leading-relaxed text-amber-800"
+                    class="mt-1.5 text-xs leading-relaxed text-warning-ink"
                     role="status"
                     >{{ s.warning }}</p
                 >
             </div>
         </fieldset>
-        <p v-if="switches().length && account.network !== 'instagram'" class="text-xs leading-relaxed text-slate-500"
+        <p
+            v-if="switches().length && account.network !== 'instagram'"
+            class="text-xs leading-relaxed text-foreground-subtle"
             >Se recuerdan los ajustes habituales de esta marca y red. La música recomendada y las colaboraciones de pago
             se deciden en cada publicación.</p
         >

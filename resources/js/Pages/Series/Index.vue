@@ -117,36 +117,36 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="text-xl font-bold text-slate-900">Series recurrentes</h1>
+            <h1 class="text-xl font-bold text-foreground-strong">Series recurrentes</h1>
         </template>
 
         <div class="max-w-4xl space-y-6">
             <p
                 v-if="message"
-                class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"
+                class="rounded-lg border border-success-border bg-success-soft p-3 text-sm text-success-ink"
                 role="status"
                 data-testid="series-message"
                 >{{ message }}</p
             >
             <p
                 v-if="error"
-                class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+                class="rounded-lg border border-danger-border bg-danger-soft p-3 text-sm text-danger-ink"
                 role="alert"
                 data-testid="series-error"
                 >{{ error }}</p
             >
 
             <section v-if="brands.length" class="card p-4" aria-labelledby="new-series">
-                <h2 id="new-series" class="text-base font-semibold text-slate-900">Nueva serie</h2>
+                <h2 id="new-series" class="text-base font-semibold text-foreground-strong">Nueva serie</h2>
                 <form class="mt-3 grid gap-3 sm:grid-cols-2" @submit.prevent="create">
                     <div>
-                        <label for="s-brand" class="block text-sm font-medium text-slate-800">Marca</label>
+                        <label for="s-brand" class="block text-sm font-medium text-foreground">Marca</label>
                         <select id="s-brand" v-model="form.brand_id" class="field w-full" @change="form.targets = {}">
                             <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>
                         </select>
                     </div>
                     <div>
-                        <label for="s-freq" class="block text-sm font-medium text-slate-800">Frecuencia</label>
+                        <label for="s-freq" class="block text-sm font-medium text-foreground">Frecuencia</label>
                         <select
                             id="s-freq"
                             v-model="form.frequency"
@@ -159,12 +159,12 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
                         </select>
                     </div>
                     <fieldset v-if="form.frequency === 'semanal'" class="sm:col-span-2">
-                        <legend class="text-sm font-medium text-slate-800">Días de la semana</legend>
+                        <legend class="text-sm font-medium text-foreground">Días de la semana</legend>
                         <div class="mt-1 flex flex-wrap gap-3">
                             <label v-for="d in DAYS" :key="d[0]" class="inline-flex items-center gap-1 text-sm">
                                 <input
                                     type="checkbox"
-                                    class="h-4 w-4 rounded border-slate-400 text-indigo-600"
+                                    class="h-4 w-4 rounded border-control-border text-accent"
                                     :checked="form.weekdays.includes(d[0])"
                                     :data-testid="`weekday-${d[0]}`"
                                     @change="toggleDay(d[0])"
@@ -173,7 +173,7 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
                         </div>
                     </fieldset>
                     <div>
-                        <label for="s-time" class="block text-sm font-medium text-slate-800"
+                        <label for="s-time" class="block text-sm font-medium text-foreground"
                             >Hora (zona de la marca{{ brand ? `: ${brand.timezone}` : '' }})</label
                         >
                         <input
@@ -186,7 +186,7 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
                         />
                     </div>
                     <div>
-                        <label for="s-start" class="block text-sm font-medium text-slate-800">Primer día</label>
+                        <label for="s-start" class="block text-sm font-medium text-foreground">Primer día</label>
                         <input
                             id="s-start"
                             v-model="form.starts_on"
@@ -197,7 +197,7 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
                         />
                     </div>
                     <fieldset class="sm:col-span-2">
-                        <legend class="text-sm font-medium text-slate-800">Fin</legend>
+                        <legend class="text-sm font-medium text-foreground">Fin</legend>
                         <div class="mt-1 flex flex-wrap items-center gap-4 text-sm">
                             <label class="inline-flex items-center gap-1"
                                 ><input v-model="form.end_mode" type="radio" value="count" />Tras</label
@@ -231,8 +231,8 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
                         </div>
                     </fieldset>
                     <fieldset class="sm:col-span-2">
-                        <legend class="text-sm font-medium text-slate-800">Cuentas de destino</legend>
-                        <p v-if="!brand?.accounts.length" class="text-xs text-slate-600"
+                        <legend class="text-sm font-medium text-foreground">Cuentas de destino</legend>
+                        <p v-if="!brand?.accounts.length" class="text-xs text-foreground-muted"
                             >Esta marca no tiene cuentas conectadas.</p
                         >
                         <div
@@ -243,7 +243,7 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
                             <label class="inline-flex items-center gap-1">
                                 <input
                                     type="checkbox"
-                                    class="h-4 w-4 rounded border-slate-400 text-indigo-600"
+                                    class="h-4 w-4 rounded border-control-border text-accent"
                                     :checked="a.id in form.targets"
                                     :data-testid="`series-account-${a.id}`"
                                     @change="toggleAccount(a, $event.target.checked)"
@@ -264,7 +264,7 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
                         </div>
                     </fieldset>
                     <div class="sm:col-span-2">
-                        <label for="s-text" class="block text-sm font-medium text-slate-800">Texto</label>
+                        <label for="s-text" class="block text-sm font-medium text-foreground">Texto</label>
                         <textarea
                             id="s-text"
                             v-model="form.text"
@@ -274,11 +274,11 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
                         ></textarea>
                     </div>
                     <div class="sm:col-span-2">
-                        <label class="inline-flex items-center gap-2 text-sm text-slate-800">
+                        <label class="inline-flex items-center gap-2 text-sm text-foreground">
                             <input
                                 v-model="form.requires_approval"
                                 type="checkbox"
-                                class="h-4 w-4 rounded border-slate-400 text-indigo-600"
+                                class="h-4 w-4 rounded border-control-border text-accent"
                                 data-testid="series-requires-approval"
                             />
                             Cada publicación necesita aprobación antes de salir
@@ -304,16 +304,18 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
             </EmptyState>
 
             <section aria-labelledby="my-series">
-                <h2 id="my-series" class="mb-2 text-base font-semibold text-slate-900">Tus series</h2>
-                <p v-if="series.length === 0" class="card p-4 text-sm text-slate-600">Todavía no tienes series.</p>
+                <h2 id="my-series" class="mb-2 text-base font-semibold text-foreground-strong">Tus series</h2>
+                <p v-if="series.length === 0" class="card p-4 text-sm text-foreground-muted"
+                    >Todavía no tienes series.</p
+                >
                 <ul class="space-y-3">
                     <li v-for="s in series" :key="s.id" class="card p-4" :data-testid="`series-${s.id}`">
                         <div class="flex flex-wrap items-center gap-2">
                             <StatusBadge :status="s.status" :label="s.status === 'activa' ? 'Activa' : 'Cancelada'" />
-                            <span class="text-sm font-medium text-slate-900"
+                            <span class="text-sm font-medium text-foreground-strong"
                                 >{{ freq(s) }} a las {{ s.time_local }}</span
                             >
-                            <span class="text-xs text-slate-600"
+                            <span class="text-xs text-foreground-muted"
                                 >desde {{ s.starts_on }} · {{ ends(s) }} · {{ s.generated }} generadas<template
                                     v-if="s.requires_approval"
                                 >
@@ -323,7 +325,7 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
                         </div>
                         <p
                             v-if="s.last_error"
-                            class="mt-2 rounded-lg border border-red-200 bg-red-50 p-2 text-sm text-red-800"
+                            class="mt-2 rounded-lg border border-danger-border bg-danger-soft p-2 text-sm text-danger-ink"
                             role="alert"
                             :data-testid="`series-last-error-${s.id}`"
                         >
@@ -332,7 +334,7 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
                         </p>
                         <div
                             v-if="s.status === 'activa' && s.recoverable > 0"
-                            class="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2 text-sm text-amber-900"
+                            class="mt-2 rounded-lg border border-warning-border bg-warning-soft p-2 text-sm text-warning-ink"
                             :data-testid="`series-recover-${s.id}`"
                         >
                             <p
@@ -349,19 +351,19 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
                                 >Recuperar fechas perdidas</button
                             >
                         </div>
-                        <p class="mt-1 line-clamp-2 text-sm text-slate-800">{{ s.text || '(sin texto)' }}</p>
+                        <p class="mt-1 line-clamp-2 text-sm text-foreground">{{ s.text || '(sin texto)' }}</p>
                         <ul class="mt-2 flex flex-wrap gap-1.5">
                             <li
                                 v-for="o in s.occurrences.slice(0, 12)"
                                 :key="o.date"
-                                class="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-xs"
+                                class="rounded border border-border bg-canvas px-1.5 py-0.5 text-xs"
                             >
                                 <Link
                                     v-if="o.post_id && o.status !== 'eliminada'"
                                     :href="route('posts.edit', o.post_id)"
                                     class="link"
                                     >{{ o.date }}</Link><span v-else>{{ o.date }}</span>
-                                <span v-if="o.edited" class="text-amber-800"> · editada</span>
+                                <span v-if="o.edited" class="text-warning-ink"> · editada</span>
                             </li>
                         </ul>
                         <div v-if="s.status === 'activa'" class="mt-3 flex flex-wrap gap-2">
@@ -378,7 +380,7 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
                             >
                         </div>
                         <form v-if="editing === s.id" class="mt-3 space-y-2" @submit.prevent="saveEdit(s)">
-                            <label :for="`e-text-${s.id}`" class="block text-sm font-medium text-slate-800"
+                            <label :for="`e-text-${s.id}`" class="block text-sm font-medium text-foreground"
                                 >Texto de las próximas ocurrencias</label
                             >
                             <textarea
@@ -387,7 +389,9 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
                                 rows="3"
                                 class="field w-full"
                             ></textarea>
-                            <label :for="`e-time-${s.id}`" class="block text-sm font-medium text-slate-800">Hora</label>
+                            <label :for="`e-time-${s.id}`" class="block text-sm font-medium text-foreground"
+                                >Hora</label
+                            >
                             <input
                                 :id="`e-time-${s.id}`"
                                 v-model="edit.time_local"
@@ -395,16 +399,16 @@ const ends = (s) => (s.ends_on ? `hasta el ${s.ends_on}` : s.max_occurrences ? `
                                 class="field w-auto"
                                 required
                             />
-                            <label class="inline-flex items-center gap-2 text-sm text-slate-800">
+                            <label class="inline-flex items-center gap-2 text-sm text-foreground">
                                 <input
                                     v-model="edit.requires_approval"
                                     type="checkbox"
-                                    class="h-4 w-4 rounded border-slate-400 text-indigo-600"
+                                    class="h-4 w-4 rounded border-control-border text-accent"
                                     :data-testid="`series-edit-approval-${s.id}`"
                                 />
                                 Cada publicación necesita aprobación antes de salir
                             </label>
-                            <p class="text-xs text-slate-600"
+                            <p class="text-xs text-foreground-muted"
                                 >Las ocurrencias que hayas editado a mano no cambian su texto u hora. Al activar la
                                 aprobación, las próximas publicaciones pendientes de salir pasan a pendientes de
                                 aprobar; al desactivarla, las pendientes se programan.</p

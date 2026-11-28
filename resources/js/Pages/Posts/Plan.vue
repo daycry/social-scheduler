@@ -222,7 +222,7 @@ const discard = () => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="text-xl font-bold text-slate-900">Plan de contenido</h1>
+            <h1 class="text-xl font-bold text-foreground-strong">Plan de contenido</h1>
         </template>
 
         <div class="space-y-5">
@@ -239,7 +239,7 @@ const discard = () => {
 
             <template v-else>
                 <section class="card space-y-3 p-5" aria-labelledby="plan-briefing-title" data-testid="plan-form">
-                    <h2 id="plan-briefing-title" class="text-sm font-medium text-slate-700"
+                    <h2 id="plan-briefing-title" class="text-sm font-medium text-foreground-secondary"
                         >Describe tu plan · {{ brand.name }}</h2
                     >
 
@@ -254,7 +254,7 @@ const discard = () => {
                         LinkedIn, Facebook o Telegram). Conecta una para usar el plan.
                     </InfoNote>
 
-                    <label :for="briefingId" class="block text-sm font-medium text-slate-800">Briefing</label>
+                    <label :for="briefingId" class="block text-sm font-medium text-foreground">Briefing</label>
                     <textarea
                         :id="briefingId"
                         v-model="briefing"
@@ -266,13 +266,13 @@ const discard = () => {
                         placeholder="La semana que viene, 3 posts sobre el lanzamiento de X en Bluesky y Mastodon, por la mañana"
                         data-testid="plan-briefing"
                     ></textarea>
-                    <p :id="hintId" class="text-xs text-slate-600">
+                    <p :id="hintId" class="text-xs text-foreground-muted">
                         Cuenta cuántas publicaciones, de qué y cuándo (hasta {{ maxItems }}). No incluyas datos
                         personales: se quitan los correos, teléfonos y enlaces antes de enviarlo. El briefing se envía
                         al proveedor de IA (Anthropic) para generar el plan.
                         <template v-if="enabled">Te quedan {{ remaining }} usos hoy.</template>
                     </p>
-                    <p class="text-xs text-slate-600" data-testid="plan-accounts">
+                    <p class="text-xs text-foreground-muted" data-testid="plan-accounts">
                         Se publicará en:
                         <span
                             v-for="(a, i) in accounts"
@@ -283,7 +283,7 @@ const discard = () => {
                             ><span v-if="i < accounts.length - 1">, </span>
                         </span>
                     </p>
-                    <p v-if="excluded.length" class="text-xs text-slate-600" data-testid="plan-excluded">
+                    <p v-if="excluded.length" class="text-xs text-foreground-muted" data-testid="plan-excluded">
                         Fuera del plan:
                         <template v-for="(a, i) in excluded" :key="a.id"
                             >{{ a.name }} ({{ a.reason }})<template v-if="i < excluded.length - 1"
@@ -303,7 +303,7 @@ const discard = () => {
                             >{{ loading ? 'Preparando el plan…' : 'Proponer plan' }}</button
                         >
                     </div>
-                    <p v-if="error" class="text-sm text-rose-700" role="alert" data-testid="plan-error">{{ error }}</p>
+                    <p v-if="error" class="text-sm text-danger" role="alert" data-testid="plan-error">{{ error }}</p>
                 </section>
 
                 <div role="status">
@@ -317,11 +317,11 @@ const discard = () => {
                             id="plan-created-title"
                             ref="createdTitle"
                             tabindex="-1"
-                            class="text-sm font-medium text-slate-700"
+                            class="text-sm font-medium text-foreground-secondary"
                         >
                             Este plan ya se ha creado o se está creando
                         </h2>
-                        <p class="text-sm text-slate-600">
+                        <p class="text-sm text-foreground-muted">
                             Tu confirmación anterior ya llegó al servidor: no la repitas para no duplicar las
                             publicaciones. Revisa el
                             <Link :href="route('calendar.index', { brand_id: brand.id })" class="underline"
@@ -341,17 +341,17 @@ const discard = () => {
                             id="plan-created-title"
                             ref="createdTitle"
                             tabindex="-1"
-                            class="text-sm font-medium text-slate-700"
+                            class="text-sm font-medium text-foreground-secondary"
                             >Plan creado</h2
                         >
-                        <p class="text-sm text-emerald-800">
+                        <p class="text-sm text-success-ink">
                             {{
                             created.mode === 'schedule'
                                 ? `Se ${created.count === 1 ? 'ha' : 'han'} programado ${created.count} ${created.count === 1 ? 'publicación' : 'publicaciones'}.`
                                 : `Se ${created.count === 1 ? 'ha' : 'han'} creado ${created.count} ${created.count === 1 ? 'borrador' : 'borradores'}.`
                             }}
                         </p>
-                        <p class="text-sm text-slate-600">
+                        <p class="text-sm text-foreground-muted">
                             Puedes revisarlos y editarlos en el
                             <Link :href="route('calendar.index', { brand_id: brand.id })" class="underline"
                                 >calendario</Link
@@ -366,10 +366,10 @@ const discard = () => {
                     aria-labelledby="plan-unresolved-title"
                     data-testid="plan-unresolved"
                 >
-                    <h2 id="plan-unresolved-title" class="text-sm font-medium text-slate-700"
+                    <h2 id="plan-unresolved-title" class="text-sm font-medium text-foreground-secondary"
                         >Confirmación sin resolver</h2
                     >
-                    <p class="text-sm text-slate-600">
+                    <p class="text-sm text-foreground-muted">
                         {{ NETWORK_UNKNOWN }}
                         <Link :href="route('calendar.index', { brand_id: brand.id })" class="underline"
                             >Ir al calendario</Link
@@ -390,8 +390,8 @@ const discard = () => {
                 </section>
 
                 <section v-if="items" class="space-y-3" aria-labelledby="plan-review-title" data-testid="plan-review">
-                    <h2 id="plan-review-title" class="text-sm font-medium text-slate-700">Revisa el plan</h2>
-                    <p class="text-sm text-slate-600">
+                    <h2 id="plan-review-title" class="text-sm font-medium text-foreground-secondary">Revisa el plan</h2>
+                    <p class="text-sm text-foreground-muted">
                         Nada se ha creado todavía. Edita lo que quieras, desmarca lo que no te sirva y confirma.
                     </p>
                     <InfoNote v-for="notice in notices" :key="notice">{{ notice }}</InfoNote>
@@ -403,11 +403,11 @@ const discard = () => {
                             class="card space-y-3 p-4"
                             data-testid="plan-item"
                         >
-                            <label class="flex items-center gap-2 text-sm font-medium text-slate-900">
+                            <label class="flex items-center gap-2 text-sm font-medium text-foreground-strong">
                                 <input
                                     v-model="row.item.include"
                                     type="checkbox"
-                                    class="rounded border-slate-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                                    class="rounded border-control-border text-accent shadow-sm focus:ring-focus"
                                     data-testid="plan-item-include"
                                 />
                                 Incluir la publicación {{ index + 1 }}
@@ -415,7 +415,7 @@ const discard = () => {
 
                             <div :class="{ 'opacity-60': !row.item.include }" class="space-y-3">
                                 <label class="block">
-                                    <span class="block text-xs font-medium text-slate-500"
+                                    <span class="block text-xs font-medium text-foreground-subtle"
                                         >Fecha y hora ({{ brand.timezone }})</span
                                     >
                                     <input
@@ -429,16 +429,16 @@ const discard = () => {
                                 </label>
 
                                 <fieldset :disabled="!row.item.include" class="min-w-0">
-                                    <legend class="text-xs font-medium text-slate-500">Cuentas</legend>
+                                    <legend class="text-xs font-medium text-foreground-subtle">Cuentas</legend>
                                     <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1">
                                         <label
                                             v-for="a in accounts"
                                             :key="a.id"
-                                            class="flex items-center gap-1.5 text-sm text-slate-800"
+                                            class="flex items-center gap-1.5 text-sm text-foreground"
                                         >
                                             <input
                                                 type="checkbox"
-                                                class="rounded border-slate-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                                                class="rounded border-control-border text-accent shadow-sm focus:ring-focus"
                                                 :checked="row.item.account_ids.includes(a.id)"
                                                 @change="toggleAccount(row.item, a.id, $event.target.checked)"
                                             />
@@ -449,7 +449,7 @@ const discard = () => {
                                 </fieldset>
 
                                 <label class="block">
-                                    <span class="block text-xs font-medium text-slate-500">Texto</span>
+                                    <span class="block text-xs font-medium text-foreground-subtle">Texto</span>
                                     <textarea
                                         v-model="row.item.text"
                                         rows="4"
@@ -469,10 +469,10 @@ const discard = () => {
                                             class="flex min-w-0 items-center gap-1.5"
                                         >
                                             <NetworkIcon :network="c.network" size="sm" />
-                                            <span class="truncate text-slate-600">{{ c.label }}</span>
+                                            <span class="truncate text-foreground-muted">{{ c.label }}</span>
                                             <span
                                                 class="rounded px-1.5 py-0.5 font-medium"
-                                                :class="c.problems.length ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'"
+                                                :class="c.problems.length ? 'bg-danger-soft text-danger-ink' : 'bg-surface-hover text-foreground-secondary'"
                                                 >{{ formatThousands(c.chars)
                                                 }}<template v-if="c.max != null">
                                                     / {{ formatThousands(c.max) }}</template
@@ -486,14 +486,14 @@ const discard = () => {
                                     <p
                                         v-for="p in row.problems"
                                         :key="p.account_id"
-                                        class="text-xs text-amber-800"
+                                        class="text-xs text-warning-ink"
                                         data-testid="plan-item-problem"
                                         >{{ p.label }}: {{ p.message }} Edita el texto para poder confirmarlo.</p
                                     >
                                     <p
                                         v-for="message in row.item.errors"
                                         :key="message"
-                                        class="text-xs text-rose-700"
+                                        class="text-xs text-danger"
                                         data-testid="plan-item-error"
                                         >{{ message }}</p
                                     >
@@ -503,22 +503,22 @@ const discard = () => {
                     </ul>
 
                     <fieldset class="space-y-1">
-                        <legend class="text-sm font-medium text-slate-800">Al confirmar</legend>
-                        <label class="flex items-center gap-2 text-sm text-slate-800">
+                        <legend class="text-sm font-medium text-foreground">Al confirmar</legend>
+                        <label class="flex items-center gap-2 text-sm text-foreground">
                             <input
                                 v-model="mode"
                                 type="radio"
                                 value="draft"
-                                class="border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                class="border-control-border text-accent focus:ring-focus"
                             />
                             Guardar como borradores con su fecha
                         </label>
-                        <label class="flex items-center gap-2 text-sm text-slate-800">
+                        <label class="flex items-center gap-2 text-sm text-foreground">
                             <input
                                 v-model="mode"
                                 type="radio"
                                 value="schedule"
-                                class="border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                class="border-control-border text-accent focus:ring-focus"
                             />
                             Programar para esa fecha
                         </label>
@@ -547,12 +547,12 @@ const discard = () => {
                             >Descartar el plan</button
                         >
                     </div>
-                    <p v-if="blocked" class="text-xs text-slate-600">
+                    <p v-if="blocked" class="text-xs text-foreground-muted">
                         Revisa las publicaciones marcadas: alguna no cabe en su red o le falta texto o cuentas.
                     </p>
                     <p
                         v-if="confirmError"
-                        class="text-sm text-rose-700"
+                        class="text-sm text-danger"
                         role="alert"
                         data-testid="plan-confirm-error"
                         >{{ confirmError }}</p

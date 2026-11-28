@@ -87,7 +87,7 @@ const hoverRows = computed(() => {
     <div>
         <div
             v-if="!hasData"
-            class="flex items-center justify-center rounded border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500"
+            class="flex items-center justify-center rounded border border-dashed border-control-border bg-canvas text-sm text-foreground-subtle"
             :style="{ height: `${height}px` }"
         >
             {{ UNAVAILABLE }} en este periodo
@@ -102,8 +102,14 @@ const hoverRows = computed(() => {
                 @mouseleave="hover = null"
             >
                 <g v-for="t in ticks" :key="t.y">
-                    <line :x1="PAD.left" :x2="W - PAD.right" :y1="t.y" :y2="t.y" stroke="#e2e8f0" />
-                    <text :x="PAD.left - 6" :y="t.y + 3" text-anchor="end" font-size="10" fill="#64748b">
+                    <line :x1="PAD.left" :x2="W - PAD.right" :y1="t.y" :y2="t.y" class="stroke-border" />
+                    <text
+                        :x="PAD.left - 6"
+                        :y="t.y + 3"
+                        text-anchor="end"
+                        font-size="10"
+                        class="fill-foreground-subtle"
+                    >
                         {{ t.label }}
                     </text>
                 </g>
@@ -114,17 +120,17 @@ const hoverRows = computed(() => {
                     :y="height - 6"
                     text-anchor="middle"
                     font-size="10"
-                    fill="#64748b"
+                    class="fill-foreground-subtle"
                 >
                     {{ l.label }}
                 </text>
-                <g v-for="p in paths" :key="p.name">
+                <g v-for="p in paths" :key="p.name" class="chart-series" :style="{ '--series-color': p.color }">
                     <polyline
                         v-for="(seg, i) in p.segments.filter((s) => s.length > 1)"
                         :key="i"
                         :points="seg.map((pt) => pt.join(',')).join(' ')"
                         fill="none"
-                        :stroke="p.color"
+                        class="stroke-[color:var(--chart-series)]"
                         stroke-width="2"
                         stroke-linejoin="round"
                     />
@@ -134,7 +140,7 @@ const hoverRows = computed(() => {
                         :cx="seg[0][0]"
                         :cy="seg[0][1]"
                         r="3"
-                        :fill="p.color"
+                        class="fill-[color:var(--chart-series)]"
                     />
                 </g>
                 <line
@@ -143,27 +149,42 @@ const hoverRows = computed(() => {
                     :x2="x(hover)"
                     :y1="PAD.top"
                     :y2="height - PAD.bottom"
-                    stroke="#94a3b8"
+                    class="stroke-control-border"
                     stroke-dasharray="3 3"
                 />
             </svg>
             <div
                 v-if="hover !== null"
-                class="pointer-events-none absolute right-2 top-1 rounded border border-slate-200 bg-white/95 px-2 py-1 text-xs shadow"
+                class="pointer-events-none absolute right-2 top-1 rounded border border-border bg-surface-raised px-2 py-1 text-xs shadow"
             >
-                <div class="font-medium text-slate-700">{{ dates[hover] }}</div>
+                <div class="font-medium text-foreground-secondary">{{ dates[hover] }}</div>
                 <div v-for="r in hoverRows" :key="r.name" class="flex items-center gap-1">
-                    <span class="inline-block h-2 w-2 rounded-full" :style="{ backgroundColor: r.color }"></span>
-                    <span class="text-slate-600">{{ r.name }}:</span>
-                    <span :class="r.value === null ? 'text-slate-500' : 'text-slate-900'">{{ fmt(r.value) }}</span>
+                    <span
+                        class="chart-series inline-block h-2 w-2 rounded-full bg-[color:var(--chart-series)]"
+                        :style="{ '--series-color': r.color }"
+                    ></span>
+                    <span class="text-foreground-muted">{{ r.name }}:</span>
+                    <span
+                        :class="r.value === null ? 'text-foreground-subtle' : 'text-foreground-strong'"
+                        >{{ fmt(r.value) }}</span
+                    >
                 </div>
             </div>
-            <div v-if="series.length > 1" class="mt-1 flex flex-wrap gap-3 text-xs text-slate-600">
+            <div v-if="series.length > 1" class="mt-1 flex flex-wrap gap-3 text-xs text-foreground-muted">
                 <span v-for="s in series" :key="s.name" class="flex items-center gap-1">
-                    <span class="inline-block h-2 w-2 rounded-full" :style="{ backgroundColor: s.color }"></span
+                    <span
+                        class="chart-series inline-block h-2 w-2 rounded-full bg-[color:var(--chart-series)]"
+                        :style="{ '--series-color': s.color }"
+                    ></span
                     >{{ s.name }}
                 </span>
             </div>
         </div>
     </div>
 </template>
+
+<style scoped>
+.chart-series {
+    --chart-series: color-mix(in srgb, var(--series-color) var(--chart-brand-share), rgb(var(--color-foreground-strong)));
+}
+</style>

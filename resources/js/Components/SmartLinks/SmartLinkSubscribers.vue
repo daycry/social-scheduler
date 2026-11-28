@@ -26,12 +26,12 @@ const clearSubscribers = async () => {
         aria-label="Suscriptores"
     >
         <div class="flex flex-wrap items-center justify-between gap-2">
-            <h2 class="text-base font-semibold text-slate-900">Suscriptores ({{ count }})</h2>
+            <h2 class="text-base font-semibold text-foreground-strong">Suscriptores ({{ count }})</h2>
             <span class="flex gap-3">
                 <a :href="route('smartlinks.subscribers', linkId)" class="underline">Descargar CSV</a>
                 <button
                     type="button"
-                    class="font-medium text-red-700 underline"
+                    class="font-medium text-danger underline"
                     data-testid="subscribers-clear"
                     @click="clearSubscribers"
                     >Borrar todos</button
@@ -43,14 +43,14 @@ const clearSubscribers = async () => {
                 <span class="min-w-0 break-all">{{ s.email }}</span>
                 <button
                     type="button"
-                    class="text-xs font-medium text-red-700 underline"
+                    class="text-xs font-medium text-danger underline"
                     :aria-label="`Eliminar a ${s.email}`"
                     @click="removeSubscriber(s)"
                     >Eliminar</button
                 >
             </li>
         </ul>
-        <p v-if="count > subscribers.length" class="text-xs text-slate-600"
+        <p v-if="count > subscribers.length" class="text-xs text-foreground-muted"
             >Se muestran los {{ subscribers.length }} más recientes; el CSV incluye todos.</p
         >
     </section>

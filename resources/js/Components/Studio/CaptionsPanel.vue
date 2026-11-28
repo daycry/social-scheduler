@@ -120,30 +120,26 @@ function exportFile(format) {
 }
 </script>
 <template>
-    <section
-        aria-label="Subtítulos"
-        class="min-w-0 space-y-3 border-t border-slate-200 pt-4"
-        data-testid="captions-panel"
-    >
+    <section aria-label="Subtítulos" class="min-w-0 space-y-3 border-t border-border pt-4" data-testid="captions-panel">
         <div class="flex flex-wrap items-center gap-2"
-            ><h3 class="mr-auto text-xs font-semibold text-slate-700"
-                >Subtítulos <span class="font-normal text-slate-400">{{ cues.length }}/5000</span></h3
+            ><h3 class="mr-auto text-xs font-semibold text-foreground-secondary"
+                >Subtítulos <span class="font-normal text-foreground-subtle">{{ cues.length }}/5000</span></h3
             ><button type="button" class="caption-button" :disabled="blocked" @click="addCue"
                 >Añadir subtítulo</button
             ></div
         >
-        <p class="text-[11px] text-slate-500"
+        <p class="text-[11px] text-foreground-subtle"
             >Una pista para todo el proyecto. Importa SRT/VTT o escribe texto; el reconocimiento de voz aún no está
             disponible; la traducción usa el asistente de IA si está activado.</p
         >
         <div class="flex flex-wrap items-end gap-2">
-            <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+            <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                 >Al importar<select class="field min-w-0" v-model="mode" :disabled="blocked"
                     ><option value="append">Añadir a la pista</option
                     ><option value="replace">Reemplazar la pista</option></select
                 ></label
             >
-            <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600 flex-1"
+            <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted flex-1"
                 >Archivo SRT o VTT<input
                     class="field min-w-0 max-w-full"
                     type="file"
@@ -158,14 +154,14 @@ function exportFile(format) {
                 >Descargar VTT</button
             >
         </div>
-        <p v-if="error" role="alert" class="rounded-lg bg-red-50 p-2 text-xs text-red-800">{{ error }}</p><p
+        <p v-if="error" role="alert" class="rounded-lg bg-danger-soft p-2 text-xs text-danger-ink">{{ error }}</p><p
             v-for="warning in warnings"
             :key="warning"
             role="status"
-            class="text-xs text-amber-800"
+            class="text-xs text-warning-ink"
             >{{ warning }}</p
         >
-        <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+        <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
             >Buscar subtítulos<input class="field min-w-0" v-model="query" type="search" aria-label="Buscar subtítulos"
         /></label>
         <div class="max-h-52 space-y-1 overflow-y-auto">
@@ -178,14 +174,14 @@ function exportFile(format) {
                 :disabled="blocked"
                 data-testid="caption-row"
                 class="flex w-full min-w-0 gap-2 rounded-lg border p-2 text-left text-xs"
-                :class="activeIds.has(cue.id) ? 'border-violet-500 bg-violet-50' : 'border-slate-100'"
+                :class="activeIds.has(cue.id) ? 'border-accent-secondary-fill bg-accent-secondary-soft' : 'border-border-subtle'"
                 @click="selectedId = cue.id"
             >
-                <span class="shrink-0 text-[10px] text-slate-500"
+                <span class="shrink-0 text-[10px] text-foreground-subtle"
                     >{{ cue.start.toFixed(3) }}–{{ cue.end.toFixed(3) }}</span
                 ><span class="min-w-0 truncate">{{ cue.text }}</span
                 ><span v-if="activeIds.has(cue.id)" class="sr-only">Activo</span> </button
-            ><p v-if="!rows.length" class="text-xs text-slate-500">No hay subtítulos para mostrar.</p>
+            ><p v-if="!rows.length" class="text-xs text-foreground-subtle">No hay subtítulos para mostrar.</p>
         </div>
         <div v-if="lastPage > 1" class="flex items-center gap-2 text-xs"
             ><button type="button" class="caption-button" :disabled="page <= 1" @click="page--">Anterior</button
@@ -194,8 +190,8 @@ function exportFile(format) {
                 >Siguiente</button
             ></div
         >
-        <div v-if="selected" class="space-y-2 rounded-xl bg-violet-50/50 p-3">
-            <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+        <div v-if="selected" class="space-y-2 rounded-xl bg-accent-secondary-soft/50 p-3">
+            <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                 >Texto del subtítulo<textarea
                     class="field min-w-0"
                     :value="selected.text"
@@ -206,7 +202,7 @@ function exportFile(format) {
                 />
             </label>
             <div class="grid grid-cols-2 gap-2"
-                ><label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+                ><label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                     >Inicio del subtítulo<input
                         class="field min-w-0"
                         type="number"
@@ -216,7 +212,7 @@ function exportFile(format) {
                         :value="selected.start"
                         :disabled="blocked"
                         @change="patchCue({ start: Number($event.target.value) })" /></label
-                ><label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+                ><label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                     >Fin del subtítulo<input
                         class="field min-w-0"
                         type="number"
@@ -232,7 +228,7 @@ function exportFile(format) {
                     >Ir al subtítulo</button
                 ><button
                     type="button"
-                    class="caption-button text-red-700"
+                    class="caption-button text-danger"
                     :disabled="blocked"
                     @click="apply({ action: 'delete', ids: [selected.id] })"
                     >Eliminar subtítulo</button
@@ -240,7 +236,7 @@ function exportFile(format) {
             >
         </div>
         <div class="flex flex-wrap items-end gap-2"
-            ><label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+            ><label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                 >Desplazar toda la pista (segundos)<input
                     class="field min-w-0"
                     v-model.number="offset"
@@ -256,20 +252,20 @@ function exportFile(format) {
             ></div
         >
         <details
-            class="rounded-lg border border-slate-100 p-2"
+            class="rounded-lg border border-border-subtle p-2"
             data-testid="captions-translate"
             @toggle="$event.target.open && loadAiStatus()"
             ><summary class="cursor-pointer text-xs font-medium">Traducir subtítulos con IA</summary>
             <div class="mt-3 space-y-2">
                 <AiNotConfigured v-if="aiText && !aiText.enabled" data-testid="captions-translate-unconfigured" />
                 <template v-else-if="aiText">
-                    <p class="text-[11px] leading-relaxed text-slate-500"
+                    <p class="text-[11px] leading-relaxed text-foreground-subtle"
                         >Al pulsar «Traducir con IA», el texto de los subtítulos se envía al asistente (sin correos,
                         teléfonos ni enlaces, que se sustituyen por marcadores y se restauran después) y consume tu
                         cuota diaria. Revisa la propuesta antes de aplicarla.</p
                     >
                     <div class="flex flex-wrap items-end gap-2"
-                        ><label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600 flex-1"
+                        ><label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted flex-1"
                             >Idioma de destino<input
                                 class="field min-w-0"
                                 v-model="language"
@@ -290,7 +286,7 @@ function exportFile(format) {
                     <p
                         v-if="translateError"
                         role="alert"
-                        class="rounded-lg bg-red-50 p-2 text-xs text-red-800"
+                        class="rounded-lg bg-danger-soft p-2 text-xs text-danger-ink"
                         >{{ translateError }}</p
                     >
                     <div v-if="proposal" class="space-y-2" data-testid="captions-translation">
@@ -304,7 +300,7 @@ function exportFile(format) {
                             ><li
                                 v-for="cue in proposal.cues"
                                 :key="cue.id"
-                                class="rounded-lg border border-slate-100 p-2"
+                                class="rounded-lg border border-border-subtle p-2"
                                 >{{ cue.text }}</li
                             ></ul
                         >
@@ -325,13 +321,13 @@ function exportFile(format) {
                         >
                     </div>
                 </template>
-                <p v-else class="text-xs text-slate-500">Consultando el asistente…</p>
+                <p v-else class="text-xs text-foreground-subtle">Consultando el asistente…</p>
             </div>
         </details>
-        <details v-if="captions" class="rounded-lg border border-slate-100 p-2"
+        <details v-if="captions" class="rounded-lg border border-border-subtle p-2"
             ><summary class="cursor-pointer text-xs font-medium">Estilo de subtítulos</summary>
             <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600 col-span-2"
+                <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted col-span-2"
                     >Fuente de subtítulos<select
                         class="field min-w-0"
                         :value="style.font_id ? `id:${style.font_id}` : style.fontFamily ?? 'Arial'"
@@ -343,7 +339,7 @@ function exportFile(format) {
                         ></select
                     ></label
                 >
-                <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+                <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                     >Tamaño<input
                         class="field min-w-0"
                         type="number"
@@ -353,7 +349,7 @@ function exportFile(format) {
                         :disabled="blocked"
                         @change="patchStyle('fontSize', Number($event.target.value))"
                 /></label>
-                <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+                <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                     >Color<input
                         class="field min-w-0"
                         type="color"
@@ -361,7 +357,7 @@ function exportFile(format) {
                         :disabled="blocked"
                         @change="patchStyle('fill', $event.target.value)"
                 /></label>
-                <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+                <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                     >Contorno<input
                         class="field min-w-0"
                         type="color"
@@ -369,7 +365,7 @@ function exportFile(format) {
                         :disabled="blocked"
                         @change="patchStyle('stroke', $event.target.value)"
                 /></label>
-                <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+                <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                     >Grosor<input
                         class="field min-w-0"
                         type="number"
@@ -380,7 +376,7 @@ function exportFile(format) {
                         :disabled="blocked"
                         @change="patchStyle('strokeWidth', Number($event.target.value))"
                 /></label>
-                <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+                <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                     >Posición<select
                         class="field min-w-0"
                         :value="style.position ?? 'bottom'"
@@ -391,7 +387,7 @@ function exportFile(format) {
                         ><option value="bottom">Abajo</option></select
                     ></label
                 >
-                <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+                <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                     >Alineación<select
                         class="field min-w-0"
                         :value="style.textAlign ?? 'center'"
@@ -402,7 +398,7 @@ function exportFile(format) {
                         ><option value="right">Derecha</option></select
                     ></label
                 >
-                <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+                <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                     >Margen seguro<input
                         class="field min-w-0"
                         type="number"
@@ -413,7 +409,7 @@ function exportFile(format) {
                         :disabled="blocked"
                         @change="patchStyle('margin', Number($event.target.value))"
                 /></label>
-                <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+                <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                     >Fondo<input
                         class="field min-w-0"
                         type="color"
@@ -421,7 +417,7 @@ function exportFile(format) {
                         :disabled="blocked"
                         @change="patchStyle('background', $event.target.value)"
                 /></label>
-                <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+                <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                     >Peso<select
                         class="field min-w-0"
                         :value="style.fontWeight ?? 'normal'"
@@ -431,7 +427,7 @@ function exportFile(format) {
                         ><option value="bold">Negrita</option></select
                     ></label
                 >
-                <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+                <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                     >Estilo<select
                         class="field min-w-0"
                         :value="style.fontStyle ?? 'normal'"
@@ -446,5 +442,7 @@ function exportFile(format) {
     </section>
 </template>
 <style scoped>
-.caption-button{border:1px solid #ddd6fe;border-radius:8px;padding:7px 10px;font-size:11px;color:#6d28d9;background:white}.caption-button:disabled{opacity:.4;cursor:not-allowed}
+.caption-button {
+    @apply rounded-lg border border-control-border bg-surface px-2.5 py-[7px] text-[11px] text-accent-secondary-ink hover:bg-accent-secondary-soft disabled:cursor-not-allowed disabled:opacity-40;
+}
 </style>

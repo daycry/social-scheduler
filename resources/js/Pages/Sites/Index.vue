@@ -18,7 +18,7 @@ const accessLabel = (m) => ({ public: 'Público', password: 'Con contraseña', t
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="text-xl font-bold text-slate-900">Sitios</h1>
+            <h1 class="text-xl font-bold text-foreground-strong">Sitios</h1>
         </template>
 
         <div class="space-y-5">
@@ -39,8 +39,10 @@ const accessLabel = (m) => ({ public: 'Público', password: 'Con contraseña', t
 
             <template v-else>
                 <section class="card p-5" aria-labelledby="sites-list">
-                    <h2 id="sites-list" class="text-base font-semibold text-slate-900">Sitios de {{ brand.name }}</h2>
-                    <p v-if="!sites.length" class="mt-2 text-sm text-slate-600"
+                    <h2 id="sites-list" class="text-base font-semibold text-foreground-strong"
+                        >Sitios de {{ brand.name }}</h2
+                    >
+                    <p v-if="!sites.length" class="mt-2 text-sm text-foreground-muted"
                         >Todavía no tienes ningún sitio. Crea el primero con el formulario de abajo.</p
                     >
                     <ul v-else class="mt-3 divide-y" data-testid="site-list">
@@ -55,15 +57,15 @@ const accessLabel = (m) => ({ public: 'Público', password: 'Con contraseña', t
                                     class="font-medium text-brand-700 underline"
                                     >{{ s.title }}</Link
                                 >
-                                <p class="break-all text-xs text-slate-600">{{ s.public_url }}</p>
+                                <p class="break-all text-xs text-foreground-muted">{{ s.public_url }}</p>
                             </div>
-                            <p class="text-xs text-slate-700">
+                            <p class="text-xs text-foreground-secondary">
                                 <span
-                                    class="rounded bg-slate-100 px-2 py-0.5"
+                                    class="rounded bg-surface-hover px-2 py-0.5"
                                     >{{ s.is_published ? 'Publicado' : 'Borrador' }}</span
                                 >
                                 <span
-                                    class="ml-1 rounded bg-slate-100 px-2 py-0.5"
+                                    class="ml-1 rounded bg-surface-hover px-2 py-0.5"
                                     >{{ accessLabel(s.access_mode) }}</span
                                 >
                             </p>
@@ -72,11 +74,11 @@ const accessLabel = (m) => ({ public: 'Público', password: 'Con contraseña', t
                 </section>
 
                 <form v-if="sites.length < max_sites" class="card space-y-4 p-5" @submit.prevent="submit">
-                    <h2 class="text-base font-semibold text-slate-900">Nuevo sitio</h2>
+                    <h2 class="text-base font-semibold text-foreground-strong">Nuevo sitio</h2>
                     <div class="grid gap-4 sm:grid-cols-2">
                         <FormField :error="form.errors.title" v-slot="{ control }">
                             <label class="block text-sm">
-                                <span class="block text-xs font-medium text-slate-600">Título</span>
+                                <span class="block text-xs font-medium text-foreground-muted">Título</span>
                                 <input
                                     v-bind="control"
                                     v-model="form.title"
@@ -95,12 +97,12 @@ const accessLabel = (m) => ({ public: 'Público', password: 'Con contraseña', t
                                 :error="form.errors.slug"
                                 v-slot="{ control }"
                             >
-                                <label for="site-slug" class="block text-xs font-medium text-slate-600"
+                                <label for="site-slug" class="block text-xs font-medium text-foreground-muted"
                                     >Dirección</label
                                 >
                                 <div class="flex items-stretch">
                                     <span
-                                        class="inline-flex items-center rounded-l-md border border-r-0 border-slate-300 bg-slate-50 px-2 text-sm text-slate-600"
+                                        class="inline-flex items-center rounded-l-md border border-r-0 border-control-border bg-canvas px-2 text-sm text-foreground-muted"
                                         aria-hidden="true"
                                         >/s/</span
                                     >
@@ -114,7 +116,7 @@ const accessLabel = (m) => ({ public: 'Público', password: 'Con contraseña', t
                                         data-testid="new-site-slug"
                                     />
                                 </div>
-                                <p id="site-slug-help" class="mt-1 text-xs text-slate-600"
+                                <p id="site-slug-help" class="mt-1 text-xs text-foreground-muted"
                                     >De 3 a 40 caracteres: minúsculas, números y guiones.</p
                                 >
                             </FormField>
@@ -123,7 +125,9 @@ const accessLabel = (m) => ({ public: 'Público', password: 'Con contraseña', t
                     <FormField :error="form.errors.brand" />
                     <PrimaryButton :disabled="form.processing">Crear sitio</PrimaryButton>
                 </form>
-                <p v-else class="text-sm text-slate-600">Has llegado al máximo de {{ max_sites }} sitios por marca.</p>
+                <p v-else class="text-sm text-foreground-muted"
+                    >Has llegado al máximo de {{ max_sites }} sitios por marca.</p
+                >
             </template>
         </div>
     </AuthenticatedLayout>

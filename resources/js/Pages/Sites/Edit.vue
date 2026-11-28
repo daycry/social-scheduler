@@ -152,9 +152,9 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
         <template #header>
             <div class="flex flex-wrap items-center gap-3">
                 <Link :href="route('sites.index', { brand_id: brand.id })" class="text-sm underline">Sitios</Link>
-                <h1 class="text-xl font-bold text-slate-900">{{ site.title }}</h1>
+                <h1 class="text-xl font-bold text-foreground-strong">{{ site.title }}</h1>
                 <span
-                    class="rounded bg-slate-100 px-2 py-0.5 text-xs"
+                    class="rounded bg-surface-hover px-2 py-0.5 text-xs"
                     data-testid="site-state"
                     >{{ site.is_published ? (site.dirty ? 'Publicado, con cambios sin publicar' : 'Publicado') : 'Borrador' }}</span
                 >
@@ -167,11 +167,11 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
             <div class="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
                 <form ref="formElement" class="space-y-5" @submit.prevent="save">
                     <section class="card space-y-4 p-5" aria-labelledby="s-ajustes">
-                        <h2 id="s-ajustes" class="text-base font-semibold text-slate-900">Ajustes del sitio</h2>
+                        <h2 id="s-ajustes" class="text-base font-semibold text-foreground-strong">Ajustes del sitio</h2>
                         <div class="grid gap-4 sm:grid-cols-2">
                             <FormField :error="form.errors.title" v-slot="{ control }">
                                 <label class="block text-sm">
-                                    <span class="block text-xs font-medium text-slate-600">Título</span>
+                                    <span class="block text-xs font-medium text-foreground-muted">Título</span>
                                     <input
                                         v-bind="control"
                                         v-model="form.title"
@@ -185,7 +185,9 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                             </FormField>
                             <FormField :error="form.errors.slug" v-slot="{ control }">
                                 <label class="block text-sm">
-                                    <span class="block text-xs font-medium text-slate-600">Dirección (/s/…)</span>
+                                    <span class="block text-xs font-medium text-foreground-muted"
+                                        >Dirección (/s/…)</span
+                                    >
                                     <input
                                         v-bind="control"
                                         v-model="form.slug"
@@ -199,29 +201,29 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                             </FormField>
                         </div>
                         <label class="block text-sm">
-                            <span class="block text-xs font-medium text-slate-600"
+                            <span class="block text-xs font-medium text-foreground-muted"
                                 >Descripción (buscadores y redes)</span
                             >
                             <textarea v-model="form.description" rows="2" maxlength="300" class="field"></textarea>
                         </label>
                         <div class="grid gap-4 sm:grid-cols-3">
                             <label class="block text-sm">
-                                <span class="block text-xs font-medium text-slate-600">Tema</span>
+                                <span class="block text-xs font-medium text-foreground-muted">Tema</span>
                                 <select v-model="form.theme_source" class="field" data-testid="theme-source">
                                     <option value="kit">Kit de marca ({{ brand.name }})</option>
                                     <option value="custom">Color propio</option>
                                 </select>
                             </label>
                             <label v-if="form.theme_source === 'custom'" class="block text-sm">
-                                <span class="block text-xs font-medium text-slate-600">Color</span>
+                                <span class="block text-xs font-medium text-foreground-muted">Color</span>
                                 <input
                                     v-model="form.theme_color"
                                     type="color"
-                                    class="h-9 w-16 cursor-pointer rounded border border-slate-300 p-0.5"
+                                    class="h-9 w-16 cursor-pointer rounded border border-control-border p-0.5"
                                     aria-label="Color del tema"
                                 />
                             </label>
-                            <p v-else class="text-sm text-slate-700"
+                            <p v-else class="text-sm text-foreground-secondary"
                                 >Color del kit:
                                 <span
                                     class="rounded px-2 py-0.5 text-xs font-semibold"
@@ -230,7 +232,7 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                                 ></p
                             >
                             <label class="block text-sm">
-                                <span class="block text-xs font-medium text-slate-600">Modo</span>
+                                <span class="block text-xs font-medium text-foreground-muted">Modo</span>
                                 <select v-model="form.theme_mode" class="field">
                                     <option value="light">Claro</option>
                                     <option value="dark">Oscuro</option>
@@ -240,7 +242,7 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                     </section>
 
                     <section class="card space-y-3 p-5" aria-labelledby="s-paginas">
-                        <h2 id="s-paginas" class="text-base font-semibold text-slate-900">Páginas y menú</h2>
+                        <h2 id="s-paginas" class="text-base font-semibold text-foreground-strong">Páginas y menú</h2>
                         <ul class="flex flex-wrap gap-2" role="list" data-testid="page-tabs">
                             <li v-for="(p, i) in form.pages" :key="p.key" class="flex items-center gap-1">
                                 <button
@@ -266,11 +268,11 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                             >
                         </ul>
 
-                        <div v-if="page" class="space-y-3 rounded border border-slate-200 p-3">
+                        <div v-if="page" class="space-y-3 rounded border border-border p-3">
                             <div class="grid gap-3 sm:grid-cols-2">
                                 <FormField :error="form.errors[`pages.${current}.title`]" v-slot="{ control }">
                                     <label class="block text-sm">
-                                        <span class="block text-xs font-medium text-slate-600"
+                                        <span class="block text-xs font-medium text-foreground-muted"
                                             >Título de la página (menú)</span
                                         >
                                         <input
@@ -285,7 +287,7 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                                 </FormField>
                                 <FormField :error="form.errors[`pages.${current}.slug`]" v-slot="{ control }">
                                     <label class="block text-sm">
-                                        <span class="block text-xs font-medium text-slate-600"
+                                        <span class="block text-xs font-medium text-foreground-muted"
                                             >Dirección de la página</span
                                         >
                                         <input
@@ -301,7 +303,7 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                             </div>
                             <div class="flex flex-wrap items-center gap-3 text-sm">
                                 <label class="flex items-center gap-2"
-                                    ><input v-model="page.menu" type="checkbox" class="rounded border-slate-300" />
+                                    ><input v-model="page.menu" type="checkbox" class="rounded border-control-border" />
                                     Mostrar en el menú</label
                                 >
                                 <button
@@ -322,12 +324,12 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                                 >
                                 <button
                                     type="button"
-                                    class="text-xs font-medium text-red-700 underline"
+                                    class="text-xs font-medium text-danger underline"
                                     :disabled="form.pages.length < 2"
                                     @click="removePage(current)"
                                     >Quitar página</button
                                 >
-                                <span v-if="current === 0" class="text-xs text-slate-600"
+                                <span v-if="current === 0" class="text-xs text-foreground-muted"
                                     >Es la portada: se sirve en /s/{{ form.slug }}.</span
                                 >
                             </div>
@@ -342,7 +344,7 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                             :data-error-target="blocksError ? 'true' : undefined"
                             tabindex="-1"
                         >
-                            <h2 id="s-bloques" class="text-base font-semibold text-slate-900"
+                            <h2 id="s-bloques" class="text-base font-semibold text-foreground-strong"
                                 >Bloques de «{{ page.title }}»</h2
                             >
 
@@ -359,12 +361,12 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                                     :data-block-index="i"
                                     role="group"
                                     :aria-label="`Bloque ${i + 1}`"
-                                    class="rounded border border-slate-200 p-3"
+                                    class="rounded border border-border p-3"
                                     data-testid="block"
                                 >
                                     <div class="flex flex-wrap items-center gap-2">
                                         <span
-                                            class="rounded bg-slate-100 px-2 py-0.5 text-xs"
+                                            class="rounded bg-surface-hover px-2 py-0.5 text-xs"
                                             data-testid="block-type"
                                             >{{ TYPE_LABELS[b.type] }}</span
                                         >
@@ -389,7 +391,7 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                                         >
                                         <button
                                             type="button"
-                                            class="text-xs font-medium text-red-700 underline"
+                                            class="text-xs font-medium text-danger underline"
                                             :aria-label="`Quitar bloque ${i + 1}`"
                                             @click="removeBlock(i)"
                                             >Quitar</button
@@ -420,7 +422,7 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                                             class="field"
                                             :aria-label="`Texto del bloque ${i + 1}`"
                                         ></textarea>
-                                        <p class="mt-1 text-xs text-slate-600"
+                                        <p class="mt-1 text-xs text-foreground-muted"
                                             >Párrafos separados por una línea en blanco; «- » abre una lista;
                                             **negrita**, *cursiva* y [texto](https://enlace). No se admite HTML.</p
                                         >
@@ -488,7 +490,7 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                                             />
                                             <button
                                                 type="button"
-                                                class="text-xs font-medium text-red-700 underline"
+                                                class="text-xs font-medium text-danger underline"
                                                 @click="b.items.splice(k, 1)"
                                                 >Quitar imagen</button
                                             >
@@ -588,7 +590,7 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                                             :aria-label="`Aviso de consentimiento ${i + 1}`"
                                             placeholder="Aviso de consentimiento (opcional)"
                                         />
-                                        <p class="text-xs text-slate-600 sm:col-span-3"
+                                        <p class="text-xs text-foreground-muted sm:col-span-3"
                                             >Los mensajes llegan a este panel (sin correo). Protegido con campo trampa,
                                             tiempo mínimo y límite de envíos.</p
                                         >
@@ -624,7 +626,7 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                                                 />
                                             </FormField>
                                         </div>
-                                        <p v-if="!exports.length" class="text-xs text-slate-600 sm:col-span-3"
+                                        <p v-if="!exports.length" class="text-xs text-foreground-muted sm:col-span-3"
                                             >Exporta un diseño como imagen en el Estudio para poder incrustarlo aquí.</p
                                         >
                                     </div>
@@ -660,7 +662,7 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                                             />
                                             <button
                                                 type="button"
-                                                class="text-xs font-medium text-red-700 underline"
+                                                class="text-xs font-medium text-danger underline"
                                                 @click="b.items.splice(k, 1)"
                                                 >Quitar pregunta</button
                                             >
@@ -697,7 +699,7 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                                             />
                                             <button
                                                 type="button"
-                                                class="text-xs font-medium text-red-700 underline"
+                                                class="text-xs font-medium text-danger underline"
                                                 :disabled="b.options.length <= 2"
                                                 @click="b.options.splice(k, 1)"
                                                 >Quitar</button
@@ -710,13 +712,13 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                                             @click="b.options.push('')"
                                             >Añadir opción</button
                                         >
-                                        <p class="text-xs text-slate-600"
+                                        <p class="text-xs text-foreground-muted"
                                             >Los resultados son agregados y se reinician si cambias las opciones.</p
                                         >
                                     </div>
                                 </div>
                             </FormField>
-                            <p v-if="!page.blocks.length" class="text-sm text-slate-600"
+                            <p v-if="!page.blocks.length" class="text-sm text-foreground-muted"
                                 >Esta página aún no tiene bloques.</p
                             >
                             <div class="flex flex-wrap gap-2" data-testid="add-blocks">
@@ -738,7 +740,7 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                         <PrimaryButton :disabled="form.processing" data-testid="save-draft"
                             >Guardar borrador</PrimaryButton
                         >
-                        <span v-if="form.isDirty" class="text-xs text-amber-800" data-testid="dirty"
+                        <span v-if="form.isDirty" class="text-xs text-warning-ink" data-testid="dirty"
                             >Hay cambios sin guardar.</span
                         >
                     </div>
@@ -746,7 +748,7 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
 
                 <aside class="space-y-5 xl:sticky xl:top-4" aria-label="Vista previa y publicación">
                     <section class="card space-y-3 p-4 text-sm" aria-labelledby="s-publicar">
-                        <h2 id="s-publicar" class="text-base font-semibold text-slate-900">Publicación</h2>
+                        <h2 id="s-publicar" class="text-base font-semibold text-foreground-strong">Publicación</h2>
                         <p v-if="site.is_published"
                             >Publicado:
                             <a
@@ -758,8 +760,8 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                                 >{{ site.public_url }}</a
                             ></p
                         >
-                        <p v-else class="text-slate-700">No publicado: la dirección pública responde 404.</p>
-                        <p v-if="site.dirty" class="text-amber-800" data-testid="dirty-published"
+                        <p v-else class="text-foreground-secondary">No publicado: la dirección pública responde 404.</p>
+                        <p v-if="site.dirty" class="text-warning-ink" data-testid="dirty-published"
                             >Lo publicado no incluye tus últimos cambios guardados.</p
                         >
                         <div class="flex flex-wrap gap-2">
@@ -780,26 +782,30 @@ const pageTitle = (key) => props.site.pages.find((p) => p.key === key)?.title ??
                                 >Despublicar</button
                             >
                         </div>
-                        <p v-if="form.isDirty" class="text-xs text-slate-600">Guarda el borrador antes de publicar.</p>
+                        <p v-if="form.isDirty" class="text-xs text-foreground-muted"
+                            >Guarda el borrador antes de publicar.</p
+                        >
                         <FormField :error="form.errors.access" />
                     </section>
 
                     <SiteAccessPanel :site="site" :tokens="tokens" :new-token="new_token" />
 
                     <section class="card space-y-2 p-4 text-sm" aria-labelledby="s-analitica">
-                        <h2 id="s-analitica" class="text-base font-semibold text-slate-900">Visitas (30 días)</h2>
+                        <h2 id="s-analitica" class="text-base font-semibold text-foreground-strong"
+                            >Visitas (30 días)</h2
+                        >
                         <p class="text-lg font-semibold tabular-nums" data-testid="visits-total">{{ stats.total }}</p>
-                        <ul class="text-xs text-slate-700" data-testid="visits-by-page"
+                        <ul class="text-xs text-foreground-secondary" data-testid="visits-by-page"
                             ><li v-for="(n, key) in stats.by_page" :key="key">{{ pageTitle(key) }}: {{ n }}</li></ul
                         >
-                        <p class="text-xs text-slate-600"
+                        <p class="text-xs text-foreground-muted"
                             >Solo contadores diarios por página: no se guarda IP ni agente.</p
                         >
                     </section>
 
                     <SiteContactInbox :site-id="site.id" :messages="messages" :messages-meta="messages_meta" />
 
-                    <button type="button" class="text-sm font-medium text-red-700 underline" @click="destroy"
+                    <button type="button" class="text-sm font-medium text-danger underline" @click="destroy"
                         >Eliminar sitio</button
                     >
                 </aside>

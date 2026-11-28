@@ -177,7 +177,7 @@ const restore = version => run(async () => {
 <template>
     <div class="space-y-4 text-sm">
         <div
-            class="flex gap-1 rounded-lg bg-slate-100 p-1"
+            class="flex gap-1 rounded-lg bg-surface-hover p-1"
             role="tablist"
             aria-label="Colaboración"
             @keydown="onTabsKeydown"
@@ -188,7 +188,7 @@ const restore = version => run(async () => {
                 type="button"
                 v-bind="tabProps(id)"
                 class="flex-1 rounded-md px-2 py-2 text-xs font-medium"
-                :class="tab === id ? 'bg-white shadow-sm text-slate-900' : 'text-slate-600'"
+                :class="tab === id ? 'bg-surface shadow-sm text-foreground-strong' : 'text-foreground-muted'"
                 @click="requestedTab = id"
                 >{{ label }}</button
             >
@@ -196,24 +196,24 @@ const restore = version => run(async () => {
         <p
             v-if="error"
             role="alert"
-            class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800"
+            class="rounded-lg border border-danger-border bg-danger-soft px-3 py-2 text-xs text-danger-ink"
             >{{ error }}</p
         >
         <p
             v-if="notice"
             role="status"
-            class="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800"
+            class="rounded-lg bg-success-soft px-3 py-2 text-xs text-success-ink"
             >{{ notice }}</p
         >
 
         <section v-show="tab === 'comments'" class="space-y-4" v-bind="panelProps('comments')">
-            <label v-if="resolvedCount" class="flex items-center gap-2 text-xs text-slate-600"
-                ><input v-model="showResolved" type="checkbox" class="rounded border-slate-300" /> Mostrar hilos
+            <label v-if="resolvedCount" class="flex items-center gap-2 text-xs text-foreground-muted"
+                ><input v-model="showResolved" type="checkbox" class="rounded border-control-border" /> Mostrar hilos
                 resueltos ({{ resolvedCount }})</label
             >
             <p
                 v-if="!threads.length"
-                class="rounded-lg bg-slate-50 px-3 py-4 text-xs text-slate-500"
+                class="rounded-lg bg-canvas px-3 py-4 text-xs text-foreground-subtle"
                 >{{ comments.length ? 'No hay hilos abiertos.' : 'Todavía no hay comentarios.' }}</p
             >
             <ul class="space-y-3">
@@ -221,29 +221,29 @@ const restore = version => run(async () => {
                     v-for="thread in threads"
                     :key="thread.root.id"
                     data-testid="studio-comment-thread"
-                    class="space-y-2 rounded-xl border border-slate-200 p-3"
-                    :class="thread.root.resolved ? 'bg-slate-50' : 'bg-white'"
+                    class="space-y-2 rounded-xl border border-border p-3"
+                    :class="thread.root.resolved ? 'bg-canvas' : 'bg-surface'"
                 >
-                    <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-500"
+                    <div class="flex flex-wrap items-center gap-2 text-[11px] text-foreground-subtle"
                         ><span
-                            class="rounded-full bg-violet-50 px-2 py-0.5 font-medium text-violet-800"
+                            class="rounded-full bg-accent-secondary-soft px-2 py-0.5 font-medium text-accent-secondary-ink"
                             >{{ anchorLabel(thread.root) }}</span
                         ><span
                             v-if="thread.root.resolved"
-                            class="rounded-full bg-emerald-50 px-2 py-0.5 font-medium text-emerald-800"
+                            class="rounded-full bg-success-soft px-2 py-0.5 font-medium text-success-ink"
                             >Resuelto{{ thread.root.resolved_by ? ` por ${thread.root.resolved_by}` : '' }}</span
                         ></div
                     >
                     <article v-for="item in [thread.root, ...thread.replies]" :key="item.id" class="space-y-1">
-                        <p class="text-[11px] text-slate-500"
-                            ><strong class="font-semibold text-slate-700">{{ item.author_name }}</strong
+                        <p class="text-[11px] text-foreground-subtle"
+                            ><strong class="font-semibold text-foreground-secondary">{{ item.author_name }}</strong
                             ><span v-if="item.is_guest"> (invitado)</span> · {{ when(item.created_at) }}</p
                         >
-                        <p class="whitespace-pre-wrap break-words text-sm text-slate-800">{{ item.body }}</p>
+                        <p class="whitespace-pre-wrap break-words text-sm text-foreground">{{ item.body }}</p>
                         <button
                             v-if="item.can_delete"
                             type="button"
-                            class="text-[11px] font-medium text-red-700 hover:underline"
+                            class="text-[11px] font-medium text-danger hover:underline"
                             :disabled="busy"
                             @click="removeComment(item)"
                             >Eliminar<span class="sr-only"> comentario de {{ item.author_name }}</span></button
@@ -253,14 +253,14 @@ const restore = version => run(async () => {
                         <button
                             v-if="access.can_comment"
                             type="button"
-                            class="text-violet-800 hover:underline"
+                            class="text-accent-secondary-ink hover:underline"
                             @click="replyTo = replyTo === thread.root.id ? null : thread.root.id"
                             >Responder</button
                         >
                         <button
                             v-if="thread.root.can_resolve && !thread.root.resolved"
                             type="button"
-                            class="text-emerald-800 hover:underline"
+                            class="text-success-ink hover:underline"
                             :disabled="busy"
                             @click="setResolved(thread.root, true)"
                             >Resolver</button
@@ -268,7 +268,7 @@ const restore = version => run(async () => {
                         <button
                             v-if="thread.root.can_resolve && thread.root.resolved"
                             type="button"
-                            class="text-slate-700 hover:underline"
+                            class="text-foreground-secondary hover:underline"
                             :disabled="busy"
                             @click="setResolved(thread.root, false)"
                             >Reabrir</button
@@ -292,7 +292,7 @@ const restore = version => run(async () => {
             </ul>
             <form
                 v-if="access.can_comment"
-                class="space-y-2 rounded-xl border border-slate-200 p-3"
+                class="space-y-2 rounded-xl border border-border p-3"
                 @submit.prevent="addComment"
             >
                 <label v-if="guest" class="block space-y-1 text-xs" :for="`${idPrefix}-guest`"
@@ -330,7 +330,7 @@ const restore = version => run(async () => {
                     >Publicar comentario</button
                 >
             </form>
-            <p v-else class="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600"
+            <p v-else class="rounded-lg bg-canvas px-3 py-2 text-xs text-foreground-muted"
                 >Tu acceso es de solo lectura: puedes ver los comentarios pero no escribir.</p
             >
         </section>
@@ -342,7 +342,7 @@ const restore = version => run(async () => {
             v-bind="panelProps('share')"
         >
             <form class="space-y-2" @submit.prevent="share">
-                <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500"
+                <h3 class="text-xs font-semibold uppercase tracking-wide text-foreground-subtle"
                     >Invitar a un usuario registrado</h3
                 >
                 <label class="block space-y-1 text-xs" :for="`${idPrefix}-email`"
@@ -365,14 +365,14 @@ const restore = version => run(async () => {
                 >
             </form>
             <ul class="space-y-2" aria-label="Personas con acceso">
-                <li v-if="!shares.length" class="rounded-lg bg-slate-50 px-3 py-3 text-xs text-slate-500"
+                <li v-if="!shares.length" class="rounded-lg bg-canvas px-3 py-3 text-xs text-foreground-subtle"
                     >Nadie más tiene acceso todavía.</li
                 >
                 <li
                     v-for="item in shares"
                     :key="item.id"
                     data-testid="studio-share-row"
-                    class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 p-2 text-xs"
+                    class="flex flex-wrap items-center gap-2 rounded-lg border border-border p-2 text-xs"
                 >
                     <span class="min-w-0 flex-1 truncate"
                         ><strong class="font-semibold">{{ item.name }}</strong> · {{ item.email }}</span
@@ -387,15 +387,15 @@ const restore = version => run(async () => {
                     >
                     <button
                         type="button"
-                        class="font-medium text-red-700 hover:underline"
+                        class="font-medium text-danger hover:underline"
                         :disabled="busy"
                         @click="revokeShare(item)"
                         >Quitar acceso<span class="sr-only"> a {{ item.email }}</span></button
                     >
                 </li>
             </ul>
-            <form class="space-y-2 border-t border-slate-200 pt-4" @submit.prevent="createLink">
-                <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Enlace público</h3>
+            <form class="space-y-2 border-t border-border pt-4" @submit.prevent="createLink">
+                <h3 class="text-xs font-semibold uppercase tracking-wide text-foreground-subtle">Enlace público</h3>
                 <div class="space-y-1 text-xs"
                     ><label class="block" :for="`${idPrefix}-link-role`">Permiso del enlace</label
                     ><select :id="`${idPrefix}-link-role`" v-model="linkRole" class="field w-full text-xs"
@@ -412,8 +412,11 @@ const restore = version => run(async () => {
                 /></label>
                 <button type="submit" class="btn-secondary text-xs" :disabled="busy">Crear enlace</button>
             </form>
-            <div v-if="createdLink" class="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs">
-                <p class="text-amber-900">Copia el enlace ahora: no se podrá volver a ver.</p>
+            <div
+                v-if="createdLink"
+                class="space-y-2 rounded-lg border border-warning-border bg-warning-soft p-3 text-xs"
+            >
+                <p class="text-warning-ink">Copia el enlace ahora: no se podrá volver a ver.</p>
                 <label class="block" :for="`${idPrefix}-created-link`">Enlace creado</label>
                 <input
                     :id="`${idPrefix}-created-link`"
@@ -430,12 +433,12 @@ const restore = version => run(async () => {
                     v-for="item in links"
                     :key="item.id"
                     data-testid="studio-link-row"
-                    class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 p-2 text-xs"
+                    class="flex flex-wrap items-center gap-2 rounded-lg border border-border p-2 text-xs"
                 >
                     <span class="flex-1"
                         >{{ item.role === 'reader' ? 'Solo lectura' : 'Comentarios' }} ·
                         <span
-                            :class="item.status === 'active' ? 'text-emerald-800' : 'text-slate-500'"
+                            :class="item.status === 'active' ? 'text-success-ink' : 'text-foreground-subtle'"
                             >{{ item.status === 'active' ? 'Activo' : item.status === 'revoked' ? 'Revocado' : 'Caducado' }}</span><span
                             v-if="item.expires_at"
                         >
@@ -445,7 +448,7 @@ const restore = version => run(async () => {
                     <button
                         v-if="item.status === 'active'"
                         type="button"
-                        class="font-medium text-red-700 hover:underline"
+                        class="font-medium text-danger hover:underline"
                         :disabled="busy"
                         @click="revokeLink(item)"
                         >Revocar<span class="sr-only"> enlace creado {{ when(item.created_at) }}</span></button
@@ -455,7 +458,7 @@ const restore = version => run(async () => {
         </section>
 
         <section v-if="!guest" v-show="tab === 'versions'" class="space-y-3" v-bind="panelProps('versions')">
-            <p class="text-xs text-slate-500"
+            <p class="text-xs text-foreground-subtle"
                 >Restaurar crea una versión nueva con el contenido de la elegida; el historial no se reescribe.</p
             >
             <ul class="space-y-2">
@@ -463,13 +466,15 @@ const restore = version => run(async () => {
                     v-for="item in versions"
                     :key="item.revision"
                     data-testid="studio-version-row"
-                    class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 p-2 text-xs"
+                    class="flex flex-wrap items-center gap-2 rounded-lg border border-border p-2 text-xs"
                 >
                     <span class="min-w-0 flex-1"
                         ><strong class="font-semibold">Versión {{ item.revision }}</strong
-                        ><span v-if="item.current" class="ml-1 rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-800"
+                        ><span
+                            v-if="item.current"
+                            class="ml-1 rounded-full bg-success-soft px-2 py-0.5 text-success-ink"
                             >Actual</span
-                        ><br /><span class="text-slate-500"
+                        ><br /><span class="text-foreground-subtle"
                             >{{ item.author ?? 'Autor desconocido' }} · {{ when(item.created_at) }}</span
                         ></span
                     >

@@ -32,14 +32,14 @@ const submit = () => {
 <template>
     <Head title="Actividad" />
     <AuthenticatedLayout>
-        <template #header><h1 class="text-xl font-bold text-slate-900">Actividad</h1></template>
+        <template #header><h1 class="text-xl font-bold text-foreground-strong">Actividad</h1></template>
 
         <div class="space-y-5">
-            <p class="text-sm text-slate-600"
+            <p class="text-sm text-foreground-muted"
                 >Consulta las acciones registradas de tu cuenta y de tus marcas. Las acciones anteriores o sin una marca
                 identificada aparecen en el historial general.</p
             >
-            <p class="text-sm text-slate-600" data-testid="activity-retention">
+            <p class="text-sm text-foreground-muted" data-testid="activity-retention">
                 <template v-if="retention_days > 0"
                     >El historial se conserva durante {{ retention_days }} días. La limpieza se ejecuta
                     diariamente.</template
@@ -54,7 +54,9 @@ const submit = () => {
             >
                 <FormField v-slot="{ control }" id="activity-brand" :error="page.props.errors.brand_id">
                     <div
-                        ><label for="activity-brand" class="block text-sm font-medium text-slate-700">Marca</label>
+                        ><label for="activity-brand" class="block text-sm font-medium text-foreground-secondary"
+                            >Marca</label
+                        >
                         <select v-bind="control" v-model="filters.brand_id" class="field">
                             <option :value="null">Todas mis marcas y mi cuenta</option>
                             <option v-for="brand in brands" :key="brand.id" :value="brand.id">{{ brand.name }}</option>
@@ -63,7 +65,9 @@ const submit = () => {
                 </FormField>
                 <FormField v-slot="{ control }" id="activity-user" :error="page.props.errors.user_id">
                     <div
-                        ><label for="activity-user" class="block text-sm font-medium text-slate-700">Usuario</label>
+                        ><label for="activity-user" class="block text-sm font-medium text-foreground-secondary"
+                            >Usuario</label
+                        >
                         <select v-bind="control" v-model="filters.user_id" class="field">
                             <option :value="null">Todos los usuarios del historial</option>
                             <option v-for="user in users" :key="user.id" :value="user.id">{{ user.name }}</option>
@@ -72,7 +76,9 @@ const submit = () => {
                 </FormField>
                 <FormField v-slot="{ control }" id="activity-action" :error="page.props.errors.action">
                     <div
-                        ><label for="activity-action" class="block text-sm font-medium text-slate-700">Acción</label>
+                        ><label for="activity-action" class="block text-sm font-medium text-foreground-secondary"
+                            >Acción</label
+                        >
                         <select v-bind="control" v-model="filters.action" class="field">
                             <option :value="null">Todas las acciones</option>
                             <option v-for="action in actions" :key="action" :value="action">{{ action }}</option>
@@ -81,13 +87,15 @@ const submit = () => {
                 </FormField>
                 <FormField v-slot="{ control }" id="activity-from" :error="page.props.errors.from">
                     <div
-                        ><label for="activity-from" class="block text-sm font-medium text-slate-700">Desde</label
+                        ><label for="activity-from" class="block text-sm font-medium text-foreground-secondary"
+                            >Desde</label
                         ><input v-bind="control" v-model="filters.from" type="date" class="field"
                     /></div>
                 </FormField>
                 <FormField v-slot="{ control }" id="activity-to" :error="page.props.errors.to">
                     <div
-                        ><label for="activity-to" class="block text-sm font-medium text-slate-700">Hasta</label
+                        ><label for="activity-to" class="block text-sm font-medium text-foreground-secondary"
+                            >Hasta</label
                         ><input v-bind="control" v-model="filters.to" type="date" class="field"
                     /></div>
                 </FormField>
@@ -103,14 +111,14 @@ const submit = () => {
             />
             <div
                 v-else
-                class="card overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+                class="card overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                 role="region"
                 aria-label="Historial de actividad"
                 tabindex="0"
             >
                 <table class="w-full text-left text-sm">
                     <caption class="sr-only">Historial de actividad</caption>
-                    <thead class="bg-slate-50 text-slate-700">
+                    <thead class="bg-canvas text-foreground-secondary">
                         <tr>
                             <th scope="col" class="px-4 py-3">Fecha</th>
                             <th scope="col" class="px-4 py-3">Usuario</th>
@@ -120,7 +128,7 @@ const submit = () => {
                             <th scope="col" class="px-4 py-3">Canal</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100">
+                    <tbody class="divide-y divide-border-subtle">
                         <tr v-for="entry in entries" :key="entry.id" data-testid="activity-entry">
                             <td class="whitespace-nowrap px-4 py-3">{{ formatDate(entry.created_at) }}</td>
                             <td class="px-4 py-3">{{ entry.user }}</td>

@@ -63,26 +63,26 @@ const range = (c) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="text-xl font-bold text-slate-900"
-                >Campañas<span v-if="brand" class="font-normal text-slate-600"> · {{ brand.name }}</span></h1
+            <h1 class="text-xl font-bold text-foreground-strong"
+                >Campañas<span v-if="brand" class="font-normal text-foreground-muted"> · {{ brand.name }}</span></h1
             >
         </template>
 
         <div class="space-y-5">
-            <p v-if="!brand" class="card p-5 text-sm text-slate-600"
+            <p v-if="!brand" class="card p-5 text-sm text-foreground-muted"
                 >Crea una marca para empezar a organizar tus publicaciones en campañas.</p
             >
 
             <template v-else>
                 <form class="card space-y-3 p-5" data-testid="campaign-form" @submit.prevent="submit">
                     <h2
-                        class="text-sm font-medium text-slate-700"
+                        class="text-sm font-medium text-foreground-secondary"
                         >{{ editing ? 'Editar campaña' : 'Nueva campaña' }}</h2
                     >
                     <div class="grid gap-3 sm:grid-cols-4">
                         <FormField :error="form.errors.name" v-slot="{ control }">
                             <label class="block text-sm sm:col-span-2">
-                                <span class="block text-xs font-medium text-slate-600">Nombre</span>
+                                <span class="block text-xs font-medium text-foreground-muted">Nombre</span>
                                 <input
                                     v-bind="control"
                                     v-model="form.name"
@@ -96,28 +96,28 @@ const range = (c) => {
                         </FormField>
                         <FormField :error="form.errors.starts_on" v-slot="{ control }">
                             <label class="block text-sm">
-                                <span class="block text-xs font-medium text-slate-600">Inicio</span>
+                                <span class="block text-xs font-medium text-foreground-muted">Inicio</span>
                                 <input v-bind="control" v-model="form.starts_on" type="date" class="field" />
                             </label>
                         </FormField>
                         <FormField :error="form.errors.ends_on" v-slot="{ control }">
                             <label class="block text-sm">
-                                <span class="block text-xs font-medium text-slate-600">Fin</span>
+                                <span class="block text-xs font-medium text-foreground-muted">Fin</span>
                                 <input v-bind="control" v-model="form.ends_on" type="date" class="field" />
                             </label>
                         </FormField>
                     </div>
                     <FormField :error="form.errors.color" v-slot="{ control }">
                         <label class="flex items-center gap-3 text-sm">
-                            <span class="text-xs font-medium text-slate-600">Color</span>
+                            <span class="text-xs font-medium text-foreground-muted">Color</span>
                             <input
                                 v-bind="control"
                                 v-model="form.color"
                                 type="color"
-                                class="h-9 w-14 cursor-pointer rounded border border-slate-300 bg-white p-1"
+                                class="h-9 w-14 cursor-pointer rounded border border-control-border bg-surface p-1"
                                 data-testid="campaign-color"
                             />
-                            <span class="text-xs text-slate-600">{{ form.color }}</span>
+                            <span class="text-xs text-foreground-muted">{{ form.color }}</span>
                         </label>
                     </FormField>
                     <div class="flex flex-wrap items-center gap-3">
@@ -130,8 +130,10 @@ const range = (c) => {
                 </form>
 
                 <section class="card">
-                    <h2 class="border-b px-5 py-3 text-sm font-medium text-slate-700">Campañas de {{ brand.name }}</h2>
-                    <p v-if="campaigns.length === 0" class="p-5 text-sm text-slate-600"
+                    <h2 class="border-b px-5 py-3 text-sm font-medium text-foreground-secondary"
+                        >Campañas de {{ brand.name }}</h2
+                    >
+                    <p v-if="campaigns.length === 0" class="p-5 text-sm text-foreground-muted"
                         >Aún no hay campañas en esta marca. Crea una arriba y asígnala a tus publicaciones desde el
                         compositor.</p
                     >
@@ -144,21 +146,21 @@ const range = (c) => {
                         >
                             <div class="flex min-w-0 items-start gap-3">
                                 <span
-                                    class="mt-0.5 h-4 w-4 shrink-0 rounded-full border border-slate-400"
+                                    class="mt-0.5 h-4 w-4 shrink-0 rounded-full border border-control-border"
                                     :style="{ backgroundColor: c.color }"
                                     aria-hidden="true"
                                 ></span>
                                 <div class="min-w-0">
-                                    <p class="break-words font-medium text-slate-900">
+                                    <p class="break-words font-medium text-foreground-strong">
                                         <a v-if="c.show_url" :href="c.show_url" class="underline">{{ c.name }}</a>
                                         <template v-else>{{ c.name }}</template>
                                         <span
                                             v-if="c.archived"
-                                            class="ms-2 rounded bg-slate-200 px-1.5 py-0.5 text-xs font-medium text-slate-700"
+                                            class="ms-2 rounded bg-surface-pressed px-1.5 py-0.5 text-xs font-medium text-foreground-secondary"
                                             >Archivada</span
                                         >
                                     </p>
-                                    <p class="text-xs text-slate-600"
+                                    <p class="text-xs text-foreground-muted"
                                         >{{ range(c) }} · {{ c.posts_count }}
                                         {{ c.posts_count === 1 ? 'publicación' : 'publicaciones' }}</p
                                     >
@@ -181,7 +183,7 @@ const range = (c) => {
                                 >
                                 <button
                                     type="button"
-                                    class="text-xs font-medium text-red-700 underline"
+                                    class="text-xs font-medium text-danger underline"
                                     :aria-label="`Eliminar ${c.name}`"
                                     @click="remove(c)"
                                     >Eliminar</button

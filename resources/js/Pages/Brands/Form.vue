@@ -29,7 +29,7 @@ const submit = () => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="text-xl font-bold text-slate-900">
+            <h1 class="text-xl font-bold text-foreground-strong">
                 {{ brand ? 'Editar marca' : 'Nueva marca' }}
             </h1>
         </template>
@@ -81,7 +81,7 @@ const submit = () => {
                                     <option v-for="m in images" :key="m.id" :value="m.id">{{ m.name }}</option>
                                 </select>
                             </div>
-                            <p v-if="images.length === 0" class="mt-1 text-xs text-slate-600"
+                            <p v-if="images.length === 0" class="mt-1 text-xs text-foreground-muted"
                                 >Aún no has subido imágenes; súbelas desde el editor de publicaciones.</p
                             >
                         </FormField>

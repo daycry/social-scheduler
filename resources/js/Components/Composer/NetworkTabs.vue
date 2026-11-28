@@ -67,7 +67,7 @@ defineExpose({ insertAtCursor: (text, options) => editor.value?.insertAtCursor(t
                 @click="toggle"
                 >Editar por red</button
             >
-            <p id="edit-by-network-hint" class="min-w-0 flex-1 text-xs text-slate-600">
+            <p id="edit-by-network-hint" class="min-w-0 flex-1 text-xs text-foreground-muted">
                 <template v-if="form.targets.length === 0">Elige una red para poder personalizar su texto.</template>
                 <template v-else-if="!byNetwork && unlinkedCount > 0"
                     ><span data-testid="own-text-summary">{{ summary }}.</span> Pulsa «Editar por red» para
@@ -82,7 +82,7 @@ defineExpose({ insertAtCursor: (text, options) => editor.value?.insertAtCursor(t
         <!-- `w-0 min-w-full`: la lista de pestañas puede ser más ancha que la pantalla y se desplaza dentro; su ancho no cuenta para el mínimo del formulario -->
         <div
             v-if="byNetwork"
-            class="mt-2 flex w-0 min-w-full gap-1 overflow-x-auto border-b border-slate-200 pb-px"
+            class="mt-2 flex w-0 min-w-full gap-1 overflow-x-auto border-b border-border pb-px"
             role="tablist"
             aria-label="Texto por red"
             @keydown="onTabsKeydown"
@@ -92,8 +92,8 @@ defineExpose({ insertAtCursor: (text, options) => editor.value?.insertAtCursor(t
                 :key="t.key"
                 type="button"
                 v-bind="tabProps(t.key)"
-                class="inline-flex max-w-[14rem] shrink-0 items-center gap-1.5 rounded-t border border-b-0 px-3 py-1.5 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                :class="selectedTab === t.key ? 'border-slate-300 bg-white text-slate-900' : 'border-transparent bg-slate-50 text-slate-700 hover:bg-slate-100'"
+                class="inline-flex max-w-[14rem] shrink-0 items-center gap-1.5 rounded-t border border-b-0 px-3 py-1.5 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                :class="selectedTab === t.key ? 'border-control-border bg-surface text-foreground-strong' : 'border-transparent bg-canvas text-foreground-secondary hover:bg-surface-hover'"
                 :data-testid="`tab-${t.key}`"
                 @click="selectTab(t.key)"
             >
@@ -101,7 +101,7 @@ defineExpose({ insertAtCursor: (text, options) => editor.value?.insertAtCursor(t
                 <span class="truncate">{{ t.label }}</span>
                 <span
                     v-if="t.target && isUnlinked(t.target)"
-                    class="shrink-0 rounded bg-indigo-100 px-1.5 text-xs text-indigo-800"
+                    class="shrink-0 rounded bg-accent-marker px-1.5 text-xs text-accent-strong"
                     data-testid="own-badge"
                     >propio</span
                 >
@@ -111,7 +111,7 @@ defineExpose({ insertAtCursor: (text, options) => editor.value?.insertAtCursor(t
         <div v-bind="byNetwork ? panelProps(selectedTab) : {}" class="min-w-0">
             <!-- Texto común -->
             <template v-if="!active">
-                <p v-if="byNetwork" class="mt-2 text-xs text-slate-600"
+                <p v-if="byNetwork" class="mt-2 text-xs text-foreground-muted"
                     >Es el texto de todas las redes vinculadas. Si lo editas, solo cambian las redes vinculadas.</p
                 >
                 <TextEditor ref="editor" v-model="form.text" :disabled="!editable" />
@@ -119,16 +119,16 @@ defineExpose({ insertAtCursor: (text, options) => editor.value?.insertAtCursor(t
 
             <!-- Una red vinculada al texto común -->
             <div v-else-if="!isUnlinked(active.target)" class="mt-2" data-testid="linked-panel">
-                <p class="flex flex-wrap items-center gap-2 text-sm text-slate-800">
+                <p class="flex flex-wrap items-center gap-2 text-sm text-foreground">
                     <span
-                        class="rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700"
+                        class="rounded bg-surface-hover px-2 py-0.5 text-xs font-medium text-foreground-secondary"
                         data-testid="linked-badge"
                         >Vinculada al texto común</span
                     >
                     Esta red publica el texto común.
                 </p>
                 <p
-                    class="mt-2 max-h-48 min-h-[3rem] overflow-y-auto whitespace-pre-line rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800 [overflow-wrap:anywhere]"
+                    class="mt-2 max-h-48 min-h-[3rem] overflow-y-auto whitespace-pre-line rounded border border-border bg-canvas p-3 text-sm text-foreground [overflow-wrap:anywhere]"
                     data-testid="linked-text"
                     >{{ form.text || 'El texto común está vacío.' }}</p
                 >
@@ -144,15 +144,15 @@ defineExpose({ insertAtCursor: (text, options) => editor.value?.insertAtCursor(t
 
             <!-- Una red con texto propio -->
             <div v-else class="mt-2" data-testid="own-panel">
-                <p class="flex flex-wrap items-center gap-2 text-sm text-slate-800">
+                <p class="flex flex-wrap items-center gap-2 text-sm text-foreground">
                     <span
-                        class="rounded bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-800"
+                        class="rounded bg-accent-marker px-2 py-0.5 text-xs font-medium text-accent-strong"
                         data-testid="own-indicator"
                         >Texto propio</span
                     >
                     Solo esta red publica este texto.
                 </p>
-                <p v-if="!hasOwnText(active.target)" class="mt-1 text-xs text-amber-800" data-testid="own-empty-note"
+                <p v-if="!hasOwnText(active.target)" class="mt-1 text-xs text-warning-ink" data-testid="own-empty-note"
                     >Está vacío: al guardar se publicará el texto común.</p
                 >
                 <TextEditor
@@ -173,7 +173,7 @@ defineExpose({ insertAtCursor: (text, options) => editor.value?.insertAtCursor(t
                     <div
                         v-else
                         role="alert"
-                        class="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+                        class="rounded border border-warning-panel-border bg-warning-soft p-3 text-sm text-warning-ink"
                         data-testid="relink-confirm"
                     >
                         <p>Se perderá el texto propio de esta red.</p>
@@ -194,6 +194,6 @@ defineExpose({ insertAtCursor: (text, options) => editor.value?.insertAtCursor(t
             <!-- Media propia de la red (T-17) -->
             <TargetMediaPanel v-if="active" :key="active.key" :row="active" />
         </div>
-        <p class="text-right text-xs text-slate-600">{{ count }} caracteres</p>
+        <p class="text-right text-xs text-foreground-muted">{{ count }} caracteres</p>
     </div>
 </template>

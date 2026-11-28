@@ -43,7 +43,7 @@ function chooseMask(type) {
             class="text-sm font-semibold"
             >{{ selection.length > 1 ? `${selection.length} elementos seleccionados` : 'Propiedades' }}</h2
         >
-        <p v-if="!item" class="rounded-xl border border-dashed border-slate-200 p-5 leading-relaxed text-slate-500"
+        <p v-if="!item" class="rounded-xl border border-dashed border-border p-5 leading-relaxed text-foreground-subtle"
             >Selecciona un elemento en el lienzo o en Capas para editarlo.</p
         >
         <template v-else>
@@ -54,7 +54,7 @@ function chooseMask(type) {
                     maxlength="255"
                     @change="patch('name', $event.target.value)"
             /></label>
-            <p v-if="item.locked" class="rounded-lg bg-amber-50 p-3 text-amber-800"
+            <p v-if="item.locked" class="rounded-lg bg-warning-soft p-3 text-warning-ink"
                 >Este elemento está bloqueado.
                 <button type="button" class="font-semibold underline" @click="patch('locked', false)"
                     >Desbloquear</button
@@ -93,7 +93,7 @@ function chooseMask(type) {
                             ></select
                         ></label
                     >
-                    <p v-if="item.font_id" class="text-[10px] leading-relaxed text-violet-700"
+                    <p v-if="item.font_id" class="text-[10px] leading-relaxed text-accent-secondary-ink"
                         >Este texto utiliza un archivo tipográfico de la marca, también en sus exportaciones.</p
                     >
                     <div class="grid grid-cols-2 gap-2"
@@ -158,7 +158,7 @@ function chooseMask(type) {
                                 @change="numeric('charSpacing', $event)" /></label
                     ></div>
                 </template>
-                <section v-if="table" class="space-y-3 rounded-xl border border-slate-200 p-3" aria-label="Tabla">
+                <section v-if="table" class="space-y-3 rounded-xl border border-border p-3" aria-label="Tabla">
                     <h3 class="font-semibold">Tabla · {{ tableRows }} filas × {{ tableCols }} columnas</h3>
                     <div class="max-h-64 overflow-auto"
                         ><table class="w-full border-collapse text-xs"
@@ -229,12 +229,12 @@ function chooseMask(type) {
                 </section>
                 <section
                     v-if="item.type === 'connector'"
-                    class="space-y-3 rounded-xl border border-slate-200 p-3"
+                    class="space-y-3 rounded-xl border border-border p-3"
                     aria-label="Conector"
                 >
                     <h3 class="font-semibold">Conector</h3>
                     <p
-                        class="text-[10px] leading-relaxed text-slate-500"
+                        class="text-[10px] leading-relaxed text-foreground-subtle"
                         >{{ item.from && item.to ? 'Unido a dos elementos: sigue sus movimientos.' : 'Conector libre. Selecciona dos elementos y pulsa Añadir conector para unirlos.' }}</p
                     >
                     <div class="grid grid-cols-2 gap-2"
@@ -278,13 +278,13 @@ function chooseMask(type) {
                 </section>
                 <section
                     v-if="item.type === 'chart'"
-                    class="space-y-2 rounded-xl border border-violet-200 bg-violet-50 p-3"
+                    class="space-y-2 rounded-xl border border-accent-secondary-border bg-accent-secondary-soft p-3"
                     ><h3 class="font-semibold">Gráfico con datos guardados</h3
                     ><p class="text-xs"
                         >Tabla {{ item.chart.binding.dataset.id }} · Revisión
                         {{ item.chart.binding.dataset.revision }} fija</p
                     ><p class="break-all font-mono text-[10px]">{{item.chart.binding.dataset.sha256}}</p
-                    ><button type="button" class="toggle bg-white" @click="emit('edit-chart')"
+                    ><button type="button" class="toggle bg-surface" @click="emit('edit-chart')"
                         >Editar configuración y datos del gráfico</button
                     ></section
                 ><div class="grid grid-cols-2 gap-2"
@@ -313,7 +313,7 @@ function chooseMask(type) {
                     <label class="flex items-center justify-between gap-2 font-medium"
                         >Color de relleno<input
                             type="color"
-                            class="h-8 w-10 rounded border border-slate-200 p-0.5"
+                            class="h-8 w-10 rounded border border-border p-0.5"
                             :value="solid.slice(0,7)"
                             @input="patch('fill', $event.target.value)"
                     /></label>
@@ -322,7 +322,7 @@ function chooseMask(type) {
                             v-for="color in colors"
                             :key="color"
                             type="button"
-                            class="h-6 w-6 rounded-full border border-slate-200"
+                            class="h-6 w-6 rounded-full border border-border"
                             :style="{ background: color }"
                             :aria-label="`Aplicar color ${color}`"
                             @click="patch('fill', color)"
@@ -402,7 +402,7 @@ function chooseMask(type) {
                         >{{ field.label
                         }}<input
                             type="range"
-                            class="w-full accent-violet-600"
+                            class="w-full accent-accent-secondary-fill"
                             :min="field.key === 'blur' ? 0 : -1"
                             max="1"
                             step="0.05"
@@ -423,7 +423,7 @@ function chooseMask(type) {
                     >
                 </template>
                 <template v-if="item.type === 'image'">
-                    <div class="space-y-3 border-t border-slate-100 pt-4"
+                    <div class="space-y-3 border-t border-border-subtle pt-4"
                         ><h3 class="font-semibold">Máscara y fondo</h3
                         ><label class="block space-y-1"
                             >Máscara de imagen<select
@@ -447,11 +447,11 @@ function chooseMask(type) {
                                 @change="patch('mask',{ type:'rounded_rect', radius:Number($event.target.value) })" /></label
                         ><button
                             type="button"
-                            class="w-full rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-medium text-violet-800 hover:bg-violet-100 disabled:opacity-50"
+                            class="w-full rounded-lg border border-accent-secondary-border bg-accent-secondary-soft px-3 py-2 text-xs font-medium text-accent-secondary-ink hover:bg-accent-secondary-marker disabled:opacity-50"
                             :disabled="imageBusy"
                             @click="emit('remove-background',item.asset_id)"
                             >Quitar fondo de imagen seleccionada</button
-                        ><p class="text-[10px] leading-relaxed text-slate-500"
+                        ><p class="text-[10px] leading-relaxed text-foreground-subtle"
                             >Genera otra imagen para conservar el original y sus ajustes.</p
                         ></div
                     >
@@ -481,7 +481,7 @@ function chooseMask(type) {
                             min="0"
                             max="1"
                             step="0.05"
-                            class="w-full accent-violet-600"
+                            class="w-full accent-accent-secondary-fill"
                             :value="item.volume"
                             @change="numeric('volume',$event)" /></label
                     ><label class="flex items-center gap-2"
@@ -492,7 +492,7 @@ function chooseMask(type) {
                         />Silenciar vídeo</label
                     ></template
                 >
-                <div class="border-t border-slate-100 pt-4"
+                <div class="border-t border-border-subtle pt-4"
                     ><label class="flex items-center gap-2"
                         ><input
                             type="checkbox"
@@ -538,5 +538,7 @@ function chooseMask(type) {
     </section>
 </template>
 <style scoped>
-.toggle{border:1px solid #e2e8f0;border-radius:.5rem;padding:.5rem;font-size:11px}.toggle:hover{background:#f8fafc}.toggle[aria-pressed=true]{background:#ede9fe;border-color:#c4b5fd;color:#6d28d9}
+.toggle {
+    @apply rounded-lg border border-control-border p-2 text-[11px] hover:bg-canvas aria-pressed:border-focus aria-pressed:bg-accent-secondary-marker aria-pressed:text-accent-secondary-ink;
+}
 </style>

@@ -9,8 +9,8 @@ const { brand, accounts, editable, targetFor, typesOf, typeLabel, typeInfo, togg
 
 <template>
     <section class="card p-4" aria-labelledby="picker-title">
-        <h2 id="picker-title" tabindex="-1" class="mb-3 font-medium text-slate-900">Dónde publicar</h2>
-        <p v-if="accounts.length === 0" class="text-sm text-slate-600">
+        <h2 id="picker-title" tabindex="-1" class="mb-3 font-medium text-foreground-strong">Dónde publicar</h2>
+        <p v-if="accounts.length === 0" class="text-sm text-foreground-muted">
             Esta marca no tiene cuentas conectadas.
             <Link :href="route('brands.connections.index', brand.id)" class="link">Conectar redes</Link>
         </p>
@@ -28,19 +28,21 @@ const { brand, accounts, editable, targetFor, typesOf, typeLabel, typeInfo, togg
                     :aria-pressed="!!targetFor(account.id)"
                     :aria-label="`${account.network_label}: ${account.name}${account.status !== 'activa' ? '. Requiere reconexión' : ''}`"
                     :disabled="!editable || account.available === false"
-                    class="inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60"
-                    :class="targetFor(account.id) ? 'border-indigo-600 bg-indigo-50 text-indigo-800' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'"
+                    class="inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
+                    :class="targetFor(account.id) ? 'border-accent-fill bg-accent-soft text-accent-strong' : 'border-control-border bg-surface text-foreground-secondary hover:bg-canvas'"
                     @click="toggleAccount(account, !targetFor(account.id))"
                 >
                     <NetworkIcon :network="account.network" size="sm" />
                     <span class="truncate">{{ account.name }}</span>
                     <span v-if="targetFor(account.id)" aria-hidden="true">✓</span>
-                    <span v-if="account.available === false" class="rounded bg-slate-100 px-1.5 text-xs text-slate-600"
+                    <span
+                        v-if="account.available === false"
+                        class="rounded bg-surface-hover px-1.5 text-xs text-foreground-muted"
                         >No disponible</span
                     >
                     <span
                         v-else-if="account.status !== 'activa'"
-                        class="rounded bg-amber-100 px-1.5 text-xs text-amber-800"
+                        class="rounded bg-warning-soft px-1.5 text-xs text-warning-ink"
                         >Requiere reconexión</span
                     >
                 </button>
@@ -61,7 +63,7 @@ const { brand, accounts, editable, targetFor, typesOf, typeLabel, typeInfo, togg
             <template v-for="account in accounts" :key="`lim-${account.id}`">
                 <li
                     v-if="targetFor(account.id) && typeInfo(targetFor(account.id), account.network)?.limitations.length"
-                    class="flex items-start gap-2 text-xs text-amber-700"
+                    class="flex items-start gap-2 text-xs text-warning-ink"
                 >
                     <NetworkIcon :network="account.network" size="sm" />
                     <ul class="list-disc space-y-0.5 pl-4">

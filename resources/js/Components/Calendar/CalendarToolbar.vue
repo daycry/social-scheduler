@@ -45,7 +45,7 @@ const setFilter = (key, event) => {
 <template>
     <div class="flex flex-wrap items-center gap-3 card p-3">
         <div
-            class="inline-flex overflow-hidden rounded-lg border border-slate-300 text-sm"
+            class="inline-flex overflow-hidden rounded-lg border border-control-border text-sm"
             role="tablist"
             aria-label="Vista del calendario"
             @keydown="onTabsKeydown"
@@ -56,7 +56,7 @@ const setFilter = (key, event) => {
                 type="button"
                 v-bind="tabProps(v[0])"
                 class="px-3 py-1.5"
-                :class="view === v[0] ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-50'"
+                :class="view === v[0] ? 'bg-accent-fill text-on-accent' : 'bg-surface text-foreground-secondary hover:bg-canvas'"
                 @click="go({ view: v[0] })"
                 >{{ v[1] }}</button
             >
@@ -64,27 +64,27 @@ const setFilter = (key, event) => {
         <div class="flex items-center gap-1 text-sm">
             <button
                 type="button"
-                class="rounded-lg border border-slate-300 bg-white px-2.5 py-1 hover:bg-slate-50"
+                class="rounded-lg border border-control-border bg-surface px-2.5 py-1 hover:bg-canvas"
                 aria-label="Anterior"
                 @click="go({ date: prev })"
                 >‹</button
             >
             <button
                 type="button"
-                class="rounded-lg border border-slate-300 bg-white px-2.5 py-1 hover:bg-slate-50"
+                class="rounded-lg border border-control-border bg-surface px-2.5 py-1 hover:bg-canvas"
                 @click="go({ date: today })"
                 >Hoy</button
             >
             <button
                 type="button"
-                class="rounded-lg border border-slate-300 bg-white px-2.5 py-1 hover:bg-slate-50"
+                class="rounded-lg border border-control-border bg-surface px-2.5 py-1 hover:bg-canvas"
                 aria-label="Siguiente"
                 @click="go({ date: next })"
                 >›</button
             >
         </div>
-        <span class="font-medium capitalize text-slate-800">{{ title }}</span>
-        <span class="text-xs text-slate-500">Zona horaria: {{ timezone }}</span>
+        <span class="font-medium capitalize text-foreground">{{ title }}</span>
+        <span class="text-xs text-foreground-subtle">Zona horaria: {{ timezone }}</span>
 
         <div class="ml-auto flex min-w-0 max-w-full flex-wrap items-center gap-2 text-sm">
             <ViewsMenu :views="views" :active-view="activeView" :filters="filters" :view="view" :date="date" />

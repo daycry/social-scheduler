@@ -89,7 +89,7 @@ const confirmLibrary = () => saveToLibrary(libraryName.value, { onSaved: closeLi
                 id="actions-menu-button"
                 ref="toggle"
                 type="button"
-                class="btn-primary rounded-l-none border-l border-indigo-400 px-2.5"
+                class="btn-primary rounded-l-none border-l border-focus px-2.5"
                 aria-haspopup="menu"
                 aria-controls="actions-menu"
                 :aria-expanded="open"
@@ -106,7 +106,7 @@ const confirmLibrary = () => saveToLibrary(libraryName.value, { onSaved: closeLi
                 ref="menu"
                 role="menu"
                 aria-labelledby="actions-menu-button"
-                class="absolute left-0 top-full z-30 mt-1 min-w-[14rem] rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+                class="absolute left-0 top-full z-30 mt-1 min-w-[14rem] rounded-lg border border-border bg-surface py-1 shadow-lg"
                 @keydown="onMenuKey"
             >
                 <li v-for="item in items" :key="item.key" role="none">
@@ -115,7 +115,7 @@ const confirmLibrary = () => saveToLibrary(libraryName.value, { onSaved: closeLi
                         role="menuitem"
                         tabindex="-1"
                         :disabled="item.disabled"
-                        class="block w-full px-4 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none disabled:cursor-not-allowed disabled:text-slate-500"
+                        class="block w-full px-4 py-2 text-left text-sm text-foreground hover:bg-surface-hover focus:bg-surface-hover focus:outline-none disabled:cursor-not-allowed disabled:text-foreground-subtle"
                         @click="choose(item)"
                         >{{ item.label }}</button
                     >
@@ -123,7 +123,7 @@ const confirmLibrary = () => saveToLibrary(libraryName.value, { onSaved: closeLi
             </ul>
         </div>
 
-        <p v-if="tiktokDirect.length" class="basis-full text-xs text-slate-700" data-testid="tiktok-consent">
+        <p v-if="tiktokDirect.length" class="basis-full text-xs text-foreground-secondary" data-testid="tiktok-consent">
             Al publicar en TikTok, aceptas
             <template v-if="tiktokBranded"
                 >la
@@ -136,10 +136,10 @@ const confirmLibrary = () => saveToLibrary(libraryName.value, { onSaved: closeLi
                 >Confirmación de uso de música de TikTok (Music Usage Confirmation)</a
             >.
         </p>
-        <p v-if="uploadingMedia" role="status" class="text-sm text-slate-700" data-testid="uploading-note"
+        <p v-if="uploadingMedia" role="status" class="text-sm text-foreground-secondary" data-testid="uploading-note"
             >Espera a que termine la subida.</p
         >
-        <p v-if="sendingNow" role="status" class="text-sm text-slate-700" data-testid="sending-now"
+        <p v-if="sendingNow" role="status" class="text-sm text-foreground-secondary" data-testid="sending-now"
             >Enviando… no cierres esta página.</p
         >
         <DangerButton v-if="post" type="button" class="ml-auto" @click="remove">Eliminar</DangerButton>
@@ -150,17 +150,17 @@ const confirmLibrary = () => saveToLibrary(libraryName.value, { onSaved: closeLi
         :open="libraryOpen"
         :return-focus-to="toggle"
         aria-labelledby="library-title"
-        class="m-auto w-[calc(100vw_-_2rem)] max-w-md rounded-lg border-0 bg-white p-5 shadow-xl backdrop:bg-slate-900/50"
+        class="m-auto w-[calc(100vw_-_2rem)] max-w-md rounded-lg border-0 bg-surface p-5 shadow-xl backdrop:bg-overlay-strong/50"
         data-testid="library-dialog"
         @close="closeLibrary"
         @opened="nameInput?.select()"
     >
-        <h2 id="library-title" class="text-lg font-semibold text-slate-900">Guardar como plantilla</h2>
-        <p class="mt-1 text-sm text-slate-700"
+        <h2 id="library-title" class="text-lg font-semibold text-foreground-strong">Guardar como plantilla</h2>
+        <p class="mt-1 text-sm text-foreground-secondary"
             >Se guarda una copia del texto, los archivos y las redes actuales. No se crea ninguna publicación.</p
         >
         <label class="mt-3 block text-sm">
-            <span class="block text-xs font-medium text-slate-700">Nombre de la plantilla</span>
+            <span class="block text-xs font-medium text-foreground-secondary">Nombre de la plantilla</span>
             <input
                 ref="nameInput"
                 data-dialog-initial-focus
@@ -175,7 +175,7 @@ const confirmLibrary = () => saveToLibrary(libraryName.value, { onSaved: closeLi
         </label>
         <p
             id="library-error"
-            class="mt-1 min-h-[1.25rem] text-sm text-red-700"
+            class="mt-1 min-h-[1.25rem] text-sm text-danger"
             role="alert"
             >{{ libraryErrors.name ?? libraryErrors.campaign_id ?? libraryErrors.brand ?? '' }}</p
         >

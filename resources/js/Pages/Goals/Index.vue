@@ -174,10 +174,10 @@ async function remove(goal) {
 <template>
     <Head title="Objetivos y alertas" />
     <AuthenticatedLayout>
-        <template #header><h1 class="text-xl font-semibold text-slate-900">Objetivos y alertas</h1></template>
+        <template #header><h1 class="text-xl font-semibold text-foreground-strong">Objetivos y alertas</h1></template>
         <div class="space-y-6">
             <div v-if="brands.length" class="max-w-md space-y-1">
-                <label for="goals-brand" class="block text-sm font-medium text-slate-800">Marca</label>
+                <label for="goals-brand" class="block text-sm font-medium text-foreground">Marca</label>
                 <select
                     id="goals-brand"
                     v-model.number="selectedBrand"
@@ -188,25 +188,25 @@ async function remove(goal) {
                     <option v-for="option in brands" :key="option.id" :value="option.id">{{ option.name }}</option>
                 </select>
             </div>
-            <p v-if="!brand" class="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-700"
+            <p v-if="!brand" class="rounded-lg border border-border bg-surface p-4 text-sm text-foreground-secondary"
                 >Crea una marca para configurar objetivos.
                 <Link :href="route('brands.create')" class="link">Crear marca</Link></p
             >
             <template v-else>
-                <p class="text-sm text-slate-600"
+                <p class="text-sm text-foreground-muted"
                     >Evaluación diaria con la última fecha cerrada en la marca ({{ brand.timezone || 'UTC' }}) y sus
                     redes. Sin datos suficientes no se genera una alerta.</p
                 >
                 <form
-                    class="grid gap-4 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-2"
+                    class="grid gap-4 rounded-lg border border-border bg-surface p-4 sm:grid-cols-2"
                     @submit.prevent="submit"
                 >
                     <h2
-                        class="text-lg font-semibold text-slate-900 sm:col-span-2"
+                        class="text-lg font-semibold text-foreground-strong sm:col-span-2"
                         >{{ editing === null ? 'Nuevo objetivo' : 'Editar objetivo' }}</h2
                     >
                     <div class="min-w-0 space-y-1 sm:col-span-2">
-                        <label for="goal-name" class="block text-sm font-medium text-slate-800"
+                        <label for="goal-name" class="block text-sm font-medium text-foreground"
                             >Nombre del objetivo</label
                         >
                         <input
@@ -222,7 +222,9 @@ async function remove(goal) {
                         />
                     </div>
                     <div class="min-w-0 space-y-1">
-                        <label for="goal-kind" class="block text-sm font-medium text-slate-800">Tipo de objetivo</label>
+                        <label for="goal-kind" class="block text-sm font-medium text-foreground"
+                            >Tipo de objetivo</label
+                        >
                         <select
                             id="goal-kind"
                             v-model="form.kind"
@@ -236,7 +238,7 @@ async function remove(goal) {
                         </select>
                     </div>
                     <div v-if="form.kind !== 'token_expiry'" class="min-w-0 space-y-1">
-                        <label for="goal-metric" class="block text-sm font-medium text-slate-800">Métrica</label>
+                        <label for="goal-metric" class="block text-sm font-medium text-foreground">Métrica</label>
                         <select
                             id="goal-metric"
                             v-model="form.metric"
@@ -250,7 +252,7 @@ async function remove(goal) {
                         </select>
                     </div>
                     <div class="min-w-0 space-y-1">
-                        <label for="goal-account" class="block text-sm font-medium text-slate-800">Cuenta</label>
+                        <label for="goal-account" class="block text-sm font-medium text-foreground">Cuenta</label>
                         <select
                             id="goal-account"
                             v-model.number="form.social_account_id"
@@ -276,7 +278,7 @@ async function remove(goal) {
                     <div class="min-w-0 space-y-1">
                         <label
                             for="goal-threshold"
-                            class="block text-sm font-medium text-slate-800"
+                            class="block text-sm font-medium text-foreground"
                             >{{ form.kind === 'token_expiry' ? 'Umbral (días)' : 'Umbral' }}</label
                         >
                         <input
@@ -293,33 +295,33 @@ async function remove(goal) {
                             :disabled="busy"
                         />
                     </div>
-                    <p class="text-sm text-slate-600 sm:col-span-2">{{ ruleHint }}</p>
-                    <label class="flex items-center gap-2 text-sm text-slate-800"
+                    <p class="text-sm text-foreground-muted sm:col-span-2">{{ ruleHint }}</p>
+                    <label class="flex items-center gap-2 text-sm text-foreground"
                         ><input
                             v-model="form.enabled"
                             :aria-invalid="form.errors.enabled ? 'true' : undefined"
                             :aria-describedby="form.errors.enabled ? 'goal-error-enabled' : undefined"
                             type="checkbox"
                             :disabled="busy"
-                            class="rounded border-slate-300"
+                            class="rounded border-control-border"
                         />
                         Activo</label
                     >
-                    <label class="flex items-center gap-2 text-sm text-slate-800"
+                    <label class="flex items-center gap-2 text-sm text-foreground"
                         ><input
                             v-model="form.mail_enabled"
                             :aria-invalid="form.errors.mail_enabled ? 'true' : undefined"
                             :aria-describedby="form.errors.mail_enabled ? 'goal-error-mail_enabled' : undefined"
                             type="checkbox"
                             :disabled="busy"
-                            class="rounded border-slate-300"
+                            class="rounded border-control-border"
                         />
                         Correo opcional</label
                     >
-                    <p class="text-xs text-slate-600 sm:col-span-2"
+                    <p class="text-xs text-foreground-muted sm:col-span-2"
                         >El correo requiere también la preferencia de avisos por correo y una dirección verificada.</p
                     >
-                    <div v-if="errors.length" role="alert" class="text-sm text-red-700 sm:col-span-2"
+                    <div v-if="errors.length" role="alert" class="text-sm text-danger sm:col-span-2"
                         ><p
                             v-for="[field, error] in errors"
                             :id="'goal-error-' + field"
@@ -345,22 +347,24 @@ async function remove(goal) {
                     </div>
                 </form>
                 <section class="space-y-3" aria-labelledby="goals-list-title">
-                    <h2 id="goals-list-title" class="text-lg font-semibold text-slate-900">Objetivos de la marca</h2>
-                    <p v-if="!goals.length" class="text-sm text-slate-600">No hay objetivos en esta página.</p>
+                    <h2 id="goals-list-title" class="text-lg font-semibold text-foreground-strong"
+                        >Objetivos de la marca</h2
+                    >
+                    <p v-if="!goals.length" class="text-sm text-foreground-muted">No hay objetivos en esta página.</p>
                     <article
                         v-for="goal in goals"
                         :key="goal.id"
                         :aria-labelledby="'goal-title-' + goal.id"
-                        class="space-y-2 rounded-lg border border-slate-200 bg-white p-4"
+                        class="space-y-2 rounded-lg border border-border bg-surface p-4"
                     >
                         <div class="flex flex-wrap items-start justify-between gap-3">
                             <div class="min-w-0">
                                 <h3
                                     :id="'goal-title-' + goal.id"
-                                    class="break-words font-semibold text-slate-900"
+                                    class="break-words font-semibold text-foreground-strong"
                                     >{{ goal.name }}</h3
                                 >
-                                <p class="text-sm text-slate-600"
+                                <p class="text-sm text-foreground-muted"
                                     >{{ kinds[goal.kind] }} · {{ goal.enabled ? 'Activo' : 'Pausado' }} ·
                                     {{ goal.social_account_id === null ? 'Toda la marca' : goal.account_name ?? 'Cuenta no disponible' }}</p
                                 >
@@ -383,20 +387,20 @@ async function remove(goal) {
                                 ></div
                             >
                         </div>
-                        <p class="text-sm text-slate-700">{{ ruleDescription(goal) }}</p>
-                        <p v-if="goal.account_requires_reconnection" class="text-sm text-amber-800"
+                        <p class="text-sm text-foreground-secondary">{{ ruleDescription(goal) }}</p>
+                        <p v-if="goal.account_requires_reconnection" class="text-sm text-warning-ink"
                             >Cuenta pendiente de reconexión; consulta Conexiones.</p
                         >
-                        <p v-if="!goal.last_evaluated_at" class="text-sm text-slate-600">Aún sin evaluar.</p>
-                        <p v-else-if="goal.last_value === null" class="text-sm text-amber-800"
+                        <p v-if="!goal.last_evaluated_at" class="text-sm text-foreground-muted">Aún sin evaluar.</p>
+                        <p v-else-if="goal.last_value === null" class="text-sm text-warning-ink"
                             >Sin datos suficientes · periodo {{ goal.last_period }}.</p
                         >
                         <p
                             v-else-if="goal.kind === 'token_expiry'"
-                            class="text-sm text-slate-700"
+                            class="text-sm text-foreground-secondary"
                             >{{ tokenObservation(goal) }}</p
                         >
-                        <p v-else class="text-sm text-slate-700"
+                        <p v-else class="text-sm text-foreground-secondary"
                             >Último valor:
                             {{ numbers.format(goal.last_value)
                             }}

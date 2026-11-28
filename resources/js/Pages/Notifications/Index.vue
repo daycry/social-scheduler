@@ -71,30 +71,30 @@ function title(n) {
     <AuthenticatedLayout>
         <template #header>
             <div class="flex items-center justify-between">
-                <h1 class="text-xl font-bold text-slate-900">Avisos</h1>
+                <h1 class="text-xl font-bold text-foreground-strong">Avisos</h1>
                 <SecondaryButton type="button" @click="markAll">Marcar todo como leído</SecondaryButton>
             </div>
         </template>
 
         <div>
             <div class="max-w-3xl space-y-3">
-                <p v-if="notifications.length === 0" class="card p-6 text-slate-600">No tienes avisos.</p>
+                <p v-if="notifications.length === 0" class="card p-6 text-foreground-muted">No tienes avisos.</p>
                 <article
                     v-for="n in notifications"
                     :key="n.id"
                     class="card p-4"
-                    :class="n.read ? 'opacity-70' : (n.type?.startsWith('job_done_') || n.type === 'weekly_digest' ? 'border-l-4 border-emerald-400' : 'border-l-4 border-red-400')"
+                    :class="n.read ? 'opacity-70' : (n.type?.startsWith('job_done_') || n.type === 'weekly_digest' ? 'border-l-4 border-success-fill' : 'border-l-4 border-danger-fill')"
                 >
                     <div class="flex items-start justify-between gap-3">
                         <div>
-                            <h2 class="font-medium text-slate-900">{{ title(n) }}</h2>
-                            <p class="text-sm text-slate-700">{{ n.message }}</p>
-                            <p v-if="n.excerpt" class="mt-1 text-xs text-slate-500"
+                            <h2 class="font-medium text-foreground-strong">{{ title(n) }}</h2>
+                            <p class="text-sm text-foreground-secondary">{{ n.message }}</p>
+                            <p v-if="n.excerpt" class="mt-1 text-xs text-foreground-subtle"
                                 >«{{ n.excerpt }}»<span v-if="n.scheduled_at">
                                     · programada para {{ n.scheduled_at }}</span
                                 ></p
                             >
-                            <p v-if="n.brand_name || n.account_name" class="text-xs text-slate-500"
+                            <p v-if="n.brand_name || n.account_name" class="text-xs text-foreground-subtle"
                                 >{{ n.brand_name }} {{ n.account_name }}</p
                             >
                         </div>
@@ -125,7 +125,7 @@ function title(n) {
                                 class="link"
                                 >Conexiones</Link
                             >
-                            <button v-if="!n.read" type="button" class="text-slate-600" @click="markRead(n.id)"
+                            <button v-if="!n.read" type="button" class="text-foreground-muted" @click="markRead(n.id)"
                                 >Marcar leído</button
                             >
                         </div>

@@ -587,7 +587,7 @@ const {
                 @publish="publishFromEditor"
             />
             <div
-                class="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2"
+                class="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2"
                 aria-label="Plantillas y formatos"
                 :inert="fontBusy || undefined"
             >
@@ -654,10 +654,10 @@ const {
                 >
                 <span
                     v-if="template"
-                    class="ml-auto rounded-full bg-violet-50 px-3 py-1 text-[10px] font-semibold text-violet-800"
+                    class="ml-auto rounded-full bg-accent-secondary-soft px-3 py-1 text-[10px] font-semibold text-accent-secondary-ink"
                     >Plantilla de {{ brand.name }}</span
                 >
-                <span v-if="automationBusy" role="status" class="text-xs text-violet-700"
+                <span v-if="automationBusy" role="status" class="text-xs text-accent-secondary-ink"
                     >Guardando y preparando el diseño…</span
                 >
             </div>
@@ -696,27 +696,27 @@ const {
                 :inert="!ready || automationBusy || fontBusy || undefined"
             >
                 <aside
-                    class="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 xl:max-h-[calc(100vh-210px)] xl:overflow-y-auto"
+                    class="min-w-0 rounded-2xl border border-border bg-surface p-4 xl:max-h-[calc(100vh-210px)] xl:overflow-y-auto"
                     aria-label="Herramientas de diseño"
                 >
-                    <div class="mb-4 flex gap-1 rounded-lg bg-slate-100 p-1"
+                    <div class="mb-4 flex gap-1 rounded-lg bg-surface-hover p-1"
                         ><button
                             type="button"
                             class="flex-1 rounded-md px-2 py-2 text-xs font-medium"
-                            :class="leftPanel === 'elements' ? 'bg-white shadow-sm' : 'text-slate-500'"
+                            :class="leftPanel === 'elements' ? 'bg-surface shadow-sm' : 'text-foreground-subtle'"
                             @click="leftPanel = 'elements'"
                             >Elementos</button
                         ><button
                             type="button"
                             class="flex-1 rounded-md px-2 py-2 text-xs font-medium"
-                            :class="leftPanel === 'assets' ? 'bg-white shadow-sm' : 'text-slate-500'"
+                            :class="leftPanel === 'assets' ? 'bg-surface shadow-sm' : 'text-foreground-subtle'"
                             @click="leftPanel = 'assets'"
                             >Recursos</button
                         ><button
                             v-if="access.is_owner"
                             type="button"
                             class="flex-1 rounded-md px-2 py-2 text-xs font-medium"
-                            :class="leftPanel === 'ai' ? 'bg-white shadow-sm' : 'text-slate-500'"
+                            :class="leftPanel === 'ai' ? 'bg-surface shadow-sm' : 'text-foreground-subtle'"
                             @click="leftPanel = 'ai'"
                             >IA</button
                         ></div
@@ -724,26 +724,26 @@ const {
                     <div v-if="leftPanel === 'elements'" class="space-y-5"
                         ><button
                             type="button"
-                            class="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-3 py-3 text-sm font-semibold text-white hover:bg-violet-800 disabled:opacity-50"
+                            class="flex w-full items-center justify-center gap-2 rounded-xl bg-accent-secondary-fill px-3 py-3 text-sm font-semibold text-on-accent-secondary hover:bg-accent-secondary-hover disabled:opacity-50"
                             :disabled="!ready || busy"
                             @click="addText"
                             ><span class="font-serif text-xl" aria-hidden="true">T</span>Añadir texto</button
                         ><button
                             type="button"
-                            class="w-full rounded-xl border border-violet-200 bg-violet-50 px-3 py-3 text-sm font-semibold text-violet-800 disabled:opacity-50"
+                            class="w-full rounded-xl border border-accent-secondary-border bg-accent-secondary-soft px-3 py-3 text-sm font-semibold text-accent-secondary-ink disabled:opacity-50"
                             :disabled="!ready || busy"
                             @click="startChart"
                             >Añadir gráfico con datos</button
                         ><div class="grid grid-cols-2 gap-2"
                             ><button
                                 type="button"
-                                class="rounded-xl border border-slate-200 px-2 py-2.5 text-xs font-semibold text-slate-700 hover:border-violet-300 hover:bg-violet-50 disabled:opacity-50"
+                                class="rounded-xl border border-border px-2 py-2.5 text-xs font-semibold text-foreground-secondary hover:border-accent-secondary-border hover:bg-accent-secondary-soft disabled:opacity-50"
                                 :disabled="!ready || busy"
                                 @click="action('addTable')"
                                 >Añadir tabla</button
                             ><button
                                 type="button"
-                                class="rounded-xl border border-slate-200 px-2 py-2.5 text-xs font-semibold text-slate-700 hover:border-violet-300 hover:bg-violet-50 disabled:opacity-50"
+                                class="rounded-xl border border-border px-2 py-2.5 text-xs font-semibold text-foreground-secondary hover:border-accent-secondary-border hover:bg-accent-secondary-soft disabled:opacity-50"
                                 :disabled="!ready || busy"
                                 title="Con dos elementos seleccionados, los une con una flecha que los sigue al moverlos"
                                 @click="action('addConnector')"
@@ -756,7 +756,7 @@ const {
                                     v-for="shape in [{key:'rect',label:'Rectángulo',symbol:'▭'},{key:'ellipse',label:'Elipse',symbol:'◯'},{key:'triangle',label:'Triángulo',symbol:'△'},{key:'line',label:'Línea',symbol:'╱'},{key:'path',label:'Trazado',symbol:'〰'}]"
                                     :key="shape.key"
                                     type="button"
-                                    class="rounded-xl border border-slate-200 py-3 text-2xl text-slate-600 transition hover:border-violet-300 hover:bg-violet-50 disabled:opacity-50"
+                                    class="rounded-xl border border-border py-3 text-2xl text-foreground-muted transition hover:border-accent-secondary-border hover:bg-accent-secondary-soft disabled:opacity-50"
                                     :aria-label="`Añadir ${shape.label.toLowerCase()}`"
                                     :title="shape.label"
                                     :disabled="!ready || busy"
@@ -764,11 +764,11 @@ const {
                                     >{{ shape.symbol }}</button
                                 ></div
                             ></div
-                        ><div class="space-y-3 border-t border-slate-100 pt-4"
+                        ><div class="space-y-3 border-t border-border-subtle pt-4"
                             ><button
                                 type="button"
                                 class="w-full rounded-lg border px-3 py-2 text-xs font-medium"
-                                :class="drawing ? 'border-violet-300 bg-violet-50 text-violet-700' : 'border-slate-200'"
+                                :class="drawing ? 'border-accent-secondary-border bg-accent-secondary-soft text-accent-secondary-ink' : 'border-border'"
                                 :aria-pressed="drawing"
                                 :disabled="!ready"
                                 @click="toggleDrawing"
@@ -792,19 +792,19 @@ const {
                                     max="200"
                                     class="field w-20 text-xs"
                                     @change="getAdapter()?.setDrawing(true, drawColor, drawWidth)" /></div></div
-                        ><div class="border-t border-slate-100 pt-4"
+                        ><div class="border-t border-border-subtle pt-4"
                             ><h3 class="mb-3 text-xs font-semibold">Colores de {{ brand.name }}</h3
                             ><div class="flex flex-wrap gap-2"
                                 ><button
                                     v-for="color in kit?.palette ?? []"
                                     :key="color"
                                     type="button"
-                                    class="h-7 w-7 rounded-full border border-slate-200"
+                                    class="h-7 w-7 rounded-full border border-border"
                                     :style="{ background: color }"
                                     :aria-label="`Color de marca ${color}`"
                                     :disabled="!selection.length || selection.some(item => item.type === 'chart')"
                                     @click="patchSelection({fill:color})" /></div
-                            ><p class="mt-3 text-[10px] leading-relaxed text-slate-400"
+                            ><p class="mt-3 text-[10px] leading-relaxed text-foreground-subtle"
                                 >Selecciona un elemento para aplicarle un color.</p
                             ></div
                         ></div
@@ -812,7 +812,7 @@ const {
                     <div v-else-if="leftPanel === 'assets'" class="space-y-3">
                         <button
                             type="button"
-                            class="w-full rounded-xl bg-violet-700 px-3 py-2.5 text-xs font-semibold text-white disabled:opacity-50"
+                            class="w-full rounded-xl bg-accent-secondary-fill px-3 py-2.5 text-xs font-semibold text-on-accent-secondary disabled:opacity-50"
                             :disabled="busy"
                             @click="fileInput.click()"
                             >Subir recursos</button
@@ -841,15 +841,20 @@ const {
                             :disabled="busy"
                             @click="retryAudioValidation"
                             >Reintentar validación del audio</button
-                        ><p v-if="uploadStatus" role="status" class="text-xs text-violet-700">{{ uploadStatus }}</p>
+                        ><p
+                            v-if="uploadStatus"
+                            role="status"
+                            class="text-xs text-accent-secondary-ink"
+                            >{{ uploadStatus }}</p
+                        >
                         <div class="grid grid-cols-2 gap-2"
                             ><article
                                 v-for="asset in visibleAssets"
                                 :key="asset.id"
-                                class="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
+                                class="min-w-0 overflow-hidden rounded-xl border border-border bg-canvas"
                                 ><button
                                     type="button"
-                                    class="block w-full min-w-0 text-left hover:bg-violet-50"
+                                    class="block w-full min-w-0 text-left hover:bg-accent-secondary-soft"
                                     :aria-label="`Añadir ${asset.name}`"
                                     :disabled="!ready || busy"
                                     @click="addLibraryAsset(asset)"
@@ -861,14 +866,14 @@ const {
                                         loading="lazy"
                                     /><span
                                         v-else
-                                        class="flex aspect-square items-center justify-center text-2xl text-violet-500"
+                                        class="flex aspect-square items-center justify-center text-2xl text-accent-secondary-ink"
                                         aria-hidden="true"
                                         >{{ asset.kind === 'audio' ? '♫' : '▶' }}</span
                                     ><span class="block truncate p-2 text-[10px]">{{ asset.name }}</span></button
                                 ><button
                                     v-if="asset.kind === 'image'"
                                     type="button"
-                                    class="block w-full border-t border-slate-200 px-2 py-2 text-[10px] font-medium text-violet-700 hover:bg-violet-50 disabled:opacity-50"
+                                    class="block w-full border-t border-border px-2 py-2 text-[10px] font-medium text-accent-secondary-ink hover:bg-accent-secondary-soft disabled:opacity-50"
                                     :aria-label="`Quitar fondo de ${asset.name}`"
                                     :disabled="imageBusy"
                                     @click="removeBackground(asset.id)"
@@ -876,7 +881,7 @@ const {
                                 ><button
                                     v-if="asset.kind === 'image' && access.is_owner && ai_configured"
                                     type="button"
-                                    class="block w-full border-t border-slate-200 px-2 py-2 text-[10px] font-medium text-violet-700 hover:bg-violet-50"
+                                    class="block w-full border-t border-border px-2 py-2 text-[10px] font-medium text-accent-secondary-ink hover:bg-accent-secondary-soft"
                                     :aria-label="`Editar con IA ${asset.name}`"
                                     @click="editWithAi(asset.id)"
                                     >Editar con IA</button
@@ -885,7 +890,7 @@ const {
                         >
                         <p
                             v-if="!visibleAssets.length"
-                            class="py-5 text-xs leading-relaxed text-slate-500"
+                            class="py-5 text-xs leading-relaxed text-foreground-subtle"
                             >{{ assetQuery ? 'No hay recursos con ese nombre.' : 'Sube imágenes, vídeos o audio para usarlos en los diseños de esta marca.' }}</p
                         >
                     </div>
@@ -918,10 +923,10 @@ const {
                     />
                 </aside>
 
-                <main class="min-w-0 space-y-3" aria-label="Editor de diseño">
-                    <div class="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-2"
+                <section class="min-w-0 space-y-3" aria-label="Editor de diseño">
+                    <div class="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface p-2"
                         ><span
-                            class="px-1 text-xs font-medium text-slate-600"
+                            class="px-1 text-xs font-medium text-foreground-muted"
                             >{{ selection.length ? `${selection.length} seleccionado(s)` : page.name }}</span
                         ><div class="ml-auto flex items-center gap-1"
                             ><button
@@ -933,7 +938,7 @@ const {
                                 >Duplicar</button
                             ><button
                                 type="button"
-                                class="tool text-xs text-red-600"
+                                class="tool text-xs text-danger"
                                 :disabled="!selection.length || busy"
                                 aria-label="Eliminar elemento"
                                 @click="action('delete')"
@@ -950,11 +955,11 @@ const {
                     >
                     <div
                         ref="stage"
-                        class="studio-stage relative flex h-[430px] min-w-0 items-start justify-start overflow-auto rounded-2xl border border-slate-200 p-6 sm:h-[560px] xl:h-[calc(100vh-340px)] xl:min-h-[380px]"
+                        class="studio-stage relative flex h-[430px] min-w-0 items-start justify-start overflow-auto rounded-2xl border border-border p-6 sm:h-[560px] xl:h-[calc(100vh-340px)] xl:min-h-[380px]"
                     >
                         <div
                             v-show="!previewVisible"
-                            class="m-auto shrink-0 bg-white shadow-[0_10px_40px_-8px_rgba(15,23,42,0.2)]"
+                            class="m-auto shrink-0 bg-white shadow-[0_10px_40px_-8px_rgb(var(--color-overlay-strong)/0.2)]"
                             :style="{ width: `${documentData.width * zoom / 100}px`, height: `${documentData.height * zoom / 100}px` }"
                             ><canvas ref="canvasElement"
                         /></div>
@@ -970,13 +975,14 @@ const {
                         <div
                             v-if="!ready || busy"
                             role="status"
-                            class="absolute inset-0 flex items-center justify-center rounded-2xl bg-slate-100/80 text-sm text-slate-600"
+                            class="absolute inset-0 flex items-center justify-center rounded-2xl bg-surface-hover/80 text-sm text-foreground-muted"
                             >{{ busy ? 'Preparando página…' : 'Cargando el lienzo…' }}</div
                         >
                     </div>
                     <div
-                        class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs"
-                        ><span class="text-slate-500">{{ documentData.width }} × {{ documentData.height }} px</span
+                        class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-xs"
+                        ><span class="text-foreground-subtle"
+                            >{{ documentData.width }} × {{ documentData.height }} px</span
                         ><div class="flex items-center gap-2"
                             ><button type="button" class="tool" aria-label="Reducir zoom" @click="setZoom(zoom - 10)"
                                 >−</button
@@ -987,7 +993,7 @@ const {
                                 min="5"
                                 max="400"
                                 :value="zoom"
-                                class="w-16 rounded-lg border-slate-200 py-1 text-xs"
+                                class="w-16 rounded-lg border-border py-1 text-xs"
                                 @change="setZoom($event.target.value)"
                             /><span>%</span
                             ><button type="button" class="tool" aria-label="Aumentar zoom" @click="setZoom(zoom + 10)"
@@ -1027,7 +1033,7 @@ const {
                     />
                     <div
                         v-else-if="hasVideo && documentData.schema_version === 1"
-                        class="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 text-xs"
+                        class="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface p-3 text-xs"
                         ><button
                             type="button"
                             class="tool"
@@ -1041,13 +1047,15 @@ const {
                                 step="0.1"
                                 class="field w-24 text-xs"
                                 @change="run(() => getAdapter().seek(timeline))" /></label
-                        ><span class="text-slate-400">La exportación incluye un fotograma estático.</span></div
+                        ><span class="text-foreground-subtle">La exportación incluye un fotograma estático.</span></div
                     >
-                    <section class="rounded-xl border border-slate-200 bg-white p-3" aria-label="Páginas del diseño"
+                    <section class="rounded-xl border border-border bg-surface p-3" aria-label="Páginas del diseño"
                         ><div class="mb-3 flex flex-wrap items-center justify-between gap-2"
                             ><h2 class="text-xs font-semibold"
                                 >Páginas
-                                <span class="font-normal text-slate-400">{{ documentData.pages.length }}/100</span></h2
+                                <span class="font-normal text-foreground-subtle"
+                                    >{{ documentData.pages.length }}/100</span
+                                ></h2
                             ><div class="flex flex-wrap gap-1"
                                 ><button
                                     type="button"
@@ -1075,16 +1083,16 @@ const {
                                 :key="item.id"
                                 type="button"
                                 class="min-w-24 max-w-40 shrink-0 rounded-lg border p-2 text-left"
-                                :class="pageId === item.id ? 'border-violet-400 bg-violet-50 text-violet-800' : 'border-slate-200'"
+                                :class="pageId === item.id ? 'border-accent-secondary-fill bg-accent-secondary-soft text-accent-secondary-ink' : 'border-border'"
                                 :aria-pressed="pageId === item.id"
                                 :disabled="busy"
                                 @click="changePage(item.id)"
                                 ><span
-                                    class="block text-[10px] text-slate-400"
+                                    class="block text-[10px] text-foreground-subtle"
                                     >{{ String(index + 1).padStart(2,'0') }}</span
                                 ><span class="mt-1 block truncate text-xs font-medium">{{ item.name }}</span></button
                             ></div
-                        ><div class="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3"
+                        ><div class="mt-3 flex flex-wrap gap-2 border-t border-border-subtle pt-3"
                             ><button
                                 type="button"
                                 class="tool text-xs"
@@ -1100,29 +1108,29 @@ const {
                             ></div
                         ></section
                     >
-                </main>
+                </section>
 
                 <aside
-                    class="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 xl:max-h-[calc(100vh-210px)] xl:overflow-y-auto"
+                    class="min-w-0 rounded-2xl border border-border bg-surface p-4 xl:max-h-[calc(100vh-210px)] xl:overflow-y-auto"
                     aria-label="Panel de edición"
                 >
-                    <div class="mb-5 flex gap-1 rounded-lg bg-slate-100 p-1"
+                    <div class="mb-5 flex gap-1 rounded-lg bg-surface-hover p-1"
                         ><button
                             type="button"
                             class="flex-1 rounded-md px-2 py-2 text-xs font-medium"
-                            :class="panel === 'layers' ? 'bg-white shadow-sm' : 'text-slate-500'"
+                            :class="panel === 'layers' ? 'bg-surface shadow-sm' : 'text-foreground-subtle'"
                             @click="panel = 'layers'"
                             >Capas</button
                         ><button
                             type="button"
                             class="flex-1 rounded-md px-2 py-2 text-xs font-medium"
-                            :class="panel === 'properties' ? 'bg-white shadow-sm' : 'text-slate-500'"
+                            :class="panel === 'properties' ? 'bg-surface shadow-sm' : 'text-foreground-subtle'"
                             @click="panel = 'properties'"
                             >Propiedades</button
                         ><button
                             type="button"
                             class="flex-1 rounded-md px-2 py-2 text-xs font-medium"
-                            :class="panel === 'page' ? 'bg-white shadow-sm' : 'text-slate-500'"
+                            :class="panel === 'page' ? 'bg-surface shadow-sm' : 'text-foreground-subtle'"
                             @click="panel = 'page'"
                             >Página</button
                         ></div
@@ -1184,7 +1192,7 @@ const {
                                 @input="patchNotes($event, page.id)"
                             />
                         </label>
-                        <p id="studio-notes-count" class="text-slate-500"
+                        <p id="studio-notes-count" class="text-foreground-subtle"
                             >{{ Array.from(notesValue).length.toLocaleString('es') }} / 20.000 caracteres · Solo
                             visibles para el presentador</p
                         >
@@ -1192,10 +1200,10 @@ const {
                             v-if="notesError"
                             id="studio-notes-error"
                             role="alert"
-                            class="text-red-700"
+                            class="text-danger"
                             >{{ notesError }}</p
                         >
-                        <div class="space-y-3 border-t border-slate-100 pt-4">
+                        <div class="space-y-3 border-t border-border-subtle pt-4">
                             <h3 class="font-semibold">Tamaño de todo el diseño</h3>
                             <div class="grid grid-cols-2 gap-2"
                                 ><label
@@ -1234,15 +1242,15 @@ const {
                                 >Aplicar tamaño</button
                             >
                             <p
-                                class="leading-relaxed text-slate-400"
+                                class="leading-relaxed text-foreground-subtle"
                                 >{{ resizeMode === 'contain' ? 'Escala y centra el contenido sin deformarlo. Pueden quedar márgenes.' : resizeMode === 'cover' ? 'Escala sin deformar y llena el lienzo. Las partes exteriores quedan recortadas en la exportación.' : 'Conserva las posiciones y el tamaño de las capas.' }}</p
                             >
                         </div>
-                        <div class="space-y-2 border-t border-slate-100 pt-4"
+                        <div class="space-y-2 border-t border-border-subtle pt-4"
                             ><p class="font-medium">{{ template ? 'Plantilla de marca' : 'Contenido reutilizable' }}</p
-                            ><p class="leading-relaxed text-slate-500"
+                            ><p class="leading-relaxed text-foreground-subtle"
                                 >Para crear campos sustituibles, escribe un nombre entre llaves dobles en un texto, por
-                                ejemplo <code class="rounded bg-slate-100 px-1" v-text="'{{nombre}}'" />. Guarda una
+                                ejemplo <code class="rounded bg-surface-hover px-1" v-text="'{{nombre}}'" />. Guarda una
                                 copia como plantilla para reutilizarla.</p
                             ></div
                         >
@@ -1315,13 +1323,13 @@ const {
                 ><div class="flex flex-wrap justify-end gap-2"
                     ><button type="button" class="btn-secondary" @click="templateSaveOpen = false"
                         >Cerrar plantilla</button
-                    ><Link :href="route('studio.designs.edit', templateCreated.id)" class="btn-primary bg-violet-700"
+                    ><Link :href="route('studio.designs.edit', templateCreated.id)" class="btn-secondary-accent"
                         >Ver plantilla</Link
                     ></div
                 ></div
             >
             <form v-else class="space-y-5" @submit.prevent="saveTemplate"
-                ><p class="text-sm leading-relaxed text-slate-500"
+                ><p class="text-sm leading-relaxed text-foreground-subtle"
                     >Guarda una copia independiente de todas las páginas, recursos y campos para los próximos diseños de
                     esta marca.</p
                 ><label class="block text-sm font-medium"
@@ -1335,7 +1343,7 @@ const {
                 ><FlashBanner :error="templateSaveError" /><div class="flex justify-end"
                     ><button
                         type="submit"
-                        class="btn-primary bg-violet-700"
+                        class="btn-secondary-accent"
                         :disabled="automationBusy || !templateName.trim()"
                         >{{ automationBusy ? 'Guardando…' : 'Guardar plantilla' }}</button
                     ></div
@@ -1368,7 +1376,13 @@ const {
     </AuthenticatedLayout>
 </template>
 <style scoped>
-.studio-stage{background-color:#eef0f5;background-image:radial-gradient(#c5c9d3 .7px,transparent .7px);background-size:14px 14px}
-.tool{display:inline-flex;align-items:center;justify-content:center;min-height:30px;border:1px solid #e2e8f0;border-radius:8px;padding:5px 9px;background:#fff;color:#475569}
-.tool:hover{background:#f8fafc;border-color:#c4b5fd}.tool:disabled{opacity:.4;cursor:not-allowed}
+.studio-stage {
+    background-color: rgb(var(--color-editor-stage));
+    background-image: radial-gradient(rgb(var(--color-editor-stage-dot)) 0.7px, transparent 0.7px);
+    background-size: 14px 14px;
+}
+
+.tool {
+    @apply inline-flex min-h-[30px] items-center justify-center rounded-lg border border-control-border bg-surface px-[9px] py-[5px] text-foreground-muted hover:border-focus hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-40;
+}
 </style>

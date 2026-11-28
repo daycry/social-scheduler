@@ -99,7 +99,7 @@ const fmtDate = computed(() => createDateFormatter(props.brand?.timezone, { date
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="text-xl font-bold text-slate-900">Autolistas</h1>
+            <h1 class="text-xl font-bold text-foreground-strong">Autolistas</h1>
         </template>
 
         <div class="space-y-5">
@@ -116,10 +116,10 @@ const fmtDate = computed(() => createDateFormatter(props.brand?.timezone, { date
 
             <template v-else>
                 <form class="card space-y-4 p-5" @submit.prevent="submit">
-                    <h2 class="text-sm font-medium text-slate-700">Nueva autolista · {{ brand.name }}</h2>
+                    <h2 class="text-sm font-medium text-foreground-secondary">Nueva autolista · {{ brand.name }}</h2>
                     <FormField :error="form.errors.name" v-slot="{ control }">
                         <label class="block text-sm">
-                            <span class="block text-xs font-medium text-slate-500">Nombre</span>
+                            <span class="block text-xs font-medium text-foreground-subtle">Nombre</span>
                             <input
                                 v-bind="control"
                                 v-model="form.name"
@@ -133,7 +133,9 @@ const fmtDate = computed(() => createDateFormatter(props.brand?.timezone, { date
 
                     <FormField :error="form.errors.rss_url" v-slot="{ control }">
                         <label class="block text-sm">
-                            <span class="block text-xs font-medium text-slate-500">Feed RSS o Atom (opcional)</span>
+                            <span class="block text-xs font-medium text-foreground-subtle"
+                                >Feed RSS o Atom (opcional)</span
+                            >
                             <input
                                 v-bind="control"
                                 v-model="form.rss_url"
@@ -143,15 +145,15 @@ const fmtDate = computed(() => createDateFormatter(props.brand?.timezone, { date
                                 class="field max-w-xl"
                             />
                         </label>
-                        <p class="mt-1 text-xs text-slate-500"
+                        <p class="mt-1 text-xs text-foreground-subtle"
                             >Las entradas nuevas del feed se añaden a la cola cada vez que se genera la lista.</p
                         >
                     </FormField>
 
                     <FormField :error="form.errors.targets" v-slot="{ control }">
                         <fieldset v-bind="control">
-                            <legend class="text-xs font-medium text-slate-500">Cuentas de destino</legend>
-                            <p v-if="accounts.length === 0" class="mt-1 text-sm text-slate-500"
+                            <legend class="text-xs font-medium text-foreground-subtle">Cuentas de destino</legend>
+                            <p v-if="accounts.length === 0" class="mt-1 text-sm text-foreground-subtle"
                                 >Conecta una cuenta en esta marca.</p
                             >
                             <ul class="mt-1 space-y-2">
@@ -181,7 +183,7 @@ const fmtDate = computed(() => createDateFormatter(props.brand?.timezone, { date
 
                     <FormField :error="form.errors.slots" v-slot="{ control }">
                         <fieldset v-bind="control">
-                            <legend class="text-xs font-medium text-slate-500"
+                            <legend class="text-xs font-medium text-foreground-subtle"
                                 >Franjas semanales ({{ brand.timezone }})</legend
                             >
                             <div v-for="(s, i) in form.slots" :key="i" class="mt-2 flex items-center gap-2">
@@ -202,7 +204,7 @@ const fmtDate = computed(() => createDateFormatter(props.brand?.timezone, { date
                                 <button
                                     v-if="form.slots.length > 1"
                                     type="button"
-                                    class="text-xs text-red-600 underline"
+                                    class="text-xs text-danger underline"
                                     @click="removeSlot(i)"
                                     >Quitar</button
                                 >
@@ -222,26 +224,26 @@ const fmtDate = computed(() => createDateFormatter(props.brand?.timezone, { date
                 <section v-for="l in autolists" :key="l.id" class="card">
                     <header class="flex flex-wrap items-start justify-between gap-3 border-b px-5 py-3">
                         <div>
-                            <h2 class="text-sm font-semibold text-slate-900">
+                            <h2 class="text-sm font-semibold text-foreground-strong">
                                 {{ l.name }}
                                 <span
                                     class="ms-2 rounded-full px-2 py-0.5 text-xs"
-                                    :class="l.active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'"
+                                    :class="l.active ? 'bg-success-soft text-success-ink' : 'bg-surface-hover text-foreground-muted'"
                                     >{{ l.active ? 'Activa' : 'En pausa' }}</span
                                 >
                             </h2>
-                            <p class="text-xs text-slate-500">
+                            <p class="text-xs text-foreground-subtle">
                                 {{ l.slots.map((s) => `${dayLabel(s.day)} ${s.time}`).join(' · ') }} ·
                                 {{ l.recycle ? 'con reciclado' : 'sin reciclado' }} · última generación:
                                 {{ fmtDate(l.last_generated_at) }}
                             </p>
-                            <p v-if="l.rss_url" class="mt-1 break-all text-xs text-slate-500">
+                            <p v-if="l.rss_url" class="mt-1 break-all text-xs text-foreground-subtle">
                                 Feed: {{ l.rss_url }} · último sondeo: {{ fmtDate(l.rss_checked_at) }}
                             </p>
-                            <p v-if="l.rss_error" class="mt-1 text-xs text-red-600"
+                            <p v-if="l.rss_error" class="mt-1 text-xs text-danger"
                                 >Último sondeo con error: {{ l.rss_error }}</p
                             >
-                            <p class="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                            <p class="mt-1 flex items-center gap-1 text-xs text-foreground-subtle">
                                 <template v-for="t in l.targets" :key="t.account_id + t.content_type">
                                     <NetworkIcon
                                         v-if="accountOf(t.account_id)"
@@ -259,13 +261,13 @@ const fmtDate = computed(() => createDateFormatter(props.brand?.timezone, { date
                                 @click="toggle(l)"
                                 >{{ l.active ? 'Pausar' : 'Activar' }}</button
                             >
-                            <button type="button" class="text-xs text-red-600 underline" @click="remove(l)"
+                            <button type="button" class="text-xs text-danger underline" @click="remove(l)"
                                 >Eliminar</button
                             >
                         </div>
                     </header>
 
-                    <p v-if="l.items.length === 0" class="px-5 py-4 text-sm text-slate-500"
+                    <p v-if="l.items.length === 0" class="px-5 py-4 text-sm text-foreground-subtle"
                         >La cola está vacía: añade contenido para que se generen publicaciones.</p
                     >
                     <ol v-else class="divide-y">
@@ -275,14 +277,14 @@ const fmtDate = computed(() => createDateFormatter(props.brand?.timezone, { date
                             class="flex items-center justify-between gap-3 px-5 py-2 text-sm"
                         >
                             <span class="min-w-0 truncate">
-                                <span class="me-2 text-xs text-slate-500">{{ idx + 1 }}.</span
+                                <span class="me-2 text-xs text-foreground-subtle">{{ idx + 1 }}.</span
                                 >{{ it.label || '(solo archivos)' }}
-                                <span v-if="it.is_template" class="ms-2 text-xs text-indigo-600">plantilla</span>
-                                <span v-if="idx === l.cursor % l.items.length" class="ms-2 text-xs text-emerald-700"
+                                <span v-if="it.is_template" class="ms-2 text-xs text-accent">plantilla</span>
+                                <span v-if="idx === l.cursor % l.items.length" class="ms-2 text-xs text-success-ink"
                                     >siguiente</span
                                 >
                             </span>
-                            <button type="button" class="text-xs text-red-600 underline" @click="removeItem(l, it)"
+                            <button type="button" class="text-xs text-danger underline" @click="removeItem(l, it)"
                                 >Quitar</button
                             >
                         </li>
@@ -291,14 +293,16 @@ const fmtDate = computed(() => createDateFormatter(props.brand?.timezone, { date
                     <div class="grid gap-3 border-t px-5 py-3 md:grid-cols-2">
                         <form class="flex items-end gap-2" @submit.prevent="addText(l)">
                             <label class="block flex-1 text-sm">
-                                <span class="block text-xs font-medium text-slate-500">Texto nuevo</span>
+                                <span class="block text-xs font-medium text-foreground-subtle">Texto nuevo</span>
                                 <input v-model="itemForm[l.id].text" type="text" maxlength="10000" class="field" />
                             </label>
                             <button type="submit" class="btn btn-secondary">Añadir</button>
                         </form>
                         <form class="flex items-end gap-2" @submit.prevent="addTemplate(l)">
                             <label class="block flex-1 text-sm">
-                                <span class="block text-xs font-medium text-slate-500">Plantilla de la Biblioteca</span>
+                                <span class="block text-xs font-medium text-foreground-subtle"
+                                    >Plantilla de la Biblioteca</span
+                                >
                                 <select v-model="itemForm[l.id].template" class="field">
                                     <option value="">Elige una…</option>
                                     <option v-for="t in templates" :key="t.id" :value="t.id">{{ t.name }}</option>
@@ -310,7 +314,9 @@ const fmtDate = computed(() => createDateFormatter(props.brand?.timezone, { date
                             <FormField :error="itemForm[l.id].rssError" v-slot="{ control }">
                                 <div class="flex items-end gap-2">
                                     <label class="block flex-1 text-sm">
-                                        <span class="block text-xs font-medium text-slate-500">Feed RSS o Atom</span>
+                                        <span class="block text-xs font-medium text-foreground-subtle"
+                                            >Feed RSS o Atom</span
+                                        >
                                         <input
                                             v-bind="control"
                                             v-model="itemForm[l.id].rss"

@@ -153,10 +153,10 @@ function refresh() {
 <template>
     <Head title="Webhooks salientes" />
     <AuthenticatedLayout>
-        <template #header><h1 class="text-xl font-semibold text-slate-900">Webhooks salientes</h1></template>
+        <template #header><h1 class="text-xl font-semibold text-foreground-strong">Webhooks salientes</h1></template>
         <div class="space-y-6">
             <div v-if="brands.length" class="max-w-md space-y-1">
-                <label for="webhooks-brand" class="block text-sm font-medium text-slate-800">Marca</label>
+                <label for="webhooks-brand" class="block text-sm font-medium text-foreground">Marca</label>
                 <select
                     id="webhooks-brand"
                     v-model.number="selectedBrand"
@@ -167,26 +167,26 @@ function refresh() {
                     <option v-for="option in brands" :key="option.id" :value="option.id">{{ option.name }}</option>
                 </select>
             </div>
-            <p v-if="!brand" class="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-700">
+            <p v-if="!brand" class="rounded-lg border border-border bg-surface p-4 text-sm text-foreground-secondary">
                 Crea una marca para configurar webhooks.
                 <Link :href="route('brands.create')" class="link">Crear marca</Link>
             </p>
             <template v-else>
-                <p class="text-sm text-slate-600"
+                <p class="text-sm text-foreground-muted"
                     >Recibe eventos de esta marca en un receptor HTTPS público. Máximo {{ max_per_user }} webhooks entre
                     todas tus marcas.</p
                 >
                 <form
-                    class="grid gap-4 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-2"
+                    class="grid gap-4 rounded-lg border border-border bg-surface p-4 sm:grid-cols-2"
                     aria-label="Configuración del webhook"
                     @submit.prevent="submit"
                 >
                     <h2
-                        class="text-lg font-semibold text-slate-900 sm:col-span-2"
+                        class="text-lg font-semibold text-foreground-strong sm:col-span-2"
                         >{{ editing === null ? 'Nuevo webhook' : 'Editar webhook' }}</h2
                     >
                     <div class="min-w-0 space-y-1 sm:col-span-2">
-                        <label for="webhook-name" class="block text-sm font-medium text-slate-800"
+                        <label for="webhook-name" class="block text-sm font-medium text-foreground"
                             >Nombre del webhook</label
                         >
                         <input
@@ -201,7 +201,7 @@ function refresh() {
                     </div>
                     <template v-if="editing === null">
                         <div class="min-w-0 space-y-1 sm:col-span-2">
-                            <label for="webhook-url" class="block text-sm font-medium text-slate-800"
+                            <label for="webhook-url" class="block text-sm font-medium text-foreground"
                                 >URL del receptor</label
                             >
                             <input
@@ -216,7 +216,7 @@ function refresh() {
                             />
                         </div>
                         <div class="min-w-0 space-y-2 sm:col-span-2">
-                            <label for="webhook-secret" class="block text-sm font-medium text-slate-800"
+                            <label for="webhook-secret" class="block text-sm font-medium text-foreground"
                                 >Secreto de firma</label
                             >
                             <input
@@ -237,51 +237,51 @@ function refresh() {
                                 <button type="button" class="btn-secondary" :disabled="busy" @click="generateSecret"
                                     >Generar secreto</button
                                 >
-                                <label class="flex items-center gap-2 text-sm text-slate-800"
+                                <label class="flex items-center gap-2 text-sm text-foreground"
                                     ><input
                                         v-model="showSecret"
                                         type="checkbox"
-                                        class="rounded border-slate-300"
+                                        class="rounded border-control-border"
                                         :disabled="busy"
                                     />
                                     Mostrar secreto</label
                                 >
                             </div>
-                            <p id="webhook-secret-help" class="text-xs text-slate-600"
+                            <p id="webhook-secret-help" class="text-xs text-foreground-muted"
                                 >Copia el secreto antes de crear el webhook: el servidor no vuelve a mostrarlo. Usa de
                                 32 a 128 letras, números, guiones o guiones bajos.</p
                             >
                         </div>
                     </template>
-                    <p v-else class="break-all text-sm text-slate-600 sm:col-span-2"
+                    <p v-else class="break-all text-sm text-foreground-muted sm:col-span-2"
                         >{{ form.url }} · Para cambiar de URL o secreto, crea un webhook nuevo.</p
                     >
                     <fieldset class="space-y-2 sm:col-span-2" :disabled="busy">
-                        <legend class="mb-2 text-sm font-medium text-slate-800">Eventos que quieres recibir</legend>
+                        <legend class="mb-2 text-sm font-medium text-foreground">Eventos que quieres recibir</legend>
                         <label
                             v-for="(label, eventName) in events"
                             :key="eventName"
-                            class="flex items-center gap-2 text-sm text-slate-800"
+                            class="flex items-center gap-2 text-sm text-foreground"
                         >
                             <input
                                 v-model="form.events"
                                 type="checkbox"
                                 :value="eventName"
-                                class="rounded border-slate-300"
+                                class="rounded border-control-border"
                             />
                             {{ label }}
                         </label>
                     </fieldset>
-                    <label class="flex items-center gap-2 text-sm text-slate-800 sm:col-span-2"
+                    <label class="flex items-center gap-2 text-sm text-foreground sm:col-span-2"
                         ><input
                             v-model="form.enabled"
                             type="checkbox"
-                            class="rounded border-slate-300"
+                            class="rounded border-control-border"
                             :disabled="busy"
                         />
                         Activo</label
                     >
-                    <div v-if="errors.length" role="alert" class="space-y-1 text-sm text-red-700 sm:col-span-2"
+                    <div v-if="errors.length" role="alert" class="space-y-1 text-sm text-danger sm:col-span-2"
                         ><p v-for="(error, index) in errors" :key="index">{{ error }}</p></div
                     >
                     <div class="flex flex-wrap gap-2 sm:col-span-2">
@@ -303,23 +303,26 @@ function refresh() {
                 </form>
                 <section class="space-y-3" aria-labelledby="webhooks-list-title">
                     <div class="flex flex-wrap items-center justify-between gap-3">
-                        <h2 id="webhooks-list-title" class="text-lg font-semibold text-slate-900"
+                        <h2 id="webhooks-list-title" class="text-lg font-semibold text-foreground-strong"
                             >Receptores de la marca</h2
                         >
                         <button type="button" class="btn-secondary" :disabled="busy" @click="refresh"
                             >Actualizar estado</button
                         >
                     </div>
-                    <p v-if="!webhooks.length" class="text-sm text-slate-600">No hay webhooks en esta página.</p>
+                    <p v-if="!webhooks.length" class="text-sm text-foreground-muted">No hay webhooks en esta página.</p>
                     <article
                         v-for="hook in webhooks"
                         :key="hook.id"
-                        class="space-y-2 rounded-lg border border-slate-200 bg-white p-4"
+                        class="space-y-2 rounded-lg border border-border bg-surface p-4"
                     >
                         <div class="flex flex-wrap items-start justify-between gap-3">
                             <div class="min-w-0"
-                                ><h3 class="break-words font-semibold text-slate-900">{{ hook.name }}</h3
-                                ><p class="text-sm text-slate-600">{{ hook.enabled ? 'Activo' : 'Pausado' }}</p></div
+                                ><h3 class="break-words font-semibold text-foreground-strong">{{ hook.name }}</h3
+                                ><p
+                                    class="text-sm text-foreground-muted"
+                                    >{{ hook.enabled ? 'Activo' : 'Pausado' }}</p
+                                ></div
                             >
                             <div class="flex gap-2"
                                 ><button
@@ -339,11 +342,11 @@ function refresh() {
                                 ></div
                             >
                         </div>
-                        <p class="break-all text-sm text-slate-700">{{ hook.url }}</p>
-                        <ul class="flex flex-wrap gap-x-3 text-sm text-slate-600"
+                        <p class="break-all text-sm text-foreground-secondary">{{ hook.url }}</p>
+                        <ul class="flex flex-wrap gap-x-3 text-sm text-foreground-muted"
                             ><li v-for="eventName in hook.events" :key="eventName">{{ events[eventName] }}</li></ul
                         >
-                        <div v-if="hook.last_delivery" class="space-y-1 text-sm text-slate-700">
+                        <div v-if="hook.last_delivery" class="space-y-1 text-sm text-foreground-secondary">
                             <p
                                 >Última entrega:
                                 {{ delivery_states[hook.last_delivery.status] ?? 'Estado no disponible' }} · Intentos:
@@ -358,7 +361,7 @@ function refresh() {
                                 >Próximo intento: {{ dates.format(new Date(hook.last_delivery.next_attempt_at)) }}</p
                             >
                         </div>
-                        <p v-else class="text-sm text-slate-600">Aún sin entregas.</p>
+                        <p v-else class="text-sm text-foreground-muted">Aún sin entregas.</p>
                     </article>
                     <Pagination
                         :page="pagination"

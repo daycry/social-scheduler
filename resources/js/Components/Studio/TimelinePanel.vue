@@ -22,11 +22,13 @@ const phaseShare = (clip, phase) => {
 </script>
 
 <template>
-    <section aria-label="Línea de tiempo" class="min-w-0 space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
+    <section aria-label="Línea de tiempo" class="min-w-0 space-y-4 rounded-2xl border border-border bg-surface p-4">
         <div class="flex flex-wrap items-center gap-3">
             <div class="mr-auto"
-                ><h2 class="text-sm font-semibold text-slate-800">Línea de tiempo</h2
-                ><p class="mt-1 text-[11px] text-slate-500">{{ page.name }} · {{ format(duration) }} s en total</p></div
+                ><h2 class="text-sm font-semibold text-foreground">Línea de tiempo</h2
+                ><p class="mt-1 text-[11px] text-foreground-subtle"
+                    >{{ page.name }} · {{ format(duration) }} s en total</p
+                ></div
             >
             <button
                 type="button"
@@ -41,7 +43,7 @@ const phaseShare = (clip, phase) => {
             <label class="flex items-center gap-2 text-xs"
                 >FPS<select
                     :value="document.timeline.fps"
-                    class="rounded-lg border-slate-200 py-1.5 text-xs"
+                    class="rounded-lg border-border py-1.5 text-xs"
                     :disabled="busy || playing"
                     @change="emit('fps', Number($event.target.value))"
                     ><option v-for="fps in [12,15,24,25,30,50,60]" :key="fps" :value="fps">{{ fps }}</option></select
@@ -49,14 +51,14 @@ const phaseShare = (clip, phase) => {
             >
         </div>
         <div class="flex min-w-0 flex-wrap items-center gap-3">
-            <label class="text-xs text-slate-600"
+            <label class="text-xs text-foreground-muted"
                 >Tiempo de reproducción<input
                     type="number"
                     min="0"
                     :max="duration"
                     step="0.001"
                     :value="format(time)"
-                    class="ml-2 w-24 rounded-lg border-slate-200 py-1.5 text-xs"
+                    class="ml-2 w-24 rounded-lg border-border py-1.5 text-xs"
                     :disabled="busy"
                     @change="emit('seek', Number($event.target.value))"
             /></label>
@@ -67,19 +69,19 @@ const phaseShare = (clip, phase) => {
                 :max="duration"
                 :step="1 / document.timeline.fps"
                 :value="time"
-                class="min-w-0 flex-1 accent-violet-700"
+                class="min-w-0 flex-1 accent-accent-secondary-fill"
                 :disabled="busy"
                 @input="emit('seek', Number($event.target.value))"
             />
         </div>
-        <div class="relative space-y-2 border-l border-slate-200 pl-2">
+        <div class="relative space-y-2 border-l border-border pl-2">
             <div
                 v-if="localTime >= 0 && localTime <= page.duration"
-                class="pointer-events-none absolute bottom-0 top-0 z-10 w-px bg-rose-500"
+                class="pointer-events-none absolute bottom-0 top-0 z-10 w-px bg-danger-fill"
                 :style="{ left: `${localTime / page.duration * 100}%` }"
                 aria-hidden="true"
             />
-            <div v-for="clip in page.elements" :key="clip.id" class="relative h-9 rounded-lg bg-slate-50">
+            <div v-for="clip in page.elements" :key="clip.id" class="relative h-9 rounded-lg bg-canvas">
                 <button
                     type="button"
                     data-testid="timeline-clip"
@@ -87,34 +89,34 @@ const phaseShare = (clip, phase) => {
                     :aria-pressed="selectedId === clip.id"
                     :disabled="busy || playing"
                     class="absolute top-0 flex h-9 min-w-[3px] items-center overflow-hidden rounded-md border px-2 text-left text-[11px] font-medium"
-                    :class="selectedId === clip.id ? 'border-violet-600 bg-violet-600 text-white' : 'border-violet-200 bg-violet-100 text-violet-900'"
+                    :class="selectedId === clip.id ? 'border-accent-secondary-fill bg-accent-secondary-fill text-on-accent-secondary' : 'border-accent-secondary-border bg-accent-secondary-marker text-accent-secondary-ink'"
                     :style="{ left: `${(clip.timing?.start ?? 0) / page.duration * 100}%`, width: `${(clip.timing?.duration ?? page.duration) / page.duration * 100}%` }"
                     @click="emit('select', clip.id)"
                 >
                     <span
                         v-if="phaseShare(clip, 'in')"
                         data-testid="timeline-animation-in"
-                        class="pointer-events-none absolute inset-y-0 left-0 bg-amber-300/60"
+                        class="pointer-events-none absolute bottom-0 left-0 h-1 bg-current"
                         :style="{ width: phaseShare(clip, 'in') }"
                         aria-hidden="true"
                     />
                     <span
                         v-if="phaseShare(clip, 'out')"
                         data-testid="timeline-animation-out"
-                        class="pointer-events-none absolute inset-y-0 right-0 bg-amber-300/60"
+                        class="pointer-events-none absolute bottom-0 right-0 h-1 bg-current"
                         :style="{ width: phaseShare(clip, 'out') }"
                         aria-hidden="true"
                     />
                     <span class="relative truncate">{{ clip.name }}</span>
                 </button>
             </div>
-            <p v-if="!page.elements.length" class="py-3 text-xs text-slate-500"
+            <p v-if="!page.elements.length" class="py-3 text-xs text-foreground-subtle"
                 >Añade texto, imágenes o vídeo para crear clips.</p
             >
         </div>
         <template v-if="selected">
-            <div class="flex flex-wrap items-end gap-3 border-t border-slate-100 pt-3">
-                <label class="space-y-1 text-xs text-slate-600"
+            <div class="flex flex-wrap items-end gap-3 border-t border-border-subtle pt-3">
+                <label class="space-y-1 text-xs text-foreground-muted"
                     ><span class="block">Inicio del clip</span
                     ><input
                         type="number"
@@ -123,10 +125,10 @@ const phaseShare = (clip, phase) => {
                         :step="1 / document.timeline.fps"
                         :value="format(window.start)"
                         :disabled="busy || playing"
-                        class="w-28 rounded-lg border-slate-200 text-xs"
+                        class="w-28 rounded-lg border-border text-xs"
                         @change="emit('window', { start: Number($event.target.value) })"
                 /></label>
-                <label class="space-y-1 text-xs text-slate-600"
+                <label class="space-y-1 text-xs text-foreground-muted"
                     ><span class="block">Duración del clip</span
                     ><input
                         type="number"
@@ -135,7 +137,7 @@ const phaseShare = (clip, phase) => {
                         :step="1 / document.timeline.fps"
                         :value="format(window.duration)"
                         :disabled="busy || playing"
-                        class="w-28 rounded-lg border-slate-200 text-xs"
+                        class="w-28 rounded-lg border-border text-xs"
                         @change="emit('window', { duration: Number($event.target.value) })"
                 /></label>
                 <button
@@ -153,7 +155,7 @@ const phaseShare = (clip, phase) => {
                 @change="emit('animation', $event)"
             />
         </template>
-        <p v-else class="text-xs text-slate-500">Selecciona un clip para ajustar sus tiempos o dividirlo.</p>
+        <p v-else class="text-xs text-foreground-subtle">Selecciona un clip para ajustar sus tiempos o dividirlo.</p>
         <AudioTrackPanel
             :tracks="document.timeline.audio_tracks"
             :assets="assets ?? []"
@@ -179,7 +181,7 @@ const phaseShare = (clip, phase) => {
             :disabled="busy || playing"
             @seek="emit('seek', $event)"
         />
-        <p class="text-[10px] leading-relaxed text-slate-500"
+        <p class="text-[10px] leading-relaxed text-foreground-subtle"
             >La reproducción recorre todas las páginas. Los tiempos de los clips pertenecen a la página seleccionada;
             los del audio, al proyecto completo.</p
         >
@@ -187,5 +189,7 @@ const phaseShare = (clip, phase) => {
 </template>
 
 <style scoped>
-.timeline-button{border:1px solid #ddd6fe;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:500;color:#6d28d9;background:#faf5ff}.timeline-button:hover{background:#ede9fe}.timeline-button:disabled{opacity:.4;cursor:not-allowed}
+.timeline-button {
+    @apply rounded-lg border border-accent-secondary-border bg-accent-secondary-soft px-2.5 py-[7px] text-xs font-medium text-accent-secondary-ink hover:bg-accent-secondary-marker disabled:cursor-not-allowed disabled:opacity-40;
+}
 </style>

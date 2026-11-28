@@ -48,23 +48,23 @@ const roleText = computed(() => props.access.role_label.toLowerCase());
     <Head :title="`${design.name} · Revisión`" />
     <component :is="Shell">
         <div class="space-y-4" data-testid="studio-review">
-            <header class="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+            <header class="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-surface p-4">
                 <Link
                     v-if="!link"
                     :href="route('studio.index', { brand_id: brand.id })"
-                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50"
+                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-foreground-subtle hover:bg-canvas"
                     aria-label="Volver al estudio"
                     >←</Link
                 >
                 <div class="min-w-0 flex-1">
                     <h1 class="truncate text-lg font-semibold tracking-tight">{{ design.name }}</h1>
-                    <p class="text-xs text-slate-500" role="status"
+                    <p class="text-xs text-foreground-subtle"
                         >Acceso de {{ roleText }}{{ access.is_guest ? ' por enlace' : '' }} ·
                         {{ access.is_guest ? brand.name : `de ${access.owner_name} (${brand.name})` }} · Versión
                         {{ design.revision }}</p
                     >
                 </div>
-                <p class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700"
+                <p class="rounded-full bg-surface-hover px-3 py-1 text-xs font-medium text-foreground-secondary"
                     >Solo {{ access.can_comment ? 'lectura y comentarios' : 'lectura' }}</p
                 >
             </header>
@@ -76,13 +76,13 @@ const roleText = computed(() => props.access.role_label.toLowerCase());
                             :key="item.id"
                             type="button"
                             class="rounded-lg border px-3 py-2 text-xs font-medium"
-                            :class="item.id === pageId ? 'border-violet-600 bg-violet-50 text-violet-900' : 'border-slate-200 bg-white text-slate-700'"
+                            :class="item.id === pageId ? 'border-accent-secondary-fill bg-accent-secondary-soft text-accent-secondary-ink' : 'border-border bg-surface text-foreground-secondary'"
                             :aria-pressed="item.id === pageId"
                             @click="pageId = item.id"
                             >{{ item.name }}</button
                         >
                     </nav>
-                    <div class="overflow-auto rounded-2xl border border-slate-200 bg-slate-100 p-3 sm:p-6">
+                    <div class="overflow-auto rounded-2xl border border-border bg-surface-hover p-3 sm:p-6">
                         <img
                             v-if="images[pageId]"
                             :src="images[pageId]"
@@ -90,13 +90,13 @@ const roleText = computed(() => props.access.role_label.toLowerCase());
                             class="mx-auto h-auto max-w-full bg-white shadow-lg"
                             data-testid="studio-review-page"
                         />
-                        <p v-else-if="failed[pageId]" role="alert" class="py-10 text-center text-sm text-red-800"
+                        <p v-else-if="failed[pageId]" role="alert" class="py-10 text-center text-sm text-danger-ink"
                             >No se ha podido dibujar esta página.</p
                         >
                         <p
                             v-else
                             role="status"
-                            class="py-10 text-center text-sm text-slate-600"
+                            class="py-10 text-center text-sm text-foreground-muted"
                             >{{ rendering ? 'Preparando la página…' : 'Página no disponible.' }}</p
                         >
                     </div>
@@ -115,7 +115,7 @@ const roleText = computed(() => props.access.role_label.toLowerCase());
                     >
                 </section>
                 <aside
-                    class="min-w-0 rounded-2xl border border-slate-200 bg-white p-4"
+                    class="min-w-0 rounded-2xl border border-border bg-surface p-4"
                     aria-label="Comentarios y versiones"
                 >
                     <StudioCollabPanel

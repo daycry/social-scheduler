@@ -1,6 +1,6 @@
 import { usePage } from '@inertiajs/vue3';
 
-const FALLBACK_COLOR = '#64748b';
+const FALLBACK_COLOR = 'rgb(var(--color-accent-fill))';
 
 /**
  * Catalogo de redes del servidor (`shell.networks`, de `App\Connectors\Network`): etiqueta, nombre corto, color y proveedor.

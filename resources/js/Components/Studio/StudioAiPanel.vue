@@ -121,10 +121,15 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer); });
 
 <template>
     <section class="space-y-4" aria-label="IA creativa">
-        <p v-if="!status && !loadError" class="text-xs text-slate-500" role="status"
+        <p v-if="!status && !loadError" class="text-xs text-foreground-subtle" role="status"
             >Cargando la configuración de IA…</p
         >
-        <p v-if="loadError" role="alert" class="rounded-lg bg-red-50 p-3 text-xs text-red-800">{{ loadError }}</p>
+        <p
+            v-if="loadError"
+            role="alert"
+            class="rounded-lg bg-danger-soft p-3 text-xs text-danger-ink"
+            >{{ loadError }}</p
+        >
 
         <template v-if="status">
             <AiNotConfigured
@@ -137,7 +142,7 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer); });
             </AiNotConfigured>
 
             <form v-else class="space-y-3" aria-label="Generar o editar imagen con IA" @submit.prevent="submit">
-                <h3 class="text-xs font-semibold text-slate-800">Imágenes con IA</h3>
+                <h3 class="text-xs font-semibold text-foreground">Imágenes con IA</h3>
                 <div>
                     <label class="mb-1 block text-xs font-medium" for="ai-provider">Proveedor</label>
                     <select id="ai-provider" v-model="form.provider" class="field text-xs"
@@ -145,7 +150,7 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer); });
                             >{{ p.label }} · {{ p.model }}</option
                         ></select
                     >
-                    <p v-if="provider" class="mt-1 text-[10px] text-slate-500"
+                    <p v-if="provider" class="mt-1 text-[10px] text-foreground-subtle"
                         >Cuota de hoy: quedan {{ provider.remaining }} de {{ provider.daily_limit }} imágenes.</p
                     >
                 </div>
@@ -156,7 +161,7 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer); });
                     >
                     <p
                         v-if="provider && !provider.capabilities.includes('edit')"
-                        class="mt-1 text-[10px] text-slate-500"
+                        class="mt-1 text-[10px] text-foreground-subtle"
                         >{{ provider.label }} no admite máscara: para rellenar una zona elige otro proveedor.</p
                     >
                 </div>
@@ -169,14 +174,14 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer); });
                 </div>
                 <div v-if="form.kind === 'edit' && source" class="space-y-2">
                     <div
-                        class="relative overflow-hidden rounded-lg border border-slate-200 bg-slate-100"
+                        class="relative overflow-hidden rounded-lg border border-border bg-surface-hover"
                         data-testid="ai-mask-preview"
                         ><img
                             loading="lazy"
                             :src="source.preview_url"
                             :alt="`Zona a rellenar sobre ${source.name}`"
                             class="block w-full" /><span
-                            class="pointer-events-none absolute border-2 border-violet-600 bg-violet-500/30"
+                            class="pointer-events-none absolute border-2 border-accent-secondary-fill bg-accent-secondary-fill/30"
                             :style="maskStyle"
                     /></div>
                     <div class="grid grid-cols-2 gap-2">
@@ -267,22 +272,27 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer); });
                 /></div>
                 <button
                     type="submit"
-                    class="w-full rounded-xl bg-violet-700 px-3 py-2.5 text-xs font-semibold text-white hover:bg-violet-800 disabled:opacity-50"
+                    class="w-full rounded-xl bg-accent-secondary-fill px-3 py-2.5 text-xs font-semibold text-on-accent-secondary hover:bg-accent-secondary-hover disabled:opacity-50"
                     :disabled="!canSubmit"
                     >{{ KINDS[form.kind] }}</button
                 >
-                <p class="text-[10px] leading-relaxed text-slate-500"
+                <p class="text-[10px] leading-relaxed text-foreground-subtle"
                     >La descripción y, al editar, la imagen elegida se envían al proveedor seleccionado. El resultado se
                     guarda en los recursos de la marca y el original no cambia.</p
                 >
-                <p v-if="error" role="alert" class="rounded-lg bg-red-50 p-3 text-xs text-red-800">{{ error }}</p>
+                <p
+                    v-if="error"
+                    role="alert"
+                    class="rounded-lg bg-danger-soft p-3 text-xs text-danger-ink"
+                    >{{ error }}</p
+                >
             </form>
 
             <ul v-if="jobs.length" class="space-y-2" aria-label="Trabajos de IA">
                 <li
                     v-for="job in jobs"
                     :key="job.id"
-                    class="rounded-xl border border-slate-200 p-3 text-xs"
+                    class="rounded-xl border border-border p-3 text-xs"
                     :data-status="job.status"
                 >
                     <div class="flex items-start justify-between gap-2"
@@ -291,17 +301,19 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer); });
                         ><span
                             role="status"
                             class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                            :class="{ 'bg-slate-100 text-slate-700': job.status === 'queued', 'bg-amber-100 text-amber-800': job.status === 'processing', 'bg-emerald-100 text-emerald-800': job.status === 'ready', 'bg-red-100 text-red-800': job.status === 'failed' }"
+                            :class="{ 'bg-surface-hover text-foreground-secondary': job.status === 'queued', 'bg-warning-soft text-warning-ink': job.status === 'processing', 'bg-success-soft text-success-ink': job.status === 'ready', 'bg-danger-soft text-danger-ink': job.status === 'failed' }"
                             >{{ STATES[job.status] }}</span
                         ></div
                     >
-                    <p v-if="job.attempts > 1 && job.status === 'processing'" class="mt-1 text-[10px] text-slate-500"
+                    <p
+                        v-if="job.attempts > 1 && job.status === 'processing'"
+                        class="mt-1 text-[10px] text-foreground-subtle"
                         >Reintentando (intento {{ job.attempts }})…</p
                     >
                     <p
                         v-if="job.status === 'failed'"
                         role="alert"
-                        class="mt-2 rounded-lg bg-red-50 p-2 text-red-800"
+                        class="mt-2 rounded-lg bg-danger-soft p-2 text-danger-ink"
                         >{{ job.error }}</p
                     >
                     <div v-if="job.status === 'ready'" class="mt-2 grid grid-cols-2 gap-2">
@@ -310,10 +322,10 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer); });
                                 loading="lazy"
                                 :src="asset.preview_url"
                                 :alt="`Resultado ${i + 1}: ${asset.name}`"
-                                class="aspect-square w-full rounded-lg border border-slate-200 object-cover"
+                                class="aspect-square w-full rounded-lg border border-border object-cover"
                             /><button
                                 type="button"
-                                class="mt-1 w-full rounded-lg bg-violet-700 px-2 py-1.5 text-[10px] font-semibold text-white hover:bg-violet-800"
+                                class="mt-1 w-full rounded-lg bg-accent-secondary-fill px-2 py-1.5 text-[10px] font-semibold text-on-accent-secondary hover:bg-accent-secondary-hover"
                                 :aria-label="`Insertar resultado ${i + 1} en el diseño`"
                                 @click="emit('add', asset)"
                                 >Insertar en el diseño</button
@@ -323,11 +335,11 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer); });
                 </li>
             </ul>
 
-            <div class="space-y-3 border-t border-slate-100 pt-4" aria-label="Textos con IA">
-                <h3 class="text-xs font-semibold text-slate-800">Textos con IA</h3>
+            <div class="space-y-3 border-t border-border-subtle pt-4" aria-label="Textos con IA">
+                <h3 class="text-xs font-semibold text-foreground">Textos con IA</h3>
                 <AiNotConfigured v-if="!status.text.enabled" data-testid="ai-text-unconfigured" />
                 <template v-else>
-                    <p class="text-[10px] text-slate-500">Quedan {{ status.text.remaining }} peticiones hoy.</p>
+                    <p class="text-[10px] text-foreground-subtle">Quedan {{ status.text.remaining }} peticiones hoy.</p>
                     <div>
                         <label class="mb-1 block text-xs font-medium" for="ai-brief"
                             >Brief para titulares y copies</label
@@ -342,7 +354,7 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer); });
                         />
                         <button
                             type="button"
-                            class="mt-2 w-full rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-800 disabled:opacity-50"
+                            class="mt-2 w-full rounded-xl border border-accent-secondary-border bg-accent-secondary-soft px-3 py-2 text-xs font-semibold text-accent-secondary-ink disabled:opacity-50"
                             :disabled="text.busy || !text.brief.trim()"
                             @click="generateCopy"
                             >{{ text.busy ? 'Generando…' : 'Generar textos' }}</button
@@ -350,18 +362,18 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer); });
                         <p
                             v-if="text.error"
                             role="alert"
-                            class="mt-2 rounded-lg bg-red-50 p-2 text-xs text-red-800"
+                            class="mt-2 rounded-lg bg-danger-soft p-2 text-xs text-danger-ink"
                             >{{ text.error }}</p
                         >
                         <ul v-if="text.result" class="mt-2 space-y-1" aria-label="Textos propuestos">
                             <li
                                 v-for="(line, i) in [...text.result.headlines, ...text.result.copies]"
                                 :key="i"
-                                class="flex items-start gap-2 rounded-lg border border-slate-200 p-2 text-xs"
+                                class="flex items-start gap-2 rounded-lg border border-border p-2 text-xs"
                                 ><span class="min-w-0 flex-1 break-words">{{ line }}</span
                                 ><button
                                     type="button"
-                                    class="shrink-0 rounded-lg border border-violet-200 px-2 py-1 text-[10px] font-semibold text-violet-800"
+                                    class="shrink-0 rounded-lg border border-accent-secondary-border px-2 py-1 text-[10px] font-semibold text-accent-secondary-ink"
                                     :aria-label="`Insertar texto: ${line}`"
                                     @click="emit('text', line)"
                                     >Insertar</button
@@ -369,7 +381,7 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer); });
                             >
                         </ul>
                     </div>
-                    <div v-if="isTemplate" class="space-y-2 border-t border-slate-100 pt-3">
+                    <div v-if="isTemplate" class="space-y-2 border-t border-border-subtle pt-3">
                         <label class="block text-xs font-medium" for="ai-list"
                             >Lista para rellenar la plantilla (uno por línea)</label
                         >
@@ -382,7 +394,7 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer); });
                         />
                         <button
                             type="button"
-                            class="w-full rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-800 disabled:opacity-50"
+                            class="w-full rounded-xl border border-accent-secondary-border bg-accent-secondary-soft px-3 py-2 text-xs font-semibold text-accent-secondary-ink disabled:opacity-50"
                             :disabled="text.fillBusy || !text.list.trim()"
                             @click="fillTemplate"
                             >{{ text.fillBusy ? 'Rellenando…' : 'Rellenar plantilla' }}</button
@@ -390,34 +402,37 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer); });
                         <p
                             v-if="text.fillError"
                             role="alert"
-                            class="rounded-lg bg-red-50 p-2 text-xs text-red-800"
+                            class="rounded-lg bg-danger-soft p-2 text-xs text-danger-ink"
                             >{{ text.fillError }}</p
                         >
                         <ul v-if="text.fill" class="space-y-1" aria-label="Filas propuestas">
                             <li
                                 v-for="(row, i) in text.fill.rows"
                                 :key="i"
-                                class="rounded-lg border border-slate-200 p-2 text-xs"
+                                class="rounded-lg border border-border p-2 text-xs"
                                 ><p class="font-medium">{{ row.item }}</p
                                 ><p
-                                    class="break-words text-slate-600"
+                                    class="break-words text-foreground-muted"
                                     >{{ Object.entries(row.fields).map(([k, v]) => `${k}: ${v}`).join(' · ') }}</p
                                 ><a
                                     v-if="text.created[i]"
                                     :href="route('studio.designs.edit', text.created[i])"
-                                    class="mt-1 inline-block text-[10px] font-semibold text-violet-700 underline"
+                                    class="mt-1 inline-block text-[10px] font-semibold text-accent-secondary-ink underline"
                                     >Abrir diseño creado</a
                                 ><button
                                     v-else
                                     type="button"
-                                    class="mt-1 rounded-lg border border-violet-200 px-2 py-1 text-[10px] font-semibold text-violet-800"
+                                    class="mt-1 rounded-lg border border-accent-secondary-border px-2 py-1 text-[10px] font-semibold text-accent-secondary-ink"
                                     @click="createFromRow(i)"
                                     >Crear diseño</button
                                 ></li
                             >
                         </ul>
                     </div>
-                    <div v-if="status.text.vision && images.length" class="space-y-2 border-t border-slate-100 pt-3">
+                    <div
+                        v-if="status.text.vision && images.length"
+                        class="space-y-2 border-t border-border-subtle pt-3"
+                    >
                         <label class="block text-xs font-medium" for="ai-alt-source"
                             >Texto alternativo de una imagen</label
                         >
@@ -427,26 +442,28 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer); });
                         >
                         <button
                             type="button"
-                            class="w-full rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-800 disabled:opacity-50"
+                            class="w-full rounded-xl border border-accent-secondary-border bg-accent-secondary-soft px-3 py-2 text-xs font-semibold text-accent-secondary-ink disabled:opacity-50"
                             :disabled="text.altBusy || !text.altId"
                             @click="suggestAlt"
                             >{{ text.altBusy ? 'Analizando…' : 'Sugerir texto alternativo' }}</button
                         >
-                        <p class="text-[10px] text-slate-500">La imagen elegida, reducida, se envía a Claude.</p>
+                        <p class="text-[10px] text-foreground-subtle"
+                            >La imagen elegida, reducida, se envía a Claude.</p
+                        >
                         <p
                             v-if="text.altError"
                             role="alert"
-                            class="rounded-lg bg-red-50 p-2 text-xs text-red-800"
+                            class="rounded-lg bg-danger-soft p-2 text-xs text-danger-ink"
                             >{{ text.altError }}</p
                         >
                         <p
                             v-if="text.alt"
-                            class="rounded-lg border border-slate-200 p-2 text-xs"
+                            class="rounded-lg border border-border p-2 text-xs"
                             data-testid="ai-alt-result"
                             >{{ text.alt }}
                             <button
                                 type="button"
-                                class="ml-1 text-[10px] font-semibold text-violet-700 underline"
+                                class="ml-1 text-[10px] font-semibold text-accent-secondary-ink underline"
                                 @click="copyAlt"
                                 >Copiar</button
                             ></p

@@ -102,9 +102,9 @@ const onEnter = (e) => {
             @apply="applyBestTime"
         />
 
-        <div v-if="enabled && editable" class="mt-4 border-t border-slate-100 pt-3" data-testid="nl-schedule">
-            <label for="nl-when" class="block text-sm font-medium text-slate-800">Escribe cuándo</label>
-            <p id="nl-when-help" class="text-xs text-slate-600"
+        <div v-if="enabled && editable" class="mt-4 border-t border-border-subtle pt-3" data-testid="nl-schedule">
+            <label for="nl-when" class="block text-sm font-medium text-foreground">Escribe cuándo</label>
+            <p id="nl-when-help" class="text-xs text-foreground-muted"
                 >Por ejemplo «el viernes a las 18 en Instagram y Bluesky». Lo propone la IA y tú confirmas; no se
                 programa nada solo.</p
             >
@@ -129,28 +129,28 @@ const onEnter = (e) => {
                     >{{ loading ? 'Pensando…' : 'Proponer fecha' }}</button
                 >
             </div>
-            <p class="mt-1 text-xs text-slate-600"
+            <p class="mt-1 text-xs text-foreground-muted"
                 >Te quedan {{ remaining }} usos de IA hoy (compartidos con «Sugerir texto»).</p
             >
 
-            <p v-if="error" class="mt-2 text-sm text-rose-700" role="alert" data-testid="nl-error">{{ error }}</p>
+            <p v-if="error" class="mt-2 text-sm text-danger" role="alert" data-testid="nl-error">{{ error }}</p>
 
             <div
                 v-if="proposal"
-                class="mt-3 rounded-lg border border-indigo-200 bg-indigo-50 p-3"
+                class="mt-3 rounded-lg border border-accent-marker bg-accent-soft p-3"
                 role="group"
                 aria-label="Propuesta de la IA"
                 data-testid="nl-proposal"
             >
-                <p class="text-sm font-semibold text-slate-900">Propuesta</p>
-                <p class="mt-1 text-sm text-slate-900" data-testid="nl-proposal-date"
-                    >{{ proposal.label }} <span class="text-slate-600">({{ proposal.timezone }})</span></p
+                <p class="text-sm font-semibold text-foreground-strong">Propuesta</p>
+                <p class="mt-1 text-sm text-foreground-strong" data-testid="nl-proposal-date"
+                    >{{ proposal.label }} <span class="text-foreground-muted">({{ proposal.timezone }})</span></p
                 >
-                <p class="text-sm text-slate-900" data-testid="nl-proposal-networks">
+                <p class="text-sm text-foreground-strong" data-testid="nl-proposal-networks">
                     <template v-if="proposal.networks.length">Redes: {{ networksText }}.</template>
                     <template v-else>No has mencionado ninguna red conectada: elige las redes a mano.</template>
                 </p>
-                <p v-if="ignoredText" class="text-xs text-amber-800" data-testid="nl-proposal-ignored"
+                <p v-if="ignoredText" class="text-xs text-warning-ink" data-testid="nl-proposal-ignored"
                     >No se aplican porque la marca no las tiene conectadas: {{ ignoredText }}.</p
                 >
                 <div class="mt-3 flex flex-wrap gap-2">
@@ -163,7 +163,7 @@ const onEnter = (e) => {
 
             <p
                 v-if="applied"
-                class="mt-2 text-sm text-emerald-800"
+                class="mt-2 text-sm text-success-ink"
                 role="status"
                 data-testid="nl-applied"
                 >{{ applied }}</p

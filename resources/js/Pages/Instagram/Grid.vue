@@ -36,9 +36,9 @@ const scheduledCount = computed(() => props.items.filter((i) => i.kind === 'sche
     <AuthenticatedLayout>
         <template #header>
             <div class="flex flex-wrap items-center justify-between gap-3">
-                <h1 class="text-xl font-bold text-slate-900">Cuadrícula de Instagram</h1>
+                <h1 class="text-xl font-bold text-foreground-strong">Cuadrícula de Instagram</h1>
                 <label v-if="accounts.length > 1" class="flex items-center gap-2 text-sm">
-                    <span class="font-medium text-slate-700">Cuenta</span>
+                    <span class="font-medium text-foreground-secondary">Cuenta</span>
                     <select class="field" data-testid="grid-account" :value="account?.id" @change="pick">
                         <option v-for="a in accounts" :key="a.id" :value="a.id"
                             >{{ a.name }}{{ a.username ? ` (@${a.username})` : '' }}</option
@@ -49,14 +49,14 @@ const scheduledCount = computed(() => props.items.filter((i) => i.kind === 'sche
         </template>
 
         <div class="mx-auto max-w-xl space-y-4" data-testid="ig-grid-page">
-            <div v-if="!account" class="card p-5 text-sm text-slate-700" data-testid="grid-empty">
+            <div v-if="!account" class="card p-5 text-sm text-foreground-secondary" data-testid="grid-empty">
                 <p
                     >{{ brand ? 'Esta marca no tiene ninguna cuenta de Instagram conectada.' : 'Aún no tienes marcas.' }}</p
                 >
                 <Link
                     v-if="brand"
                     :href="route('brands.connections.index', brand.id)"
-                    class="mt-2 inline-block font-medium text-indigo-700 underline"
+                    class="mt-2 inline-block font-medium text-accent-strong underline"
                     >Conectar una cuenta</Link
                 >
             </div>
@@ -64,7 +64,7 @@ const scheduledCount = computed(() => props.items.filter((i) => i.kind === 'sche
             <template v-else>
                 <p
                     v-if="error"
-                    class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+                    class="rounded-lg border border-warning-panel-border bg-warning-soft p-3 text-sm text-warning-ink"
                     role="alert"
                     data-testid="grid-error"
                 >
@@ -72,14 +72,14 @@ const scheduledCount = computed(() => props.items.filter((i) => i.kind === 'sche
                     <span v-if="scheduledCount"> Lo programado sí se muestra.</span>
                 </p>
 
-                <p class="text-xs text-slate-600" data-testid="grid-pinned-note">
+                <p class="text-xs text-foreground-muted" data-testid="grid-pinned-note">
                     Los posts fijados en el perfil no se reflejan aquí, y las miniaturas se recortan como en Instagram.
                     Lo publicado se actualiza cada 10 minutos.
                 </p>
 
                 <p
                     v-if="!error && items.length === 0"
-                    class="card p-5 text-sm text-slate-700"
+                    class="card p-5 text-sm text-foreground-secondary"
                     data-testid="grid-no-items"
                     >Esta cuenta aún no tiene publicaciones ni nada programado.</p
                 >
@@ -88,14 +88,14 @@ const scheduledCount = computed(() => props.items.filter((i) => i.kind === 'sche
                     <li
                         v-for="i in items"
                         :key="i.id"
-                        class="relative aspect-[3/4] overflow-hidden rounded bg-slate-200"
+                        class="relative aspect-[3/4] overflow-hidden rounded bg-surface-pressed"
                         :data-kind="i.kind"
                         data-testid="grid-tile"
                     >
                         <component
                             :is="i.kind === 'scheduled' ? Link : 'a'"
                             v-bind="i.kind === 'scheduled' ? { href: route('posts.edit', i.post_id) } : { href: i.permalink || '#', target: '_blank', rel: 'noopener noreferrer' }"
-                            class="block h-full w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-1"
+                            class="block h-full w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1"
                             :aria-label="label(i)"
                         >
                             <img
@@ -119,20 +119,20 @@ const scheduledCount = computed(() => props.items.filter((i) => i.kind === 'sche
                             /></video>
                             <span
                                 v-else
-                                class="flex h-full w-full items-center justify-center p-1 text-center text-[11px] text-slate-600"
+                                class="flex h-full w-full items-center justify-center p-1 text-center text-[11px] text-foreground-muted"
                                 aria-hidden="true"
                                 >Sin vista previa</span
                             >
                         </component>
                         <span
                             v-if="i.kind === 'scheduled'"
-                            class="pointer-events-none absolute inset-x-0 top-0 truncate bg-indigo-800/90 px-1 py-0.5 text-[10px] font-semibold leading-tight text-white"
+                            class="pointer-events-none absolute inset-x-0 top-0 truncate bg-accent-active px-1 py-0.5 text-[10px] font-semibold leading-tight text-on-accent"
                             aria-hidden="true"
                             >Programada · {{ when(i.timestamp) }}</span
                         >
                         <span
                             v-if="TYPES[i.type]"
-                            class="pointer-events-none absolute bottom-1 right-1 rounded bg-slate-900/80 px-1 py-0.5 text-[10px] font-medium leading-tight text-white"
+                            class="pointer-events-none absolute bottom-1 right-1 rounded bg-chrome/80 px-1 py-0.5 text-[10px] font-medium leading-tight text-chrome-strong"
                             aria-hidden="true"
                             >{{ TYPES[i.type] }}</span
                         >

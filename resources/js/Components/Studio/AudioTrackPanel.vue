@@ -13,12 +13,12 @@ const fadeOut = computed(() => selected.value?.gainPoints?.at(-1)?.value === 0 ?
 </script>
 
 <template>
-    <section aria-label="Pistas de audio" class="min-w-0 space-y-3 border-t border-slate-200 pt-4">
-        <h3 class="text-xs font-semibold text-slate-700"
-            >Pistas de audio <span class="font-normal text-slate-400">{{ tracks.length }}/64</span></h3
+    <section aria-label="Pistas de audio" class="min-w-0 space-y-3 border-t border-border pt-4">
+        <h3 class="text-xs font-semibold text-foreground-secondary"
+            >Pistas de audio <span class="font-normal text-foreground-subtle">{{ tracks.length }}/64</span></h3
         >
         <div class="space-y-2">
-            <div v-for="track in tracks" :key="track.id" class="relative h-9 rounded-lg bg-slate-50">
+            <div v-for="track in tracks" :key="track.id" class="relative h-9 rounded-lg bg-canvas">
                 <button
                     type="button"
                     data-testid="timeline-audio-track"
@@ -26,20 +26,20 @@ const fadeOut = computed(() => selected.value?.gainPoints?.at(-1)?.value === 0 ?
                     :aria-pressed="selectedId === track.id"
                     :disabled="disabled"
                     class="absolute top-0 flex h-9 min-w-[3px] items-center overflow-hidden rounded-md border px-2 text-left text-[11px] font-medium disabled:opacity-50"
-                    :class="selectedId === track.id ? 'border-emerald-700 bg-emerald-700 text-white' : 'border-emerald-200 bg-emerald-100 text-emerald-900'"
+                    :class="selectedId === track.id ? 'border-success-fill bg-success-fill text-on-success' : 'border-success-border bg-success-soft text-success-ink'"
                     :style="{ left: `${track.start / duration * 100}%`, width: `${track.duration / duration * 100}%` }"
                     @click="emit('select', track.id)"
                     ><span class="truncate">♫ {{ label(track) }}{{ track.muted ? ' · Silenciado' : '' }}</span></button
                 >
             </div>
         </div>
-        <p v-if="!tracks.length" class="text-xs text-slate-500"
+        <p v-if="!tracks.length" class="text-xs text-foreground-subtle"
             >Sube un audio en Recursos y añádelo a la línea de tiempo.</p
         >
-        <div v-if="selected" class="space-y-3 rounded-xl bg-emerald-50/60 p-3">
-            <p class="truncate text-xs font-semibold text-emerald-900">{{ label(selected) }}</p>
+        <div v-if="selected" class="space-y-3 rounded-xl bg-success-soft/60 p-3">
+            <p class="truncate text-xs font-semibold text-success-ink">{{ label(selected) }}</p>
             <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+                <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                     >Inicio del audio<input
                         class="field min-w-0"
                         aria-label="Inicio del audio"
@@ -51,7 +51,7 @@ const fadeOut = computed(() => selected.value?.gainPoints?.at(-1)?.value === 0 ?
                         :disabled="disabled"
                         @change="number('start', $event)"
                 /></label>
-                <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+                <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                     >Duración del audio<input
                         class="field min-w-0"
                         aria-label="Duración del audio"
@@ -63,7 +63,7 @@ const fadeOut = computed(() => selected.value?.gainPoints?.at(-1)?.value === 0 ?
                         :disabled="disabled"
                         @change="number('duration', $event)"
                 /></label>
-                <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+                <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                     >Velocidad del audio<input
                         class="field min-w-0"
                         aria-label="Velocidad del audio"
@@ -75,7 +75,7 @@ const fadeOut = computed(() => selected.value?.gainPoints?.at(-1)?.value === 0 ?
                         :disabled="disabled"
                         @change="number('playbackRate', $event)"
                 /></label>
-                <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+                <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                     >Recorte inicial del audio<input
                         class="field min-w-0"
                         aria-label="Recorte inicial del audio"
@@ -87,7 +87,7 @@ const fadeOut = computed(() => selected.value?.gainPoints?.at(-1)?.value === 0 ?
                         :disabled="disabled"
                         @change="number('trimStart', $event)"
                 /></label>
-                <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+                <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                     >Recorte final del audio<input
                         class="field min-w-0"
                         aria-label="Recorte final del audio"
@@ -100,7 +100,7 @@ const fadeOut = computed(() => selected.value?.gainPoints?.at(-1)?.value === 0 ?
                         :disabled="disabled"
                         @change="number('trimEnd', $event)"
                 /></label>
-                <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+                <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                     >Volumen del audio<input
                         class="field min-w-0"
                         aria-label="Volumen del audio"
@@ -112,7 +112,7 @@ const fadeOut = computed(() => selected.value?.gainPoints?.at(-1)?.value === 0 ?
                         :disabled="disabled"
                         @change="number('volume', $event)"
                 /></label>
-                <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+                <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                     >Fundido de entrada<input
                         class="field min-w-0"
                         aria-label="Fundido de entrada"
@@ -124,7 +124,7 @@ const fadeOut = computed(() => selected.value?.gainPoints?.at(-1)?.value === 0 ?
                         :disabled="disabled"
                         @change="emit('fade', { in: Number($event.target.value), out: fadeOut })"
                 /></label>
-                <label class="flex min-w-0 flex-col gap-1 text-xs text-slate-600"
+                <label class="flex min-w-0 flex-col gap-1 text-xs text-foreground-muted"
                     >Fundido de salida<input
                         class="field min-w-0"
                         aria-label="Fundido de salida"
@@ -137,7 +137,7 @@ const fadeOut = computed(() => selected.value?.gainPoints?.at(-1)?.value === 0 ?
                         @change="emit('fade', { in: fadeIn, out: Number($event.target.value) })"
                 /></label>
             </div>
-            <div class="flex flex-wrap items-center gap-3 text-xs text-emerald-950">
+            <div class="flex flex-wrap items-center gap-3 text-xs text-success-ink">
                 <label class="flex items-center gap-2"
                     ><input
                         type="checkbox"
@@ -156,14 +156,14 @@ const fadeOut = computed(() => selected.value?.gainPoints?.at(-1)?.value === 0 ?
                 >
                 <button
                     type="button"
-                    class="rounded-lg border border-emerald-300 bg-white px-3 py-2 disabled:opacity-40"
+                    class="rounded-lg border border-success-border bg-surface px-3 py-2 disabled:opacity-40"
                     :disabled="disabled || !canSplit"
                     @click="emit('split')"
                     >Dividir audio</button
                 >
                 <button
                     type="button"
-                    class="rounded-lg px-3 py-2 text-red-700 disabled:opacity-40"
+                    class="rounded-lg px-3 py-2 text-danger disabled:opacity-40"
                     :disabled="disabled"
                     @click="emit('remove')"
                     >Eliminar audio</button

@@ -16,10 +16,10 @@ const avatarUrl = computed(() => props.images?.find((m) => m.id === props.draft.
 
 <template>
     <aside class="lg:sticky lg:top-4" aria-label="Vista previa de tu página">
-        <p class="mb-2 text-xs font-medium text-slate-600">Vista previa en vivo</p>
+        <p class="mb-2 text-xs font-medium text-foreground-muted">Vista previa en vivo</p>
         <div
             data-testid="smartlink-preview"
-            class="mx-auto w-full max-w-xs rounded-3xl border border-slate-300 p-5 text-center shadow-sm"
+            class="mx-auto w-full max-w-xs rounded-3xl border border-control-border p-5 text-center shadow-sm"
             :style="{ background: dark ? '#111827' : '#f9fafb', color: dark ? '#f9fafb' : '#111827' }"
         >
             <img

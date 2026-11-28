@@ -30,10 +30,10 @@ defineProps({
     <section class="card p-5">
         <header class="flex items-start justify-between gap-3">
             <div>
-                <h2 class="text-sm font-medium text-slate-500">{{ label }}</h2>
+                <h2 class="text-sm font-medium text-foreground-subtle">{{ label }}</h2>
                 <p
                     class="mt-0.5 font-semibold tabular-nums"
-                    :class="available ? 'text-3xl text-slate-900' : 'text-xl text-slate-500'"
+                    :class="available ? 'text-3xl text-foreground-strong' : 'text-xl text-foreground-subtle'"
                     >{{ fmt(total) }}</p
                 >
             </div>
@@ -45,7 +45,7 @@ defineProps({
             >
         </header>
         <MetricQuality :coverage="coverage" :freshness="freshness" :comparison="comparisonQuality" />
-        <p v-if="comparing && previous !== null" class="mt-1 text-xs text-slate-500"
+        <p v-if="comparing && previous !== null" class="mt-1 text-xs text-foreground-subtle"
             >{{ comparisonLabel }}: {{ fmt(previous) }}</p
         >
         <MetricQuality
@@ -60,7 +60,7 @@ defineProps({
                 v-for="b in breakdown"
                 :key="b.network"
                 class="flex flex-wrap items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs"
-                :class="b.available ? 'border-slate-300 text-slate-800' : 'border-dashed border-slate-300 text-slate-500'"
+                :class="b.available ? 'border-control-border text-foreground' : 'border-dashed border-control-border text-foreground-subtle'"
             >
                 <span
                     class="inline-block h-2.5 w-2.5 rounded-full"

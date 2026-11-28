@@ -41,10 +41,10 @@ const FAQ = [
 <template>
     <Head title="Programa, publica y mide tus redes" />
 
-    <div class="min-h-screen bg-white text-slate-800">
+    <div class="min-h-screen bg-surface text-foreground">
         <a
             href="#principal"
-            class="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2"
+            class="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-surface focus:px-3 focus:py-2"
             >Saltar al contenido</a
         >
 
@@ -56,20 +56,20 @@ const FAQ = [
                     <Link
                         v-if="user"
                         :href="route('dashboard')"
-                        class="rounded-lg bg-white px-4 py-2 text-slate-900 hover:bg-slate-100"
+                        class="rounded-lg bg-surface px-4 py-2 text-foreground-strong hover:bg-surface-hover"
                         >Ir al panel</Link
                     >
                     <template v-else>
                         <Link
                             v-if="canLogin"
                             :href="route('login')"
-                            class="rounded-lg px-3 py-2 text-slate-200 hover:bg-white/10 hover:text-white"
+                            class="rounded-lg px-3 py-2 text-chrome-text hover:bg-chrome-strong/10 hover:text-chrome-strong"
                             >Entrar</Link
                         >
                         <Link
                             v-if="canRegister"
                             :href="route('register')"
-                            class="rounded-lg bg-white px-4 py-2 text-slate-900 hover:bg-slate-100"
+                            class="rounded-lg bg-surface px-4 py-2 text-foreground-strong hover:bg-surface-hover"
                             >Crear cuenta</Link
                         >
                     </template>
@@ -79,28 +79,29 @@ const FAQ = [
 
         <main id="principal">
             <!-- Hero -->
-            <section class="relative overflow-hidden bg-night-900 pb-20 pt-28 text-white sm:pb-28 sm:pt-36">
+            <section class="relative overflow-hidden bg-chrome pb-20 pt-28 text-chrome-strong sm:pb-28 sm:pt-36">
                 <div
-                    class="pointer-events-none absolute -right-32 -top-32 h-[28rem] w-[28rem] rounded-full bg-indigo-500/30 blur-3xl"
+                    class="pointer-events-none absolute -right-32 -top-32 h-[28rem] w-[28rem] rounded-full bg-focus/30 blur-3xl"
                 ></div>
                 <div
-                    class="pointer-events-none absolute -bottom-40 -left-20 h-[28rem] w-[28rem] rounded-full bg-teal-500/20 blur-3xl"
+                    class="pointer-events-none absolute -bottom-40 -left-20 h-[28rem] w-[28rem] rounded-full bg-chrome-teal/20 blur-3xl"
                 ></div>
                 <div class="relative mx-auto grid max-w-6xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2">
                     <div>
                         <p
-                            class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-slate-200"
+                            class="inline-flex items-center gap-2 rounded-full border border-chrome-strong/15 bg-chrome-strong/5 px-3 py-1 text-xs font-medium text-chrome-text"
                         >
-                            <span class="h-1.5 w-1.5 rounded-full bg-teal-400"></span>Con agente MCP para tu asistente
-                            de IA
+                            <span class="h-1.5 w-1.5 rounded-full bg-chrome-teal"></span>Con agente MCP para tu
+                            asistente de IA
                         </p>
                         <h1 class="mt-5 text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl"
                             >Programa, publica y mide tus redes
-                            <span class="bg-gradient-to-r from-indigo-300 to-teal-300 bg-clip-text text-transparent"
+                            <span
+                                class="bg-gradient-to-r from-chrome-accent to-chrome-teal bg-clip-text text-transparent"
                                 >desde un solo sitio</span
                             >.</h1
                         >
-                        <p class="mt-5 max-w-xl text-lg text-slate-300"
+                        <p class="mt-5 max-w-xl text-lg text-chrome-muted"
                             >Social Scheduler reúne Instagram, Facebook, YouTube y TikTok en un calendario, un panel de
                             analítica y un generador de informes. Menos pestañas, más tiempo para crear.</p
                         >
@@ -118,7 +119,7 @@ const FAQ = [
                                 <Link
                                     v-if="canLogin"
                                     :href="route('login')"
-                                    class="btn border border-white/25 px-6 py-3 text-base text-white hover:bg-white/10"
+                                    class="btn border border-chrome-strong/25 px-6 py-3 text-base text-chrome-strong hover:bg-chrome-strong/10"
                                     >Entrar</Link
                                 >
                             </template>
@@ -127,7 +128,7 @@ const FAQ = [
                             <li
                                 v-for="n in networks"
                                 :key="n.value"
-                                class="flex items-center gap-2 rounded-full bg-white/5 py-1 pe-3 ps-1 text-sm text-slate-200 ring-1 ring-white/10"
+                                class="flex items-center gap-2 rounded-full bg-chrome-strong/5 py-1 pe-3 ps-1 text-sm text-chrome-text ring-1 ring-chrome-strong/10"
                                 ><NetworkIcon :network="n.value" :color="n.color" size="sm" />{{ n.label }}</li
                             >
                         </ul>
@@ -135,30 +136,30 @@ const FAQ = [
 
                     <!-- Maqueta CSS propia del panel -->
                     <div class="relative" aria-hidden="true">
-                        <div class="rounded-2xl bg-white p-4 text-slate-800 shadow-2xl ring-1 ring-white/20">
+                        <div class="rounded-2xl bg-surface p-4 text-foreground shadow-2xl ring-1 ring-chrome-strong/20">
                             <div class="flex items-center justify-between">
-                                <div class="h-3 w-24 rounded bg-slate-200"></div>
+                                <div class="h-3 w-24 rounded bg-surface-pressed"></div>
                                 <div class="flex gap-1.5"
-                                    ><span class="h-3 w-3 rounded-full bg-slate-200"></span
-                                    ><span class="h-3 w-3 rounded-full bg-slate-200"></span
+                                    ><span class="h-3 w-3 rounded-full bg-surface-pressed"></span
+                                    ><span class="h-3 w-3 rounded-full bg-surface-pressed"></span
                                 ></div>
                             </div>
                             <div class="mt-4 grid grid-cols-3 gap-3">
                                 <div
                                     v-for="(k, i) in [['Seguidores', '12,4 k', '+4,2 %'], ['Visualizaciones', '88,1 k', '+12 %'], ['Interacciones', '3,9 k', '+1,8 %']]"
                                     :key="i"
-                                    class="rounded-xl border border-slate-200 p-3"
+                                    class="rounded-xl border border-border p-3"
                                 >
-                                    <p class="text-[10px] font-medium text-slate-500">{{ k[0] }}</p>
+                                    <p class="text-[10px] font-medium text-foreground-subtle">{{ k[0] }}</p>
                                     <p class="text-lg font-bold tabular-nums">{{ k[1] }}</p>
-                                    <p class="text-[10px] font-semibold text-emerald-700">{{ k[2] }}</p>
+                                    <p class="text-[10px] font-semibold text-success-ink">{{ k[2] }}</p>
                                 </div>
                             </div>
-                            <div class="mt-4 flex h-28 items-end gap-1.5 rounded-xl bg-slate-50 p-3">
+                            <div class="mt-4 flex h-28 items-end gap-1.5 rounded-xl bg-canvas p-3">
                                 <span
                                     v-for="(h, i) in [30, 42, 36, 55, 48, 66, 58, 74, 70, 88, 82, 96]"
                                     :key="i"
-                                    class="flex-1 rounded-t bg-gradient-to-t from-indigo-500 to-teal-400"
+                                    class="flex-1 rounded-t bg-gradient-to-t from-chrome-decoration to-chrome-teal"
                                     :style="{ height: h + '%' }"
                                 ></span>
                             </div>
@@ -167,7 +168,7 @@ const FAQ = [
                                     v-for="i in 14"
                                     :key="i"
                                     class="h-6 rounded"
-                                    :class="[2, 6, 9, 12].includes(i) ? 'bg-indigo-400' : [4, 11].includes(i) ? 'bg-teal-300' : 'bg-slate-100'"
+                                    :class="[2, 6, 9, 12].includes(i) ? 'bg-chrome-active' : [4, 11].includes(i) ? 'bg-chrome-teal' : 'bg-surface-hover'"
                                 ></span>
                             </div>
                         </div>
@@ -178,43 +179,43 @@ const FAQ = [
             <!-- Funcionalidades -->
             <section class="mx-auto max-w-6xl px-4 py-20 sm:px-6" aria-labelledby="funcionalidades">
                 <div class="mx-auto max-w-2xl text-center">
-                    <h2 id="funcionalidades" class="text-3xl font-bold tracking-tight text-slate-900"
+                    <h2 id="funcionalidades" class="text-3xl font-bold tracking-tight text-foreground-strong"
                         >Todo lo que necesitas para tus redes</h2
                     >
-                    <p class="mt-3 text-slate-600">Un flujo continuo, desde la idea hasta el informe del mes.</p>
+                    <p class="mt-3 text-foreground-muted">Un flujo continuo, desde la idea hasta el informe del mes.</p>
                 </div>
                 <div class="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                     <article v-for="f in FEATURES" :key="f.title" class="card p-6">
-                        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600"
+                        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-accent-soft text-accent"
                             ><Icon :name="f.icon" class="h-6 w-6"
                         /></span>
-                        <h3 class="mt-4 flex items-center gap-2 text-lg font-semibold text-slate-900"
+                        <h3 class="mt-4 flex items-center gap-2 text-lg font-semibold text-foreground-strong"
                             >{{ f.title
                             }}<span
                                 v-if="f.soon"
-                                class="rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 ring-1 ring-inset ring-teal-200"
+                                class="rounded-full bg-success-soft px-2 py-0.5 text-xs font-medium text-success-ink ring-1 ring-inset ring-success-border"
                                 >Próximamente</span
                             ></h3
                         >
-                        <p class="mt-2 text-sm text-slate-600">{{ f.text }}</p>
+                        <p class="mt-2 text-sm text-foreground-muted">{{ f.text }}</p>
                     </article>
                 </div>
             </section>
 
             <!-- Cómo funciona -->
-            <section class="bg-slate-50 py-20" aria-labelledby="como">
+            <section class="bg-canvas py-20" aria-labelledby="como">
                 <div class="mx-auto max-w-6xl px-4 sm:px-6">
-                    <h2 id="como" class="text-center text-3xl font-bold tracking-tight text-slate-900"
+                    <h2 id="como" class="text-center text-3xl font-bold tracking-tight text-foreground-strong"
                         >Empieza en tres pasos</h2
                     >
                     <ol class="mt-12 grid gap-6 md:grid-cols-3">
                         <li v-for="s in STEPS" :key="s.n" class="card p-6">
                             <span
-                                class="flex h-9 w-9 items-center justify-center rounded-full bg-night-900 text-sm font-bold text-white"
+                                class="flex h-9 w-9 items-center justify-center rounded-full bg-chrome text-sm font-bold text-chrome-strong"
                                 >{{ s.n }}</span
                             >
-                            <h3 class="mt-4 font-semibold text-slate-900">{{ s.title }}</h3>
-                            <p class="mt-1 text-sm text-slate-600">{{ s.text }}</p>
+                            <h3 class="mt-4 font-semibold text-foreground-strong">{{ s.title }}</h3>
+                            <p class="mt-1 text-sm text-foreground-muted">{{ s.text }}</p>
                         </li>
                     </ol>
                 </div>
@@ -222,30 +223,30 @@ const FAQ = [
 
             <!-- FAQ -->
             <section class="mx-auto max-w-3xl px-4 py-20 sm:px-6" aria-labelledby="faq">
-                <h2 id="faq" class="text-center text-3xl font-bold tracking-tight text-slate-900"
+                <h2 id="faq" class="text-center text-3xl font-bold tracking-tight text-foreground-strong"
                     >Preguntas frecuentes</h2
                 >
-                <div class="mt-10 divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
+                <div class="mt-10 divide-y divide-border rounded-xl border border-border bg-surface">
                     <details v-for="item in FAQ" :key="item.q" class="group p-5">
                         <summary
-                            class="flex cursor-pointer list-none items-center justify-between gap-4 font-medium text-slate-900"
+                            class="flex cursor-pointer list-none items-center justify-between gap-4 font-medium text-foreground-strong"
                         >
                             {{ item.q }}
                             <Icon
                                 name="chevronDown"
-                                class="h-5 w-5 shrink-0 text-slate-400 transition group-open:rotate-180"
+                                class="h-5 w-5 shrink-0 text-foreground-subtle transition group-open:rotate-180"
                             />
                         </summary>
-                        <p class="mt-3 text-sm text-slate-600">{{ item.a }}</p>
+                        <p class="mt-3 text-sm text-foreground-muted">{{ item.a }}</p>
                     </details>
                 </div>
             </section>
 
             <!-- CTA final -->
             <section class="px-4 pb-20 sm:px-6">
-                <div class="mx-auto max-w-5xl rounded-3xl bg-night-900 px-6 py-14 text-center text-white">
+                <div class="mx-auto max-w-5xl rounded-3xl bg-chrome px-6 py-14 text-center text-chrome-strong">
                     <h2 class="text-3xl font-bold tracking-tight">Pon orden en tus redes hoy</h2>
-                    <p class="mx-auto mt-3 max-w-xl text-slate-300"
+                    <p class="mx-auto mt-3 max-w-xl text-chrome-muted"
                         >Crea tu cuenta, conecta tu primera red y programa tu primera publicación en minutos.</p
                     >
                     <div class="mt-8 flex flex-wrap justify-center gap-3">
@@ -259,7 +260,7 @@ const FAQ = [
                             <Link
                                 v-if="canLogin"
                                 :href="route('login')"
-                                class="btn border border-white/25 px-6 py-3 text-base text-white hover:bg-white/10"
+                                class="btn border border-chrome-strong/25 px-6 py-3 text-base text-chrome-strong hover:bg-chrome-strong/10"
                                 >Entrar</Link
                             >
                         </template>
@@ -268,9 +269,9 @@ const FAQ = [
             </section>
         </main>
 
-        <footer class="border-t border-slate-200 bg-white">
+        <footer class="border-t border-border bg-surface">
             <div
-                class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 text-sm text-slate-500 sm:flex-row sm:px-6"
+                class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 text-sm text-foreground-subtle sm:flex-row sm:px-6"
             >
                 <BrandLogo />
                 <nav class="flex gap-5" aria-label="Legal">

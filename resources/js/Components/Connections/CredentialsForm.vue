@@ -46,14 +46,18 @@ const submit = () =>
         <form
             v-if="open"
             :id="`${uid}-form`"
-            class="mt-4 w-full space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4"
+            class="mt-4 w-full space-y-3 rounded-lg border border-border bg-canvas p-4"
             autocomplete="off"
             @submit.prevent="submit"
         >
-            <p class="text-sm text-slate-700">{{ intro }}</p>
+            <p class="text-sm text-foreground-secondary">{{ intro }}</p>
 
             <div v-for="f in fields" :key="f.name">
-                <label :for="`${uid}-${f.name}`" class="block text-sm font-medium text-slate-700">{{ f.label }}</label>
+                <label
+                    :for="`${uid}-${f.name}`"
+                    class="block text-sm font-medium text-foreground-secondary"
+                    >{{ f.label }}</label
+                >
                 <input
                     :id="`${uid}-${f.name}`"
                     v-model="form[f.name]"
@@ -67,10 +71,10 @@ const submit = () =>
                     :aria-describedby="`${uid}-${f.name}-help`"
                     :aria-invalid="form.errors[f.name] ? 'true' : undefined"
                 />
-                <p :id="`${uid}-${f.name}-help`" class="mt-1 text-xs text-slate-600">{{ f.help }}</p>
+                <p :id="`${uid}-${f.name}-help`" class="mt-1 text-xs text-foreground-muted">{{ f.help }}</p>
                 <p
                     v-if="form.errors[f.name]"
-                    class="mt-1 text-sm text-red-700"
+                    class="mt-1 text-sm text-danger"
                     role="alert"
                     >{{ form.errors[f.name] }}</p
                 >
@@ -78,7 +82,7 @@ const submit = () =>
 
             <p
                 v-if="generalError"
-                class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+                class="rounded-lg border border-danger-border bg-danger-soft p-3 text-sm text-danger-ink"
                 role="alert"
                 data-testid="credentials-error"
                 >{{ generalError }}</p

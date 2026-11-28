@@ -41,12 +41,12 @@ onBeforeUnmount(() => unregisterField(self));
 <template>
     <div v-if="target && max !== null" class="space-y-1" data-testid="first-comment">
         <InputLabel :for="id" value="Primer comentario (opcional)" />
-        <p :id="`${id}-hint`" class="text-xs text-slate-600"
+        <p :id="`${id}-hint`" class="text-xs text-foreground-muted"
             >Se publica como comentario de la cuenta justo después de publicar. No se guarda en la biblioteca.</p
         >
         <p
             v-if="blocked"
-            class="rounded border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900"
+            class="rounded border border-warning-panel-border bg-warning-soft p-2 text-xs text-warning-ink"
             role="status"
             data-testid="first-comment-reconnect"
         >
@@ -71,7 +71,7 @@ onBeforeUnmount(() => unregisterField(self));
         <p
             :id="`${id}-count`"
             class="text-right text-xs"
-            :class="over ? 'font-medium text-red-700' : 'text-slate-600'"
+            :class="over ? 'font-medium text-danger' : 'text-foreground-muted'"
             aria-live="polite"
             data-testid="first-comment-count"
         >

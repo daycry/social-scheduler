@@ -27,17 +27,17 @@ defineProps({
 
 defineEmits(['rename', 'undo', 'redo', 'save', 'present', 'export', 'publish']);
 const historyButtonClass =
-    'btn-secondary min-h-[30px] border-slate-200 px-[9px] py-[5px] text-sm font-normal text-slate-600 shadow-none transition-none hover:border-violet-300 disabled:opacity-40';
+    'btn-secondary min-h-[30px] border-border px-[9px] py-[5px] text-sm font-normal text-foreground-muted shadow-none transition-none hover:border-accent-secondary-border disabled:opacity-40';
 </script>
 
 <template>
     <header
-        class="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3"
+        class="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-surface p-3"
         :inert="fontBusy || !active || undefined"
     >
         <Link
             :href="route('studio.index', { brand_id: brand.id })"
-            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50"
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-foreground-subtle hover:bg-canvas"
             aria-label="Volver al estudio"
             ><Icon name="chevronLeft" class="h-4 w-4"
         /></Link>
@@ -46,16 +46,16 @@ const historyButtonClass =
             ><input
                 id="studio-design-name"
                 v-model="name"
-                class="w-full min-w-0 rounded-md border-transparent bg-transparent px-1 py-0.5 text-sm font-semibold focus:border-violet-300 focus:ring-violet-200"
+                class="w-full min-w-0 rounded-md border-transparent bg-transparent px-1 py-0.5 text-sm font-semibold focus:border-focus focus:ring-focus"
                 maxlength="255"
                 :disabled="automationBusy"
                 @input="$emit('rename')"
-            /><div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-[10px] text-slate-500"
+            /><div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-[10px] text-foreground-subtle"
                 ><span>{{ brand.name }}</span
                 ><span
                     data-testid="studio-save-status"
                     role="status"
-                    :class="conflict ? 'text-red-700' : dirty ? 'text-amber-700' : 'text-emerald-700'"
+                    :class="conflict ? 'text-danger' : dirty ? 'text-warning-ink' : 'text-success-ink'"
                     >{{ status }}</span
                 ><span>Revisión {{ revision }}</span></div
             ></div
@@ -100,7 +100,7 @@ const historyButtonClass =
             ><button
                 v-if="isOwner"
                 type="button"
-                class="rounded-lg bg-violet-700 px-3 py-2.5 text-xs font-semibold text-white hover:bg-violet-800 disabled:opacity-50"
+                class="rounded-lg bg-accent-secondary-fill px-3 py-2.5 text-xs font-semibold text-on-accent-secondary hover:bg-accent-secondary-hover disabled:opacity-50"
                 :disabled="!ready || busy || exportBusy || automationBusy"
                 :aria-busy="exportLoading || publishPending || undefined"
                 @click="$emit('publish')"

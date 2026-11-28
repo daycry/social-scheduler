@@ -93,16 +93,16 @@ const discard = () => {
             class="mt-1 max-w-sm text-xs"
             data-testid="ai-adapt-unconfigured"
         />
-        <p v-else-if="loaded && !canAdapt" :id="hintId" class="mt-1 max-w-xs text-xs text-slate-600"
+        <p v-else-if="loaded && !canAdapt" :id="hintId" class="mt-1 max-w-xs text-xs text-foreground-muted"
             >Escribe el texto común y elige al menos una red para adaptarlo.</p
         >
-        <p v-else-if="loaded" :id="hintId" class="mt-1 max-w-xs text-xs text-slate-600"
+        <p v-else-if="loaded" :id="hintId" class="mt-1 max-w-xs text-xs text-foreground-muted"
             >La IA propone una versión por red y tú confirmas. Te quedan {{ remaining }} usos hoy.</p
         >
-        <p v-if="error" class="mt-1 text-sm text-rose-700" role="alert" data-testid="ai-adapt-error">{{ error }}</p>
+        <p v-if="error" class="mt-1 text-sm text-danger" role="alert" data-testid="ai-adapt-error">{{ error }}</p>
         <p
             v-if="applied"
-            class="mt-1 text-sm text-emerald-800"
+            class="mt-1 text-sm text-success-ink"
             role="status"
             data-testid="ai-adapt-applied"
             >{{ applied }}</p
@@ -111,35 +111,39 @@ const discard = () => {
 
     <div
         v-if="results"
-        class="w-full rounded-lg border border-indigo-200 bg-indigo-50 p-3"
+        class="w-full rounded-lg border border-accent-marker bg-accent-soft p-3"
         role="group"
         aria-label="Versiones propuestas por la IA"
         data-testid="ai-adapt-proposal"
     >
-        <p class="text-sm font-semibold text-slate-900">Versiones propuestas</p>
+        <p class="text-sm font-semibold text-foreground-strong">Versiones propuestas</p>
         <ul class="mt-2 space-y-2">
             <li
                 v-for="r in rows"
                 :key="r.account_id"
-                class="min-w-0 rounded border border-indigo-100 bg-white p-2 text-sm"
+                class="min-w-0 rounded border border-accent-marker bg-surface p-2 text-sm"
                 data-testid="ai-adapt-version"
             >
-                <p class="flex min-w-0 items-center gap-1.5 text-xs font-medium text-slate-900">
+                <p class="flex min-w-0 items-center gap-1.5 text-xs font-medium text-foreground-strong">
                     <NetworkIcon v-if="r.network" :network="r.network" size="sm" />
                     <span class="truncate">{{ r.label }}</span>
                     <span
                         v-if="r.text && !r.stale"
-                        class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-slate-700"
+                        class="shrink-0 rounded bg-surface-hover px-1.5 py-0.5 text-foreground-secondary"
                         data-testid="ai-adapt-count"
                         >{{ formatThousands(r.chars)
                         }}<template v-if="r.max != null"> / {{ formatThousands(r.max) }}</template></span
                     >
                 </p>
-                <p v-if="r.stale" class="mt-1 text-xs text-amber-800" data-testid="ai-adapt-stale"
+                <p v-if="r.stale" class="mt-1 text-xs text-warning-ink" data-testid="ai-adapt-stale"
                     >El tipo de contenido de esta red ha cambiado: vuelve a adaptar el texto para ella.</p
                 >
-                <p v-else-if="r.text" class="mt-1 whitespace-pre-line break-words text-slate-900">{{ r.text }}</p>
-                <p v-else class="mt-1 text-xs text-amber-800" data-testid="ai-adapt-rejected"
+                <p
+                    v-else-if="r.text"
+                    class="mt-1 whitespace-pre-line break-words text-foreground-strong"
+                    >{{ r.text }}</p
+                >
+                <p v-else class="mt-1 text-xs text-warning-ink" data-testid="ai-adapt-rejected"
                     >No se propone texto para esta red: {{ r.error }}</p
                 >
             </li>

@@ -114,27 +114,23 @@ onBeforeUnmount(() => { ++searchSequence; ++trackSequence; clearTimeout(searchTi
 </script>
 
 <template>
-    <div class="space-y-2 border-t border-slate-200 pt-3" data-testid="instagram-audio-field">
-        <h3 class="text-sm font-medium text-slate-900">Audio del Reel</h3>
-        <p class="text-xs text-slate-600"
+    <div class="space-y-2 border-t border-border pt-3" data-testid="instagram-audio-field">
+        <h3 class="text-sm font-medium text-foreground-strong">Audio del Reel</h3>
+        <p class="text-xs text-foreground-muted"
             >Puedes conservar el sonido de tu vídeo o añadir una pista del catálogo autorizado de Meta.</p
         >
         <p
             v-if="!available"
-            class="text-sm text-amber-800"
+            class="text-sm text-warning-ink"
             >{{ account.instagram_audio?.reason || 'Reconecta Instagram mediante Facebook para usar el catálogo de audio.' }}</p
         >
-        <div
-            v-if="selection"
-            class="space-y-2 rounded border border-slate-200 p-3"
-            data-testid="selected-instagram-audio"
-        >
+        <div v-if="selection" class="space-y-2 rounded border border-border p-3" data-testid="selected-instagram-audio">
             <p class="break-words text-sm font-medium"
                 >{{ track?.title || `Audio ${selection.audio_id}`
                 }}<span v-if="track?.artist" class="font-normal"> · {{ track.artist }}</span></p
             >
             <p v-if="trackLoading" role="status" class="text-xs">Consultando la pista…</p>
-            <p v-if="trackError" role="alert" class="text-sm text-red-700">{{ trackError }}</p>
+            <p v-if="trackError" role="alert" class="text-sm text-danger">{{ trackError }}</p>
             <audio
                 v-if="track?.preview_url"
                 :key="track.preview_url"
@@ -150,15 +146,15 @@ onBeforeUnmount(() => { ++searchSequence; ++trackSequence; clearTimeout(searchTi
                 :href="track.platform_url"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="text-sm text-indigo-700 underline"
+                class="text-sm text-accent-strong underline"
                 >Escuchar en Instagram</a
             >
-            <p v-else-if="track && !trackLoading" class="text-xs text-slate-600"
+            <p v-else-if="track && !trackLoading" class="text-xs text-foreground-muted"
                 >Meta no ofrece preescucha para esta pista.</p
             >
             <button
                 type="button"
-                class="text-sm text-indigo-700 underline"
+                class="text-sm text-accent-strong underline"
                 :disabled="trackLoading || !available"
                 @click="refreshTrack"
                 >Actualizar preescucha</button
@@ -193,7 +189,7 @@ onBeforeUnmount(() => { ++searchSequence; ++trackSequence; clearTimeout(searchTi
                     />
                 </label>
             </div>
-            <p class="text-xs text-slate-600"
+            <p class="text-xs text-foreground-muted"
                 >De 1 a 100. La preescucha reproduce solo la pista; la mezcla final se aplica al publicar.</p
             >
             <button type="button" :disabled="!editable" class="btn btn-secondary" @click="remove">Quitar audio</button>
@@ -202,7 +198,7 @@ onBeforeUnmount(() => { ++searchSequence; ++trackSequence; clearTimeout(searchTi
             ref="trigger"
             type="button"
             :disabled="!editable || !available"
-            class="inline-flex items-center gap-2 rounded-lg border border-dashed border-violet-300 bg-violet-50/50 px-3 py-2 text-sm font-medium text-violet-800 transition hover:border-violet-500 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
+            class="inline-flex items-center gap-2 rounded-lg border border-dashed border-accent-secondary-border bg-accent-secondary-soft/50 px-3 py-2 text-sm font-medium text-accent-secondary-ink transition hover:border-accent-secondary-fill hover:bg-accent-secondary-soft disabled:cursor-not-allowed disabled:opacity-50"
             @click="show"
         >
             <svg
@@ -238,7 +234,7 @@ onBeforeUnmount(() => { ++searchSequence; ++trackSequence; clearTimeout(searchTi
                 :aria-labelledby="`audio-title-${account.id}`"
             >
                 <div class="flex items-center justify-between gap-2">
-                    <h2 :id="`audio-title-${account.id}`" class="text-lg font-medium text-slate-900"
+                    <h2 :id="`audio-title-${account.id}`" class="text-lg font-medium text-foreground-strong"
                         >Añadir audio al Reel</h2
                     >
                     <button type="button" class="btn btn-secondary" @click="close">Cerrar</button>
@@ -268,11 +264,11 @@ onBeforeUnmount(() => { ++searchSequence; ++trackSequence; clearTimeout(searchTi
                         >Buscar audio</button
                     >
                 </div>
-                <p class="text-xs text-slate-600"
+                <p class="text-xs text-foreground-muted"
                     >Sin texto se muestran tendencias. El catálogo puede diferir del de Instagram. El audio empieza
                     desde el principio; no hay previsualización de la mezcla final.</p
                 >
-                <p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p>
+                <p v-if="error" role="alert" class="text-sm text-danger">{{ error }}</p>
                 <p v-else-if="loading" role="status" class="text-sm">Buscando audio…</p>
                 <p v-else-if="!results.length" role="status" class="text-sm"
                     >No hay audios disponibles para esta búsqueda.</p
@@ -281,7 +277,7 @@ onBeforeUnmount(() => { ++searchSequence; ++trackSequence; clearTimeout(searchTi
                     <li
                         v-for="result in results"
                         :key="result.audio_id"
-                        class="space-y-2 rounded border border-slate-200 p-3"
+                        class="space-y-2 rounded border border-border p-3"
                     >
                         <div class="flex min-w-0 items-center gap-3">
                             <img
@@ -315,10 +311,10 @@ onBeforeUnmount(() => { ++searchSequence; ++trackSequence; clearTimeout(searchTi
                             :href="result.platform_url"
                             target="_blank"
                             rel="noopener noreferrer"
-                            class="text-sm text-indigo-700 underline"
+                            class="text-sm text-accent-strong underline"
                             >Escuchar en Instagram</a
                         >
-                        <p v-else class="text-xs text-slate-600">Sin preescucha disponible.</p>
+                        <p v-else class="text-xs text-foreground-muted">Sin preescucha disponible.</p>
                         <button
                             type="button"
                             class="btn btn-secondary"
@@ -328,7 +324,7 @@ onBeforeUnmount(() => { ++searchSequence; ++trackSequence; clearTimeout(searchTi
                         >
                     </li>
                 </ul>
-                <p v-if="results.length" role="status" class="text-xs text-slate-600"
+                <p v-if="results.length" role="status" class="text-xs text-foreground-muted"
                     >{{ results.length }} audios cargados<span v-if="nextCursor">
                         · Hay más resultados disponibles</span
                     ></p

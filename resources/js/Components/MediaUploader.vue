@@ -65,7 +65,7 @@ const onFile = (event) => {
 <template>
     <div>
         <label
-            class="inline-flex cursor-pointer focus-within:ring-2 focus-within:ring-indigo-500 items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            class="inline-flex cursor-pointer focus-within:ring-2 focus-within:ring-focus items-center rounded-md border border-control-border bg-surface px-3 py-2 text-sm font-medium text-foreground-secondary hover:bg-canvas"
         >
             <span>{{ busy ? `Subiendo… ${progress}%` : label }}</span>
             <input
@@ -77,6 +77,6 @@ const onFile = (event) => {
                 @change="onFile"
             />
         </label>
-        <p v-if="message" class="mt-1 text-sm text-red-600">{{ message }}</p>
+        <p v-if="message" class="mt-1 text-sm text-danger">{{ message }}</p>
     </div>
 </template>

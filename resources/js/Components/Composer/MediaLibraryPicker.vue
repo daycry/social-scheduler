@@ -47,11 +47,11 @@ onBeforeUnmount(() => request?.abort());
         open
         :return-focus-to="returnFocusTo"
         aria-labelledby="media-library-title"
-        class="m-auto w-[calc(100vw_-_2rem)] max-w-2xl rounded-lg border-0 bg-white p-5 shadow-xl backdrop:bg-slate-900/50"
+        class="m-auto w-[calc(100vw_-_2rem)] max-w-2xl rounded-lg border-0 bg-surface p-5 shadow-xl backdrop:bg-overlay-strong/50"
         @close="emit('close')"
     >
         <header class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 id="media-library-title" class="text-lg font-semibold text-slate-900">Desde la biblioteca</h2>
+            <h2 id="media-library-title" class="text-lg font-semibold text-foreground-strong">Desde la biblioteca</h2>
             <button type="button" class="btn-secondary" @click="emit('close')">Cerrar biblioteca</button>
         </header>
         <label for="media-library-search" class="mb-1 block text-sm font-medium">Buscar archivos</label>
@@ -63,12 +63,12 @@ onBeforeUnmount(() => request?.abort());
             type="search"
             class="field w-full"
         />
-        <p v-if="loading" role="status" class="mt-3 text-sm text-slate-600">Cargando archivos…</p>
+        <p v-if="loading" role="status" class="mt-3 text-sm text-foreground-muted">Cargando archivos…</p>
         <div v-else-if="error" class="mt-3">
-            <p role="alert" class="text-sm text-red-700">{{ error }}</p>
+            <p role="alert" class="text-sm text-danger">{{ error }}</p>
             <button type="button" class="btn-secondary mt-2" @click="retry">Reintentar</button>
         </div>
-        <p v-else-if="!visibleAssets.length" class="mt-3 text-sm text-slate-600">
+        <p v-else-if="!visibleAssets.length" class="mt-3 text-sm text-foreground-muted">
             {{ query ? 'No hay archivos con ese nombre.' : 'La marca todavía no tiene imágenes ni vídeos en Recursos.' }}
         </p>
         <ul v-else class="mt-3 grid max-h-72 grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3">
@@ -77,7 +77,7 @@ onBeforeUnmount(() => request?.abort());
                     type="button"
                     :aria-label="selectedIds.includes(asset.id) ? `${asset.name}, ya añadido` : `Añadir ${asset.name}`"
                     :disabled="selectedIds.includes(asset.id)"
-                    class="w-full overflow-hidden rounded-lg border border-slate-300 text-left disabled:opacity-60"
+                    class="w-full overflow-hidden rounded-lg border border-control-border text-left disabled:opacity-60"
                     @click="emit('select', asset)"
                 >
                     <img
@@ -87,7 +87,7 @@ onBeforeUnmount(() => request?.abort());
                         loading="lazy"
                         class="aspect-video w-full object-cover"
                     />
-                    <span v-else class="flex aspect-video items-center justify-center bg-slate-50 text-sm">Vídeo</span>
+                    <span v-else class="flex aspect-video items-center justify-center bg-canvas text-sm">Vídeo</span>
                     <span class="block break-words p-2 text-sm">{{ asset.name }}</span>
                 </button>
             </li>

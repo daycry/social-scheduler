@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed — dark mode across pages and Studio (audit-hardening, T-98)
+
+- The selected theme now reaches the social pages, analytics charts and Studio controls. Designs retain their colors on the canvas, in previews and in exports.
+
 ### Added — light, dark, and system themes (audit-hardening, T-97)
 
 - Choose a theme under Profile → Appearance. Your account remembers the choice, and navigation, dialogs, notices, and shared form controls use the selected palette.

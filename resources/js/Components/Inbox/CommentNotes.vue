@@ -49,23 +49,23 @@ const remove = async (note) => {
     <div class="ms-8 space-y-2" :data-testid="`comment-notes-${comment.id}`">
         <ul
             v-if="comment.notes.length"
-            class="space-y-1 border-s-2 border-amber-300 ps-3"
+            class="space-y-1 border-s-2 border-warning-panel-border ps-3"
             :aria-label="`Notas internas de ${comment.author || 'Anónimo'}`"
         >
             <li
                 v-for="n in comment.notes"
                 :key="n.id"
-                class="flex items-start justify-between gap-3 text-slate-700"
+                class="flex items-start justify-between gap-3 text-foreground-secondary"
                 data-testid="comment-note"
             >
                 <span class="min-w-0">
-                    <span class="text-xs text-amber-800">Nota interna · {{ fmt(n.at) }}</span
+                    <span class="text-xs text-warning-ink">Nota interna · {{ fmt(n.at) }}</span
                     ><br />
                     <span class="whitespace-pre-line break-words">{{ n.body }}</span>
                 </span>
                 <button
                     type="button"
-                    class="shrink-0 text-xs text-red-700 underline"
+                    class="shrink-0 text-xs text-danger underline"
                     data-testid="comment-note-delete"
                     @click="remove(n)"
                 >
@@ -100,7 +100,7 @@ const remove = async (note) => {
                 </label>
                 <p
                     class="text-xs"
-                    :class="tooLong ? 'text-red-700' : 'text-slate-600'"
+                    :class="tooLong ? 'text-danger' : 'text-foreground-muted'"
                     :role="tooLong ? 'alert' : undefined"
                     >{{ length }} / {{ noteMax }} caracteres<span v-if="tooLong"> · la nota es demasiado larga</span></p
                 >

@@ -99,23 +99,23 @@ const lift = (t) => (t.lift_pct == null ? null : `${t.lift_pct > 0 ? '+' : ''}${
             ref="root"
             role="dialog"
             aria-label="Hashtags sugeridos"
-            class="absolute inset-x-0 top-full z-30 mt-1 rounded-lg border border-slate-200 bg-white p-3 shadow-lg sm:inset-x-auto sm:left-0 sm:w-96"
+            class="absolute inset-x-0 top-full z-30 mt-1 rounded-lg border border-border bg-surface p-3 shadow-lg sm:inset-x-auto sm:left-0 sm:w-96"
             data-testid="hashtags-menu"
             @keydown="onKeydown"
             @keydown.tab="onTab"
         >
-            <p class="text-xs text-slate-600"
+            <p class="text-xs text-foreground-muted"
                 >De tu propio histórico (sin IA): los que has usado al menos {{ result?.min_uses ?? 2 }} veces, de mejor
                 a peor rendimiento.</p
             >
 
-            <p v-if="loading" class="mt-2 text-sm text-slate-600" role="status">Cargando…</p>
-            <p v-else-if="failed" class="mt-2 text-sm text-rose-700" role="alert"
+            <p v-if="loading" class="mt-2 text-sm text-foreground-muted" role="status">Cargando…</p>
+            <p v-else-if="failed" class="mt-2 text-sm text-danger" role="alert"
                 >No se pudieron cargar las sugerencias.</p
             >
             <p
                 v-else-if="result && !result.available"
-                class="mt-2 text-sm text-slate-600"
+                class="mt-2 text-sm text-foreground-muted"
                 data-testid="hashtags-empty"
                 >{{ result.reason }}</p
             >
@@ -123,19 +123,19 @@ const lift = (t) => (t.lift_pct == null ? null : `${t.lift_pct > 0 ? '+' : ''}${
                 <li v-for="t in result.tags" :key="t.tag">
                     <button
                         type="button"
-                        class="rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-sm font-medium text-indigo-800 hover:bg-indigo-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                        class="rounded-full border border-accent-marker bg-accent-soft px-2.5 py-1 text-sm font-medium text-accent-strong hover:bg-accent-marker focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                         data-testid="hashtag-chip"
                         :title="`${t.uses} usos · ${Math.round(t.avg_interactions)} interacciones de media`"
                         @click="pick(t)"
                         >#{{ t.tag
-                        }}<span class="ms-1.5 text-xs font-normal text-indigo-900/80"
+                        }}<span class="ms-1.5 text-xs font-normal text-accent-strong/80"
                             >{{ t.uses }}×<template v-if="lift(t)"> · {{ lift(t) }}</template></span
                         ></button
                     >
                 </li>
             </ul>
 
-            <p v-if="maxima.length" class="mt-2 text-xs text-slate-600" data-testid="hashtags-max">
+            <p v-if="maxima.length" class="mt-2 text-xs text-foreground-muted" data-testid="hashtags-max">
                 Máximo por red:
                 <template v-for="(r, i) in maxima" :key="r.target.account_id + r.target.content_type"
                     ><template v-if="i">, </template>{{ label(r) }} {{ r.max }}</template
@@ -143,7 +143,7 @@ const lift = (t) => (t.lift_pct == null ? null : `${t.lift_pct > 0 ? '+' : ''}${
             </p>
             <p
                 v-if="exceeded.length"
-                class="mt-1 text-xs font-medium text-rose-700"
+                class="mt-1 text-xs font-medium text-danger"
                 role="status"
                 data-testid="hashtags-over"
             >
@@ -154,8 +154,8 @@ const lift = (t) => (t.lift_pct == null ? null : `${t.lift_pct > 0 ? '+' : ''}${
                 >.
             </p>
 
-            <p class="mt-2 border-t border-slate-100 pt-2 text-right"
-                ><button type="button" class="text-xs font-medium text-indigo-700 underline" @click="close"
+            <p class="mt-2 border-t border-border-subtle pt-2 text-right"
+                ><button type="button" class="text-xs font-medium text-accent-strong underline" @click="close"
                     >Cerrar</button
                 ></p
             >

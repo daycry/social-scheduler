@@ -77,27 +77,27 @@ function clear() {
         <p
             v-if="error"
             role="alert"
-            class="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900"
+            class="rounded-lg bg-warning-soft px-3 py-2 text-xs leading-relaxed text-warning-ink"
             :data-testid="`${base}-error`"
             >{{ error }}</p
         >
-        <p v-else-if="searched && !results.length" role="status" class="text-xs text-slate-600"
+        <p v-else-if="searched && !results.length" role="status" class="text-xs text-foreground-muted"
             >Sin resultados. Prueba con otro nombre o pega el id del lugar.</p
         >
         <ul
             v-if="results.length"
-            class="divide-y divide-slate-100 rounded-xl border border-slate-200"
+            class="divide-y divide-border-subtle rounded-xl border border-border"
             :aria-label="`Resultados de lugares para ${account.network_label}`"
         >
             <li v-for="place in results" :key="place.id">
                 <button
                     type="button"
-                    class="flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-slate-50"
+                    class="flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-canvas"
                     :disabled="!editable"
                     @click="choose(place)"
                 >
-                    <span class="font-medium text-slate-900">{{ place.name }}</span>
-                    <span class="text-xs text-slate-600"
+                    <span class="font-medium text-foreground-strong">{{ place.name }}</span>
+                    <span class="text-xs text-foreground-muted"
                         >{{ place.detail ?? 'Sin dirección' }} · id {{ place.id }}</span
                     >
                 </button>
@@ -105,7 +105,7 @@ function clear() {
         </ul>
         <p
             v-if="chosenLabel"
-            class="flex flex-wrap items-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-900"
+            class="flex flex-wrap items-center gap-2 rounded-lg border border-accent-secondary-border bg-accent-secondary-soft px-3 py-2 text-sm text-accent-secondary-ink"
             :data-testid="`${base}-chosen`"
         >
             <span
@@ -114,7 +114,9 @@ function clear() {
             <button type="button" class="text-xs underline" :disabled="!editable" @click="clear">Quitar</button>
         </p>
         <div>
-            <label :for="`${base}-id`" class="block text-xs font-medium text-slate-900">O pega el id del lugar</label>
+            <label :for="`${base}-id`" class="block text-xs font-medium text-foreground-strong"
+                >O pega el id del lugar</label
+            >
             <input
                 :id="`${base}-id`"
                 :value="value"
@@ -128,10 +130,10 @@ function clear() {
                 @input="setManual"
                 @keydown.enter.prevent
             />
-            <p v-if="invalidId" role="alert" class="mt-1 text-xs text-red-700"
+            <p v-if="invalidId" role="alert" class="mt-1 text-xs text-danger"
                 >El id debe ser numérico (el de la Página del lugar en Facebook).</p
             >
-            <p v-else class="mt-1 text-xs text-slate-600"
+            <p v-else class="mt-1 text-xs text-foreground-muted"
                 >Id numérico de la Página de Facebook del lugar. Lo encuentras en la URL o en «Información» de esa
                 página. La búsqueda de Meta puede no estar disponible para esta app: en ese caso pega el id.</p
             >

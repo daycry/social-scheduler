@@ -46,7 +46,7 @@ const connectCards = [
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="text-xl font-bold text-slate-900">Resumen{{ brand ? ` · ${brand.name}` : '' }}</h1>
+            <h1 class="text-xl font-bold text-foreground-strong">Resumen{{ brand ? ` · ${brand.name}` : '' }}</h1>
         </template>
 
         <div class="space-y-5">

@@ -27,8 +27,8 @@ const remove = async (link) => {
 <template>
     <section class="card space-y-4 p-5 text-sm" data-testid="short-links" aria-labelledby="short-links-title">
         <div>
-            <h2 id="short-links-title" class="text-base font-semibold text-slate-900">Enlaces cortos</h2>
-            <p class="mt-1 text-xs text-slate-600"
+            <h2 id="short-links-title" class="text-base font-semibold text-foreground-strong">Enlaces cortos</h2>
+            <p class="mt-1 text-xs text-foreground-muted"
                 >Acorta una dirección y cuenta cuántas personas la abren. Solo se guarda el total de clics de cada día
                 (UTC), sin IP ni datos personales.</p
             >
@@ -37,7 +37,9 @@ const remove = async (link) => {
         <form class="grid items-start gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]" @submit.prevent="submit">
             <div>
                 <FormField id="short-url" :error="form.errors.url" v-slot="{ control }">
-                    <label for="short-url" class="block text-xs font-medium text-slate-600">Dirección de destino</label>
+                    <label for="short-url" class="block text-xs font-medium text-foreground-muted"
+                        >Dirección de destino</label
+                    >
                     <input
                         v-bind="control"
                         v-model="form.url"
@@ -52,7 +54,9 @@ const remove = async (link) => {
             </div>
             <div>
                 <FormField id="short-label" :error="form.errors.label" v-slot="{ control }">
-                    <label for="short-label" class="block text-xs font-medium text-slate-600">Nombre (opcional)</label>
+                    <label for="short-label" class="block text-xs font-medium text-foreground-muted"
+                        >Nombre (opcional)</label
+                    >
                     <input
                         v-bind="control"
                         v-model="form.label"
@@ -67,7 +71,7 @@ const remove = async (link) => {
             <PrimaryButton class="sm:mt-5" :disabled="form.processing">Acortar</PrimaryButton>
         </form>
 
-        <p v-if="!links.length" class="text-xs text-slate-600" data-testid="short-links-empty"
+        <p v-if="!links.length" class="text-xs text-foreground-muted" data-testid="short-links-empty"
             >Todavía no has acortado ningún enlace.</p
         >
         <ul v-else class="divide-y">
@@ -80,7 +84,7 @@ const remove = async (link) => {
             >
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div class="min-w-0">
-                        <p class="break-all font-medium text-slate-900">
+                        <p class="break-all font-medium text-foreground-strong">
                             <a
                                 :href="link.short_url"
                                 target="_blank"
@@ -90,16 +94,16 @@ const remove = async (link) => {
                             >
                             <span
                                 v-if="!link.active"
-                                class="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-700"
+                                class="ml-2 rounded bg-surface-hover px-1.5 py-0.5 text-xs font-medium text-foreground-secondary"
                                 >Desactivado</span
                             >
                         </p>
-                        <p v-if="link.label" class="text-xs text-slate-700">{{ link.label }}</p>
-                        <p class="break-all text-xs text-slate-600">→ {{ link.url }}</p>
+                        <p v-if="link.label" class="text-xs text-foreground-secondary">{{ link.label }}</p>
+                        <p class="break-all text-xs text-foreground-muted">→ {{ link.url }}</p>
                     </div>
                     <dl class="flex gap-4 text-right">
                         <div
-                            ><dt class="text-xs text-slate-600">Hoy</dt
+                            ><dt class="text-xs text-foreground-muted">Hoy</dt
                             ><dd
                                 class="font-semibold tabular-nums"
                                 data-testid="short-link-today"
@@ -107,11 +111,11 @@ const remove = async (link) => {
                             ></div
                         >
                         <div
-                            ><dt class="text-xs text-slate-600">7 días</dt
+                            ><dt class="text-xs text-foreground-muted">7 días</dt
                             ><dd class="font-semibold tabular-nums">{{ link.last_7_days }}</dd></div
                         >
                         <div
-                            ><dt class="text-xs text-slate-600">Total</dt
+                            ><dt class="text-xs text-foreground-muted">Total</dt
                             ><dd
                                 class="font-semibold tabular-nums"
                                 data-testid="short-link-total"
@@ -130,13 +134,13 @@ const remove = async (link) => {
                     >
                     <button
                         type="button"
-                        class="font-medium text-red-700 underline"
+                        class="font-medium text-danger underline"
                         :aria-label="`Eliminar el enlace ${link.code}`"
                         @click="remove(link)"
                         >Eliminar</button
                     >
                 </div>
-                <details v-if="link.daily.length" class="text-xs text-slate-700">
+                <details v-if="link.daily.length" class="text-xs text-foreground-secondary">
                     <summary class="cursor-pointer font-medium">Clics por día (UTC)</summary>
                     <ul class="mt-1 grid gap-x-6 sm:grid-cols-2">
                         <li v-for="d in link.daily" :key="d.date" class="flex justify-between tabular-nums">

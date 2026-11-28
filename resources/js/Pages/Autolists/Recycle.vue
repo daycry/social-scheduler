@@ -36,7 +36,7 @@ const send = (name, p) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="text-xl font-bold text-slate-900">Reciclado de posts</h1>
+            <h1 class="text-xl font-bold text-foreground-strong">Reciclado de posts</h1>
         </template>
 
         <div class="space-y-5">
@@ -53,17 +53,17 @@ const send = (name, p) => {
 
             <template v-else>
                 <section class="card space-y-2 p-5" aria-labelledby="recycle-rules">
-                    <h2 id="recycle-rules" class="text-sm font-medium text-slate-700"
+                    <h2 id="recycle-rules" class="text-sm font-medium text-foreground-secondary"
                         >Cómo se eligen · {{ brand.name }}</h2
                     >
-                    <p class="text-sm text-slate-600">
+                    <p class="text-sm text-foreground-muted">
                         Se proponen publicaciones con al menos {{ number.format(rules.min_views) }} visualizaciones,
                         publicadas hace más de {{ rules.min_age_days }} días (para que sus métricas hayan madurado) y
                         que no se hayan publicado ni reciclado en los últimos {{ rules.min_interval_days }} días. Se
                         ordenan por engagement, es decir, interacciones entre visualizaciones, que se puede comparar
                         entre redes.
                     </p>
-                    <p class="text-sm text-slate-600">
+                    <p class="text-sm text-foreground-muted">
                         «Reciclar» crea un borrador con el mismo texto y archivos para que lo revises: no se publica ni
                         se programa solo.
                         <Link :href="route('autolists.index', { brand_id: brand.id })" class="underline"
@@ -73,10 +73,10 @@ const send = (name, p) => {
                 </section>
 
                 <section class="space-y-3" aria-labelledby="recycle-proposals">
-                    <h2 id="recycle-proposals" class="text-sm font-medium text-slate-700">Propuestas</h2>
+                    <h2 id="recycle-proposals" class="text-sm font-medium text-foreground-secondary">Propuestas</h2>
 
-                    <div v-if="proposals.length === 0" class="card p-5 text-sm text-slate-600">
-                        <p class="font-medium text-slate-800">Ahora mismo no hay publicaciones para reciclar.</p>
+                    <div v-if="proposals.length === 0" class="card p-5 text-sm text-foreground-muted">
+                        <p class="font-medium text-foreground">Ahora mismo no hay publicaciones para reciclar.</p>
                         <p class="mt-1">
                             Aparecerán cuando haya publicaciones con métricas suficientes, maduras y fuera del intervalo
                             mínimo. Revisa abajo por qué se han quedado fuera.
@@ -92,10 +92,10 @@ const send = (name, p) => {
                         >
                             <div class="flex flex-wrap items-start justify-between gap-3">
                                 <div class="min-w-0 flex-1">
-                                    <p class="break-words text-sm font-medium text-slate-900">
+                                    <p class="break-words text-sm font-medium text-foreground-strong">
                                         {{ p.text || '(solo archivos)' }}
                                     </p>
-                                    <p class="mt-1 text-xs text-slate-500">
+                                    <p class="mt-1 text-xs text-foreground-subtle">
                                         Publicada el {{ fmtDate(p.published_at) }}
                                         <template v-if="p.media_count > 0">
                                             · {{ p.media_count }} archivo{{ p.media_count === 1 ? '' : 's' }}</template
@@ -128,21 +128,24 @@ const send = (name, p) => {
 
                             <dl class="grid grid-cols-3 gap-3 text-sm">
                                 <div>
-                                    <dt class="text-xs text-slate-500">Visualizaciones</dt>
-                                    <dd class="font-semibold text-slate-900">{{ number.format(p.views) }}</dd>
+                                    <dt class="text-xs text-foreground-subtle">Visualizaciones</dt>
+                                    <dd class="font-semibold text-foreground-strong">{{ number.format(p.views) }}</dd>
                                 </div>
                                 <div>
-                                    <dt class="text-xs text-slate-500">Interacciones</dt>
-                                    <dd class="font-semibold text-slate-900">{{ number.format(p.interactions) }}</dd>
+                                    <dt class="text-xs text-foreground-subtle">Interacciones</dt>
+                                    <dd
+                                        class="font-semibold text-foreground-strong"
+                                        >{{ number.format(p.interactions) }}</dd
+                                    >
                                 </div>
                                 <div>
-                                    <dt class="text-xs text-slate-500">Engagement</dt>
-                                    <dd class="font-semibold text-emerald-700">{{ percent(p.engagement_rate) }}</dd>
+                                    <dt class="text-xs text-foreground-subtle">Engagement</dt>
+                                    <dd class="font-semibold text-success-ink">{{ percent(p.engagement_rate) }}</dd>
                                 </div>
                             </dl>
 
                             <ul
-                                class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500"
+                                class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-foreground-subtle"
                                 aria-label="Destinos con métricas"
                             >
                                 <li v-for="t in p.targets" :key="t.id" class="flex items-center gap-1">
@@ -154,21 +157,23 @@ const send = (name, p) => {
                             </ul>
                         </li>
                     </ul>
-                    <p v-if="total > proposals.length" class="text-xs text-slate-500">
+                    <p v-if="total > proposals.length" class="text-xs text-foreground-subtle">
                         Se muestran las {{ proposals.length }} mejores de {{ total }}.
                     </p>
                 </section>
 
-                <p v-if="not_analyzed > 0" class="text-xs text-slate-500">
+                <p v-if="not_analyzed > 0" class="text-xs text-foreground-subtle">
                     Se han analizado los destinos publicados más recientes; {{ not_analyzed }}
                     {{ not_analyzed === 1 ? 'destino más antiguo' : 'destinos más antiguos' }} quedan sin analizar.
                 </p>
 
                 <section v-if="excluded.length" class="card p-5" aria-labelledby="recycle-excluded">
-                    <h2 id="recycle-excluded" class="text-sm font-medium text-slate-700">Fuera de las propuestas</h2>
-                    <ul class="mt-2 space-y-1 text-sm text-slate-600">
+                    <h2 id="recycle-excluded" class="text-sm font-medium text-foreground-secondary"
+                        >Fuera de las propuestas</h2
+                    >
+                    <ul class="mt-2 space-y-1 text-sm text-foreground-muted">
                         <li v-for="e in excluded" :key="e.reason">
-                            <span class="font-semibold text-slate-800">{{ e.count }}</span> · {{ e.label }}
+                            <span class="font-semibold text-foreground">{{ e.count }}</span> · {{ e.label }}
                         </li>
                     </ul>
                 </section>

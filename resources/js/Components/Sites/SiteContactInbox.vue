@@ -21,24 +21,24 @@ const removeMessage = async (m) => {
 
 <template>
     <section v-if="messagesMeta.total" class="card space-y-2 p-4 text-sm" aria-labelledby="s-mensajes">
-        <h2 id="s-mensajes" class="text-base font-semibold text-slate-900"
+        <h2 id="s-mensajes" class="text-base font-semibold text-foreground-strong"
             >Mensajes del formulario ({{ messagesMeta.total }})</h2
         >
-        <p class="text-xs text-slate-600"
+        <p class="text-xs text-foreground-muted"
             >Se guardan los últimos 500; al llegar al tope se descartan los más antiguos. {{ messagesMeta.unread }} sin
             leer.</p
         >
         <div class="flex flex-wrap gap-3 text-xs">
             <button
                 type="button"
-                class="font-medium text-red-700 underline"
+                class="font-medium text-danger underline"
                 data-testid="messages-clear-read"
                 @click="clearMessages(true)"
                 >Borrar leídos</button
             >
             <button
                 type="button"
-                class="font-medium text-red-700 underline"
+                class="font-medium text-danger underline"
                 data-testid="messages-clear-all"
                 @click="clearMessages(false)"
                 >Borrar todos</button
@@ -49,14 +49,14 @@ const removeMessage = async (m) => {
                 <p class="font-medium"
                     >{{ m.name }} · <span class="break-all text-xs font-normal">{{ m.email }}</span>&#32;<span
                         v-if="m.unread"
-                        class="rounded bg-amber-100 px-1 text-xs"
+                        class="rounded bg-warning-soft px-1 text-xs"
                         >Nuevo</span
                     ></p
                 >
                 <p class="whitespace-pre-line">{{ m.message }}</p>
                 <button
                     type="button"
-                    class="text-xs font-medium text-red-700 underline"
+                    class="text-xs font-medium text-danger underline"
                     :aria-label="`Eliminar el mensaje de ${m.name}`"
                     @click="removeMessage(m)"
                     >Eliminar</button

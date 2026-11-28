@@ -45,13 +45,13 @@ const readyImages = template => template.media.filter(asset => asset.kind === 'i
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="text-xl font-bold text-slate-900">Plantillas de publicación</h1>
+            <h1 class="text-xl font-bold text-foreground-strong">Plantillas de publicación</h1>
         </template>
 
         <div class="space-y-5">
             <p
                 v-if="useError"
-                class="text-sm text-red-600"
+                class="text-sm text-danger"
                 role="alert"
                 data-testid="library-use-error"
                 >{{ useError }}</p
@@ -73,10 +73,10 @@ const readyImages = template => template.media.filter(asset => asset.kind === 'i
             </FeatureEmpty>
 
             <form v-else class="card space-y-3 p-5" @submit.prevent="submit">
-                <h2 class="text-sm font-medium text-slate-700">Nueva plantilla de texto</h2>
+                <h2 class="text-sm font-medium text-foreground-secondary">Nueva plantilla de texto</h2>
                 <FormField :error="form.errors.name" v-slot="{ control }">
                     <label class="block text-sm">
-                        <span class="block text-xs font-medium text-slate-600">Nombre</span>
+                        <span class="block text-xs font-medium text-foreground-muted">Nombre</span>
                         <input
                             v-bind="control"
                             v-model="form.name"
@@ -89,7 +89,7 @@ const readyImages = template => template.media.filter(asset => asset.kind === 'i
                 </FormField>
                 <FormField :error="form.errors.text" v-slot="{ control }">
                     <label class="block text-sm">
-                        <span class="block text-xs font-medium text-slate-600">Texto</span>
+                        <span class="block text-xs font-medium text-foreground-muted">Texto</span>
                         <textarea
                             v-bind="control"
                             v-model="form.text"
@@ -101,14 +101,14 @@ const readyImages = template => template.media.filter(asset => asset.kind === 'i
                 </FormField>
                 <FormField :error="form.errors.brand_id" />
                 <PrimaryButton :disabled="form.processing">Guardar plantilla</PrimaryButton>
-                <p class="text-xs text-slate-500"
+                <p class="text-xs text-foreground-subtle"
                     >También puedes guardar una publicación ya creada desde su editor o calendario.</p
                 >
             </form>
 
             <section v-if="brand" class="card">
-                <h2 class="border-b px-5 py-3 text-sm font-medium text-slate-700">Plantillas guardadas</h2>
-                <p v-if="templates.length === 0" class="p-5 text-sm text-slate-600"
+                <h2 class="border-b px-5 py-3 text-sm font-medium text-foreground-secondary">Plantillas guardadas</h2>
+                <p v-if="templates.length === 0" class="p-5 text-sm text-foreground-muted"
                     >Aún no tienes plantillas. Crea una arriba o guarda una publicación desde su editor.</p
                 >
                 <ul v-else class="divide-y">
@@ -118,11 +118,11 @@ const readyImages = template => template.media.filter(asset => asset.kind === 'i
                         class="flex flex-wrap items-start justify-between gap-3 px-5 py-3 text-sm"
                     >
                         <div class="min-w-0">
-                            <p class="font-medium text-slate-900">{{ t.name }}</p>
-                            <p v-if="t.text" class="line-clamp-2 text-slate-600">{{ t.text }}</p>
+                            <p class="font-medium text-foreground-strong">{{ t.name }}</p>
+                            <p v-if="t.text" class="line-clamp-2 text-foreground-muted">{{ t.text }}</p>
                             <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
                                 <NetworkChip v-for="n in t.networks" :key="n" :network="n" />
-                                <span class="text-xs text-slate-500"
+                                <span class="text-xs text-foreground-subtle"
                                     >{{ t.brand }} · {{ t.media.length }} archivos</span
                                 >
                             </div>
@@ -143,7 +143,7 @@ const readyImages = template => template.media.filter(asset => asset.kind === 'i
                         </ul>
                         <div class="flex items-center gap-3">
                             <button type="button" class="btn btn-secondary" @click="use(t)">Usar</button>
-                            <button type="button" class="text-xs font-medium text-red-700 underline" @click="remove(t)"
+                            <button type="button" class="text-xs font-medium text-danger underline" @click="remove(t)"
                                 >Eliminar</button
                             >
                         </div>

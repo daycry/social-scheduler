@@ -61,7 +61,7 @@ const use = () => {
         >
         <div v-if="open" class="card space-y-2 p-3 text-sm" @keydown.esc.stop="closePanel">
             <label class="block">
-                <span class="block text-xs font-medium text-slate-500"
+                <span class="block text-xs font-medium text-foreground-subtle"
                     >¿De qué trata la publicación? (no incluyas datos personales)</span
                 >
                 <textarea v-model="brief" rows="2" maxlength="500" class="field"></textarea>
@@ -74,11 +74,11 @@ const use = () => {
                     @click="generate"
                     >{{ loading ? 'Generando…' : 'Generar' }}</button
                 >
-                <span class="text-xs text-slate-500">Te quedan {{ remaining }} hoy</span>
+                <span class="text-xs text-foreground-subtle">Te quedan {{ remaining }} hoy</span>
             </div>
-            <p v-if="error" class="text-sm text-red-600" role="alert">{{ error }}</p>
-            <div v-if="suggestion" class="space-y-2 rounded-lg bg-slate-50 p-3">
-                <p class="whitespace-pre-line text-slate-800">{{ suggestion }}</p>
+            <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
+            <div v-if="suggestion" class="space-y-2 rounded-lg bg-canvas p-3">
+                <p class="whitespace-pre-line text-foreground">{{ suggestion }}</p>
                 <button type="button" class="btn btn-secondary" @click="use">Usar este texto</button>
             </div>
         </div>

@@ -1,7 +1,19 @@
 import { expect, test, type Page } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
-import { artisan, axeSeriousCritical, cleanComposerBrands, e2eUser, expectNoOverflow, loginAs, seedComposerBrand, seedExtraAccount, settle, stamp, watch } from './helpers';
+import {
+    artisan,
+    axeSeriousCritical,
+    cleanComposerBrands,
+    e2eUser,
+    expectNoOverflow,
+    loginAs,
+    seedComposerBrand,
+    seedExtraAccount,
+    settle,
+    stamp,
+    watch,
+} from './helpers';
 import { runRoot } from './isolated/runtime';
 
 /**
@@ -48,90 +60,118 @@ function seedPost() {
 
 const region = (page: Page, name: string) => page.getByRole('region', { name, exact: true });
 
-test('T-18 · Conexiones: LinkedIn y Pinterest se conectan con el proveedor simulado y quedan como cuentas conectadas', { tag: '@responsive' }, async ({ page }) => {
-    const w = watch(page);
-    await page.goto(`/brands/${brand.id}/connections`);
-    await settle(page);
-
-    for (const [network, label] of [['linkedin', 'LinkedIn'], ['pinterest', 'Pinterest']] as const) {
-        const card = page.locator(`section[data-network="${network}"]`);
-        await expect(card.getByRole('heading', { name: label })).toBeVisible();
-        await card.getByRole('button', { name: '+ Conectar', exact: true }).click();
-        await page.waitForURL(new RegExp(`/brands/${brand.id}/connections`));
+test('T-18 · Conexiones: LinkedIn y Pinterest se conectan con el proveedor simulado y quedan como cuentas conectadas', { tag: '@responsive' },
+    async ({ page }) => {
+        const w = watch(page);
+        await page.goto(`/brands/${brand.id}/connections`);
         await settle(page);
-        await expect(page.locator(`section[data-network="${network}"]`)).toContainText(`T43 ${label}`);
-        await expect(page.locator(`section[data-network="${network}"]`)).toContainText('Conectada');
-    }
-    // T-21 (B-04): las cuentas de Pinterest ofrecen refrescar los tableros (paginados) y dicen cuantos hay.
-    const boards = page.locator('section[data-network="pinterest"]').getByTestId(/^pinterest-boards-/);
-    await expect(boards).toContainText(/tableros? disponibles?/);
-    await expect(boards.getByRole('button', { name: 'Actualizar tableros', exact: true })).toBeEnabled();
-    const html = await page.content();
-    expect(html).not.toContain('access_token');
-    expect(html).not.toContain('t43-fake-access');
-    await expectNoOverflow(page);
-    await axeSeriousCritical(page, 'Conexiones con LinkedIn y Pinterest');
-    // El 409 es la redireccion de Inertia al proveedor (X-Inertia-Location), no un fallo.
-    expect(w.errors.filter((e) => !/409/.test(e)), w.errors.join('\n')).toEqual([]);
-});
 
-test('T-18 · compositor: opciones de LinkedIn y Pinterest, errores del tablero y publicar en simulado', { tag: '@responsive' }, async ({ page }) => {
-    const w = watch(page);
-    seedPost();
-    await page.goto(`/posts/${post}/edit`);
-    await settle(page);
+        for (const [network, label] of [
+            ['linkedin', 'LinkedIn'],
+            ['pinterest', 'Pinterest'],
+        ] as const) {
+            const card = page.locator(`section[data-network="${network}"]`);
+            await expect(card.getByRole('heading', { name: label })).toBeVisible();
+            await card.getByRole('button', { name: '+ Conectar', exact: true }).click();
+            await page.waitForURL(new RegExp(`/brands/${brand.id}/connections`));
+            await settle(page);
+            await expect(page.locator(`section[data-network="${network}"]`)).toContainText(`T43 ${label}`);
+            await expect(page.locator(`section[data-network="${network}"]`)).toContainText('Conectada');
+        }
+        // T-21 (B-04): las cuentas de Pinterest ofrecen refrescar los tableros (paginados) y dicen cuantos hay.
+        const boards = page.locator('section[data-network="pinterest"]').getByTestId(/^pinterest-boards-/);
+        await expect(boards).toContainText(/tableros? disponibles?/);
+        await expect(boards.getByRole('button', { name: 'Actualizar tableros', exact: true })).toBeEnabled();
+        const html = await page.content();
+        // Fuga real = pareja clave/valor serializada (`"access_token":"…"`); el nombre del campo del formulario de Mastodon es legítimo.
+        expect(html).not.toMatch(/access_token(?:&quot;|")\s*:/);
+        expect(html).not.toContain('t43-fake-access');
+        await expectNoOverflow(page);
+        await axeSeriousCritical(page, 'Conexiones con LinkedIn y Pinterest');
+        // El 409 es la redireccion de Inertia al proveedor (X-Inertia-Location), no un fallo.
+        expect(
+            w.errors.filter((e) => !/409/.test(e)),
+            w.errors.join('\n'),
+        ).toEqual([]);
+    },
+);
 
-    // LinkedIn: visibilidad y bloqueo de comparticion.
-    const li = region(page, 'Opciones de LinkedIn (e2e LinkedIn)');
-    await expect(li).toBeVisible();
-    await li.getByLabel('Visibilidad').selectOption('CONNECTIONS');
-    await li.getByLabel('Impedir que se comparta de nuevo').check();
+test('T-18 · compositor: opciones de LinkedIn y Pinterest, errores del tablero y publicar en simulado', { tag: '@responsive' },
+    async ({ page }) => {
+        const w = watch(page);
+        seedPost();
+        await page.goto(`/posts/${post}/edit`);
+        await settle(page);
 
-    // Pinterest: el tablero es obligatorio; quitarlo bloquea y lo explica.
-    const pi = region(page, 'Opciones de Pinterest (e2e Pinterest)');
-    await expect(pi.getByLabel('Tablero (obligatorio)')).toHaveValue('549755885175');
-    await pi.getByLabel('Título del pin (por defecto, la primera línea del texto)').fill('Tarta de queso');
-    await pi.getByLabel('Enlace de destino (opcional)').fill('http://inseguro.example.com');
-    await expect(page.getByTestId('errors-panel')).toContainText('URL https valida', { timeout: 10_000 });
-    await expect(page.getByRole('button', { name: 'Programar' })).toBeDisabled();
-    await pi.getByLabel('Enlace de destino (opcional)').fill('https://example.com/receta');
-    await pi.getByLabel('Tablero (obligatorio)').selectOption({ label: 'Viajes e2e' });
-    await expect(page.getByTestId('errors-panel')).toHaveText('', { timeout: 10_000 });
-    await expectNoOverflow(page);
-    await axeSeriousCritical(page, 'compositor con LinkedIn y Pinterest');
+        // LinkedIn: visibilidad y bloqueo de comparticion.
+        const li = region(page, 'Opciones de LinkedIn (e2e LinkedIn)');
+        await expect(li).toBeVisible();
+        await li.getByLabel('Visibilidad').selectOption('CONNECTIONS');
+        await li.getByLabel('Impedir que se comparta de nuevo').check();
 
-    // Publicar ahora: la red simulada recibe tipo, texto y opciones de cada destino.
-    await page.getByRole('button', { name: 'Más acciones de publicación' }).click();
-    await page.getByRole('menuitem', { name: 'Publicar ahora', exact: true }).click();
-    await page.waitForURL(/\/calendar/);
-    artisan("Illuminate\\Support\\Facades\\Artisan::call('queue:work',['connection'=>'database','--queue'=>'publish','--stop-when-empty'=>true,'--tries'=>1,'--timeout'=>100,'--sleep'=>0]);");
-    const status = artisan(String.raw`echo 'ST:' . App\Models\PostTarget::withoutUserScope()->where('post_id', ${post})->get()->map(fn ($t) => $t->status->value . '/' . $t->error_message)->implode(',');`);
-    expect(status, status).toMatch(/^ST:publicada\/,publicada\/$/m);
+        // Pinterest: el tablero es obligatorio; quitarlo bloquea y lo explica.
+        const pi = region(page, 'Opciones de Pinterest (e2e Pinterest)');
+        await expect(pi.getByLabel('Tablero (obligatorio)')).toHaveValue('549755885175');
+        await pi.getByLabel('Título del pin (por defecto, la primera línea del texto)').fill('Tarta de queso');
+        await pi.getByLabel('Enlace de destino (opcional)').fill('http://inseguro.example.com');
+        await expect(page.getByTestId('errors-panel')).toContainText('URL https valida', { timeout: 10_000 });
+        await expect(page.getByRole('button', { name: 'Programar' })).toBeDisabled();
+        await pi.getByLabel('Enlace de destino (opcional)').fill('https://example.com/receta');
+        await pi.getByLabel('Tablero (obligatorio)').selectOption({ label: 'Viajes e2e' });
+        await expect(page.getByTestId('errors-panel')).toHaveText('', { timeout: 10_000 });
+        await expectNoOverflow(page);
+        await axeSeriousCritical(page, 'compositor con LinkedIn y Pinterest');
 
-    const records = JSON.parse(fs.readFileSync(path.join(runRoot, 'externals.json'), 'utf8')).records;
-    expect(records[String(ids.liTarget)]).toMatchObject({ type: 'linkedin_image', text: 'Receta de tarta E2E', options: { linkedin_visibility: 'CONNECTIONS', linkedin_disable_reshare: true } });
-    expect(records[String(ids.piTarget)]).toMatchObject({
-        type: 'pinterest_pin',
-        options: { pinterest_board_id: '549755885176', pinterest_title: 'Tarta de queso', pinterest_link: 'https://example.com/receta' },
-    });
-    expect(w.errors.filter((e) => !/422/.test(e)), w.errors.join('\n')).toEqual([]);
-});
+        // Publicar ahora: la red simulada recibe tipo, texto y opciones de cada destino.
+        await page.getByRole('button', { name: 'Más acciones de publicación' }).click();
+        await page.getByRole('menuitem', { name: 'Publicar ahora', exact: true }).click();
+        await page.waitForURL(/\/calendar/);
+        artisan(
+            "Illuminate\\Support\\Facades\\Artisan::call('queue:work',['connection'=>'database','--queue'=>'publish','--stop-when-empty'=>true,'--tries'=>1,'--timeout'=>100,'--sleep'=>0]);",
+        );
+        const status = artisan(
+            String.raw`echo 'ST:' . App\Models\PostTarget::withoutUserScope()->where('post_id', ${post})->get()->map(fn ($t) => $t->status->value . '/' . $t->error_message)->implode(',');`,
+        );
+        expect(status, status).toMatch(/^ST:publicada\/,publicada\/$/m);
 
-test('T-18 · compositor: LinkedIn y Pinterest se ofrecen con su contador de caracteres propio y sin desbordar', { tag: '@responsive' }, async ({ page }) => {
-    const w = watch(page);
-    seedPost();
-    await page.goto(`/brands/${brand.id}/posts/create`);
-    await settle(page);
-    await expect(page.getByRole('button', { name: /^LinkedIn: e2e LinkedIn/ })).toBeVisible();
-    await expect(page.getByRole('button', { name: /^Pinterest: e2e Pinterest/ })).toBeVisible();
-    await page.getByRole('button', { name: /^LinkedIn: e2e LinkedIn/ }).click();
-    await page.getByRole('button', { name: /^Pinterest: e2e Pinterest/ }).click();
-    await page.locator('#text').fill('Hola desde LinkedIn y Pinterest');
-    const lc = page.getByTestId('network-counters').getByRole('listitem').filter({ hasText: 'LinkedIn' });
-    await expect(lc.getByTestId('counter-chars')).toHaveText(/^31 \/ 3[.,]?000$/);
-    const pc = page.getByTestId('network-counters').getByRole('listitem').filter({ hasText: 'Pinterest' });
-    await expect(pc.getByTestId('counter-chars')).toHaveText('31 / 800');
-    await expectNoOverflow(page);
-    await axeSeriousCritical(page, 'compositor con contadores de LinkedIn y Pinterest');
-    expect(w.errors, w.errors.join('\n')).toEqual([]);
-});
+        const records = JSON.parse(fs.readFileSync(path.join(runRoot, 'externals.json'), 'utf8')).records;
+        expect(records[String(ids.liTarget)]).toMatchObject({
+            type: 'linkedin_image',
+            text: 'Receta de tarta E2E',
+            options: { linkedin_visibility: 'CONNECTIONS', linkedin_disable_reshare: true },
+        });
+        expect(records[String(ids.piTarget)]).toMatchObject({
+            type: 'pinterest_pin',
+            options: {
+                pinterest_board_id: '549755885176',
+                pinterest_title: 'Tarta de queso',
+                pinterest_link: 'https://example.com/receta',
+            },
+        });
+        expect(
+            w.errors.filter((e) => !/422/.test(e)),
+            w.errors.join('\n'),
+        ).toEqual([]);
+    },
+);
+
+test('T-18 · compositor: LinkedIn y Pinterest se ofrecen con su contador de caracteres propio y sin desbordar', { tag: '@responsive' },
+    async ({ page }) => {
+        const w = watch(page);
+        seedPost();
+        await page.goto(`/brands/${brand.id}/posts/create`);
+        await settle(page);
+        await expect(page.getByRole('button', { name: /^LinkedIn: e2e LinkedIn/ })).toBeVisible();
+        await expect(page.getByRole('button', { name: /^Pinterest: e2e Pinterest/ })).toBeVisible();
+        await page.getByRole('button', { name: /^LinkedIn: e2e LinkedIn/ }).click();
+        await page.getByRole('button', { name: /^Pinterest: e2e Pinterest/ }).click();
+        await page.locator('#text').fill('Hola desde LinkedIn y Pinterest');
+        const lc = page.getByTestId('network-counters').getByRole('listitem').filter({ hasText: 'LinkedIn' });
+        await expect(lc.getByTestId('counter-chars')).toHaveText(/^31 \/ 3[.,]?000$/);
+        const pc = page.getByTestId('network-counters').getByRole('listitem').filter({ hasText: 'Pinterest' });
+        await expect(pc.getByTestId('counter-chars')).toHaveText('31 / 800');
+        await expectNoOverflow(page);
+        await axeSeriousCritical(page, 'compositor con contadores de LinkedIn y Pinterest');
+        expect(w.errors, w.errors.join('\n')).toEqual([]);
+    },
+);

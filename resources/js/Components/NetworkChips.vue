@@ -36,8 +36,8 @@ const onKey = (e) => {
     to.focus();
 };
 
-const on = 'bg-indigo-600 text-white';
-const off = 'bg-white text-slate-700 ring-1 ring-slate-200';
+const on = 'bg-accent-fill text-on-accent';
+const off = 'bg-surface text-foreground-secondary ring-1 ring-border';
 </script>
 
 <template>
@@ -64,7 +64,7 @@ const off = 'bg-white text-slate-700 ring-1 ring-slate-200';
                 v-else-if="n.connectHref"
                 :href="n.connectHref"
                 :aria-label="`Conectar ${n.label}`"
-                class="flex shrink-0 items-center gap-1.5 rounded-full bg-white px-3 py-1.5 font-medium text-slate-600 ring-1 ring-dashed ring-slate-300"
+                class="flex shrink-0 items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 font-medium text-foreground-muted ring-1 ring-dashed ring-control-border"
             >
                 <NetworkIcon :network="n.value" size="sm" />{{ n.label }} <span aria-hidden="true">+</span>
             </Link>

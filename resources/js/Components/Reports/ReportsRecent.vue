@@ -14,10 +14,10 @@ const props = defineProps({
 const ask = useConfirm();
 
 const STATUS = {
-    pending: ['En cola', 'bg-slate-100 text-slate-700'],
-    processing: ['Generando...', 'bg-blue-100 text-blue-700'],
-    ready: ['Listo', 'bg-emerald-100 text-emerald-800'],
-    failed: ['Error', 'bg-red-100 text-red-700'],
+    pending: ['En cola', 'bg-surface-hover text-foreground-secondary'],
+    processing: ['Generando...', 'bg-info-soft text-info-ink'],
+    ready: ['Listo', 'bg-success-soft text-success-ink'],
+    failed: ['Error', 'bg-danger-soft text-danger'],
 };
 
 /** @param {AbortSignal} signal @returns {Promise<void>} */
@@ -63,18 +63,18 @@ const size = (b) => (b ? (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Ma
 
 <template>
     <section class="card">
-        <h2 class="border-b px-5 py-3 text-sm font-medium text-slate-700">Informes recientes</h2>
+        <h2 class="border-b px-5 py-3 text-sm font-medium text-foreground-secondary">Informes recientes</h2>
         <div :class="pollingExhausted ? 'flex flex-wrap items-center gap-2 px-5 py-3' : 'sr-only'">
             <p
                 role="status"
-                class="text-sm text-slate-600"
+                class="text-sm text-foreground-muted"
                 >{{ pollingExhausted ? 'Todavía hay informes pendientes.' : '' }}</p
             >
             <SecondaryButton v-if="pollingExhausted" type="button" @click="restartPolling"
                 >Volver a consultar</SecondaryButton
             >
         </div>
-        <p v-if="reports.length === 0" class="p-5 text-sm text-slate-600">Aún no has generado informes.</p>
+        <p v-if="reports.length === 0" class="p-5 text-sm text-foreground-muted">Aún no has generado informes.</p>
         <ul v-else class="divide-y">
             <li
                 v-for="r in reports"
@@ -83,11 +83,11 @@ const size = (b) => (b ? (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Ma
                 :data-report="r.id"
             >
                 <div>
-                    <p class="font-medium text-slate-900">{{ r.brand }} · {{ r.format.toUpperCase() }}</p>
-                    <p class="text-xs text-slate-600"
+                    <p class="font-medium text-foreground-strong">{{ r.brand }} · {{ r.format.toUpperCase() }}</p>
+                    <p class="text-xs text-foreground-muted"
                         >{{ r.from }} - {{ r.to }} <span v-if="r.size">· {{ size(r.size) }}</span></p
                     >
-                    <p v-if="r.status === 'failed' && r.error" class="text-xs text-red-700">{{ r.error }}</p>
+                    <p v-if="r.status === 'failed' && r.error" class="text-xs text-danger">{{ r.error }}</p>
                 </div>
                 <div class="flex items-center gap-3">
                     <span
@@ -96,7 +96,7 @@ const size = (b) => (b ? (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Ma
                         >{{ STATUS[r.status][0] }}</span
                     >
                     <a v-if="r.download_url" :href="r.download_url" class="link">Descargar</a>
-                    <button v-if="r.deletable" type="button" class="text-xs text-red-700 underline" @click="remove(r)"
+                    <button v-if="r.deletable" type="button" class="text-xs text-danger underline" @click="remove(r)"
                         >Eliminar</button
                     >
                 </div>

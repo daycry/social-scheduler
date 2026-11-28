@@ -16,10 +16,10 @@ const size = bytes => (bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` :
 
 <template>
     <div class="flex flex-wrap items-center gap-3" data-testid="pdf-asset">
-        <Icon name="doc" class="h-9 w-9 shrink-0 text-red-600" />
+        <Icon name="doc" class="h-9 w-9 shrink-0 text-danger" />
         <div class="min-w-0 flex-1">
-            <p class="break-words font-medium text-slate-900">{{ asset.name }}</p>
-            <p class="text-xs text-slate-600">
+            <p class="break-words font-medium text-foreground-strong">{{ asset.name }}</p>
+            <p class="text-xs text-foreground-muted">
                 PDF · {{ size(asset.size) }}
                 <a
                     v-if="asset.origin?.url"
@@ -53,7 +53,7 @@ const size = bytes => (bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` :
             <button
                 v-if="removable"
                 type="button"
-                class="link text-red-700"
+                class="link text-danger"
                 :aria-label="`Eliminar ${asset.name}`"
                 @click="$emit('remove', asset)"
                 >Eliminar</button

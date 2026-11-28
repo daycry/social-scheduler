@@ -111,17 +111,17 @@ onBeforeUnmount(() => { disposed = true; generation++; requests.forEach(controll
         @update:model-value="value => emit('update:modelValue', value)"
     >
         <div class="space-y-6">
-            <p class="text-sm leading-relaxed text-slate-500"
+            <p class="text-sm leading-relaxed text-foreground-subtle"
                 >Sube los archivos tipográficos de esta marca para usarlos en el editor y en sus exportaciones. Los
                 diseños conservan la referencia al archivo original.</p
             >
             <fieldset
-                class="space-y-3 rounded-2xl border border-dashed border-violet-200 bg-violet-50/50 p-4"
+                class="space-y-3 rounded-2xl border border-dashed border-accent-secondary-border bg-accent-secondary-soft/50 p-4"
                 :disabled="busy"
             >
-                <legend class="px-1 text-sm font-semibold text-violet-950">Añadir una tipografía</legend>
+                <legend class="px-1 text-sm font-semibold text-accent-secondary-ink">Añadir una tipografía</legend>
                 <label class="block text-sm font-medium"
-                    >Nombre de la tipografía <span class="font-normal text-slate-500">(opcional)</span
+                    >Nombre de la tipografía <span class="font-normal text-foreground-subtle">(opcional)</span
                     ><input
                         v-model="uploadName"
                         class="field mt-1"
@@ -133,10 +133,10 @@ onBeforeUnmount(() => { disposed = true; generation++; requests.forEach(controll
                     type="file"
                     accept=".ttf,.otf,.woff,.woff2"
                     aria-label="Subir tipografía"
-                    class="block w-full min-w-0 text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-violet-700 file:px-3 file:py-2 file:font-semibold file:text-white"
+                    class="block w-full min-w-0 text-xs text-foreground-muted file:mr-3 file:rounded-lg file:border-0 file:bg-accent-secondary-fill file:px-3 file:py-2 file:font-semibold file:text-on-accent-secondary"
                     @change="upload"
                 />
-                <p class="text-xs leading-relaxed text-slate-500"
+                <p class="text-xs leading-relaxed text-foreground-subtle"
                     >TTF, OTF, WOFF o WOFF2 · hasta 8 MiB. Se comprueba el archivo antes de incorporarlo.</p
                 >
             </fieldset>
@@ -150,7 +150,7 @@ onBeforeUnmount(() => { disposed = true; generation++; requests.forEach(controll
                     placeholder="Buscar por nombre o familia…"
                 />
                 <button type="submit" class="btn-secondary" :disabled="busy">Buscar tipografías</button>
-                <label class="flex w-full items-center gap-2 text-xs text-slate-600"
+                <label class="flex w-full items-center gap-2 text-xs text-foreground-muted"
                     ><input v-model="archived" type="checkbox" :disabled="busy" @change="load()" />Mostrar tipografías
                     archivadas</label
                 >
@@ -158,32 +158,33 @@ onBeforeUnmount(() => { disposed = true; generation++; requests.forEach(controll
             <p
                 v-if="error"
                 role="alert"
-                class="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+                class="rounded-xl border border-danger-border bg-danger-soft p-3 text-sm text-danger-ink"
                 >{{ error }}</p
             >
-            <p v-if="status" role="status" class="rounded-xl bg-violet-50 p-3 text-sm text-violet-800">{{ status }}</p>
-            <p v-if="busy" role="status" class="text-sm text-slate-500">Preparando tipografías…</p>
+            <p
+                v-if="status"
+                role="status"
+                class="rounded-xl bg-accent-secondary-soft p-3 text-sm text-accent-secondary-ink"
+                >{{ status }}</p
+            >
+            <p v-if="busy" role="status" class="text-sm text-foreground-subtle">Preparando tipografías…</p>
             <ul v-if="rows.length" class="space-y-3">
-                <li
-                    v-for="font in rows"
-                    :key="font.id"
-                    class="min-w-0 space-y-3 rounded-2xl border border-slate-200 p-4"
-                >
+                <li v-for="font in rows" :key="font.id" class="min-w-0 space-y-3 rounded-2xl border border-border p-4">
                     <div class="flex flex-wrap items-start justify-between gap-3"
                         ><div class="min-w-0"
                             ><h3 class="break-words text-sm font-semibold">{{ font.name }}</h3
-                            ><p class="mt-1 break-words text-xs text-slate-500"
+                            ><p class="mt-1 break-words text-xs text-foreground-subtle"
                                 >{{ font.family }} · {{ font.style }} · {{ font.weight }}
                                 <span v-if="font.archived_at">· Archivada</span></p
                             ></div
                         ><span
-                            class="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium uppercase text-slate-600"
+                            class="rounded-full bg-surface-hover px-2 py-1 text-[10px] font-medium uppercase text-foreground-muted"
                             >{{ font.format }}</span
                         ></div
                     >
                     <p
                         v-if="previewFamilies[font.id]"
-                        class="break-words rounded-xl bg-slate-50 px-3 py-4 text-2xl"
+                        class="break-words rounded-xl bg-canvas px-3 py-4 text-2xl"
                         :style="{ fontFamily: previewFamilies[font.id], fontWeight: font.weight, fontStyle: font.style }"
                         >Una idea con personalidad. Aa Bb 0123</p
                     >
@@ -204,14 +205,14 @@ onBeforeUnmount(() => { disposed = true; generation++; requests.forEach(controll
                             >{{ font.archived_at ? 'Restaurar' : 'Archivar' }}</button
                         ><button
                             type="button"
-                            class="rounded-lg px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                            class="rounded-lg px-3 py-2 text-xs font-medium text-danger hover:bg-danger-soft disabled:opacity-50"
                             :aria-label="`Eliminar tipografía ${font.name}`"
                             :disabled="busy || blockedDeletes[font.id]"
                             @click="mutate(font, 'delete')"
                             >Eliminar</button
                         ></div
                     >
-                    <p v-if="blockedDeletes[font.id]" class="text-xs leading-relaxed text-amber-800"
+                    <p v-if="blockedDeletes[font.id]" class="text-xs leading-relaxed text-warning-ink"
                         >Esta fuente sigue en uso. Puedes archivarla; su eliminación estará disponible cuando dejen de
                         referenciarla los diseños, revisiones y la identidad de marca.</p
                     >
@@ -219,7 +220,7 @@ onBeforeUnmount(() => { disposed = true; generation++; requests.forEach(controll
             </ul>
             <p
                 v-else-if="!busy"
-                class="rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500"
+                class="rounded-xl border border-dashed border-border p-6 text-center text-sm text-foreground-subtle"
                 >{{ query ? 'No hay tipografías con esa búsqueda.' : archived ? 'No hay tipografías archivadas.' : 'Sube tu primera tipografía para empezar.' }}</p
             >
             <nav
@@ -245,7 +246,7 @@ onBeforeUnmount(() => { disposed = true; generation++; requests.forEach(controll
                     >Siguiente</button
                 ></nav
             >
-            <p class="border-t border-slate-100 pt-4 text-xs leading-relaxed text-slate-500"
+            <p class="border-t border-border-subtle pt-4 text-xs leading-relaxed text-foreground-subtle"
                 >Archivar oculta una fuente del selector sin alterar los diseños existentes. Para eliminar sus bytes,
                 primero debe dejar de estar referenciada por diseños, revisiones o la identidad de marca.</p
             >

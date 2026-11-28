@@ -44,17 +44,17 @@ const markPublished = async (target) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="text-xl font-bold text-slate-900">Publicación manual</h1>
+            <h1 class="text-xl font-bold text-foreground-strong">Publicación manual</h1>
         </template>
 
         <div class="max-w-3xl space-y-4">
-            <p class="text-sm text-slate-700">
+            <p class="text-sm text-foreground-secondary">
                 Estos destinos de «{{ post.brand_name }}» no se envían a la red. Copia el texto, descarga la media,
                 publica a mano y confirma aquí.
                 <Link :href="route('posts.edit', post.id)" class="link ms-1">Abrir la publicación</Link>
             </p>
 
-            <p v-if="targets.length === 0" class="card p-4 text-sm text-slate-600"
+            <p v-if="targets.length === 0" class="card p-4 text-sm text-foreground-muted"
                 >Esta publicación no tiene destinos manuales.</p
             >
 
@@ -65,14 +65,14 @@ const markPublished = async (target) => {
                 :data-testid="`manual-target-${t.target_id}`"
             >
                 <header class="flex flex-wrap items-center gap-2">
-                    <h2 class="text-base font-semibold text-slate-900"
+                    <h2 class="text-base font-semibold text-foreground-strong"
                         >{{ t.network_label }}<span v-if="t.account_name"> · {{ t.account_name }}</span></h2
                     >
                     <StatusBadge :status="t.status" :label="t.published ? 'Publicada' : 'Pendiente de publicar'" />
                 </header>
 
                 <div>
-                    <label :for="`manual-text-${t.target_id}`" class="block text-sm font-medium text-slate-800"
+                    <label :for="`manual-text-${t.target_id}`" class="block text-sm font-medium text-foreground"
                         >Texto</label
                     >
                     <textarea
@@ -90,32 +90,32 @@ const markPublished = async (target) => {
                         @click="copy(t)"
                         >Copiar texto</button
                     >
-                    <span v-if="copied === t.target_id" class="ms-2 text-xs text-emerald-800" role="status"
+                    <span v-if="copied === t.target_id" class="ms-2 text-xs text-success-ink" role="status"
                         >Copiado.</span
                     >
                 </div>
 
                 <div v-if="t.first_comment">
-                    <p class="text-sm font-medium text-slate-800">Primer comentario</p>
-                    <p class="whitespace-pre-line text-sm text-slate-700">{{ t.first_comment }}</p>
+                    <p class="text-sm font-medium text-foreground">Primer comentario</p>
+                    <p class="whitespace-pre-line text-sm text-foreground-secondary">{{ t.first_comment }}</p>
                 </div>
 
                 <div v-if="t.media.length">
-                    <p class="text-sm font-medium text-slate-800">Recursos</p>
+                    <p class="text-sm font-medium text-foreground">Recursos</p>
                     <ul class="mt-1 space-y-1">
                         <li v-for="m in t.media" :key="m.id" class="text-sm">
                             <a :href="m.download_url" download class="link" data-testid="manual-download"
                                 >Descargar {{ m.name }}</a
                             >
-                            <span v-if="m.alt" class="block text-xs text-slate-600"
+                            <span v-if="m.alt" class="block text-xs text-foreground-muted"
                                 >Texto alternativo: {{ m.alt }}</span
                             >
                         </li>
                     </ul>
                 </div>
 
-                <div v-if="!t.published" class="border-t border-slate-100 pt-3">
-                    <label :for="`manual-url-${t.target_id}`" class="block text-sm font-medium text-slate-800"
+                <div v-if="!t.published" class="border-t border-border-subtle pt-3">
+                    <label :for="`manual-url-${t.target_id}`" class="block text-sm font-medium text-foreground"
                         >URL de la publicación (opcional, https)</label
                     >
                     <input
@@ -129,7 +129,7 @@ const markPublished = async (target) => {
                     />
                     <p
                         v-if="errors[t.target_id]"
-                        class="mt-1 text-xs text-red-700"
+                        class="mt-1 text-xs text-danger"
                         role="alert"
                         data-testid="manual-error"
                         >{{ errors[t.target_id] }}</p
@@ -143,7 +143,7 @@ const markPublished = async (target) => {
                         >Ya la he publicado</button
                     >
                 </div>
-                <p v-else class="text-sm text-emerald-800" role="status" data-testid="manual-done">
+                <p v-else class="text-sm text-success-ink" role="status" data-testid="manual-done">
                     Marcada como publicada<template v-if="t.external_url"
                         >:
                         <a

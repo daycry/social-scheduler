@@ -35,7 +35,7 @@ const columns = () => [{ key: 'followers', label: 'Seguidores (acumulado)' }, { 
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="text-xl font-bold text-slate-900">Todas las marcas</h1>
+            <h1 class="text-xl font-bold text-foreground-strong">Todas las marcas</h1>
         </template>
 
         <div class="space-y-5">
@@ -60,7 +60,7 @@ const columns = () => [{ key: 'followers', label: 'Seguidores (acumulado)' }, { 
                     >
                 </div>
 
-                <p class="text-xs text-slate-600" data-testid="all-brands-note">
+                <p class="text-xs text-foreground-muted" data-testid="all-brands-note">
                     Suma de {{ summary.brands.length }} {{ summary.brands.length === 1 ? 'marca' : 'marcas' }} en días
                     UTC. «Acumulado» suma el último valor de cada cuenta: no son personas únicas. Lo que una marca o red
                     no ofrece figura como «{{ UNAVAILABLE }}», nunca como 0.
@@ -88,11 +88,11 @@ const columns = () => [{ key: 'followers', label: 'Seguidores (acumulado)' }, { 
                 </div>
 
                 <section class="card p-5" data-section="by-brand">
-                    <h2 class="text-sm font-semibold text-slate-700">Por marca</h2>
+                    <h2 class="text-sm font-semibold text-foreground-secondary">Por marca</h2>
                     <div class="mt-3 overflow-x-auto" role="region" aria-label="Analítica por marca" tabindex="0">
                         <table class="w-full min-w-[34rem] text-left text-sm">
                             <thead>
-                                <tr class="border-b border-slate-200 text-xs text-slate-600">
+                                <tr class="border-b border-border text-xs text-foreground-muted">
                                     <th scope="col" class="py-2 pr-3 font-medium">Marca</th>
                                     <th
                                         v-for="c in columns()"
@@ -107,13 +107,13 @@ const columns = () => [{ key: 'followers', label: 'Seguidores (acumulado)' }, { 
                                 <tr
                                     v-for="b in summary.brands"
                                     :key="b.id"
-                                    class="border-b border-slate-100"
+                                    class="border-b border-border-subtle"
                                     :data-brand-row="b.id"
                                 >
-                                    <th scope="row" class="py-2 pr-3 font-medium text-slate-900">
+                                    <th scope="row" class="py-2 pr-3 font-medium text-foreground-strong">
                                         <Link
                                             :href="route('dashboard', { brand_id: b.id, from: filters.from, to: filters.to, compare: filters.compare })"
-                                            class="text-indigo-700 hover:underline"
+                                            class="text-accent-strong hover:underline"
                                             >{{ b.name }}</Link
                                         >
                                     </th>
@@ -121,7 +121,7 @@ const columns = () => [{ key: 'followers', label: 'Seguidores (acumulado)' }, { 
                                         v-for="c in columns()"
                                         :key="c.key"
                                         class="px-3 py-2 text-right tabular-nums"
-                                        :class="b.values[c.key] === null ? 'text-slate-600' : 'text-slate-900'"
+                                        :class="b.values[c.key] === null ? 'text-foreground-muted' : 'text-foreground-strong'"
                                         :data-metric="c.key"
                                         >{{ fmt(b.values[c.key]) }}</td
                                     >

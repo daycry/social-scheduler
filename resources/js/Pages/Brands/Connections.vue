@@ -23,9 +23,9 @@ const props = defineProps({
 const reconnectDate = computed(() => createDateFormatter(props.brand?.timezone, { day: 'numeric', month: 'long', year: 'numeric' }));
 
 const STATUS = {
-    activa: { label: 'Conectada', classes: 'bg-emerald-100 text-emerald-800' },
-    requiere_reconexion: { label: 'Requiere reconexión', classes: 'bg-amber-100 text-amber-800' },
-    desconectada: { label: 'Desconectada', classes: 'bg-slate-100 text-slate-600' },
+    activa: { label: 'Conectada', classes: 'bg-success-soft text-success-ink' },
+    requiere_reconexion: { label: 'Requiere reconexión', classes: 'bg-warning-soft text-warning-ink' },
+    desconectada: { label: 'Desconectada', classes: 'bg-surface-hover text-foreground-muted' },
 };
 
 // Una tarjeta por red (como la barra lateral de Analytics en ui-reference.md): cuentas conectadas o «+».
@@ -69,7 +69,7 @@ const discardPending = () => router.delete(route('brands.connections.pending.dis
     <AuthenticatedLayout>
         <template #header>
             <div class="flex items-center justify-between">
-                <h1 class="text-xl font-bold text-slate-900">Conexiones · {{ brand.name }}</h1>
+                <h1 class="text-xl font-bold text-foreground-strong">Conexiones · {{ brand.name }}</h1>
                 <div class="flex items-center gap-4 text-sm">
                     <Link :href="route('canva.index', brand.id)" class="link" data-testid="canva-link">Canva</Link>
                     <Link :href="route('brands.show', brand.id)" class="link">Volver a la marca</Link>
@@ -83,31 +83,31 @@ const discardPending = () => router.delete(route('brands.connections.pending.dis
                 <section
                     v-if="pending"
                     id="eleccion-cuentas"
-                    class="card space-y-3 border-2 border-amber-400 bg-amber-50 p-6"
+                    class="card space-y-3 border-2 border-warning-outline bg-warning-soft p-6"
                     aria-labelledby="eleccion-cuentas-titulo"
                 >
-                    <h2 id="eleccion-cuentas-titulo" class="font-semibold text-amber-900"
+                    <h2 id="eleccion-cuentas-titulo" class="font-semibold text-warning-ink"
                         >Falta un paso: elige qué cuentas conectar</h2
                     >
-                    <p class="text-sm text-amber-900">
+                    <p class="text-sm text-warning-ink">
                         La red ha devuelto varias cuentas. Marca las que pertenezcan a esta marca y pulsa «Conectar
                         seleccionadas»; hasta entonces no se conecta ninguna.
                     </p>
                     <label
                         v-for="c in pending.candidates"
                         :key="c.key"
-                        class="flex items-center gap-3 text-sm text-slate-700"
+                        class="flex items-center gap-3 text-sm text-foreground-secondary"
                     >
                         <input
                             v-model="selection.keys"
                             type="checkbox"
                             :value="c.key"
-                            class="rounded border-slate-300"
+                            class="rounded border-control-border"
                         />
                         <span class="font-medium">{{ c.network_label }}</span>
                         <span>{{ c.name }}</span>
-                        <span v-if="c.username" class="text-slate-500">@{{ c.username }}</span>
-                        <span v-if="c.missing_scopes && c.missing_scopes.length" class="text-xs text-amber-700">
+                        <span v-if="c.username" class="text-foreground-subtle">@{{ c.username }}</span>
+                        <span v-if="c.missing_scopes && c.missing_scopes.length" class="text-xs text-warning-ink">
                             Faltan permisos para publicar: {{ c.missing_scopes.join(', ') }}
                         </span>
                     </label>
@@ -124,7 +124,7 @@ const discardPending = () => router.delete(route('brands.connections.pending.dis
 
                 <section v-for="n in networks" :key="n.network" class="card p-6" :data-network="n.network">
                     <div class="flex flex-wrap items-center justify-between gap-2">
-                        <h2 class="flex items-center gap-2.5 font-semibold text-slate-900"
+                        <h2 class="flex items-center gap-2.5 font-semibold text-foreground-strong"
                             ><NetworkIcon :network="n.network" />{{ n.label }}</h2
                         >
                         <CredentialsForm
@@ -138,12 +138,14 @@ const discardPending = () => router.delete(route('brands.connections.pending.dis
                         <SecondaryButton v-else-if="n.available" type="button" @click="connect(n.provider)"
                             >+ Conectar</SecondaryButton
                         >
-                        <span v-else class="text-xs text-slate-500">No disponible</span>
+                        <span v-else class="text-xs text-foreground-subtle">No disponible</span>
                     </div>
 
-                    <p v-if="n.accounts.length === 0" class="mt-3 text-sm text-slate-500">Sin cuentas conectadas.</p>
+                    <p v-if="n.accounts.length === 0" class="mt-3 text-sm text-foreground-subtle"
+                        >Sin cuentas conectadas.</p
+                    >
 
-                    <ul v-else class="mt-3 divide-y divide-slate-100">
+                    <ul v-else class="mt-3 divide-y divide-border-subtle">
                         <li
                             v-for="a in n.accounts"
                             :key="a.id"
@@ -151,26 +153,28 @@ const discardPending = () => router.delete(route('brands.connections.pending.dis
                             :data-account="a.id"
                         >
                             <div>
-                                <p class="text-sm font-medium text-slate-900">
+                                <p class="text-sm font-medium text-foreground-strong">
                                     {{ a.name }}
-                                    <span v-if="a.username" class="font-normal text-slate-500">@{{ a.username }}</span>
+                                    <span v-if="a.username" class="font-normal text-foreground-subtle"
+                                        >@{{ a.username }}</span
+                                    >
                                 </p>
                                 <span class="mt-1 inline-block"
                                     ><StatusBadge :status="a.status" :label="STATUS[a.status].label"
                                 /></span>
                                 <label
                                     v-if="a.network === 'tiktok'"
-                                    class="mt-2 flex items-start gap-2 text-xs text-slate-700"
+                                    class="mt-2 flex items-start gap-2 text-xs text-foreground-secondary"
                                 >
                                     <input
                                         type="checkbox"
-                                        class="mt-0.5 rounded border-slate-300"
+                                        class="mt-0.5 rounded border-control-border"
                                         :checked="a.direct_post"
                                         @change="toggleDirectPost(a, $event.target.checked)"
                                     />
                                     <span>
                                         Publicar directamente (Direct Post)
-                                        <span class="block text-slate-500"
+                                        <span class="block text-foreground-subtle"
                                             >Requiere auditoría aprobada de TikTok. Desactivado: los vídeos se envían
                                             como borrador a tu bandeja y los terminas de publicar en la app.</span
                                         >
@@ -178,7 +182,7 @@ const discardPending = () => router.delete(route('brands.connections.pending.dis
                                 </label>
                                 <p
                                     v-if="a.network === 'pinterest' && a.status === 'activa'"
-                                    class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600"
+                                    class="mt-2 flex flex-wrap items-center gap-2 text-xs text-foreground-muted"
                                     :data-testid="`pinterest-boards-${a.id}`"
                                 >
                                     <span
@@ -196,7 +200,7 @@ const discardPending = () => router.delete(route('brands.connections.pending.dis
                                 </p>
                                 <p
                                     v-if="a.network === 'pinterest' && a.boards_partial"
-                                    class="mt-1 text-xs text-amber-700"
+                                    class="mt-1 text-xs text-warning-ink"
                                     role="status"
                                     :data-testid="`pinterest-boards-partial-${a.id}`"
                                 >
@@ -205,15 +209,14 @@ const discardPending = () => router.delete(route('brands.connections.pending.dis
                                 </p>
                                 <p
                                     v-if="a.reconnect_before && a.status === 'activa'"
-                                    class="mt-1 text-xs text-amber-700"
+                                    class="mt-1 text-xs text-warning-ink"
                                     data-testid="reconnect-before"
-                                    role="status"
                                 >
                                     Reconecta antes del
                                     {{ reconnectDate(a.reconnect_before) }}: {{ a.reconnect_message }} Mientras tanto
                                     sigue publicando.
                                 </p>
-                                <p v-if="a.status === 'requiere_reconexion'" class="mt-1 text-xs text-amber-700">
+                                <p v-if="a.status === 'requiere_reconexion'" class="mt-1 text-xs text-warning-ink">
                                     Las publicaciones programadas se conservan, pero no se enviarán hasta que
                                     reconectes<template v-if="a.auth_kind === 'credentials'">
                                         (pulsa «+ Conectar» con credenciales nuevas)</template
@@ -233,7 +236,7 @@ const discardPending = () => router.delete(route('brands.connections.pending.dis
                                 <button
                                     v-if="a.status !== 'desconectada'"
                                     type="button"
-                                    class="font-medium text-red-600 hover:underline"
+                                    class="font-medium text-danger hover:underline"
                                     @click="disconnect(a)"
                                 >
                                     Desconectar

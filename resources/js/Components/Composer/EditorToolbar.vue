@@ -77,7 +77,7 @@ const hashtags = computed(() => countHashtags(form.text));
                 aria-atomic="true"
                 >{{ announcementBrandId === brand.id ? announcement : '' }}</p
             >
-            <ul v-if="visibleLinks.length" class="mt-1 space-y-1 text-sm text-slate-700">
+            <ul v-if="visibleLinks.length" class="mt-1 space-y-1 text-sm text-foreground-secondary">
                 <li v-for="link in visibleLinks" :key="link.key">
                     <span v-if="link.state === 'linking'">Añadiendo {{ link.asset.name }} a Recursos…</span>
                     <span v-else :id="`${warningId}-${link.key}`">
@@ -153,7 +153,7 @@ const hashtags = computed(() => countHashtags(form.text));
 
         <AiAdapt />
 
-        <p class="ms-auto self-center text-xs text-slate-600" data-testid="hashtag-count" aria-live="polite"
+        <p class="ms-auto self-center text-xs text-foreground-muted" data-testid="hashtag-count" aria-live="polite"
             >{{ hashtags }} {{ hashtags === 1 ? 'hashtag' : 'hashtags' }}</p
         >
     </div>

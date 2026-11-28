@@ -40,13 +40,13 @@ const rows = computed(() => form.targets.map((t) => {
     >
         <li v-for="r in rows" :key="r.key" class="flex min-w-0 items-center gap-1.5">
             <NetworkIcon v-if="r.network" :network="r.network" size="sm" />
-            <span class="truncate text-slate-600">{{ r.name }}</span>
-            <span v-if="r.own" class="shrink-0 rounded bg-indigo-100 px-1.5 text-indigo-800">texto propio</span>
+            <span class="truncate text-foreground-muted">{{ r.name }}</span>
+            <span v-if="r.own" class="shrink-0 rounded bg-accent-marker px-1.5 text-accent-strong">texto propio</span>
             <span
                 data-testid="counter-chars"
                 aria-live="polite"
                 class="rounded px-1.5 py-0.5 font-medium"
-                :class="r.overChars ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'"
+                :class="r.overChars ? 'bg-danger-soft text-danger-ink' : 'bg-surface-hover text-foreground-secondary'"
                 >{{ formatThousands(r.chars)
                 }}<template v-if="r.maxChars != null"> / {{ formatThousands(r.maxChars) }}</template
                 ><template v-if="r.overChars"> · supera el máximo</template></span
@@ -56,7 +56,7 @@ const rows = computed(() => form.targets.map((t) => {
                 data-testid="counter-hashtags"
                 aria-live="polite"
                 class="rounded px-1.5 py-0.5 font-medium"
-                :class="r.overHashtags ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'"
+                :class="r.overHashtags ? 'bg-danger-soft text-danger-ink' : 'bg-surface-hover text-foreground-secondary'"
                 >{{ r.hashtags }} / {{ r.maxHashtags }} #<template v-if="r.overHashtags">
                     · supera el máximo</template
                 ></span
@@ -65,7 +65,7 @@ const rows = computed(() => form.targets.map((t) => {
                 v-if="r.adviseOver"
                 data-testid="counter-hashtags-advice"
                 role="status"
-                class="rounded bg-amber-100 px-1.5 py-0.5 font-medium text-amber-900"
+                class="rounded bg-warning-soft px-1.5 py-0.5 font-medium text-warning-ink"
                 >Threads solo admite {{ r.adviseHashtags }} etiqueta de tema por publicación: se usa la primera.</span
             >
         </li>

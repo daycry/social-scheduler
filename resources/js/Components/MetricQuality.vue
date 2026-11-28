@@ -22,12 +22,12 @@ const comparisonMessage = computed(() => props.comparison ? comparisonMessages[p
     <div
         v-if="quality"
         class="mt-2 text-xs leading-relaxed"
-        :class="quality.warning ? 'text-amber-800' : 'text-slate-500'"
+        :class="quality.warning ? 'text-warning-ink' : 'text-foreground-subtle'"
         data-testid="metric-quality"
     >
         <details v-if="compact">
             <summary
-                class="cursor-pointer rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500"
+                class="cursor-pointer rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
                 >{{ quality.label }}</summary
             >
             <p class="mt-1 max-w-md">{{ quality.detail }}</p>
@@ -36,6 +36,6 @@ const comparisonMessage = computed(() => props.comparison ? comparisonMessages[p
             <p class="font-medium">{{ quality.label }}</p>
             <p>{{ quality.detail }}</p>
         </template>
-        <p v-if="comparisonMessage" class="mt-1 text-amber-800">{{ comparisonMessage }}</p>
+        <p v-if="comparisonMessage" class="mt-1 text-warning-ink">{{ comparisonMessage }}</p>
     </div>
 </template>

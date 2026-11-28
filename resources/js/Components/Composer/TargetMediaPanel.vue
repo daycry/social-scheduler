@@ -63,22 +63,31 @@ const onAdd = (e) => {
 
 <template>
     <section
-        class="mt-4 rounded border border-slate-200 p-3"
+        class="mt-4 rounded border border-border p-3"
         :aria-labelledby="`${idBase}-title`"
         data-testid="target-media-panel"
     >
-        <h3 :id="`${idBase}-title`" class="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-900">
+        <h3
+            :id="`${idBase}-title`"
+            class="flex flex-wrap items-center gap-2 text-sm font-medium text-foreground-strong"
+        >
             Media de {{ row.label }}
-            <span v-if="own" class="rounded bg-indigo-100 px-1.5 text-xs text-indigo-800" data-testid="target-media-own"
+            <span
+                v-if="own"
+                class="rounded bg-accent-marker px-1.5 text-xs text-accent-strong"
+                data-testid="target-media-own"
                 >media propia</span
             >
-            <span v-else class="rounded bg-slate-100 px-1.5 text-xs text-slate-700" data-testid="target-media-inherited"
+            <span
+                v-else
+                class="rounded bg-surface-hover px-1.5 text-xs text-foreground-secondary"
+                data-testid="target-media-inherited"
                 >media común</span
             >
         </h3>
 
         <template v-if="!own">
-            <p class="mt-1 text-xs text-slate-700"
+            <p class="mt-1 text-xs text-foreground-secondary"
                 >Esta red publica la media común ({{ form.media.length }}
                 {{ form.media.length === 1 ? 'archivo' : 'archivos' }}).</p
             >
@@ -93,41 +102,44 @@ const onAdd = (e) => {
         </template>
 
         <template v-else>
-            <p class="mt-1 text-xs text-slate-700">Solo esta red publica estos archivos, en este orden.</p>
-            <p v-if="!target.media.length" class="mt-2 text-sm text-slate-700" data-testid="target-media-empty"
+            <p class="mt-1 text-xs text-foreground-secondary">Solo esta red publica estos archivos, en este orden.</p>
+            <p
+                v-if="!target.media.length"
+                class="mt-2 text-sm text-foreground-secondary"
+                data-testid="target-media-empty"
                 >Esta red no publicará ningún archivo.</p
             >
             <ul v-else class="mt-2 space-y-2">
                 <li
                     v-for="(item, i) in target.media"
                     :key="item.id"
-                    class="rounded border border-slate-200 p-2 text-sm"
+                    class="rounded border border-border p-2 text-sm"
                     data-testid="target-media-item"
                     :data-media-id="item.id"
                 >
                     <div class="flex items-center justify-between gap-2">
                         <span class="min-w-0 break-all"
                             >{{ i + 1 }}. {{ name(item.id) }}
-                            <span class="text-slate-600">({{ kindLabel(item.id) }})</span></span
+                            <span class="text-foreground-muted">({{ kindLabel(item.id) }})</span></span
                         >
                         <span v-if="editable" class="shrink-0 space-x-2">
                             <button
                                 type="button"
-                                class="text-slate-700"
+                                class="text-foreground-secondary"
                                 :aria-label="`Subir el archivo ${i + 1} de ${row.label}`"
                                 @click="moveTargetMedia(target, i, -1)"
                                 >↑</button
                             >
                             <button
                                 type="button"
-                                class="text-slate-700"
+                                class="text-foreground-secondary"
                                 :aria-label="`Bajar el archivo ${i + 1} de ${row.label}`"
                                 @click="moveTargetMedia(target, i, 1)"
                                 >↓</button
                             >
                             <button
                                 type="button"
-                                class="text-red-700"
+                                class="text-danger"
                                 :aria-label="`Quitar el archivo ${i + 1} de ${row.label}`"
                                 @click="removeTargetMedia(target, i)"
                                 >Quitar</button
@@ -135,7 +147,9 @@ const onAdd = (e) => {
                         </span>
                     </div>
                     <div v-if="meta.alt && !isVideo(item.id)" class="mt-2">
-                        <label :for="`${idBase}-alt-${item.id}`" class="block text-xs font-medium text-slate-900"
+                        <label
+                            :for="`${idBase}-alt-${item.id}`"
+                            class="block text-xs font-medium text-foreground-strong"
                             >Texto alternativo ({{ row.label }})</label
                         >
                         <textarea
@@ -160,13 +174,15 @@ const onAdd = (e) => {
                         >
                         <p
                             v-if="altErrors[item.id]"
-                            class="mt-1 text-xs text-rose-700"
+                            class="mt-1 text-xs text-danger"
                             role="alert"
                             >{{ altErrors[item.id] }}</p
                         >
                     </div>
                     <div v-if="meta.cover && isVideo(item.id)" class="mt-2">
-                        <label :for="`${idBase}-cover-${item.id}`" class="block text-xs font-medium text-slate-900"
+                        <label
+                            :for="`${idBase}-cover-${item.id}`"
+                            class="block text-xs font-medium text-foreground-strong"
                             >Portada del vídeo ({{ row.label }})</label
                         >
                         <select
@@ -201,7 +217,7 @@ const onAdd = (e) => {
 
             <div v-if="editable" class="mt-2 flex flex-wrap items-center gap-2">
                 <template v-if="addableMedia(target).length">
-                    <label :for="`${idBase}-add`" class="text-xs font-medium text-slate-900"
+                    <label :for="`${idBase}-add`" class="text-xs font-medium text-foreground-strong"
                         >Añadir archivo a esta red</label
                     >
                     <select :id="`${idBase}-add`" class="field text-sm" data-testid="target-media-add" @change="onAdd">
@@ -209,10 +225,10 @@ const onAdd = (e) => {
                         <option v-for="m in addableMedia(target)" :key="m.id" :value="m.id">{{ m.name }}</option>
                     </select>
                 </template>
-                <span v-else-if="libraryState === 'loading'" class="text-xs text-slate-700" role="status"
+                <span v-else-if="libraryState === 'loading'" class="text-xs text-foreground-secondary" role="status"
                     >Cargando la biblioteca…</span
                 >
-                <span v-else-if="libraryState === 'error'" class="text-xs text-red-700" role="alert"
+                <span v-else-if="libraryState === 'error'" class="text-xs text-danger" role="alert"
                     >No se pudo cargar la biblioteca.</span
                 >
                 <button

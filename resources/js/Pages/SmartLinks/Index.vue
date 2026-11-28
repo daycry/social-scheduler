@@ -128,7 +128,7 @@ const hexDraft = computed({
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="text-xl font-bold text-slate-900">SmartLinks</h1>
+            <h1 class="text-xl font-bold text-foreground-strong">SmartLinks</h1>
         </template>
 
         <div class="space-y-5">
@@ -150,7 +150,7 @@ const hexDraft = computed({
             <template v-else>
                 <section v-if="link" class="card flex flex-wrap items-center justify-between gap-4 p-5 text-sm">
                     <div>
-                        <p class="text-xs font-medium text-slate-600">Tu página pública</p>
+                        <p class="text-xs font-medium text-foreground-muted">Tu página pública</p>
                         <a :href="link.public_url" target="_blank" rel="noopener" class="link">{{ link.public_url }}</a>
                         <a
                             :href="link.public_url"
@@ -162,11 +162,11 @@ const hexDraft = computed({
                     </div>
                     <dl class="flex gap-6">
                         <div
-                            ><dt class="text-xs text-slate-600">Visitas (30 días)</dt
+                            ><dt class="text-xs text-foreground-muted">Visitas (30 días)</dt
                             ><dd class="text-lg font-semibold tabular-nums">{{ stats.views }}</dd></div
                         >
                         <div
-                            ><dt class="text-xs text-slate-600">Clics (30 días)</dt
+                            ><dt class="text-xs text-foreground-muted">Clics (30 días)</dt
                             ><dd class="text-lg font-semibold tabular-nums">{{ stats.clicks }}</dd></div
                         >
                     </dl>
@@ -182,12 +182,12 @@ const hexDraft = computed({
                                     described-by="sl-slug-help"
                                     v-slot="{ control }"
                                 >
-                                    <label for="sl-slug" class="block text-xs font-medium text-slate-600"
+                                    <label for="sl-slug" class="block text-xs font-medium text-foreground-muted"
                                         >Dirección de tu página</label
                                     >
                                     <div class="flex items-stretch">
                                         <span
-                                            class="inline-flex items-center rounded-l-md border border-r-0 border-slate-300 bg-slate-50 px-2 text-sm text-slate-600"
+                                            class="inline-flex items-center rounded-l-md border border-r-0 border-control-border bg-canvas px-2 text-sm text-foreground-muted"
                                             aria-hidden="true"
                                             >/l/</span
                                         >
@@ -200,7 +200,7 @@ const hexDraft = computed({
                                             class="field !rounded-l-none"
                                         />
                                     </div>
-                                    <p id="sl-slug-help" class="mt-1 text-xs text-slate-600"
+                                    <p id="sl-slug-help" class="mt-1 text-xs text-foreground-muted"
                                         >De 3 a 40 caracteres: minúsculas, números y guiones. Es lo que pones en la bio
                                         de tus redes.</p
                                     >
@@ -208,7 +208,7 @@ const hexDraft = computed({
                             </div>
                             <FormField :error="form.errors.title" v-slot="{ control }">
                                 <label class="block text-sm">
-                                    <span class="block text-xs font-medium text-slate-600">Título</span>
+                                    <span class="block text-xs font-medium text-foreground-muted">Título</span>
                                     <input
                                         v-bind="control"
                                         v-model="form.title"
@@ -222,7 +222,7 @@ const hexDraft = computed({
                         </div>
                         <FormField :error="form.errors.bio" v-slot="{ control }">
                             <label class="block text-sm">
-                                <span class="block text-xs font-medium text-slate-600">Bio</span>
+                                <span class="block text-xs font-medium text-foreground-muted">Bio</span>
                                 <textarea
                                     v-bind="control"
                                     v-model="form.bio"
@@ -235,7 +235,7 @@ const hexDraft = computed({
                         <div class="grid gap-4 sm:grid-cols-3">
                             <FormField :error="form.errors.avatar_media_id" v-slot="{ control }">
                                 <label class="block text-sm">
-                                    <span class="block text-xs font-medium text-slate-600">Avatar</span>
+                                    <span class="block text-xs font-medium text-foreground-muted">Avatar</span>
                                     <select v-bind="control" v-model="form.avatar_media_id" class="field">
                                         <option :value="null">Sin avatar</option>
                                         <option v-for="m in images" :key="m.id" :value="m.id">{{ m.name }}</option>
@@ -244,13 +244,15 @@ const hexDraft = computed({
                             </FormField>
                             <div class="block text-sm">
                                 <FormField id="sl-hex" :error="form.errors.theme_color" v-slot="{ control }">
-                                    <label for="sl-hex" class="block text-xs font-medium text-slate-600">Color</label>
+                                    <label for="sl-hex" class="block text-xs font-medium text-foreground-muted"
+                                        >Color</label
+                                    >
                                     <div class="flex items-center gap-2">
                                         <input
                                             v-model="form.theme_color"
                                             type="color"
                                             aria-label="Elegir color"
-                                            class="h-9 w-9 shrink-0 cursor-pointer rounded border border-slate-300 p-0.5"
+                                            class="h-9 w-9 shrink-0 cursor-pointer rounded border border-control-border p-0.5"
                                         />
                                         <input
                                             v-bind="control"
@@ -265,7 +267,7 @@ const hexDraft = computed({
                                 </FormField>
                             </div>
                             <label class="block text-sm">
-                                <span class="block text-xs font-medium text-slate-600">Tema</span>
+                                <span class="block text-xs font-medium text-foreground-muted">Tema</span>
                                 <select v-model="form.theme_mode" class="field">
                                     <option value="light">Claro</option>
                                     <option value="dark">Oscuro</option>
@@ -273,13 +275,13 @@ const hexDraft = computed({
                             </label>
                         </div>
                         <label class="flex items-center gap-2 text-sm"
-                            ><input v-model="form.published" type="checkbox" class="rounded border-slate-300" /> Página
-                            publicada</label
+                            ><input v-model="form.published" type="checkbox" class="rounded border-control-border" />
+                            Página publicada</label
                         >
 
                         <FormField :error="form.errors.blocks" v-slot="{ group }">
                             <fieldset v-bind="group" class="space-y-2">
-                                <legend class="text-sm font-medium text-slate-700">Bloques</legend>
+                                <legend class="text-sm font-medium text-foreground-secondary">Bloques</legend>
 
                                 <FormField
                                     v-for="(b, i) in form.blocks"
@@ -292,11 +294,11 @@ const hexDraft = computed({
                                         :data-block-index="i"
                                         role="group"
                                         :aria-label="`Bloque ${i + 1}`"
-                                        class="rounded border border-slate-200 p-3"
+                                        class="rounded border border-border p-3"
                                     >
                                         <div class="flex flex-wrap items-center gap-2">
                                             <span
-                                                class="rounded bg-slate-100 px-2 py-0.5 text-xs"
+                                                class="rounded bg-surface-hover px-2 py-0.5 text-xs"
                                                 data-testid="block-type"
                                                 >{{ typeLabel(b.type) }}</span
                                             >
@@ -316,7 +318,7 @@ const hexDraft = computed({
                                             </div>
                                             <span
                                                 v-if="hasClicks(b) && b.id"
-                                                class="text-xs text-slate-600 tabular-nums"
+                                                class="text-xs text-foreground-muted tabular-nums"
                                                 data-testid="block-clicks"
                                                 >{{ clicks(b) }} clics ({{ share(b) }} %) · 7 días: {{ clicks7(b) }} ·
                                                 CTR {{ ctr(b) }} %</span
@@ -341,7 +343,7 @@ const hexDraft = computed({
                                             >
                                             <button
                                                 type="button"
-                                                class="text-xs font-medium text-red-700 underline"
+                                                class="text-xs font-medium text-danger underline"
                                                 @click="removeBlock(i)"
                                                 >Quitar</button
                                             >
@@ -360,7 +362,7 @@ const hexDraft = computed({
                                             </FormField>
                                         </div>
                                         <label v-if="b.type === 'image'" class="mt-2 block text-sm">
-                                            <span class="block text-xs font-medium text-slate-600"
+                                            <span class="block text-xs font-medium text-foreground-muted"
                                                 >Imagen (de tu biblioteca)</span
                                             >
                                             <select
@@ -409,7 +411,7 @@ const hexDraft = computed({
                                                 />
                                                 <button
                                                     type="button"
-                                                    class="text-xs font-medium text-red-700 underline"
+                                                    class="text-xs font-medium text-danger underline"
                                                     @click="removeSocial(b, k)"
                                                     >Quitar icono</button
                                                 >
@@ -420,12 +422,12 @@ const hexDraft = computed({
                                         </div>
                                         <div v-if="b.type === 'email'" class="mt-2 grid gap-2 sm:grid-cols-2">
                                             <label class="block text-sm"
-                                                ><span class="block text-xs font-medium text-slate-600"
+                                                ><span class="block text-xs font-medium text-foreground-muted"
                                                     >Texto del botón</span
                                                 ><input v-model="b.data.cta" type="text" maxlength="30" class="field"
                                             /></label>
                                             <label class="block text-sm"
-                                                ><span class="block text-xs font-medium text-slate-600"
+                                                ><span class="block text-xs font-medium text-foreground-muted"
                                                     >Aviso de consentimiento</span
                                                 ><input
                                                     v-model="b.data.consent"
@@ -433,7 +435,7 @@ const hexDraft = computed({
                                                     maxlength="200"
                                                     class="field"
                                             /></label>
-                                            <p class="text-xs text-slate-600 sm:col-span-2"
+                                            <p class="text-xs text-foreground-muted sm:col-span-2"
                                                 >Las direcciones se guardan en tu cuenta (sin servicio externo ni correo
                                                 de confirmación) y te avisamos cuando se llena. Puedes borrarlas una a
                                                 una.
@@ -448,7 +450,7 @@ const hexDraft = computed({
                                             >
                                         </div>
                                         <label v-if="b.type === 'posts'" class="mt-2 block text-sm">
-                                            <span class="block text-xs font-medium text-slate-600"
+                                            <span class="block text-xs font-medium text-foreground-muted"
                                                 >Cuántas mostrar (1-6)</span
                                             >
                                             <input
@@ -461,7 +463,7 @@ const hexDraft = computed({
                                         </label>
                                         <div class="mt-2 grid gap-2 sm:grid-cols-2">
                                             <label class="block text-sm">
-                                                <span class="block text-xs font-medium text-slate-600"
+                                                <span class="block text-xs font-medium text-foreground-muted"
                                                     >Visible desde ({{ defaults.timezone }})</span
                                                 >
                                                 <input
@@ -473,7 +475,7 @@ const hexDraft = computed({
                                                 />
                                             </label>
                                             <label class="block text-sm">
-                                                <span class="block text-xs font-medium text-slate-600"
+                                                <span class="block text-xs font-medium text-foreground-muted"
                                                     >Visible hasta</span
                                                 >
                                                 <input
@@ -487,7 +489,7 @@ const hexDraft = computed({
                                         </div>
                                         <p
                                             v-if="visibilityText(b)"
-                                            class="mt-1 text-xs font-medium text-amber-800"
+                                            class="mt-1 text-xs font-medium text-warning-ink"
                                             data-testid="block-visibility"
                                             >{{ visibilityText(b) }}</p
                                         >
@@ -522,7 +524,7 @@ const hexDraft = computed({
                             <button
                                 v-if="link"
                                 type="button"
-                                class="text-sm font-medium text-red-700 underline"
+                                class="text-sm font-medium text-danger underline"
                                 @click="destroy"
                                 >Eliminar SmartLink</button
                             >

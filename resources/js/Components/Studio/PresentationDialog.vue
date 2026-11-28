@@ -189,14 +189,14 @@ async function initialize() {
 defineExpose({ close });
 onBeforeUnmount(cleanup);
 const secondaryButtonClass =
-    'btn-secondary border-slate-700 bg-slate-800 px-3 text-xs font-medium text-slate-100 shadow-none hover:bg-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-400 disabled:opacity-40';
+    'btn-secondary border-chrome-border bg-chrome-panel px-3 text-xs font-medium text-chrome-text shadow-none hover:bg-chrome-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-40';
 </script>
 
 <template>
     <BaseDialog
         :open="presentationOpen"
         aria-label="Presentación"
-        class="m-auto w-[calc(100vw_-_1rem)] max-w-7xl rounded-2xl border-0 bg-slate-950 p-0 text-white shadow-2xl backdrop:bg-slate-950/80"
+        class="m-auto w-[calc(100vw_-_1rem)] max-w-7xl rounded-2xl border-0 bg-chrome p-0 text-chrome-strong shadow-2xl backdrop:bg-overlay-strong/80"
         @keydown="keydown"
         @opened="initialize"
         @close="close"
@@ -206,7 +206,7 @@ const secondaryButtonClass =
                 <div
                     ><h2 class="text-lg font-semibold">Presentación</h2
                     ><p
-                        class="text-xs text-slate-400"
+                        class="text-xs text-chrome-muted"
                         role="status"
                         >{{ busy ? 'Preparando medios…' : `${state.index + 1} / ${state.pageIds.length} · ${state.pageName}` }}</p
                     ></div
@@ -216,7 +216,7 @@ const secondaryButtonClass =
                     ><select
                         id="presentation-view"
                         v-model="mode"
-                        class="field w-auto border-slate-600 bg-slate-800 text-xs text-slate-100"
+                        class="field w-auto border-chrome-border bg-chrome-panel text-xs text-chrome-text"
                         ><option value="presenter">Presentador</option
                         ><option value="audience">Audiencia</option></select
                     >
@@ -227,16 +227,21 @@ const secondaryButtonClass =
                     >
                 </div>
             </header>
-            <p v-if="message" role="alert" class="mb-3 rounded-lg bg-red-950 p-3 text-sm text-red-100">{{ message }}</p>
-            <details class="mb-4 rounded-xl bg-slate-900 p-3">
+            <p
+                v-if="message"
+                role="alert"
+                class="mb-3 rounded-lg bg-danger-soft p-3 text-sm text-danger-ink"
+                >{{ message }}</p
+            >
+            <details class="mb-4 rounded-xl bg-chrome p-3">
                 <summary class="cursor-pointer text-sm font-semibold">Herramientas</summary>
                 <div class="mt-3 grid gap-4 sm:grid-cols-2">
                     <fieldset class="flex min-w-0 flex-wrap items-center gap-3 text-xs">
-                        <legend class="mb-2 font-semibold text-slate-300">Cursor y trazos</legend>
+                        <legend class="mb-2 font-semibold text-chrome-muted">Cursor y trazos</legend>
                         <label
                             >Cursor<select
                                 aria-label="Cursor de presentación"
-                                class="field ml-2 inline-block w-auto border-slate-600 bg-slate-800 text-xs text-slate-100"
+                                class="field ml-2 inline-block w-auto border-chrome-border bg-chrome-panel text-xs text-chrome-text"
                                 :value="toolState.cursor"
                                 @change="toolAct('setCursor', $event.target.value)"
                                 ><option value="normal">Normal</option
@@ -273,7 +278,7 @@ const secondaryButtonClass =
                         <label
                             >Duración del trazo (s)<input
                                 aria-label="Duración de los trazos en segundos"
-                                class="ml-2 w-16 rounded bg-slate-800 text-xs"
+                                class="ml-2 w-16 rounded bg-chrome-panel text-xs"
                                 type="number"
                                 min="1"
                                 max="10"
@@ -286,12 +291,12 @@ const secondaryButtonClass =
                         >
                     </fieldset>
                     <fieldset class="flex min-w-0 flex-wrap items-center gap-3 text-xs">
-                        <legend class="mb-2 font-semibold text-slate-300">Temporizador</legend>
+                        <legend class="mb-2 font-semibold text-chrome-muted">Temporizador</legend>
                         <output aria-label="Tiempo restante" class="font-mono text-lg">{{ timerState.label }}</output>
                         <label
                             >Duración (s)<input
                                 aria-label="Duración del temporizador en segundos"
-                                class="ml-2 w-24 rounded bg-slate-800 text-xs"
+                                class="ml-2 w-24 rounded bg-chrome-panel text-xs"
                                 type="number"
                                 min="1"
                                 max="86400"
@@ -323,7 +328,7 @@ const secondaryButtonClass =
                         <label class="min-w-0"
                             >Música<select
                                 aria-label="Música del temporizador"
-                                class="field ml-2 inline-block w-auto max-w-full border-slate-600 bg-slate-800 text-xs text-slate-100"
+                                class="field ml-2 inline-block w-auto max-w-full border-chrome-border bg-chrome-panel text-xs text-chrome-text"
                                 :value="timerState.musicId ?? ''"
                                 @change="timerAct('setMusic', $event.target.value === '' ? null : Number($event.target.value))"
                                 ><option value="">Sin música</option
@@ -357,7 +362,7 @@ const secondaryButtonClass =
                         <p
                             v-if="musicMessage"
                             role="alert"
-                            class="w-full rounded bg-red-950 p-2 text-red-100"
+                            class="w-full rounded bg-danger-soft p-2 text-danger-ink"
                             >{{ musicMessage }}</p
                         >
                     </fieldset>
@@ -386,7 +391,7 @@ const secondaryButtonClass =
                 <aside v-show="mode === 'presenter'" class="min-w-0 space-y-3">
                     <section aria-label="Diapositiva siguiente"
                         ><h3
-                            class="mb-1 text-xs font-medium text-slate-300"
+                            class="mb-1 text-xs font-medium text-chrome-muted"
                             >{{ state.nextPageId ? `Siguiente · ${state.nextPageName}` : 'Fin de la presentación' }}</h3
                         ><canvas
                             v-show="state.nextPageId"
@@ -397,8 +402,8 @@ const secondaryButtonClass =
                     /></section>
                     <section
                         aria-label="Notas del presentador"
-                        class="max-h-64 overflow-y-auto rounded-xl bg-slate-900 p-4"
-                        ><h3 class="mb-2 text-sm font-semibold text-slate-300">Notas del presentador</h3
+                        class="max-h-64 overflow-y-auto rounded-xl bg-chrome p-4"
+                        ><h3 class="mb-2 text-sm font-semibold text-chrome-muted">Notas del presentador</h3
                         ><p
                             class="whitespace-pre-wrap break-words text-sm leading-relaxed"
                             data-testid="presentation-notes"
@@ -408,7 +413,7 @@ const secondaryButtonClass =
                 </aside>
             </div>
             <footer
-                class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 pt-4 text-xs"
+                class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-chrome-border pt-4 text-xs"
             >
                 <div class="flex flex-wrap items-center gap-2"
                     ><button
@@ -426,7 +431,7 @@ const secondaryButtonClass =
                         @click="act('previous')"
                         >Anterior</button
                     ><button
-                        class="btn-primary bg-violet-700 px-3 text-xs font-medium hover:bg-violet-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-400 disabled:opacity-40"
+                        class="btn-secondary-accent px-3 text-xs font-medium hover:bg-accent-secondary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus disabled:opacity-40"
                         type="button"
                         :disabled="busy"
                         @click="act('togglePlay')"
@@ -450,7 +455,7 @@ const secondaryButtonClass =
                 <div class="flex flex-wrap items-center gap-3"
                     ><label class="flex items-center gap-2"
                         >Diapositiva<select
-                            class="field w-auto max-w-36 border-slate-600 bg-slate-800 text-xs text-slate-100"
+                            class="field w-auto max-w-36 border-chrome-border bg-chrome-panel text-xs text-chrome-text"
                             :value="state.pageId"
                             :disabled="busy"
                             @change="act('select', $event.target.value)"
@@ -474,7 +479,7 @@ const secondaryButtonClass =
                         >{{ state.blackout ? 'Mostrar diapositiva' : 'Pantalla negra' }}</button
                     ></div
                 >
-                <p class="w-full text-slate-400"
+                <p class="w-full text-chrome-muted"
                     >Flechas / RePág / AvPág: navegar · Espacio: reproducir · B: pantalla negra · Esc: cerrar</p
                 >
             </footer>

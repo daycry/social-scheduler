@@ -36,7 +36,7 @@ onBeforeUnmount(() => clearTimeout(reopen));
             type="submit"
             :aria-label="`Abrir en el Estudio, ${media.name}, abre en una pestaña nueva`"
             :aria-disabled="opening"
-            class="text-sm text-violet-700 underline"
+            class="text-sm text-accent-secondary-ink underline"
         >
             Abrir en el Estudio
         </button>

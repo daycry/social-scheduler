@@ -66,29 +66,34 @@ onBeforeUnmount(() => { disposed = true; generation++; stop(); });
 
 <template>
     <section
-        class="space-y-3 rounded-2xl border border-violet-200 bg-violet-50/50 p-4"
+        class="space-y-3 rounded-2xl border border-accent-secondary-border bg-accent-secondary-soft/50 p-4"
         aria-label="Seguimiento de eliminación de fondo"
     >
         <div class="flex items-start justify-between gap-3"
             ><div class="min-w-0"
-                ><h3 class="text-sm font-semibold text-violet-950">Quitar fondo</h3
-                ><p class="mt-1 break-words text-xs text-slate-500">{{ sourceName }}</p></div
+                ><h3 class="text-sm font-semibold text-accent-secondary-ink">Quitar fondo</h3
+                ><p class="mt-1 break-words text-xs text-foreground-subtle">{{ sourceName }}</p></div
             ><button
                 type="button"
-                class="rounded-lg px-2 py-1 text-xs text-slate-500 hover:bg-white"
+                class="rounded-lg px-2 py-1 text-xs text-foreground-subtle hover:bg-surface"
                 aria-label="Ocultar seguimiento de imagen"
                 @click="close"
                 >×</button
             ></div
         >
-        <p v-if="job || requesting" role="status" class="text-xs leading-relaxed text-violet-800">{{ status }}</p>
+        <p
+            v-if="job || requesting"
+            role="status"
+            class="text-xs leading-relaxed text-accent-secondary-ink"
+            >{{ status }}</p
+        >
         <p
             v-if="error"
             role="alert"
-            class="rounded-lg bg-red-50 p-3 text-xs leading-relaxed text-red-800"
+            class="rounded-lg bg-danger-soft p-3 text-xs leading-relaxed text-danger-ink"
             >{{ error }}</p
         >
-        <p v-if="paused" class="text-xs leading-relaxed text-slate-600"
+        <p v-if="paused" class="text-xs leading-relaxed text-foreground-muted"
             >La consulta automática se ha detenido. El trabajo puede continuar en el servidor; puedes volver a consultar
             sin crear otro.</p
         >
@@ -100,16 +105,16 @@ onBeforeUnmount(() => { disposed = true; generation++; stop(); });
                 loading="lazy"
                 :src="job.output_asset.preview_url"
                 :alt="`Resultado sin fondo de ${sourceName}`"
-                class="max-h-48 w-full rounded-xl border border-slate-200 bg-white object-contain"
+                class="max-h-48 w-full rounded-xl border border-border bg-surface object-contain"
             />
             <button
                 type="button"
-                class="w-full rounded-xl bg-violet-700 px-3 py-2.5 text-xs font-semibold text-white hover:bg-violet-800"
+                class="w-full rounded-xl bg-accent-secondary-fill px-3 py-2.5 text-xs font-semibold text-on-accent-secondary hover:bg-accent-secondary-hover"
                 @click="emit('add',job.output_asset)"
                 >Añadir imagen sin fondo</button
             >
         </template>
-        <p class="text-[10px] leading-relaxed text-slate-500"
+        <p class="text-[10px] leading-relaxed text-foreground-subtle"
             >El original se conserva. Al ocultar este panel no se cancela el procesamiento; la imagen terminada aparece
             en los recursos de esta marca.</p
         >

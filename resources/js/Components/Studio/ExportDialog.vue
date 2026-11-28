@@ -151,7 +151,7 @@ defineExpose({ publish });
     >
         <div class="space-y-5">
             <p
-                class="text-sm leading-relaxed text-slate-500"
+                class="text-sm leading-relaxed text-foreground-subtle"
                 >{{ native ? (serverImage ? 'Se renderiza en el servidor con la marca de agua de la marca y se guarda en la biblioteca.' : format === 'pptx' ? 'Exporta cada página como una diapositiva de PowerPoint con la imagen del diseño; el texto no es editable en PowerPoint.' : format === 'gif' ? 'Exporta la secuencia de páginas como una animación sin sonido.' : 'Exporta la secuencia de páginas con vídeo, transiciones y mezcla de audio.') : 'Exporta las páginas elegidas. Los elementos de vídeo se incluyen como fotograma estático.' }}</p
             >
             <label class="block space-y-1 text-sm font-medium"
@@ -183,13 +183,13 @@ defineExpose({ publish });
                             max="1"
                             step="0.05" /></label
                 ></div>
-                <p class="text-xs text-slate-500"
+                <p class="text-xs text-foreground-subtle"
                     >{{ format === 'svg' ? `${document.width} × ${document.height} px · vector y medios embebidos` : outputSize
                     }}{{ format === 'pdf' ? ' · un fotograma por página en PDF' : '' }}</p
                 >
                 <label v-if="(!native || serverImage) && format !== 'jpeg'" class="flex items-center gap-2 text-sm"
                     ><input v-model="transparent" type="checkbox" />Fondo transparente</label
-                ><div v-if="raster" class="rounded-xl border border-slate-200 p-3"
+                ><div v-if="raster" class="rounded-xl border border-border p-3"
                     ><label class="flex items-center gap-2 text-sm font-medium"
                         ><input
                             v-model="applyWatermark"
@@ -199,17 +199,17 @@ defineExpose({ publish });
                         />Aplicar la marca de agua de la marca</label
                     ><p
                         :id="watermarkHintId"
-                        class="mt-1 text-xs leading-relaxed text-slate-500"
+                        class="mt-1 text-xs leading-relaxed text-foreground-subtle"
                         >{{ !watermarkAvailable ? 'La marca no tiene marca de agua configurada: la imagen no llevará marca de agua.' : applyWatermark ? 'La imagen llevará la marca de agua. Se prepara en el servidor, en segundo plano.' : 'La imagen no llevará marca de agua.' }}</p
                     ></div
                 >
                 <div
                     ><h3 class="mb-2 text-sm font-medium">Páginas</h3
-                    ><p v-if="native && !serverImage" class="mb-2 text-xs text-slate-500"
+                    ><p v-if="native && !serverImage" class="mb-2 text-xs text-foreground-subtle"
                         >Selecciona páginas y ajusta su orden con las flechas.</p
-                    ><p v-else-if="document.schema_version === 2" class="mb-2 text-xs text-slate-500"
+                    ><p v-else-if="document.schema_version === 2" class="mb-2 text-xs text-foreground-subtle"
                         >Elige un segundo local por página. Las páginas donde está el cabezal parten de ese instante.</p
-                    ><div class="max-h-60 space-y-3 overflow-y-auto rounded-xl border border-slate-200 p-3"
+                    ><div class="max-h-60 space-y-3 overflow-y-auto rounded-xl border border-border p-3"
                         ><div v-for="(page, index) in orderedPages" :key="page.id" class="min-w-0 space-y-2"
                             ><div class="flex items-center justify-between gap-2"
                                 ><label class="flex min-w-0 items-center gap-2 text-sm"
@@ -222,21 +222,21 @@ defineExpose({ publish });
                                         type="button"
                                         :aria-label="`Subir página ${page.name}`"
                                         :disabled="index === 0"
-                                        class="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-30"
+                                        class="rounded-lg border border-border px-2 py-1 disabled:opacity-30"
                                         @click="movePage(page.id, -1)"
                                         >↑</button
                                     ><button
                                         type="button"
                                         :aria-label="`Bajar página ${page.name}`"
                                         :disabled="index === orderedPages.length - 1"
-                                        class="rounded-lg border border-slate-200 px-2 py-1 disabled:opacity-30"
+                                        class="rounded-lg border border-border px-2 py-1 disabled:opacity-30"
                                         @click="movePage(page.id, 1)"
                                         >↓</button
                                     ></span
                                 ></div
                             ><label
                                 v-if="(!native || serverImage) && document.schema_version === 2"
-                                class="flex min-w-0 flex-wrap items-center gap-2 text-xs text-slate-600"
+                                class="flex min-w-0 flex-wrap items-center gap-2 text-xs text-foreground-muted"
                                 ><span>Fotograma (s)</span
                                 ><input
                                     v-model.number="pageFrameTimes[page.id]"
@@ -267,9 +267,14 @@ defineExpose({ publish });
                 @registered="emit('registered', $event)"
                 @conflict="message => emit('conflict', message)"
             />
-            <p v-if="status" role="status" class="rounded-xl bg-violet-50 p-3 text-sm text-violet-800">{{ status }}</p>
-            <p v-if="error" role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-800">{{ error }}</p>
-            <div class="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4"
+            <p
+                v-if="status"
+                role="status"
+                class="rounded-xl bg-accent-secondary-soft p-3 text-sm text-accent-secondary-ink"
+                >{{ status }}</p
+            >
+            <p v-if="error" role="alert" class="rounded-xl bg-danger-soft p-3 text-sm text-danger-ink">{{ error }}</p>
+            <div class="flex flex-wrap justify-end gap-2 border-t border-border-subtle pt-4"
                 ><button type="button" class="btn-secondary" :disabled="busy" @click="emit('update:modelValue',false)"
                     >Cerrar exportación</button
                 ><button
@@ -282,7 +287,7 @@ defineExpose({ publish });
                 ><button
                     v-if="raster && !native && sourcePostId && !savedExportId"
                     type="button"
-                    class="btn-primary bg-violet-700"
+                    class="btn-secondary-accent"
                     data-dialog-initial-focus
                     :disabled="busy"
                     @click="run('update')"
@@ -291,14 +296,14 @@ defineExpose({ publish });
                     v-if="raster && !native && sourcePostId"
                     ref="draftAction"
                     type="button"
-                    :class="savedExportId ? 'btn-primary bg-violet-700' : 'btn-secondary'"
+                    :class="savedExportId ? 'btn-secondary-accent' : 'btn-secondary'"
                     :disabled="busy"
                     @click="run('draft')"
                     >{{ savedExportId ? 'Crear borrador con esta exportación' : 'Crear borrador nuevo' }}</button
                 ><button
                     v-if="!native"
                     type="button"
-                    class="btn-primary bg-violet-700"
+                    class="btn-secondary-accent"
                     :disabled="busy"
                     @click="run('download')"
                     >{{ busy ? 'Preparando…' : 'Descargar' }}</button

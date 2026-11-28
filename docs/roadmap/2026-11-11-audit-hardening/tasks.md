@@ -48,9 +48,9 @@ estado: en-progreso
 | Fase 5 — Frontend | 15 | 18 | 83% | 0 / 119.0h | 0 / 30.0h | 0 / 7.5h | 0 / 5715k |
 | Fase 5b — Unificación | 4 | 8 | 50% | 0 / 64.0h | 0 / 16.0h | 0 / 4.0h | 0 / 3040k |
 | Fase 6 — Operación y repositorio | 4 | 6 | 67% | 0 / 43.0h | 0 / 10.8h | 0 / 2.7h | 0 / 2055k |
-| Fase 7 — Funciones nuevas | 23 | 24 | 96% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
+| Fase 7 — Funciones nuevas | 24 | 24 | 100% | 0 / 177.0h | 0 / 44.4h | 0 / 11.1h | 0 / 8445k |
 | Fase 8 — QA integral y documentación | 0 | 2 | 0% | 0 / 11.0h | 0 / 2.8h | 0 / 0.7h | 0 / 535k |
-| **TOTAL** | **96** | **108** | **89%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
+| **TOTAL** | **97** | **108** | **90%** | **0 / 729.0h** | **0 / 183.6h** | **0 / 45.9h** | **0 / 34965k** |
 
 > Horas **base** (sin el +20 % de contingencia, que se aplica en `improvement-plan.md`). Todas las cifras son **estimadas**; los tokens se miden al cerrar cada tarea.
 
@@ -4903,34 +4903,58 @@ CoberturaM3extra descubre registrodoble deListeners por autodetección+PushServi
 ### T-98 — Modo oscuro (2/2): páginas y estudio
 
 - **Descripción**: Segunda mitad de F-25: revisar todas las páginas y el estudio en oscuro (contraste y gráficos).
-- **Changelog**:
-- **Estado**: borrador
+- **Changelog**: El tema elegido se aplica a las páginas sociales, los gráficos de analítica y los controles del Estudio. Los diseños conservan sus colores en el lienzo, las vistas previas y las exportaciones.
+- **Estado**: completado
 - **Tiempo humano**: est. 8.0h · real —
 - **Tiempo IA (ejec.)**: est. 2.0h · real —
 - **Supervisión**: est. 0.50h (≈25 % IA) · real —
 - **Previsión IA**: 300k in / 80k out tok · ⚠️ verificar € (precio de tokens sin confirmar)
 - **Dependencias**: T-97
 - **Tipo**: frontend
-- **Archivos**: `resources/js/Pages/**`, `resources/js/Components/**`, `resources/js/Pages/Studio/**`
+- **Archivos**: `resources/js/Pages/**` (44 Vue y `Dashboard/Partials/format.js`), `resources/js/Components/**` (82 Vue), `resources/css/app.css`, `tailwind.config.js`, `tests/frontend/theme-ui-palette.test.mjs`, `tests/frontend/theme-contrast.test.mjs`, `tests/e2e/dark-mode.spec.ts`, `docs/guias/tokens-de-color.md`, `docs/usuario/tema.md`, `CHANGELOG.md`, `CHANGELOG.es.md` y este ledger., `tests/e2e/canva.spec.ts`, `tests/e2e/threads.spec.ts`, `tests/e2e/linkedin-pinterest.spec.ts`, `docs/roadmap/2026-11-11-audit-hardening/testing/t98/**`
 - **Cubre**: — (continuación de la tarea anterior; el ID se cuenta allí)
 - **Cubre (tests)**: E2E-35, M-08
-- **Verificación**: `npx playwright test tests/e2e/a11y.spec.ts --workers=1` → verde
+- **Verificación**: `npx playwright test tests/e2e/dark-mode.spec.ts tests/e2e/a11y.spec.ts --workers=1` y M-08.
 
 **Criterios de aceptación**
-- [ ] Ninguna página tiene texto ilegible en oscuro
-- [ ] `a11y.spec.ts` sin violaciones de contraste nuevas
-- [ ] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
-- [ ] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
-- [ ] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
+- [x] Ninguna página tiene texto ilegible en oscuro
+- [x] `a11y.spec.ts` sin violaciones de contraste nuevas
+- [x] Revisión adversarial A+B(+C) sin hallazgos Critical/Important abiertos
+- [x] Pest verde y Playwright de los specs afectados en verde (una sola ejecución, serial)
+- [x] Documentación actualizada (módulo afectado en `docs/` y CHANGELOG si cambia algo visible)
 
 **Subtareas**
-- [ ] Implementar (implementer)
-- [ ] Revisión adversarial A+B(+C)
-- [ ] Corregir hallazgos de la revisión
-- [ ] Pest y Playwright (serial, sin cambios de código en paralelo)
-- [ ] Actualizar documentación y cerrar la tarea en este ledger
+- [x] Implementar (implementer)
+- [x] Revisión adversarial A+B(+C)
+- [x] Corregir hallazgos de la revisión
+- [x] Pest y Playwright (serial, sin cambios de código en paralelo)
+- [x] Actualizar documentación y cerrar la tarea en este ledger
 
 **Notas**: Tamaño M. Continuación de F-25; la revisión visual final es el manual M-08.
+
+**Cierre — 2026-11-28:** resto de la interfaz tokenizada para el modo oscuro: 2573 colores fijos en 126 ficheros (44 páginas y 82 componentes, 24 del Estudio) sustituidos por los tokens de T-97 (72 en ambas paletas). El lienzo del Estudio no se tematiza (sí su marco); se conservan los colores de marcas de terceros, el margen del QR, las muestras de color y el contenido de los diseños con sus gráficos y exportaciones. Gráficos de analítica con ejes, rejilla, leyenda y tooltip tokenizados, series mezcladas legibles (≥ 3:1) y mapa de calor de «Mejores horas» en 5 escalones a ≥ 4,5:1; franjas de animación de la línea de tiempo a ≥ 5,9:1. Guard estático `tests/frontend/theme-ui-palette.test.mjs` sobre `.vue/.js/.ts` de Pages, Components y Layouts (excluye solo el motor del lienzo `resources/js/Studio/**`) que detecta clases de paleta con variantes y valores arbitrarios, hex y colores CSS con nombre en estilos, mezclas y asignaciones JS, con excepciones acotadas por fichero. E2E-35 recorre 18+ vistas con axe en ambas paletas (incluidos Estudio, «Mejores horas» y una campaña con datos sembrados). Implementado por Codex (gpt-6.2-sol, high). Revisión adversarial A+B+C con Opus (effort high) en 3 intentos: intento 1 — 2 Important (el guard no detectaba colores con nombre ni recorría `.js`/Layouts) + 2 Minor, corregidos; intento 2 — 1 Important (el E2E de Canva aseguraba la clase de color antigua; ahora comprueba `aria-current`) + 1 Minor, corregidos, junto con fallos del spec nuevo detectados en QA (línea plana «oculta», reglas de `.first()`/`@responsive`); intento 3 — 0 Critical/Important. QA: Pest completo 4997 pasados / 9 omitidos; Node 894/894; build, `format:check`, ESLint y typecheck verdes; suite E2E completa con T-98 (892 pasados): los fallos eran ajenos a T-98 y se corrigieron (falso positivo `access_token` en LinkedIn/Threads desde T-87 por el nombre del campo de Mastodon; `getByLabel('Buscar')` ambiguo en Canva desde T-85); repetición de los specs afectados 356/356 en tres tamaños (`testing/t98/t98-e2e3.log`). **Entorno:** `studio-captions.spec.ts` necesita `pdftoppm` (Poppler), no instalado en esta máquina. **Deuda aceptada (Minor):** el guard no detecta colores con nombre en ternarias con una rama no literal, `&&`/`||`, ternarias partidas en varias líneas ni `style['…']` (sin casos en el código). **Pendiente del usuario:** M-08 (revisión visual en oscuro).
+
+RED: theme-ui-palette.test.mjs falló al detectar 2.573 colores fijos en 126 archivos Vue · 2026-11-28.
+
+**Revisión adversarial — intento 1 de 3**
+
+- RED: `theme-ui-palette.test.mjs` falló por 10 literales y utilidades sin detectar y por omitir `Pages/Dashboard/Partials/format.js` · 2026-11-28.
+- RED: `theme-contrast.test.mjs` midió 1,21:1 en el clip normal claro y 2,07:1 en el seleccionado oscuro · 2026-11-28.
+- Correcciones. El guard cubre nombres CSS, variantes y valores arbitrarios de Tailwind en Vue, JS y TS de la interfaz. La red genérica usa tokens, el color inicial de campaña queda documentado como dato persistido y `resources/js/Studio/**` queda fuera del guard.
+- Franjas de animación. Contraste normal y seleccionado de 5,98:1 y 7,10:1 en claro, y de 9,18:1 y 9,56:1 en oscuro. Las dos franjas heredan el color de texto del clip.
+- Verificación del intento. Node focal 27/27 con `--experimental-test-isolation=none`. `npm run format:check`, `npm run lint` y `npm run typecheck` en verde. E2E-35 incorpora en ambos temas un mapa de calor con datos y el gráfico de una campaña sembrada. La ejecución de esas dos vistas con axe queda pendiente.
+
+- La misma paleta semántica gobierna las páginas, los componentes, los campos nativos y el Estudio. E2E-35 añade 18 vistas por tema, con datos de fábrica para calendario, compositor, bandeja, analítica y Estudio. Mide contraste y desbordamiento, comprueba un píxel de color del diseño y audita el diálogo de exportación.
+- Excepciones de la prueba estática. Se conservan logos e iconos de red, botones de proveedores, margen blanco del QR, muestras reales, lienzos y previsualizaciones de diseños, medios, sitios y SmartLinks. Los gráficos guardados conservan sus ejes, rejillas, textos y series. En analítica, el color de marca se adapta solo en las series del gráfico.
+- Ajustes AA en claro. Texto tenue, bordes y foco de controles usan los tokens de T-97. Las etiquetas de red y las series se mezclan con el color de texto, el mapa de calor usa cinco intensidades verificadas y las franjas de animación dejan libre el nombre del clip.
+- Verificación local. Node focal 8/8, incluidos contraste y estructura del editor. Pest con SQLite en memoria 4.985 aprobadas, 21 omitidas y 38.751 aserciones. `format:check`, `lint` y `typecheck` verdes. PostCSS/Tailwind compiló los estilos de 178 Vue y pasó 6 comprobaciones de CSS generado. El sandbox bloqueó `npm run test:unit` en 97 archivos y `npm run build` al cargar Vite con `spawn EPERM`. Pendientes Playwright, la revisión adversarial y M-08, incluida la comparación visual en claro.
+
+**Revisión adversarial — correcciones del intento 2 de 3**
+
+- RED: `test-tooling.test.mjs` señaló 10 declaraciones `@responsive` partidas en Canva, LinkedIn/Pinterest y Threads, y una llamada `.first()` por encima del cupo de `dark-mode.spec.ts` · 2026-11-28.
+- RED: `theme-ui-palette.test.mjs` falló en nueve casos nuevos de colores con nombre y en el caso de textos de interfaz · 2026-11-28.
+- Canva expone `aria-current` en el diseño resaltado tras el retorno. El E2E comprueba ese estado. En analítica y campañas el spec comprueba la visibilidad del SVG con datos, incluidas las series planas. Las declaraciones de los specs afectados conservan `@responsive` en la línea inicial.
+- Verificación serial con `node --test --experimental-test-isolation=none`. Pasaron 36 tests de tema y los dos controles estáticos. Pasaron `npm run format:check`, `npm run lint` y `npm run typecheck`. Pendientes la ejecución de Playwright por el usuario, M-08 y la validación de la revisión.
 
 ---
 
@@ -5586,3 +5610,7 @@ Lentes A+B+C (Opus, effort high). Intento 1: 2 Important + 5 Minor corregidos po
 ## Revisión de dos lentes — intento 2: Fase 7 (T-97) — aprobada y cerrada
 
 Lentes A+B+C (Opus, effort high). Intento 1: 1 Important (texto ilegible en oscuro en las pantallas con selector) + 2 Minor corregidos por Codex. Intento 2: sin hallazgos. Diffs en `testing/t97/reviews/r1.patch` y `r2.patch`. Total 96/108.
+
+## Revisión de dos lentes — intento 3: Fase 7 (T-98) — aprobada y cerrada
+
+Lentes A+B+C (Opus, effort high). Intento 1: 2 Important (alcance del guard) + 2 Minor corregidos por Codex. Intento 2: 1 Important (E2E de Canva con clase antigua) + 1 Minor corregidos. Intento 3: 0 Critical/Important; 2 Minor aceptados como deuda. Diffs en `testing/t98/reviews/r1.patch`–`r3.patch`. Total 97/108; Fase 7 completa.

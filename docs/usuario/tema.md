@@ -10,4 +10,4 @@ La elección se guarda en tu cuenta y se aplica al iniciar sesión en otros nave
 
 Antes de iniciar sesión, puedes cambiar el tema desde el selector de la pantalla de acceso. El cambio se aplica enseguida y se guarda en ese navegador. Si el navegador bloquea el almacenamiento, se conserva hasta que recargues o cierres la página.
 
-La primera etapa cubre la navegación, los diálogos, los avisos y los controles comunes. La adaptación de las páginas y del Estudio forma parte de T-98.
+El tema se aplica en las páginas de la aplicación, los gráficos de analítica y la interfaz del Estudio, incluidos sus paneles y la línea de tiempo. El lienzo, los gráficos insertados en tus diseños y las exportaciones conservan los colores que eliges para cada diseño.

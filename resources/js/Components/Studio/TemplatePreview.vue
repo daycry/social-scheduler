@@ -28,13 +28,13 @@ onBeforeUnmount(() => { generation++; observer?.disconnect(); if (url.value) URL
 <template>
     <div
         ref="container"
-        class="flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl bg-slate-100 p-3"
+        class="flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl bg-surface-hover p-3"
         aria-hidden="true"
     >
         <img v-if="url" :src="url" alt="" class="max-h-full max-w-full object-contain shadow-sm" />
         <span
             v-else
-            class="text-center text-xs text-slate-500"
+            class="text-center text-xs text-foreground-subtle"
             >{{ failed ? 'Vista previa no disponible' : 'Preparando vista previa…' }}</span
         >
     </div>

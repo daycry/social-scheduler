@@ -68,7 +68,7 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
     <AuthenticatedLayout>
         <template #header>
             <div class="flex flex-wrap items-center gap-3">
-                <h1 class="text-xl font-bold text-slate-900">Competidores</h1>
+                <h1 class="text-xl font-bold text-foreground-strong">Competidores</h1>
                 <NetworkChip :network="network" />
             </div>
         </template>
@@ -104,7 +104,7 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
                 <form class="card space-y-3 p-5" @submit.prevent="submit">
                     <FormField :error="form.errors.username" v-slot="{ control }">
                         <label class="block text-sm">
-                            <span class="block text-xs font-medium text-slate-600">{{ usernameLabel }}</span>
+                            <span class="block text-xs font-medium text-foreground-muted">{{ usernameLabel }}</span>
                             <input
                                 v-bind="control"
                                 v-model="form.username"
@@ -119,7 +119,7 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
                     </FormField>
                     <FormField :error="form.errors.brand_id" />
                     <PrimaryButton :disabled="form.processing">Seguir cuenta</PrimaryButton>
-                    <p class="text-xs text-slate-600">Hasta {{ max }} cuentas por marca. {{ dataNote }}</p>
+                    <p class="text-xs text-foreground-muted">Hasta {{ max }} cuentas por marca. {{ dataNote }}</p>
                 </form>
 
                 <form
@@ -129,7 +129,7 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
                 >
                     <FormField :error="$page.props.errors?.from" v-slot="{ control }">
                         <label class="block">
-                            <span class="block text-xs font-medium text-slate-600">Desde</span>
+                            <span class="block text-xs font-medium text-foreground-muted">Desde</span>
                             <input
                                 v-bind="control"
                                 v-model="range.from"
@@ -141,7 +141,7 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
                     </FormField>
                     <FormField :error="$page.props.errors?.to" v-slot="{ control }">
                         <label class="block">
-                            <span class="block text-xs font-medium text-slate-600">Hasta</span>
+                            <span class="block text-xs font-medium text-foreground-muted">Hasta</span>
                             <input
                                 v-bind="control"
                                 v-model="range.to"
@@ -152,7 +152,7 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
                         </label>
                     </FormField>
                     <label class="block">
-                        <span class="block text-xs font-medium text-slate-600">Ordenar por</span>
+                        <span class="block text-xs font-medium text-foreground-muted">Ordenar por</span>
                         <select v-model="range.sort" class="field" data-testid="range-sort">
                             <option v-for="k in sorts" :key="k" :value="k">{{ sortLabels[k] }}</option>
                         </select>
@@ -171,7 +171,7 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
                         <caption class="sr-only"
                             >Comparativa de {{ followersLabel.toLowerCase() }} y {{ mediaLabel.toLowerCase() }}</caption
                         >
-                        <thead class="border-b text-xs text-slate-600">
+                        <thead class="border-b text-xs text-foreground-muted">
                             <tr>
                                 <th scope="col" class="px-3 py-3 text-right font-medium">Pos.</th>
                                 <th scope="col" class="px-5 py-3 font-medium">Cuenta</th>
@@ -186,7 +186,7 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
                         </thead>
                         <tbody class="divide-y">
                             <tr v-if="rows.length === 0">
-                                <td colspan="9" class="px-5 py-4 text-slate-600"
+                                <td colspan="9" class="px-5 py-4 text-foreground-muted"
                                     >Aún no sigues a ninguna cuenta de {{ netLabel }}.</td
                                 >
                             </tr>
@@ -197,21 +197,21 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
                                     >{{ r.rank ?? '—' }}</td
                                 >
                                 <td class="px-5 py-3">
-                                    <p class="font-medium text-slate-900"
+                                    <p class="font-medium text-foreground-strong"
                                         >@{{ r.username }}
-                                        <span v-if="r.own" class="text-xs font-normal text-indigo-600">(tú)</span></p
+                                        <span v-if="r.own" class="text-xs font-normal text-accent">(tú)</span></p
                                     >
-                                    <div class="mt-1 h-1.5 w-40 rounded bg-slate-100" aria-hidden="true">
+                                    <div class="mt-1 h-1.5 w-40 rounded bg-surface-hover" aria-hidden="true">
                                         <div
-                                            class="h-1.5 rounded bg-indigo-500"
+                                            class="h-1.5 rounded bg-focus"
                                             :style="{ width: `${((r.followers ?? 0) / maxFollowers) * 100}%` }"
                                         ></div>
                                     </div>
-                                    <p v-if="r.error" class="mt-1 text-xs text-red-600">{{ r.error }}</p>
+                                    <p v-if="r.error" class="mt-1 text-xs text-danger">{{ r.error }}</p>
                                     <div v-if="!r.own" class="mt-2 flex flex-wrap gap-x-3 gap-y-1">
                                         <button
                                             type="button"
-                                            class="text-xs font-medium text-indigo-700 underline"
+                                            class="text-xs font-medium text-accent-strong underline"
                                             data-testid="show-posts"
                                             :aria-label="`Ver publicaciones de @${r.username}`"
                                             @click="showPosts(r)"
@@ -219,7 +219,7 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
                                         >
                                         <button
                                             type="button"
-                                            class="text-xs font-medium text-red-700 underline"
+                                            class="text-xs font-medium text-danger underline"
                                             :aria-label="`Dejar de seguir a @${r.username}`"
                                             @click="remove(r)"
                                             >Dejar de seguir</button
@@ -249,7 +249,7 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
                     aria-label="Publicaciones destacadas"
                 >
                     <div class="flex flex-wrap items-center justify-between gap-2">
-                        <h2 class="text-base font-semibold text-slate-900"
+                        <h2 class="text-base font-semibold text-foreground-strong"
                             >Publicaciones destacadas de @{{ selected.username }}</h2
                         >
                         <button
@@ -260,11 +260,11 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
                             >Actualizar publicaciones</button
                         >
                     </div>
-                    <p class="text-xs text-slate-600"
+                    <p class="text-xs text-foreground-muted"
                         >Ordenadas por interacciones visibles (me gusta + comentarios) dentro del rango. Si la cuenta
                         oculta sus me gusta, se muestra «—».</p
                     >
-                    <p v-if="selected.posts.length === 0" class="text-slate-600"
+                    <p v-if="selected.posts.length === 0" class="text-foreground-muted"
                         >No hay publicaciones recogidas en este rango. Pulsa «Actualizar publicaciones» para leer las
                         últimas.</p
                     >
@@ -272,11 +272,14 @@ const maxFollowers = computed(() => Math.max(1, ...rows.value.map((r) => r.follo
                         <li
                             v-for="p in selected.posts"
                             :key="p.id"
-                            class="rounded border border-slate-200 p-3"
+                            class="rounded border border-border p-3"
                             data-testid="top-post"
                         >
-                            <p class="whitespace-pre-line break-words text-slate-800">{{ p.caption || 'Sin texto' }}</p>
-                            <p class="mt-1 text-xs text-slate-600">
+                            <p
+                                class="whitespace-pre-line break-words text-foreground"
+                                >{{ p.caption || 'Sin texto' }}</p
+                            >
+                            <p class="mt-1 text-xs text-foreground-muted">
                                 {{ fmtDate(p.posted_at) }} · {{ n(p.likes) }} me gusta · {{ n(p.comments) }} comentarios
                                 · {{ n(p.interactions) }} interacciones
                                 <a

@@ -174,12 +174,12 @@ const when = computed(() => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="text-xl font-bold text-slate-900">Informes</h1>
+            <h1 class="text-xl font-bold text-foreground-strong">Informes</h1>
         </template>
 
         <div>
             <div class="space-y-5">
-                <div v-if="brands.length === 0" class="rounded-lg bg-white p-6 text-slate-700 shadow-sm">
+                <div v-if="brands.length === 0" class="rounded-lg bg-surface p-6 text-foreground-secondary shadow-sm">
                     Aún no tienes marcas.
                     <Link :href="route('brands.create')" class="link">Crea una marca</Link> para generar informes.
                 </div>
@@ -189,7 +189,7 @@ const when = computed(() => {
                         <div class="flex flex-wrap items-end gap-4">
                             <FormField :error="form.errors.brand_id" v-slot="{ control }">
                                 <label class="min-w-0 max-w-full text-sm">
-                                    <span class="block text-xs font-medium text-slate-600">Marca</span>
+                                    <span class="block text-xs font-medium text-foreground-muted">Marca</span>
                                     <select
                                         v-bind="control"
                                         v-model="form.brand_id"
@@ -202,7 +202,7 @@ const when = computed(() => {
                             </FormField>
                             <FormField :error="form.errors.from" v-slot="{ control }">
                                 <label class="min-w-0 max-w-full text-sm">
-                                    <span class="block text-xs font-medium text-slate-600">Desde</span>
+                                    <span class="block text-xs font-medium text-foreground-muted">Desde</span>
                                     <input
                                         v-bind="control"
                                         v-model="form.from"
@@ -213,7 +213,7 @@ const when = computed(() => {
                             </FormField>
                             <FormField :error="form.errors.to" v-slot="{ control }">
                                 <label class="min-w-0 max-w-full text-sm">
-                                    <span class="block text-xs font-medium text-slate-600">Hasta</span>
+                                    <span class="block text-xs font-medium text-foreground-muted">Hasta</span>
                                     <input
                                         v-bind="control"
                                         v-model="form.to"
@@ -223,7 +223,7 @@ const when = computed(() => {
                                 </label>
                             </FormField>
                             <label class="min-w-0 max-w-full text-sm">
-                                <span class="block text-xs font-medium text-slate-600">Comparar con</span>
+                                <span class="block text-xs font-medium text-foreground-muted">Comparar con</span>
                                 <select v-model="form.compare" class="field w-auto max-w-full py-1.5">
                                     <option value="none">Sin comparación</option>
                                     <option value="previous">Periodo anterior</option>
@@ -232,13 +232,15 @@ const when = computed(() => {
                             </label>
                             <FormField :error="firstGroupError(form.errors, 'formats')" v-slot="{ group }">
                                 <fieldset v-bind="group" class="flex gap-3 text-sm">
-                                    <legend class="mb-1 block text-xs font-medium text-slate-600">Formato</legend>
+                                    <legend class="mb-1 block text-xs font-medium text-foreground-muted"
+                                        >Formato</legend
+                                    >
                                     <label class="flex items-center gap-1"
                                         ><input
                                             v-model="form.formats"
                                             type="checkbox"
                                             value="pdf"
-                                            class="rounded border-slate-300"
+                                            class="rounded border-control-border"
                                         />
                                         PDF</label
                                     >
@@ -247,7 +249,7 @@ const when = computed(() => {
                                             v-model="form.formats"
                                             type="checkbox"
                                             value="csv"
-                                            class="rounded border-slate-300"
+                                            class="rounded border-control-border"
                                         />
                                         CSV</label
                                     >
@@ -256,28 +258,26 @@ const when = computed(() => {
                         </div>
 
                         <FormField :error="form.errors.blocks || tplForm.errors.blocks" v-slot="{ group }">
-                            <fieldset
-                                v-bind="group"
-                                class="space-y-3 rounded-lg border border-slate-200 p-4"
-                                data-builder
-                            >
-                                <legend class="px-1 text-sm font-medium text-slate-800">Bloques del informe PDF</legend>
+                            <fieldset v-bind="group" class="space-y-3 rounded-lg border border-border p-4" data-builder>
+                                <legend class="px-1 text-sm font-medium text-foreground"
+                                    >Bloques del informe PDF</legend
+                                >
                                 <ol class="space-y-2">
                                     <li
                                         v-for="(b, i) in blocks"
                                         :key="b.key"
-                                        class="rounded-md border border-slate-200 bg-slate-50 p-3"
+                                        class="rounded-md border border-border bg-canvas p-3"
                                         data-block
                                         :data-block-type="b.type"
                                     >
                                         <div class="flex flex-wrap items-center justify-between gap-2">
-                                            <span class="text-sm font-medium text-slate-800"
+                                            <span class="text-sm font-medium text-foreground"
                                                 >{{ i + 1 }}. {{ label(b.type) }}</span
                                             >
                                             <span class="flex flex-wrap gap-1">
                                                 <button
                                                     type="button"
-                                                    class="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 disabled:opacity-50"
+                                                    class="rounded border border-control-border bg-surface px-2 py-1 text-xs text-foreground-secondary disabled:opacity-50"
                                                     :disabled="i === 0"
                                                     :aria-label="`Subir bloque ${i + 1}: ${label(b.type)}`"
                                                     @click="moveBlock(i, -1)"
@@ -285,7 +285,7 @@ const when = computed(() => {
                                                 >
                                                 <button
                                                     type="button"
-                                                    class="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 disabled:opacity-50"
+                                                    class="rounded border border-control-border bg-surface px-2 py-1 text-xs text-foreground-secondary disabled:opacity-50"
                                                     :disabled="i === blocks.length - 1"
                                                     :aria-label="`Bajar bloque ${i + 1}: ${label(b.type)}`"
                                                     @click="moveBlock(i, 1)"
@@ -293,14 +293,14 @@ const when = computed(() => {
                                                 >
                                                 <button
                                                     type="button"
-                                                    class="rounded border border-red-300 bg-white px-2 py-1 text-xs text-red-700"
+                                                    class="rounded border border-danger-border bg-surface px-2 py-1 text-xs text-danger"
                                                     :aria-label="`Quitar bloque ${i + 1}: ${label(b.type)}`"
                                                     @click="removeBlock(i)"
                                                     >Quitar</button
                                                 >
                                             </span>
                                         </div>
-                                        <label class="mt-2 block text-xs font-medium text-slate-600">
+                                        <label class="mt-2 block text-xs font-medium text-foreground-muted">
                                             Título (opcional)
                                             <input
                                                 v-model="b.title"
@@ -312,7 +312,7 @@ const when = computed(() => {
                                         </label>
                                         <label
                                             v-if="b.type === 'text'"
-                                            class="mt-2 block text-xs font-medium text-slate-600"
+                                            class="mt-2 block text-xs font-medium text-foreground-muted"
                                         >
                                             Texto de la nota
                                             <textarea
@@ -325,12 +325,14 @@ const when = computed(() => {
                                         </label>
                                     </li>
                                 </ol>
-                                <p v-if="blocks.length === 0" class="text-sm text-slate-600"
+                                <p v-if="blocks.length === 0" class="text-sm text-foreground-muted"
                                     >Añade al menos un bloque.</p
                                 >
                                 <div class="flex flex-wrap items-end gap-3">
                                     <label class="min-w-0 max-w-full text-sm">
-                                        <span class="block text-xs font-medium text-slate-600">Añadir bloque</span>
+                                        <span class="block text-xs font-medium text-foreground-muted"
+                                            >Añadir bloque</span
+                                        >
                                         <select
                                             v-model="newType"
                                             class="field w-auto max-w-full py-1.5"
@@ -357,11 +359,13 @@ const when = computed(() => {
 
                         <FormField :error="previewError" />
 
-                        <fieldset class="space-y-2 rounded-lg border border-slate-200 p-4" data-templates>
-                            <legend class="px-1 text-sm font-medium text-slate-800">Plantillas de esta marca</legend>
+                        <fieldset class="space-y-2 rounded-lg border border-border p-4" data-templates>
+                            <legend class="px-1 text-sm font-medium text-foreground">Plantillas de esta marca</legend>
                             <div class="flex flex-wrap items-end gap-3">
                                 <label class="min-w-0 max-w-full text-sm">
-                                    <span class="block text-xs font-medium text-slate-600">Plantilla guardada</span>
+                                    <span class="block text-xs font-medium text-foreground-muted"
+                                        >Plantilla guardada</span
+                                    >
                                     <select
                                         v-model="templateId"
                                         class="field w-auto max-w-full py-1.5"
@@ -386,7 +390,7 @@ const when = computed(() => {
                             <div class="flex flex-wrap items-end gap-3">
                                 <FormField :error="tplForm.errors.name" v-slot="{ control }">
                                     <label class="min-w-0 max-w-full text-sm">
-                                        <span class="block text-xs font-medium text-slate-600"
+                                        <span class="block text-xs font-medium text-foreground-muted"
                                             >Nombre de la plantilla</span
                                         >
                                         <input
@@ -419,8 +423,8 @@ const when = computed(() => {
                     <ReportPreview :preview="preview" :label="label" />
 
                     <section class="card space-y-3 p-5" data-schedules>
-                        <h2 class="text-sm font-medium text-slate-800">Informes programados por correo</h2>
-                        <p v-if="brandTemplates.length === 0" class="text-sm text-slate-600"
+                        <h2 class="text-sm font-medium text-foreground">Informes programados por correo</h2>
+                        <p v-if="brandTemplates.length === 0" class="text-sm text-foreground-muted"
                             >Guarda una plantilla de esta marca para poder programar su envío semanal o mensual.</p
                         >
                         <form
@@ -431,7 +435,9 @@ const when = computed(() => {
                         >
                             <FormField :error="scheduleForm.errors.report_template_id" v-slot="{ control }">
                                 <label class="min-w-0 max-w-full text-sm">
-                                    <span class="block text-xs font-medium text-slate-600">Plantilla a enviar</span>
+                                    <span class="block text-xs font-medium text-foreground-muted"
+                                        >Plantilla a enviar</span
+                                    >
                                     <select
                                         v-bind="control"
                                         v-model="scheduleTemplate"
@@ -450,7 +456,7 @@ const when = computed(() => {
                             </FormField>
                             <FormField :error="scheduleForm.errors.frequency" v-slot="{ control }">
                                 <label class="min-w-0 max-w-full text-sm">
-                                    <span class="block text-xs font-medium text-slate-600">Frecuencia</span>
+                                    <span class="block text-xs font-medium text-foreground-muted">Frecuencia</span>
                                     <select
                                         v-bind="control"
                                         v-model="scheduleForm.frequency"
@@ -464,7 +470,7 @@ const when = computed(() => {
                             </FormField>
                             <FormField :error="firstGroupError(scheduleForm.errors, 'recipients')" v-slot="{ control }">
                                 <label class="w-full min-w-0 text-sm sm:w-auto sm:flex-1">
-                                    <span class="block text-xs font-medium text-slate-600"
+                                    <span class="block text-xs font-medium text-foreground-muted"
                                         >Destinatarios (máximo {{ limits.recipients }}, separados por comas)</span
                                     >
                                     <input
@@ -490,26 +496,26 @@ const when = computed(() => {
                                 :data-schedule="s.id"
                             >
                                 <div class="min-w-0">
-                                    <p class="break-words font-medium text-slate-900"
+                                    <p class="break-words font-medium text-foreground-strong"
                                         >{{ s.template }} · {{ s.frequency === 'weekly' ? 'Semanal' : 'Mensual' }} ·
                                         {{ s.active ? 'Activo' : 'En pausa' }}</p
                                     >
-                                    <p class="break-all text-xs text-slate-600">{{ s.recipients.join(', ') }}</p>
-                                    <p class="text-xs text-slate-600"
+                                    <p class="break-all text-xs text-foreground-muted">{{ s.recipients.join(', ') }}</p>
+                                    <p class="text-xs text-foreground-muted"
                                         >Próximo envío: {{ when(s.next_run_at) }} · Último: {{ when(s.last_run_at) }}</p
                                     >
-                                    <p v-if="s.last_error" class="text-xs text-red-700">{{ s.last_error }}</p>
+                                    <p v-if="s.last_error" class="text-xs text-danger">{{ s.last_error }}</p>
                                 </div>
                                 <div class="flex gap-2">
                                     <button
                                         type="button"
-                                        class="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700"
+                                        class="rounded border border-control-border bg-surface px-2 py-1 text-xs text-foreground-secondary"
                                         @click="toggleSchedule(s)"
                                         >{{ s.active ? 'Pausar' : 'Reanudar' }}</button
                                     >
                                     <button
                                         type="button"
-                                        class="rounded border border-red-300 bg-white px-2 py-1 text-xs text-red-700"
+                                        class="rounded border border-danger-border bg-surface px-2 py-1 text-xs text-danger"
                                         @click="removeSchedule(s)"
                                         >Eliminar envío</button
                                     >

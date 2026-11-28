@@ -9,9 +9,9 @@ const names = { text: 'Texto', rect: 'Rectángulo', ellipse: 'Elipse', triangle:
     <section aria-label="Capas del diseño" class="space-y-4">
         <div class="flex items-center justify-between"
             ><h2 class="text-sm font-semibold">Capas</h2
-            ><span class="text-xs text-slate-400">{{ layers.length }} elementos</span></div
+            ><span class="text-xs text-foreground-subtle">{{ layers.length }} elementos</span></div
         >
-        <p class="text-xs leading-relaxed text-slate-500"
+        <p class="text-xs leading-relaxed text-foreground-subtle"
             >La primera capa está delante. Usa Ctrl o ⌘ para seleccionar varias.</p
         >
         <ol class="space-y-1.5">
@@ -20,7 +20,7 @@ const names = { text: 'Texto', rect: 'Rectángulo', ellipse: 'Elipse', triangle:
                 :key="layer.id"
                 data-testid="studio-layer"
                 class="flex min-w-0 items-center gap-1 rounded-xl border p-1.5"
-                :class="selectedIds.has(layer.id) ? 'border-violet-300 bg-violet-50' : 'border-slate-200 bg-white'"
+                :class="selectedIds.has(layer.id) ? 'border-accent-secondary-border bg-accent-secondary-soft' : 'border-border bg-surface'"
             >
                 <button
                     type="button"
@@ -29,20 +29,20 @@ const names = { text: 'Texto', rect: 'Rectángulo', ellipse: 'Elipse', triangle:
                     @click="emit('select', layer.id, $event.ctrlKey || $event.metaKey)"
                 >
                     <span
-                        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-xs font-bold text-slate-500"
+                        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-surface-hover text-xs font-bold text-foreground-subtle"
                         aria-hidden="true"
                         >{{ layer.type === 'text' ? 'T' : layer.type === 'group' ? '▦' : layer.type === 'video' ? '▶' : '◇' }}</span
                     >
                     <span class="min-w-0"
                         ><span class="block truncate text-xs font-medium">{{ layer.name || names[layer.type] }}</span
-                        ><span class="block text-[10px] text-slate-400"
+                        ><span class="block text-[10px] text-foreground-subtle"
                             >{{ names[layer.type] }}{{ layer.locked ? ' · Bloqueado' : '' }}</span
                         ></span
                     >
                 </button>
                 <button
                     type="button"
-                    class="rounded-md p-1.5 text-slate-500 hover:bg-slate-100"
+                    class="rounded-md p-1.5 text-foreground-subtle hover:bg-surface-hover"
                     :aria-label="`${layer.visible ? 'Ocultar' : 'Mostrar'} ${layer.name}`"
                     @click="emit('patch', layer.id, { visible: !layer.visible })"
                     ><svg
@@ -59,7 +59,7 @@ const names = { text: 'Texto', rect: 'Rectángulo', ellipse: 'Elipse', triangle:
                 ></button>
                 <button
                     type="button"
-                    class="rounded-md p-1.5 text-slate-500 hover:bg-slate-100"
+                    class="rounded-md p-1.5 text-foreground-subtle hover:bg-surface-hover"
                     :aria-label="`${layer.locked ? 'Desbloquear' : 'Bloquear'} ${layer.name}`"
                     @click="emit('patch', layer.id, { locked: !layer.locked })"
                     ><svg
@@ -78,26 +78,26 @@ const names = { text: 'Texto', rect: 'Rectángulo', ellipse: 'Elipse', triangle:
         </ol>
         <p
             v-if="!layers.length"
-            class="rounded-xl border border-dashed border-slate-200 px-3 py-7 text-center text-xs leading-relaxed text-slate-500"
+            class="rounded-xl border border-dashed border-border px-3 py-7 text-center text-xs leading-relaxed text-foreground-subtle"
             >Tu lienzo está listo.<br />Añade texto, una forma o un recurso.</p
         >
-        <div v-if="selection.length" class="grid grid-cols-2 gap-2 border-t border-slate-100 pt-4 text-xs">
+        <div v-if="selection.length" class="grid grid-cols-2 gap-2 border-t border-border-subtle pt-4 text-xs">
             <button
                 v-for="item in [{ mode: 'front', label: 'Al frente' }, { mode: 'forward', label: 'Adelantar' }, { mode: 'backward', label: 'Retroceder' }, { mode: 'back', label: 'Al fondo' }]"
                 :key="item.mode"
                 type="button"
-                class="rounded-lg border border-slate-200 px-2 py-2 hover:bg-slate-50"
+                class="rounded-lg border border-border px-2 py-2 hover:bg-canvas"
                 @click="emit('action', 'reorder', item.mode)"
                 >{{ item.label }}</button
             >
             <button
                 type="button"
-                class="rounded-lg border border-slate-200 px-2 py-2 hover:bg-slate-50"
+                class="rounded-lg border border-border px-2 py-2 hover:bg-canvas"
                 @click="emit('action', 'group')"
                 >Agrupar</button
             ><button
                 type="button"
-                class="rounded-lg border border-slate-200 px-2 py-2 hover:bg-slate-50"
+                class="rounded-lg border border-border px-2 py-2 hover:bg-canvas"
                 @click="emit('action', 'ungroup')"
                 >Desagrupar</button
             >

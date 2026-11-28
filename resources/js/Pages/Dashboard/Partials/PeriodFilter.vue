@@ -40,7 +40,7 @@ const apply = () =>
 <template>
     <div class="card flex flex-wrap items-end gap-x-4 gap-y-3 p-4">
         <div class="text-sm">
-            <label for="period-from" class="block text-xs font-medium text-slate-600">Periodo principal</label>
+            <label for="period-from" class="block text-xs font-medium text-foreground-muted">Periodo principal</label>
             <span class="flex flex-wrap items-center gap-1.5">
                 <FormField id="period-from" :error="errors.from" v-slot="{ control }">
                     <input
@@ -52,7 +52,7 @@ const apply = () =>
                         @change="apply"
                     />
                 </FormField>
-                <span class="text-slate-400" aria-hidden="true">–</span>
+                <span class="text-foreground-subtle" aria-hidden="true">–</span>
                 <FormField id="period-to" :error="errors.to" v-slot="{ control }">
                     <input
                         v-bind="control"
@@ -70,13 +70,13 @@ const apply = () =>
                 v-for="d in [7, 30, 90]"
                 :key="d"
                 type="button"
-                class="rounded-lg border border-slate-300 bg-white px-2.5 py-2 font-medium text-slate-700 hover:bg-slate-50"
+                class="rounded-lg border border-control-border bg-surface px-2.5 py-2 font-medium text-foreground-secondary hover:bg-canvas"
                 @click="preset(d)"
                 >{{ d }} días</button
             >
         </div>
         <div class="text-sm">
-            <label for="period-compare" class="block text-xs font-medium text-slate-600">Comparar con</label>
+            <label for="period-compare" class="block text-xs font-medium text-foreground-muted">Comparar con</label>
             <select id="period-compare" v-model="form.compare" class="field w-auto py-1.5" @change="apply">
                 <option value="none">Sin comparación</option>
                 <option value="previous">Periodo anterior</option>

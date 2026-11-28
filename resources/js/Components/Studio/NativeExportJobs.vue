@@ -73,14 +73,14 @@ onBeforeUnmount(() => { disposed = true; view++; monitor.stop(); emit('busy', fa
 
 <template>
     <section class="space-y-4" aria-label="Exportación en segundo plano">
-        <div class="rounded-xl border border-violet-200 bg-violet-50 p-4">
-            <p class="text-sm leading-relaxed text-violet-950"
+        <div class="rounded-xl border border-accent-secondary-border bg-accent-secondary-soft p-4">
+            <p class="text-sm leading-relaxed text-accent-secondary-ink"
                 >{{ format === 'pptx' ? 'El archivo se prepara en segundo plano y se descarga desde esta lista; no se guarda en la biblioteca.' : 'El archivo se prepara en segundo plano y se guarda en la biblioteca de esta marca.' }}
                 Puedes cerrar este diálogo y seguir editando.</p
             >
             <button
                 type="button"
-                class="btn-primary mt-3 bg-violet-700"
+                class="btn-secondary-accent mt-3"
                 :disabled="submitting || action !== null"
                 @click="begin"
                 >{{ submitting ? 'Guardando y enviando…' : `Preparar ${format.toUpperCase()}` }}</button
@@ -89,7 +89,7 @@ onBeforeUnmount(() => { disposed = true; view++; monitor.stop(); emit('busy', fa
         <p
             v-if="error || tracking.error"
             role="alert"
-            class="rounded-xl bg-red-50 p-3 text-sm text-red-800"
+            class="rounded-xl bg-danger-soft p-3 text-sm text-danger-ink"
             >{{ error || tracking.error }}</p
         >
         <div class="flex flex-wrap items-center justify-between gap-2"
@@ -102,13 +102,13 @@ onBeforeUnmount(() => { disposed = true; view++; monitor.stop(); emit('busy', fa
                 >Actualizar exportaciones</button
             ></div
         >
-        <p v-if="tracking.paused" role="status" class="rounded-xl bg-amber-50 p-3 text-sm text-amber-900"
+        <p v-if="tracking.paused" role="status" class="rounded-xl bg-warning-soft p-3 text-sm text-warning-ink"
             >La consulta automática se ha detenido. El trabajo puede continuar en el servidor. Pulsa Actualizar
             exportaciones para seguir sin crear otro trabajo.</p
         >
         <p
             v-if="!jobs.length"
-            class="text-sm text-slate-500"
+            class="text-sm text-foreground-subtle"
             >{{ tracking.loading ? 'Consultando exportaciones…' : 'Todavía no hay exportaciones en esta página.' }}</p
         >
         <div class="space-y-3">
@@ -116,27 +116,27 @@ onBeforeUnmount(() => { disposed = true; view++; monitor.stop(); emit('busy', fa
                 v-for="job in jobs"
                 :key="job.id"
                 :aria-label="`Exportación ${job.id}`"
-                class="min-w-0 space-y-3 rounded-xl border border-slate-200 p-4"
+                class="min-w-0 space-y-3 rounded-xl border border-border p-4"
             >
                 <div class="flex flex-wrap items-center justify-between gap-2"
                     ><span class="text-sm font-semibold"
                         >{{ job.format.toUpperCase() }}
-                        <span class="font-normal text-slate-500">· Revisión {{ job.revision }}</span></span
+                        <span class="font-normal text-foreground-subtle">· Revisión {{ job.revision }}</span></span
                     ><span
-                        class="rounded-full bg-slate-100 px-2.5 py-1 text-xs"
+                        class="rounded-full bg-surface-hover px-2.5 py-1 text-xs"
                         >{{ labels[job.status] || job.status }}</span
                     ></div
                 >
                 <div v-if="job.progress && ['pending', 'processing'].includes(job.status)" class="space-y-1"
-                    ><label :for="`export-progress-${job.id}`" class="text-xs text-slate-600"
+                    ><label :for="`export-progress-${job.id}`" class="text-xs text-foreground-muted"
                         >Progreso: {{ job.progress.percent }} %</label
                     ><progress
                         :id="`export-progress-${job.id}`"
                         :value="job.progress.percent"
                         max="100"
-                        class="h-2 w-full accent-violet-600"
+                        class="h-2 w-full accent-accent-secondary-fill"
                 /></div>
-                <p v-if="job.error" class="break-words text-xs leading-relaxed text-red-800">{{ job.error }}</p>
+                <p v-if="job.error" class="break-words text-xs leading-relaxed text-danger-ink">{{ job.error }}</p>
                 <div class="flex flex-wrap gap-2">
                     <button
                         v-if="job.can_cancel"
@@ -164,7 +164,7 @@ onBeforeUnmount(() => { disposed = true; view++; monitor.stop(); emit('busy', fa
                     <button
                         v-if="sourcePostId && canUseInPost(job)"
                         type="button"
-                        class="btn-primary bg-violet-700 text-xs"
+                        class="btn-secondary-accent text-xs"
                         :disabled="action !== null || submitting"
                         @click="control(job, 'update')"
                         >Actualizar publicación</button
@@ -173,7 +173,7 @@ onBeforeUnmount(() => { disposed = true; view++; monitor.stop(); emit('busy', fa
                         v-if="canUseInPost(job)"
                         type="button"
                         class="text-xs"
-                        :class="sourcePostId ? 'btn-secondary' : 'btn-primary bg-violet-700'"
+                        :class="sourcePostId ? 'btn-secondary' : 'btn-secondary-accent'"
                         :disabled="action !== null || submitting"
                         @click="control(job, 'draft')"
                         >{{ sourcePostId ? 'Crear borrador nuevo' : 'Crear borrador' }}</button

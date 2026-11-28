@@ -84,16 +84,16 @@ const run = async () => {
         data-testid="batch-bar"
     >
         <div class="flex flex-wrap items-end gap-3 text-sm">
-            <p class="font-medium text-slate-800" data-testid="batch-count">{{ selected.length }} seleccionadas</p>
+            <p class="font-medium text-foreground" data-testid="batch-count">{{ selected.length }} seleccionadas</p>
             <div>
-                <label for="batch-action" class="block text-xs font-medium text-slate-700">Acción</label>
+                <label for="batch-action" class="block text-xs font-medium text-foreground-secondary">Acción</label>
                 <select id="batch-action" v-model="action" class="field w-auto py-1.5" data-testid="batch-action">
                     <option v-for="a in ACTIONS" :key="a[0]" :value="a[0]">{{ a[1] }}</option>
                 </select>
             </div>
             <template v-if="action === 'reschedule'">
                 <div>
-                    <label for="batch-days" class="block text-xs font-medium text-slate-700">Días</label>
+                    <label for="batch-days" class="block text-xs font-medium text-foreground-secondary">Días</label>
                     <input
                         id="batch-days"
                         v-model="shiftDays"
@@ -105,7 +105,7 @@ const run = async () => {
                     />
                 </div>
                 <div>
-                    <label for="batch-hours" class="block text-xs font-medium text-slate-700">Horas</label>
+                    <label for="batch-hours" class="block text-xs font-medium text-foreground-secondary">Horas</label>
                     <input
                         id="batch-hours"
                         v-model="shiftHours"
@@ -118,7 +118,7 @@ const run = async () => {
                 </div>
             </template>
             <div v-if="action === 'reject'">
-                <label for="batch-comment" class="block text-xs font-medium text-slate-700">Motivo</label>
+                <label for="batch-comment" class="block text-xs font-medium text-foreground-secondary">Motivo</label>
                 <input
                     id="batch-comment"
                     v-model="comment"
@@ -140,9 +140,9 @@ const run = async () => {
                 >Limpiar selección</button
             >
         </div>
-        <p v-if="error" class="text-sm text-red-700" role="alert" data-testid="batch-error">{{ error }}</p>
+        <p v-if="error" class="text-sm text-danger" role="alert" data-testid="batch-error">{{ error }}</p>
         <div v-if="result" role="status" data-testid="batch-result">
-            <p class="text-sm font-medium text-slate-900">
+            <p class="text-sm font-medium text-foreground-strong">
                 {{ result.ok }} correctas, {{ result.failed }} con error<span v-if="result.replayed">
                     (respuesta repetida, no se ha vuelto a ejecutar)</span
                 >.
@@ -151,7 +151,7 @@ const run = async () => {
                 <li
                     v-for="r in result.results"
                     :key="r.post_id"
-                    :class="r.ok ? 'text-emerald-800' : 'text-red-700'"
+                    :class="r.ok ? 'text-success-ink' : 'text-danger'"
                     :data-testid="`batch-item-${r.post_id}`"
                 >
                     <span class="font-medium">{{ r.ok ? 'OK' : 'Error' }}</span> ·

@@ -58,7 +58,7 @@ const hasOptions = (account) => {
             <template #icon><NetworkIcon :network="account.network" size="md" /></template>
             <label
                 v-if="targetFor(account.id).content_type === 'instagram_reel'"
-                class="composer-setting-row rounded-xl border border-slate-200/80 px-3 py-3"
+                class="composer-setting-row rounded-xl border border-border/80 px-3 py-3"
             >
                 <span>Compartir también en el feed</span>
                 <input
@@ -94,7 +94,7 @@ const hasOptions = (account) => {
                     class="field mt-1"
                     @keydown.enter.prevent
                 />
-                <p class="mt-1 text-xs text-slate-600"
+                <p class="mt-1 text-xs text-foreground-muted"
                     >Título del vídeo o Reel, independiente del texto de la publicación.</p
                 >
             </div>
@@ -130,11 +130,11 @@ const hasOptions = (account) => {
                             >Solo mis contactos</option
                         >
                     </select>
-                    <p v-if="account.linkedin?.kind === 'page'" class="mt-1 text-xs text-slate-600"
+                    <p v-if="account.linkedin?.kind === 'page'" class="mt-1 text-xs text-foreground-muted"
                         >Las páginas de empresa publican siempre en abierto.</p
                     >
                 </div>
-                <label class="composer-setting-row rounded-xl border border-slate-200/80 px-3 py-3">
+                <label class="composer-setting-row rounded-xl border border-border/80 px-3 py-3">
                     <span>Impedir que se comparta de nuevo</span>
                     <input
                         type="checkbox"
@@ -219,7 +219,7 @@ const hasOptions = (account) => {
                         <option v-for="v in account.visibilities" :key="v.value" :value="v.value">{{ v.label }}</option>
                     </select>
                 </div>
-                <p v-if="account.limits" class="text-xs text-slate-600">
+                <p v-if="account.limits" class="text-xs text-foreground-muted">
                     Tu instancia admite hasta {{ account.limits.max_chars }} caracteres y
                     {{ account.limits.max_media }} imágenes por publicación.
                 </p>
@@ -256,24 +256,24 @@ const hasOptions = (account) => {
                 </div>
             </div>
             <div v-if="account.network === 'tiktok'" class="space-y-1 text-sm">
-                <p v-if="!account.direct_post" class="text-xs text-slate-600"
+                <p v-if="!account.direct_post" class="text-xs text-foreground-muted"
                     >Se enviará como borrador a tu bandeja de TikTok; lo terminas de publicar en la app.</p
                 >
                 <div v-else class="space-y-2" data-testid="tiktok-direct">
-                    <p v-if="tiktokCreator(account.id).loading" role="status" class="text-xs text-slate-600"
+                    <p v-if="tiktokCreator(account.id).loading" role="status" class="text-xs text-foreground-muted"
                         >Consultando tu cuenta de TikTok…</p
                     >
                     <div v-else-if="tiktokCreator(account.id).error" class="space-y-1">
-                        <p role="alert" class="text-xs text-red-700">{{ tiktokCreator(account.id).error }}</p>
+                        <p role="alert" class="text-xs text-danger">{{ tiktokCreator(account.id).error }}</p>
                         <button
                             type="button"
-                            class="text-sm text-indigo-700 underline"
+                            class="text-sm text-accent-strong underline"
                             @click="loadTiktokCreator(brand.id, account.id, true)"
                             >Reintentar consulta de TikTok</button
                         >
                     </div>
                     <template v-else-if="tiktokCreator(account.id).data">
-                        <p class="flex items-center gap-2 text-sm text-slate-800" data-testid="tiktok-creator">
+                        <p class="flex items-center gap-2 text-sm text-foreground" data-testid="tiktok-creator">
                             <img
                                 loading="lazy"
                                 v-if="tiktokCreator(account.id).data.avatar_url"
@@ -310,7 +310,7 @@ const hasOptions = (account) => {
                         </div>
                         <p
                             v-if="tiktokCreator(account.id).data.max_video_post_duration_sec"
-                            class="text-xs text-slate-600"
+                            class="text-xs text-foreground-muted"
                         >
                             Duración máxima en esta cuenta:
                             {{ tiktokCreator(account.id).data.max_video_post_duration_sec }} s.
@@ -331,7 +331,7 @@ const hasOptions = (account) => {
             <ManualToggle :account="account" />
             <p
                 v-if="targetFor(account.id).content_type !== 'instagram_reel' && account.audio?.embedded_video_types?.includes(targetFor(account.id).content_type)"
-                class="rounded-xl bg-slate-50 px-3 py-3 text-xs leading-relaxed text-slate-600"
+                class="rounded-xl bg-canvas px-3 py-3 text-xs leading-relaxed text-foreground-muted"
                 data-testid="network-audio-note"
                 >{{ account.audio.note }}</p
             >

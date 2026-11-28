@@ -41,7 +41,9 @@ const { busy, notice, error, suggest } = useBestTimeSuggestion(() => ({
     <div class="min-w-0 max-w-full" data-testid="best-time-suggestion">
         <div class="flex flex-wrap items-end gap-2">
             <div v-if="networks.length > 1 || requireNetworkChoice" class="min-w-0 max-w-full">
-                <label :for="id" class="block text-xs font-medium text-slate-700">Red para la mejor hora</label>
+                <label :for="id" class="block text-xs font-medium text-foreground-secondary"
+                    >Red para la mejor hora</label
+                >
                 <select :id="id" v-model="network" class="field w-auto" :disabled="disabled">
                     <option v-if="requireNetworkChoice" value="" disabled>Elige una red</option>
                     <option
@@ -62,11 +64,13 @@ const { busy, notice, error, suggest } = useBestTimeSuggestion(() => ({
                 {{ busy ? 'Consultando…' : 'Mejor hora' }}
             </button>
         </div>
-        <p v-if="!networks.length" class="mt-1 text-xs text-slate-600">Selecciona una red con cuentas disponibles.</p>
-        <p v-else-if="requireNetworkChoice && !network" class="mt-1 text-xs text-slate-600"
+        <p v-if="!networks.length" class="mt-1 text-xs text-foreground-muted"
+            >Selecciona una red con cuentas disponibles.</p
+        >
+        <p v-else-if="requireNetworkChoice && !network" class="mt-1 text-xs text-foreground-muted"
             >Elige una red para consultar sus métricas.</p
         >
-        <p role="status" aria-atomic="true" class="mt-1 text-sm text-slate-600">{{ notice }}</p>
-        <p v-if="error" role="alert" class="mt-1 text-sm text-rose-700">{{ error }}</p>
+        <p role="status" aria-atomic="true" class="mt-1 text-sm text-foreground-muted">{{ notice }}</p>
+        <p v-if="error" role="alert" class="mt-1 text-sm text-danger">{{ error }}</p>
     </div>
 </template>

@@ -26,10 +26,10 @@ function create() {
         @update:model-value="value => { if (!busy) emit('update:modelValue', value); }"
     >
         <form class="space-y-5" @submit.prevent="create">
-            <p class="text-sm leading-relaxed text-slate-500"
+            <p class="text-sm leading-relaxed text-foreground-subtle"
                 >Crea un diseño independiente a partir de
-                <strong class="break-words font-medium text-slate-700">{{ template?.name }}</strong>. La plantilla
-                conserva su contenido.</p
+                <strong class="break-words font-medium text-foreground-secondary">{{ template?.name }}</strong>. La
+                plantilla conserva su contenido.</p
             >
             <fieldset class="min-w-0 space-y-5" :disabled="busy">
                 <label class="block text-sm font-medium"
@@ -42,11 +42,11 @@ function create() {
                 /></label>
                 <div
                     v-if="template?.template_fields?.length"
-                    class="space-y-4 rounded-xl border border-violet-100 bg-violet-50/60 p-4"
+                    class="space-y-4 rounded-xl border border-accent-secondary-marker bg-accent-secondary-soft/60 p-4"
                 >
                     <div
-                        ><h3 class="text-sm font-semibold text-violet-950">Contenido de la plantilla</h3
-                        ><p class="mt-1 text-xs leading-relaxed text-violet-800"
+                        ><h3 class="text-sm font-semibold text-accent-secondary-ink">Contenido de la plantilla</h3
+                        ><p class="mt-1 text-xs leading-relaxed text-accent-secondary-ink"
                             >Sustituye los campos por tu contenido. Puedes dejarlos vacíos; se conservan los espacios y
                             saltos de línea.</p
                         ></div
@@ -73,20 +73,21 @@ function create() {
                         class="mt-0.5"
                         aria-label="Aplicar identidad de marca"
                     /><span
-                        >Aplicar identidad de marca<span class="mt-1 block text-xs leading-relaxed text-slate-500"
+                        >Aplicar identidad de marca<span
+                            class="mt-1 block text-xs leading-relaxed text-foreground-subtle"
                             >Actualiza los colores, las tipografías y los logotipos vinculados al kit de esta
                             marca.</span
                         ></span
                     ></label
                 >
             </fieldset>
-            <p v-if="error" role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-800">{{ error }}</p>
-            <div class="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4"
+            <p v-if="error" role="alert" class="rounded-xl bg-danger-soft p-3 text-sm text-danger-ink">{{ error }}</p>
+            <div class="flex flex-wrap justify-end gap-2 border-t border-border-subtle pt-4"
                 ><button type="button" class="btn-secondary" :disabled="busy" @click="emit('update:modelValue', false)"
                     >Cancelar</button
                 ><button
                     type="submit"
-                    class="btn-primary bg-violet-700"
+                    class="btn-secondary-accent"
                     :disabled="busy || !name.trim()"
                     >{{ busy ? 'Creando…' : 'Crear diseño' }}</button
                 ></div

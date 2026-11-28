@@ -11,15 +11,15 @@ const props = defineProps({
 });
 
 const networks = useNetworks();
-const bg = computed(() => props.color ?? networks.color(props.network));
+const brandColor = computed(() => props.color ?? networks.find(props.network)?.color);
 const dim = computed(() => ({ sm: 'h-5 w-5', md: 'h-7 w-7', lg: 'h-10 w-10' })[props.size] ?? 'h-7 w-7');
 </script>
 
 <template>
     <span
-        class="inline-flex shrink-0 items-center justify-center rounded-lg text-white"
-        :class="dim"
-        :style="{ backgroundColor: bg }"
+        class="inline-flex shrink-0 items-center justify-center rounded-lg"
+        :class="[dim, brandColor ? 'text-white' : 'bg-accent-fill text-on-accent']"
+        :style="{ backgroundColor: brandColor }"
         aria-hidden="true"
     >
         <svg

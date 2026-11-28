@@ -5,6 +5,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
 ## [Sin publicar]
 
+### Changed — modo oscuro en las páginas y el Estudio (audit-hardening, T-98)
+
+- El tema elegido se aplica a las páginas sociales, los gráficos de analítica y los controles del Estudio. Los diseños conservan sus colores en el lienzo, las vistas previas y las exportaciones.
+
 ### Added — tema claro, oscuro o del sistema (audit-hardening, T-97)
 
 - Elige el tema en Perfil → Apariencia. La cuenta conserva tu elección y la navegación, los diálogos, los avisos y los controles comunes adoptan la paleta.

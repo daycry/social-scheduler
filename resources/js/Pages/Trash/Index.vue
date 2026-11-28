@@ -29,7 +29,7 @@ const date = createZonedDateFormatter({ day: 'numeric', month: 'numeric', year: 
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="text-xl font-bold text-slate-900">Papelera de publicaciones</h1>
+            <h1 class="text-xl font-bold text-foreground-strong">Papelera de publicaciones</h1>
         </template>
 
         <div class="space-y-5">
@@ -49,7 +49,7 @@ const date = createZonedDateFormatter({ day: 'numeric', month: 'numeric', year: 
             </FeatureEmpty>
 
             <section v-else class="card">
-                <h2 class="border-b px-5 py-3 text-sm font-medium text-slate-700"
+                <h2 class="border-b px-5 py-3 text-sm font-medium text-foreground-secondary"
                     >Se eliminan para siempre a los {{ retention_days }} días</h2
                 >
                 <ul class="divide-y">
@@ -59,10 +59,10 @@ const date = createZonedDateFormatter({ day: 'numeric', month: 'numeric', year: 
                         class="flex flex-wrap items-start justify-between gap-3 px-5 py-3 text-sm"
                     >
                         <div class="min-w-0">
-                            <p class="line-clamp-2 font-medium text-slate-900">{{ p.text || '(sin texto)' }}</p>
+                            <p class="line-clamp-2 font-medium text-foreground-strong">{{ p.text || '(sin texto)' }}</p>
                             <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
                                 <NetworkChip v-for="n in p.networks" :key="n" :network="n" />
-                                <span class="text-xs text-slate-500"
+                                <span class="text-xs text-foreground-subtle"
                                     >{{ p.brand }} · borrada el {{ date(p.deleted_at, p.timezone) }} · quedan
                                     {{ p.days_left }} días</span
                                 >
@@ -70,7 +70,7 @@ const date = createZonedDateFormatter({ day: 'numeric', month: 'numeric', year: 
                         </div>
                         <div class="flex items-center gap-3">
                             <button type="button" class="btn btn-secondary" @click="restore(p)">Restaurar</button>
-                            <button type="button" class="text-xs font-medium text-red-700 underline" @click="destroy(p)"
+                            <button type="button" class="text-xs font-medium text-danger underline" @click="destroy(p)"
                                 >Eliminar para siempre</button
                             >
                         </div>

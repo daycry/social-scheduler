@@ -15,12 +15,12 @@ const emit = defineEmits(['confirm', 'cancel']);
         role="alertdialog"
         aria-labelledby="publish-now-title"
         aria-describedby="publish-now-desc"
-        class="m-auto w-[calc(100vw_-_2rem)] max-w-md rounded-lg border-0 bg-white p-5 shadow-xl backdrop:bg-slate-900/50"
+        class="m-auto w-[calc(100vw_-_2rem)] max-w-md rounded-lg border-0 bg-surface p-5 shadow-xl backdrop:bg-overlay-strong/50"
         data-testid="publish-now-confirm"
         @close="emit('cancel')"
     >
-        <h2 id="publish-now-title" class="text-lg font-semibold text-slate-900">¿Publicar ahora?</h2>
-        <p id="publish-now-desc" class="mt-2 break-words text-sm text-slate-700">
+        <h2 id="publish-now-title" class="text-lg font-semibold text-foreground-strong">¿Publicar ahora?</h2>
+        <p id="publish-now-desc" class="mt-2 break-words text-sm text-foreground-secondary">
             «{{ item.text || 'Sin texto' }}» se enviará en unos segundos a
             {{ item.targets.map((t) => t.network_label).join(', ') }}, sin esperar a su hora programada. No se puede
             deshacer.

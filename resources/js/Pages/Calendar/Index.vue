@@ -137,7 +137,7 @@ const networkOf = (n) => {
 
     return {
         short: catalog.shortLabel(n),
-        style: { backgroundColor: `color-mix(in srgb, ${c} 12%, white)`, color: `color-mix(in srgb, ${c} 60%, black)`, borderColor: `color-mix(in srgb, ${c} 35%, white)` },
+        style: { backgroundColor: `color-mix(in srgb, ${c} 12%, rgb(var(--color-surface)))`, color: `color-mix(in srgb, ${c} 35%, rgb(var(--color-foreground-strong)))`, borderColor: `color-mix(in srgb, ${c} 35%, rgb(var(--color-control-border)))` },
     };
 };
 /** @param {CalendarItem} item */
@@ -154,7 +154,7 @@ const dateLabel = (item) => (item.local_date ? `${item.local_date} ${item.local_
 
 // ---------------------------------------------------------------- aprobación, manual, reintento y lotes (T-19)
 const APPROVAL = { pendiente: 'Pendiente de aprobación', aprobado: 'Aprobado', rechazado: 'Rechazado' };
-const APPROVAL_STYLE = { pendiente: 'bg-amber-50 text-amber-900', aprobado: 'bg-emerald-50 text-emerald-900', rechazado: 'bg-red-50 text-red-900' };
+const APPROVAL_STYLE = { pendiente: 'bg-warning-soft text-warning-ink', aprobado: 'bg-success-soft text-success-ink', rechazado: 'bg-danger-soft text-danger-ink' };
 /** @type {import('vue').Ref<number[]>} */
 const selected = ref([]);
 const allRows = computed(() => [...props.items, ...props.undated]);
@@ -192,7 +192,7 @@ const retry = async (item) => {
     <AuthenticatedLayout>
         <template #header>
             <div class="flex flex-wrap items-center justify-between gap-3">
-                <h1 class="text-xl font-bold text-slate-900">Calendario</h1>
+                <h1 class="text-xl font-bold text-foreground-strong">Calendario</h1>
                 <div class="flex flex-wrap items-center gap-2">
                     <template v-if="createHref">
                         <Link :href="createHref" class="btn-primary">Crear publicación</Link>
@@ -204,7 +204,9 @@ const retry = async (item) => {
                             @apply="createAtBestTime"
                         />
                     </template>
-                    <span v-else class="text-sm text-slate-500">Elige una marca para crear una publicación</span>
+                    <span v-else class="text-sm text-foreground-subtle"
+                        >Elige una marca para crear una publicación</span
+                    >
                 </div>
             </div>
         </template>
@@ -243,7 +245,7 @@ const retry = async (item) => {
 
                     <p
                         v-if="view === 'list' && csvInfo?.truncated"
-                        class="text-sm text-amber-800"
+                        class="text-sm text-warning-ink"
                         role="status"
                         data-testid="export-truncated"
                     >
@@ -253,7 +255,7 @@ const retry = async (item) => {
 
                     <p
                         v-if="retryNotice"
-                        class="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900"
+                        class="rounded-lg border border-info-border bg-info-soft p-3 text-sm text-info-ink"
                         role="status"
                         data-testid="retry-notice"
                         >{{ retryNotice }}</p
@@ -263,22 +265,22 @@ const retry = async (item) => {
                         class="card p-3"
                         aria-labelledby="marketing-dates-title"
                     >
-                        <h2 id="marketing-dates-title" class="text-sm font-semibold text-slate-900"
+                        <h2 id="marketing-dates-title" class="text-sm font-semibold text-foreground-strong"
                             >Fechas señaladas del periodo</h2
                         >
                         <ul class="mt-2 space-y-1 text-sm">
                             <li v-for="m in marketing_dates" :key="m.date + m.name" data-testid="marketing-date">
                                 <span
-                                    class="rounded border border-fuchsia-200 bg-fuchsia-50 px-1 text-xs font-medium text-fuchsia-900"
+                                    class="rounded border border-calendar-event-border bg-calendar-event-soft px-1 text-xs font-medium text-calendar-event-ink"
                                     >{{ m.name }}</span
                                 >
-                                <span class="ml-2 text-slate-600">{{ longDayLabel(m.date) }}</span>
+                                <span class="ml-2 text-foreground-muted">{{ longDayLabel(m.date) }}</span>
                             </li>
                         </ul>
                     </section>
                     <BatchBar v-if="view === 'list'" :selected="selected" :items="allRows" @clear="selected = []" />
 
-                    <p v-if="truncated" class="text-sm text-amber-700"
+                    <p v-if="truncated" class="text-sm text-warning-ink"
                         >Hay muchas publicaciones: se muestran las primeras 500. Filtra por marca o red.</p
                     >
 
@@ -295,25 +297,26 @@ const retry = async (item) => {
                             <div
                                 v-for="d in days"
                                 :key="d"
-                                class="border-b border-l border-slate-200 p-2 text-center text-xs font-medium"
-                                :class="d === today ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600'"
+                                class="border-b border-l border-border p-2 text-center text-xs font-medium"
+                                :class="d === today ? 'bg-accent-soft text-accent-strong' : 'text-foreground-muted'"
                                 >{{ weekdayLabel(d) }}
                                 <span
                                     v-for="m in marketingAt(d)"
                                     :key="m.name"
-                                    class="mt-1 block rounded border border-fuchsia-200 bg-fuchsia-50 px-1 text-[11px] font-medium text-fuchsia-900"
+                                    class="mt-1 block rounded border border-calendar-event-border bg-calendar-event-soft px-1 text-[11px] font-medium text-calendar-event-ink"
                                     data-testid="marketing-date"
                                     ><span class="sr-only">Fecha señalada: </span>{{ m.name }}</span
                                 ></div
                             >
                             <template v-for="h in hours" :key="h">
-                                <div class="border-b border-slate-100 pr-1 text-right text-[10px] text-slate-500"
+                                <div
+                                    class="border-b border-border-subtle pr-1 text-right text-[10px] text-foreground-subtle"
                                     >{{ pad(h) }}:00</div
                                 >
                                 <div
                                     v-for="d in days"
                                     :key="`${d}-${h}`"
-                                    class="min-h-[2.25rem] space-y-1 border-b border-l border-slate-100 p-0.5"
+                                    class="min-h-[2.25rem] space-y-1 border-b border-l border-border-subtle p-0.5"
                                     @dragover.prevent
                                     @drop.prevent="drop(d, h)"
                                 >
@@ -322,12 +325,12 @@ const retry = async (item) => {
                                         :key="item.id"
                                         :draggable="item.editable"
                                         class="rounded border p-1 text-xs shadow-sm"
-                                        :class="item.editable ? 'cursor-move bg-white' : 'bg-slate-50'"
+                                        :class="item.editable ? 'cursor-move bg-surface' : 'bg-canvas'"
                                         @dragstart="dragStart(item, $event)"
                                     >
                                         <Link :href="route('posts.edit', item.id)" class="block">
                                             <span class="flex flex-wrap items-center gap-1">
-                                                <span class="text-slate-600">{{ item.local_time }}</span>
+                                                <span class="text-foreground-muted">{{ item.local_time }}</span>
                                                 <span
                                                     v-for="t in item.targets"
                                                     :key="t.network + t.content_type + t.account_name"
@@ -346,33 +349,33 @@ const retry = async (item) => {
                                                 >
                                                 <span
                                                     v-if="item.series_id"
-                                                    class="rounded bg-indigo-50 px-1 text-[11px] font-medium text-indigo-900"
+                                                    class="rounded bg-accent-soft px-1 text-[11px] font-medium text-accent-strong"
                                                     data-testid="series-badge"
                                                     >Serie</span
                                                 >
                                                 <span
                                                     v-if="item.manual_pending"
-                                                    class="rounded bg-slate-100 px-1 text-[11px] text-slate-800"
+                                                    class="rounded bg-surface-hover px-1 text-[11px] text-foreground"
                                                     data-testid="manual-badge"
                                                     >Manual: toca publicar</span
                                                 >
                                                 <span
                                                     v-if="item.has_notes"
-                                                    class="rounded bg-amber-100 px-1 text-[11px] text-amber-900"
+                                                    class="rounded bg-warning-soft px-1 text-[11px] text-warning-ink"
                                                     data-testid="notes-indicator"
                                                     title="Esta publicación tiene notas internas"
                                                     ><span aria-hidden="true">📝 </span>Nota</span
                                                 >
                                             </span>
                                             <span
-                                                class="line-clamp-2 text-slate-800"
+                                                class="line-clamp-2 text-foreground"
                                                 >{{ item.text || 'Sin texto' }}</span
                                             >
                                         </Link>
                                         <span
                                             v-if="sending.has(item.id)"
                                             role="status"
-                                            class="mt-0.5 block text-[11px] font-medium text-indigo-700"
+                                            class="mt-0.5 block text-[11px] font-medium text-accent-strong"
                                             >Enviando…</span
                                         >
                                         <button
@@ -392,7 +395,7 @@ const retry = async (item) => {
                     <!-- MES -->
                     <div v-else-if="view === 'month'" class="card relative overflow-hidden">
                         <div
-                            class="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-center text-xs font-medium text-slate-600"
+                            class="grid grid-cols-7 border-b border-border bg-canvas text-center text-xs font-medium text-foreground-muted"
                         >
                             <div
                                 v-for="w in ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']"
@@ -405,20 +408,20 @@ const retry = async (item) => {
                             <div
                                 v-for="d in days"
                                 :key="d"
-                                class="min-h-[6.5rem] space-y-1 border-b border-l border-slate-100 p-1"
-                                :class="d.slice(0, 7) === monthOf ? '' : 'bg-slate-50 text-slate-500'"
+                                class="min-h-[6.5rem] space-y-1 border-b border-l border-border-subtle p-1"
+                                :class="d.slice(0, 7) === monthOf ? '' : 'bg-canvas text-foreground-subtle'"
                                 @dragover.prevent
                                 @drop.prevent="drop(d)"
                             >
                                 <div
                                     class="text-xs"
-                                    :class="d === today ? 'font-bold text-indigo-700' : ''"
+                                    :class="d === today ? 'font-bold text-accent-strong' : ''"
                                     >{{ Number(d.slice(8)) }}</div
                                 >
                                 <p
                                     v-for="m in marketingAt(d)"
                                     :key="m.name"
-                                    class="rounded border border-fuchsia-200 bg-fuchsia-50 px-1 text-[11px] font-medium text-fuchsia-900"
+                                    class="rounded border border-calendar-event-border bg-calendar-event-soft px-1 text-[11px] font-medium text-calendar-event-ink"
                                     data-testid="marketing-date"
                                     ><span class="sr-only">Fecha señalada: </span>{{ m.name }}</p
                                 >
@@ -427,15 +430,15 @@ const retry = async (item) => {
                                     :key="item.id"
                                     :draggable="item.editable"
                                     class="rounded border p-1 text-xs shadow-sm"
-                                    :class="item.editable ? 'cursor-move bg-white' : 'bg-slate-50'"
+                                    :class="item.editable ? 'cursor-move bg-surface' : 'bg-canvas'"
                                     @dragstart="dragStart(item, $event)"
                                 >
                                     <Link :href="route('posts.edit', item.id)" class="block">
                                         <span class="flex flex-wrap items-center gap-1">
-                                            <span class="text-slate-500">{{ item.local_time }}</span>
+                                            <span class="text-foreground-subtle">{{ item.local_time }}</span>
                                             <span
                                                 v-if="item.series_id"
-                                                class="rounded bg-indigo-50 px-1 text-[11px] font-medium text-indigo-900"
+                                                class="rounded bg-accent-soft px-1 text-[11px] font-medium text-accent-strong"
                                                 data-testid="series-badge"
                                                 >Serie</span
                                             >
@@ -448,7 +451,7 @@ const retry = async (item) => {
                                             >
                                             <span
                                                 v-if="item.manual_pending"
-                                                class="rounded bg-slate-100 px-1 text-[11px] text-slate-800"
+                                                class="rounded bg-surface-hover px-1 text-[11px] text-foreground"
                                                 data-testid="manual-badge"
                                                 >Manual</span
                                             >
@@ -462,18 +465,18 @@ const retry = async (item) => {
                                             >
                                             <span
                                                 v-if="item.has_notes"
-                                                class="rounded bg-amber-100 px-1 text-[11px] text-amber-900"
+                                                class="rounded bg-warning-soft px-1 text-[11px] text-warning-ink"
                                                 data-testid="notes-indicator"
                                                 title="Esta publicación tiene notas internas"
                                                 ><span aria-hidden="true">📝 </span>Nota</span
                                             >
                                         </span>
-                                        <span class="line-clamp-1 text-slate-800">{{ item.text || 'Sin texto' }}</span>
+                                        <span class="line-clamp-1 text-foreground">{{ item.text || 'Sin texto' }}</span>
                                     </Link>
                                     <span
                                         v-if="sending.has(item.id)"
                                         role="status"
-                                        class="block text-[11px] font-medium text-indigo-700"
+                                        class="block text-[11px] font-medium text-accent-strong"
                                         >Enviando…</span
                                     >
                                     <button
@@ -497,13 +500,13 @@ const retry = async (item) => {
                         role="region"
                         aria-label="Lista de publicaciones"
                     >
-                        <table class="min-w-full divide-y divide-slate-200 text-sm">
-                            <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                        <table class="min-w-full divide-y divide-border text-sm">
+                            <thead class="bg-canvas text-left text-xs uppercase text-foreground-subtle">
                                 <tr>
                                     <th class="px-3 py-2">
                                         <input
                                             type="checkbox"
-                                            class="h-4 w-4 rounded border-slate-400 text-indigo-600"
+                                            class="h-4 w-4 rounded border-control-border text-accent"
                                             aria-label="Seleccionar todas las publicaciones"
                                             :checked="allSelected"
                                             data-testid="select-all"
@@ -517,9 +520,9 @@ const retry = async (item) => {
                                     <th class="px-3 py-2"></th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-slate-100">
+                            <tbody class="divide-y divide-border-subtle">
                                 <tr v-if="items.length === 0 && undated.length === 0">
-                                    <td colspan="6" class="px-3 py-6 text-center text-slate-500"
+                                    <td colspan="6" class="px-3 py-6 text-center text-foreground-subtle"
                                         >No hay publicaciones en este periodo.</td
                                     >
                                 </tr>
@@ -534,7 +537,7 @@ const retry = async (item) => {
                                             v-model="selected"
                                             type="checkbox"
                                             :value="item.id"
-                                            class="h-4 w-4 rounded border-slate-400 text-indigo-600"
+                                            class="h-4 w-4 rounded border-control-border text-accent"
                                             :aria-label="`Seleccionar la publicación ${item.id}`"
                                             :data-testid="`select-${item.id}`"
                                         />
@@ -550,16 +553,16 @@ const retry = async (item) => {
                                             />
                                         </template>
                                         <template v-else>{{ dateLabel(item) }}</template>
-                                        <div class="text-xs text-slate-500">{{ item.brand_name }}</div>
+                                        <div class="text-xs text-foreground-subtle">{{ item.brand_name }}</div>
                                     </td>
                                     <td class="max-w-xs px-3 py-2"
                                         ><Link
                                             :href="route('posts.edit', item.id)"
-                                            class="text-slate-900 hover:underline"
+                                            class="text-foreground-strong hover:underline"
                                             >{{ item.text || 'Sin texto' }}</Link
                                         >&#32;<span
                                             v-if="item.has_notes"
-                                            class="rounded bg-amber-100 px-1 text-[11px] text-amber-900"
+                                            class="rounded bg-warning-soft px-1 text-[11px] text-warning-ink"
                                             data-testid="notes-indicator"
                                             title="Esta publicación tiene notas internas"
                                             ><span aria-hidden="true">📝 </span>Nota</span
@@ -590,7 +593,7 @@ const retry = async (item) => {
                                             >
                                             <span
                                                 v-if="item.series_id"
-                                                class="rounded bg-indigo-50 px-1.5 py-0.5 text-[11px] font-medium text-indigo-900"
+                                                class="rounded bg-accent-soft px-1.5 py-0.5 text-[11px] font-medium text-accent-strong"
                                                 data-testid="series-badge"
                                                 >Serie</span
                                             >
@@ -605,7 +608,7 @@ const retry = async (item) => {
                                                 <StatusBadge class="ml-1" :status="t.status" :label="t.status_label" />
                                                 <span
                                                     v-if="t.manual"
-                                                    class="ml-1 rounded bg-slate-100 px-1 text-[11px] text-slate-800"
+                                                    class="ml-1 rounded bg-surface-hover px-1 text-[11px] text-foreground"
                                                     data-testid="manual-badge"
                                                     >{{ t.manual_pending ? 'Manual: toca publicar' : 'Manual' }}</span
                                                 >
@@ -619,16 +622,16 @@ const retry = async (item) => {
                                                 >
                                                 <span
                                                     v-if="t.status_note"
-                                                    class="block text-amber-700"
+                                                    class="block text-warning-ink"
                                                     >{{ t.status_note }}</span
                                                 >
                                                 <span
                                                     v-if="t.error_message"
-                                                    class="block text-red-600"
+                                                    class="block text-danger"
                                                     >{{ t.error_message }}</span
                                                 >
                                             </li>
-                                            <li v-if="item.targets.length === 0" class="text-xs text-slate-500"
+                                            <li v-if="item.targets.length === 0" class="text-xs text-foreground-subtle"
                                                 >Sin destinos</li
                                             >
                                         </ul>
@@ -642,7 +645,7 @@ const retry = async (item) => {
                                         <span
                                             v-if="sending.has(item.id)"
                                             role="status"
-                                            class="ms-3 text-xs font-medium text-indigo-700"
+                                            class="ms-3 text-xs font-medium text-accent-strong"
                                             >Enviando…</span
                                         >
                                         <button
@@ -665,7 +668,7 @@ const retry = async (item) => {
                                         >
                                         <span
                                             v-if="item.retry_blocked"
-                                            class="ms-3 text-xs text-amber-700"
+                                            class="ms-3 text-xs text-warning-ink"
                                             data-testid="retry-blocked"
                                             >{{ item.retry_blocked }}</span
                                         >

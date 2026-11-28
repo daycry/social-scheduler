@@ -63,16 +63,19 @@ const remove = async (t) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <h1 class="text-xl font-bold text-slate-900">Textos guardados</h1>
+            <h1 class="text-xl font-bold text-foreground-strong">Textos guardados</h1>
         </template>
 
         <div class="space-y-5">
             <form class="card space-y-3 p-5" data-testid="saved-text-form" @submit.prevent="submit">
-                <h2 class="text-sm font-medium text-slate-700">{{ editing ? 'Editar texto' : 'Nuevo texto' }}</h2>
+                <h2
+                    class="text-sm font-medium text-foreground-secondary"
+                    >{{ editing ? 'Editar texto' : 'Nuevo texto' }}</h2
+                >
                 <div class="grid gap-3 sm:grid-cols-3">
                     <FormField :error="form.errors.kind" v-slot="{ control }">
                         <label class="block text-sm">
-                            <span class="block text-xs font-medium text-slate-600">Tipo</span>
+                            <span class="block text-xs font-medium text-foreground-muted">Tipo</span>
                             <select v-bind="control" v-model="form.kind" class="field">
                                 <option v-for="(label, key) in kinds" :key="key" :value="key">{{ label }}</option>
                             </select>
@@ -80,7 +83,7 @@ const remove = async (t) => {
                     </FormField>
                     <FormField :error="form.errors.brand_id" v-slot="{ control }">
                         <label class="block text-sm">
-                            <span class="block text-xs font-medium text-slate-600">Marca</span>
+                            <span class="block text-xs font-medium text-foreground-muted">Marca</span>
                             <select
                                 v-bind="control"
                                 v-model="form.brand_id"
@@ -94,7 +97,7 @@ const remove = async (t) => {
                     </FormField>
                     <FormField :error="form.errors.title" v-slot="{ control }">
                         <label class="block text-sm">
-                            <span class="block text-xs font-medium text-slate-600">Título</span>
+                            <span class="block text-xs font-medium text-foreground-muted">Título</span>
                             <input
                                 v-bind="control"
                                 v-model="form.title"
@@ -108,7 +111,7 @@ const remove = async (t) => {
                 </div>
                 <FormField :error="form.errors.body" v-slot="{ control }">
                     <label class="block text-sm">
-                        <span class="block text-xs font-medium text-slate-600">Texto</span>
+                        <span class="block text-xs font-medium text-foreground-muted">Texto</span>
                         <textarea
                             v-bind="control"
                             v-model="form.body"
@@ -130,7 +133,7 @@ const remove = async (t) => {
 
             <section class="card">
                 <div class="flex flex-wrap items-end gap-3 border-b px-5 py-3">
-                    <h2 class="mr-auto text-sm font-medium text-slate-700">Mis textos</h2>
+                    <h2 class="mr-auto text-sm font-medium text-foreground-secondary">Mis textos</h2>
                     <label class="block text-sm">
                         <span class="sr-only">Buscar</span>
                         <input v-model="search" type="search" placeholder="Buscar…" class="field" />
@@ -144,11 +147,11 @@ const remove = async (t) => {
                         </select>
                     </label>
                 </div>
-                <p v-if="texts.length === 0" class="p-5 text-sm text-slate-600"
+                <p v-if="texts.length === 0" class="p-5 text-sm text-foreground-muted"
                     >Aún no tienes textos guardados. Crea uno arriba: firmas, llamadas a la acción o grupos de
                     hashtags.</p
                 >
-                <p v-else-if="visible.length === 0" class="p-5 text-sm text-slate-600"
+                <p v-else-if="visible.length === 0" class="p-5 text-sm text-foreground-muted"
                     >Ningún texto coincide con el filtro.</p
                 >
                 <ul v-else class="divide-y">
@@ -159,9 +162,9 @@ const remove = async (t) => {
                         data-testid="saved-text-row"
                     >
                         <div class="min-w-0">
-                            <p class="font-medium text-slate-900">{{ t.title }}</p>
-                            <p class="whitespace-pre-line break-words text-slate-600">{{ t.body }}</p>
-                            <p class="mt-1 text-xs text-slate-500"
+                            <p class="font-medium text-foreground-strong">{{ t.title }}</p>
+                            <p class="whitespace-pre-line break-words text-foreground-muted">{{ t.body }}</p>
+                            <p class="mt-1 text-xs text-foreground-subtle"
                                 >{{ kinds[t.kind] }} · {{ t.brand ?? 'Todas las marcas' }}</p
                             >
                         </div>
@@ -175,7 +178,7 @@ const remove = async (t) => {
                             >
                             <button
                                 type="button"
-                                class="text-xs font-medium text-red-700 underline"
+                                class="text-xs font-medium text-danger underline"
                                 :aria-label="`Eliminar ${t.title}`"
                                 @click="remove(t)"
                                 >Eliminar</button
